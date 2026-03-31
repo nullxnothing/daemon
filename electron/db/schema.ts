@@ -198,6 +198,18 @@ CREATE TABLE IF NOT EXISTS wallets (
   is_default INTEGER DEFAULT 0,
   created_at INTEGER DEFAULT (unixepoch())
 );
+`;
+
+export const SCHEMA_V6 = `
+CREATE TABLE IF NOT EXISTS error_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  operation TEXT NOT NULL,
+  category TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  message TEXT NOT NULL,
+  context TEXT,
+  created_at INTEGER DEFAULT (unixepoch())
+);
 
 CREATE TABLE IF NOT EXISTS portfolio_snapshots (
   id TEXT PRIMARY KEY,
@@ -207,9 +219,9 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
   tokens TEXT,
   snapshot_at INTEGER DEFAULT (unixepoch())
 );
-`
 
-export const SCHEMA_V6 = `
+CREATE INDEX IF NOT EXISTS idx_error_logs_operation ON error_logs(operation);
+CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON error_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_wallet ON portfolio_snapshots(wallet_id, snapshot_at);
 CREATE INDEX IF NOT EXISTS idx_active_sessions_project ON active_sessions(project_id);
 CREATE INDEX IF NOT EXISTS idx_active_sessions_agent ON active_sessions(agent_id);
@@ -224,4 +236,28 @@ CREATE TABLE IF NOT EXISTS plugins (
   config TEXT DEFAULT '{}',
   updated_at INTEGER DEFAULT (unixepoch())
 );
+`
+
+export const SCHEMA_V8 = `
+CREATE TABLE IF NOT EXISTS tools (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT DEFAULT 'general',
+  language TEXT DEFAULT 'typescript',
+  entrypoint TEXT NOT NULL,
+  tool_path TEXT NOT NULL,
+  icon TEXT DEFAULT 'wrench',
+  version TEXT DEFAULT '1.0.0',
+  author TEXT,
+  tags TEXT DEFAULT '[]',
+  config TEXT DEFAULT '{}',
+  last_run_at INTEGER,
+  run_count INTEGER DEFAULT 0,
+  enabled INTEGER DEFAULT 1,
+  sort_order INTEGER DEFAULT 0,
+  created_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE INDEX IF NOT EXISTS idx_tools_category ON tools(category);
 `

@@ -38,6 +38,8 @@ interface RunPromptOpts {
   effort?: string
   maxTokens?: number
   cwd?: string
+  timeoutMs?: number
+  allowApiFallback?: boolean
 }
 
 // --- Path Resolution (single implementation) ---
@@ -190,28 +192,36 @@ export function getClaudePath(): string {
 // --- One-Shot Prompt Execution ---
 
 export async function runPrompt(opts: RunPromptOpts): Promise<string> {
-  const { prompt, systemPrompt, model = 'haiku', effort = 'low', maxTokens, cwd } = opts
+  const {
+    prompt,
+    systemPrompt,
+    model = 'haiku',
+    effort = 'low',
+    maxTokens,
+    cwd,
+    timeoutMs,
+    allowApiFallback = false,
+  } = opts
   const conn = getConnection() ?? await verifyConnection()
 
-  // Prefer API when available — faster, no CLI overhead
-  if (conn.hasApiKey) {
+  // Prefer CLI when authenticated — DAEMON's primary integrated path
+  if (conn.isAuthenticated || conn.authMode === 'cli' || conn.authMode === 'both') {
     try {
-      return await runPromptViaApi(prompt, systemPrompt, model, maxTokens)
+      return await runPromptViaCli(prompt, systemPrompt, model, effort, cwd, timeoutMs)
     } catch (err) {
-      // If API fails with auth error, fall back to CLI
-      const msg = (err as Error).message ?? ''
-      if (!conn.isAuthenticated || !msg.includes('auth')) {
+      // Fall through to API fallback when CLI execution fails and API is available
+      if (!conn.hasApiKey || !allowApiFallback || process.env.DAEMON_ENABLE_ANTHROPIC_FALLBACK !== '1') {
         throw err
       }
     }
   }
 
-  // Fall back to CLI
-  if (conn.isAuthenticated || conn.authMode !== 'none') {
-    return await runPromptViaCli(prompt, systemPrompt, model, effort, cwd)
+  // API fallback (optional)
+  if (conn.hasApiKey && allowApiFallback && process.env.DAEMON_ENABLE_ANTHROPIC_FALLBACK === '1') {
+    return await runPromptViaApi(prompt, systemPrompt, model, maxTokens)
   }
 
-  throw new Error('No Claude authentication available. Configure an API key or sign in to Claude CLI.')
+  throw new Error('No Claude CLI authentication available. Sign in to Claude CLI to continue.')
 }
 
 async function runPromptViaApi(
@@ -248,6 +258,7 @@ async function runPromptViaCli(
   model: string,
   effort: string,
   cwd?: string,
+  timeoutMs?: number,
 ): Promise<string> {
   const claudePath = getClaudePath()
 
@@ -270,7 +281,7 @@ async function runPromptViaCli(
   }
 
   try {
-    return await runCliCommand(claudePath, args, cwd ?? os.homedir(), 60000)
+    return await runCliCommand(claudePath, args, cwd ?? os.tmpdir(), timeoutMs ?? 60000)
   } finally {
     if (systemPromptFile) {
       try { fs.unlinkSync(systemPromptFile) } catch {}
@@ -364,12 +375,20 @@ function resolveModelName(shorthand: string): string {
   return modelMap[shorthand] ?? shorthand
 }
 
+function buildSubscriptionEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env }
+  // Remove API key so CLI uses subscription OAuth instead of pay-per-token billing
+  delete env.ANTHROPIC_API_KEY
+  delete env.ANTHROPIC_AUTH_TOKEN
+  return env
+}
+
 function runCliCommand(command: string, args: string[], cwd: string, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
+      env: buildSubscriptionEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
-      timeout,
     })
 
     // Close stdin immediately — prevents "no stdin data received" warning
@@ -377,18 +396,65 @@ function runCliCommand(command: string, args: string[], cwd: string, timeout: nu
 
     let stdout = ''
     let stderr = ''
+    let isSettled = false
+    let isTimedOut = false
+
+    const timeoutHandle = setTimeout(() => {
+      if (isSettled) return
+      isTimedOut = true
+      try { child.kill() } catch {}
+    }, timeout)
+
+    const finalizeReject = (message: string) => {
+      if (isSettled) return
+      isSettled = true
+      clearTimeout(timeoutHandle)
+      reject(new Error(message))
+    }
+
+    const finalizeResolve = (value: string) => {
+      if (isSettled) return
+      isSettled = true
+      clearTimeout(timeoutHandle)
+      resolve(value)
+    }
 
     child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
 
-    child.on('close', (code) => {
+    child.on('close', (code, signal) => {
       if (code === 0) {
-        resolve(stdout.trim())
-      } else {
-        reject(new Error(stderr.trim() || `claude exited with code ${code}`))
+        finalizeResolve(stdout.trim())
+        return
       }
+
+      const stderrText = stderr.trim()
+      if (isTimedOut) {
+        const suffix = stderrText ? `: ${stderrText}` : ''
+        finalizeReject(`Claude CLI timed out after ${timeout}ms${suffix}`)
+        return
+      }
+
+      if (signal) {
+        const suffix = stderrText ? `: ${stderrText}` : ''
+        finalizeReject(`Claude CLI terminated by signal ${signal}${suffix}`)
+        return
+      }
+
+      if (code === null) {
+        const suffix = stderrText ? `: ${stderrText}` : ''
+        finalizeReject(`Claude CLI exited unexpectedly (no exit code)${suffix}`)
+        return
+      }
+
+      finalizeReject(stderrText || `claude exited with code ${code}`)
     })
 
-    child.on('error', reject)
+    child.on('error', (err) => {
+      const prefix = err.message?.trim() ? `${err.message.trim()}` : 'Failed to start Claude CLI process'
+      const stderrText = stderr.trim()
+      const suffix = stderrText ? `: ${stderrText}` : ''
+      finalizeReject(`${prefix}${suffix}`)
+    })
   })
 }

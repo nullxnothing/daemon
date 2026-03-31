@@ -34,6 +34,15 @@ import type {
   RecoveryWalletInfo,
   RecoveryProgressEvent,
   RecoveryStatus,
+  TerminalSession,
+  TerminalCreateInput,
+  TerminalSpawnAgentInput,
+  TerminalCreateOutput,
+  AgentCreateInput,
+  ProjectCreateInput,
+  TweetUpdateInput,
+  WalletCreateInput,
+  McpAddInput,
 } from '../../electron/shared/types'
 
 export type {
@@ -72,6 +81,15 @@ export type {
   RecoveryWalletInfo,
   RecoveryProgressEvent,
   RecoveryStatus,
+  TerminalSession,
+  TerminalCreateInput,
+  TerminalSpawnAgentInput,
+  TerminalCreateOutput,
+  AgentCreateInput,
+  ProjectCreateInput,
+  TweetUpdateInput,
+  WalletCreateInput,
+  McpAddInput,
 }
 
 declare global {
@@ -108,11 +126,12 @@ declare global {
   }
 
   interface DaemonTerminal {
-    create: (opts?: { cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
+    create: (opts?: { cwd?: string; startupCommand?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
     kill: (id: string) => Promise<IpcResponse>
+    pasteFromClipboard: (id: string) => Promise<IpcResponse<{ pasted: boolean }>>
     onData: (callback: (payload: { id: string; data: string }) => void) => () => void
     onExit: (callback: (payload: { id: string; exitCode: number }) => void) => () => void
   }
@@ -127,7 +146,15 @@ declare global {
     push: (cwd: string) => Promise<IpcResponse<string>>
     log: (cwd: string, count?: number) => Promise<IpcResponse<GitCommit[]>>
     diff: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
+    diffStaged: (cwd: string) => Promise<IpcResponse<string>>
     checkout: (cwd: string, branch: string) => Promise<IpcResponse>
+    createBranch: (cwd: string, branchName: string) => Promise<IpcResponse<{ branch: string }>>
+    fetch: (cwd: string) => Promise<IpcResponse>
+    pull: (cwd: string) => Promise<IpcResponse>
+    createTag: (cwd: string, tagName: string) => Promise<IpcResponse<{ tag: string }>>
+    stashSave: (cwd: string, message?: string) => Promise<IpcResponse<{ message: string }>>
+    stashPop: (cwd: string) => Promise<IpcResponse>
+    stashList: (cwd: string) => Promise<IpcResponse<Array<{ hash: string; message: string }>>>
   }
 
   interface DaemonPorts {
@@ -148,6 +175,7 @@ declare global {
     diff: (pathA: string, pathB: string) => Promise<IpcResponse<EnvDiff>>
     copyValue: (value: string) => Promise<IpcResponse>
     propagate: (key: string, value: string, projectPaths: string[]) => Promise<IpcResponse<{ updated: number }>>
+    pullVercel: (projectPath: string, environment?: string) => Promise<IpcResponse<{ pulledFile: string; onlyVercel: Array<{ key: string; value: string }>; onlyLocal: Array<{ key: string; value: string }>; different: Array<{ key: string; vercelValue: string; localValue: string }>; totalPulled: number }>>
     projects: () => Promise<IpcResponse<Array<{ id: string; name: string; path: string }>>>
   }
 
@@ -223,6 +251,8 @@ declare global {
     claudeMdWrite: (projectPath: string, content: string) => Promise<IpcResponse>
     verifyConnection: () => Promise<IpcResponse<ClaudeConnection>>
     getConnection: () => Promise<IpcResponse<ClaudeConnection | null>>
+    suggestCommitMessage: (diff: string) => Promise<IpcResponse<string>>
+    tidyMarkdown: (filePath: string, content: string) => Promise<IpcResponse<string>>
     mcpAdd: (mcp: { name: string; config: string; description: string; isGlobal: boolean }) => Promise<IpcResponse>
   }
 
@@ -255,9 +285,64 @@ declare global {
     onProgress: (callback: (event: RecoveryProgressEvent) => void) => () => void
   }
 
+  interface ToolRow {
+    id: string
+    name: string
+    description: string | null
+    category: string
+    language: string
+    entrypoint: string
+    tool_path: string
+    icon: string
+    version: string
+    author: string | null
+    tags: string
+    config: string
+    last_run_at: number | null
+    run_count: number
+    enabled: number
+    sort_order: number
+    created_at: number
+  }
+
+  interface DaemonTools {
+    list: () => Promise<IpcResponse<ToolRow[]>>
+    get: (id: string) => Promise<IpcResponse<ToolRow>>
+    create: (input: { name: string; description?: string; category: string; language: string }) => Promise<IpcResponse<ToolRow>>
+    delete: (id: string, deleteFiles: boolean) => Promise<IpcResponse>
+    runCommand: (id: string) => Promise<IpcResponse<{ command: string; args: string[]; cwd: string; toolId: string }>>
+    markRunning: (id: string, terminalId: string, pid: number) => Promise<IpcResponse>
+    openFolder: (id: string) => Promise<IpcResponse>
+    import: () => Promise<IpcResponse<ToolRow | null>>
+  }
+
+  interface DaemonEngine {
+    run: (action: { type: string; projectId?: string; payload?: Record<string, unknown> }) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string; artifacts?: Record<string, string>; error?: string }>>
+    context: () => Promise<IpcResponse<{ projects: Array<{ id: string; name: string; path: string; status: string; hasClaudeMd: boolean; gitBranch: string | null; activeSessions: number }>; activeAgents: Array<{ id: string; name: string; projectId: string | null }>; recentErrors: unknown[]; portMap: unknown[]; userProfile: Record<string, string> }>>
+    fixClaudeMd: (projectId: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string; artifacts?: Record<string, string> }>>
+    generateClaudeMd: (projectId: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string; artifacts?: Record<string, string> }>>
+    debugSetup: (projectId: string, question?: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
+    healthCheck: () => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
+    explainError: (error: string, projectId?: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
+    ask: (question: string, projectId?: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
+  }
+
+  interface DaemonTools {
+    list: () => Promise<IpcResponse<Array<{ id: string; name: string; description: string | null; category: string; language: string; entrypoint: string; tool_path: string; icon: string; version: string; author: string | null; tags: string; config: string; last_run_at: number | null; run_count: number; enabled: number; sort_order: number; created_at: number }>>>
+    get: (id: string) => Promise<IpcResponse<{ id: string; name: string; description: string | null; category: string; language: string; entrypoint: string; tool_path: string; icon: string; version: string; author: string | null; tags: string; config: string; last_run_at: number | null; run_count: number; enabled: number; sort_order: number; created_at: number }>>
+    create: (opts: { name: string; description?: string; category: string; language: string }) => Promise<IpcResponse<{ id: string }>>
+    delete: (id: string, deleteFiles: boolean) => Promise<IpcResponse>
+    runCommand: (id: string) => Promise<IpcResponse<{ command: string; args: string[]; cwd: string }>>
+    markRunning: (id: string, terminalId: string, pid: number) => Promise<IpcResponse>
+    openFolder: (id: string) => Promise<IpcResponse>
+    import: () => Promise<IpcResponse<{ id: string }>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
+    tools: DaemonTools
+    engine: DaemonEngine
     env: DaemonEnv
     process: DaemonProcess
     ports: DaemonPorts
@@ -272,6 +357,7 @@ declare global {
     plugins: DaemonPlugins
     recovery: DaemonRecovery
     shell: DaemonShell
+    tools: DaemonTools
   }
 
   interface Window {

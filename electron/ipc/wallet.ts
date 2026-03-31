@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import * as WalletService from '../services/WalletService'
+import type { WalletCreateInput } from '../shared/types'
 
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', async (_event, projectId?: string | null) => {
@@ -18,7 +19,7 @@ export function registerWalletHandlers() {
     }
   })
 
-  ipcMain.handle('wallet:create', async (_event, wallet: { name: string; address: string }) => {
+  ipcMain.handle('wallet:create', async (_event, wallet: WalletCreateInput) => {
     try {
       return { ok: true, data: WalletService.createWallet(wallet.name, wallet.address) }
     } catch (err) {

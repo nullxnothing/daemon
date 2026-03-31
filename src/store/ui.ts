@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
 
 interface OpenFile {
   path: string
@@ -16,7 +17,7 @@ interface TerminalTab {
 }
 
 interface UIState {
-  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery'
+  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]
@@ -25,6 +26,9 @@ interface UIState {
   terminals: TerminalTab[]
   activeTerminalIdByProject: Record<string, string | null>
   mcpDirty: boolean
+  // Monotonically incremented whenever any MCP toggle fires, from any panel.
+  // Subscribe to this to re-fetch MCP state without duplicating toggle logic.
+  mcpVersion: number
   showOnboarding: boolean
 
   setActivePanel: (panel: UIState['activePanel']) => void
@@ -40,6 +44,7 @@ interface UIState {
   setActiveTerminal: (projectId: string, id: string | null) => void
   removeProjectState: (projectId: string) => void
   setMcpDirty: (dirty: boolean) => void
+  bumpMcpVersion: () => void
   setShowOnboarding: (show: boolean) => void
 }
 
@@ -53,6 +58,7 @@ export const useUIStore = create<UIState>((set) => ({
   terminals: [],
   activeTerminalIdByProject: {},
   mcpDirty: false,
+  mcpVersion: 0,
   showOnboarding: false,
 
   setActivePanel: (panel) => set({ activePanel: panel }),
@@ -65,18 +71,12 @@ export const useUIStore = create<UIState>((set) => ({
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
-        activeFilePathByProject: {
-          ...state.activeFilePathByProject,
-          [file.projectId]: file.path,
-        },
+        activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
-      activeFilePathByProject: {
-        ...state.activeFilePathByProject,
-        [file.projectId]: file.path,
-      },
+      activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
   }),
 
@@ -88,18 +88,12 @@ export const useUIStore = create<UIState>((set) => ({
       : state.activeFilePathByProject[projectId] ?? null
     return {
       openFiles: filtered,
-      activeFilePathByProject: {
-        ...state.activeFilePathByProject,
-        [projectId]: newActive,
-      },
+      activeFilePathByProject: updateRecord(state.activeFilePathByProject, projectId, newActive),
     }
   }),
 
   setActiveFile: (projectId, path) => set((state) => ({
-    activeFilePathByProject: {
-      ...state.activeFilePathByProject,
-      [projectId]: path,
-    },
+    activeFilePathByProject: updateRecord(state.activeFilePathByProject, projectId, path),
   })),
 
   updateFileContent: (path, content) => set((state) => ({
@@ -116,10 +110,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   addTerminal: (projectId, id, label, agentId) => set((state) => ({
     terminals: [...state.terminals, { id, label: label ?? 'Terminal', agentId: agentId ?? null, projectId }],
-    activeTerminalIdByProject: {
-      ...state.activeTerminalIdByProject,
-      [projectId]: id,
-    },
+    activeTerminalIdByProject: updateRecord(state.activeTerminalIdByProject, projectId, id),
   })),
 
   removeTerminal: (projectId, id) => set((state) => {
@@ -130,34 +121,22 @@ export const useUIStore = create<UIState>((set) => ({
       : state.activeTerminalIdByProject[projectId] ?? null
     return {
       terminals: filtered,
-      activeTerminalIdByProject: {
-        ...state.activeTerminalIdByProject,
-        [projectId]: newActive,
-      },
+      activeTerminalIdByProject: updateRecord(state.activeTerminalIdByProject, projectId, newActive),
     }
   }),
 
   setActiveTerminal: (projectId, id) => set((state) => ({
-    activeTerminalIdByProject: {
-      ...state.activeTerminalIdByProject,
-      [projectId]: id,
-    },
+    activeTerminalIdByProject: updateRecord(state.activeTerminalIdByProject, projectId, id),
   })),
 
-  removeProjectState: (projectId) => set((state) => {
-    const activeFilePathByProject = { ...state.activeFilePathByProject }
-    const activeTerminalIdByProject = { ...state.activeTerminalIdByProject }
-    delete activeFilePathByProject[projectId]
-    delete activeTerminalIdByProject[projectId]
-
-    return {
-      openFiles: state.openFiles.filter((f) => f.projectId !== projectId),
-      terminals: state.terminals.filter((t) => t.projectId !== projectId),
-      activeFilePathByProject,
-      activeTerminalIdByProject,
-    }
-  }),
+  removeProjectState: (projectId) => set((state) => ({
+    openFiles: state.openFiles.filter((f) => f.projectId !== projectId),
+    terminals: state.terminals.filter((t) => t.projectId !== projectId),
+    activeFilePathByProject: deleteFromRecord(state.activeFilePathByProject, projectId),
+    activeTerminalIdByProject: deleteFromRecord(state.activeTerminalIdByProject, projectId),
+  })),
 
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
+  bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
   setShowOnboarding: (show) => set({ showOnboarding: show }),
 }))

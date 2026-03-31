@@ -4,6 +4,26 @@ import { getDb } from '../db/db'
 const HELIUS_BASE = 'https://api.helius.xyz/v1'
 const COINGECKO_SIMPLE_PRICE = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,ethereum&vs_currencies=usd&include_24hr_change=true'
 const SNAPSHOT_INTERVAL_MS = 15 * 60 * 1000
+const MAX_RETRIES = 3
+const BASE_DELAY_MS = 1000
+
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const response = await fetch(url)
+    if (response.ok) return response
+
+    if (response.status === 429 && attempt < retries - 1) {
+      const retryAfter = response.headers.get('retry-after')
+      const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : BASE_DELAY_MS * Math.pow(2, attempt)
+      await new Promise((r) => setTimeout(r, delay))
+      continue
+    }
+
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  throw new Error('Max retries exceeded')
+}
 
 interface WalletRow {
   id: string
@@ -282,8 +302,7 @@ async function getWalletBalances(address: string, apiKey: string): Promise<Heliu
   url.searchParams.set('showZeroBalance', 'false')
   url.searchParams.set('limit', '100')
 
-  const response = await fetch(url.toString())
-  if (!response.ok) throw new Error(`Helius balances error: ${response.status}`)
+  const response = await fetchWithRetry(url.toString())
   return response.json() as Promise<HeliusBalancesResponse>
 }
 
@@ -292,8 +311,7 @@ async function getWalletHistory(address: string, apiKey: string): Promise<Helius
     const url = new URL(`${HELIUS_BASE}/wallet/${address}/history`)
     url.searchParams.set('api-key', apiKey)
     url.searchParams.set('limit', '8')
-    const response = await fetch(url.toString())
-    if (!response.ok) return []
+    const response = await fetchWithRetry(url.toString())
     const json = await response.json() as { events?: HeliusHistoryEvent[]; history?: HeliusHistoryEvent[] }
     return (json.events ?? json.history ?? []).slice(0, 8)
   } catch {

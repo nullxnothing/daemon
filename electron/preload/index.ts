@@ -20,11 +20,12 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   terminal: {
-    create: (opts?: { cwd?: string }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
+    create: (opts?: { cwd?: string; startupCommand?: string }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
+    pasteFromClipboard: (id: string) => ipcRenderer.invoke('terminal:paste-from-clipboard', id),
     onData: (callback: (payload: { id: string; data: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, payload: { id: string; data: string }) => callback(payload)
       ipcRenderer.on('terminal:data', handler)
@@ -57,6 +58,7 @@ contextBridge.exposeInMainWorld('daemon', {
     diff: (pathA: string, pathB: string) => ipcRenderer.invoke('env:diff', pathA, pathB),
     copyValue: (value: string) => ipcRenderer.invoke('env:copy-value', value),
     propagate: (key: string, value: string, projectPaths: string[]) => ipcRenderer.invoke('env:propagate', key, value, projectPaths),
+    pullVercel: (projectPath: string, environment?: string) => ipcRenderer.invoke('env:pull-vercel', projectPath, environment),
     projects: () => ipcRenderer.invoke('env:projects'),
   },
 
@@ -98,6 +100,8 @@ contextBridge.exposeInMainWorld('daemon', {
     claudeMdWrite: (projectPath: string, content: string) => ipcRenderer.invoke('claude:claudemd-write', projectPath, content),
     verifyConnection: () => ipcRenderer.invoke('claude:verify-connection'),
     getConnection: () => ipcRenderer.invoke('claude:get-connection'),
+    suggestCommitMessage: (diff: string) => ipcRenderer.invoke('claude:suggest-commit-message', diff),
+    tidyMarkdown: (filePath: string, content: string) => ipcRenderer.invoke('claude:tidy-markdown', filePath, content),
   },
 
   git: {
@@ -110,7 +114,15 @@ contextBridge.exposeInMainWorld('daemon', {
     push: (cwd: string) => ipcRenderer.invoke('git:push', cwd),
     log: (cwd: string, count?: number) => ipcRenderer.invoke('git:log', cwd, count),
     diff: (cwd: string, filePath?: string) => ipcRenderer.invoke('git:diff', cwd, filePath),
+    diffStaged: (cwd: string) => ipcRenderer.invoke('git:diff-staged', cwd),
     checkout: (cwd: string, branch: string) => ipcRenderer.invoke('git:checkout', cwd, branch),
+    createBranch: (cwd: string, branchName: string) => ipcRenderer.invoke('git:create-branch', cwd, branchName),
+    fetch: (cwd: string) => ipcRenderer.invoke('git:fetch', cwd),
+    pull: (cwd: string) => ipcRenderer.invoke('git:pull', cwd),
+    createTag: (cwd: string, tagName: string) => ipcRenderer.invoke('git:create-tag', cwd, tagName),
+    stashSave: (cwd: string, message?: string) => ipcRenderer.invoke('git:stash-save', cwd, message),
+    stashPop: (cwd: string) => ipcRenderer.invoke('git:stash-pop', cwd),
+    stashList: (cwd: string) => ipcRenderer.invoke('git:stash-list', cwd),
   },
 
   ports: {
@@ -169,6 +181,18 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  engine: {
+    run: (action: { type: string; projectId?: string; payload?: Record<string, unknown> }) =>
+      ipcRenderer.invoke('engine:run', action),
+    context: () => ipcRenderer.invoke('engine:context'),
+    fixClaudeMd: (projectId: string) => ipcRenderer.invoke('engine:fix-claude-md', projectId),
+    generateClaudeMd: (projectId: string) => ipcRenderer.invoke('engine:generate-claude-md', projectId),
+    debugSetup: (projectId: string, question?: string) => ipcRenderer.invoke('engine:debug-setup', projectId, question),
+    healthCheck: () => ipcRenderer.invoke('engine:health-check'),
+    explainError: (error: string, projectId?: string) => ipcRenderer.invoke('engine:explain-error', error, projectId),
+    ask: (question: string, projectId?: string) => ipcRenderer.invoke('engine:ask', question, projectId),
+  },
+
   projects: {
     list: () => ipcRenderer.invoke('projects:list'),
     create: (project: { name: string; path: string }) => ipcRenderer.invoke('projects:create', project),
@@ -178,6 +202,17 @@ contextBridge.exposeInMainWorld('daemon', {
 
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+  },
+
+  tools: {
+    list: () => ipcRenderer.invoke('tools:list'),
+    get: (id: string) => ipcRenderer.invoke('tools:get', id),
+    create: (opts: { name: string; description?: string; category: string; language: string }) => ipcRenderer.invoke('tools:create', opts),
+    delete: (id: string, deleteFiles: boolean) => ipcRenderer.invoke('tools:delete', id, deleteFiles),
+    runCommand: (id: string) => ipcRenderer.invoke('tools:runCommand', id),
+    markRunning: (id: string, terminalId: string, pid: number) => ipcRenderer.invoke('tools:markRunning', id, terminalId, pid),
+    openFolder: (id: string) => ipcRenderer.invoke('tools:openFolder', id),
+    import: () => ipcRenderer.invoke('tools:import'),
   },
 })
 
@@ -202,7 +237,7 @@ function useLoading() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #090909;
+  background: #0a0a0a;
   z-index: 9;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: #7a7a7a;

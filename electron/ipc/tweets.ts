@@ -7,6 +7,7 @@ import {
   getVoiceProfile,
   updateVoiceProfile,
 } from '../services/TweetService'
+import type { TweetUpdateInput } from '../shared/types'
 
 export function registerTweetHandlers() {
   ipcMain.handle('tweets:generate', async (_event, prompt: string, mode: string, sourceTweet?: string) => {
@@ -31,7 +32,7 @@ export function registerTweetHandlers() {
     }
   })
 
-  ipcMain.handle('tweets:update', async (_event, id: string, updates: { content?: string; status?: string }) => {
+  ipcMain.handle('tweets:update', async (_event, id: string, updates: TweetUpdateInput) => {
     try {
       const tweet = updateTweet(id, updates)
       return { ok: true, data: tweet }

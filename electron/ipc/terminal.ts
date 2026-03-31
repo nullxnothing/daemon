@@ -1,10 +1,10 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import os from 'node:os'
 import * as pty from 'node-pty'
 import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
-import type { Agent, Project, ActiveSession } from '../shared/types'
+import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
 
 // Regex patterns to auto-detect "listening on port X" from terminal output
 const PORT_PATTERNS = [
@@ -15,12 +15,6 @@ const PORT_PATTERNS = [
   /127\.0\.0\.1:(\d{3,5})/i,                               // "http://127.0.0.1:3000"
   /0\.0\.0\.0:(\d{3,5})/i,                                 // "0.0.0.0:3000"
 ]
-
-interface TerminalSession {
-  pty: pty.IPty
-  agentId: string | null
-  contextFilePath: string | null
-}
 
 const sessions = new Map<string, TerminalSession>()
 
@@ -60,15 +54,22 @@ function createPtySession(
     shellArgs = args
   }
 
+  // Strip API key for agent terminals so Claude CLI uses subscription OAuth
+  const baseEnv = { ...process.env } as Record<string, string>
+  if (agentId) {
+    delete baseEnv.ANTHROPIC_API_KEY
+    delete baseEnv.ANTHROPIC_AUTH_TOKEN
+  }
+
   const ptyProcess = pty.spawn(shell, shellArgs, {
     name: 'xterm-256color',
     cols: 120,
     rows: 30,
     cwd,
     env: {
-      ...process.env,
+      ...baseEnv,
       TERM: 'xterm-256color',
-    } as Record<string, string>,
+    },
   })
 
   const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath }
@@ -108,18 +109,24 @@ function createPtySession(
 }
 
 export function registerTerminalHandlers() {
-  ipcMain.handle('terminal:create', async (_event, opts: { cwd?: string }) => {
+  ipcMain.handle('terminal:create', async (_event, opts: TerminalCreateInput) => {
     try {
       const id = crypto.randomUUID()
       const cwd = opts?.cwd || os.homedir()
       const session = createPtySession(id, '', [], cwd, null, null)
-      return { ok: true, data: { id, pid: session.pty.pid, agentId: null } }
+
+      if (opts?.startupCommand?.trim()) {
+        session.pty.write(`${opts.startupCommand.trim()}\r`)
+      }
+
+      const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
+      return { ok: true, data: response }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }
   })
 
-  ipcMain.handle('terminal:spawnAgent', async (_event, opts: { agentId: string; projectId: string }) => {
+  ipcMain.handle('terminal:spawnAgent', async (_event, opts: TerminalSpawnAgentInput) => {
     try {
       const db = getDb()
       const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(opts.agentId) as Agent | undefined
@@ -136,7 +143,8 @@ export function registerTerminalHandlers() {
         'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
       ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
 
-      return { ok: true, data: { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name } }
+      const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
+      return { ok: true, data: response }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }
@@ -160,6 +168,25 @@ export function registerTerminalHandlers() {
         try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch {}
       }
       return { ok: true }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  })
+
+  ipcMain.handle('terminal:paste-from-clipboard', async (_event, id: string) => {
+    try {
+      const session = sessions.get(id)
+      if (!session) {
+        return { ok: false, error: 'Terminal session not found' }
+      }
+
+      const text = clipboard.readText()
+      if (!text) {
+        return { ok: true, data: { pasted: false } }
+      }
+
+      session.pty.write(text)
+      return { ok: true, data: { pasted: true } }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }

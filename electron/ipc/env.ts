@@ -1,8 +1,12 @@
 import { ipcMain, clipboard } from 'electron'
 import path from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import * as Env from '../services/EnvService'
 import { getDb } from '../db/db'
 import { isEnvPathSafe, isProjectPathSafe } from '../shared/pathValidation'
+
+const execFileAsync = promisify(execFile)
 
 const ENV_FILE_NAMES = new Set(['.env', '.env.local', '.env.production', '.env.staging', '.env.development'])
 
@@ -101,6 +105,60 @@ export function registerEnvHandlers() {
       return { ok: true, data: { updated } }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
+    }
+  })
+
+  // Pull env vars from Vercel for a project
+  ipcMain.handle('env:pull-vercel', async (_event, projectPath: string, environment = 'production') => {
+    try {
+      if (!isProjectPathSafe(projectPath)) return { ok: false, error: 'Path outside project boundaries' }
+
+      const targetFile = `.env.${environment === 'production' ? 'production' : environment}.local`
+      await execFileAsync('vercel', ['env', 'pull', targetFile, '--environment', environment, '--yes'], {
+        cwd: projectPath,
+        timeout: 30000,
+      })
+
+      // Read the pulled file and parse it
+      const pulledPath = path.join(projectPath, targetFile)
+      const localPath = path.join(projectPath, '.env')
+      const pulledRaw = Env.parseEnvFile(pulledPath)
+      const localRaw = Env.parseEnvFile(localPath)
+
+      const toMap = (vars: typeof pulledRaw) => {
+        const m: Record<string, string> = {}
+        for (const v of vars) { if (!v.isComment && v.key) m[v.key] = v.value }
+        return m
+      }
+
+      const pulledVars = toMap(pulledRaw)
+      const localVars = toMap(localRaw)
+
+      const pulledKeys = new Set(Object.keys(pulledVars))
+      const localKeys = new Set(Object.keys(localVars))
+
+      const onlyVercel = [...pulledKeys].filter((k) => !localKeys.has(k)).map((k) => ({ key: k, value: pulledVars[k] }))
+      const onlyLocal = [...localKeys].filter((k) => !pulledKeys.has(k)).map((k) => ({ key: k, value: localVars[k] }))
+      const different = [...pulledKeys].filter((k) => localKeys.has(k) && pulledVars[k] !== localVars[k]).map((k) => ({
+        key: k,
+        vercelValue: pulledVars[k],
+        localValue: localVars[k],
+      }))
+
+      return {
+        ok: true,
+        data: {
+          pulledFile: targetFile,
+          onlyVercel,
+          onlyLocal,
+          different,
+          totalPulled: pulledKeys.size,
+        },
+      }
+    } catch (err) {
+      const message = (err as Error).message
+      if (message.includes('ENOENT')) return { ok: false, error: 'Vercel CLI not found. Install with: npm i -g vercel' }
+      return { ok: false, error: message }
     }
   })
 

@@ -16,6 +16,8 @@ import { registerSettingsHandlers } from '../ipc/settings'
 import { registerPluginHandlers } from '../ipc/plugins'
 import { registerTweetHandlers } from '../ipc/tweets'
 import { registerRecoveryHandlers } from '../ipc/recovery'
+import { registerEngineHandlers } from '../ipc/engine'
+import { registerToolHandlers } from '../ipc/tools'
 import { clearLoadedWallets } from '../services/RecoveryService'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -72,6 +74,8 @@ function registerAllIpc() {
   registerPluginHandlers()
   registerTweetHandlers()
   registerRecoveryHandlers()
+  registerEngineHandlers()
+  registerToolHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -155,7 +159,7 @@ async function createWindow() {
     minHeight: 600,
     frame: false,
     titleBarStyle: 'hidden',
-    backgroundColor: '#090909',
+    backgroundColor: '#0a0a0a',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
     webPreferences: {
       preload,

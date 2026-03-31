@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -70,6 +70,20 @@ export function runMigrations(db: Database.Database) {
       db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(7)
     })()
   }
+
+  if (currentVersion < 8) {
+    db.transaction(() => {
+      db.exec(SCHEMA_V8)
+      seedBuiltinTools(db)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(8)
+    })()
+  }
+
+  // Ensure built-in tools exist (idempotent — handles upgrades where table exists but seed was missed)
+  try {
+    const hasRecovery = db.prepare("SELECT id FROM tools WHERE id = 'builtin-wallet-recovery'").get()
+    if (!hasRecovery) seedBuiltinTools(db)
+  } catch {}
 
   // Clean stale sessions from previous crashed runs — PTY processes are dead after restart
   db.prepare('DELETE FROM active_sessions').run()
@@ -201,4 +215,22 @@ function seedMcpRegistry(db: Database.Database) {
   for (const m of mcps) {
     insert.run(m.name, m.config, m.description, m.isGlobal)
   }
+}
+
+function seedBuiltinTools(db: Database.Database) {
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO tools (id, name, description, category, language, entrypoint, tool_path, icon, tags) VALUES (?,?,?,?,?,?,?,?,?)'
+  )
+
+  insert.run(
+    'builtin-wallet-recovery',
+    'Wallet Recovery',
+    'Scan and recover SOL from derived wallets, close empty token accounts, and collect creator fees',
+    'solana',
+    'builtin',
+    '__builtin__',
+    '__builtin__',
+    'wallet',
+    '["solana","recovery","wallet"]',
+  )
 }

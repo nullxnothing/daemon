@@ -434,3 +434,160 @@ export interface RecoveryStatus {
   completed: number
   failed: number
 }
+
+// --- Terminal ---
+
+export interface TerminalSession {
+  pty: any // IPty from node-pty
+  agentId: string | null
+  contextFilePath: string | null
+}
+
+export interface TerminalCreateInput {
+  cwd?: string
+  startupCommand?: string
+}
+
+export interface TerminalSpawnAgentInput {
+  agentId: string
+  projectId: string
+}
+
+export interface TerminalCreateOutput {
+  id: string
+  pid: number
+  agentId: null | string
+  agentName?: string
+}
+
+// --- Agents ---
+
+export interface AgentCreateInput {
+  name: string
+  systemPrompt: string
+  model: string
+  mcps: string[]
+  projectId?: string
+  shortcut?: string
+  source?: string
+  externalPath?: string | null
+}
+
+// --- Projects ---
+
+export interface ProjectCreateInput {
+  name: string
+  path: string
+}
+
+// --- Tweets ---
+
+export interface TweetUpdateInput {
+  content?: string
+  status?: string
+}
+
+// --- Wallet ---
+
+export interface WalletCreateInput {
+  name: string
+  address: string
+}
+
+// --- MCP Management ---
+
+export interface McpAddInput {
+  name: string
+  config: string
+  description: string
+  isGlobal: boolean
+}
+
+// --- Tools ---
+
+export interface ToolRow {
+  id: string
+  name: string
+  description: string | null
+  category: string
+  language: string
+  entrypoint: string
+  tool_path: string
+  icon: string
+  version: string
+  author: string | null
+  tags: string
+  config: string
+  last_run_at: number | null
+  run_count: number
+  enabled: number
+  sort_order: number
+  created_at: number
+}
+
+export interface ToolCreateInput {
+  name: string
+  description?: string
+  category?: string
+  language?: string
+}
+
+export interface ToolManifest {
+  name: string
+  description: string
+  version: string
+  category: string
+  language: string
+  entrypoint: string
+  author?: string
+  tags?: string[]
+  config?: Record<string, unknown>
+}
+
+export interface ToolRunStatus {
+  running: boolean
+  terminalId: string | null
+  pid: number | null
+  startedAt: number | null
+}
+
+// --- Engine ---
+
+export type EngineActionType =
+  | 'fix-claude-md'
+  | 'generate-claude-md'
+  | 'debug-setup'
+  | 'health-check'
+  | 'explain-error'
+  | 'suggest-fix'
+  | 'ask'
+
+export interface EngineAction {
+  type: EngineActionType
+  projectId?: string
+  payload?: Record<string, unknown>
+}
+
+export interface EngineResult {
+  ok: boolean
+  action: EngineActionType
+  output?: string
+  artifacts?: Record<string, string>
+  error?: string
+}
+
+export interface EngineContext {
+  projects: Array<{
+    id: string
+    name: string
+    path: string
+    status: string
+    hasClaudeMd: boolean
+    gitBranch: string | null
+    activeSessions: number
+  }>
+  activeAgents: Array<{ id: string; name: string; projectId: string | null }>
+  recentErrors: Array<{ operation: string; message: string; timestamp: number }>
+  portMap: Array<{ port: number; serviceName: string; projectName: string }>
+  userProfile: Record<string, string>
+}

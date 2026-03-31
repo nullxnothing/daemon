@@ -9,6 +9,7 @@ import * as Skills from '../services/SkillsConfig'
 import * as ClaudeRouter from '../services/ClaudeRouter'
 import { isPathSafe } from '../shared/pathValidation'
 import { getSession, getAllSessionIds } from './terminal'
+import type { McpAddInput } from '../shared/types'
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -87,7 +88,7 @@ export function registerClaudeHandlers() {
     }
   })
 
-  ipcMain.handle('claude:mcp-add', async (_event, mcp: { name: string; config: string; description: string; isGlobal: boolean }) => {
+  ipcMain.handle('claude:mcp-add', async (_event, mcp: McpAddInput) => {
     try {
       McpConfig.addRegistryMcp(mcp.name, mcp.config, mcp.description, mcp.isGlobal)
       return { ok: true }
@@ -150,6 +151,74 @@ export function registerClaudeHandlers() {
       const usage = McpConfig.getSessionUsage(projectPath)
       if (!usage) return { ok: false, error: 'No usage data available' }
       return { ok: true, data: usage }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  })
+
+  // --- AI Commit Suggestions ---
+
+  ipcMain.handle('claude:suggest-commit-message', async (_event, diff: string) => {
+    try {
+      if (!diff || !diff.trim()) {
+        return { ok: false, error: 'No staged changes found to summarize' }
+      }
+
+      const suggestion = await ClaudeRouter.runPrompt({
+        prompt: `Write a concise git commit message for this staged diff.\n\nRules:\n- Return one line only\n- Imperative mood (e.g. \"Add\", \"Fix\", \"Refactor\")\n- No surrounding quotes\n- Max 72 characters\n\nStaged diff:\n${diff}`,
+        systemPrompt: 'You generate precise git commit messages for code diffs.',
+        model: 'haiku',
+        effort: 'low',
+      })
+
+      return { ok: true, data: suggestion.trim().split(/\r?\n/)[0] }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  })
+
+  // --- Markdown Tidy ---
+
+  ipcMain.handle('claude:tidy-markdown', async (_event, filePath: string, content: string) => {
+    try {
+      if (!filePath || !/\.(md|mdx)$/i.test(filePath)) {
+        return { ok: false, error: 'Only Markdown files are supported (.md, .mdx)' }
+      }
+
+      if (!isPathSafe(filePath)) {
+        return { ok: false, error: 'Path not within a registered project' }
+      }
+
+      if (!content || !content.trim()) {
+        return { ok: false, error: 'File is empty, nothing to tidy' }
+      }
+
+      const timeoutMs = content.length > 14_000 ? 120_000 : 60_000
+
+      const tidied = await ClaudeRouter.runPrompt({
+        prompt: `Format and polish the following Markdown. Return ONLY the revised markdown, nothing else.
+
+Rules:
+- Preserve technical meaning, facts, links, commands, and code semantics
+- Fix typos and grammar where safe
+- Ensure consistent heading hierarchy (H1 -> H2 -> H3)
+- Normalize list formatting and spacing
+- Keep fenced code blocks valid and include language tags when confidently inferable
+- Do NOT remove existing content unless it is duplicate/empty noise
+- Do NOT add marketing language or unsupported claims
+
+Markdown:
+${content}`,
+        systemPrompt: 'You are a strict technical writer. Return only revised markdown, no explanations.',
+        model: 'haiku',
+        effort: 'low',
+        timeoutMs,
+        allowApiFallback: false,
+      })
+
+      // Strip wrapping code fences if the model returned ```markdown ... ```
+      const stripped = tidied.replace(/^```(?:markdown|md)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+      return { ok: true, data: stripped }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }
