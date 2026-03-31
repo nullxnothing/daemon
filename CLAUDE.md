@@ -1566,80 +1566,69 @@ Test suites:
 
 *Update this section at the end of every Claude Code session.*
 
-**Last updated:** 2026-04-02 (Refactoring cycles complete)
+**Last updated:** 2026-03-31
 
-**Refactoring Status: 100% COMPLETE**
-- [x] Phase 1 — IPC Handler Factory (300 LOC eliminated)
-- [x] Phase 2 — Type Centralization (9 shared types)
-- [x] Phase 3 — Zustand Optimization (state helpers + ui.ts refactor)
-- [x] Phase 4 — Error Recovery Service (classification + retry + history)
-- [x] Phase 5 — Resource Manager (lifecycle tracking + cleanup)
-- [x] Phase 6 — Saga Orchestrator (transaction semantics + compensation)
-- [x] Phase 7 — Logging Service (structured logs + correlation)
-- [x] Phase 8 — Code Splitting (LazyPanels framework)
-- [x] Phase 9 — Validation Service (path traversal + XSS + rate limiting)
-- [x] Phase 10 — Database Migrations (SCHEMA_V6 + error_logs table)
-
-**Shell Architecture (Phases 1-8):**
+**Shell Architecture — Phases 1-8: COMPLETE**
 - [x] Phase 1 — Shell (Monaco + terminal + SQLite + file explorer + project tabs)
-- [x] Phase 2 — Agent Launcher (agent CRUD, spawn Claude with context, terminal tabs with agent names)
+- [x] Phase 2 — Agent Launcher (agent CRUD, spawn Claude with context, terminal tabs)
 - [x] Phase 3 — Claude Panel (MCP management, usage stats, CLAUDE.md tools)
 - [x] Phase 4 — Process Manager
 - [x] Phase 5 — Env Manager
 - [x] Phase 6 — Localhost + Infrastructure Manager
-- [x] Phase 7 — Git Panel
-- [x] Phase 8 — Wallet Panel
+- [x] Phase 7 — Git Panel (folder staging, stash, branch/tag create)
+- [x] Phase 8 — Wallet Panel (live portfolio, token holdings via Helius)
 
-**Phases in progress:**
-- None
+**Production Refactoring — Phases 1-10: COMPLETE**
+- [x] IPC Handler Factory, Type Centralization, Zustand Optimization
+- [x] ErrorRecoveryService, ResourceManager, SagaOrchestrator
+- [x] LogService, ValidationService, Code Splitting, DB Migrations (SCHEMA_V6)
+
+**New Panels Added This Session:**
+- [x] Settings Panel (API Keys, Integrations, Agents, Display tabs)
+- [x] Tools Panel (browser, create dialog, run/edit/import, per-language runners)
+- [x] Onboarding flow (GitHub OAuth + Claude connection)
+
+**Layout Changes This Session:**
+- Sidebar reorganized: Explorer/Agent/Git/Tools/Plugins/Env (top), Settings (bottom)
+- Right panel tab bar: Claude/Ports/Processes/Wallet as embedded tabs
+- Plugin split view: plugin + Claude panel coexist in right sidebar
+- Ctrl+B toggles right panel visibility
+- Crash screen with Reload/Hard Reload recovery buttons
+- Terminal hints with Tab accept, Escape dismiss, close button
+
+**Critical Bug Fixes This Session:**
+- Monaco crash on project switch (InstantiationService disposed) — 3-layer try/catch guard
+- ErrorBoundary wrapping MonacoEditor
+- MCP toggle sync between Settings and Claude sidebar via mcpVersion store
+- Auto-restore last active project on crash/reload
+
+**Remaining Phases (from MASTER_PLAN.md):**
+- [ ] Phase 9 — Image Generator (Gemini imagen-4)
+- [ ] Phase 10 — Gmail Code Catcher
+- [ ] Phase 11 — Tweet Generator
+- [ ] Phase 12 — Subscription Manager
+- [ ] Phase 13 — Remotion Panel
+- [ ] Phase 14 — Browser + Playwright CDP
+- [ ] Phase 15 — Context Bridge Extension
+
+**Future (post-core stabilization):**
+- Overnight Engine, Dispatch (Telegram/Discord bots), ARIA agent layer
+- Services Panel, Full Telegram Client, Voice System
+- Multi-model Router, Workspace Profiles, Ship Mode, Build Journal
 
 **Test Results:**
-- ✅ 20/20 tests passing (ErrorRecoveryService 8, ResourceManager 7, SagaOrchestrator 6, UI store 2)
-- ✅ TypeScript: 0 errors
-- ✅ Production build: successful (21.03s, all bundles created)
-
-**Known issues from last session:**
-- Monaco keybinding uses imported `monaco.KeyMod` — verify it works at runtime
-- `chokidar`, `express`, `ps-list`, `simple-git` in dependencies but unused until future phases
-- node-pty built with ConPTY-only patch (winpty target removed) — document in postinstall
-- Wallet flows still need live runtime verification against a configured Helius session
+- 20/20 tests passing
+- TypeScript: 0 errors
+- Working tree: clean
 
 **Next session should start with:**
-- Phase 9: Image Generator or a stabilization pass
-
-**Phases complete:**
-- [x] Phase 1 — Shell (Monaco + terminal + SQLite + file explorer + project tabs)
-- [x] Phase 2 — Agent Launcher (agent CRUD, spawn Claude with context, terminal tabs with agent names)
-- [x] Phase 3 — Claude Panel (MCP management, usage stats, CLAUDE.md tools)
-- [x] Phase 4 — Process Manager
-- [x] Phase 5 — Env Manager
-- [x] Phase 6 — Localhost + Infrastructure Manager
-- [x] Phase 7 — Git Panel
-- [x] Phase 8 — Wallet Panel
-
-**Phases in progress:**
-- None
-
-**Known issues from last session:**
-- Monaco keybinding uses imported `monaco.KeyMod` — verify it works at runtime
-- `chokidar`, `express`, `ps-list`, `simple-git` in dependencies but unused until future phases
-- node-pty built with ConPTY-only patch (winpty target removed) — document in postinstall
-- Wallet flows still need live runtime verification against a configured Helius session
-
-**Next session should start with:**
-- Phase 9: Image Generator or a stabilization pass
-
-**API keys configured:**
-- [ ] ANTHROPIC_API_KEY
-- [ ] ANTHROPIC_ADMIN_KEY
-- [ ] GEMINI_API_KEY
-- [ ] HELIUS_API_KEY
-- [ ] GITHUB_TOKEN
+- Phase 9 (Image Generator) or Phase 11 (Tweet Generator) — both are quick wins
+- Alternatively: stabilization pass + `npm run package` verification
 
 **Platform:**
-- OS: Windows (primary)
-- Node: [version]
-- Electron: [version]
+- OS: Windows 11
+- Node: v22+
+- Electron: 33.2.0
 
 ---
 
