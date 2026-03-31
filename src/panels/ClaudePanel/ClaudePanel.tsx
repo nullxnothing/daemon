@@ -91,7 +91,10 @@ function StatusBadge() {
 // --- Restart Button ---
 
 function RestartButton() {
-  const { activeProjectId, activeTerminalIdByProject, mcpDirty, setMcpDirty } = useUIStore()
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeTerminalIdByProject = useUIStore((s) => s.activeTerminalIdByProject)
+  const mcpDirty = useUIStore((s) => s.mcpDirty)
+  const setMcpDirty = useUIStore((s) => s.setMcpDirty)
   const activeTerminalId = activeProjectId ? activeTerminalIdByProject[activeProjectId] ?? null : null
   if (!activeTerminalId) return null
 
@@ -128,10 +131,7 @@ function McpSection({ loadFn, toggleFn, description, emptyText }: {
     if (res.ok && res.data) setMcps(res.data)
   }, [loadFn])
 
-  useEffect(() => { load() }, [load])
-
-  // Re-fetch when external toggle fires (e.g. from Settings panel)
-  useEffect(() => { load() }, [mcpVersion, load])
+  useEffect(() => { load() }, [load, mcpVersion])
 
   const handleToggle = async (name: string, currentlyEnabled: boolean) => {
     await toggleFn(name, !currentlyEnabled)

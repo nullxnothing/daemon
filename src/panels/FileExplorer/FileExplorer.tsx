@@ -108,6 +108,7 @@ export function FileExplorer() {
 
   const handleDelete = async () => {
     if (!contextMenu?.entry) return
+    if (!window.confirm(`Delete ${contextMenu.entry.name}?`)) return
     await window.daemon.fs.delete(contextMenu.entry.path)
     setContextMenu(null)
     reload()
@@ -137,7 +138,6 @@ export function FileExplorer() {
     const res = await window.daemon.terminal.create({ cwd })
     if (res.ok && res.data) {
       addTerminal(activeProjectId, res.data.id, pathLabel(cwd))
-      setActivePanel('claude')
     }
     setContextMenu(null)
   }
@@ -147,7 +147,6 @@ export function FileExplorer() {
     const res = await window.daemon.fs.readFile(entry.path)
     if (res.ok && res.data) {
       openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId: activeProjectId })
-      setActivePanel('claude')
       setSearchQuery('')
       searchInputRef.current?.blur()
     }
@@ -270,7 +269,6 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
       if (res.ok && res.data) {
         if (projectId) {
           openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId })
-          setActivePanel('claude')
         }
       }
     }

@@ -24,6 +24,7 @@ export function registerEnvHandlers() {
   // Get all vars for one project
   ipcMain.handle('env:project-vars', async (_event, projectPath: string) => {
     try {
+      if (!isProjectPathSafe(projectPath)) return { ok: false, error: 'Path outside project boundaries' }
       const files = Env.scanProjectEnvFiles(projectPath)
       return { ok: true, data: files }
     } catch (err) {
@@ -73,6 +74,7 @@ export function registerEnvHandlers() {
   // Diff two projects
   ipcMain.handle('env:diff', async (_event, pathA: string, pathB: string) => {
     try {
+      if (!isProjectPathSafe(pathA) || !isProjectPathSafe(pathB)) return { ok: false, error: 'Path outside project boundaries' }
       const diff = Env.diffProjects(pathA, pathB)
       return { ok: true, data: diff }
     } catch (err) {

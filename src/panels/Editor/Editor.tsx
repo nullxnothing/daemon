@@ -44,16 +44,14 @@ const viewStateCache = new Map<string, monaco.editor.ICodeEditorViewState>()
 let themeIsDefined = false
 
 export function EditorPanel() {
-  const {
-    openFiles,
-    activeProjectId,
-    activeProjectPath,
-    activeFilePathByProject,
-    setActiveFile,
-    closeFile,
-    updateFileContent,
-    markFileSaved,
-  } = useUIStore()
+  const openFiles = useUIStore((s) => s.openFiles)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  const activeFilePathByProject = useUIStore((s) => s.activeFilePathByProject)
+  const setActiveFile = useUIStore((s) => s.setActiveFile)
+  const closeFile = useUIStore((s) => s.closeFile)
+  const updateFileContent = useUIStore((s) => s.updateFileContent)
+  const markFileSaved = useUIStore((s) => s.markFileSaved)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -346,7 +344,7 @@ export function EditorPanel() {
       <div className="editor-empty">
         <span className="editor-empty-title">DAEMON</span>
         <span className="editor-empty-sub">
-          {activeProjectId ? 'Open a file from the explorer' : 'Select a project'}
+          {activeProjectId ? 'Open a file, launch an agent, or start from a template' : 'Select a project'}
         </span>
       </div>
     )
@@ -364,15 +362,16 @@ export function EditorPanel() {
             <span className="editor-tab-name">
               {file.isDirty ? '\u25CF ' : ''}{file.name}
             </span>
-            <span
+            <button
               className="editor-tab-close"
+              aria-label="Close tab"
               onClick={(e) => {
                 e.stopPropagation()
                 handleCloseFile(file.projectId, file.path)
               }}
             >
               &times;
-            </span>
+            </button>
           </button>
         ))}
       </div>

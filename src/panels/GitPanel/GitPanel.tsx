@@ -92,7 +92,7 @@ export function GitPanel() {
   const handleStageFolder = async (folder: string) => {
     if (!projectPath) return
     const folderFiles = files
-      .filter((f) => (f.unstaged || f.untracked) && f.path.startsWith(folder))
+      .filter((f) => (f.unstaged || f.untracked) && f.path.startsWith(folder + '/'))
       .map((f) => f.path)
     if (folderFiles.length > 0) await window.daemon.git.stage(projectPath, folderFiles)
     load()
@@ -456,7 +456,7 @@ export function GitPanel() {
           onKeyDown={(e) => e.key === 'Enter' && handleCommitAndPush()}
         />
         <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0}>
-          {generatingCommitMsg ? 'Generating…' : '✨'}
+          {generatingCommitMsg ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>}
         </button>
         <button className="git-commit-btn" onClick={handleCommitAndPush} disabled={staged.length === 0 || !commitMsg.trim() || committing || pushing}>
           {committing ? 'Committing & Pushing…' : 'Commit & Push to Cloud'}
@@ -470,7 +470,7 @@ export function GitPanel() {
             <div className="git-file-section-header">
               <span>Staged ({staged.length})</span>
             </div>
-            <div className="git-file-section-subtext">Select files to include in this update.</div>
+            <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {staged.map((f) => (
               <div key={f.path} className="git-file-row staged">
                 <span className="git-file-status">S</span>
@@ -487,7 +487,7 @@ export function GitPanel() {
               <span>Changes ({unstaged.length})</span>
               <button className="git-file-btn" onClick={handleStageAll}>Stage All</button>
             </div>
-            <div className="git-file-section-subtext">Select files to include in this update.</div>
+            <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {(() => {
               const folders = new Map<string, typeof unstaged>()
               for (const f of unstaged) {

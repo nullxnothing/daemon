@@ -76,11 +76,11 @@
 }
 
 .market-change.up {
-  color: var(--t3);
+  color: var(--success);
 }
 
 .market-change.down {
-  color: var(--t3);
+  color: var(--error);
 }
 
 .market-change.up.significant {

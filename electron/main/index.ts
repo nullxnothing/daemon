@@ -32,7 +32,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST
 
-app.commandLine.appendSwitch('remote-debugging-port', '9222')
+if (!app.isPackaged) {
+  app.commandLine.appendSwitch('remote-debugging-port', '9222')
+}
 
 // Monaco offline protocol — must be registered before app.whenReady()
 // In production, Monaco workers load via this custom protocol instead of CDN
@@ -99,7 +101,7 @@ function registerAllIpc() {
 
   // Shell utilities
   ipcMain.handle('shell:open-external', (_event, url: string) => {
-    if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
+    if (typeof url === 'string' && url.startsWith('https://')) {
       return shell.openExternal(url)
     }
   })
@@ -112,7 +114,11 @@ async function createWindow() {
   // Monaco offline: serve node_modules/monaco-editor files via custom protocol
   protocol.handle('monaco-editor', (request) => {
     const url = request.url.slice('monaco-editor:///'.length)
-    const filePath = path.join(process.env.APP_ROOT, 'node_modules', 'monaco-editor', 'min', url)
+    const basePath = path.resolve(process.env.APP_ROOT, 'node_modules', 'monaco-editor', 'min')
+    const filePath = path.resolve(basePath, url)
+    if (!filePath.startsWith(basePath + path.sep) && filePath !== basePath) {
+      return new Response('Forbidden: path traversal', { status: 403 })
+    }
     return net.fetch(pathToFileURL(filePath).toString())
   })
 
@@ -165,7 +171,7 @@ async function createWindow() {
       preload,
       contextIsolation: true,
       nodeIntegration: false,
-      webviewTag: true,
+      webviewTag: false,
     },
   })
 

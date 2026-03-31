@@ -55,6 +55,7 @@ export function registerClaudeHandlers() {
 
   ipcMain.handle('claude:project-mcp-all', async (_event, projectPath: string) => {
     try {
+      if (!isPathSafe(projectPath)) return { ok: false, error: 'Path not within a registered project' }
       return { ok: true, data: McpConfig.getProjectMcps(projectPath) }
     } catch (err) {
       return { ok: false, error: (err as Error).message }

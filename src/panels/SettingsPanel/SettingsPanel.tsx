@@ -155,7 +155,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
       </div>
 
       <div className="settings-integration-row">
-        <div className="settings-integration-dot green" />
+        <div className={`settings-integration-dot ${connection && connection.authMode !== 'none' ? 'green' : ''}`} />
         <span className="settings-integration-name">Claude CLI</span>
         <span className="settings-integration-status">{connection?.authMode ?? 'unknown'}</span>
       </div>

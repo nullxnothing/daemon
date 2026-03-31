@@ -59,8 +59,10 @@ function App() {
     window.postMessage({ payload: 'removeLoading' }, '*')
     loadProjects()
     usePluginStore.getState().load()
-    // Debug: expose store for CDP testing (remove in production)
-    ;(window as any).__uiStore = useUIStore
+    // Debug: expose store for CDP testing
+    if (import.meta.env.DEV) {
+      ;(window as any).__uiStore = useUIStore
+    }
     // Check Claude connection — show onboarding if not connected
     window.daemon.claude.getConnection().then((res) => {
       if (!res.ok || !res.data || res.data.authMode === 'none') {
@@ -209,7 +211,7 @@ function App() {
               </div>
               <div className="right-panel-tabs">
                 <button
-                  className={`rp-tab ${activePanel === 'claude' || activePanel === 'env' || activePanel === 'git' || activePanel === 'recovery' || activePanel === 'settings' || activePanel === 'tools' ? 'active' : ''}`}
+                  className={`rp-tab ${activePanel !== 'ports' && activePanel !== 'process' && activePanel !== 'wallet' ? 'active' : ''}`}
                   onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('claude') }}
                   title="Claude"
                 >

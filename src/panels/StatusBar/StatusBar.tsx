@@ -12,7 +12,7 @@ export function StatusBar() {
   return (
     <div className="statusbar">
       <div className="statusbar-left">
-        <span className="statusbar-item">DAEMON v0.1.0</span>
+        <span className="statusbar-item">DAEMON</span>
         <GitBranch />
         <TerminalCount />
       </div>
@@ -87,7 +87,7 @@ function MarketTape() {
   const dashboard = useWalletStore((s) => s.dashboard)
   const items = dashboard?.market ?? EMPTY_MARKET
 
-  if (!visible || items.length === 0) return null
+  if (!visible || items.length === 0 || items.every((i) => i.priceUsd === 0)) return null
 
   return (
     <div className="market-tape">

@@ -312,6 +312,11 @@ declare global {
     delete: (id: string, deleteFiles: boolean) => Promise<IpcResponse>
     runCommand: (id: string) => Promise<IpcResponse<{ command: string; args: string[]; cwd: string; toolId: string }>>
     markRunning: (id: string, terminalId: string, pid: number) => Promise<IpcResponse>
+    markStopped: (toolId: string) => Promise<IpcResponse>
+    update: (id: string, data: Record<string, unknown>) => Promise<IpcResponse>
+    discover: () => Promise<IpcResponse>
+    status: (id: string) => Promise<IpcResponse>
+    basePath: () => Promise<IpcResponse<string>>
     openFolder: (id: string) => Promise<IpcResponse>
     import: () => Promise<IpcResponse<ToolRow | null>>
   }
@@ -325,17 +330,6 @@ declare global {
     healthCheck: () => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
     explainError: (error: string, projectId?: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
     ask: (question: string, projectId?: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
-  }
-
-  interface DaemonTools {
-    list: () => Promise<IpcResponse<Array<{ id: string; name: string; description: string | null; category: string; language: string; entrypoint: string; tool_path: string; icon: string; version: string; author: string | null; tags: string; config: string; last_run_at: number | null; run_count: number; enabled: number; sort_order: number; created_at: number }>>>
-    get: (id: string) => Promise<IpcResponse<{ id: string; name: string; description: string | null; category: string; language: string; entrypoint: string; tool_path: string; icon: string; version: string; author: string | null; tags: string; config: string; last_run_at: number | null; run_count: number; enabled: number; sort_order: number; created_at: number }>>
-    create: (opts: { name: string; description?: string; category: string; language: string }) => Promise<IpcResponse<{ id: string }>>
-    delete: (id: string, deleteFiles: boolean) => Promise<IpcResponse>
-    runCommand: (id: string) => Promise<IpcResponse<{ command: string; args: string[]; cwd: string }>>
-    markRunning: (id: string, terminalId: string, pid: number) => Promise<IpcResponse>
-    openFolder: (id: string) => Promise<IpcResponse>
-    import: () => Promise<IpcResponse<{ id: string }>>
   }
 
   interface DaemonAPI {
@@ -357,7 +351,6 @@ declare global {
     plugins: DaemonPlugins
     recovery: DaemonRecovery
     shell: DaemonShell
-    tools: DaemonTools
   }
 
   interface Window {

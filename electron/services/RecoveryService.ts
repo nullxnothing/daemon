@@ -420,6 +420,7 @@ export function getStatus(): RecoveryStatus {
 export function stopRecovery() {
   abortController?.abort()
   currentStatus.state = 'idle'
+  clearLoadedWallets()
 }
 
 export function clearLoadedWallets(): void {

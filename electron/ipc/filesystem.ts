@@ -13,6 +13,7 @@ const IGNORED = new Set([
 export function registerFilesystemHandlers() {
   ipcMain.handle('fs:readDir', async (_event, dirPath: string, depth = 1): Promise<{ ok: boolean; data?: FileEntry[]; error?: string }> => {
     try {
+      if (!isPathSafe(dirPath)) return { ok: false, error: 'Path outside project boundaries' }
       const safeDepth = Math.min(depth ?? 3, 10)
       const entries = readDirRecursive(dirPath, safeDepth)
       return { ok: true, data: entries }

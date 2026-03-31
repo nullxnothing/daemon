@@ -199,7 +199,7 @@ export function Onboarding() {
 
         {step === 'claude' ? (
           <>
-            <div className="onboarding-subtitle">Connect with Claude Code</div>
+            <div className="onboarding-subtitle">Set up your AI engine</div>
 
             <div className="onboarding-checks">
               <div className="onboarding-check">
@@ -257,7 +257,7 @@ export function Onboarding() {
 
             <div className="onboarding-api-section">
               <span className="onboarding-api-label">
-                API Key (optional — enables direct API for faster responses)
+                API Key (optional — unlocks direct API mode for faster AI responses)
               </span>
               <div className="onboarding-api-row">
                 <input
@@ -277,15 +277,15 @@ export function Onboarding() {
                 </button>
               </div>
               <span className="onboarding-hint">
-                Without an API key, all AI features route through your Max subscription via Claude CLI.
+                Without an API key, AI runs through your Claude Max subscription. Both modes are fully featured.
               </span>
             </div>
           </>
         ) : (
           <>
-            <div className="onboarding-subtitle">Connect your tools</div>
+            <div className="onboarding-subtitle">Connect your stack</div>
             <div className="onboarding-hint" style={{ textAlign: 'center', marginBottom: 16 }}>
-              Enable integrations to give Claude access to your services via MCP.
+              Let Claude deploy, review PRs, and manage infrastructure on your behalf.
               {!activeProjectPath && ' Select a project first to configure per-project MCPs.'}
             </div>
 

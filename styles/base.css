@@ -24,7 +24,7 @@ html, body, #root {
 }
 
 ::selection {
-  background: var(--s4);
+  background: rgba(74, 140, 98, 0.3);
   color: var(--t1);
 }
 
@@ -43,7 +43,7 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--s5);
+  background: var(--s6);
 }
 
 input, button, textarea {

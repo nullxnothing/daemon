@@ -446,6 +446,7 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
   const historySearchOpenRef = useRef(false)
   const historySearchQueryRef = useRef('')
   const historySelectionIndexRef = useRef(0)
+  const historyMatchesRef = useRef<string[]>([])
 
   const setCurrentInput = (value: string) => {
     currentInputRef.current = value
@@ -475,9 +476,11 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
   const historyMatches = useMemo(() => {
     const query = historySearchQuery.trim().toLowerCase()
     const source = [...commandHistory].reverse()
-    return query
+    const result = query
       ? source.filter((command) => command.toLowerCase().includes(query))
       : source
+    historyMatchesRef.current = result
+    return result
   }, [commandHistory, historySearchQuery])
 
   const completionHints = useMemo(() => {
@@ -596,7 +599,7 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
     }
 
     if (data === '\u000e') {
-      const next = Math.min(Math.max(0, historyMatches.length - 1), historySelectionIndexRef.current + 1)
+      const next = Math.min(Math.max(0, historyMatchesRef.current.length - 1), historySelectionIndexRef.current + 1)
       setHistorySelectionIndex(next)
       return true
     }
@@ -608,7 +611,7 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
       return true
     }
 
-    return true
+    return false
   }
 
   const doFit = useCallback(() => {

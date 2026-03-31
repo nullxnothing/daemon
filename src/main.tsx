@@ -37,7 +37,7 @@ class RootErrorBoundary extends React.Component<
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ fontSize: 18 }}>Renderer crash</div>
             <button
-              onClick={this.handleReload}
+              onClick={() => window.location.reload()}
               style={{
                 background: '#1a1a1a',
                 color: '#ebebeb',
@@ -50,21 +50,6 @@ class RootErrorBoundary extends React.Component<
               }}
             >
               Reload App
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                background: 'transparent',
-                color: '#7a7a7a',
-                border: '1px solid #2a2a2a',
-                borderRadius: '4px',
-                padding: '6px 16px',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontFamily: 'inherit',
-              }}
-            >
-              Hard Reload
             </button>
           </div>
           <pre style={{

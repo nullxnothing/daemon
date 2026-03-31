@@ -29,8 +29,9 @@ export function AgentGrid() {
   const addGrindPage = useUIStore((s) => s.addGrindPage)
   const removeGrindPage = useUIStore((s) => s.removeGrindPage)
 
-  // Pages: each page has its own set of cells
   const [pages, setPages] = useState<PageCells[]>([DEFAULT_CELLS.map((c) => ({ ...c }))])
+  const pagesRef = useRef(pages)
+  pagesRef.current = pages
   const [dragSource, setDragSource] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
 
@@ -51,7 +52,6 @@ export function AgentGrid() {
         }
         return newPages
       }
-      // Shrinking — kill terminals on removed pages
       return prev.slice(0, grindPageCount)
     })
   }, [grindPageCount])
@@ -66,32 +66,25 @@ export function AgentGrid() {
     })
   }, [activeGrindPage])
 
-  const spawnCell = useCallback(async (index: number) => {
+  const activateCell = useCallback(async (index: number) => {
     if (!activeProjectId) return
-    const currentCells = pages[activeGrindPage]
+    const currentCells = pagesRef.current[activeGrindPage]
     if (!currentCells || !currentCells[index]) return
+    const label = currentCells[index].label
     const res = await window.daemon.terminal.create({
       cwd: activeProjectPath ?? undefined,
       startupCommand: 'claude',
     })
     if (res.ok && res.data) {
-      addTerminal(activeProjectId, res.data.id, currentCells[index].label)
+      const termId = res.data.id
+      addTerminal(activeProjectId, termId, label)
       setCells((prev) => {
         const next = [...prev]
-        next[index] = { ...next[index], id: res.data!.id }
+        next[index] = { ...next[index], id: termId }
         return next
       })
     }
-  }, [activeProjectId, activeProjectPath, addTerminal, pages, activeGrindPage, setCells])
-
-  // Auto-spawn empty visible cells on page switch or project switch
-  useEffect(() => {
-    const currentCells = pages[activeGrindPage]
-    if (!currentCells) return
-    for (let i = 0; i < currentCells.length; i++) {
-      if (!currentCells[i].id && currentCells[i].visible) void spawnCell(i)
-    }
-  }, [activeProjectId, activeGrindPage])
+  }, [activeProjectId, activeProjectPath, addTerminal, activeGrindPage, setCells])
 
   const handleClose = useCallback(async (index: number) => {
     const cell = cells[index]
@@ -108,14 +101,13 @@ export function AgentGrid() {
     })
   }, [cells, activeProjectId, setCells])
 
-  const handleReopen = useCallback(async (index: number) => {
+  const handleReopen = useCallback((index: number) => {
     setCells((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], visible: true }
       return next
     })
-    await spawnCell(index)
-  }, [spawnCell, setCells])
+  }, [setCells])
 
   const handleAddCell = useCallback(() => {
     const totalCells = cells.length
@@ -128,7 +120,6 @@ export function AgentGrid() {
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDragSource(index)
     e.dataTransfer.effectAllowed = 'move'
-    // Transparent drag image — we handle visuals via CSS classes
     const ghost = document.createElement('div')
     ghost.style.opacity = '0'
     ghost.style.position = 'absolute'
@@ -145,7 +136,6 @@ export function AgentGrid() {
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if leaving the cell entirely (not entering a child)
     const related = e.relatedTarget as Node | null
     const current = e.currentTarget as Node
     if (!related || !current.contains(related)) {
@@ -176,7 +166,6 @@ export function AgentGrid() {
   }
 
   const handleRemovePage = useCallback((pageIndex: number) => {
-    // Kill terminals on this page first
     const pageCells = pages[pageIndex]
     if (pageCells) {
       for (const cell of pageCells) {
@@ -196,7 +185,6 @@ export function AgentGrid() {
 
   return (
     <div className="agent-grid-wrapper">
-      {/* Page tabs bar */}
       <div className="agent-grid-page-bar">
         <div className="agent-grid-page-tabs">
           {Array.from({ length: grindPageCount }).map((_, i) => (
@@ -228,7 +216,6 @@ export function AgentGrid() {
         </button>
       </div>
 
-      {/* Grid */}
       <div
         className="agent-grid"
         style={{
@@ -253,17 +240,27 @@ export function AgentGrid() {
                 onDragStart={(e) => handleDragStart(e, i)}
                 onDragEnd={handleDragEnd}
               >
-                <span className="agent-grid-cell-dot" />
+                <span className={`agent-grid-cell-dot ${cell.id ? '' : 'idle'}`} />
                 <span className="agent-grid-cell-label">{cell.label}</span>
-                <span className="agent-grid-cell-close" onClick={() => handleClose(i)} title="Close this agent">
-                  &times;
-                </span>
+                {cell.id && (
+                  <span className="agent-grid-cell-close" onClick={() => handleClose(i)} title="Close this agent">
+                    &times;
+                  </span>
+                )}
               </div>
               <div className="agent-grid-cell-body">
                 {cell.id ? (
                   <AgentGridTerminal id={cell.id} />
                 ) : (
-                  <div className="agent-grid-cell-empty">Starting...</div>
+                  <div className="agent-grid-cell-activate" onClick={() => activateCell(i)}>
+                    <div className="activate-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
+                    </div>
+                    <span className="activate-label">Activate</span>
+                    <span className="activate-hint">Launch an AI coding agent</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -271,7 +268,6 @@ export function AgentGrid() {
         })}
       </div>
 
-      {/* Reopen closed cells */}
       {closedCells.length > 0 && (
         <div className="agent-grid-reopen">
           {closedCells.map((cell) => (
