@@ -1,0 +1,280 @@
+import type {
+  IpcResponse,
+  Project,
+  Agent,
+  FileEntry,
+  RuntimeIconTheme,
+  ClaudeAgentFile,
+  McpRegistryEntry,
+  McpEntry,
+  AnthropicStatus,
+  SessionUsage,
+  SecureKeyEntry,
+  WalletListEntry,
+  WalletDashboard,
+  ClaudeMdData,
+  ClaudeConnection,
+  ProcessInfo,
+  OrphanProcess,
+  GitFile,
+  GitCommit,
+  GitBranches,
+  ListeningPort,
+  RegisteredPort,
+  GhostPort,
+  UnifiedKey,
+  EnvFile,
+  EnvDiff,
+  SkillEntry,
+  UiSettings,
+  MarketTickerEntry,
+  PluginRow,
+  Tweet,
+  VoiceProfile,
+  RecoveryWalletInfo,
+  RecoveryProgressEvent,
+  RecoveryStatus,
+} from '../../electron/shared/types'
+
+export type {
+  IpcResponse,
+  Project,
+  Agent,
+  FileEntry,
+  RuntimeIconTheme,
+  ClaudeAgentFile,
+  McpRegistryEntry,
+  McpEntry,
+  AnthropicStatus,
+  SessionUsage,
+  SecureKeyEntry,
+  WalletListEntry,
+  WalletDashboard,
+  ClaudeMdData,
+  ClaudeConnection,
+  ProcessInfo,
+  OrphanProcess,
+  GitFile,
+  GitCommit,
+  GitBranches,
+  ListeningPort,
+  RegisteredPort,
+  GhostPort,
+  UnifiedKey,
+  EnvFile,
+  EnvDiff,
+  SkillEntry,
+  UiSettings,
+  MarketTickerEntry,
+  PluginRow,
+  Tweet,
+  VoiceProfile,
+  RecoveryWalletInfo,
+  RecoveryProgressEvent,
+  RecoveryStatus,
+}
+
+declare global {
+  // Re-export shared types as global ambient types so existing code
+  // that references them without explicit imports continues to work.
+  type Project = import('../../electron/shared/types').Project
+  type Agent = import('../../electron/shared/types').Agent
+  type FileEntry = import('../../electron/shared/types').FileEntry
+  type RuntimeIconTheme = import('../../electron/shared/types').RuntimeIconTheme
+  type ClaudeAgentFile = import('../../electron/shared/types').ClaudeAgentFile
+  type McpRegistryEntry = import('../../electron/shared/types').McpRegistryEntry
+  type AnthropicStatus = import('../../electron/shared/types').AnthropicStatus
+  type SecureKeyEntry = import('../../electron/shared/types').SecureKeyEntry
+  type WalletListEntry = import('../../electron/shared/types').WalletListEntry
+  type WalletDashboard = import('../../electron/shared/types').WalletDashboard
+  type MarketTickerEntry = import('../../electron/shared/types').MarketTickerEntry
+  type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
+  type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
+  type PluginRow = import('../../electron/shared/types').PluginRow
+  type Tweet = import('../../electron/shared/types').Tweet
+  type VoiceProfile = import('../../electron/shared/types').VoiceProfile
+  type IpcResponse<T = unknown> = import('../../electron/shared/types').IpcResponse<T>
+  type RecoveryWalletInfo = import('../../electron/shared/types').RecoveryWalletInfo
+  type RecoveryProgressEvent = import('../../electron/shared/types').RecoveryProgressEvent
+  type RecoveryStatus = import('../../electron/shared/types').RecoveryStatus
+
+  interface DaemonWindow {
+    minimize: () => void
+    maximize: () => void
+    close: () => void
+    reload: () => void
+    isMaximized: () => Promise<boolean>
+    onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
+  }
+
+  interface DaemonTerminal {
+    create: (opts?: { cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
+    spawnAgent: (opts: { agentId: string; projectId: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    write: (id: string, data: string) => void
+    resize: (id: string, cols: number, rows: number) => void
+    kill: (id: string) => Promise<IpcResponse>
+    onData: (callback: (payload: { id: string; data: string }) => void) => () => void
+    onExit: (callback: (payload: { id: string; exitCode: number }) => void) => () => void
+  }
+
+  interface DaemonGit {
+    branch: (cwd: string) => Promise<IpcResponse<string | null>>
+    branches: (cwd: string) => Promise<IpcResponse<GitBranches>>
+    status: (cwd: string) => Promise<IpcResponse<GitFile[]>>
+    stage: (cwd: string, files: string[]) => Promise<IpcResponse>
+    unstage: (cwd: string, files: string[]) => Promise<IpcResponse>
+    commit: (cwd: string, message: string) => Promise<IpcResponse>
+    push: (cwd: string) => Promise<IpcResponse<string>>
+    log: (cwd: string, count?: number) => Promise<IpcResponse<GitCommit[]>>
+    diff: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
+    checkout: (cwd: string, branch: string) => Promise<IpcResponse>
+  }
+
+  interface DaemonPorts {
+    scan: () => Promise<IpcResponse<ListeningPort[]>>
+    registered: () => Promise<IpcResponse<RegisteredPort[]>>
+    register: (port: number, projectId: string, serviceName: string) => Promise<IpcResponse>
+    unregister: (port: number, projectId: string) => Promise<IpcResponse>
+    ghosts: () => Promise<IpcResponse<GhostPort[]>>
+    kill: (port: number) => Promise<IpcResponse>
+  }
+
+  interface DaemonEnv {
+    scanAll: () => Promise<IpcResponse<UnifiedKey[]>>
+    projectVars: (projectPath: string) => Promise<IpcResponse<EnvFile[]>>
+    updateVar: (filePath: string, key: string, value: string) => Promise<IpcResponse>
+    addVar: (key: string, value: string, projectPaths: string[]) => Promise<IpcResponse<{ added: number }>>
+    deleteVar: (filePath: string, key: string) => Promise<IpcResponse>
+    diff: (pathA: string, pathB: string) => Promise<IpcResponse<EnvDiff>>
+    copyValue: (value: string) => Promise<IpcResponse>
+    propagate: (key: string, value: string, projectPaths: string[]) => Promise<IpcResponse<{ updated: number }>>
+    projects: () => Promise<IpcResponse<Array<{ id: string; name: string; path: string }>>>
+  }
+
+  interface DaemonProcess {
+    list: () => Promise<IpcResponse<ProcessInfo[]>>
+    orphans: () => Promise<IpcResponse<OrphanProcess[]>>
+    kill: (pid: number) => Promise<IpcResponse>
+  }
+
+  interface DaemonFs {
+    readDir: (dirPath: string, depth?: number) => Promise<IpcResponse<FileEntry[]>>
+    readFile: (filePath: string) => Promise<IpcResponse<{ content: string; path: string }>>
+    writeFile: (filePath: string, content: string) => Promise<IpcResponse>
+    createFile: (filePath: string) => Promise<IpcResponse>
+    createDir: (dirPath: string) => Promise<IpcResponse>
+    rename: (oldPath: string, newPath: string) => Promise<IpcResponse>
+    delete: (targetPath: string) => Promise<IpcResponse>
+    reveal: (targetPath: string) => Promise<IpcResponse>
+    copyPath: (targetPath: string) => Promise<IpcResponse>
+    iconTheme: () => Promise<IpcResponse<RuntimeIconTheme | null>>
+  }
+
+  interface DaemonProjects {
+    list: () => Promise<IpcResponse<Project[]>>
+    create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
+    delete: (id: string) => Promise<IpcResponse>
+    openDialog: () => Promise<IpcResponse<string | null>>
+  }
+
+  interface DaemonWallet {
+    dashboard: (projectId?: string | null) => Promise<IpcResponse<WalletDashboard>>
+    list: () => Promise<IpcResponse<WalletListEntry[]>>
+    create: (wallet: { name: string; address: string }) => Promise<IpcResponse<WalletListEntry>>
+    delete: (id: string) => Promise<IpcResponse>
+    setDefault: (id: string) => Promise<IpcResponse>
+    assignProject: (projectId: string, walletId: string | null) => Promise<IpcResponse>
+    storeHeliusKey: (value: string) => Promise<IpcResponse>
+    deleteHeliusKey: () => Promise<IpcResponse>
+    hasHeliusKey: () => Promise<IpcResponse<boolean>>
+  }
+
+  interface DaemonSettings {
+    getUi: () => Promise<IpcResponse<UiSettings>>
+    setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
+    setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
+  }
+
+  interface DaemonAgents {
+    list: () => Promise<IpcResponse<Agent[]>>
+    claudeList: () => Promise<IpcResponse<ClaudeAgentFile[]>>
+    importClaude: (filePath: string) => Promise<IpcResponse<Agent>>
+    syncClaude: (filePath: string) => Promise<IpcResponse<Agent>>
+    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; shortcut?: string; source?: string; externalPath?: string | null }) => Promise<IpcResponse<Agent>>
+    update: (id: string, data: Record<string, unknown>) => Promise<IpcResponse<Agent>>
+    delete: (id: string) => Promise<IpcResponse>
+  }
+
+  interface DaemonClaude {
+    projectMcpAll: (projectPath: string) => Promise<IpcResponse<McpEntry[]>>
+    projectMcpToggle: (projectPath: string, name: string, enabled: boolean) => Promise<IpcResponse>
+    globalMcpAll: () => Promise<IpcResponse<McpEntry[]>>
+    globalMcpToggle: (name: string, enabled: boolean) => Promise<IpcResponse>
+    skills: () => Promise<IpcResponse<SkillEntry[]>>
+    restartSession: (terminalId: string) => Promise<IpcResponse<{ id: string }>>
+    restartAllSessions: () => Promise<IpcResponse<{ restarted: number; total: number }>>
+    status: () => Promise<IpcResponse<AnthropicStatus>>
+    usage: (projectPath?: string) => Promise<IpcResponse<SessionUsage>>
+    storeKey: (name: string, value: string) => Promise<IpcResponse>
+    listKeys: () => Promise<IpcResponse<SecureKeyEntry[]>>
+    deleteKey: (name: string) => Promise<IpcResponse>
+    claudeMdRead: (projectPath: string) => Promise<IpcResponse<ClaudeMdData>>
+    claudeMdGenerate: (projectPath: string) => Promise<IpcResponse<string>>
+    claudeMdWrite: (projectPath: string, content: string) => Promise<IpcResponse>
+    verifyConnection: () => Promise<IpcResponse<ClaudeConnection>>
+    getConnection: () => Promise<IpcResponse<ClaudeConnection | null>>
+    mcpAdd: (mcp: { name: string; config: string; description: string; isGlobal: boolean }) => Promise<IpcResponse>
+  }
+
+  interface DaemonShell {
+    openExternal: (url: string) => Promise<void>
+  }
+
+  interface DaemonTweets {
+    generate: (prompt: string, mode: string, sourceTweet?: string) => Promise<IpcResponse<{ tweets: Tweet[]; draftPath: string }>>
+    list: (limit?: number) => Promise<IpcResponse<Tweet[]>>
+    update: (id: string, updates: { content?: string; status?: string }) => Promise<IpcResponse<Tweet>>
+    delete: (id: string) => Promise<IpcResponse>
+    voiceGet: () => Promise<IpcResponse<VoiceProfile | null>>
+    voiceUpdate: (systemPrompt: string, examples: string[]) => Promise<IpcResponse>
+  }
+
+  interface DaemonPlugins {
+    list: () => Promise<IpcResponse<PluginRow[]>>
+    setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<void>>
+    setConfig: (id: string, config: string) => Promise<IpcResponse<void>>
+    reorder: (orderedIds: string[]) => Promise<IpcResponse<void>>
+  }
+
+  interface DaemonRecovery {
+    importCsv: () => Promise<IpcResponse<{ count: number; path: string } | null>>
+    scan: () => Promise<IpcResponse<RecoveryWalletInfo[]>>
+    execute: (masterAddress: string) => Promise<IpcResponse<{ totalRecovered: number }>>
+    status: () => Promise<IpcResponse<RecoveryStatus>>
+    stop: () => Promise<IpcResponse>
+    onProgress: (callback: (event: RecoveryProgressEvent) => void) => () => void
+  }
+
+  interface DaemonAPI {
+    window: DaemonWindow
+    terminal: DaemonTerminal
+    env: DaemonEnv
+    process: DaemonProcess
+    ports: DaemonPorts
+    wallet: DaemonWallet
+    settings: DaemonSettings
+    fs: DaemonFs
+    git: DaemonGit
+    projects: DaemonProjects
+    agents: DaemonAgents
+    claude: DaemonClaude
+    tweets: DaemonTweets
+    plugins: DaemonPlugins
+    recovery: DaemonRecovery
+    shell: DaemonShell
+  }
+
+  interface Window {
+    daemon: DaemonAPI
+  }
+}

@@ -1,0 +1,23 @@
+:root {
+  --bg:    #090909;
+  --s1:    #101010;
+  --s2:    #151515;
+  --s3:    #1a1a1a;
+  --s4:    #222222;
+  --s5:    #2a2a2a;
+  --t1:    #ebebeb;
+  --t2:    #7a7a7a;
+  --t3:    #3d3d3d;
+  --green: #4a8c62;
+  --amber: #8c7a4a;
+  --red:   #8c4a4a;
+
+  --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --titlebar-h: 38px;
+  --sidebar-w: 48px;
+  --left-panel-w: 210px;
+  --right-panel-w: 262px;
+  --statusbar-h: 22px;
+}

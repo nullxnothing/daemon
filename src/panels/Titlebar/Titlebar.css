@@ -1,0 +1,175 @@
+/* Titlebar — entire bar is draggable, only buttons opt out */
+.titlebar {
+  height: var(--titlebar-h);
+  display: flex;
+  align-items: center;
+  background: var(--s1);
+  border-bottom: 1px solid var(--s5);
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.titlebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Project Tabs — container is still draggable, only tab buttons opt out */
+.project-tabs {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  overflow-x: auto;
+}
+
+.project-tabs::-webkit-scrollbar {
+  height: 0;
+}
+
+.project-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--t2);
+  background: transparent;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s;
+  -webkit-app-region: no-drag;
+}
+
+.project-tab:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.project-tab.active {
+  background: var(--s2);
+  color: var(--t1);
+}
+
+.project-tab-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--t3);
+  flex-shrink: 0;
+}
+
+.project-tab-dot.live {
+  background: var(--green);
+}
+
+.project-tab-close {
+  font-size: 13px;
+  color: var(--t3);
+  margin-left: 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.project-tab:hover .project-tab-close {
+  opacity: 1;
+}
+
+.project-tab-close:hover {
+  color: var(--t1);
+}
+
+.project-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-tab-add {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--t3);
+  border-radius: 4px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.project-tab-add:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.titlebar-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+  align-items: center;
+}
+
+.titlebar-portfolio {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  margin-right: 8px;
+  border-radius: 4px;
+  background: var(--s2);
+  color: var(--t1);
+  font-size: 11px;
+}
+
+.titlebar-portfolio:hover {
+  background: var(--s3);
+}
+
+.titlebar-portfolio-total {
+  font-weight: 600;
+}
+
+.titlebar-portfolio-delta.up,
+.market-change.up {
+  color: var(--green);
+}
+
+.titlebar-portfolio-delta.down,
+.market-change.down {
+  color: var(--red);
+}
+
+.titlebar-btn {
+  width: 36px;
+  height: var(--titlebar-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t2);
+  transition: background 0.1s, color 0.1s;
+}
+
+.titlebar-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.titlebar-btn-close:hover {
+  background: var(--red);
+  color: #fff;
+}

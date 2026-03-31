@@ -1,0 +1,111 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg);
+  color: var(--t1);
+  overflow: hidden;
+}
+
+/* Main Layout */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Left Panel — resizable via min/max */
+.left-panel {
+  width: var(--left-panel-w);
+  min-width: 140px;
+  max-width: 350px;
+  background: var(--s1);
+  border-right: 1px solid var(--s5);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  resize: horizontal;
+}
+
+.panel-header {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--s5);
+  flex-shrink: 0;
+}
+
+/* Center Area */
+.center-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 200px;
+}
+
+.editor-area {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.splitter {
+  height: 4px;
+  background: var(--s5);
+  cursor: row-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.splitter:hover {
+  background: var(--t3);
+}
+
+.terminal-area {
+  min-height: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Right Panel — resizable via min/max */
+.right-panel {
+  width: var(--right-panel-w);
+  min-width: 200px;
+  max-width: 400px;
+  background: var(--s1);
+  border-left: 1px solid var(--s5);
+  flex-shrink: 0;
+  overflow-y: auto;
+  resize: horizontal;
+  direction: rtl; /* makes resize handle appear on the left edge */
+}
+
+.right-panel > * {
+  direction: ltr; /* reset direction for children */
+}
+
+.right-panel-placeholder {
+  padding: 16px 12px;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+/* Plugin Overlay */
+.plugin-overlay {
+  position: fixed;
+  inset: var(--titlebar-h) 0 var(--statusbar-h) 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}

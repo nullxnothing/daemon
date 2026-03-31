@@ -1,0 +1,86 @@
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+.editor-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.editor-empty-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--s5);
+  letter-spacing: 4px;
+}
+
+.editor-empty-sub {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.editor-tabs {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--s5);
+  padding: 0 4px;
+  gap: 2px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.editor-tabs::-webkit-scrollbar {
+  height: 0;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--t2);
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.editor-tab:hover {
+  background: var(--s3);
+}
+
+.editor-tab.active {
+  background: var(--s2);
+  color: var(--t1);
+}
+
+.editor-tab.saved {
+  background: rgba(74, 140, 98, 0.2);
+}
+
+.editor-tab-close {
+  font-size: 14px;
+  color: var(--t3);
+  line-height: 1;
+}
+
+.editor-tab-close:hover {
+  color: var(--t1);
+}
+
+.editor-content {
+  flex: 1;
+  overflow: hidden;
+}

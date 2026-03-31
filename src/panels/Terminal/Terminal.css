@@ -1,0 +1,118 @@
+.terminal-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+.terminal-tabs {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--s1);
+  border-top: 1px solid var(--s5);
+  padding: 0 4px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.terminal-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--t2);
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.terminal-tab:hover {
+  background: var(--s3);
+}
+
+.terminal-tab.active {
+  background: var(--s2);
+  color: var(--t1);
+}
+
+.terminal-tab-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+.terminal-tab-dot.agent {
+  background: var(--amber);
+}
+
+.terminal-tab-close {
+  font-size: 14px;
+  color: var(--t3);
+  margin-left: 4px;
+  line-height: 1;
+}
+
+.terminal-tab-close:hover {
+  color: var(--t1);
+}
+
+.terminal-tab-add {
+  height: 26px;
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--t3);
+  border-radius: 4px;
+}
+
+.terminal-tab-add:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.terminal-views {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.terminal-view {
+  position: absolute;
+  inset: 0;
+  padding: 4px 0 0 4px;
+}
+
+.terminal-view.drag-active {
+  box-shadow: inset 0 0 0 1px rgba(92, 130, 166, 0.9);
+  background: rgba(74, 106, 140, 0.08);
+}
+
+/* xterm must fill container completely for fit to calculate correctly */
+.terminal-view .xterm {
+  height: 100%;
+  width: 100%;
+}
+
+.terminal-view .xterm-screen {
+  height: 100%;
+}
+
+.terminal-view .xterm-viewport {
+  overflow-y: auto !important;
+}
+
+.terminal-view .xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.terminal-view .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--s4);
+  border-radius: 3px;
+}

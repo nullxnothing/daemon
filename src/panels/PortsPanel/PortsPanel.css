@@ -1,0 +1,82 @@
+.ports-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.ports-empty {
+  font-size: 11px;
+  color: var(--t3);
+  padding: 8px 0;
+}
+
+.port-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--s5);
+}
+
+.port-row:last-child { border-bottom: none; }
+
+.port-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.port-dot.live { background: var(--green); }
+.port-dot.dead { background: var(--t3); }
+.port-dot.warning { background: var(--amber); }
+
+.port-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+  font-family: var(--font-code);
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.port-service {
+  font-size: 11px;
+  color: var(--t2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-project {
+  font-size: 10px;
+  color: var(--t3);
+  flex-shrink: 0;
+}
+
+.port-process {
+  font-size: 11px;
+  color: var(--t2);
+  flex: 1;
+}
+
+.port-btn {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 9px;
+  color: var(--t2);
+  background: var(--s2);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.port-btn:hover { background: var(--s3); color: var(--t1); }
+
+.port-btn.danger:hover {
+  background: rgba(140, 74, 74, 0.2);
+  color: var(--red);
+}
+
+.port-row.ghost { opacity: 0.8; }

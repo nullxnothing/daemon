@@ -1,0 +1,221 @@
+.remotion-companion {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--s1);
+}
+
+.remotion-companion .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--s5);
+  flex-shrink: 0;
+}
+
+.remotion-companion-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Skills indicator */
+.remotion-skills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--s5);
+}
+
+.remotion-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--t2);
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  border-radius: 3px;
+}
+
+.remotion-skill-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+/* Quick actions */
+.remotion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--s5);
+}
+
+.remotion-actions-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.remotion-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--t2);
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.remotion-action-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+/* Agent status */
+.remotion-agent-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--s5);
+}
+
+.remotion-launch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--t1);
+  background: var(--s3);
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.remotion-launch-btn:hover {
+  background: var(--s4);
+}
+
+.remotion-launch-btn[data-active="true"] {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.remotion-agent-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--t3);
+}
+
+.remotion-agent-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.remotion-agent-status-dot[data-active="true"] {
+  background: var(--green);
+}
+
+.remotion-agent-status-dot[data-active="false"] {
+  background: var(--t3);
+}
+
+/* Prompt input area */
+.remotion-prompt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.remotion-prompt-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.remotion-prompt-input {
+  flex: 1;
+  min-height: 80px;
+  max-height: 200px;
+  resize: vertical;
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  color: var(--t1);
+  font-size: 11px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding: 8px 10px;
+  outline: none;
+  line-height: 1.5;
+}
+
+.remotion-prompt-input:focus {
+  border-color: var(--t3);
+}
+
+.remotion-prompt-input::placeholder {
+  color: var(--t3);
+}
+
+.remotion-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--t1);
+  background: var(--s3);
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.remotion-send-btn:hover {
+  background: var(--s4);
+}
+
+.remotion-send-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.remotion-send-btn:disabled:hover {
+  background: var(--s3);
+}

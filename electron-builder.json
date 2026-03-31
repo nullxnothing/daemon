@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.daemon.app",
+  "productName": "DAEMON",
+  "asar": true,
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "dist-electron",
+    "dist",
+    "node_modules/**"
+  ],
+  "asarUnpack": [
+    "node_modules/better-sqlite3/**",
+    "node_modules/node-pty/**",
+    "node_modules/node-pty/build/**"
+  ],
+  "mac": {
+    "target": "dmg",
+    "category": "public.app-category.developer-tools",
+    "artifactName": "${productName}_${version}.${ext}"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "${productName}_${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "deleteAppDataOnUninstall": false
+  }
+}
