@@ -473,7 +473,7 @@ export function EditorPanel() {
                 cursorBlinking: 'smooth',
                 cursorSmoothCaretAnimation: 'on',
                 bracketPairColorization: { enabled: true },
-                wordWrap: 'off',
+                wordWrap: 'on',
                 tabSize: 2,
                 glyphMargin: true,
               }}

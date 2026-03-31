@@ -91,15 +91,19 @@ function MarketTape() {
 
   return (
     <div className="market-tape">
-      {items.map((item) => (
-        <span key={item.symbol} className="market-tape-item">
-          <span className="market-symbol">{item.symbol}</span>
-          <span className="market-price">${formatCompactUsd(item.priceUsd)}</span>
-          <span className={`market-change ${item.change24hPct >= 0 ? 'up' : 'down'}`}>
-            {item.change24hPct >= 0 ? '+' : '-'}{Math.abs(item.change24hPct).toFixed(2)}%
+      {items.map((item) => {
+        const isSignificant = Math.abs(item.change24hPct) >= 5
+        const direction = item.change24hPct >= 0 ? 'up' : 'down'
+        return (
+          <span key={item.symbol} className="market-tape-item">
+            <span className="market-symbol">{item.symbol}</span>
+            <span className="market-price">${formatCompactUsd(item.priceUsd)}</span>
+            <span className={`market-change ${direction}${isSignificant ? ' significant' : ''}`}>
+              {item.change24hPct >= 0 ? '+' : '-'}{Math.abs(item.change24hPct).toFixed(2)}%
+            </span>
           </span>
-        </span>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -52,12 +52,12 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
+  padding: 20px 24px;
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 8px;
   border-left: 3px solid transparent;
-  min-height: 132px;
+  min-height: 140px;
   cursor: default;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -147,6 +147,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-top: auto;
+  min-height: 28px;
 }
 
 .plugin-card-v2-btn {

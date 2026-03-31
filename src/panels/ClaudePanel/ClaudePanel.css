@@ -208,6 +208,14 @@
   font-family: var(--font-code);
 }
 
+.usage-value.usage-green {
+  color: var(--green-dim);
+}
+
+.usage-value.usage-red {
+  color: var(--red-dim);
+}
+
 .usage-period {
   font-size: 10px;
   color: var(--t3);

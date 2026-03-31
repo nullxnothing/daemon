@@ -12,6 +12,7 @@ import { WalletPanel } from './panels/WalletPanel/WalletPanel'
 import { RecoveryPanel } from './panels/RecoveryPanel/RecoveryPanel'
 import { SettingsPanel } from './panels/SettingsPanel/SettingsPanel'
 import { ToolBrowser } from './panels/Tools/ToolBrowser'
+import { AgentGrid } from './panels/Terminal/AgentGrid'
 import { PluginManager } from './panels/PluginManager/PluginManager'
 import { PluginDashboard } from './panels/PluginDashboard/PluginDashboard'
 import { Titlebar } from './panels/Titlebar/Titlebar'
@@ -39,6 +40,7 @@ function App() {
   const setProjects = useUIStore((s) => s.setProjects)
   const activePluginId = usePluginStore((s) => s.activePluginId)
   const showOnboarding = useUIStore((s) => s.showOnboarding)
+  const agentGridMode = useUIStore((s) => s.agentGridMode)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -118,6 +120,9 @@ function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault()
         setShowRightPanel((v) => !v)
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault()
+        useUIStore.getState().setAgentGridMode(!useUIStore.getState().agentGridMode)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -154,7 +159,9 @@ function App() {
 
         <div className="center-area">
           <div className="editor-area">
-            {isCenterPanelPlugin && activePlugin ? (
+            {agentGridMode ? (
+              <AgentGrid />
+            ) : isCenterPanelPlugin && activePlugin ? (
               <PluginErrorBoundary>
                 <Suspense fallback={<PluginFallback />}>
                   <activePlugin.component />
@@ -164,10 +171,10 @@ function App() {
               <PluginDashboard />
             ) : activePanel === 'env' ? <EnvManager /> : activePanel === 'git' ? <GitPanel /> : activePanel === 'recovery' ? <RecoveryPanel /> : activePanel === 'settings' ? <SettingsPanel /> : activePanel === 'tools' ? <ToolBrowser /> : <EditorPanel />}
           </div>
-          <div className="splitter" {...splitterProps} />
-          <div className="terminal-area" style={{ height: terminalHeight }}>
+          {!agentGridMode && <div className="splitter" {...splitterProps} />}
+          {!agentGridMode && <div className="terminal-area" style={{ height: terminalHeight }}>
             <TerminalPanel />
-          </div>
+          </div>}
         </div>
 
         {shouldShowRightPanel && <aside className="right-panel">

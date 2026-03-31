@@ -30,6 +30,9 @@ interface UIState {
   // Subscribe to this to re-fetch MCP state without duplicating toggle logic.
   mcpVersion: number
   showOnboarding: boolean
+  agentGridMode: boolean
+  grindPageCount: number
+  activeGrindPage: number
 
   setActivePanel: (panel: UIState['activePanel']) => void
   setActiveProject: (id: string | null, path: string | null) => void
@@ -46,6 +49,10 @@ interface UIState {
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
   setShowOnboarding: (show: boolean) => void
+  setAgentGridMode: (on: boolean) => void
+  setActiveGrindPage: (page: number) => void
+  addGrindPage: () => void
+  removeGrindPage: (page: number) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -60,6 +67,9 @@ export const useUIStore = create<UIState>((set) => ({
   mcpDirty: false,
   mcpVersion: 0,
   showOnboarding: false,
+  agentGridMode: false,
+  grindPageCount: 1,
+  activeGrindPage: 0,
 
   setActivePanel: (panel) => set({ activePanel: panel }),
 
@@ -71,10 +81,12 @@ export const useUIStore = create<UIState>((set) => ({
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
+        agentGridMode: false,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
+      agentGridMode: false,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -139,4 +151,18 @@ export const useUIStore = create<UIState>((set) => ({
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
   setShowOnboarding: (show) => set({ showOnboarding: show }),
+  setAgentGridMode: (on) => set({ agentGridMode: on }),
+  setActiveGrindPage: (page) => set({ activeGrindPage: page }),
+  addGrindPage: () => set((state) => ({
+    grindPageCount: state.grindPageCount + 1,
+    activeGrindPage: state.grindPageCount,
+  })),
+  removeGrindPage: (page) => set((state) => {
+    if (state.grindPageCount <= 1) return {}
+    const newCount = state.grindPageCount - 1
+    return {
+      grindPageCount: newCount,
+      activeGrindPage: Math.min(state.activeGrindPage, newCount - 1),
+    }
+  }),
 }))

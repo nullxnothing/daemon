@@ -161,6 +161,15 @@
   opacity: 0.4;
 }
 
+.terminal-tool-btn.active {
+  color: var(--green);
+  background: var(--green-glow);
+}
+
+.terminal-tool-btn svg {
+  display: block;
+}
+
 .terminal-views {
   flex: 1;
   overflow: hidden;
@@ -382,4 +391,241 @@
   font-size: 11px;
   color: var(--t3);
   padding: 4px 2px;
+}
+
+/* Agent Grid — multi-page Claude session grid */
+.agent-grid-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.agent-grid-page-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 8px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.agent-grid-page-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.agent-grid-page-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 10px;
+  font-size: 11px;
+  color: var(--t2);
+  background: transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+
+.agent-grid-page-tab:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.agent-grid-page-tab.active {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.agent-grid-page-tab-close {
+  font-size: 13px;
+  color: var(--t3);
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.agent-grid-page-tab:hover .agent-grid-page-tab-close {
+  opacity: 1;
+}
+
+.agent-grid-page-tab-close:hover {
+  color: var(--error);
+}
+
+.agent-grid-page-add {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--t3);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.agent-grid-page-add:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.agent-grid-add-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--t3);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.agent-grid-add-cell:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+  flex: 1;
+  min-height: 0;
+  background: var(--border);
+}
+
+.agent-grid-cell {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.agent-grid-cell.dragging {
+  opacity: 0.35;
+  transform: scale(0.97);
+}
+
+.agent-grid-cell.drag-over {
+  outline: 1px solid var(--green);
+  outline-offset: -1px;
+  background: rgba(74, 140, 98, 0.04);
+  transform: scale(1.01);
+  box-shadow: inset 0 0 16px rgba(74, 140, 98, 0.06);
+}
+
+.agent-grid-cell-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  height: 26px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: grab;
+  transition: background 0.1s;
+}
+
+.agent-grid-cell-header:hover {
+  background: var(--s2);
+}
+
+.agent-grid-cell-header:active {
+  cursor: grabbing;
+  background: var(--s3);
+}
+
+.agent-grid-cell-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+.agent-grid-cell-label {
+  font-size: 11px;
+  color: var(--t2);
+  font-weight: 500;
+  flex: 1;
+}
+
+.agent-grid-cell-close {
+  font-size: 14px;
+  color: var(--t3);
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.agent-grid-cell-close:hover {
+  color: var(--t1);
+  background: var(--s3);
+}
+
+.agent-grid-cell-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 4px 6px 4px 8px;
+}
+
+.agent-grid-terminal {
+  width: 100%;
+  height: 100%;
+}
+
+.agent-grid-cell-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.agent-grid-reopen {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+
+.agent-grid-reopen-btn {
+  height: 26px;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--t2);
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.agent-grid-reopen-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
+  border-color: var(--border-hover);
 }

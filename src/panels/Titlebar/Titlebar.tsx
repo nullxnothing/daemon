@@ -12,6 +12,8 @@ interface TitlebarProps {
 export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarProps) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
+  const agentGridMode = useUIStore((s) => s.agentGridMode)
+  const setAgentGridMode = useUIStore((s) => s.setAgentGridMode)
 
   return (
     <div className="titlebar">
@@ -42,6 +44,31 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
       </div>
       <div className="titlebar-controls">
         <TitlebarPortfolioSummary />
+        <button
+          className={`titlebar-mode-toggle ${agentGridMode ? 'grind' : 'canvas'}`}
+          onClick={() => setAgentGridMode(!agentGridMode)}
+          title={agentGridMode ? 'Switch to Canvas Mode' : 'Switch to Grind Mode'}
+        >
+          {agentGridMode ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              <span>Grind</span>
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="2" y="3" width="20" height="18" rx="2"/>
+                <line x1="2" y1="9" x2="22" y2="9"/>
+              </svg>
+              <span>Canvas</span>
+            </>
+          )}
+        </button>
         <button className="titlebar-btn" onClick={() => window.daemon.window.reload()} title="Reload App (Ctrl+Shift+R)">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
             <path d="M21 12a9 9 0 1 1-2.64-6.36"/>

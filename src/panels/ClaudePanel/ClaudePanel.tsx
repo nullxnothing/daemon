@@ -38,7 +38,10 @@ export function ClaudePanel() {
       <div className="panel-header">Claude</div>
       <StatusBadge />
       <RestartButton />
-      <CollapsibleSection title="Project MCP Servers" defaultOpen>
+      <CollapsibleSection title="Last Session" defaultOpen>
+        <UsageSection projectPath={activeProjectPath} />
+      </CollapsibleSection>
+      <CollapsibleSection title="Project MCP Servers" defaultOpen={false}>
         <McpSection
           loadFn={projectMcpLoadFn}
           toggleFn={projectMcpToggleFn}
@@ -55,9 +58,6 @@ export function ClaudePanel() {
       </CollapsibleSection>
       <CollapsibleSection title="Skills & Plugins" defaultOpen={false}>
         <SkillsSection />
-      </CollapsibleSection>
-      <CollapsibleSection title="Last Session" defaultOpen={false}>
-        <UsageSection projectPath={activeProjectPath} />
       </CollapsibleSection>
       <ClaudeMdSection projectPath={activeProjectPath} />
     </div>
@@ -217,11 +217,11 @@ function UsageSection({ projectPath }: { projectPath: string }) {
       <div className="usage-grid">
         <div className="usage-stat">
           <div className="usage-label">Input</div>
-          <div className="usage-value">{formatTokens(totalInput)}</div>
+          <div className="usage-value usage-green">{formatTokens(totalInput)}</div>
         </div>
         <div className="usage-stat">
           <div className="usage-label">Output</div>
-          <div className="usage-value">{formatTokens(totalOutput)}</div>
+          <div className="usage-value usage-green">{formatTokens(totalOutput)}</div>
         </div>
         <div className="usage-stat">
           <div className="usage-label">Cache</div>
@@ -229,7 +229,7 @@ function UsageSection({ projectPath }: { projectPath: string }) {
         </div>
         <div className="usage-stat">
           <div className="usage-label">Cost</div>
-          <div className="usage-value">${usage.lastCost.toFixed(2)}</div>
+          <div className="usage-value usage-red">${usage.lastCost.toFixed(2)}</div>
         </div>
       </div>
       {Object.entries(usage.models).map(([model, stats]) => (
