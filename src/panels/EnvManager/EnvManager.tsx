@@ -66,6 +66,9 @@ export function EnvManager() {
   const [addingNew, setAddingNew] = useState(false)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
+  const [vercelSyncing, setVercelSyncing] = useState(false)
+  const [vercelResult, setVercelResult] = useState<{ onlyVercel: number; different: number } | null>(null)
+  const [vercelError, setVercelError] = useState<string | null>(null)
   const openFile = useUIStore((s) => s.openFile)
   const setActivePanel = useUIStore((s) => s.setActivePanel)
   const projects = useUIStore((s) => s.projects)
@@ -130,6 +133,22 @@ export function EnvManager() {
     load()
   }
 
+  const handleVercelSync = async () => {
+    const project = projects.find(p => p.id === activeProjectId)
+    if (!project) return
+    setVercelSyncing(true)
+    setVercelError(null)
+    setVercelResult(null)
+    const res = await window.daemon.env.pullVercel(project.path)
+    setVercelSyncing(false)
+    if (!res.ok) {
+      setVercelError(res.error ?? 'Vercel sync failed')
+      return
+    }
+    if (res.data) setVercelResult({ onlyVercel: res.data.onlyVercel.length, different: res.data.different.length })
+    load()
+  }
+
   const handleTemplateClick = (template: typeof ENV_TEMPLATES[0]) => {
     setNewKey(template.key)
     setNewValue(template.placeholder)
@@ -149,6 +168,14 @@ export function EnvManager() {
             <input type="checkbox" checked={secretsOnly} onChange={(e) => setSecretsOnly(e.target.checked)} />
             <span>Secrets only</span>
           </label>
+          <button
+            className="env-btn env-vercel-btn"
+            onClick={handleVercelSync}
+            disabled={vercelSyncing || !activeProjectId}
+            title="Pull env vars from Vercel"
+          >
+            {vercelSyncing ? 'Syncing...' : 'Sync Vercel'}
+          </button>
           <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
         </div>
       </div>
@@ -162,6 +189,13 @@ export function EnvManager() {
           onChange={(e) => setFilter(e.target.value)}
         />
       </div>
+
+      {vercelError && <div className="env-vercel-message error">{vercelError}</div>}
+      {vercelResult && (
+        <div className="env-vercel-message success">
+          Synced from Vercel: {vercelResult.onlyVercel} new, {vercelResult.different} updated
+        </div>
+      )}
 
       {/* Table */}
       <div className="env-table">

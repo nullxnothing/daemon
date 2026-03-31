@@ -55,6 +55,18 @@ input, button, textarea {
   background: none;
 }
 
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--border-focus);
+}
+
 button {
   cursor: pointer;
 }

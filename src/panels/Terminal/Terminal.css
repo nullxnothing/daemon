@@ -10,7 +10,7 @@
   align-items: center;
   height: 32px;
   background: var(--s1);
-  border-top: 1px solid var(--s5);
+  border-top: 1px solid var(--border);
   padding: 0 4px;
   gap: 2px;
   flex-shrink: 0;
@@ -30,7 +30,7 @@
 }
 
 .terminal-tab:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
 }
 
 .terminal-tab.active {
@@ -42,12 +42,12 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--success);
   flex-shrink: 0;
 }
 
 .terminal-tab-dot.agent {
-  background: var(--amber);
+  background: var(--warning);
 }
 
 .terminal-tab-close {
@@ -73,14 +73,164 @@
 }
 
 .terminal-tab-add:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
+}
+
+.terminal-launcher {
+  position: relative;
+}
+
+.terminal-launcher-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 240px;
+  max-width: 320px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--s1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 8;
+}
+
+.terminal-launcher-item {
+  min-height: 26px;
+  border-radius: 5px;
+  text-align: left;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.terminal-launcher-item:hover:not(:disabled) {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.terminal-launcher-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.terminal-launcher-section {
+  font-size: 10px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 8px 2px;
+}
+
+.terminal-launcher-empty {
+  font-size: 11px;
+  color: var(--t3);
+  padding: 4px 8px;
+}
+
+.terminal-launcher-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.terminal-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.terminal-tool-btn {
+  height: 22px;
+  min-width: 22px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.terminal-tool-btn:hover:not(:disabled) {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.terminal-tool-btn:disabled {
+  opacity: 0.4;
 }
 
 .terminal-views {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+.terminal-split {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.terminal-split.vertical {
+  flex-direction: row;
+}
+
+.terminal-split.horizontal {
+  flex-direction: column;
+}
+
+.terminal-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.terminal-pane-header {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: 0 6px;
+  background: var(--s1);
+}
+
+.terminal-pane-title {
+  font-size: 10px;
+  color: var(--t2);
+}
+
+.terminal-pane-title.active {
+  color: var(--t1);
+}
+
+.terminal-pane-close {
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.terminal-pane-close:hover {
+  color: var(--t1);
+}
+
+.terminal-pane-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.terminal-view-wrap {
+  position: relative;
+  height: 100%;
 }
 
 .terminal-view {
@@ -92,6 +242,32 @@
 .terminal-view.drag-active {
   box-shadow: inset 0 0 0 1px rgba(92, 130, 166, 0.9);
   background: rgba(74, 106, 140, 0.08);
+}
+
+.terminal-context-menu {
+  position: absolute;
+  min-width: 140px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--s1);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  z-index: 12;
+}
+
+.terminal-context-menu-item {
+  width: 100%;
+  min-height: 26px;
+  border-radius: 4px;
+  text-align: left;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.terminal-context-menu-item:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
 }
 
 /* xterm must fill container completely for fit to calculate correctly */
@@ -113,6 +289,97 @@
 }
 
 .terminal-view .xterm-viewport::-webkit-scrollbar-thumb {
-  background: var(--s4);
+  background: var(--active-bg);
   border-radius: 3px;
+}
+
+.terminal-overlay {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: min(420px, calc(100% - 20px));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(16, 16, 16, 0.97);
+  backdrop-filter: blur(6px);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 4;
+}
+
+.terminal-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.terminal-overlay-title {
+  font-size: 10px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.terminal-overlay-dismiss {
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  color: var(--t3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.terminal-overlay-dismiss:hover {
+  color: var(--t1);
+  background: var(--s3);
+}
+
+.terminal-overlay-item {
+  height: 24px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 11px;
+  text-align: left;
+  color: var(--t2);
+  padding: 0 8px;
+}
+
+.terminal-overlay-item:hover,
+.terminal-overlay-item.active {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.terminal-history-query {
+  min-height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--t1);
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+}
+
+.terminal-history-query:focus-within {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.terminal-history-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.terminal-history-empty {
+  font-size: 11px;
+  color: var(--t3);
+  padding: 4px 2px;
 }

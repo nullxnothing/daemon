@@ -8,7 +8,7 @@
 
 .claude-section {
   padding: 12px;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .claude-section-header {
@@ -58,7 +58,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .status-dot {
@@ -68,9 +68,9 @@
   flex-shrink: 0;
 }
 
-.status-dot.none { background: var(--green); }
-.status-dot.minor { background: var(--amber); }
-.status-dot.major, .status-dot.critical { background: var(--red); }
+.status-dot.none { background: var(--success); }
+.status-dot.minor { background: var(--warning); }
+.status-dot.major, .status-dot.critical { background: var(--error); }
 
 .status-text {
   font-size: 12px;
@@ -89,12 +89,12 @@
 }
 
 .restart-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
 .restart-btn.dirty {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 /* MCP Toggle */
@@ -129,7 +129,7 @@
   color: var(--t3);
   margin-left: 6px;
   padding: 0 4px;
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 3px;
   vertical-align: middle;
 }
@@ -147,7 +147,7 @@
 }
 
 .toggle-switch.on {
-  background: var(--green);
+  background: var(--success);
 }
 
 .toggle-switch::after {
@@ -172,7 +172,7 @@
   height: 26px;
   font-size: 11px;
   color: var(--t3);
-  border: 1px dashed var(--s5);
+  border: 1px dashed var(--border);
   border-radius: 4px;
   margin-top: 6px;
 }
@@ -245,7 +245,7 @@
   padding: 0 8px;
   font-size: 11px;
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--t1);
   width: 100%;
@@ -259,12 +259,12 @@
   height: 26px;
   font-size: 11px;
   color: var(--t1);
-  background: var(--s3);
+  background: var(--hover-bg);
   border-radius: 4px;
 }
 
 .key-save-btn:hover {
-  background: var(--s4);
+  background: var(--active-bg);
 }
 
 .key-hint {
@@ -284,7 +284,7 @@
 }
 
 .claudemd-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
@@ -307,7 +307,7 @@
 .diff-modal {
   flex: 1;
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -319,7 +319,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .diff-modal-title {
@@ -341,7 +341,7 @@
 }
 
 .diff-accept-btn {
-  background: var(--green);
+  background: var(--success);
   color: #fff;
 }
 
@@ -350,12 +350,12 @@
 }
 
 .diff-reject-btn {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t2);
 }
 
 .diff-reject-btn:hover {
-  background: var(--s4);
+  background: var(--active-bg);
   color: var(--t1);
 }
 

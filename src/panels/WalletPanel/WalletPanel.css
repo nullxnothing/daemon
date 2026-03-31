@@ -11,7 +11,7 @@
 
 .wallet-section {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .wallet-section:last-child {
@@ -40,12 +40,12 @@
 
 .wallet-delta.up,
 .wallet-feed-delta.up {
-  color: var(--green);
+  color: var(--success);
 }
 
 .wallet-delta.down,
 .wallet-feed-delta.down {
-  color: var(--red);
+  color: var(--error);
 }
 
 .wallet-caption {
@@ -72,13 +72,13 @@
 .wallet-settings-block {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--s5);
+  border-top: 1px solid var(--border);
 }
 
 .wallet-input {
   width: 100%;
   height: 30px;
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--s2);
   color: var(--t1);
@@ -96,7 +96,7 @@
 }
 
 .wallet-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
@@ -115,13 +115,13 @@
 }
 
 .wallet-icon-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
 .wallet-btn.danger:hover {
   background: rgba(140, 74, 74, 0.2);
-  color: var(--red);
+  color: var(--error);
 }
 
 .wallet-list,
@@ -133,7 +133,7 @@
 
 .wallet-row {
   padding: 8px 0;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .wallet-row:last-child {
@@ -173,8 +173,8 @@
   padding: 1px 5px;
   border-radius: 999px;
   font-size: 9px;
-  color: var(--green);
-  background: rgba(74, 140, 98, 0.12);
+  color: var(--success);
+  background: var(--green-glow);
   text-transform: uppercase;
 }
 

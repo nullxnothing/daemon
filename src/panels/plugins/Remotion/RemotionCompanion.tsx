@@ -60,14 +60,15 @@ export default function RemotionCompanion() {
       useUIStore.getState().addTerminal(activeProjectId, terminalId, 'Remotion Agent', null)
       setAgentTerminalId(terminalId)
 
-      // Give the shell time to initialize, then launch Claude with Remotion context
+      // Wait for PowerShell/bash to finish initializing before sending commands.
+      // Windows PowerShell startup is typically 500-1500ms; 1500ms is a safe margin.
       setTimeout(() => {
         const escapedPrompt = REMOTION_SYSTEM_PROMPT.replace(/'/g, "'\\''")
         window.daemon.terminal.write(
           terminalId,
           `claude --model claude-sonnet-4-20250514 --append-system-prompt "${escapedPrompt}"\r`
         )
-      }, 500)
+      }, 1500)
     } finally {
       setIsSpawning(false)
     }

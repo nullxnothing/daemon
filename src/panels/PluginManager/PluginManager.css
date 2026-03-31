@@ -12,7 +12,7 @@
 
 .plugin-card {
   padding: 10px 0;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .plugin-card:last-child {
@@ -73,7 +73,7 @@
 }
 
 .plugin-reorder-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 

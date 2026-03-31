@@ -17,6 +17,10 @@ class RootErrorBoundary extends React.Component<
     console.error('DAEMON renderer crash:', error)
   }
 
+  handleReload = () => {
+    this.setState({ error: null })
+  }
+
   render() {
     if (this.state.error) {
       return (
@@ -26,8 +30,43 @@ class RootErrorBoundary extends React.Component<
           color: '#f3f3f3',
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
           padding: '24px',
+          display: 'flex',
+          flexDirection: 'column' as const,
+          gap: '16px',
         }}>
-          <div style={{ fontSize: 18, marginBottom: 12 }}>Renderer crash</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: 18 }}>Renderer crash</div>
+            <button
+              onClick={this.handleReload}
+              style={{
+                background: '#1a1a1a',
+                color: '#ebebeb',
+                border: '1px solid #2a2a2a',
+                borderRadius: '4px',
+                padding: '6px 16px',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontFamily: 'inherit',
+              }}
+            >
+              Reload App
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                background: 'transparent',
+                color: '#7a7a7a',
+                border: '1px solid #2a2a2a',
+                borderRadius: '4px',
+                padding: '6px 16px',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontFamily: 'inherit',
+              }}
+            >
+              Hard Reload
+            </button>
+          </div>
           <pre style={{
             whiteSpace: 'pre-wrap',
             lineHeight: 1.5,

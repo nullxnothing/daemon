@@ -1,10 +1,7 @@
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
+import { formatCompactUsd } from '../../utils/format'
 import './Titlebar.css'
-
-function formatCompactUsd(value: number): string {
-  return value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })
-}
 
 interface TitlebarProps {
   projects: Project[]

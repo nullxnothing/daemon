@@ -221,7 +221,7 @@ export class RecoveryRenderer {
     ctx.globalAlpha = 1
     ctx.beginPath()
     ctx.arc(this.cx, this.cy, this.centerRadius, 0, TAU)
-    ctx.fillStyle = '#090909'
+    ctx.fillStyle = '#0a0a0a'
     ctx.fill()
     ctx.strokeStyle = '#2a2a2a'
     ctx.lineWidth = 1.5

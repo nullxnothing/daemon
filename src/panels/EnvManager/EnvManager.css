@@ -538,6 +538,40 @@
   background: rgba(74, 140, 98, 0.2);
 }
 
+.env-vercel-btn {
+  color: var(--t1);
+  background: var(--s2);
+  margin-left: 8px;
+}
+
+.env-vercel-btn:hover {
+  background: var(--s3);
+}
+
+.env-vercel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.env-vercel-message {
+  padding: 6px 24px;
+  font-size: 11px;
+}
+
+.env-vercel-message.error {
+  color: var(--error);
+}
+
+.env-vercel-message.success {
+  color: var(--green);
+}
+
+.env-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Value cell with validation */
 .env-value-cell {
   display: flex;

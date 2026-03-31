@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   background: var(--s1);
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
   user-select: none;
   flex-shrink: 0;
@@ -56,7 +56,7 @@
 }
 
 .project-tab:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
@@ -74,7 +74,7 @@
 }
 
 .project-tab-dot.live {
-  background: var(--green);
+  background: var(--success);
 }
 
 .project-tab-close {
@@ -113,7 +113,7 @@
 }
 
 .project-tab-add:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
@@ -137,7 +137,7 @@
 }
 
 .titlebar-portfolio:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
 }
 
 .titlebar-portfolio-total {
@@ -146,12 +146,12 @@
 
 .titlebar-portfolio-delta.up,
 .market-change.up {
-  color: var(--green);
+  color: var(--success);
 }
 
 .titlebar-portfolio-delta.down,
 .market-change.down {
-  color: var(--red);
+  color: var(--error);
 }
 
 .titlebar-btn {
@@ -165,11 +165,11 @@
 }
 
 .titlebar-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
 .titlebar-btn-close:hover {
-  background: var(--red);
+  background: var(--error);
   color: #fff;
 }

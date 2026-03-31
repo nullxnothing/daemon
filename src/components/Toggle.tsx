@@ -24,9 +24,20 @@ const styles = {
 export function Toggle({ checked, onChange, size = 'sm' }: ToggleProps) {
   const s = styles[size]
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      onChange(!checked)
+    }
+  }
+
   return (
     <div
+      role="switch"
+      aria-checked={checked}
+      tabIndex={0}
       onClick={() => onChange(!checked)}
+      onKeyDown={handleKeyDown}
       style={{
         width: s.width,
         height: s.height,

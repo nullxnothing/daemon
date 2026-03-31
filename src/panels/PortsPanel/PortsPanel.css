@@ -16,7 +16,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 0;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .port-row:last-child { border-bottom: none; }
@@ -28,9 +28,9 @@
   flex-shrink: 0;
 }
 
-.port-dot.live { background: var(--green); }
+.port-dot.live { background: var(--success); }
 .port-dot.dead { background: var(--t3); }
-.port-dot.warning { background: var(--amber); }
+.port-dot.warning { background: var(--warning); }
 
 .port-number {
   font-size: 12px;
@@ -72,11 +72,11 @@
   flex-shrink: 0;
 }
 
-.port-btn:hover { background: var(--s3); color: var(--t1); }
+.port-btn:hover { background: var(--hover-bg); color: var(--t1); }
 
 .port-btn.danger:hover {
   background: rgba(140, 74, 74, 0.2);
-  color: var(--red);
+  color: var(--error);
 }
 
 .port-row.ghost { opacity: 0.8; }

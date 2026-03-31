@@ -6,7 +6,7 @@
   align-items: center;
   padding: 0 12px;
   background: var(--s1);
-  border-top: 1px solid var(--s5);
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .statusbar-branch {
-  color: var(--green);
+  color: var(--success);
 }
 
 .statusbar-path {
@@ -76,9 +76,9 @@
 }
 
 .market-change.up {
-  color: var(--green);
+  color: var(--success);
 }
 
 .market-change.down {
-  color: var(--red);
+  color: var(--error);
 }

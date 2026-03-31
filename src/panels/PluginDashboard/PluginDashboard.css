@@ -27,7 +27,7 @@
   height: 28px;
   padding: 0 10px;
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 11px;
   color: var(--t1);
@@ -36,11 +36,14 @@
 }
 
 .plugin-dashboard-search::placeholder { color: var(--t3); }
-.plugin-dashboard-search:focus { border-color: var(--t3); }
+.plugin-dashboard-search:focus {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
 
 .plugin-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
   padding: 0 24px 24px 24px;
 }
@@ -51,7 +54,7 @@
   gap: 12px;
   padding: 16px;
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 8px;
   border-left: 3px solid transparent;
   min-height: 132px;
@@ -66,11 +69,11 @@
 }
 
 .plugin-card-v2--active {
-  border-left-color: var(--green);
+  border-left-color: var(--success);
 }
 
 .plugin-card-v2--active:hover {
-  border-left-color: var(--green);
+  border-left-color: var(--success);
 }
 
 .plugin-card-v2--disabled {
@@ -79,7 +82,7 @@
 
 .plugin-card-v2--disabled:hover {
   background: var(--s2);
-  border-color: var(--s5);
+  border-color: var(--border);
   border-left-color: transparent;
   opacity: 0.6;
 }
@@ -103,7 +106,7 @@
 }
 
 .plugin-card-v2--active .plugin-card-v2-icon {
-  color: var(--green);
+  color: var(--success);
   background: rgba(74, 140, 98, 0.1);
 }
 
@@ -158,29 +161,29 @@
 }
 
 .plugin-card-v2-btn--open {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
 .plugin-card-v2-btn--open:hover {
-  background: var(--s4);
+  background: var(--active-bg);
 }
 
 .plugin-card-v2-btn--enable {
   background: transparent;
   color: var(--t2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
 }
 
 .plugin-card-v2-btn--enable:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
   border-color: var(--t3);
 }
 
 .plugin-card-v2-btn--active {
   background: rgba(74, 140, 98, 0.12);
-  color: var(--green);
+  color: var(--success);
   cursor: default;
   pointer-events: none;
 }

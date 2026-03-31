@@ -119,6 +119,8 @@ function McpSection({ loadFn, toggleFn, description, emptyText }: {
   emptyText?: string
 }) {
   const setMcpDirty = useUIStore((s) => s.setMcpDirty)
+  // Re-fetch whenever any panel toggles an MCP (mcpVersion acts as a signal)
+  const mcpVersion = useUIStore((s) => s.mcpVersion)
   const [mcps, setMcps] = useState<McpEntry[]>([])
 
   const load = useCallback(async () => {
@@ -128,10 +130,14 @@ function McpSection({ loadFn, toggleFn, description, emptyText }: {
 
   useEffect(() => { load() }, [load])
 
+  // Re-fetch when external toggle fires (e.g. from Settings panel)
+  useEffect(() => { load() }, [mcpVersion, load])
+
   const handleToggle = async (name: string, currentlyEnabled: boolean) => {
     await toggleFn(name, !currentlyEnabled)
     load()
     setMcpDirty(true)
+    useUIStore.getState().bumpMcpVersion()
   }
 
   return (

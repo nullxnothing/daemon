@@ -10,7 +10,7 @@
 
 .onboarding-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 32px;
   width: 420px;
@@ -38,7 +38,7 @@
   flex-direction: column;
   gap: 0;
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 20px;
@@ -49,7 +49,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .onboarding-check:last-child {
@@ -64,11 +64,11 @@
   background: var(--t3);
 }
 
-.onboarding-dot.green { background: var(--green); }
-.onboarding-dot.red { background: var(--red); }
-.onboarding-dot.amber { background: var(--amber); }
+.onboarding-dot.green { background: var(--success); }
+.onboarding-dot.red { background: var(--error); }
+.onboarding-dot.amber { background: var(--warning); }
 .onboarding-dot.pulse {
-  background: var(--amber);
+  background: var(--warning);
   animation: dot-pulse 1s ease-in-out infinite;
 }
 
@@ -90,14 +90,14 @@
 }
 
 .check-status.error {
-  color: var(--red);
+  color: var(--error);
 }
 
 .onboarding-btn {
   width: 100%;
   height: 34px;
-  background: var(--green);
-  border: 1px solid var(--green);
+  background: var(--success);
+  border: 1px solid var(--success);
   border-radius: 4px;
   color: var(--t1);
   font-size: 12px;
@@ -117,13 +117,13 @@
 }
 
 .onboarding-btn.secondary {
-  background: var(--s3);
-  border-color: var(--s5);
+  background: var(--hover-bg);
+  border-color: var(--border);
 }
 
 .onboarding-divider {
   height: 1px;
-  background: var(--s5);
+  background: var(--border);
   margin: 16px 0;
 }
 
@@ -147,7 +147,7 @@
   flex: 1;
   height: 30px;
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--t1);
   font-size: 11px;
@@ -157,14 +157,15 @@
 }
 
 .onboarding-api-input:focus {
-  border-color: var(--t3);
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
 }
 
 .onboarding-api-save {
   height: 30px;
   padding: 0 14px;
-  background: var(--s3);
-  border: 1px solid var(--s5);
+  background: var(--hover-bg);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--t1);
   font-size: 11px;
@@ -172,7 +173,7 @@
 }
 
 .onboarding-api-save:hover {
-  background: var(--s4);
+  background: var(--active-bg);
 }
 
 .onboarding-hint {
@@ -191,7 +192,74 @@
 
 .onboarding-error {
   font-size: 11px;
-  color: var(--red);
+  color: var(--error);
   margin-bottom: 12px;
   line-height: 1.5;
+}
+
+.onboarding-skip {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--t2);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 6px 0;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.onboarding-skip:hover {
+  color: var(--t1);
+}
+
+.check-label-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-description {
+  font-size: 10px;
+  color: var(--t3);
+}
+
+.onboarding-toggle {
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--s3);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  padding: 0;
+}
+
+.onboarding-toggle.on {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.onboarding-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.onboarding-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--t1);
+  transition: left 0.15s;
+}
+
+.onboarding-toggle.on .onboarding-toggle-thumb {
+  left: 18px;
 }

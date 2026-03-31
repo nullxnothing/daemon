@@ -1,18 +1,18 @@
 :root {
-  /* Background scale (darkest to lightest) */
-  --bg:    #090909;
-  --s1:    #101010;
-  --s2:    #151515;
-  --s3:    #1a1a1a;
-  --s4:    #222222;
-  --s5:    #2a2a2a;
-  --s6:    #333333;
+  /* Background scale — elevation-based (deeper = further away) */
+  --bg:    #0a0a0a;  /* Workspace pit — deepest layer */
+  --s1:    #141414;  /* Sidebars, titlebar, cards — lifted surfaces */
+  --s2:    #1a1a1a;  /* Inputs, secondary surfaces */
+  --s3:    #222222;  /* Hover states */
+  --s4:    #2a2a2a;  /* Active / pressed */
+  --s5:    #333333;  /* Borders */
+  --s6:    #3a3a3a;  /* Strong borders / dividers */
 
   /* Text scale (brightest to dimmest) - WCAG AA compliant */
   --t1:    #f0f0f0;  /* Primary text - 15.5:1 contrast */
   --t2:    #a0a0a0;  /* Secondary text - 7.5:1 contrast */
-  --t3:    #6a6a6a;  /* Tertiary/muted - 4.5:1 contrast (AA minimum) */
-  --t4:    #4a4a4a;  /* Disabled/placeholder - decorative only */
+  --t3:    #777777;  /* Tertiary/muted - 5.2:1 contrast (bumped for readability) */
+  --t4:    #505050;  /* Disabled/placeholder - decorative only */
 
   /* Accent colors - cleaner, more vibrant */
   --green:       #3ecf8e;  /* Primary accent - modern teal-green */
@@ -32,9 +32,11 @@
   --blue-glow:   rgba(96, 165, 250, 0.15);
 
   /* Semantic tokens */
-  --border:      #2a2a2a;  /* Default border */
-  --border-hover: #3a3a3a; /* Border on hover */
-  --border-focus: var(--green);  /* Border on focus */
+  --border:        #2a2a2a;  /* Default border — sits between s4 and s5 */
+  --border-hover:  #3a3a3a;  /* Border on hover — matches s6 */
+  --border-focus:  var(--green);  /* Border on focus */
+  --focus:         var(--green);
+  --focus-glow:    var(--green-glow);
   
   --success:     var(--green);
   --warning:     var(--amber);
@@ -44,7 +46,9 @@
   /* Interactive state overlays */
   --hover-overlay:  rgba(255, 255, 255, 0.04);
   --active-overlay: rgba(255, 255, 255, 0.08);
-  --focus-ring:     0 0 0 2px var(--green-glow), 0 0 0 1px var(--green);
+  --hover-bg:       var(--hover-overlay);
+  --active-bg:      var(--active-overlay);
+  --focus-ring:     0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
 
   /* Typography */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;

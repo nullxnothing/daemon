@@ -44,7 +44,7 @@ export function AskClaudeWidget({
       const context = `File: ${fileName}, Line ${lineNumber}\nCode: ${lineContent.trim()}\n\nQuestion: ${query}`
 
       // Send to active Claude terminal session
-      await window.daemon.pty.write(activeTerminalId, context + '\n')
+      window.daemon.terminal.write(activeTerminalId, context + '\n')
       onClose()
     } finally {
       setLoading(false)

@@ -1,13 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
+import { formatCompactUsd } from '../../utils/format'
 import './StatusBar.css'
 
 const EMPTY_MARKET: MarketTickerEntry[] = []
-
-function formatCompactUsd(value: number): string {
-  return value.toLocaleString(undefined, { maximumFractionDigits: value >= 1000 ? 0 : 2 })
-}
 
 export function StatusBar() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -58,9 +55,14 @@ function ClaudeStatus() {
   const setShowOnboarding = useUIStore((s) => s.setShowOnboarding)
 
   useEffect(() => {
-    window.daemon.claude.getConnection().then((res) => {
-      setAuthMode(res.ok && res.data ? res.data.authMode : 'none')
-    })
+    const check = () => {
+      window.daemon.claude.getConnection().then((res) => {
+        setAuthMode(res.ok && res.data ? res.data.authMode : 'none')
+      })
+    }
+    check()
+    const interval = setInterval(check, 300_000) // re-check every 5 min
+    return () => clearInterval(interval)
   }, [])
 
   const isConnected = authMode === 'cli' || authMode === 'both' || authMode === 'api'

@@ -12,29 +12,78 @@ interface ContextMenu {
 export function FileExplorer() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  const openFile = useUIStore((s) => s.openFile)
   const addTerminal = useUIStore((s) => s.addTerminal)
   const setActivePanel = useUIStore((s) => s.setActivePanel)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [creating, setCreating] = useState<{ parentPath: string; type: 'file' | 'dir' } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [gitStatusByPath, setGitStatusByPath] = useState<Record<string, 'staged' | 'modified' | 'untracked'>>({})
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadDir = useCallback(async (dirPath: string) => {
-    const res = await window.daemon.fs.readDir(dirPath, 2)
+    const res = await window.daemon.fs.readDir(dirPath, 6)
     if (res.ok && res.data) setEntries(res.data)
   }, [])
 
+  const loadGitStatus = useCallback(async () => {
+    if (!activeProjectPath) {
+      setGitStatusByPath({})
+      return
+    }
+
+    const res = await window.daemon.git.status(activeProjectPath)
+    if (!res.ok || !res.data) {
+      setGitStatusByPath({})
+      return
+    }
+
+    const statusMap: Record<string, 'staged' | 'modified' | 'untracked'> = {}
+    for (const file of res.data) {
+      const absolutePath = normalizePath(`${activeProjectPath}/${file.path}`)
+      const status: 'staged' | 'modified' | 'untracked' = file.staged
+        ? 'staged'
+        : file.untracked
+          ? 'untracked'
+          : 'modified'
+      statusMap[absolutePath] = status
+    }
+    setGitStatusByPath(statusMap)
+  }, [activeProjectPath])
+
   const reload = useCallback(() => {
-    if (activeProjectPath) loadDir(activeProjectPath)
-  }, [activeProjectPath, loadDir])
+    if (!activeProjectPath) return
+    void loadDir(activeProjectPath)
+    void loadGitStatus()
+  }, [activeProjectPath, loadDir, loadGitStatus])
 
   useEffect(() => { reload() }, [reload])
+
+  useEffect(() => {
+    setSearchQuery('')
+  }, [activeProjectPath])
 
   // Close context menu on click outside
   useEffect(() => {
     const handler = () => setContextMenu(null)
     window.addEventListener('click', handler)
     return () => window.removeEventListener('click', handler)
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   const handleContextMenu = (e: React.MouseEvent, entry: FileEntry | null, parentPath: string) => {
@@ -93,27 +142,76 @@ export function FileExplorer() {
     setContextMenu(null)
   }
 
+  const handleOpenFromSearch = async (entry: FileEntry) => {
+    if (!activeProjectId) return
+    const res = await window.daemon.fs.readFile(entry.path)
+    if (res.ok && res.data) {
+      openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId: activeProjectId })
+      setActivePanel('claude')
+      setSearchQuery('')
+      searchInputRef.current?.blur()
+    }
+  }
+
   if (!activeProjectPath) {
     return <div className="file-explorer-empty">No project selected</div>
   }
+
+  const searchResults = searchQuery.trim().length > 0
+    ? fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), searchQuery)
+    : []
 
   return (
     <div
       className="file-explorer"
       onContextMenu={(e) => handleContextMenu(e, null, activeProjectPath)}
     >
-      {entries.map((entry) => (
-        <FileNode
-          key={entry.path}
-          entry={entry}
-          projectId={activeProjectId}
-          depth={0}
-          onContextMenu={handleContextMenu}
-          renaming={renaming}
-          setRenaming={setRenaming}
-          reload={reload}
+      <div className={`file-explorer-search ${isSearchFocused ? 'focused' : ''}`}>
+        <span className="file-explorer-search-icon" aria-hidden="true">⌕</span>
+        <input
+          ref={searchInputRef}
+          className="file-explorer-search-input"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
+          placeholder="Search files (Ctrl+P)"
         />
-      ))}
+      </div>
+
+      {searchQuery.trim().length > 0 ? (
+        <div className="file-search-results">
+          {searchResults.length === 0 ? (
+            <div className="file-search-empty">No matching files</div>
+          ) : (
+            searchResults.slice(0, 120).map((entry) => (
+              <button
+                key={entry.path}
+                className="file-search-result"
+                onClick={() => void handleOpenFromSearch(entry)}
+              >
+                <span className="file-search-result-name">{entry.name}</span>
+                <span className="file-search-result-path">{toRelativePath(activeProjectPath, entry.path)}</span>
+              </button>
+            ))
+          )}
+        </div>
+      ) : (
+        entries.map((entry) => (
+          <FileNode
+            key={entry.path}
+            entry={entry}
+            projectId={activeProjectId}
+            depth={0}
+            onContextMenu={handleContextMenu}
+            renaming={renaming}
+            setRenaming={setRenaming}
+            reload={reload}
+            gitStatusByPath={gitStatusByPath}
+          />
+        ))
+      )}
+
       {creating && (
         <CreateInput
           parentPath={creating.parentPath}
@@ -141,7 +239,7 @@ export function FileExplorer() {
   )
 }
 
-function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenaming, reload }: {
+function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenaming, reload, gitStatusByPath }: {
   entry: FileEntry
   projectId: string | null
   depth: number
@@ -149,11 +247,14 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
   renaming: string | null
   setRenaming: (path: string | null) => void
   reload: () => void
+  gitStatusByPath: Record<string, 'staged' | 'modified' | 'untracked'>
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [children, setChildren] = useState<FileEntry[] | null>(entry.children ?? null)
   const openFile = useUIStore((s) => s.openFile)
+  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const renameRef = useRef<HTMLInputElement>(null)
+  const gitStatus = !entry.isDirectory ? gitStatusByPath[normalizePath(entry.path)] : undefined
 
   const parentPath = entry.path.replace(/[\\/][^\\/]+$/, '')
 
@@ -169,6 +270,7 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
       if (res.ok && res.data) {
         if (projectId) {
           openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId })
+          setActivePanel('claude')
         }
       }
     }
@@ -219,7 +321,12 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
             }}
           />
         ) : (
-          <span className="file-node-name">{entry.name}</span>
+          <>
+            <span className="file-node-name">{entry.name}</span>
+            {gitStatus && (
+              <span className={`file-git-status ${gitStatus}`}>{gitStatusLabel(gitStatus)}</span>
+            )}
+          </>
         )}
       </div>
       {isExpanded && children?.map((child) => (
@@ -232,6 +339,7 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
           renaming={renaming}
           setRenaming={setRenaming}
           reload={reload}
+          gitStatusByPath={gitStatusByPath}
         />
       ))}
     </>
@@ -323,4 +431,62 @@ function CreateInput({ parentPath, type, onDone }: {
 
 function pathLabel(fullPath: string): string {
   return fullPath.split(/[\\/]/).pop() || 'Terminal'
+}
+
+function normalizePath(filePath: string): string {
+  return filePath
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/\/$/, '')
+    .toLowerCase()
+}
+
+function flattenEntries(entries: FileEntry[]): FileEntry[] {
+  const result: FileEntry[] = []
+  for (const entry of entries) {
+    result.push(entry)
+    if (entry.children?.length) {
+      result.push(...flattenEntries(entry.children))
+    }
+  }
+  return result
+}
+
+function fuzzyFilter(entries: FileEntry[], query: string): FileEntry[] {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return entries
+
+  return [...entries]
+    .map((entry) => ({ entry, score: fuzzyScore(entry.name.toLowerCase(), normalizedQuery) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.entry)
+}
+
+function fuzzyScore(candidate: string, query: string): number {
+  if (candidate.includes(query)) return 1000 - candidate.indexOf(query)
+
+  let score = 0
+  let queryIndex = 0
+  for (let i = 0; i < candidate.length && queryIndex < query.length; i += 1) {
+    if (candidate[i] === query[queryIndex]) {
+      score += 10
+      queryIndex += 1
+    }
+  }
+
+  return queryIndex === query.length ? score : 0
+}
+
+function toRelativePath(rootPath: string, fullPath: string): string {
+  const normalizedRoot = rootPath.replace(/\\/g, '/').replace(/\/$/, '')
+  const normalizedFull = fullPath.replace(/\\/g, '/')
+  if (!normalizedFull.toLowerCase().startsWith(normalizedRoot.toLowerCase())) return fullPath
+  return normalizedFull.slice(normalizedRoot.length + 1)
+}
+
+function gitStatusLabel(status: 'staged' | 'modified' | 'untracked'): string {
+  if (status === 'staged') return 'S'
+  if (status === 'modified') return 'M'
+  return 'U'
 }

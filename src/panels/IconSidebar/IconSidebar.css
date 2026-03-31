@@ -2,13 +2,14 @@
 .icon-sidebar {
   width: var(--sidebar-w);
   background: var(--s1);
-  border-right: 1px solid var(--s5);
+  border-right: 1px solid var(--border);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 8px;
   gap: 4px;
+  position: relative;
 }
 
 .sidebar-icon {
@@ -23,13 +24,53 @@
 }
 
 .sidebar-icon:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
 .sidebar-icon.active {
   color: var(--t1);
   background: var(--s2);
+}
+
+.sidebar-submenu-wrap {
+  position: relative;
+}
+
+.sidebar-submenu {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 0;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--s1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 30;
+}
+
+.sidebar-submenu-group {
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 2px 8px 6px;
+}
+
+.sidebar-submenu-item {
+  width: 100%;
+  text-align: left;
+  font-size: 12px;
+  color: var(--t2);
+  background: transparent;
+  border-radius: 6px;
+  padding: 7px 8px;
+}
+
+.sidebar-submenu-item:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
 }
 
 .sidebar-spacer {

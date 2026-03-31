@@ -10,12 +10,15 @@ import { PortsPanel } from './panels/PortsPanel/PortsPanel'
 import { GitPanel } from './panels/GitPanel/GitPanel'
 import { WalletPanel } from './panels/WalletPanel/WalletPanel'
 import { RecoveryPanel } from './panels/RecoveryPanel/RecoveryPanel'
+import { SettingsPanel } from './panels/SettingsPanel/SettingsPanel'
+import { ToolBrowser } from './panels/Tools/ToolBrowser'
 import { PluginManager } from './panels/PluginManager/PluginManager'
 import { PluginDashboard } from './panels/PluginDashboard/PluginDashboard'
 import { Titlebar } from './panels/Titlebar/Titlebar'
 import { IconSidebar } from './panels/IconSidebar/IconSidebar'
 import { StatusBar } from './panels/StatusBar/StatusBar'
 import { Onboarding } from './panels/Onboarding/Onboarding'
+import { PluginErrorBoundary } from './components/ErrorBoundary'
 import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
@@ -37,19 +40,25 @@ function App() {
   const activePluginId = usePluginStore((s) => s.activePluginId)
   const showOnboarding = useUIStore((s) => s.showOnboarding)
   const [showExplorer, setShowExplorer] = useState(true)
+  const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
 
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
     max: 600,
-    initial: 280,
+    initial: 200,
   })
+
+  // Hide right panel when plugin dashboard is open (redundant with center grid)
+  const shouldShowRightPanel = showRightPanel && !(activePanel === 'plugins' && !activePluginId)
 
   useEffect(() => {
     window.postMessage({ payload: 'removeLoading' }, '*')
     loadProjects()
     usePluginStore.getState().load()
+    // Debug: expose store for CDP testing (remove in production)
+    ;(window as any).__uiStore = useUIStore
     // Check Claude connection — show onboarding if not connected
     window.daemon.claude.getConnection().then((res) => {
       if (!res.ok || !res.data || res.data.authMode === 'none') {
@@ -64,7 +73,15 @@ function App() {
 
   const loadProjects = async () => {
     const res = await window.daemon.projects.list()
-    if (res.ok && res.data) setProjects(res.data)
+    if (!res.ok || !res.data) return
+    setProjects(res.data)
+
+    // Restore the most recently active project on fresh load / after crash recovery
+    if (!useUIStore.getState().activeProjectId && res.data.length > 0) {
+      const sorted = [...res.data].sort((a, b) => (b.last_active ?? 0) - (a.last_active ?? 0))
+      const last = sorted[0]
+      if (last) setActiveProject(last.id, last.path)
+    }
   }
 
   const handleAddProject = useCallback(async () => {
@@ -135,12 +152,14 @@ function App() {
         <div className="center-area">
           <div className="editor-area">
             {isCenterPanelPlugin && activePlugin ? (
-              <Suspense fallback={<PluginFallback />}>
-                <activePlugin.component />
-              </Suspense>
+              <PluginErrorBoundary>
+                <Suspense fallback={<PluginFallback />}>
+                  <activePlugin.component />
+                </Suspense>
+              </PluginErrorBoundary>
             ) : activePanel === 'plugins' && !activePluginId ? (
               <PluginDashboard />
-            ) : activePanel === 'env' ? <EnvManager /> : activePanel === 'git' ? <GitPanel /> : activePanel === 'recovery' ? <RecoveryPanel /> : <EditorPanel />}
+            ) : activePanel === 'env' ? <EnvManager /> : activePanel === 'git' ? <GitPanel /> : activePanel === 'recovery' ? <RecoveryPanel /> : activePanel === 'settings' ? <SettingsPanel /> : activePanel === 'tools' ? <ToolBrowser /> : <EditorPanel />}
           </div>
           <div className="splitter" {...splitterProps} />
           <div className="terminal-area" style={{ height: terminalHeight }}>
@@ -150,21 +169,77 @@ function App() {
 
         <aside className="right-panel">
           {isCenterPanelPlugin && activePlugin?.companionPanel ? (
-            <Suspense fallback={<PluginFallback />}>
-              <activePlugin.companionPanel />
-            </Suspense>
+            <PluginErrorBoundary>
+              <Suspense fallback={<PluginFallback />}>
+                <activePlugin.companionPanel />
+              </Suspense>
+            </PluginErrorBoundary>
           ) : isRightPanelPlugin && activePlugin ? (
-            <Suspense fallback={<PluginFallback />}>
-              <activePlugin.component />
-            </Suspense>
+            <div className="right-panel-split">
+              <div className="right-panel-plugin">
+                <PluginErrorBoundary>
+                  <Suspense fallback={<PluginFallback />}>
+                    <activePlugin.component />
+                  </Suspense>
+                </PluginErrorBoundary>
+              </div>
+              <div className="right-panel-claude">
+                <ClaudePanel />
+              </div>
+            </div>
+          ) : activePanel === 'plugins' ? (
+            <PluginManager />
           ) : (
-            <>
-              {activePanel === 'plugins' && <PluginManager />}
-              {activePanel === 'process' && <ProcessManager />}
-              {activePanel === 'ports' && <PortsPanel />}
-              {activePanel === 'wallet' && <WalletPanel />}
-              {(activePanel === 'claude' || activePanel === 'env' || activePanel === 'git' || activePanel === 'recovery') && <ClaudePanel />}
-            </>
+            <div className="right-panel-tabbed">
+              <div className="right-panel-content">
+                {activePanel === 'process' ? <ProcessManager />
+                  : activePanel === 'ports' ? <PortsPanel />
+                  : activePanel === 'wallet' ? <WalletPanel />
+                  : <ClaudePanel />}
+              </div>
+              <div className="right-panel-tabs">
+                <button
+                  className={`rp-tab ${activePanel === 'claude' || activePanel === 'env' || activePanel === 'git' || activePanel === 'recovery' || activePanel === 'settings' || activePanel === 'tools' ? 'active' : ''}`}
+                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('claude') }}
+                  title="Claude"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                </button>
+                <button
+                  className={`rp-tab ${activePanel === 'ports' ? 'active' : ''}`}
+                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('ports') }}
+                  title="Ports"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                    <line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/>
+                  </svg>
+                </button>
+                <button
+                  className={`rp-tab ${activePanel === 'process' ? 'active' : ''}`}
+                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('process') }}
+                  title="Processes"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <line x1="4" y1="10" x2="20" y2="10"/>
+                    <line x1="10" y1="4" x2="10" y2="20"/>
+                  </svg>
+                </button>
+                <button
+                  className={`rp-tab ${activePanel === 'wallet' ? 'active' : ''}`}
+                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('wallet') }}
+                  title="Wallet"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h11A2.5 2.5 0 0 1 19 7.5V9h1.5A1.5 1.5 0 0 1 22 10.5v5a1.5 1.5 0 0 1-1.5 1.5H19v1.5A2.5 2.5 0 0 1 16.5 21h-11A2.5 2.5 0 0 1 3 18.5v-11Z"/>
+                    <circle cx="18" cy="13" r="1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           )}
         </aside>
       </div>
@@ -178,9 +253,11 @@ function App() {
 
       {isOverlayPlugin && activePlugin && (
         <div className="plugin-overlay">
-          <Suspense fallback={<PluginFallback />}>
-            <activePlugin.component />
-          </Suspense>
+          <PluginErrorBoundary>
+            <Suspense fallback={<PluginFallback />}>
+              <activePlugin.component />
+            </Suspense>
+          </PluginErrorBoundary>
         </div>
       )}
 

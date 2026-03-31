@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -6,34 +6,285 @@ import '@xterm/xterm/css/xterm.css'
 import { useUIStore } from '../../store/ui'
 import './Terminal.css'
 
+const COMMAND_HINTS = [
+  'git status',
+  'git diff',
+  'git add .',
+  'git commit -m ""',
+  'npm run dev',
+  'npm run build',
+  'npm test',
+  'pnpm install',
+  'pnpm dev',
+  'pnpm build',
+  'ls',
+  'cd ..',
+  'pwd',
+  'clear',
+]
+
+const SOLANA_AGENT_STARTUP_COMMAND = 'pnpm run solana:agent'
+
+type SplitLayout = {
+  direction: 'horizontal' | 'vertical'
+  secondaryId: string
+}
+
+type TerminalLaunchRecent = {
+  kind: 'agent' | 'command'
+  key: string
+  label: string
+  command?: string
+  timestamp: number
+}
+
+const TERMINAL_LAUNCH_RECENTS_KEY = 'daemon.terminal.launchRecents'
+const MAX_TERMINAL_LAUNCH_RECENTS = 8
+
+function readTerminalLaunchRecents(): TerminalLaunchRecent[] {
+  try {
+    const raw = window.localStorage.getItem(TERMINAL_LAUNCH_RECENTS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .filter((item) => item && (item.kind === 'agent' || item.kind === 'command') && typeof item.key === 'string' && typeof item.label === 'string')
+      .map((item) => ({
+        kind: item.kind as 'agent' | 'command',
+        key: item.key as string,
+        label: item.label as string,
+        command: typeof item.command === 'string' ? item.command : undefined,
+        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, MAX_TERMINAL_LAUNCH_RECENTS)
+  } catch {
+    return []
+  }
+}
+
+function writeTerminalLaunchRecents(recents: TerminalLaunchRecent[]) {
+  try {
+    window.localStorage.setItem(TERMINAL_LAUNCH_RECENTS_KEY, JSON.stringify(recents.slice(0, MAX_TERMINAL_LAUNCH_RECENTS)))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function TerminalPanel() {
   const { terminals, addTerminal, removeTerminal, setActiveTerminal } = useUIStore()
+  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeTerminalId = useUIStore((s) =>
     s.activeProjectId ? s.activeTerminalIdByProject[s.activeProjectId] ?? null : null,
   )
   const visibleTerminals = terminals.filter((tab) => tab.projectId === activeProjectId)
+  const [splitLayoutsByProject, setSplitLayoutsByProject] = useState<Record<string, SplitLayout | undefined>>({})
+  const [launcherOpen, setLauncherOpen] = useState(false)
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
+  const launcherRef = useRef<HTMLDivElement>(null)
+  const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
 
-  const handleNewTerminal = useCallback(async () => {
-    if (!activeProjectId) return
-    const res = await window.daemon.terminal.create({ cwd: activeProjectPath ?? undefined })
-    if (res.ok && res.data) {
-      addTerminal(activeProjectId, res.data.id, 'Terminal')
+  const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
+    setLaunchRecents((prev) => {
+      const next: TerminalLaunchRecent[] = [
+        { ...recent, timestamp: Date.now() },
+        ...prev.filter((item) => !(item.kind === recent.kind && item.key === recent.key)),
+      ].slice(0, MAX_TERMINAL_LAUNCH_RECENTS)
+      writeTerminalLaunchRecents(next)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!launcherOpen) return
+    window.daemon.agents.list().then((res) => {
+      if (res.ok && res.data) {
+        setAgents(res.data)
+      }
+    })
+  }, [launcherOpen])
+
+  useEffect(() => {
+    if (!launcherOpen) return
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null
+      if (!launcherRef.current || !target) return
+      if (!launcherRef.current.contains(target)) {
+        setLauncherOpen(false)
+      }
     }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setLauncherOpen(false)
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [launcherOpen])
+
+  const handleNewTerminal = useCallback(async (label = 'Terminal', startupCommand?: string) => {
+    if (!activeProjectId) return
+    const res = await window.daemon.terminal.create({
+      cwd: activeProjectPath ?? undefined,
+      startupCommand,
+    })
+    if (res.ok && res.data) {
+      addTerminal(activeProjectId, res.data.id, label)
+      return res.data.id
+    }
+    return null
   }, [activeProjectId, activeProjectPath, addTerminal])
+
+  const handleStartShell = useCallback(async () => {
+    await handleNewTerminal('Terminal')
+    setLauncherOpen(false)
+  }, [handleNewTerminal])
+
+  const launchCommand = useCallback(async (command: string, label: string) => {
+    const terminalId = await handleNewTerminal(label)
+    if (!terminalId) return
+    window.daemon.terminal.write(terminalId, `${command}\n`)
+    addLaunchRecent({ kind: 'command', key: command, command, label })
+    setLauncherOpen(false)
+  }, [addLaunchRecent, handleNewTerminal])
+
+  const handleStartClaudeChat = useCallback(() => {
+    setActivePanel('claude')
+    setLauncherOpen(false)
+  }, [setActivePanel])
+
+  const handleStartSolanaAgent = useCallback(async () => {
+    await handleNewTerminal('Solana Agent', SOLANA_AGENT_STARTUP_COMMAND)
+    setLauncherOpen(false)
+  }, [handleNewTerminal])
+
+  const launchAgent = useCallback(async (agent: Agent) => {
+    if (!activeProjectId) return
+
+    const res = await window.daemon.terminal.spawnAgent({
+      agentId: agent.id,
+      projectId: activeProjectId,
+    })
+    if (res.ok && res.data) {
+      addTerminal(activeProjectId, res.data.id, res.data.agentName ?? agent.name, res.data.agentId)
+      addLaunchRecent({ kind: 'agent', key: agent.id, label: agent.name })
+      setLauncherOpen(false)
+    }
+  }, [activeProjectId, addLaunchRecent, addTerminal])
 
   const handleCloseTerminal = useCallback(async (id: string) => {
     if (!activeProjectId) return
     await window.daemon.terminal.kill(id)
     removeTerminal(activeProjectId, id)
+
+     setSplitLayoutsByProject((prev) => {
+      const current = prev[activeProjectId]
+      if (!current || current.secondaryId !== id) return prev
+      return { ...prev, [activeProjectId]: undefined }
+    })
   }, [activeProjectId, removeTerminal])
+
+  const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
+    if (!activeProjectId || !activeTerminalId) return
+
+    let secondaryId = splitLayoutsByProject[activeProjectId]?.secondaryId
+    const hasExistingSecondary = Boolean(secondaryId && visibleTerminals.some((tab) => tab.id === secondaryId))
+
+    if (!hasExistingSecondary) {
+      const res = await window.daemon.terminal.create({ cwd: activeProjectPath ?? undefined })
+      if (!res.ok || !res.data) return
+      secondaryId = res.data.id
+      addTerminal(activeProjectId, secondaryId, 'Split')
+      setActiveTerminal(activeProjectId, activeTerminalId)
+    }
+
+    if (!secondaryId) return
+
+    setSplitLayoutsByProject((prev) => ({
+      ...prev,
+      [activeProjectId]: { direction, secondaryId },
+    }))
+  }, [activeProjectId, activeProjectPath, activeTerminalId, addTerminal, setActiveTerminal, splitLayoutsByProject, visibleTerminals])
+
+  const handleUnsplit = useCallback(() => {
+    if (!activeProjectId) return
+    setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
+  }, [activeProjectId])
 
   useEffect(() => {
     if (activeProjectId && visibleTerminals.length === 0) {
-      handleNewTerminal()
+      void handleNewTerminal()
     }
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
+
+  useEffect(() => {
+    if (!activeProjectId || !activeTerminalId) return
+
+    const split = splitLayoutsByProject[activeProjectId]
+    if (!split) return
+
+    const hasSecondary = visibleTerminals.some((tab) => tab.id === split.secondaryId)
+    if (!hasSecondary) {
+      const fallback = visibleTerminals.find((tab) => tab.id !== activeTerminalId)?.id
+      setSplitLayoutsByProject((prev) => ({
+        ...prev,
+        [activeProjectId]: fallback ? { ...split, secondaryId: fallback } : undefined,
+      }))
+      return
+    }
+
+    if (split.secondaryId === activeTerminalId) {
+      const fallback = visibleTerminals.find((tab) => tab.id !== activeTerminalId)?.id
+      if (!fallback) {
+        setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
+      } else {
+        setSplitLayoutsByProject((prev) => ({
+          ...prev,
+          [activeProjectId]: { ...split, secondaryId: fallback },
+        }))
+      }
+    }
+  }, [activeProjectId, activeTerminalId, splitLayoutsByProject, visibleTerminals])
+
+  const terminalById = useMemo(() => {
+    const map = new Map<string, (typeof visibleTerminals)[number]>()
+    for (const terminal of visibleTerminals) map.set(terminal.id, terminal)
+    return map
+  }, [visibleTerminals])
+
+  const paneIds = useMemo(() => {
+    if (!activeTerminalId) return []
+    if (!splitLayout) return [activeTerminalId]
+    if (splitLayout.secondaryId === activeTerminalId) return [activeTerminalId]
+    if (!terminalById.has(splitLayout.secondaryId)) return [activeTerminalId]
+    return [activeTerminalId, splitLayout.secondaryId]
+  }, [activeTerminalId, splitLayout, terminalById])
+
+  const launchableAgents = useMemo(
+    () => agents.filter((agent) => (agent.source ?? 'daemon') !== 'claude-import'),
+    [agents],
+  )
+
+  const recentAgentItems = useMemo(
+    () => launchRecents.filter((item) => item.kind === 'agent').slice(0, 5),
+    [launchRecents],
+  )
+
+  const recentCommandItems = useMemo(
+    () => launchRecents.filter((item) => item.kind === 'command').slice(0, 3),
+    [launchRecents],
+  )
 
   return (
     <div className="terminal-panel">
@@ -54,12 +305,108 @@ export function TerminalPanel() {
             </span>
           </button>
         ))}
-        <button className="terminal-tab-add" onClick={handleNewTerminal}>+</button>
+        <div className="terminal-launcher" ref={launcherRef}>
+          <button className="terminal-tab-add" onClick={() => setLauncherOpen((v) => !v)} title="New tab options">+</button>
+          {launcherOpen && (
+            <div className="terminal-launcher-menu" role="menu" aria-label="New terminal options">
+              <button
+                className="terminal-launcher-item"
+                onClick={() => void handleStartShell()}
+                disabled={!activeProjectId}
+              >
+                Standard Terminal
+              </button>
+              <button
+                className="terminal-launcher-item"
+                onClick={handleStartClaudeChat}
+              >
+                Claude Chat
+              </button>
+              <button
+                className="terminal-launcher-item"
+                onClick={() => void handleStartSolanaAgent()}
+                disabled={!activeProjectId}
+              >
+                Solana Agent
+              </button>
+
+              <div className="terminal-launcher-divider" />
+              <div className="terminal-launcher-section">Recent Agents</div>
+              {recentAgentItems.length === 0 ? (
+                <div className="terminal-launcher-empty">No recent agents</div>
+              ) : (
+                recentAgentItems.map((item) => {
+                  const agent = launchableAgents.find((candidate) => candidate.id === item.key)
+                  return (
+                    <button
+                      key={`recent-agent-${item.key}`}
+                      className="terminal-launcher-item"
+                      onClick={() => agent && void launchAgent(agent)}
+                      disabled={!activeProjectId || !agent}
+                      title={agent ? undefined : 'Agent no longer available'}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })
+              )}
+
+              {recentCommandItems.length > 0 && (
+                <>
+                  <div className="terminal-launcher-divider" />
+                  <div className="terminal-launcher-section">Recent Commands</div>
+                  {recentCommandItems.map((item) => (
+                    <button
+                      key={`recent-command-${item.key}`}
+                      className="terminal-launcher-item"
+                      onClick={() => item.command && void launchCommand(item.command, item.label)}
+                      disabled={!activeProjectId || !item.command}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="terminal-tools">
+          <button className="terminal-tool-btn" onClick={() => void handleSplit('vertical')} title="Split vertical">
+            │
+          </button>
+          <button className="terminal-tool-btn" onClick={() => void handleSplit('horizontal')} title="Split horizontal">
+            ─
+          </button>
+          <button className="terminal-tool-btn" onClick={handleUnsplit} title="Unsplit" disabled={!splitLayout}>
+            ⨯
+          </button>
+        </div>
       </div>
       <div className="terminal-views">
-        {visibleTerminals.map((tab) => (
-          <TerminalView key={tab.id} id={tab.id} isVisible={tab.id === activeTerminalId} />
-        ))}
+        {paneIds.length <= 1 ? (
+          activeTerminalId ? <TerminalView key={activeTerminalId} id={activeTerminalId} isVisible /> : null
+        ) : (
+          <div className={`terminal-split ${splitLayout?.direction ?? 'vertical'}`}>
+            {paneIds.map((id) => (
+              <div key={id} className="terminal-pane">
+                <div className="terminal-pane-header">
+                  <button
+                    className={`terminal-pane-title ${activeTerminalId === id ? 'active' : ''}`}
+                    onClick={() => activeProjectId && setActiveTerminal(activeProjectId, id)}
+                  >
+                    {terminalById.get(id)?.label ?? 'Terminal'}
+                  </button>
+                  {splitLayout?.secondaryId === id && (
+                    <button className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">×</button>
+                  )}
+                </div>
+                <div className="terminal-pane-body">
+                  <TerminalView id={id} isVisible />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -71,6 +418,186 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
   const fitRef = useRef<FitAddon | null>(null)
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragDepthRef = useRef(0)
+  const [currentInput, setCurrentInputState] = useState('')
+  const [commandHistory, setCommandHistoryState] = useState<string[]>([])
+  const [historySearchOpen, setHistorySearchOpenState] = useState(false)
+  const [historySearchQuery, setHistorySearchQueryState] = useState('')
+  const [historySelectionIndex, setHistorySelectionIndexState] = useState(0)
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+  })
+  const currentInputRef = useRef('')
+  const commandHistoryRef = useRef<string[]>([])
+  const completionHintsRef = useRef<string[]>([])
+  const historySearchOpenRef = useRef(false)
+  const historySearchQueryRef = useRef('')
+  const historySelectionIndexRef = useRef(0)
+
+  const setCurrentInput = (value: string) => {
+    currentInputRef.current = value
+    setCurrentInputState(value)
+  }
+
+  const setCommandHistory = (value: string[]) => {
+    commandHistoryRef.current = value
+    setCommandHistoryState(value)
+  }
+
+  const setHistorySearchOpen = (value: boolean) => {
+    historySearchOpenRef.current = value
+    setHistorySearchOpenState(value)
+  }
+
+  const setHistorySearchQuery = (value: string) => {
+    historySearchQueryRef.current = value
+    setHistorySearchQueryState(value)
+  }
+
+  const setHistorySelectionIndex = (value: number) => {
+    historySelectionIndexRef.current = value
+    setHistorySelectionIndexState(value)
+  }
+
+  const historyMatches = useMemo(() => {
+    const query = historySearchQuery.trim().toLowerCase()
+    const source = [...commandHistory].reverse()
+    return query
+      ? source.filter((command) => command.toLowerCase().includes(query))
+      : source
+  }, [commandHistory, historySearchQuery])
+
+  const completionHints = useMemo(() => {
+    const query = currentInput.trim().toLowerCase()
+    if (!query || historySearchOpen) return []
+
+    const historyHints = [...commandHistory]
+      .reverse()
+      .filter((command) => command.toLowerCase().startsWith(query) && command.toLowerCase() !== query)
+
+    const staticHints = COMMAND_HINTS
+      .filter((command) => command.toLowerCase().startsWith(query) && command.toLowerCase() !== query)
+
+    const hints = [...new Set([...historyHints, ...staticHints])].slice(0, 8)
+    completionHintsRef.current = hints
+    return hints
+  }, [commandHistory, currentInput, historySearchOpen])
+
+  const pushHistory = (command: string) => {
+    const normalized = command.trim()
+    if (!normalized) return
+    const deduped = commandHistoryRef.current.filter((item) => item !== normalized)
+    const next = [...deduped, normalized].slice(-200)
+    setCommandHistory(next)
+  }
+
+  const applyHistorySelection = () => {
+    const selection = historyMatches[historySelectionIndexRef.current]
+    if (!selection) return
+    window.daemon.terminal.write(id, '\u0003')
+    window.setTimeout(() => {
+      window.daemon.terminal.write(id, selection)
+    }, 10)
+    setCurrentInput(selection)
+  }
+
+  const acceptHint = (hint: string) => {
+    const existing = currentInputRef.current
+    if (!existing) {
+      window.daemon.terminal.write(id, hint)
+      setCurrentInput(hint)
+      return
+    }
+
+    if (hint.toLowerCase().startsWith(existing.toLowerCase())) {
+      const remainder = hint.slice(existing.length)
+      window.daemon.terminal.write(id, remainder)
+      setCurrentInput(hint)
+      return
+    }
+
+    window.daemon.terminal.write(id, '\u0003')
+    window.setTimeout(() => {
+      window.daemon.terminal.write(id, hint)
+    }, 10)
+    setCurrentInput(hint)
+  }
+
+  const trackInputFromData = (data: string) => {
+    let nextInput = currentInputRef.current
+    for (const char of data) {
+      if (char === '\r') {
+        pushHistory(nextInput)
+        nextInput = ''
+        continue
+      }
+
+      if (char === '\u007f' || char === '\b') {
+        nextInput = nextInput.slice(0, -1)
+        continue
+      }
+
+      if (char === '\u0015') {
+        nextInput = ''
+        continue
+      }
+
+      const code = char.charCodeAt(0)
+      const isPrintable = code >= 32 && code !== 127
+      if (isPrintable) {
+        nextInput += char
+      }
+    }
+    setCurrentInput(nextInput)
+  }
+
+  const interceptHistorySearchInput = (data: string): boolean => {
+    if (!historySearchOpenRef.current) return false
+
+    if (data === '\u001b') {
+      setHistorySearchOpen(false)
+      setHistorySearchQuery('')
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    if (data === '\u007f' || data === '\b') {
+      const next = historySearchQueryRef.current.slice(0, -1)
+      setHistorySearchQuery(next)
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    if (data === '\r') {
+      applyHistorySelection()
+      setHistorySearchOpen(false)
+      setHistorySearchQuery('')
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    if (data === '\u0010') {
+      const next = Math.max(0, historySelectionIndexRef.current - 1)
+      setHistorySelectionIndex(next)
+      return true
+    }
+
+    if (data === '\u000e') {
+      const next = Math.min(Math.max(0, historyMatches.length - 1), historySelectionIndexRef.current + 1)
+      setHistorySelectionIndex(next)
+      return true
+    }
+
+    if (data.length === 1 && data >= ' ' && data !== '\u007f') {
+      const next = historySearchQueryRef.current + data
+      setHistorySearchQuery(next)
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    return true
+  }
 
   const doFit = useCallback(() => {
     const fit = fitRef.current
@@ -87,6 +614,26 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
     } catch {}
   }, [id])
 
+  const closeContextMenu = useCallback(() => {
+    setContextMenu((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev))
+  }, [])
+
+  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const rect = event.currentTarget.getBoundingClientRect()
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    })
+  }, [])
+
+  const handlePasteFromContextMenu = useCallback(async () => {
+    await window.daemon.terminal.pasteFromClipboard(id)
+    closeContextMenu()
+    xtermRef.current?.focus()
+  }, [closeContextMenu, id])
+
   const debouncedFit = useCallback(() => {
     if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
     resizeTimerRef.current = setTimeout(doFit, 60)
@@ -102,11 +649,11 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
       cursorBlink: true,
       cursorStyle: 'bar',
       theme: {
-        background: '#090909',
+        background: '#0a0a0a',
         foreground: '#ebebeb',
         cursor: '#ebebeb',
         selectionBackground: '#2a2a2a',
-        black: '#090909',
+        black: '#0a0a0a',
         brightBlack: '#3d3d3d',
         red: '#8c4a4a',
         brightRed: '#a65c5c',
@@ -141,6 +688,28 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
 
     // Keystrokes -> PTY
     term.onData((data) => {
+      if (data === '\u0012') {
+        setHistorySearchOpen(true)
+        setHistorySearchQuery('')
+        setHistorySelectionIndex(0)
+        return
+      }
+
+      if (interceptHistorySearchInput(data)) {
+        return
+      }
+
+      if (data === '\x1b' && completionHintsRef.current.length > 0) {
+        setCurrentInput('')
+        return
+      }
+
+      if (data === '\t' && completionHintsRef.current.length > 0) {
+        acceptHint(completionHintsRef.current[0])
+        return
+      }
+
+      trackInputFromData(data)
       window.daemon.terminal.write(id, data)
     })
 
@@ -169,6 +738,24 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
       term.dispose()
     }
   }, [id, doFit, debouncedFit])
+
+  useEffect(() => {
+    if (!contextMenu.isOpen) return
+
+    const handlePointerDown = () => closeContextMenu()
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeContextMenu()
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [closeContextMenu, contextMenu.isOpen])
 
   // Re-fit + focus when tab becomes visible
   useEffect(() => {
@@ -216,30 +803,83 @@ function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="terminal-view"
-      style={{ visibility: isVisible ? 'visible' : 'hidden' }}
-      onClick={handleClick}
-      onDragEnter={(e) => {
-        e.preventDefault()
-        dragDepthRef.current += 1
-        setDragActive(true)
-      }}
-      onDragOver={(e) => {
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
-      }}
-      onDragLeave={() => {
-        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
-        if (dragDepthRef.current === 0) setDragActive(false)
-      }}
-      onDrop={(e) => {
-        e.preventDefault()
-        dragDepthRef.current = 0
-        setDragActive(false)
-        writeDroppedPaths(extractDroppedPaths(e))
-      }}
-    />
+    <div className="terminal-view-wrap">
+      <div
+        ref={containerRef}
+        className="terminal-view"
+        style={{ visibility: isVisible ? 'visible' : 'hidden' }}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onDragEnter={(e) => {
+          e.preventDefault()
+          dragDepthRef.current += 1
+          setDragActive(true)
+        }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }}
+        onDragLeave={() => {
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+          if (dragDepthRef.current === 0) setDragActive(false)
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          dragDepthRef.current = 0
+          setDragActive(false)
+          writeDroppedPaths(extractDroppedPaths(e))
+        }}
+      >
+        {contextMenu.isOpen && (
+          <div
+            className="terminal-context-menu"
+            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button className="terminal-context-menu-item" onClick={() => void handlePasteFromContextMenu()}>
+              Paste
+            </button>
+          </div>
+        )}
+      </div>
+
+      {completionHints.length > 0 && !historySearchOpen && (
+        <div className="terminal-overlay hints" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="terminal-overlay-header">
+            <div className="terminal-overlay-title">Hints (Tab)</div>
+            <button className="terminal-overlay-dismiss" onClick={() => setCurrentInput('')}>×</button>
+          </div>
+          {completionHints.slice(0, 5).map((hint) => (
+            <button key={hint} className="terminal-overlay-item" onClick={() => acceptHint(hint)}>{hint}</button>
+          ))}
+        </div>
+      )}
+
+      {historySearchOpen && (
+        <div className="terminal-overlay history-search">
+          <div className="terminal-overlay-title">History Search (Ctrl+R)</div>
+          <div className="terminal-history-query">{historySearchQuery || 'type to filter...'}</div>
+          <div className="terminal-history-results">
+            {historyMatches.slice(0, 8).map((match, index) => (
+              <button
+                key={`${match}-${index}`}
+                className={`terminal-overlay-item ${index === historySelectionIndex ? 'active' : ''}`}
+                onClick={() => {
+                  setHistorySelectionIndex(index)
+                  applyHistorySelection()
+                  setHistorySearchOpen(false)
+                  setHistorySearchQuery('')
+                }}
+              >
+                {match}
+              </button>
+            ))}
+            {historyMatches.length === 0 && (
+              <div className="terminal-history-empty">No matching commands</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

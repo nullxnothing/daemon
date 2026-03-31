@@ -13,6 +13,7 @@ const COLOR_MAP: Record<DotProps['color'], string> = {
 export function Dot({ color, size = 5 }: DotProps) {
   return (
     <span
+      aria-hidden="true"
       style={{
         display: 'inline-block',
         width: size,

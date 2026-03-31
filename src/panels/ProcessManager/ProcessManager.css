@@ -13,7 +13,7 @@
 
 .process-row {
   padding: 8px 0;
-  border-bottom: 1px solid var(--s5);
+  border-bottom: 1px solid var(--border);
 }
 
 .process-row:last-child {
@@ -33,9 +33,9 @@
   flex-shrink: 0;
 }
 
-.process-dot.healthy { background: var(--green); }
-.process-dot.warning { background: var(--amber); }
-.process-dot.critical { background: var(--red); }
+.process-dot.healthy { background: var(--success); }
+.process-dot.warning { background: var(--warning); }
+.process-dot.critical { background: var(--error); }
 
 .process-name {
   font-size: 12px;
@@ -88,9 +88,9 @@
   transition: width 0.3s ease;
 }
 
-.memory-bar-fill.healthy { background: var(--green); }
-.memory-bar-fill.warning { background: var(--amber); }
-.memory-bar-fill.critical { background: var(--red); }
+.memory-bar-fill.healthy { background: var(--success); }
+.memory-bar-fill.warning { background: var(--warning); }
+.memory-bar-fill.critical { background: var(--error); }
 
 /* Actions */
 .process-actions {
@@ -109,13 +109,13 @@
 }
 
 .process-btn:hover {
-  background: var(--s3);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 
 .process-btn.danger:hover {
   background: rgba(140, 74, 74, 0.2);
-  color: var(--red);
+  color: var(--error);
 }
 
 /* Total */
