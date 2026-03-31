@@ -115,6 +115,9 @@ function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
         e.preventDefault()
         window.daemon.window.reload()
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault()
+        setShowRightPanel((v) => !v)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -167,7 +170,7 @@ function App() {
           </div>
         </div>
 
-        <aside className="right-panel">
+        {shouldShowRightPanel && <aside className="right-panel">
           {isCenterPanelPlugin && activePlugin?.companionPanel ? (
             <PluginErrorBoundary>
               <Suspense fallback={<PluginFallback />}>
@@ -241,7 +244,7 @@ function App() {
               </div>
             </div>
           )}
-        </aside>
+        </aside>}
       </div>
 
       <StatusBar />
