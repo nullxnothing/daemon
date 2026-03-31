@@ -42,3 +42,15 @@ yarn.lock
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Internal planning docs (keep local, not in public repo)
+MASTER_PLAN.md
+CLAUDE.md
+CLAUDE_FLAGS.md
+AGENTS.md
+gotomarket.md
+features/
+
+# Claude Code config (per-machine)
+.claude/
+.mcp.json
