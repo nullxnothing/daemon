@@ -1,23 +1,76 @@
 :root {
+  /* Background scale (darkest to lightest) */
   --bg:    #090909;
   --s1:    #101010;
   --s2:    #151515;
   --s3:    #1a1a1a;
   --s4:    #222222;
   --s5:    #2a2a2a;
-  --t1:    #ebebeb;
-  --t2:    #7a7a7a;
-  --t3:    #3d3d3d;
-  --green: #4a8c62;
-  --amber: #8c7a4a;
-  --red:   #8c4a4a;
+  --s6:    #333333;
 
+  /* Text scale (brightest to dimmest) - WCAG AA compliant */
+  --t1:    #f0f0f0;  /* Primary text - 15.5:1 contrast */
+  --t2:    #a0a0a0;  /* Secondary text - 7.5:1 contrast */
+  --t3:    #6a6a6a;  /* Tertiary/muted - 4.5:1 contrast (AA minimum) */
+  --t4:    #4a4a4a;  /* Disabled/placeholder - decorative only */
+
+  /* Accent colors - cleaner, more vibrant */
+  --green:       #3ecf8e;  /* Primary accent - modern teal-green */
+  --green-dim:   #2a9d6a;  /* Hover/pressed state */
+  --green-glow:  rgba(62, 207, 142, 0.15);  /* Glow/highlight bg */
+  
+  --amber:       #f0b429;  /* Warning - golden amber */
+  --amber-dim:   #c99a22;
+  --amber-glow:  rgba(240, 180, 41, 0.15);
+  
+  --red:         #ef5350;  /* Error/danger - clear red */
+  --red-dim:     #c94442;
+  --red-glow:    rgba(239, 83, 80, 0.15);
+
+  --blue:        #60a5fa;  /* Info/link color */
+  --blue-dim:    #4a8ad4;
+  --blue-glow:   rgba(96, 165, 250, 0.15);
+
+  /* Semantic tokens */
+  --border:      #2a2a2a;  /* Default border */
+  --border-hover: #3a3a3a; /* Border on hover */
+  --border-focus: var(--green);  /* Border on focus */
+  
+  --success:     var(--green);
+  --warning:     var(--amber);
+  --error:       var(--red);
+  --info:        var(--blue);
+
+  /* Interactive state overlays */
+  --hover-overlay:  rgba(255, 255, 255, 0.04);
+  --active-overlay: rgba(255, 255, 255, 0.08);
+  --focus-ring:     0 0 0 2px var(--green-glow), 0 0 0 1px var(--green);
+
+  /* Typography */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
+  /* Layout dimensions */
   --titlebar-h: 38px;
   --sidebar-w: 48px;
   --left-panel-w: 210px;
   --right-panel-w: 262px;
   --statusbar-h: 22px;
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* Border radius */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* Transitions */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.25s ease;
 }

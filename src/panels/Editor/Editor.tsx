@@ -7,6 +7,7 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
+import { AskClaudeWidget } from '../../components/AskClaudeWidget'
 import './Editor.css'
 
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
@@ -54,6 +55,12 @@ export function EditorPanel() {
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
   const [savedFlash, setSavedFlash] = useState<string | null>(null)
+  const [askClaudeState, setAskClaudeState] = useState<{
+    visible: boolean
+    lineNumber: number
+    lineContent: string
+    position: { top: number; left: number }
+  } | null>(null)
 
   const projectOpenFiles = openFiles.filter((f) => f.projectId === activeProjectId)
   const activeFilePath = activeProjectId ? activeFilePathByProject[activeProjectId] ?? null : null
@@ -154,6 +161,32 @@ export function EditorPanel() {
       editor.setModel(model)
       prevFilePathRef.current = activeFile.path
     }
+
+    // Handle glyph margin clicks for "Ask Claude"
+    editor.onMouseDown((e) => {
+      if (e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+        const lineNumber = e.target.position?.lineNumber
+        if (lineNumber) {
+          const model = editor.getModel()
+          const lineContent = model?.getLineContent(lineNumber) ?? ''
+          const editorDomNode = editor.getDomNode()
+          if (editorDomNode) {
+            const lineTop = editor.getTopForLineNumber(lineNumber)
+            const scrollTop = editor.getScrollTop()
+            const editorRect = editorDomNode.getBoundingClientRect()
+            setAskClaudeState({
+              visible: true,
+              lineNumber,
+              lineContent,
+              position: {
+                top: editorRect.top + lineTop - scrollTop + 10,
+                left: editorRect.left + 60,
+              },
+            })
+          }
+        }
+      }
+    })
 
     // Ctrl+S / Cmd+S to save
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
@@ -256,9 +289,19 @@ export function EditorPanel() {
             bracketPairColorization: { enabled: true },
             wordWrap: 'off',
             tabSize: 2,
+            glyphMargin: true,
           }}
         />
       </div>
+      {askClaudeState?.visible && activeFile && (
+        <AskClaudeWidget
+          lineNumber={askClaudeState.lineNumber}
+          lineContent={askClaudeState.lineContent}
+          filePath={activeFile.path}
+          position={askClaudeState.position}
+          onClose={() => setAskClaudeState(null)}
+        />
+      )}
     </div>
   )
 }

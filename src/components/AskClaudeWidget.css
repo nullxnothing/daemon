@@ -1,0 +1,146 @@
+.ask-claude-widget {
+  position: fixed;
+  z-index: 1000;
+  width: 320px;
+  background: var(--s1);
+  border: 1px solid var(--s5);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.ask-claude-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--s5);
+  background: var(--s2);
+}
+
+.ask-claude-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--green);
+  border-radius: 4px;
+}
+
+.ask-claude-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.ask-claude-line {
+  font-size: 10px;
+  color: var(--t3);
+  margin-left: auto;
+}
+
+.ask-claude-close {
+  font-size: 16px;
+  color: var(--t3);
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.ask-claude-close:hover {
+  color: var(--t1);
+}
+
+.ask-claude-context {
+  padding: 8px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--s5);
+}
+
+.ask-claude-context code {
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: var(--t2);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-claude-quick {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--s5);
+}
+
+.ask-claude-quick-btn {
+  flex: 1;
+  height: 24px;
+  font-size: 10px;
+  color: var(--t2);
+  background: var(--s3);
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.ask-claude-quick-btn:hover {
+  color: var(--t1);
+  background: var(--s4);
+}
+
+.ask-claude-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.ask-claude-input {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  color: var(--t1);
+}
+
+.ask-claude-input:focus {
+  border-color: var(--green);
+  outline: none;
+}
+
+.ask-claude-input::placeholder {
+  color: var(--t3);
+}
+
+.ask-claude-send {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--green);
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.ask-claude-send:hover:not(:disabled) {
+  background: #5a9c72;
+}
+
+.ask-claude-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ask-claude-warning {
+  padding: 6px 12px 10px;
+  font-size: 10px;
+  color: var(--amber);
+  text-align: center;
+}

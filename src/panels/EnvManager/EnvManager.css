@@ -415,3 +415,160 @@
   padding: 12px 20px;
   border-top: 1px solid var(--s5);
 }
+
+/* Empty state with templates */
+.env-empty-state {
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.env-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 6px;
+}
+
+.env-empty-subtitle {
+  font-size: 12px;
+  color: var(--t3);
+  margin-bottom: 24px;
+}
+
+.env-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.env-template-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.env-template-category {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-left: 2px;
+}
+
+.env-template-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.env-template-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.env-template-btn:hover {
+  background: var(--s3);
+  border-color: var(--green);
+}
+
+.env-template-key {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--t1);
+  font-weight: 500;
+}
+
+.env-template-hint {
+  font-size: 10px;
+  color: var(--t3);
+}
+
+/* In-grid add row */
+.env-add-row {
+  background: var(--s1);
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.env-add-input {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  border-radius: 3px;
+  color: var(--t1);
+  width: 100%;
+}
+
+.env-add-input:focus {
+  border-color: var(--green);
+  outline: none;
+}
+
+.env-add-key {
+  font-family: var(--font-code);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.env-add-value {
+  font-family: var(--font-code);
+}
+
+.env-add-btn {
+  color: var(--green);
+  background: rgba(74, 140, 98, 0.1);
+  margin-left: 8px;
+}
+
+.env-add-btn:hover {
+  background: rgba(74, 140, 98, 0.2);
+}
+
+/* Value cell with validation */
+.env-value-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.env-value-text {
+  cursor: default;
+  transition: color 0.15s;
+}
+
+.env-value-text:hover {
+  color: var(--t1);
+}
+
+/* Validation badges */
+.env-validation-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.env-validation-badge.valid {
+  color: var(--green);
+  background: rgba(74, 140, 98, 0.1);
+}
+
+.env-validation-badge.invalid {
+  color: var(--amber);
+  background: rgba(140, 122, 74, 0.1);
+}

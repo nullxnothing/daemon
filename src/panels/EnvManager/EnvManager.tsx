@@ -9,6 +9,49 @@ interface UnifiedKey {
   projects: Array<{ projectId: string; projectName: string; projectPath: string; filePath: string; value: string }>
 }
 
+// Validation patterns for common env var formats
+const VALIDATION_PATTERNS: Record<string, { pattern: RegExp; label: string; hint: string }> = {
+  SOLANA_PRIVATE_KEY: { pattern: /^[1-9A-HJ-NP-Za-km-z]{87,88}$/, label: 'Base58', hint: 'Solana private key (Base58)' },
+  HELIUS_API_KEY: { pattern: /^[a-f0-9-]{36}$/, label: 'UUID', hint: 'Helius API key (UUID format)' },
+  GITHUB_TOKEN: { pattern: /^(ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{36,}$/, label: 'GitHub', hint: 'GitHub personal access token' },
+  VERCEL_TOKEN: { pattern: /^[A-Za-z0-9]{24,}$/, label: 'Token', hint: 'Vercel API token' },
+  JWT: { pattern: /^eyJ[A-Za-z0-9-_]+\.eyJ[A-Za-z0-9-_]+\.[A-Za-z0-9-_.+/=]*$/, label: 'JWT', hint: 'JSON Web Token' },
+  URL: { pattern: /^https?:\/\/[^\s]+$/, label: 'URL', hint: 'Valid HTTP(S) URL' },
+  DATABASE_URL: { pattern: /^(postgres|mysql|mongodb|redis):\/\/[^\s]+$/, label: 'DB URL', hint: 'Database connection string' },
+  EMAIL: { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, label: 'Email', hint: 'Email address' },
+}
+
+// Context-aware templates for empty state
+const ENV_TEMPLATES = [
+  { key: 'HELIUS_API_KEY', placeholder: 'your-helius-api-key', category: 'Solana', hint: 'RPC & indexing' },
+  { key: 'SOLANA_RPC_URL', placeholder: 'https://api.mainnet-beta.solana.com', category: 'Solana', hint: 'RPC endpoint' },
+  { key: 'OPENAI_API_KEY', placeholder: 'sk-...', category: 'AI', hint: 'OpenAI API' },
+  { key: 'ANTHROPIC_API_KEY', placeholder: 'sk-ant-...', category: 'AI', hint: 'Claude API' },
+  { key: 'DATABASE_URL', placeholder: 'postgres://user:pass@host:5432/db', category: 'Database', hint: 'Connection string' },
+  { key: 'GITHUB_TOKEN', placeholder: 'ghp_...', category: 'Services', hint: 'GitHub PAT' },
+  { key: 'VERCEL_TOKEN', placeholder: '', category: 'Services', hint: 'Vercel deploy' },
+]
+
+function validateValue(key: string, value: string): { valid: boolean; label?: string; hint?: string } | null {
+  // Check specific key patterns first
+  for (const [patternKey, config] of Object.entries(VALIDATION_PATTERNS)) {
+    if (key.toUpperCase().includes(patternKey) || key.toUpperCase() === patternKey) {
+      return { valid: config.pattern.test(value), label: config.label, hint: config.hint }
+    }
+  }
+  // Check for common patterns in value
+  if (VALIDATION_PATTERNS.URL.pattern.test(value)) {
+    return { valid: true, label: 'URL', hint: 'Valid URL' }
+  }
+  if (VALIDATION_PATTERNS.JWT.pattern.test(value)) {
+    return { valid: true, label: 'JWT', hint: 'JSON Web Token' }
+  }
+  if (key.toUpperCase().includes('URL') && value && !VALIDATION_PATTERNS.URL.pattern.test(value)) {
+    return { valid: false, label: 'URL', hint: 'Expected a valid URL' }
+  }
+  return null
+}
+
 export function EnvManager() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const [keys, setKeys] = useState<UnifiedKey[]>([])
@@ -19,8 +62,13 @@ export function EnvManager() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<{ filePath: string; key: string } | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [revealedValues, setRevealedValues] = useState<Set<string>>(new Set())
+  const [addingNew, setAddingNew] = useState(false)
+  const [newKey, setNewKey] = useState('')
+  const [newValue, setNewValue] = useState('')
   const openFile = useUIStore((s) => s.openFile)
   const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const projects = useUIStore((s) => s.projects)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -62,6 +110,32 @@ export function EnvManager() {
     load()
   }
 
+  const toggleReveal = (key: string) => {
+    setRevealedValues((prev) => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
+  const handleAddNew = async () => {
+    if (!newKey.trim() || !activeProjectId) return
+    const project = projects.find(p => p.id === activeProjectId)
+    if (!project) return
+    const envPath = `${project.path}/.env`
+    await window.daemon.env.updateVar(envPath, newKey.trim(), newValue)
+    setNewKey('')
+    setNewValue('')
+    setAddingNew(false)
+    load()
+  }
+
+  const handleTemplateClick = (template: typeof ENV_TEMPLATES[0]) => {
+    setNewKey(template.key)
+    setNewValue(template.placeholder)
+    setAddingNew(true)
+  }
+
   return (
     <div className="env-center">
       {/* Header */}
@@ -75,6 +149,7 @@ export function EnvManager() {
             <input type="checkbox" checked={secretsOnly} onChange={(e) => setSecretsOnly(e.target.checked)} />
             <span>Secrets only</span>
           </label>
+          <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
         </div>
       </div>
 
@@ -98,15 +173,85 @@ export function EnvManager() {
           <span className="env-col-actions"></span>
         </div>
 
+        {/* In-grid add row */}
+        {addingNew && (
+          <div className="env-row env-add-row">
+            <span className="env-col-key">
+              <input
+                className="env-add-input env-add-key"
+                placeholder="VARIABLE_NAME"
+                value={newKey}
+                onChange={(e) => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddNew()
+                  if (e.key === 'Escape') { setAddingNew(false); setNewKey(''); setNewValue('') }
+                }}
+                autoFocus
+              />
+            </span>
+            <span className="env-col-value">
+              <input
+                className="env-add-input env-add-value"
+                placeholder="value"
+                value={newValue}
+                onChange={(e) => setNewValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddNew()
+                  if (e.key === 'Escape') { setAddingNew(false); setNewKey(''); setNewValue('') }
+                }}
+              />
+            </span>
+            <span className="env-col-tag"></span>
+            <span className="env-col-projects"></span>
+            <span className="env-col-actions">
+              <button className="env-btn" onClick={() => { setAddingNew(false); setNewKey(''); setNewValue('') }}>Cancel</button>
+              <button className="env-btn propagate" onClick={handleAddNew} disabled={!newKey.trim()}>Add</button>
+            </span>
+          </div>
+        )}
+
         {loading ? (
           <div className="env-loading">Scanning .env files...</div>
+        ) : filtered.length === 0 && keys.length === 0 ? (
+          <div className="env-empty-state">
+            <div className="env-empty-title">No environment variables found</div>
+            <div className="env-empty-subtitle">Add a variable or start with a template</div>
+            <div className="env-templates">
+              {Object.entries(
+                ENV_TEMPLATES.reduce((acc, t) => {
+                  if (!acc[t.category]) acc[t.category] = []
+                  acc[t.category].push(t)
+                  return acc
+                }, {} as Record<string, typeof ENV_TEMPLATES>)
+              ).map(([category, templates]) => (
+                <div key={category} className="env-template-group">
+                  <div className="env-template-category">{category}</div>
+                  <div className="env-template-items">
+                    {templates.map((t) => (
+                      <button
+                        key={t.key}
+                        className="env-template-btn"
+                        onClick={() => handleTemplateClick(t)}
+                        title={t.hint}
+                      >
+                        <span className="env-template-key">{t.key}</span>
+                        <span className="env-template-hint">{t.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="env-loading">{keys.length === 0 ? 'Add projects to scan' : 'No matches'}</div>
+          <div className="env-loading">No matches</div>
         ) : (
           filtered.map((k) => {
             const isExpanded = expanded === k.key
             const allSameValue = k.projects.every(p => p.value === k.projects[0]?.value)
             const displayValue = k.projects[0]?.value ?? ''
+            const isRevealed = revealedValues.has(k.key)
+            const validation = validateValue(k.key, displayValue)
 
             return (
               <div key={k.key} className={`env-row-group ${isExpanded ? 'expanded' : ''}`}>
@@ -116,11 +261,24 @@ export function EnvManager() {
                     <span className="env-row-arrow">{isExpanded ? '▾' : '▸'}</span>
                     <code>{k.key}</code>
                   </span>
-                  <span className="env-col-value">
-                    <span className={k.isSecret ? 'env-obscured' : 'env-plain'}>
-                      {k.isSecret ? obscure(displayValue) : truncate(displayValue, 40)}
+                  <span className="env-col-value env-value-cell">
+                    <span
+                      className={`env-value-text ${isRevealed ? 'env-plain' : 'env-obscured'}`}
+                      onMouseEnter={() => toggleReveal(k.key)}
+                      onMouseLeave={() => toggleReveal(k.key)}
+                      title={isRevealed ? displayValue : 'Hover to reveal'}
+                    >
+                      {isRevealed ? truncate(displayValue, 40) : obscure(displayValue)}
                     </span>
                     {!allSameValue && <span className="env-mixed-badge">mixed</span>}
+                    {validation && (
+                      <span
+                        className={`env-validation-badge ${validation.valid ? 'valid' : 'invalid'}`}
+                        title={validation.hint}
+                      >
+                        {validation.valid ? '✓' : '!'} {validation.label}
+                      </span>
+                    )}
                   </span>
                   <span className="env-col-tag">
                     {k.secretLabel && <span className="env-secret-badge">{k.secretLabel}</span>}

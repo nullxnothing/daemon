@@ -84,3 +84,16 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* Glyph margin hover hint for Ask Claude */
+.editor-content .monaco-editor .margin-view-overlays .line-numbers {
+  cursor: pointer;
+}
+
+.editor-content .monaco-editor .glyph-margin {
+  cursor: pointer;
+}
+
+.editor-content .monaco-editor .glyph-margin:hover {
+  background: rgba(74, 140, 98, 0.1);
+}
