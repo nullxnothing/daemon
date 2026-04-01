@@ -80,6 +80,7 @@ export function CommitBar({ projectPath, files, pushing, onCommit, onError }: Co
         className="git-commit-btn"
         onClick={() => void handleCommit()}
         disabled={isCommitDisabled}
+        title={stagedCount === 0 ? 'Stage files first' : !commitMsg.trim() ? 'Enter a commit message' : ''}
       >
         {committing ? 'Committing…' : 'Commit'}
       </button>

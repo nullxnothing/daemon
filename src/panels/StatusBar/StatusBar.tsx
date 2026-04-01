@@ -12,17 +12,25 @@ export function StatusBar() {
   return (
     <div className="statusbar">
       <div className="statusbar-left">
-        <span className="statusbar-item">DAEMON</span>
-        <GitBranch />
-        <TerminalCount />
+        <div className="status-group">
+          <span className="statusbar-item">DAEMON</span>
+        </div>
+        <div className="status-group">
+          <GitBranch />
+          <TerminalCount />
+        </div>
       </div>
       <div className="statusbar-center">
         <MarketTape />
       </div>
       <div className="statusbar-right">
-        <ClaudeStatus />
+        <div className="status-group">
+          <ClaudeStatus />
+        </div>
         {activeProjectPath && (
-          <span className="statusbar-item statusbar-path">{activeProjectPath}</span>
+          <div className="status-group">
+            <span className="statusbar-item statusbar-path">{activeProjectPath}</span>
+          </div>
         )}
       </div>
     </div>

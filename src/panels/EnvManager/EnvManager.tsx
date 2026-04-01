@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { Toggle } from '../../components/Toggle'
 import './EnvManager.css'
 
 interface UnifiedKey {
@@ -165,7 +166,7 @@ export function EnvManager() {
         </div>
         <div className="env-header-actions">
           <label className="env-secrets-toggle">
-            <input type="checkbox" checked={secretsOnly} onChange={(e) => setSecretsOnly(e.target.checked)} />
+            <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
             <span>Secrets only</span>
           </label>
           <button

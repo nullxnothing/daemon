@@ -26,6 +26,41 @@
   color: var(--t3);
 }
 
+.editor-empty-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.editor-empty-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--t2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.editor-empty-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
+  border-color: var(--border-hover);
+}
+
+.editor-empty-shortcut {
+  font-size: 10px;
+  color: var(--t3);
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-code);
+}
+
 .editor-tabs {
   display: flex;
   align-items: center;
@@ -62,12 +97,18 @@
 }
 
 .editor-tab.active {
-  background: var(--s2);
   color: var(--t1);
+  background: var(--s2);
+  border-bottom: 2px solid var(--green);
 }
 
 .editor-tab.saved {
-  background: rgba(74, 140, 98, 0.2);
+  animation: save-flash 0.6s ease;
+}
+
+@keyframes save-flash {
+  0% { background: var(--green); color: var(--bg); }
+  100% { background: transparent; }
 }
 
 .editor-tab-close {

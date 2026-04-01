@@ -7,64 +7,35 @@ import {
   getVoiceProfile,
   updateVoiceProfile,
 } from '../services/TweetService'
+import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { TweetUpdateInput } from '../shared/types'
 
 export function registerTweetHandlers() {
-  ipcMain.handle('tweets:generate', async (_event, prompt: string, mode: string, sourceTweet?: string) => {
-    try {
-      const validModes = ['original', 'reply', 'quote'] as const
-      if (!validModes.includes(mode as typeof validModes[number])) {
-        return { ok: false, error: `Invalid mode: ${mode}` }
-      }
-      const result = await generateTweet(prompt, mode as 'original' | 'reply' | 'quote', sourceTweet)
-      return { ok: true, data: result }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
+  ipcMain.handle('tweets:generate', ipcHandler(async (_event, prompt: string, mode: string, sourceTweet?: string) => {
+    const validModes = ['original', 'reply', 'quote'] as const
+    if (!validModes.includes(mode as typeof validModes[number])) {
+      throw new Error(`Invalid mode: ${mode}`)
     }
-  })
+    return await generateTweet(prompt, mode as 'original' | 'reply' | 'quote', sourceTweet)
+  }))
 
-  ipcMain.handle('tweets:list', async (_event, limit?: number) => {
-    try {
-      const tweets = listTweets(limit)
-      return { ok: true, data: tweets }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('tweets:list', ipcHandler(async (_event, limit?: number) => {
+    return listTweets(limit)
+  }))
 
-  ipcMain.handle('tweets:update', async (_event, id: string, updates: TweetUpdateInput) => {
-    try {
-      const tweet = updateTweet(id, updates)
-      return { ok: true, data: tweet }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('tweets:update', ipcHandler(async (_event, id: string, updates: TweetUpdateInput) => {
+    return updateTweet(id, updates)
+  }))
 
-  ipcMain.handle('tweets:delete', async (_event, id: string) => {
-    try {
-      deleteTweet(id)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('tweets:delete', ipcHandler(async (_event, id: string) => {
+    deleteTweet(id)
+  }))
 
-  ipcMain.handle('tweets:voice-get', async () => {
-    try {
-      const profile = getVoiceProfile()
-      return { ok: true, data: profile }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('tweets:voice-get', ipcHandler(async () => {
+    return getVoiceProfile()
+  }))
 
-  ipcMain.handle('tweets:voice-update', async (_event, systemPrompt: string, examples: string[]) => {
-    try {
-      updateVoiceProfile(systemPrompt, examples)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('tweets:voice-update', ipcHandler(async (_event, systemPrompt: string, examples: string[]) => {
+    updateVoiceProfile(systemPrompt, examples)
+  }))
 }

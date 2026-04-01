@@ -30,7 +30,9 @@
 
 .sidebar-icon.active {
   color: var(--t1);
-  background: var(--s2);
+  background: var(--s3);
+  border-left: 2px solid var(--green);
+  padding-left: 13px;
 }
 
 .sidebar-submenu-wrap {

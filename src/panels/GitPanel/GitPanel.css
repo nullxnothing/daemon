@@ -373,28 +373,30 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
+  padding: 6px 0;
   font-size: 11px;
+  border-bottom: 1px solid var(--border);
 }
 
 .git-commit-hash {
+  color: var(--green);
   font-family: var(--font-code);
-  font-size: 10px;
-  color: var(--warning);
-  width: 55px;
+  font-size: 11px;
+  min-width: 60px;
   flex-shrink: 0;
 }
 
 .git-commit-msg {
   flex: 1;
-  color: var(--t2);
+  color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .git-commit-time {
-  font-size: 10px;
   color: var(--t3);
+  font-size: 11px;
+  text-align: right;
   flex-shrink: 0;
 }

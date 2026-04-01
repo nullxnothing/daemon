@@ -31,21 +31,13 @@ function PluginCard({ manifest, isEnabled, isActive, onToggle, onOpen }: PluginC
       </div>
       <div className="plugin-card-v2-desc">{manifest.description}</div>
       <div className="plugin-card-v2-footer">
-        {isActive ? (
-          <span className="plugin-card-v2-btn plugin-card-v2-btn--active">Active</span>
-        ) : isEnabled ? (
+        <span className="plugin-card-v2-toggle-label">Active</span>
+        <Toggle checked={isEnabled} onChange={onToggle} size="sm" />
+        {isEnabled && !isActive && (
           <button className="plugin-card-v2-btn plugin-card-v2-btn--open" onClick={onOpen}>
             Open
           </button>
-        ) : (
-          <button
-            className="plugin-card-v2-btn plugin-card-v2-btn--enable"
-            onClick={() => onToggle(true)}
-          >
-            Enable
-          </button>
         )}
-        <Toggle checked={isEnabled} onChange={onToggle} size="sm" />
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { exec, execFile } from 'node:child_process'
 import pidusage from 'pidusage'
 import { getDb } from '../db/db'
 import { getAllSessionIds, getSession } from './terminal'
+import { TIMEOUTS } from '../config/constants'
 import type { ProcessInfo, OrphanProcess } from '../shared/types'
 
 // Track PIDs returned by the last orphan scan so process:kill can validate them

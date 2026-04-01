@@ -112,9 +112,18 @@ export function ToolBrowser() {
         <div className="tool-browser-empty">Loading tools...</div>
       ) : filtered.length === 0 ? (
         <div className="tool-browser-empty">
-          {tools.length === 0
-            ? 'No tools yet. Create one or import an existing tool folder.'
-            : 'No tools match your filter.'}
+          {tools.length === 0 ? (
+            <>
+              <div className="tool-browser-empty-title">No tools yet</div>
+              <div className="tool-browser-empty-desc">Create a custom tool or import an existing folder.</div>
+              <div className="tool-browser-empty-actions">
+                <button className="tool-btn" onClick={handleImport}>Import Folder</button>
+                <button className="tool-btn primary" onClick={() => setShowCreate(true)}>Create Tool</button>
+              </div>
+            </>
+          ) : (
+            'No tools match your filter.'
+          )}
         </div>
       ) : (
         <div className="tool-grid">

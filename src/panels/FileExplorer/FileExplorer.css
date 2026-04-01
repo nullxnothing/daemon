@@ -101,6 +101,10 @@
   text-overflow: ellipsis;
 }
 
+.file-node[data-hidden="true"] {
+  opacity: 0.5;
+}
+
 .file-node:hover {
   background: var(--hover-bg);
   color: var(--t1);

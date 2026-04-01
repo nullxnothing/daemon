@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process'
 import { getDb } from '../db/db'
 import { getRegisteredPorts } from './PortService'
 import * as ClaudeRouter from './ClaudeRouter'
+import { TIMEOUTS } from '../config/constants'
 import type {
   EngineAction,
   EngineResult,
@@ -20,7 +21,7 @@ function buildContext(): EngineContext {
     const claudeMdPath = path.join(p.path, 'CLAUDE.md')
     let gitBranch: string | null = null
     try {
-      gitBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: p.path, encoding: 'utf8', timeout: 3000 }).trim()
+      gitBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: p.path, encoding: 'utf8', timeout: TIMEOUTS.GIT_COMMAND }).trim()
     } catch {}
 
     const sessionCount = (db.prepare('SELECT COUNT(*) as c FROM active_sessions WHERE project_id = ?').get(p.id) as { c: number }).c
@@ -148,13 +149,13 @@ async function handleFixClaudeMd(action: EngineAction, ctx: EngineContext): Prom
 
   let recentDiff = ''
   try {
-    recentDiff = execSync('git diff HEAD~10 --stat', { cwd: project.path, encoding: 'utf8', timeout: 10000 })
+    recentDiff = execSync('git diff HEAD~10 --stat', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
   } catch {}
 
   let fileTree = ''
   try {
     fileTree = execSync('find . -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/.git/*" | head -80', {
-      cwd: project.path, encoding: 'utf8', timeout: 5000,
+      cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
     })
   } catch {
     try {
@@ -183,7 +184,7 @@ Return ONLY the complete updated CLAUDE.md content. Preserve existing structure.
     model: 'sonnet',
     effort: 'medium',
     cwd: project.path,
-    timeoutMs: 90000,
+    timeoutMs: TIMEOUTS.PROMPT_FIX_CLAUDEMD,
   })
 
   return {
@@ -211,7 +212,7 @@ async function handleGenerateClaudeMd(action: EngineAction, ctx: EngineContext):
   let fileTree = ''
   try {
     fileTree = execSync('find . -maxdepth 3 -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/target/*" | head -100', {
-      cwd: project.path, encoding: 'utf8', timeout: 5000,
+      cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
     })
   } catch {
     try {
@@ -254,7 +255,7 @@ Return ONLY the markdown content.`,
     model: 'sonnet',
     effort: 'high',
     cwd: project.path,
-    timeoutMs: 120000,
+    timeoutMs: TIMEOUTS.PROMPT_GENERATE_CLAUDEMD,
   })
 
   return {
@@ -298,7 +299,7 @@ async function handleDebugSetup(action: EngineAction, ctx: EngineContext): Promi
   let tsErrors = ''
   if (hasPackageJson) {
     try {
-      execSync('npx tsc --noEmit 2>&1', { cwd: project.path, encoding: 'utf8', timeout: 30000 })
+      execSync('npx tsc --noEmit 2>&1', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.TYPESCRIPT_CHECK })
       checks.push('TypeScript: clean')
     } catch (err) {
       tsErrors = (err as { stdout?: string }).stdout ?? ''
@@ -310,7 +311,7 @@ async function handleDebugSetup(action: EngineAction, ctx: EngineContext): Promi
   // Git status
   let gitStatus = ''
   try {
-    gitStatus = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: 5000 })
+    gitStatus = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
   } catch {}
 
   const extraContext = (action.payload?.question as string) ?? ''
@@ -333,7 +334,7 @@ Diagnose issues and provide concrete steps to fix each one. Be specific — incl
     model: 'sonnet',
     effort: 'medium',
     cwd: project.path,
-    timeoutMs: 60000,
+    timeoutMs: TIMEOUTS.CLI_PROMPT_DEFAULT,
   })
 
   return { ok: true, action: action.type, output }
@@ -351,7 +352,7 @@ async function handleHealthCheck(ctx: EngineContext): Promise<EngineResult> {
     if (!project.hasClaudeMd) issues.push('no CLAUDE.md')
 
     try {
-      const status = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: 3000 })
+      const status = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.GIT_COMMAND })
       const uncommitted = status.trim().split('\n').filter(Boolean).length
       if (uncommitted > 20) issues.push(`${uncommitted} uncommitted changes`)
     } catch {}
@@ -382,7 +383,7 @@ Explain what caused this, why, and how to fix it. Include exact commands to reso
     systemPrompt: ENGINE_SYSTEM_PROMPT,
     model: 'haiku',
     effort: 'low',
-    timeoutMs: 60000,
+    timeoutMs: TIMEOUTS.CLI_PROMPT_DEFAULT,
   })
 
   return { ok: true, action: action.type, output }
@@ -405,7 +406,7 @@ Provide a concrete, step-by-step fix. Include exact file paths and commands wher
     systemPrompt: ENGINE_SYSTEM_PROMPT,
     model: 'haiku',
     effort: 'low',
-    timeoutMs: 60000,
+    timeoutMs: TIMEOUTS.CLI_PROMPT_DEFAULT,
   })
 
   return { ok: true, action: action.type, output }
@@ -430,7 +431,7 @@ ${project ? `Active project: ${project.name} at ${project.path}` : ''}`,
     systemPrompt: ENGINE_SYSTEM_PROMPT,
     model: 'sonnet',
     effort: 'low',
-    timeoutMs: 60000,
+    timeoutMs: TIMEOUTS.CLI_PROMPT_DEFAULT,
   })
 
   return { ok: true, action: action.type, output }

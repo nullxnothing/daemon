@@ -213,7 +213,7 @@
 }
 
 .usage-value.usage-red {
-  color: var(--red-dim);
+  color: var(--amber);
 }
 
 .usage-period {

@@ -207,14 +207,6 @@ function App() {
             <PluginManager />
           ) : (
             <div className="right-panel-tabbed">
-              <div className="right-panel-content">
-                <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
-                  {activePanel === 'process' ? <ProcessManager />
-                    : activePanel === 'ports' ? <PortsPanel />
-                    : activePanel === 'wallet' ? <WalletPanel />
-                    : <ClaudePanel />}
-                </PluginErrorBoundary>
-              </div>
               <div className="right-panel-tabs">
                 <button
                   className={`rp-tab ${activePanel !== 'ports' && activePanel !== 'process' && activePanel !== 'wallet' ? 'active' : ''}`}
@@ -256,6 +248,14 @@ function App() {
                     <circle cx="18" cy="13" r="1"/>
                   </svg>
                 </button>
+              </div>
+              <div className="right-panel-content">
+                <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
+                  {activePanel === 'process' ? <ProcessManager />
+                    : activePanel === 'ports' ? <PortsPanel />
+                    : activePanel === 'wallet' ? <WalletPanel />
+                    : <ClaudePanel />}
+                </PluginErrorBoundary>
               </div>
             </div>
           )}

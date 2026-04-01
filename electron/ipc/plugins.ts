@@ -1,39 +1,21 @@
 import { ipcMain } from 'electron'
 import * as Plugins from '../services/PluginService'
+import { ipcHandler } from '../services/IpcHandlerFactory'
 
 export function registerPluginHandlers() {
-  ipcMain.handle('plugins:list', async () => {
-    try {
-      return { ok: true, data: Plugins.listPlugins() }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('plugins:list', ipcHandler(async () => {
+    return Plugins.listPlugins()
+  }))
 
-  ipcMain.handle('plugins:set-enabled', async (_event, id: string, enabled: boolean) => {
-    try {
-      Plugins.setPluginEnabled(id, enabled)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('plugins:set-enabled', ipcHandler(async (_event, id: string, enabled: boolean) => {
+    Plugins.setPluginEnabled(id, enabled)
+  }))
 
-  ipcMain.handle('plugins:set-config', async (_event, id: string, config: string) => {
-    try {
-      Plugins.setPluginConfig(id, config)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('plugins:set-config', ipcHandler(async (_event, id: string, config: string) => {
+    Plugins.setPluginConfig(id, config)
+  }))
 
-  ipcMain.handle('plugins:reorder', async (_event, orderedIds: string[]) => {
-    try {
-      Plugins.reorderPlugins(orderedIds)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('plugins:reorder', ipcHandler(async (_event, orderedIds: string[]) => {
+    Plugins.reorderPlugins(orderedIds)
+  }))
 }

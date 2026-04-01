@@ -292,6 +292,7 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
       <div
         className={`file-node ${entry.isDirectory ? 'directory' : 'file'}`}
         style={{ paddingLeft: 12 + depth * 14 }}
+        data-hidden={entry.name.startsWith('.') || undefined}
         onClick={isRenaming ? undefined : handleClick}
         onContextMenu={(e) => onContextMenu(e, entry, parentPath)}
         draggable={!isRenaming}

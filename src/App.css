@@ -68,7 +68,7 @@
 }
 
 .splitter:hover {
-  background: var(--border-hover);
+  background: var(--green);
 }
 
 .terminal-area {
@@ -132,7 +132,7 @@
   justify-content: center;
   gap: 2px;
   padding: 6px 8px;
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--s1);
 }
 

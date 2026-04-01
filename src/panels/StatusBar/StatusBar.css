@@ -37,6 +37,17 @@
   pointer-events: auto;
 }
 
+.status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.status-group + .status-group {
+  border-left: 1px solid var(--border);
+}
+
 .statusbar-item {
   font-size: 11px;
   color: var(--t3);

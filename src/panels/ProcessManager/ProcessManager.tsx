@@ -89,7 +89,7 @@ export function ProcessManager() {
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="Orphaned" count={orphans.length} defaultOpen={false}>
+      <CollapsibleSection title="Orphaned" count={orphans.length} defaultOpen={orphans.length > 0}>
         {orphans.length === 0 ? (
           <div className="process-empty">No orphaned processes</div>
         ) : (

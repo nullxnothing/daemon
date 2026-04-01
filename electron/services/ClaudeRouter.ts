@@ -4,6 +4,7 @@ import os from 'node:os'
 import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../db/db'
 import * as SecureKey from './SecureKeyService'
+import { TIMEOUTS } from '../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from './McpConfig'
 import { getRegisteredPorts } from './PortService'
 import type { ClaudeConnection } from '../shared/types'
@@ -67,7 +68,7 @@ function resolveClaudePath(): string {
 
   // Also check npm prefix dynamically
   try {
-    const npmPrefix = execSync('npm prefix -g', { encoding: 'utf8', timeout: 3000 }).trim()
+    const npmPrefix = execSync('npm prefix -g', { encoding: 'utf8', timeout: TIMEOUTS.NPM_PREFIX }).trim()
     const npmBin = isWin
       ? path.join(npmPrefix, 'claude.cmd')
       : path.join(npmPrefix, 'bin', 'claude')
@@ -111,7 +112,7 @@ export async function verifyConnection(): Promise<ClaudeConnection> {
   // Also verify claude binary actually works
   if (!isAuthenticated) {
     try {
-      const result = await runCliCommand(claudePath, ['--version'], os.homedir(), 5000)
+      const result = await runCliCommand(claudePath, ['--version'], os.homedir(), TIMEOUTS.VERSION_CHECK)
       if (result.trim()) isAuthenticated = true
     } catch {}
   }
@@ -281,7 +282,7 @@ async function runPromptViaCli(
   }
 
   try {
-    return await runCliCommand(claudePath, args, cwd ?? os.tmpdir(), timeoutMs ?? 60000)
+    return await runCliCommand(claudePath, args, cwd ?? os.tmpdir(), timeoutMs ?? TIMEOUTS.CLI_PROMPT_DEFAULT)
   } finally {
     if (systemPromptFile) {
       try { fs.unlinkSync(systemPromptFile) } catch {}

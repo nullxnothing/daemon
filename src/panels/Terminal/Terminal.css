@@ -36,6 +36,7 @@
 .terminal-tab.active {
   background: var(--s2);
   color: var(--t1);
+  border-bottom: 2px solid var(--green);
 }
 
 .terminal-tab-dot {
@@ -47,7 +48,7 @@
 }
 
 .terminal-tab-dot.agent {
-  background: var(--warning);
+  background: var(--amber);
 }
 
 .terminal-tab-close {

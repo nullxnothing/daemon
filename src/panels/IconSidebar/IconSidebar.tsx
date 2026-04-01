@@ -18,6 +18,15 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     setActivePanel(panel)
   }
 
+  const handleExplorerClick = () => {
+    onToggleExplorer()
+    const panel = useUIStore.getState().activePanel
+    if (['env', 'git', 'settings', 'tools', 'recovery', 'plugins'].includes(panel)) {
+      useUIStore.getState().setActivePanel('claude')
+      usePluginStore.getState().setActivePlugin(null)
+    }
+  }
+
   const handlePluginsClick = () => {
     setActivePlugin(null)
     setActivePanel('plugins')
@@ -29,7 +38,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       {/* ─── Upper group: navigation & center-panel actions ─── */}
       <button
         className={`sidebar-icon ${showExplorer ? 'active' : ''}`}
-        onClick={onToggleExplorer}
+        onClick={handleExplorerClick}
         title="Explorer"
         aria-label="Explorer"
       >

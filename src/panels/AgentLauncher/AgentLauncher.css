@@ -59,6 +59,11 @@
   cursor: pointer;
 }
 
+.agent-launcher-item:hover {
+  background: var(--s3);
+  cursor: pointer;
+}
+
 .agent-launcher-item.selected {
   background: var(--hover-bg);
 }
@@ -81,10 +86,25 @@
 
 .agent-launcher-model {
   font-size: 11px;
-  color: var(--t3);
   padding: 1px 6px;
-  background: var(--s4);
   border-radius: 3px;
+  color: var(--t3);
+  background: var(--s4);
+}
+
+.agent-launcher-model.opus {
+  background: rgba(147, 130, 220, 0.15);
+  color: #9382dc;
+}
+
+.agent-launcher-model.sonnet {
+  background: rgba(78, 172, 110, 0.15);
+  color: #4eac6e;
+}
+
+.agent-launcher-model.haiku {
+  background: rgba(172, 147, 78, 0.15);
+  color: #ac934e;
 }
 
 .agent-launcher-item-sub {

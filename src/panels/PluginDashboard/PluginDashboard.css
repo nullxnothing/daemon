@@ -145,10 +145,20 @@
 .plugin-card-v2-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   margin-top: auto;
   min-height: 28px;
+}
+
+.plugin-card-v2-toggle-label {
+  font-size: 10px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.plugin-card-v2-footer .plugin-card-v2-btn--open {
+  margin-left: auto;
 }
 
 .plugin-card-v2-btn {

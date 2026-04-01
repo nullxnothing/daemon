@@ -341,13 +341,31 @@ export function EditorPanel() {
     closeFile(projectId, path)
   }, [openFiles, closeFile, activeFilePath])
 
+  const handleOpenFileExplorer = useCallback(() => {
+    // Dispatch Ctrl+P to focus file explorer search
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true }))
+  }, [])
+
+  const handleLaunchAgent = useCallback(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A', ctrlKey: true, shiftKey: true, bubbles: true }))
+  }, [])
+
   if (!activeProjectId || projectOpenFiles.length === 0) {
     return (
       <div className="editor-empty">
         <span className="editor-empty-title">DAEMON</span>
-        <span className="editor-empty-sub">
-          {activeProjectId ? 'Open a file, launch an agent, or start from a template' : 'Select a project'}
-        </span>
+        {activeProjectId ? (
+          <div className="editor-empty-actions">
+            <button className="editor-empty-btn" onClick={handleOpenFileExplorer}>
+              Open File <span className="editor-empty-shortcut">Ctrl+P</span>
+            </button>
+            <button className="editor-empty-btn" onClick={handleLaunchAgent}>
+              Launch Agent <span className="editor-empty-shortcut">Ctrl+Shift+A</span>
+            </button>
+          </div>
+        ) : (
+          <span className="editor-empty-sub">Select a project</span>
+        )}
       </div>
     )
   }

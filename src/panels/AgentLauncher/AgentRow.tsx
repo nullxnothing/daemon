@@ -6,6 +6,14 @@ const MODEL_OPTIONS = [
 
 const MODEL_LABELS: Record<string, string> = Object.fromEntries(MODEL_OPTIONS.map((m) => [m.value, m.label]))
 
+function modelBadgeClass(model: string): string {
+  const label = (MODEL_LABELS[model] ?? model).toLowerCase()
+  if (label.includes('opus')) return 'opus'
+  if (label.includes('sonnet')) return 'sonnet'
+  if (label.includes('haiku')) return 'haiku'
+  return ''
+}
+
 const EditIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -47,7 +55,7 @@ export function DaemonAgentRow({
           {(agent.source ?? 'daemon') === 'claude-import' && <span className="agent-source-badge">imported</span>}
         </span>
         <div className="agent-launcher-item-actions">
-          <span className="agent-launcher-model">{MODEL_LABELS[agent.model] ?? agent.model}</span>
+          <span className={`agent-launcher-model ${modelBadgeClass(agent.model)}`}>{MODEL_LABELS[agent.model] ?? agent.model}</span>
           <button className="agent-edit-btn" onClick={onEdit} title="Edit"><EditIcon /></button>
           <button className="agent-delete-btn" onClick={onDelete} title="Delete"><DeleteIcon /></button>
         </div>
@@ -96,7 +104,7 @@ export function ClaudeAgentRow({
           {imported && <span className="agent-source-badge">imported</span>}
         </span>
         <div className="agent-launcher-item-actions visible">
-          <span className="agent-launcher-model">{MODEL_LABELS[agent.model] ?? agent.model}</span>
+          <span className={`agent-launcher-model ${modelBadgeClass(agent.model)}`}>{MODEL_LABELS[agent.model] ?? agent.model}</span>
           {imported ? (
             <>
               <button className="agent-import-btn" onClick={(e) => { e.stopPropagation(); onSync() }}>

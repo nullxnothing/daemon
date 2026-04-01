@@ -18,10 +18,10 @@
 }
 
 .titlebar-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--green);
-  opacity: 0.6;
+  opacity: 0.3;
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
@@ -87,7 +87,8 @@
   transition: opacity 0.1s;
 }
 
-.project-tab:hover .project-tab-close {
+.project-tab:hover .project-tab-close,
+.project-tab.active .project-tab-close {
   opacity: 1;
 }
 
