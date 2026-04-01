@@ -126,7 +126,7 @@ declare global {
   }
 
   interface DaemonTerminal {
-    create: (opts?: { cwd?: string; startupCommand?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
+    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void

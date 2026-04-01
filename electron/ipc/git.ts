@@ -1,11 +1,7 @@
 import { ipcMain } from 'electron'
 import simpleGit from 'simple-git'
-import { isPathSafe } from '../shared/pathValidation'
+import { validateCwd } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
-
-function validateCwd(cwd: string): void {
-  if (!cwd || !isPathSafe(cwd)) throw new Error('Path not within a registered project')
-}
 
 function getErrorMessage(err: unknown): string {
   return (err as Error).message ?? String(err)

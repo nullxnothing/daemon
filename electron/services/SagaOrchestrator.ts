@@ -3,7 +3,9 @@
  * Handles saga pattern with compensation logic for rollback
  */
 
-export interface SagaStep<T = any> {
+import { TIMEOUTS } from '../config/constants'
+
+export interface SagaStep<T = unknown> {
   name: string;
   execute: () => Promise<T>;
   compensate?: (result: T) => Promise<void>;
@@ -23,7 +25,7 @@ export interface SagaExecution {
   name: string;
   status: 'pending' | 'executing' | 'completed' | 'compensating' | 'failed';
   currentStep: number;
-  results: any[];
+  results: unknown[];
   errors: Array<{ step: string; error: string }>;
   startedAt: number;
   completedAt?: number;
@@ -78,7 +80,7 @@ class SagaOrchestratorImpl {
 
           const result = await this.executeWithTimeout(
             step.execute(),
-            definition.timeout || 30000,
+            definition.timeout || TIMEOUTS.SAGA_DEFAULT,
           );
           execution.results.push(result);
         } catch (error) {
@@ -175,7 +177,7 @@ class SagaOrchestratorImpl {
         );
         await this.executeWithTimeout(
           step.compensate(result),
-          definition.timeout || 30000,
+          definition.timeout || TIMEOUTS.SAGA_DEFAULT,
         );
       } catch (error) {
         console.error(
@@ -247,7 +249,7 @@ class SagaOrchestratorImpl {
    */
   async waitFor(
     sagaId: string,
-    timeoutMs: number = 60000,
+    timeoutMs: number = TIMEOUTS.SAGA_WAIT,
   ): Promise<SagaExecution> {
     const startTime = Date.now();
 

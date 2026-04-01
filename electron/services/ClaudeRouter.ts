@@ -73,7 +73,9 @@ function resolveClaudePath(): string {
       ? path.join(npmPrefix, 'claude.cmd')
       : path.join(npmPrefix, 'bin', 'claude')
     if (!candidates.includes(npmBin)) candidates.unshift(npmBin)
-  } catch {}
+  } catch (err) {
+    console.warn('[ClaudeRouter] npm prefix lookup failed:', (err as Error).message)
+  }
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -107,14 +109,18 @@ export async function verifyConnection(): Promise<ClaudeConnection> {
         }
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[ClaudeRouter] credential file check failed:', (err as Error).message)
+  }
 
   // Also verify claude binary actually works
   if (!isAuthenticated) {
     try {
       const result = await runCliCommand(claudePath, ['--version'], os.homedir(), TIMEOUTS.VERSION_CHECK)
       if (result.trim()) isAuthenticated = true
-    } catch {}
+    } catch (err) {
+      console.warn('[ClaudeRouter] claude --version check failed:', (err as Error).message)
+    }
   }
 
   // Check API key availability
@@ -146,7 +152,9 @@ export async function verifyConnection(): Promise<ClaudeConnection> {
     upsert.run('claude_path', claudePath, now)
     upsert.run('claude_auth_mode', authMode, now)
     upsert.run('claude_verified_at', String(now), now)
-  } catch {}
+  } catch (err) {
+    console.warn('[ClaudeRouter] failed to persist connection to app_settings:', (err as Error).message)
+  }
 
   return connection
 }
@@ -285,7 +293,9 @@ async function runPromptViaCli(
     return await runCliCommand(claudePath, args, cwd ?? os.tmpdir(), timeoutMs ?? TIMEOUTS.CLI_PROMPT_DEFAULT)
   } finally {
     if (systemPromptFile) {
-      try { fs.unlinkSync(systemPromptFile) } catch {}
+      try { fs.unlinkSync(systemPromptFile) } catch (err) {
+        console.warn('[ClaudeRouter] failed to cleanup system prompt file:', (err as Error).message)
+      }
     }
   }
 }
@@ -328,7 +338,9 @@ export function buildCommand(agent: AgentRow, project: ProjectRow): {
 }
 
 export function cleanupContextFile(filePath: string): void {
-  try { fs.unlinkSync(filePath) } catch {}
+  try { fs.unlinkSync(filePath) } catch (err) {
+    console.warn('[ClaudeRouter] failed to cleanup context file:', (err as Error).message)
+  }
 }
 
 // --- Internal Utilities ---
@@ -352,7 +364,9 @@ function bootstrapAgentMcps(projectPath: string, mcpsJson: string): void {
     }
 
     writeProjectMcpConfig(projectPath, existing)
-  } catch {}
+  } catch (err) {
+    console.warn('[ClaudeRouter] failed to bootstrap agent MCPs:', (err as Error).message)
+  }
 }
 
 function buildPortMap(): string {
@@ -403,7 +417,9 @@ function runCliCommand(command: string, args: string[], cwd: string, timeout: nu
     const timeoutHandle = setTimeout(() => {
       if (isSettled) return
       isTimedOut = true
-      try { child.kill() } catch {}
+      try { child.kill() } catch (err) {
+        console.warn('[ClaudeRouter] failed to kill timed-out CLI process:', (err as Error).message)
+      }
     }, timeout)
 
     const finalizeReject = (message: string) => {

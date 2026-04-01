@@ -2,6 +2,7 @@ import { runPrompt } from './ClaudeRouter'
 import { SagaOrchestrator } from './SagaOrchestrator'
 import { getPluginContext } from './PluginContextRegistry'
 import type { PluginContextConfig, PromptTemplate } from './PluginContextRegistry'
+import { TIMEOUTS } from '../config/constants'
 
 // --- Types ---
 
@@ -110,6 +111,6 @@ export async function orchestratedPrompt(opts: OrchestratedPromptOpts) {
       execute: step.execute,
       compensate: step.compensate,
     })),
-    timeout: opts.timeoutMs ?? 120000,
+    timeout: opts.timeoutMs ?? TIMEOUTS.ORCHESTRATED_PROMPT,
   })
 }

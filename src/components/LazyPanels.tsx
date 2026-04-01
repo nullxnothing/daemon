@@ -15,6 +15,7 @@ import { lazy, ReactNode, Suspense } from 'react';
 /**
  * Loading fallback component
  */
+// Inline hex required — renders before CSS loads
 export const LoadingFallback = () => (
   <div
     style={{

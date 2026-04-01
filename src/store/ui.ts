@@ -17,7 +17,7 @@ interface TerminalTab {
 }
 
 interface UIState {
-  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools'
+  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]

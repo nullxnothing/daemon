@@ -53,7 +53,9 @@ export function getGlobalMcps(): McpListEntry[] {
         result.push({ name: entry.name, config: JSON.parse(entry.config), source: 'registry', enabled: false })
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[McpConfig] failed to load registry MCPs:', (err as Error).message)
+  }
 
   return result
 }

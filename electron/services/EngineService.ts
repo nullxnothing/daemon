@@ -22,7 +22,9 @@ function buildContext(): EngineContext {
     let gitBranch: string | null = null
     try {
       gitBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: p.path, encoding: 'utf8', timeout: TIMEOUTS.GIT_COMMAND }).trim()
-    } catch {}
+    } catch (err) {
+      console.warn('[EngineService] git branch detection failed:', (err as Error).message)
+    }
 
     const sessionCount = (db.prepare('SELECT COUNT(*) as c FROM active_sessions WHERE project_id = ?').get(p.id) as { c: number }).c
 
@@ -55,7 +57,9 @@ function buildContext(): EngineContext {
     recentErrors = db.prepare(
       'SELECT operation, message, timestamp FROM error_logs ORDER BY timestamp DESC LIMIT 10'
     ).all() as typeof recentErrors
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] failed to fetch recent errors:', (err as Error).message)
+  }
 
   let portMap: Array<{ port: number; serviceName: string; projectName: string }> = []
   try {
@@ -64,13 +68,17 @@ function buildContext(): EngineContext {
       serviceName: p.serviceName,
       projectName: p.projectName,
     }))
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] failed to fetch port map:', (err as Error).message)
+  }
 
   let userProfile: Record<string, string> = {}
   try {
     const rows = db.prepare("SELECT key, value FROM app_settings WHERE key LIKE 'user_%'").all() as Array<{ key: string; value: string }>
     for (const row of rows) userProfile[row.key] = row.value
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] failed to fetch user profile:', (err as Error).message)
+  }
 
   return { projects, activeAgents, recentErrors, portMap, userProfile }
 }
@@ -150,7 +158,9 @@ async function handleFixClaudeMd(action: EngineAction, ctx: EngineContext): Prom
   let recentDiff = ''
   try {
     recentDiff = execSync('git diff HEAD~10 --stat', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] git diff failed:', (err as Error).message)
+  }
 
   let fileTree = ''
   try {
@@ -160,9 +170,11 @@ async function handleFixClaudeMd(action: EngineAction, ctx: EngineContext): Prom
   } catch {
     try {
       fileTree = execSync('dir /b /s /a:-d | findstr /v "node_modules .git" | head -80', {
-        cwd: project.path, encoding: 'utf8', timeout: 5000,
+        cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
       })
-    } catch {}
+    } catch (err) {
+      console.warn('[EngineService] file tree listing failed:', (err as Error).message)
+    }
   }
 
   const output = await ClaudeRouter.runPrompt({
@@ -202,12 +214,16 @@ async function handleGenerateClaudeMd(action: EngineAction, ctx: EngineContext):
   let packageJson = ''
   try {
     packageJson = fs.readFileSync(path.join(project.path, 'package.json'), 'utf8')
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] package.json read failed:', (err as Error).message)
+  }
 
   let cargoToml = ''
   try {
     cargoToml = fs.readFileSync(path.join(project.path, 'Cargo.toml'), 'utf8')
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] Cargo.toml read failed:', (err as Error).message)
+  }
 
   let fileTree = ''
   try {
@@ -217,15 +233,19 @@ async function handleGenerateClaudeMd(action: EngineAction, ctx: EngineContext):
   } catch {
     try {
       fileTree = execSync('dir /b /s /a:-d | findstr /v "node_modules .git target" | head -100', {
-        cwd: project.path, encoding: 'utf8', timeout: 5000,
+        cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
       })
-    } catch {}
+    } catch (err) {
+      console.warn('[EngineService] file tree listing failed:', (err as Error).message)
+    }
   }
 
   let gitLog = ''
   try {
-    gitLog = execSync('git log --oneline -20', { cwd: project.path, encoding: 'utf8', timeout: 5000 })
-  } catch {}
+    gitLog = execSync('git log --oneline -20', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
+  } catch (err) {
+    console.warn('[EngineService] git log failed:', (err as Error).message)
+  }
 
   const output = await ClaudeRouter.runPrompt({
     prompt: `Generate a CLAUDE.md for the project "${project.name}" at ${project.path}.
@@ -312,7 +332,9 @@ async function handleDebugSetup(action: EngineAction, ctx: EngineContext): Promi
   let gitStatus = ''
   try {
     gitStatus = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
-  } catch {}
+  } catch (err) {
+    console.warn('[EngineService] git status failed:', (err as Error).message)
+  }
 
   const extraContext = (action.payload?.question as string) ?? ''
 
@@ -355,7 +377,9 @@ async function handleHealthCheck(ctx: EngineContext): Promise<EngineResult> {
       const status = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.GIT_COMMAND })
       const uncommitted = status.trim().split('\n').filter(Boolean).length
       if (uncommitted > 20) issues.push(`${uncommitted} uncommitted changes`)
-    } catch {}
+    } catch (err) {
+      console.warn('[EngineService] health check git status failed:', (err as Error).message)
+    }
 
     const statusIcon = issues.length === 0 ? 'OK' : `${issues.length} issue(s)`
     summaries.push(`- **${project.name}** [${statusIcon}]${issues.length > 0 ? ': ' + issues.join(', ') : ''}`)

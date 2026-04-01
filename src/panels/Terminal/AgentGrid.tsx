@@ -311,6 +311,7 @@ function AgentGridTerminal({ id }: { id: string }) {
       lineHeight: 1.3,
       cursorBlink: true,
       cursorStyle: 'bar',
+      // xterm.js API requires hex values — keep in sync with tokens.css
       theme: {
         background: '#0a0a0a',
         foreground: '#ebebeb',

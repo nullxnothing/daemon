@@ -23,6 +23,7 @@ class RootErrorBoundary extends React.Component<
 
   render() {
     if (this.state.error) {
+      // Inline hex required — renders before CSS loads
       return (
         <div style={{
           minHeight: '100vh',

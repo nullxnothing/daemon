@@ -3,6 +3,24 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
+  position: relative;
+}
+
+.terminal-panel.drag-over::after {
+  content: 'Drop folder to open terminal';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 140, 98, 0.08);
+  border: 2px dashed var(--green);
+  border-radius: 4px;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .terminal-tabs {

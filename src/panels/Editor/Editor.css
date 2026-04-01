@@ -12,6 +12,22 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+}
+
+.editor-empty.drag-over {
+  border: 2px dashed var(--green);
+  border-radius: 4px;
+  background: rgba(74, 140, 98, 0.06);
+}
+
+.editor-empty.drag-over .editor-empty-title {
+  color: var(--green);
+}
+
+.editor-empty.drag-over .editor-empty-sub {
+  color: var(--green);
+  font-weight: 500;
 }
 
 .editor-empty-title {

@@ -1,3 +1,5 @@
+import type { IPty } from 'node-pty'
+
 // Single source of truth for all entity types shared between main and renderer.
 // Both tsconfigs include the electron/ directory, so these types are importable everywhere.
 
@@ -438,7 +440,7 @@ export interface RecoveryStatus {
 // --- Terminal ---
 
 export interface TerminalSession {
-  pty: any // IPty from node-pty
+  pty: IPty
   agentId: string | null
   contextFilePath: string | null
 }
@@ -446,6 +448,8 @@ export interface TerminalSession {
 export interface TerminalCreateInput {
   cwd?: string
   startupCommand?: string
+  /** When true, skip project-path validation (used for user-initiated folder drops). */
+  userInitiated?: boolean
 }
 
 export interface TerminalSpawnAgentInput {
@@ -549,6 +553,62 @@ export interface ToolRunStatus {
   terminalId: string | null
   pid: number | null
   startedAt: number | null
+}
+
+// --- Gmail ---
+
+export interface GmailMessage {
+  id: string
+  threadId: string
+  from: string
+  subject: string
+  snippet: string
+  body: string
+  date: number
+  isRead: boolean
+  labels: string[]
+}
+
+export interface ExtractedItem {
+  type: 'code' | 'config' | 'error' | 'link' | 'task'
+  content: string
+  language?: string
+  context: string
+}
+
+export interface GmailExtractionResult {
+  messageId: string
+  items: ExtractedItem[]
+  summary: string
+}
+
+export interface GmailAuthStatus {
+  isAuthenticated: boolean
+  email: string | null
+}
+
+// --- Browser ---
+
+export interface BrowserPage {
+  id: string
+  url: string
+  title: string
+  content: string
+  timestamp: number
+}
+
+export interface BrowserAnalysis {
+  url: string
+  summary: string
+  findings: string[]
+  type: 'summarize' | 'extract' | 'audit' | 'compare'
+}
+
+export interface BrowserNavResult {
+  url: string
+  title: string
+  status: number
+  contentLength: number
 }
 
 // --- Engine ---

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { getInstalledBeardedIconsTheme } from '../services/IconThemeService'
 import { isPathSafe } from '../shared/pathValidation'
+import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { FileEntry } from '../shared/types'
 
 const IGNORED = new Set([
@@ -10,107 +11,64 @@ const IGNORED = new Set([
   '__pycache__', '.DS_Store', 'release', '.pnpm-store',
 ])
 
+function validatePath(p: string): void {
+  if (!isPathSafe(p)) throw new Error('Path outside project boundaries')
+}
+
 export function registerFilesystemHandlers() {
-  ipcMain.handle('fs:readDir', async (_event, dirPath: string, depth = 1): Promise<{ ok: boolean; data?: FileEntry[]; error?: string }> => {
-    try {
-      if (!isPathSafe(dirPath)) return { ok: false, error: 'Path outside project boundaries' }
-      const safeDepth = Math.min(depth ?? 3, 10)
-      const entries = readDirRecursive(dirPath, safeDepth)
-      return { ok: true, data: entries }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:readDir', ipcHandler(async (_event, dirPath: string, depth = 1) => {
+    validatePath(dirPath)
+    const safeDepth = Math.min(depth ?? 3, 10)
+    return readDirRecursive(dirPath, safeDepth)
+  }))
 
-  ipcMain.handle('fs:readFile', async (_event, filePath: string) => {
-    try {
-      if (!isPathSafe(filePath)) return { ok: false, error: 'Path outside project boundaries' }
-      const content = fs.readFileSync(filePath, 'utf8')
-      return { ok: true, data: { content, path: filePath } }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:readFile', ipcHandler(async (_event, filePath: string) => {
+    validatePath(filePath)
+    const content = fs.readFileSync(filePath, 'utf8')
+    return { content, path: filePath }
+  }))
 
-  ipcMain.handle('fs:writeFile', async (_event, filePath: string, content: string) => {
-    try {
-      if (!isPathSafe(filePath)) return { ok: false, error: 'Path outside project boundaries' }
-      fs.writeFileSync(filePath, content, 'utf8')
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:writeFile', ipcHandler(async (_event, filePath: string, content: string) => {
+    validatePath(filePath)
+    fs.writeFileSync(filePath, content, 'utf8')
+  }))
 
-  ipcMain.handle('fs:createFile', async (_event, filePath: string) => {
-    try {
-      if (!isPathSafe(filePath)) return { ok: false, error: 'Path outside project boundaries' }
-      if (fs.existsSync(filePath)) return { ok: false, error: 'File already exists' }
-      fs.writeFileSync(filePath, '', 'utf8')
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:createFile', ipcHandler(async (_event, filePath: string) => {
+    validatePath(filePath)
+    if (fs.existsSync(filePath)) throw new Error('File already exists')
+    fs.writeFileSync(filePath, '', 'utf8')
+  }))
 
-  ipcMain.handle('fs:createDir', async (_event, dirPath: string) => {
-    try {
-      if (!isPathSafe(dirPath)) return { ok: false, error: 'Path outside project boundaries' }
-      fs.mkdirSync(dirPath, { recursive: true })
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:createDir', ipcHandler(async (_event, dirPath: string) => {
+    validatePath(dirPath)
+    fs.mkdirSync(dirPath, { recursive: true })
+  }))
 
-  ipcMain.handle('fs:rename', async (_event, oldPath: string, newPath: string) => {
-    try {
-      if (!isPathSafe(oldPath) || !isPathSafe(newPath)) return { ok: false, error: 'Path outside project boundaries' }
-      fs.renameSync(oldPath, newPath)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:rename', ipcHandler(async (_event, oldPath: string, newPath: string) => {
+    validatePath(oldPath)
+    validatePath(newPath)
+    fs.renameSync(oldPath, newPath)
+  }))
 
   // Delete sends to recycle bin (recoverable) instead of permanent rmSync
-  ipcMain.handle('fs:delete', async (_event, targetPath: string) => {
-    try {
-      if (!isPathSafe(targetPath)) return { ok: false, error: 'Path outside project boundaries' }
-      await shell.trashItem(targetPath)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:delete', ipcHandler(async (_event, targetPath: string) => {
+    validatePath(targetPath)
+    await shell.trashItem(targetPath)
+  }))
 
-  ipcMain.handle('fs:reveal', async (_event, targetPath: string) => {
-    try {
-      if (!isPathSafe(targetPath)) return { ok: false, error: 'Path outside project boundaries' }
-      shell.showItemInFolder(targetPath)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:reveal', ipcHandler(async (_event, targetPath: string) => {
+    validatePath(targetPath)
+    shell.showItemInFolder(targetPath)
+  }))
 
-  ipcMain.handle('fs:copyPath', async (_event, targetPath: string) => {
-    try {
-      if (!isPathSafe(targetPath)) return { ok: false, error: 'Path outside project boundaries' }
-      clipboard.writeText(targetPath)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:copyPath', ipcHandler(async (_event, targetPath: string) => {
+    validatePath(targetPath)
+    clipboard.writeText(targetPath)
+  }))
 
-  ipcMain.handle('fs:iconTheme', async () => {
-    try {
-      return { ok: true, data: getInstalledBeardedIconsTheme() }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
-    }
-  })
+  ipcMain.handle('fs:iconTheme', ipcHandler(async () => {
+    return getInstalledBeardedIconsTheme()
+  }))
 }
 
 function readDirRecursive(dirPath: string, depth: number): FileEntry[] {

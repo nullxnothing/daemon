@@ -37,3 +37,11 @@ export function isProjectPathSafe(projectPath: string): boolean {
   const normalized = projectPath.replace(/\\/g, '/')
   return projects.some((p) => p.path.replace(/\\/g, '/') === normalized)
 }
+
+/**
+ * Assert that a cwd is non-empty and within a registered project.
+ * Throws on invalid paths -- use in IPC handlers that accept a working directory.
+ */
+export function validateCwd(cwd: string): void {
+  if (!cwd || !isPathSafe(cwd)) throw new Error('Path not within a registered project')
+}

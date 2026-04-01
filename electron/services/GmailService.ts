@@ -1,6 +1,7 @@
 import { safeStorage } from 'electron'
 import { getDb } from '../db/db'
 import { pluginPrompt, orchestratedPrompt } from './PluginPrompt'
+import { TIMEOUTS, API_ENDPOINTS } from '../config/constants'
 import type { GmailMessage, GmailAuthStatus, GmailExtractionResult, ExtractedItem } from '../shared/types'
 
 const PLUGIN_ID = 'gmail'
@@ -46,13 +47,13 @@ function clearTokens(): void {
 }
 
 function isTokenExpired(tokens: OAuthTokens): boolean {
-  return Date.now() > tokens.expiry - 60000 // 1 min buffer
+  return Date.now() > tokens.expiry - TIMEOUTS.TOKEN_EXPIRY_BUFFER
 }
 
 // --- Google API Helpers ---
 
 async function refreshAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<OAuthTokens> {
-  const response = await fetch('https://oauth2.googleapis.com/token', {
+  const response = await fetch(API_ENDPOINTS.GOOGLE_OAUTH_TOKEN, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -104,7 +105,7 @@ function getSecureKey(name: string): string | null {
 }
 
 async function gmailFetch(endpoint: string, token: string): Promise<unknown> {
-  const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${endpoint}`, {
+  const response = await fetch(`${API_ENDPOINTS.GMAIL_API_BASE}/${endpoint}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
 
@@ -147,7 +148,7 @@ export async function authenticate(clientId: string, clientSecret: string): Prom
   const redirectUri = 'urn:ietf:wg:oauth:2.0:oob'
   const scopes = 'https://www.googleapis.com/auth/gmail.readonly'
 
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+  const authUrl = `${API_ENDPOINTS.GOOGLE_OAUTH_AUTH}?` +
     `client_id=${encodeURIComponent(clientId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&response_type=code` +
@@ -165,7 +166,7 @@ export async function exchangeAuthCode(code: string): Promise<GmailAuthStatus> {
   const clientSecret = getSecureKey('GMAIL_CLIENT_SECRET')
   if (!clientId || !clientSecret) throw new Error('Gmail client credentials not found')
 
-  const response = await fetch('https://oauth2.googleapis.com/token', {
+  const response = await fetch(API_ENDPOINTS.GOOGLE_OAUTH_TOKEN, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -260,7 +261,9 @@ export async function extractCode(messageId: string): Promise<GmailExtractionRes
       try {
         const parsed = JSON.parse(match[0])
         items = parsed.items ?? []
-      } catch {}
+      } catch (err) {
+        console.warn('[GmailService] JSON extraction fallback failed:', (err as Error).message)
+      }
     }
   }
 

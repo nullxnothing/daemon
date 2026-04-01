@@ -1,20 +1,15 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
+import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 
-const HELIUS_BASE = 'https://api.helius.xyz/v1'
-const COINGECKO_SIMPLE_PRICE = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,ethereum&vs_currencies=usd&include_24hr_change=true'
-const SNAPSHOT_INTERVAL_MS = 15 * 60 * 1000
-const MAX_RETRIES = 3
-const BASE_DELAY_MS = 1000
-
-async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
     const response = await fetch(url)
     if (response.ok) return response
 
     if (response.status === 429 && attempt < retries - 1) {
       const retryAfter = response.headers.get('retry-after')
-      const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : BASE_DELAY_MS * Math.pow(2, attempt)
+      const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : RETRY_CONFIG.BASE_DELAY_MS * Math.pow(2, attempt)
       await new Promise((r) => setTimeout(r, delay))
       continue
     }
@@ -278,7 +273,7 @@ export function hasHeliusKey() {
 
 async function getMarketTape() {
   try {
-    const response = await fetch(COINGECKO_SIMPLE_PRICE)
+    const response = await fetch(API_ENDPOINTS.COINGECKO_PRICE)
     if (!response.ok) throw new Error(`CoinGecko error: ${response.status}`)
     const json = await response.json() as Record<string, { usd: number; usd_24h_change?: number }>
     return [
@@ -296,7 +291,7 @@ async function getMarketTape() {
 }
 
 async function getWalletBalances(address: string, apiKey: string): Promise<HeliusBalancesResponse> {
-  const url = new URL(`${HELIUS_BASE}/wallet/${address}/balances`)
+  const url = new URL(`${API_ENDPOINTS.HELIUS_BASE}/wallet/${address}/balances`)
   url.searchParams.set('api-key', apiKey)
   url.searchParams.set('showNative', 'true')
   url.searchParams.set('showZeroBalance', 'false')
@@ -308,7 +303,7 @@ async function getWalletBalances(address: string, apiKey: string): Promise<Heliu
 
 async function getWalletHistory(address: string, apiKey: string): Promise<HeliusHistoryEvent[]> {
   try {
-    const url = new URL(`${HELIUS_BASE}/wallet/${address}/history`)
+    const url = new URL(`${API_ENDPOINTS.HELIUS_BASE}/wallet/${address}/history`)
     url.searchParams.set('api-key', apiKey)
     url.searchParams.set('limit', '8')
     const response = await fetchWithRetry(url.toString())
@@ -362,7 +357,7 @@ function resolveActiveWallet(wallets: WalletRow[], projectId: string | null): Wa
 async function maybeSnapshotWallet(walletId: string, holdings: HoldingSummary[]) {
   const db = getDb()
   const latest = db.prepare('SELECT snapshot_at FROM portfolio_snapshots WHERE wallet_id = ? ORDER BY snapshot_at DESC LIMIT 1').get(walletId) as { snapshot_at: number } | undefined
-  if (latest && Date.now() - latest.snapshot_at < SNAPSHOT_INTERVAL_MS) return
+  if (latest && Date.now() - latest.snapshot_at < RETRY_CONFIG.SNAPSHOT_INTERVAL_MS) return
 
   const totalUsd = holdings.reduce((sum, holding) => sum + holding.valueUsd, 0)
   const solBalance = holdings.find((holding) => holding.mint === 'So11111111111111111111111111111111111111112')?.amount ?? 0

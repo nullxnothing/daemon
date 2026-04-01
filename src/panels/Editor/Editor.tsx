@@ -52,6 +52,7 @@ export function EditorPanel() {
   const closeFile = useUIStore((s) => s.closeFile)
   const updateFileContent = useUIStore((s) => s.updateFileContent)
   const markFileSaved = useUIStore((s) => s.markFileSaved)
+  const addTerminal = useUIStore((s) => s.addTerminal)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -164,6 +165,7 @@ export function EditorPanel() {
       base: 'vs-dark',
       inherit: true,
       rules: [],
+      // Monaco API requires hex values — keep in sync with tokens.css
       colors: {
         'editor.background': '#0a0a0a',
         'editor.foreground': '#ebebeb',
@@ -350,11 +352,53 @@ export function EditorPanel() {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A', ctrlKey: true, shiftKey: true, bubbles: true }))
   }, [])
 
+  const [isEmptyDragOver, setIsEmptyDragOver] = useState(false)
+  const emptyDragDepthRef = useRef(0)
+
+  const handleEmptyDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    emptyDragDepthRef.current = 0
+    setIsEmptyDragOver(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    for (const file of files) {
+      const filePath = (file as File & { path?: string }).path
+      if (!filePath) continue
+
+      const folderName = filePath.replace(/\\/g, '/').split('/').pop() ?? 'Terminal'
+      const res = await window.daemon.terminal.create({ cwd: filePath, userInitiated: true })
+      if (res.ok && res.data && activeProjectId) {
+        addTerminal(activeProjectId, res.data.id, folderName)
+      }
+    }
+  }, [activeProjectId, addTerminal])
+
   if (!activeProjectId || projectOpenFiles.length === 0) {
     return (
-      <div className="editor-empty">
+      <div
+        className={`editor-empty ${isEmptyDragOver ? 'drag-over' : ''}`}
+        onDragEnter={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return
+          e.preventDefault()
+          emptyDragDepthRef.current += 1
+          setIsEmptyDragOver(true)
+        }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }}
+        onDragLeave={() => {
+          emptyDragDepthRef.current = Math.max(0, emptyDragDepthRef.current - 1)
+          if (emptyDragDepthRef.current === 0) setIsEmptyDragOver(false)
+        }}
+        onDrop={handleEmptyDrop}
+      >
         <span className="editor-empty-title">DAEMON</span>
-        {activeProjectId ? (
+        {isEmptyDragOver ? (
+          <span className="editor-empty-sub">Drop folder to open terminal</span>
+        ) : activeProjectId ? (
           <div className="editor-empty-actions">
             <button className="editor-empty-btn" onClick={handleOpenFileExplorer}>
               Open File <span className="editor-empty-shortcut">Ctrl+P</span>

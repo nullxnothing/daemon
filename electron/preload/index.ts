@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   terminal: {
-    create: (opts?: { cwd?: string; startupCommand?: string }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
+    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),

@@ -149,7 +149,9 @@ export function discoverTools(): ToolRow[] {
 
     try {
       imported.push(importTool(toolDir))
-    } catch {}
+    } catch (err) {
+      console.warn('[ToolService] failed to import tool from', toolDir + ':', (err as Error).message)
+    }
   }
 
   return imported

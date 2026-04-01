@@ -1,10 +1,12 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import os from 'node:os'
+import fs from 'node:fs'
 import * as pty from 'node-pty'
 import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
 import { isPathSafe } from '../shared/pathValidation'
+import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
 
 // Regex patterns to auto-detect "listening on port X" from terminal output
@@ -92,7 +94,9 @@ function createPtySession(
               registerPort(port, row.project_id, 'auto-detected')
               getWin()?.webContents.send('ports:auto-registered', { port, projectId: row.project_id })
             }
-          } catch {}
+          } catch (err) {
+            console.warn('[Terminal] port auto-registration failed:', (err as Error).message)
+          }
         }
         break
       }
@@ -102,7 +106,9 @@ function createPtySession(
   ptyProcess.onExit(({ exitCode }) => {
     if (contextFilePath) cleanupContextFile(contextFilePath)
     sessions.delete(id)
-    try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch {}
+    try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
+      console.warn('[Terminal] failed to delete session on exit:', (err as Error).message)
+    }
     getWin()?.webContents.send('terminal:exit', { id, exitCode })
   })
 
@@ -110,99 +116,97 @@ function createPtySession(
 }
 
 export function registerTerminalHandlers() {
-  ipcMain.handle('terminal:create', async (_event, opts: TerminalCreateInput) => {
-    try {
-      const id = crypto.randomUUID()
-      const homeDir = os.homedir()
-      const cwd = opts?.cwd || homeDir
+  ipcMain.handle('terminal:create', ipcHandler(async (_event, opts: TerminalCreateInput) => {
+    const id = crypto.randomUUID()
+    const homeDir = os.homedir()
+    const cwd = opts?.cwd || homeDir
 
-      if (opts?.cwd && opts.cwd !== homeDir && !isPathSafe(opts.cwd)) {
-        return { ok: false, error: 'Invalid directory' }
+    if (opts?.cwd && opts.cwd !== homeDir) {
+      if (opts.userInitiated) {
+        // User explicitly dropped a folder — validate it exists and is a directory
+        try {
+          const stat = fs.statSync(opts.cwd)
+          if (!stat.isDirectory()) {
+            throw new Error('Dropped path is not a directory')
+          }
+        } catch (e) {
+          if ((e as Error).message === 'Dropped path is not a directory') throw e
+          throw new Error('Dropped path does not exist')
+        }
+      } else if (!isPathSafe(opts.cwd)) {
+        throw new Error('Invalid directory')
       }
-
-      const session = createPtySession(id, '', [], cwd, null, null)
-
-      if (opts?.startupCommand?.trim()) {
-        session.pty.write(`${opts.startupCommand.trim()}\r`)
-      }
-
-      const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
-      return { ok: true, data: response }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
     }
-  })
 
-  ipcMain.handle('terminal:spawnAgent', async (_event, opts: TerminalSpawnAgentInput) => {
-    try {
-      const db = getDb()
-      const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(opts.agentId) as Agent | undefined
-      const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(opts.projectId) as Project | undefined
+    const session = createPtySession(id, '', [], cwd, null, null)
 
-      if (!agent) return { ok: false, error: 'Agent not found' }
-      if (!project) return { ok: false, error: 'Project not found' }
-
-      const { command, args, contextFilePath } = buildCommand(agent, project)
-      const id = crypto.randomUUID()
-      const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
-
-      db.prepare(
-        'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
-      ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
-
-      const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
-      return { ok: true, data: response }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
+    if (opts?.startupCommand?.trim()) {
+      session.pty.write(`${opts.startupCommand.trim()}\r`)
     }
-  })
+
+    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
+    return response
+  }))
+
+  ipcMain.handle('terminal:spawnAgent', ipcHandler(async (_event, opts: TerminalSpawnAgentInput) => {
+    const db = getDb()
+    const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(opts.agentId) as Agent | undefined
+    const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(opts.projectId) as Project | undefined
+
+    if (!agent) throw new Error('Agent not found')
+    if (!project) throw new Error('Project not found')
+
+    const { command, args, contextFilePath } = buildCommand(agent, project)
+    const id = crypto.randomUUID()
+    const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
+
+    db.prepare(
+      'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
+    ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
+
+    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
+    return response
+  }))
 
   ipcMain.on('terminal:write', (_event, id: string, data: string) => {
     sessions.get(id)?.pty.write(data)
   })
 
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) => {
-    try { sessions.get(id)?.pty.resize(cols, rows) } catch {}
-  })
-
-  ipcMain.handle('terminal:kill', async (_event, id: string) => {
-    try {
-      const session = sessions.get(id)
-      if (session) {
-        session.pty.kill()
-        if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
-        sessions.delete(id)
-        try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch {}
-      }
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
+    try { sessions.get(id)?.pty.resize(cols, rows) } catch (err) {
+      console.warn('[Terminal] resize failed:', (err as Error).message)
     }
   })
 
-  ipcMain.handle('terminal:paste-from-clipboard', async (_event, id: string) => {
-    try {
-      const session = sessions.get(id)
-      if (!session) {
-        return { ok: false, error: 'Terminal session not found' }
+  ipcMain.handle('terminal:kill', ipcHandler(async (_event, id: string) => {
+    const session = sessions.get(id)
+    if (session) {
+      session.pty.kill()
+      if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
+      sessions.delete(id)
+      try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
+        console.warn('[Terminal] failed to delete session on kill:', (err as Error).message)
       }
-
-      const text = clipboard.readText()
-      if (!text) {
-        return { ok: true, data: { pasted: false } }
-      }
-
-      session.pty.write(text)
-      return { ok: true, data: { pasted: true } }
-    } catch (err) {
-      return { ok: false, error: (err as Error).message }
     }
-  })
+  }))
+
+  ipcMain.handle('terminal:paste-from-clipboard', ipcHandler(async (_event, id: string) => {
+    const session = sessions.get(id)
+    if (!session) throw new Error('Terminal session not found')
+
+    const text = clipboard.readText()
+    if (!text) return { pasted: false }
+
+    session.pty.write(text)
+    return { pasted: true }
+  }))
 }
 
 export function killAllSessions() {
   for (const [id, session] of sessions) {
-    try { session.pty.kill() } catch {}
+    try { session.pty.kill() } catch (err) {
+      console.warn('[Terminal] failed to kill session:', (err as Error).message)
+    }
     if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
     sessions.delete(id)
   }

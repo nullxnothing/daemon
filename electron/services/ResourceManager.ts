@@ -13,7 +13,7 @@ export interface ManagedResource {
 class ResourceManagerImpl {
   private resources: Map<string, ManagedResource> = new Map();
   private resourcesByType: Map<string, Set<string>> = new Map();
-  private cleanupInterval: NodeJS.Timer | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private isShuttingDown = false;
 
   constructor() {
@@ -175,7 +175,7 @@ class ResourceManagerImpl {
       this.isShuttingDown = true;
 
       if (this.cleanupInterval) {
-        clearInterval(this.cleanupInterval as any);
+        clearInterval(this.cleanupInterval);
       }
 
       console.log('ResourceManager: Cleaning up all resources...');

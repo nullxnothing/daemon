@@ -83,7 +83,9 @@ export function runMigrations(db: Database.Database) {
   try {
     const hasRecovery = db.prepare("SELECT id FROM tools WHERE id = 'builtin-wallet-recovery'").get()
     if (!hasRecovery) seedBuiltinTools(db)
-  } catch {}
+  } catch (err) {
+    console.warn('[Migrations] built-in tools seed check failed:', (err as Error).message)
+  }
 
   // Clean stale sessions from previous crashed runs — PTY processes are dead after restart
   db.prepare('DELETE FROM active_sessions').run()

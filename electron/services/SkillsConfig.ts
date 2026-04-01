@@ -21,7 +21,9 @@ export function getAllSkillsAndPlugins(): SkillEntry[] {
         result.push({ name: entry.name, type: 'skill', enabled: true })
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[SkillsConfig] failed to read skills directory:', (err as Error).message)
+  }
 
   // Plugins from installed_plugins.json
   try {
@@ -34,7 +36,9 @@ export function getAllSkillsAndPlugins(): SkillEntry[] {
       const isDisabled = disabledPlugins.has(key)
       result.push({ name, type: 'plugin', enabled: !isDisabled })
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[SkillsConfig] failed to read installed plugins:', (err as Error).message)
+  }
 
   return result
 }
