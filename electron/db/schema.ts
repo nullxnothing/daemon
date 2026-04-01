@@ -261,3 +261,13 @@ CREATE TABLE IF NOT EXISTS tools (
 
 CREATE INDEX IF NOT EXISTS idx_tools_category ON tools(category);
 `
+
+export const SCHEMA_V9 = `
+ALTER TABLE subscriptions ADD COLUMN created_at INTEGER DEFAULT (unixepoch());
+ALTER TABLE subscriptions ADD COLUMN updated_at INTEGER DEFAULT (unixepoch());
+ALTER TABLE oauth_tokens ADD COLUMN updated_at INTEGER DEFAULT (unixepoch());
+
+CREATE INDEX IF NOT EXISTS idx_wallets_default ON wallets(is_default);
+CREATE INDEX IF NOT EXISTS idx_plugins_enabled ON plugins(enabled);
+CREATE INDEX IF NOT EXISTS idx_tweets_status ON tweets(status);
+`

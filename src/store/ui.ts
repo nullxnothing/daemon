@@ -16,6 +16,8 @@ interface TerminalTab {
   projectId: string
 }
 
+export type CenterMode = 'canvas' | 'grind' | 'browser'
+
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser'
   activeProjectId: string | null
@@ -26,11 +28,9 @@ interface UIState {
   terminals: TerminalTab[]
   activeTerminalIdByProject: Record<string, string | null>
   mcpDirty: boolean
-  // Monotonically incremented whenever any MCP toggle fires, from any panel.
-  // Subscribe to this to re-fetch MCP state without duplicating toggle logic.
   mcpVersion: number
   showOnboarding: boolean
-  agentGridMode: boolean
+  centerMode: CenterMode
   grindPageCount: number
   activeGrindPage: number
 
@@ -49,7 +49,7 @@ interface UIState {
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
   setShowOnboarding: (show: boolean) => void
-  setAgentGridMode: (on: boolean) => void
+  setCenterMode: (mode: CenterMode) => void
   setActiveGrindPage: (page: number) => void
   addGrindPage: () => void
   removeGrindPage: (page: number) => void
@@ -67,7 +67,7 @@ export const useUIStore = create<UIState>((set) => ({
   mcpDirty: false,
   mcpVersion: 0,
   showOnboarding: false,
-  agentGridMode: false,
+  centerMode: 'canvas' as CenterMode,
   grindPageCount: 1,
   activeGrindPage: 0,
 
@@ -82,13 +82,13 @@ export const useUIStore = create<UIState>((set) => ({
     if (exists) {
       return {
         activePanel: 'claude',
-        agentGridMode: false,
+        centerMode: 'canvas' as CenterMode,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
       activePanel: 'claude',
-      agentGridMode: false,
+      centerMode: 'canvas' as CenterMode,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -153,7 +153,7 @@ export const useUIStore = create<UIState>((set) => ({
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
   setShowOnboarding: (show) => set({ showOnboarding: show }),
-  setAgentGridMode: (on) => set({ agentGridMode: on }),
+  setCenterMode: (mode) => set({ centerMode: mode }),
   setActiveGrindPage: (page) => set({ activeGrindPage: page }),
   addGrindPage: () => set((state) => ({
     grindPageCount: state.grindPageCount + 1,

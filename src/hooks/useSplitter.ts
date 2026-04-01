@@ -10,7 +10,7 @@ interface UseSplitterOptions {
 interface UseSplitterReturn {
   size: number
   splitterProps: {
-    onMouseDown: (e: React.MouseEvent) => void
+    onPointerDown: (e: React.PointerEvent) => void
   }
 }
 
@@ -19,21 +19,23 @@ export function useSplitter({ direction, min, max, initial }: UseSplitterOptions
   const isDragging = useRef(false)
   const startPos = useRef(0)
   const startSize = useRef(0)
+  const sizeRef = useRef(size)
+  sizeRef.current = size
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
     isDragging.current = true
     startPos.current = direction === 'vertical' ? e.clientY : e.clientX
-    startSize.current = size
+    startSize.current = sizeRef.current
     document.body.style.cursor = direction === 'vertical' ? 'row-resize' : 'col-resize'
     document.body.style.userSelect = 'none'
-  }, [size, direction])
+  }, [direction])
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDragging.current) return
       const current = direction === 'vertical' ? e.clientY : e.clientX
-      // For vertical splitter (terminal), dragging up increases size
       const delta = direction === 'vertical'
         ? startPos.current - current
         : current - startPos.current
@@ -41,7 +43,7 @@ export function useSplitter({ direction, min, max, initial }: UseSplitterOptions
       setSize(next)
     }
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
       if (isDragging.current) {
         isDragging.current = false
         document.body.style.cursor = ''
@@ -49,16 +51,16 @@ export function useSplitter({ direction, min, max, initial }: UseSplitterOptions
       }
     }
 
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
     }
   }, [direction, min, max])
 
   return {
     size,
-    splitterProps: { onMouseDown: handleMouseDown },
+    splitterProps: { onPointerDown: handlePointerDown },
   }
 }

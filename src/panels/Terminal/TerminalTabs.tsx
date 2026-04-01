@@ -1,3 +1,4 @@
+import { type CenterMode } from '../../store/ui'
 import { type TerminalLaunchRecent } from './RecentsManager'
 import { TerminalLauncher } from './TerminalLauncher'
 
@@ -17,12 +18,12 @@ interface TerminalTabsProps {
   visibleTerminals: TerminalTabEntry[]
   activeTerminalId: string | null
   activeProjectId: string | null
-  agentGridMode: boolean
+  centerMode: CenterMode
   splitLayout: SplitLayout
   launchRecents: TerminalLaunchRecent[]
   onSelectTerminal: (id: string) => void
   onCloseTerminal: (id: string) => void
-  onToggleAgentGrid: () => void
+  onToggleGrindMode: () => void
   onSplit: (direction: 'horizontal' | 'vertical') => void
   onUnsplit: () => void
   onStartShell: () => void
@@ -36,12 +37,12 @@ export function TerminalTabs({
   visibleTerminals,
   activeTerminalId,
   activeProjectId,
-  agentGridMode,
+  centerMode,
   splitLayout,
   launchRecents,
   onSelectTerminal,
   onCloseTerminal,
-  onToggleAgentGrid,
+  onToggleGrindMode,
   onSplit,
   onUnsplit,
   onStartShell,
@@ -79,8 +80,8 @@ export function TerminalTabs({
       />
       <div className="terminal-tools">
         <button
-          className={`terminal-tool-btn ${agentGridMode ? 'active' : ''}`}
-          onClick={onToggleAgentGrid}
+          className={`terminal-tool-btn ${centerMode === 'grind' ? 'active' : ''}`}
+          onClick={onToggleGrindMode}
           title="Agent Grid (2x2 Claude sessions)"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">

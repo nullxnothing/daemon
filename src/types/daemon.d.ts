@@ -260,6 +260,27 @@ declare global {
     openExternal: (url: string) => Promise<void>
   }
 
+  interface DaemonPumpFun {
+    bondingCurve: (mint: string) => Promise<IpcResponse<{
+      mint: string
+      currentPriceLamports: string
+      marketCapLamports: string
+      graduationBps: number
+      virtualSolReserves: string
+      virtualTokenReserves: string
+      realTokenReserves: string
+      realSolReserves: string
+      isGraduated: boolean
+    }>>
+    createToken: (input: object) => Promise<IpcResponse<{ signature: string; success: boolean }>>
+    buy: (input: object) => Promise<IpcResponse<{ signature: string; success: boolean }>>
+    sell: (input: object) => Promise<IpcResponse<{ signature: string; success: boolean }>>
+    collectFees: (walletId: string) => Promise<IpcResponse<{ signature: string; success: boolean }>>
+    pickImage: () => Promise<IpcResponse<string | null>>
+    hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+    importKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+  }
+
   interface DaemonTweets {
     generate: (prompt: string, mode: string, sourceTweet?: string) => Promise<IpcResponse<{ tweets: Tweet[]; draftPath: string }>>
     list: (limit?: number) => Promise<IpcResponse<Tweet[]>>
@@ -349,8 +370,20 @@ declare global {
     claude: DaemonClaude
     tweets: DaemonTweets
     plugins: DaemonPlugins
+    browser: DaemonBrowser
     recovery: DaemonRecovery
     shell: DaemonShell
+    pumpfun: DaemonPumpFun
+  }
+
+  interface DaemonBrowser {
+    navigate: (url: string) => Promise<IpcResponse<{ url: string; title: string; status: number; contentLength: number }>>
+    content: (pageId: string) => Promise<IpcResponse<{ id: string; url: string; title: string; content: string; timestamp: number }>>
+    analyze: (pageId: string, type: string, target?: string) => Promise<IpcResponse<{ url: string; summary: string; findings: string[]; type: string }>>
+    audit: (pageId: string) => Promise<IpcResponse<{ url: string; summary: string; findings: string[]; type: string }>>
+    history: () => Promise<IpcResponse<Array<{ id: string; url: string; title: string; timestamp: number }>>>
+    clear: () => Promise<IpcResponse<void>>
+    agentCommand: () => Promise<IpcResponse<{ command: string; promptPath: string }>>
   }
 
   interface Window {

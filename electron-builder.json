@@ -4,7 +4,7 @@
   "productName": "DAEMON",
   "asar": true,
   "directories": {
-    "output": "dist"
+    "output": "release"
   },
   "files": [
     "dist-electron",

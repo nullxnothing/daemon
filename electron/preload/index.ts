@@ -159,6 +159,16 @@ contextBridge.exposeInMainWorld('daemon', {
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),
   },
 
+  browser: {
+    navigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
+    content: (pageId: string) => ipcRenderer.invoke('browser:content', pageId),
+    analyze: (pageId: string, type: string, target?: string) => ipcRenderer.invoke('browser:analyze', pageId, type, target),
+    audit: (pageId: string) => ipcRenderer.invoke('browser:audit', pageId),
+    history: () => ipcRenderer.invoke('browser:history'),
+    clear: () => ipcRenderer.invoke('browser:clear'),
+    agentCommand: () => ipcRenderer.invoke('browser:agent-command'),
+  },
+
   tweets: {
     generate: (prompt: string, mode: string, sourceTweet?: string) => ipcRenderer.invoke('tweets:generate', prompt, mode, sourceTweet),
     list: (limit?: number) => ipcRenderer.invoke('tweets:list', limit),
@@ -202,6 +212,17 @@ contextBridge.exposeInMainWorld('daemon', {
 
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+  },
+
+  pumpfun: {
+    bondingCurve: (mint: string) => ipcRenderer.invoke('pumpfun:bonding-curve', mint),
+    createToken: (input: object) => ipcRenderer.invoke('pumpfun:create-token', input),
+    buy: (input: object) => ipcRenderer.invoke('pumpfun:buy', input),
+    sell: (input: object) => ipcRenderer.invoke('pumpfun:sell', input),
+    collectFees: (walletId: string) => ipcRenderer.invoke('pumpfun:collect-fees', walletId),
+    pickImage: () => ipcRenderer.invoke('pumpfun:pick-image'),
+    hasKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:has-keypair', walletId),
+    importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
   },
 
   tools: {

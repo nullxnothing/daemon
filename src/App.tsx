@@ -13,6 +13,7 @@ import { RecoveryPanel } from './panels/RecoveryPanel/RecoveryPanel'
 import { SettingsPanel } from './panels/SettingsPanel/SettingsPanel'
 import { ToolBrowser } from './panels/Tools/ToolBrowser'
 import { AgentGrid } from './panels/Terminal/AgentGrid'
+import { BrowserMode } from './panels/BrowserMode/BrowserMode'
 import { PluginManager } from './panels/PluginManager/PluginManager'
 import { PluginDashboard } from './panels/PluginDashboard/PluginDashboard'
 import { Titlebar } from './panels/Titlebar/Titlebar'
@@ -40,7 +41,7 @@ function App() {
   const setProjects = useUIStore((s) => s.setProjects)
   const activePluginId = usePluginStore((s) => s.activePluginId)
   const showOnboarding = useUIStore((s) => s.showOnboarding)
-  const agentGridMode = useUIStore((s) => s.agentGridMode)
+  const centerMode = useUIStore((s) => s.centerMode)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -124,7 +125,12 @@ function App() {
         setShowRightPanel((v) => !v)
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
         e.preventDefault()
-        useUIStore.getState().setAgentGridMode(!useUIStore.getState().agentGridMode)
+        const current = useUIStore.getState().centerMode
+        useUIStore.getState().setCenterMode(current === 'grind' ? 'canvas' : 'grind')
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
+        e.preventDefault()
+        const current = useUIStore.getState().centerMode
+        useUIStore.getState().setCenterMode(current === 'browser' ? 'canvas' : 'browser')
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -161,8 +167,10 @@ function App() {
 
         <div className="center-area">
           <div className="editor-area">
-            {agentGridMode ? (
+            {centerMode === 'grind' ? (
               <AgentGrid />
+            ) : centerMode === 'browser' ? (
+              <BrowserMode />
             ) : isCenterPanelPlugin && activePlugin ? (
               <PluginErrorBoundary>
                 <Suspense fallback={<PluginFallback />}>
@@ -177,8 +185,8 @@ function App() {
               </PluginErrorBoundary>
             )}
           </div>
-          {!agentGridMode && <div className="splitter" {...splitterProps} />}
-          {!agentGridMode && <div className="terminal-area" style={{ height: terminalHeight }}>
+          {centerMode === 'canvas' && <div className="splitter" {...splitterProps} />}
+          {centerMode === 'canvas' && <div className="terminal-area" style={{ height: terminalHeight }}>
             <TerminalPanel />
           </div>}
         </div>

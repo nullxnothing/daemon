@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -79,12 +79,36 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 9) {
+    db.transaction(() => {
+      // Each ALTER TABLE must be separate — SQLite doesn't support multi-ALTER in one exec
+      const stmts = SCHEMA_V9.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch { /* column/index may already exist */ }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(9)
+    })()
+  }
+
   // Ensure built-in tools exist (idempotent — handles upgrades where table exists but seed was missed)
   try {
     const hasRecovery = db.prepare("SELECT id FROM tools WHERE id = 'builtin-wallet-recovery'").get()
     if (!hasRecovery) seedBuiltinTools(db)
   } catch (err) {
     console.warn('[Migrations] built-in tools seed check failed:', (err as Error).message)
+  }
+
+  // Ensure all registry plugins have DB rows (handles plugins added after initial migration)
+  try {
+    const newPlugins = [
+      { id: 'pumpfun', order: 9 },
+    ]
+    const insert = db.prepare('INSERT OR IGNORE INTO plugins (id, enabled, sort_order, config) VALUES (?,?,?,?)')
+    for (const p of newPlugins) {
+      insert.run(p.id, 1, p.order, '{}')
+    }
+  } catch (err) {
+    console.warn('[Migrations] plugin seed check failed:', (err as Error).message)
   }
 
   // Clean stale sessions from previous crashed runs — PTY processes are dead after restart

@@ -1,4 +1,4 @@
-import { useUIStore } from '../../store/ui'
+import { useUIStore, type CenterMode } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { formatCompactUsd } from '../../utils/format'
 import './Titlebar.css'
@@ -12,8 +12,8 @@ interface TitlebarProps {
 export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarProps) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
-  const agentGridMode = useUIStore((s) => s.agentGridMode)
-  const setAgentGridMode = useUIStore((s) => s.setAgentGridMode)
+  const centerMode = useUIStore((s) => s.centerMode)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
 
   return (
     <div className="titlebar">
@@ -45,11 +45,14 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
       <div className="titlebar-controls">
         <TitlebarPortfolioSummary />
         <button
-          className={`titlebar-mode-toggle ${agentGridMode ? 'grind' : 'canvas'}`}
-          onClick={() => setAgentGridMode(!agentGridMode)}
-          title={agentGridMode ? 'Switch to Canvas Mode' : 'Switch to Grind Mode'}
+          className={`titlebar-mode-toggle ${centerMode}`}
+          onClick={() => {
+            const next: Record<CenterMode, CenterMode> = { canvas: 'grind', grind: 'browser', browser: 'canvas' }
+            setCenterMode(next[centerMode])
+          }}
+          title={`Switch to ${centerMode === 'canvas' ? 'Grind' : centerMode === 'grind' ? 'Browser' : 'Canvas'} Mode`}
         >
-          {agentGridMode ? (
+          {centerMode === 'grind' ? (
             <>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -58,6 +61,15 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
                 <rect x="14" y="14" width="7" height="7" rx="1"/>
               </svg>
               <span>Grind</span>
+            </>
+          ) : centerMode === 'browser' ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <span>Browser</span>
             </>
           ) : (
             <>

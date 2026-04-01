@@ -159,9 +159,22 @@ export function TerminalInstance({ id, isVisible }: TerminalInstanceProps) {
   }
 
   const extractDroppedPaths = (event: React.DragEvent<HTMLDivElement>) => {
-    const filePaths = Array.from(event.dataTransfer.files)
-      .map((file) => (file as File & { path?: string }).path)
-      .filter((value): value is string => Boolean(value))
+    const files = Array.from(event.dataTransfer.files)
+    const filePaths: string[] = []
+    let hasFolder = false
+
+    for (const file of files) {
+      const fp = (file as File & { path?: string }).path
+      if (!fp) continue
+      filePaths.push(fp)
+      // Folders have size 0 and no type in Electron's File API
+      if (file.size === 0 && !file.type) hasFolder = true
+    }
+
+    // If a folder was dropped, let the parent Terminal panel handle it
+    // (creates a new terminal tab at that path)
+    if (hasFolder) return []
+
     if (filePaths.length > 0) return filePaths
     const text = event.dataTransfer.getData('text/plain').trim()
     return text ? [text] : []
@@ -178,7 +191,19 @@ export function TerminalInstance({ id, isVisible }: TerminalInstanceProps) {
         onDragEnter={(e) => { e.preventDefault(); dragDepthRef.current += 1; setDragActive(true) }}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
         onDragLeave={() => { dragDepthRef.current = Math.max(0, dragDepthRef.current - 1); if (dragDepthRef.current === 0) setDragActive(false) }}
-        onDrop={(e) => { e.preventDefault(); dragDepthRef.current = 0; setDragActive(false); writeDroppedPaths(extractDroppedPaths(e)) }}
+        onDrop={(e) => {
+          dragDepthRef.current = 0
+          setDragActive(false)
+          // Check if any dropped item is a folder (size 0, no type)
+          const files = Array.from(e.dataTransfer.files)
+          const hasFolder = files.some((f) => f.size === 0 && !f.type)
+          if (hasFolder) {
+            // Let the parent Terminal panel handle folder drops (creates new terminal tab)
+            return
+          }
+          e.preventDefault()
+          writeDroppedPaths(extractDroppedPaths(e))
+        }}
       >
         {contextMenu.isOpen && (
           <div

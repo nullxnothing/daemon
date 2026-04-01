@@ -57,3 +57,9 @@ features/
 # Claude Code config (per-machine)
 .claude/
 .mcp.json
+
+# Internal dev artifacts
+PLUGIN_TODOS.md
+.planning/
+.playwright-mcp/
+Usersoffic.claudeplans/

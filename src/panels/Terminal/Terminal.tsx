@@ -18,8 +18,8 @@ export function TerminalPanel() {
   const removeTerminal = useUIStore((s) => s.removeTerminal)
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
   const setActivePanel = useUIStore((s) => s.setActivePanel)
-  const agentGridMode = useUIStore((s) => s.agentGridMode)
-  const setAgentGridMode = useUIStore((s) => s.setAgentGridMode)
+  const centerMode = useUIStore((s) => s.centerMode)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeTerminalId = useUIStore((s) =>
@@ -198,12 +198,12 @@ export function TerminalPanel() {
         visibleTerminals={visibleTerminals}
         activeTerminalId={activeTerminalId}
         activeProjectId={activeProjectId}
-        agentGridMode={agentGridMode}
+        centerMode={centerMode}
         splitLayout={splitLayout}
         launchRecents={launchRecents}
         onSelectTerminal={(id) => activeProjectId && setActiveTerminal(activeProjectId, id)}
         onCloseTerminal={handleCloseTerminal}
-        onToggleAgentGrid={() => setAgentGridMode(!agentGridMode)}
+        onToggleGrindMode={() => setCenterMode(centerMode === 'grind' ? 'canvas' : 'grind')}
         onSplit={handleSplit}
         onUnsplit={handleUnsplit}
         onStartShell={handleStartShell}
