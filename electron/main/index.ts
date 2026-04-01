@@ -111,14 +111,18 @@ async function createWindow() {
   getDb()
   registerAllIpc()
 
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': ["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: daemon-icon:; worker-src blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self'; object-src 'none'"]
-      }
+  // CSP headers only in production — in dev, Vite serves /@react-refresh and
+  // HMR websockets from localhost which a restrictive 'self' policy blocks
+  if (!VITE_DEV_SERVER_URL) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': ["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: daemon-icon:; worker-src blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self'; object-src 'none'"]
+        }
+      })
     })
-  })
+  }
 
   // Monaco offline: serve node_modules/monaco-editor files via custom protocol
   protocol.handle('monaco-editor', (request) => {

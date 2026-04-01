@@ -68,9 +68,9 @@ export default defineConfig(({ command }) => {
       }
     })(),
     clearScreen: false,
-    // Monaco ESM worker support
+    // Monaco bundles web workers internally — esbuild cannot pre-bundle it
     optimizeDeps: {
-      include: ['monaco-editor'],
+      exclude: ['monaco-editor'],
     },
     worker: {
       format: 'es' as const,

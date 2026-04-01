@@ -81,11 +81,13 @@ export const useUIStore = create<UIState>((set) => ({
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
+        activePanel: 'claude',
         agentGridMode: false,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
+      activePanel: 'claude',
       agentGridMode: false,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
