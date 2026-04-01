@@ -1,66 +1,27 @@
 {
-  "name": "daemon",
-  "version": "0.1.0",
-  "main": "dist-electron/main/index.js",
-  "description": "Custom Electron IDE for AI-native development",
-  "author": "nullxnothing",
-  "license": "MIT",
+  "name": "daemon-landing",
+  "version": "1.0.0",
   "private": true,
-  "debug": {
-    "env": {
-      "VITE_DEV_SERVER_URL": "http://127.0.0.1:7777/"
-    }
-  },
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:debug": "powershell -NoProfile -Command \"$env:DAEMON_OPEN_DEVTOOLS='1'; vite\"",
-    "build": "tsc && vite build",
-    "typecheck": "tsc --noEmit",
-    "typecheck:watch": "tsc --noEmit --watch --preserveWatchOutput",
-    "package": "electron-builder",
-    "postinstall": "electron-rebuild -f --only better-sqlite3 && electron-rebuild -f --only node-pty",
-    "rebuild": "electron-rebuild -f --only better-sqlite3 && electron-rebuild -f --only node-pty",
-    "preview": "vite preview",
-    "pretest": "vite build --mode=test",
-    "test": "vitest run"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
-    "@nirholas/pump-sdk": "1.30.0",
-    "@solana/web3.js": "^1.98.4",
-    "better-sqlite3": "^11.7.0",
-    "bs58": "^6.0.0",
-    "chokidar": "^4.0.3",
-    "express": "^5.1.0",
-    "node-pty": "1.1.0",
-    "pidusage": "^4.0.1",
-    "ps-list": "^8.1.1",
-    "simple-git": "^3.27.0"
+    "next": "^15.2.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.2",
+    "lucide-react": "^0.475.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.7.1",
-    "@monaco-editor/react": "^4.7.0",
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/bn.js": "^5.2.0",
-    "@types/express": "^5.0.1",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.3",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/addon-web-links": "^0.11.0",
-    "@xterm/xterm": "^5.5.0",
-    "electron": "^33.2.0",
-    "electron-builder": "^24.13.3",
-    "monaco-editor": "^0.52.2",
-    "patch-package": "^8.0.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "typescript": "^5.4.2",
-    "vite": "^5.4.11",
-    "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6",
-    "vitest": "^2.1.5",
-    "zustand": "^5.0.3"
+    "@types/node": "^22.10.10",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "typescript": "^5.7.3",
+    "tailwindcss": "^4.0.6",
+    "@tailwindcss/postcss": "^4.0.6"
   }
 }
