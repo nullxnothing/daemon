@@ -30,7 +30,10 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
   const setUrl = useBrowserStore((s) => s.setUrl)
   const setLoadStatus = useBrowserStore((s) => s.setLoadStatus)
   const addInspectorResult = useBrowserStore((s) => s.addInspectorResult)
+  const setCanGoBack = useBrowserStore((s) => s.setCanGoBack)
+  const setCanGoForward = useBrowserStore((s) => s.setCanGoForward)
   const currentUrl = useBrowserStore((s) => s.currentUrl)
+  const lastPageId = useBrowserStore((s) => s.lastPageId)
 
   const normalizeUrl = useCallback((raw: string) => {
     const trimmed = raw.trim()
@@ -39,13 +42,35 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     return `http://${trimmed}`
   }, [])
 
+  const updateNavState = useCallback(() => {
+    const wv = webviewRef.current
+    if (!wv) return
+    try {
+      setCanGoBack(wv.canGoBack())
+      setCanGoForward(wv.canGoForward())
+    } catch {
+      // webview not ready
+    }
+  }, [setCanGoBack, setCanGoForward])
+
   const navigate = useCallback(
-    (url: string) => {
+    async (url: string) => {
       const normalized = normalizeUrl(url)
       if (!normalized) return
       setUrl(normalized)
       setLoadStatus('loading')
       isNavigated.current = true
+
+      // Create page cache entry in main process and store the pageId
+      try {
+        const res = await window.daemon.browser.navigate(normalized)
+        if (res.ok && res.data) {
+          useBrowserStore.getState().setLastPageId(res.data.pageId)
+        }
+      } catch {
+        // Cache entry creation failed — capture will use fallback ID
+      }
+
       if (webviewRef.current) {
         webviewRef.current.src = normalized
       }
@@ -82,29 +107,56 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     if (!wv) return
 
     const onStartLoading = () => setLoadStatus('loading')
-    const onStopLoading = () => setLoadStatus('loaded')
 
-    const onFailLoad = (_event: Event) => {
-      const detail = (_event as CustomEvent).detail || {}
-      const code = detail.errorCode ?? -1
+    const onStopLoading = () => {
+      setLoadStatus('loaded')
+      updateNavState()
+
+      // Capture rendered DOM content and send to main process
+      const pageId = useBrowserStore.getState().lastPageId
+      if (wv) {
+        wv.executeJavaScript(
+          `JSON.stringify({ title: document.title, text: document.body.innerText, url: location.href })`
+        ).then((result: unknown) => {
+          try {
+            const parsed = typeof result === 'string' ? JSON.parse(result) : result
+            const captureId = pageId || `capture-${Date.now()}`
+            window.daemon.browser.capture(
+              captureId,
+              parsed.url || '',
+              parsed.title || '',
+              parsed.text || '',
+            ).catch(() => {})
+          } catch {
+            // malformed result
+          }
+        }).catch(() => {})
+      }
+    }
+
+    const onFailLoad = (event: any) => {
+      const code = event.errorCode ?? -1
       if (code === -3) return
       setLoadStatus('error')
+      updateNavState()
     }
 
-    const onNavigate = (_event: Event) => {
-      const detail = (_event as CustomEvent).detail || {}
-      const newUrl = detail.url || ''
-      if (newUrl) setUrl(newUrl)
+    const onNavigate = (event: any) => {
+      const newUrl = event.url || ''
+      if (newUrl) {
+        setUrl(newUrl)
+        const agentTerminalId = useBrowserStore.getState().agentTerminalId
+        if (agentTerminalId) {
+          window.daemon.terminal.write(agentTerminalId, `\r\n[NAV] ${newUrl}\r\n`)
+        }
+      }
+      updateNavState()
     }
 
-    const onConsoleMessage = (_event: Event) => {
-      const detail = (_event as CustomEvent).detail || {}
-      const message: string = detail.message || ''
-      const level: number = detail.level ?? 0 // 0=log, 1=warn, 2=error
+    const onConsoleMessage = (event: any) => {
+      const message: string = event.message || ''
 
-      const agentTerminalId = useBrowserStore.getState().agentTerminalId
-
-      // Inspector results — special handling
+      // Inspector results — Ctrl+click capture
       if (message.startsWith('DAEMON_INSPECT:')) {
         try {
           const payload = JSON.parse(message.slice('DAEMON_INSPECT:'.length))
@@ -114,36 +166,12 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
             text: payload.text,
             url: currentUrl,
             timestamp: Date.now(),
+            styles: payload.styles,
+            attributes: payload.attributes,
           })
-
-          if (agentTerminalId) {
-            const styles = payload.computedStyles
-              ? ` | font: ${payload.computedStyles.fontSize} ${payload.computedStyles.fontWeight} | color: ${payload.computedStyles.color}`
-              : ''
-            const text = payload.text ? ` "${payload.text.slice(0, 60)}"` : ''
-            const line = `\r\n[INSPECT] <${payload.tagName.toLowerCase()}> ${payload.selector}${text}${styles}\r\n`
-            window.daemon.terminal.write(agentTerminalId, line)
-          }
         } catch {
           // malformed inspect payload
         }
-        return
-      }
-
-      // Forward console errors and warnings to agent terminal
-      if (agentTerminalId && level >= 1) {
-        const prefix = level === 2 ? '[ERROR]' : '[CONSOLE]'
-        const truncated = message.length > 200 ? message.slice(0, 200) + '...' : message
-        window.daemon.terminal.write(agentTerminalId, `\r\n${prefix} ${truncated}\r\n`)
-      }
-    }
-
-    const onNavigate2 = (_event: Event) => {
-      const detail = (_event as CustomEvent).detail || {}
-      const newUrl = detail.url || ''
-      const agentTerminalId = useBrowserStore.getState().agentTerminalId
-      if (agentTerminalId && newUrl) {
-        window.daemon.terminal.write(agentTerminalId, `\r\n[NAV] ${newUrl}\r\n`)
       }
     }
 
@@ -152,7 +180,6 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     wv.addEventListener('did-fail-load', onFailLoad)
     wv.addEventListener('did-navigate', onNavigate)
     wv.addEventListener('console-message', onConsoleMessage)
-    wv.addEventListener('did-navigate', onNavigate2)
 
     return () => {
       wv.removeEventListener('did-start-loading', onStartLoading)
@@ -160,9 +187,8 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
       wv.removeEventListener('did-fail-load', onFailLoad)
       wv.removeEventListener('did-navigate', onNavigate)
       wv.removeEventListener('console-message', onConsoleMessage)
-      wv.removeEventListener('did-navigate', onNavigate2)
     }
-  }, [setLoadStatus, setUrl, addInspectorResult, currentUrl])
+  }, [setLoadStatus, setUrl, addInspectorResult, currentUrl, lastPageId, updateNavState])
 
   return (
     <webview
@@ -170,6 +196,7 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
       className="browser-webview"
       partition="persist:browser"
       nodeintegration={false}
+      allowpopups={false}
       src={currentUrl}
     />
   )

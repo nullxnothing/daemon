@@ -6,20 +6,29 @@ interface InspectorResult {
   text: string
   url: string
   timestamp: number
+  styles?: Record<string, string>
+  attributes?: Record<string, string>
 }
 
 interface BrowserState {
   currentUrl: string
   isInspectMode: boolean
   loadStatus: 'idle' | 'loading' | 'loaded' | 'error'
+  /** @deprecated No longer used — browser agent uses SDK directly */
   agentTerminalId: string | null
   inspectorResults: InspectorResult[]
+  lastPageId: string | null
+  canGoBack: boolean
+  canGoForward: boolean
 
   setUrl: (url: string) => void
   setInspectMode: (on: boolean) => void
   setLoadStatus: (status: BrowserState['loadStatus']) => void
   setAgentTerminalId: (id: string | null) => void
   addInspectorResult: (result: InspectorResult) => void
+  setLastPageId: (id: string | null) => void
+  setCanGoBack: (can: boolean) => void
+  setCanGoForward: (can: boolean) => void
 }
 
 export const useBrowserStore = create<BrowserState>((set) => ({
@@ -28,6 +37,9 @@ export const useBrowserStore = create<BrowserState>((set) => ({
   loadStatus: 'idle',
   agentTerminalId: null,
   inspectorResults: [],
+  lastPageId: null,
+  canGoBack: false,
+  canGoForward: false,
 
   setUrl: (url) => set({ currentUrl: url }),
   setInspectMode: (on) => set({ isInspectMode: on }),
@@ -37,4 +49,7 @@ export const useBrowserStore = create<BrowserState>((set) => ({
     set((state) => ({
       inspectorResults: [...state.inspectorResults, result],
     })),
+  setLastPageId: (id) => set({ lastPageId: id }),
+  setCanGoBack: (can) => set({ canGoBack: can }),
+  setCanGoForward: (can) => set({ canGoForward: can }),
 }))

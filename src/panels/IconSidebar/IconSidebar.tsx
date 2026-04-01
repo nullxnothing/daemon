@@ -6,9 +6,10 @@ interface IconSidebarProps {
   showExplorer: boolean
   onToggleExplorer: () => void
   onOpenAgentLauncher: () => void
+  isAgentLauncherOpen: boolean
 }
 
-export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLauncher }: IconSidebarProps) {
+export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLauncher, isAgentLauncherOpen }: IconSidebarProps) {
   const activePanel = useUIStore((s) => s.activePanel)
   const setActivePanel = useUIStore((s) => s.setActivePanel)
   const activePluginId = usePluginStore((s) => s.activePluginId)
@@ -21,7 +22,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const handleExplorerClick = () => {
     onToggleExplorer()
     const panel = useUIStore.getState().activePanel
-    if (['env', 'git', 'settings', 'tools', 'recovery', 'plugins'].includes(panel)) {
+    if (['env', 'git', 'settings', 'tools', 'recovery', 'plugins', 'deploy'].includes(panel)) {
       useUIStore.getState().setActivePanel('claude')
       usePluginStore.getState().setActivePlugin(null)
     }
@@ -70,6 +71,17 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
         </svg>
       </button>
 
+      <button
+        className={`sidebar-icon ${activePanel === 'deploy' && !activePluginId ? 'active' : ''}`}
+        onClick={() => handleCenterPanelClick('deploy')}
+        title="Deploy"
+        aria-label="Deploy"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2L12 16M12 2L8 6M12 2L16 6"/>
+          <path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/>
+        </svg>
+      </button>
       <button
         className={`sidebar-icon ${activePanel === 'tools' && !activePluginId ? 'active' : ''}`}
         onClick={() => handleCenterPanelClick('tools')}

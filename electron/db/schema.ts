@@ -271,3 +271,55 @@ CREATE INDEX IF NOT EXISTS idx_wallets_default ON wallets(is_default);
 CREATE INDEX IF NOT EXISTS idx_plugins_enabled ON plugins(enabled);
 CREATE INDEX IF NOT EXISTS idx_tweets_status ON tweets(status);
 `
+
+export const SCHEMA_V10 = `
+ALTER TABLE wallets ADD COLUMN agent_id TEXT;
+ALTER TABLE wallets ADD COLUMN wallet_type TEXT DEFAULT 'user';
+
+CREATE TABLE IF NOT EXISTS transaction_history (
+  id TEXT PRIMARY KEY,
+  wallet_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  signature TEXT,
+  from_address TEXT NOT NULL,
+  to_address TEXT NOT NULL,
+  amount REAL NOT NULL,
+  mint TEXT,
+  symbol TEXT,
+  status TEXT DEFAULT 'pending',
+  error TEXT,
+  created_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE INDEX IF NOT EXISTS idx_transaction_history_wallet ON transaction_history(wallet_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_wallets_agent ON wallets(agent_id);
+CREATE INDEX IF NOT EXISTS idx_wallets_type ON wallets(wallet_type);
+`
+
+export const SCHEMA_V11 = `
+CREATE TABLE IF NOT EXISTS deploy_cache (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  deployment_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  url TEXT,
+  branch TEXT,
+  commit_sha TEXT,
+  commit_message TEXT,
+  created_at INTEGER,
+  updated_at INTEGER DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_deploy_cache_project ON deploy_cache(project_id, platform, created_at DESC);
+`
+
+export const SCHEMA_V12 = `
+CREATE TABLE IF NOT EXISTS app_crashes (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  stack TEXT DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_app_crashes_created_at ON app_crashes(created_at);
+`

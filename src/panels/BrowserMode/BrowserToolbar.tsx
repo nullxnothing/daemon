@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error'
 
@@ -11,6 +11,8 @@ interface BrowserToolbarProps {
   isInspectMode: boolean
   onToggleInspect: () => void
   loadStatus: LoadStatus
+  canGoBack: boolean
+  canGoForward: boolean
 }
 
 export function BrowserToolbar({
@@ -22,6 +24,8 @@ export function BrowserToolbar({
   isInspectMode,
   onToggleInspect,
   loadStatus,
+  canGoBack,
+  canGoForward,
 }: BrowserToolbarProps) {
   const [inputValue, setInputValue] = useState(url)
 
@@ -35,25 +39,21 @@ export function BrowserToolbar({
   )
 
   // Sync input when URL changes externally (e.g. did-navigate)
-  const prevUrlRef = useRef(url)
   useEffect(() => {
-    if (prevUrlRef.current !== url) {
-      setInputValue(url)
-      prevUrlRef.current = url
-    }
+    setInputValue(url)
   }, [url])
 
   return (
     <div className="browser-toolbar">
       {/* Back */}
-      <button className="browser-nav-btn" onClick={onBack} title="Back">
+      <button className="browser-nav-btn" onClick={onBack} title="Back" disabled={!canGoBack}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {/* Forward */}
-      <button className="browser-nav-btn" onClick={onForward} title="Forward">
+      <button className="browser-nav-btn" onClick={onForward} title="Forward" disabled={!canGoForward}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

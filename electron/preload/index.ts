@@ -144,12 +144,31 @@ contextBridge.exposeInMainWorld('daemon', {
     storeHeliusKey: (value: string) => ipcRenderer.invoke('wallet:store-helius-key', value),
     deleteHeliusKey: () => ipcRenderer.invoke('wallet:delete-helius-key'),
     hasHeliusKey: () => ipcRenderer.invoke('wallet:has-helius-key'),
+    generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => ipcRenderer.invoke('wallet:send-sol', input),
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => ipcRenderer.invoke('wallet:send-token', input),
+    balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
+    agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
+    createAgentWallet: (agentId: string, agentName: string) => ipcRenderer.invoke('wallet:create-agent-wallet', agentId, agentName),
+    hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
+    transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
+    exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
   },
 
   settings: {
     getUi: () => ipcRenderer.invoke('settings:get-ui'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
+    isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),
+    setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke('settings:set-onboarding-complete', complete),
+    reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
+    getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
+    clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
+    onCrashWarning: (callback: (count: number) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
+      ipcRenderer.on('crash-warning', handler)
+      return () => ipcRenderer.off('crash-warning', handler)
+    },
   },
 
   plugins: {
@@ -161,12 +180,14 @@ contextBridge.exposeInMainWorld('daemon', {
 
   browser: {
     navigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
+    capture: (pageId: string, url: string, title: string, content: string) => ipcRenderer.invoke('browser:capture', pageId, url, title, content),
     content: (pageId: string) => ipcRenderer.invoke('browser:content', pageId),
     analyze: (pageId: string, type: string, target?: string) => ipcRenderer.invoke('browser:analyze', pageId, type, target),
     audit: (pageId: string) => ipcRenderer.invoke('browser:audit', pageId),
     history: () => ipcRenderer.invoke('browser:history'),
     clear: () => ipcRenderer.invoke('browser:clear'),
-    agentCommand: () => ipcRenderer.invoke('browser:agent-command'),
+    chat: (sessionId: string, message: string, browserContext?: string) => ipcRenderer.invoke('browser:chat', sessionId, message, browserContext),
+    chatReset: (sessionId: string) => ipcRenderer.invoke('browser:chat-reset', sessionId),
   },
 
   tweets: {
@@ -225,6 +246,22 @@ contextBridge.exposeInMainWorld('daemon', {
     importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
   },
 
+  deploy: {
+    authStatus: () => ipcRenderer.invoke('deploy:auth-status'),
+    connectVercel: (token: string) => ipcRenderer.invoke('deploy:connect-vercel', token),
+    connectRailway: (token: string) => ipcRenderer.invoke('deploy:connect-railway', token),
+    disconnect: (platform: string) => ipcRenderer.invoke('deploy:disconnect', platform),
+    vercelProjects: (teamId?: string) => ipcRenderer.invoke('deploy:vercel-projects', teamId),
+    railwayProjects: () => ipcRenderer.invoke('deploy:railway-projects'),
+    link: (projectId: string, platform: string, linkData: object) => ipcRenderer.invoke('deploy:link', projectId, platform, linkData),
+    unlink: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:unlink', projectId, platform),
+    status: (projectId: string) => ipcRenderer.invoke('deploy:status', projectId),
+    deployments: (projectId: string, platform: string, limit?: number) => ipcRenderer.invoke('deploy:deployments', projectId, platform, limit),
+    redeploy: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:redeploy', projectId, platform),
+    envVars: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:env-vars', projectId, platform),
+    autoDetect: (projectPath: string) => ipcRenderer.invoke('deploy:auto-detect', projectPath),
+  },
+
   tools: {
     list: () => ipcRenderer.invoke('tools:list'),
     get: (id: string) => ipcRenderer.invoke('tools:get', id),
@@ -232,11 +269,11 @@ contextBridge.exposeInMainWorld('daemon', {
     delete: (id: string, deleteFiles: boolean) => ipcRenderer.invoke('tools:delete', id, deleteFiles),
     runCommand: (id: string) => ipcRenderer.invoke('tools:runCommand', id),
     markRunning: (id: string, terminalId: string, pid: number) => ipcRenderer.invoke('tools:markRunning', id, terminalId, pid),
-    markStopped: (toolId: string) => ipcRenderer.invoke('tools:mark-stopped', toolId),
+    markStopped: (toolId: string) => ipcRenderer.invoke('tools:markStopped', toolId),
     update: (id: string, data: Record<string, unknown>) => ipcRenderer.invoke('tools:update', id, data),
     discover: () => ipcRenderer.invoke('tools:discover'),
     status: (id: string) => ipcRenderer.invoke('tools:status', id),
-    basePath: () => ipcRenderer.invoke('tools:base-path'),
+    basePath: () => ipcRenderer.invoke('tools:basePath'),
     openFolder: (id: string) => ipcRenderer.invoke('tools:openFolder', id),
     import: () => ipcRenderer.invoke('tools:import'),
   },

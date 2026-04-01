@@ -21,15 +21,39 @@ function stopPoll() {
   }
 }
 
+interface AgentWallet {
+  id: string
+  name: string
+  address: string
+  agent_id: string
+  wallet_type: string
+}
+
+interface WalletTransaction {
+  id: string
+  type: string
+  signature: string | null
+  from_address: string
+  to_address: string
+  amount: number
+  mint: string | null
+  status: string
+  created_at: number
+}
+
 interface WalletStoreState {
   dashboard: WalletDashboard | null
   showMarketTape: boolean
   showTitlebarWallet: boolean
   loading: boolean
   error: string | null
+  agentWallets: AgentWallet[] | null
+  transactions: WalletTransaction[] | null
   refresh: (projectId?: string | null) => Promise<void>
   setShowMarketTape: (enabled: boolean) => Promise<boolean>
   setShowTitlebarWallet: (enabled: boolean) => Promise<boolean>
+  loadAgentWallets: () => Promise<void>
+  loadTransactions: (walletId: string) => Promise<void>
   /** Call when a fast-polling consumer mounts (wallet panel). Returns cleanup fn. */
   subscribeFastPoll: () => () => void
   /** Start slow background polling (call once from app init). Returns cleanup fn. */
@@ -42,6 +66,8 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   showTitlebarWallet: true,
   loading: false,
   error: null,
+  agentWallets: null,
+  transactions: null,
 
   refresh: async (projectId) => {
     set({ loading: true, error: null })
@@ -92,6 +118,28 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
       return true
     }
     return false
+  },
+
+  loadAgentWallets: async () => {
+    try {
+      const res = await window.daemon.wallet.agentWallets()
+      if (res.ok && res.data) {
+        set({ agentWallets: res.data })
+      }
+    } catch {
+      // silently fail — agent wallets are supplementary
+    }
+  },
+
+  loadTransactions: async (walletId: string) => {
+    try {
+      const res = await window.daemon.wallet.transactionHistory(walletId)
+      if (res.ok && res.data) {
+        set({ transactions: res.data })
+      }
+    } catch {
+      set({ transactions: null })
+    }
   },
 
   subscribeFastPoll: () => {

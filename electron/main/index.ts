@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell, ipcMain, protocol, net, session } from 'electron'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { getDb, closeDb } from '../db/db'
 import { registerTerminalHandlers, killAllSessions } from '../ipc/terminal'
 import { registerFilesystemHandlers } from '../ipc/filesystem'
@@ -20,7 +21,10 @@ import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
 import { registerBrowserHandlers } from '../ipc/browser'
+import { registerDeployHandlers } from '../ipc/deploy'
 import { clearLoadedWallets } from '../services/RecoveryService'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -49,6 +53,27 @@ protocol.registerSchemesAsPrivileged([{
 }])
 
 if (process.platform === 'win32') app.setAppUserModelId('DAEMON')
+
+// Crash capture — write unhandled errors to app_crashes table
+process.on('uncaughtException', (error) => {
+  try {
+    const db = getDb()
+    db.prepare('INSERT INTO app_crashes (id, type, message, stack, created_at) VALUES (?,?,?,?,?)').run(
+      crypto.randomUUID(), 'uncaughtException', error.message, error.stack ?? '', Date.now()
+    )
+  } catch { /* DB may not be ready */ }
+})
+
+process.on('unhandledRejection', (reason) => {
+  try {
+    const db = getDb()
+    const message = reason instanceof Error ? reason.message : String(reason)
+    const stack = reason instanceof Error ? reason.stack ?? '' : ''
+    db.prepare('INSERT INTO app_crashes (id, type, message, stack, created_at) VALUES (?,?,?,?,?)').run(
+      crypto.randomUUID(), 'unhandledRejection', message, stack, Date.now()
+    )
+  } catch { /* DB may not be ready */ }
+})
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -82,6 +107,7 @@ function registerAllIpc() {
   registerToolHandlers()
   registerPumpFunHandlers()
   registerBrowserHandlers()
+  registerDeployHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -188,7 +214,7 @@ async function createWindow() {
       preload,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       webviewTag: true,
     },
   })
@@ -215,11 +241,45 @@ async function createWindow() {
     delete (webPreferences as Record<string, unknown>).preload
   })
 
+  // Block navigation away from app origin (XSS defense)
+  win.webContents.on('will-navigate', (event, url) => {
+    const appOrigin = VITE_DEV_SERVER_URL
+      ? new URL(VITE_DEV_SERVER_URL).origin
+      : 'file://'
+    const target = new URL(url)
+    if (target.origin !== appOrigin) {
+      event.preventDefault()
+    }
+  })
+
   win.on('maximize', () => win?.webContents.send('window:maximized'))
   win.on('unmaximize', () => win?.webContents.send('window:unmaximized'))
+
+  // Startup crash detection — warn if >3 crashes in the last hour
+  try {
+    const db = getDb()
+    const recentCrashes = db.prepare(
+      'SELECT COUNT(*) as count FROM app_crashes WHERE created_at > ?'
+    ).get(Date.now() - 3600_000) as { count: number }
+
+    if (recentCrashes.count > 3) {
+      win.webContents.on('did-finish-load', () => {
+        win?.webContents.send('crash-warning', recentCrashes.count)
+      })
+    }
+  } catch { /* table may not exist yet on first run */ }
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {})
+    setInterval(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch(() => {})
+    }, 4 * 60 * 60 * 1000)
+  }
+})
 
 app.on('window-all-closed', () => {
   killAllSessions()

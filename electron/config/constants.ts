@@ -35,4 +35,6 @@ export const API_ENDPOINTS = {
   GOOGLE_OAUTH_TOKEN: 'https://oauth2.googleapis.com/token',
   GOOGLE_OAUTH_AUTH: 'https://accounts.google.com/o/oauth2/v2/auth',
   GMAIL_API_BASE: 'https://gmail.googleapis.com/gmail/v1/users/me',
+  VERCEL_API: 'https://api.vercel.com',
+  RAILWAY_API: 'https://backboard.railway.com/graphql/v2',
 } as const

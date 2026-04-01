@@ -9,6 +9,12 @@ interface OpenFile {
   projectId: string
 }
 
+export interface GridCell {
+  id: string | null
+  label: string
+  visible: boolean
+}
+
 interface TerminalTab {
   id: string
   label: string
@@ -19,7 +25,7 @@ interface TerminalTab {
 export type CenterMode = 'canvas' | 'grind' | 'browser'
 
 interface UIState {
-  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser'
+  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]
@@ -33,6 +39,7 @@ interface UIState {
   centerMode: CenterMode
   grindPageCount: number
   activeGrindPage: number
+  grindPages: Record<string, GridCell[][]>
 
   setActivePanel: (panel: UIState['activePanel']) => void
   setActiveProject: (id: string | null, path: string | null) => void
@@ -53,6 +60,11 @@ interface UIState {
   setActiveGrindPage: (page: number) => void
   addGrindPage: () => void
   removeGrindPage: (page: number) => void
+  initGrindPages: (projectId: string) => void
+  setGrindCell: (projectId: string, pageIndex: number, cellIndex: number, cell: Partial<GridCell>) => void
+  addGrindCellToPage: (projectId: string, pageIndex: number) => void
+  setGrindPageCells: (projectId: string, pageIndex: number, cells: GridCell[]) => void
+  removeGrindPageCells: (projectId: string, pageIndex: number) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -70,6 +82,7 @@ export const useUIStore = create<UIState>((set) => ({
   centerMode: 'canvas' as CenterMode,
   grindPageCount: 1,
   activeGrindPage: 0,
+  grindPages: {},
 
   setActivePanel: (panel) => set({ activePanel: panel }),
 
@@ -165,6 +178,67 @@ export const useUIStore = create<UIState>((set) => ({
     return {
       grindPageCount: newCount,
       activeGrindPage: Math.min(state.activeGrindPage, newCount - 1),
+    }
+  }),
+
+  initGrindPages: (projectId) => set((state) => {
+    if (state.grindPages[projectId]) return {}
+    return {
+      grindPages: {
+        ...state.grindPages,
+        [projectId]: [[
+          { id: null, label: 'Agent 1', visible: true },
+          { id: null, label: 'Agent 2', visible: true },
+          { id: null, label: 'Agent 3', visible: true },
+          { id: null, label: 'Agent 4', visible: true },
+        ]],
+      },
+    }
+  }),
+
+  setGrindCell: (projectId, pageIndex, cellIndex, cell) => set((state) => {
+    const projectPages = state.grindPages[projectId]
+    if (!projectPages || !projectPages[pageIndex]) return {}
+    const updatedPage = [...projectPages[pageIndex]]
+    updatedPage[cellIndex] = { ...updatedPage[cellIndex], ...cell }
+    const updatedPages = [...projectPages]
+    updatedPages[pageIndex] = updatedPage
+    return {
+      grindPages: { ...state.grindPages, [projectId]: updatedPages },
+    }
+  }),
+
+  addGrindCellToPage: (projectId, pageIndex) => set((state) => {
+    const projectPages = state.grindPages[projectId]
+    if (!projectPages || !projectPages[pageIndex]) return {}
+    const page = projectPages[pageIndex]
+    const updatedPage = [
+      ...page,
+      { id: null, label: `Agent ${page.length + 1}`, visible: true },
+    ]
+    const updatedPages = [...projectPages]
+    updatedPages[pageIndex] = updatedPage
+    return {
+      grindPages: { ...state.grindPages, [projectId]: updatedPages },
+    }
+  }),
+
+  setGrindPageCells: (projectId, pageIndex, cells) => set((state) => {
+    const projectPages = state.grindPages[projectId]
+    if (!projectPages) return {}
+    const updatedPages = [...projectPages]
+    updatedPages[pageIndex] = cells
+    return {
+      grindPages: { ...state.grindPages, [projectId]: updatedPages },
+    }
+  }),
+
+  removeGrindPageCells: (projectId, pageIndex) => set((state) => {
+    const projectPages = state.grindPages[projectId]
+    if (!projectPages || projectPages.length <= 1) return {}
+    const updatedPages = projectPages.filter((_, i) => i !== pageIndex)
+    return {
+      grindPages: { ...state.grindPages, [projectId]: updatedPages },
     }
   }),
 }))

@@ -56,11 +56,27 @@ export const INSPECTOR_INJECT_SCRIPT = `
     const rect = target.getBoundingClientRect();
     const selector = getSelector(target);
     const text = (target.textContent || '').trim().slice(0, 200);
+    const computed = window.getComputedStyle(target);
     console.log('DAEMON_INSPECT:' + JSON.stringify({
       selector: selector,
       tagName: target.tagName.toLowerCase(),
       text: text,
-      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      styles: {
+        fontSize: computed.fontSize,
+        fontWeight: computed.fontWeight,
+        color: computed.color,
+        backgroundColor: computed.backgroundColor,
+        display: computed.display,
+        position: computed.position,
+        padding: computed.padding,
+        margin: computed.margin,
+        width: computed.width,
+        height: computed.height,
+      },
+      attributes: Object.fromEntries(
+        Array.from(target.attributes).slice(0, 10).map(function(a) { return [a.name, a.value.slice(0, 100)] })
+      ),
     }));
   }
 

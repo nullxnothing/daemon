@@ -42,7 +42,16 @@ import type {
   ProjectCreateInput,
   TweetUpdateInput,
   WalletCreateInput,
+  WalletGenerateInput,
+  TransferSOLInput,
+  TransferTokenInput,
   McpAddInput,
+  DeployPlatform,
+  DeployAuthStatus,
+  DeployStatus,
+  DeploymentEntry,
+  VercelLink,
+  RailwayLink,
 } from '../../electron/shared/types'
 
 export type {
@@ -89,7 +98,16 @@ export type {
   ProjectCreateInput,
   TweetUpdateInput,
   WalletCreateInput,
+  WalletGenerateInput,
+  TransferSOLInput,
+  TransferTokenInput,
   McpAddInput,
+  DeployPlatform,
+  DeployAuthStatus,
+  DeployStatus,
+  DeploymentEntry,
+  VercelLink,
+  RailwayLink,
 }
 
 declare global {
@@ -115,6 +133,12 @@ declare global {
   type RecoveryWalletInfo = import('../../electron/shared/types').RecoveryWalletInfo
   type RecoveryProgressEvent = import('../../electron/shared/types').RecoveryProgressEvent
   type RecoveryStatus = import('../../electron/shared/types').RecoveryStatus
+  type DeployPlatform = import('../../electron/shared/types').DeployPlatform
+  type DeployAuthStatus = import('../../electron/shared/types').DeployAuthStatus
+  type DeployStatus = import('../../electron/shared/types').DeployStatus
+  type DeploymentEntry = import('../../electron/shared/types').DeploymentEntry
+  type VercelLink = import('../../electron/shared/types').VercelLink
+  type RailwayLink = import('../../electron/shared/types').RailwayLink
 
   interface DaemonWindow {
     minimize: () => void
@@ -215,12 +239,35 @@ declare global {
     storeHeliusKey: (value: string) => Promise<IpcResponse>
     deleteHeliusKey: () => Promise<IpcResponse>
     hasHeliusKey: () => Promise<IpcResponse<boolean>>
+    generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => Promise<IpcResponse<{ signature: string }>>
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => Promise<IpcResponse<{ signature: string }>>
+    balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
+    agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
+    createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
+    hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+    transactionHistory: (walletId: string, limit?: number) => Promise<IpcResponse<Array<{ id: string; wallet_id: string; type: string; signature: string | null; from_address: string; to_address: string; amount: number; mint: string | null; symbol: string | null; status: string; error: string | null; created_at: number }>>>
+    exportPrivateKey: (walletId: string) => Promise<IpcResponse<string>>
+  }
+
+  interface AppCrashEntry {
+    id: string
+    type: string
+    message: string
+    stack: string
+    created_at: number
   }
 
   interface DaemonSettings {
     getUi: () => Promise<IpcResponse<UiSettings>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
+    isOnboardingComplete: () => Promise<IpcResponse<boolean>>
+    setOnboardingComplete: (complete: boolean) => Promise<IpcResponse>
+    reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
+    getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
+    clearCrashes: () => Promise<IpcResponse>
+    onCrashWarning: (callback: (count: number) => void) => () => void
   }
 
   interface DaemonAgents {
@@ -254,6 +301,22 @@ declare global {
     suggestCommitMessage: (diff: string) => Promise<IpcResponse<string>>
     tidyMarkdown: (filePath: string, content: string) => Promise<IpcResponse<string>>
     mcpAdd: (mcp: { name: string; config: string; description: string; isGlobal: boolean }) => Promise<IpcResponse>
+  }
+
+  interface DaemonDeploy {
+    authStatus: () => Promise<IpcResponse<DeployAuthStatus>>
+    connectVercel: (token: string) => Promise<IpcResponse<{ name: string; email: string }>>
+    connectRailway: (token: string) => Promise<IpcResponse<{ name: string; email: string }>>
+    disconnect: (platform: DeployPlatform) => Promise<IpcResponse>
+    vercelProjects: (teamId?: string) => Promise<IpcResponse<unknown[]>>
+    railwayProjects: () => Promise<IpcResponse<unknown[]>>
+    link: (projectId: string, platform: DeployPlatform, linkData: VercelLink | RailwayLink) => Promise<IpcResponse>
+    unlink: (projectId: string, platform: DeployPlatform) => Promise<IpcResponse>
+    status: (projectId: string) => Promise<IpcResponse<DeployStatus[]>>
+    deployments: (projectId: string, platform: DeployPlatform, limit?: number) => Promise<IpcResponse<DeploymentEntry[]>>
+    redeploy: (projectId: string, platform: DeployPlatform) => Promise<IpcResponse>
+    envVars: (projectId: string, platform: DeployPlatform) => Promise<IpcResponse<unknown>>
+    autoDetect: (projectPath: string) => Promise<IpcResponse<Record<string, unknown[]>>>
   }
 
   interface DaemonShell {
@@ -372,18 +435,21 @@ declare global {
     plugins: DaemonPlugins
     browser: DaemonBrowser
     recovery: DaemonRecovery
+    deploy: DaemonDeploy
     shell: DaemonShell
     pumpfun: DaemonPumpFun
   }
 
   interface DaemonBrowser {
-    navigate: (url: string) => Promise<IpcResponse<{ url: string; title: string; status: number; contentLength: number }>>
+    navigate: (url: string) => Promise<IpcResponse<{ pageId: string; url: string; title: string; status: number; contentLength: number }>>
+    capture: (pageId: string, url: string, title: string, content: string) => Promise<IpcResponse<void>>
     content: (pageId: string) => Promise<IpcResponse<{ id: string; url: string; title: string; content: string; timestamp: number }>>
     analyze: (pageId: string, type: string, target?: string) => Promise<IpcResponse<{ url: string; summary: string; findings: string[]; type: string }>>
     audit: (pageId: string) => Promise<IpcResponse<{ url: string; summary: string; findings: string[]; type: string }>>
     history: () => Promise<IpcResponse<Array<{ id: string; url: string; title: string; timestamp: number }>>>
     clear: () => Promise<IpcResponse<void>>
-    agentCommand: () => Promise<IpcResponse<{ command: string; promptPath: string }>>
+    chat: (sessionId: string, message: string, browserContext?: string) => Promise<IpcResponse<{ text: string; navigateUrl: string | null }>>
+    chatReset: (sessionId: string) => Promise<IpcResponse<void>>
   }
 
   interface Window {

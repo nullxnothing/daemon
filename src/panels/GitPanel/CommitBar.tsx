@@ -5,17 +5,30 @@ interface CommitBarProps {
   projectPath: string
   files: GitFile[]
   pushing: boolean
-  onCommit: (msg: string) => Promise<void>
+  onCommitOnly: (msg: string) => Promise<void>
+  onCommitAndPush: (msg: string) => Promise<void>
   onError: (msg: string) => void
 }
 
-const SparkleIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/>
+const WandIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 4V2m0 2v2m0-2h2m-2 0h-2" />
+    <path d="M8.5 8.5 21 21" />
+    <path d="m6 13 1.5-1.5" />
+    <path d="m3 3 1.5 1.5" />
+    <path d="M20 4V2m0 2v2m0-2h2m-2 0h-2" />
+    <path d="m3 10 2-2" />
   </svg>
 )
 
-export function CommitBar({ projectPath, files, pushing, onCommit, onError }: CommitBarProps) {
+export function CommitBar({
+  projectPath,
+  files,
+  pushing,
+  onCommitOnly,
+  onCommitAndPush,
+  onError,
+}: CommitBarProps) {
   const [commitMsg, setCommitMsg] = useState('')
   const [committing, setCommitting] = useState(false)
   const [generatingCommitMsg, setGeneratingCommitMsg] = useState(false)
@@ -26,7 +39,15 @@ export function CommitBar({ projectPath, files, pushing, onCommit, onError }: Co
   const handleCommit = async () => {
     if (isCommitDisabled) return
     setCommitting(true)
-    await onCommit(commitMsg.trim())
+    await onCommitOnly(commitMsg.trim())
+    setCommitMsg('')
+    setCommitting(false)
+  }
+
+  const handleCommitAndPush = async () => {
+    if (isCommitDisabled) return
+    setCommitting(true)
+    await onCommitAndPush(commitMsg.trim())
     setCommitMsg('')
     setCommitting(false)
   }
@@ -74,15 +95,22 @@ export function CommitBar({ projectPath, files, pushing, onCommit, onError }: Co
         disabled={generatingCommitMsg || stagedCount === 0}
         title="Generate commit message"
       >
-        {generatingCommitMsg ? '...' : <SparkleIcon />}
+        {generatingCommitMsg ? '...' : <WandIcon />}
       </button>
       <button
-        className="git-commit-btn"
+        className="git-commit-btn git-commit-btn--local"
         onClick={() => void handleCommit()}
         disabled={isCommitDisabled}
         title={stagedCount === 0 ? 'Stage files first' : !commitMsg.trim() ? 'Enter a commit message' : ''}
       >
-        {committing ? 'Committing…' : 'Commit'}
+        {committing && !pushing ? 'Committing…' : 'Commit'}
+      </button>
+      <button
+        className="git-commit-btn"
+        onClick={() => void handleCommitAndPush()}
+        disabled={isCommitDisabled}
+      >
+        {committing && pushing ? 'Pushing…' : 'Commit & Push'}
       </button>
     </div>
   )

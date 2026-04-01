@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
-import type { GitFile, GitCommit } from '../../../electron/shared/types'
+import type { GitFile, GitCommit, DeployStatus } from '../../../electron/shared/types'
 import './GitPanel.css'
 
 export function GitPanel() {
   const projectPath = useUIStore((s) => s.activeProjectPath)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
   const setShowOnboarding = useUIStore((s) => s.setShowOnboarding)
   const [branch, setBranch] = useState<string | null>(null)
   const [branches, setBranches] = useState<string[]>([])
@@ -29,6 +30,20 @@ export function GitPanel() {
   const [stashCount, setStashCount] = useState(0)
   const [latestStashMessage, setLatestStashMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [deployStatus, setDeployStatus] = useState<DeployStatus | null>(null)
+
+  const loadDeployStatus = useCallback(async () => {
+    if (!activeProjectId) return
+    try {
+      const res = await window.daemon.deploy.status(activeProjectId)
+      if (res.ok && res.data) {
+        const linked = res.data.find((s: DeployStatus) => s.linked)
+        setDeployStatus(linked ?? null)
+      }
+    } catch { /* deploy backend may not be ready yet */ }
+  }, [activeProjectId])
+
+  useEffect(() => { loadDeployStatus() }, [loadDeployStatus])
 
   const parseGitError = (message: string | undefined) => {
     if (!message) return 'Git operation failed'
@@ -118,6 +133,7 @@ export function GitPanel() {
     if (pushRes.ok) {
       setCommitMsg('')
       load()
+      loadDeployStatus()
     } else {
       maybeShowGitHubOnboarding(pushRes.error)
       setError(parseGitError(pushRes.error) ?? 'Push failed')
@@ -166,7 +182,7 @@ export function GitPanel() {
       maybeShowGitHubOnboarding(res.error)
       setError(parseGitError(res.error) ?? 'Push failed')
     }
-    else load()
+    else { load(); loadDeployStatus() }
   }
 
   const handleCheckout = async (br: string) => {
@@ -443,6 +459,21 @@ export function GitPanel() {
           {pushing ? 'Pushing...' : 'Push'}
         </button>
       </div>
+
+      {deployStatus && (() => {
+        const dotColor = deployStatus.latestStatus === 'READY' ? 'var(--green)'
+          : deployStatus.latestStatus === 'BUILDING' || deployStatus.latestStatus === 'QUEUED' ? 'var(--amber)'
+          : deployStatus.latestStatus === 'ERROR' ? 'var(--red)' : 'var(--t4)'
+        return (
+          <div
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', margin: '0 16px', fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', border: '1px solid var(--s5)', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start' }}
+            onClick={() => useUIStore.getState().setActivePanel('deploy')}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+            <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>
+          </div>
+        )
+      })()}
 
       {error && <div className="git-error">{error}</div>}
 

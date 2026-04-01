@@ -1,5 +1,6 @@
 import { ipcMain, shell, clipboard } from 'electron'
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
+import fsSync from 'node:fs'
 import path from 'node:path'
 import { getInstalledBeardedIconsTheme } from '../services/IconThemeService'
 import { isPathSafe } from '../shared/pathValidation'
@@ -24,30 +25,35 @@ export function registerFilesystemHandlers() {
 
   ipcMain.handle('fs:readFile', ipcHandler(async (_event, filePath: string) => {
     validatePath(filePath)
-    const content = fs.readFileSync(filePath, 'utf8')
+    const content = await fs.readFile(filePath, 'utf8')
     return { content, path: filePath }
   }))
 
   ipcMain.handle('fs:writeFile', ipcHandler(async (_event, filePath: string, content: string) => {
     validatePath(filePath)
-    fs.writeFileSync(filePath, content, 'utf8')
+    await fs.writeFile(filePath, content, 'utf8')
   }))
 
   ipcMain.handle('fs:createFile', ipcHandler(async (_event, filePath: string) => {
     validatePath(filePath)
-    if (fs.existsSync(filePath)) throw new Error('File already exists')
-    fs.writeFileSync(filePath, '', 'utf8')
+    try {
+      await fs.access(filePath)
+      throw new Error('File already exists')
+    } catch (e) {
+      if ((e as Error).message === 'File already exists') throw e
+    }
+    await fs.writeFile(filePath, '', 'utf8')
   }))
 
   ipcMain.handle('fs:createDir', ipcHandler(async (_event, dirPath: string) => {
     validatePath(dirPath)
-    fs.mkdirSync(dirPath, { recursive: true })
+    await fs.mkdir(dirPath, { recursive: true })
   }))
 
   ipcMain.handle('fs:rename', ipcHandler(async (_event, oldPath: string, newPath: string) => {
     validatePath(oldPath)
     validatePath(newPath)
-    fs.renameSync(oldPath, newPath)
+    await fs.rename(oldPath, newPath)
   }))
 
   // Delete sends to recycle bin (recoverable) instead of permanent rmSync
@@ -75,7 +81,7 @@ function readDirRecursive(dirPath: string, depth: number): FileEntry[] {
   if (depth <= 0) return []
 
   try {
-    const items = fs.readdirSync(dirPath, { withFileTypes: true })
+    const items = fsSync.readdirSync(dirPath, { withFileTypes: true })
     const entries: FileEntry[] = []
 
     for (const item of items) {

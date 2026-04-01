@@ -1,6 +1,9 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
+import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
+import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
+import bs58 from 'bs58'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -26,6 +29,8 @@ interface WalletRow {
   address: string
   keypair_path: string | null
   is_default: number
+  agent_id: string | null
+  wallet_type: string
   created_at: number
 }
 
@@ -81,6 +86,7 @@ interface PortfolioFeedEntry {
 }
 
 const lastWalletTotals = new Map<string, number>()
+const exportCooldowns = new Map<string, number>()
 
 export async function getDashboard(projectId?: string | null) {
   const heliusKey = SecureKey.getKey('HELIUS_API_KEY')
@@ -259,7 +265,13 @@ export function getProjectWalletId(projectId: string | null): string | null {
   return row?.wallet_id ?? null
 }
 
-export function storeHeliusKey(value: string) {
+export async function storeHeliusKey(value: string) {
+  const res = await fetch(`https://mainnet.helius-rpc.com/?api-key=${value}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getHealth' }),
+  })
+  if (!res.ok) throw new Error('Invalid Helius API key — connection failed')
   SecureKey.storeKey('HELIUS_API_KEY', value)
 }
 
@@ -331,7 +343,7 @@ function normalizeHoldings(balances: HeliusBalance[]): HoldingSummary[] {
 
 function listWalletsRaw(): WalletRow[] {
   const db = getDb()
-  return db.prepare('SELECT id, name, address, is_default, created_at FROM wallets ORDER BY is_default DESC, created_at ASC').all() as WalletRow[]
+  return db.prepare('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets ORDER BY is_default DESC, created_at ASC').all() as WalletRow[]
 }
 
 function getProjectAssignments(): Map<string, string[]> {
@@ -401,33 +413,260 @@ function truncateMint(mint: string): string {
   return `${mint.slice(0, 4)}…${mint.slice(-4)}`
 }
 
-const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
 function isValidSolanaAddress(value: string): boolean {
-  if (value.length < 32 || value.length > 44) return false
-  let bytes = [0]
+  try { new PublicKey(value); return true } catch { return false }
+}
 
-  for (const char of value) {
-    const digit = BASE58_ALPHABET.indexOf(char)
-    if (digit === -1) return false
+// ---------------------------------------------------------------------------
+// Solana Transaction Support
+// ---------------------------------------------------------------------------
 
-    let carry = digit
-    for (let i = 0; i < bytes.length; i += 1) {
-      const next = bytes[i] * 58 + carry
-      bytes[i] = next & 0xff
-      carry = next >> 8
-    }
+function getConnection(): Connection {
+  const key = SecureKey.getKey('HELIUS_API_KEY')
+  if (key) {
+    return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
+  }
+  return new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
+}
 
-    while (carry > 0) {
-      bytes.push(carry & 0xff)
-      carry >>= 8
-    }
+function loadKeypair(walletId: string): Keypair {
+  const encrypted = SecureKey.getKey(`WALLET_KEYPAIR_${walletId}`)
+  if (!encrypted) throw new Error('No keypair found for this wallet. It may be a watch-only wallet.')
+  return Keypair.fromSecretKey(bs58.decode(encrypted))
+}
+
+async function sendWithTimeout(connection: Connection, transaction: Transaction, signers: Keypair[], timeoutMs = 60_000): Promise<string> {
+  const txPromise = sendAndConfirmTransaction(connection, transaction, signers)
+  let timer: ReturnType<typeof setTimeout>
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Transaction confirmation timed out (60s). It may still confirm — check Solscan.')), timeoutMs)
+  })
+  try {
+    return await Promise.race([txPromise, timeoutPromise])
+  } finally {
+    clearTimeout(timer!)
+  }
+}
+
+async function withKeypair<T>(walletId: string, fn: (kp: Keypair) => Promise<T>): Promise<T> {
+  const kp = loadKeypair(walletId)
+  try { return await fn(kp) } finally { kp.secretKey.fill(0) }
+}
+
+export function generateWallet(name: string, walletType: 'user' | 'agent' = 'user', agentId?: string) {
+  const trimmedName = name.trim()
+  if (!trimmedName) throw new Error('Wallet name is required')
+
+  const kp = Keypair.generate()
+  const address = kp.publicKey.toBase58()
+  const id = crypto.randomUUID()
+
+  // Store encrypted keypair via SecureKeyService
+  SecureKey.storeKey(`WALLET_KEYPAIR_${id}`, bs58.encode(kp.secretKey))
+  kp.secretKey.fill(0)
+
+  const db = getDb()
+  const existingDefault = db.prepare('SELECT id FROM wallets WHERE is_default = 1').get() as { id: string } | undefined
+  db.prepare(
+    'INSERT INTO wallets (id, name, address, is_default, wallet_type, agent_id, created_at) VALUES (?,?,?,?,?,?,?)'
+  ).run(id, trimmedName, address, existingDefault ? 0 : 1, walletType, agentId ?? null, Date.now())
+
+  return db.prepare('SELECT id, name, address, is_default, wallet_type, agent_id, created_at FROM wallets WHERE id = ?').get(id)
+}
+
+export async function transferSOL(fromWalletId: string, toAddress: string, amountSol: number) {
+  if (amountSol <= 0) throw new Error('Amount must be greater than 0')
+  if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
+
+  const db = getDb()
+
+  // Agent spend limit check
+  const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
+  if (walletRow?.wallet_type === 'agent') {
+    const dayAgo = Date.now() - 86_400_000
+    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND created_at > ?').get(fromWalletId, 'confirmed', dayAgo) as { total: number }
+    if (row.total + amountSol > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
   }
 
-  for (const char of value) {
-    if (char !== '1') break
-    bytes.push(0)
+  return withKeypair(fromWalletId, async (keypair) => {
+    const connection = getConnection()
+    const fromAddress = keypair.publicKey.toBase58()
+
+    // Balance check before building transaction
+    const balance = await connection.getBalance(keypair.publicKey)
+    const lamportsNeeded = Math.round(amountSol * LAMPORTS_PER_SOL) + 10_000
+    if (balance < lamportsNeeded) {
+      throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountSol} SOL + fees`)
+    }
+
+    const txId = crypto.randomUUID()
+
+    db.prepare(
+      'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
+    ).run(txId, fromWalletId, 'sol_transfer', fromAddress, toAddress, amountSol, 'pending', Date.now())
+
+    try {
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: keypair.publicKey,
+          toPubkey: new PublicKey(toAddress),
+          lamports: Math.round(amountSol * LAMPORTS_PER_SOL),
+        })
+      )
+
+      const signature = await sendWithTimeout(connection, transaction, [keypair])
+
+      db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      return { id: txId, signature, status: 'confirmed' }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      throw err
+    }
+  })
+}
+
+export async function transferToken(fromWalletId: string, toAddress: string, mint: string, amount: number) {
+  if (amount <= 0) throw new Error('Amount must be greater than 0')
+  if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
+  if (!isValidSolanaAddress(mint)) throw new Error('Invalid mint address')
+
+  const db = getDb()
+
+  // Agent spend limit check
+  const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
+  if (walletRow?.wallet_type === 'agent') {
+    const dayAgo = Date.now() - 86_400_000
+    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND created_at > ?').get(fromWalletId, 'confirmed', dayAgo) as { total: number }
+    if (row.total + amount > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
   }
 
-  return bytes.length === 32
+  return withKeypair(fromWalletId, async (keypair) => {
+    const connection = getConnection()
+    const fromAddress = keypair.publicKey.toBase58()
+    const mintPubkey = new PublicKey(mint)
+    const destPubkey = new PublicKey(toAddress)
+    const txId = crypto.randomUUID()
+
+    db.prepare(
+      'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
+    ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amount, mint, 'pending', Date.now())
+
+    try {
+      const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
+      const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey)
+
+      const transaction = new Transaction()
+
+      // Create destination ATA if it doesn't exist
+      try {
+        await getAccount(connection, toAta)
+      } catch {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            keypair.publicKey,
+            toAta,
+            destPubkey,
+            mintPubkey,
+          )
+        )
+      }
+
+      // Convert human-readable amount to raw token units using mint decimals
+      const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
+      const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+      const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
+
+      transaction.add(
+        createTransferInstruction(
+          fromAta,
+          toAta,
+          keypair.publicKey,
+          rawAmount,
+        )
+      )
+
+      const signature = await sendWithTimeout(connection, transaction, [keypair])
+
+      db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      return { id: txId, signature, status: 'confirmed' }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      throw err
+    }
+  })
+}
+
+export async function getBalance(walletId: string) {
+  const db = getDb()
+  const row = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
+  if (!row) throw new Error('Wallet not found')
+
+  const connection = getConnection()
+  const lamports = await connection.getBalance(new PublicKey(row.address))
+  return { sol: lamports / LAMPORTS_PER_SOL, lamports }
+}
+
+export function createAgentWallet(agentId: string, agentName: string) {
+  return generateWallet(`${agentName} Wallet`, 'agent', agentId)
+}
+
+export function listAgentWallets(agentId?: string) {
+  const db = getDb()
+  const projectAssignments = getProjectAssignments()
+
+  if (agentId) {
+    const rows = db.prepare(
+      'SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets WHERE wallet_type = ? AND agent_id = ? ORDER BY created_at ASC'
+    ).all('agent', agentId) as WalletRow[]
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      address: row.address,
+      is_default: row.is_default,
+      agent_id: row.agent_id,
+      wallet_type: row.wallet_type,
+      created_at: row.created_at,
+      assigned_project_ids: projectAssignments.get(row.id) ?? [],
+    }))
+  }
+
+  const rows = db.prepare(
+    'SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets WHERE wallet_type = ? ORDER BY created_at ASC'
+  ).all('agent') as WalletRow[]
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    address: row.address,
+    is_default: row.is_default,
+    agent_id: row.agent_id,
+    wallet_type: row.wallet_type,
+    created_at: row.created_at,
+    assigned_project_ids: projectAssignments.get(row.id) ?? [],
+  }))
+}
+
+export function hasKeypair(walletId: string): boolean {
+  return Boolean(SecureKey.getKey(`WALLET_KEYPAIR_${walletId}`))
+}
+
+export function getTransactionHistory(walletId: string, limit = 20) {
+  const db = getDb()
+  return db.prepare(
+    'SELECT id, wallet_id, type, signature, from_address, to_address, amount, mint, symbol, status, error, created_at FROM transaction_history WHERE wallet_id = ? ORDER BY created_at DESC LIMIT ?'
+  ).all(walletId, limit)
+}
+
+export function exportPrivateKey(walletId: string): string {
+  const lastExport = exportCooldowns.get(walletId)
+  if (lastExport && Date.now() - lastExport < 60_000) {
+    throw new Error('Export cooldown active. Please wait 60 seconds between exports for the same wallet.')
+  }
+
+  const encrypted = SecureKey.getKey(`WALLET_KEYPAIR_${walletId}`)
+  if (!encrypted) throw new Error('No keypair found for this wallet. It may be a watch-only wallet.')
+
+  exportCooldowns.set(walletId, Date.now())
+  return encrypted
 }

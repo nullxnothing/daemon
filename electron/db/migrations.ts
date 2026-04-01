@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -87,6 +87,30 @@ export function runMigrations(db: Database.Database) {
         try { db.exec(stmt) } catch { /* column/index may already exist */ }
       }
       db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(9)
+    })()
+  }
+
+  if (currentVersion < 10) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V10.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch { /* column/index may already exist */ }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(10)
+    })()
+  }
+
+  if (currentVersion < 11) {
+    db.transaction(() => {
+      db.exec(SCHEMA_V11)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(11)
+    })()
+  }
+
+  if (currentVersion < 12) {
+    db.transaction(() => {
+      db.exec(SCHEMA_V12)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(12)
     })()
   }
 

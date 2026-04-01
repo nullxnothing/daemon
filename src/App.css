@@ -8,6 +8,46 @@
   overflow: hidden;
 }
 
+/* Crash warning banner */
+.crash-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(239, 83, 80, 0.1);
+  border-bottom: 1px solid var(--red);
+  font-size: 11px;
+  color: var(--red);
+}
+
+.crash-warning-link {
+  background: none;
+  border: none;
+  color: var(--t1);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crash-warning-link:hover {
+  color: var(--green);
+}
+
+.crash-warning-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--t3);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+
+.crash-warning-dismiss:hover {
+  color: var(--t1);
+}
+
 /* Main Layout */
 .main-layout {
   display: flex;

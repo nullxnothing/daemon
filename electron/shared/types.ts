@@ -498,6 +498,56 @@ export interface WalletCreateInput {
   address: string
 }
 
+export interface WalletGenerateInput {
+  name: string
+  walletType?: 'user' | 'agent'
+  agentId?: string
+}
+
+export interface TransferSOLInput {
+  fromWalletId: string
+  toAddress: string
+  amountSol: number
+}
+
+export interface TransferTokenInput {
+  fromWalletId: string
+  toAddress: string
+  mint: string
+  amount: number
+}
+
+export interface TransactionHistoryEntry {
+  id: string
+  wallet_id: string
+  type: string
+  signature: string | null
+  from_address: string
+  to_address: string
+  amount: number
+  mint: string | null
+  symbol: string | null
+  status: string
+  error: string | null
+  created_at: number
+}
+
+export interface AgentWalletEntry {
+  id: string
+  name: string
+  address: string
+  is_default: number
+  agent_id: string
+  wallet_type: string
+  created_at: number
+  assigned_project_ids: string[]
+}
+
+export interface WalletBalanceResult {
+  sol: number
+  lamports: number
+}
+
 // --- MCP Management ---
 
 export interface McpAddInput {
@@ -605,6 +655,7 @@ export interface BrowserAnalysis {
 }
 
 export interface BrowserNavResult {
+  pageId: string
   url: string
   title: string
   status: number
@@ -634,6 +685,61 @@ export interface EngineResult {
   output?: string
   artifacts?: Record<string, string>
   error?: string
+}
+
+// --- Deploy ---
+
+export type DeployPlatform = 'vercel' | 'railway'
+
+export interface ProjectInfra {
+  vercel?: VercelLink
+  railway?: RailwayLink
+}
+
+export interface VercelLink {
+  projectId: string
+  projectName: string
+  teamId: string | null
+  teamSlug: string | null
+  productionUrl: string | null
+  framework: string | null
+  linkedAt: number
+}
+
+export interface RailwayLink {
+  projectId: string
+  projectName: string
+  serviceId: string
+  environmentId: string
+  productionUrl: string | null
+  linkedAt: number
+}
+
+export interface DeploymentEntry {
+  id: string
+  platform: DeployPlatform
+  status: 'BUILDING' | 'READY' | 'ERROR' | 'CANCELED' | 'QUEUED'
+  url: string | null
+  branch: string | null
+  commitSha: string | null
+  commitMessage: string | null
+  createdAt: number
+}
+
+export interface DeployStatus {
+  platform: DeployPlatform
+  linked: boolean
+  projectName: string | null
+  productionUrl: string | null
+  latestStatus: string | null
+  latestUrl: string | null
+  latestBranch: string | null
+  latestCreatedAt: number | null
+}
+
+export interface DeployAuthStatus {
+  vercel: { authenticated: boolean; user: string | null }
+  railway: { authenticated: boolean; user: string | null }
 }
 
 export interface EngineContext {

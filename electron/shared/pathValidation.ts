@@ -45,3 +45,13 @@ export function isProjectPathSafe(projectPath: string): boolean {
 export function validateCwd(cwd: string): void {
   if (!cwd || !isPathSafe(cwd)) throw new Error('Path not within a registered project')
 }
+
+/**
+ * General-purpose check: is targetPath inside basePath?
+ * Prevents path traversal by resolving both paths first.
+ */
+export function isPathWithinBase(targetPath: string, basePath: string): boolean {
+  const resolved = path.resolve(targetPath)
+  const base = path.resolve(basePath)
+  return resolved.startsWith(base + path.sep) || resolved === base
+}

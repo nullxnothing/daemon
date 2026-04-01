@@ -1,2 +1,12 @@
+onlyBuiltDependencies:
+  - better-sqlite3
+  - bigint-buffer
+  - bufferutil
+  - electron
+  - esbuild
+  - node-pty
+  - puppeteer
+  - utf-8-validate
+
 patchedDependencies:
   node-pty@1.1.0: patches/node-pty@1.1.0.patch

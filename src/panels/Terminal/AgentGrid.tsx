@@ -4,21 +4,6 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { useUIStore } from '../../store/ui'
 
-interface GridCell {
-  id: string | null
-  label: string
-  visible: boolean
-}
-
-type PageCells = GridCell[]
-
-const DEFAULT_CELLS: GridCell[] = [
-  { id: null, label: 'Agent 1', visible: true },
-  { id: null, label: 'Agent 2', visible: true },
-  { id: null, label: 'Agent 3', visible: true },
-  { id: null, label: 'Agent 4', visible: true },
-]
-
 export function AgentGrid() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -28,48 +13,65 @@ export function AgentGrid() {
   const setActiveGrindPage = useUIStore((s) => s.setActiveGrindPage)
   const addGrindPage = useUIStore((s) => s.addGrindPage)
   const removeGrindPage = useUIStore((s) => s.removeGrindPage)
+  const initGrindPages = useUIStore((s) => s.initGrindPages)
+  const setGrindCell = useUIStore((s) => s.setGrindCell)
+  const addGrindCellToPage = useUIStore((s) => s.addGrindCellToPage)
+  const setGrindPageCells = useUIStore((s) => s.setGrindPageCells)
+  const removeGrindPageCells = useUIStore((s) => s.removeGrindPageCells)
 
-  const [pages, setPages] = useState<PageCells[]>([DEFAULT_CELLS.map((c) => ({ ...c }))])
-  const pagesRef = useRef(pages)
-  pagesRef.current = pages
+  const pages = useUIStore((s) => s.grindPages[activeProjectId ?? ''] ?? [])
+
   const [dragSource, setDragSource] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
+  const [cellError, setCellError] = useState<Record<number, string>>({})
+
+  // Initialize grind pages for this project on mount
+  useEffect(() => {
+    if (activeProjectId) {
+      initGrindPages(activeProjectId)
+    }
+  }, [activeProjectId, initGrindPages])
 
   // Sync pages array length with store page count
   useEffect(() => {
-    setPages((prev) => {
-      if (prev.length === grindPageCount) return prev
-      if (prev.length < grindPageCount) {
-        const newPages = [...prev]
-        for (let i = prev.length; i < grindPageCount; i++) {
-          const cellNum = i * 4
-          newPages.push([
-            { id: null, label: `Agent ${cellNum + 1}`, visible: true },
-            { id: null, label: `Agent ${cellNum + 2}`, visible: true },
-            { id: null, label: `Agent ${cellNum + 3}`, visible: true },
-            { id: null, label: `Agent ${cellNum + 4}`, visible: true },
-          ])
-        }
-        return newPages
+    if (!activeProjectId) return
+    const currentPages = useUIStore.getState().grindPages[activeProjectId]
+    if (!currentPages) return
+
+    if (currentPages.length < grindPageCount) {
+      for (let i = currentPages.length; i < grindPageCount; i++) {
+        const cellNum = i * 4
+        setGrindPageCells(activeProjectId, i, [
+          { id: null, label: `Agent ${cellNum + 1}`, visible: true },
+          { id: null, label: `Agent ${cellNum + 2}`, visible: true },
+          { id: null, label: `Agent ${cellNum + 3}`, visible: true },
+          { id: null, label: `Agent ${cellNum + 4}`, visible: true },
+        ])
       }
-      return prev.slice(0, grindPageCount)
-    })
-  }, [grindPageCount])
+    }
+  }, [grindPageCount, activeProjectId, setGrindPageCells])
 
   const cells = pages[activeGrindPage] ?? []
 
-  const setCells = useCallback((updater: (prev: GridCell[]) => GridCell[]) => {
-    setPages((prev) => {
-      const next = [...prev]
-      next[activeGrindPage] = updater(next[activeGrindPage] ?? [])
-      return next
-    })
-  }, [activeGrindPage])
-
   const activateCell = useCallback(async (index: number) => {
     if (!activeProjectId) return
-    const currentCells = pagesRef.current[activeGrindPage]
-    if (!currentCells || !currentCells[index]) return
+    const currentPages = useUIStore.getState().grindPages[activeProjectId]
+    if (!currentPages || !currentPages[activeGrindPage]) return
+    const currentCells = currentPages[activeGrindPage]
+    if (!currentCells[index]) return
+
+    // Check Claude CLI availability before spawning
+    const claudeCheck = await window.daemon.claude.getConnection()
+    if (!claudeCheck.ok || !claudeCheck.data?.claudePath) {
+      setCellError((prev) => ({ ...prev, [index]: 'Claude CLI not found. Check Settings.' }))
+      return
+    }
+    setCellError((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+
     const label = currentCells[index].label
     const res = await window.daemon.terminal.create({
       cwd: activeProjectPath ?? undefined,
@@ -78,44 +80,29 @@ export function AgentGrid() {
     if (res.ok && res.data) {
       const termId = res.data.id
       addTerminal(activeProjectId, termId, label)
-      setCells((prev) => {
-        const next = [...prev]
-        next[index] = { ...next[index], id: termId }
-        return next
-      })
+      setGrindCell(activeProjectId, activeGrindPage, index, { id: termId })
     }
-  }, [activeProjectId, activeProjectPath, addTerminal, activeGrindPage, setCells])
+  }, [activeProjectId, activeProjectPath, addTerminal, activeGrindPage, setGrindCell])
 
   const handleClose = useCallback(async (index: number) => {
+    if (!activeProjectId) return
     const cell = cells[index]
     if (cell?.id) {
       await window.daemon.terminal.kill(cell.id)
-      if (activeProjectId) {
-        useUIStore.getState().removeTerminal(activeProjectId, cell.id)
-      }
+      useUIStore.getState().removeTerminal(activeProjectId, cell.id)
     }
-    setCells((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], id: null, visible: false }
-      return next
-    })
-  }, [cells, activeProjectId, setCells])
+    setGrindCell(activeProjectId, activeGrindPage, index, { id: null, visible: false })
+  }, [cells, activeProjectId, activeGrindPage, setGrindCell])
 
   const handleReopen = useCallback((index: number) => {
-    setCells((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], visible: true }
-      return next
-    })
-  }, [setCells])
+    if (!activeProjectId) return
+    setGrindCell(activeProjectId, activeGrindPage, index, { visible: true })
+  }, [activeProjectId, activeGrindPage, setGrindCell])
 
   const handleAddCell = useCallback(() => {
-    const totalCells = cells.length
-    setCells((prev) => [
-      ...prev,
-      { id: null, label: `Agent ${totalCells + 1}`, visible: true },
-    ])
-  }, [cells.length, setCells])
+    if (!activeProjectId) return
+    addGrindCellToPage(activeProjectId, activeGrindPage)
+  }, [activeProjectId, activeGrindPage, addGrindCellToPage])
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDragSource(index)
@@ -144,18 +131,16 @@ export function AgentGrid() {
   }
 
   const handleDrop = (targetIndex: number) => {
-    if (dragSource === null || dragSource === targetIndex) {
+    if (!activeProjectId || dragSource === null || dragSource === targetIndex) {
       setDragSource(null)
       setDragOver(null)
       return
     }
-    setCells((prev) => {
-      const next = [...prev]
-      const temp = next[dragSource]
-      next[dragSource] = next[targetIndex]
-      next[targetIndex] = temp
-      return next
-    })
+    const swapped = [...cells]
+    const temp = swapped[dragSource]
+    swapped[dragSource] = swapped[targetIndex]
+    swapped[targetIndex] = temp
+    setGrindPageCells(activeProjectId, activeGrindPage, swapped)
     setDragSource(null)
     setDragOver(null)
   }
@@ -165,18 +150,22 @@ export function AgentGrid() {
     setDragOver(null)
   }
 
-  const handleRemovePage = useCallback((pageIndex: number) => {
+  const handleRemovePage = useCallback(async (pageIndex: number) => {
+    if (!activeProjectId) return
     const pageCells = pages[pageIndex]
     if (pageCells) {
+      const killPromises: Promise<unknown>[] = []
       for (const cell of pageCells) {
-        if (cell.id && activeProjectId) {
-          window.daemon.terminal.kill(cell.id)
+        if (cell.id) {
+          killPromises.push(window.daemon.terminal.kill(cell.id))
           useUIStore.getState().removeTerminal(activeProjectId, cell.id)
         }
       }
+      await Promise.all(killPromises)
     }
+    removeGrindPageCells(activeProjectId, pageIndex)
     removeGrindPage(pageIndex)
-  }, [pages, activeProjectId, removeGrindPage])
+  }, [pages, activeProjectId, removeGrindPage, removeGrindPageCells])
 
   const visibleCells = cells.filter((c) => c.visible)
   const closedCells = cells.map((c, i) => ({ ...c, originalIndex: i })).filter((c) => !c.visible)
@@ -253,13 +242,22 @@ export function AgentGrid() {
                   <AgentGridTerminal id={cell.id} />
                 ) : (
                   <div className="agent-grid-cell-activate" onClick={() => activateCell(i)}>
-                    <div className="activate-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                      </svg>
-                    </div>
-                    <span className="activate-label">Activate</span>
-                    <span className="activate-hint">Launch an AI coding agent</span>
+                    {cellError[i] ? (
+                      <>
+                        <span className="activate-label" style={{ color: 'var(--red)' }}>{cellError[i]}</span>
+                        <span className="activate-hint">Click to retry</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="activate-icon">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                        </div>
+                        <span className="activate-label">Activate</span>
+                        <span className="activate-hint">Launch an AI coding agent</span>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -311,7 +309,7 @@ function AgentGridTerminal({ id }: { id: string }) {
       lineHeight: 1.3,
       cursorBlink: true,
       cursorStyle: 'bar',
-      // xterm.js API requires hex values — keep in sync with tokens.css
+      // xterm.js API requires hex values -- keep in sync with tokens.css
       theme: {
         background: '#0a0a0a',
         foreground: '#ebebeb',
@@ -344,13 +342,15 @@ function AgentGridTerminal({ id }: { id: string }) {
     const resizeObserver = new ResizeObserver(() => {
       setTimeout(doFit, 60)
     })
-    resizeObserver.observe(containerRef.current)
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
 
     return () => {
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
-      term.dispose()
+      try { term.dispose() } catch {}
     }
   }, [id, doFit])
 

@@ -11,20 +11,19 @@ function nextPageId(): string {
   return `page-${++pageIdCounter}-${Date.now()}`
 }
 
-// --- Navigation ---
+// --- URL Safety ---
 
-function isPrivateUrl(urlStr: string): boolean {
+function isCloudMetadataUrl(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr)
     const hostname = parsed.hostname
-    // Block private/internal IPs, localhost, and cloud metadata endpoints
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true
+    // Block cloud metadata endpoints only — real SSRF vectors
     if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') return true
-    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.0\.0\.0)/.test(hostname)) return true
-    if (hostname.endsWith('.local') || hostname.endsWith('.internal')) return true
     return false
   } catch { return true }
 }
+
+// --- Navigation ---
 
 export async function navigate(url: string): Promise<BrowserNavResult> {
   // Normalize URL
@@ -32,27 +31,16 @@ export async function navigate(url: string): Promise<BrowserNavResult> {
     url = `https://${url}`
   }
 
-  if (isPrivateUrl(url)) {
-    throw new Error('Navigation to private/internal addresses is blocked')
+  if (isCloudMetadataUrl(url)) {
+    throw new Error('Navigation to cloud metadata endpoints is blocked')
   }
 
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-    redirect: 'follow',
-  })
-
-  const html = await response.text()
-  const title = extractTitle(html)
-  const text = stripHtmlToText(html)
-
+  // Create a page entry with the URL — actual content comes from webview via capturePageContent
   const page: BrowserPage = {
     id: nextPageId(),
-    url: response.url,
-    title,
-    content: text,
+    url,
+    title: 'Loading...',
+    content: '',
     timestamp: Date.now(),
   }
 
@@ -65,10 +53,43 @@ export async function navigate(url: string): Promise<BrowserNavResult> {
   }
 
   return {
-    url: response.url,
-    title,
-    status: response.status,
-    contentLength: html.length,
+    pageId: page.id,
+    url,
+    title: page.title,
+    status: 0,
+    contentLength: 0,
+  }
+}
+
+// --- Webview Content Capture ---
+
+export function capturePageContent(
+  pageId: string,
+  url: string,
+  title: string,
+  content: string,
+): void {
+  const existing = pageCache.get(pageId)
+  if (existing) {
+    existing.url = url
+    existing.title = title
+    existing.content = content
+    existing.timestamp = Date.now()
+  } else {
+    // Capture without a prior navigate (e.g. user clicked a link in the webview)
+    const page: BrowserPage = {
+      id: pageId,
+      url,
+      title,
+      content,
+      timestamp: Date.now(),
+    }
+    pageCache.set(page.id, page)
+
+    if (pageCache.size > 50) {
+      const oldest = [...pageCache.keys()][0]
+      pageCache.delete(oldest)
+    }
   }
 }
 
@@ -166,39 +187,6 @@ export function clearHistory(): void {
 }
 
 // --- Helpers ---
-
-function extractTitle(html: string): string {
-  const match = html.match(/<title[^>]*>([^<]*)<\/title>/i)
-  return match?.[1]?.trim() ?? 'Untitled'
-}
-
-function stripHtmlToText(html: string): string {
-  return html
-    // Remove script and style blocks
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-    // Convert structural elements to newlines
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<\/h[1-6]>/gi, '\n\n')
-    .replace(/<\/li>/gi, '\n')
-    // Strip remaining tags
-    .replace(/<[^>]+>/g, '')
-    // Decode entities
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    // Clean up whitespace
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
 
 function truncate(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text

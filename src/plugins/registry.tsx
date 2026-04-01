@@ -89,6 +89,15 @@ function BriefingIcon({ size = 18 }: { size?: number }) {
   )
 }
 
+function DeployIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2v10M9 2L6 5M9 2l3 3" />
+      <path d="M15 12v2a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 3 14v-2" />
+    </svg>
+  )
+}
+
 function ServicesIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -128,4 +137,12 @@ export const PLUGIN_REGISTRY: Record<string, PluginManifest> = {
   // 'subscriptions': { id: 'subscriptions', name: 'Subscriptions', description: 'API subscription tracker', mountPosition: 'right-panel-tab', icon: SubscriptionsIcon, component: lazy(() => import('../panels/plugins/Subscriptions/Subscriptions')) },
   // 'morning-briefing': { id: 'morning-briefing', name: 'Morning Briefing', description: 'Overnight report overlay', mountPosition: 'overlay', icon: BriefingIcon, component: lazy(() => import('../panels/plugins/MorningBriefing/MorningBriefing')) },
   // 'services': { id: 'services', name: 'Services', description: 'Manage background services', mountPosition: 'right-panel-tab', icon: ServicesIcon, component: lazy(() => import('../panels/plugins/Services/Services')) },
+  'deploy': {
+    id: 'deploy',
+    name: 'Deploy',
+    description: 'Vercel and Railway deployments',
+    mountPosition: 'center-panel',
+    icon: DeployIcon,
+    component: lazy(() => import('../panels/plugins/Deploy/Deploy')),
+  },
 }

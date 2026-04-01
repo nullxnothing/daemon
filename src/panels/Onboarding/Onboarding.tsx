@@ -121,6 +121,7 @@ export function Onboarding() {
   }
 
   function handleFinish() {
+    window.daemon.settings.setOnboardingComplete(true)
     setShowOnboarding(false)
   }
 

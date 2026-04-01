@@ -4,7 +4,7 @@
   "productName": "DAEMON",
   "asar": true,
   "directories": {
-    "output": "release"
+    "output": "release/${version}"
   },
   "files": [
     "dist-electron",
@@ -13,13 +13,24 @@
   ],
   "asarUnpack": [
     "node_modules/better-sqlite3/**",
-    "node_modules/node-pty/**",
-    "node_modules/node-pty/build/**"
+    "node_modules/node-pty/**"
+  ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "nullxnothing",
+      "repo": "daemon"
+    }
   ],
   "mac": {
-    "target": "dmg",
+    "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
-    "artifactName": "${productName}_${version}.${ext}"
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "notarize": false
   },
   "win": {
     "target": [
@@ -28,12 +39,20 @@
         "arch": ["x64"]
       }
     ],
-    "artifactName": "${productName}_${version}.${ext}"
+    "artifactName": "${productName}-${version}-setup.${ext}",
+    "signingHashAlgorithms": ["sha256"]
   },
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "category": "Development",
+    "artifactName": "${productName}-${version}.${ext}"
   }
 }

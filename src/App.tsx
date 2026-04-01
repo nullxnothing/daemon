@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useState, useCallback, lazy, Suspense, type ComponentType } from 'react'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { EditorPanel } from './panels/Editor/Editor'
 import { TerminalPanel } from './panels/Terminal/Terminal'
@@ -12,6 +12,7 @@ import { WalletPanel } from './panels/WalletPanel/WalletPanel'
 import { RecoveryPanel } from './panels/RecoveryPanel/RecoveryPanel'
 import { SettingsPanel } from './panels/SettingsPanel/SettingsPanel'
 import { ToolBrowser } from './panels/Tools/ToolBrowser'
+const DeployPanel = lazy(() => import('./panels/plugins/Deploy/Deploy'))
 import { AgentGrid } from './panels/Terminal/AgentGrid'
 import { BrowserMode } from './panels/BrowserMode/BrowserMode'
 import { PluginManager } from './panels/PluginManager/PluginManager'
@@ -32,6 +33,15 @@ function PluginFallback() {
   return <div style={{ padding: '16px 12px', fontSize: 11, color: 'var(--t3)' }}>Loading plugin...</div>
 }
 
+const CENTER_PANEL_MAP: Record<string, ComponentType> = {
+  env: EnvManager,
+  git: GitPanel,
+  recovery: RecoveryPanel,
+  settings: SettingsPanel,
+  tools: ToolBrowser,
+  deploy: DeployPanel,
+}
+
 function App() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -45,6 +55,7 @@ function App() {
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
+  const [crashWarningCount, setCrashWarningCount] = useState<number | null>(null)
 
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
@@ -57,18 +68,59 @@ function App() {
   const shouldShowRightPanel = showRightPanel && !(activePanel === 'plugins' && !activePluginId)
 
   useEffect(() => {
+    let cancelled = false
     window.postMessage({ payload: 'removeLoading' }, '*')
-    loadProjects()
+    loadProjects(cancelled)
     usePluginStore.getState().load()
     // Debug: expose store for CDP testing
     if (import.meta.env.DEV) {
       ;(window as any).__uiStore = useUIStore
     }
-    // Check Claude connection — show onboarding if not connected
-    window.daemon.claude.getConnection().then((res) => {
-      if (!res.ok || !res.data || res.data.authMode === 'none') {
+    // Check Claude connection + onboarding flag — show onboarding if not connected and not completed
+    Promise.all([
+      window.daemon.claude.getConnection(),
+      window.daemon.settings.isOnboardingComplete(),
+    ]).then(([connRes, onboardingRes]) => {
+      if (cancelled) return
+      const isConnected = connRes.ok && connRes.data && connRes.data.authMode !== 'none'
+      const isOnboarded = onboardingRes.ok && onboardingRes.data === true
+      if (!isConnected && !isOnboarded) {
         useUIStore.getState().setShowOnboarding(true)
       }
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  // Renderer crash capture — forward errors to main process via IPC
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      window.daemon.settings.reportCrash({
+        type: 'renderer_error',
+        message: event.message,
+        stack: event.error?.stack ?? '',
+      }).catch(() => {})
+    }
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
+      const stack = event.reason instanceof Error ? event.reason.stack ?? '' : ''
+      window.daemon.settings.reportCrash({
+        type: 'renderer_rejection',
+        message,
+        stack,
+      }).catch(() => {})
+    }
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleRejection)
+    return () => {
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleRejection)
+    }
+  }, [])
+
+  // Listen for startup crash warning from main process
+  useEffect(() => {
+    return window.daemon.settings.onCrashWarning((count) => {
+      setCrashWarningCount(count)
     })
   }, [])
 
@@ -76,9 +128,9 @@ function App() {
     void useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
 
-  const loadProjects = async () => {
+  const loadProjects = async (cancelled = false) => {
     const res = await window.daemon.projects.list()
-    if (!res.ok || !res.data) return
+    if (cancelled || !res.ok || !res.data) return
     setProjects(res.data)
 
     // Restore the most recently active project on fresh load / after crash recovery
@@ -145,6 +197,23 @@ function App() {
 
   return (
     <div className="app">
+      {crashWarningCount !== null && (
+        <div className="crash-warning-banner">
+          <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
+          <button
+            className="crash-warning-link"
+            onClick={() => { useUIStore.getState().setActivePanel('settings'); setCrashWarningCount(null) }}
+          >
+            View crash log
+          </button>
+          <button className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <Titlebar
         projects={projects}
         onAddProject={handleAddProject}
@@ -156,6 +225,7 @@ function App() {
           showExplorer={showExplorer}
           onToggleExplorer={() => setShowExplorer(!showExplorer)}
           onOpenAgentLauncher={() => setShowAgentLauncher(true)}
+          isAgentLauncherOpen={showAgentLauncher}
         />
 
         {showExplorer && activeProjectPath && (
@@ -181,7 +251,9 @@ function App() {
               <PluginDashboard />
             ) : (
               <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
-                {activePanel === 'env' ? <EnvManager /> : activePanel === 'git' ? <GitPanel /> : activePanel === 'recovery' ? <RecoveryPanel /> : activePanel === 'settings' ? <SettingsPanel /> : activePanel === 'tools' ? <ToolBrowser /> : <EditorPanel />}
+                <Suspense fallback={<PluginFallback />}>
+                  {(() => { const Panel = CENTER_PANEL_MAP[activePanel]; return Panel ? <Panel /> : <EditorPanel /> })()}
+                </Suspense>
               </PluginErrorBoundary>
             )}
           </div>

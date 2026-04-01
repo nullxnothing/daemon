@@ -183,3 +183,141 @@
   color: var(--t3);
   padding: 8px 0;
 }
+
+/* Tabbed wallet creation */
+.wallet-tab-group {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  margin-bottom: 6px;
+}
+
+.wallet-tab {
+  flex: 1;
+  height: 26px;
+  font-size: 10px;
+  color: var(--t3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+}
+
+.wallet-tab.active {
+  background: var(--s4);
+  color: var(--t1);
+  border-bottom-color: var(--s4);
+}
+
+/* Send forms */
+.wallet-send-form {
+  margin-top: 6px;
+  padding: 8px;
+  background: var(--s2);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.wallet-send-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wallet-send-inline .wallet-input {
+  height: 26px;
+  font-size: 11px;
+}
+
+/* Agent wallets section */
+.wallet-agent-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wallet-agent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.wallet-agent-row:last-child {
+  border-bottom: none;
+}
+
+.wallet-agent-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  color: var(--t3);
+  background: var(--s2);
+  text-transform: uppercase;
+}
+
+/* Transaction history */
+.wallet-tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.wallet-tx-row:last-child {
+  border-bottom: none;
+}
+
+.wallet-tx-status {
+  display: inline-block;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.wallet-tx-status.confirmed {
+  color: var(--success);
+  background: var(--green-glow);
+}
+
+.wallet-tx-status.pending {
+  color: var(--t3);
+  background: var(--s2);
+}
+
+.wallet-tx-status.failed {
+  color: var(--error);
+  background: rgba(140, 74, 74, 0.2);
+}
+
+/* Export key reveal */
+.wallet-key-reveal {
+  font-family: monospace;
+  font-size: 10px;
+  background: var(--s2);
+  color: var(--t2);
+  padding: 6px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+  margin-top: 4px;
+}
+
+.wallet-key-warning {
+  font-size: 9px;
+  color: var(--error);
+  margin-top: 2px;
+}
+
+/* Success message */
+.wallet-success-msg {
+  font-size: 10px;
+  color: var(--success);
+  margin-top: 4px;
+}

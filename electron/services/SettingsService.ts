@@ -20,3 +20,11 @@ export function getUiSettings(): { showMarketTape: boolean; showTitlebarWallet: 
     showTitlebarWallet: getBooleanSetting('show_titlebar_wallet', true),
   }
 }
+
+export function isOnboardingComplete(): boolean {
+  return getBooleanSetting('onboarding_complete', false)
+}
+
+export function setOnboardingComplete(complete: boolean): void {
+  setBooleanSetting('onboarding_complete', complete)
+}

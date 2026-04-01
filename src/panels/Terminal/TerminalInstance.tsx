@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback, useState, memo } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -34,7 +34,7 @@ interface TerminalInstanceProps {
   isVisible: boolean
 }
 
-export function TerminalInstance({ id, isVisible }: TerminalInstanceProps) {
+export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }: TerminalInstanceProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -241,4 +241,4 @@ export function TerminalInstance({ id, isVisible }: TerminalInstanceProps) {
       )}
     </div>
   )
-}
+})

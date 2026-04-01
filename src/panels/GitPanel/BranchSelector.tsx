@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { GitFile } from '../../../electron/shared/types'
+import { StashControls } from './StashControls'
 
 interface BranchSelectorProps {
   projectPath: string
@@ -8,7 +9,6 @@ interface BranchSelectorProps {
   files: GitFile[]
   stashCount: number
   latestStashMessage: string | null
-  pushing: boolean
   onLoad: () => void
   onError: (msg: string) => void
   onMaybeShowGitHubOnboarding: (message: string | undefined) => void
@@ -21,7 +21,6 @@ export function BranchSelector({
   files,
   stashCount,
   latestStashMessage,
-  pushing,
   onLoad,
   onError,
   onMaybeShowGitHubOnboarding,
@@ -29,14 +28,10 @@ export function BranchSelector({
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showCreateBranch, setShowCreateBranch] = useState(false)
   const [showCreateTag, setShowCreateTag] = useState(false)
-  const [showStashSave, setShowStashSave] = useState(false)
   const [newBranchName, setNewBranchName] = useState('')
   const [newTagName, setNewTagName] = useState('')
-  const [stashMessage, setStashMessage] = useState('')
   const [creatingBranch, setCreatingBranch] = useState(false)
   const [creatingTag, setCreatingTag] = useState(false)
-  const [savingStash, setSavingStash] = useState(false)
-  const [poppingStash, setPoppingStash] = useState(false)
   const [syncing, setSyncing] = useState(false)
 
   const parseGitError = (message: string | undefined) =>
@@ -49,7 +44,6 @@ export function BranchSelector({
     setShowAddMenu(false)
     setShowCreateBranch(false)
     setShowCreateTag(false)
-    setShowStashSave(false)
   }
 
   const handleCheckout = async (br: string) => {
@@ -123,41 +117,15 @@ export function BranchSelector({
     onLoad()
   }
 
-  const handleStashSave = async () => {
-    if (!projectPath) return
-    setSavingStash(true)
-    const res = await window.daemon.git.stashSave(projectPath, stashMessage)
-    setSavingStash(false)
-    if (!res.ok) {
-      onError(parseGitError(res.error) ?? 'Failed to save stash')
-      return
-    }
-    setStashMessage('')
-    closeMenu()
-    onLoad()
-  }
-
-  const handleStashPop = async () => {
-    if (!projectPath) return
-    setPoppingStash(true)
-    const res = await window.daemon.git.stashPop(projectPath)
-    setPoppingStash(false)
-    if (!res.ok) {
-      onError(parseGitError(res.error) ?? 'Failed to restore stash')
-      return
-    }
-    onLoad()
-  }
-
   return (
     <>
       <div className="git-branch-selector">
-        {branches.length === 0 ? (
+        {branch === null ? (
           <select disabled>
-            <option disabled>Loading...</option>
+            <option>Loading...</option>
           </select>
         ) : (
-          <select value={branch ?? ''} onChange={(e) => void handleCheckout(e.target.value)}>
+          <select value={branch} onChange={(e) => void handleCheckout(e.target.value)}>
             {branches.map((b) => (
               <option key={b} value={b}>{b}</option>
             ))}
@@ -178,7 +146,6 @@ export function BranchSelector({
             setShowAddMenu((prev) => !prev)
             setShowCreateBranch(false)
             setShowCreateTag(false)
-            setShowStashSave(false)
           }}
           aria-expanded={showAddMenu}
           aria-haspopup="menu"
@@ -194,7 +161,7 @@ export function BranchSelector({
 
             <button className="git-add-option" onClick={() => setShowCreateTag((prev) => !prev)}>
               <span className="git-add-option-title">Tag</span>
-              <span className="git-add-option-subtext">Best for marking a release point like v1.2.0.</span>
+              <span className="git-add-option-subtext">Best for marking a release point like v1.0.0.</span>
             </button>
 
             <button className="git-add-option" onClick={() => void handleFetch()} disabled={syncing}>
@@ -207,23 +174,13 @@ export function BranchSelector({
               <span className="git-add-option-subtext">Bring cloud changes into this branch.</span>
             </button>
 
-            <button className="git-add-option" onClick={() => setShowStashSave((prev) => !prev)}>
-              <span className="git-add-option-title">Stash changes</span>
-              <span className="git-add-option-subtext">Temporarily save unfinished work and clean your workspace.</span>
-            </button>
-
-            <button
-              className="git-add-option"
-              onClick={() => void handleStashPop()}
-              disabled={poppingStash || stashCount === 0}
-            >
-              <span className="git-add-option-title">Restore latest stash</span>
-              <span className="git-add-option-subtext">
-                {stashCount > 0
-                  ? `Apply your latest saved work (${stashCount} saved).`
-                  : 'No saved stash items yet.'}
-              </span>
-            </button>
+            <StashControls
+              projectPath={projectPath}
+              stashCount={stashCount}
+              latestStashMessage={latestStashMessage}
+              onLoad={onLoad}
+              onError={onError}
+            />
 
             {showCreateBranch && (
               <div className="git-add-branch-create">
@@ -261,29 +218,6 @@ export function BranchSelector({
                   {creatingTag ? 'Creating…' : 'Create Tag'}
                 </button>
               </div>
-            )}
-
-            {showStashSave && (
-              <div className="git-add-branch-create">
-                <input
-                  className="git-add-branch-input"
-                  placeholder="Optional stash note"
-                  value={stashMessage}
-                  onChange={(e) => setStashMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void handleStashSave()}
-                />
-                <button
-                  className="git-add-branch-create-btn"
-                  onClick={() => void handleStashSave()}
-                  disabled={savingStash}
-                >
-                  {savingStash ? 'Saving…' : 'Save Stash'}
-                </button>
-              </div>
-            )}
-
-            {latestStashMessage && (
-              <div className="git-add-meta">Latest stash: {latestStashMessage}</div>
             )}
           </div>
         )}

@@ -3,7 +3,7 @@ import { useUIStore } from '../../store/ui'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display'
+type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'crashes'
 
 interface SecureKeyEntry {
   key_name: string
@@ -33,13 +33,13 @@ export function SettingsPanel() {
       </div>
 
       <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'display'] as SettingsTab[]).map((t) => (
+        {(['keys', 'integrations', 'agents', 'display', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={() => setTab(t)}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : 'Display'}
+            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : 'Crash Log'}
           </button>
         ))}
       </div>
@@ -49,6 +49,7 @@ export function SettingsPanel() {
         {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
         {tab === 'agents' && <AgentsSection />}
         {tab === 'display' && <DisplaySection />}
+        {tab === 'crashes' && <CrashesSection />}
       </div>
     </div>
   )
@@ -60,13 +61,17 @@ function KeysSection() {
   const [newKeyValue, setNewKeyValue] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const load = useCallback(() => {
+  const load = useCallback((cancelled = false) => {
     window.daemon.claude.listKeys().then((res) => {
-      if (res.ok && res.data) setKeys(res.data)
+      if (!cancelled && res.ok && res.data) setKeys(res.data)
     })
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    load(cancelled)
+    return () => { cancelled = true }
+  }, [load])
 
   const handleSave = async () => {
     if (!newKeyName.trim() || !newKeyValue.trim()) return
@@ -127,17 +132,21 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
   const [mcps, setMcps] = useState<McpEntry[]>([])
   const [connection, setConnection] = useState<{ authMode: string } | null>(null)
 
-  const load = useCallback(() => {
+  const load = useCallback((cancelled = false) => {
     if (!projectPath) return
     window.daemon.claude.projectMcpAll(projectPath).then((res) => {
-      if (res.ok && res.data) setMcps(res.data)
+      if (!cancelled && res.ok && res.data) setMcps(res.data)
     })
     window.daemon.claude.getConnection().then((res) => {
-      if (res.ok && res.data) setConnection(res.data)
+      if (!cancelled && res.ok && res.data) setConnection(res.data)
     })
   }, [projectPath])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let cancelled = false
+    load(cancelled)
+    return () => { cancelled = true }
+  }, [load])
 
   const toggleMcp = async (name: string, enabled: boolean) => {
     if (!projectPath) return
@@ -185,9 +194,11 @@ function AgentsSection() {
   const [agents, setAgents] = useState<AgentRow[]>([])
 
   useEffect(() => {
+    let cancelled = false
     window.daemon.agents.list().then((res) => {
-      if (res.ok && res.data) setAgents(res.data)
+      if (!cancelled && res.ok && res.data) setAgents(res.data)
     })
+    return () => { cancelled = true }
   }, [])
 
   return (
@@ -209,17 +220,119 @@ function AgentsSection() {
   )
 }
 
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  const seconds = Math.floor(diff / 1000)
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
+interface AppCrashEntry {
+  id: string
+  type: string
+  message: string
+  stack: string
+  created_at: number
+}
+
+function CrashesSection() {
+  const [crashes, setCrashes] = useState<AppCrashEntry[]>([])
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const load = useCallback((cancelled = false) => {
+    window.daemon.settings.getCrashes().then((res) => {
+      if (!cancelled && res.ok && res.data) setCrashes(res.data)
+    })
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    load(cancelled)
+    return () => { cancelled = true }
+  }, [load])
+
+  const handleClear = async () => {
+    await window.daemon.settings.clearCrashes()
+    setCrashes([])
+  }
+
+  const now = Date.now()
+  const count24h = crashes.filter((c) => now - c.created_at < 86400_000).length
+  const count7d = crashes.filter((c) => now - c.created_at < 604800_000).length
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Local crash and error history. No data is sent externally.
+      </div>
+
+      <div className="settings-crash-stats">
+        <div className="settings-crash-stat">
+          <span className="settings-crash-stat-value">{count24h}</span>
+          <span className="settings-crash-stat-label">Last 24h</span>
+        </div>
+        <div className="settings-crash-stat">
+          <span className="settings-crash-stat-value">{count7d}</span>
+          <span className="settings-crash-stat-label">Last 7 days</span>
+        </div>
+        <button className="settings-btn danger" onClick={handleClear} disabled={crashes.length === 0}>
+          Clear History
+        </button>
+      </div>
+
+      {crashes.length === 0 ? (
+        <div className="settings-empty">No crashes recorded</div>
+      ) : (
+        <div className="settings-crash-list">
+          {crashes.map((crash) => (
+            <div key={crash.id} className="settings-crash-row">
+              <div
+                className="settings-crash-summary"
+                onClick={() => setExpandedId(expandedId === crash.id ? null : crash.id)}
+              >
+                <span className={`settings-crash-type ${crash.type.includes('Exception') || crash.type.includes('error') ? 'error' : 'warn'}`}>
+                  {crash.type}
+                </span>
+                <span className="settings-crash-message">
+                  {crash.message.length > 120 ? crash.message.slice(0, 120) + '...' : crash.message}
+                </span>
+                <span className="settings-crash-time">{formatRelativeTime(crash.created_at)}</span>
+                <svg
+                  className={`settings-crash-chevron ${expandedId === crash.id ? 'expanded' : ''}`}
+                  width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+              {expandedId === crash.id && crash.stack && (
+                <pre className="settings-crash-stack">{crash.stack}</pre>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DisplaySection() {
   const [showMarketTape, setShowMarketTape] = useState(true)
   const [showTitlebarWallet, setShowTitlebarWallet] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     window.daemon.settings.getUi().then((res) => {
-      if (res.ok && res.data) {
+      if (!cancelled && res.ok && res.data) {
         setShowMarketTape(res.data.showMarketTape)
         setShowTitlebarWallet(res.data.showTitlebarWallet)
       }
     })
+    return () => { cancelled = true }
   }, [])
 
   const handleToggleMarketTape = async (enabled: boolean) => {

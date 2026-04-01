@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react'
 import { useBrowserStore } from '../../store/browser'
 import { useSplitter } from '../../hooks/useSplitter'
+import { PluginErrorBoundary } from '../../components/ErrorBoundary'
 import { BrowserToolbar } from './BrowserToolbar'
 import { BrowserWebview, BrowserWebviewHandle } from './BrowserWebview'
 import { BrowserAgentTerminal } from './BrowserAgentTerminal'
@@ -12,6 +13,8 @@ export function BrowserMode() {
   const currentUrl = useBrowserStore((s) => s.currentUrl)
   const isInspectMode = useBrowserStore((s) => s.isInspectMode)
   const loadStatus = useBrowserStore((s) => s.loadStatus)
+  const canGoBack = useBrowserStore((s) => s.canGoBack)
+  const canGoForward = useBrowserStore((s) => s.canGoForward)
   const setUrl = useBrowserStore((s) => s.setUrl)
   const setInspectMode = useBrowserStore((s) => s.setInspectMode)
 
@@ -63,10 +66,14 @@ export function BrowserMode() {
         isInspectMode={isInspectMode}
         onToggleInspect={handleToggleInspect}
         loadStatus={loadStatus}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
       />
 
       <div className="browser-webview-area">
-        <BrowserWebview ref={webviewRef} />
+        <PluginErrorBoundary>
+          <BrowserWebview ref={webviewRef} />
+        </PluginErrorBoundary>
       </div>
 
       <div className="browser-splitter" {...splitterProps} />
