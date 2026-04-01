@@ -32,11 +32,15 @@
     "better-sqlite3": "^11.7.0",
     "bs58": "^6.0.0",
     "chokidar": "^4.0.3",
+    "clsx": "^2.1.1",
     "express": "^5.1.0",
+    "lucide-react": "^1.7.0",
+    "next": "^16.2.2",
     "node-pty": "1.1.0",
     "pidusage": "^4.0.1",
     "ps-list": "^8.1.1",
-    "simple-git": "^3.27.0"
+    "simple-git": "^3.27.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.1",
