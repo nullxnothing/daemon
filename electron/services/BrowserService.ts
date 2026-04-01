@@ -13,10 +13,27 @@ function nextPageId(): string {
 
 // --- Navigation ---
 
+function isPrivateUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr)
+    const hostname = parsed.hostname
+    // Block private/internal IPs, localhost, and cloud metadata endpoints
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true
+    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') return true
+    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.0\.0\.0)/.test(hostname)) return true
+    if (hostname.endsWith('.local') || hostname.endsWith('.internal')) return true
+    return false
+  } catch { return true }
+}
+
 export async function navigate(url: string): Promise<BrowserNavResult> {
   // Normalize URL
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`
+  }
+
+  if (isPrivateUrl(url)) {
+    throw new Error('Navigation to private/internal addresses is blocked')
   }
 
   const response = await fetch(url, {

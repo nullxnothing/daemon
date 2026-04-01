@@ -141,7 +141,12 @@ export function registerTerminalHandlers() {
     const session = createPtySession(id, '', [], cwd, null, null)
 
     if (opts?.startupCommand?.trim()) {
-      session.pty.write(`${opts.startupCommand.trim()}\r`)
+      const cmd = opts.startupCommand.trim()
+      // Block shell metacharacters that could chain commands
+      if (/[;&|`$\n\r]/.test(cmd)) {
+        throw new Error('Startup command contains disallowed shell metacharacters')
+      }
+      session.pty.write(`${cmd}\r`)
     }
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }

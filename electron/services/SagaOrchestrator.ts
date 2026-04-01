@@ -129,9 +129,18 @@ class SagaOrchestratorImpl {
       // Cache successful saga execution
       if (definition.idempotencyKey) {
         this.idempotencyCache.set(definition.idempotencyKey, execution);
+        // Evict oldest entries when cache exceeds limit
+        if (this.idempotencyCache.size > 500) {
+          const firstKey = this.idempotencyCache.keys().next().value
+          if (firstKey) this.idempotencyCache.delete(firstKey)
+        }
       }
 
       this.completedSagas.push(execution);
+      // Cap completed sagas history
+      if (this.completedSagas.length > 200) {
+        this.completedSagas.splice(0, this.completedSagas.length - 200);
+      }
       this.executions.delete(definition.id);
 
       console.log(

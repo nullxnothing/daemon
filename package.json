@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@nirholas/pump-sdk": "1.30.0",
     "@solana/web3.js": "^1.98.4",
     "better-sqlite3": "^11.7.0",
     "bs58": "^6.0.0",
@@ -41,6 +42,7 @@
     "@electron/rebuild": "^3.7.1",
     "@monaco-editor/react": "^4.7.0",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/bn.js": "^5.2.0",
     "@types/express": "^5.0.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

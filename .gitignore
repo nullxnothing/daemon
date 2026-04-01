@@ -23,14 +23,17 @@ release
 *.sln
 *.sw?
 
-# Lockfile
+# Lockfile (keep pnpm-lock.yaml committed for deterministic installs)
 package-lock.json
-pnpm-lock.yaml
 yarn.lock
 
 # Secrets
 .env
 .env.*
+*.pem
+*.key
+*.p12
+credentials.json
 
 # SQLite
 *.db

@@ -18,6 +18,8 @@ import { registerTweetHandlers } from '../ipc/tweets'
 import { registerRecoveryHandlers } from '../ipc/recovery'
 import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
+import { registerPumpFunHandlers } from '../ipc/pumpfun'
+import { registerBrowserHandlers } from '../ipc/browser'
 import { clearLoadedWallets } from '../services/RecoveryService'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -40,10 +42,10 @@ if (!app.isPackaged) {
 // In production, Monaco workers load via this custom protocol instead of CDN
 protocol.registerSchemesAsPrivileged([{
   scheme: 'monaco-editor',
-  privileges: { standard: true, supportFetchAPI: true, bypassCSP: true },
+  privileges: { standard: true, supportFetchAPI: true },
 }, {
   scheme: 'daemon-icon',
-  privileges: { standard: true, supportFetchAPI: true, bypassCSP: true },
+  privileges: { standard: true, supportFetchAPI: true },
 }])
 
 if (process.platform === 'win32') app.setAppUserModelId('DAEMON')
@@ -78,6 +80,8 @@ function registerAllIpc() {
   registerRecoveryHandlers()
   registerEngineHandlers()
   registerToolHandlers()
+  registerPumpFunHandlers()
+  registerBrowserHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -184,7 +188,8 @@ async function createWindow() {
       preload,
       contextIsolation: true,
       nodeIntegration: false,
-      webviewTag: false,
+      sandbox: false,
+      webviewTag: true,
     },
   })
 
@@ -200,6 +205,14 @@ async function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }
+  })
+
+  // Enforce security on webview creation from main process
+  win.webContents.on('will-attach-webview', (_event, webPreferences) => {
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+    webPreferences.sandbox = true
+    delete (webPreferences as Record<string, unknown>).preload
   })
 
   win.on('maximize', () => win?.webContents.send('window:maximized'))

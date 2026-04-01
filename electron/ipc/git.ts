@@ -72,6 +72,7 @@ export function registerGitHandlers() {
 
   ipcMain.handle('git:stage', ipcHandler(async (_event, cwd: string, files: string[]) => {
     validateCwd(cwd)
+    if (files.some((f) => f.startsWith('-'))) throw new Error('Invalid file path')
     const git = simpleGit(cwd)
     await git.add(files)
   }))
@@ -131,6 +132,7 @@ export function registerGitHandlers() {
 
   ipcMain.handle('git:checkout', ipcHandler(async (_event, cwd: string, branch: string) => {
     validateCwd(cwd)
+    if (branch.startsWith('-')) throw new Error('Invalid branch name')
     const git = simpleGit(cwd)
     await git.checkout(branch)
   }))
@@ -139,7 +141,8 @@ export function registerGitHandlers() {
     validateCwd(cwd)
     const trimmedBranchName = branchName.trim()
     if (!trimmedBranchName) throw new Error('Branch name is required')
-    
+    if (trimmedBranchName.startsWith('-')) throw new Error('Invalid branch name')
+
     const git = simpleGit(cwd)
     await git.checkoutLocalBranch(trimmedBranchName)
     return { branch: trimmedBranchName }
@@ -169,7 +172,8 @@ export function registerGitHandlers() {
     validateCwd(cwd)
     const trimmedTagName = tagName.trim()
     if (!trimmedTagName) throw new Error('Tag name is required')
-    
+    if (trimmedTagName.startsWith('-')) throw new Error('Invalid tag name')
+
     const git = simpleGit(cwd)
     await git.addTag(trimmedTagName)
     return { tag: trimmedTagName }

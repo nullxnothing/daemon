@@ -113,7 +113,12 @@ export function importTool(folderPath: string): ToolRow {
   const manifest: ToolManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
   if (!manifest.name || !manifest.entrypoint) throw new Error('Invalid manifest: missing name or entrypoint')
 
-  const entrypointPath = path.join(folderPath, manifest.entrypoint)
+  // Prevent path traversal via entrypoint — must resolve within the tool folder
+  const resolvedFolder = path.resolve(folderPath)
+  const entrypointPath = path.resolve(folderPath, manifest.entrypoint)
+  if (!entrypointPath.startsWith(resolvedFolder + path.sep)) {
+    throw new Error('Invalid entrypoint: path traversal detected')
+  }
   if (!fs.existsSync(entrypointPath)) throw new Error(`Entrypoint not found: ${manifest.entrypoint}`)
 
   const db = getDb()
