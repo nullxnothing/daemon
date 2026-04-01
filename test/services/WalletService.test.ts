@@ -90,7 +90,7 @@ describe('isValidSolanaAddress (via createWallet)', () => {
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT id FROM wallets WHERE is_default')) return { get: vi.fn().mockReturnValue(undefined) }
       if (sql.includes('INSERT INTO wallets')) return { run: insertRun }
-      if (sql.includes('SELECT * FROM wallets WHERE id')) return { get: selectGet }
+      if (sql.includes('FROM wallets WHERE id')) return { get: selectGet }
       return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
     })
 
@@ -109,7 +109,7 @@ describe('createWallet — is_default logic', () => {
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT id FROM wallets WHERE is_default')) return { get: vi.fn().mockReturnValue(undefined) }
       if (sql.includes('INSERT INTO wallets')) return { run: insertRun }
-      if (sql.includes('SELECT * FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ id: 'x' }) }
+      if (sql.includes('FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ id: 'x' }) }
       return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
     })
 
@@ -127,7 +127,7 @@ describe('createWallet — is_default logic', () => {
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT id FROM wallets WHERE is_default')) return { get: vi.fn().mockReturnValue({ id: 'existing-id' }) }
       if (sql.includes('INSERT INTO wallets')) return { run: insertRun }
-      if (sql.includes('SELECT * FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ id: 'y' }) }
+      if (sql.includes('FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ id: 'y' }) }
       return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
     })
 

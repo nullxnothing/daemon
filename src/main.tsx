@@ -69,6 +69,12 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
+// Prevent Electron's default file drop behavior (navigates to the file).
+// React drag/drop handlers on individual components will still work
+// because they call e.preventDefault() on their own terms.
+document.addEventListener('dragover', (e) => e.preventDefault())
+document.addEventListener('drop', (e) => e.preventDefault())
+
 window.addEventListener('error', (event) => {
   console.error('Unhandled renderer error:', event.error || event.message)
 })

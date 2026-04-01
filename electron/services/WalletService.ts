@@ -226,7 +226,7 @@ export function createWallet(name: string, address: string) {
   db.prepare(
     'INSERT INTO wallets (id, name, address, is_default, created_at) VALUES (?,?,?,?,?)'
   ).run(id, trimmedName, trimmedAddress, existingDefault ? 0 : 1, Date.now())
-  return db.prepare('SELECT * FROM wallets WHERE id = ?').get(id)
+  return db.prepare('SELECT id, name, address, is_default, created_at FROM wallets WHERE id = ?').get(id)
 }
 
 export function deleteWallet(id: string) {
@@ -331,7 +331,7 @@ function normalizeHoldings(balances: HeliusBalance[]): HoldingSummary[] {
 
 function listWalletsRaw(): WalletRow[] {
   const db = getDb()
-  return db.prepare('SELECT * FROM wallets ORDER BY is_default DESC, created_at ASC').all() as WalletRow[]
+  return db.prepare('SELECT id, name, address, is_default, created_at FROM wallets ORDER BY is_default DESC, created_at ASC').all() as WalletRow[]
 }
 
 function getProjectAssignments(): Map<string, string[]> {
