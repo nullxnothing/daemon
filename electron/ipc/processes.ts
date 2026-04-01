@@ -5,6 +5,9 @@ import { getDb } from '../db/db'
 import { getAllSessionIds, getSession } from './terminal'
 import type { ProcessInfo, OrphanProcess } from '../shared/types'
 
+// Track PIDs returned by the last orphan scan so process:kill can validate them
+const lastOrphanPids = new Set<number>()
+
 export function registerProcessHandlers() {
   // List all DAEMON-managed sessions with resource stats
   ipcMain.handle('process:list', async () => {
@@ -113,6 +116,9 @@ export function registerProcessHandlers() {
         }
       }
 
+      lastOrphanPids.clear()
+      for (const orphan of orphans) lastOrphanPids.add(orphan.pid)
+
       return { ok: true, data: orphans }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
@@ -125,6 +131,17 @@ export function registerProcessHandlers() {
       // Validate PID is a safe integer
       if (typeof pid !== 'number' || !Number.isInteger(pid) || pid <= 0) {
         return { ok: false, error: 'Invalid PID' }
+      }
+
+      // Validate PID belongs to a managed session or was returned by the orphan scanner
+      const isManagedSession = getAllSessionIds().some((id) => {
+        const session = getSession(id)
+        return session?.pty.pid === pid
+      })
+      const isKnownOrphan = lastOrphanPids.has(pid)
+
+      if (!isManagedSession && !isKnownOrphan) {
+        return { ok: false, error: 'PID not recognized as a managed or orphaned process' }
       }
 
       if (process.platform === 'win32') {

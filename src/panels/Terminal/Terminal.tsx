@@ -73,7 +73,10 @@ function writeTerminalLaunchRecents(recents: TerminalLaunchRecent[]) {
 }
 
 export function TerminalPanel() {
-  const { terminals, addTerminal, removeTerminal, setActiveTerminal } = useUIStore()
+  const terminals = useUIStore((s) => s.terminals)
+  const addTerminal = useUIStore((s) => s.addTerminal)
+  const removeTerminal = useUIStore((s) => s.removeTerminal)
+  const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
   const setActivePanel = useUIStore((s) => s.setActivePanel)
   const agentGridMode = useUIStore((s) => s.agentGridMode)
   const setAgentGridMode = useUIStore((s) => s.setAgentGridMode)
@@ -82,12 +85,16 @@ export function TerminalPanel() {
   const activeTerminalId = useUIStore((s) =>
     s.activeProjectId ? s.activeTerminalIdByProject[s.activeProjectId] ?? null : null,
   )
-  const visibleTerminals = terminals.filter((tab) => tab.projectId === activeProjectId)
+  const visibleTerminals = useMemo(
+    () => terminals.filter((tab) => tab.projectId === activeProjectId),
+    [terminals, activeProjectId],
+  )
   const [splitLayoutsByProject, setSplitLayoutsByProject] = useState<Record<string, SplitLayout | undefined>>({})
   const [launcherOpen, setLauncherOpen] = useState(false)
   const [agents, setAgents] = useState<Agent[]>([])
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
   const launcherRef = useRef<HTMLDivElement>(null)
+  const creatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
 
   const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
@@ -225,8 +232,9 @@ export function TerminalPanel() {
   }, [activeProjectId])
 
   useEffect(() => {
-    if (activeProjectId && visibleTerminals.length === 0) {
-      void handleNewTerminal()
+    if (activeProjectId && visibleTerminals.length === 0 && !creatingRef.current) {
+      creatingRef.current = true
+      handleNewTerminal().finally(() => { creatingRef.current = false })
     }
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
 

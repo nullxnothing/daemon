@@ -1,7 +1,10 @@
 import { ipcMain } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execAsync = promisify(exec)
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
@@ -38,12 +41,13 @@ async function restartClaudeInPty(terminalId: string): Promise<void> {
   session.pty.write('claude -c\r')
 }
 
-function getClaudeMdContext(projectPath: string): { content: string; diff: string } {
+async function getClaudeMdContext(projectPath: string): Promise<{ content: string; diff: string }> {
   const mdPath = path.join(projectPath, 'CLAUDE.md')
   const content = fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf8') : ''
   let diff = ''
   try {
-    diff = execSync('git diff HEAD~5', { cwd: projectPath, encoding: 'utf8', timeout: 10000 })
+    const { stdout } = await execAsync('git diff HEAD~5', { cwd: projectPath, encoding: 'utf8', timeout: 10000 })
+    diff = stdout
   } catch {
     diff = '(no git history)'
   }
@@ -258,7 +262,7 @@ ${content}`,
   ipcMain.handle('claude:claudemd-read', async (_event, projectPath: string) => {
     try {
       if (!isPathSafe(projectPath)) return { ok: false, error: 'Path not within a registered project' }
-      return { ok: true, data: getClaudeMdContext(projectPath) }
+      return { ok: true, data: await getClaudeMdContext(projectPath) }
     } catch (err) {
       return { ok: false, error: (err as Error).message }
     }
@@ -267,7 +271,7 @@ ${content}`,
   ipcMain.handle('claude:claudemd-generate', async (_event, projectPath: string) => {
     try {
       if (!isPathSafe(projectPath)) return { ok: false, error: 'Path not within a registered project' }
-      const { content, diff } = getClaudeMdContext(projectPath)
+      const { content, diff } = await getClaudeMdContext(projectPath)
 
       const updated = await ClaudeRouter.runPrompt({
         prompt: `Update this CLAUDE.md based on recent changes. Preserve structure and style. Return ONLY the updated markdown.\n\nCurrent CLAUDE.md:\n${content}\n\nRecent changes:\n${diff}`,

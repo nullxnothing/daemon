@@ -4,6 +4,7 @@ import * as pty from 'node-pty'
 import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
+import { isPathSafe } from '../shared/pathValidation'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
 
 // Regex patterns to auto-detect "listening on port X" from terminal output
@@ -112,7 +113,13 @@ export function registerTerminalHandlers() {
   ipcMain.handle('terminal:create', async (_event, opts: TerminalCreateInput) => {
     try {
       const id = crypto.randomUUID()
-      const cwd = opts?.cwd || os.homedir()
+      const homeDir = os.homedir()
+      const cwd = opts?.cwd || homeDir
+
+      if (opts?.cwd && opts.cwd !== homeDir && !isPathSafe(opts.cwd)) {
+        return { ok: false, error: 'Invalid directory' }
+      }
+
       const session = createPtySession(id, '', [], cwd, null, null)
 
       if (opts?.startupCommand?.trim()) {

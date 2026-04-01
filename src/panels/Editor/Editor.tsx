@@ -146,15 +146,17 @@ export function EditorPanel() {
 
   // Sync external content changes into existing models
   // (e.g. file watcher updated content while tab was in background)
+  // Only non-dirty files are eligible — dirty files have unsaved user edits
+  const externalFiles = openFiles.filter((f) => !f.isDirty)
   useEffect(() => {
-    for (const file of openFiles) {
+    for (const file of externalFiles) {
       const uri = monaco.Uri.parse(`file://${file.path}`)
       const model = monaco.editor.getModel(uri)
-      if (model && model.getValue() !== file.content && !file.isDirty) {
+      if (model && model.getValue() !== file.content) {
         model.setValue(file.content)
       }
     }
-  }, [openFiles])
+  }, [externalFiles]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBeforeMount: BeforeMount = (monacoInstance) => {
     if (themeIsDefined) return

@@ -171,7 +171,11 @@ function App() {
               </PluginErrorBoundary>
             ) : activePanel === 'plugins' && !activePluginId ? (
               <PluginDashboard />
-            ) : activePanel === 'env' ? <EnvManager /> : activePanel === 'git' ? <GitPanel /> : activePanel === 'recovery' ? <RecoveryPanel /> : activePanel === 'settings' ? <SettingsPanel /> : activePanel === 'tools' ? <ToolBrowser /> : <EditorPanel />}
+            ) : (
+              <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
+                {activePanel === 'env' ? <EnvManager /> : activePanel === 'git' ? <GitPanel /> : activePanel === 'recovery' ? <RecoveryPanel /> : activePanel === 'settings' ? <SettingsPanel /> : activePanel === 'tools' ? <ToolBrowser /> : <EditorPanel />}
+              </PluginErrorBoundary>
+            )}
           </div>
           {!agentGridMode && <div className="splitter" {...splitterProps} />}
           {!agentGridMode && <div className="terminal-area" style={{ height: terminalHeight }}>
@@ -204,10 +208,12 @@ function App() {
           ) : (
             <div className="right-panel-tabbed">
               <div className="right-panel-content">
-                {activePanel === 'process' ? <ProcessManager />
-                  : activePanel === 'ports' ? <PortsPanel />
-                  : activePanel === 'wallet' ? <WalletPanel />
-                  : <ClaudePanel />}
+                <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
+                  {activePanel === 'process' ? <ProcessManager />
+                    : activePanel === 'ports' ? <PortsPanel />
+                    : activePanel === 'wallet' ? <WalletPanel />
+                    : <ClaudePanel />}
+                </PluginErrorBoundary>
               </div>
               <div className="right-panel-tabs">
                 <button

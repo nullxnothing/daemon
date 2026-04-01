@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, protocol, net } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, protocol, net, session } from 'electron'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { getDb, closeDb } from '../db/db'
@@ -110,6 +110,15 @@ function registerAllIpc() {
 async function createWindow() {
   getDb()
   registerAllIpc()
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': ["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: daemon-icon:; worker-src blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self'; object-src 'none'"]
+      }
+    })
+  })
 
   // Monaco offline: serve node_modules/monaco-editor files via custom protocol
   protocol.handle('monaco-editor', (request) => {
