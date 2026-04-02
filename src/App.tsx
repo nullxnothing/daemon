@@ -142,6 +142,7 @@ function App() {
         toggleRightPanel: () => setShowRightPanel((v) => !v),
         openAgentLauncher: () => setShowAgentLauncher(true),
         toggleExplorer: () => setShowExplorer((v) => !v),
+        setDrawerTool: (tool) => useUIStore.getState().setDrawerTool(tool),
       }),
     [],
   )
@@ -189,7 +190,7 @@ function App() {
 
         <div className="center-area" style={{ position: 'relative' }} ref={centerRef}>
           {!isEditorCollapsed && (
-            <div className="editor-area" data-tour="editor">
+            <div className="editor-area" data-tour="editor" style={drawerOpen ? { pointerEvents: 'none' } : undefined}>
               {centerMode === 'grind' ? (
                 <AgentGrid />
               ) : (
@@ -200,11 +201,15 @@ function App() {
             </div>
           )}
           {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
-          {centerMode === 'canvas' && showTerminal && !drawerOpen && (
+          {centerMode === 'canvas' && showTerminal && (
             <div
               className="terminal-area"
               data-tour="terminal"
-              style={{ height: isEditorCollapsed ? undefined : terminalHeight, flex: isEditorCollapsed ? 1 : undefined }}
+              style={{
+                height: isEditorCollapsed ? undefined : terminalHeight,
+                flex: isEditorCollapsed ? 1 : undefined,
+                display: drawerOpen ? 'none' : undefined,
+              }}
             >
               <TerminalPanel />
             </div>

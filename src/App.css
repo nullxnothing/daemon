@@ -132,7 +132,7 @@
   background: var(--s1);
   border-left: 1px solid var(--border);
   flex-shrink: 0;
-  overflow-y: auto;
+  overflow: hidden;
   resize: horizontal;
   direction: rtl; /* makes resize handle appear on the left edge */
 }
