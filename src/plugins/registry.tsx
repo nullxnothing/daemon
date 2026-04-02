@@ -53,7 +53,7 @@ function BrowserIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-function GmailIcon({ size = 18 }: { size?: number }) {
+function EmailIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="14" height="12" rx="2" />
@@ -129,10 +129,17 @@ export const PLUGIN_REGISTRY: Record<string, PluginManifest> = {
   },
   // Unshipped plugins — uncomment when service/UI implementations are complete
   // 'imagegen': { id: 'imagegen', name: 'Image Gen', description: 'Generate images with AI models', mountPosition: 'right-panel-tab', icon: ImageGenIcon, component: lazy(() => import('../panels/plugins/ImageGen/ImageGen')) },
-  // 'tweet-generator': { id: 'tweet-generator', name: 'Tweet Generator', description: 'Draft tweets with your voice profile', mountPosition: 'right-panel-tab', icon: TweetIcon, component: lazy(() => import('../panels/plugins/TweetGenerator/TweetGenerator')) },
+  'tweet-generator': {
+    id: 'tweet-generator',
+    name: 'X Replies',
+    description: 'Generate sharp replies, quotes, and threads',
+    mountPosition: 'right-panel-tab',
+    icon: TweetIcon,
+    component: lazy(() => import('../panels/plugins/TweetGenerator/TweetGenerator')),
+  },
   // 'remotion': { id: 'remotion', name: 'Remotion', description: 'Video editor via localhost Remotion', mountPosition: 'center-panel', icon: RemotionIcon, component: lazy(() => import('../panels/plugins/Remotion/Remotion')), companionPanel: lazy(() => import('../panels/plugins/Remotion/RemotionCompanion')) },
   // 'browser': { id: 'browser', name: 'Browser', description: 'Embedded browser view', mountPosition: 'right-panel-tab', icon: BrowserIcon, component: lazy(() => import('../panels/plugins/Browser/Browser')) },
-  // 'gmail': { id: 'gmail', name: 'Gmail', description: 'Code catcher and inbox', mountPosition: 'right-panel-tab', icon: GmailIcon, component: lazy(() => import('../panels/plugins/Gmail/Gmail')) },
+  // 'email' — moved to native panel (sidebar icon + center panel)
   // 'telegram': { id: 'telegram', name: 'Telegram', description: 'Full Telegram client', mountPosition: 'right-panel-tab', icon: TelegramIcon, component: lazy(() => import('../panels/plugins/Telegram/Telegram')) },
   // 'subscriptions': { id: 'subscriptions', name: 'Subscriptions', description: 'API subscription tracker', mountPosition: 'right-panel-tab', icon: SubscriptionsIcon, component: lazy(() => import('../panels/plugins/Subscriptions/Subscriptions')) },
   // 'morning-briefing': { id: 'morning-briefing', name: 'Morning Briefing', description: 'Overnight report overlay', mountPosition: 'overlay', icon: BriefingIcon, component: lazy(() => import('../panels/plugins/MorningBriefing/MorningBriefing')) },

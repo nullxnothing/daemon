@@ -11,11 +11,11 @@
 
 .wallet-section {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--s5);
 }
 
-.wallet-section:last-child {
-  border-bottom: none;
+.wallet-section:first-child {
+  border-top: none;
 }
 
 .wallet-section-title {
@@ -36,6 +36,17 @@
 .wallet-delta {
   font-size: 12px;
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wallet-delta-timeframe {
+  font-size: 9px;
+  color: var(--t3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .wallet-delta.up,
@@ -232,6 +243,7 @@
 /* Agent wallets section */
 .wallet-agent-section {
   padding: 10px 12px;
+  border-top: 1px solid var(--s5);
   border-bottom: 1px solid var(--border);
 }
 

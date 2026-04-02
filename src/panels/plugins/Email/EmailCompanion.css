@@ -1,0 +1,107 @@
+/* Email Companion — center panel */
+
+.email-companion {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.email-companion__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--s5);
+  flex-shrink: 0;
+}
+
+.email-companion__breadcrumb {
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.email-companion__breadcrumb-sep {
+  color: var(--t3);
+  margin: 0 4px;
+}
+
+.email-companion__breadcrumb-active {
+  color: var(--t1);
+}
+
+.email-companion__content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Two-column layout */
+.email-companion__message-col {
+  flex: 1;
+  min-width: 300px;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.email-companion__extraction-col {
+  width: 340px;
+  border-left: 1px solid var(--s5);
+  padding: 16px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Single-column fallback */
+@media (max-width: 600px) {
+  .email-companion__content {
+    flex-direction: column;
+  }
+
+  .email-companion__extraction-col {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--s5);
+  }
+}
+
+/* Full message body */
+.email-companion__body {
+  font-size: 13px;
+  color: var(--t1);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-ui);
+}
+
+.email-companion__subject {
+  font-size: 15px;
+  color: var(--t1);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.email-companion__meta {
+  font-size: 11px;
+  color: var(--t2);
+  margin-bottom: 16px;
+}
+
+/* Extraction section title */
+.email-companion__section-title {
+  font-size: 11px;
+  color: var(--t2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.email-companion__empty {
+  font-size: 11px;
+  color: var(--t3);
+  text-align: center;
+  padding: 24px;
+}

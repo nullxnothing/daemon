@@ -4,6 +4,7 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
+import { getConnection, withKeypair } from './SolanaService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -87,6 +88,10 @@ interface PortfolioFeedEntry {
 
 const lastWalletTotals = new Map<string, number>()
 const exportCooldowns = new Map<string, number>()
+
+// In-memory balance cache with 30-second TTL
+const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
+const BALANCE_CACHE_TTL = 30_000
 
 export async function getDashboard(projectId?: string | null) {
   const heliusKey = SecureKey.getKey('HELIUS_API_KEY')
@@ -303,6 +308,11 @@ async function getMarketTape() {
 }
 
 async function getWalletBalances(address: string, apiKey: string): Promise<HeliusBalancesResponse> {
+  const cached = balanceCache.get(address)
+  if (cached && Date.now() - cached.timestamp < BALANCE_CACHE_TTL) {
+    return cached.data
+  }
+
   const url = new URL(`${API_ENDPOINTS.HELIUS_BASE}/wallet/${address}/balances`)
   url.searchParams.set('api-key', apiKey)
   url.searchParams.set('showNative', 'true')
@@ -310,7 +320,9 @@ async function getWalletBalances(address: string, apiKey: string): Promise<Heliu
   url.searchParams.set('limit', '100')
 
   const response = await fetchWithRetry(url.toString())
-  return response.json() as Promise<HeliusBalancesResponse>
+  const data = await response.json() as HeliusBalancesResponse
+  balanceCache.set(address, { data, timestamp: Date.now() })
+  return data
 }
 
 async function getWalletHistory(address: string, apiKey: string): Promise<HeliusHistoryEvent[]> {
@@ -384,6 +396,10 @@ async function maybeSnapshotWallet(walletId: string, holdings: HoldingSummary[])
     JSON.stringify(holdings.slice(0, 32)),
     Date.now(),
   )
+
+  // Purge snapshots older than 30 days
+  db.prepare('DELETE FROM portfolio_snapshots WHERE wallet_id = ? AND snapshot_at < ?')
+    .run(walletId, Date.now() - 30 * 24 * 60 * 60 * 1000)
 }
 
 function getPreviousTotalUsd(walletIds: string[]): number | null {
@@ -421,36 +437,13 @@ function isValidSolanaAddress(value: string): boolean {
 // Solana Transaction Support
 // ---------------------------------------------------------------------------
 
-function getConnection(): Connection {
-  const key = SecureKey.getKey('HELIUS_API_KEY')
-  if (key) {
-    return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
-  }
-  return new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
-}
-
-function loadKeypair(walletId: string): Keypair {
-  const encrypted = SecureKey.getKey(`WALLET_KEYPAIR_${walletId}`)
-  if (!encrypted) throw new Error('No keypair found for this wallet. It may be a watch-only wallet.')
-  return Keypair.fromSecretKey(bs58.decode(encrypted))
-}
-
-async function sendWithTimeout(connection: Connection, transaction: Transaction, signers: Keypair[], timeoutMs = 60_000): Promise<string> {
+function sendWithTimeout(connection: Connection, transaction: Transaction, signers: Keypair[], timeoutMs = 60_000): Promise<string> {
   const txPromise = sendAndConfirmTransaction(connection, transaction, signers)
   let timer: ReturnType<typeof setTimeout>
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error('Transaction confirmation timed out (60s). It may still confirm — check Solscan.')), timeoutMs)
   })
-  try {
-    return await Promise.race([txPromise, timeoutPromise])
-  } finally {
-    clearTimeout(timer!)
-  }
-}
-
-async function withKeypair<T>(walletId: string, fn: (kp: Keypair) => Promise<T>): Promise<T> {
-  const kp = loadKeypair(walletId)
-  try { return await fn(kp) } finally { kp.secretKey.fill(0) }
+  return Promise.race([txPromise, timeoutPromise]).finally(() => clearTimeout(timer!))
 }
 
 export function generateWallet(name: string, walletType: 'user' | 'agent' = 'user', agentId?: string) {
@@ -480,11 +473,11 @@ export async function transferSOL(fromWalletId: string, toAddress: string, amoun
 
   const db = getDb()
 
-  // Agent spend limit check
+  // Agent spend limit check — only count SOL transfers toward the SOL-denominated limit
   const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
   if (walletRow?.wallet_type === 'agent') {
     const dayAgo = Date.now() - 86_400_000
-    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND created_at > ?').get(fromWalletId, 'confirmed', dayAgo) as { total: number }
+    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'sol_transfer', dayAgo) as { total: number }
     if (row.total + amountSol > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
   }
 
@@ -533,13 +526,8 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
 
   const db = getDb()
 
-  // Agent spend limit check
-  const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
-  if (walletRow?.wallet_type === 'agent') {
-    const dayAgo = Date.now() - 86_400_000
-    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND created_at > ?').get(fromWalletId, 'confirmed', dayAgo) as { total: number }
-    if (row.total + amount > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
-  }
+  // Token transfers are not subject to the SOL-denominated spend limit.
+  // The SOL spend limit only applies to SOL transfers (see transferSOL).
 
   return withKeypair(fromWalletId, async (keypair) => {
     const connection = getConnection()
@@ -648,14 +636,17 @@ export function listAgentWallets(agentId?: string) {
 }
 
 export function hasKeypair(walletId: string): boolean {
-  return Boolean(SecureKey.getKey(`WALLET_KEYPAIR_${walletId}`))
+  const db = getDb()
+  const row = db.prepare('SELECT 1 FROM secure_keys WHERE key_name = ?').get(`WALLET_KEYPAIR_${walletId}`)
+  return !!row
 }
 
 export function getTransactionHistory(walletId: string, limit = 20) {
+  const safeLimitVal = Math.min(Math.max(limit ?? 20, 1), 200)
   const db = getDb()
   return db.prepare(
     'SELECT id, wallet_id, type, signature, from_address, to_address, amount, mint, symbol, status, error, created_at FROM transaction_history WHERE wallet_id = ? ORDER BY created_at DESC LIMIT ?'
-  ).all(walletId, limit)
+  ).all(walletId, safeLimitVal)
 }
 
 export function exportPrivateKey(walletId: string): string {

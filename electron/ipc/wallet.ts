@@ -1,6 +1,7 @@
-import { ipcMain } from 'electron'
+import { ipcMain, dialog, clipboard } from 'electron'
 import * as WalletService from '../services/WalletService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { ValidationService } from '../services/ValidationService'
 import type { WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
 
 export function registerWalletHandlers() {
@@ -69,10 +70,32 @@ export function registerWalletHandlers() {
   }))
 
   ipcMain.handle('wallet:transaction-history', ipcHandler(async (_event, walletId: string, limit?: number) => {
-    return WalletService.getTransactionHistory(walletId, limit)
+    const safeLimitVal = Math.min(Math.max(limit ?? 50, 1), 200)
+    return WalletService.getTransactionHistory(walletId, safeLimitVal)
   }))
 
   ipcMain.handle('wallet:export-private-key', ipcHandler(async (_event, walletId: string) => {
-    return WalletService.exportPrivateKey(walletId)
+    if (!ValidationService.checkRateLimit('export-private-key', 3, 5 * 60 * 1000)) {
+      throw new Error('Too many export attempts. Please wait 5 minutes.')
+    }
+
+    const { response } = await dialog.showMessageBox({
+      type: 'warning',
+      buttons: ['Cancel', 'Export Key'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Export Private Key',
+      message: 'This will expose your private key in plaintext.',
+      detail: 'Only proceed if you understand the security implications.',
+    })
+    if (response === 0) throw new Error('Export cancelled by user')
+
+    const keyString = await WalletService.exportPrivateKey(walletId)
+    clipboard.writeText(keyString)
+    // Auto-clear after 30 seconds if clipboard hasn't changed
+    setTimeout(() => {
+      if (clipboard.readText() === keyString) clipboard.writeText('')
+    }, 30000)
+    return { copied: true }
   }))
 }
