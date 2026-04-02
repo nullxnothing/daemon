@@ -60,12 +60,23 @@ export function AgentGrid() {
     const currentCells = currentPages[activeGrindPage]
     if (!currentCells[index]) return
 
-    // Check Claude CLI availability before spawning
-    const claudeCheck = await window.daemon.claude.getConnection()
-    if (!claudeCheck.ok || !claudeCheck.data?.claudePath) {
+    // Resolve Claude CLI path — prefer cached connection, fall back to verify
+    let claudePath: string | null = null
+    const cached = await window.daemon.claude.getConnection()
+    if (cached.ok && cached.data?.claudePath) {
+      claudePath = cached.data.claudePath
+    } else {
+      const verified = await window.daemon.claude.verifyConnection()
+      if (verified.ok && verified.data?.claudePath) {
+        claudePath = verified.data.claudePath
+      }
+    }
+
+    if (!claudePath) {
       setCellError((prev) => ({ ...prev, [index]: 'Claude CLI not found. Check Settings.' }))
       return
     }
+
     setCellError((prev) => {
       const next = { ...prev }
       delete next[index]
@@ -81,6 +92,8 @@ export function AgentGrid() {
       const termId = res.data.id
       addTerminal(activeProjectId, termId, label)
       setGrindCell(activeProjectId, activeGrindPage, index, { id: termId })
+    } else {
+      setCellError((prev) => ({ ...prev, [index]: res.error ?? 'Failed to create terminal' }))
     }
   }, [activeProjectId, activeProjectPath, addTerminal, activeGrindPage, setGrindCell])
 

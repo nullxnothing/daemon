@@ -28,6 +28,7 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const addTerminal = useUIStore((s) => s.addTerminal)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
 
   const loadAgents = useCallback((cancelled = false) => {
     window.daemon.agents.list().then((res) => {
@@ -85,6 +86,7 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
       })
       if (res.ok && res.data) {
         addTerminal(activeProjectId, res.data.id, res.data.agentName ?? agent.name, res.data.agentId)
+        setCenterMode('canvas')
         onClose()
       } else {
         setError(res.error ?? 'Failed to spawn agent')
@@ -92,7 +94,7 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
     } catch (err) {
       setError(String(err))
     }
-  }, [activeProjectId, addTerminal, onClose])
+  }, [activeProjectId, addTerminal, setCenterMode, onClose])
 
   const syncClaude = useCallback(async (claudeAgent: ClaudeAgentFile) => {
     setError(null)
