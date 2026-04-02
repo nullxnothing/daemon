@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+import { useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { buildCommands } from './components/CommandPalette/commands'
@@ -48,14 +48,30 @@ function App() {
 
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowRightPanel, setShowTerminal })
 
+  const centerRef = useRef<HTMLDivElement>(null)
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
-    max: 600,
+    max: 99999,
     initial: 200,
+    containerRef: centerRef,
   })
 
   const shouldShowRightPanel = showRightPanel
+
+  // Determine if the editor should be hidden because the terminal has been
+  // dragged to fill the full center area height.
+  const [centerHeight, setCenterHeight] = useState(0)
+  useEffect(() => {
+    const el = centerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => setCenterHeight(entry.contentRect.height))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  // Collapse threshold: editor gets less than 30px of space
+  const isEditorCollapsed = centerHeight > 0 && showTerminal && !drawerOpen && centerMode === 'canvas'
+    && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
     let cancelled = false
@@ -171,19 +187,25 @@ function App() {
           </div>
         )}
 
-        <div className="center-area" style={{ position: 'relative' }}>
-          <div className="editor-area" data-tour="editor">
-            {centerMode === 'grind' ? (
-              <AgentGrid />
-            ) : (
-              <PluginErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
-                <EditorPanel />
-              </PluginErrorBoundary>
-            )}
-          </div>
+        <div className="center-area" style={{ position: 'relative' }} ref={centerRef}>
+          {!isEditorCollapsed && (
+            <div className="editor-area" data-tour="editor">
+              {centerMode === 'grind' ? (
+                <AgentGrid />
+              ) : (
+                <PluginErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
+                  <EditorPanel />
+                </PluginErrorBoundary>
+              )}
+            </div>
+          )}
           {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
           {centerMode === 'canvas' && showTerminal && !drawerOpen && (
-            <div className="terminal-area" data-tour="terminal" style={{ height: terminalHeight }}>
+            <div
+              className="terminal-area"
+              data-tour="terminal"
+              style={{ height: isEditorCollapsed ? undefined : terminalHeight, flex: isEditorCollapsed ? 1 : undefined }}
+            >
               <TerminalPanel />
             </div>
           )}

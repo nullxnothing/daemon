@@ -119,7 +119,7 @@
 }
 
 .terminal-area {
-  min-height: 80px;
+  min-height: 0;
   flex-shrink: 0;
   overflow: hidden;
 }
