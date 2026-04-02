@@ -195,7 +195,7 @@ declare global {
   }
 
   interface DaemonTerminal {
-    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
+    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
@@ -296,6 +296,8 @@ declare global {
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => Promise<IpcResponse<{ signature: string }>>
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => Promise<IpcResponse<{ signature: string }>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
+    swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }> }>>
+    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ signature: string }>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
@@ -433,6 +435,9 @@ declare global {
     remove: (accountId: string) => Promise<IpcResponse<void>>
     messages: (accountId: string, query?: string, max?: number) => Promise<IpcResponse<EmailMessage[]>>
     read: (accountId: string, messageId: string) => Promise<IpcResponse<EmailMessage>>
+    send: (accountId: string, to: string, subject: string, body: string, cc?: string, bcc?: string) => Promise<IpcResponse<{ messageId: string }>>
+    markRead: (accountId: string, messageIds: string[]) => Promise<IpcResponse<void>>
+    markAllRead: (accountId?: string) => Promise<IpcResponse<{ count: number }>>
     extract: (accountId: string, messageId: string) => Promise<IpcResponse<ExtractionResult>>
     summarize: (accountId: string, messageId: string) => Promise<IpcResponse<{ summary: string }>>
     sync: (accountId: string) => Promise<IpcResponse<void>>

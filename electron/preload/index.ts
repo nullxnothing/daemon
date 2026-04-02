@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   terminal: {
-    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
+    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
@@ -156,6 +156,8 @@ contextBridge.exposeInMainWorld('daemon', {
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => ipcRenderer.invoke('wallet:send-sol', input),
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => ipcRenderer.invoke('wallet:send-token', input),
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
+    swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
+    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-execute', input),
     agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
     createAgentWallet: (agentId: string, agentName: string) => ipcRenderer.invoke('wallet:create-agent-wallet', agentId, agentName),
     hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
@@ -291,6 +293,9 @@ contextBridge.exposeInMainWorld('daemon', {
     remove: (accountId: string) => ipcRenderer.invoke('email:remove', accountId),
     messages: (accountId: string, query?: string, max?: number) => ipcRenderer.invoke('email:messages', accountId, query, max),
     read: (accountId: string, messageId: string) => ipcRenderer.invoke('email:read', accountId, messageId),
+    send: (accountId: string, to: string, subject: string, body: string, cc?: string, bcc?: string) => ipcRenderer.invoke('email:send', accountId, to, subject, body, cc, bcc),
+    markRead: (accountId: string, messageIds: string[]) => ipcRenderer.invoke('email:mark-read', accountId, messageIds),
+    markAllRead: (accountId?: string) => ipcRenderer.invoke('email:mark-all-read', accountId),
     extract: (accountId: string, messageId: string) => ipcRenderer.invoke('email:extract', accountId, messageId),
     summarize: (accountId: string, messageId: string) => ipcRenderer.invoke('email:summarize', accountId, messageId),
     sync: (accountId: string) => ipcRenderer.invoke('email:sync', accountId),

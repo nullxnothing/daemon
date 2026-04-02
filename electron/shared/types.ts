@@ -446,6 +446,8 @@ export interface TerminalSession {
   pty: IPty
   agentId: string | null
   contextFilePath: string | null
+  /** True when session was created via terminal:create with isAgent flag (e.g. AgentGrid claude cells). */
+  isAgentShell?: boolean
 }
 
 export interface TerminalCreateInput {
@@ -453,6 +455,8 @@ export interface TerminalCreateInput {
   startupCommand?: string
   /** When true, skip project-path validation (used for user-initiated folder drops). */
   userInitiated?: boolean
+  /** When true, classify this session as an agent in the process manager. */
+  isAgent?: boolean
 }
 
 export interface TerminalSpawnAgentInput {

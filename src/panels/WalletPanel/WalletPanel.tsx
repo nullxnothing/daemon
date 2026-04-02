@@ -6,6 +6,8 @@ import { WalletSendForm } from './WalletSendForm'
 import { WalletExportKey } from './WalletExportKey'
 import { AgentWalletSection } from './AgentWalletSection'
 import { TransactionHistory } from './TransactionHistory'
+import { WalletReceiveView } from './WalletReceiveView'
+import { WalletSwapForm } from './WalletSwapForm'
 import './WalletPanel.css'
 
 export function WalletPanel() {
@@ -18,6 +20,8 @@ export function WalletPanel() {
   const transactions = useWalletStore((s) => s.transactions)
   const setStoreShowMarketTape = useWalletStore((s) => s.setShowMarketTape)
   const setStoreShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
+  const activeView = useWalletStore((s) => s.activeView)
+  const setActiveView = useWalletStore((s) => s.setActiveView)
 
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,6 +68,20 @@ export function WalletPanel() {
       void useWalletStore.getState().loadTransactions(dashboard.activeWallet.id ?? '')
     }
   }, [dashboard?.activeWallet])
+
+  // Auto-open send form when navigating from QuickView
+  useEffect(() => {
+    if (activeView === 'send' && dashboard?.activeWallet && !sendWalletId) {
+      const walletId = dashboard.activeWallet.id
+      setSendWalletId(walletId)
+      setSendMode('sol')
+      setSendDest('')
+      setSendAmount('')
+      setSendMint('')
+      setSendResult(null)
+      setSendError(null)
+    }
+  }, [activeView, dashboard?.activeWallet, sendWalletId])
 
   useEffect(() => {
     if (!dashboard?.wallets) return
@@ -216,7 +234,11 @@ export function WalletPanel() {
     setSendError(null)
   }
 
-  const closeSend = () => { setSendWalletId(null); setSendMode(null) }
+  const closeSend = () => {
+    setSendWalletId(null)
+    setSendMode(null)
+    if (activeView === 'send') setActiveView('overview')
+  }
 
   const handleFundAgent = (agentWalletAddress: string) => {
     const defaultWallet = dashboard?.wallets.find((w) => w.isDefault)
@@ -300,6 +322,48 @@ export function WalletPanel() {
     )
   }
 
+  // Resolve the active wallet for sub-views
+  const activeWallet = dashboard.activeWallet
+  const activeWalletMeta = dashboard.wallets.find((w) => w.id === activeWallet?.id)
+  const hasKeypair = activeWalletMeta ? keypairCache[activeWalletMeta.id] === true : false
+
+  // Render sub-views (send, swap, receive) when activeView is set
+  if (activeView === 'receive' && activeWallet) {
+    return (
+      <div className="wallet-panel">
+        <div className="panel-header wallet-panel-header">
+          <span>Wallet</span>
+        </div>
+        <WalletReceiveView
+          address={activeWallet.address}
+          walletName={activeWallet.name}
+          onBack={() => setActiveView('overview')}
+        />
+      </div>
+    )
+  }
+
+  if (activeView === 'swap' && activeWallet && hasKeypair) {
+    return (
+      <div className="wallet-panel">
+        <div className="panel-header wallet-panel-header">
+          <span>Wallet</span>
+        </div>
+        <WalletSwapForm
+          walletId={activeWallet.id}
+          walletName={activeWallet.name}
+          holdings={activeWallet.holdings}
+          onBack={() => setActiveView('overview')}
+          onRefresh={load}
+        />
+      </div>
+    )
+  }
+
+  // When navigating to send view from QuickView, auto-open the inline send form
+  // for the active wallet. The send form renders inline in the overview below.
+  // We use useEffect-style guard: the button handler already calls openSend + setActiveView.
+
   return (
     <div className="wallet-panel">
       <div className="panel-header wallet-panel-header">
@@ -317,7 +381,96 @@ export function WalletPanel() {
           <span className="wallet-delta-timeframe">24h</span>
         </div>
         <div className="wallet-caption">{dashboard.portfolio.walletCount} wallet{dashboard.portfolio.walletCount !== 1 ? 's' : ''} tracked</div>
+
+        {/* Quick action buttons */}
+        {activeWallet && (
+          <div className="wallet-quick-actions">
+            <button
+              className={`wallet-action-btn ${activeView === 'send' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasKeypair) {
+                  openSend(activeWallet.id, 'sol')
+                  setActiveView('send')
+                }
+              }}
+              disabled={!hasKeypair}
+              title={hasKeypair ? 'Send SOL or tokens' : 'No keypair — watch-only wallet'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="5 12 12 5 19 12" />
+              </svg>
+              Send
+            </button>
+            <button
+              className={`wallet-action-btn ${activeView === 'swap' ? 'active' : ''}`}
+              onClick={() => { if (hasKeypair) setActiveView('swap') }}
+              disabled={!hasKeypair}
+              title={hasKeypair ? 'Swap tokens via Jupiter' : 'No keypair — watch-only wallet'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <polyline points="17 1 21 5 17 9" />
+                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                <polyline points="7 23 3 19 7 15" />
+                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+              </svg>
+              Swap
+            </button>
+            <button
+              className="wallet-action-btn"
+              onClick={() => setActiveView('receive')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <polyline points="19 12 12 19 5 12" />
+              </svg>
+              Receive
+            </button>
+          </div>
+        )}
       </section>
+
+      {/* Inline send form when triggered from quick actions */}
+      {activeView === 'send' && activeWallet && hasKeypair && (
+        <section className="wallet-section">
+          <div className="wallet-view-header">
+            <div className="wallet-section-title" style={{ margin: 0 }}>Send from {activeWallet.name}</div>
+          </div>
+          <div className="wallet-swap-field" style={{ marginBottom: 6 }}>
+            <label className="wallet-caption">Mode</label>
+            <div className="wallet-actions">
+              <button
+                className={`wallet-btn ${sendMode === 'sol' ? 'primary' : ''}`}
+                onClick={() => openSend(activeWallet.id, 'sol')}
+              >SOL</button>
+              <button
+                className={`wallet-btn ${sendMode === 'token' ? 'primary' : ''}`}
+                onClick={() => openSend(activeWallet.id, 'token')}
+              >Token</button>
+            </div>
+          </div>
+          {sendWalletId === activeWallet.id && sendMode && (
+            <WalletSendForm
+              walletId={activeWallet.id}
+              sendMode={sendMode}
+              sendDest={sendDest}
+              sendAmount={sendAmount}
+              sendMint={sendMint}
+              sendLoading={sendLoading}
+              sendError={sendError}
+              sendResult={sendResult}
+              pendingSend={pendingSend}
+              onDestChange={setSendDest}
+              onAmountChange={setSendAmount}
+              onMintChange={setSendMint}
+              onConfirmSend={handleConfirmSend}
+              onExecuteSend={handleExecuteSend}
+              onCancelSend={handleCancelSend}
+              onClose={closeSend}
+            />
+          )}
+        </section>
+      )}
 
       {showSettings && (
         <WalletSettings

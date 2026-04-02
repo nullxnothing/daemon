@@ -1,0 +1,332 @@
+import { useState } from 'react'
+import './WalletPanel.css'
+
+const SOL_MINT = 'So11111111111111111111111111111111111111112'
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+
+const COMMON_TOKENS = [
+  { mint: SOL_MINT, symbol: 'SOL', decimals: 9 },
+  { mint: USDC_MINT, symbol: 'USDC', decimals: 6 },
+  { mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', symbol: 'USDT', decimals: 6 },
+] as const
+
+interface SwapQuote {
+  inputMint: string
+  outputMint: string
+  inAmount: string
+  outAmount: string
+  priceImpactPct: string
+  routePlan: Array<{ label: string; percent: number }>
+}
+
+interface WalletSwapFormProps {
+  walletId: string
+  walletName: string
+  holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
+  onBack: () => void
+  onRefresh: () => Promise<void>
+}
+
+export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefresh }: WalletSwapFormProps) {
+  const [inputMint, setInputMint] = useState(SOL_MINT)
+  const [outputMint, setOutputMint] = useState(USDC_MINT)
+  const [amount, setAmount] = useState('')
+  const [slippageBps, setSlippageBps] = useState('50')
+
+  const [quote, setQuote] = useState<SwapQuote | null>(null)
+  const [quoteLoading, setQuoteLoading] = useState(false)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
+
+  const [swapLoading, setSwapLoading] = useState(false)
+  const [swapResult, setSwapResult] = useState<string | null>(null)
+  const [swapError, setSwapError] = useState<string | null>(null)
+
+  // Merge wallet holdings with common tokens for the dropdown
+  const allTokens = mergeTokenLists(holdings)
+
+  const inputToken = allTokens.find((t) => t.mint === inputMint)
+  const outputToken = allTokens.find((t) => t.mint === outputMint)
+
+  const handleGetQuote = async () => {
+    setQuoteError(null)
+    setQuote(null)
+    setSwapResult(null)
+    setSwapError(null)
+
+    const parsedAmount = parseFloat(amount)
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setQuoteError('Enter a valid amount')
+      return
+    }
+
+    if (inputMint === outputMint) {
+      setQuoteError('Input and output tokens must differ')
+      return
+    }
+
+    setQuoteLoading(true)
+    try {
+      const res = await window.daemon.wallet.swapQuote({
+        inputMint,
+        outputMint,
+        amount: parsedAmount,
+        slippageBps: parseInt(slippageBps, 10),
+      })
+
+      if (res.ok && res.data) {
+        setQuote(res.data)
+      } else {
+        setQuoteError(res.error ?? 'Failed to get quote')
+      }
+    } catch (err) {
+      setQuoteError(err instanceof Error ? err.message : 'Quote request failed')
+    } finally {
+      setQuoteLoading(false)
+    }
+  }
+
+  const handleExecuteSwap = async () => {
+    if (!quote) return
+    setSwapLoading(true)
+    setSwapError(null)
+    setSwapResult(null)
+
+    try {
+      const res = await window.daemon.wallet.swapExecute({
+        walletId,
+        inputMint,
+        outputMint,
+        amount: parseFloat(amount),
+        slippageBps: parseInt(slippageBps, 10),
+      })
+
+      if (res.ok && res.data) {
+        setSwapResult(res.data.signature)
+        setQuote(null)
+        setAmount('')
+        await onRefresh()
+      } else {
+        setSwapError(res.error ?? 'Swap failed')
+      }
+    } catch (err) {
+      setSwapError(err instanceof Error ? err.message : 'Swap execution failed')
+    } finally {
+      setSwapLoading(false)
+    }
+  }
+
+  const handleCancelQuote = () => {
+    setQuote(null)
+    setSwapError(null)
+  }
+
+  const handleFlipTokens = () => {
+    setInputMint(outputMint)
+    setOutputMint(inputMint)
+    setQuote(null)
+    setSwapResult(null)
+    setSwapError(null)
+  }
+
+  return (
+    <section className="wallet-section">
+      <div className="wallet-view-header">
+        <button className="wallet-btn" onClick={onBack}>Back</button>
+        <div className="wallet-section-title" style={{ margin: 0 }}>Swap</div>
+        <div style={{ width: 40 }} />
+      </div>
+
+      <div className="wallet-swap-container">
+        <div className="wallet-caption">{walletName}</div>
+
+        {/* Input token */}
+        <div className="wallet-swap-field">
+          <label className="wallet-caption">From</label>
+          <select
+            className="wallet-input"
+            value={inputMint}
+            onChange={(e) => { setInputMint(e.target.value); setQuote(null) }}
+          >
+            {allTokens.map((t) => (
+              <option key={t.mint} value={t.mint}>
+                {t.symbol} {t.balance !== undefined ? `(${formatTokenBalance(t.balance)})` : ''}
+              </option>
+            ))}
+          </select>
+          <input
+            className="wallet-input"
+            value={amount}
+            onChange={(e) => { setAmount(e.target.value); setQuote(null) }}
+            placeholder="Amount"
+            type="number"
+            step="any"
+            min="0"
+          />
+        </div>
+
+        {/* Flip button */}
+        <div className="wallet-swap-flip">
+          <button className="wallet-btn" onClick={handleFlipTokens} title="Swap direction">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Output token */}
+        <div className="wallet-swap-field">
+          <label className="wallet-caption">To</label>
+          <select
+            className="wallet-input"
+            value={outputMint}
+            onChange={(e) => { setOutputMint(e.target.value); setQuote(null) }}
+          >
+            {allTokens.map((t) => (
+              <option key={t.mint} value={t.mint}>
+                {t.symbol} {t.balance !== undefined ? `(${formatTokenBalance(t.balance)})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Slippage */}
+        <div className="wallet-swap-field">
+          <label className="wallet-caption">Slippage (bps)</label>
+          <input
+            className="wallet-input"
+            value={slippageBps}
+            onChange={(e) => setSlippageBps(e.target.value)}
+            placeholder="50"
+            type="number"
+            step="1"
+            min="1"
+            max="5000"
+          />
+          <div className="wallet-caption">{(parseInt(slippageBps, 10) / 100).toFixed(2)}%</div>
+        </div>
+
+        {/* Custom mint input */}
+        <div className="wallet-swap-field">
+          <label className="wallet-caption">Or paste a token mint</label>
+          <div className="wallet-swap-mint-row">
+            <input
+              className="wallet-input"
+              placeholder="Input mint address"
+              onBlur={(e) => {
+                const v = e.target.value.trim()
+                if (v.length >= 32) { setInputMint(v); setQuote(null) }
+              }}
+            />
+            <input
+              className="wallet-input"
+              placeholder="Output mint address"
+              onBlur={(e) => {
+                const v = e.target.value.trim()
+                if (v.length >= 32) { setOutputMint(v); setQuote(null) }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Quote / Execute */}
+        {!quote && (
+          <button
+            className="wallet-btn primary wallet-btn-full"
+            disabled={quoteLoading}
+            onClick={handleGetQuote}
+          >
+            {quoteLoading ? 'Getting Quote...' : 'Get Quote'}
+          </button>
+        )}
+
+        {quote && (
+          <div className="wallet-swap-quote">
+            <div className="wallet-label">Quote</div>
+            <div className="wallet-caption">
+              {formatLargeNumber(quote.inAmount)} {inputToken?.symbol ?? shortMint(inputMint)} →{' '}
+              {formatLargeNumber(quote.outAmount)} {outputToken?.symbol ?? shortMint(outputMint)}
+            </div>
+            <div className="wallet-caption">
+              Price impact: {parseFloat(quote.priceImpactPct).toFixed(4)}%
+            </div>
+            {quote.routePlan.length > 0 && (
+              <div className="wallet-caption">
+                Route: {quote.routePlan.map((r) => `${r.label} (${r.percent}%)`).join(' → ')}
+              </div>
+            )}
+            <div className="wallet-actions" style={{ marginTop: 6 }}>
+              <button
+                className="wallet-btn primary"
+                disabled={swapLoading}
+                onClick={handleExecuteSwap}
+              >
+                {swapLoading ? 'Swapping...' : 'Execute Swap'}
+              </button>
+              <button className="wallet-btn" onClick={handleCancelQuote}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {quoteError && <div className="wallet-empty">{quoteError}</div>}
+        {swapError && <div className="wallet-empty">{swapError}</div>}
+        {swapResult && (
+          <div className="wallet-success-msg">
+            Swap confirmed! Sig: {swapResult.slice(0, 8)}...{swapResult.slice(-8)}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+interface TokenOption {
+  mint: string
+  symbol: string
+  balance?: number
+  decimals?: number
+}
+
+function mergeTokenLists(
+  holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
+): TokenOption[] {
+  const seen = new Set<string>()
+  const result: TokenOption[] = []
+
+  // Add holdings first (user's tokens with balances)
+  for (const h of holdings) {
+    if (!seen.has(h.mint)) {
+      seen.add(h.mint)
+      result.push({ mint: h.mint, symbol: h.symbol, balance: h.amount, decimals: h.decimals })
+    }
+  }
+
+  // Add common tokens that aren't in holdings
+  for (const t of COMMON_TOKENS) {
+    if (!seen.has(t.mint)) {
+      seen.add(t.mint)
+      result.push({ mint: t.mint, symbol: t.symbol, decimals: t.decimals })
+    }
+  }
+
+  return result
+}
+
+function formatTokenBalance(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+  if (value >= 1) return value.toFixed(2)
+  return value.toFixed(4)
+}
+
+function formatLargeNumber(value: string): string {
+  const num = parseFloat(value)
+  if (isNaN(num)) return value
+  return formatTokenBalance(num)
+}
+
+function shortMint(mint: string): string {
+  return `${mint.slice(0, 4)}...${mint.slice(-4)}`
+}

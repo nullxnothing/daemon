@@ -41,6 +41,8 @@ interface WalletTransaction {
   created_at: number
 }
 
+type WalletActiveView = 'overview' | 'send' | 'swap' | 'receive'
+
 interface WalletStoreState {
   dashboard: WalletDashboard | null
   showMarketTape: boolean
@@ -49,6 +51,8 @@ interface WalletStoreState {
   error: string | null
   agentWallets: AgentWallet[] | null
   transactions: WalletTransaction[] | null
+  activeView: WalletActiveView
+  setActiveView: (view: WalletActiveView) => void
   refresh: (projectId?: string | null) => Promise<void>
   setShowMarketTape: (enabled: boolean) => Promise<boolean>
   setShowTitlebarWallet: (enabled: boolean) => Promise<boolean>
@@ -68,6 +72,8 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   error: null,
   agentWallets: null,
   transactions: null,
+  activeView: 'overview',
+  setActiveView: (view) => set({ activeView: view }),
 
   refresh: async (projectId) => {
     set({ loading: true, error: null })

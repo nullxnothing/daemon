@@ -586,6 +586,178 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
   })
 }
 
+// ---------------------------------------------------------------------------
+// Jupiter Swap Integration
+// ---------------------------------------------------------------------------
+
+const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6/quote'
+const JUPITER_SWAP_API = 'https://quote-api.jup.ag/v6/swap'
+const LAMPORTS_DECIMALS = 9
+
+interface JupiterQuoteResponse {
+  inputMint: string
+  outputMint: string
+  inAmount: string
+  outAmount: string
+  priceImpactPct: string
+  routePlan: Array<{ swapInfo: { label: string; ammKey: string }; percent: number }>
+}
+
+interface SwapQuoteResult {
+  inputMint: string
+  outputMint: string
+  inAmount: string
+  outAmount: string
+  priceImpactPct: string
+  routePlan: Array<{ label: string; percent: number }>
+}
+
+export async function getSwapQuote(
+  inputMint: string,
+  outputMint: string,
+  amount: number,
+  slippageBps: number,
+): Promise<SwapQuoteResult> {
+  if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
+  if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
+  if (amount <= 0) throw new Error('Amount must be greater than 0')
+  if (inputMint === outputMint) throw new Error('Input and output mints must differ')
+
+  // Resolve decimals for the input mint to convert human amount to raw
+  const decimals = await getMintDecimals(inputMint)
+  const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
+
+  const url = new URL(JUPITER_QUOTE_API)
+  url.searchParams.set('inputMint', inputMint)
+  url.searchParams.set('outputMint', outputMint)
+  url.searchParams.set('amount', rawAmount.toString())
+  url.searchParams.set('slippageBps', String(slippageBps))
+
+  const response = await fetch(url.toString())
+  if (!response.ok) {
+    const body = await response.text()
+    throw new Error(`Jupiter quote failed (${response.status}): ${body}`)
+  }
+
+  const data = await response.json() as JupiterQuoteResponse
+
+  // Convert raw amounts to human-readable
+  const outputDecimals = await getMintDecimals(outputMint)
+  const humanInAmount = (Number(BigInt(data.inAmount)) / Math.pow(10, decimals)).toString()
+  const humanOutAmount = (Number(BigInt(data.outAmount)) / Math.pow(10, outputDecimals)).toString()
+
+  return {
+    inputMint: data.inputMint,
+    outputMint: data.outputMint,
+    inAmount: humanInAmount,
+    outAmount: humanOutAmount,
+    priceImpactPct: data.priceImpactPct,
+    routePlan: (data.routePlan ?? []).map((r) => ({
+      label: r.swapInfo?.label ?? 'Unknown',
+      percent: r.percent,
+    })),
+  }
+}
+
+export async function executeSwap(
+  walletId: string,
+  inputMint: string,
+  outputMint: string,
+  amount: number,
+  slippageBps: number,
+): Promise<{ signature: string }> {
+  if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
+  if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
+  if (amount <= 0) throw new Error('Amount must be greater than 0')
+
+  const db = getDb()
+
+  return withKeypair(walletId, async (keypair) => {
+    const connection = getConnection()
+    const userPublicKey = keypair.publicKey.toBase58()
+
+    // Get the quote first
+    const decimals = await getMintDecimals(inputMint)
+    const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
+
+    const quoteUrl = new URL(JUPITER_QUOTE_API)
+    quoteUrl.searchParams.set('inputMint', inputMint)
+    quoteUrl.searchParams.set('outputMint', outputMint)
+    quoteUrl.searchParams.set('amount', rawAmount.toString())
+    quoteUrl.searchParams.set('slippageBps', String(slippageBps))
+
+    const quoteRes = await fetch(quoteUrl.toString())
+    if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.status}`)
+    const quoteData = await quoteRes.json()
+
+    // Get the swap transaction from Jupiter
+    const swapRes = await fetch(JUPITER_SWAP_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteResponse: quoteData,
+        userPublicKey,
+        wrapAndUnwrapSol: true,
+      }),
+    })
+
+    if (!swapRes.ok) {
+      const body = await swapRes.text()
+      throw new Error(`Jupiter swap failed (${swapRes.status}): ${body}`)
+    }
+
+    const { swapTransaction } = await swapRes.json() as { swapTransaction: string }
+
+    // Deserialize, sign, and send the versioned transaction
+    const { VersionedTransaction: VTx } = await import('@solana/web3.js')
+    const txBuf = Buffer.from(swapTransaction, 'base64')
+    const transaction = VTx.deserialize(txBuf)
+    transaction.sign([keypair])
+
+    const txId = crypto.randomUUID()
+    db.prepare(
+      'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
+    ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
+
+    try {
+      const rawTx = transaction.serialize()
+      const signature = await connection.sendRawTransaction(rawTx, {
+        skipPreflight: false,
+        maxRetries: 3,
+      })
+
+      // Confirm the transaction
+      const latestBlockhash = await connection.getLatestBlockhash()
+      await connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      })
+
+      db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      return { signature }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      throw err
+    }
+  })
+}
+
+async function getMintDecimals(mint: string): Promise<number> {
+  // SOL native mint
+  if (mint === 'So11111111111111111111111111111111111111112') return LAMPORTS_DECIMALS
+
+  try {
+    const connection = getConnection()
+    const mintPubkey = new PublicKey(mint)
+    const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
+    return (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+  } catch {
+    return 9
+  }
+}
+
 export async function getBalance(walletId: string) {
   const db = getDb()
   const row = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
@@ -597,7 +769,8 @@ export async function getBalance(walletId: string) {
 }
 
 export function createAgentWallet(agentId: string, agentName: string) {
-  return generateWallet(`${agentName} Wallet`, 'agent', agentId)
+  // agentName may already include "Wallet" suffix (from UI default), so use it directly
+  return generateWallet(agentName, 'agent', agentId)
 }
 
 export function listAgentWallets(agentId?: string) {

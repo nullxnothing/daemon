@@ -333,3 +333,125 @@
   color: var(--success);
   margin-top: 4px;
 }
+
+/* Quick action buttons (Send/Swap/Receive in portfolio section) */
+.wallet-quick-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.wallet-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  font-size: 11px;
+  color: var(--t2);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.wallet-action-btn:hover:not(:disabled) {
+  background: var(--s4);
+  color: var(--t1);
+}
+
+.wallet-action-btn.active {
+  background: var(--s4);
+  color: var(--t1);
+  border-color: var(--t3);
+}
+
+.wallet-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* View header (back button + title) */
+.wallet-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+/* Receive view */
+.wallet-receive-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.wallet-address-display {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--t1);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 8px;
+  word-break: break-all;
+  line-height: 1.5;
+  user-select: all;
+}
+
+.wallet-btn-full {
+  width: 100%;
+  height: 30px;
+  margin-top: 8px;
+}
+
+/* Swap form */
+.wallet-swap-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.wallet-swap-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wallet-swap-flip {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.wallet-swap-flip .wallet-btn {
+  width: 30px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.wallet-swap-mint-row {
+  display: flex;
+  gap: 4px;
+}
+
+.wallet-swap-mint-row .wallet-input {
+  flex: 1;
+}
+
+.wallet-swap-quote {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
