@@ -98,6 +98,34 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     xtermRef.current = term
     fitRef.current = fitAddon
 
+    // Intercept app-level shortcuts before xterm consumes them.
+    // Returning false tells xterm to suppress the event and not write to pty.
+    term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return true
+      const key = e.key.toLowerCase()
+      // Ctrl+P / Ctrl+Shift+P — file search / command palette
+      if (key === 'p') return false
+      // Ctrl+Shift+A — agent launcher
+      if (e.shiftKey && key === 'a') return false
+      // Ctrl+Shift+R — reload
+      if (e.shiftKey && key === 'r') return false
+      // Ctrl+Shift+G — grind mode
+      if (e.shiftKey && key === 'g') return false
+      // Ctrl+Shift+B — browser mode
+      if (e.shiftKey && key === 'b') return false
+      // Ctrl+` — toggle terminal
+      if (e.key === '`') return false
+      // Ctrl+B — toggle right panel
+      if (!e.shiftKey && key === 'b') return false
+      // Ctrl+W — close tab
+      if (!e.shiftKey && key === 'w') return false
+      // Ctrl+, — settings
+      if (e.key === ',') return false
+      // Ctrl+K — drawer
+      if (!e.shiftKey && key === 'k') return false
+      return true
+    })
+
     setTimeout(() => { doFit(); term.focus() }, 150)
 
     term.onData((data) => {
