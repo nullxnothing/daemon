@@ -1,0 +1,164 @@
+/* Command Drawer — slides up from bottom of center area */
+.command-drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 55%;
+  min-height: 200px;
+  max-height: 70%;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  animation: drawerSlideUp 0.15s ease-out;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes drawerSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background-image: var(--surface-gradient-subtle);
+}
+
+.drawer-search {
+  flex: 1;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-size: 12px;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  outline: none;
+}
+
+.drawer-search:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-glow);
+}
+
+.drawer-search::placeholder {
+  color: var(--t4);
+}
+
+.drawer-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.drawer-back,
+.drawer-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--t3);
+  cursor: pointer;
+  transition: color 0.1s, background 0.1s;
+  flex-shrink: 0;
+}
+
+.drawer-back:hover,
+.drawer-close:hover {
+  color: var(--t1);
+  background: var(--s3);
+}
+
+/* Content */
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.drawer-loading {
+  padding: 24px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+/* Tool Grid */
+.drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 12px;
+}
+
+.drawer-tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px 12px;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.15s;
+  text-align: center;
+}
+
+.drawer-tool-card:hover {
+  background: var(--s3);
+  border-color: var(--s5);
+  box-shadow: var(--shadow-lifted);
+}
+
+.drawer-tool-card:active {
+  transform: scale(0.97);
+}
+
+.drawer-tool-icon {
+  color: var(--t2);
+  transition: color 0.1s;
+}
+
+.drawer-tool-card:hover .drawer-tool-icon {
+  color: var(--green);
+}
+
+.drawer-tool-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.drawer-tool-desc {
+  font-size: 10px;
+  color: var(--t3);
+  line-height: 1.3;
+}
+
+.drawer-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 24px;
+  font-size: 11px;
+  color: var(--t3);
+}

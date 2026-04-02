@@ -1,61 +1,52 @@
-import { useEffect, useState, useCallback, lazy, Suspense, type ComponentType } from 'react'
+import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
+import { CommandPalette } from './components/CommandPalette/CommandPalette'
+import { buildCommands } from './components/CommandPalette/commands'
 import { EditorPanel } from './panels/Editor/Editor'
 import { TerminalPanel } from './panels/Terminal/Terminal'
 import { AgentLauncher } from './panels/AgentLauncher/AgentLauncher'
 import { ClaudePanel } from './panels/ClaudePanel/ClaudePanel'
-import { ProcessManager } from './panels/ProcessManager/ProcessManager'
-import { EnvManager } from './panels/EnvManager/EnvManager'
-import { PortsPanel } from './panels/PortsPanel/PortsPanel'
-import { GitPanel } from './panels/GitPanel/GitPanel'
-import { WalletPanel } from './panels/WalletPanel/WalletPanel'
-import { RecoveryPanel } from './panels/RecoveryPanel/RecoveryPanel'
-import { SettingsPanel } from './panels/SettingsPanel/SettingsPanel'
-import { ToolBrowser } from './panels/Tools/ToolBrowser'
-const DeployPanel = lazy(() => import('./panels/plugins/Deploy/Deploy'))
+import { CommandDrawer } from './components/CommandDrawer/CommandDrawer'
 import { AgentGrid } from './panels/Terminal/AgentGrid'
-import { BrowserMode } from './panels/BrowserMode/BrowserMode'
-import { PluginManager } from './panels/PluginManager/PluginManager'
-import { PluginDashboard } from './panels/PluginDashboard/PluginDashboard'
 import { Titlebar } from './panels/Titlebar/Titlebar'
 import { IconSidebar } from './panels/IconSidebar/IconSidebar'
 import { StatusBar } from './panels/StatusBar/StatusBar'
-import { Onboarding } from './panels/Onboarding/Onboarding'
+import { OnboardingWizard } from './panels/Onboarding/OnboardingWizard'
+import { TourOverlay } from './components/Tour/TourOverlay'
+import { useOnboardingStore } from './store/onboarding'
 import { PluginErrorBoundary } from './components/ErrorBoundary'
 import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
-import { PLUGIN_REGISTRY } from './plugins/registry'
+import { useEmailStore } from './store/email'
 import { useSplitter } from './hooks/useSplitter'
+import { useProjects } from './hooks/useProjects'
+import { useAppShortcuts } from './hooks/useAppShortcuts'
+import { useCommandPalette } from './hooks/useCommandPalette'
 import './App.css'
-
-function PluginFallback() {
-  return <div style={{ padding: '16px 12px', fontSize: 11, color: 'var(--t3)' }}>Loading plugin...</div>
-}
-
-const CENTER_PANEL_MAP: Record<string, ComponentType> = {
-  env: EnvManager,
-  git: GitPanel,
-  recovery: RecoveryPanel,
-  settings: SettingsPanel,
-  tools: ToolBrowser,
-  deploy: DeployPanel,
-}
 
 function App() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activePanel = useUIStore((s) => s.activePanel)
-  const setActiveProject = useUIStore((s) => s.setActiveProject)
   const projects = useUIStore((s) => s.projects)
-  const setProjects = useUIStore((s) => s.setProjects)
-  const activePluginId = usePluginStore((s) => s.activePluginId)
-  const showOnboarding = useUIStore((s) => s.showOnboarding)
+  const wizardOpen = useOnboardingStore((s) => s.wizardOpen)
+  const showResumeBanner = useOnboardingStore((s) => s.showResumeBanner)
+  const tourActive = useOnboardingStore((s) => s.tourActive)
+  const showTourOffer = useOnboardingStore((s) => s.showTourOffer)
   const centerMode = useUIStore((s) => s.centerMode)
+  const drawerOpen = useUIStore((s) => s.drawerOpen)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
   const [crashWarningCount, setCrashWarningCount] = useState<number | null>(null)
+
+  const [showTerminal, setShowTerminal] = useState(true)
+
+  const { loadProjects, addProject, removeProject } = useProjects()
+  const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
+
+  useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowRightPanel, setShowTerminal })
 
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
@@ -64,8 +55,7 @@ function App() {
     initial: 200,
   })
 
-  // Hide right panel when plugin dashboard is open (redundant with center grid)
-  const shouldShowRightPanel = showRightPanel && !(activePanel === 'plugins' && !activePluginId)
+  const shouldShowRightPanel = showRightPanel
 
   useEffect(() => {
     let cancelled = false
@@ -76,18 +66,8 @@ function App() {
     if (import.meta.env.DEV) {
       ;(window as any).__uiStore = useUIStore
     }
-    // Check Claude connection + onboarding flag — show onboarding if not connected and not completed
-    Promise.all([
-      window.daemon.claude.getConnection(),
-      window.daemon.settings.isOnboardingComplete(),
-    ]).then(([connRes, onboardingRes]) => {
-      if (cancelled) return
-      const isConnected = connRes.ok && connRes.data && connRes.data.authMode !== 'none'
-      const isOnboarded = onboardingRes.ok && onboardingRes.data === true
-      if (!isConnected && !isOnboarded) {
-        useUIStore.getState().setShowOnboarding(true)
-      }
-    })
+    // Load onboarding progress — shows wizard or resume banner as needed
+    useOnboardingStore.getState().loadProgress()
     return () => { cancelled = true }
   }, [])
 
@@ -128,72 +108,27 @@ function App() {
     void useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
 
-  const loadProjects = async (cancelled = false) => {
-    const res = await window.daemon.projects.list()
-    if (cancelled || !res.ok || !res.data) return
-    setProjects(res.data)
-
-    // Restore the most recently active project on fresh load / after crash recovery
-    if (!useUIStore.getState().activeProjectId && res.data.length > 0) {
-      const sorted = [...res.data].sort((a, b) => (b.last_active ?? 0) - (a.last_active ?? 0))
-      const last = sorted[0]
-      if (last) setActiveProject(last.id, last.path)
-    }
-  }
-
-  const handleAddProject = useCallback(async () => {
-    const pathRes = await window.daemon.projects.openDialog()
-    if (!pathRes.ok || !pathRes.data) return
-    const folderPath = pathRes.data
-    const name = folderPath.split(/[/\\]/).pop() ?? 'untitled'
-    const res = await window.daemon.projects.create({ name, path: folderPath })
-    if (res.ok && res.data) {
-      setProjects([res.data, ...useUIStore.getState().projects])
-      setActiveProject(res.data.id, res.data.path)
-    }
-  }, [setActiveProject, setProjects])
-
-  const handleRemoveProject = useCallback(async (projectId: string) => {
-    const projectTerminals = useUIStore.getState().terminals.filter((t) => t.projectId === projectId)
-    await Promise.all(projectTerminals.map((t) => window.daemon.terminal.kill(t.id)))
-    await window.daemon.projects.delete(projectId)
-    useUIStore.getState().removeProjectState(projectId)
-    setProjects(useUIStore.getState().projects.filter((pr) => pr.id !== projectId))
-    if (useUIStore.getState().activeProjectId === projectId) {
-      setActiveProject(null, null)
-    }
-  }, [setActiveProject, setProjects])
-
+  // Poll unread email counts every 60 seconds
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
-        e.preventDefault()
-        setShowAgentLauncher((v) => !v)
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
-        e.preventDefault()
-        window.daemon.window.reload()
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-        e.preventDefault()
-        setShowRightPanel((v) => !v)
-      } else if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
-        e.preventDefault()
-        const current = useUIStore.getState().centerMode
-        useUIStore.getState().setCenterMode(current === 'grind' ? 'canvas' : 'grind')
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
-        e.preventDefault()
-        const current = useUIStore.getState().centerMode
-        useUIStore.getState().setCenterMode(current === 'browser' ? 'canvas' : 'browser')
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    const poll = () => useEmailStore.getState().pollUnreadCounts()
+    poll()
+    const interval = setInterval(poll, 60_000)
+    return () => clearInterval(interval)
   }, [])
 
-  // Resolve active plugin and its mount type
-  const activePlugin = activePluginId ? PLUGIN_REGISTRY[activePluginId] : null
-  const isRightPanelPlugin = activePlugin?.mountPosition === 'right-panel-tab'
-  const isCenterPanelPlugin = activePlugin?.mountPosition === 'center-panel'
-  const isOverlayPlugin = activePlugin?.mountPosition === 'overlay'
+  // Build command list for the palette
+  const paletteCommands = useMemo(
+    () =>
+      buildCommands({
+        setActivePanel: (p) => useUIStore.getState().setActivePanel(p as any),
+        setCenterMode: (m) => useUIStore.getState().setCenterMode(m as any),
+        getCenterMode: () => useUIStore.getState().centerMode,
+        toggleRightPanel: () => setShowRightPanel((v) => !v),
+        openAgentLauncher: () => setShowAgentLauncher(true),
+        toggleExplorer: () => setShowExplorer((v) => !v),
+      }),
+    [],
+  )
 
   return (
     <div className="app">
@@ -216,130 +151,50 @@ function App() {
 
       <Titlebar
         projects={projects}
-        onAddProject={handleAddProject}
-        onRemoveProject={handleRemoveProject}
+        onAddProject={addProject}
+        onRemoveProject={removeProject}
       />
 
       <div className="main-layout">
         <IconSidebar
           showExplorer={showExplorer}
+          showRightPanel={showRightPanel}
           onToggleExplorer={() => setShowExplorer(!showExplorer)}
+          onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
           onOpenAgentLauncher={() => setShowAgentLauncher(true)}
           isAgentLauncherOpen={showAgentLauncher}
         />
 
         {showExplorer && activeProjectPath && (
-          <div className="left-panel">
-            <div className="panel-header">Files</div>
+          <div className="left-panel" data-tour="file-explorer">
             <FileExplorer />
           </div>
         )}
 
-        <div className="center-area">
-          <div className="editor-area">
+        <div className="center-area" style={{ position: 'relative' }}>
+          <div className="editor-area" data-tour="editor">
             {centerMode === 'grind' ? (
               <AgentGrid />
-            ) : centerMode === 'browser' ? (
-              <BrowserMode />
-            ) : isCenterPanelPlugin && activePlugin ? (
-              <PluginErrorBoundary>
-                <Suspense fallback={<PluginFallback />}>
-                  <activePlugin.component />
-                </Suspense>
-              </PluginErrorBoundary>
-            ) : activePanel === 'plugins' && !activePluginId ? (
-              <PluginDashboard />
             ) : (
-              <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
-                <Suspense fallback={<PluginFallback />}>
-                  {(() => { const Panel = CENTER_PANEL_MAP[activePanel]; return Panel ? <Panel /> : <EditorPanel /> })()}
-                </Suspense>
+              <PluginErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
+                <EditorPanel />
               </PluginErrorBoundary>
             )}
           </div>
-          {centerMode === 'canvas' && <div className="splitter" {...splitterProps} />}
-          {centerMode === 'canvas' && <div className="terminal-area" style={{ height: terminalHeight }}>
-            <TerminalPanel />
-          </div>}
-        </div>
-
-        {shouldShowRightPanel && <aside className="right-panel">
-          {isCenterPanelPlugin && activePlugin?.companionPanel ? (
-            <PluginErrorBoundary>
-              <Suspense fallback={<PluginFallback />}>
-                <activePlugin.companionPanel />
-              </Suspense>
-            </PluginErrorBoundary>
-          ) : isRightPanelPlugin && activePlugin ? (
-            <div className="right-panel-split">
-              <div className="right-panel-plugin">
-                <PluginErrorBoundary>
-                  <Suspense fallback={<PluginFallback />}>
-                    <activePlugin.component />
-                  </Suspense>
-                </PluginErrorBoundary>
-              </div>
-              <div className="right-panel-claude">
-                <ClaudePanel />
-              </div>
-            </div>
-          ) : activePanel === 'plugins' ? (
-            <PluginManager />
-          ) : (
-            <div className="right-panel-tabbed">
-              <div className="right-panel-tabs">
-                <button
-                  className={`rp-tab ${activePanel !== 'ports' && activePanel !== 'process' && activePanel !== 'wallet' ? 'active' : ''}`}
-                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('claude') }}
-                  title="Claude"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                  </svg>
-                </button>
-                <button
-                  className={`rp-tab ${activePanel === 'ports' ? 'active' : ''}`}
-                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('ports') }}
-                  title="Ports"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
-                    <line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/>
-                  </svg>
-                </button>
-                <button
-                  className={`rp-tab ${activePanel === 'process' ? 'active' : ''}`}
-                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('process') }}
-                  title="Processes"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="4" y="4" width="16" height="16" rx="2"/>
-                    <line x1="4" y1="10" x2="20" y2="10"/>
-                    <line x1="10" y1="4" x2="10" y2="20"/>
-                  </svg>
-                </button>
-                <button
-                  className={`rp-tab ${activePanel === 'wallet' ? 'active' : ''}`}
-                  onClick={() => { usePluginStore.getState().setActivePlugin(null); useUIStore.getState().setActivePanel('wallet') }}
-                  title="Wallet"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h11A2.5 2.5 0 0 1 19 7.5V9h1.5A1.5 1.5 0 0 1 22 10.5v5a1.5 1.5 0 0 1-1.5 1.5H19v1.5A2.5 2.5 0 0 1 16.5 21h-11A2.5 2.5 0 0 1 3 18.5v-11Z"/>
-                    <circle cx="18" cy="13" r="1"/>
-                  </svg>
-                </button>
-              </div>
-              <div className="right-panel-content">
-                <PluginErrorBoundary fallbackLabel="Panel crashed — click a sidebar icon to recover">
-                  {activePanel === 'process' ? <ProcessManager />
-                    : activePanel === 'ports' ? <PortsPanel />
-                    : activePanel === 'wallet' ? <WalletPanel />
-                    : <ClaudePanel />}
-                </PluginErrorBoundary>
-              </div>
+          {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
+          {centerMode === 'canvas' && showTerminal && !drawerOpen && (
+            <div className="terminal-area" data-tour="terminal" style={{ height: terminalHeight }}>
+              <TerminalPanel />
             </div>
           )}
-        </aside>}
+          <CommandDrawer />
+        </div>
+
+        {shouldShowRightPanel && (
+          <aside className="right-panel" data-tour="right-panel">
+            <ClaudePanel />
+          </aside>
+        )}
       </div>
 
       <StatusBar />
@@ -349,17 +204,56 @@ function App() {
         onClose={() => setShowAgentLauncher(false)}
       />
 
-      {isOverlayPlugin && activePlugin && (
-        <div className="plugin-overlay">
-          <PluginErrorBoundary>
-            <Suspense fallback={<PluginFallback />}>
-              <activePlugin.component />
-            </Suspense>
-          </PluginErrorBoundary>
+      {paletteMode && (
+        <CommandPalette
+          mode={paletteMode}
+          commands={paletteCommands}
+          files={paletteFiles}
+          projectRoot={activeProjectPath}
+          onClose={closePalette}
+          onSelectFile={handleFileSelect}
+        />
+      )}
+
+      {showResumeBanner && (
+        <div className="resume-banner">
+          <span className="resume-banner-text">Continue setting up DAEMON?</span>
+          <button
+            className="resume-banner-btn primary"
+            onClick={() => useOnboardingStore.getState().openWizard()}
+          >
+            Resume
+          </button>
+          <button
+            className="resume-banner-btn secondary"
+            onClick={() => useOnboardingStore.getState().dismissBanner()}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      {wizardOpen && <OnboardingWizard />}
+
+      {showTourOffer && (
+        <div className="wizard-overlay">
+          <div className="tour-offer-card">
+            <div className="tour-offer-title">Setup complete</div>
+            <div className="tour-offer-desc">
+              Take a quick tour to learn where everything is?
+            </div>
+            <div className="tour-offer-actions">
+              <button className="wizard-btn primary" onClick={() => useOnboardingStore.getState().startTour()}>
+                Start Tour
+              </button>
+              <button className="wizard-btn secondary" onClick={() => useOnboardingStore.getState().dismissTourOffer()}>
+                Skip
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {showOnboarding && <Onboarding />}
+      {tourActive && <TourOverlay />}
     </div>
   )
 }

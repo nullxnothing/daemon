@@ -82,6 +82,7 @@
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background-image: var(--surface-gradient-subtle);
 }
 
 /* Center Area */
@@ -104,10 +105,16 @@
   background: var(--border);
   cursor: row-resize;
   flex-shrink: 0;
-  transition: background 0.15s;
+  transition: background 0.2s, box-shadow 0.2s;
+  position: relative;
 }
 
 .splitter:hover {
+  background: var(--green-dim);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.1);
+}
+
+.splitter:active {
   background: var(--green);
 }
 
@@ -134,22 +141,10 @@
   direction: ltr; /* reset direction for children */
 }
 
-.right-panel-split {
+.right-panel-full {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.right-panel-plugin {
-  flex: 1;
-  overflow-y: auto;
-  border-bottom: 1px solid var(--border);
-  min-height: 120px;
-}
-
-.right-panel-claude {
-  flex: 0 0 auto;
-  max-height: 50%;
   overflow-y: auto;
 }
 
@@ -177,15 +172,16 @@
 }
 
 .rp-tab {
-  width: 32px;
-  height: 28px;
+  width: 34px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
   color: var(--t3);
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+  position: relative;
 }
 
 .rp-tab:hover {
@@ -196,6 +192,7 @@
 .rp-tab.active {
   color: var(--t1);
   background: var(--s4);
+  box-shadow: 0 2px 0 rgba(62, 207, 142, 0.25);
 }
 
 .right-panel-placeholder {
@@ -212,4 +209,5 @@
   background: var(--bg);
   display: flex;
   flex-direction: column;
+  border-top: 1px solid var(--border-glass);
 }

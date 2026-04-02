@@ -1,14 +1,15 @@
 /* Icon Sidebar */
 .icon-sidebar {
   width: var(--sidebar-w);
-  background: var(--s1);
+  background: var(--bg);
   border-right: 1px solid var(--border);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 8px;
-  gap: 4px;
+  padding-bottom: 8px;
+  gap: 2px;
   position: relative;
 }
 
@@ -18,23 +19,71 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--t3);
-  border-radius: 6px;
-  transition: background 0.1s, color 0.1s;
+  color: var(--t4);
+  border-radius: 4px;
+  position: relative;
+  transition: color 0.15s, background 0.12s;
 }
 
 .sidebar-icon:hover {
-  background: var(--hover-bg);
-  color: var(--t1);
+  color: var(--t2);
+  background: rgba(255, 255, 255, 0.03);
 }
 
+/* Panel switches: green left accent bar when active */
 .sidebar-icon.active {
   color: var(--t1);
-  background: var(--s3);
-  border-left: 2px solid var(--green);
-  padding-left: 13px;
 }
 
+.sidebar-icon.active::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--green);
+  border-radius: 1px;
+}
+
+/* Toggles (Explorer, Browser): filled background instead of accent bar */
+.sidebar-icon.sidebar-toggle.active {
+  background: var(--s3);
+}
+
+.sidebar-icon.sidebar-toggle.active::before {
+  display: none;
+}
+
+/* Launchers: brief press feedback, no persistent active state */
+.sidebar-icon.sidebar-launcher:active {
+  transform: scale(0.92);
+  transition: transform 0.08s;
+}
+
+/* ─── Zone Dividers ─── */
+.sidebar-divider {
+  width: 24px;
+  height: 1px;
+  background: var(--s4);
+  margin: 6px auto;
+  flex-shrink: 0;
+}
+
+/* Thin rule between core panels and plugins (lighter, within a zone) */
+.sidebar-rule {
+  width: 16px;
+  height: 1px;
+  background: var(--s3);
+  margin: 4px auto;
+  flex-shrink: 0;
+}
+
+.sidebar-spacer {
+  flex: 1;
+}
+
+/* Submenu (kept for agent launcher flyout) */
 .sidebar-submenu-wrap {
   position: relative;
 }
@@ -45,10 +94,11 @@
   top: 0;
   min-width: 180px;
   padding: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-glass);
   border-radius: 6px;
-  background: var(--s1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-float);
   z-index: 30;
 }
 
@@ -73,8 +123,4 @@
 .sidebar-submenu-item:hover {
   background: var(--hover-bg);
   color: var(--t1);
-}
-
-.sidebar-spacer {
-  flex: 1;
 }
