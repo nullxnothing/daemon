@@ -1,11 +1,14 @@
 import { safeStorage } from 'electron'
 import { ImapFlow } from 'imapflow'
 import { simpleParser } from 'mailparser'
-import type { EmailProvider } from './EmailProvider'
+import { createTransport } from 'nodemailer'
+import type { EmailProvider, SendEmailInput } from './EmailProvider'
 import type { EmailAccountRow, EmailMessage } from '../../shared/types'
 
 const ICLOUD_HOST = 'imap.mail.me.com'
 const ICLOUD_PORT = 993
+const ICLOUD_SMTP_HOST = 'smtp.mail.me.com'
+const ICLOUD_SMTP_PORT = 587
 const POOL_TTL_MS = 5 * 60 * 1000 // reuse connections within 5 minutes
 
 interface PooledConnection {
@@ -200,6 +203,54 @@ export const icloudProvider: EmailProvider = {
       const mailbox = await client.status('INBOX', { unseen: true })
       returnToPool(account)
       return mailbox.unseen ?? 0
+    } catch (err) {
+      evictFromPool(account)
+      throw err
+    }
+  },
+
+  async sendEmail(account: EmailAccountRow, input: SendEmailInput): Promise<{ messageId: string }> {
+    const password = decryptPassword(account)
+
+    const transport = createTransport({
+      host: ICLOUD_SMTP_HOST,
+      port: ICLOUD_SMTP_PORT,
+      secure: false,
+      auth: {
+        user: account.email,
+        pass: password,
+      },
+    })
+
+    const info = await transport.sendMail({
+      from: account.email,
+      to: input.to,
+      cc: input.cc,
+      bcc: input.bcc,
+      subject: input.subject,
+      text: input.body,
+      inReplyTo: input.replyToMessageId,
+    })
+
+    return { messageId: info.messageId }
+  },
+
+  async markAsRead(account: EmailAccountRow, messageIds: string[]): Promise<void> {
+    try {
+      const { client } = await getPooledClient(account)
+      const lock = await client.getMailboxLock('INBOX')
+
+      try {
+        for (const id of messageIds) {
+          const uid = parseInt(id.replace('icloud-', ''), 10)
+          if (isNaN(uid)) continue
+          await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true })
+        }
+      } finally {
+        lock.release()
+      }
+
+      returnToPool(account)
     } catch (err) {
       evictFromPool(account)
       throw err

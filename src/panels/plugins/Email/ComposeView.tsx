@@ -1,43 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useEmailStore } from '../../../store/email'
 
 export function ComposeView() {
-  const { setViewMode } = useEmailStore()
+  const { accounts, activeAccountId, setViewMode, sendEmail } = useEmailStore()
+
+  const connectedAccounts = accounts.filter((a) => a.status === 'connected')
+
+  // Default to active account or first connected account
+  const defaultAccountId = activeAccountId !== 'all' ? activeAccountId : connectedAccounts[0]?.id ?? ''
+  const [fromAccountId, setFromAccountId] = useState(defaultAccountId)
   const [to, setTo] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!fromAccountId && connectedAccounts.length > 0) {
+      setFromAccountId(connectedAccounts[0].id)
+    }
+  }, [connectedAccounts, fromAccountId])
+
   const handleSend = async () => {
     if (!to.trim() || !subject.trim()) return
+    if (!fromAccountId) {
+      setStatus('No account selected')
+      return
+    }
+
     setSending(true)
     setStatus(null)
 
-    // Check if send endpoint exists on the IPC bridge
-    try {
-      const emailApi = window.daemon.email as unknown as Record<string, unknown>
-      if (typeof emailApi.send === 'function') {
-        const sendFn = emailApi.send as (to: string, subject: string, body: string) => Promise<{ ok: boolean; error?: string }>
-        const res = await sendFn(to, subject, body)
-        if (res.ok) {
-          setStatus('Sent')
-          setTimeout(() => setViewMode('inbox'), 1000)
-        } else {
-          setStatus(res.error ?? 'Send failed')
-        }
-      } else {
-        setStatus('Send not yet implemented')
-      }
-    } catch {
-      setStatus('Send not yet implemented')
+    const res = await sendEmail(fromAccountId, to.trim(), subject.trim(), body)
+    if (res.ok) {
+      setStatus('Sent')
+      setTimeout(() => setViewMode('inbox'), 1000)
+    } else {
+      setStatus(res.error ?? 'Send failed')
     }
+
     setSending(false)
   }
 
   const handleDiscard = () => {
     setViewMode('inbox')
   }
+
+  const selectedAccount = connectedAccounts.find((a) => a.id === fromAccountId)
 
   return (
     <div className="email__compose">
@@ -48,7 +57,7 @@ export function ComposeView() {
           <button
             className="email__toolbar-btn email__toolbar-btn--primary"
             onClick={handleSend}
-            disabled={sending || !to.trim() || !subject.trim()}
+            disabled={sending || !to.trim() || !subject.trim() || !fromAccountId}
           >
             {sending ? 'Sending...' : 'Send'}
           </button>
@@ -56,6 +65,34 @@ export function ComposeView() {
       </div>
 
       <div className="email__compose-fields">
+        {connectedAccounts.length > 1 && (
+          <div className="email__compose-field">
+            <label className="email__compose-label">From</label>
+            <select
+              className="email__compose-input email__compose-select"
+              value={fromAccountId}
+              onChange={(e) => setFromAccountId(e.target.value)}
+            >
+              {connectedAccounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.email}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {connectedAccounts.length === 1 && selectedAccount && (
+          <div className="email__compose-field">
+            <label className="email__compose-label">From</label>
+            <span className="email__compose-from-display">{selectedAccount.email}</span>
+          </div>
+        )}
+
+        {connectedAccounts.length === 0 && (
+          <div className="email__compose-field">
+            <span className="email__compose-error">No email accounts connected. Add one in Settings.</span>
+          </div>
+        )}
+
         <div className="email__compose-field">
           <label className="email__compose-label">To</label>
           <input

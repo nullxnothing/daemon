@@ -52,6 +52,9 @@ interface EmailStore {
   setAISidebar: (mode: AISidebarMode, data?: string | null) => void
   closeAISidebar: () => void
   readMessage: (messageId: string, accountId: string) => Promise<void>
+  sendEmail: (accountId: string, to: string, subject: string, body: string) => Promise<{ ok: boolean; error?: string }>
+  markMessageRead: (messageId: string, accountId: string) => Promise<void>
+  markAllRead: () => Promise<number>
 }
 
 export const useEmailStore = create<EmailStore>((set, get) => ({
@@ -130,6 +133,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
             m.id === messageId ? { ...m, body: res.data!.body, isRead: true } : m
           ),
         }))
+        // Mark as read on the provider (best-effort, don't block UI)
+        window.daemon.email.markRead(accountId, [messageId]).catch(() => {})
       }
     } catch {
       // Silent — body fetch is best-effort
@@ -207,4 +212,50 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   clearSelection: () => set({ selectedIds: new Set() }),
   setAISidebar: (mode, data = null) => set({ aiSidebar: mode, aiSidebarData: data }),
   closeAISidebar: () => set({ aiSidebar: null, aiSidebarData: null, aiSidebarLoading: false }),
+
+  sendEmail: async (accountId, to, subject, body) => {
+    try {
+      const res = await window.daemon.email.send(accountId, to, subject, body)
+      if (res.ok) {
+        return { ok: true }
+      }
+      return { ok: false, error: res.error ?? 'Send failed' }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Send failed' }
+    }
+  },
+
+  markMessageRead: async (messageId, accountId) => {
+    try {
+      await window.daemon.email.markRead(accountId, [messageId])
+      set((s) => ({
+        messages: s.messages.map((m) =>
+          m.id === messageId ? { ...m, isRead: true } : m
+        ),
+      }))
+    } catch {
+      // Best-effort
+    }
+  },
+
+  markAllRead: async () => {
+    try {
+      const activeId = get().activeAccountId
+      const targetId = activeId === 'all' ? undefined : activeId
+      const res = await window.daemon.email.markAllRead(targetId)
+      if (res.ok && res.data) {
+        set((s) => ({
+          messages: s.messages.map((m) => ({ ...m, isRead: true })),
+          unreadTotal: 0,
+          unreadCounts: Object.fromEntries(
+            Object.entries(s.unreadCounts).map(([k]) => [k, 0])
+          ),
+        }))
+        return res.data.count
+      }
+      return 0
+    } catch {
+      return 0
+    }
+  },
 }))

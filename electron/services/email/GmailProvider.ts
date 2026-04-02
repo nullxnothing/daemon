@@ -2,7 +2,7 @@ import http from 'node:http'
 import { safeStorage, shell } from 'electron'
 import { getDb } from '../../db/db'
 import { TIMEOUTS, API_ENDPOINTS } from '../../config/constants'
-import type { EmailProvider } from './EmailProvider'
+import type { EmailProvider, SendEmailInput } from './EmailProvider'
 import type { EmailAccountRow, EmailMessage } from '../../shared/types'
 
 // --- Gmail API Response Types ---
@@ -112,6 +112,48 @@ async function gmailFetch(endpoint: string, token: string): Promise<unknown> {
   }
 
   return response.json()
+}
+
+async function gmailPost(endpoint: string, token: string, body: unknown): Promise<unknown> {
+  const response = await fetch(`${API_ENDPOINTS.GMAIL_API_BASE}/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`Gmail API error ${response.status}: ${text}`)
+  }
+
+  return response.json()
+}
+
+function buildRfc2822Message(input: SendEmailInput, fromEmail: string): string {
+  const lines: string[] = []
+  lines.push(`From: ${fromEmail}`)
+  lines.push(`To: ${input.to}`)
+  if (input.cc) lines.push(`Cc: ${input.cc}`)
+  if (input.bcc) lines.push(`Bcc: ${input.bcc}`)
+  lines.push(`Subject: ${input.subject}`)
+  if (input.replyToMessageId) lines.push(`In-Reply-To: ${input.replyToMessageId}`)
+  lines.push('Content-Type: text/plain; charset="UTF-8"')
+  lines.push('MIME-Version: 1.0')
+  lines.push('')
+  lines.push(input.body)
+
+  return lines.join('\r\n')
+}
+
+function encodeBase64Url(raw: string): string {
+  return Buffer.from(raw, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
 }
 
 // --- Message Parsing ---
@@ -244,7 +286,7 @@ function captureAuthCode(clientId: string): Promise<string> {
       if (!addr || typeof addr === 'string') { reject(new Error('Failed to start OAuth server')); return }
       const port = addr.port
       const redirectUri = `http://127.0.0.1:${port}/callback`
-      const scopes = 'https://www.googleapis.com/auth/gmail.readonly'
+      const scopes = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send'
 
       // M-02: include state in the authorization URL
       const authUrl = `${API_ENDPOINTS.GOOGLE_OAUTH_AUTH}?` +
@@ -368,5 +410,27 @@ export const gmailProvider: EmailProvider = {
     ) as { resultSizeEstimate?: number }
 
     return listData.resultSizeEstimate ?? 0
+  },
+
+  async sendEmail(account: EmailAccountRow, input: SendEmailInput): Promise<{ messageId: string }> {
+    const token = await getValidToken(account)
+
+    // Get sender email from profile
+    const profile = await gmailFetch('profile', token) as { emailAddress: string }
+    const raw = buildRfc2822Message(input, profile.emailAddress)
+    const encoded = encodeBase64Url(raw)
+
+    const result = await gmailPost('messages/send', token, { raw: encoded }) as { id: string }
+    return { messageId: result.id }
+  },
+
+  async markAsRead(account: EmailAccountRow, messageIds: string[]): Promise<void> {
+    const token = await getValidToken(account)
+
+    // Gmail batch modify: remove UNREAD label
+    await gmailPost('messages/batchModify', token, {
+      ids: messageIds,
+      removeLabelIds: ['UNREAD'],
+    })
   },
 }

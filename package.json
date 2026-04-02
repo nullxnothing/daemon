@@ -42,6 +42,7 @@
     "imapflow": "^1.2.18",
     "mailparser": "^3.9.6",
     "node-pty": "1.1.0",
+    "nodemailer": "^8.0.4",
     "pidusage": "^4.0.1",
     "ps-list": "^8.1.1",
     "simple-git": "^3.27.0"
@@ -53,6 +54,7 @@
     "@types/bn.js": "^5.2.0",
     "@types/express": "^5.0.1",
     "@types/mailparser": "^3.4.6",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

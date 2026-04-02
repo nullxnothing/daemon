@@ -3,7 +3,7 @@ import { safeStorage, shell } from 'electron'
 import { getDb } from '../db/db'
 import { GOOGLE_OAUTH } from '../config/constants'
 import { pluginPrompt, orchestratedPrompt } from './PluginPrompt'
-import type { EmailProvider } from './email/EmailProvider'
+import type { EmailProvider, SendEmailInput } from './email/EmailProvider'
 import { gmailProvider, performGmailOAuth } from './email/GmailProvider'
 import { icloudProvider } from './email/ICloudProvider'
 import type { EmailAccount, EmailAccountRow, EmailMessage, ExtractionResult, ExtractedItem } from '../shared/types'
@@ -211,6 +211,43 @@ export async function getMessage(accountId: string, messageId: string): Promise<
   const row = getAccountRow(accountId)
   const provider = getProvider(row.provider)
   return provider.fetchMessage(row, messageId)
+}
+
+export async function sendEmail(accountId: string, input: SendEmailInput): Promise<{ messageId: string }> {
+  const row = getAccountRow(accountId)
+  const provider = getProvider(row.provider)
+  return provider.sendEmail(row, input)
+}
+
+export async function markAsRead(accountId: string, messageIds: string[]): Promise<void> {
+  if (messageIds.length === 0) return
+  const row = getAccountRow(accountId)
+  const provider = getProvider(row.provider)
+  await provider.markAsRead(row, messageIds)
+}
+
+export async function markAllAsRead(accountId?: string): Promise<number> {
+  const targetAccounts = accountId && accountId !== 'all'
+    ? [getAccountRow(accountId)]
+    : (await listAccounts()).filter((a) => a.status === 'connected').map((a) => getAccountRow(a.id))
+
+  let totalMarked = 0
+
+  for (const row of targetAccounts) {
+    try {
+      const provider = getProvider(row.provider)
+      const messages = await provider.fetchMessages(row, 'is:unread', 50)
+      const unreadIds = messages.filter((m) => !m.isRead).map((m) => m.id)
+      if (unreadIds.length > 0) {
+        await provider.markAsRead(row, unreadIds)
+        totalMarked += unreadIds.length
+      }
+    } catch {
+      // Continue with other accounts on failure
+    }
+  }
+
+  return totalMarked
 }
 
 export async function extractCode(accountId: string, messageId: string): Promise<ExtractionResult> {

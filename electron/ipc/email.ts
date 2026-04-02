@@ -8,6 +8,9 @@ import {
   removeAccount,
   getMessages,
   getMessage,
+  sendEmail,
+  markAsRead,
+  markAllAsRead,
   extractCode,
   summarizeMessage,
   getUnreadCounts,
@@ -46,6 +49,19 @@ export function registerEmailHandlers() {
 
   ipcMain.handle('email:read', ipcHandler(async (_event, accountId: string, messageId: string) => {
     return await getMessage(accountId, messageId)
+  }))
+
+  ipcMain.handle('email:send', ipcHandler(async (_event, accountId: string, to: string, subject: string, body: string, cc?: string, bcc?: string) => {
+    return await sendEmail(accountId, { to, subject, body, cc, bcc })
+  }))
+
+  ipcMain.handle('email:mark-read', ipcHandler(async (_event, accountId: string, messageIds: string[]) => {
+    await markAsRead(accountId, messageIds)
+  }))
+
+  ipcMain.handle('email:mark-all-read', ipcHandler(async (_event, accountId?: string) => {
+    const count = await markAllAsRead(accountId)
+    return { count }
   }))
 
   ipcMain.handle('email:extract', ipcHandler(async (_event, accountId: string, messageId: string) => {
