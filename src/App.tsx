@@ -49,11 +49,12 @@ function App() {
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowRightPanel, setShowTerminal })
 
   const centerRef = useRef<HTMLDivElement>(null)
+  const halfCenter = Math.round((window.innerHeight - 80) / 2)
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
     max: 99999,
-    initial: 200,
+    initial: halfCenter,
     containerRef: centerRef,
   })
 

@@ -261,7 +261,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
 
-  setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null, drawerFullscreen: false }),
+  setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null, drawerFullscreen: tool !== null }),
   closeDrawer: () => set({ drawerOpen: false, drawerFullscreen: false }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen, drawerFullscreen: false })),
   toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
