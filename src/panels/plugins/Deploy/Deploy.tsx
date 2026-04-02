@@ -98,14 +98,21 @@ export default function DeployPanel() {
     if (statuses.length > 0) loadDeployments()
   }, [statuses, loadDeployments])
 
+  const hasActiveRef = useRef(false)
+  const loadDeploymentsRef = useRef(loadDeployments)
+  loadDeploymentsRef.current = loadDeployments
+
+  useEffect(() => {
+    hasActiveRef.current = deployments.some((d) => d.status === 'BUILDING' || d.status === 'QUEUED')
+  }, [deployments])
+
   // Poll deployments every 10s if any are building/queued
   useEffect(() => {
-    const hasActive = deployments.some((d) => d.status === 'BUILDING' || d.status === 'QUEUED')
-    if (hasActive) {
-      pollRef.current = setInterval(loadDeployments, 10_000)
-    }
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [deployments, loadDeployments])
+    const interval = setInterval(() => {
+      if (hasActiveRef.current) loadDeploymentsRef.current()
+    }, 10_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleDeploy = async (platform: DeployPlatform) => {
     if (!activeProjectId) return
@@ -328,7 +335,9 @@ export default function DeployPanel() {
               {d.branch && (
                 <span className="deploy-branch">{d.branch}</span>
               )}
-              <span className="deploy-msg">{d.commitMessage ?? 'No commit message'}</span>
+              <span className="deploy-msg">
+                {d.commitMessage || d.url || d.id.slice(0, 12)}
+              </span>
               <span className={`deploy-status ${STATUS_LABEL_CLASS[d.status]}`}>
                 {d.status}
               </span>

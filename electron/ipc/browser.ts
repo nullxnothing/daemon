@@ -24,8 +24,29 @@ RULES:
 - Be concise and technical
 - When shown inspect data or errors, identify the component and suggest fixes`
 
-// Conversation history per session
+// Conversation history per session with LRU eviction
+const MAX_CONVERSATIONS = 20
 const conversations = new Map<string, Array<{ role: 'user' | 'assistant'; content: string }>>()
+const conversationLastUsed = new Map<string, number>()
+
+function touchConversation(sessionId: string): void {
+  conversationLastUsed.set(sessionId, Date.now())
+
+  if (conversations.size > MAX_CONVERSATIONS) {
+    let oldestId: string | null = null
+    let oldestTime = Infinity
+    for (const [id, time] of conversationLastUsed) {
+      if (time < oldestTime) {
+        oldestTime = time
+        oldestId = id
+      }
+    }
+    if (oldestId) {
+      conversations.delete(oldestId)
+      conversationLastUsed.delete(oldestId)
+    }
+  }
+}
 
 /** Read OAuth token from Claude CLI credential store */
 function getOAuthToken(): string | null {
@@ -122,6 +143,7 @@ export function registerBrowserHandlers() {
     if (!conversations.has(sessionId)) {
       conversations.set(sessionId, [])
     }
+    touchConversation(sessionId)
     const history = conversations.get(sessionId)!
 
     // Build user message with browser context
@@ -176,5 +198,6 @@ export function registerBrowserHandlers() {
 
   ipcMain.handle('browser:chat-reset', ipcHandler(async (_event, sessionId: string) => {
     conversations.delete(sessionId)
+    conversationLastUsed.delete(sessionId)
   }))
 }

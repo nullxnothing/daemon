@@ -7,6 +7,7 @@ import * as SecureKey from './SecureKeyService'
 import { TIMEOUTS } from '../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from './McpConfig'
 import { getRegisteredPorts } from './PortService'
+import { getEmailAccountSummary, EMAIL_TOOL_NAMES } from './email/EmailTools'
 import type { ClaudeConnection } from '../shared/types'
 
 // --- In-memory cache ---
@@ -302,12 +303,13 @@ async function runPromptViaCli(
 
 // --- Interactive Terminal Command Builder ---
 
-export function buildCommand(agent: AgentRow, project: ProjectRow): {
+export async function buildCommand(agent: AgentRow, project: ProjectRow): Promise<{
   command: string
   args: string[]
   contextFilePath: string
-} {
+}> {
   const portMap = buildPortMap()
+  const emailSummary = await getEmailAccountSummary()
 
   const contextContent = [
     agent.system_prompt,
@@ -318,6 +320,11 @@ export function buildCommand(agent: AgentRow, project: ProjectRow): {
     project.session_summary ? `Last session: ${project.session_summary}` : '',
     portMap ? `\nPort map (all registered services):\n${portMap}` : '',
     '--- END CONTEXT ---',
+    '',
+    '--- EMAIL ---',
+    emailSummary,
+    `Email tools: ${EMAIL_TOOL_NAMES}`,
+    '--- END EMAIL ---',
   ].filter(Boolean).join('\n')
 
   const contextFilePath = path.join(

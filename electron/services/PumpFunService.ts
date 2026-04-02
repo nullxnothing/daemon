@@ -6,45 +6,17 @@ import { getDb } from '../db/db'
 import BN from 'bn.js'
 import bs58 from 'bs58'
 import fs from 'node:fs'
+import { getConnectionStrict, withKeypair, loadKeypair } from './SolanaService'
 
 // Lazy-load the SDK to avoid startup cost
+// The package's ESM exports map points to index.js but the file is index.mjs — use CJS instead
+import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url)
+
 let _sdk: typeof import('@nirholas/pump-sdk') | null = null
-async function getSdk() {
-  if (!_sdk) _sdk = await import('@nirholas/pump-sdk')
+function getSdk() {
+  if (!_sdk) _sdk = require('@nirholas/pump-sdk') as typeof import('@nirholas/pump-sdk')
   return _sdk
-}
-
-function getConnection(): Connection {
-  const key = SecureKey.getKey('HELIUS_API_KEY')
-  if (!key) throw new Error('HELIUS_API_KEY not configured. Add it in Wallet settings.')
-  return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
-}
-
-function getWalletKeypair(walletId: string): Keypair {
-  const db = getDb()
-  const row = db.prepare('SELECT address, keypair_path FROM wallets WHERE id = ?').get(walletId) as { address: string; keypair_path: string | null } | undefined
-  if (!row) throw new Error('Wallet not found')
-
-  const encrypted = SecureKey.getKey(`WALLET_KEYPAIR_${walletId}`)
-  if (encrypted) return Keypair.fromSecretKey(bs58.decode(encrypted))
-
-  if (row.keypair_path) {
-    const raw = fs.readFileSync(row.keypair_path, 'utf-8')
-    const parsed = JSON.parse(raw)
-    return Keypair.fromSecretKey(Uint8Array.from(parsed))
-  }
-
-  throw new Error('No keypair available for this wallet. Import one first.')
-}
-
-/** Execute a callback with a keypair, ensuring secretKey is zeroed after use */
-async function withKeypair<T>(walletId: string, fn: (kp: Keypair) => Promise<T>): Promise<T> {
-  const kp = getWalletKeypair(walletId)
-  try {
-    return await fn(kp)
-  } finally {
-    kp.secretKey.fill(0)
-  }
 }
 
 async function sendAndConfirm(connection: Connection, keypairs: Keypair[], instructions: import('@solana/web3.js').TransactionInstruction[]): Promise<string> {
@@ -100,8 +72,8 @@ export interface TxResult {
 }
 
 export async function getBondingCurveState(mint: string): Promise<BondingCurveInfo> {
-  const sdk = await getSdk()
-  const connection = getConnection()
+  const sdk = getSdk()
+  const connection = getConnectionStrict()
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
 
   const [global, curve, feeConfig] = await Promise.all([
@@ -111,13 +83,27 @@ export async function getBondingCurveState(mint: string): Promise<BondingCurveIn
   ])
 
   const graduation = sdk.getGraduationProgress(global, curve)
-  const price = sdk.getTokenPrice({ global, feeConfig, mintSupply: global.tokenTotalSupply, bondingCurve: curve })
-  const summary = sdk.getBondingCurveSummary({ global, feeConfig, mintSupply: global.tokenTotalSupply, bondingCurve: curve })
+
+  // Price/summary calculations divide by virtualTokenReserves — guard graduated curves
+  let currentPriceLamports = '0'
+  let marketCapLamports = '0'
+
+  const hasReserves = !curve.virtualTokenReserves.isZero()
+  if (hasReserves && !curve.complete) {
+    try {
+      const price = sdk.getTokenPrice({ global, feeConfig, mintSupply: global.tokenTotalSupply, bondingCurve: curve })
+      const summary = sdk.getBondingCurveSummary({ global, feeConfig, mintSupply: global.tokenTotalSupply, bondingCurve: curve })
+      currentPriceLamports = price.buyPricePerToken.toString()
+      marketCapLamports = summary.marketCap.toString()
+    } catch {
+      // Curve in transitional state — reserves drained but not yet flagged complete
+    }
+  }
 
   return {
     mint,
-    currentPriceLamports: price.buyPricePerToken.toString(),
-    marketCapLamports: summary.marketCap.toString(),
+    currentPriceLamports,
+    marketCapLamports,
     graduationBps: graduation.progressBps,
     virtualSolReserves: curve.virtualSolReserves.toString(),
     virtualTokenReserves: curve.virtualTokenReserves.toString(),
@@ -129,8 +115,8 @@ export async function getBondingCurveState(mint: string): Promise<BondingCurveIn
 
 export async function createToken(input: TokenCreateInput): Promise<TxResult> {
   return withKeypair(input.walletId, async (keypair) => {
-  const sdk = await getSdk()
-  const connection = getConnection()
+  const sdk = getSdk()
+  const connection = getConnectionStrict()
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
   const pumpSdk = new sdk.PumpSdk()
 
@@ -185,8 +171,8 @@ export async function createToken(input: TokenCreateInput): Promise<TxResult> {
 
 export async function buyToken(input: TradeInput): Promise<TxResult> {
   return withKeypair(input.walletId, async (keypair) => {
-  const sdk = await getSdk()
-  const connection = getConnection()
+  const sdk = getSdk()
+  const connection = getConnectionStrict()
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
   const mintPk = new PublicKey(input.mint)
 
@@ -234,8 +220,8 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
 
 export async function sellToken(input: TradeInput): Promise<TxResult> {
   return withKeypair(input.walletId, async (keypair) => {
-  const sdk = await getSdk()
-  const connection = getConnection()
+  const sdk = getSdk()
+  const connection = getConnectionStrict()
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
   const mintPk = new PublicKey(input.mint)
 
@@ -278,8 +264,8 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
 
 export async function collectCreatorFees(walletId: string): Promise<TxResult> {
   return withKeypair(walletId, async (keypair) => {
-  const sdk = await getSdk()
-  const connection = getConnection()
+  const sdk = getSdk()
+  const connection = getConnectionStrict()
   const pumpSdk = new sdk.PumpSdk()
 
   const ix = await pumpSdk.ammCollectCoinCreatorFeeInstruction({ creator: keypair.publicKey })

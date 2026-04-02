@@ -47,7 +47,7 @@ export const useBrowserStore = create<BrowserState>((set) => ({
   setAgentTerminalId: (id) => set({ agentTerminalId: id }),
   addInspectorResult: (result) =>
     set((state) => ({
-      inspectorResults: [...state.inspectorResults, result],
+      inspectorResults: [...state.inspectorResults, result].slice(-100),
     })),
   setLastPageId: (id) => set({ lastPageId: id }),
   setCanGoBack: (can) => set({ canGoBack: can }),

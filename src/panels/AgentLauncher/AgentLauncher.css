@@ -2,7 +2,8 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px) saturate(120%);
   display: flex;
   justify-content: center;
   padding-top: 15vh;
@@ -11,13 +12,14 @@
 .agent-launcher {
   width: 480px;
   max-height: 420px;
-  background: var(--s1);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-modal), var(--glow-green-ambient);
 }
 
 .agent-launcher-input {
@@ -49,6 +51,7 @@
   border-radius: 6px;
   cursor: pointer;
   position: relative;
+  transition: background 0.15s, transform 0.15s;
 }
 
 .agent-launcher-item.agent-launcher-item-claude {
@@ -62,6 +65,7 @@
 .agent-launcher-item:hover {
   background: var(--s3);
   cursor: pointer;
+  transform: translateY(-1px);
 }
 
 .agent-launcher-item.selected {

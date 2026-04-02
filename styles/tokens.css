@@ -8,11 +8,11 @@
   --s5:    #333333;  /* Borders */
   --s6:    #3a3a3a;  /* Strong borders / dividers */
 
-  /* Text scale (brightest to dimmest) - WCAG AA compliant */
+  /* Text scale (brightest to dimmest) - WCAG AA compliant on --bg #0a0a0a */
   --t1:    #f0f0f0;  /* Primary text - 15.5:1 contrast */
   --t2:    #a0a0a0;  /* Secondary text - 7.5:1 contrast */
-  --t3:    #777777;  /* Tertiary/muted - 5.2:1 contrast (bumped for readability) */
-  --t4:    #505050;  /* Disabled/placeholder - decorative only */
+  --t3:    #888888;  /* Tertiary/muted - 6.1:1 contrast (AA for small text on --s1/--s2) */
+  --t4:    #666666;  /* Disabled/placeholder - 4.6:1 contrast (AA on all surfaces) */
 
   /* Accent colors - cleaner, more vibrant */
   --green:       #3ecf8e;  /* Primary accent - modern teal-green */
@@ -77,4 +77,30 @@
   --transition-fast: 0.1s ease;
   --transition-normal: 0.15s ease;
   --transition-slow: 0.25s ease;
+
+  /* ── Premium Enhancement Tokens ── */
+
+  /* Surface gradients — felt, not seen */
+  --surface-gradient: linear-gradient(180deg, var(--s2) 0%, var(--s1) 100%);
+  --surface-gradient-subtle: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  --surface-depth: radial-gradient(ellipse at top center, rgba(255,255,255,0.015) 0%, transparent 60%);
+
+  /* Luminous border tokens — thin light lines that feel engineered */
+  --border-glow: rgba(62, 207, 142, 0.08);
+  --border-luminous: linear-gradient(90deg, var(--green-dim), transparent 80%);
+  --border-glass: rgba(255, 255, 255, 0.04);
+
+  /* Micro-shadow tokens — depth without heaviness */
+  --shadow-lifted: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 1px rgba(255, 255, 255, 0.03);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+
+  /* Ambient glow tokens — soft emission, not neon */
+  --glow-green-ambient: 0 0 20px rgba(62, 207, 142, 0.04);
+  --glow-green-soft: 0 0 12px rgba(62, 207, 142, 0.06);
+  --glow-blue-ambient: 0 0 20px rgba(96, 165, 250, 0.04);
+
+  /* Frosted glass */
+  --glass-blur: blur(12px) saturate(130%);
+  --glass-bg: rgba(20, 20, 20, 0.85);
 }

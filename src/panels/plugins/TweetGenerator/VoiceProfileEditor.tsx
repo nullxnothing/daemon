@@ -34,12 +34,15 @@ export function VoiceProfileEditor({
 
   return (
     <>
-      <div className="tweet-gen__voice-toggle" onClick={() => setIsOpen((v) => !v)}>
-        <span className="tweet-gen__section-title">Voice Profile</span>
-        <span className={`tweet-gen__voice-arrow${isOpen ? ' tweet-gen__voice-arrow--open' : ''}`}>
+      <button
+        className="tweet-gen__collapse-toggle"
+        onClick={() => setIsOpen((v) => !v)}
+      >
+        <span className="tweet-gen__section-label">Voice Profile</span>
+        <span className={`tweet-gen__arrow${isOpen ? ' tweet-gen__arrow--open' : ''}`}>
           &#9654;
         </span>
-      </div>
+      </button>
 
       {isOpen && (
         <div className="tweet-gen__voice-body">
@@ -48,13 +51,17 @@ export function VoiceProfileEditor({
             value={voicePrompt}
             onChange={(e) => onVoicePromptChange(e.target.value)}
             readOnly={!isEditing}
+            placeholder="System prompt for voice style..."
             rows={5}
           />
 
           <div className="tweet-gen__voice-actions">
             {isEditing ? (
               <>
-                <button className="tweet-gen__card-btn" onClick={() => onEditingChange(false)}>
+                <button
+                  className="tweet-gen__card-btn"
+                  onClick={() => onEditingChange(false)}
+                >
                   Cancel
                 </button>
                 <button className="tweet-gen__card-btn" onClick={onSave}>
@@ -62,24 +69,27 @@ export function VoiceProfileEditor({
                 </button>
               </>
             ) : (
-              <button className="tweet-gen__card-btn" onClick={() => onEditingChange(true)}>
+              <button
+                className="tweet-gen__card-btn"
+                onClick={() => onEditingChange(true)}
+              >
                 Edit
               </button>
             )}
           </div>
 
           {/* Examples */}
-          <div className="tweet-gen__voice-examples">
-            <div className="tweet-gen__voice-example-label">Example tweets</div>
+          <div className="tweet-gen__examples">
+            <div className="tweet-gen__examples-label">Example tweets</div>
             {voiceExamples.length === 0 && (
               <div className="tweet-gen__empty">No examples added</div>
             )}
             {voiceExamples.map((ex, idx) => (
-              <div key={idx} className="tweet-gen__voice-example-row">
-                <span className="tweet-gen__voice-example-text">{ex}</span>
+              <div key={idx} className="tweet-gen__example-row">
+                <span className="tweet-gen__example-text">{ex}</span>
                 {isEditing && (
                   <button
-                    className="tweet-gen__voice-example-remove"
+                    className="tweet-gen__example-remove"
                     onClick={() => removeExample(idx)}
                   >
                     x
@@ -88,9 +98,9 @@ export function VoiceProfileEditor({
               </div>
             ))}
             {isEditing && (
-              <div className="tweet-gen__voice-add-row">
+              <div className="tweet-gen__example-add">
                 <input
-                  className="tweet-gen__voice-add-input"
+                  className="tweet-gen__example-input"
                   placeholder="Add example tweet..."
                   value={newExample}
                   onChange={(e) => setNewExample(e.target.value)}

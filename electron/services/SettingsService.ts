@@ -1,4 +1,5 @@
 import { getDb } from '../db/db'
+import type { OnboardingProgress } from '../shared/types'
 
 export function getBooleanSetting(key: string, fallback: boolean): boolean {
   const db = getDb()
@@ -14,6 +15,24 @@ export function setBooleanSetting(key: string, value: boolean): void {
   ).run(key, value ? 'true' : 'false', Date.now())
 }
 
+export function getJsonSetting<T>(key: string, fallback: T): T {
+  const db = getDb()
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined
+  if (!row) return fallback
+  try {
+    return JSON.parse(row.value) as T
+  } catch {
+    return fallback
+  }
+}
+
+export function setJsonSetting(key: string, value: unknown): void {
+  const db = getDb()
+  db.prepare(
+    'INSERT INTO app_settings (key, value, updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at'
+  ).run(key, JSON.stringify(value), Date.now())
+}
+
 export function getUiSettings(): { showMarketTape: boolean; showTitlebarWallet: boolean } {
   return {
     showMarketTape: getBooleanSetting('show_market_tape', true),
@@ -27,4 +46,20 @@ export function isOnboardingComplete(): boolean {
 
 export function setOnboardingComplete(complete: boolean): void {
   setBooleanSetting('onboarding_complete', complete)
+}
+
+const DEFAULT_PROGRESS: OnboardingProgress = {
+  claude: 'pending',
+  gmail: 'pending',
+  vercel: 'pending',
+  railway: 'pending',
+  tour: 'pending',
+}
+
+export function getOnboardingProgress(): OnboardingProgress {
+  return getJsonSetting<OnboardingProgress>('onboarding_progress', DEFAULT_PROGRESS)
+}
+
+export function setOnboardingProgress(progress: OnboardingProgress): void {
+  setJsonSetting('onboarding_progress', progress)
 }

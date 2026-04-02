@@ -25,8 +25,48 @@ export function registerFilesystemHandlers() {
 
   ipcMain.handle('fs:readFile', ipcHandler(async (_event, filePath: string) => {
     validatePath(filePath)
+    const stats = fsSync.statSync(filePath)
+    if (stats.size > 10 * 1024 * 1024) {
+      throw new Error('File too large (>10MB). Open in an external editor.')
+    }
     const content = await fs.readFile(filePath, 'utf8')
     return { content, path: filePath }
+  }))
+
+  ipcMain.handle('fs:readImageBase64', ipcHandler(async (_event, filePath: string) => {
+    validatePath(filePath)
+    const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp', '.avif'])
+    const ext = path.extname(filePath).toLowerCase()
+    if (!ALLOWED.has(ext)) throw new Error('Not an image file')
+    const stats = fsSync.statSync(filePath)
+    if (stats.size > 50 * 1024 * 1024) throw new Error('Image too large (>50MB)')
+    const buffer = await fs.readFile(filePath)
+    const mimeMap: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+      '.ico': 'image/x-icon', '.bmp': 'image/bmp', '.avif': 'image/avif',
+    }
+    const mime = mimeMap[ext] ?? 'application/octet-stream'
+    return { dataUrl: `data:${mime};base64,${buffer.toString('base64')}`, size: stats.size }
+  }))
+
+  ipcMain.handle('fs:writeImageFromBase64', ipcHandler(async (_event, filePath: string, base64: string) => {
+    validatePath(filePath)
+    const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.avif'])
+    const ext = path.extname(filePath).toLowerCase()
+    if (!ALLOWED.has(ext)) throw new Error('Not an image file')
+    const buffer = Buffer.from(base64, 'base64')
+    await fs.writeFile(filePath, buffer)
+  }))
+
+  ipcMain.handle('fs:pickImage', ipcHandler(async () => {
+    const { dialog } = await import('electron')
+    const result = await dialog.showOpenDialog({
+      title: 'Open Image',
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'avif'] }],
+      properties: ['openFile'],
+    })
+    return result.canceled ? null : result.filePaths[0] ?? null
   }))
 
   ipcMain.handle('fs:writeFile', ipcHandler(async (_event, filePath: string, content: string) => {

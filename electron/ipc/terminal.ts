@@ -142,9 +142,8 @@ export function registerTerminalHandlers() {
 
     if (opts?.startupCommand?.trim()) {
       const cmd = opts.startupCommand.trim()
-      // Block shell metacharacters that could chain commands
-      if (/[;&|`$\n\r]/.test(cmd)) {
-        throw new Error('Startup command contains disallowed shell metacharacters')
+      if (!/^[a-zA-Z0-9 _\-\.\/\\:=@]+$/.test(cmd)) {
+        throw new Error('Startup command contains disallowed characters')
       }
       session.pty.write(`${cmd}\r`)
     }
@@ -161,7 +160,7 @@ export function registerTerminalHandlers() {
     if (!agent) throw new Error('Agent not found')
     if (!project) throw new Error('Project not found')
 
-    const { command, args, contextFilePath } = buildCommand(agent, project)
+    const { command, args, contextFilePath } = await buildCommand(agent, project)
     const id = crypto.randomUUID()
     const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
 
@@ -174,7 +173,10 @@ export function registerTerminalHandlers() {
   }))
 
   ipcMain.on('terminal:write', (_event, id: string, data: string) => {
-    sessions.get(id)?.pty.write(data)
+    const session = sessions.get(id)
+    if (!session) return
+    if (typeof data !== 'string' || data.length >= 65536) return
+    session.pty.write(data)
   })
 
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) => {

@@ -1,0 +1,452 @@
+/* Overlay */
+.wizard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Card */
+.wizard-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+  width: 440px;
+  max-width: 90vw;
+}
+
+.wizard-title {
+  font-size: 14px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--t1);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Progress bar */
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+.wizard-progress-item {
+  display: flex;
+  align-items: center;
+}
+
+.wizard-progress-line {
+  width: 32px;
+  height: 1px;
+  background: var(--s4);
+  transition: background var(--transition-normal);
+}
+
+.wizard-progress-line.filled {
+  background: var(--success);
+}
+
+.wizard-progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--s4);
+  border: 1px solid var(--border);
+  transition: all var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.wizard-progress-dot.active {
+  background: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 6px var(--success-dim);
+}
+
+.wizard-progress-dot.complete {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.wizard-progress-dot.skipped {
+  background: var(--t4);
+  border-color: var(--t4);
+}
+
+/* Step label */
+.wizard-step-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--t3);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.wizard-subtitle {
+  font-size: 12px;
+  color: var(--t2);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Step content */
+.wizard-step-content {
+  margin-bottom: 20px;
+}
+
+/* Check list (shared across steps) */
+.wizard-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.wizard-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wizard-check:last-child {
+  border-bottom: none;
+}
+
+.wizard-check-label {
+  font-size: 12px;
+  color: var(--t1);
+  flex: 1;
+}
+
+.wizard-check-label-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wizard-check-desc {
+  font-size: 10px;
+  color: var(--t3);
+}
+
+.wizard-check-status {
+  font-size: 10px;
+  color: var(--t2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.wizard-check-status.error {
+  color: var(--error);
+}
+
+/* Dots */
+.wizard-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--t3);
+}
+
+.wizard-dot.green { background: var(--success); }
+.wizard-dot.red { background: var(--error); }
+.wizard-dot.pulse {
+  background: var(--warning);
+  animation: wizard-dot-pulse 1s ease-in-out infinite;
+}
+
+@keyframes wizard-dot-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Buttons */
+.wizard-btn {
+  width: 100%;
+  height: 34px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  border: 1px solid var(--border);
+}
+
+.wizard-btn.primary {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--t1);
+}
+
+.wizard-btn.primary:hover { opacity: 0.9; }
+
+.wizard-btn.secondary {
+  background: var(--hover-bg);
+  border-color: var(--border);
+  color: var(--t1);
+}
+
+.wizard-btn.secondary:hover { background: var(--active-bg); }
+
+.wizard-btn.small {
+  width: auto;
+  padding: 0 14px;
+  height: 30px;
+}
+
+.wizard-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wizard-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.wizard-btn-row .wizard-btn {
+  flex: 1;
+}
+
+.wizard-skip-step {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--t3);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 8px 0 0;
+  text-align: center;
+}
+
+.wizard-skip-step:hover { color: var(--t1); }
+
+/* External tip (leaving the app) */
+.wizard-external-tip {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: var(--s2);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.wizard-tip-accent {
+  width: 2px;
+  flex-shrink: 0;
+  background: var(--blue);
+  border-radius: 1px;
+}
+
+.wizard-tip-content {
+  font-size: 11px;
+  color: var(--t2);
+  line-height: 1.5;
+}
+
+/* Token input */
+.wizard-token-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.wizard-token-input {
+  flex: 1;
+  height: 30px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--t1);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0 10px;
+  outline: none;
+}
+
+.wizard-token-input:focus {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+/* API section (Claude step) */
+.wizard-api-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wizard-api-label {
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.wizard-api-row {
+  display: flex;
+  gap: 8px;
+}
+
+.wizard-api-input {
+  flex: 1;
+  height: 30px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--t1);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0 10px;
+  outline: none;
+}
+
+.wizard-api-input:focus {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+/* Shared */
+.wizard-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+.wizard-error {
+  font-size: 11px;
+  color: var(--error);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.wizard-hint {
+  font-size: 11px;
+  color: var(--t2);
+  line-height: 1.5;
+}
+
+.wizard-hint code {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--s2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+/* Footer */
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.wizard-skip-link {
+  background: none;
+  border: none;
+  color: var(--t3);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.wizard-skip-link:hover { color: var(--t1); }
+
+.wizard-step-counter {
+  font-size: 10px;
+  color: var(--t4);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Tour offer dialog */
+.tour-offer-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 32px;
+  width: 340px;
+  text-align: center;
+}
+
+.tour-offer-title {
+  font-size: 12px;
+  color: var(--t1);
+  margin-bottom: 8px;
+}
+
+.tour-offer-desc {
+  font-size: 11px;
+  color: var(--t2);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.tour-offer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-offer-actions .wizard-btn {
+  flex: 1;
+}
+
+/* Resume banner */
+.resume-banner {
+  position: fixed;
+  top: 38px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--s2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.resume-banner-text {
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.resume-banner-btn {
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+.resume-banner-btn.primary {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--t1);
+}
+
+.resume-banner-btn.secondary {
+  background: var(--hover-bg);
+  color: var(--t2);
+}
+
+.resume-banner-btn:hover { opacity: 0.9; }

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useOnboardingStore } from '../../store/onboarding'
+import { Toggle } from '../../components/Toggle'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'crashes'
+type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'setup' | 'crashes'
 
 interface SecureKeyEntry {
   key_name: string
@@ -33,13 +35,13 @@ export function SettingsPanel() {
       </div>
 
       <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'display', 'crashes'] as SettingsTab[]).map((t) => (
+        {(['keys', 'integrations', 'agents', 'display', 'setup', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={() => setTab(t)}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : 'Crash Log'}
+            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : 'Crash Log'}
           </button>
         ))}
       </div>
@@ -49,6 +51,7 @@ export function SettingsPanel() {
         {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
         {tab === 'agents' && <AgentsSection />}
         {tab === 'display' && <DisplaySection />}
+        {tab === 'setup' && <SetupSection />}
         {tab === 'crashes' && <CrashesSection />}
       </div>
     </div>
@@ -178,12 +181,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
           <div className={`settings-integration-dot ${mcp.enabled ? 'green' : ''}`} />
           <span className="settings-integration-name">{mcp.name}</span>
           <span className="settings-integration-source">{mcp.source}</span>
-          <button
-            className={`settings-toggle ${mcp.enabled ? 'on' : ''}`}
-            onClick={() => toggleMcp(mcp.name, !mcp.enabled)}
-          >
-            <span className="settings-toggle-thumb" />
-          </button>
+          <Toggle checked={mcp.enabled} onChange={(v) => toggleMcp(mcp.name, v)} />
         </div>
       ))}
     </div>
@@ -204,7 +202,7 @@ function AgentsSection() {
   return (
     <div className="settings-section">
       <div className="settings-section-desc">
-        Default agents and model preferences. Edit agents in the Agent Launcher.
+        Registered agents and model preferences. Use the Agent Launcher (Ctrl+Shift+A) to create or edit agents.
       </div>
 
       <div className="settings-agent-list">
@@ -214,7 +212,7 @@ function AgentsSection() {
             <code className="settings-agent-model">{agent.model}</code>
           </div>
         ))}
-        {agents.length === 0 && <div className="settings-empty">No agents configured</div>}
+        {agents.length === 0 && <div className="settings-empty">No agents configured. Launch one via Ctrl+Shift+A.</div>}
       </div>
     </div>
   )
@@ -320,6 +318,37 @@ function CrashesSection() {
   )
 }
 
+function SetupSection() {
+  const handleRerunWizard = async () => {
+    const freshProgress = { claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
+    await window.daemon.settings.setOnboardingComplete(false)
+    await window.daemon.settings.setOnboardingProgress(freshProgress)
+    // Reset in-memory progress before opening so progress dots start clean
+    useOnboardingStore.setState({ progress: freshProgress })
+    useOnboardingStore.getState().openWizard()
+  }
+
+  const handleStartTour = () => {
+    useOnboardingStore.getState().startTour()
+  }
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Re-run the setup wizard or take the app tour again.
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button className="settings-btn primary" onClick={handleRerunWizard}>
+          Re-run Setup Wizard
+        </button>
+        <button className="settings-btn" onClick={handleStartTour}>
+          Take App Tour
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function DisplaySection() {
   const [showMarketTape, setShowMarketTape] = useState(true)
   const [showTitlebarWallet, setShowTitlebarWallet] = useState(true)
@@ -354,23 +383,13 @@ function DisplaySection() {
       <div className="settings-display-row">
         <span className="settings-display-label">Market ticker tape</span>
         <span className="settings-display-hint">Show BTC/SOL/ETH prices in the status bar</span>
-        <button
-          className={`settings-toggle ${showMarketTape ? 'on' : ''}`}
-          onClick={() => handleToggleMarketTape(!showMarketTape)}
-        >
-          <span className="settings-toggle-thumb" />
-        </button>
+        <Toggle checked={showMarketTape} onChange={handleToggleMarketTape} />
       </div>
 
       <div className="settings-display-row">
         <span className="settings-display-label">Titlebar wallet balance</span>
         <span className="settings-display-hint">Show portfolio value in the titlebar</span>
-        <button
-          className={`settings-toggle ${showTitlebarWallet ? 'on' : ''}`}
-          onClick={() => handleToggleTitlebarWallet(!showTitlebarWallet)}
-        >
-          <span className="settings-toggle-thumb" />
-        </button>
+        <Toggle checked={showTitlebarWallet} onChange={handleToggleTitlebarWallet} />
       </div>
     </div>
   )

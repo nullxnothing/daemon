@@ -1,10 +1,29 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { execFile as execFileCb } from 'node:child_process'
+import { promisify } from 'node:util'
 import { getDb } from '../db/db'
+
+const execFile = promisify(execFileCb)
+
+async function execCmd(cmd: string, args: string[], options: { cwd?: string; timeout?: number }): Promise<string> {
+  try {
+    const { stdout } = await execFile(cmd, args, {
+      cwd: options.cwd,
+      timeout: options.timeout,
+      encoding: 'utf8',
+      shell: true,
+    })
+    return stdout
+  } catch (err: any) {
+    if (err.stdout) return err.stdout
+    throw err
+  }
+}
 import { getRegisteredPorts } from './PortService'
 import * as ClaudeRouter from './ClaudeRouter'
 import { TIMEOUTS } from '../config/constants'
+import { LogService } from './LogService'
 import type {
   EngineAction,
   EngineResult,
@@ -14,16 +33,17 @@ import type {
 
 // --- Context Builder ---
 
-function buildContext(): EngineContext {
+async function buildContext(): Promise<EngineContext> {
   const db = getDb()
 
-  const projects = (db.prepare('SELECT * FROM projects ORDER BY last_active DESC').all() as Project[]).map((p) => {
+  const projectRows = db.prepare('SELECT * FROM projects ORDER BY last_active DESC').all() as Project[]
+  const projects = await Promise.all(projectRows.map(async (p) => {
     const claudeMdPath = path.join(p.path, 'CLAUDE.md')
     let gitBranch: string | null = null
     try {
-      gitBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: p.path, encoding: 'utf8', timeout: TIMEOUTS.GIT_COMMAND }).trim()
+      gitBranch = (await execCmd('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: p.path, timeout: TIMEOUTS.GIT_COMMAND })).trim()
     } catch (err) {
-      console.warn('[EngineService] git branch detection failed:', (err as Error).message)
+      LogService.warn('EngineService', 'git branch detection failed: ' + (err as Error).message)
     }
 
     const sessionCount = (db.prepare('SELECT COUNT(*) as c FROM active_sessions WHERE project_id = ?').get(p.id) as { c: number }).c
@@ -37,7 +57,7 @@ function buildContext(): EngineContext {
       gitBranch,
       activeSessions: sessionCount,
     }
-  })
+  }))
 
   const activeAgentRows = db.prepare(`
     SELECT a.id, a.name, s.project_id
@@ -58,7 +78,7 @@ function buildContext(): EngineContext {
       'SELECT operation, message, timestamp FROM error_logs ORDER BY timestamp DESC LIMIT 10'
     ).all() as typeof recentErrors
   } catch (err) {
-    console.warn('[EngineService] failed to fetch recent errors:', (err as Error).message)
+    LogService.warn('EngineService', 'failed to fetch recent errors: ' + (err as Error).message)
   }
 
   let portMap: Array<{ port: number; serviceName: string; projectName: string }> = []
@@ -69,7 +89,7 @@ function buildContext(): EngineContext {
       projectName: p.projectName,
     }))
   } catch (err) {
-    console.warn('[EngineService] failed to fetch port map:', (err as Error).message)
+    LogService.warn('EngineService', 'failed to fetch port map: ' + (err as Error).message)
   }
 
   let userProfile: Record<string, string> = {}
@@ -77,7 +97,7 @@ function buildContext(): EngineContext {
     const rows = db.prepare("SELECT key, value FROM app_settings WHERE key LIKE 'user_%'").all() as Array<{ key: string; value: string }>
     for (const row of rows) userProfile[row.key] = row.value
   } catch (err) {
-    console.warn('[EngineService] failed to fetch user profile:', (err as Error).message)
+    LogService.warn('EngineService', 'failed to fetch user profile: ' + (err as Error).message)
   }
 
   return { projects, activeAgents, recentErrors, portMap, userProfile }
@@ -157,23 +177,21 @@ async function handleFixClaudeMd(action: EngineAction, ctx: EngineContext): Prom
 
   let recentDiff = ''
   try {
-    recentDiff = execSync('git diff HEAD~10 --stat', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
+    recentDiff = await execCmd('git', ['diff', 'HEAD~10', '--stat'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
   } catch (err) {
-    console.warn('[EngineService] git diff failed:', (err as Error).message)
+    LogService.warn('EngineService', 'git diff failed: ' + (err as Error).message)
   }
 
   let fileTree = ''
   try {
-    fileTree = execSync('find . -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/.git/*" | head -80', {
-      cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
-    })
+    fileTree = await execCmd('find', ['.', '-maxdepth', '2', '-not', '-path', '*/node_modules/*', '-not', '-path', '*/.git/*'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
+    fileTree = fileTree.split('\n').slice(0, 80).join('\n')
   } catch {
     try {
-      fileTree = execSync('dir /b /s /a:-d | findstr /v "node_modules .git" | head -80', {
-        cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
-      })
+      fileTree = await execCmd('cmd', ['/c', 'dir /b /s /a:-d | findstr /v "node_modules .git"'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
+      fileTree = fileTree.split('\n').slice(0, 80).join('\n')
     } catch (err) {
-      console.warn('[EngineService] file tree listing failed:', (err as Error).message)
+      LogService.warn('EngineService', 'file tree listing failed: ' + (err as Error).message)
     }
   }
 
@@ -215,36 +233,34 @@ async function handleGenerateClaudeMd(action: EngineAction, ctx: EngineContext):
   try {
     packageJson = fs.readFileSync(path.join(project.path, 'package.json'), 'utf8')
   } catch (err) {
-    console.warn('[EngineService] package.json read failed:', (err as Error).message)
+    LogService.warn('EngineService', 'package.json read failed: ' + (err as Error).message)
   }
 
   let cargoToml = ''
   try {
     cargoToml = fs.readFileSync(path.join(project.path, 'Cargo.toml'), 'utf8')
   } catch (err) {
-    console.warn('[EngineService] Cargo.toml read failed:', (err as Error).message)
+    LogService.warn('EngineService', 'Cargo.toml read failed: ' + (err as Error).message)
   }
 
   let fileTree = ''
   try {
-    fileTree = execSync('find . -maxdepth 3 -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/target/*" | head -100', {
-      cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
-    })
+    fileTree = await execCmd('find', ['.', '-maxdepth', '3', '-not', '-path', '*/node_modules/*', '-not', '-path', '*/.git/*', '-not', '-path', '*/target/*'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
+    fileTree = fileTree.split('\n').slice(0, 100).join('\n')
   } catch {
     try {
-      fileTree = execSync('dir /b /s /a:-d | findstr /v "node_modules .git target" | head -100', {
-        cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE,
-      })
+      fileTree = await execCmd('cmd', ['/c', 'dir /b /s /a:-d | findstr /v "node_modules .git target"'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
+      fileTree = fileTree.split('\n').slice(0, 100).join('\n')
     } catch (err) {
-      console.warn('[EngineService] file tree listing failed:', (err as Error).message)
+      LogService.warn('EngineService', 'file tree listing failed: ' + (err as Error).message)
     }
   }
 
   let gitLog = ''
   try {
-    gitLog = execSync('git log --oneline -20', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
+    gitLog = await execCmd('git', ['log', '--oneline', '-20'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
   } catch (err) {
-    console.warn('[EngineService] git log failed:', (err as Error).message)
+    LogService.warn('EngineService', 'git log failed: ' + (err as Error).message)
   }
 
   const output = await ClaudeRouter.runPrompt({
@@ -319,10 +335,10 @@ async function handleDebugSetup(action: EngineAction, ctx: EngineContext): Promi
   let tsErrors = ''
   if (hasPackageJson) {
     try {
-      execSync('npx tsc --noEmit 2>&1', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.TYPESCRIPT_CHECK })
+      await execCmd('npx', ['tsc', '--noEmit'], { cwd: project.path, timeout: TIMEOUTS.TYPESCRIPT_CHECK })
       checks.push('TypeScript: clean')
-    } catch (err) {
-      tsErrors = (err as { stdout?: string }).stdout ?? ''
+    } catch (err: any) {
+      tsErrors = err.stdout ?? ''
       const errorCount = (tsErrors.match(/error TS/g) ?? []).length
       checks.push(`TypeScript: ${errorCount} errors`)
     }
@@ -331,9 +347,9 @@ async function handleDebugSetup(action: EngineAction, ctx: EngineContext): Promi
   // Git status
   let gitStatus = ''
   try {
-    gitStatus = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.FILE_TREE })
+    gitStatus = await execCmd('git', ['status', '--porcelain'], { cwd: project.path, timeout: TIMEOUTS.FILE_TREE })
   } catch (err) {
-    console.warn('[EngineService] git status failed:', (err as Error).message)
+    LogService.warn('EngineService', 'git status failed: ' + (err as Error).message)
   }
 
   const extraContext = (action.payload?.question as string) ?? ''
@@ -374,11 +390,11 @@ async function handleHealthCheck(ctx: EngineContext): Promise<EngineResult> {
     if (!project.hasClaudeMd) issues.push('no CLAUDE.md')
 
     try {
-      const status = execSync('git status --porcelain', { cwd: project.path, encoding: 'utf8', timeout: TIMEOUTS.GIT_COMMAND })
+      const status = await execCmd('git', ['status', '--porcelain'], { cwd: project.path, timeout: TIMEOUTS.GIT_COMMAND })
       const uncommitted = status.trim().split('\n').filter(Boolean).length
       if (uncommitted > 20) issues.push(`${uncommitted} uncommitted changes`)
     } catch (err) {
-      console.warn('[EngineService] health check git status failed:', (err as Error).message)
+      LogService.warn('EngineService', 'health check git status failed: ' + (err as Error).message)
     }
 
     const statusIcon = issues.length === 0 ? 'OK' : `${issues.length} issue(s)`
@@ -464,7 +480,7 @@ ${project ? `Active project: ${project.name} at ${project.path}` : ''}`,
 // --- Public API ---
 
 export async function runAction(action: EngineAction): Promise<EngineResult> {
-  const ctx = buildContext()
+  const ctx = await buildContext()
 
   switch (action.type) {
     case 'fix-claude-md':
@@ -486,6 +502,6 @@ export async function runAction(action: EngineAction): Promise<EngineResult> {
   }
 }
 
-export function getContext(): EngineContext {
+export async function getContext(): Promise<EngineContext> {
   return buildContext()
 }

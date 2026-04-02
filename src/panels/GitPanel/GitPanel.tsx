@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useOnboardingStore } from '../../store/onboarding'
 import type { GitFile, GitCommit, DeployStatus } from '../../../electron/shared/types'
 import './GitPanel.css'
 
 export function GitPanel() {
   const projectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const setShowOnboarding = useUIStore((s) => s.setShowOnboarding)
   const [branch, setBranch] = useState<string | null>(null)
   const [branches, setBranches] = useState<string[]>([])
   const [files, setFiles] = useState<GitFile[]>([])
@@ -52,7 +52,7 @@ export function GitPanel() {
 
   const maybeShowGitHubOnboarding = (message: string | undefined) => {
     if (message?.includes('[CONNECT_GITHUB]')) {
-      setShowOnboarding(true)
+      useOnboardingStore.getState().openWizard()
     }
   }
 

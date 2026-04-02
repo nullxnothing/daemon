@@ -182,6 +182,7 @@ ${content}`,
   // --- Secure Keys ---
 
   ipcMain.handle('claude:store-key', ipcHandler(async (_event, name: string, value: string) => {
+    if (!/^[A-Z0-9_-]{1,100}$/.test(name)) throw new Error('Invalid key name')
     SecureKey.storeKey(name, value)
   }))
 

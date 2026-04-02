@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import './PortsPanel.css'
 
@@ -18,7 +18,7 @@ interface GhostPort {
   processName: string | null
 }
 
-export function PortsPanel() {
+export const PortsPanel = memo(function PortsPanel() {
   const [registered, setRegistered] = useState<RegisteredPort[]>([])
   const [ghosts, setGhosts] = useState<GhostPort[]>([])
 
@@ -48,11 +48,11 @@ export function PortsPanel() {
 
       <CollapsibleSection title="Registered" count={registered.length} defaultOpen>
         {registered.length === 0 ? (
-          <div className="ports-empty">No registered ports</div>
+          <div className="ports-empty">No ports detected. Start a dev server to see active ports here.</div>
         ) : (
           registered.map((p) => (
             <div key={`${p.port}-${p.projectId}`} className="port-row">
-              <span className={`port-dot ${p.isListening ? 'live' : 'dead'}`} />
+              <span className={`port-dot ${p.isListening ? 'live' : 'dead'}`} title={p.isListening ? 'Port listening' : 'Port not responding'} />
               <span className="port-number">:{p.port}</span>
               <span className="port-service">{p.serviceName}</span>
               <span className="port-project">{p.projectName}</span>
@@ -70,7 +70,7 @@ export function PortsPanel() {
         ) : (
           ghosts.map((g) => (
             <div key={g.port} className="port-row ghost">
-              <span className="port-dot warning" />
+              <span className="port-dot warning" title="Ghost server — unregistered process on port" />
               <span className="port-number">:{g.port}</span>
               <span className="port-process">{g.processName ?? `PID ${g.pid}`}</span>
               <button className="port-btn danger" onClick={() => handleKill(g.port)}>Kill</button>
@@ -80,4 +80,4 @@ export function PortsPanel() {
       </CollapsibleSection>
     </div>
   )
-}
+})

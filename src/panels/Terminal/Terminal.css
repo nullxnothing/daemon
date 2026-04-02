@@ -55,6 +55,7 @@
   background: var(--s2);
   color: var(--t1);
   border-bottom: 2px solid var(--green);
+  box-shadow: 0 1px 0 rgba(62, 207, 142, 0.06);
 }
 
 .terminal-tab-dot {
@@ -106,10 +107,11 @@
   left: 0;
   min-width: 240px;
   max-width: 320px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-glass);
   border-radius: 6px;
-  background: var(--s1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-float);
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -231,6 +233,7 @@
   border-bottom: 1px solid var(--border);
   padding: 0 6px;
   background: var(--s1);
+  background-image: var(--surface-gradient-subtle);
 }
 
 .terminal-pane-title {
@@ -275,10 +278,11 @@
 .terminal-context-menu {
   position: absolute;
   min-width: 140px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-glass);
   border-radius: 6px;
-  background: var(--s1);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-float);
   padding: 4px;
   z-index: 12;
 }

@@ -1,9 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { getDb } from '../db/db'
-import type { EnvVar, EnvFile, UnifiedKey, EnvDiff } from '../shared/types'
+import { API_ENDPOINTS } from '../config/constants'
+import * as DeployService from './DeployService'
+import type { EnvVar, EnvFile, UnifiedKey, EnvDiff, VercelEnvVar } from '../shared/types'
 
-export type { EnvVar, EnvFile, UnifiedKey, EnvDiff }
+export type { EnvVar, EnvFile, UnifiedKey, EnvDiff, VercelEnvVar }
 
 const SECRET_PATTERNS: Array<{ pattern: string; label: string }> = [
   { pattern: 'sk-', label: 'sk-' },
@@ -320,6 +322,141 @@ function resolveVercelToken(projects: Array<{ path: string }>): string | null {
   }
 
   return null
+}
+
+// --- Vercel Env Var Management (using stored token) ---
+
+async function vercelApiFetch(urlPath: string, token: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+  try {
+    const res = await fetch(`${API_ENDPOINTS.VERCEL_API}${urlPath}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Vercel API ${res.status}: ${body}`)
+    }
+    return res
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+function requireVercelToken(): string {
+  const token = DeployService.getToken('vercel')
+  if (!token) throw new Error('Vercel token not configured')
+  return token
+}
+
+function buildTeamQuery(teamId: string | null): URLSearchParams {
+  const params = new URLSearchParams()
+  if (teamId) params.set('teamId', teamId)
+  return params
+}
+
+export async function fetchVercelEnvVars(
+  vercelProjectId: string,
+  teamId: string | null
+): Promise<VercelEnvVar[]> {
+  const token = requireVercelToken()
+  const vars: VercelEnvVar[] = []
+  let next: number | null = null
+  let pageGuard = 0
+
+  while (pageGuard < 25) {
+    pageGuard++
+    const params = buildTeamQuery(teamId)
+    params.set('decrypt', 'true')
+    params.set('limit', '100')
+    if (next !== null) params.set('since', String(next))
+
+    const res = await vercelApiFetch(
+      `/v10/projects/${encodeURIComponent(vercelProjectId)}/env?${params}`,
+      token
+    )
+    const json = await res.json() as {
+      envs?: Array<{ id: string; key: string; value?: string; target?: string[]; type?: string }>
+      pagination?: { next?: number }
+    }
+
+    for (const item of json.envs ?? []) {
+      vars.push({
+        id: item.id,
+        key: item.key,
+        value: typeof item.value === 'string' ? item.value : '',
+        target: Array.isArray(item.target) ? item.target : [],
+        type: item.type ?? 'plain',
+      })
+    }
+
+    const nextToken = json.pagination?.next
+    if (typeof nextToken !== 'number') break
+    next = nextToken
+  }
+
+  return vars
+}
+
+export async function createVercelEnvVar(
+  vercelProjectId: string,
+  teamId: string | null,
+  key: string,
+  value: string,
+  target: string[],
+  type = 'encrypted'
+): Promise<void> {
+  const token = requireVercelToken()
+  const params = buildTeamQuery(teamId)
+  const qs = params.toString() ? `?${params}` : ''
+
+  await vercelApiFetch(
+    `/v10/projects/${encodeURIComponent(vercelProjectId)}/env${qs}`,
+    token,
+    { method: 'POST', body: JSON.stringify({ key, value, target, type }) }
+  )
+}
+
+export async function updateVercelEnvVar(
+  vercelProjectId: string,
+  teamId: string | null,
+  envVarId: string,
+  value: string,
+  target?: string[]
+): Promise<void> {
+  const token = requireVercelToken()
+  const params = buildTeamQuery(teamId)
+  const qs = params.toString() ? `?${params}` : ''
+  const body: Record<string, unknown> = { value }
+  if (target) body.target = target
+
+  await vercelApiFetch(
+    `/v10/projects/${encodeURIComponent(vercelProjectId)}/env/${encodeURIComponent(envVarId)}${qs}`,
+    token,
+    { method: 'PATCH', body: JSON.stringify(body) }
+  )
+}
+
+export async function deleteVercelEnvVar(
+  vercelProjectId: string,
+  teamId: string | null,
+  envVarId: string
+): Promise<void> {
+  const token = requireVercelToken()
+  const params = buildTeamQuery(teamId)
+  const qs = params.toString() ? `?${params}` : ''
+
+  await vercelApiFetch(
+    `/v10/projects/${encodeURIComponent(vercelProjectId)}/env/${encodeURIComponent(envVarId)}${qs}`,
+    token,
+    { method: 'DELETE' }
+  )
 }
 
 async function fetchProductionEnvsForProject(projectName: string, token: string): Promise<Array<{ key: string; value: string }>> {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useUIStore } from '../../store/ui'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import type { ProcessInfo, OrphanProcess } from '../../../electron/shared/types'
@@ -10,7 +10,7 @@ const MODEL_SHORT: Record<string, string> = {
   'claude-haiku-4-5-20251001': 'Haiku',
 }
 
-export function ProcessManager() {
+export const ProcessManager = memo(function ProcessManager() {
   const [processes, setProcesses] = useState<ProcessInfo[]>([])
   const [orphans, setOrphans] = useState<OrphanProcess[]>([])
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
@@ -114,7 +114,7 @@ export function ProcessManager() {
       </CollapsibleSection>
     </div>
   )
-}
+})
 
 function MemoryBar({ memory }: { memory: number }) {
   const mb = memory / (1024 * 1024)

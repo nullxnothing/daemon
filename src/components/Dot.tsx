@@ -1,5 +1,5 @@
 interface DotProps {
-  color: 'green' | 'amber' | 'red' | 'off'
+  color: 'green' | 'amber' | 'red' | 'blue' | 'off'
   size?: number
 }
 
@@ -7,6 +7,7 @@ const COLOR_MAP: Record<DotProps['color'], string> = {
   green: 'var(--green)',
   amber: 'var(--amber)',
   red: 'var(--red)',
+  blue: 'var(--blue)',
   off: 'var(--t3)',
 }
 

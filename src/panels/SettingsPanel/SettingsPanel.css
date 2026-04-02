@@ -42,6 +42,7 @@
 .settings-tab.active {
   color: var(--t1);
   border-bottom-color: var(--green);
+  text-shadow: 0 0 8px rgba(62, 207, 142, 0.15);
 }
 
 .settings-body {
@@ -218,40 +219,6 @@
 .settings-integration-source {
   font-size: 9px;
   color: var(--t3);
-}
-
-/* Toggle (reuse from onboarding) */
-.settings-toggle {
-  width: 32px;
-  height: 16px;
-  border-radius: 8px;
-  background: var(--s3);
-  border: 1px solid var(--s5);
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  transition: background 0.15s;
-  padding: 0;
-}
-
-.settings-toggle.on {
-  background: var(--green);
-  border-color: var(--green);
-}
-
-.settings-toggle-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--t1);
-  transition: left 0.15s;
-}
-
-.settings-toggle.on .settings-toggle-thumb {
-  left: 18px;
 }
 
 /* Agents */

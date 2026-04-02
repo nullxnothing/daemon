@@ -3,6 +3,7 @@ import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import * as Env from '../services/EnvService'
+import * as DeployService from '../services/DeployService'
 import { getDb } from '../db/db'
 import { isEnvPathSafe, isProjectPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
@@ -11,6 +12,8 @@ import { TIMEOUTS } from '../config/constants'
 const execFileAsync = promisify(execFile)
 
 const ENV_FILE_NAMES = new Set(['.env', '.env.local', '.env.production', '.env.staging', '.env.development'])
+
+let clipboardGeneration = 0
 
 function validateProjectPath(p: string): void {
   if (!isProjectPathSafe(p)) throw new Error('Path outside project boundaries')
@@ -66,9 +69,11 @@ export function registerEnvHandlers() {
 
   // Copy value to clipboard, auto-clear after 30s
   ipcMain.handle('env:copy-value', ipcHandler(async (_event, value: string) => {
+    clipboardGeneration++
+    const gen = clipboardGeneration
     clipboard.writeText(value)
     setTimeout(() => {
-      if (clipboard.readText() === value) {
+      if (clipboardGeneration === gen && clipboard.readText() === value) {
         clipboard.writeText('')
       }
     }, TIMEOUTS.CLIPBOARD_CLEAR)
@@ -135,5 +140,31 @@ export function registerEnvHandlers() {
   ipcMain.handle('env:projects', ipcHandler(async () => {
     const db = getDb()
     return db.prepare('SELECT id, name, path FROM projects ORDER BY name').all()
+  }))
+
+  // --- Vercel Env Var Management ---
+
+  ipcMain.handle('env:vercel-vars', ipcHandler(async (_event, daemonProjectId: string) => {
+    const infra = DeployService.getProjectInfra(daemonProjectId)
+    if (!infra.vercel) throw new Error('Project not linked to Vercel')
+    return Env.fetchVercelEnvVars(infra.vercel.projectId, infra.vercel.teamId)
+  }))
+
+  ipcMain.handle('env:vercel-create-var', ipcHandler(async (_event, daemonProjectId: string, key: string, value: string, target: string[], type?: string) => {
+    const infra = DeployService.getProjectInfra(daemonProjectId)
+    if (!infra.vercel) throw new Error('Project not linked to Vercel')
+    await Env.createVercelEnvVar(infra.vercel.projectId, infra.vercel.teamId, key, value, target, type)
+  }))
+
+  ipcMain.handle('env:vercel-update-var', ipcHandler(async (_event, daemonProjectId: string, envVarId: string, value: string, target?: string[]) => {
+    const infra = DeployService.getProjectInfra(daemonProjectId)
+    if (!infra.vercel) throw new Error('Project not linked to Vercel')
+    await Env.updateVercelEnvVar(infra.vercel.projectId, infra.vercel.teamId, envVarId, value, target)
+  }))
+
+  ipcMain.handle('env:vercel-delete-var', ipcHandler(async (_event, daemonProjectId: string, envVarId: string) => {
+    const infra = DeployService.getProjectInfra(daemonProjectId)
+    if (!infra.vercel) throw new Error('Project not linked to Vercel')
+    await Env.deleteVercelEnvVar(infra.vercel.projectId, infra.vercel.teamId, envVarId)
   }))
 }

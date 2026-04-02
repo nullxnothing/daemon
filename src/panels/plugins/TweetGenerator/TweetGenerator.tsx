@@ -6,7 +6,7 @@ import { VoiceProfileEditor } from './VoiceProfileEditor'
 import '../plugin.css'
 import './TweetGenerator.css'
 
-type TweetMode = 'original' | 'reply' | 'quote'
+type TweetMode = 'original' | 'reply' | 'quote' | 'thread'
 
 interface TweetVariation {
   id: string
@@ -17,17 +17,13 @@ interface TweetVariation {
 }
 
 export default function TweetGenerator() {
-  const [mode, setMode] = useState<TweetMode>('original')
+  const [mode, setMode] = useState<TweetMode>('reply')
   const [prompt, setPrompt] = useState('')
   const [sourceTweet, setSourceTweet] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [variations, setVariations] = useState<TweetVariation[]>([])
-
-  // Recent drafts
   const [drafts, setDrafts] = useState<Tweet[]>([])
-
-  // Voice profile
   const [voicePrompt, setVoicePrompt] = useState('')
   const [voiceExamples, setVoiceExamples] = useState<string[]>([])
   const [isEditingVoice, setIsEditingVoice] = useState(false)
@@ -79,7 +75,6 @@ export default function TweetGenerator() {
       )
       loadDrafts()
 
-      // Open the draft .md file in the editor canvas
       if (draftPath) {
         const readRes = await window.daemon.fs.readFile(draftPath)
         if (readRes.ok && readRes.data) {
@@ -165,7 +160,7 @@ export default function TweetGenerator() {
 
   return (
     <div className="plugin-panel tweet-gen">
-      <div className="panel-header">TWEETS</div>
+      <div className="panel-header">X REPLIES</div>
 
       <div className="tweet-gen__body">
         <TweetVariations

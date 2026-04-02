@@ -25,6 +25,7 @@ interface ValidationRule {
 
 class ValidationServiceImpl {
   private pathWhitelist: Set<string> = new Set();
+  private rateLimitMap: Map<string, number[]> = new Map();
 
   /**
    * Validate string input
@@ -225,7 +226,7 @@ class ValidationServiceImpl {
   }
 
   /**
-   * Validate rate limit
+   * Validate rate limit using in-memory sliding window
    */
   checkRateLimit(
     identifier: string,
@@ -235,12 +236,19 @@ class ValidationServiceImpl {
     const key = `rl:${identifier}`;
     const now = Date.now();
 
-    // In production, this would use Redis. For now, use in-memory store.
-    // This is a placeholder that should be replaced with proper rate limiter.
-    console.warn(
-      'Rate limiting not implemented - using placeholder',
-    );
+    const timestamps = this.rateLimitMap.get(key) ?? [];
+    const windowStart = now - windowMs;
 
+    // Prune entries older than the window
+    const recent = timestamps.filter((ts) => ts > windowStart);
+
+    if (recent.length >= maxRequests) {
+      this.rateLimitMap.set(key, recent);
+      return false;
+    }
+
+    recent.push(now);
+    this.rateLimitMap.set(key, recent);
     return true;
   }
 

@@ -12,15 +12,16 @@ import type { TweetUpdateInput } from '../shared/types'
 
 export function registerTweetHandlers() {
   ipcMain.handle('tweets:generate', ipcHandler(async (_event, prompt: string, mode: string, sourceTweet?: string) => {
-    const validModes = ['original', 'reply', 'quote'] as const
+    const validModes = ['original', 'reply', 'quote', 'thread'] as const
     if (!validModes.includes(mode as typeof validModes[number])) {
       throw new Error(`Invalid mode: ${mode}`)
     }
-    return await generateTweet(prompt, mode as 'original' | 'reply' | 'quote', sourceTweet)
+    return await generateTweet(prompt, mode as 'original' | 'reply' | 'quote' | 'thread', sourceTweet)
   }))
 
   ipcMain.handle('tweets:list', ipcHandler(async (_event, limit?: number) => {
-    return listTweets(limit)
+    const safeLimitVal = Math.min(Math.max(limit ?? 50, 1), 200)
+    return listTweets(safeLimitVal)
   }))
 
   ipcMain.handle('tweets:update', ipcHandler(async (_event, id: string, updates: TweetUpdateInput) => {

@@ -29,24 +29,26 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const addTerminal = useUIStore((s) => s.addTerminal)
 
-  const loadAgents = useCallback(() => {
+  const loadAgents = useCallback((cancelled = false) => {
     window.daemon.agents.list().then((res) => {
-      if (res.ok && res.data) setAgents(res.data as Agent[])
+      if (!cancelled && res.ok && res.data) setAgents(res.data as Agent[])
     })
     window.daemon.agents.claudeList().then((res) => {
-      if (res.ok && res.data) setClaudeAgents(res.data as ClaudeAgentFile[])
+      if (!cancelled && res.ok && res.data) setClaudeAgents(res.data as ClaudeAgentFile[])
     })
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     if (isOpen) {
-      loadAgents()
+      loadAgents(cancelled)
       setFilter('')
       setSelectedIdx(0)
       setShowForm(false)
       setEditingAgent(null)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
+    return () => { cancelled = true }
   }, [isOpen, loadAgents])
 
   const daemonAgents = agents.filter((a) =>

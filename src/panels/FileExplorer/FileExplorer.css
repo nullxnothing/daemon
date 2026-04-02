@@ -1,7 +1,48 @@
+.file-explorer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 12px 0 12px;
+  flex-shrink: 0;
+}
+
+.file-explorer-header-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  letter-spacing: 0.5px;
+}
+
+.file-explorer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.file-explorer-header-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--t3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.file-explorer-header-btn:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+}
+
 .file-explorer {
   padding: 4px 0;
   overflow-y: auto;
-  height: calc(100% - 32px);
+  height: 100%;
   position: relative;
 }
 
@@ -92,7 +133,7 @@
   align-items: center;
   gap: 4px;
   height: 26px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t2);
   cursor: pointer;
   user-select: none;
@@ -325,12 +366,13 @@
 .context-menu {
   position: fixed;
   z-index: 200;
-  background: var(--s1);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
   border-radius: 6px;
   padding: 4px;
   min-width: 140px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-float);
 }
 
 .context-menu-item {

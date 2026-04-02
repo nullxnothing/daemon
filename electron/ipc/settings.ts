@@ -25,6 +25,22 @@ export function registerSettingsHandlers() {
     Settings.setOnboardingComplete(complete)
   }))
 
+  ipcMain.handle('settings:get-onboarding-progress', ipcHandler(async () => {
+    return Settings.getOnboardingProgress()
+  }))
+
+  ipcMain.handle('settings:set-onboarding-progress', ipcHandler(async (_event, progress: import('../shared/types').OnboardingProgress) => {
+    const VALID_STATUSES = ['pending', 'complete', 'skipped']
+    const REQUIRED_KEYS = ['claude', 'gmail', 'vercel', 'railway', 'tour']
+    if (!progress || typeof progress !== 'object') throw new Error('Invalid progress object')
+    for (const key of REQUIRED_KEYS) {
+      if (!VALID_STATUSES.includes((progress as unknown as Record<string, string>)[key])) {
+        throw new Error(`Invalid status for ${key}`)
+      }
+    }
+    Settings.setOnboardingProgress(progress)
+  }))
+
   ipcMain.handle('settings:report-crash', ipcHandler(async (_event, data: { type: string; message: string; stack: string }) => {
     const db = getDb()
     db.prepare('INSERT INTO app_crashes (id, type, message, stack, created_at) VALUES (?,?,?,?,?)').run(

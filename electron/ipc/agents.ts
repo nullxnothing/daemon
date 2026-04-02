@@ -86,6 +86,9 @@ export function registerAgentHandlers() {
     const fields = Object.keys(data).filter((f) => ALLOWED_AGENT_COLUMNS.has(f))
     if (fields.length === 0) throw new Error('No valid fields to update')
 
+    // Secondary guard: ensure each column name is safe for interpolation
+    if (fields.some((f) => !/^[a-z_]+$/.test(f))) throw new Error('Invalid field name')
+
     const sets = fields.map((f) => `${f} = ?`).join(', ')
     const values = fields.map((f) => {
       const v = data[f]

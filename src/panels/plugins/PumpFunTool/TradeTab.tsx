@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BondingCurveCanvas } from './BondingCurveCanvas'
 
 interface BondingCurveInfo {
   mint: string
@@ -8,11 +9,24 @@ interface BondingCurveInfo {
   isGraduated: boolean
   virtualSolReserves: string
   virtualTokenReserves: string
+  realSolReserves: string
+  realTokenReserves: string
 }
 
 interface Props { walletId: string | null }
 
 const SLIPPAGE_OPTIONS = [50, 100, 300, 500]
+
+function formatPrice(sol: number): string {
+  if (sol === 0) return '0'
+  if (sol >= 0.01) return sol.toFixed(4)
+  // Show up to 6 significant digits for tiny prices
+  const s = sol.toExponential(5)
+  const [mantissa, exp] = s.split('e')
+  const e = parseInt(exp)
+  if (e >= -8) return sol.toFixed(Math.abs(e) + 2)
+  return s
+}
 
 export function TradeTab({ walletId }: Props) {
   const [mint, setMint] = useState('')
@@ -83,9 +97,14 @@ export function TradeTab({ walletId }: Props) {
 
       {curve && (
         <div className="pf-curve-info">
+          <BondingCurveCanvas
+            curve={curve}
+            tradeAction={!curve.isGraduated ? action : undefined}
+            tradeAmountSol={!curve.isGraduated && amount ? parseFloat(amount) || undefined : undefined}
+          />
           <div className="pf-curve-row">
             <span className="pf-curve-label">Price</span>
-            <span className="pf-curve-value">{(Number(curve.currentPriceLamports) / 1e9).toFixed(10)} SOL</span>
+            <span className="pf-curve-value">{formatPrice(Number(curve.currentPriceLamports) / 1e9)} SOL</span>
           </div>
           <div className="pf-curve-row">
             <span className="pf-curve-label">Market Cap</span>

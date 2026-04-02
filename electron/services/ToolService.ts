@@ -168,6 +168,12 @@ export function updateTool(id: string, data: Record<string, unknown>): ToolRow {
   const fields = Object.keys(data).filter((k) => allowed.has(k))
   if (fields.length === 0) throw new Error('No valid fields to update')
 
+  // H-01: guard against column name injection by validating each field name
+  const COLUMN_NAME_RE = /^[a-z_]+$/
+  for (const f of fields) {
+    if (!COLUMN_NAME_RE.test(f)) throw new Error(`Invalid column name: ${f}`)
+  }
+
   const sets = fields.map((f) => `${f} = ?`).join(', ')
   const values = fields.map((f) => {
     const v = data[f]

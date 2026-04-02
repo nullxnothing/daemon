@@ -25,7 +25,7 @@ interface TerminalTab {
 export type CenterMode = 'canvas' | 'grind' | 'browser'
 
 interface UIState {
-  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy'
+  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy' | 'email' | 'images'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]
@@ -35,6 +35,7 @@ interface UIState {
   activeTerminalIdByProject: Record<string, string | null>
   mcpDirty: boolean
   mcpVersion: number
+  /** @deprecated Use useOnboardingStore.wizardOpen instead */
   showOnboarding: boolean
   centerMode: CenterMode
   grindPageCount: number
@@ -55,6 +56,7 @@ interface UIState {
   removeProjectState: (projectId: string) => void
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
+  /** @deprecated Use useOnboardingStore actions instead */
   setShowOnboarding: (show: boolean) => void
   setCenterMode: (mode: CenterMode) => void
   setActiveGrindPage: (page: number) => void
@@ -65,6 +67,17 @@ interface UIState {
   addGrindCellToPage: (projectId: string, pageIndex: number) => void
   setGrindPageCells: (projectId: string, pageIndex: number, cells: GridCell[]) => void
   removeGrindPageCells: (projectId: string, pageIndex: number) => void
+
+  // Command drawer
+  drawerTool: string | null
+  drawerOpen: boolean
+  pinnedTools: string[]
+  setDrawerTool: (tool: string | null) => void
+  closeDrawer: () => void
+  toggleDrawer: () => void
+  setPinnedTools: (tools: string[]) => void
+  pinTool: (toolId: string) => void
+  unpinTool: (toolId: string) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -83,6 +96,9 @@ export const useUIStore = create<UIState>((set) => ({
   grindPageCount: 1,
   activeGrindPage: 0,
   grindPages: {},
+  drawerTool: null,
+  drawerOpen: false,
+  pinnedTools: ['git', 'browser'],
 
   setActivePanel: (panel) => set({ activePanel: panel }),
 
@@ -241,4 +257,15 @@ export const useUIStore = create<UIState>((set) => ({
       grindPages: { ...state.grindPages, [projectId]: updatedPages },
     }
   }),
+
+  setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null }),
+  closeDrawer: () => set({ drawerOpen: false }),
+  toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
+  setPinnedTools: (tools) => set({ pinnedTools: tools }),
+  pinTool: (toolId) => set((state) => ({
+    pinnedTools: state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId],
+  })),
+  unpinTool: (toolId) => set((state) => ({
+    pinnedTools: state.pinnedTools.filter((id) => id !== toolId),
+  })),
 }))
