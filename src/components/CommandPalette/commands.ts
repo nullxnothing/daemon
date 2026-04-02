@@ -18,6 +18,7 @@ interface CommandDeps {
   toggleRightPanel: VoidCallback
   openAgentLauncher: VoidCallback
   toggleExplorer: VoidCallback
+  setDrawerTool: (tool: string) => void
 }
 
 export function buildCommands(deps: CommandDeps): Command[] {
@@ -28,6 +29,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
     toggleRightPanel,
     openAgentLauncher,
     toggleExplorer,
+    setDrawerTool,
   } = deps
 
   return [
@@ -80,7 +82,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
       label: 'Open Settings',
       shortcut: 'Ctrl+,',
       category: 'Navigation',
-      action: () => { setActivePanel('settings'); setCenterMode('canvas') },
+      action: () => setDrawerTool('settings'),
     },
     {
       id: 'nav:ports',
