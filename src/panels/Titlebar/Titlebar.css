@@ -5,9 +5,11 @@
   align-items: center;
   background: var(--s1);
   border-bottom: 1px solid var(--border);
+  border-image: linear-gradient(90deg, rgba(62, 207, 142, 0.12) 0%, var(--border) 30%, var(--border) 100%) 1;
   -webkit-app-region: drag;
   user-select: none;
   flex-shrink: 0;
+  position: relative;
 }
 
 .titlebar-left {
@@ -15,6 +17,14 @@
   align-items: center;
   padding: 0 12px;
   flex-shrink: 0;
+}
+
+.titlebar-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .titlebar-title {
@@ -52,18 +62,20 @@
   border-radius: 4px;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.1s;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
   -webkit-app-region: no-drag;
 }
 
 .project-tab:hover {
   background: var(--hover-bg);
   color: var(--t1);
+  box-shadow: var(--glow-green-ambient);
 }
 
 .project-tab.active {
   background: var(--s2);
   color: var(--t1);
+  border-bottom: 1px solid rgba(62, 207, 142, 0.2);
 }
 
 .project-tab-dot {
@@ -156,14 +168,18 @@
   color: var(--error);
 }
 
-/* Mode toggle — Canvas / Grind */
+/* Mode toggle dropdown */
+.titlebar-mode-wrap {
+  position: relative;
+  margin-right: 8px;
+}
+
 .titlebar-mode-toggle {
   height: 26px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 0 10px;
-  margin-right: 8px;
   border-radius: 4px;
   background: var(--s2);
   color: var(--t2);
@@ -184,6 +200,61 @@
 
 .titlebar-mode-toggle.grind:hover {
   background: rgba(74, 140, 98, 0.25);
+}
+
+.titlebar-mode-toggle.browser {
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--blue);
+}
+
+.titlebar-mode-toggle.browser:hover {
+  background: rgba(96, 165, 250, 0.2);
+}
+
+.titlebar-mode-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  box-shadow: var(--shadow-float);
+  z-index: 50;
+}
+
+.titlebar-mode-option {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--t2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.titlebar-mode-option:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.titlebar-mode-option.active {
+  color: var(--green);
+  background: var(--green-glow);
+}
+
+.titlebar-mode-shortcut {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--t3);
+  font-family: var(--font-code);
 }
 
 .titlebar-btn {

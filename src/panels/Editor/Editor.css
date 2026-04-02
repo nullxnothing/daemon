@@ -5,76 +5,151 @@
   background: var(--bg);
 }
 
+/* ─── Empty state / Welcome screen ─── */
+
 .editor-empty {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 0;
   position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  padding-top: 18%;
 }
 
-.editor-empty.drag-over {
-  border: 2px dashed var(--green);
-  border-radius: 4px;
-  background: rgba(74, 140, 98, 0.06);
+/* Ambient radial glow behind the logo */
+.editor-empty-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.015) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.editor-empty.drag-over .editor-empty-title {
-  color: var(--green);
-}
-
-.editor-empty.drag-over .editor-empty-sub {
-  color: var(--green);
-  font-weight: 500;
+.editor-empty-logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 20px;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.06));
+  user-select: none;
 }
 
 .editor-empty-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--s5);
-  letter-spacing: 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--t2);
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
 
-.editor-empty-sub {
+.editor-empty-tagline {
+  font-size: 11px;
+  color: var(--t4);
+  letter-spacing: 0.5px;
+  margin-bottom: 36px;
+}
+
+.editor-empty-drop-hint {
   font-size: 12px;
-  color: var(--t3);
+  color: var(--green);
+  font-weight: 500;
+  margin-top: 16px;
 }
 
+/* Drag-over state */
+.editor-empty.drag-over {
+  border: 2px dashed var(--green);
+  border-radius: 4px;
+  background: rgba(62, 207, 142, 0.03);
+}
+.editor-empty.drag-over .editor-empty-title { color: var(--green); }
+.editor-empty.drag-over .editor-empty-logo svg path,
+.editor-empty.drag-over .editor-empty-logo svg circle { opacity: 1; }
+
+/* Action buttons row */
 .editor-empty-actions {
   display: flex;
   gap: 10px;
-  margin-top: 8px;
+  margin-bottom: 28px;
 }
 
 .editor-empty-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--t2);
+  gap: 8px;
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid var(--s5);
+  border-radius: 4px;
+  color: var(--t3);
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.12s;
+}
+
+.editor-empty-btn svg {
+  opacity: 0.5;
+  transition: opacity 0.15s;
 }
 
 .editor-empty-btn:hover {
-  background: var(--s3);
   color: var(--t1);
-  border-color: var(--border-hover);
+  border-color: var(--green-dim);
+  background: rgba(62, 207, 142, 0.04);
+}
+
+.editor-empty-btn:hover svg {
+  opacity: 1;
+  color: var(--green);
 }
 
 .editor-empty-shortcut {
-  font-size: 10px;
-  color: var(--t3);
-  padding: 1px 5px;
-  border: 1px solid var(--border);
+  font-size: 9px;
+  color: var(--t4);
+  padding: 2px 5px;
+  border: 1px solid var(--s5);
   border-radius: 3px;
   font-family: var(--font-code);
+  line-height: 1;
+}
+
+/* Keyboard shortcuts reference */
+.editor-empty-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0.5;
+}
+
+.editor-empty-shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-empty-shortcut-key {
+  font-size: 10px;
+  font-family: var(--font-code);
+  color: var(--t4);
+  min-width: 100px;
+  text-align: right;
+  padding: 2px 6px;
+  border: 1px solid var(--s4);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.editor-empty-shortcut-label {
+  font-size: 11px;
+  color: var(--t4);
 }
 
 .editor-tabs {
@@ -103,19 +178,32 @@
   color: var(--t2);
   background: transparent;
   border-radius: 4px;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
+  border-right: 1px solid transparent;
+}
+
+.editor-tab + .editor-tab {
+  border-left: 1px solid var(--border-glass);
 }
 
 .editor-tab:hover {
   background: var(--hover-bg);
+  color: var(--t1);
 }
 
 .editor-tab.active {
   color: var(--t1);
   background: var(--s2);
   border-bottom: 2px solid var(--green);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  box-shadow: 0 1px 0 rgba(62, 207, 142, 0.06);
+}
+
+.editor-tab.active + .editor-tab {
+  border-left-color: transparent;
 }
 
 .editor-tab.saved {
@@ -131,10 +219,32 @@
   font-size: 14px;
   color: var(--t3);
   line-height: 1;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-tab:hover .editor-tab-close,
+.editor-tab.active .editor-tab-close {
+  opacity: 1;
 }
 
 .editor-tab-close:hover {
   color: var(--t1);
+  background: var(--active-bg);
+}
+
+.editor-tab-dirty {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
 }
 
 .editor-content {
@@ -325,6 +435,45 @@
   overflow: hidden;
 }
 
+/* Tab context menu */
+.tab-context-menu {
+  position: fixed;
+  z-index: 200;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 150px;
+  box-shadow: var(--shadow-float);
+}
+
+.tab-context-item {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--t2);
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.tab-context-item:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.tab-context-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 /* Glyph margin hover hint for Ask Claude */
 .editor-content .monaco-editor .margin-view-overlays .line-numbers {
   cursor: pointer;
@@ -336,4 +485,82 @@
 
 .editor-content .monaco-editor .glyph-margin:hover {
   background: rgba(74, 140, 98, 0.1);
+}
+
+/* ─── Image Preview ─── */
+
+.image-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+.image-preview-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 24px;
+  /* Checkerboard pattern for transparency */
+  background-image:
+    linear-gradient(45deg, var(--s2) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--s2) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--s2) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--s2) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.image-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lifted);
+}
+
+.image-preview-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--t2);
+  flex-shrink: 0;
+}
+
+.image-preview-name {
+  font-family: var(--font-code);
+  color: var(--t1);
+}
+
+.image-preview-size {
+  color: var(--t3);
+  font-family: var(--font-code);
+}
+
+.image-preview-edit {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--s3);
+  color: var(--t1);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.image-preview-edit:hover {
+  background: var(--green);
+  color: var(--bg);
+}
+
+.image-preview-error,
+.image-preview-loading {
+  font-size: 11px;
+  color: var(--t3);
 }

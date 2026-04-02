@@ -1,6 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
-import { DiffEditor } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
@@ -10,6 +9,10 @@ import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
 import { PluginErrorBoundary } from '../../components/ErrorBoundary'
+import { EditorWelcome } from './EditorWelcome'
+import { EditorTabs } from './EditorTabs'
+import { EditorBreadcrumbs } from './EditorBreadcrumbs'
+import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import './Editor.css'
 
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
@@ -52,7 +55,6 @@ export function EditorPanel() {
   const closeFile = useUIStore((s) => s.closeFile)
   const updateFileContent = useUIStore((s) => s.updateFileContent)
   const markFileSaved = useUIStore((s) => s.markFileSaved)
-  const addTerminal = useUIStore((s) => s.addTerminal)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -343,180 +345,40 @@ export function EditorPanel() {
     closeFile(projectId, path)
   }, [openFiles, closeFile, activeFilePath])
 
-  const handleOpenFileExplorer = useCallback(() => {
-    // Dispatch Ctrl+P to focus file explorer search
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true }))
-  }, [])
-
-  const handleLaunchAgent = useCallback(() => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A', ctrlKey: true, shiftKey: true, bubbles: true }))
-  }, [])
-
-  const [isEmptyDragOver, setIsEmptyDragOver] = useState(false)
-  const emptyDragDepthRef = useRef(0)
-
-  const handleEmptyDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    emptyDragDepthRef.current = 0
-    setIsEmptyDragOver(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    for (const file of files) {
-      const filePath = (file as File & { path?: string }).path
-      if (!filePath) continue
-
-      const folderName = filePath.replace(/\\/g, '/').split('/').pop() ?? 'Terminal'
-      const res = await window.daemon.terminal.create({ cwd: filePath, userInitiated: true })
-      if (res.ok && res.data && activeProjectId) {
-        addTerminal(activeProjectId, res.data.id, folderName)
-      }
-    }
-  }, [activeProjectId, addTerminal])
-
   if (!activeProjectId || projectOpenFiles.length === 0) {
-    return (
-      <div
-        className={`editor-empty ${isEmptyDragOver ? 'drag-over' : ''}`}
-        onDragEnter={(e) => {
-          if (!e.dataTransfer.types.includes('Files')) return
-          e.preventDefault()
-          emptyDragDepthRef.current += 1
-          setIsEmptyDragOver(true)
-        }}
-        onDragOver={(e) => {
-          if (!e.dataTransfer.types.includes('Files')) return
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'copy'
-        }}
-        onDragLeave={() => {
-          emptyDragDepthRef.current = Math.max(0, emptyDragDepthRef.current - 1)
-          if (emptyDragDepthRef.current === 0) setIsEmptyDragOver(false)
-        }}
-        onDrop={handleEmptyDrop}
-      >
-        <span className="editor-empty-title">DAEMON</span>
-        {isEmptyDragOver ? (
-          <span className="editor-empty-sub">Drop folder to open terminal</span>
-        ) : activeProjectId ? (
-          <div className="editor-empty-actions">
-            <button className="editor-empty-btn" onClick={handleOpenFileExplorer}>
-              Open File <span className="editor-empty-shortcut">Ctrl+P</span>
-            </button>
-            <button className="editor-empty-btn" onClick={handleLaunchAgent}>
-              Launch Agent <span className="editor-empty-shortcut">Ctrl+Shift+A</span>
-            </button>
-          </div>
-        ) : (
-          <span className="editor-empty-sub">Select a project</span>
-        )}
-      </div>
-    )
+    return <EditorWelcome activeProjectId={activeProjectId} />
   }
 
   return (
     <div className="editor-panel">
-      <div className="editor-tabs">
-        {projectOpenFiles.map((file) => (
-          <button
-            key={file.path}
-            className={`editor-tab ${activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
-            onClick={() => setActiveFile(file.projectId, file.path)}
-          >
-            <span className="editor-tab-name">
-              {file.isDirty ? '\u25CF ' : ''}{file.name}
-            </span>
-            <button
-              className="editor-tab-close"
-              aria-label="Close tab"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleCloseFile(file.projectId, file.path)
-              }}
-            >
-              &times;
-            </button>
-          </button>
-        ))}
-      </div>
-      <div className="editor-breadcrumbs" role="navigation" aria-label="File breadcrumbs">
-        <div className="editor-breadcrumbs-left">
-          {breadcrumbs.length > 0 ? breadcrumbs.map((segment, index) => (
-            <span key={`${segment.label}-${segment.path}`} className="editor-breadcrumb-item-wrap">
-              <button
-                className={`editor-breadcrumb-item ${segment.isFile ? 'is-file' : ''}`}
-                onClick={() => void window.daemon.fs.reveal(segment.path)}
-                title={segment.path}
-              >
-                {segment.label}
-              </button>
-              {index < breadcrumbs.length - 1 && <span className="editor-breadcrumb-sep">/</span>}
-            </span>
-          )) : (
-            <span className="editor-breadcrumb-empty">No active file</span>
-          )}
-        </div>
-        {isActiveFileMarkdown && activeFile && (
-          <div className="editor-breadcrumbs-actions">
-            {tidyError && <span className="editor-tidy-error">{tidyError}</span>}
-            {!markdownTidyPreview && (
-              <button
-                className="editor-tidy-btn"
-                onClick={() => void handleTidyMarkdown()}
-                disabled={isTidyingMarkdown}
-                title="Tidy this Markdown with Claude"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3v4m0 14v-4m9-5h-4M3 12h4m12.36-5.36l-2.83 2.83M7.46 16.54l-2.83 2.83m14.73 0l-2.83-2.83M7.46 7.46L4.64 4.64"/>
-                </svg>
-                {isTidyingMarkdown ? 'Tidying...' : 'Tidy'}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <EditorTabs
+        files={projectOpenFiles}
+        activeFilePath={activeFilePath}
+        savedFlash={savedFlash}
+        onSelectFile={setActiveFile}
+        onCloseFile={handleCloseFile}
+      />
+      <EditorBreadcrumbs
+        breadcrumbs={breadcrumbs}
+        isMarkdown={isActiveFileMarkdown}
+        isTidying={isTidyingMarkdown}
+        tidyError={tidyError}
+        showTidyButton={!markdownTidyPreview && !!activeFile}
+        onTidy={() => void handleTidyMarkdown()}
+      />
       <div className="editor-content">
-        {markdownTidyPreview && activeFile ? (
-          <div className="editor-tidy-preview">
-            <div className="editor-tidy-preview-header">
-              <div className="editor-tidy-preview-title">Preview tidy changes</div>
-              <div className="editor-tidy-preview-actions">
-                <button
-                  className="editor-tidy-preview-btn subtle"
-                  onClick={handleDiscardMarkdownTidy}
-                  disabled={isApplyingMarkdownTidy}
-                >
-                  Keep Original
-                </button>
-                <button
-                  className="editor-tidy-preview-btn primary"
-                  onClick={() => void handleApplyMarkdownTidy()}
-                  disabled={isApplyingMarkdownTidy}
-                >
-                  {isApplyingMarkdownTidy ? 'Applying…' : 'Accept & Apply'}
-                </button>
-              </div>
-            </div>
-            {tidyError && <div className="editor-tidy-preview-error">{tidyError}</div>}
-            <div className="editor-tidy-preview-diff">
-              <DiffEditor
-                original={markdownTidyPreview.original}
-                modified={markdownTidyPreview.tidied}
-                language={getLanguage(activeFile.path)}
-                theme="daemon-dark"
-                options={{
-                  readOnly: true,
-                  renderSideBySide: true,
-                  minimap: { enabled: false },
-                  fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
-                  fontSize: 13,
-                  lineHeight: 20,
-                  wordWrap: 'on',
-                  scrollBeyondLastLine: false,
-                }}
-              />
-            </div>
-          </div>
+        {isImageFile(activeFile?.path) ? (
+          <ImagePreview filePath={activeFile!.path} />
+        ) : markdownTidyPreview && activeFile ? (
+          <MarkdownTidyPreview
+            original={markdownTidyPreview.original}
+            tidied={markdownTidyPreview.tidied}
+            language={getLanguage(activeFile.path)}
+            tidyError={tidyError}
+            isApplying={isApplyingMarkdownTidy}
+            onApply={() => void handleApplyMarkdownTidy()}
+            onDiscard={handleDiscardMarkdownTidy}
+          />
         ) : (
           <PluginErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
             <MonacoEditor
@@ -560,6 +422,64 @@ export function EditorPanel() {
 function isMarkdownFile(filePath?: string | null): boolean {
   if (!filePath) return false
   return /\.(md|mdx)$/i.test(filePath)
+}
+
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'])
+
+function isImageFile(filePath?: string | null): boolean {
+  if (!filePath) return false
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
+  return IMAGE_EXTENSIONS.has(ext)
+}
+
+function ImagePreview({ filePath }: { filePath: string }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null)
+  const [fileSize, setFileSize] = useState<number>(0)
+  const [error, setError] = useState<string | null>(null)
+  const fileName = filePath.split(/[\\/]/).pop() ?? filePath
+
+  useEffect(() => {
+    setDataUrl(null)
+    setError(null)
+    window.daemon.fs.readImageBase64(filePath).then((res) => {
+      if (res.ok && res.data) {
+        setDataUrl(res.data.dataUrl)
+        setFileSize(res.data.size)
+      } else {
+        setError(res.error ?? 'Failed to load image')
+      }
+    })
+  }, [filePath])
+
+  return (
+    <div className="image-preview">
+      <div className="image-preview-container">
+        {dataUrl ? (
+          <img src={dataUrl} alt={fileName} className="image-preview-img" draggable={false} />
+        ) : error ? (
+          <div className="image-preview-error">{error}</div>
+        ) : (
+          <div className="image-preview-loading">Loading...</div>
+        )}
+      </div>
+      <div className="image-preview-info">
+        <span className="image-preview-name">{fileName}</span>
+        {fileSize > 0 && <span className="image-preview-size">{formatFileSize(fileSize)}</span>}
+        <button
+          className="image-preview-edit"
+          onClick={() => useUIStore.getState().setDrawerTool('image-editor')}
+        >
+          Edit in miniPaint
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function buildBreadcrumbs(projectPath: string, filePath: string): Array<{ label: string; path: string; isFile: boolean }> {

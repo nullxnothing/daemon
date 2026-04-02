@@ -1,4 +1,4 @@
-/* Status Bar */
+/* Status Bar — CSS Module */
 .statusbar {
   position: relative;
   height: var(--statusbar-h);
@@ -11,8 +11,8 @@
   flex-shrink: 0;
 }
 
-.statusbar-left,
-.statusbar-right {
+.left,
+.right {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -20,11 +20,11 @@
   flex: 1;
 }
 
-.statusbar-right {
+.right {
   justify-content: flex-end;
 }
 
-.statusbar-center {
+.center {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -34,47 +34,47 @@
   pointer-events: none;
 }
 
-.statusbar-center .market-tape {
+.center .marketTape {
   pointer-events: auto;
 }
 
-.status-group {
+.statusGroup {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 8px;
 }
 
-.status-group + .status-group {
+.statusGroup + .statusGroup {
   border-left: 1px solid var(--border);
 }
 
-.statusbar-item {
+.item {
   font-size: 11px;
   color: var(--t3);
 }
 
-.statusbar-branch {
+.branch {
   color: var(--success);
 }
 
-.statusbar-path {
+.path {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
 }
 
-.statusbar-clickable {
+.clickable {
   cursor: pointer;
   transition: color 0.12s;
 }
 
-.statusbar-clickable:hover {
+.clickable:hover {
   color: var(--t1);
 }
 
-.statusbar-email-btn {
+.emailBtn {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -87,11 +87,11 @@
   position: relative;
 }
 
-.statusbar-email-btn:hover {
+.emailBtn:hover {
   color: var(--t1);
 }
 
-.statusbar-email-badge {
+.emailBadge {
   min-width: 14px;
   height: 14px;
   background: var(--green);
@@ -106,64 +106,64 @@
   line-height: 1;
 }
 
-.market-tape {
+.marketTape {
   display: inline-flex;
   align-items: center;
   gap: 14px;
 }
 
-.market-tape-item {
+.marketTapeItem {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
 }
 
-.market-tape-item + .market-tape-item {
+.marketTapeItem + .marketTapeItem {
   padding-left: 14px;
   border-left: 1px solid var(--s5);
 }
 
-.market-symbol {
+.marketSymbol {
   color: var(--t2);
   font-weight: 600;
 }
 
-.market-price {
+.marketPrice {
   color: var(--t1);
   font-family: var(--font-code);
   font-size: 10.5px;
 }
 
-.market-change {
+.marketChange {
   font-family: var(--font-code);
   font-size: 10.5px;
 }
 
-.market-change.up {
+.up {
   color: var(--success);
 }
 
-.market-change.down {
+.down {
   color: var(--error);
 }
 
-.market-change.up.significant {
-  color: var(--success);
-  animation: pulse-green 1.5s ease-out;
+.upSignificant {
+  composes: up;
+  animation: pulseGreen 1.5s ease-out;
 }
 
-.market-change.down.significant {
-  color: var(--error);
-  animation: pulse-red 1.5s ease-out;
+.downSignificant {
+  composes: down;
+  animation: pulseRed 1.5s ease-out;
 }
 
-@keyframes pulse-green {
+@keyframes pulseGreen {
   0% { text-shadow: 0 0 6px rgba(62, 207, 142, 0.4); }
   100% { text-shadow: none; }
 }
 
-@keyframes pulse-red {
+@keyframes pulseRed {
   0% { text-shadow: 0 0 6px rgba(239, 83, 80, 0.4); }
   100% { text-shadow: none; }
 }
