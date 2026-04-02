@@ -61,10 +61,24 @@ export function registerProcessHandlers() {
       const pidStats = stats.get(pid) ?? { cpu: 0, memory: 0 }
       const row = dbRowMap.get(id)
 
+      // Derive a meaningful label without falling back to 'Terminal' for everything:
+      // - Agent session with a DB row: use the agent's name
+      // - Agent session whose DB row is missing (agent deleted mid-run): 'Agent'
+      // - Plain interactive shell (agentId is null, no DB row): 'Shell'
+      let name: string
+      if (row?.agent_name) {
+        name = row.agent_name
+      } else if (agentId) {
+        name = 'Agent'
+      } else {
+        name = 'Shell'
+      }
+
       results.push({
         id,
         pid,
-        name: row?.agent_name ?? 'Terminal',
+        name,
+        kind: agentId ? 'agent' : 'shell',
         agentId,
         agentName: row?.agent_name ?? null,
         projectId: row?.project_id ?? null,

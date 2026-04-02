@@ -62,6 +62,7 @@ export const ProcessManager = memo(function ProcessManager() {
                 <div className="process-row-main">
                   <span className={`process-dot ${memoryLevel(proc.memory)}`} />
                   <span className="process-name">{proc.name}</span>
+                  <span className={`process-kind process-kind--${proc.kind}`}>{proc.kind}</span>
                   {proc.model && (
                     <span className="process-model">{MODEL_SHORT[proc.model] ?? '?'}</span>
                   )}

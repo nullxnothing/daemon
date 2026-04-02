@@ -48,6 +48,25 @@
   white-space: nowrap;
 }
 
+.process-kind {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.process-kind--shell {
+  color: var(--t3);
+  background: var(--s4);
+}
+
+.process-kind--agent {
+  color: var(--blue);
+  background: rgba(96, 165, 250, 0.1);
+}
+
 .process-model {
   font-size: 9px;
   color: var(--t3);

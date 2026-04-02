@@ -132,6 +132,8 @@ export interface ProcessInfo {
   id: string
   pid: number
   name: string
+  /** 'agent' = spawned via spawnAgent, 'shell' = plain interactive terminal */
+  kind: 'agent' | 'shell'
   agentId: string | null
   agentName: string | null
   projectId: string | null
