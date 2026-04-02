@@ -125,6 +125,7 @@
 
 .aria-face-peek {
   animation: ariaPeek 3s ease-in-out;
+  will-change: auto;
 }
 
 /* ── Keyframes ── */

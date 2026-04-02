@@ -6,6 +6,7 @@
   flex-direction: column;
   border-top: 1px solid var(--border);
   background: var(--s1);
+  contain: layout paint style;
 }
 
 .aria-dock-expanded {
@@ -28,6 +29,7 @@
   position: relative;
   min-height: 140px;
   gap: 14px;
+  overflow: hidden;
 }
 
 .aria-chamber-face {
