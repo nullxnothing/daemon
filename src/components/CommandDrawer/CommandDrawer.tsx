@@ -130,8 +130,10 @@ function ToolFallback() {
 export function CommandDrawer() {
   const drawerOpen = useUIStore((s) => s.drawerOpen)
   const drawerTool = useUIStore((s) => s.drawerTool)
+  const drawerFullscreen = useUIStore((s) => s.drawerFullscreen)
   const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const closeDrawer = useUIStore((s) => s.closeDrawer)
+  const toggleDrawerFullscreen = useUIStore((s) => s.toggleDrawerFullscreen)
 
   const [search, setSearch] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
@@ -195,12 +197,12 @@ export function CommandDrawer() {
   const activeTool = drawerTool ? allTools.find(t => t.id === drawerTool) : null
 
   return (
-    <div className="command-drawer" ref={drawerRef}>
+    <div className={`command-drawer${drawerFullscreen ? ' command-drawer--fullscreen' : ''}`} ref={drawerRef}>
       {/* Header */}
       <div className="drawer-header">
         {activeTool ? (
           <>
-            <button className="drawer-back" onClick={() => useUIStore.setState({ drawerTool: null })} title="Back to tools">
+            <button className="drawer-back" onClick={() => useUIStore.setState({ drawerTool: null, drawerFullscreen: false })} title="Back to tools">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
@@ -216,6 +218,19 @@ export function CommandDrawer() {
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
           />
+        )}
+        {activeTool && (
+          <button className="drawer-fullscreen" onClick={toggleDrawerFullscreen} title={drawerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+            {drawerFullscreen ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            )}
+          </button>
         )}
         <button className="drawer-close" onClick={closeDrawer} title="Close (Esc)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

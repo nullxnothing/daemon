@@ -71,10 +71,12 @@ interface UIState {
   // Command drawer
   drawerTool: string | null
   drawerOpen: boolean
+  drawerFullscreen: boolean
   pinnedTools: string[]
   setDrawerTool: (tool: string | null) => void
   closeDrawer: () => void
   toggleDrawer: () => void
+  toggleDrawerFullscreen: () => void
   setPinnedTools: (tools: string[]) => void
   pinTool: (toolId: string) => void
   unpinTool: (toolId: string) => void
@@ -98,6 +100,7 @@ export const useUIStore = create<UIState>((set) => ({
   grindPages: {},
   drawerTool: null,
   drawerOpen: false,
+  drawerFullscreen: false,
   pinnedTools: ['git', 'browser'],
 
   setActivePanel: (panel) => set({ activePanel: panel }),
@@ -258,9 +261,10 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
 
-  setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null }),
-  closeDrawer: () => set({ drawerOpen: false }),
-  toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
+  setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null, drawerFullscreen: false }),
+  closeDrawer: () => set({ drawerOpen: false, drawerFullscreen: false }),
+  toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen, drawerFullscreen: false })),
+  toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
   setPinnedTools: (tools) => set({ pinnedTools: tools }),
   pinTool: (toolId) => set((state) => ({
     pinnedTools: state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId],

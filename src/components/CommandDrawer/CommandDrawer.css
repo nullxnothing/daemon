@@ -16,6 +16,15 @@
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
 }
 
+.command-drawer--fullscreen {
+  top: 0;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  border-top: none;
+  box-shadow: none;
+}
+
 @keyframes drawerSlideUp {
   from {
     transform: translateY(100%);
@@ -69,7 +78,8 @@
 }
 
 .drawer-back,
-.drawer-close {
+.drawer-close,
+.drawer-fullscreen {
   width: 28px;
   height: 28px;
   display: flex;
@@ -83,7 +93,8 @@
 }
 
 .drawer-back:hover,
-.drawer-close:hover {
+.drawer-close:hover,
+.drawer-fullscreen:hover {
   color: var(--t1);
   background: var(--s3);
 }
