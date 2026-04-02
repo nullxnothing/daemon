@@ -357,6 +357,7 @@ export interface EnvDiff {
 export interface Tweet {
   id: string
   content: string
+  /** 'original' | 'reply' | 'quote' | 'thread' */
   mode: string | null
   source_tweet: string | null
   status: string
@@ -605,6 +606,51 @@ export interface ToolRunStatus {
   startedAt: number | null
 }
 
+// --- Email (Multi-Account) ---
+
+export interface EmailAccount {
+  id: string
+  provider: 'gmail' | 'icloud'
+  email: string
+  display_name: string | null
+  status: 'connected' | 'error' | 'refreshing'
+  last_sync_at: number | null
+  settings: string
+  created_at: number
+  unreadCount: number
+}
+
+export interface EmailMessage {
+  id: string
+  accountId: string
+  provider: 'gmail' | 'icloud'
+  from: string
+  subject: string
+  snippet: string
+  body: string
+  date: number
+  isRead: boolean
+  labels: string[]
+}
+
+export interface EmailAccountRow {
+  id: string
+  provider: string
+  email: string
+  display_name: string | null
+  access_token: Buffer | null
+  refresh_token: Buffer | null
+  imap_password: Buffer | null
+  token_expiry: number | null
+  client_id_ref: string | null
+  client_secret_ref: string | null
+  status: string
+  last_sync_at: number | null
+  settings: string
+  created_at: number
+  updated_at: number
+}
+
 // --- Gmail ---
 
 export interface GmailMessage {
@@ -635,6 +681,12 @@ export interface GmailExtractionResult {
 export interface GmailAuthStatus {
   isAuthenticated: boolean
   email: string | null
+}
+
+export interface ExtractionResult {
+  messageId: string
+  items: ExtractedItem[]
+  summary: string
 }
 
 // --- Browser ---
@@ -741,6 +793,83 @@ export interface DeployAuthStatus {
   vercel: { authenticated: boolean; user: string | null }
   railway: { authenticated: boolean; user: string | null }
 }
+
+export interface VercelEnvVar {
+  id: string
+  key: string
+  value: string
+  target: string[]
+  type: string
+}
+
+// --- Images ---
+
+export interface ImageRecord {
+  id: string
+  filename: string
+  filepath: string
+  prompt: string | null
+  model: string | null
+  project_id: string | null
+  tags: string
+  source: string
+  created_at: number
+}
+
+export type ImageModelTier = 'fast' | 'standard' | 'ultra'
+export type ImageAspectRatio = '1:1' | '16:9' | '4:3' | '9:16' | '3:4'
+
+export interface ImageGenerateInput {
+  prompt: string
+  model: ImageModelTier
+  aspectRatio: ImageAspectRatio
+  projectId?: string
+  tags?: string[]
+}
+
+export interface ImageFilter {
+  projectId?: string
+  source?: string
+  model?: string
+  limit?: number
+  offset?: number
+}
+
+// --- ARIA ---
+
+export interface AriaMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  metadata: string
+  session_id: string
+  created_at: number
+}
+
+export interface AriaResponse {
+  text: string
+  actions: AriaAction[]
+}
+
+export interface AriaAction {
+  type: 'spawn_agent' | 'open_file' | 'switch_panel'
+  label: string
+  value: string
+}
+
+// --- Onboarding ---
+
+export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
+
+export interface OnboardingProgress {
+  claude: OnboardingStepStatus
+  gmail: OnboardingStepStatus
+  vercel: OnboardingStepStatus
+  railway: OnboardingStepStatus
+  tour: OnboardingStepStatus
+}
+
+// --- Engine ---
 
 export interface EngineContext {
   projects: Array<{

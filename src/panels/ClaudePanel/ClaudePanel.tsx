@@ -3,6 +3,7 @@ import { DiffEditor } from '@monaco-editor/react'
 import { useUIStore } from '../../store/ui'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { Toggle } from '../../components/Toggle'
+import { AriaChat } from './AriaChat'
 import type { IpcResponse, McpEntry, SessionUsage } from '../../../electron/shared/types'
 import './ClaudePanel.css'
 
@@ -28,7 +29,10 @@ export function ClaudePanel() {
     return (
       <div className="claude-panel">
         <div className="panel-header">Claude</div>
-        <div className="claude-empty">Select a project</div>
+        <div className="claude-panel-scroll">
+          <div className="claude-empty">Select a project</div>
+        </div>
+        <AriaChat />
       </div>
     )
   }
@@ -36,30 +40,33 @@ export function ClaudePanel() {
   return (
     <div className="claude-panel">
       <div className="panel-header">Claude</div>
-      <StatusBadge />
-      <RestartButton />
-      <CollapsibleSection title="Last Session" defaultOpen>
-        <UsageSection projectPath={activeProjectPath} />
-      </CollapsibleSection>
-      <CollapsibleSection title="Project MCP Servers" defaultOpen={false}>
-        <McpSection
-          loadFn={projectMcpLoadFn}
-          toggleFn={projectMcpToggleFn}
-          description="Toggles the current project's .mcp.json. Restart the session to apply changes."
-        />
-      </CollapsibleSection>
-      <CollapsibleSection title="Global MCP Servers" defaultOpen={false}>
-        <McpSection
-          loadFn={globalMcpLoadFn}
-          toggleFn={globalMcpToggleFn}
-          description="Toggles user-level MCPs in your Claude config. This affects Claude outside this project too."
-          emptyText="No global MCPs found"
-        />
-      </CollapsibleSection>
-      <CollapsibleSection title="Skills & Plugins" defaultOpen={false}>
-        <SkillsSection />
-      </CollapsibleSection>
-      <ClaudeMdSection projectPath={activeProjectPath} />
+      <div className="claude-panel-scroll">
+        <StatusBadge />
+        <RestartButton />
+        <CollapsibleSection title="Last Session" defaultOpen>
+          <UsageSection projectPath={activeProjectPath} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Project MCP Servers" defaultOpen={false}>
+          <McpSection
+            loadFn={projectMcpLoadFn}
+            toggleFn={projectMcpToggleFn}
+            description="Toggles the current project's .mcp.json. Restart the session to apply changes."
+          />
+        </CollapsibleSection>
+        <CollapsibleSection title="Global MCP Servers" defaultOpen={false}>
+          <McpSection
+            loadFn={globalMcpLoadFn}
+            toggleFn={globalMcpToggleFn}
+            description="Toggles user-level MCPs in your Claude config. This affects Claude outside this project too."
+            emptyText="No global MCPs found"
+          />
+        </CollapsibleSection>
+        <CollapsibleSection title="Skills & Plugins" defaultOpen={false}>
+          <SkillsSection />
+        </CollapsibleSection>
+        <ClaudeMdSection projectPath={activeProjectPath} />
+      </div>
+      <AriaChat />
     </div>
   )
 }
@@ -70,14 +77,15 @@ function StatusBadge() {
   const [status, setStatus] = useState<AnthropicStatus | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     const pollStatus = () => {
       window.daemon.claude.status().then((res) => {
-        if (res.ok && res.data) setStatus(res.data)
+        if (!cancelled && res.ok && res.data) setStatus(res.data)
       })
     }
     pollStatus()
     const interval = setInterval(pollStatus, 300_000)
-    return () => clearInterval(interval)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
   return (
@@ -126,12 +134,16 @@ function McpSection({ loadFn, toggleFn, description, emptyText }: {
   const mcpVersion = useUIStore((s) => s.mcpVersion)
   const [mcps, setMcps] = useState<McpEntry[]>([])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (cancelled = false) => {
     const res = await loadFn()
-    if (res.ok && res.data) setMcps(res.data)
+    if (!cancelled && res.ok && res.data) setMcps(res.data)
   }, [loadFn])
 
-  useEffect(() => { load() }, [load, mcpVersion])
+  useEffect(() => {
+    let cancelled = false
+    load(cancelled)
+    return () => { cancelled = true }
+  }, [load, mcpVersion])
 
   const handleToggle = async (name: string, currentlyEnabled: boolean) => {
     await toggleFn(name, !currentlyEnabled)
@@ -167,9 +179,11 @@ function SkillsSection() {
   const [items, setItems] = useState<Array<{ name: string; type: string; enabled: boolean }>>([])
 
   useEffect(() => {
+    let cancelled = false
     window.daemon.claude.skills().then((res) => {
-      if (res.ok && res.data) setItems(res.data)
+      if (!cancelled && res.ok && res.data) setItems(res.data)
     })
+    return () => { cancelled = true }
   }, [])
 
   if (items.length === 0) {
@@ -199,9 +213,11 @@ function UsageSection({ projectPath }: { projectPath: string }) {
   const [usage, setUsage] = useState<SessionUsage | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     window.daemon.claude.usage(projectPath).then((res) => {
-      if (res.ok && res.data) setUsage(res.data as SessionUsage)
+      if (!cancelled && res.ok && res.data) setUsage(res.data as SessionUsage)
     })
+    return () => { cancelled = true }
   }, [projectPath])
 
   if (!usage) {

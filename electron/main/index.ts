@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { app, BrowserWindow, shell, ipcMain, protocol, net, session } from 'electron'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
@@ -22,6 +23,9 @@ import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
+import { registerEmailHandlers } from '../ipc/email'
+import { registerImageHandlers } from '../ipc/images'
+import { registerAriaHandlers } from '../ipc/aria'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
@@ -50,6 +54,9 @@ protocol.registerSchemesAsPrivileged([{
 }, {
   scheme: 'daemon-icon',
   privileges: { standard: true, supportFetchAPI: true },
+}, {
+  scheme: 'minipaint',
+  privileges: { standard: true, supportFetchAPI: true, allowServiceWorkers: false },
 }])
 
 if (process.platform === 'win32') app.setAppUserModelId('DAEMON')
@@ -108,6 +115,9 @@ function registerAllIpc() {
   registerPumpFunHandlers()
   registerBrowserHandlers()
   registerDeployHandlers()
+  registerEmailHandlers()
+  registerImageHandlers()
+  registerAriaHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -131,9 +141,12 @@ function registerAllIpc() {
 
   // Shell utilities
   ipcMain.handle('shell:open-external', (_event, url: string) => {
-    if (typeof url === 'string' && url.startsWith('https://')) {
-      return shell.openExternal(url)
-    }
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'https:') return
+      if (parsed.username || parsed.password) return
+      shell.openExternal(url)
+    } catch { return }
   })
 }
 
@@ -148,7 +161,7 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: daemon-icon:; worker-src blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self'; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'unsafe-eval'; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
         }
       })
     })
@@ -170,7 +183,7 @@ async function createWindow() {
     const filePath = decodeURIComponent(encodedPath)
 
     // Restrict to image file extensions only
-    const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.svg', '.ico', '.gif', '.webp'])
+    const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.svg', '.ico', '.gif', '.webp', '.bmp', '.avif'])
     const ext = path.extname(filePath).toLowerCase()
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return new Response('Forbidden: not an image file', { status: 403 })
@@ -200,6 +213,17 @@ async function createWindow() {
     return net.fetch(pathToFileURL(resolved).toString())
   })
 
+  // miniPaint: serve vendor/miniPaint files via custom protocol
+  protocol.handle('minipaint', (request) => {
+    const url = request.url.slice('minipaint:///'.length)
+    const basePath = path.resolve(process.env.APP_ROOT, 'vendor', 'miniPaint')
+    const filePath = path.resolve(basePath, decodeURIComponent(url))
+    if (!filePath.startsWith(basePath + path.sep) && filePath !== basePath) {
+      return new Response('Forbidden: path traversal', { status: 403 })
+    }
+    return net.fetch(pathToFileURL(filePath).toString())
+  })
+
   win = new BrowserWindow({
     title: 'DAEMON',
     width: 1440,
@@ -215,7 +239,7 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webviewTag: true,
+      webviewTag: false,
     },
   })
 

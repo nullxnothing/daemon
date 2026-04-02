@@ -1,0 +1,163 @@
+/* ── ARIA Face — minimal dual-dot presence ── */
+
+.aria-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  flex-shrink: 0;
+  transform: translateX(var(--look-x, 0));
+  transition: transform 0.4s ease;
+}
+
+.aria-eye {
+  border-radius: 50%;
+  background: var(--green);
+  transition:
+    opacity 0.3s ease,
+    transform 0.15s ease,
+    background 0.3s ease,
+    width 0.3s ease,
+    height 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ── Size variants ── */
+
+.aria-face-small {
+  gap: 5px;
+}
+
+.aria-face-small .aria-eye {
+  width: 3px;
+  height: 3px;
+}
+
+.aria-face-large {
+  gap: 8px;
+}
+
+.aria-face-large .aria-eye {
+  width: 5px;
+  height: 5px;
+  box-shadow: 0 0 8px var(--green-glow), 0 0 16px var(--green-glow);
+}
+
+/* ── Blink — scaleY crush ── */
+
+.aria-face-blink .aria-eye {
+  transform: scaleY(0);
+  transition: transform 0.08s ease-in;
+}
+
+/* ── State: idle — gentle breathing ── */
+
+.aria-face-idle .aria-eye {
+  animation: ariaBreath 4s ease-in-out infinite;
+}
+
+/* ── State: listening — bright, slightly wider ── */
+
+.aria-face-listening {
+  gap: 8px;
+}
+
+.aria-face-listening.aria-face-small {
+  gap: 7px;
+}
+
+.aria-face-listening .aria-eye {
+  opacity: 1;
+  box-shadow: 0 0 6px var(--green-glow);
+}
+
+/* ── State: thinking — asymmetric pulse ── */
+
+.aria-face-thinking .aria-eye-left {
+  animation: ariaThinkLeft 1.4s ease-in-out infinite;
+}
+
+.aria-face-thinking .aria-eye-right {
+  animation: ariaThinkRight 1.4s ease-in-out infinite 0.2s;
+}
+
+/* ── State: success — bright flash, eyes lift ── */
+
+.aria-face-success .aria-eye {
+  background: var(--green);
+  opacity: 1;
+  box-shadow: 0 0 10px var(--green-glow), 0 0 20px var(--green-glow);
+  transform: translateY(-1px);
+  animation: ariaSuccessFlash 0.6s ease-out;
+}
+
+/* ── State: error — red wince, eyes squeeze ── */
+
+.aria-face-error {
+  gap: 3px;
+  transition: gap 0.15s ease;
+}
+
+.aria-face-error .aria-eye {
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(239, 83, 80, 0.3);
+  animation: ariaErrorFlash 0.4s ease-out;
+}
+
+/* ── State: sleeping — near invisible, drift close ── */
+
+.aria-face-sleeping {
+  gap: 4px;
+  transition: gap 1.5s ease;
+}
+
+.aria-face-sleeping.aria-face-large {
+  gap: 5px;
+}
+
+.aria-face-sleeping .aria-eye {
+  opacity: 0.15;
+  transition: opacity 1.5s ease, gap 1.5s ease;
+}
+
+/* ── State: peek — rise from below ── */
+
+.aria-face-peek {
+  animation: ariaPeek 3s ease-in-out;
+}
+
+/* ── Keyframes ── */
+
+@keyframes ariaBreath {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+@keyframes ariaThinkLeft {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  40%      { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes ariaThinkRight {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes ariaSuccessFlash {
+  0%   { transform: translateY(-2px) scale(1.4); }
+  100% { transform: translateY(-1px) scale(1); }
+}
+
+@keyframes ariaErrorFlash {
+  0%   { transform: scaleX(0.7); }
+  50%  { transform: scaleX(1.1); }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes ariaPeek {
+  0%   { transform: translateY(12px); opacity: 0; }
+  15%  { transform: translateY(0); opacity: 1; }
+  75%  { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(12px); opacity: 0; }
+}

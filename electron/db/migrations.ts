@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -111,6 +111,20 @@ export function runMigrations(db: Database.Database) {
     db.transaction(() => {
       db.exec(SCHEMA_V12)
       db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(12)
+    })()
+  }
+
+  if (currentVersion < 13) {
+    db.transaction(() => {
+      db.exec(SCHEMA_V13)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(13)
+    })()
+  }
+
+  if (currentVersion < 14) {
+    db.transaction(() => {
+      db.exec(SCHEMA_V14)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(14)
     })()
   }
 

@@ -1,8 +1,11 @@
+// CONVENTION: All timestamps use milliseconds (Date.now() in JS, CAST(unixepoch('now') * 1000 AS INTEGER) in SQL defaults).
+// Historical data before this convention may contain seconds — consumers should handle both.
+
 export const SCHEMA_V3 = `
 CREATE TABLE IF NOT EXISTS mcp_disabled (
   name TEXT PRIMARY KEY,
   config TEXT NOT NULL,
-  disabled_at INTEGER DEFAULT (unixepoch())
+  disabled_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 `
 
@@ -15,7 +18,7 @@ export const SCHEMA_V5 = `
 CREATE TABLE IF NOT EXISTS app_settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,
-  updated_at INTEGER DEFAULT (unixepoch())
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 `
 
@@ -24,7 +27,7 @@ CREATE TABLE IF NOT EXISTS secure_keys (
   key_name TEXT PRIMARY KEY,
   encrypted_value BLOB NOT NULL,
   hint TEXT,
-  updated_at INTEGER DEFAULT (unixepoch())
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 `
 
@@ -37,7 +40,7 @@ CREATE TABLE IF NOT EXISTS agents (
   mcps TEXT DEFAULT '[]',
   project_id TEXT,
   shortcut TEXT,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -51,7 +54,7 @@ CREATE TABLE IF NOT EXISTS projects (
   infra TEXT DEFAULT '{}',
   aliases TEXT DEFAULT '[]',
   wallet_id TEXT,
-  created_at INTEGER DEFAULT (unixepoch()),
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
   last_active INTEGER
 );
 
@@ -61,7 +64,7 @@ CREATE TABLE IF NOT EXISTS active_sessions (
   agent_id TEXT,
   terminal_id TEXT,
   pid INTEGER,
-  started_at INTEGER DEFAULT (unixepoch())
+  started_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS ports (
@@ -69,7 +72,7 @@ CREATE TABLE IF NOT EXISTS ports (
   project_id TEXT NOT NULL,
   service_name TEXT NOT NULL,
   pid INTEGER,
-  registered_at INTEGER DEFAULT (unixepoch()),
+  registered_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
   PRIMARY KEY (port, project_id)
 );
 
@@ -89,7 +92,7 @@ CREATE TABLE IF NOT EXISTS images (
   project_id TEXT,
   tags TEXT DEFAULT '[]',
   source TEXT DEFAULT 'generated',
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS tweets (
@@ -98,14 +101,14 @@ CREATE TABLE IF NOT EXISTS tweets (
   mode TEXT,
   source_tweet TEXT,
   status TEXT DEFAULT 'pending',
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS voice_profile (
   id TEXT PRIMARY KEY DEFAULT 'default',
   system_prompt TEXT NOT NULL,
   examples TEXT DEFAULT '[]',
-  updated_at INTEGER DEFAULT (unixepoch())
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS services (
@@ -117,7 +120,7 @@ CREATE TABLE IF NOT EXISTS services (
   auto_start INTEGER DEFAULT 0,
   health_check_url TEXT,
   env_overrides TEXT DEFAULT '{}',
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS crash_history (
@@ -129,7 +132,7 @@ CREATE TABLE IF NOT EXISTS crash_history (
   fix_applied TEXT,
   fix_worked INTEGER,
   auto_fixed INTEGER DEFAULT 0,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (
@@ -169,7 +172,7 @@ CREATE TABLE IF NOT EXISTS dispatch_sessions (
   project_id TEXT NOT NULL,
   platform TEXT NOT NULL,
   context_bundle TEXT,
-  dispatched_at INTEGER DEFAULT (unixepoch()),
+  dispatched_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
   depth TEXT DEFAULT 'standard'
 );
 
@@ -179,7 +182,7 @@ CREATE TABLE IF NOT EXISTS notification_rules (
   priority TEXT DEFAULT 'surface',
   source TEXT,
   enabled INTEGER DEFAULT 1,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS aria_interactions (
@@ -187,7 +190,7 @@ CREATE TABLE IF NOT EXISTS aria_interactions (
   input TEXT NOT NULL,
   parsed_tasks TEXT,
   outcome TEXT,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
@@ -196,7 +199,7 @@ CREATE TABLE IF NOT EXISTS wallets (
   address TEXT NOT NULL UNIQUE,
   keypair_path TEXT,
   is_default INTEGER DEFAULT 0,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 `;
 
@@ -208,7 +211,7 @@ CREATE TABLE IF NOT EXISTS error_logs (
   severity TEXT NOT NULL,
   message TEXT NOT NULL,
   context TEXT,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE TABLE IF NOT EXISTS portfolio_snapshots (
@@ -217,7 +220,7 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
   total_usd REAL,
   sol_balance REAL,
   tokens TEXT,
-  snapshot_at INTEGER DEFAULT (unixepoch())
+  snapshot_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE INDEX IF NOT EXISTS idx_error_logs_operation ON error_logs(operation);
@@ -234,7 +237,7 @@ CREATE TABLE IF NOT EXISTS plugins (
   enabled INTEGER DEFAULT 0,
   sort_order INTEGER DEFAULT 0,
   config TEXT DEFAULT '{}',
-  updated_at INTEGER DEFAULT (unixepoch())
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 `
 
@@ -256,16 +259,16 @@ CREATE TABLE IF NOT EXISTS tools (
   run_count INTEGER DEFAULT 0,
   enabled INTEGER DEFAULT 1,
   sort_order INTEGER DEFAULT 0,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE INDEX IF NOT EXISTS idx_tools_category ON tools(category);
 `
 
 export const SCHEMA_V9 = `
-ALTER TABLE subscriptions ADD COLUMN created_at INTEGER DEFAULT (unixepoch());
-ALTER TABLE subscriptions ADD COLUMN updated_at INTEGER DEFAULT (unixepoch());
-ALTER TABLE oauth_tokens ADD COLUMN updated_at INTEGER DEFAULT (unixepoch());
+ALTER TABLE subscriptions ADD COLUMN created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER));
+ALTER TABLE subscriptions ADD COLUMN updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER));
+ALTER TABLE oauth_tokens ADD COLUMN updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER));
 
 CREATE INDEX IF NOT EXISTS idx_wallets_default ON wallets(is_default);
 CREATE INDEX IF NOT EXISTS idx_plugins_enabled ON plugins(enabled);
@@ -288,10 +291,11 @@ CREATE TABLE IF NOT EXISTS transaction_history (
   symbol TEXT,
   status TEXT DEFAULT 'pending',
   error TEXT,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_history_wallet ON transaction_history(wallet_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tx_history_spend ON transaction_history(wallet_id, type, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_wallets_agent ON wallets(agent_id);
 CREATE INDEX IF NOT EXISTS idx_wallets_type ON wallets(wallet_type);
 `
@@ -308,7 +312,7 @@ CREATE TABLE IF NOT EXISTS deploy_cache (
   commit_sha TEXT,
   commit_message TEXT,
   created_at INTEGER,
-  updated_at INTEGER DEFAULT (unixepoch())
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
 );
 CREATE INDEX IF NOT EXISTS idx_deploy_cache_project ON deploy_cache(project_id, platform, created_at DESC);
 `
@@ -322,4 +326,52 @@ CREATE TABLE IF NOT EXISTS app_crashes (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_app_crashes_created_at ON app_crashes(created_at);
+`
+
+export const SCHEMA_V13 = `
+CREATE TABLE IF NOT EXISTS email_accounts (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  email TEXT NOT NULL,
+  display_name TEXT,
+  access_token BLOB,
+  refresh_token BLOB,
+  imap_password BLOB,
+  token_expiry INTEGER,
+  client_id_ref TEXT,
+  client_secret_ref TEXT,
+  status TEXT DEFAULT 'connected',
+  last_sync_at INTEGER,
+  settings TEXT DEFAULT '{}',
+  created_at INTEGER,
+  updated_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS email_message_cache (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  provider_msg_id TEXT NOT NULL,
+  from_addr TEXT,
+  subject TEXT,
+  snippet TEXT,
+  body TEXT,
+  date INTEGER,
+  is_read INTEGER DEFAULT 0,
+  labels TEXT DEFAULT '[]',
+  cached_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_email_cache_account ON email_message_cache(account_id, date DESC);
+`
+
+export const SCHEMA_V14 = `
+CREATE TABLE IF NOT EXISTS aria_messages (
+  id TEXT PRIMARY KEY,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metadata TEXT DEFAULT '{}',
+  session_id TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_aria_messages_session ON aria_messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_aria_messages_created ON aria_messages(created_at);
 `

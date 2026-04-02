@@ -52,6 +52,21 @@ import type {
   DeploymentEntry,
   VercelLink,
   RailwayLink,
+  VercelEnvVar,
+  EmailAccount,
+  EmailMessage,
+  ExtractionResult,
+  ExtractedItem,
+  ImageRecord,
+  ImageGenerateInput,
+  ImageFilter,
+  ImageModelTier,
+  ImageAspectRatio,
+  AriaMessage,
+  AriaResponse,
+  AriaAction,
+  OnboardingProgress,
+  OnboardingStepStatus,
 } from '../../electron/shared/types'
 
 export type {
@@ -108,6 +123,21 @@ export type {
   DeploymentEntry,
   VercelLink,
   RailwayLink,
+  VercelEnvVar,
+  EmailAccount,
+  EmailMessage,
+  ExtractionResult,
+  ExtractedItem,
+  ImageRecord,
+  ImageGenerateInput,
+  ImageFilter,
+  ImageModelTier,
+  ImageAspectRatio,
+  AriaMessage,
+  AriaResponse,
+  AriaAction,
+  OnboardingProgress,
+  OnboardingStepStatus,
 }
 
 declare global {
@@ -139,6 +169,21 @@ declare global {
   type DeploymentEntry = import('../../electron/shared/types').DeploymentEntry
   type VercelLink = import('../../electron/shared/types').VercelLink
   type RailwayLink = import('../../electron/shared/types').RailwayLink
+  type VercelEnvVar = import('../../electron/shared/types').VercelEnvVar
+  type EmailAccount = import('../../electron/shared/types').EmailAccount
+  type EmailMessage = import('../../electron/shared/types').EmailMessage
+  type ExtractionResult = import('../../electron/shared/types').ExtractionResult
+  type ExtractedItem = import('../../electron/shared/types').ExtractedItem
+  type ImageRecord = import('../../electron/shared/types').ImageRecord
+  type ImageGenerateInput = import('../../electron/shared/types').ImageGenerateInput
+  type ImageFilter = import('../../electron/shared/types').ImageFilter
+  type ImageModelTier = import('../../electron/shared/types').ImageModelTier
+  type ImageAspectRatio = import('../../electron/shared/types').ImageAspectRatio
+  type AriaMessage = import('../../electron/shared/types').AriaMessage
+  type AriaResponse = import('../../electron/shared/types').AriaResponse
+  type AriaAction = import('../../electron/shared/types').AriaAction
+  type OnboardingProgress = import('../../electron/shared/types').OnboardingProgress
+  type OnboardingStepStatus = import('../../electron/shared/types').OnboardingStepStatus
 
   interface DaemonWindow {
     minimize: () => void
@@ -201,6 +246,10 @@ declare global {
     propagate: (key: string, value: string, projectPaths: string[]) => Promise<IpcResponse<{ updated: number }>>
     pullVercel: (projectPath: string, environment?: string) => Promise<IpcResponse<{ pulledFile: string; onlyVercel: Array<{ key: string; value: string }>; onlyLocal: Array<{ key: string; value: string }>; different: Array<{ key: string; vercelValue: string; localValue: string }>; totalPulled: number }>>
     projects: () => Promise<IpcResponse<Array<{ id: string; name: string; path: string }>>>
+    vercelVars: (projectId: string) => Promise<IpcResponse<VercelEnvVar[]>>
+    vercelCreateVar: (projectId: string, key: string, value: string, target: string[], type?: string) => Promise<IpcResponse<void>>
+    vercelUpdateVar: (projectId: string, envVarId: string, value: string, target?: string[]) => Promise<IpcResponse<void>>
+    vercelDeleteVar: (projectId: string, envVarId: string) => Promise<IpcResponse<void>>
   }
 
   interface DaemonProcess {
@@ -212,6 +261,9 @@ declare global {
   interface DaemonFs {
     readDir: (dirPath: string, depth?: number) => Promise<IpcResponse<FileEntry[]>>
     readFile: (filePath: string) => Promise<IpcResponse<{ content: string; path: string }>>
+    readImageBase64: (filePath: string) => Promise<IpcResponse<{ dataUrl: string; size: number }>>
+    writeImageFromBase64: (filePath: string, base64: string) => Promise<IpcResponse>
+    pickImage: () => Promise<IpcResponse<string | null>>
     writeFile: (filePath: string, content: string) => Promise<IpcResponse>
     createFile: (filePath: string) => Promise<IpcResponse>
     createDir: (dirPath: string) => Promise<IpcResponse>
@@ -264,6 +316,8 @@ declare global {
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
     isOnboardingComplete: () => Promise<IpcResponse<boolean>>
     setOnboardingComplete: (complete: boolean) => Promise<IpcResponse>
+    getOnboardingProgress: () => Promise<IpcResponse<OnboardingProgress>>
+    setOnboardingProgress: (progress: OnboardingProgress) => Promise<IpcResponse>
     reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
     getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
     clearCrashes: () => Promise<IpcResponse>
@@ -353,6 +407,38 @@ declare global {
     voiceUpdate: (systemPrompt: string, examples: string[]) => Promise<IpcResponse>
   }
 
+  interface DaemonImages {
+    generate: (input: { prompt: string; model: string; aspectRatio: string; projectId?: string; tags?: string[] }) => Promise<IpcResponse<ImageRecord>>
+    list: (filter?: { projectId?: string; source?: string; model?: string; limit?: number; offset?: number }) => Promise<IpcResponse<ImageRecord[]>>
+    get: (id: string) => Promise<IpcResponse<ImageRecord | null>>
+    delete: (id: string) => Promise<IpcResponse>
+    updateTags: (id: string, tags: string[]) => Promise<IpcResponse<ImageRecord>>
+    getBase64: (id: string) => Promise<IpcResponse<{ data: string; mimeType: string }>>
+    importFile: () => Promise<IpcResponse<ImageRecord | null>>
+    reveal: (id: string) => Promise<IpcResponse>
+    startWatcher: () => Promise<IpcResponse>
+    stopWatcher: () => Promise<IpcResponse>
+    watcherStatus: () => Promise<IpcResponse<boolean>>
+    hasApiKey: () => Promise<IpcResponse<boolean>>
+    onWatcherNew: (callback: (payload: { id: string; filename: string; source: string }) => void) => () => void
+  }
+
+  interface DaemonEmail {
+    accounts: () => Promise<IpcResponse<EmailAccount[]>>
+    hasGmailCreds: () => Promise<IpcResponse<boolean>>
+    storeGmailCreds: (clientId: string, clientSecret: string) => Promise<IpcResponse<void>>
+    addGmail: (clientId?: string, clientSecret?: string) => Promise<IpcResponse<EmailAccount>>
+    addICloud: (email: string, appPassword: string) => Promise<IpcResponse<EmailAccount>>
+    remove: (accountId: string) => Promise<IpcResponse<void>>
+    messages: (accountId: string, query?: string, max?: number) => Promise<IpcResponse<EmailMessage[]>>
+    read: (accountId: string, messageId: string) => Promise<IpcResponse<EmailMessage>>
+    extract: (accountId: string, messageId: string) => Promise<IpcResponse<ExtractionResult>>
+    summarize: (accountId: string, messageId: string) => Promise<IpcResponse<{ summary: string }>>
+    sync: (accountId: string) => Promise<IpcResponse<void>>
+    unreadCounts: () => Promise<IpcResponse<Record<string, number>>>
+    settings: (accountId: string, settings: string) => Promise<IpcResponse<void>>
+  }
+
   interface DaemonPlugins {
     list: () => Promise<IpcResponse<PluginRow[]>>
     setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<void>>
@@ -416,6 +502,12 @@ declare global {
     ask: (question: string, projectId?: string) => Promise<IpcResponse<{ ok: boolean; action: string; output?: string }>>
   }
 
+  interface DaemonAria {
+    send: (sessionId: string, message: string) => Promise<IpcResponse<AriaResponse>>
+    history: (sessionId: string, limit?: number) => Promise<IpcResponse<AriaMessage[]>>
+    clear: (sessionId: string) => Promise<IpcResponse<void>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -438,6 +530,9 @@ declare global {
     deploy: DaemonDeploy
     shell: DaemonShell
     pumpfun: DaemonPumpFun
+    email: DaemonEmail
+    images: DaemonImages
+    aria: DaemonAria
   }
 
   interface DaemonBrowser {

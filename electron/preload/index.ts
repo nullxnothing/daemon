@@ -60,6 +60,10 @@ contextBridge.exposeInMainWorld('daemon', {
     propagate: (key: string, value: string, projectPaths: string[]) => ipcRenderer.invoke('env:propagate', key, value, projectPaths),
     pullVercel: (projectPath: string, environment?: string) => ipcRenderer.invoke('env:pull-vercel', projectPath, environment),
     projects: () => ipcRenderer.invoke('env:projects'),
+    vercelVars: (projectId: string) => ipcRenderer.invoke('env:vercel-vars', projectId),
+    vercelCreateVar: (projectId: string, key: string, value: string, target: string[], type?: string) => ipcRenderer.invoke('env:vercel-create-var', projectId, key, value, target, type),
+    vercelUpdateVar: (projectId: string, envVarId: string, value: string, target?: string[]) => ipcRenderer.invoke('env:vercel-update-var', projectId, envVarId, value, target),
+    vercelDeleteVar: (projectId: string, envVarId: string) => ipcRenderer.invoke('env:vercel-delete-var', projectId, envVarId),
   },
 
   process: {
@@ -71,6 +75,9 @@ contextBridge.exposeInMainWorld('daemon', {
   fs: {
     readDir: (dirPath: string, depth?: number) => ipcRenderer.invoke('fs:readDir', dirPath, depth),
     readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
+    readImageBase64: (filePath: string) => ipcRenderer.invoke('fs:readImageBase64', filePath),
+    writeImageFromBase64: (filePath: string, base64: string) => ipcRenderer.invoke('fs:writeImageFromBase64', filePath, base64),
+    pickImage: () => ipcRenderer.invoke('fs:pickImage'),
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
     createFile: (filePath: string) => ipcRenderer.invoke('fs:createFile', filePath),
     createDir: (dirPath: string) => ipcRenderer.invoke('fs:createDir', dirPath),
@@ -161,6 +168,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
     isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),
     setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke('settings:set-onboarding-complete', complete),
+    getOnboardingProgress: () => ipcRenderer.invoke('settings:get-onboarding-progress'),
+    setOnboardingProgress: (progress: object) => ipcRenderer.invoke('settings:set-onboarding-progress', progress),
     reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
     getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
     clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
@@ -244,6 +253,48 @@ contextBridge.exposeInMainWorld('daemon', {
     pickImage: () => ipcRenderer.invoke('pumpfun:pick-image'),
     hasKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:has-keypair', walletId),
     importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
+  },
+
+  aria: {
+    send: (sessionId: string, message: string) => ipcRenderer.invoke('aria:send', sessionId, message),
+    history: (sessionId: string, limit?: number) => ipcRenderer.invoke('aria:history', sessionId, limit),
+    clear: (sessionId: string) => ipcRenderer.invoke('aria:clear', sessionId),
+  },
+
+  images: {
+    generate: (input: { prompt: string; model: string; aspectRatio: string; projectId?: string; tags?: string[] }) => ipcRenderer.invoke('images:generate', input),
+    list: (filter?: { projectId?: string; source?: string; model?: string; limit?: number; offset?: number }) => ipcRenderer.invoke('images:list', filter ?? {}),
+    get: (id: string) => ipcRenderer.invoke('images:get', id),
+    delete: (id: string) => ipcRenderer.invoke('images:delete', id),
+    updateTags: (id: string, tags: string[]) => ipcRenderer.invoke('images:update-tags', id, tags),
+    getBase64: (id: string) => ipcRenderer.invoke('images:get-base64', id),
+    importFile: () => ipcRenderer.invoke('images:import-file'),
+    reveal: (id: string) => ipcRenderer.invoke('images:reveal', id),
+    startWatcher: () => ipcRenderer.invoke('images:watcher-start'),
+    stopWatcher: () => ipcRenderer.invoke('images:watcher-stop'),
+    watcherStatus: () => ipcRenderer.invoke('images:watcher-status'),
+    hasApiKey: () => ipcRenderer.invoke('images:has-api-key'),
+    onWatcherNew: (callback: (payload: { id: string; filename: string; source: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { id: string; filename: string; source: string }) => callback(payload)
+      ipcRenderer.on('images:watcher-new', handler)
+      return () => ipcRenderer.off('images:watcher-new', handler)
+    },
+  },
+
+  email: {
+    accounts: () => ipcRenderer.invoke('email:accounts'),
+    hasGmailCreds: () => ipcRenderer.invoke('email:has-gmail-creds'),
+    storeGmailCreds: (clientId: string, clientSecret: string) => ipcRenderer.invoke('email:store-gmail-creds', clientId, clientSecret),
+    addGmail: (clientId?: string, clientSecret?: string) => ipcRenderer.invoke('email:add-gmail', clientId, clientSecret),
+    addICloud: (email: string, appPassword: string) => ipcRenderer.invoke('email:add-icloud', email, appPassword),
+    remove: (accountId: string) => ipcRenderer.invoke('email:remove', accountId),
+    messages: (accountId: string, query?: string, max?: number) => ipcRenderer.invoke('email:messages', accountId, query, max),
+    read: (accountId: string, messageId: string) => ipcRenderer.invoke('email:read', accountId, messageId),
+    extract: (accountId: string, messageId: string) => ipcRenderer.invoke('email:extract', accountId, messageId),
+    summarize: (accountId: string, messageId: string) => ipcRenderer.invoke('email:summarize', accountId, messageId),
+    sync: (accountId: string) => ipcRenderer.invoke('email:sync', accountId),
+    unreadCounts: () => ipcRenderer.invoke('email:unread-counts'),
+    settings: (accountId: string, settings: string) => ipcRenderer.invoke('email:settings', accountId, settings),
   },
 
   deploy: {
