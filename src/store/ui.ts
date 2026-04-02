@@ -68,6 +68,13 @@ interface UIState {
   setGrindPageCells: (projectId: string, pageIndex: number, cells: GridCell[]) => void
   removeGrindPageCells: (projectId: string, pageIndex: number) => void
 
+  // QuickView popouts
+  walletQuickViewOpen: boolean
+  emailQuickViewOpen: boolean
+  toggleWalletQuickView: () => void
+  toggleEmailQuickView: () => void
+  closeAllQuickViews: () => void
+
   // Command drawer
   drawerTool: string | null
   drawerOpen: boolean
@@ -98,12 +105,14 @@ export const useUIStore = create<UIState>((set) => ({
   grindPageCount: 1,
   activeGrindPage: 0,
   grindPages: {},
+  walletQuickViewOpen: false,
+  emailQuickViewOpen: false,
   drawerTool: null,
   drawerOpen: false,
   drawerFullscreen: false,
   pinnedTools: ['git', 'browser'],
 
-  setActivePanel: (panel) => set({ activePanel: panel }),
+  setActivePanel: (panel) => set({ activePanel: panel, walletQuickViewOpen: false, emailQuickViewOpen: false }),
 
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),
 
@@ -260,6 +269,16 @@ export const useUIStore = create<UIState>((set) => ({
       grindPages: { ...state.grindPages, [projectId]: updatedPages },
     }
   }),
+
+  toggleWalletQuickView: () => set((state) => ({
+    walletQuickViewOpen: !state.walletQuickViewOpen,
+    emailQuickViewOpen: false,
+  })),
+  toggleEmailQuickView: () => set((state) => ({
+    emailQuickViewOpen: !state.emailQuickViewOpen,
+    walletQuickViewOpen: false,
+  })),
+  closeAllQuickViews: () => set({ walletQuickViewOpen: false, emailQuickViewOpen: false }),
 
   setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null, drawerFullscreen: tool !== null }),
   closeDrawer: () => set({ drawerOpen: false, drawerFullscreen: false }),

@@ -1,8 +1,9 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
 import { formatCompactUsd } from '../../utils/format'
+import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
 import styles from './StatusBar.module.css'
 
 const EMPTY_MARKET: MarketTickerEntry[] = []
@@ -96,24 +97,32 @@ function GitBranch() {
 
 function EmailIndicator() {
   const unreadTotal = useEmailStore((s) => s.unreadTotal)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
-
-  if (unreadTotal <= 0) return null
+  const emailQuickViewOpen = useUIStore((s) => s.emailQuickViewOpen)
+  const toggleEmailQuickView = useUIStore((s) => s.toggleEmailQuickView)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   return (
-    <button
-      className={styles.emailBtn}
-      onClick={() => setActivePanel('email')}
-      title={`${unreadTotal} unread email${unreadTotal !== 1 ? 's' : ''}`}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="2" y="4" width="20" height="16" rx="2" />
-        <polyline points="22,4 12,13 2,4" />
-      </svg>
-      <span className={styles.emailBadge}>
-        {unreadTotal > 999 ? `${Math.floor(unreadTotal / 1000)}k+` : unreadTotal}
-      </span>
-    </button>
+    <>
+      <button
+        ref={triggerRef}
+        className={styles.emailBtn}
+        onClick={toggleEmailQuickView}
+        title={unreadTotal > 0 ? `${unreadTotal} unread email${unreadTotal !== 1 ? 's' : ''}` : 'Email'}
+        aria-haspopup="dialog"
+        aria-expanded={emailQuickViewOpen}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <polyline points="22,4 12,13 2,4" />
+        </svg>
+        {unreadTotal > 0 && (
+          <span className={styles.emailBadge}>
+            {unreadTotal > 999 ? `${Math.floor(unreadTotal / 1000)}k+` : unreadTotal}
+          </span>
+        )}
+      </button>
+      {emailQuickViewOpen && <EmailQuickView triggerRef={triggerRef} />}
+    </>
   )
 }
 

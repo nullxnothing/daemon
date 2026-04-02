@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useUIStore, type CenterMode } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { formatCompactUsd } from '../../utils/format'
+import { WalletQuickView } from '../../components/QuickView/WalletQuickView'
 import daemonIcon from '../../assets/daemon-icon-48.png'
 import './Titlebar.css'
 
@@ -161,12 +162,24 @@ function ModeDropdown({ centerMode, setCenterMode }: { centerMode: CenterMode; s
 function TitlebarPortfolioSummary() {
   const visible = useWalletStore((s) => s.showTitlebarWallet)
   const dashboard = useWalletStore((s) => s.dashboard)
+  const walletQuickViewOpen = useUIStore((s) => s.walletQuickViewOpen)
+  const toggleWalletQuickView = useUIStore((s) => s.toggleWalletQuickView)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   if (!visible || !dashboard || dashboard.portfolio.walletCount === 0) return null
 
   return (
-    <button className="titlebar-portfolio" onClick={() => useUIStore.getState().setActivePanel('wallet')}>
-      <span className="titlebar-portfolio-total">${formatCompactUsd(dashboard.portfolio.totalUsd)}</span>
-    </button>
+    <>
+      <button
+        ref={triggerRef}
+        className="titlebar-portfolio"
+        onClick={toggleWalletQuickView}
+        aria-haspopup="dialog"
+        aria-expanded={walletQuickViewOpen}
+      >
+        <span className="titlebar-portfolio-total">${formatCompactUsd(dashboard.portfolio.totalUsd)}</span>
+      </button>
+      {walletQuickViewOpen && <WalletQuickView triggerRef={triggerRef} />}
+    </>
   )
 }
