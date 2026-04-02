@@ -128,6 +128,26 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
+  try {
+    const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
+    if (!hasSolanaAgent) {
+      db.prepare(
+        'INSERT OR IGNORE INTO agents (id, name, system_prompt, model, mcps, shortcut, source) VALUES (?,?,?,?,?,?,?)'
+      ).run(
+        'solana-agent',
+        'Solana Agent',
+        'You are a Solana development agent. You help build, debug, and audit Solana programs, tokens, and DeFi integrations. You have deep knowledge of the Solana ecosystem including Anchor, SPL tokens, Metaplex, Raydium, Pump.fun, and the Solana CLI. You can read and write Rust, TypeScript, and Python. Focus on correctness, security, and gas efficiency.',
+        'claude-opus-4-20250514',
+        '["filesystem"]',
+        'cmd+shift+s',
+        'daemon',
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] solana agent seed check failed:', (err as Error).message)
+  }
+
   // Ensure built-in tools exist (idempotent — handles upgrades where table exists but seed was missed)
   try {
     const hasRecovery = db.prepare("SELECT id FROM tools WHERE id = 'builtin-wallet-recovery'").get()
@@ -201,6 +221,14 @@ function seedDefaults(db: Database.Database) {
       model: 'claude-haiku-4-5-20251001',
       mcps: '["filesystem"]',
       shortcut: 'cmd+5',
+    },
+    {
+      id: 'solana-agent',
+      name: 'Solana Agent',
+      prompt: 'You are a Solana development agent. You help build, debug, and audit Solana programs, tokens, and DeFi integrations. You have deep knowledge of the Solana ecosystem including Anchor, SPL tokens, Metaplex, Raydium, Pump.fun, and the Solana CLI. You can read and write Rust, TypeScript, and Python. Focus on correctness, security, and gas efficiency.',
+      model: 'claude-opus-4-20250514',
+      mcps: '["filesystem"]',
+      shortcut: 'cmd+shift+s',
     },
   ]
 
