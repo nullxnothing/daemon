@@ -38,8 +38,9 @@ export function SettingsPanel() {
         {(['keys', 'integrations', 'agents', 'display', 'setup', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
+            data-tab={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
-            onClick={() => setTab(t)}
+            onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
             {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : 'Crash Log'}
           </button>
