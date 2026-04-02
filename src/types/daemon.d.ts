@@ -201,6 +201,7 @@ declare global {
     resize: (id: string, cols: number, rows: number) => void
     kill: (id: string) => Promise<IpcResponse>
     pasteFromClipboard: (id: string) => Promise<IpcResponse<{ pasted: boolean }>>
+    checkClaude: () => Promise<IpcResponse<{ installed: boolean; claudePath: string }>>
     onData: (callback: (payload: { id: string; data: string }) => void) => () => void
     onExit: (callback: (payload: { id: string; exitCode: number }) => void) => () => void
   }

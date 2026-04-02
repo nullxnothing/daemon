@@ -3,7 +3,7 @@ import os from 'node:os'
 import fs from 'node:fs'
 import * as pty from 'node-pty'
 import { getDb } from '../db/db'
-import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
+import { buildCommand, cleanupContextFile, getClaudePath } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
@@ -184,6 +184,16 @@ export function registerTerminalHandlers() {
       console.warn('[Terminal] resize failed:', (err as Error).message)
     }
   })
+
+  ipcMain.handle('terminal:check-claude', ipcHandler(async () => {
+    const claudePath = getClaudePath()
+    // Resolve the real binary name for shell PATH lookup — strip the .cmd extension check
+    // We try existsSync first; if the resolved path is just 'claude' or 'claude.cmd' (PATH fallback),
+    // we treat it as installed because node-pty will resolve it through the shell.
+    const isAbsolute = claudePath.includes('/') || claudePath.includes('\\')
+    const installed = isAbsolute ? fs.existsSync(claudePath) : true
+    return { installed, claudePath }
+  }))
 
   ipcMain.handle('terminal:kill', ipcHandler(async (_event, id: string) => {
     const session = sessions.get(id)

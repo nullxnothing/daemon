@@ -5,7 +5,7 @@ import { TerminalInstance } from './TerminalInstance'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
 import './Terminal.css'
 
-const SOLANA_AGENT_STARTUP_COMMAND = 'pnpm run solana:agent'
+const SOLANA_AGENT_DB_ID = 'solana-agent'
 
 type SplitLayout = {
   direction: 'horizontal' | 'vertical'
@@ -32,6 +32,7 @@ export function TerminalPanel() {
   const [splitLayoutsByProject, setSplitLayoutsByProject] = useState<Record<string, SplitLayout | undefined>>({})
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
   const [isDragOver, setIsDragOver] = useState(false)
+  const [claudeInstallStatus, setClaudeInstallStatus] = useState<'idle' | 'installing' | 'failed'>('idle')
   const panelDragDepthRef = useRef(0)
   const creatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
@@ -85,8 +86,12 @@ export function TerminalPanel() {
   }, [setActivePanel])
 
   const handleStartSolanaAgent = useCallback(async () => {
-    await handleNewTerminal('Solana Agent', SOLANA_AGENT_STARTUP_COMMAND)
-  }, [handleNewTerminal])
+    if (!activeProjectId) return
+    const res = await window.daemon.terminal.spawnAgent({ agentId: SOLANA_AGENT_DB_ID, projectId: activeProjectId })
+    if (res.ok && res.data) {
+      addTerminal(activeProjectId, res.data.id, res.data.agentName ?? 'Solana Agent', res.data.agentId)
+    }
+  }, [activeProjectId, addTerminal])
 
   const handleLaunchAgent = useCallback(async (agent: Agent) => {
     if (!activeProjectId) return
@@ -128,12 +133,35 @@ export function TerminalPanel() {
     setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
   }, [activeProjectId])
 
-  // Auto-create first terminal for project
+  // Auto-create first terminal for project — starts in Claude mode if CLI is available
   useEffect(() => {
-    if (activeProjectId && visibleTerminals.length === 0 && !creatingRef.current) {
-      creatingRef.current = true
-      handleNewTerminal().finally(() => { creatingRef.current = false })
-    }
+    if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
+    creatingRef.current = true
+
+    window.daemon.terminal.checkClaude().then((res): Promise<void> => {
+      if (!res.ok || !res.data) {
+        // Fallback to plain shell if the check itself fails
+        return handleNewTerminal('Terminal').then(() => {})
+      }
+
+      const { installed } = res.data
+
+      if (installed) {
+        return handleNewTerminal('Claude', 'claude').then(() => {})
+      }
+
+      // Claude CLI not found — open terminal and run the install command
+      setClaudeInstallStatus('installing')
+      return handleNewTerminal('Installing Claude').then((terminalId) => {
+        if (!terminalId) {
+          setClaudeInstallStatus('failed')
+          return
+        }
+        window.daemon.terminal.write(terminalId, 'npm install -g @anthropic-ai/claude-code\r')
+      })
+    }).finally(() => {
+      creatingRef.current = false
+    })
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
 
   // Sync split layout when terminals change
@@ -176,7 +204,7 @@ export function TerminalPanel() {
 
   return (
     <div
-      className={`terminal-panel ${isDragOver ? 'drag-over' : ''}`}
+      className={`terminal-panel ${isDragOver ? 'drag-over' : ''} ${claudeInstallStatus !== 'idle' ? 'has-install-banner' : ''}`}
       onDragEnter={(e) => {
         if (!e.dataTransfer.types.includes('Files')) return
         e.preventDefault()
@@ -194,6 +222,18 @@ export function TerminalPanel() {
       }}
       onDrop={handleFolderDrop}
     >
+      {claudeInstallStatus === 'installing' && (
+        <div className="claude-install-banner">
+          Claude CLI not found. Installing via npm — this may take a moment.
+          <button className="claude-install-dismiss" onClick={() => setClaudeInstallStatus('idle')}>Dismiss</button>
+        </div>
+      )}
+      {claudeInstallStatus === 'failed' && (
+        <div className="claude-install-banner claude-install-banner--error">
+          Failed to create install terminal. Open a new terminal and run: npm install -g @anthropic-ai/claude-code
+          <button className="claude-install-dismiss" onClick={() => setClaudeInstallStatus('idle')}>Dismiss</button>
+        </div>
+      )}
       <TerminalTabs
         visibleTerminals={visibleTerminals}
         activeTerminalId={activeTerminalId}

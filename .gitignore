@@ -67,3 +67,4 @@ vendor/
 *_AUDIT*.md
 release-plan.md
 docs/
+.wrangler/
