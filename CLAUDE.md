@@ -38,7 +38,7 @@ Test with electron-test MCP via CDP port 9222. Connect, screenshot, click, evalu
 
 Branches + PRs. CI runs on every push and PR:
 - **typecheck** — `pnpm run typecheck`
-- **test** — `pnpm run test` (20 Vitest tests)
+- **test** — `pnpm run test` (93 Vitest tests across 9 suites)
 - **build** — `pnpm run package` on Windows + macOS
 
 Releases: tag `v*` triggers release workflow that builds and uploads .exe/.dmg to GitHub Releases.
@@ -66,7 +66,7 @@ Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
 electron/
   main/index.ts       App entry, window, protocol handlers
   preload/index.ts    contextBridge → window.daemon.*
-  ipc/                One handler file per domain (14 modules)
+  ipc/                One handler file per domain (20 modules)
   services/           Business logic (ClaudeRouter, ToolService, etc.)
   db/                 SQLite schema (V6), migrations, WAL mode
   shared/types.ts     Shared TypeScript interfaces
@@ -74,14 +74,14 @@ electron/
 src/
   App.tsx             Root layout — sidebar, center, right panel
   store/              Zustand stores (ui, wallet, plugins, tools)
-  panels/             One directory per panel (~30 panels)
+  panels/             One directory per panel (21 panels + plugins/)
   plugins/            Plugin registry + lazy-loaded components
   components/         Toggle, Dot, ErrorBoundary, etc.
   types/daemon.d.ts   Global type declarations for window.daemon
 
 styles/
   tokens.css          Color, spacing, font CSS variables
-  base.css            Reset (must be in @layer base for Tailwind v4 compat)
+  base.css            Global reset + scrollbar + input styles
 ```
 
 ---
@@ -116,10 +116,11 @@ ipcMain.handle('domain:action', IpcHandlerFactory.createHandler(
 ## Color System
 
 ```css
---bg: #090909;  --s1: #101010;  --s2: #151515;  --s3: #1a1a1a;  --s4: #222222;
---t1: #ebebeb;  --t2: #7a7a7a;  --t3: #3d3d3d;
---green: #4a8c62;  --amber: #8c7a4a;  --red: #8c4a4a;
+--bg: #0a0a0a;  --s1: #141414;  --s2: #1a1a1a;  --s3: #222222;  --s4: #2a2a2a;  --s5: #333333;  --s6: #3a3a3a;
+--t1: #f0f0f0;  --t2: #a0a0a0;  --t3: #777777;  --t4: #505050;
+--green: #3ecf8e;  --amber: #f0b429;  --red: #ef5350;  --blue: #60a5fa;
 ```
+Each accent has `-dim` and `-glow` variants. See `styles/tokens.css` for full list.
 
 ---
 
@@ -127,7 +128,7 @@ ipcMain.handle('domain:action', IpcHandlerFactory.createHandler(
 
 **Last updated:** 2026-03-31
 
-**Complete:** Phases 1-8 (Shell, Agent Launcher, Claude Panel, Process Manager, Env Manager, Ports, Git, Wallet), Settings Panel, Tools Panel, production infrastructure (10 services), 20/20 tests passing.
+**Complete:** Phases 1-8 (Shell, Agent Launcher, Claude Panel, Process Manager, Env Manager, Ports, Git, Wallet), Settings Panel, Tools Panel, production infrastructure (10 services), 93 tests across 9 suites passing.
 
 **Remaining:**
 - Phase 9: Image Generator (Gemini imagen-4)

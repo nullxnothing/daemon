@@ -63,3 +63,7 @@ PLUGIN_TODOS.md
 .planning/
 .playwright-mcp/
 Usersoffic.claudeplans/
+vendor/
+*_AUDIT*.md
+release-plan.md
+docs/

@@ -38,3 +38,12 @@ export const API_ENDPOINTS = {
   VERCEL_API: 'https://api.vercel.com',
   RAILWAY_API: 'https://backboard.railway.com/graphql/v2',
 } as const
+
+// --- Bundled OAuth Credentials ---
+// Set these once as the app developer. All users get seamless "Connect with Google".
+// Create at: console.cloud.google.com → Credentials → OAuth 2.0 → Desktop app
+// Enable: Gmail API
+export const GOOGLE_OAUTH = {
+  CLIENT_ID: process.env.DAEMON_GOOGLE_CLIENT_ID ?? '',
+  CLIENT_SECRET: process.env.DAEMON_GOOGLE_CLIENT_SECRET ?? '',
+} as const
