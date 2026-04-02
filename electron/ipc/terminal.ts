@@ -75,7 +75,7 @@ function createPtySession(
     },
   })
 
-  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath }
+  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath, isAgentShell: false }
   sessions.set(id, session)
 
   ptyProcess.onData((data) => {
@@ -139,6 +139,9 @@ export function registerTerminalHandlers() {
     }
 
     const session = createPtySession(id, '', [], cwd, null, null)
+    if (opts?.isAgent) {
+      session.isAgentShell = true
+    }
 
     if (opts?.startupCommand?.trim()) {
       const cmd = opts.startupCommand.trim()

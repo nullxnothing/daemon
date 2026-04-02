@@ -52,6 +52,27 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
     return () => { cancelled = true }
   }, [isOpen, loadAgents])
 
+  // Block Escape from reaching window-level capture listeners (e.g. CommandDrawer)
+  // while the launcher is open. React synthetic events don't stop native capture listeners,
+  // so we intercept at the capture phase ourselves and handle the close here.
+  useEffect(() => {
+    if (!isOpen) return
+    const handleNativeEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      e.preventDefault()
+      // Mirror the React handler logic: form open → close form, else close launcher
+      if (showForm) {
+        setShowForm(false)
+        setEditingAgent(null)
+      } else {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleNativeEscape, true)
+    return () => window.removeEventListener('keydown', handleNativeEscape, true)
+  }, [isOpen, showForm, onClose])
+
   const daemonAgents = agents.filter((a) =>
     (a.source ?? 'daemon') !== 'claude-import'
   )
@@ -108,6 +129,8 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
+      e.stopPropagation()
+      e.preventDefault()
       if (showForm) { setShowForm(false); setEditingAgent(null) }
       else onClose()
     } else if (!showForm) {

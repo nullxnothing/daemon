@@ -112,6 +112,11 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
       setLoadStatus('loaded')
       updateNavState()
 
+      // Re-inject inspector if inspect mode was active before navigation
+      if (useBrowserStore.getState().isInspectMode && wv) {
+        wv.executeJavaScript(INSPECTOR_INJECT_SCRIPT).catch(() => {})
+      }
+
       // Capture rendered DOM content and send to main process
       const pageId = useBrowserStore.getState().lastPageId
       if (wv) {

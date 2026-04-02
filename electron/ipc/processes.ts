@@ -17,12 +17,12 @@ export function registerProcessHandlers() {
     const sessionIds = getAllSessionIds()
     const results: ProcessInfo[] = []
 
-    const sessions: Array<{ id: string; pid: number; agentId: string | null }> = []
+    const sessions: Array<{ id: string; pid: number; agentId: string | null; isAgentShell: boolean }> = []
 
     for (const id of sessionIds) {
       const session = getSession(id)
       if (!session) continue
-      sessions.push({ id, pid: session.pty.pid, agentId: session.agentId })
+      sessions.push({ id, pid: session.pty.pid, agentId: session.agentId, isAgentShell: session.isAgentShell ?? false })
     }
 
     if (sessions.length === 0) return []
@@ -57,18 +57,19 @@ export function registerProcessHandlers() {
     const stats = new Map<number, { cpu: number; memory: number }>()
     pids.forEach((pid, i) => stats.set(pid, statsResults[i]))
 
-    for (const { id, pid, agentId } of sessions) {
+    for (const { id, pid, agentId, isAgentShell } of sessions) {
       const pidStats = stats.get(pid) ?? { cpu: 0, memory: 0 }
       const row = dbRowMap.get(id)
 
-      // Derive a meaningful label without falling back to 'Terminal' for everything:
+      // Derive a meaningful label:
       // - Agent session with a DB row: use the agent's name
       // - Agent session whose DB row is missing (agent deleted mid-run): 'Agent'
-      // - Plain interactive shell (agentId is null, no DB row): 'Shell'
+      // - Shell session flagged as isAgentShell (e.g. AgentGrid claude cells): 'Agent'
+      // - Plain interactive shell: 'Shell'
       let name: string
       if (row?.agent_name) {
         name = row.agent_name
-      } else if (agentId) {
+      } else if (agentId || isAgentShell) {
         name = 'Agent'
       } else {
         name = 'Shell'
@@ -78,7 +79,7 @@ export function registerProcessHandlers() {
         id,
         pid,
         name,
-        kind: agentId ? 'agent' : 'shell',
+        kind: (agentId || isAgentShell) ? 'agent' : 'shell',
         agentId,
         agentName: row?.agent_name ?? null,
         projectId: row?.project_id ?? null,

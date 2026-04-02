@@ -184,7 +184,7 @@ function App() {
         />
 
         {showExplorer && activeProjectPath && (
-          <div className="left-panel" data-tour="file-explorer">
+          <div className="left-panel" data-tour="file-explorer" style={drawerOpen ? { pointerEvents: 'none' } : undefined}>
             <FileExplorer />
           </div>
         )}

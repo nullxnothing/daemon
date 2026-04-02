@@ -7,33 +7,48 @@ export const INSPECTOR_INJECT_SCRIPT = `
   overlay.style.cssText = 'position:fixed;pointer-events:none;border:2px solid #4a8c62;background:rgba(74,140,98,0.08);z-index:99999;display:none;transition:all 0.05s ease;';
   document.body.appendChild(overlay);
 
-  function getSelector(el) {
-    if (el.id) return '#' + CSS.escape(el.id);
-    const testId = el.getAttribute('data-testid');
-    if (testId) return '[data-testid="' + testId + '"]';
-
-    const parts = [];
-    let current = el;
-    while (current && current !== document.body) {
-      let segment = current.tagName.toLowerCase();
-      if (current.id) {
-        parts.unshift('#' + CSS.escape(current.id));
-        break;
-      }
-      const parent = current.parentElement;
-      if (parent) {
-        const siblings = Array.from(parent.children).filter(c => c.tagName === current.tagName);
-        if (siblings.length > 1) {
-          const idx = siblings.indexOf(current) + 1;
-          segment += ':nth-child(' + idx + ')';
-        }
-      }
-      const cls = Array.from(current.classList).filter(c => !c.startsWith('__daemon')).slice(0, 2);
-      if (cls.length > 0) segment += '.' + cls.map(c => CSS.escape(c)).join('.');
-      parts.unshift(segment);
-      current = parent;
+  function getClassList(el) {
+    try {
+      // classList works for both HTML and SVG elements
+      return Array.from(el.classList || []);
+    } catch (e) {
+      // Fallback: read the class attribute as a string
+      var raw = el.getAttribute('class') || '';
+      return raw.split(/\s+/).filter(Boolean);
     }
-    return parts.join(' > ');
+  }
+
+  function getSelector(el) {
+    try {
+      if (el.id) return '#' + CSS.escape(el.id);
+      var testId = el.getAttribute('data-testid');
+      if (testId) return '[data-testid="' + testId + '"]';
+
+      var parts = [];
+      var current = el;
+      while (current && current !== document.body) {
+        var segment = current.tagName.toLowerCase();
+        if (current.id) {
+          parts.unshift('#' + CSS.escape(current.id));
+          break;
+        }
+        var parent = current.parentElement;
+        if (parent) {
+          var siblings = Array.from(parent.children).filter(function(c) { return c.tagName === current.tagName; });
+          if (siblings.length > 1) {
+            var idx = siblings.indexOf(current) + 1;
+            segment += ':nth-child(' + idx + ')';
+          }
+        }
+        var cls = getClassList(current).filter(function(c) { return !c.startsWith('__daemon'); }).slice(0, 2);
+        if (cls.length > 0) segment += '.' + cls.map(function(c) { return CSS.escape(c); }).join('.');
+        parts.unshift(segment);
+        current = parent;
+      }
+      return parts.join(' > ');
+    } catch (e) {
+      return el.tagName ? el.tagName.toLowerCase() : 'unknown';
+    }
   }
 
   function onMouseMove(e) {
@@ -48,7 +63,6 @@ export const INSPECTOR_INJECT_SCRIPT = `
   }
 
   function onClick(e) {
-    if (!e.ctrlKey) return;
     e.preventDefault();
     e.stopPropagation();
     const target = e.target;

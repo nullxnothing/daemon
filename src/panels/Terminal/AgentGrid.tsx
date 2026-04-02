@@ -87,6 +87,7 @@ export function AgentGrid() {
     const res = await window.daemon.terminal.create({
       cwd: activeProjectPath ?? undefined,
       startupCommand: 'claude',
+      isAgent: true,
     })
     if (res.ok && res.data) {
       const termId = res.data.id
