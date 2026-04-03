@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
+import { getDb } from '../db/db'
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
@@ -327,7 +328,6 @@ ${content}`,
 
     // Clear persisted connection from app_settings
     try {
-      const { getDb } = await import('../db/db')
       const db = getDb()
       for (const key of ['claude_path', 'claude_auth_mode', 'claude_verified_at']) {
         db.prepare('DELETE FROM app_settings WHERE key = ?').run(key)
