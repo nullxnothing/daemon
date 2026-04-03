@@ -188,6 +188,19 @@
 }
 
 /* MCP Add Button */
+/* Draggable MCP / skill rows */
+.mcp-row[draggable] {
+  cursor: grab;
+}
+
+.mcp-row[draggable]:active {
+  cursor: grabbing;
+}
+
+.mcp-row.dragging {
+  opacity: 0.4;
+}
+
 .mcp-add-btn {
   width: 100%;
   height: 26px;

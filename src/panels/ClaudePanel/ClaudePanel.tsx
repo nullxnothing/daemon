@@ -3,8 +3,11 @@ import { DiffEditor } from '@monaco-editor/react'
 import { useUIStore } from '../../store/ui'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { Toggle } from '../../components/Toggle'
+import { CategoryGroup } from '../../components/CategoryGroup'
 import { AriaChat } from './AriaChat'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
+import { groupByCategory, CATEGORIES } from '../../utils/categoryClassifier'
+import { setupCommandDrag, cleanupDragGhost } from '../../utils/dragCommand'
 import type { IpcResponse, McpEntry, SessionUsage } from '../../../electron/shared/types'
 import type * as monaco from 'monaco-editor'
 import './ClaudePanel.css'
@@ -154,20 +157,50 @@ function McpSection({ loadFn, toggleFn, description, emptyText }: {
     useUIStore.getState().bumpMcpVersion()
   }
 
+  const renderMcpRow = (mcp: McpEntry) => (
+    <div
+      key={mcp.name}
+      className="mcp-row"
+      draggable
+      onDragStart={(e) => setupCommandDrag(e, mcp.name, mcp.name)}
+      onDragEnd={(e) => cleanupDragGhost(e)}
+    >
+      <div className="mcp-info">
+        <div className="mcp-name">{mcp.name}</div>
+        <div className="mcp-desc">{mcp.config?.command} {(mcp.config?.args || []).slice(0, 3).join(' ')}</div>
+      </div>
+      <Toggle checked={mcp.enabled} onChange={() => handleToggle(mcp.name, mcp.enabled)} />
+    </div>
+  )
+
+  const grouped = groupByCategory(mcps, (m) => m.name)
+  const useGrouped = mcps.length >= 6
+
   return (
     <div>
       <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 8 }}>
         {description}
       </div>
-      {mcps.map((mcp) => (
-        <div key={mcp.name} className="mcp-row">
-          <div className="mcp-info">
-            <div className="mcp-name">{mcp.name}</div>
-            <div className="mcp-desc">{mcp.config?.command} {(mcp.config?.args || []).slice(0, 3).join(' ')}</div>
-          </div>
-          <Toggle checked={mcp.enabled} onChange={() => handleToggle(mcp.name, mcp.enabled)} />
-        </div>
-      ))}
+      {useGrouped
+        ? CATEGORIES
+            .filter((cat) => grouped.has(cat.id))
+            .map((cat) => {
+              const items = grouped.get(cat.id)!
+              return (
+                <CategoryGroup
+                  key={cat.id}
+                  categoryId={cat.id}
+                  label={cat.label}
+                  count={items.length}
+                  storageKey="mcp"
+                  defaultOpen
+                >
+                  {items.map(renderMcpRow)}
+                </CategoryGroup>
+              )
+            })
+        : mcps.map(renderMcpRow)
+      }
       {mcps.length === 0 && (
         <div style={{ fontSize: 11, color: 'var(--t3)' }}>{emptyText ?? 'No MCPs found'}</div>
       )}
@@ -192,21 +225,53 @@ function SkillsSection() {
     return <div style={{ fontSize: 11, color: 'var(--t3)', padding: '4px 0' }}>No skills installed</div>
   }
 
-  return (
-    <>
-      {items.map((item) => (
-        <div key={item.name} className="mcp-row">
-          <div className="mcp-info">
-            <div className="mcp-name">
-              {item.name}
-              <span className="mcp-badge">{item.type}</span>
-            </div>
-          </div>
-          <span className={`status-dot ${item.enabled ? 'none' : ''}`} style={{ width: 5, height: 5 }} />
+  const renderSkillRow = (item: { name: string; type: string; enabled: boolean }) => (
+    <div
+      key={item.name}
+      className="mcp-row"
+      draggable
+      onDragStart={(e) => setupCommandDrag(e, '/' + item.name, item.name)}
+      onDragEnd={(e) => cleanupDragGhost(e)}
+    >
+      <div className="mcp-info">
+        <div className="mcp-name">
+          {item.name}
+          <span className="mcp-badge">{item.type}</span>
         </div>
-      ))}
-    </>
+      </div>
+      <span className={`status-dot ${item.enabled ? 'none' : ''}`} style={{ width: 5, height: 5 }} />
+    </div>
   )
+
+  const grouped = groupByCategory(items, (i) => i.name)
+  const useGrouped = items.length >= 6
+
+  if (useGrouped) {
+    return (
+      <>
+        {CATEGORIES
+          .filter((cat) => grouped.has(cat.id))
+          .map((cat) => {
+            const catItems = grouped.get(cat.id)!
+            return (
+              <CategoryGroup
+                key={cat.id}
+                categoryId={cat.id}
+                label={cat.label}
+                count={catItems.length}
+                storageKey="skills"
+                defaultOpen
+              >
+                {catItems.map(renderSkillRow)}
+              </CategoryGroup>
+            )
+          })
+        }
+      </>
+    )
+  }
+
+  return <>{items.map(renderSkillRow)}</>
 }
 
 // --- Usage Section (reads from ~/.claude.json, no admin key) ---

@@ -244,7 +244,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     // Feature 3: WebLinksAddon — open URLs in DAEMON's built-in browser
     term.loadAddon(new WebLinksAddon((_event, url) => {
       useBrowserStore.getState().setUrl(url)
-      useUIStore.getState().setCenterMode('browser')
+      useUIStore.getState().openBrowserTab()
     }))
 
     term.open(containerRef.current)
@@ -426,11 +426,34 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
         onClick={() => xtermRef.current?.focus()}
         onContextMenu={handleContextMenu}
         onDragEnter={(e) => { e.preventDefault(); dragDepthRef.current += 1; setDragActive(true) }}
-        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy' }}
-        onDragLeave={() => { dragDepthRef.current = Math.max(0, dragDepthRef.current - 1); if (dragDepthRef.current === 0) setDragActive(false) }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+          if (e.dataTransfer.types.includes('application/x-daemon-command')) {
+            containerRef.current?.classList.add('command-drag-active')
+          }
+        }}
+        onDragLeave={() => {
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+          if (dragDepthRef.current === 0) {
+            setDragActive(false)
+            containerRef.current?.classList.remove('command-drag-active')
+          }
+        }}
         onDrop={(e) => {
+          const command = e.dataTransfer.getData('application/x-daemon-command')
+          if (command) {
+            e.preventDefault()
+            dragDepthRef.current = 0
+            containerRef.current?.classList.remove('drag-active')
+            containerRef.current?.classList.remove('command-drag-active')
+            window.daemon.terminal.write(id, command)
+            xtermRef.current?.focus()
+            return
+          }
           dragDepthRef.current = 0
           setDragActive(false)
+          containerRef.current?.classList.remove('command-drag-active')
           const files = Array.from(e.dataTransfer.files)
           const hasFolder = files.some((f) => f.size === 0 && !f.type)
           if (hasFolder) return
