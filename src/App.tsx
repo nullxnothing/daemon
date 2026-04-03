@@ -9,6 +9,7 @@ import { AgentLauncher } from './panels/AgentLauncher/AgentLauncher'
 import { ClaudePanel } from './panels/ClaudePanel/ClaudePanel'
 import { CommandDrawer } from './components/CommandDrawer/CommandDrawer'
 import { AgentGrid } from './panels/Terminal/AgentGrid'
+import { BrowserMode } from './panels/BrowserMode/BrowserMode'
 import { Titlebar } from './panels/Titlebar/Titlebar'
 import { IconSidebar } from './panels/IconSidebar/IconSidebar'
 import { StatusBar } from './panels/StatusBar/StatusBar'
@@ -207,6 +208,10 @@ function App() {
             <div className="editor-area" data-tour="editor" style={drawerOpen ? { pointerEvents: 'none' } : undefined}>
               {centerMode === 'grind' ? (
                 <AgentGrid />
+              ) : centerMode === 'browser' ? (
+                <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+K to access tools">
+                  <BrowserMode />
+                </PanelErrorBoundary>
               ) : (
                 <PanelErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
                   <EditorPanel />
