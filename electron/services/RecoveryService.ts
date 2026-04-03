@@ -96,6 +96,9 @@ export async function importCsv(): Promise<{ count: number; path: string } | nul
 }
 
 export function loadCsvFile(csvPath: string): { count: number; path: string } {
+  const CSV_MAX_BYTES = 10 * 1024 * 1024
+  const stat = fs.statSync(csvPath)
+  if (stat.size > CSV_MAX_BYTES) throw new Error('CSV file exceeds 10MB limit')
   const content = fs.readFileSync(csvPath, 'utf-8')
   const lines = content.split('\n')
   const keypairs = new Map<string, Keypair>()

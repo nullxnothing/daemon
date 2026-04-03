@@ -117,11 +117,11 @@ export function registerFilesystemHandlers() {
   }))
 }
 
-function readDirRecursive(dirPath: string, depth: number): FileEntry[] {
+async function readDirRecursive(dirPath: string, depth: number): Promise<FileEntry[]> {
   if (depth <= 0) return []
 
   try {
-    const items = fsSync.readdirSync(dirPath, { withFileTypes: true })
+    const items = await fs.readdir(dirPath, { withFileTypes: true })
     const entries: FileEntry[] = []
 
     for (const item of items) {
@@ -135,7 +135,7 @@ function readDirRecursive(dirPath: string, depth: number): FileEntry[] {
       }
 
       if (item.isDirectory() && depth > 1) {
-        entry.children = readDirRecursive(fullPath, depth - 1)
+        entry.children = await readDirRecursive(fullPath, depth - 1)
       }
 
       entries.push(entry)

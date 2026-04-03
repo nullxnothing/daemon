@@ -134,14 +134,20 @@ function KeysSection() {
 
 function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
   const [mcps, setMcps] = useState<McpEntry[]>([])
-  const [connection, setConnection] = useState<{ authMode: string } | null>(null)
+  const [connection, setConnection] = useState<ClaudeConnection | null>(null)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [signingIn, setSigningIn] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [savingKey, setSavingKey] = useState(false)
+  const [showApiInput, setShowApiInput] = useState(false)
 
   const load = useCallback((cancelled = false) => {
-    if (!projectPath) return
-    window.daemon.claude.projectMcpAll(projectPath).then((res) => {
-      if (!cancelled && res.ok && res.data) setMcps(res.data)
-    })
-    window.daemon.claude.getConnection().then((res) => {
+    if (projectPath) {
+      window.daemon.claude.projectMcpAll(projectPath).then((res) => {
+        if (!cancelled && res.ok && res.data) setMcps(res.data)
+      })
+    }
+    window.daemon.claude.verifyConnection().then((res) => {
       if (!cancelled && res.ok && res.data) setConnection(res.data)
     })
   }, [projectPath])
@@ -156,25 +162,105 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
     if (!projectPath) return
     await window.daemon.claude.projectMcpToggle(projectPath, name, enabled)
     load()
-    // Notify all panels (e.g. ClaudePanel) that MCP state changed
     useUIStore.getState().bumpMcpVersion()
     useUIStore.getState().setMcpDirty(true)
   }
 
+  const handleDisconnect = async () => {
+    setDisconnecting(true)
+    await window.daemon.claude.disconnect()
+    setDisconnecting(false)
+    setConnection(null)
+    setShowApiInput(false)
+    setApiKeyInput('')
+    load()
+  }
+
+  const handleSignIn = async () => {
+    setSigningIn(true)
+    await window.daemon.claude.authLogin()
+    setSigningIn(false)
+    load()
+  }
+
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) return
+    setSavingKey(true)
+    await window.daemon.claude.storeKey('ANTHROPIC_API_KEY', apiKeyInput.trim())
+    setSavingKey(false)
+    setApiKeyInput('')
+    setShowApiInput(false)
+    load()
+  }
+
+  const isConnected = connection && connection.authMode !== 'none'
+  const authLabel = connection
+    ? connection.authMode === 'both' ? 'Subscription + API key'
+      : connection.authMode === 'cli' ? 'Subscription'
+      : connection.authMode === 'api' ? 'API key'
+      : 'Not connected'
+    : 'Checking...'
+
   return (
     <div className="settings-section">
+      {/* Claude Connection */}
+      <div className="settings-section-label">Claude Connection</div>
       <div className="settings-section-desc">
-        Claude CLI connection and MCP server toggles for the active project.
+        Manage your Claude authentication and API access.
       </div>
 
       <div className="settings-integration-row">
-        <div className={`settings-integration-dot ${connection && connection.authMode !== 'none' ? 'green' : ''}`} />
-        <span className="settings-integration-name">Claude CLI</span>
-        <span className="settings-integration-status">{connection?.authMode ?? 'unknown'}</span>
+        <div className={`settings-integration-dot ${isConnected ? 'green' : ''}`} />
+        <span className="settings-integration-name">Status</span>
+        <span className="settings-integration-status">{authLabel}</span>
       </div>
+
+      {connection?.claudePath && (
+        <div className="settings-integration-row">
+          <div className="settings-integration-dot green" />
+          <span className="settings-integration-name">CLI Path</span>
+          <span className="settings-integration-status" style={{ fontFamily: 'var(--font-code)', fontSize: 11 }}>
+            {connection.claudePath}
+          </span>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+        {isConnected ? (
+          <button className="settings-btn danger" onClick={handleDisconnect} disabled={disconnecting}>
+            {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+          </button>
+        ) : (
+          <>
+            <button className="settings-btn primary" onClick={handleSignIn} disabled={signingIn}>
+              {signingIn ? 'Waiting...' : 'Sign in with Claude'}
+            </button>
+            <button className="settings-btn" onClick={() => setShowApiInput(!showApiInput)}>
+              {showApiInput ? 'Cancel' : 'Use API Key'}
+            </button>
+          </>
+        )}
+      </div>
+
+      {showApiInput && !isConnected && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <input
+            className="settings-input"
+            type="password"
+            placeholder="sk-ant-api03-..."
+            value={apiKeyInput}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
+          />
+          <button className="settings-btn primary" onClick={handleSaveApiKey} disabled={savingKey || !apiKeyInput.trim()}>
+            {savingKey ? '...' : 'Save'}
+          </button>
+        </div>
+      )}
 
       <div className="settings-divider" />
 
+      {/* MCP Servers */}
       <div className="settings-section-label">MCP Servers</div>
       {!projectPath && <div className="settings-empty">Select a project to manage MCPs</div>}
       {mcps.map((mcp) => (

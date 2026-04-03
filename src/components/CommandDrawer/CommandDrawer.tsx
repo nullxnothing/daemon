@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback, lazy, Suspense, type ComponentType } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense, type ComponentType } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
-import { PluginErrorBoundary } from '../ErrorBoundary'
+import { PanelErrorBoundary } from '../ErrorBoundary'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -139,15 +139,17 @@ export function CommandDrawer() {
   const searchRef = useRef<HTMLInputElement>(null)
   const drawerRef = useRef<HTMLDivElement>(null)
 
-  const allTools = getDrawerTools()
+  const plugins = usePluginStore((s) => s.plugins)
+  const allTools = useMemo(() => getDrawerTools(), [plugins]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filter tools by search
-  const filteredTools = search.trim()
-    ? allTools.filter(t =>
-        t.name.toLowerCase().includes(search.toLowerCase()) ||
-        t.description.toLowerCase().includes(search.toLowerCase())
-      )
-    : allTools
+  const filteredTools = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return allTools
+    return allTools.filter(t =>
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q)
+    )
+  }, [allTools, search])
 
   // Focus search input when drawer opens in grid mode
   useEffect(() => {
@@ -162,15 +164,13 @@ export function CommandDrawer() {
       e.preventDefault()
       e.stopPropagation()
       if (drawerTool) {
-        // Back to grid
-        setDrawerTool(null)
-        useUIStore.getState().drawerOpen = true // keep open
-        useUIStore.setState({ drawerOpen: true, drawerTool: null })
+        // Back to grid — keep drawer open, clear tool
+        useUIStore.setState({ drawerTool: null, drawerFullscreen: false })
       } else {
         closeDrawer()
       }
     }
-  }, [drawerTool, setDrawerTool, closeDrawer])
+  }, [drawerTool, closeDrawer])
 
   useEffect(() => {
     if (!drawerOpen) return
@@ -242,11 +242,11 @@ export function CommandDrawer() {
       {/* Content */}
       <div className="drawer-content">
         {activeTool ? (
-          <PluginErrorBoundary fallbackLabel="Tool crashed — press Esc to go back">
+          <PanelErrorBoundary fallbackLabel="Tool crashed — press Esc to go back">
             <Suspense fallback={<ToolFallback />}>
               <activeTool.component />
             </Suspense>
-          </PluginErrorBoundary>
+          </PanelErrorBoundary>
         ) : (
           <div className="drawer-grid">
             {filteredTools.map((tool) => {

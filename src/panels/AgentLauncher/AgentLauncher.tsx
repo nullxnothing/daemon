@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useUIStore } from '../../store/ui'
 import { AgentForm } from './AgentForm'
 import { DaemonAgentRow, ClaudeAgentRow } from './AgentRow'
@@ -30,26 +30,28 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
 
-  const loadAgents = useCallback((cancelled = false) => {
+  const loadAgents = useCallback((guard?: { cancelled: boolean }) => {
     window.daemon.agents.list().then((res) => {
-      if (!cancelled && res.ok && res.data) setAgents(res.data as Agent[])
+      if (guard?.cancelled) return
+      if (res.ok && res.data) setAgents(res.data as Agent[])
     })
     window.daemon.agents.claudeList().then((res) => {
-      if (!cancelled && res.ok && res.data) setClaudeAgents(res.data as ClaudeAgentFile[])
+      if (guard?.cancelled) return
+      if (res.ok && res.data) setClaudeAgents(res.data as ClaudeAgentFile[])
     })
   }, [])
 
   useEffect(() => {
-    let cancelled = false
+    const guard = { cancelled: false }
     if (isOpen) {
-      loadAgents(cancelled)
+      loadAgents(guard)
       setFilter('')
       setSelectedIdx(0)
       setShowForm(false)
       setEditingAgent(null)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
-    return () => { cancelled = true }
+    return () => { guard.cancelled = true }
   }, [isOpen, loadAgents])
 
   // Block Escape from reaching window-level capture listeners (e.g. CommandDrawer)
@@ -73,23 +75,31 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
     return () => window.removeEventListener('keydown', handleNativeEscape, true)
   }, [isOpen, showForm, onClose])
 
-  const daemonAgents = agents.filter((a) =>
-    (a.source ?? 'daemon') !== 'claude-import'
+  const daemonAgents = useMemo(
+    () => agents.filter((a) => (a.source ?? 'daemon') !== 'claude-import'),
+    [agents]
   )
-  const importedClaudeAgents = agents.filter((a) =>
-    (a.source ?? 'daemon') === 'claude-import'
+  const importedClaudeAgents = useMemo(
+    () => agents.filter((a) => (a.source ?? 'daemon') === 'claude-import'),
+    [agents]
   )
-  const importedClaudeAgentsByPath = new Map(
-    importedClaudeAgents
-      .filter((agent) => agent.external_path)
-      .map((agent) => [agent.external_path as string, agent])
+  const importedClaudeAgentsByPath = useMemo(
+    () => new Map(
+      importedClaudeAgents
+        .filter((agent) => agent.external_path)
+        .map((agent) => [agent.external_path as string, agent])
+    ),
+    [importedClaudeAgents]
   )
 
-  const filtered = daemonAgents.filter((a) =>
-    a.name.toLowerCase().includes(filter.toLowerCase())
+  const filterLower = useMemo(() => filter.toLowerCase(), [filter])
+  const filtered = useMemo(
+    () => daemonAgents.filter((a) => a.name.toLowerCase().includes(filterLower)),
+    [daemonAgents, filterLower]
   )
-  const filteredClaude = claudeAgents.filter((a) =>
-    a.name.toLowerCase().includes(filter.toLowerCase())
+  const filteredClaude = useMemo(
+    () => claudeAgents.filter((a) => a.name.toLowerCase().includes(filterLower)),
+    [claudeAgents, filterLower]
   )
 
   useEffect(() => { setSelectedIdx(0) }, [filter])
@@ -117,6 +127,24 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
     }
   }, [activeProjectId, addTerminal, setCenterMode, onClose])
 
+  const spawnClaudeAgent = useCallback(async (claudeAgent: ClaudeAgentFile) => {
+    setError(null)
+    if (!activeProjectId) { setError('Select a project first'); return }
+
+    // Auto-import if not already imported, then spawn
+    let imported = importedClaudeAgentsByPath.get(claudeAgent.filePath)
+    if (!imported) {
+      const importRes = await window.daemon.agents.importClaude(claudeAgent.filePath)
+      if (!importRes.ok || !importRes.data) {
+        setError(importRes.error ?? 'Failed to import Claude agent')
+        return
+      }
+      imported = importRes.data as Agent
+      loadAgents()
+    }
+    spawnAgent(imported)
+  }, [activeProjectId, importedClaudeAgentsByPath, spawnAgent, loadAgents])
+
   const syncClaude = useCallback(async (claudeAgent: ClaudeAgentFile) => {
     setError(null)
     const res = await window.daemon.agents.syncClaude(claudeAgent.filePath)
@@ -134,29 +162,34 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
       if (showForm) { setShowForm(false); setEditingAgent(null) }
       else onClose()
     } else if (!showForm) {
-      const spawnable = [
-        ...filtered,
-        ...filteredClaude
-          .map((agent) => importedClaudeAgentsByPath.get(agent.filePath))
-          .filter((agent): agent is Agent => Boolean(agent)),
-      ]
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, spawnable.length - 1)) }
+      const totalItems = filtered.length + filteredClaude.length
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, totalItems - 1)) }
       else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)) }
-      else if (e.key === 'Enter' && spawnable[selectedIdx]) { spawnAgent(spawnable[selectedIdx]) }
+      else if (e.key === 'Enter') {
+        const daemonIdx = selectedIdx
+        if (daemonIdx < filtered.length && filtered[daemonIdx]) {
+          spawnAgent(filtered[daemonIdx])
+        } else {
+          const claudeIdx = selectedIdx - filtered.length
+          if (claudeIdx >= 0 && filteredClaude[claudeIdx]) {
+            spawnClaudeAgent(filteredClaude[claudeIdx])
+          }
+        }
+      }
     }
   }
 
-  const handleEdit = (e: React.MouseEvent, agent: Agent) => {
+  const handleEdit = useCallback((e: React.MouseEvent, agent: Agent) => {
     e.stopPropagation()
     setEditingAgent(agent)
     setShowForm(true)
-  }
+  }, [])
 
-  const handleDelete = async (e: React.MouseEvent, agent: Agent) => {
+  const handleDelete = useCallback(async (e: React.MouseEvent, agent: Agent) => {
     e.stopPropagation()
     await window.daemon.agents.delete(agent.id)
     loadAgents()
-  }
+  }, [loadAgents])
 
   const handleFormSave = () => {
     setShowForm(false)
@@ -198,28 +231,31 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
                 <DaemonAgentRow
                   key={agent.id}
                   agent={agent}
+                  index={i}
                   selected={i === selectedIdx}
-                  onHover={() => setSelectedIdx(i)}
-                  onSpawn={() => spawnAgent(agent)}
-                  onEdit={(e) => handleEdit(e, agent)}
-                  onDelete={(e) => handleDelete(e, agent)}
+                  onSelect={setSelectedIdx}
+                  onSpawn={spawnAgent}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               ))}
               <SectionLabel title="Claude Agents" count={filteredClaude.length} />
               {filteredClaude.map((agent, i) => {
                 const importedAgent = importedClaudeAgentsByPath.get(agent.filePath)
+                const globalIdx = filtered.length + i
                 return (
                   <ClaudeAgentRow
                     key={agent.filePath}
                     agent={agent}
                     importedAgent={importedAgent}
-                    selected={filtered.length + i === selectedIdx}
-                    onHover={() => importedAgent && setSelectedIdx(filtered.length + i)}
-                    onSpawn={() => importedAgent && spawnAgent(importedAgent)}
-                    onSync={() => syncClaude(agent)}
-                    onEdit={importedAgent ? (e) => handleEdit(e, importedAgent) : undefined}
-                    onDelete={importedAgent ? (e) => handleDelete(e, importedAgent) : undefined}
-                    onImport={() => handleImportClaude(agent)}
+                    index={globalIdx}
+                    selected={globalIdx === selectedIdx}
+                    onSelect={setSelectedIdx}
+                    onSpawn={spawnClaudeAgent}
+                    onSync={syncClaude}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onImport={handleImportClaude}
                   />
                 )
               })}

@@ -355,6 +355,9 @@ declare global {
     claudeMdWrite: (projectPath: string, content: string) => Promise<IpcResponse>
     verifyConnection: () => Promise<IpcResponse<ClaudeConnection>>
     getConnection: () => Promise<IpcResponse<ClaudeConnection | null>>
+    installCli: () => Promise<IpcResponse<{ stdout: string; stderr: string }>>
+    authLogin: () => Promise<IpcResponse<{ success: boolean }>>
+    disconnect: () => Promise<IpcResponse<{ disconnected: boolean }>>
     suggestCommitMessage: (diff: string) => Promise<IpcResponse<string>>
     tidyMarkdown: (filePath: string, content: string) => Promise<IpcResponse<string>>
     mcpAdd: (mcp: { name: string; config: string; description: string; isGlobal: boolean }) => Promise<IpcResponse>

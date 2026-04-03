@@ -42,9 +42,13 @@ export function registerSettingsHandlers() {
   }))
 
   ipcMain.handle('settings:report-crash', ipcHandler(async (_event, data: { type: string; message: string; stack: string }) => {
+    const FIELD_MAX = 10 * 1024
+    const safeType = String(data.type ?? '').slice(0, FIELD_MAX)
+    const safeMessage = String(data.message ?? '').slice(0, FIELD_MAX)
+    const safeStack = String(data.stack ?? '').slice(0, FIELD_MAX)
     const db = getDb()
     db.prepare('INSERT INTO app_crashes (id, type, message, stack, created_at) VALUES (?,?,?,?,?)').run(
-      crypto.randomUUID(), data.type, data.message, data.stack ?? '', Date.now()
+      crypto.randomUUID(), safeType, safeMessage, safeStack, Date.now()
     )
   }))
 

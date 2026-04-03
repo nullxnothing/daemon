@@ -10,7 +10,7 @@ interface State {
   error: string | null
 }
 
-export class PluginErrorBoundary extends Component<Props, State> {
+export class PanelErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, error: null }
 
   static getDerivedStateFromError(err: Error): State {
@@ -63,3 +63,6 @@ export class PluginErrorBoundary extends Component<Props, State> {
     return this.props.children
   }
 }
+
+// Backward-compat alias — prefer PanelErrorBoundary for new code
+export const PluginErrorBoundary = PanelErrorBoundary

@@ -4,7 +4,9 @@ import { useUIStore } from '../../store/ui'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { Toggle } from '../../components/Toggle'
 import { AriaChat } from './AriaChat'
+import { PanelErrorBoundary } from '../../components/ErrorBoundary'
 import type { IpcResponse, McpEntry, SessionUsage } from '../../../electron/shared/types'
+import type * as monaco from 'monaco-editor'
 import './ClaudePanel.css'
 
 export function ClaudePanel() {
@@ -134,15 +136,15 @@ function McpSection({ loadFn, toggleFn, description, emptyText }: {
   const mcpVersion = useUIStore((s) => s.mcpVersion)
   const [mcps, setMcps] = useState<McpEntry[]>([])
 
-  const load = useCallback(async (cancelled = false) => {
+  const load = useCallback(async (guard: { cancelled: boolean } = { cancelled: false }) => {
     const res = await loadFn()
-    if (!cancelled && res.ok && res.data) setMcps(res.data)
+    if (!guard.cancelled && res.ok && res.data) setMcps(res.data)
   }, [loadFn])
 
   useEffect(() => {
-    let cancelled = false
-    load(cancelled)
-    return () => { cancelled = true }
+    const guard = { cancelled: false }
+    load(guard)
+    return () => { guard.cancelled = true }
   }, [load, mcpVersion])
 
   const handleToggle = async (name: string, currentlyEnabled: boolean) => {
@@ -342,7 +344,7 @@ function ClaudeMdDiffModal({ original, modified, onAccept, onReject }: {
   onAccept: (content: string) => void
   onReject: () => void
 }) {
-  const editorRef = useRef<any>(null)
+  const editorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null)
 
   return (
     <div className="diff-modal-overlay" onClick={onReject}>
@@ -359,22 +361,24 @@ function ClaudeMdDiffModal({ original, modified, onAccept, onReject }: {
           </div>
         </div>
         <div className="diff-modal-body">
-          <DiffEditor
-            height="100%"
-            language="markdown"
-            original={original}
-            modified={modified}
-            onMount={(editor) => { editorRef.current = editor }}
-            theme="vs-dark"
-            options={{
-              renderSideBySide: true,
-              originalEditable: false,
-              readOnly: false,
-              enableSplitViewResizing: true,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-            }}
-          />
+          <PanelErrorBoundary fallbackLabel="Diff editor failed to load">
+            <DiffEditor
+              height="100%"
+              language="markdown"
+              original={original}
+              modified={modified}
+              onMount={(editor) => { editorRef.current = editor }}
+              theme="vs-dark"
+              options={{
+                renderSideBySide: true,
+                originalEditable: false,
+                readOnly: false,
+                enableSplitViewResizing: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+              }}
+            />
+          </PanelErrorBoundary>
         </div>
       </div>
     </div>

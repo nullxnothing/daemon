@@ -108,6 +108,9 @@ contextBridge.exposeInMainWorld('daemon', {
     claudeMdWrite: (projectPath: string, content: string) => ipcRenderer.invoke('claude:claudemd-write', projectPath, content),
     verifyConnection: () => ipcRenderer.invoke('claude:verify-connection'),
     getConnection: () => ipcRenderer.invoke('claude:get-connection'),
+    installCli: () => ipcRenderer.invoke('claude:install-cli'),
+    authLogin: () => ipcRenderer.invoke('claude:auth-login'),
+    disconnect: () => ipcRenderer.invoke('claude:disconnect'),
     suggestCommitMessage: (diff: string) => ipcRenderer.invoke('claude:suggest-commit-message', diff),
     tidyMarkdown: (filePath: string, content: string) => ipcRenderer.invoke('claude:tidy-markdown', filePath, content),
   },
@@ -355,14 +358,97 @@ function useLoading() {
   position: fixed;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: #0a0a0a;
   z-index: 9;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #7a7a7a;
-  font-size: 14px;
-  letter-spacing: 0.5px;
+  gap: 28px;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+.daemon-loading--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.daemon-loading__ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(62,207,142,0.12),
+    inset 0 0 12px rgba(62,207,142,0.08),
+    0 0 16px rgba(62,207,142,0.06);
+  animation: dl-spin 2.4s cubic-bezier(0.45,0.05,0.55,0.95) infinite;
+  position: relative;
+}
+.daemon-loading__ring::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: #3ecf8e;
+  border-right-color: rgba(62,207,142,0.4);
+  box-shadow: 0 0 8px rgba(62,207,142,0.35), 0 0 20px rgba(62,207,142,0.12);
+}
+.daemon-loading__text {
+  display: flex;
+  gap: 2px;
+}
+.daemon-loading__letter {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #f0f0f0;
+  display: inline-block;
+  animation: dl-pulse 2.8s ease-in-out infinite;
+}
+.daemon-loading__letter:nth-child(1) { animation-delay: 0.00s; }
+.daemon-loading__letter:nth-child(2) { animation-delay: 0.08s; }
+.daemon-loading__letter:nth-child(3) { animation-delay: 0.16s; }
+.daemon-loading__letter:nth-child(4) { animation-delay: 0.24s; }
+.daemon-loading__letter:nth-child(5) { animation-delay: 0.32s; }
+.daemon-loading__letter:nth-child(6) { animation-delay: 0.40s; }
+.daemon-loading__status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #505050;
+  min-height: 14px;
+}
+.daemon-loading__bar {
+  width: 160px;
+  height: 1px;
+  background: #222222;
+  border-radius: 1px;
+  overflow: hidden;
+}
+.daemon-loading__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2a8c62, #3ecf8e);
+  box-shadow: 0 0 6px rgba(62,207,142,0.5);
+  border-radius: 1px;
+  animation: dl-sweep 2s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+@keyframes dl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes dl-pulse {
+  0%, 60%, 100% { color: #f0f0f0; text-shadow: none; }
+  30% { color: #3ecf8e; text-shadow: 0 0 12px rgba(62,207,142,0.5); }
+}
+@keyframes dl-sweep {
+  0%   { width: 0%;  margin-left: 0%; }
+  50%  { width: 60%; margin-left: 20%; }
+  100% { width: 0%;  margin-left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daemon-loading__ring, .daemon-loading__letter, .daemon-loading__fill { animation: none; }
+  .daemon-loading__fill { width: 40%; }
 }
   `
   const oStyle = document.createElement('style')
@@ -371,7 +457,19 @@ function useLoading() {
   oStyle.id = 'daemon-loading-style'
   oStyle.innerHTML = styleContent
   oDiv.className = 'daemon-loading'
-  oDiv.innerHTML = 'DAEMON'
+  oDiv.innerHTML = `
+    <div class="daemon-loading__ring"></div>
+    <div class="daemon-loading__text">
+      <span class="daemon-loading__letter">D</span>
+      <span class="daemon-loading__letter">A</span>
+      <span class="daemon-loading__letter">E</span>
+      <span class="daemon-loading__letter">M</span>
+      <span class="daemon-loading__letter">O</span>
+      <span class="daemon-loading__letter">N</span>
+    </div>
+    <div class="daemon-loading__status">initializing...</div>
+    <div class="daemon-loading__bar"><div class="daemon-loading__fill"></div></div>
+  `
 
   return {
     appendLoading() {
@@ -379,8 +477,8 @@ function useLoading() {
       document.body.appendChild(oDiv)
     },
     removeLoading() {
-      oStyle.remove()
-      oDiv.remove()
+      oDiv.classList.add('daemon-loading--hidden')
+      setTimeout(() => { oStyle.remove(); oDiv.remove() }, 450)
     },
   }
 }

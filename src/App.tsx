@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react'
+import { BootLoader } from './components/BootLoader/BootLoader'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { buildCommands } from './components/CommandPalette/commands'
@@ -14,7 +15,7 @@ import { StatusBar } from './panels/StatusBar/StatusBar'
 import { OnboardingWizard } from './panels/Onboarding/OnboardingWizard'
 import { TourOverlay } from './components/Tour/TourOverlay'
 import { useOnboardingStore } from './store/onboarding'
-import { PluginErrorBoundary } from './components/ErrorBoundary'
+import { PanelErrorBoundary } from './components/ErrorBoundary'
 import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
@@ -40,6 +41,7 @@ function App() {
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
   const [crashWarningCount, setCrashWarningCount] = useState<number | null>(null)
+  const [appReady, setAppReady] = useState(false)
 
   const [showTerminal, setShowTerminal] = useState(true)
 
@@ -75,9 +77,8 @@ function App() {
     && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
-    let cancelled = false
-    window.postMessage({ payload: 'removeLoading' }, '*')
-    loadProjects(cancelled)
+    const guard = { cancelled: false }
+    loadProjects(guard)
     usePluginStore.getState().load()
     // Debug: expose store for CDP testing
     if (import.meta.env.DEV) {
@@ -85,7 +86,16 @@ function App() {
     }
     // Load onboarding progress — shows wizard or resume banner as needed
     useOnboardingStore.getState().loadProgress()
-    return () => { cancelled = true }
+    // Signal the boot screen to dismiss after a brief minimum display window.
+    // The 700ms floor ensures the loader is never just a flash.
+    const readyId = setTimeout(() => {
+      setAppReady(true)
+      window.postMessage({ payload: 'removeLoading' }, '*')
+    }, 700)
+    return () => {
+      guard.cancelled = true
+      clearTimeout(readyId)
+    }
   }, [])
 
   // Renderer crash capture — forward errors to main process via IPC
@@ -150,6 +160,7 @@ function App() {
 
   return (
     <div className="app">
+      <BootLoader ready={appReady} />
       {crashWarningCount !== null && (
         <div className="crash-warning-banner">
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
@@ -195,9 +206,9 @@ function App() {
               {centerMode === 'grind' ? (
                 <AgentGrid />
               ) : (
-                <PluginErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
+                <PanelErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
                   <EditorPanel />
-                </PluginErrorBoundary>
+                </PanelErrorBoundary>
               )}
             </div>
           )}

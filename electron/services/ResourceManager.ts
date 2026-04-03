@@ -187,12 +187,6 @@ class ResourceManagerImpl {
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
 
-    // Handle uncaught exceptions
-    process.on('uncaughtException', async (error) => {
-      console.error('Uncaught exception:', error);
-      await shutdown();
-      process.exit(1);
-    });
   }
 
   /**

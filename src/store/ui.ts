@@ -35,8 +35,6 @@ interface UIState {
   activeTerminalIdByProject: Record<string, string | null>
   mcpDirty: boolean
   mcpVersion: number
-  /** @deprecated Use useOnboardingStore.wizardOpen instead */
-  showOnboarding: boolean
   centerMode: CenterMode
   grindPageCount: number
   activeGrindPage: number
@@ -56,8 +54,6 @@ interface UIState {
   removeProjectState: (projectId: string) => void
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
-  /** @deprecated Use useOnboardingStore actions instead */
-  setShowOnboarding: (show: boolean) => void
   setCenterMode: (mode: CenterMode) => void
   setActiveGrindPage: (page: number) => void
   addGrindPage: () => void
@@ -100,7 +96,6 @@ export const useUIStore = create<UIState>((set) => ({
   activeTerminalIdByProject: {},
   mcpDirty: false,
   mcpVersion: 0,
-  showOnboarding: false,
   centerMode: 'canvas' as CenterMode,
   grindPageCount: 1,
   activeGrindPage: 0,
@@ -193,7 +188,6 @@ export const useUIStore = create<UIState>((set) => ({
 
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
-  setShowOnboarding: (show) => set({ showOnboarding: show }),
   setCenterMode: (mode) => set({ centerMode: mode }),
   setActiveGrindPage: (page) => set({ activeGrindPage: page }),
   addGrindPage: () => set((state) => ({

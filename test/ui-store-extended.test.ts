@@ -13,7 +13,6 @@ function resetStore() {
     activeTerminalIdByProject: {},
     mcpDirty: false,
     mcpVersion: 0,
-    showOnboarding: false,
     centerMode: 'canvas',
     grindPageCount: 1,
     activeGrindPage: 0,
@@ -33,7 +32,6 @@ describe('useUIStore — initial state', () => {
     expect(state.openFiles).toEqual([])
     expect(state.terminals).toEqual([])
     expect(state.mcpDirty).toBe(false)
-    expect(state.showOnboarding).toBe(false)
     expect(state.centerMode).toBe('canvas')
   })
 })
@@ -198,16 +196,7 @@ describe('useUIStore — MCP dirty state', () => {
   })
 })
 
-describe('useUIStore — onboarding', () => {
-  beforeEach(resetStore)
-
-  it('toggles onboarding visibility', () => {
-    useUIStore.getState().setShowOnboarding(true)
-    expect(useUIStore.getState().showOnboarding).toBe(true)
-    useUIStore.getState().setShowOnboarding(false)
-    expect(useUIStore.getState().showOnboarding).toBe(false)
-  })
-})
+// showOnboarding was removed from useUIStore — onboarding state lives in useOnboardingStore
 
 describe('useUIStore — grind pages', () => {
   beforeEach(resetStore)

@@ -1,10 +1,12 @@
 import { ipcMain } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { exec } from 'node:child_process'
+import os from 'node:os'
+import { exec, execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 
 const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
@@ -228,5 +230,110 @@ ${content}`,
 
   ipcMain.handle('claude:get-connection', ipcHandler(async () => {
     return ClaudeRouter.getConnection()
+  }))
+
+  // --- CLI Install ---
+
+  ipcMain.handle('claude:install-cli', ipcHandler(async () => {
+    // Resolve npm path first
+    const isWin = process.platform === 'win32'
+    let npmPath = isWin ? 'npm.cmd' : 'npm'
+
+    try {
+      const npmPrefix = require('child_process')
+        .execSync('npm prefix -g', { encoding: 'utf8', timeout: 10000 }).trim()
+      const candidate = isWin
+        ? path.join(npmPrefix, 'npm.cmd')
+        : path.join(npmPrefix, 'bin', 'npm')
+      if (fs.existsSync(candidate)) npmPath = candidate
+    } catch {
+      // fallback to PATH resolution
+    }
+
+    const { stdout, stderr } = await execFileAsync(npmPath, ['install', '-g', '@anthropic-ai/claude-code'], {
+      timeout: 120000,
+      env: { ...process.env },
+    })
+
+    // Invalidate cached path so next verifyConnection picks up the new binary
+    ClaudeRouter.clearCachedPath()
+
+    return { stdout: stdout.trim(), stderr: stderr.trim() }
+  }))
+
+  // --- Auth Login (opens browser for OAuth) ---
+
+  ipcMain.handle('claude:auth-login', ipcHandler(async () => {
+    const claudePath = ClaudeRouter.getClaudePath()
+
+    return new Promise<{ success: boolean }>((resolve, reject) => {
+      const child = spawn(claudePath, ['login'], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env },
+      })
+
+      child.stdin.end()
+
+      let stdout = ''
+      let stderr = ''
+      let isSettled = false
+
+      const timeout = setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true
+          try { child.kill() } catch {}
+          // If the process ran for 60s it likely opened a browser and is waiting
+          // Treat as success — user may still be completing OAuth in browser
+          resolve({ success: true })
+        }
+      }, 60000)
+
+      child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
+      child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
+
+      child.on('close', (code) => {
+        if (isSettled) return
+        isSettled = true
+        clearTimeout(timeout)
+        if (code === 0) {
+          resolve({ success: true })
+        } else {
+          reject(new Error(stderr.trim() || `claude login exited with code ${code}`))
+        }
+      })
+
+      child.on('error', (err) => {
+        if (isSettled) return
+        isSettled = true
+        clearTimeout(timeout)
+        reject(new Error(err.message || 'Failed to start claude login'))
+      })
+    })
+  }))
+
+  // Disconnect: clear credentials, API key, and cached connection state
+  ipcMain.handle('claude:disconnect', ipcHandler(async () => {
+    // Clear stored API key
+    try { SecureKey.deleteKey('ANTHROPIC_API_KEY') } catch {}
+
+    // Clear OAuth credentials file
+    const credPath = path.join(os.homedir(), '.claude', '.credentials.json')
+    try {
+      if (fs.existsSync(credPath)) fs.unlinkSync(credPath)
+    } catch {}
+
+    // Clear cached connection in ClaudeRouter
+    ClaudeRouter.clearCachedConnection()
+
+    // Clear persisted connection from app_settings
+    try {
+      const { getDb } = await import('../db/db')
+      const db = getDb()
+      for (const key of ['claude_path', 'claude_auth_mode', 'claude_verified_at']) {
+        db.prepare('DELETE FROM app_settings WHERE key = ?').run(key)
+      }
+    } catch {}
+
+    return { disconnected: true }
   }))
 }

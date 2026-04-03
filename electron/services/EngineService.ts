@@ -12,7 +12,6 @@ async function execCmd(cmd: string, args: string[], options: { cwd?: string; tim
       cwd: options.cwd,
       timeout: options.timeout,
       encoding: 'utf8',
-      shell: true,
     })
     return stdout
   } catch (err: any) {
@@ -36,7 +35,13 @@ import type {
 async function buildContext(): Promise<EngineContext> {
   const db = getDb()
 
-  const projectRows = db.prepare('SELECT * FROM projects ORDER BY last_active DESC').all() as Project[]
+  const projectRows = db.prepare('SELECT * FROM projects ORDER BY last_active DESC LIMIT 20').all() as Project[]
+
+  const sessionCountRows = db.prepare(
+    'SELECT project_id, COUNT(*) as session_count FROM active_sessions GROUP BY project_id'
+  ).all() as Array<{ project_id: string; session_count: number }>
+  const sessionCountMap = new Map(sessionCountRows.map((r) => [r.project_id, r.session_count]))
+
   const projects = await Promise.all(projectRows.map(async (p) => {
     const claudeMdPath = path.join(p.path, 'CLAUDE.md')
     let gitBranch: string | null = null
@@ -46,8 +51,6 @@ async function buildContext(): Promise<EngineContext> {
       LogService.warn('EngineService', 'git branch detection failed: ' + (err as Error).message)
     }
 
-    const sessionCount = (db.prepare('SELECT COUNT(*) as c FROM active_sessions WHERE project_id = ?').get(p.id) as { c: number }).c
-
     return {
       id: p.id,
       name: p.name,
@@ -55,7 +58,7 @@ async function buildContext(): Promise<EngineContext> {
       status: p.status,
       hasClaudeMd: fs.existsSync(claudeMdPath),
       gitBranch,
-      activeSessions: sessionCount,
+      activeSessions: sessionCountMap.get(p.id) ?? 0,
     }
   }))
 
@@ -75,7 +78,7 @@ async function buildContext(): Promise<EngineContext> {
   let recentErrors: Array<{ operation: string; message: string; timestamp: number }> = []
   try {
     recentErrors = db.prepare(
-      'SELECT operation, message, timestamp FROM error_logs ORDER BY timestamp DESC LIMIT 10'
+      'SELECT operation, message, created_at AS timestamp FROM error_logs ORDER BY created_at DESC LIMIT 10'
     ).all() as typeof recentErrors
   } catch (err) {
     LogService.warn('EngineService', 'failed to fetch recent errors: ' + (err as Error).message)
@@ -127,7 +130,7 @@ function contextToString(ctx: EngineContext): string {
   if (ctx.recentErrors.length > 0) {
     sections.push('\n## Recent Errors (last 10)')
     for (const e of ctx.recentErrors) {
-      sections.push(`- [${new Date(e.timestamp * 1000).toISOString()}] ${e.operation}: ${e.message}`)
+      sections.push(`- [${new Date(e.timestamp).toISOString()}] ${e.operation}: ${e.message}`)
     }
   }
 

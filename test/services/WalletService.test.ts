@@ -13,7 +13,10 @@ const mockAll = vi.fn()
 const mockPrepare = vi.fn()
 
 vi.mock('../../electron/db/db', () => ({
-  getDb: () => ({ prepare: mockPrepare }),
+  getDb: () => ({
+    prepare: mockPrepare,
+    transaction: (fn: () => void) => fn,
+  }),
 }))
 
 // --- SecureKeyService mock
@@ -147,6 +150,8 @@ describe('deleteWallet', () => {
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT is_default FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ is_default: 1 }) }
       if (sql.includes('UPDATE projects SET wallet_id = NULL')) return { run: vi.fn() }
+      if (sql.includes('DELETE FROM portfolio_snapshots')) return { run: vi.fn() }
+      if (sql.includes('DELETE FROM transaction_history')) return { run: vi.fn() }
       if (sql.includes('DELETE FROM wallets')) return { run: vi.fn() }
       if (sql.includes('SELECT id FROM wallets ORDER BY created_at')) return { get: vi.fn().mockReturnValue({ id: 'next-wallet-id' }) }
       if (sql.includes('UPDATE wallets SET is_default = 1')) return { run: updateRun }
@@ -164,6 +169,8 @@ describe('deleteWallet', () => {
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT is_default FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ is_default: 0 }) }
       if (sql.includes('UPDATE projects SET wallet_id = NULL')) return { run: vi.fn() }
+      if (sql.includes('DELETE FROM portfolio_snapshots')) return { run: vi.fn() }
+      if (sql.includes('DELETE FROM transaction_history')) return { run: vi.fn() }
       if (sql.includes('DELETE FROM wallets')) return { run: vi.fn() }
       if (sql.includes('UPDATE wallets SET is_default = 1')) return { run: updateDefaultRun }
       return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
@@ -195,6 +202,8 @@ describe('deleteWallet', () => {
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('SELECT is_default FROM wallets WHERE id')) return { get: vi.fn().mockReturnValue({ is_default: 1 }) }
       if (sql.includes('UPDATE projects SET wallet_id = NULL')) return { run: vi.fn() }
+      if (sql.includes('DELETE FROM portfolio_snapshots')) return { run: vi.fn() }
+      if (sql.includes('DELETE FROM transaction_history')) return { run: vi.fn() }
       if (sql.includes('DELETE FROM wallets')) return { run: vi.fn() }
       if (sql.includes('SELECT id FROM wallets ORDER BY created_at')) return { get: vi.fn().mockReturnValue(undefined) }
       if (sql.includes('UPDATE wallets SET is_default = 1')) return { run: updateDefaultRun }

@@ -5,9 +5,9 @@ export function useProjects() {
   const setProjects = useUIStore((s) => s.setProjects)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
 
-  const loadProjects = useCallback(async (cancelled = false) => {
+  const loadProjects = useCallback(async (guard: { cancelled: boolean } = { cancelled: false }) => {
     const res = await window.daemon.projects.list()
-    if (cancelled || !res.ok || !res.data) return
+    if (guard.cancelled || !res.ok || !res.data) return
     setProjects(res.data)
 
     if (!useUIStore.getState().activeProjectId && res.data.length > 0) {

@@ -4,6 +4,15 @@ import { create } from 'zustand'
 let pollInterval: ReturnType<typeof setInterval> | null = null
 let subscriberCount = 0
 
+// Reset module-level state on HMR so poll timers don't stack across hot reloads
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    if (pollInterval) clearInterval(pollInterval)
+    pollInterval = null
+    subscriberCount = 0
+  })
+}
+
 const FAST_POLL_MS = 15_000   // when wallet panel is visible
 const SLOW_POLL_MS = 120_000  // background refresh (titlebar widget, etc.)
 

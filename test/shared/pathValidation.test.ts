@@ -11,7 +11,7 @@ vi.mock('../../electron/db/db', () => ({
 
 mockPrepare.mockReturnValue({ all: mockAll, get: vi.fn(), run: vi.fn() })
 
-import { isPathSafe, isProjectPathSafe } from '../../electron/shared/pathValidation'
+import { isPathSafe, isProjectPathSafe, invalidatePathCache } from '../../electron/shared/pathValidation'
 
 function setProjects(paths: string[]) {
   mockAll.mockReturnValue(paths.map((p) => ({ path: p })))
@@ -20,6 +20,7 @@ function setProjects(paths: string[]) {
 describe('isPathSafe', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    invalidatePathCache()
     mockPrepare.mockReturnValue({ all: mockAll, get: vi.fn(), run: vi.fn() })
   })
 
@@ -73,6 +74,7 @@ describe('isPathSafe', () => {
 describe('isProjectPathSafe', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    invalidatePathCache()
     mockPrepare.mockReturnValue({ all: mockAll, get: vi.fn(), run: vi.fn() })
   })
 

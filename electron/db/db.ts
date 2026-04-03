@@ -5,6 +5,7 @@ import { app } from 'electron'
 import { runMigrations } from './migrations'
 
 let _db: Database.Database | null = null
+let _walCheckpointTimer: ReturnType<typeof setInterval> | null = null
 
 export function getDb(): Database.Database {
   if (_db) return _db
@@ -15,6 +16,7 @@ export function getDb(): Database.Database {
   _db.pragma('journal_mode = WAL')
   _db.pragma('foreign_keys = ON')
   _db.pragma('busy_timeout = 5000')
+  _db.pragma('synchronous = NORMAL')
 
   // Integrity check before migrations — detect corruption early
   const integrity = _db.pragma('integrity_check') as Array<{ integrity_check: string }>
@@ -29,10 +31,21 @@ export function getDb(): Database.Database {
 
   runMigrations(_db)
 
+  // Periodic passive WAL checkpoint every 5 minutes to prevent unbounded WAL growth
+  _walCheckpointTimer = setInterval(() => {
+    try {
+      _db?.pragma('wal_checkpoint(PASSIVE)')
+    } catch { /* best-effort */ }
+  }, 5 * 60 * 1000)
+
   return _db
 }
 
 export function closeDb() {
+  if (_walCheckpointTimer) {
+    clearInterval(_walCheckpointTimer)
+    _walCheckpointTimer = null
+  }
   if (_db) {
     try {
       _db.pragma('wal_checkpoint(TRUNCATE)')

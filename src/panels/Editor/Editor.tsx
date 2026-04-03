@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react'
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
@@ -8,7 +8,7 @@ import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
-import { PluginErrorBoundary } from '../../components/ErrorBoundary'
+import { PanelErrorBoundary } from '../../components/ErrorBoundary'
 import { EditorWelcome } from './EditorWelcome'
 import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
@@ -47,7 +47,16 @@ const viewStateCache = new Map<string, monaco.editor.ICodeEditorViewState>()
 let themeIsDefined = false
 
 export function EditorPanel() {
-  const openFiles = useUIStore((s) => s.openFiles)
+  // Derive a stable fingerprint from open files to avoid re-renders on content-only changes.
+  // The fingerprint captures tab metadata (path, name, isDirty) but NOT content.
+  const tabFingerprint = useUIStore((s) =>
+    s.openFiles.map((f) => `${f.projectId}|${f.path}|${f.name}|${f.isDirty}`).join('\n')
+  )
+  // Recompute tab objects only when the fingerprint changes
+  const openFileTabs = useMemo(
+    () => useUIStore.getState().openFiles.map((f) => ({ path: f.path, name: f.name, isDirty: f.isDirty, projectId: f.projectId })),
+    [tabFingerprint]
+  )
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeFilePathByProject = useUIStore((s) => s.activeFilePathByProject)
@@ -70,12 +79,20 @@ export function EditorPanel() {
     position: { top: number; left: number }
   } | null>(null)
 
-  const projectOpenFiles = openFiles.filter((f) => f.projectId === activeProjectId)
+  const projectOpenFiles = useMemo(
+    () => openFileTabs.filter((f) => f.projectId === activeProjectId),
+    [openFileTabs, activeProjectId]
+  )
   const activeFilePath = activeProjectId ? activeFilePathByProject[activeProjectId] ?? null : null
-  const activeFile = openFiles.find((f) => f.path === activeFilePath)
-  const breadcrumbs = activeFile && activeProjectPath
-    ? buildBreadcrumbs(activeProjectPath, activeFile.path)
-    : []
+  const activeFile = useMemo(
+    () => useUIStore.getState().openFiles.find((f) => f.path === activeFilePath),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeFilePath, openFileTabs]
+  )
+  const breadcrumbs = useMemo(
+    () => activeFile && activeProjectPath ? buildBreadcrumbs(activeProjectPath, activeFile.path) : [],
+    [activeFile?.path, activeProjectPath]
+  )
   const isActiveFileMarkdown = isMarkdownFile(activeFile?.path)
 
   // Keep ref in sync so the onChange callback always has current path
@@ -85,6 +102,17 @@ export function EditorPanel() {
     setMarkdownTidyPreview(null)
     setTidyError(null)
   }, [activeFile?.path])
+
+  // Prune viewStateCache entries for files no longer open in any project.
+  // Runs on project switch to prevent unbounded cache growth.
+  useEffect(() => {
+    const openPaths = new Set(useUIStore.getState().openFiles.map((f) => f.path))
+    for (const cachedPath of viewStateCache.keys()) {
+      if (!openPaths.has(cachedPath)) {
+        viewStateCache.delete(cachedPath)
+      }
+    }
+  }, [activeProjectId])
 
   // Swap Monaco model when the active file changes — no remount
   useEffect(() => {
@@ -147,19 +175,25 @@ export function EditorPanel() {
     prevFilePathRef.current = activeFile.path
   }, [activeFile?.path]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync external content changes into existing models
-  // (e.g. file watcher updated content while tab was in background)
-  // Only non-dirty files are eligible — dirty files have unsaved user edits
-  const externalFiles = openFiles.filter((f) => !f.isDirty)
+  // Sync external content changes into existing models.
+  // Read content from getState() so this effect doesn't subscribe to content updates.
+  // Trigger is the slim tab list (isDirty flag changes are visible there).
+  const cleanTabPaths = useMemo(
+    () => openFileTabs.filter((f) => !f.isDirty).map((f) => f.path),
+    [openFileTabs]
+  )
   useEffect(() => {
-    for (const file of externalFiles) {
+    const allFiles = useUIStore.getState().openFiles
+    for (const path of cleanTabPaths) {
+      const file = allFiles.find((f) => f.path === path)
+      if (!file) continue
       const uri = monaco.Uri.parse(`file://${file.path}`)
       const model = monaco.editor.getModel(uri)
       if (model && model.getValue() !== file.content) {
         model.setValue(file.content)
       }
     }
-  }, [externalFiles]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cleanTabPaths]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBeforeMount: BeforeMount = (monacoInstance) => {
     if (themeIsDefined) return
@@ -324,7 +358,7 @@ export function EditorPanel() {
 
   // Dispose models for closed files to avoid memory leaks
   const handleCloseFile = useCallback((projectId: string, path: string) => {
-    const file = openFiles.find((f) => f.projectId === projectId && f.path === path)
+    const file = useUIStore.getState().openFiles.find((f) => f.projectId === projectId && f.path === path)
     if (file?.isDirty && !window.confirm(`Discard unsaved changes to ${file.name}?`)) return
 
     // Save view state before disposing so it persists if reopened
@@ -343,7 +377,7 @@ export function EditorPanel() {
     viewStateCache.delete(path)
 
     closeFile(projectId, path)
-  }, [openFiles, closeFile, activeFilePath])
+  }, [closeFile, activeFilePath])
 
   if (!activeProjectId || projectOpenFiles.length === 0) {
     return <EditorWelcome activeProjectId={activeProjectId} />
@@ -380,7 +414,7 @@ export function EditorPanel() {
             onDiscard={handleDiscardMarkdownTidy}
           />
         ) : (
-          <PluginErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
+          <PanelErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
             <MonacoEditor
               theme="daemon-dark"
               beforeMount={handleBeforeMount}
@@ -403,7 +437,7 @@ export function EditorPanel() {
                 glyphMargin: true,
               }}
             />
-          </PluginErrorBoundary>
+          </PanelErrorBoundary>
         )}
       </div>
       {askClaudeState?.visible && activeFile && (

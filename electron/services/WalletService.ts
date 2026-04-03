@@ -93,6 +93,20 @@ const exportCooldowns = new Map<string, number>()
 const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
 const BALANCE_CACHE_TTL = 30_000
 
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency)
+    const batchResults = await Promise.allSettled(batch.map(fn))
+    results.push(...batchResults)
+  }
+  return results
+}
+
 export async function getDashboard(projectId?: string | null) {
   const heliusKey = SecureKey.getKey('HELIUS_API_KEY')
   const heliusConfigured = Boolean(heliusKey)
@@ -128,8 +142,13 @@ export async function getDashboard(projectId?: string | null) {
 
   const apiKey = heliusKey as string
   const activeWalletRow = resolveActiveWallet(wallets, projectId ?? null)
-  const walletResults = await Promise.allSettled(
-    wallets.map(async (wallet) => {
+
+  // Process wallets with bounded concurrency to avoid overwhelming the Helius API
+  const WALLET_CONCURRENCY = 3
+  const walletResults = await runWithConcurrency(
+    wallets,
+    WALLET_CONCURRENCY,
+    async (wallet) => {
       const balances = await getWalletBalances(wallet.address, apiKey)
       const holdings = normalizeHoldings(balances.balances)
       const walletTotal = holdings.reduce((sum, holding) => sum + holding.valueUsd, 0)
@@ -145,7 +164,7 @@ export async function getDashboard(projectId?: string | null) {
         walletTotal,
         events,
       }
-    })
+    },
   )
 
   const walletSummaries: WalletSummary[] = []
@@ -243,13 +262,18 @@ export function createWallet(name: string, address: string) {
 export function deleteWallet(id: string) {
   const db = getDb()
   const row = db.prepare('SELECT is_default FROM wallets WHERE id = ?').get(id) as { is_default: number } | undefined
-  db.prepare('UPDATE projects SET wallet_id = NULL WHERE wallet_id = ?').run(id)
-  db.prepare('DELETE FROM wallets WHERE id = ?').run(id)
 
-  if (row?.is_default === 1) {
-    const replacement = db.prepare('SELECT id FROM wallets ORDER BY created_at ASC LIMIT 1').get() as { id: string } | undefined
-    if (replacement) db.prepare('UPDATE wallets SET is_default = 1 WHERE id = ?').run(replacement.id)
-  }
+  db.transaction(() => {
+    db.prepare('UPDATE projects SET wallet_id = NULL WHERE wallet_id = ?').run(id)
+    db.prepare('DELETE FROM portfolio_snapshots WHERE wallet_id = ?').run(id)
+    db.prepare('DELETE FROM transaction_history WHERE wallet_id = ?').run(id)
+    db.prepare('DELETE FROM wallets WHERE id = ?').run(id)
+
+    if (row?.is_default === 1) {
+      const replacement = db.prepare('SELECT id FROM wallets ORDER BY created_at ASC LIMIT 1').get() as { id: string } | undefined
+      if (replacement) db.prepare('UPDATE wallets SET is_default = 1 WHERE id = ?').run(replacement.id)
+    }
+  })()
 }
 
 export function setDefaultWallet(id: string) {
@@ -407,22 +431,18 @@ function getPreviousTotalUsd(walletIds: string[]): number | null {
   const db = getDb()
   const threshold = Date.now() - 24 * 60 * 60 * 1000
 
-  // Get the most recent snapshot before 24h ago for each wallet
-  let total = 0
-  let hasAny = false
+  // Single query: pick the most recent snapshot before 24h ago per wallet using ROW_NUMBER
+  const placeholders = walletIds.map(() => '?').join(',')
+  const rows = db.prepare(`
+    SELECT total_usd FROM (
+      SELECT total_usd, ROW_NUMBER() OVER (PARTITION BY wallet_id ORDER BY snapshot_at DESC) AS rn
+      FROM portfolio_snapshots
+      WHERE wallet_id IN (${placeholders}) AND snapshot_at <= ?
+    ) WHERE rn = 1
+  `).all([...walletIds, threshold]) as Array<{ total_usd: number }>
 
-  for (const walletId of walletIds) {
-    const row = db.prepare(
-      'SELECT total_usd FROM portfolio_snapshots WHERE wallet_id = ? AND snapshot_at <= ? ORDER BY snapshot_at DESC LIMIT 1'
-    ).get(walletId, threshold) as { total_usd: number } | undefined
-
-    if (row) {
-      total += row.total_usd
-      hasAny = true
-    }
-  }
-
-  return hasAny ? total : null
+  if (rows.length === 0) return null
+  return rows.reduce((sum, r) => sum + r.total_usd, 0)
 }
 
 function truncateMint(mint: string): string {

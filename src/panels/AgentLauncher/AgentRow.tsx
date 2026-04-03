@@ -1,3 +1,5 @@
+import { memo, useCallback } from 'react'
+
 const MODEL_OPTIONS = [
   { value: 'claude-opus-4-20250514', label: 'Opus' },
   { value: 'claude-sonnet-4-20250514', label: 'Sonnet' },
@@ -28,26 +30,33 @@ const DeleteIcon = () => (
   </svg>
 )
 
-export function DaemonAgentRow({
+export const DaemonAgentRow = memo(function DaemonAgentRow({
   agent,
+  index,
   selected,
-  onHover,
+  onSelect,
   onSpawn,
   onEdit,
   onDelete,
 }: {
   agent: Agent
+  index: number
   selected: boolean
-  onHover: () => void
-  onSpawn: () => void
-  onEdit: (e: React.MouseEvent) => void
-  onDelete: (e: React.MouseEvent) => void
+  onSelect: (idx: number) => void
+  onSpawn: (agent: Agent) => void
+  onEdit: (e: React.MouseEvent, agent: Agent) => void
+  onDelete: (e: React.MouseEvent, agent: Agent) => void
 }) {
+  const handleHover = useCallback(() => onSelect(index), [onSelect, index])
+  const handleSpawn = useCallback(() => onSpawn(agent), [onSpawn, agent])
+  const handleEdit = useCallback((e: React.MouseEvent) => onEdit(e, agent), [onEdit, agent])
+  const handleDelete = useCallback((e: React.MouseEvent) => onDelete(e, agent), [onDelete, agent])
+
   return (
     <div
       className={`agent-launcher-item ${selected ? 'selected' : ''}`}
-      onClick={onSpawn}
-      onMouseEnter={onHover}
+      onClick={handleSpawn}
+      onMouseEnter={handleHover}
     >
       <div className="agent-launcher-item-main">
         <span className="agent-launcher-name">
@@ -56,8 +65,8 @@ export function DaemonAgentRow({
         </span>
         <div className="agent-launcher-item-actions">
           <span className={`agent-launcher-model ${modelBadgeClass(agent.model)}`}>{MODEL_LABELS[agent.model] ?? agent.model}</span>
-          <button className="agent-edit-btn" onClick={onEdit} title="Edit"><EditIcon /></button>
-          <button className="agent-delete-btn" onClick={onDelete} title="Delete"><DeleteIcon /></button>
+          <button className="agent-edit-btn" onClick={handleEdit} title="Edit"><EditIcon /></button>
+          <button className="agent-delete-btn" onClick={handleDelete} title="Delete"><DeleteIcon /></button>
         </div>
       </div>
       <div className="agent-launcher-item-sub">
@@ -66,13 +75,14 @@ export function DaemonAgentRow({
       </div>
     </div>
   )
-}
+})
 
-export function ClaudeAgentRow({
+export const ClaudeAgentRow = memo(function ClaudeAgentRow({
   agent,
   importedAgent,
+  index,
   selected,
-  onHover,
+  onSelect,
   onSpawn,
   onSync,
   onEdit,
@@ -81,21 +91,28 @@ export function ClaudeAgentRow({
 }: {
   agent: ClaudeAgentFile
   importedAgent?: Agent
+  index: number
   selected: boolean
-  onHover: () => void
-  onSpawn: () => void
-  onSync: () => void
-  onEdit?: (e: React.MouseEvent) => void
-  onDelete?: (e: React.MouseEvent) => void
-  onImport: () => void
+  onSelect: (idx: number) => void
+  onSpawn: (agent: ClaudeAgentFile) => void
+  onSync: (agent: ClaudeAgentFile) => void
+  onEdit: (e: React.MouseEvent, agent: Agent) => void
+  onDelete: (e: React.MouseEvent, agent: Agent) => void
+  onImport: (agent: ClaudeAgentFile) => void
 }) {
   const imported = Boolean(importedAgent)
+  const handleHover = useCallback(() => onSelect(index), [onSelect, index])
+  const handleSpawn = useCallback(() => onSpawn(agent), [onSpawn, agent])
+  const handleSync = useCallback((e: React.MouseEvent) => { e.stopPropagation(); onSync(agent) }, [onSync, agent])
+  const handleEdit = useCallback((e: React.MouseEvent) => { if (importedAgent) onEdit(e, importedAgent) }, [onEdit, importedAgent])
+  const handleDelete = useCallback((e: React.MouseEvent) => { if (importedAgent) onDelete(e, importedAgent) }, [onDelete, importedAgent])
+  const handleImport = useCallback((e: React.MouseEvent) => { e.stopPropagation(); onImport(agent) }, [onImport, agent])
 
   return (
     <div
-      className={`agent-launcher-item agent-launcher-item-claude ${selected ? 'selected' : ''} ${imported ? 'launchable' : ''}`}
-      onClick={imported ? onSpawn : undefined}
-      onMouseEnter={onHover}
+      className={`agent-launcher-item agent-launcher-item-claude ${selected ? 'selected' : ''} launchable`}
+      onClick={handleSpawn}
+      onMouseEnter={handleHover}
     >
       <div className="agent-launcher-item-main">
         <span className="agent-launcher-name">
@@ -107,22 +124,22 @@ export function ClaudeAgentRow({
           <span className={`agent-launcher-model ${modelBadgeClass(agent.model)}`}>{MODEL_LABELS[agent.model] ?? agent.model}</span>
           {imported ? (
             <>
-              <button className="agent-import-btn" onClick={(e) => { e.stopPropagation(); onSync() }}>
+              <button className="agent-import-btn" onClick={handleSync}>
                 Sync
               </button>
-              {onEdit && (
-                <button className="agent-edit-btn always-visible" onClick={onEdit} title="Edit Imported Copy">
+              {importedAgent && (
+                <button className="agent-edit-btn always-visible" onClick={handleEdit} title="Edit Imported Copy">
                   <EditIcon />
                 </button>
               )}
-              {onDelete && (
-                <button className="agent-delete-btn always-visible" onClick={onDelete} title="Delete Imported Copy">
+              {importedAgent && (
+                <button className="agent-delete-btn always-visible" onClick={handleDelete} title="Delete Imported Copy">
                   <DeleteIcon />
                 </button>
               )}
             </>
           ) : (
-            <button className="agent-import-btn" onClick={(e) => { e.stopPropagation(); onImport() }}>
+            <button className="agent-import-btn" onClick={handleImport}>
               Import
             </button>
           )}
@@ -137,4 +154,4 @@ export function ClaudeAgentRow({
       </div>
     </div>
   )
-}
+})

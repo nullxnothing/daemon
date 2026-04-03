@@ -3,7 +3,6 @@ import { useCallback, useState, useEffect, type MouseEvent as ReactMouseEvent } 
 interface OpenFile {
   path: string
   name: string
-  content: string
   isDirty: boolean
   projectId: string
 }

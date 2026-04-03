@@ -102,7 +102,11 @@ export function registerBrowserHandlers() {
     title: string,
     content: string,
   ) => {
-    capturePageContent(pageId, url, title, content)
+    const CAPTURE_MAX_BYTES = 50 * 1024
+    const safeContent = typeof content === 'string' && content.length > CAPTURE_MAX_BYTES
+      ? content.slice(0, CAPTURE_MAX_BYTES)
+      : content
+    capturePageContent(pageId, url, title, safeContent)
   }))
 
   ipcMain.handle('browser:content', ipcHandler(async (_event, pageId: string) => {
@@ -138,6 +142,14 @@ export function registerBrowserHandlers() {
     userMessage: string,
     browserContext?: string,
   ) => {
+    const CHAT_MAX_BYTES = 50 * 1024
+    if (typeof userMessage === 'string' && userMessage.length > CHAT_MAX_BYTES) {
+      userMessage = userMessage.slice(0, CHAT_MAX_BYTES)
+    }
+    if (typeof browserContext === 'string' && browserContext.length > CHAT_MAX_BYTES) {
+      browserContext = browserContext.slice(0, CHAT_MAX_BYTES)
+    }
+
     const client = getClient()
 
     if (!conversations.has(sessionId)) {

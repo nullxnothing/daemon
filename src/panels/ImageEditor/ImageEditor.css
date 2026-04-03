@@ -49,6 +49,10 @@
   font-family: var(--font-code);
 }
 
+.ie-status--dim {
+  color: var(--t3);
+}
+
 .image-editor-iframe {
   flex: 1;
   border: none;

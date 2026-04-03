@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, memo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
@@ -54,7 +55,9 @@ export const StatusBar = memo(function StatusBar() {
 
 function TerminalCount() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const count = useUIStore((s) => s.terminals.filter((t) => t.projectId === activeProjectId).length)
+  const count = useUIStore((s) =>
+    s.terminals.reduce((n, t) => n + (t.projectId === activeProjectId ? 1 : 0), 0)
+  )
 
   const handleClick = () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: '`', ctrlKey: true, bubbles: true }))
@@ -159,8 +162,7 @@ function ClaudeStatus() {
 
 function MarketTape() {
   const visible = useWalletStore((s) => s.showMarketTape)
-  const dashboard = useWalletStore((s) => s.dashboard)
-  const items = dashboard?.market ?? EMPTY_MARKET
+  const items = useWalletStore(useShallow((s) => s.dashboard?.market ?? EMPTY_MARKET))
 
   if (!visible || items.length === 0 || items.every((i) => i.priceUsd === 0)) return null
 

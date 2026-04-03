@@ -214,8 +214,10 @@ export function registerTerminalHandlers() {
     const session = sessions.get(id)
     if (!session) throw new Error('Terminal session not found')
 
-    const text = clipboard.readText()
+    const PASTE_MAX_BYTES = 1024 * 1024
+    let text = clipboard.readText()
     if (!text) return { pasted: false }
+    if (text.length > PASTE_MAX_BYTES) text = text.slice(0, PASTE_MAX_BYTES)
 
     session.pty.write(text)
     return { pasted: true }

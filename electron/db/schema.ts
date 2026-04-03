@@ -375,3 +375,13 @@ CREATE TABLE IF NOT EXISTS aria_messages (
 CREATE INDEX IF NOT EXISTS idx_aria_messages_session ON aria_messages(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_aria_messages_created ON aria_messages(created_at);
 `
+
+export const SCHEMA_V15 = `
+CREATE INDEX IF NOT EXISTS idx_agents_external_path ON agents(external_path);
+CREATE INDEX IF NOT EXISTS idx_projects_wallet_id ON projects(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_crash_history_service ON crash_history(service_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dispatch_sessions_project ON dispatch_sessions(project_id);
+UPDATE deploy_cache SET created_at = CAST(unixepoch('now') * 1000 AS INTEGER) WHERE created_at IS NULL;
+UPDATE email_accounts SET created_at = CAST(unixepoch('now') * 1000 AS INTEGER) WHERE created_at IS NULL;
+UPDATE email_accounts SET updated_at = CAST(unixepoch('now') * 1000 AS INTEGER) WHERE updated_at IS NULL;
+`

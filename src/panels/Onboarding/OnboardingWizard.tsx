@@ -80,7 +80,7 @@ export function OnboardingWizard() {
 
         {/* Active step */}
         <div className="wizard-step-content">
-          <StepComponent />
+          <StepComponent key={currentStepId} />
         </div>
 
         {/* Footer */}

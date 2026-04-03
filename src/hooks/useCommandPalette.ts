@@ -24,11 +24,13 @@ export function useCommandPalette() {
       setPaletteFiles([])
       return
     }
+    let isCancelled = false
     window.daemon.fs.readDir(activeProjectPath, 6).then((res) => {
-      if (res.ok && res.data) {
+      if (!isCancelled && res.ok && res.data) {
         setPaletteFiles(flattenEntries(res.data))
       }
     })
+    return () => { isCancelled = true }
   }, [paletteMode, activeProjectPath, flattenEntries])
 
   const handleFileSelect = useCallback(

@@ -2,25 +2,23 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import './ImageEditor.css'
 
-// miniPaint is served via the minipaint:// custom protocol
-const MINIPAINT_URL = 'minipaint:///index.html'
-
-interface MiniPaintWindow extends Window {
-  Layers: {
-    insert: (config: { name: string; type: string; data: HTMLImageElement; width: number; height: number }) => void
-    get_dimensions: () => { width: number; height: number }
-    convert_layers_to_canvas: (ctx: CanvasRenderingContext2D, _w?: number, _h?: number) => void
-  }
-}
+// miniPaint is served via the minipaint:// custom protocol.
+// Communication with the iframe uses postMessage (cross-origin safe).
+const MINIPAINT_URL = 'minipaint://app/index.html'
 
 export default function ImageEditor() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [loaded, setLoaded] = useState(false)
+  const [ready, setReady] = useState(false)
   const [imagePath, setImagePath] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  // Holds resolve/reject for the pending export request
+  const exportResolverRef = useRef<{
+    resolve: (base64: string) => void
+    reject: (err: Error) => void
+  } | null>(null)
 
-  // Load the image that triggered the editor (from store or most recent image tab)
+  // Load the image that triggered the editor from the active file in the store
   useEffect(() => {
     const state = useUIStore.getState()
     const projectId = state.activeProjectId
@@ -31,61 +29,85 @@ export default function ImageEditor() {
     }
   }, [])
 
-  // Once iframe is loaded and we have an image, inject it
+  // Listen for postMessages from the miniPaint iframe
   useEffect(() => {
-    if (!loaded || !imagePath) return
+    function handleMessage(event: MessageEvent) {
+      const msg = event.data
+      if (!msg || typeof msg.type !== 'string') return
 
+      if (msg.type === 'mp:ready') {
+        setReady(true)
+        return
+      }
+
+      if (msg.type === 'mp:inserted') {
+        // Image successfully injected into miniPaint
+        return
+      }
+
+      if (msg.type === 'mp:exported') {
+        exportResolverRef.current?.resolve(msg.base64 as string)
+        exportResolverRef.current = null
+        return
+      }
+
+      if (msg.type === 'mp:export-error') {
+        exportResolverRef.current?.reject(new Error(msg.error as string))
+        exportResolverRef.current = null
+        return
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  // Once miniPaint signals ready and we have an image path, inject it
+  useEffect(() => {
+    if (!ready || !imagePath) return
     const iframe = iframeRef.current
     if (!iframe?.contentWindow) return
 
-    // Load the image via IPC, then inject into miniPaint
     window.daemon.fs.readImageBase64(imagePath).then((res) => {
       if (!res.ok || !res.data) return
-      const mpWin = iframe.contentWindow as unknown as MiniPaintWindow
-      if (!mpWin?.Layers) return
-
-      const img = new Image()
-      img.onload = () => {
-        mpWin.Layers.insert({
-          name: imagePath.split(/[\\/]/).pop() ?? 'image',
-          type: 'image',
-          data: img,
-          width: img.width,
-          height: img.height,
-        })
-      }
-      img.src = res.data.dataUrl
+      iframe.contentWindow!.postMessage({
+        type: 'mp:insert-image',
+        name: imagePath.split(/[\\/]/).pop() ?? 'image',
+        dataUrl: res.data.dataUrl,
+      }, '*')
     })
-  }, [loaded, imagePath])
+  }, [ready, imagePath])
+
+  const requestExport = useCallback((mimeType: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const iframe = iframeRef.current
+      if (!iframe?.contentWindow) {
+        reject(new Error('iframe not ready'))
+        return
+      }
+      exportResolverRef.current = { resolve, reject }
+      iframe.contentWindow.postMessage({ type: 'mp:export', mimeType }, '*')
+
+      // Timeout guard — reject if miniPaint doesn't respond within 15s
+      setTimeout(() => {
+        if (exportResolverRef.current) {
+          exportResolverRef.current.reject(new Error('Export timed out'))
+          exportResolverRef.current = null
+        }
+      }, 15000)
+    })
+  }, [])
 
   const handleSave = useCallback(async () => {
-    if (!imagePath || saving) return
-    const iframe = iframeRef.current
-    if (!iframe?.contentWindow) return
+    if (!imagePath || saving || !ready) return
 
     setSaving(true)
     setStatus(null)
 
     try {
-      const mpWin = iframe.contentWindow as unknown as MiniPaintWindow
-      const dims = mpWin.Layers.get_dimensions()
-      const canvas = document.createElement('canvas')
-      canvas.width = dims.width
-      canvas.height = dims.height
-      const ctx = canvas.getContext('2d')!
-      mpWin.Layers.convert_layers_to_canvas(ctx)
-
-      // Convert to appropriate format based on extension
       const ext = imagePath.split('.').pop()?.toLowerCase() ?? 'png'
       const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png'
-
-      const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((b) => resolve(b!), mimeType, 0.95)
-      })
-
-      const buffer = await blob.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
-
+      const base64 = await requestExport(mimeType)
       const res = await window.daemon.fs.writeImageFromBase64(imagePath, base64)
       if (res.ok) {
         setStatus('Saved')
@@ -98,42 +120,55 @@ export default function ImageEditor() {
     } finally {
       setSaving(false)
     }
-  }, [imagePath, saving])
+  }, [imagePath, saving, ready, requestExport])
 
   const handleOpenFile = useCallback(async () => {
-    // Let user pick any image from the project
     const res = await window.daemon.fs.pickImage()
-    if (res.ok && res.data) {
-      setImagePath(res.data)
-      setLoaded(false) // Force re-inject on next load
-      // Reload the iframe to clear miniPaint state
-      if (iframeRef.current) {
-        iframeRef.current.src = MINIPAINT_URL
-      }
+    if (!res.ok || !res.data) return
+
+    setImagePath(res.data)
+    setReady(false)
+
+    // Reload the iframe to get a fresh miniPaint instance
+    if (iframeRef.current) {
+      iframeRef.current.src = MINIPAINT_URL
     }
+  }, [])
+
+  const handleIframeLoad = useCallback(() => {
+    // miniPaint's bundle.js initializes asynchronously after DOM load.
+    // The iframe itself sends mp:ready via postMessage once it's up.
+    // We ping it here as a fallback in case the load event fires before our listener.
+    const iframe = iframeRef.current
+    if (!iframe?.contentWindow) return
+    iframe.contentWindow.postMessage({ type: 'mp:ping' }, '*')
   }, [])
 
   return (
     <div className="image-editor">
       <div className="image-editor-toolbar">
         <button className="ie-btn" onClick={handleOpenFile}>Open Image</button>
-        <button className="ie-btn ie-btn-primary" onClick={handleSave} disabled={saving || !imagePath}>
+        <button
+          className="ie-btn ie-btn-primary"
+          onClick={handleSave}
+          disabled={saving || !imagePath || !ready}
+        >
           {saving ? 'Saving...' : 'Save'}
         </button>
         {imagePath && (
           <span className="ie-filepath">{imagePath.split(/[\\/]/).pop()}</span>
         )}
         {status && <span className="ie-status">{status}</span>}
+        {!ready && <span className="ie-status ie-status--dim">Loading editor...</span>}
       </div>
       <iframe
         ref={iframeRef}
         src={MINIPAINT_URL}
         className="image-editor-iframe"
-        onLoad={() => {
-          // Give miniPaint a moment to initialize its global objects
-          setTimeout(() => setLoaded(true), 500)
-        }}
-        sandbox="allow-scripts allow-same-origin"
+        onLoad={handleIframeLoad}
+        /* sandbox removed — minipaint: protocol is already isolated and
+           allow-scripts + allow-same-origin together is equivalent to no sandbox */
+        title="miniPaint image editor"
       />
     </div>
   )

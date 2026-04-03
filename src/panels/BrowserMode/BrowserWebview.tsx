@@ -195,14 +195,16 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     }
   }, [setLoadStatus, setUrl, addInspectorResult, currentUrl, lastPageId, updateNavState])
 
-  return (
-    <webview
-      ref={webviewRef as React.Ref<HTMLElement>}
-      className="browser-webview"
-      partition="persist:browser"
-      nodeintegration={false}
-      allowpopups={false}
-      src={currentUrl}
-    />
-  )
+  // allowedfeatures is a valid Electron webview attribute but absent from React's type stubs
+  const webviewProps = {
+    ref: webviewRef as React.Ref<HTMLElement>,
+    className: 'browser-webview',
+    partition: 'persist:browser',
+    nodeintegration: false,
+    allowpopups: false,
+    allowedfeatures: '',
+    src: currentUrl,
+  } as React.DetailedHTMLProps<React.WebViewHTMLAttributes<HTMLWebViewElement>, HTMLWebViewElement>
+
+  return <webview {...webviewProps} />
 })

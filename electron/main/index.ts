@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { getDb, closeDb } from '../db/db'
+import { isPathSafe } from '../shared/pathValidation'
 import { registerTerminalHandlers, killAllSessions } from '../ipc/terminal'
 import { registerFilesystemHandlers } from '../ipc/filesystem'
 import { registerProjectHandlers } from '../ipc/projects'
@@ -161,17 +162,21 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'unsafe-eval'; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'unsafe-eval'; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
         }
       })
     })
   }
 
   // Monaco offline: serve node_modules/monaco-editor files via custom protocol
+  // Electron normalizes custom:///path → custom://path/ (host=path, pathname=/) so parse via URL.
   protocol.handle('monaco-editor', (request) => {
-    const url = request.url.slice('monaco-editor:///'.length)
+    const parsed = new URL(request.url)
+    const relativePath = decodeURIComponent(
+      (parsed.host + parsed.pathname).replace(/^\//, '').replace(/\/$/, '')
+    )
     const basePath = path.resolve(process.env.APP_ROOT, 'node_modules', 'monaco-editor', 'min')
-    const filePath = path.resolve(basePath, url)
+    const filePath = path.resolve(basePath, relativePath)
     if (!filePath.startsWith(basePath + path.sep) && filePath !== basePath) {
       return new Response('Forbidden: path traversal', { status: 403 })
     }
@@ -196,12 +201,7 @@ async function createWindow() {
 
     let isProjectPath = false
     try {
-      const db = getDb()
-      const projects = db.prepare('SELECT path FROM projects').all() as Array<{ path: string }>
-      isProjectPath = projects.some((p) => {
-        const projectDir = path.resolve(p.path)
-        return resolved === projectDir || resolved.startsWith(projectDir + path.sep)
-      })
+      isProjectPath = isPathSafe(resolved)
     } catch {
       // DB not ready — only allow app resources
     }
@@ -213,11 +213,16 @@ async function createWindow() {
     return net.fetch(pathToFileURL(resolved).toString())
   })
 
-  // miniPaint: serve vendor/miniPaint files via custom protocol
+  // miniPaint: serve vendor/miniPaint files via custom protocol.
+  // URL format: minipaint://app/<path> — "app" is a fixed host that keeps relative URLs working.
+  // e.g. minipaint://app/index.html loads index.html, its <script src="dist/bundle.js"> resolves
+  // to minipaint://app/dist/bundle.js (host="app", pathname="/dist/bundle.js").
   protocol.handle('minipaint', (request) => {
-    const url = request.url.slice('minipaint:///'.length)
+    const parsed = new URL(request.url)
+    // Strip leading slash from pathname to get the relative file path
+    const relativePath = decodeURIComponent(parsed.pathname.replace(/^\//, ''))
     const basePath = path.resolve(process.env.APP_ROOT, 'vendor', 'miniPaint')
-    const filePath = path.resolve(basePath, decodeURIComponent(url))
+    const filePath = path.resolve(basePath, relativePath)
     if (!filePath.startsWith(basePath + path.sep) && filePath !== basePath) {
       return new Response('Forbidden: path traversal', { status: 403 })
     }
@@ -298,9 +303,16 @@ app.whenReady().then(() => {
   createWindow()
 
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify().catch(() => {})
+    autoUpdater.on('error', (err: Error) => {
+      console.error('[AutoUpdater] error:', err.message)
+    })
+    autoUpdater.checkForUpdatesAndNotify().catch((err: Error) => {
+      console.error('[AutoUpdater] checkForUpdatesAndNotify failed:', err.message)
+    })
     setInterval(() => {
-      autoUpdater.checkForUpdatesAndNotify().catch(() => {})
+      autoUpdater.checkForUpdatesAndNotify().catch((err: Error) => {
+        console.error('[AutoUpdater] periodic check failed:', err.message)
+      })
     }, 4 * 60 * 60 * 1000)
   }
 })

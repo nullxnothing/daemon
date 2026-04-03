@@ -1,13 +1,29 @@
 import path from 'node:path'
 import { getDb } from '../db/db'
 
+// Cache project paths to avoid a SQLite round-trip on every fs operation.
+// Invalidated explicitly via invalidatePathCache() or after PATH_CACHE_TTL_MS.
+const PATH_CACHE_TTL_MS = 5_000
+let pathCache: Array<{ path: string }> | null = null
+let pathCacheExpiry = 0
+
+function getProjectPaths(): Array<{ path: string }> {
+  if (pathCache && Date.now() < pathCacheExpiry) return pathCache
+  pathCache = getDb().prepare('SELECT path FROM projects').all() as Array<{ path: string }>
+  pathCacheExpiry = Date.now() + PATH_CACHE_TTL_MS
+  return pathCache
+}
+
+export function invalidatePathCache(): void {
+  pathCache = null
+}
+
 /**
  * Check if a target path is inside any registered project directory.
  * Normalizes separators for cross-platform compatibility.
  */
 export function isPathSafe(targetPath: string): boolean {
-  const db = getDb()
-  const projects = db.prepare('SELECT path FROM projects').all() as Array<{ path: string }>
+  const projects = getProjectPaths()
   try {
     const normalized = path.resolve(targetPath)
     return projects.some((p) => {
@@ -32,8 +48,7 @@ export function isEnvPathSafe(filePath: string, allowedNames: Set<string>): bool
  * Check if a path exactly matches a registered project root.
  */
 export function isProjectPathSafe(projectPath: string): boolean {
-  const db = getDb()
-  const projects = db.prepare('SELECT path FROM projects').all() as Array<{ path: string }>
+  const projects = getProjectPaths()
   const normalized = projectPath.replace(/\\/g, '/')
   return projects.some((p) => p.path.replace(/\\/g, '/') === normalized)
 }

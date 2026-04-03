@@ -126,7 +126,8 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       return true
     })
 
-    setTimeout(() => { doFit(); term.focus() }, 150)
+    doFit()
+    term.focus()
 
     term.onData((data) => {
       if (!input.handleKeystroke(data)) {
@@ -150,7 +151,16 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
-      term.dispose()
+      // Null refs before dispose so any in-flight doFit/debouncedFit callbacks
+      // become no-ops instead of accessing the disposed terminal's render service.
+      xtermRef.current = null
+      fitRef.current = null
+      try {
+        term.dispose()
+      } catch {
+        // Dispose can throw if the terminal was already partially torn down
+        // (e.g. xterm viewport accessing renderService.dimensions on null).
+      }
     }
   }, [id, doFit, debouncedFit])
 
@@ -168,9 +178,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
   useEffect(() => {
     if (isVisible) {
-      requestAnimationFrame(() => {
-        setTimeout(() => { doFit(); xtermRef.current?.focus() }, 50)
-      })
+      requestAnimationFrame(() => { doFit(); xtermRef.current?.focus() })
     }
   }, [isVisible, doFit])
 
