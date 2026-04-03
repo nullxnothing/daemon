@@ -94,6 +94,99 @@ export async function getTokenMetadata(mint: string): Promise<TokenMetadata> {
   return { name, symbol, image, supply, decimals }
 }
 
+export interface DetectedToken {
+  mint: string
+  name: string
+  symbol: string
+  image: string | null
+  decimals: number
+  supply: number
+}
+
+export async function detectWalletTokens(walletAddress: string): Promise<DetectedToken[]> {
+  const key = getHeliusKey()
+  const url = `${HELIUS_RPC_BASE}/?api-key=${key}`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'get-assets-by-owner',
+      method: 'getAssetsByOwner',
+      params: {
+        ownerAddress: walletAddress,
+        page: 1,
+        limit: 1000,
+        displayOptions: {
+          showFungible: true,
+          showNativeBalance: false,
+        },
+      },
+    }),
+  })
+
+  if (!response.ok) throw new Error(`Helius getAssetsByOwner failed: ${response.status}`)
+
+  const json = await response.json() as {
+    result?: {
+      items?: Array<{
+        id: string
+        interface?: string
+        authorities?: Array<{ address: string; scopes: string[] }>
+        content?: {
+          metadata?: { name?: string; symbol?: string }
+          links?: { image?: string }
+          files?: Array<{ uri?: string; cdn_uri?: string; mime?: string }>
+        }
+        token_info?: { supply?: number; decimals?: number }
+      }>
+    }
+    error?: { message: string }
+  }
+
+  if (json.error) throw new Error(json.error.message)
+
+  const items = json.result?.items ?? []
+
+  // Filter for fungible tokens where the wallet is an authority (creator/mint authority)
+  const authorityTokens = items.filter((item) => {
+    const isFungible = item.interface === 'FungibleToken' || item.interface === 'FungibleAsset'
+    if (!isFungible) return false
+    const hasAuthority = item.authorities?.some(
+      (a) => a.address === walletAddress && (a.scopes.includes('full') || a.scopes.includes('metadata'))
+    )
+    return hasAuthority
+  })
+
+  return authorityTokens.map((item) => {
+    const content = item.content
+    const tokenInfo = item.token_info
+    const imageFile = content?.files?.find((f) => f.mime?.startsWith('image/'))
+    const image = imageFile?.cdn_uri ?? imageFile?.uri ?? content?.links?.image ?? null
+    return {
+      mint: item.id,
+      name: content?.metadata?.name ?? 'Unknown',
+      symbol: content?.metadata?.symbol ?? '???',
+      image,
+      decimals: tokenInfo?.decimals ?? 6,
+      supply: tokenInfo?.supply ?? 0,
+    }
+  })
+}
+
+export async function importTokenByMint(mint: string): Promise<DetectedToken> {
+  const metadata = await getTokenMetadata(mint)
+  return {
+    mint,
+    name: metadata.name,
+    symbol: metadata.symbol,
+    image: metadata.image,
+    decimals: metadata.decimals,
+    supply: metadata.supply,
+  }
+}
+
 export async function getTokenHolders(mint: string): Promise<TokenHolders> {
   const key = getHeliusKey()
   const url = `${HELIUS_RPC_BASE}/?api-key=${key}`

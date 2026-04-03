@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
 import './Dashboard.css'
@@ -36,10 +37,10 @@ interface TokenOption {
   symbol: string
 }
 
-function useTokenList(): TokenOption[] {
+function useTokenList() {
   const [tokens, setTokens] = useState<TokenOption[]>([])
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     window.daemon.launch.listTokens().then((res) => {
       if (res.ok && res.data) {
         setTokens(res.data.map((t) => ({ mint: t.mint, name: t.name, symbol: t.symbol })))
@@ -47,7 +48,202 @@ function useTokenList(): TokenOption[] {
     }).catch(() => {})
   }, [])
 
-  return tokens
+  useEffect(() => { reload() }, [reload])
+
+  return { tokens, reload }
+}
+
+type ImportPanelMode = 'none' | 'manual' | 'scan'
+
+interface ScanResult {
+  mint: string
+  name: string
+  symbol: string
+  image: string | null
+  selected: boolean
+}
+
+function ImportPanel({
+  walletId,
+  walletAddress,
+  onImported,
+  onClose,
+}: {
+  walletId: string
+  walletAddress: string | null
+  onImported: () => void
+  onClose: () => void
+}) {
+  const [mode, setMode] = useState<ImportPanelMode>('none')
+  const [mintInput, setMintInput] = useState('')
+  const [manualStatus, setManualStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [manualError, setManualError] = useState('')
+
+  const [scanResults, setScanResults] = useState<ScanResult[]>([])
+  const [scanStatus, setScanStatus] = useState<'idle' | 'loading' | 'importing' | 'error'>('idle')
+  const [scanError, setScanError] = useState('')
+
+  const handleManualImport = async () => {
+    const mint = mintInput.trim()
+    if (!mint) return
+    setManualStatus('loading')
+    setManualError('')
+    try {
+      const res = await window.daemon.dashboard.importToken(mint, walletId)
+      if (!res.ok) {
+        setManualStatus('error')
+        setManualError(res.error ?? 'Import failed')
+        return
+      }
+      setMintInput('')
+      setManualStatus('idle')
+      onImported()
+    } catch (err) {
+      setManualStatus('error')
+      setManualError(err instanceof Error ? err.message : 'Import failed')
+    }
+  }
+
+  const handleScan = async () => {
+    if (!walletAddress) return
+    setScanStatus('loading')
+    setScanError('')
+    setScanResults([])
+    try {
+      const res = await window.daemon.dashboard.detectTokens(walletAddress)
+      if (!res.ok || !res.data) {
+        setScanStatus('error')
+        setScanError(res.error ?? 'Scan failed')
+        return
+      }
+      setScanResults(res.data.map((t) => ({ ...t, selected: true })))
+      setScanStatus('idle')
+    } catch (err) {
+      setScanStatus('error')
+      setScanError(err instanceof Error ? err.message : 'Scan failed')
+    }
+  }
+
+  const toggleSelect = (mint: string) => {
+    setScanResults((prev) => prev.map((r) => r.mint === mint ? { ...r, selected: !r.selected } : r))
+  }
+
+  const handleImportSelected = async () => {
+    const toImport = scanResults.filter((r) => r.selected)
+    if (toImport.length === 0) return
+    setScanStatus('importing')
+    try {
+      for (const token of toImport) {
+        await window.daemon.dashboard.importToken(token.mint, walletId)
+      }
+      setScanResults([])
+      setScanStatus('idle')
+      onImported()
+    } catch (err) {
+      setScanStatus('error')
+      setScanError(err instanceof Error ? err.message : 'Import failed')
+    }
+  }
+
+  return (
+    <div className="dash-import-panel">
+      <div className="dash-import-panel-header">
+        <span className="dash-import-panel-title">Import Token</span>
+        <button className="dash-import-close-btn" onClick={onClose}>x</button>
+      </div>
+
+      <div className="dash-import-mode-tabs">
+        <button
+          className={`dash-import-tab ${mode === 'manual' ? 'active' : ''}`}
+          onClick={() => setMode('manual')}
+        >
+          By Mint Address
+        </button>
+        {walletAddress && (
+          <button
+            className={`dash-import-tab ${mode === 'scan' ? 'active' : ''}`}
+            onClick={() => { setMode('scan'); if (scanResults.length === 0 && scanStatus === 'idle') handleScan() }}
+          >
+            Scan Wallet
+          </button>
+        )}
+      </div>
+
+      {mode === 'manual' && (
+        <div className="dash-import-manual">
+          <input
+            className="dash-import-input"
+            placeholder="Paste mint address..."
+            value={mintInput}
+            onChange={(e) => setMintInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleManualImport() }}
+            disabled={manualStatus === 'loading'}
+          />
+          <button
+            className="dash-btn dash-btn-primary"
+            onClick={handleManualImport}
+            disabled={manualStatus === 'loading' || !mintInput.trim()}
+          >
+            {manualStatus === 'loading' ? 'Importing...' : 'Import'}
+          </button>
+          {manualStatus === 'error' && (
+            <span className="dash-import-error">{manualError}</span>
+          )}
+        </div>
+      )}
+
+      {mode === 'scan' && (
+        <div className="dash-import-scan">
+          {scanStatus === 'loading' && (
+            <div className="dash-import-scanning">Scanning wallet for created tokens...</div>
+          )}
+          {scanStatus === 'error' && (
+            <div className="dash-import-error">{scanError}</div>
+          )}
+          {scanStatus !== 'loading' && scanResults.length === 0 && scanStatus !== 'error' && (
+            <div className="dash-import-scanning">
+              No tokens found where this wallet has authority.
+              <button className="dash-btn dash-btn-muted" onClick={handleScan} style={{ marginTop: 8 }}>
+                Re-scan
+              </button>
+            </div>
+          )}
+          {scanResults.length > 0 && (
+            <>
+              <div className="dash-scan-results">
+                {scanResults.map((t) => (
+                  <label key={t.mint} className="dash-scan-row">
+                    <input
+                      type="checkbox"
+                      checked={t.selected}
+                      onChange={() => toggleSelect(t.mint)}
+                    />
+                    {t.image && (
+                      <img className="dash-scan-img" src={t.image} alt={t.symbol} />
+                    )}
+                    <span className="dash-scan-name">{t.symbol} — {t.name}</span>
+                    <span className="dash-scan-mint">{truncateAddress(t.mint, 4)}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="dash-scan-actions">
+                <button
+                  className="dash-btn dash-btn-primary"
+                  onClick={handleImportSelected}
+                  disabled={scanStatus === 'importing' || !scanResults.some((r) => r.selected)}
+                >
+                  {scanStatus === 'importing' ? 'Importing...' : `Import ${scanResults.filter((r) => r.selected).length} Selected`}
+                </button>
+                <button className="dash-btn dash-btn-muted" onClick={handleScan} disabled={scanStatus === 'importing'}>
+                  Re-scan
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function DashboardCanvas() {
@@ -55,8 +251,15 @@ export function DashboardCanvas() {
   const setActiveMint = useUIStore((s) => s.setActiveDashboardMint)
   const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
 
-  const tokens = useTokenList()
+  const dashboard = useWalletStore((s) => s.dashboard)
+  const defaultWallet = dashboard?.wallets?.find((w) => w.isDefault) ?? null
+  const activeWalletId = defaultWallet?.id ?? null
+  const activeWalletAddress = defaultWallet?.address ?? null
+
+  const { tokens, reload } = useTokenList()
   const { price, priceChange, priceHistory, metadata, holders, isLoading, error, refetchHolders } = useDashboardData(activeMint)
+
+  const [showImport, setShowImport] = useState(false)
 
   const isPositive = priceChange !== null ? priceChange >= 0 : null
   const priceColor = isPositive === false ? 'var(--red)' : 'var(--green)'
@@ -80,7 +283,12 @@ export function DashboardCanvas() {
     window.daemon.pumpfun.collectFees(activeMint).catch(() => {})
   }
 
-  if (tokens.length === 0) {
+  const handleImported = () => {
+    setShowImport(false)
+    reload()
+  }
+
+  if (tokens.length === 0 && !showImport) {
     return (
       <div className="dash-canvas">
         <div className="dash-canvas-empty">
@@ -89,6 +297,11 @@ export function DashboardCanvas() {
           <button className="dash-btn dash-btn-primary dash-btn-lg" onClick={openLaunchWizard}>
             Launch Token
           </button>
+          {activeWalletId && (
+            <button className="dash-btn dash-btn-outline-full" onClick={() => setShowImport(true)}>
+              Import Existing Token
+            </button>
+          )}
         </div>
       </div>
     )
@@ -119,11 +332,28 @@ export function DashboardCanvas() {
           </select>
         </div>
         <div className="dash-canvas-header-right">
+          {activeWalletId && (
+            <button
+              className="dash-btn dash-btn-muted"
+              onClick={() => setShowImport((v) => !v)}
+            >
+              {showImport ? 'Cancel' : 'Import Token'}
+            </button>
+          )}
           <button className="dash-btn dash-btn-primary" onClick={openLaunchWizard}>
             + Launch Token
           </button>
         </div>
       </div>
+
+      {showImport && activeWalletId && (
+        <ImportPanel
+          walletId={activeWalletId}
+          walletAddress={activeWalletAddress}
+          onImported={handleImported}
+          onClose={() => setShowImport(false)}
+        />
+      )}
 
       {isLoading && !price && !error && (
         <div className="dash-canvas-loading">Fetching live data...</div>
@@ -233,7 +463,7 @@ export function DashboardCanvas() {
         </>
       )}
 
-      {!activeMint && !isLoading && (
+      {!activeMint && !isLoading && !showImport && (
         <div className="dash-canvas-hint">Select a token from the dropdown above</div>
       )}
     </div>

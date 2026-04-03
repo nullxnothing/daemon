@@ -620,10 +620,21 @@ declare global {
     registry: DaemonRegistry
   }
 
+  interface DetectedToken {
+    mint: string
+    name: string
+    symbol: string
+    image: string | null
+    decimals: number
+    supply: number
+  }
+
   interface DaemonDashboard {
     tokenPrice: (mint: string) => Promise<IpcResponse<{ price: number; priceChange24h: number | null }>>
     tokenMetadata: (mint: string) => Promise<IpcResponse<{ name: string; symbol: string; image: string | null; supply: number; decimals: number }>>
     tokenHolders: (mint: string) => Promise<IpcResponse<{ count: number; topHolders: Array<{ address: string; amount: number }> }>>
+    detectTokens: (walletAddress: string) => Promise<IpcResponse<DetectedToken[]>>
+    importToken: (mint: string, walletId: string) => Promise<IpcResponse<{ id: string; alreadyExists: boolean }>>
   }
 
   interface DaemonBrowser {

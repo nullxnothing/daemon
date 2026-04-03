@@ -280,6 +280,8 @@ contextBridge.exposeInMainWorld('daemon', {
     tokenPrice: (mint: string) => ipcRenderer.invoke('dashboard:token-price', mint),
     tokenMetadata: (mint: string) => ipcRenderer.invoke('dashboard:token-metadata', mint),
     tokenHolders: (mint: string) => ipcRenderer.invoke('dashboard:token-holders', mint),
+    detectTokens: (walletAddress: string) => ipcRenderer.invoke('dashboard:detect-tokens', walletAddress),
+    importToken: (mint: string, walletId: string) => ipcRenderer.invoke('dashboard:import-token', mint, walletId),
   },
 
   images: {
