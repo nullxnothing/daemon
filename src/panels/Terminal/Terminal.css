@@ -450,6 +450,89 @@
   padding: 4px 2px;
 }
 
+/* Terminal output search overlay — top-right of terminal container */
+.terminal-search-overlay {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: min(380px, calc(100% - 20px));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--s2);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-float);
+  z-index: 5;
+}
+
+.terminal-search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+}
+
+.terminal-search-icon {
+  color: var(--t3);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.terminal-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  color: var(--t1);
+  min-width: 0;
+}
+
+.terminal-search-input::placeholder {
+  color: var(--t4);
+}
+
+.terminal-search-count {
+  font-size: 10px;
+  color: var(--t3);
+  white-space: nowrap;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.terminal-search-nav {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: var(--t2);
+  flex-shrink: 0;
+}
+
+.terminal-search-nav:hover:not(:disabled) {
+  background: var(--s4);
+  color: var(--t1);
+}
+
+.terminal-search-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* xterm search highlight override */
+.terminal-view .xterm-rows span.search-match {
+  background: color-mix(in srgb, var(--amber) 35%, transparent) !important;
+  outline: 1px solid var(--amber);
+}
+
+.terminal-view .xterm-rows span.search-match-active {
+  background: color-mix(in srgb, var(--green) 40%, transparent) !important;
+  outline: 1px solid var(--green);
+}
+
 /* Agent Grid — multi-page Claude session grid */
 .agent-grid-wrapper {
   display: flex;

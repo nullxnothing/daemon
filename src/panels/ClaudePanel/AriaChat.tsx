@@ -23,6 +23,30 @@ function formatTime(ts: number): string {
   return `${h}:${m}`
 }
 
+const URL_PATTERN = /(https?:\/\/[^\s<>"')\]]+)/g
+
+function renderTextWithLinks(text: string, keyPrefix: string) {
+  const segments = text.split(URL_PATTERN)
+  return segments.map((seg, j) => {
+    if (URL_PATTERN.test(seg)) {
+      // Reset lastIndex after test() consumed it
+      URL_PATTERN.lastIndex = 0
+      return (
+        <button
+          key={`${keyPrefix}-link-${j}`}
+          className="aria-link"
+          onClick={() => window.daemon.shell.openExternal(seg)}
+          title={seg}
+        >
+          {seg}
+        </button>
+      )
+    }
+    URL_PATTERN.lastIndex = 0
+    return seg ? <span key={`${keyPrefix}-text-${j}`}>{seg}</span> : null
+  })
+}
+
 function renderContent(text: string) {
   const parts = text.split(/(```[\s\S]*?```)/g)
   return parts.map((part, i) => {
@@ -37,7 +61,7 @@ function renderContent(text: string) {
       )
     }
     if (!part.trim()) return null
-    return <span key={i}>{part}</span>
+    return <span key={i}>{renderTextWithLinks(part, String(i))}</span>
   })
 }
 

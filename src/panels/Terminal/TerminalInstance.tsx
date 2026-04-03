@@ -4,7 +4,8 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
 import { useTerminalInput } from './useTerminalInput'
-import { HintsOverlay, HistorySearchOverlay } from './TerminalOverlays'
+import { HintsOverlay, HistorySearchOverlay, TerminalSearchOverlay } from './TerminalOverlays'
+import { useUIStore } from '../../store/ui'
 
 const XTERM_THEME = {
   background: '#0a0a0a',
@@ -29,6 +30,26 @@ const XTERM_THEME = {
   brightWhite: '#ffffff',
 }
 
+// Matches Unix absolute, Unix relative, Windows absolute, Windows relative paths
+// with an optional :line or :line:col suffix. Extension required to reduce false positives.
+const FILE_PATH_RE =
+  /(?:(?:[A-Za-z]:[\\/]|[\\/])[^\s"'<>|*?\0]+\.\w+|\.{1,2}[\\/][^\s"'<>|*?\0]+\.\w+)(?::\d+(?::\d+)?)?/g
+
+interface TerminalSearchState {
+  query: string
+  // Matched line indices (into the buffer snapshot taken at search time)
+  lines: string[]
+  matchPositions: Array<{ lineIndex: number; start: number; end: number }>
+  currentIndex: number
+}
+
+const EMPTY_SEARCH: TerminalSearchState = {
+  query: '',
+  lines: [],
+  matchPositions: [],
+  currentIndex: 0,
+}
+
 interface TerminalInstanceProps {
   id: string
   isVisible: boolean
@@ -41,6 +62,18 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragDepthRef = useRef(0)
   const lastCtrlCRef = useRef(0)
+
+  // Keep a live ref to the active project path so link provider callbacks can read
+  // the latest value without stale closure issues.
+  const activeProjectPathRef = useRef<string | null>(null)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  useEffect(() => {
+    activeProjectPathRef.current = activeProjectPath ?? null
+  }, [activeProjectPath])
+
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchState, setSearchState] = useState<TerminalSearchState>(EMPTY_SEARCH)
 
   const input = useTerminalInput(id)
 
@@ -62,11 +95,9 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     const selection = term?.getSelection()
 
     if (selection) {
-      // Right-click with selection: copy to clipboard
       await navigator.clipboard.writeText(selection)
       term?.clearSelection()
     } else {
-      // Right-click without selection: paste from clipboard
       await window.daemon.terminal.pasteFromClipboard(id)
     }
     term?.focus()
@@ -76,6 +107,122 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
     resizeTimerRef.current = setTimeout(doFit, 60)
   }, [doFit])
+
+  // --- Buffer search helpers ---
+
+  const readBufferLines = useCallback((): string[] => {
+    const term = xtermRef.current
+    if (!term) return []
+    const buffer = term.buffer.active
+    const lines: string[] = []
+    for (let i = 0; i < buffer.length; i++) {
+      lines.push(buffer.getLine(i)?.translateToString(true) ?? '')
+    }
+    return lines
+  }, [])
+
+  const buildSearchState = useCallback((query: string): TerminalSearchState => {
+    if (!query) return EMPTY_SEARCH
+    const lines = readBufferLines()
+    const lower = query.toLowerCase()
+    const matchPositions: TerminalSearchState['matchPositions'] = []
+
+    for (let li = 0; li < lines.length; li++) {
+      const lineLower = lines[li].toLowerCase()
+      let pos = 0
+      while (pos < lineLower.length) {
+        const idx = lineLower.indexOf(lower, pos)
+        if (idx === -1) break
+        matchPositions.push({ lineIndex: li, start: idx, end: idx + query.length })
+        pos = idx + 1
+      }
+    }
+
+    return { query, lines, matchPositions, currentIndex: matchPositions.length > 0 ? 0 : -1 }
+  }, [readBufferLines])
+
+  const scrollToMatch = useCallback((state: TerminalSearchState, index: number) => {
+    const term = xtermRef.current
+    if (!term || state.matchPositions.length === 0) return
+    const match = state.matchPositions[index]
+    if (!match) return
+    // xterm scrollToLine scrolls the viewport so the line is visible
+    term.scrollToLine(match.lineIndex)
+  }, [])
+
+  const openSearch = useCallback(() => {
+    setSearchOpen(true)
+    // Re-run search with existing query when re-opened so results are fresh
+    setSearchState((prev) => {
+      const next = buildSearchState(prev.query)
+      return next
+    })
+  }, [buildSearchState])
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false)
+    xtermRef.current?.focus()
+  }, [])
+
+  const handleSearchQueryChange = useCallback((q: string) => {
+    const next = buildSearchState(q)
+    setSearchState(next)
+    if (next.matchPositions.length > 0) scrollToMatch(next, 0)
+  }, [buildSearchState, scrollToMatch])
+
+  const handleSearchNext = useCallback(() => {
+    setSearchState((prev) => {
+      if (prev.matchPositions.length === 0) return prev
+      const next = (prev.currentIndex + 1) % prev.matchPositions.length
+      scrollToMatch(prev, next)
+      return { ...prev, currentIndex: next }
+    })
+  }, [scrollToMatch])
+
+  const handleSearchPrev = useCallback(() => {
+    setSearchState((prev) => {
+      if (prev.matchPositions.length === 0) return prev
+      const next = (prev.currentIndex - 1 + prev.matchPositions.length) % prev.matchPositions.length
+      scrollToMatch(prev, next)
+      return { ...prev, currentIndex: next }
+    })
+  }, [scrollToMatch])
+
+  // --- File path click handler ---
+
+  const handleFilePathClick = useCallback(async (rawPath: string) => {
+    // Strip trailing :line:col suffix for the fs lookup
+    const withoutLineCol = rawPath.replace(/:\d+(?::\d+)?$/, '')
+
+    let resolvedPath = withoutLineCol
+    const isRelative = withoutLineCol.startsWith('./') ||
+      withoutLineCol.startsWith('../') ||
+      withoutLineCol.startsWith('.\\') ||
+      withoutLineCol.startsWith('..\\')
+
+    if (isRelative) {
+      const base = activeProjectPathRef.current
+      if (!base) return
+      // Normalize separators then join
+      const normalizedBase = base.replace(/\\/g, '/')
+      const normalizedRel = withoutLineCol.replace(/\\/g, '/')
+      resolvedPath = `${normalizedBase}/${normalizedRel}`
+    }
+
+    const projectId = activeProjectId
+    if (!projectId) return
+
+    const res = await window.daemon.fs.readFile(resolvedPath)
+    if (!res.ok || !res.data) return
+
+    const name = resolvedPath.replace(/\\/g, '/').split('/').pop() ?? resolvedPath
+    useUIStore.getState().openFile({
+      path: resolvedPath,
+      name,
+      content: res.data.content,
+      projectId,
+    })
+  }, [activeProjectId])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -92,13 +239,51 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
-    term.loadAddon(new WebLinksAddon())
+
+    // Feature 3: WebLinksAddon with explicit openExternal handler
+    term.loadAddon(new WebLinksAddon((_event, url) => {
+      window.daemon.shell.openExternal(url)
+    }))
+
     term.open(containerRef.current)
     xtermRef.current = term
     fitRef.current = fitAddon
 
+    // Feature 2: Register file path link provider
+    // Uses a closure over handleFilePathClick (stable ref via useCallback + activeProjectId dep).
+    // We re-register on each mount — the provider is disposed with the terminal.
+    term.registerLinkProvider({
+      provideLinks(bufferLineNumber, callback) {
+        const buffer = term.buffer.active
+        // xterm link provider uses 1-based line numbers
+        const lineIndex = bufferLineNumber - 1
+        const line = buffer.getLine(lineIndex)
+        if (!line) { callback([]); return }
+        const text = line.translateToString(true)
+
+        const links: Array<{ range: { start: { x: number; y: number }; end: { x: number; y: number } }; text: string; activate: (event: MouseEvent, linkText: string) => void }> = []
+        FILE_PATH_RE.lastIndex = 0
+        let m: RegExpExecArray | null
+        while ((m = FILE_PATH_RE.exec(text)) !== null) {
+          const matchText = m[0]
+          const startX = m.index + 1   // xterm columns are 1-based
+          const endX = m.index + matchText.length
+          links.push({
+            range: {
+              start: { x: startX, y: bufferLineNumber },
+              end: { x: endX, y: bufferLineNumber },
+            },
+            text: matchText,
+            activate(_event, linkText) {
+              handleFilePathClick(linkText)
+            },
+          })
+        }
+        callback(links)
+      },
+    })
+
     // Intercept app-level shortcuts before xterm consumes them.
-    // Returning false tells xterm to suppress the event and not write to pty.
     term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       if (!e.ctrlKey && !e.metaKey) return true
       if (e.type !== 'keydown') return true
@@ -111,13 +296,11 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
         const isDoubleTap = now - lastCtrlCRef.current < 500
 
         if (hasSelection && !isDoubleTap) {
-          // First Ctrl+C with selection: copy to clipboard, clear selection
           navigator.clipboard.writeText(term.getSelection())
           term.clearSelection()
           lastCtrlCRef.current = now
-          return false // suppress — don't send SIGINT
+          return false
         }
-        // No selection or double-tap: let xterm send SIGINT to pty
         lastCtrlCRef.current = now
         return true
       }
@@ -127,6 +310,13 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
         navigator.clipboard.readText().then((text) => {
           if (text) window.daemon.terminal.write(id, text)
         })
+        return false
+      }
+
+      // Feature 1: Ctrl+Shift+F — open terminal output search
+      if (e.shiftKey && key === 'f') {
+        // Use a microtask to avoid React state update inside xterm event handler
+        Promise.resolve().then(() => openSearch())
         return false
       }
 
@@ -178,18 +368,15 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
-      // Null refs before dispose so any in-flight doFit/debouncedFit callbacks
-      // become no-ops instead of accessing the disposed terminal's render service.
       xtermRef.current = null
       fitRef.current = null
       try {
         term.dispose()
-      } catch {
-        // Dispose can throw if the terminal was already partially torn down
-        // (e.g. xterm viewport accessing renderService.dimensions on null).
-      }
+      } catch {}
     }
-  }, [id, doFit, debouncedFit])
+  // openSearch and handleFilePathClick are stable (useCallback), safe to include
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, doFit, debouncedFit, openSearch, handleFilePathClick])
 
   useEffect(() => {
     if (isVisible) {
@@ -218,12 +405,9 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       const fp = (file as File & { path?: string }).path
       if (!fp) continue
       filePaths.push(fp)
-      // Folders have size 0 and no type in Electron's File API
       if (file.size === 0 && !file.type) hasFolder = true
     }
 
-    // If a folder was dropped, let the parent Terminal panel handle it
-    // (creates a new terminal tab at that path)
     if (hasFolder) return []
 
     if (filePaths.length > 0) return filePaths
@@ -245,19 +429,27 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
         onDrop={(e) => {
           dragDepthRef.current = 0
           setDragActive(false)
-          // Check if any dropped item is a folder (size 0, no type)
           const files = Array.from(e.dataTransfer.files)
           const hasFolder = files.some((f) => f.size === 0 && !f.type)
-          if (hasFolder) {
-            // Let the parent Terminal panel handle folder drops (creates new terminal tab)
-            return
-          }
+          if (hasFolder) return
           e.preventDefault()
           writeDroppedPaths(extractDroppedPaths(e))
         }}
       >
         {/* Right-click pastes directly (no context menu) */}
       </div>
+
+      {searchOpen && (
+        <TerminalSearchOverlay
+          query={searchState.query}
+          matchCount={searchState.matchPositions.length}
+          currentMatch={searchState.currentIndex}
+          onQueryChange={handleSearchQueryChange}
+          onNext={handleSearchNext}
+          onPrev={handleSearchPrev}
+          onClose={closeSearch}
+        />
+      )}
 
       {input.completionHints.length > 0 && !input.historySearchOpen && (
         <HintsOverlay

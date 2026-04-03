@@ -1,3 +1,77 @@
+import { useRef, useEffect } from 'react'
+
+// --- Terminal output search ---
+
+interface TerminalSearchOverlayProps {
+  query: string
+  matchCount: number
+  currentMatch: number
+  onQueryChange: (q: string) => void
+  onNext: () => void
+  onPrev: () => void
+  onClose: () => void
+}
+
+export function TerminalSearchOverlay({
+  query,
+  matchCount,
+  currentMatch,
+  onQueryChange,
+  onNext,
+  onPrev,
+  onClose,
+}: TerminalSearchOverlayProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') { onClose(); return }
+    if (e.key === 'Enter') { e.shiftKey ? onPrev() : onNext(); return }
+    if (e.key === 'F3') { e.shiftKey ? onPrev() : onNext(); e.preventDefault() }
+  }
+
+  const countLabel = matchCount === 0 ? 'No results' : `${currentMatch + 1} of ${matchCount}`
+
+  return (
+    <div className="terminal-search-overlay" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="terminal-search-input-row">
+        <span className="terminal-search-icon">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+            <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
+            <line x1="10" y1="10" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </span>
+        <input
+          ref={inputRef}
+          className="terminal-search-input"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Search output..."
+          spellCheck={false}
+        />
+        <span className="terminal-search-count">{countLabel}</span>
+        <button className="terminal-search-nav" onClick={onPrev} title="Previous (Shift+Enter)" disabled={matchCount === 0}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 6.5L5 3.5L8 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button className="terminal-search-nav" onClick={onNext} title="Next (Enter)" disabled={matchCount === 0}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button className="terminal-overlay-dismiss" onClick={onClose}>&times;</button>
+      </div>
+    </div>
+  )
+}
+
+// --- Completion hints ---
+
 interface HintsOverlayProps {
   hints: string[]
   onAcceptHint: (hint: string) => void
@@ -17,6 +91,8 @@ export function HintsOverlay({ hints, onAcceptHint, onDismiss }: HintsOverlayPro
     </div>
   )
 }
+
+// --- History search ---
 
 interface HistorySearchOverlayProps {
   query: string

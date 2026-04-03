@@ -10,8 +10,8 @@
 }
 
 .aria-dock-expanded {
-  max-height: 320px;
-  min-height: 140px;
+  flex: 1;
+  min-height: 0;
 }
 
 .aria-dock-chamber {
@@ -169,6 +169,29 @@
 
 .aria-row-user .aria-content {
   color: var(--t2);
+}
+
+/* ── Inline links in messages ── */
+
+.aria-link {
+  display: inline;
+  font-size: inherit;
+  font-family: var(--font-code);
+  color: var(--blue);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  word-break: break-all;
+  transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
+}
+
+.aria-link:hover {
+  color: var(--t1);
+  text-decoration-color: var(--blue);
 }
 
 /* ── Code blocks ── */
