@@ -401,3 +401,25 @@ CREATE TABLE IF NOT EXISTS plugin_contexts (
 CREATE INDEX IF NOT EXISTS idx_projects_last_active ON projects(last_active DESC);
 CREATE INDEX IF NOT EXISTS idx_email_cache_unread ON email_message_cache(account_id, is_read) WHERE is_read = 0;
 `
+
+export const SCHEMA_V17 = `
+CREATE TABLE IF NOT EXISTS launched_tokens (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  wallet_id TEXT NOT NULL,
+  mint TEXT NOT NULL,
+  name TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  image_uri TEXT,
+  metadata_uri TEXT,
+  launchpad TEXT NOT NULL DEFAULT 'pumpfun',
+  pool_address TEXT,
+  create_signature TEXT,
+  initial_buy_sol REAL,
+  status TEXT DEFAULT 'active',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+
+CREATE INDEX IF NOT EXISTS idx_launched_tokens_wallet ON launched_tokens(wallet_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_launched_tokens_mint ON launched_tokens(mint);
+`

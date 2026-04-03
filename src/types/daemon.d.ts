@@ -526,6 +526,40 @@ declare global {
     clear: (sessionId: string) => Promise<IpcResponse<void>>
   }
 
+  interface LaunchedToken {
+    id: string
+    project_id: string | null
+    wallet_id: string
+    mint: string
+    name: string
+    symbol: string
+    image_uri: string | null
+    metadata_uri: string | null
+    launchpad: string
+    pool_address: string | null
+    create_signature: string | null
+    initial_buy_sol: number | null
+    status: string
+    created_at: number
+  }
+
+  interface DaemonLaunch {
+    saveToken: (input: {
+      walletId: string
+      projectId?: string
+      mint: string
+      name: string
+      symbol: string
+      imagePath?: string
+      metadataUri?: string
+      launchpad?: string
+      createSignature?: string
+      initialBuySol?: number
+    }) => Promise<IpcResponse<{ id: string }>>
+    listTokens: (walletId?: string) => Promise<IpcResponse<LaunchedToken[]>>
+    getToken: (idOrMint: string) => Promise<IpcResponse<LaunchedToken | null>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -551,6 +585,7 @@ declare global {
     email: DaemonEmail
     images: DaemonImages
     aria: DaemonAria
+    launch: DaemonLaunch
   }
 
   interface DaemonBrowser {

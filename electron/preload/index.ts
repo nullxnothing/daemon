@@ -264,6 +264,12 @@ contextBridge.exposeInMainWorld('daemon', {
     importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
   },
 
+  launch: {
+    saveToken: (input: object) => ipcRenderer.invoke('launch:save-token', input),
+    listTokens: (walletId?: string) => ipcRenderer.invoke('launch:list-tokens', walletId),
+    getToken: (idOrMint: string) => ipcRenderer.invoke('launch:get-token', idOrMint),
+  },
+
   aria: {
     send: (sessionId: string, message: string) => ipcRenderer.invoke('aria:send', sessionId, message),
     history: (sessionId: string, limit?: number) => ipcRenderer.invoke('aria:history', sessionId, limit),

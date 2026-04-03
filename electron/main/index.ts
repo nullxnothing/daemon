@@ -27,6 +27,7 @@ import { registerDeployHandlers } from '../ipc/deploy'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
+import { registerLaunchHandlers } from '../ipc/launch'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
@@ -119,6 +120,7 @@ function registerAllIpc() {
   registerEmailHandlers()
   registerImageHandlers()
   registerAriaHandlers()
+  registerLaunchHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
