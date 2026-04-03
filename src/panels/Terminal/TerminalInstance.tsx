@@ -41,9 +41,6 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragDepthRef = useRef(0)
   const lastCtrlCRef = useRef(0)
-  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
-    isOpen: false, x: 0, y: 0,
-  })
 
   const input = useTerminalInput(id)
 
@@ -59,21 +56,21 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     } catch {}
   }, [id])
 
-  const closeContextMenu = useCallback(() => {
-    setContextMenu((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev))
-  }, [])
-
-  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+  const handleContextMenu = useCallback(async (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault()
-    const rect = event.currentTarget.getBoundingClientRect()
-    setContextMenu({ isOpen: true, x: event.clientX - rect.left, y: event.clientY - rect.top })
-  }, [])
+    const term = xtermRef.current
+    const selection = term?.getSelection()
 
-  const handlePasteFromContextMenu = useCallback(async () => {
-    await window.daemon.terminal.pasteFromClipboard(id)
-    closeContextMenu()
-    xtermRef.current?.focus()
-  }, [closeContextMenu, id])
+    if (selection) {
+      // Right-click with selection: copy to clipboard
+      await navigator.clipboard.writeText(selection)
+      term?.clearSelection()
+    } else {
+      // Right-click without selection: paste from clipboard
+      await window.daemon.terminal.pasteFromClipboard(id)
+    }
+    term?.focus()
+  }, [id])
 
   const debouncedFit = useCallback(() => {
     if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
@@ -195,18 +192,6 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   }, [id, doFit, debouncedFit])
 
   useEffect(() => {
-    if (!contextMenu.isOpen) return
-    const handlePointerDown = () => closeContextMenu()
-    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeContextMenu() }
-    window.addEventListener('pointerdown', handlePointerDown)
-    window.addEventListener('keydown', handleEscape)
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('keydown', handleEscape)
-    }
-  }, [closeContextMenu, contextMenu.isOpen])
-
-  useEffect(() => {
     if (isVisible) {
       requestAnimationFrame(() => { doFit(); xtermRef.current?.focus() })
     }
@@ -271,17 +256,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
           writeDroppedPaths(extractDroppedPaths(e))
         }}
       >
-        {contextMenu.isOpen && (
-          <div
-            className="terminal-context-menu"
-            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <button className="terminal-context-menu-item" onClick={() => void handlePasteFromContextMenu()}>
-              Paste
-            </button>
-          </div>
-        )}
+        {/* Right-click pastes directly (no context menu) */}
       </div>
 
       {input.completionHints.length > 0 && !input.historySearchOpen && (
