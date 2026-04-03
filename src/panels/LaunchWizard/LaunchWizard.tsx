@@ -60,6 +60,7 @@ export function LaunchWizard() {
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const [step, setStep] = useState<Step>(1)
+  const [hasAttemptedNext, setHasAttemptedNext] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [wallets, setWallets] = useState<Array<{ id: string; name: string; address: string }>>([])
@@ -84,9 +85,21 @@ export function LaunchWizard() {
     walletId: '',
   })
 
+  // Close on Escape (window-level so it works regardless of focus)
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && step !== 4) {
+        e.preventDefault()
+        e.stopPropagation()
+        closeLaunchWizard()
+      }
+    }
+    window.addEventListener('keydown', handleEscape, true)
+    return () => window.removeEventListener('keydown', handleEscape, true)
+  }, [step, closeLaunchWizard])
+
   // Load wallets on mount
   useEffect(() => {
-    overlayRef.current?.focus()
     window.daemon.wallet.list().then((res) => {
       if (res.ok && res.data) {
         const list = res.data.map((w) => ({ id: w.id, name: w.name, address: w.address }))
@@ -106,10 +119,6 @@ export function LaunchWizard() {
       if (res.ok && res.data) setWalletBalance(res.data.sol)
     }).catch(() => {})
   }, [s2.walletId])
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape' && step !== 4) closeLaunchWizard()
-  }
 
   const handlePickImage = async () => {
     const res = await window.daemon.pumpfun.pickImage()
@@ -169,8 +178,6 @@ export function LaunchWizard() {
     <div
       className="lw-overlay"
       ref={overlayRef}
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
     >
       <div className="lw-card">
         <div className="lw-title">Token Launch</div>
@@ -199,7 +206,7 @@ export function LaunchWizard() {
 
         <div className="lw-content">
           {step === 1 && (
-            <StepDetails s1={s1} setS1={setS1} onPickImage={handlePickImage} />
+            <StepDetails s1={s1} setS1={setS1} onPickImage={handlePickImage} showErrors={hasAttemptedNext} />
           )}
           {step === 2 && (
             <StepConfig s2={s2} setS2={setS2} wallets={wallets} />
@@ -247,8 +254,17 @@ export function LaunchWizard() {
               {step < 3 && (
                 <button
                   className="lw-btn primary"
-                  disabled={step === 1 ? !canProceedStep1 : !canProceedStep2}
-                  onClick={() => setStep((s) => (s + 1) as Step)}
+                  disabled={step === 2 && !canProceedStep2}
+                  onClick={() => {
+                    if (step === 1) {
+                      if (!canProceedStep1) {
+                        setHasAttemptedNext(true)
+                        return
+                      }
+                      setHasAttemptedNext(false)
+                    }
+                    setStep((s) => (s + 1) as Step)
+                  }}
                 >
                   Next
                 </button>
@@ -278,50 +294,71 @@ function StepDetails({
   s1,
   setS1,
   onPickImage,
+  showErrors,
 }: {
   s1: Step1State
   setS1: React.Dispatch<React.SetStateAction<Step1State>>
   onPickImage: () => void
+  showErrors: boolean
 }) {
+  const nameEmpty = s1.name.trim().length === 0
+  const symbolEmpty = s1.symbol.trim().length === 0
+  const descEmpty = s1.description.trim().length === 0
+
   return (
     <div>
       <div className="lw-field">
-        <label className="lw-label">Token Name</label>
+        <label className="lw-label">
+          Token Name <span className="lw-label-required">*</span>
+        </label>
         <input
-          className="lw-input"
+          className={`lw-input ${showErrors && nameEmpty ? 'lw-input-error' : ''}`}
           value={s1.name}
           maxLength={32}
           placeholder="e.g. My Token"
           onChange={(e) => setS1((p) => ({ ...p, name: e.target.value }))}
         />
+        {showErrors && nameEmpty && (
+          <div className="lw-validation-error">Token name is required</div>
+        )}
         <div className={`lw-char-count ${s1.name.length > 28 ? 'warn' : ''}`}>
           {s1.name.length} / 32
         </div>
       </div>
 
       <div className="lw-field">
-        <label className="lw-label">Symbol / Ticker</label>
+        <label className="lw-label">
+          Symbol / Ticker <span className="lw-label-required">*</span>
+        </label>
         <input
-          className="lw-input"
+          className={`lw-input ${showErrors && symbolEmpty ? 'lw-input-error' : ''}`}
           value={s1.symbol}
           maxLength={10}
           placeholder="e.g. MYTKN"
           onChange={(e) => setS1((p) => ({ ...p, symbol: e.target.value.toUpperCase() }))}
         />
+        {showErrors && symbolEmpty && (
+          <div className="lw-validation-error">Symbol is required</div>
+        )}
         <div className={`lw-char-count ${s1.symbol.length > 8 ? 'warn' : ''}`}>
           {s1.symbol.length} / 10
         </div>
       </div>
 
       <div className="lw-field">
-        <label className="lw-label">Description</label>
+        <label className="lw-label">
+          Description <span className="lw-label-required">*</span>
+        </label>
         <textarea
-          className="lw-textarea"
+          className={`lw-textarea ${showErrors && descEmpty ? 'lw-textarea-error' : ''}`}
           value={s1.description}
           maxLength={300}
           placeholder="Describe your token..."
           onChange={(e) => setS1((p) => ({ ...p, description: e.target.value }))}
         />
+        {showErrors && descEmpty && (
+          <div className="lw-validation-error">Description is required</div>
+        )}
         <div className={`lw-char-count ${s1.description.length > 260 ? 'warn' : ''}`}>
           {s1.description.length} / 300
         </div>
