@@ -23,6 +23,13 @@ export function registerRegistryHandlers() {
     return SessionTracker.listSessions({ limit: limit ?? 50 })
   }))
 
+  ipcMain.handle('registry:rename-session', ipcHandler(async (_event, sessionId: string, customName: string) => {
+    if (typeof sessionId !== 'string' || !sessionId) throw new Error('Invalid session ID')
+    if (typeof customName !== 'string') throw new Error('Invalid name')
+    SessionTracker.renameSession(sessionId, customName)
+    return null
+  }))
+
   ipcMain.handle('registry:get-profile', ipcHandler(async () => {
     return SessionTracker.getProfileStats()
   }))

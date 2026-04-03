@@ -181,6 +181,7 @@ export function registerTerminalHandlers() {
       agentId: opts.agentId,
       agentName: agent.name,
       model: agent.model,
+      terminalId: id,
     })
     session.localSessionId = localSessionId
 

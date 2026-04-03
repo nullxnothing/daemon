@@ -344,6 +344,7 @@ contextBridge.exposeInMainWorld('daemon', {
     getProfile: () => ipcRenderer.invoke('registry:get-profile'),
     publishSession: (sessionId: string) => ipcRenderer.invoke('registry:publish-session', sessionId),
     publishAll: () => ipcRenderer.invoke('registry:publish-all'),
+    renameSession: (sessionId: string, name: string) => ipcRenderer.invoke('registry:rename-session', sessionId, name),
   },
 
   tools: {

@@ -421,6 +421,11 @@ CREATE INDEX IF NOT EXISTS idx_projects_last_active ON projects(last_active DESC
 CREATE INDEX IF NOT EXISTS idx_email_cache_unread ON email_message_cache(account_id, is_read) WHERE is_read = 0;
 `
 
+export const SCHEMA_V19 = `
+ALTER TABLE agent_sessions_local ADD COLUMN terminal_id TEXT;
+ALTER TABLE agent_sessions_local ADD COLUMN custom_name TEXT;
+`
+
 export const SCHEMA_V17 = `
 CREATE TABLE IF NOT EXISTS launched_tokens (
   id TEXT PRIMARY KEY,

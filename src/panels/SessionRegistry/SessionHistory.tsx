@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useUIStore } from '../../store/ui'
 import './SessionHistory.css'
 
 function formatDuration(startedAt: number, endedAt: number | null): string {
@@ -43,19 +44,73 @@ function modelClass(model: string | null): string {
 interface SessionRowProps {
   session: LocalAgentSession
   onPublish: (id: string) => void
+  onRename: (id: string, name: string) => void
+  onResume: (session: LocalAgentSession) => void
+  onRelaunch: (session: LocalAgentSession) => void
   isPublishing: boolean
 }
 
-function SessionRow({ session, onPublish, isPublishing }: SessionRowProps) {
+function SessionRow({ session, onPublish, onRename, onResume, onRelaunch, isPublishing }: SessionRowProps) {
   const isActive = session.status === 'active'
   const isPublished = !!session.published_signature
+  const displayName = session.custom_name ?? session.agent_name ?? 'Unknown Agent'
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(displayName)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const startEdit = () => {
+    setEditValue(displayName)
+    setIsEditing(true)
+  }
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+  }, [isEditing])
+
+  const commitEdit = () => {
+    setIsEditing(false)
+    const trimmed = editValue.trim()
+    if (trimmed !== displayName) {
+      onRename(session.id, trimmed)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') commitEdit()
+    if (e.key === 'Escape') setIsEditing(false)
+  }
+
+  const canResume = isActive && !!session.terminal_id
+  const canRelaunch = !isActive && !!session.agent_id
 
   return (
     <div className={`sr-row ${isActive ? 'sr-row--active' : ''}`}>
       <div className="sr-row-left">
         <span className={`sr-dot sr-dot--${session.status}`} />
         <div className="sr-row-info">
-          <span className="sr-agent-name">{session.agent_name ?? 'Unknown Agent'}</span>
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              className="sr-name-input"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKeyDown}
+              maxLength={80}
+            />
+          ) : (
+            <button
+              className="sr-agent-name sr-agent-name--editable"
+              onClick={startEdit}
+              title="Click to rename"
+            >
+              {displayName}
+            </button>
+          )}
           <span className="sr-row-meta">
             {formatRelative(session.created_at)}
             {!isActive && session.ended_at
@@ -68,6 +123,22 @@ function SessionRow({ session, onPublish, isPublishing }: SessionRowProps) {
         <span className={`sr-model-badge sr-model-badge--${modelClass(session.model)}`}>
           {modelLabel(session.model)}
         </span>
+        {canResume && (
+          <button
+            className="sr-action-btn sr-action-btn--resume"
+            onClick={() => onResume(session)}
+          >
+            Resume
+          </button>
+        )}
+        {canRelaunch && (
+          <button
+            className="sr-action-btn sr-action-btn--relaunch"
+            onClick={() => onRelaunch(session)}
+          >
+            Re-launch
+          </button>
+        )}
         {isPublished ? (
           <span className="sr-published-badge">on-chain</span>
         ) : session.status === 'completed' ? (
@@ -90,6 +161,8 @@ export function SessionHistory() {
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [publishAllBusy, setPublishAllBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const { terminals, activeProjectId, setActiveTerminal, activeTerminalIdByProject } = useUIStore()
 
   const load = useCallback(() => {
     window.daemon.registry.listSessions(30).then((res) => {
@@ -144,6 +217,44 @@ export function SessionHistory() {
     }
   }, [load])
 
+  const handleRename = useCallback(async (sessionId: string, name: string) => {
+    try {
+      await window.daemon.registry.renameSession(sessionId, name)
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId ? { ...s, custom_name: name.trim() || null } : s
+        )
+      )
+    } catch {
+      // best-effort
+    }
+  }, [])
+
+  const handleResume = useCallback((session: LocalAgentSession) => {
+    if (!session.terminal_id) return
+
+    const terminal = terminals.find((t) => t.id === session.terminal_id)
+    if (!terminal) return
+
+    const projectId = terminal.projectId
+    setActiveTerminal(projectId, session.terminal_id)
+    window.daemon.terminal.write(session.terminal_id, '/resume\n')
+  }, [terminals, setActiveTerminal])
+
+  const handleRelaunch = useCallback(async (session: LocalAgentSession) => {
+    if (!session.agent_id) return
+    const projectId = session.project_id ?? activeProjectId
+    if (!projectId) return
+
+    setError(null)
+    try {
+      await window.daemon.terminal.spawnAgent({ agentId: session.agent_id, projectId })
+      load()
+    } catch (err) {
+      setError(String(err))
+    }
+  }, [activeProjectId, load])
+
   const unpublishedCount = profile?.unpublishedCount ?? 0
 
   return (
@@ -191,6 +302,9 @@ export function SessionHistory() {
               key={s.id}
               session={s}
               onPublish={handlePublish}
+              onRename={handleRename}
+              onResume={handleResume}
+              onRelaunch={handleRelaunch}
               isPublishing={publishingId === s.id}
             />
           ))

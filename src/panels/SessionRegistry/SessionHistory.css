@@ -239,3 +239,70 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.sr-agent-name--editable {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: text;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+  font-family: inherit;
+}
+
+.sr-agent-name--editable:hover {
+  color: var(--green);
+}
+
+.sr-name-input {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t1);
+  background: var(--s3);
+  border: 1px solid var(--green-dim);
+  border-radius: 3px;
+  padding: 1px 5px;
+  outline: none;
+  width: 140px;
+  font-family: inherit;
+}
+
+.sr-action-btn {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--s3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sr-action-btn--resume {
+  border-color: color-mix(in srgb, var(--green) 35%, transparent);
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+}
+
+.sr-action-btn--resume:hover {
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+  border-color: var(--green);
+}
+
+.sr-action-btn--relaunch {
+  color: var(--t2);
+  border-color: var(--border);
+}
+
+.sr-action-btn--relaunch:hover {
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 50%, transparent);
+  background: color-mix(in srgb, var(--blue) 8%, transparent);
+}

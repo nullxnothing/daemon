@@ -14,6 +14,8 @@ export interface LocalSession {
   tools_used: string[]
   published_signature: string | null
   created_at: number
+  terminal_id: string | null
+  custom_name: string | null
 }
 
 interface SessionRow {
@@ -29,6 +31,8 @@ interface SessionRow {
   tools_used: string
   published_signature: string | null
   created_at: number
+  terminal_id: string | null
+  custom_name: string | null
 }
 
 function rowToSession(row: SessionRow): LocalSession {
@@ -38,6 +42,8 @@ function rowToSession(row: SessionRow): LocalSession {
     tools_used: (() => {
       try { return JSON.parse(row.tools_used) as string[] } catch { return [] }
     })(),
+    terminal_id: row.terminal_id ?? null,
+    custom_name: row.custom_name ?? null,
   }
 }
 
@@ -46,6 +52,7 @@ export function startSession(params: {
   agentId: string | null
   agentName: string | null
   model: string | null
+  terminalId?: string | null
 }): string {
   const id = crypto.randomUUID()
   const now = Date.now()
@@ -53,14 +60,27 @@ export function startSession(params: {
   try {
     getDb().prepare(`
       INSERT INTO agent_sessions_local
-        (id, project_id, agent_id, agent_name, model, started_at, status, lines_generated, tools_used, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'active', 0, '[]', ?)
-    `).run(id, params.projectId, params.agentId, params.agentName, params.model, now, now)
+        (id, project_id, agent_id, agent_name, model, started_at, status, lines_generated, tools_used, created_at, terminal_id)
+      VALUES (?, ?, ?, ?, ?, ?, 'active', 0, '[]', ?, ?)
+    `).run(id, params.projectId, params.agentId, params.agentName, params.model, now, now, params.terminalId ?? null)
   } catch (err) {
     console.warn('[SessionTracker] failed to start session:', (err as Error).message)
   }
 
   return id
+}
+
+export function renameSession(sessionId: string, customName: string): void {
+  const trimmed = customName.trim()
+  const value = trimmed.length > 0 ? trimmed : null
+
+  try {
+    getDb().prepare(`
+      UPDATE agent_sessions_local SET custom_name = ? WHERE id = ?
+    `).run(value, sessionId)
+  } catch (err) {
+    console.warn('[SessionTracker] failed to rename session:', (err as Error).message)
+  }
 }
 
 export function endSession(params: {

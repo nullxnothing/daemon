@@ -573,6 +573,8 @@ declare global {
     tools_used: string[]
     published_signature: string | null
     created_at: number
+    terminal_id: string | null
+    custom_name: string | null
   }
 
   interface AgentSessionProfile {
@@ -588,6 +590,7 @@ declare global {
     getProfile: () => Promise<IpcResponse<AgentSessionProfile>>
     publishSession: (sessionId: string) => Promise<IpcResponse<{ startSignature: string; endSignature: string }>>
     publishAll: () => Promise<IpcResponse<{ published: number; failed: number }>>
+    renameSession: (sessionId: string, name: string) => Promise<IpcResponse<null>>
   }
 
   interface DaemonAPI {
