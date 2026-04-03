@@ -235,6 +235,21 @@ Proceed immediately with the task. Ask for clarification only when the target pr
     console.warn('[Migrations] built-in tools seed check failed:', (err as Error).message)
   }
 
+  // Ensure solana-mcp-server exists in registry (idempotent — handles DBs seeded before it was added)
+  try {
+    const hasSolanaMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'solana-mcp-server'").get()
+    if (!hasSolanaMcp) {
+      db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
+        'solana-mcp-server',
+        JSON.stringify({ command: 'npx', args: ['-y', 'solana-mcp-server'] }),
+        'Solana program deployment, account inspection, and docs search',
+        0,
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] solana-mcp-server registry seed check failed:', (err as Error).message)
+  }
+
   // Ensure all registry plugins have DB rows (handles plugins added after initial migration)
   try {
     const newPlugins = [
@@ -497,6 +512,12 @@ function seedMcpRegistry(db: Database.Database) {
       name: 'helius',
       config: JSON.stringify({ command: 'npx', args: ['-y', 'helius-mcp-server'], env: { HELIUS_API_KEY: '' } }),
       description: 'Solana RPC + DAS API via Helius',
+      isGlobal: 0,
+    },
+    {
+      name: 'solana-mcp-server',
+      config: JSON.stringify({ command: 'npx', args: ['-y', 'solana-mcp-server'] }),
+      description: 'Solana program deployment, account inspection, and docs search',
       isGlobal: 0,
     },
     {
