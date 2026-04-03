@@ -1,5 +1,26 @@
 import { useRef, useEffect } from 'react'
 
+// Minimal inline owl — two dots for eyes, no external dependency
+function AriaOwlMini() {
+  return (
+    <svg
+      className="aria-hint-owl"
+      width="14"
+      height="10"
+      viewBox="0 0 14 10"
+      fill="none"
+      aria-hidden="true"
+    >
+      <ellipse cx="4" cy="5" rx="2.5" ry="3" fill="var(--s3)" stroke="var(--s5)" strokeWidth="0.6" />
+      <ellipse cx="10" cy="5" rx="2.5" ry="3" fill="var(--s3)" stroke="var(--s5)" strokeWidth="0.6" />
+      <circle cx="4" cy="5" r="1.1" fill="var(--green)" opacity="0.85" />
+      <circle cx="10" cy="5" r="1.1" fill="var(--green)" opacity="0.85" />
+      <circle cx="4.4" cy="4.6" r="0.35" fill="var(--bg)" />
+      <circle cx="10.4" cy="4.6" r="0.35" fill="var(--bg)" />
+    </svg>
+  )
+}
+
 // --- Terminal output search ---
 
 interface TerminalSearchOverlayProps {
@@ -80,13 +101,19 @@ interface HintsOverlayProps {
 
 export function HintsOverlay({ hints, onAcceptHint, onDismiss }: HintsOverlayProps) {
   return (
-    <div className="terminal-overlay hints" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="terminal-overlay hints aria-bubble" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="aria-bubble-tail" aria-hidden="true" />
       <div className="terminal-overlay-header">
-        <div className="terminal-overlay-title">Hints (Tab)</div>
+        <div className="aria-bubble-identity">
+          <AriaOwlMini />
+          <span className="aria-bubble-label">aria</span>
+        </div>
         <button className="terminal-overlay-dismiss" onClick={onDismiss}>&times;</button>
       </div>
       {hints.slice(0, 5).map((hint) => (
-        <button key={hint} className="terminal-overlay-item" onClick={() => onAcceptHint(hint)}>{hint}</button>
+        <button key={hint} className="terminal-overlay-item" onClick={() => onAcceptHint(hint)}>
+          {hint}
+        </button>
       ))}
     </div>
   )
@@ -103,8 +130,15 @@ interface HistorySearchOverlayProps {
 
 export function HistorySearchOverlay({ query, matches, selectionIndex, onSelectAndApply }: HistorySearchOverlayProps) {
   return (
-    <div className="terminal-overlay history-search">
-      <div className="terminal-overlay-title">History Search (Ctrl+R)</div>
+    <div className="terminal-overlay history-search aria-bubble" onPointerDown={(e) => e.stopPropagation()}>
+      <div className="aria-bubble-tail" aria-hidden="true" />
+      <div className="terminal-overlay-header">
+        <div className="aria-bubble-identity">
+          <AriaOwlMini />
+          <span className="aria-bubble-label">aria</span>
+          <span className="aria-bubble-hint-key">ctrl+r</span>
+        </div>
+      </div>
       <div className="terminal-history-query">{query || 'type to filter...'}</div>
       <div className="terminal-history-results">
         {matches.slice(0, 8).map((match, index) => (

@@ -1,20 +1,22 @@
 import { useRef, useMemo, useState } from 'react'
 
 const COMMAND_HINTS = [
+  'anchor build',
+  'anchor test',
+  'anchor deploy',
+  'solana balance',
+  'solana airdrop 2',
+  'pnpm run dev',
+  'pnpm run build',
+  'pnpm run test',
+  'pnpm install',
   'git status',
-  'git diff',
   'git add .',
   'git commit -m ""',
+  'git push',
   'npm run dev',
-  'npm run build',
-  'npm test',
-  'pnpm install',
-  'pnpm dev',
-  'pnpm build',
-  'ls',
-  'cd ..',
-  'pwd',
-  'clear',
+  'cargo build',
+  'cargo test',
 ]
 
 export function useTerminalInput(terminalId: string) {
