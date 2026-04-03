@@ -17,6 +17,8 @@ export function getDb(): Database.Database {
   _db.pragma('foreign_keys = ON')
   _db.pragma('busy_timeout = 5000')
   _db.pragma('synchronous = NORMAL')
+  _db.pragma('cache_size = -32000')
+  _db.pragma('temp_store = MEMORY')
 
   // Integrity check before migrations — detect corruption early
   const integrity = _db.pragma('integrity_check') as Array<{ integrity_check: string }>
@@ -31,10 +33,18 @@ export function getDb(): Database.Database {
 
   runMigrations(_db)
 
-  // Periodic passive WAL checkpoint every 5 minutes to prevent unbounded WAL growth
+  // Periodic passive WAL checkpoint + data retention cleanup every 5 minutes
   _walCheckpointTimer = setInterval(() => {
     try {
       _db?.pragma('wal_checkpoint(PASSIVE)')
+    } catch { /* best-effort */ }
+
+    try {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+      _db?.prepare('DELETE FROM error_logs WHERE created_at < ?').run(sevenDaysAgo)
+      _db?.prepare('DELETE FROM aria_messages WHERE created_at < ?').run(thirtyDaysAgo)
+      _db?.prepare('DELETE FROM app_crashes WHERE created_at < ?').run(thirtyDaysAgo)
     } catch { /* best-effort */ }
   }, 5 * 60 * 1000)
 

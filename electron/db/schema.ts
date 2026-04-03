@@ -385,3 +385,19 @@ UPDATE deploy_cache SET created_at = CAST(unixepoch('now') * 1000 AS INTEGER) WH
 UPDATE email_accounts SET created_at = CAST(unixepoch('now') * 1000 AS INTEGER) WHERE created_at IS NULL;
 UPDATE email_accounts SET updated_at = CAST(unixepoch('now') * 1000 AS INTEGER) WHERE updated_at IS NULL;
 `
+
+export const SCHEMA_V16 = `
+CREATE TABLE IF NOT EXISTS plugin_contexts (
+  plugin_id TEXT PRIMARY KEY,
+  system_prompt TEXT,
+  templates TEXT DEFAULT '[]',
+  skills TEXT DEFAULT '[]',
+  model TEXT,
+  effort TEXT,
+  examples TEXT DEFAULT '[]',
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+
+CREATE INDEX IF NOT EXISTS idx_projects_last_active ON projects(last_active DESC);
+CREATE INDEX IF NOT EXISTS idx_email_cache_unread ON email_message_cache(account_id, is_read) WHERE is_read = 0;
+`

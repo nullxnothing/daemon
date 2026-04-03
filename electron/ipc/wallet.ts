@@ -57,8 +57,44 @@ export function registerWalletHandlers() {
     return await WalletService.getSwapQuote(input.inputMint, input.outputMint, input.amount, input.slippageBps)
   }))
 
-  ipcMain.handle('wallet:swap-execute', ipcHandler(async (_event, input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown }) => {
-    return await WalletService.executeSwap(input.walletId, input.inputMint, input.outputMint, input.amount, input.slippageBps, input.rawQuoteResponse)
+  ipcMain.handle('wallet:swap-execute', ipcHandler(async (_event, input: {
+    walletId: string
+    inputMint: string
+    outputMint: string
+    amount: number
+    slippageBps: number
+    rawQuoteResponse?: unknown
+    // H1: server-side confirmation enforcement
+    confirmedAt: number
+    acknowledgedImpact: boolean
+  }) => {
+    // H1: confirmedAt must be a timestamp within the last 60 seconds
+    const now = Date.now()
+    if (typeof input.confirmedAt !== 'number' || input.confirmedAt <= 0) {
+      throw new Error('Swap requires a confirmedAt timestamp')
+    }
+    const ageMs = now - input.confirmedAt
+    if (ageMs < 0 || ageMs > 60_000) {
+      throw new Error('Swap confirmation expired — please review the quote again')
+    }
+
+    // H1: if the quote has high price impact, acknowledgedImpact must be true
+    if (input.rawQuoteResponse != null) {
+      const quote = input.rawQuoteResponse as Record<string, unknown>
+      const impactPct = parseFloat(String(quote.priceImpactPct ?? '0'))
+      if (impactPct >= 5 && input.acknowledgedImpact !== true) {
+        throw new Error('High price impact must be explicitly acknowledged before executing')
+      }
+    }
+
+    return await WalletService.executeSwap(
+      input.walletId,
+      input.inputMint,
+      input.outputMint,
+      input.amount,
+      input.slippageBps,
+      input.rawQuoteResponse,
+    )
   }))
 
   ipcMain.handle('wallet:balance', ipcHandler(async (_event, walletId: string) => {

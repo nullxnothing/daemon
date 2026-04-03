@@ -261,9 +261,10 @@ export function createWallet(name: string, address: string) {
 
 export function deleteWallet(id: string) {
   const db = getDb()
-  const row = db.prepare('SELECT is_default FROM wallets WHERE id = ?').get(id) as { is_default: number } | undefined
 
   db.transaction(() => {
+    const row = db.prepare('SELECT is_default FROM wallets WHERE id = ?').get(id) as { is_default: number } | undefined
+
     db.prepare('UPDATE projects SET wallet_id = NULL WHERE wallet_id = ?').run(id)
     db.prepare('DELETE FROM portfolio_snapshots WHERE wallet_id = ?').run(id)
     db.prepare('DELETE FROM transaction_history WHERE wallet_id = ?').run(id)
@@ -750,6 +751,30 @@ export async function executeSwap(
     // quote only if no rawQuoteResponse was supplied (e.g. programmatic calls).
     let quoteData: unknown
     if (rawQuoteResponse) {
+      // H2: validate that the quote matches the parameters the user approved
+      const q = rawQuoteResponse as Record<string, unknown>
+
+      if (typeof q.inputMint !== 'string' || q.inputMint !== inputMint) {
+        throw new Error(`Quote inputMint mismatch: expected ${inputMint}, got ${String(q.inputMint)}`)
+      }
+      if (typeof q.outputMint !== 'string' || q.outputMint !== outputMint) {
+        throw new Error(`Quote outputMint mismatch: expected ${outputMint}, got ${String(q.outputMint)}`)
+      }
+
+      // inAmount in the raw Jupiter quote is in lamports/raw units — compare against
+      // the raw amount derived from the same decimals used when the quote was fetched.
+      const rawRequested = Math.round(amount * Math.pow(10, decimals))
+      const quoteInAmount = parseInt(String(q.inAmount ?? '0'), 10)
+      if (isNaN(quoteInAmount) || quoteInAmount <= 0) {
+        throw new Error('Quote inAmount is invalid')
+      }
+      const drift = Math.abs(quoteInAmount - rawRequested) / rawRequested
+      if (drift > 0.01) {
+        throw new Error(
+          `Quote inAmount ${quoteInAmount} deviates more than 1% from requested ${rawRequested}`
+        )
+      }
+
       quoteData = rawQuoteResponse
     } else {
       const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))

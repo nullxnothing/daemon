@@ -39,6 +39,9 @@ interface PendingSwap {
   outputSymbol: string
   slippagePct: string
   impactPct: number
+  // Timestamp when the user opened the confirmation dialog — sent to main process
+  // so it can enforce that confirmation happened within the last 60 seconds.
+  confirmedAt: number
 }
 
 export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefresh }: WalletSwapFormProps) {
@@ -107,7 +110,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
     }
   }
 
-  // Show the confirmation dialog with the quoted values — does not execute yet
+  // Show the confirmation dialog with the quoted values — does not execute yet.
+  // We record the timestamp here so the main process can enforce the 60-second window.
   const handleRequestConfirm = () => {
     if (!quote) return
     const impactPct = parseFloat(quote.priceImpactPct)
@@ -118,6 +122,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
       outputSymbol: outputToken?.symbol ?? shortMint(outputMint),
       slippagePct: (parseInt(slippageBps, 10) / 100).toFixed(2),
       impactPct,
+      confirmedAt: Date.now(),
     })
     setHighImpactAcknowledged(false)
   }
@@ -139,6 +144,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
         amount: parseFloat(amount),
         slippageBps: parseInt(slippageBps, 10),
         rawQuoteResponse: pendingSwap.rawQuoteResponse,
+        confirmedAt: pendingSwap.confirmedAt,
+        acknowledgedImpact: highImpactAcknowledged,
       })
 
       if (res.ok && res.data) {

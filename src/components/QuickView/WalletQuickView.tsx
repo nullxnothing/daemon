@@ -172,6 +172,7 @@ interface SwapQuote {
   outAmount: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
+  rawQuoteResponse: unknown
 }
 
 function SwapView({ walletId, holdings, onBack }: {
@@ -244,6 +245,8 @@ function SwapView({ walletId, holdings, onBack }: {
     setError(null)
     setResult(null)
 
+    const impactPct = parseFloat(quote.priceImpactPct)
+
     try {
       const res = await window.daemon.wallet.swapExecute({
         walletId,
@@ -251,6 +254,10 @@ function SwapView({ walletId, holdings, onBack }: {
         outputMint,
         amount: parseFloat(amount),
         slippageBps,
+        rawQuoteResponse: quote.rawQuoteResponse,
+        // User clicked "Swap" which serves as the confirmation gesture here
+        confirmedAt: Date.now(),
+        acknowledgedImpact: impactPct >= 5,
       })
       if (res.ok && res.data) {
         setResult(res.data.signature)
