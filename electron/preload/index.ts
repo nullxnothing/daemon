@@ -347,6 +347,16 @@ contextBridge.exposeInMainWorld('daemon', {
     renameSession: (sessionId: string, name: string) => ipcRenderer.invoke('registry:rename-session', sessionId, name),
   },
 
+  colosseum: {
+    status: () => ipcRenderer.invoke('colosseum:status'),
+    searchProjects: (query: string, limit?: number, filters?: object) => ipcRenderer.invoke('colosseum:search-projects', query, limit, filters),
+    searchArchives: (query: string, limit?: number) => ipcRenderer.invoke('colosseum:search-archives', query, limit),
+    projectDetail: (slug: string) => ipcRenderer.invoke('colosseum:project-detail', slug),
+    filters: () => ipcRenderer.invoke('colosseum:filters'),
+    storePat: (pat: string) => ipcRenderer.invoke('colosseum:store-pat', pat),
+    isConfigured: () => ipcRenderer.invoke('colosseum:is-configured'),
+  },
+
   tools: {
     list: () => ipcRenderer.invoke('tools:list'),
     get: (id: string) => ipcRenderer.invoke('tools:get', id),

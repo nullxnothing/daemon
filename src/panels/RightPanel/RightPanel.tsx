@@ -4,6 +4,7 @@ import { ClaudePanel } from '../ClaudePanel/ClaudePanel'
 import { DashboardMini } from '../Dashboard/DashboardMini'
 import { SessionHistory } from '../SessionRegistry/SessionHistory'
 import { AriaChat } from '../ClaudePanel/AriaChat'
+import { HackathonPanel } from '../Colosseum/HackathonPanel'
 import './RightPanel.css'
 
 function useClaudeStatus(): 'live' | 'unknown' {
@@ -66,6 +67,21 @@ export function RightPanel() {
         >
           Sessions
         </button>
+        <button
+          className={`right-panel-tab${rightPanelTab === 'hackathon' ? ' active' : ''}`}
+          role="tab"
+          aria-selected={rightPanelTab === 'hackathon'}
+          onClick={() => setRightPanelTab('hackathon')}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" style={{ marginRight: 4 }}>
+            <path d="M2 12V6a6 6 0 0 1 12 0v6" strokeLinecap="round"/>
+            <line x1="2" y1="12" x2="14" y2="12" strokeLinecap="round"/>
+            <line x1="5" y1="12" x2="5" y2="7"/>
+            <line x1="8" y1="12" x2="8" y2="5"/>
+            <line x1="11" y1="12" x2="11" y2="7"/>
+          </svg>
+          Hackathon
+        </button>
       </div>
 
       <div className="right-panel-content">
@@ -73,6 +89,8 @@ export function RightPanel() {
           <ClaudePanel />
         ) : rightPanelTab === 'sessions' ? (
           <SessionHistory />
+        ) : rightPanelTab === 'hackathon' ? (
+          <HackathonPanel />
         ) : (
           <DashboardMini />
         )}

@@ -593,6 +593,27 @@ declare global {
     renameSession: (sessionId: string, name: string) => Promise<IpcResponse<null>>
   }
 
+  interface ColosseumProject {
+    slug: string
+    name: string
+    oneLiner: string
+    similarity: number
+    hackathon: { name: string; slug: string; startDate: string }
+    tracks: Array<{ name: string; key: string }>
+    prize: { type: string; name: string; amount: number | null } | null
+    tags: { problemTags: string[]; solutionTags: string[]; techStack: string[] }
+  }
+
+  interface DaemonColosseum {
+    status: () => Promise<IpcResponse<{ authenticated: boolean; expiresAt: string }>>
+    searchProjects: (query: string, limit?: number, filters?: object) => Promise<IpcResponse<{ results: ColosseumProject[]; totalFound: number }>>
+    searchArchives: (query: string, limit?: number) => Promise<IpcResponse<{ results: Array<{ title: string; snippet: string; source: string }> }>>
+    projectDetail: (slug: string) => Promise<IpcResponse<unknown>>
+    filters: () => Promise<IpcResponse<{ hackathons: Array<{ name: string; slug: string; startDate: string }> }>>
+    storePat: (pat: string) => Promise<IpcResponse>
+    isConfigured: () => Promise<IpcResponse<boolean>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -621,6 +642,7 @@ declare global {
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     registry: DaemonRegistry
+    colosseum: DaemonColosseum
   }
 
   interface DetectedToken {

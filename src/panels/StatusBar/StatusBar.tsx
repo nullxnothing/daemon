@@ -26,6 +26,7 @@ export const StatusBar = memo(function StatusBar() {
         </div>
         <div className={styles.statusGroup}>
           <GitBranch />
+          <HackathonCountdown />
           <TerminalCount />
         </div>
       </div>
@@ -157,6 +158,55 @@ function ClaudeStatus() {
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
       <span style={{ fontSize: 10 }}>Claude</span>
     </span>
+  )
+}
+
+function HackathonCountdown() {
+  const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
+  const [label, setLabel] = useState<string | null>(null)
+  const [urgency, setUrgency] = useState<'normal' | 'warning' | 'urgent'>('normal')
+
+  useEffect(() => {
+    const DEADLINE_KEY = 'daemon:hackathon-deadline'
+
+    const tick = () => {
+      const raw = localStorage.getItem(DEADLINE_KEY)
+      if (!raw) { setLabel(null); return }
+      const dl = Number(raw)
+      if (isNaN(dl)) { setLabel(null); return }
+
+      const ms = dl - Date.now()
+      if (ms <= 0) {
+        setLabel('Deadline passed')
+        setUrgency('urgent')
+        return
+      }
+
+      const days = Math.floor(ms / 86_400_000)
+      const hours = Math.floor((ms % 86_400_000) / 3_600_000)
+      setLabel(`Frontier: ${days}d ${hours}h`)
+      setUrgency(ms < 86_400_000 ? 'urgent' : ms < 604_800_000 ? 'warning' : 'normal')
+    }
+
+    tick()
+    const interval = setInterval(tick, 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (!label) return null
+
+  const colorClass = urgency === 'urgent' ? styles.hackathonUrgent
+    : urgency === 'warning' ? styles.hackathonWarning
+    : styles.hackathonNormal
+
+  return (
+    <button
+      className={`${styles.hackathonBtn} ${colorClass}`}
+      onClick={() => setRightPanelTab('hackathon')}
+      title="Hackathon deadline"
+    >
+      {label}
+    </button>
   )
 }
 

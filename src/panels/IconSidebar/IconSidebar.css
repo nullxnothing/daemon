@@ -124,3 +124,44 @@
   background: var(--hover-bg);
   color: var(--t1);
 }
+
+/* Colosseum icon */
+
+.colosseum-icon-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--t3);
+  transition: color 0.15s;
+}
+
+.colosseum-icon-wrap:hover {
+  color: var(--green);
+}
+
+.colosseum-icon-wrap.active {
+  color: var(--green);
+}
+
+.colosseum-icon-wrap::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -100%;
+  width: 200%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, transparent 40%, var(--green) 48%, rgba(62,207,142,0.6) 50%, var(--green) 52%, transparent 60%, transparent 100%);
+  animation: colosseum-pulse 3s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes colosseum-pulse {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}

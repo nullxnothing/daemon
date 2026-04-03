@@ -240,6 +240,43 @@ Proceed immediately with the task. Ask for clarification only when the target pr
     console.warn('[Migrations] solana agent seed check failed:', (err as Error).message)
   }
 
+  // Ensure Colosseum Research agent exists
+  try {
+    const hasColosseumAgent = db.prepare("SELECT id FROM agents WHERE id = 'colosseum-research'").get()
+    if (!hasColosseumAgent) {
+      db.prepare(
+        'INSERT OR IGNORE INTO agents (id, name, system_prompt, model, mcps, shortcut, source) VALUES (?,?,?,?,?,?,?)'
+      ).run(
+        'colosseum-research',
+        'Colosseum Research',
+        `You are a hackathon research agent with access to the Colosseum Copilot API containing 5,400+ Solana builder projects and curated crypto archives.
+
+<context-tags>project</context-tags>
+
+Use the /colosseum-copilot skill to search projects and archives. When researching:
+- Search for similar projects using specific technical terms
+- Check both regular and winner/accelerator-only results
+- Reference archive sources (a16z, Paradigm, Nakamoto Institute) for market context
+- Include project slugs and hackathon names in citations
+
+You help builders:
+- Validate idea uniqueness ("Is anyone else building this?")
+- Analyze competition ("Who are the strongest competitors?")
+- Choose submission tracks ("Which track fits best?")
+- Study winners ("What do winning projects look like?")
+- Find market gaps ("What's missing in the ecosystem?")
+
+Output: bullet points with inline citations. Be direct. No fluff.`,
+        'claude-sonnet-4-20250514',
+        '["filesystem"]',
+        null,
+        'daemon',
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] colosseum-research agent seed check failed:', (err as Error).message)
+  }
+
   // Ensure built-in tools exist (idempotent — handles upgrades where table exists but seed was missed)
   try {
     const hasRecovery = db.prepare("SELECT id FROM tools WHERE id = 'builtin-wallet-recovery'").get()

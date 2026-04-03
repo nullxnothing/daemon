@@ -23,7 +23,7 @@ interface TerminalTab {
 }
 
 export type CenterMode = 'canvas' | 'grind'
-export type RightPanelTab = 'claude' | 'dashboard' | 'sessions'
+export type RightPanelTab = 'claude' | 'dashboard' | 'sessions' | 'hackathon'
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy' | 'email' | 'images'
