@@ -49,14 +49,17 @@ let themeIsDefined = false
 export function EditorPanel() {
   // Derive a stable fingerprint from open files to avoid re-renders on content-only changes.
   // The fingerprint captures tab metadata (path, name, isDirty) but NOT content.
-  const tabFingerprint = useUIStore((s) =>
-    s.openFiles.map((f) => `${f.projectId}|${f.path}|${f.name}|${f.isDirty}`).join('\n')
-  )
+  // Returns empty string when no files are open — a stable primitive that won't loop.
+  const tabFingerprint = useUIStore((s) => {
+    const files = s.openFiles
+    if (files.length === 0) return ''
+    return files.map((f) => `${f.projectId}|${f.path}|${f.name}|${f.isDirty}`).join('\n')
+  })
   // Recompute tab objects only when the fingerprint changes
-  const openFileTabs = useMemo(
-    () => useUIStore.getState().openFiles.map((f) => ({ path: f.path, name: f.name, isDirty: f.isDirty, projectId: f.projectId })),
-    [tabFingerprint]
-  )
+  const openFileTabs = useMemo(() => {
+    if (!tabFingerprint) return []
+    return useUIStore.getState().openFiles.map((f) => ({ path: f.path, name: f.name, isDirty: f.isDirty, projectId: f.projectId }))
+  }, [tabFingerprint])
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeFilePathByProject = useUIStore((s) => s.activeFilePathByProject)
