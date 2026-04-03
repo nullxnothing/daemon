@@ -134,6 +134,7 @@ contextBridge.exposeInMainWorld('daemon', {
     stashSave: (cwd: string, message?: string) => ipcRenderer.invoke('git:stash-save', cwd, message),
     stashPop: (cwd: string) => ipcRenderer.invoke('git:stash-pop', cwd),
     stashList: (cwd: string) => ipcRenderer.invoke('git:stash-list', cwd),
+    discard: (cwd: string, filePath: string) => ipcRenderer.invoke('git:discard', cwd, filePath),
   },
 
   ports: {
@@ -179,6 +180,8 @@ contextBridge.exposeInMainWorld('daemon', {
     reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
     getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
     clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
+    getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
+    setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
     onCrashWarning: (callback: (count: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)

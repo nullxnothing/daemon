@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense, type ComponentType } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
+import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
 import './CommandDrawer.css'
@@ -83,8 +84,8 @@ const ToolBrowser = lazy(() => import('../../panels/Tools/ToolBrowser').then(m =
 const BrowserMode = lazy(() => import('../../panels/BrowserMode/BrowserMode').then(m => ({ default: m.BrowserMode })))
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
 
-// Built-in tools registry
-const BUILTIN_TOOLS: DrawerTool[] = [
+// Built-in tools registry — exported so other modules can enumerate all tool IDs
+export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'git', name: 'Git', description: 'Source control', icon: GitIcon, component: GitPanel, category: 'dev' },
   { id: 'deploy', name: 'Deploy', description: 'Vercel & Railway', icon: DeployIcon, component: DeployPanel, category: 'dev' },
   { id: 'env', name: 'Env', description: 'Environment variables', icon: EnvIcon, component: EnvManager, category: 'dev' },
@@ -99,7 +100,7 @@ const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, category: 'create' },
 ]
 
-function getDrawerTools(): DrawerTool[] {
+function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
   const tools = [...BUILTIN_TOOLS]
 
   // Add enabled plugins
@@ -120,7 +121,12 @@ function getDrawerTools(): DrawerTool[] {
     })
   }
 
-  return tools
+  // Filter by workspace profile visibility
+  return tools.filter((t) => {
+    if (t.id === 'settings') return true
+    if (!(t.id in toolVisibility)) return true
+    return toolVisibility[t.id]
+  })
 }
 
 function ToolFallback() {
@@ -140,7 +146,8 @@ export function CommandDrawer() {
   const drawerRef = useRef<HTMLDivElement>(null)
 
   const plugins = usePluginStore((s) => s.plugins)
-  const allTools = useMemo(() => getDrawerTools(), [plugins]) // eslint-disable-line react-hooks/exhaustive-deps
+  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
+  const allTools = useMemo(() => getDrawerTools(toolVisibility), [plugins, toolVisibility]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredTools = useMemo(() => {
     const q = search.trim().toLowerCase()

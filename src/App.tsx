@@ -15,6 +15,7 @@ import { StatusBar } from './panels/StatusBar/StatusBar'
 import { OnboardingWizard } from './panels/Onboarding/OnboardingWizard'
 import { TourOverlay } from './components/Tour/TourOverlay'
 import { useOnboardingStore } from './store/onboarding'
+import { useWorkspaceProfileStore } from './store/workspaceProfile'
 import { PanelErrorBoundary } from './components/ErrorBoundary'
 import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
@@ -80,6 +81,7 @@ function App() {
     const guard = { cancelled: false }
     loadProjects(guard)
     usePluginStore.getState().load()
+    useWorkspaceProfileStore.getState().load()
     // Debug: expose store for CDP testing
     if (import.meta.env.DEV) {
       ;(window as any).__uiStore = useUIStore

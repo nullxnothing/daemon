@@ -31,7 +31,7 @@ export function registerSettingsHandlers() {
 
   ipcMain.handle('settings:set-onboarding-progress', ipcHandler(async (_event, progress: import('../shared/types').OnboardingProgress) => {
     const VALID_STATUSES = ['pending', 'complete', 'skipped']
-    const REQUIRED_KEYS = ['claude', 'gmail', 'vercel', 'railway', 'tour']
+    const REQUIRED_KEYS = ['profile', 'claude', 'gmail', 'vercel', 'railway', 'tour']
     if (!progress || typeof progress !== 'object') throw new Error('Invalid progress object')
     for (const key of REQUIRED_KEYS) {
       if (!VALID_STATUSES.includes((progress as unknown as Record<string, string>)[key])) {
@@ -60,5 +60,17 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:clear-crashes', ipcHandler(async () => {
     const db = getDb()
     db.prepare('DELETE FROM app_crashes').run()
+  }))
+
+  ipcMain.handle('settings:get-workspace-profile', ipcHandler(async () => {
+    return Settings.getWorkspaceProfile()
+  }))
+
+  ipcMain.handle('settings:set-workspace-profile', ipcHandler(async (_event, profile: import('../shared/types').WorkspaceProfile) => {
+    const VALID_NAMES = ['web', 'solana', 'custom']
+    if (!profile || typeof profile !== 'object') throw new Error('Invalid profile object')
+    if (!VALID_NAMES.includes(profile.name)) throw new Error('Invalid profile name')
+    if (!profile.toolVisibility || typeof profile.toolVisibility !== 'object') throw new Error('Invalid toolVisibility')
+    Settings.setWorkspaceProfile(profile)
   }))
 }

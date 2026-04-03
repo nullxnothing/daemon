@@ -78,6 +78,7 @@ export function registerGitHandlers() {
           staged: true,
           unstaged: false,
           untracked: false,
+          deleted: false,
           status: 'staged',
         })),
         ...status.modified.filter((f) => !status.staged.includes(f)).map((f) => ({
@@ -85,13 +86,23 @@ export function registerGitHandlers() {
           staged: false,
           unstaged: true,
           untracked: false,
+          deleted: false,
           status: 'modified',
+        })),
+        ...status.deleted.filter((f) => !status.staged.includes(f)).map((f) => ({
+          path: f,
+          staged: false,
+          unstaged: true,
+          untracked: false,
+          deleted: true,
+          status: 'deleted',
         })),
         ...status.not_added.map((f) => ({
           path: f,
           staged: false,
           unstaged: false,
           untracked: true,
+          deleted: false,
           status: 'untracked',
         })),
       ]
@@ -259,6 +270,23 @@ export function registerGitHandlers() {
         hash: entry.hash,
         message: entry.message,
       }))
+    })
+  }))
+
+  ipcMain.handle('git:discard', ipcHandler(async (_event, cwd: string, filePath: string) => {
+    validateCwd(cwd)
+    if (!filePath || filePath.startsWith('-')) throw new Error('Invalid file path')
+    return withRepoLock(cwd, async () => {
+      const g = gitClient(cwd)
+      // For untracked files, remove them; for modified/deleted, restore from HEAD
+      const status = await g.status()
+      if (status.not_added.includes(filePath)) {
+        const { unlink } = await import('node:fs/promises')
+        const path = await import('node:path')
+        await unlink(path.join(cwd, filePath))
+      } else {
+        await g.checkout(['HEAD', '--', filePath])
+      }
     })
   }))
 }

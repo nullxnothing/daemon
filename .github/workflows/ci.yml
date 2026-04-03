@@ -6,9 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  typecheck:
+  lint-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -16,28 +23,15 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
       - run: pnpm run test
 
   build-windows:
     runs-on: windows-latest
-    needs: [typecheck, test]
+    needs: lint-and-test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -47,18 +41,24 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Cache electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~\AppData\Local\electron\cache
+            ~\AppData\Local\electron-builder\cache
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - run: pnpm run package
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: release/**/*.exe
-          if-no-files-found: warn
 
   build-macos:
     runs-on: macos-latest
-    needs: [typecheck, test]
+    needs: lint-and-test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -68,13 +68,15 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Cache electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - run: pnpm run package
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: |
-            release/**/*.dmg
-            release/**/*.zip
-          if-no-files-found: warn

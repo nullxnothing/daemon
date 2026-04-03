@@ -391,3 +391,32 @@
   overflow-y: auto;
   border-top: 1px solid var(--s5);
 }
+
+/* Workspace profile selector */
+.settings-profile-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.settings-profile-btn {
+  flex: 1;
+  height: 30px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--s2);
+  border: 1px solid var(--s5);
+  color: var(--t2);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-profile-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.settings-profile-btn.active {
+  background: var(--green-glow);
+  border-color: var(--green);
+  color: var(--green);
+}

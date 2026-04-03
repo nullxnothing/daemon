@@ -158,6 +158,7 @@ export interface GitFile {
   staged: boolean
   unstaged: boolean
   untracked: boolean
+  deleted: boolean
   status: string
 }
 
@@ -868,11 +869,21 @@ export interface AriaAction {
 export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
 
 export interface OnboardingProgress {
+  profile: OnboardingStepStatus
   claude: OnboardingStepStatus
   gmail: OnboardingStepStatus
   vercel: OnboardingStepStatus
   railway: OnboardingStepStatus
   tour: OnboardingStepStatus
+}
+
+// --- Workspace Profile ---
+
+export type WorkspaceProfileName = 'web' | 'solana' | 'custom'
+
+export interface WorkspaceProfile {
+  name: WorkspaceProfileName
+  toolVisibility: Record<string, boolean>
 }
 
 // --- Engine ---

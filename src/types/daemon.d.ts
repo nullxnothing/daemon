@@ -67,6 +67,8 @@ import type {
   AriaAction,
   OnboardingProgress,
   OnboardingStepStatus,
+  WorkspaceProfile,
+  WorkspaceProfileName,
 } from '../../electron/shared/types'
 
 export type {
@@ -138,6 +140,8 @@ export type {
   AriaAction,
   OnboardingProgress,
   OnboardingStepStatus,
+  WorkspaceProfile,
+  WorkspaceProfileName,
 }
 
 declare global {
@@ -184,6 +188,8 @@ declare global {
   type AriaAction = import('../../electron/shared/types').AriaAction
   type OnboardingProgress = import('../../electron/shared/types').OnboardingProgress
   type OnboardingStepStatus = import('../../electron/shared/types').OnboardingStepStatus
+  type WorkspaceProfile = import('../../electron/shared/types').WorkspaceProfile
+  type WorkspaceProfileName = import('../../electron/shared/types').WorkspaceProfileName
 
   interface DaemonWindow {
     minimize: () => void
@@ -225,6 +231,7 @@ declare global {
     stashSave: (cwd: string, message?: string) => Promise<IpcResponse<{ message: string }>>
     stashPop: (cwd: string) => Promise<IpcResponse>
     stashList: (cwd: string) => Promise<IpcResponse<Array<{ hash: string; message: string }>>>
+    discard: (cwd: string, filePath: string) => Promise<IpcResponse>
   }
 
   interface DaemonPorts {
@@ -324,6 +331,8 @@ declare global {
     reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
     getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
     clearCrashes: () => Promise<IpcResponse>
+    getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
+    setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
   }
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type OnboardingStepId = 'claude' | 'gmail' | 'vercel' | 'railway'
+export type OnboardingStepId = 'profile' | 'claude' | 'gmail' | 'vercel' | 'railway'
 
 export interface OnboardingState {
   // Wizard
@@ -35,10 +35,11 @@ export interface OnboardingState {
   saveProgress: () => Promise<void>
 }
 
-const STEP_ORDER: OnboardingStepId[] = ['claude', 'gmail', 'vercel', 'railway']
+const STEP_ORDER: OnboardingStepId[] = ['profile', 'claude', 'gmail', 'vercel', 'railway']
 const TOUR_STEPS_COUNT = 7
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
+  profile: 'pending',
   claude: 'pending',
   gmail: 'pending',
   vercel: 'pending',

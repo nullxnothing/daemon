@@ -406,6 +406,68 @@
   flex: 1;
 }
 
+/* Profile picker step */
+.step-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-profile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.step-profile-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  width: 100%;
+}
+
+.step-profile-card:hover {
+  border-color: var(--border-hover);
+  background: var(--s3);
+}
+
+.step-profile-card.selected {
+  border-color: var(--green);
+  background: var(--green-glow);
+}
+
+.step-profile-icon {
+  flex-shrink: 0;
+  color: var(--t3);
+  margin-top: 1px;
+  transition: color var(--transition-fast);
+}
+
+.step-profile-card.selected .step-profile-icon {
+  color: var(--green);
+}
+
+.step-profile-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 2px;
+}
+
+.step-profile-desc {
+  font-size: 11px;
+  color: var(--t3);
+  line-height: 1.4;
+}
+
 /* Resume banner */
 .resume-banner {
   position: fixed;

@@ -1,4 +1,5 @@
 import { useUIStore } from '../../store/ui'
+import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
@@ -16,6 +17,7 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
   const drawerOpen = useUIStore((s) => s.drawerOpen)
   const drawerTool = useUIStore((s) => s.drawerTool)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
+  const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
 
   const handleExplorerClick = () => {
     if (drawerOpen) useUIStore.getState().closeDrawer()
@@ -82,9 +84,9 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
         </svg>
       </button>
 
-      {/* Pinned tools */}
-      {pinnedTools.length > 0 && <div className="sidebar-divider" />}
-      {pinnedTools.map((toolId) => {
+      {/* Pinned tools — filtered by workspace profile visibility */}
+      {pinnedTools.filter((id) => isToolVisible(id)).length > 0 && <div className="sidebar-divider" />}
+      {pinnedTools.filter((id) => isToolVisible(id)).map((toolId) => {
         // Check built-in icons first, then plugin registry
         const Icon = TOOL_ICONS[toolId] ?? PLUGIN_REGISTRY[toolId]?.icon
         const name = TOOL_NAMES[toolId] ?? PLUGIN_REGISTRY[toolId]?.name ?? toolId

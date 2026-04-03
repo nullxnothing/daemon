@@ -1,5 +1,5 @@
 import { getDb } from '../db/db'
-import type { OnboardingProgress } from '../shared/types'
+import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
 
 export function getBooleanSetting(key: string, fallback: boolean): boolean {
   const db = getDb()
@@ -49,6 +49,7 @@ export function setOnboardingComplete(complete: boolean): void {
 }
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
+  profile: 'pending',
   claude: 'pending',
   gmail: 'pending',
   vercel: 'pending',
@@ -62,4 +63,12 @@ export function getOnboardingProgress(): OnboardingProgress {
 
 export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
+}
+
+export function getWorkspaceProfile(): WorkspaceProfile | null {
+  return getJsonSetting<WorkspaceProfile | null>('workspace_profile', null)
+}
+
+export function setWorkspaceProfile(profile: WorkspaceProfile): void {
+  setJsonSetting('workspace_profile', profile)
 }

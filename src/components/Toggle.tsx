@@ -2,6 +2,7 @@ interface ToggleProps {
   checked: boolean
   onChange: (checked: boolean) => void
   size?: 'sm' | 'md'
+  disabled?: boolean
 }
 
 const styles = {
@@ -21,10 +22,11 @@ const styles = {
   },
 } as const
 
-export function Toggle({ checked, onChange, size = 'sm' }: ToggleProps) {
+export function Toggle({ checked, onChange, size = 'sm', disabled = false }: ToggleProps) {
   const s = styles[size]
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault()
       onChange(!checked)
@@ -35,8 +37,9 @@ export function Toggle({ checked, onChange, size = 'sm' }: ToggleProps) {
     <div
       role="switch"
       aria-checked={checked}
-      tabIndex={0}
-      onClick={() => onChange(!checked)}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => !disabled && onChange(!checked)}
       onKeyDown={handleKeyDown}
       style={{
         width: s.width,
@@ -44,9 +47,10 @@ export function Toggle({ checked, onChange, size = 'sm' }: ToggleProps) {
         background: checked ? 'var(--green)' : 'var(--s4)',
         borderRadius: s.height / 2,
         position: 'relative',
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         flexShrink: 0,
         transition: 'background 0.15s',
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       <div

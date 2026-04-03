@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useOnboardingStore } from '../../store/onboarding'
+import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { Toggle } from '../../components/Toggle'
+import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
+import type { WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
@@ -407,7 +410,7 @@ function CrashesSection() {
 
 function SetupSection() {
   const handleRerunWizard = async () => {
-    const freshProgress = { claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
+    const freshProgress = { profile: 'pending' as const, claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
     await window.daemon.settings.setOnboardingComplete(false)
     await window.daemon.settings.setOnboardingProgress(freshProgress)
     // Reset in-memory progress before opening so progress dots start clean
@@ -436,9 +439,20 @@ function SetupSection() {
   )
 }
 
+const PROFILE_OPTIONS: { name: WorkspaceProfileName; label: string }[] = [
+  { name: 'web', label: 'Web' },
+  { name: 'solana', label: 'Solana' },
+  { name: 'custom', label: 'Custom' },
+]
+
 function DisplaySection() {
   const [showMarketTape, setShowMarketTape] = useState(true)
   const [showTitlebarWallet, setShowTitlebarWallet] = useState(true)
+
+  const profileName = useWorkspaceProfileStore((s) => s.profileName)
+  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
+  const setProfile = useWorkspaceProfileStore((s) => s.setProfile)
+  const setToolVisible = useWorkspaceProfileStore((s) => s.setToolVisible)
 
   useEffect(() => {
     let cancelled = false
@@ -478,6 +492,41 @@ function DisplaySection() {
         <span className="settings-display-hint">Show portfolio value in the titlebar</span>
         <Toggle checked={showTitlebarWallet} onChange={handleToggleTitlebarWallet} />
       </div>
+
+      <div className="settings-divider" />
+
+      <div className="settings-section-label">Workspace Profile</div>
+      <div className="settings-section-desc">
+        Control which tools are visible in the sidebar and tool drawer.
+      </div>
+
+      <div className="settings-profile-selector">
+        {PROFILE_OPTIONS.map(({ name, label }) => (
+          <button
+            key={name}
+            className={`settings-profile-btn${profileName === name ? ' active' : ''}`}
+            onClick={() => setProfile(name)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="settings-section-label" style={{ marginTop: 16 }}>Tool Visibility</div>
+      {BUILTIN_TOOLS.map((tool) => {
+        const isVisible = toolVisibility[tool.id] ?? true
+        const isAlwaysOn = tool.id === 'settings'
+        return (
+          <div key={tool.id} className="settings-display-row">
+            <span className="settings-display-label">{TOOL_NAMES[tool.id] ?? tool.name}</span>
+            <span className="settings-display-hint">{tool.description}</span>
+            <Toggle
+              checked={isAlwaysOn ? true : isVisible}
+              onChange={(v) => !isAlwaysOn && setToolVisible(tool.id, v)}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -8,12 +8,30 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run test
+
   release-windows:
     runs-on: windows-latest
-    env:
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+    needs: validate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,9 +43,24 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Cache electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~\AppData\Local\electron\cache
+            ~\AppData\Local\electron-builder\cache
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: pnpm run package
+      - name: Package (code signing)
+        run: pnpm run package
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
       - name: Generate checksums
         shell: pwsh
         run: |
@@ -41,15 +74,12 @@ jobs:
           path: |
             release/**/*.exe
             release/checksums-windows.txt
+          retention-days: 1
 
   release-macos:
     runs-on: macos-latest
-    env:
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    needs: validate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,15 +91,30 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Cache electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - name: Package with optional notarization
+      - name: Package (code signing & notarization)
         run: |
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             echo "Notarization secrets found, enabling notarize"
             npx json -I -f electron-builder.json -e 'this.mac.notarize=true'
           fi
           pnpm run package
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: Generate checksums
         run: |
           cd release
@@ -83,10 +128,12 @@ jobs:
             release/**/*.dmg
             release/**/*.zip
             release/checksums-macos.txt
+          retention-days: 1
 
   publish:
     runs-on: ubuntu-latest
     needs: [release-windows, release-macos]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
         with:

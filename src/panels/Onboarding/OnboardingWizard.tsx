@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useOnboardingStore, STEP_ORDER } from '../../store/onboarding'
 import type { OnboardingStepId } from '../../store/onboarding'
+import { StepProfile } from './steps/StepProfile'
 import { StepClaude } from './steps/StepClaude'
 import { StepGmail } from './steps/StepGmail'
 import { StepVercel } from './steps/StepVercel'
@@ -8,6 +9,7 @@ import { StepRailway } from './steps/StepRailway'
 import './OnboardingWizard.css'
 
 const STEP_LABELS: Record<OnboardingStepId, string> = {
+  profile: 'Workspace',
   claude: 'Claude',
   gmail: 'Gmail',
   vercel: 'Vercel',
@@ -15,6 +17,7 @@ const STEP_LABELS: Record<OnboardingStepId, string> = {
 }
 
 const STEP_SUBTITLES: Record<OnboardingStepId, string> = {
+  profile: 'What are you building?',
   claude: 'Set up your AI engine',
   gmail: 'Connect your email',
   vercel: 'Deploy to Vercel',
@@ -22,6 +25,7 @@ const STEP_SUBTITLES: Record<OnboardingStepId, string> = {
 }
 
 const STEP_COMPONENTS: Record<OnboardingStepId, React.FC> = {
+  profile: StepProfile,
   claude: StepClaude,
   gmail: StepGmail,
   vercel: StepVercel,

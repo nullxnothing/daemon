@@ -14,6 +14,9 @@ export function GitPanel() {
   const [commitMsg, setCommitMsg] = useState('')
   const [pushing, setPushing] = useState(false)
   const [committing, setCommitting] = useState(false)
+  const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null)
+  const [diffContent, setDiffContent] = useState<string | null>(null)
+  const [loadingDiff, setLoadingDiff] = useState(false)
   const [generatingCommitMsg, setGeneratingCommitMsg] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showCreateBranch, setShowCreateBranch] = useState(false)
@@ -113,7 +116,7 @@ export function GitPanel() {
     load()
   }
 
-  const handleCommitAndPush = async () => {
+  const handleCommit = async () => {
     if (!projectPath || !commitMsg.trim()) return
     const hasStagedFiles = files.some((f) => f.staged)
     if (!hasStagedFiles) return
@@ -129,16 +132,8 @@ export function GitPanel() {
       return
     }
 
-    const pushRes = await window.daemon.git.push(projectPath)
-    if (pushRes.ok) {
-      setCommitMsg('')
-      load()
-      loadDeployStatus()
-    } else {
-      maybeShowGitHubOnboarding(pushRes.error)
-      setError(parseGitError(pushRes.error) ?? 'Push failed')
-    }
-
+    setCommitMsg('')
+    load()
     setCommitting(false)
   }
 
@@ -288,6 +283,37 @@ export function GitPanel() {
       return
     }
 
+    load()
+  }
+
+  const handleFileClick = async (filePath: string) => {
+    if (!projectPath) return
+    if (selectedDiffFile === filePath) {
+      setSelectedDiffFile(null)
+      setDiffContent(null)
+      return
+    }
+    setSelectedDiffFile(filePath)
+    setLoadingDiff(true)
+    setDiffContent(null)
+    const res = await window.daemon.git.diff(projectPath, filePath)
+    setLoadingDiff(false)
+    if (res.ok && res.data) setDiffContent(res.data)
+    else setDiffContent(null)
+  }
+
+  const handleDiscard = async (filePath: string) => {
+    if (!projectPath) return
+    setError(null)
+    const res = await window.daemon.git.discard(projectPath, filePath)
+    if (!res.ok) {
+      setError(res.error ?? 'Discard failed')
+      return
+    }
+    if (selectedDiffFile === filePath) {
+      setSelectedDiffFile(null)
+      setDiffContent(null)
+    }
     load()
   }
 
@@ -484,13 +510,13 @@ export function GitPanel() {
           placeholder="Commit message..."
           value={commitMsg}
           onChange={(e) => setCommitMsg(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleCommitAndPush()}
+          onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
         />
         <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0}>
           {generatingCommitMsg ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>}
         </button>
-        <button className="git-commit-btn" onClick={handleCommitAndPush} disabled={staged.length === 0 || !commitMsg.trim() || committing || pushing}>
-          {committing ? 'Committing & Pushing…' : 'Commit & Push to Cloud'}
+        <button className="git-commit-btn" onClick={handleCommit} disabled={staged.length === 0 || !commitMsg.trim() || committing}>
+          {committing ? 'Committing…' : 'Commit'}
         </button>
       </div>
 
@@ -503,9 +529,9 @@ export function GitPanel() {
             </div>
             <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {staged.map((f) => (
-              <div key={f.path} className="git-file-row staged">
+              <div key={f.path} className={`git-file-row staged${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
                 <span className="git-file-status">S</span>
-                <span className="git-file-path">{f.path}</span>
+                <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
                 <button className="git-file-btn" onClick={() => handleUnstage(f.path)}>Unstage</button>
               </div>
             ))}
@@ -538,11 +564,17 @@ export function GitPanel() {
                     </div>
                   )}
                   {folderFiles.map((f) => (
-                    <div key={f.path} className="git-file-row">
-                      <span className={`git-file-status ${f.untracked ? 'untracked' : 'modified'}`}>
-                        {f.untracked ? 'U' : 'M'}
+                    <div key={f.path} className={`git-file-row${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
+                      <span className={`git-file-status ${f.untracked ? 'untracked' : f.deleted ? 'deleted' : 'modified'}`}>
+                        {f.untracked ? 'U' : f.deleted ? 'D' : 'M'}
                       </span>
-                      <span className="git-file-path">{f.path}</span>
+                      <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
+                      {!f.untracked && (
+                        <button className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Discard</button>
+                      )}
+                      {f.untracked && (
+                        <button className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Delete</button>
+                      )}
                       <button className="git-file-btn" onClick={() => handleStage(f.path)}>Stage</button>
                     </div>
                   ))}
@@ -556,6 +588,38 @@ export function GitPanel() {
           <div className="git-empty-files">Working tree clean</div>
         )}
       </div>
+
+      {/* Inline diff viewer */}
+      {selectedDiffFile && (
+        <div className="git-diff-viewer">
+          <div className="git-diff-header">
+            <span className="git-diff-filename">{selectedDiffFile}</span>
+            <button className="git-diff-close" onClick={() => { setSelectedDiffFile(null); setDiffContent(null) }}>x</button>
+          </div>
+          {loadingDiff && <div className="git-diff-loading">Loading diff...</div>}
+          {!loadingDiff && diffContent && (
+            <pre className="git-diff-body">
+              {diffContent.split('\n').map((line, i) => {
+                const isAddition = line.startsWith('+') && !line.startsWith('+++')
+                const isDeletion = line.startsWith('-') && !line.startsWith('---')
+                const isHunk = line.startsWith('@@')
+                return (
+                  <div
+                    key={i}
+                    className={`git-diff-line${isAddition ? ' git-diff-line--add' : ''}${isDeletion ? ' git-diff-line--del' : ''}${isHunk ? ' git-diff-line--hunk' : ''}`}
+                  >
+                    <span className="git-diff-lineno">{i + 1}</span>
+                    <span className="git-diff-text">{line}</span>
+                  </div>
+                )
+              })}
+            </pre>
+          )}
+          {!loadingDiff && !diffContent && (
+            <div className="git-diff-loading">No diff available (file may be untracked or binary)</div>
+          )}
+        </div>
+      )}
 
       {/* Recent commits */}
       <div className="git-log">

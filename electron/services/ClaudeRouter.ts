@@ -315,24 +315,41 @@ export async function buildCommand(agent: AgentRow, project: ProjectRow): Promis
   args: string[]
   contextFilePath: string
 }> {
-  const portMap = buildPortMap()
-  const emailSummary = await getEmailAccountSummary()
+  const tags = parseContextTags(agent.system_prompt)
+  const systemPrompt = stripContextTags(agent.system_prompt)
 
-  const contextContent = [
-    agent.system_prompt,
-    '',
-    '--- DAEMON CONTEXT ---',
-    `Project: ${project.name}`,
-    `Path: ${project.path}`,
-    project.session_summary ? `Last session: ${project.session_summary}` : '',
-    portMap ? `\nPort map (all registered services):\n${portMap}` : '',
-    '--- END CONTEXT ---',
-    '',
-    '--- EMAIL ---',
-    emailSummary,
-    `Email tools: ${EMAIL_TOOL_NAMES}`,
-    '--- END EMAIL ---',
-  ].filter(Boolean).join('\n')
+  const sections: string[] = [systemPrompt, '']
+
+  // Always inject: project name, path, tech stack
+  sections.push('<daemon-context>')
+  sections.push(`<project-info>`)
+  sections.push(`Project: ${project.name}`)
+  sections.push(`Path: ${project.path}`)
+  if (project.session_summary) sections.push(`Last session: ${project.session_summary}`)
+  sections.push(`</project-info>`)
+
+  // Port map: only for agents tagged with "ports"
+  if (tags.has('ports')) {
+    const portMap = buildPortMap()
+    if (portMap) {
+      sections.push(`<port-map>`)
+      sections.push(portMap)
+      sections.push(`</port-map>`)
+    }
+  }
+
+  // Email: only for agents tagged with "email"
+  if (tags.has('email')) {
+    const emailSummary = await getEmailAccountSummary()
+    sections.push(`<email-context>`)
+    sections.push(emailSummary)
+    sections.push(`Email tools: ${EMAIL_TOOL_NAMES}`)
+    sections.push(`</email-context>`)
+  }
+
+  sections.push('</daemon-context>')
+
+  const contextContent = sections.filter(Boolean).join('\n')
 
   const contextFilePath = path.join(
     os.tmpdir(),
@@ -358,6 +375,16 @@ export function cleanupContextFile(filePath: string): void {
 }
 
 // --- Internal Utilities ---
+
+function parseContextTags(systemPrompt: string): Set<string> {
+  const match = systemPrompt.match(/<context-tags>(.*?)<\/context-tags>/)
+  if (!match) return new Set(['project']) // default: project info only
+  return new Set(match[1].split(',').map((t) => t.trim()).filter(Boolean))
+}
+
+function stripContextTags(systemPrompt: string): string {
+  return systemPrompt.replace(/<context-tags>.*?<\/context-tags>\n?/g, '').trim()
+}
 
 function bootstrapAgentMcps(projectPath: string, mcpsJson: string): void {
   try {
