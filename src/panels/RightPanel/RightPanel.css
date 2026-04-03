@@ -14,14 +14,21 @@
   flex-shrink: 0;
   background: var(--s1);
   border-bottom: 1px solid var(--s5);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.right-panel-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .right-panel-tab {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 12px;
-  font-size: 11px;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: 10px;
   font-family: var(--font-ui);
   color: var(--t3);
   background: transparent;
