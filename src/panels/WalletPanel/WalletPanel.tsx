@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { WalletSettings } from './WalletSettings'
@@ -45,6 +45,9 @@ export function WalletPanel() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
   const [exportConfirmId, setExportConfirmId] = useState<string | null>(null)
   const [exportConfirmText, setExportConfirmText] = useState('')
+
+  // Ref-based mutex for send — prevents double-submit across rapid clicks
+  const sendLockRef = useRef(false)
 
   // Send confirmation state
   const [pendingSend, setPendingSend] = useState<{
@@ -176,21 +179,26 @@ export function WalletPanel() {
 
   const handleExecuteSend = async () => {
     if (!pendingSend) return
+    if (sendLockRef.current) return
+    sendLockRef.current = true
     setSendLoading(true)
     setSendError(null)
 
-    if (pendingSend.mode === 'sol') {
-      const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount })
+    try {
+      if (pendingSend.mode === 'sol') {
+        const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount })
+        setPendingSend(null)
+        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); await load() }
+        else { setSendError(res.error ?? 'Send failed') }
+      } else {
+        const res = await window.daemon.wallet.sendToken({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, mint: pendingSend.mint!, amount: pendingSend.amount })
+        setPendingSend(null)
+        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMint(''); await load() }
+        else { setSendError(res.error ?? 'Send failed') }
+      }
+    } finally {
       setSendLoading(false)
-      setPendingSend(null)
-      if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); await load() }
-      else { setSendError(res.error ?? 'Send failed') }
-    } else {
-      const res = await window.daemon.wallet.sendToken({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, mint: pendingSend.mint!, amount: pendingSend.amount })
-      setSendLoading(false)
-      setPendingSend(null)
-      if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMint(''); await load() }
-      else { setSendError(res.error ?? 'Send failed') }
+      sendLockRef.current = false
     }
   }
 

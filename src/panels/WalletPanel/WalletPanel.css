@@ -455,3 +455,18 @@
   flex-direction: column;
   gap: 3px;
 }
+
+.wallet-swap-ack-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.wallet-swap-ack-row input[type='checkbox'] {
+  accent-color: var(--red);
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}

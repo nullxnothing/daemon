@@ -554,6 +554,24 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     const fromAddress = keypair.publicKey.toBase58()
     const mintPubkey = new PublicKey(mint)
     const destPubkey = new PublicKey(toAddress)
+
+    // Fetch the source token account balance and validate before building the transaction.
+    const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
+    const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
+    const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+    try {
+      const accountInfo = await getAccount(connection, fromAta)
+      const rawBalance = Number(accountInfo.amount)
+      const rawRequired = BigInt(Math.round(amount * Math.pow(10, decimals)))
+      if (BigInt(rawBalance) < rawRequired) {
+        const humanBalance = rawBalance / Math.pow(10, decimals)
+        throw new Error(`Insufficient token balance: have ${humanBalance.toFixed(decimals)}, need ${amount}`)
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
+      throw new Error('Could not verify token balance — token account may not exist')
+    }
+
     const txId = crypto.randomUUID()
 
     db.prepare(
@@ -561,7 +579,6 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amount, mint, 'pending', Date.now())
 
     try {
-      const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
       const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey)
 
       const transaction = new Transaction()
@@ -580,9 +597,7 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
         )
       }
 
-      // Convert human-readable amount to raw token units using mint decimals
-      const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
-      const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+      // decimals already resolved above during balance check
       const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
 
       transaction.add(
@@ -630,6 +645,7 @@ interface SwapQuoteResult {
   outAmount: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
+  rawQuoteResponse: unknown
 }
 
 export async function getSwapQuote(
@@ -676,6 +692,9 @@ export async function getSwapQuote(
       label: r.swapInfo?.label ?? 'Unknown',
       percent: r.percent,
     })),
+    // The raw Jupiter response is passed back to executeSwap so it can use the
+    // exact quote the user reviewed rather than fetching at a potentially different price.
+    rawQuoteResponse: data,
   }
 }
 
@@ -685,6 +704,7 @@ export async function executeSwap(
   outputMint: string,
   amount: number,
   slippageBps: number,
+  rawQuoteResponse?: unknown,
 ): Promise<{ signature: string }> {
   if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
@@ -696,19 +716,53 @@ export async function executeSwap(
     const connection = getConnection()
     const userPublicKey = keypair.publicKey.toBase58()
 
-    // Get the quote first
+    // Balance check: verify the wallet holds enough of the input token before
+    // building the transaction. This prevents sending a doomed tx to the network.
     const decimals = await getMintDecimals(inputMint)
-    const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
+    const SOL_MINT = 'So11111111111111111111111111111111111111112'
+    if (inputMint === SOL_MINT) {
+      const lamports = await connection.getBalance(keypair.publicKey)
+      const requiredLamports = Math.round(amount * Math.pow(10, decimals)) + 10_000 // fee buffer
+      if (lamports < requiredLamports) {
+        throw new Error(
+          `Insufficient SOL: have ${(lamports / Math.pow(10, decimals)).toFixed(4)}, need ${amount} + fees`
+        )
+      }
+    } else {
+      const { getAssociatedTokenAddress: getAta, getAccount: getAcc } = await import('@solana/spl-token')
+      const mintPubkey = new PublicKey(inputMint)
+      try {
+        const ata = await getAta(mintPubkey, keypair.publicKey)
+        const accountInfo = await getAcc(connection, ata)
+        const rawBalance = Number(accountInfo.amount)
+        const rawRequired = Math.round(amount * Math.pow(10, decimals))
+        if (rawBalance < rawRequired) {
+          const humanBalance = rawBalance / Math.pow(10, decimals)
+          throw new Error(`Insufficient token balance: have ${humanBalance.toFixed(decimals)}, need ${amount}`)
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
+        throw new Error('Could not verify token balance — token account may not exist')
+      }
+    }
 
-    const quoteUrl = new URL(JUPITER_QUOTE_API)
-    quoteUrl.searchParams.set('inputMint', inputMint)
-    quoteUrl.searchParams.set('outputMint', outputMint)
-    quoteUrl.searchParams.set('amount', rawAmount.toString())
-    quoteUrl.searchParams.set('slippageBps', String(slippageBps))
+    // Use the quote the user reviewed when provided. Fall back to fetching a fresh
+    // quote only if no rawQuoteResponse was supplied (e.g. programmatic calls).
+    let quoteData: unknown
+    if (rawQuoteResponse) {
+      quoteData = rawQuoteResponse
+    } else {
+      const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
+      const quoteUrl = new URL(JUPITER_QUOTE_API)
+      quoteUrl.searchParams.set('inputMint', inputMint)
+      quoteUrl.searchParams.set('outputMint', outputMint)
+      quoteUrl.searchParams.set('amount', rawAmount.toString())
+      quoteUrl.searchParams.set('slippageBps', String(slippageBps))
 
-    const quoteRes = await fetch(quoteUrl.toString())
-    if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.status}`)
-    const quoteData = await quoteRes.json()
+      const quoteRes = await fetch(quoteUrl.toString())
+      if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.status}`)
+      quoteData = await quoteRes.json()
+    }
 
     // Get the swap transaction from Jupiter
     const swapRes = await fetch(JUPITER_SWAP_API, {

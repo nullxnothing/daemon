@@ -57,8 +57,8 @@ export function registerWalletHandlers() {
     return await WalletService.getSwapQuote(input.inputMint, input.outputMint, input.amount, input.slippageBps)
   }))
 
-  ipcMain.handle('wallet:swap-execute', ipcHandler(async (_event, input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {
-    return await WalletService.executeSwap(input.walletId, input.inputMint, input.outputMint, input.amount, input.slippageBps)
+  ipcMain.handle('wallet:swap-execute', ipcHandler(async (_event, input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown }) => {
+    return await WalletService.executeSwap(input.walletId, input.inputMint, input.outputMint, input.amount, input.slippageBps, input.rawQuoteResponse)
   }))
 
   ipcMain.handle('wallet:balance', ipcHandler(async (_event, walletId: string) => {

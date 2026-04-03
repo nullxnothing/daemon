@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import './WalletPanel.css'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
@@ -17,6 +17,9 @@ interface SwapQuote {
   outAmount: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
+  // Raw Jupiter quoteResponse, passed back to execute so the backend uses the
+  // exact same quote the user saw rather than fetching a fresh one at a different price.
+  rawQuoteResponse: unknown
 }
 
 interface WalletSwapFormProps {
@@ -25,6 +28,17 @@ interface WalletSwapFormProps {
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
   onBack: () => void
   onRefresh: () => Promise<void>
+}
+
+// Confirmation step state — shown between "Get Quote" and "Execute Swap"
+interface PendingSwap {
+  quote: SwapQuote
+  // Raw Jupiter quoteResponse to pass to execute (avoids re-fetching a different price)
+  rawQuoteResponse: unknown
+  inputSymbol: string
+  outputSymbol: string
+  slippagePct: string
+  impactPct: number
 }
 
 export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefresh }: WalletSwapFormProps) {
@@ -37,9 +51,16 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [quoteError, setQuoteError] = useState<string | null>(null)
 
+  // Confirmation dialog state
+  const [pendingSwap, setPendingSwap] = useState<PendingSwap | null>(null)
+  const [highImpactAcknowledged, setHighImpactAcknowledged] = useState(false)
+
   const [swapLoading, setSwapLoading] = useState(false)
   const [swapResult, setSwapResult] = useState<string | null>(null)
   const [swapError, setSwapError] = useState<string | null>(null)
+
+  // Ref-based mutex — prevents double-submit even if React state update is batched
+  const swapLockRef = useRef(false)
 
   // Merge wallet holdings with common tokens for the dropdown
   const allTokens = mergeTokenLists(holdings)
@@ -52,6 +73,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
     setQuote(null)
     setSwapResult(null)
     setSwapError(null)
+    setPendingSwap(null)
 
     const parsedAmount = parseFloat(amount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -85,8 +107,26 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
     }
   }
 
-  const handleExecuteSwap = async () => {
+  // Show the confirmation dialog with the quoted values — does not execute yet
+  const handleRequestConfirm = () => {
     if (!quote) return
+    const impactPct = parseFloat(quote.priceImpactPct)
+    setPendingSwap({
+      quote,
+      rawQuoteResponse: quote.rawQuoteResponse,
+      inputSymbol: inputToken?.symbol ?? shortMint(inputMint),
+      outputSymbol: outputToken?.symbol ?? shortMint(outputMint),
+      slippagePct: (parseInt(slippageBps, 10) / 100).toFixed(2),
+      impactPct,
+    })
+    setHighImpactAcknowledged(false)
+  }
+
+  const handleExecuteSwap = async () => {
+    if (!pendingSwap) return
+    if (swapLockRef.current) return
+    swapLockRef.current = true
+
     setSwapLoading(true)
     setSwapError(null)
     setSwapResult(null)
@@ -98,25 +138,36 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
         outputMint,
         amount: parseFloat(amount),
         slippageBps: parseInt(slippageBps, 10),
+        rawQuoteResponse: pendingSwap.rawQuoteResponse,
       })
 
       if (res.ok && res.data) {
         setSwapResult(res.data.signature)
         setQuote(null)
+        setPendingSwap(null)
         setAmount('')
         await onRefresh()
       } else {
         setSwapError(res.error ?? 'Swap failed')
+        setPendingSwap(null)
       }
     } catch (err) {
       setSwapError(err instanceof Error ? err.message : 'Swap execution failed')
+      setPendingSwap(null)
     } finally {
       setSwapLoading(false)
+      swapLockRef.current = false
     }
+  }
+
+  const handleCancelConfirm = () => {
+    setPendingSwap(null)
+    setHighImpactAcknowledged(false)
   }
 
   const handleCancelQuote = () => {
     setQuote(null)
+    setPendingSwap(null)
     setSwapError(null)
   }
 
@@ -124,9 +175,17 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
     setInputMint(outputMint)
     setOutputMint(inputMint)
     setQuote(null)
+    setPendingSwap(null)
     setSwapResult(null)
     setSwapError(null)
   }
+
+  // Price impact color + warning logic
+  const impactPct = quote ? parseFloat(quote.priceImpactPct) : 0
+  const impactColor = impactPct >= 5 ? 'var(--red)' : impactPct >= 1 ? 'var(--amber)' : 'var(--t3)'
+  const isHighImpact = impactPct >= 1
+  const isVeryHighImpact = impactPct >= 5
+  const executeBlocked = isVeryHighImpact && !highImpactAcknowledged
 
   return (
     <section className="wallet-section">
@@ -145,7 +204,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
           <select
             className="wallet-input"
             value={inputMint}
-            onChange={(e) => { setInputMint(e.target.value); setQuote(null) }}
+            onChange={(e) => { setInputMint(e.target.value); setQuote(null); setPendingSwap(null) }}
           >
             {allTokens.map((t) => (
               <option key={t.mint} value={t.mint}>
@@ -156,7 +215,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
           <input
             className="wallet-input"
             value={amount}
-            onChange={(e) => { setAmount(e.target.value); setQuote(null) }}
+            onChange={(e) => { setAmount(e.target.value); setQuote(null); setPendingSwap(null) }}
             placeholder="Amount"
             type="number"
             step="any"
@@ -182,7 +241,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
           <select
             className="wallet-input"
             value={outputMint}
-            onChange={(e) => { setOutputMint(e.target.value); setQuote(null) }}
+            onChange={(e) => { setOutputMint(e.target.value); setQuote(null); setPendingSwap(null) }}
           >
             {allTokens.map((t) => (
               <option key={t.mint} value={t.mint}>
@@ -217,7 +276,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
               placeholder="Input mint address"
               onBlur={(e) => {
                 const v = e.target.value.trim()
-                if (v.length >= 32) { setInputMint(v); setQuote(null) }
+                if (v.length >= 32) { setInputMint(v); setQuote(null); setPendingSwap(null) }
               }}
             />
             <input
@@ -225,14 +284,14 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
               placeholder="Output mint address"
               onBlur={(e) => {
                 const v = e.target.value.trim()
-                if (v.length >= 32) { setOutputMint(v); setQuote(null) }
+                if (v.length >= 32) { setOutputMint(v); setQuote(null); setPendingSwap(null) }
               }}
             />
           </div>
         </div>
 
-        {/* Quote / Execute */}
-        {!quote && (
+        {/* Get Quote button — only shown when no active quote */}
+        {!quote && !pendingSwap && (
           <button
             className="wallet-btn primary wallet-btn-full"
             disabled={quoteLoading}
@@ -242,15 +301,18 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
           </button>
         )}
 
-        {quote && (
+        {/* Quote summary — shown after fetching, before confirmation */}
+        {quote && !pendingSwap && (
           <div className="wallet-swap-quote">
             <div className="wallet-label">Quote</div>
             <div className="wallet-caption">
               {formatLargeNumber(quote.inAmount)} {inputToken?.symbol ?? shortMint(inputMint)} →{' '}
               {formatLargeNumber(quote.outAmount)} {outputToken?.symbol ?? shortMint(outputMint)}
             </div>
-            <div className="wallet-caption">
-              Price impact: {parseFloat(quote.priceImpactPct).toFixed(4)}%
+            <div className="wallet-caption" style={{ color: impactColor }}>
+              Price impact: {impactPct.toFixed(4)}%
+              {isVeryHighImpact && ' — Very high price impact'}
+              {!isVeryHighImpact && isHighImpact && ' — High price impact'}
             </div>
             {quote.routePlan.length > 0 && (
               <div className="wallet-caption">
@@ -260,12 +322,53 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
             <div className="wallet-actions" style={{ marginTop: 6 }}>
               <button
                 className="wallet-btn primary"
-                disabled={swapLoading}
-                onClick={handleExecuteSwap}
+                onClick={handleRequestConfirm}
               >
-                {swapLoading ? 'Swapping...' : 'Execute Swap'}
+                Review Swap
               </button>
               <button className="wallet-btn" onClick={handleCancelQuote}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation panel — shown after "Review Swap" is clicked */}
+        {pendingSwap && (
+          <div className="wallet-swap-quote">
+            <div className="wallet-label">Confirm Swap</div>
+            <div className="wallet-caption">
+              {formatLargeNumber(pendingSwap.quote.inAmount)} {pendingSwap.inputSymbol}
+              {' → '}
+              {formatLargeNumber(pendingSwap.quote.outAmount)} {pendingSwap.outputSymbol}
+            </div>
+            <div className="wallet-caption" style={{ color: pendingSwap.impactPct >= 5 ? 'var(--red)' : pendingSwap.impactPct >= 1 ? 'var(--amber)' : 'var(--t3)' }}>
+              Price impact: {pendingSwap.impactPct.toFixed(4)}%
+              {pendingSwap.impactPct >= 5 && ' — Very high price impact'}
+              {pendingSwap.impactPct < 5 && pendingSwap.impactPct >= 1 && ' — High price impact'}
+            </div>
+            <div className="wallet-caption">Slippage: {pendingSwap.slippagePct}%</div>
+
+            {pendingSwap.impactPct >= 5 && (
+              <label className="wallet-swap-ack-row">
+                <input
+                  type="checkbox"
+                  checked={highImpactAcknowledged}
+                  onChange={(e) => setHighImpactAcknowledged(e.target.checked)}
+                />
+                <span className="wallet-caption" style={{ color: 'var(--red)' }}>
+                  I understand the price impact
+                </span>
+              </label>
+            )}
+
+            <div className="wallet-actions" style={{ marginTop: 8 }}>
+              <button
+                className="wallet-btn primary"
+                disabled={swapLoading || executeBlocked}
+                onClick={handleExecuteSwap}
+              >
+                {swapLoading ? 'Swapping...' : 'Confirm Swap'}
+              </button>
+              <button className="wallet-btn" onClick={handleCancelConfirm} disabled={swapLoading}>Cancel</button>
             </div>
           </div>
         )}
