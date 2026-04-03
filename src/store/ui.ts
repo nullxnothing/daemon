@@ -23,6 +23,7 @@ interface TerminalTab {
 }
 
 export type CenterMode = 'canvas' | 'grind'
+export type RightPanelTab = 'claude' | 'dashboard'
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy' | 'email' | 'images'
@@ -38,6 +39,11 @@ interface UIState {
   centerMode: CenterMode
   browserTabOpen: boolean
   browserTabActive: boolean
+  rightPanelTab: RightPanelTab
+  dashboardTabOpen: boolean
+  dashboardTabActive: boolean
+  launchWizardOpen: boolean
+  activeDashboardMint: string | null
   grindPageCount: number
   activeGrindPage: number
   grindPages: Record<string, GridCell[][]>
@@ -61,6 +67,14 @@ interface UIState {
   openBrowserTab: () => void
   closeBrowserTab: () => void
   setBrowserTabActive: (active: boolean) => void
+  setRightPanelTab: (tab: RightPanelTab) => void
+  toggleDashboardTab: () => void
+  openDashboardTab: () => void
+  closeDashboardTab: () => void
+  setDashboardTabActive: (active: boolean) => void
+  openLaunchWizard: () => void
+  closeLaunchWizard: () => void
+  setActiveDashboardMint: (mint: string | null) => void
   setActiveGrindPage: (page: number) => void
   addGrindPage: () => void
   removeGrindPage: (page: number) => void
@@ -105,6 +119,11 @@ export const useUIStore = create<UIState>((set) => ({
   centerMode: 'canvas' as CenterMode,
   browserTabOpen: false,
   browserTabActive: false,
+  rightPanelTab: 'claude' as RightPanelTab,
+  dashboardTabOpen: false,
+  dashboardTabActive: false,
+  launchWizardOpen: false,
+  activeDashboardMint: null,
   grindPageCount: 1,
   activeGrindPage: 0,
   grindPages: {},
@@ -128,6 +147,7 @@ export const useUIStore = create<UIState>((set) => ({
         activePanel: 'claude',
         centerMode: 'canvas' as CenterMode,
         browserTabActive: false,
+        dashboardTabActive: false,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
@@ -135,6 +155,7 @@ export const useUIStore = create<UIState>((set) => ({
       activePanel: 'claude',
       centerMode: 'canvas' as CenterMode,
       browserTabActive: false,
+      dashboardTabActive: false,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -206,6 +227,17 @@ export const useUIStore = create<UIState>((set) => ({
   openBrowserTab: () => set({ browserTabOpen: true, browserTabActive: true }),
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
   setBrowserTabActive: (active) => set({ browserTabActive: active }),
+  setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+  toggleDashboardTab: () => set((state) => {
+    const isOpen = !state.dashboardTabOpen
+    return { dashboardTabOpen: isOpen, dashboardTabActive: isOpen }
+  }),
+  openDashboardTab: () => set({ dashboardTabOpen: true, dashboardTabActive: true }),
+  closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
+  setDashboardTabActive: (active) => set({ dashboardTabActive: active }),
+  openLaunchWizard: () => set({ launchWizardOpen: true }),
+  closeLaunchWizard: () => set({ launchWizardOpen: false }),
+  setActiveDashboardMint: (mint) => set({ activeDashboardMint: mint }),
   setActiveGrindPage: (page) => set({ activeGrindPage: page }),
   addGrindPage: () => set((state) => ({
     grindPageCount: state.grindPageCount + 1,

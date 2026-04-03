@@ -1,0 +1,21 @@
+[package]
+name = "daemon-registry"
+version = "0.1.0"
+description = "On-chain registry for AI agent development sessions"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "daemon_registry"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = ["init-if-needed"]
+init-if-needed = ["anchor-lang/init-if-needed"]
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = "0.30.1"

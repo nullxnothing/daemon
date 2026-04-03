@@ -1,0 +1,68 @@
+.right-panel-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Tab strip */
+
+.right-panel-tabs {
+  display: flex;
+  align-items: stretch;
+  height: 32px;
+  flex-shrink: 0;
+  background: var(--s1);
+  border-bottom: 1px solid var(--s5);
+}
+
+.right-panel-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  color: var(--t3);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.right-panel-tab:hover {
+  color: var(--t2);
+  background: var(--hover-overlay);
+}
+
+.right-panel-tab.active {
+  color: var(--t1);
+  border-bottom-color: var(--green);
+}
+
+/* Status dot inside tab */
+
+.right-panel-tab-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--s5);
+}
+
+.right-panel-tab-dot.live {
+  background: var(--green);
+}
+
+/* Content area */
+
+.right-panel-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

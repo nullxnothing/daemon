@@ -4,7 +4,6 @@ import { useUIStore } from '../../store/ui'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { Toggle } from '../../components/Toggle'
 import { CategoryGroup } from '../../components/CategoryGroup'
-import { AriaChat } from './AriaChat'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
 import { groupByCategory, CATEGORIES } from '../../utils/categoryClassifier'
 import { setupCommandDrag, cleanupDragGhost } from '../../utils/dragCommand'
@@ -37,7 +36,6 @@ export function ClaudePanel() {
         <div className="claude-panel-scroll">
           <div className="claude-empty">Select a project</div>
         </div>
-        <AriaChat />
       </div>
     )
   }
@@ -71,7 +69,6 @@ export function ClaudePanel() {
         </CollapsibleSection>
         <ClaudeMdSection projectPath={activeProjectPath} />
       </div>
-      <AriaChat />
     </div>
   )
 }

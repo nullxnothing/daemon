@@ -1,0 +1,21 @@
+.dashboard-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--s2);
+}
+
+.dashboard-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--s2);
+}
+
+.dashboard-placeholder-text {
+  font-size: 12px;
+  color: var(--t3);
+  font-family: var(--font-ui);
+}

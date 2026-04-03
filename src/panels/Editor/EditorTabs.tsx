@@ -16,6 +16,27 @@ interface EditorTabsProps {
   browserTabOpen: boolean
   browserTabActive: boolean
   onBrowserTabClick: () => void
+  dashboardTabOpen: boolean
+  dashboardTabActive: boolean
+  onDashboardTabClick: () => void
+}
+
+function ChartIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      className={`editor-tab-browser-icon${active ? ' active' : ''}`}
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <polyline points="3 17 9 11 13 15 21 7" />
+      <line x1="3" y1="21" x2="21" y2="21" />
+    </svg>
+  )
 }
 
 function GlobeIcon({ active }: { active: boolean }) {
@@ -46,6 +67,9 @@ export function EditorTabs({
   browserTabOpen,
   browserTabActive,
   onBrowserTabClick,
+  dashboardTabOpen,
+  dashboardTabActive,
+  onDashboardTabClick,
 }: EditorTabsProps) {
   const [tabContextMenu, setTabContextMenu] = useState<{
     x: number; y: number; projectId: string; path: string
@@ -96,8 +120,22 @@ export function EditorTabs({
               <GlobeIcon active={browserTabActive} />
               <span className="editor-tab-name">Browser</span>
             </button>
-            {files.length > 0 && <div className="editor-tab-browser-sep" />}
           </>
+        )}
+        {dashboardTabOpen && (
+          <>
+            <button
+              className={`editor-tab editor-tab-browser editor-tab-dashboard${dashboardTabActive ? ' active' : ''}`}
+              onClick={onDashboardTabClick}
+              aria-label="Dashboard tab"
+            >
+              <ChartIcon active={dashboardTabActive} />
+              <span className="editor-tab-name">Dashboard</span>
+            </button>
+          </>
+        )}
+        {(browserTabOpen || dashboardTabOpen) && files.length > 0 && (
+          <div className="editor-tab-browser-sep" />
         )}
         {files.map((file) => (
           <button

@@ -14,6 +14,7 @@ import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { BrowserMode } from '../BrowserMode/BrowserMode'
+import { DashboardCanvas } from '../Dashboard/DashboardCanvas'
 import './Editor.css'
 
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
@@ -71,6 +72,9 @@ export function EditorPanel() {
   const browserTabOpen = useUIStore((s) => s.browserTabOpen)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
   const setBrowserTabActive = useUIStore((s) => s.setBrowserTabActive)
+  const dashboardTabOpen = useUIStore((s) => s.dashboardTabOpen)
+  const dashboardTabActive = useUIStore((s) => s.dashboardTabActive)
+  const setDashboardTabActive = useUIStore((s) => s.setDashboardTabActive)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -388,20 +392,29 @@ export function EditorPanel() {
 
   const handleSelectFileTab = useCallback((projectId: string, path: string) => {
     setBrowserTabActive(false)
+    setDashboardTabActive(false)
     setActiveFile(projectId, path)
-  }, [setBrowserTabActive, setActiveFile])
+  }, [setBrowserTabActive, setDashboardTabActive, setActiveFile])
 
   const handleBrowserTabClick = useCallback(() => {
     setBrowserTabActive(true)
-  }, [setBrowserTabActive])
+    setDashboardTabActive(false)
+  }, [setBrowserTabActive, setDashboardTabActive])
 
-  // Show welcome when no project and no browser tab is open/active
-  if (!activeProjectId && !browserTabOpen) {
+  const handleDashboardTabClick = useCallback(() => {
+    setDashboardTabActive(true)
+    setBrowserTabActive(false)
+  }, [setDashboardTabActive, setBrowserTabActive])
+
+  const hasAnyPinnedTab = browserTabOpen || dashboardTabOpen
+
+  // Show welcome when no project and no pinned tabs open
+  if (!activeProjectId && !hasAnyPinnedTab) {
     return <EditorWelcome activeProjectId={activeProjectId} />
   }
 
-  // If browser is the only content (no project, but browser tab open), render a minimal shell
-  if (!activeProjectId && browserTabOpen) {
+  // If a pinned tab is the only content (no project), render a minimal shell
+  if (!activeProjectId && hasAnyPinnedTab) {
     return (
       <div className="editor-panel">
         <EditorTabs
@@ -413,17 +426,24 @@ export function EditorPanel() {
           browserTabOpen={browserTabOpen}
           browserTabActive={browserTabActive}
           onBrowserTabClick={handleBrowserTabClick}
+          dashboardTabOpen={dashboardTabOpen}
+          dashboardTabActive={dashboardTabActive}
+          onDashboardTabClick={handleDashboardTabClick}
         />
         <div className="editor-content">
-          <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
-            <BrowserMode />
-          </PanelErrorBoundary>
+          {dashboardTabActive ? (
+            <DashboardCanvas />
+          ) : (
+            <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
+              <BrowserMode />
+            </PanelErrorBoundary>
+          )}
         </div>
       </div>
     )
   }
 
-  if (projectOpenFiles.length === 0 && !browserTabOpen) {
+  if (projectOpenFiles.length === 0 && !hasAnyPinnedTab) {
     return <EditorWelcome activeProjectId={activeProjectId} />
   }
 
@@ -438,8 +458,15 @@ export function EditorPanel() {
         browserTabOpen={browserTabOpen}
         browserTabActive={browserTabActive}
         onBrowserTabClick={handleBrowserTabClick}
+        dashboardTabOpen={dashboardTabOpen}
+        dashboardTabActive={dashboardTabActive}
+        onDashboardTabClick={handleDashboardTabClick}
       />
-      {browserTabActive ? (
+      {dashboardTabActive ? (
+        <div className="editor-content">
+          <DashboardCanvas />
+        </div>
+      ) : browserTabActive ? (
         <div className="editor-content">
           <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
             <BrowserMode />

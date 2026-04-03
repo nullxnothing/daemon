@@ -6,13 +6,14 @@ import { buildCommands } from './components/CommandPalette/commands'
 import { EditorPanel } from './panels/Editor/Editor'
 import { TerminalPanel } from './panels/Terminal/Terminal'
 import { AgentLauncher } from './panels/AgentLauncher/AgentLauncher'
-import { ClaudePanel } from './panels/ClaudePanel/ClaudePanel'
+import { RightPanel } from './panels/RightPanel/RightPanel'
 import { CommandDrawer } from './components/CommandDrawer/CommandDrawer'
 import { AgentGrid } from './panels/Terminal/AgentGrid'
 import { Titlebar } from './panels/Titlebar/Titlebar'
 import { IconSidebar } from './panels/IconSidebar/IconSidebar'
 import { StatusBar } from './panels/StatusBar/StatusBar'
 import { OnboardingWizard } from './panels/Onboarding/OnboardingWizard'
+import { LaunchWizard } from './panels/LaunchWizard/LaunchWizard'
 import { TourOverlay } from './components/Tour/TourOverlay'
 import { useOnboardingStore } from './store/onboarding'
 import { useWorkspaceProfileStore } from './store/workspaceProfile'
@@ -38,6 +39,7 @@ function App() {
   const showTourOffer = useOnboardingStore((s) => s.showTourOffer)
   const centerMode = useUIStore((s) => s.centerMode)
   const drawerOpen = useUIStore((s) => s.drawerOpen)
+  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -234,7 +236,7 @@ function App() {
 
         {shouldShowRightPanel && (
           <aside className="right-panel" data-tour="right-panel">
-            <ClaudePanel />
+            <RightPanel />
           </aside>
         )}
       </div>
@@ -275,6 +277,7 @@ function App() {
         </div>
       )}
       {wizardOpen && <OnboardingWizard />}
+      {launchWizardOpen && <LaunchWizard />}
 
       {showTourOffer && (
         <div className="wizard-overlay">
