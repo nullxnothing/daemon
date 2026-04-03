@@ -40,6 +40,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   const fitRef = useRef<FitAddon | null>(null)
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dragDepthRef = useRef(0)
+  const lastCtrlCRef = useRef(0)
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
     isOpen: false, x: 0, y: 0,
   })
@@ -88,6 +89,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       lineHeight: 1.3,
       cursorBlink: true,
       cursorStyle: 'bar',
+      scrollback: 10000,
       theme: XTERM_THEME,
     })
 
@@ -102,7 +104,35 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     // Returning false tells xterm to suppress the event and not write to pty.
     term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       if (!e.ctrlKey && !e.metaKey) return true
+      if (e.type !== 'keydown') return true
       const key = e.key.toLowerCase()
+
+      // Ctrl+C — copy if text selected (first press), SIGINT if no selection or double-press
+      if (key === 'c' && !e.shiftKey) {
+        const hasSelection = !!term.getSelection()
+        const now = Date.now()
+        const isDoubleTap = now - lastCtrlCRef.current < 500
+
+        if (hasSelection && !isDoubleTap) {
+          // First Ctrl+C with selection: copy to clipboard, clear selection
+          navigator.clipboard.writeText(term.getSelection())
+          term.clearSelection()
+          lastCtrlCRef.current = now
+          return false // suppress — don't send SIGINT
+        }
+        // No selection or double-tap: let xterm send SIGINT to pty
+        lastCtrlCRef.current = now
+        return true
+      }
+
+      // Ctrl+V — paste from clipboard
+      if (key === 'v' && !e.shiftKey) {
+        navigator.clipboard.readText().then((text) => {
+          if (text) window.daemon.terminal.write(id, text)
+        })
+        return false
+      }
+
       // Ctrl+P / Ctrl+Shift+P — file search / command palette
       if (key === 'p') return false
       // Ctrl+Shift+A — agent launcher
