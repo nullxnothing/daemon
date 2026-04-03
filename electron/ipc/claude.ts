@@ -50,7 +50,7 @@ async function getClaudeMdContext(projectPath: string): Promise<{ content: strin
   let diff = ''
   try {
     const { stdout } = await execAsync('git diff HEAD~5', { cwd: projectPath, encoding: 'utf8', timeout: 10000 })
-    diff = stdout
+    diff = stdout.slice(0, 5000)
   } catch {
     diff = '(no git history)'
   }

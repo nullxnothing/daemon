@@ -372,7 +372,7 @@ ${extraContext ? `User question: ${extraContext}` : ''}
 
 Diagnose issues and provide concrete steps to fix each one. Be specific — include exact commands to run.`,
     systemPrompt: ENGINE_SYSTEM_PROMPT,
-    model: 'sonnet',
+    model: 'haiku',
     effort: 'medium',
     cwd: project.path,
     timeoutMs: TIMEOUTS.CLI_PROMPT_DEFAULT,
@@ -472,7 +472,7 @@ ${projectList}
 
 ${project ? `Active project: ${project.name} at ${project.path}` : ''}`,
     systemPrompt: ENGINE_SYSTEM_PROMPT,
-    model: 'sonnet',
+    model: 'haiku',
     effort: 'low',
     timeoutMs: TIMEOUTS.CLI_PROMPT_DEFAULT,
   })

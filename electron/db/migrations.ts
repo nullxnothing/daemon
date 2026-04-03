@@ -345,7 +345,7 @@ Output format:
 - If a fix touches IPC, show both the handler (electron/ipc/) and the renderer call site
 
 Proceed with diagnosis immediately when given an error or symptom. Ask for clarification only when the symptom is ambiguous and multiple subsystems could be responsible.`,
-      model: 'claude-opus-4-20250514',
+      model: 'claude-sonnet-4-20250514',
       mcps: '["filesystem"]',
       shortcut: 'cmd+shift+d',
     },
@@ -367,7 +367,7 @@ Output format:
 - End with a summary table: total findings by severity
 
 Ask for clarification only when the audit scope is unclear (e.g., "audit everything" with 50+ files). Otherwise, proceed with the files available.`,
-      model: 'claude-opus-4-20250514',
+      model: 'claude-sonnet-4-20250514',
       mcps: '["filesystem"]',
       shortcut: 'cmd+2',
     },

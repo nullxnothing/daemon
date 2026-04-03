@@ -260,7 +260,7 @@ async function runPromptViaApi(
   const response = await client.messages.create({
     model: resolvedModel,
     max_tokens: maxTokens ?? 4096,
-    ...(systemPrompt ? { system: systemPrompt } : {}),
+    ...(systemPrompt ? { system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] } : {}),
     messages: [{ role: 'user', content: prompt }],
   })
 

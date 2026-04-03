@@ -190,6 +190,7 @@ export function HackathonPanel() {
             </button>
           </div>
 
+
           <span
             className="hackathon-link"
             onClick={() => window.daemon.shell.openExternal('https://arena.colosseum.org/copilot')}

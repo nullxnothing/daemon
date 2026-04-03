@@ -166,9 +166,9 @@ export function registerBrowserHandlers() {
 
     history.push({ role: 'user', content: fullMessage })
 
-    // Keep bounded (last 20 turns)
-    if (history.length > 40) {
-      history.splice(0, history.length - 40)
+    // Trim to system message + last 10 when history grows beyond 20
+    if (history.length > 20) {
+      history.splice(0, history.length - 10)
     }
 
     // Retry with backoff on rate limit (429)
