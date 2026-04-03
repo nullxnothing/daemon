@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
+import { useBrowserStore } from '../../store/browser'
 import { AriaPresence } from './AriaPresence'
 import type { AriaAction, AriaMessage } from '../../../electron/shared/types'
 import './AriaChat.css'
@@ -35,7 +36,10 @@ function renderTextWithLinks(text: string, keyPrefix: string) {
         <button
           key={`${keyPrefix}-link-${j}`}
           className="aria-link"
-          onClick={() => window.daemon.shell.openExternal(seg)}
+          onClick={() => {
+            useBrowserStore.getState().setUrl(seg)
+            useUIStore.getState().setCenterMode('browser')
+          }}
           title={seg}
         >
           {seg}

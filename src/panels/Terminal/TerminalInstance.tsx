@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css'
 import { useTerminalInput } from './useTerminalInput'
 import { HintsOverlay, HistorySearchOverlay, TerminalSearchOverlay } from './TerminalOverlays'
 import { useUIStore } from '../../store/ui'
+import { useBrowserStore } from '../../store/browser'
 
 const XTERM_THEME = {
   background: '#0a0a0a',
@@ -240,9 +241,10 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
 
-    // Feature 3: WebLinksAddon with explicit openExternal handler
+    // Feature 3: WebLinksAddon — open URLs in DAEMON's built-in browser
     term.loadAddon(new WebLinksAddon((_event, url) => {
-      window.daemon.shell.openExternal(url)
+      useBrowserStore.getState().setUrl(url)
+      useUIStore.getState().setCenterMode('browser')
     }))
 
     term.open(containerRef.current)
