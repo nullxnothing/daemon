@@ -19,6 +19,7 @@ interface CommandDeps {
   openAgentLauncher: VoidCallback
   toggleExplorer: VoidCallback
   setDrawerTool: (tool: string) => void
+  toggleBrowserTab?: VoidCallback
 }
 
 export function buildCommands(deps: CommandDeps): Command[] {
@@ -30,6 +31,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
     openAgentLauncher,
     toggleExplorer,
     setDrawerTool,
+    toggleBrowserTab,
   } = deps
 
   return [
@@ -146,14 +148,11 @@ export function buildCommands(deps: CommandDeps): Command[] {
       },
     },
     {
-      id: 'view:browser-mode',
-      label: 'Switch to Browser Mode',
+      id: 'view:browser-tab',
+      label: 'Toggle Browser Tab',
       shortcut: 'Ctrl+Shift+B',
       category: 'View',
-      action: () => {
-        const current = getCenterMode()
-        setCenterMode(current === 'browser' ? 'canvas' : 'browser')
-      },
+      action: () => toggleBrowserTab?.(),
     },
     {
       id: 'view:reload-window',

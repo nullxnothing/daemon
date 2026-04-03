@@ -276,3 +276,12 @@
   background: var(--error);
   color: #fff;
 }
+
+.titlebar-btn-browser.active {
+  color: var(--green);
+}
+
+.titlebar-btn-browser.active:hover {
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.08);
+}

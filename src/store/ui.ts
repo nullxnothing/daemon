@@ -22,7 +22,7 @@ interface TerminalTab {
   projectId: string
 }
 
-export type CenterMode = 'canvas' | 'grind' | 'browser'
+export type CenterMode = 'canvas' | 'grind'
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy' | 'email' | 'images'
@@ -36,6 +36,8 @@ interface UIState {
   mcpDirty: boolean
   mcpVersion: number
   centerMode: CenterMode
+  browserTabOpen: boolean
+  browserTabActive: boolean
   grindPageCount: number
   activeGrindPage: number
   grindPages: Record<string, GridCell[][]>
@@ -55,6 +57,10 @@ interface UIState {
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
   setCenterMode: (mode: CenterMode) => void
+  toggleBrowserTab: () => void
+  openBrowserTab: () => void
+  closeBrowserTab: () => void
+  setBrowserTabActive: (active: boolean) => void
   setActiveGrindPage: (page: number) => void
   addGrindPage: () => void
   removeGrindPage: (page: number) => void
@@ -97,6 +103,8 @@ export const useUIStore = create<UIState>((set) => ({
   mcpDirty: false,
   mcpVersion: 0,
   centerMode: 'canvas' as CenterMode,
+  browserTabOpen: false,
+  browserTabActive: false,
   grindPageCount: 1,
   activeGrindPage: 0,
   grindPages: {},
@@ -119,12 +127,14 @@ export const useUIStore = create<UIState>((set) => ({
       return {
         activePanel: 'claude',
         centerMode: 'canvas' as CenterMode,
+        browserTabActive: false,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
       activePanel: 'claude',
       centerMode: 'canvas' as CenterMode,
+      browserTabActive: false,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -189,6 +199,13 @@ export const useUIStore = create<UIState>((set) => ({
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
   setCenterMode: (mode) => set({ centerMode: mode }),
+  toggleBrowserTab: () => set((state) => {
+    const isOpen = !state.browserTabOpen
+    return { browserTabOpen: isOpen, browserTabActive: isOpen }
+  }),
+  openBrowserTab: () => set({ browserTabOpen: true, browserTabActive: true }),
+  closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
+  setBrowserTabActive: (active) => set({ browserTabActive: active }),
   setActiveGrindPage: (page) => set({ activeGrindPage: page }),
   addGrindPage: () => set((state) => ({
     grindPageCount: state.grindPageCount + 1,

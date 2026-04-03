@@ -38,7 +38,7 @@ function renderTextWithLinks(text: string, keyPrefix: string) {
           className="aria-link"
           onClick={() => {
             useBrowserStore.getState().setUrl(seg)
-            useUIStore.getState().setCenterMode('browser')
+            useUIStore.getState().openBrowserTab()
           }}
           title={seg}
         >

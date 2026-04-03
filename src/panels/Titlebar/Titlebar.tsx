@@ -17,6 +17,8 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
   const setActiveProject = useUIStore((s) => s.setActiveProject)
   const centerMode = useUIStore((s) => s.centerMode)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
+  const browserTabOpen = useUIStore((s) => s.browserTabOpen)
+  const toggleBrowserTab = useUIStore((s) => s.toggleBrowserTab)
 
   return (
     <div className="titlebar">
@@ -48,6 +50,19 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
       </div>
       <div className="titlebar-controls">
         <TitlebarPortfolioSummary />
+        <button
+          className={`titlebar-btn titlebar-btn-browser${browserTabOpen ? ' active' : ''}`}
+          onClick={toggleBrowserTab}
+          title="Toggle Browser Tab (Ctrl+Shift+B)"
+          aria-label="Toggle Browser Tab"
+          aria-pressed={browserTabOpen}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </button>
         <ModeDropdown centerMode={centerMode} setCenterMode={setCenterMode} />
         {import.meta.env.DEV && (
           <button className="titlebar-btn" onClick={() => window.daemon.window.reload()} title="Reload App (Ctrl+Shift+R)">
@@ -90,17 +105,6 @@ const MODE_OPTIONS: Array<{ value: CenterMode; label: string; shortcut: string |
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
         <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
         <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-      </svg>
-    ),
-  },
-  {
-    value: 'browser',
-    label: 'Browser',
-    shortcut: 'Ctrl+Shift+B',
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
       </svg>
     ),
   },

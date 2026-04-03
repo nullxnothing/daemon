@@ -43,8 +43,7 @@ export function useAppShortcuts({
         useUIStore.getState().setCenterMode(current === 'grind' ? 'canvas' : 'grind')
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
         e.preventDefault()
-        const current = useUIStore.getState().centerMode
-        useUIStore.getState().setCenterMode(current === 'browser' ? 'canvas' : 'browser')
+        useUIStore.getState().toggleBrowserTab()
       } else if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault()
         setShowTerminal((v) => !v)

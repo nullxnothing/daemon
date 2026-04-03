@@ -13,6 +13,7 @@ import { EditorWelcome } from './EditorWelcome'
 import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
+import { BrowserMode } from '../BrowserMode/BrowserMode'
 import './Editor.css'
 
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
@@ -67,6 +68,9 @@ export function EditorPanel() {
   const closeFile = useUIStore((s) => s.closeFile)
   const updateFileContent = useUIStore((s) => s.updateFileContent)
   const markFileSaved = useUIStore((s) => s.markFileSaved)
+  const browserTabOpen = useUIStore((s) => s.browserTabOpen)
+  const browserTabActive = useUIStore((s) => s.browserTabActive)
+  const setBrowserTabActive = useUIStore((s) => s.setBrowserTabActive)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -382,7 +386,44 @@ export function EditorPanel() {
     closeFile(projectId, path)
   }, [closeFile, activeFilePath])
 
-  if (!activeProjectId || projectOpenFiles.length === 0) {
+  const handleSelectFileTab = useCallback((projectId: string, path: string) => {
+    setBrowserTabActive(false)
+    setActiveFile(projectId, path)
+  }, [setBrowserTabActive, setActiveFile])
+
+  const handleBrowserTabClick = useCallback(() => {
+    setBrowserTabActive(true)
+  }, [setBrowserTabActive])
+
+  // Show welcome when no project and no browser tab is open/active
+  if (!activeProjectId && !browserTabOpen) {
+    return <EditorWelcome activeProjectId={activeProjectId} />
+  }
+
+  // If browser is the only content (no project, but browser tab open), render a minimal shell
+  if (!activeProjectId && browserTabOpen) {
+    return (
+      <div className="editor-panel">
+        <EditorTabs
+          files={[]}
+          activeFilePath={null}
+          savedFlash={null}
+          onSelectFile={handleSelectFileTab}
+          onCloseFile={handleCloseFile}
+          browserTabOpen={browserTabOpen}
+          browserTabActive={browserTabActive}
+          onBrowserTabClick={handleBrowserTabClick}
+        />
+        <div className="editor-content">
+          <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
+            <BrowserMode />
+          </PanelErrorBoundary>
+        </div>
+      </div>
+    )
+  }
+
+  if (projectOpenFiles.length === 0 && !browserTabOpen) {
     return <EditorWelcome activeProjectId={activeProjectId} />
   }
 
@@ -392,65 +433,80 @@ export function EditorPanel() {
         files={projectOpenFiles}
         activeFilePath={activeFilePath}
         savedFlash={savedFlash}
-        onSelectFile={setActiveFile}
+        onSelectFile={handleSelectFileTab}
         onCloseFile={handleCloseFile}
+        browserTabOpen={browserTabOpen}
+        browserTabActive={browserTabActive}
+        onBrowserTabClick={handleBrowserTabClick}
       />
-      <EditorBreadcrumbs
-        breadcrumbs={breadcrumbs}
-        isMarkdown={isActiveFileMarkdown}
-        isTidying={isTidyingMarkdown}
-        tidyError={tidyError}
-        showTidyButton={!markdownTidyPreview && !!activeFile}
-        onTidy={() => void handleTidyMarkdown()}
-      />
-      <div className="editor-content">
-        {isImageFile(activeFile?.path) ? (
-          <ImagePreview filePath={activeFile!.path} />
-        ) : markdownTidyPreview && activeFile ? (
-          <MarkdownTidyPreview
-            original={markdownTidyPreview.original}
-            tidied={markdownTidyPreview.tidied}
-            language={getLanguage(activeFile.path)}
-            tidyError={tidyError}
-            isApplying={isApplyingMarkdownTidy}
-            onApply={() => void handleApplyMarkdownTidy()}
-            onDiscard={handleDiscardMarkdownTidy}
-          />
-        ) : (
-          <PanelErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
-            <MonacoEditor
-              theme="daemon-dark"
-              beforeMount={handleBeforeMount}
-              onMount={handleEditorMount}
-              onChange={handleChange}
-              options={{
-                fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
-                fontSize: 13,
-                lineHeight: 20,
-                minimap: { enabled: false },
-                scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
-                padding: { top: 8 },
-                renderLineHighlight: 'line',
-                smoothScrolling: true,
-                cursorBlinking: 'smooth',
-                cursorSmoothCaretAnimation: 'on',
-                bracketPairColorization: { enabled: true },
-                wordWrap: 'on',
-                tabSize: 2,
-                glyphMargin: true,
-              }}
-            />
+      {browserTabActive ? (
+        <div className="editor-content">
+          <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
+            <BrowserMode />
           </PanelErrorBoundary>
-        )}
-      </div>
-      {askClaudeState?.visible && activeFile && (
-        <AskClaudeWidget
-          lineNumber={askClaudeState.lineNumber}
-          lineContent={askClaudeState.lineContent}
-          filePath={activeFile.path}
-          position={askClaudeState.position}
-          onClose={() => setAskClaudeState(null)}
-        />
+        </div>
+      ) : (
+        <>
+          <EditorBreadcrumbs
+            breadcrumbs={breadcrumbs}
+            isMarkdown={isActiveFileMarkdown}
+            isTidying={isTidyingMarkdown}
+            tidyError={tidyError}
+            showTidyButton={!markdownTidyPreview && !!activeFile}
+            onTidy={() => void handleTidyMarkdown()}
+          />
+          <div className="editor-content">
+            {isImageFile(activeFile?.path) ? (
+              <ImagePreview filePath={activeFile!.path} />
+            ) : markdownTidyPreview && activeFile ? (
+              <MarkdownTidyPreview
+                original={markdownTidyPreview.original}
+                tidied={markdownTidyPreview.tidied}
+                language={getLanguage(activeFile.path)}
+                tidyError={tidyError}
+                isApplying={isApplyingMarkdownTidy}
+                onApply={() => void handleApplyMarkdownTidy()}
+                onDiscard={handleDiscardMarkdownTidy}
+              />
+            ) : activeFile ? (
+              <PanelErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
+                <MonacoEditor
+                  theme="daemon-dark"
+                  beforeMount={handleBeforeMount}
+                  onMount={handleEditorMount}
+                  onChange={handleChange}
+                  options={{
+                    fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+                    fontSize: 13,
+                    lineHeight: 20,
+                    minimap: { enabled: false },
+                    scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+                    padding: { top: 8 },
+                    renderLineHighlight: 'line',
+                    smoothScrolling: true,
+                    cursorBlinking: 'smooth',
+                    cursorSmoothCaretAnimation: 'on',
+                    bracketPairColorization: { enabled: true },
+                    wordWrap: 'on',
+                    tabSize: 2,
+                    glyphMargin: true,
+                  }}
+                />
+              </PanelErrorBoundary>
+            ) : (
+              <EditorWelcome activeProjectId={activeProjectId} />
+            )}
+          </div>
+          {askClaudeState?.visible && activeFile && (
+            <AskClaudeWidget
+              lineNumber={askClaudeState.lineNumber}
+              lineContent={askClaudeState.lineContent}
+              filePath={activeFile.path}
+              position={askClaudeState.position}
+              onClose={() => setAskClaudeState(null)}
+            />
+          )}
+        </>
       )}
     </div>
   )

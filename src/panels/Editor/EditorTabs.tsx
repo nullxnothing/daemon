@@ -13,9 +13,40 @@ interface EditorTabsProps {
   savedFlash: string | null
   onSelectFile: (projectId: string, path: string) => void
   onCloseFile: (projectId: string, path: string) => void
+  browserTabOpen: boolean
+  browserTabActive: boolean
+  onBrowserTabClick: () => void
 }
 
-export function EditorTabs({ files, activeFilePath, savedFlash, onSelectFile, onCloseFile }: EditorTabsProps) {
+function GlobeIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      className={`editor-tab-browser-icon${active ? ' active' : ''}`}
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+}
+
+export function EditorTabs({
+  files,
+  activeFilePath,
+  savedFlash,
+  onSelectFile,
+  onCloseFile,
+  browserTabOpen,
+  browserTabActive,
+  onBrowserTabClick,
+}: EditorTabsProps) {
   const [tabContextMenu, setTabContextMenu] = useState<{
     x: number; y: number; projectId: string; path: string
   } | null>(null)
@@ -55,10 +86,23 @@ export function EditorTabs({ files, activeFilePath, savedFlash, onSelectFile, on
   return (
     <>
       <div className="editor-tabs">
+        {browserTabOpen && (
+          <>
+            <button
+              className={`editor-tab editor-tab-browser${browserTabActive ? ' active' : ''}`}
+              onClick={onBrowserTabClick}
+              aria-label="Browser tab"
+            >
+              <GlobeIcon active={browserTabActive} />
+              <span className="editor-tab-name">Browser</span>
+            </button>
+            {files.length > 0 && <div className="editor-tab-browser-sep" />}
+          </>
+        )}
         {files.map((file) => (
           <button
             key={file.path}
-            className={`editor-tab ${activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
+            className={`editor-tab ${!browserTabActive && activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
             onClick={() => onSelectFile(file.projectId, file.path)}
             onContextMenu={(e) => handleTabContextMenu(e, file.projectId, file.path)}
           >

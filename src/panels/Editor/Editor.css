@@ -434,6 +434,51 @@
   overflow: hidden;
 }
 
+/* ─── Browser pinned tab ─── */
+
+.editor-tab-browser {
+  background: var(--s3);
+  border-radius: 4px;
+  border-left: 2px solid transparent;
+  flex-shrink: 0;
+}
+
+.editor-tab-browser:hover {
+  background: var(--s4);
+  color: var(--t1);
+}
+
+.editor-tab-browser.active {
+  border-bottom: none;
+  border-left: 2px solid var(--green);
+  background: var(--s3);
+  color: var(--t1);
+  box-shadow: none;
+}
+
+.editor-tab-browser-icon {
+  color: var(--t3);
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.editor-tab-browser-icon.active {
+  color: var(--green);
+}
+
+.editor-tab-browser:hover .editor-tab-browser-icon {
+  color: var(--t2);
+}
+
+.editor-tab-browser-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 2px;
+}
+
 /* Tab context menu */
 .tab-context-menu {
   position: fixed;
