@@ -560,6 +560,36 @@ declare global {
     getToken: (idOrMint: string) => Promise<IpcResponse<LaunchedToken | null>>
   }
 
+  interface LocalAgentSession {
+    id: string
+    project_id: string | null
+    agent_id: string | null
+    agent_name: string | null
+    model: string | null
+    started_at: number
+    ended_at: number | null
+    status: 'active' | 'completed' | 'cancelled'
+    lines_generated: number
+    tools_used: string[]
+    published_signature: string | null
+    created_at: number
+  }
+
+  interface AgentSessionProfile {
+    totalSessions: number
+    totalDuration: number
+    totalAgentsSpawned: number
+    projectsCount: number
+    unpublishedCount: number
+  }
+
+  interface DaemonRegistry {
+    listSessions: (limit?: number) => Promise<IpcResponse<LocalAgentSession[]>>
+    getProfile: () => Promise<IpcResponse<AgentSessionProfile>>
+    publishSession: (sessionId: string) => Promise<IpcResponse<{ startSignature: string; endSignature: string }>>
+    publishAll: () => Promise<IpcResponse<{ published: number; failed: number }>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -586,6 +616,14 @@ declare global {
     images: DaemonImages
     aria: DaemonAria
     launch: DaemonLaunch
+    dashboard: DaemonDashboard
+    registry: DaemonRegistry
+  }
+
+  interface DaemonDashboard {
+    tokenPrice: (mint: string) => Promise<IpcResponse<{ price: number; priceChange24h: number | null }>>
+    tokenMetadata: (mint: string) => Promise<IpcResponse<{ name: string; symbol: string; image: string | null; supply: number; decimals: number }>>
+    tokenHolders: (mint: string) => Promise<IpcResponse<{ count: number; topHolders: Array<{ address: string; amount: number }> }>>
   }
 
   interface DaemonBrowser {

@@ -276,6 +276,12 @@ contextBridge.exposeInMainWorld('daemon', {
     clear: (sessionId: string) => ipcRenderer.invoke('aria:clear', sessionId),
   },
 
+  dashboard: {
+    tokenPrice: (mint: string) => ipcRenderer.invoke('dashboard:token-price', mint),
+    tokenMetadata: (mint: string) => ipcRenderer.invoke('dashboard:token-metadata', mint),
+    tokenHolders: (mint: string) => ipcRenderer.invoke('dashboard:token-holders', mint),
+  },
+
   images: {
     generate: (input: { prompt: string; model: string; aspectRatio: string; projectId?: string; tags?: string[] }) => ipcRenderer.invoke('images:generate', input),
     list: (filter?: { projectId?: string; source?: string; model?: string; limit?: number; offset?: number }) => ipcRenderer.invoke('images:list', filter ?? {}),
@@ -329,6 +335,13 @@ contextBridge.exposeInMainWorld('daemon', {
     redeploy: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:redeploy', projectId, platform),
     envVars: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:env-vars', projectId, platform),
     autoDetect: (projectPath: string) => ipcRenderer.invoke('deploy:auto-detect', projectPath),
+  },
+
+  registry: {
+    listSessions: (limit?: number) => ipcRenderer.invoke('registry:list-sessions', limit),
+    getProfile: () => ipcRenderer.invoke('registry:get-profile'),
+    publishSession: (sessionId: string) => ipcRenderer.invoke('registry:publish-session', sessionId),
+    publishAll: () => ipcRenderer.invoke('registry:publish-all'),
   },
 
   tools: {
