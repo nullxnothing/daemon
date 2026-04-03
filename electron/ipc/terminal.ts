@@ -7,6 +7,7 @@ import { buildCommand, cleanupContextFile, getClaudePath } from '../services/Cla
 import { registerPort } from '../services/PortService'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import * as SessionTracker from '../services/SessionTracker'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
 
 // Regex patterns to auto-detect "listening on port X" from terminal output
@@ -105,6 +106,13 @@ function createPtySession(
 
   ptyProcess.onExit(({ exitCode }) => {
     if (contextFilePath) cleanupContextFile(contextFilePath)
+    const exiting = sessions.get(id)
+    if (exiting?.localSessionId) {
+      SessionTracker.endSession({
+        sessionId: exiting.localSessionId,
+        status: exitCode === 0 ? 'completed' : 'completed',
+      })
+    }
     sessions.delete(id)
     try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
       console.warn('[Terminal] failed to delete session on exit:', (err as Error).message)
@@ -167,6 +175,15 @@ export function registerTerminalHandlers() {
     const id = crypto.randomUUID()
     const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
 
+    // Start a local session record — fire and forget, never blocks spawn
+    const localSessionId = SessionTracker.startSession({
+      projectId: opts.projectId,
+      agentId: opts.agentId,
+      agentName: agent.name,
+      model: agent.model,
+    })
+    session.localSessionId = localSessionId
+
     db.prepare(
       'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
     ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
@@ -201,6 +218,9 @@ export function registerTerminalHandlers() {
   ipcMain.handle('terminal:kill', ipcHandler(async (_event, id: string) => {
     const session = sessions.get(id)
     if (session) {
+      if (session.localSessionId) {
+        SessionTracker.endSession({ sessionId: session.localSessionId, status: 'cancelled' })
+      }
       session.pty.kill()
       if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
       sessions.delete(id)

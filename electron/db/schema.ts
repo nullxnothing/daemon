@@ -1,6 +1,25 @@
 // CONVENTION: All timestamps use milliseconds (Date.now() in JS, CAST(unixepoch('now') * 1000 AS INTEGER) in SQL defaults).
 // Historical data before this convention may contain seconds — consumers should handle both.
 
+export const SCHEMA_V18 = `
+CREATE TABLE IF NOT EXISTS agent_sessions_local (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  agent_id TEXT,
+  agent_name TEXT,
+  model TEXT,
+  started_at INTEGER,
+  ended_at INTEGER,
+  status TEXT DEFAULT 'active',
+  lines_generated INTEGER DEFAULT 0,
+  tools_used TEXT DEFAULT '[]',
+  published_signature TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_agent_sessions_local_status ON agent_sessions_local(status);
+CREATE INDEX IF NOT EXISTS idx_agent_sessions_local_created ON agent_sessions_local(created_at DESC);
+`
+
 export const SCHEMA_V3 = `
 CREATE TABLE IF NOT EXISTS mcp_disabled (
   name TEXT PRIMARY KEY,

@@ -1,0 +1,241 @@
+.session-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sr-stats {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sr-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+}
+
+.sr-stat:last-child {
+  border-right: none;
+}
+
+.sr-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--t1);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sr-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--t3);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.sr-error {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
+  flex-shrink: 0;
+}
+
+.sr-publish-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--green) 4%, transparent);
+  flex-shrink: 0;
+}
+
+.sr-publish-bar-text {
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.sr-publish-all-btn {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--green-dim);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  color: var(--green);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sr-publish-all-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--green) 20%, transparent);
+}
+
+.sr-publish-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sr-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sr-empty {
+  padding: 24px 16px;
+  font-size: 12px;
+  color: var(--t3);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.sr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+.sr-row:hover {
+  background: var(--s2);
+}
+
+.sr-row--active {
+  background: color-mix(in srgb, var(--green) 3%, transparent);
+}
+
+.sr-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sr-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sr-dot--active {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green-dim);
+  animation: sr-pulse 2s ease-in-out infinite;
+}
+
+.sr-dot--completed {
+  background: var(--t4);
+}
+
+.sr-dot--cancelled {
+  background: var(--amber);
+}
+
+@keyframes sr-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.sr-row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sr-agent-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-row-meta {
+  font-size: 10px;
+  color: var(--t3);
+  margin-top: 1px;
+}
+
+.sr-row-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sr-model-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--s3);
+  color: var(--t3);
+}
+
+.sr-model-badge--opus {
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--blue);
+}
+
+.sr-model-badge--sonnet {
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  color: var(--green);
+}
+
+.sr-model-badge--haiku {
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber);
+}
+
+.sr-published-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  color: var(--green-dim);
+  border: 1px solid color-mix(in srgb, var(--green) 15%, transparent);
+}
+
+.sr-publish-btn {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--s3);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sr-publish-btn:hover:not(:disabled) {
+  border-color: var(--green-dim);
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+}
+
+.sr-publish-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

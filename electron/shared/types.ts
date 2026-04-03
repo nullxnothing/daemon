@@ -449,6 +449,8 @@ export interface TerminalSession {
   contextFilePath: string | null
   /** True when session was created via terminal:create with isAgent flag (e.g. AgentGrid claude cells). */
   isAgentShell?: boolean
+  /** Local session tracker ID — set when agent spawns via spawnAgent. */
+  localSessionId?: string | null
 }
 
 export interface TerminalCreateInput {

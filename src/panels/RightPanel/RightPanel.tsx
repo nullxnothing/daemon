@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { ClaudePanel } from '../ClaudePanel/ClaudePanel'
 import { DashboardMini } from '../Dashboard/DashboardMini'
+import { SessionHistory } from '../SessionRegistry/SessionHistory'
 import { AriaChat } from '../ClaudePanel/AriaChat'
 import './RightPanel.css'
 
@@ -57,11 +58,21 @@ export function RightPanel() {
         >
           Dashboard
         </button>
+        <button
+          className={`right-panel-tab${rightPanelTab === 'sessions' ? ' active' : ''}`}
+          role="tab"
+          aria-selected={rightPanelTab === 'sessions'}
+          onClick={() => setRightPanelTab('sessions')}
+        >
+          Sessions
+        </button>
       </div>
 
       <div className="right-panel-content">
         {rightPanelTab === 'claude' ? (
           <ClaudePanel />
+        ) : rightPanelTab === 'sessions' ? (
+          <SessionHistory />
         ) : (
           <DashboardMini />
         )}
