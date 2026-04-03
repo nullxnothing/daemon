@@ -85,6 +85,7 @@ const BrowserMode = lazy(() => import('../../panels/BrowserMode/BrowserMode').th
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
+// Note: 'browser' is intentionally excluded — it opens as a pinned editor tab (Ctrl+Shift+B), not a drawer panel
 export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'git', name: 'Git', description: 'Source control', icon: GitIcon, component: GitPanel, category: 'dev' },
   { id: 'deploy', name: 'Deploy', description: 'Vercel & Railway', icon: DeployIcon, component: DeployPanel, category: 'dev' },
@@ -93,7 +94,6 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'wallet', name: 'Wallet', description: 'Solana wallets', icon: WalletIcon, component: WalletPanel, category: 'crypto' },
   { id: 'images', name: 'Images', description: 'AI image generation', icon: ImageIcon, component: ImagePanel, category: 'create' },
   { id: 'email', name: 'Email', description: 'Gmail & iCloud', icon: EmailIcon, component: EmailPanel, category: 'create' },
-  { id: 'browser', name: 'Browser', description: 'Embedded browser', icon: BrowserIcon, component: BrowserMode, category: 'dev' },
   { id: 'ports', name: 'Ports', description: 'Port scanner', icon: PortsIcon, component: PortsPanel, category: 'system' },
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, category: 'system' },
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, category: 'system' },

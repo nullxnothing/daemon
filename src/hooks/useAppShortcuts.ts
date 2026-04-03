@@ -44,6 +44,9 @@ export function useAppShortcuts({
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
         e.preventDefault()
         useUIStore.getState().toggleBrowserTab()
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+        e.preventDefault()
+        useUIStore.getState().toggleDashboardTab()
       } else if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault()
         setShowTerminal((v) => !v)

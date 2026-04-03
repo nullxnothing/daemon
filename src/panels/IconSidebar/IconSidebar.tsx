@@ -16,6 +16,7 @@ interface IconSidebarProps {
 export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, onToggleRightPanel, onOpenAgentLauncher }: IconSidebarProps) {
   const drawerOpen = useUIStore((s) => s.drawerOpen)
   const drawerTool = useUIStore((s) => s.drawerTool)
+  const browserTabActive = useUIStore((s) => s.browserTabActive)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
 
@@ -25,6 +26,11 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
   }
 
   const handlePinnedToolClick = (toolId: string) => {
+    // Browser is a pinned editor tab, not a drawer panel
+    if (toolId === 'browser') {
+      useUIStore.getState().toggleBrowserTab()
+      return
+    }
     const state = useUIStore.getState()
     if (state.drawerOpen && state.drawerTool === toolId) {
       // Already showing this tool — close drawer
@@ -91,7 +97,7 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
         const Icon = TOOL_ICONS[toolId] ?? PLUGIN_REGISTRY[toolId]?.icon
         const name = TOOL_NAMES[toolId] ?? PLUGIN_REGISTRY[toolId]?.name ?? toolId
         if (!Icon) return null
-        const isActive = drawerOpen && drawerTool === toolId
+        const isActive = toolId === 'browser' ? browserTabActive : (drawerOpen && drawerTool === toolId)
         return (
           <button
             key={toolId}

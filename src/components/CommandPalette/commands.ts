@@ -20,6 +20,7 @@ interface CommandDeps {
   toggleExplorer: VoidCallback
   setDrawerTool: (tool: string) => void
   toggleBrowserTab?: VoidCallback
+  toggleDashboardTab?: VoidCallback
 }
 
 export function buildCommands(deps: CommandDeps): Command[] {
@@ -32,6 +33,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
     toggleExplorer,
     setDrawerTool,
     toggleBrowserTab,
+    toggleDashboardTab,
   } = deps
 
   return [
@@ -153,6 +155,13 @@ export function buildCommands(deps: CommandDeps): Command[] {
       shortcut: 'Ctrl+Shift+B',
       category: 'View',
       action: () => toggleBrowserTab?.(),
+    },
+    {
+      id: 'view:dashboard-tab',
+      label: 'Toggle Dashboard Tab',
+      shortcut: 'Ctrl+Shift+D',
+      category: 'View',
+      action: () => toggleDashboardTab?.(),
     },
     {
       id: 'view:reload-window',

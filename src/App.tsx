@@ -159,6 +159,7 @@ function App() {
         toggleExplorer: () => setShowExplorer((v) => !v),
         setDrawerTool: (tool) => useUIStore.getState().setDrawerTool(tool),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
+        toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
       }),
     [],
   )

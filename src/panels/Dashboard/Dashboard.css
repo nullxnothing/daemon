@@ -106,16 +106,45 @@
   text-align: center;
 }
 
+.dash-mini-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--s3);
+}
+
 .dash-mini-header {
-  padding: 8px 10px 6px;
+  padding: 8px 6px 6px 10px;
   border-bottom: 1px solid var(--s4);
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 .dash-mini-header .dash-select {
-  width: 100%;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-mini-expand-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dash-mini-expand-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
 }
 
 .dash-mini-hint {
