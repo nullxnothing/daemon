@@ -1,11 +1,13 @@
 import { useRef, useCallback } from 'react'
 import { useBrowserStore } from '../../store/browser'
-import { useSplitter } from '../../hooks/useSplitter'
 import { PluginErrorBoundary } from '../../components/ErrorBoundary'
 import { BrowserToolbar } from './BrowserToolbar'
 import { BrowserWebview, BrowserWebviewHandle } from './BrowserWebview'
-import { BrowserAgentTerminal } from './BrowserAgentTerminal'
 import './BrowserMode.css'
+
+// Browser mode now renders ONLY the toolbar + webview.
+// The terminal below (shared xterm.js panel) handles agent interaction.
+// This removes the duplicate BrowserAgentTerminal chat widget.
 
 export function BrowserMode() {
   const webviewRef = useRef<BrowserWebviewHandle>(null)
@@ -17,13 +19,6 @@ export function BrowserMode() {
   const canGoForward = useBrowserStore((s) => s.canGoForward)
   const setUrl = useBrowserStore((s) => s.setUrl)
   const setInspectMode = useBrowserStore((s) => s.setInspectMode)
-
-  const { size: terminalHeight, splitterProps } = useSplitter({
-    direction: 'vertical',
-    min: 100,
-    max: 500,
-    initial: 200,
-  })
 
   const handleNavigate = useCallback(
     (url: string) => {
@@ -70,16 +65,10 @@ export function BrowserMode() {
         canGoForward={canGoForward}
       />
 
-      <div className="browser-webview-area">
+      <div className="browser-webview-area" style={{ flex: 1 }}>
         <PluginErrorBoundary>
           <BrowserWebview ref={webviewRef} />
         </PluginErrorBoundary>
-      </div>
-
-      <div className="browser-splitter" {...splitterProps} />
-
-      <div className="browser-terminal-area" style={{ height: terminalHeight }}>
-        <BrowserAgentTerminal onAgentNavigate={handleNavigate} />
       </div>
     </div>
   )
