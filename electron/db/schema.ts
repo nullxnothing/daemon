@@ -426,6 +426,20 @@ ALTER TABLE agent_sessions_local ADD COLUMN terminal_id TEXT;
 ALTER TABLE agent_sessions_local ADD COLUMN custom_name TEXT;
 `
 
+export const SCHEMA_V20 = `
+CREATE TABLE IF NOT EXISTS vault_files (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  encrypted_data BLOB NOT NULL,
+  file_type TEXT NOT NULL DEFAULT 'other',
+  size_bytes INTEGER NOT NULL DEFAULT 0,
+  owner_wallet TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_vault_files_created ON vault_files(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vault_files_wallet ON vault_files(owner_wallet);
+`
+
 export const SCHEMA_V17 = `
 CREATE TABLE IF NOT EXISTS launched_tokens (
   id TEXT PRIMARY KEY,

@@ -50,7 +50,7 @@ interface WalletTransaction {
   created_at: number
 }
 
-type WalletActiveView = 'overview' | 'send' | 'swap' | 'receive'
+type WalletActiveView = 'overview' | 'send' | 'swap' | 'receive' | 'vault'
 
 interface WalletStoreState {
   dashboard: WalletDashboard | null
