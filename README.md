@@ -19,9 +19,23 @@ DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships
 
 ## Install
 
-**Download** the latest `.exe` or `.dmg` from [Releases](https://github.com/nullxnothing/daemon/releases).
+**Windows:** Download the [latest .exe](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-1.3.0-setup.exe)
 
-Or build from source:
+<a name="mac-install"></a>
+
+**Mac:** Build from source (dmg builds coming soon):
+
+```bash
+git clone https://github.com/nullxnothing/daemon.git
+cd daemon
+pnpm install
+pnpm run build
+pnpm run package
+```
+
+The installer will be in `release/1.3.0/`. Open the `.dmg` and drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet notarized).
+
+**Build from source (any platform):**
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
