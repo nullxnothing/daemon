@@ -202,7 +202,7 @@ declare global {
 
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
-    spawnAgent: (opts: { agentId: string; projectId: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
     kill: (id: string) => Promise<IpcResponse>
@@ -644,6 +644,7 @@ declare global {
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     vault: DaemonVault
+    validator: DaemonValidator
   }
 
   interface VaultFileMeta {
@@ -660,6 +661,15 @@ declare global {
     data: string
     fileType: string
     size: number
+  }
+
+  interface DaemonValidator {
+    start: (type: string) => Promise<IpcResponse<{ terminalId: string; port: number }>>
+    stop: () => Promise<IpcResponse<{ stopped: boolean }>>
+    status: () => Promise<IpcResponse<{ type: string | null; status: string; terminalId: string | null; port: number | null }>>
+    detect: () => Promise<IpcResponse<{ surfpool: boolean; testValidator: boolean }>>
+    detectProject: (projectPath: string) => Promise<IpcResponse<{ isSolanaProject: boolean; framework: string | null; indicators: string[]; suggestedMcps: string[] }>>
+    onStatusChange: (callback: (state: unknown) => void) => () => void
   }
 
   interface DaemonVault {

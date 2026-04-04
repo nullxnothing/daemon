@@ -132,7 +132,7 @@ export const useUIStore = create<UIState>((set) => ({
   drawerTool: null,
   drawerOpen: false,
   drawerFullscreen: false,
-  pinnedTools: ['git', 'browser'],
+  pinnedTools: ['git', 'browser', 'solana-toolbox'],
 
   setActivePanel: (panel) => set({ activePanel: panel, walletQuickViewOpen: false, emailQuickViewOpen: false }),
 

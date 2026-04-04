@@ -189,6 +189,15 @@ export function registerTerminalHandlers() {
       'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
     ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
 
+    // If an initial prompt was provided, write it to the pty after a brief delay
+    // so the Claude CLI has time to initialize
+    if (opts.initialPrompt?.trim()) {
+      const prompt = opts.initialPrompt.trim()
+      setTimeout(() => {
+        try { session.pty.write(`${prompt}\r`) } catch { /* pty may have exited */ }
+      }, 3000)
+    }
+
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
     return response
   }))

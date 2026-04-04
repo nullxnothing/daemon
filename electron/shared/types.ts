@@ -465,6 +465,7 @@ export interface TerminalCreateInput {
 export interface TerminalSpawnAgentInput {
   agentId: string
   projectId: string
+  initialPrompt?: string
 }
 
 export interface TerminalCreateOutput {

@@ -22,6 +22,8 @@ import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
 import { useEmailStore } from './store/email'
+import { useSolanaToolboxStore } from './store/solanaToolbox'
+import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
 import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
@@ -139,6 +141,15 @@ function App() {
     void useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
 
+  // Detect Solana project when active project changes
+  useEffect(() => {
+    if (activeProjectPath) {
+      const store = useSolanaToolboxStore.getState()
+      void store.detectProject(activeProjectPath)
+      void store.loadMcps(activeProjectPath)
+    }
+  }, [activeProjectPath])
+
   // Poll unread email counts every 60 seconds
   useEffect(() => {
     const poll = () => useEmailStore.getState().pollUnreadCounts()
@@ -207,6 +218,7 @@ function App() {
         )}
 
         <div className="center-area" style={{ position: 'relative' }} ref={centerRef}>
+          <SolanaOnboardingBanner />
           {!isEditorCollapsed && (
             <div className="editor-area" data-tour="editor" style={drawerOpen ? { pointerEvents: 'none' } : undefined}>
               {centerMode === 'grind' ? (
