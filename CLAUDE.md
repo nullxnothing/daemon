@@ -38,7 +38,7 @@ Test with electron-test MCP via CDP port 9222. Connect, screenshot, click, evalu
 
 Branches + PRs. CI runs on every push and PR:
 - **typecheck** — `pnpm run typecheck`
-- **test** — `pnpm run test` (93 Vitest tests across 9 suites)
+- **test** — `pnpm run test` (281 Vitest tests across 19 suites)
 - **build** — `pnpm run package` on Windows + macOS
 
 Releases: tag `v*` triggers release workflow that builds and uploads .exe/.dmg to GitHub Releases.
@@ -126,9 +126,9 @@ Each accent has `-dim` and `-glow` variants. See `styles/tokens.css` for full li
 
 ## Current State
 
-**Last updated:** 2026-03-31
+**Last updated:** 2026-04-03
 
-**Complete:** Phases 1-8 (Shell, Agent Launcher, Claude Panel, Process Manager, Env Manager, Ports, Git, Wallet), Settings Panel, Tools Panel, production infrastructure (10 services), 93 tests across 9 suites passing.
+**Complete:** Phases 1-8 (Shell, Agent Launcher, Claude Panel, Process Manager, Env Manager, Ports, Git, Wallet), Settings Panel, Tools Panel, production infrastructure (10 services), Browser + Playwright CDP, Colosseum Hackathon integration, on-chain Session Registry (Anchor program deployed to devnet), 281 tests across 19 suites passing.
 
 **Remaining:**
 - Phase 9: Image Generator (Gemini imagen-4)
@@ -136,7 +136,6 @@ Each accent has `-dim` and `-glow` variants. See `styles/tokens.css` for full li
 - Phase 11: Tweet Generator
 - Phase 12: Subscription Manager
 - Phase 13: Remotion Panel
-- Phase 14: Browser + Playwright CDP
 - Phase 15: Context Bridge Extension
 - Future: Overnight Engine, Dispatch, ARIA, Services Panel
 

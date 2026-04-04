@@ -34,6 +34,7 @@ yarn.lock
 *.key
 *.p12
 credentials.json
+keypair.json
 
 # SQLite
 *.db
