@@ -219,14 +219,14 @@ function App() {
             </div>
           )}
           {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
-          {centerMode === 'canvas' && showTerminal && (
+          {centerMode === 'canvas' && (
             <div
               className="terminal-area"
               data-tour="terminal"
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
                 flex: isEditorCollapsed ? 1 : undefined,
-                display: drawerOpen ? 'none' : undefined,
+                display: (!showTerminal || drawerOpen) ? 'none' : undefined,
               }}
             >
               <TerminalPanel />

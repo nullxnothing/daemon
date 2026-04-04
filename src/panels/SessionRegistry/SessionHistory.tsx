@@ -43,6 +43,7 @@ function modelClass(model: string | null): string {
 
 interface SessionRowProps {
   session: LocalAgentSession
+  terminalAlive: boolean
   onPublish: (id: string) => void
   onRename: (id: string, name: string) => void
   onResume: (session: LocalAgentSession) => void
@@ -50,7 +51,7 @@ interface SessionRowProps {
   isPublishing: boolean
 }
 
-function SessionRow({ session, onPublish, onRename, onResume, onRelaunch, isPublishing }: SessionRowProps) {
+function SessionRow({ session, terminalAlive, onPublish, onRename, onResume, onRelaunch, isPublishing }: SessionRowProps) {
   const isActive = session.status === 'active'
   const isPublished = !!session.published_signature
   const displayName = session.custom_name ?? session.agent_name ?? 'Unknown Agent'
@@ -84,7 +85,11 @@ function SessionRow({ session, onPublish, onRename, onResume, onRelaunch, isPubl
     if (e.key === 'Escape') setIsEditing(false)
   }
 
-  const canResume = isActive && !!session.terminal_id
+  // terminal_id null = pre-V19 session, never had a tracked terminal
+  // terminal_id set but terminalAlive=false = terminal was closed
+  const hasTerminalId = !!session.terminal_id
+  const canResume = isActive && hasTerminalId && terminalAlive
+  const terminalClosed = isActive && hasTerminalId && !terminalAlive
   const canRelaunch = !isActive && !!session.agent_id
 
   return (
@@ -131,6 +136,11 @@ function SessionRow({ session, onPublish, onRename, onResume, onRelaunch, isPubl
             Resume
           </button>
         )}
+        {terminalClosed && (
+          <span className="sr-terminal-closed" title="Terminal was closed">
+            Terminal closed
+          </span>
+        )}
         {canRelaunch && (
           <button
             className="sr-action-btn sr-action-btn--relaunch"
@@ -162,7 +172,7 @@ export function SessionHistory() {
   const [publishAllBusy, setPublishAllBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { terminals, activeProjectId, setActiveTerminal, activeTerminalIdByProject } = useUIStore()
+  const { terminals, activeProjectId, setActiveTerminal, activeTerminalIdByProject, setCenterMode, centerMode } = useUIStore()
 
   const load = useCallback(() => {
     window.daemon.registry.listSessions(30).then((res) => {
@@ -238,8 +248,9 @@ export function SessionHistory() {
 
     const projectId = terminal.projectId
     setActiveTerminal(projectId, session.terminal_id)
+    if (centerMode !== 'canvas') setCenterMode('canvas')
     window.daemon.terminal.write(session.terminal_id, '/resume\n')
-  }, [terminals, setActiveTerminal])
+  }, [terminals, setActiveTerminal, centerMode, setCenterMode])
 
   const handleRelaunch = useCallback(async (session: LocalAgentSession) => {
     if (!session.agent_id) return
@@ -248,7 +259,12 @@ export function SessionHistory() {
 
     setError(null)
     try {
-      await window.daemon.terminal.spawnAgent({ agentId: session.agent_id, projectId })
+      const res = await window.daemon.terminal.spawnAgent({ agentId: session.agent_id, projectId })
+      if (res.ok && res.data) {
+        const { id, agentName } = res.data
+        useUIStore.getState().addTerminal(projectId, id, agentName ?? 'Agent', session.agent_id)
+        useUIStore.getState().setCenterMode('canvas')
+      }
       load()
     } catch (err) {
       setError(String(err))
@@ -301,6 +317,7 @@ export function SessionHistory() {
             <SessionRow
               key={s.id}
               session={s}
+              terminalAlive={!!s.terminal_id && terminals.some((t) => t.id === s.terminal_id)}
               onPublish={handlePublish}
               onRename={handleRename}
               onResume={handleResume}
