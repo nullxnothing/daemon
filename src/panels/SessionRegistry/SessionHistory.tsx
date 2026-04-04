@@ -247,10 +247,16 @@ export function SessionHistory() {
     if (!terminal) return
 
     const projectId = terminal.projectId
+
+    // Switch to canvas, show terminal, activate the right tab
+    setCenterMode('canvas')
     setActiveTerminal(projectId, session.terminal_id)
-    if (centerMode !== 'canvas') setCenterMode('canvas')
-    window.daemon.terminal.write(session.terminal_id, '/resume\n')
-  }, [terminals, setActiveTerminal, centerMode, setCenterMode])
+
+    // Small delay so the terminal is visible before writing
+    setTimeout(() => {
+      window.daemon.terminal.write(session.terminal_id!, '/resume\n')
+    }, 200)
+  }, [terminals, setActiveTerminal, setCenterMode])
 
   const handleRelaunch = useCallback(async (session: LocalAgentSession) => {
     if (!session.agent_id) return

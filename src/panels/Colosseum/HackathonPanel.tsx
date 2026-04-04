@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useBrowserStore } from '../../store/browser'
 import './HackathonPanel.css'
 
 const DEADLINE_KEY = 'daemon:hackathon-deadline'
@@ -142,16 +143,21 @@ export function HackathonPanel() {
     })
   }, [])
 
-  const handleResearchAgent = useCallback(() => {
-    // Spawn the colosseum-research agent
+  const handleResearchAgent = useCallback(async () => {
     const projectId = useUIStore.getState().activeProjectId
-    if (projectId) {
-      window.daemon.terminal.spawnAgent({ agentId: 'colosseum-research', projectId })
-    }
+    if (!projectId) return
+    try {
+      const res = await window.daemon.terminal.spawnAgent({ agentId: 'colosseum-research', projectId })
+      if (res.ok && res.data) {
+        useUIStore.getState().addTerminal(projectId, res.data.id, res.data.agentName ?? 'Colosseum Research', res.data.agentId)
+        useUIStore.getState().setCenterMode('canvas')
+      }
+    } catch {}
   }, [])
 
   const handleOpenArena = useCallback(() => {
-    window.daemon.shell.openExternal('https://arena.colosseum.org')
+    useBrowserStore.getState().setUrl('https://arena.colosseum.org/hackathon')
+    useUIStore.getState().openBrowserTab()
   }, [])
 
   if (isConfigured === null) {
@@ -193,7 +199,10 @@ export function HackathonPanel() {
 
           <span
             className="hackathon-link"
-            onClick={() => window.daemon.shell.openExternal('https://arena.colosseum.org/copilot')}
+            onClick={() => {
+              useBrowserStore.getState().setUrl('https://arena.colosseum.org/copilot')
+              useUIStore.getState().openBrowserTab()
+            }}
           >
             Get a token at arena.colosseum.org/copilot
           </span>
