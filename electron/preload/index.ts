@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('daemon', {
 
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
-    spawnAgent: (opts: { agentId: string; projectId: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
+    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
@@ -381,6 +381,19 @@ contextBridge.exposeInMainWorld('daemon', {
     delete: (id: string) => ipcRenderer.invoke('vault:delete', id),
     setOwner: (id: string, ownerWallet: string | null) => ipcRenderer.invoke('vault:set-owner', id, ownerWallet),
     importFile: () => ipcRenderer.invoke('vault:import-file'),
+  },
+
+  validator: {
+    start: (type: string) => ipcRenderer.invoke('validator:start', type),
+    stop: () => ipcRenderer.invoke('validator:stop'),
+    status: () => ipcRenderer.invoke('validator:status'),
+    detect: () => ipcRenderer.invoke('validator:detect'),
+    detectProject: (projectPath: string) => ipcRenderer.invoke('validator:detect-project', projectPath),
+    onStatusChange: (callback: (state: unknown) => void) => {
+      const handler = (_event: unknown, state: unknown) => callback(state)
+      ipcRenderer.on('validator:status-change', handler)
+      return () => { ipcRenderer.off('validator:status-change', handler) }
+    },
   },
 })
 

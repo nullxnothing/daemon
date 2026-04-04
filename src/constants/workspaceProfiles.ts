@@ -10,7 +10,7 @@ const WEB_TOOLS = [
 ]
 
 const SOLANA_TOOLS = [
-  ...WEB_TOOLS, 'wallet', 'images', 'xreplies', 'pumpfun',
+  ...WEB_TOOLS, 'wallet', 'images', 'solana-toolbox', 'xreplies', 'pumpfun',
 ]
 
 export const PROFILE_PRESETS: Record<WorkspaceProfileName, string[]> = {

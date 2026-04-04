@@ -53,13 +53,16 @@ function PaintIcon({ size = 18 }: { size?: number }) {
 function BrowserIcon({ size = 18 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
 }
+function SolanaIcon({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 17.5h13.5l2.5-3H6.5L4 17.5z"/><path d="M4 6.5h13.5l2.5 3H6.5L4 6.5z"/><path d="M20 12H6.5L4 15h13.5l2.5-3z"/></svg>
+}
 
 // Icon lookup for pinned sidebar tools
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon, tools: ToolsIcon,
   wallet: WalletIcon, images: ImageIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
-  'image-editor': PaintIcon,
+  'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon,
 }
 
 // Tool name lookup
@@ -67,7 +70,7 @@ export const TOOL_NAMES: Record<string, string> = {
   git: 'Git', deploy: 'Deploy', env: 'Env', tools: 'Tools',
   wallet: 'Wallet', images: 'Images', email: 'Email', browser: 'Browser',
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
-  'image-editor': 'Image Editor',
+  'image-editor': 'Image Editor', 'solana-toolbox': 'Solana',
 }
 
 // Lazy-load all tool components
@@ -83,6 +86,7 @@ const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessMan
 const ToolBrowser = lazy(() => import('../../panels/Tools/ToolBrowser').then(m => ({ default: m.ToolBrowser })))
 const BrowserMode = lazy(() => import('../../panels/BrowserMode/BrowserMode').then(m => ({ default: m.BrowserMode })))
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
+const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
 // Note: 'browser' is intentionally excluded — it opens as a pinned editor tab (Ctrl+Shift+B), not a drawer panel
@@ -98,6 +102,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, category: 'system' },
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, category: 'system' },
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, category: 'create' },
+  { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, category: 'crypto' },
 ]
 
 function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {

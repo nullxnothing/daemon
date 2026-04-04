@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
+import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { formatCompactUsd } from '../../utils/format'
 import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
 import styles from './StatusBar.module.css'
@@ -28,6 +29,7 @@ export const StatusBar = memo(function StatusBar() {
           <GitBranch />
           {typeof HackathonCountdown !== 'undefined' && <HackathonCountdown />}
           <TerminalCount />
+          <ValidatorStatus />
         </div>
       </div>
       <div className={styles.center}>
@@ -71,6 +73,28 @@ function TerminalCount() {
       title="Toggle terminal"
     >
       {count} terminal{count !== 1 ? 's' : ''}
+    </span>
+  )
+}
+
+function ValidatorStatus() {
+  const validator = useSolanaToolboxStore((s) => s.validator)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+
+  if (validator.status === 'stopped') return null
+
+  const color = validator.status === 'running' ? 'var(--green)' : validator.status === 'starting' ? 'var(--amber)' : 'var(--red)'
+  const label = validator.type === 'surfpool' ? 'Surfpool' : 'Validator'
+  const port = validator.port ? ` :${validator.port}` : ''
+
+  return (
+    <span
+      className={`${styles.item} ${styles.clickable}`}
+      onClick={() => setDrawerTool('solana-toolbox')}
+      title="Open Solana Toolbox"
+    >
+      <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: color, marginRight: 4 }} />
+      {label}{port}
     </span>
   )
 }
