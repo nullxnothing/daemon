@@ -182,6 +182,12 @@ contextBridge.exposeInMainWorld('daemon', {
     clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
     getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
+    solanaSkillEnabled: (projectId: string) => ipcRenderer.invoke('settings:solana-skill-enabled', projectId),
+    solanaSkillToggle: (projectId: string, enabled: boolean) => ipcRenderer.invoke('settings:solana-skill-toggle', projectId, enabled),
+    solanaSkillAutoUpdate: () => ipcRenderer.invoke('settings:solana-skill-auto-update'),
+    solanaSkillSetAutoUpdate: (enabled: boolean) => ipcRenderer.invoke('settings:solana-skill-set-auto-update', enabled),
+    solanaSkillUpdate: () => ipcRenderer.invoke('settings:solana-skill-update'),
+    solanaSkillLastUpdate: () => ipcRenderer.invoke('settings:solana-skill-last-update'),
     onCrashWarning: (callback: (count: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)

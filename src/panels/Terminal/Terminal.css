@@ -104,6 +104,19 @@
   background: var(--amber);
 }
 
+.terminal-tab-solana-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.1);
+  border: 1px solid rgba(62, 207, 142, 0.2);
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 16px;
+  flex-shrink: 0;
+}
+
 .terminal-tab-close {
   font-size: 14px;
   color: var(--t3);

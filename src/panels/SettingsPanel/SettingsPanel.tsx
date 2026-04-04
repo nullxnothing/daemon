@@ -143,6 +143,8 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [savingKey, setSavingKey] = useState(false)
   const [showApiInput, setShowApiInput] = useState(false)
+  const [solanaSkillEnabled, setSolanaSkillEnabled] = useState(true)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
 
   const load = useCallback((cancelled = false) => {
     if (projectPath) {
@@ -150,10 +152,15 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
         if (!cancelled && res.ok && res.data) setMcps(res.data)
       })
     }
+    if (activeProjectId) {
+      window.daemon.settings.solanaSkillEnabled(activeProjectId).then((res) => {
+        if (!cancelled && res.ok && res.data !== undefined) setSolanaSkillEnabled(res.data)
+      })
+    }
     window.daemon.claude.verifyConnection().then((res) => {
       if (!cancelled && res.ok && res.data) setConnection(res.data)
     })
-  }, [projectPath])
+  }, [projectPath, activeProjectId])
 
   useEffect(() => {
     let cancelled = false
@@ -274,6 +281,26 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
           <Toggle checked={mcp.enabled} onChange={(v) => toggleMcp(mcp.name, v)} />
         </div>
       ))}
+
+      <div className="settings-divider" />
+
+      {/* Solana Dev Skill */}
+      <div className="settings-section-label">Solana Dev Skill</div>
+      <div className="settings-section-desc">
+        Injects Solana development knowledge (Anchor, testing, security, payments) into agent system prompts.
+      </div>
+      {!activeProjectId && <div className="settings-empty">Select a project to toggle the Solana Dev Skill</div>}
+      {activeProjectId && (
+        <div className="settings-integration-row">
+          <div className={`settings-integration-dot ${solanaSkillEnabled ? 'green' : ''}`} />
+          <span className="settings-integration-name">Solana Dev Skill</span>
+          <span className="settings-integration-source">per-project</span>
+          <Toggle checked={solanaSkillEnabled} onChange={async (v) => {
+            setSolanaSkillEnabled(v)
+            await window.daemon.settings.solanaSkillToggle(activeProjectId, v)
+          }} />
+        </div>
+      )}
     </div>
   )
 }
@@ -448,6 +475,9 @@ const PROFILE_OPTIONS: { name: WorkspaceProfileName; label: string }[] = [
 function DisplaySection() {
   const [showMarketTape, setShowMarketTape] = useState(true)
   const [showTitlebarWallet, setShowTitlebarWallet] = useState(true)
+  const [solanaAutoUpdate, setSolanaAutoUpdate] = useState(false)
+  const [skillUpdating, setSkillUpdating] = useState(false)
+  const [skillUpdateResult, setSkillUpdateResult] = useState<string | null>(null)
 
   const profileName = useWorkspaceProfileStore((s) => s.profileName)
   const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
@@ -461,6 +491,9 @@ function DisplaySection() {
         setShowMarketTape(res.data.showMarketTape)
         setShowTitlebarWallet(res.data.showTitlebarWallet)
       }
+    })
+    window.daemon.settings.solanaSkillAutoUpdate().then((res) => {
+      if (!cancelled && res.ok && res.data !== undefined) setSolanaAutoUpdate(res.data)
     })
     return () => { cancelled = true }
   }, [])
@@ -491,6 +524,35 @@ function DisplaySection() {
         <span className="settings-display-label">Titlebar wallet balance</span>
         <span className="settings-display-hint">Show portfolio value in the titlebar</span>
         <Toggle checked={showTitlebarWallet} onChange={handleToggleTitlebarWallet} />
+      </div>
+
+      <div className="settings-divider" />
+
+      <div className="settings-section-label">Solana Dev Skill</div>
+      <div className="settings-display-row">
+        <span className="settings-display-label">Auto-update skill files</span>
+        <span className="settings-display-hint">Fetch latest Solana dev references from GitHub on launch</span>
+        <Toggle checked={solanaAutoUpdate} onChange={async (v) => {
+          setSolanaAutoUpdate(v)
+          await window.daemon.settings.solanaSkillSetAutoUpdate(v)
+        }} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button className="settings-btn" onClick={async () => {
+          setSkillUpdating(true)
+          setSkillUpdateResult(null)
+          const res = await window.daemon.settings.solanaSkillUpdate()
+          setSkillUpdating(false)
+          if (res.ok && res.data) {
+            const { updated, errors } = res.data as { updated: number; errors: string[] }
+            setSkillUpdateResult(errors.length > 0 ? `Updated ${updated} files, ${errors.length} errors` : `Updated ${updated} files`)
+          } else {
+            setSkillUpdateResult('Update failed')
+          }
+        }} disabled={skillUpdating}>
+          {skillUpdating ? 'Updating...' : 'Update Now'}
+        </button>
+        {skillUpdateResult && <span style={{ fontSize: 11, color: 'var(--t2)', alignSelf: 'center' }}>{skillUpdateResult}</span>}
       </div>
 
       <div className="settings-divider" />

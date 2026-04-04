@@ -21,6 +21,7 @@ interface TerminalTabsProps {
   centerMode: CenterMode
   splitLayout: SplitLayout
   launchRecents: TerminalLaunchRecent[]
+  solanaSkillEnabled: boolean
   onSelectTerminal: (id: string) => void
   onCloseTerminal: (id: string) => void
   onToggleGrindMode: () => void
@@ -40,6 +41,7 @@ export function TerminalTabs({
   centerMode,
   splitLayout,
   launchRecents,
+  solanaSkillEnabled,
   onSelectTerminal,
   onCloseTerminal,
   onToggleGrindMode,
@@ -61,6 +63,7 @@ export function TerminalTabs({
         >
           <span className={`terminal-tab-dot ${tab.agentId ? 'agent' : ''}`} />
           <span>{tab.label}</span>
+          {tab.agentId && solanaSkillEnabled && <span className="terminal-tab-solana-badge">Solana</span>}
           <span
             className="terminal-tab-close"
             onClick={(e) => { e.stopPropagation(); onCloseTerminal(tab.id) }}

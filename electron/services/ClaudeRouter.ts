@@ -8,6 +8,7 @@ import { TIMEOUTS } from '../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from './McpConfig'
 import { getRegisteredPorts } from './PortService'
 import { getEmailAccountSummary, EMAIL_TOOL_NAMES } from './email/EmailTools'
+import * as SolanaSkill from './SolanaSkillService'
 import type { ClaudeConnection } from '../shared/types'
 
 // --- In-memory cache ---
@@ -310,7 +311,7 @@ async function runPromptViaCli(
 
 // --- Interactive Terminal Command Builder ---
 
-export async function buildCommand(agent: AgentRow, project: ProjectRow): Promise<{
+export async function buildCommand(agent: AgentRow, project: ProjectRow, opts?: { projectId?: string; solanaSkillEnabled?: boolean }): Promise<{
   command: string
   args: string[]
   contextFilePath: string
@@ -319,6 +320,18 @@ export async function buildCommand(agent: AgentRow, project: ProjectRow): Promis
   const systemPrompt = stripContextTags(agent.system_prompt)
 
   const sections: string[] = [systemPrompt, '']
+
+  // Solana Dev Skill injection — prepend skill content when enabled
+  const solanaEnabled = opts?.solanaSkillEnabled ?? (opts?.projectId ? SolanaSkill.isEnabled(opts.projectId) : false)
+  if (solanaEnabled) {
+    const skillContent = SolanaSkill.readSkillContent()
+    if (skillContent) {
+      sections.push('<solana-dev-skill>')
+      sections.push(skillContent)
+      sections.push('</solana-dev-skill>')
+      sections.push('')
+    }
+  }
 
   // Always inject: project name, path, tech stack
   sections.push('<daemon-context>')
