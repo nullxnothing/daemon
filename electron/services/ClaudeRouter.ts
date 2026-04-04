@@ -347,6 +347,31 @@ export async function buildCommand(agent: AgentRow, project: ProjectRow): Promis
     sections.push(`</email-context>`)
   }
 
+  // MPP (Machine Payments Protocol) context for solana agents
+  if (tags.has('solana')) {
+    sections.push('<mpp-context>')
+    sections.push('Machine Payments Protocol (MPP) by Stripe × Tempo enables autonomous agent-to-agent payments on Solana.')
+    sections.push('Package: @solana/mpp — use @solana/mpp/client for paying agents, @solana/mpp/server for receiving.')
+    sections.push('Key concepts: MppClient.pay(recipient, amount, memo) sends USDC via Solana. Agents can autonomously pay for services.')
+    sections.push('Docs: https://docs.solana.com/mpp')
+    sections.push('</mpp-context>')
+  }
+
+  // PayAI x402 skill: inject for agents tagged with "solana" or "x402"
+  if (tags.has('solana') || tags.has('x402')) {
+    const skillPath = path.join(__dirname, '..', 'skills', 'payai-x402', 'SKILL.md')
+    try {
+      if (fs.existsSync(skillPath)) {
+        const skillContent = fs.readFileSync(skillPath, 'utf8')
+        sections.push('<payai-x402-skill>')
+        sections.push(skillContent)
+        sections.push('</payai-x402-skill>')
+      }
+    } catch {
+      // skill file missing — non-fatal
+    }
+  }
+
   sections.push('</daemon-context>')
 
   const contextContent = sections.filter(Boolean).join('\n')

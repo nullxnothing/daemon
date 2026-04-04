@@ -123,6 +123,13 @@ export function TerminalLauncher({
           >
             Solana Agent
           </button>
+          <button
+            className="terminal-launcher-item"
+            onClick={() => handleCommand('surfpool', 'Surfpool')}
+            disabled={!activeProjectId}
+          >
+            Surfpool
+          </button>
 
           <div className="terminal-launcher-divider" />
           <div className="terminal-launcher-section">Recent Agents</div>
