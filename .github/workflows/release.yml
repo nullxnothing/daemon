@@ -130,9 +130,52 @@ jobs:
             release/checksums-macos.txt
           retention-days: 1
 
+  release-linux:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Cache electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-cache-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Package
+        run: pnpm run package
+      - name: Generate checksums
+        run: |
+          cd release
+          find . -name "*.AppImage" -o -name "*.deb" | while read f; do
+            shasum -a 256 "$f" >> checksums-linux.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: |
+            release/**/*.AppImage
+            release/**/*.deb
+            release/checksums-linux.txt
+          retention-days: 1
+
   publish:
     runs-on: ubuntu-latest
-    needs: [release-windows, release-macos]
+    needs: [release-windows, release-macos, release-linux]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
@@ -146,6 +189,10 @@ jobs:
         with:
           name: macos-release
           path: artifacts/macos
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: artifacts/linux
       - name: Generate changelog
         id: changelog
         run: |
@@ -159,7 +206,42 @@ jobs:
           echo '```' >> changelog.md
           cat artifacts/windows/checksums-windows.txt 2>/dev/null >> changelog.md || true
           cat artifacts/macos/checksums-macos.txt 2>/dev/null >> changelog.md || true
+          cat artifacts/linux/checksums-linux.txt 2>/dev/null >> changelog.md || true
           echo '```' >> changelog.md
+      - name: Upload to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+        run: |
+          sudo apt-get install -y awscli
+
+          R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          # Upload Windows .exe
+          find artifacts/windows -name "*.exe" | while read f; do
+            aws s3 cp "$f" "s3://${R2_BUCKET}/$(basename "$f")" \
+              --endpoint-url "$R2_ENDPOINT"
+          done
+
+          # Upload macOS .dmg
+          find artifacts/macos -name "*.dmg" | while read f; do
+            aws s3 cp "$f" "s3://${R2_BUCKET}/$(basename "$f")" \
+              --endpoint-url "$R2_ENDPOINT"
+          done
+
+          # Upload Linux .AppImage and .deb
+          find artifacts/linux -name "*.AppImage" -o -name "*.deb" | while read f; do
+            aws s3 cp "$f" "s3://${R2_BUCKET}/$(basename "$f")" \
+              --endpoint-url "$R2_ENDPOINT"
+          done
+
+          # Upload checksums
+          find artifacts -name "checksums-*.txt" | while read f; do
+            aws s3 cp "$f" "s3://${R2_BUCKET}/$(basename "$f")" \
+              --endpoint-url "$R2_ENDPOINT"
+          done
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -170,5 +252,8 @@ jobs:
             artifacts/windows/**/*.exe
             artifacts/macos/**/*.dmg
             artifacts/macos/**/*.zip
+            artifacts/linux/**/*.AppImage
+            artifacts/linux/**/*.deb
             artifacts/windows/checksums-windows.txt
             artifacts/macos/checksums-macos.txt
+            artifacts/linux/checksums-linux.txt
