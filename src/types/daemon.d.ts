@@ -643,6 +643,33 @@ declare global {
     dashboard: DaemonDashboard
     registry: DaemonRegistry
     colosseum: DaemonColosseum
+    vault: DaemonVault
+  }
+
+  interface VaultFileMeta {
+    id: string
+    name: string
+    file_type: string
+    size_bytes: number
+    owner_wallet: string | null
+    created_at: number
+  }
+
+  interface VaultFileImport {
+    name: string
+    data: string
+    fileType: string
+    size: number
+  }
+
+  interface DaemonVault {
+    list: () => Promise<IpcResponse<VaultFileMeta[]>>
+    get: (id: string) => Promise<IpcResponse<VaultFileMeta | null>>
+    store: (opts: { name: string; data: string; fileType: string; ownerWallet?: string }) => Promise<IpcResponse<VaultFileMeta>>
+    retrieve: (id: string) => Promise<IpcResponse<{ name: string; data: string; file_type: string }>>
+    delete: (id: string) => Promise<IpcResponse>
+    setOwner: (id: string, ownerWallet: string | null) => Promise<IpcResponse>
+    importFile: () => Promise<IpcResponse<VaultFileImport | null>>
   }
 
   interface DetectedToken {

@@ -372,6 +372,16 @@ contextBridge.exposeInMainWorld('daemon', {
     openFolder: (id: string) => ipcRenderer.invoke('tools:openFolder', id),
     import: () => ipcRenderer.invoke('tools:import'),
   },
+
+  vault: {
+    list: () => ipcRenderer.invoke('vault:list'),
+    get: (id: string) => ipcRenderer.invoke('vault:get', id),
+    store: (opts: { name: string; data: string; fileType: string; ownerWallet?: string }) => ipcRenderer.invoke('vault:store', opts),
+    retrieve: (id: string) => ipcRenderer.invoke('vault:retrieve', id),
+    delete: (id: string) => ipcRenderer.invoke('vault:delete', id),
+    setOwner: (id: string, ownerWallet: string | null) => ipcRenderer.invoke('vault:set-owner', id, ownerWallet),
+    importFile: () => ipcRenderer.invoke('vault:import-file'),
+  },
 })
 
 // Loading screen

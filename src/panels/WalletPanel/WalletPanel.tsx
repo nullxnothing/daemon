@@ -8,6 +8,7 @@ import { AgentWalletSection } from './AgentWalletSection'
 import { TransactionHistory } from './TransactionHistory'
 import { WalletReceiveView } from './WalletReceiveView'
 import { WalletSwapForm } from './WalletSwapForm'
+import { VaultSection } from './VaultSection'
 import './WalletPanel.css'
 
 export function WalletPanel() {
@@ -335,7 +336,18 @@ export function WalletPanel() {
   const activeWalletMeta = dashboard.wallets.find((w) => w.id === activeWallet?.id)
   const hasKeypair = activeWalletMeta ? keypairCache[activeWalletMeta.id] === true : false
 
-  // Render sub-views (send, swap, receive) when activeView is set
+  // Render sub-views (send, swap, receive, vault) when activeView is set
+  if (activeView === 'vault') {
+    return (
+      <div className="wallet-panel">
+        <div className="panel-header wallet-panel-header">
+          <span>Wallet</span>
+        </div>
+        <VaultSection onBack={() => setActiveView('overview')} />
+      </div>
+    )
+  }
+
   if (activeView === 'receive' && activeWallet) {
     return (
       <div className="wallet-panel">
@@ -433,6 +445,16 @@ export function WalletPanel() {
                 <polyline points="19 12 12 19 5 12" />
               </svg>
               Receive
+            </button>
+            <button
+              className="wallet-action-btn"
+              onClick={() => setActiveView('vault')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Vault
             </button>
           </div>
         )}

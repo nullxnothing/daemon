@@ -31,6 +31,7 @@ import { registerLaunchHandlers } from '../ipc/launch'
 import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerRegistryHandlers } from '../ipc/registry'
 import { registerColosseumHandlers } from '../ipc/colosseum'
+import { registerVaultHandlers } from '../ipc/vault'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
@@ -127,6 +128,7 @@ function registerAllIpc() {
   registerDashboardHandlers()
   registerRegistryHandlers()
   registerColosseumHandlers()
+  registerVaultHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
