@@ -19,7 +19,9 @@ DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships
 
 ## Install
 
-**Windows:** Download the [latest .exe](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-1.3.0-setup.exe)
+**Windows:** Download the [latest .exe](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-1.4.0-setup.exe)
+
+**Linux:** Download the [latest .AppImage](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-1.4.0.AppImage) or [.deb](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-1.4.0.deb)
 
 <a name="mac-install"></a>
 
@@ -33,7 +35,7 @@ pnpm run build
 pnpm run package
 ```
 
-The installer will be in `release/1.3.0/`. Open the `.dmg` and drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet notarized).
+The installer will be in `release/1.4.0/`. Open the `.dmg` and drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet notarized).
 
 **Build from source (any platform):**
 
