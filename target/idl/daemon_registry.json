@@ -1,0 +1,625 @@
+{
+  "address": "GrQd4eRnR38pVipbXwCn9cf5oBRoxxvjQATDCgL1844",
+  "metadata": {
+    "name": "daemon_registry",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "On-chain registry for AI agent development sessions"
+  },
+  "instructions": [
+    {
+      "name": "close_session",
+      "discriminator": [
+        68,
+        114,
+        178,
+        140,
+        222,
+        38,
+        248,
+        211
+      ],
+      "accounts": [
+        {
+          "name": "session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "session.session_id",
+                "account": "AgentSession"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "session"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "end_session",
+      "discriminator": [
+        11,
+        244,
+        61,
+        154,
+        212,
+        249,
+        15,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "session.session_id",
+                "account": "AgentSession"
+              }
+            ]
+          }
+        },
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "session",
+            "profile"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "tools_merkle_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "lines_generated",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "initialize_profile",
+      "discriminator": [
+        32,
+        145,
+        77,
+        213,
+        58,
+        39,
+        251,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_project",
+      "discriminator": [
+        130,
+        150,
+        121,
+        216,
+        183,
+        225,
+        243,
+        192
+      ],
+      "accounts": [
+        {
+          "name": "project",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "project_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "profile"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "project_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "duration_secs",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "start_session",
+      "discriminator": [
+        23,
+        227,
+        111,
+        142,
+        212,
+        230,
+        3,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "session",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "session_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "profile"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "session_id",
+          "type": "u64"
+        },
+        {
+          "name": "project_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "agent_count",
+          "type": "u8"
+        },
+        {
+          "name": "models_used",
+          "type": {
+            "array": [
+              "u8",
+              4
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AgentSession",
+      "discriminator": [
+        25,
+        98,
+        70,
+        4,
+        139,
+        110,
+        56,
+        102
+      ]
+    },
+    {
+      "name": "DeveloperProfile",
+      "discriminator": [
+        124,
+        166,
+        166,
+        245,
+        18,
+        106,
+        19,
+        219
+      ]
+    },
+    {
+      "name": "ProjectRecord",
+      "discriminator": [
+        93,
+        174,
+        112,
+        203,
+        231,
+        123,
+        92,
+        56
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "SessionAlreadyActive",
+      "msg": "Session is already active"
+    },
+    {
+      "code": 6001,
+      "name": "SessionNotActive",
+      "msg": "Session is not active"
+    },
+    {
+      "code": 6002,
+      "name": "Unauthorized",
+      "msg": "Unauthorized: signer does not match authority"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidProjectHash",
+      "msg": "Invalid project hash: must be 32 bytes"
+    },
+    {
+      "code": 6004,
+      "name": "ProfileAlreadyExists",
+      "msg": "Developer profile already exists"
+    },
+    {
+      "code": 6005,
+      "name": "SessionNotCompleted",
+      "msg": "Session must be completed before closing"
+    },
+    {
+      "code": 6006,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "AgentSession",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "session_id",
+            "type": "u64"
+          },
+          {
+            "name": "project_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "agent_count",
+            "type": "u8"
+          },
+          {
+            "name": "models_used",
+            "type": {
+              "array": [
+                "u8",
+                4
+              ]
+            }
+          },
+          {
+            "name": "tools_merkle_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "lines_generated",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DeveloperProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_sessions",
+            "type": "u64"
+          },
+          {
+            "name": "total_duration_secs",
+            "type": "u64"
+          },
+          {
+            "name": "total_agents_spawned",
+            "type": "u64"
+          },
+          {
+            "name": "projects_count",
+            "type": "u16"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProjectRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "project_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "session_count",
+            "type": "u32"
+          },
+          {
+            "name": "total_duration_secs",
+            "type": "u64"
+          },
+          {
+            "name": "last_session_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

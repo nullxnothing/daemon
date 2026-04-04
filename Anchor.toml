@@ -3,7 +3,7 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-daemon_registry = "1ShZWX3vGJqPsMXd3Zgvw7Q9xiix2WPoFGv4YYsx3FG"
+daemon_registry = "GrQd4eRnR38pVipbXwCn9cf5oBRoxxvjQATDCgL1844"
 
 [registry]
 url = "https://api.apr.dev"

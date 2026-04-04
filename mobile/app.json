@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "DAEMON Mobile",
+    "slug": "daemon-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "daemon",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "backgroundColor": "#0a0a0a",
+    "ios": {
+      "bundleIdentifier": "com.daemon.mobile",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.daemon.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0a"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
+  }
+}

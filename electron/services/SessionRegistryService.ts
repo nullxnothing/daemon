@@ -3,7 +3,7 @@ import { PublicKey, Transaction, TransactionInstruction, SystemProgram, sendAndC
 import type { Keypair } from '@solana/web3.js'
 import { getConnection } from './SolanaService'
 
-const PROGRAM_ID = new PublicKey('1ShZWX3vGJqPsMXd3Zgvw7Q9xiix2WPoFGv4YYsx3FG')
+const PROGRAM_ID = new PublicKey('GrQd4eRnR38pVipbXwCn9cf5oBRoxxvjQATDCgL1844')
 
 // Anchor discriminators — sha256("global:<instruction_name>")[0..8]
 function buildDiscriminator(name: string): Buffer {

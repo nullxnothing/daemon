@@ -1,0 +1,26 @@
+{
+  "name": "@daemon/solana-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@daemon/shared": "workspace:*",
+    "@solana/web3.js": "^1.98.4",
+    "@solana/spl-token": "^0.4.9",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.2"
+  }
+}

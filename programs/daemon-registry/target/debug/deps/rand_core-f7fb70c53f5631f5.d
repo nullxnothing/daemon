@@ -1,0 +1,11 @@
+/mnt/c/Users/offic/Projects/DAEMON/programs/daemon-registry/target/debug/deps/rand_core-f7fb70c53f5631f5.d: /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/lib.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/block.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/error.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/impls.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/le.rs
+
+/mnt/c/Users/offic/Projects/DAEMON/programs/daemon-registry/target/debug/deps/librand_core-f7fb70c53f5631f5.rlib: /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/lib.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/block.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/error.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/impls.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/le.rs
+
+/mnt/c/Users/offic/Projects/DAEMON/programs/daemon-registry/target/debug/deps/librand_core-f7fb70c53f5631f5.rmeta: /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/lib.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/block.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/error.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/impls.rs /home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/le.rs
+
+/home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/lib.rs:
+/home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/block.rs:
+/home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/error.rs:
+/home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/impls.rs:
+/home/offic/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rand_core-0.6.4/src/le.rs:

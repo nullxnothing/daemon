@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noEmit": true,
+    "outDir": "./dist"
+  },
+  "include": ["src"],
+  "references": [{ "path": "../shared" }]
+}

@@ -1,0 +1,36 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@daemon/shared": [
+        "../packages/shared/src"
+      ],
+      "@daemon/solana-core": [
+        "../packages/solana-core/src"
+      ],
+      "@daemon/ai-client": [
+        "../packages/ai-client/src"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "references": [
+    {
+      "path": "../packages/shared"
+    },
+    {
+      "path": "../packages/solana-core"
+    },
+    {
+      "path": "../packages/ai-client"
+    }
+  ]
+}
