@@ -6,7 +6,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("GrQd4eRnR38pVipbXwCn9cf5oBRoxxvjQATDCgL1844");
+declare_id!("3nu6sppjDtAKNoBbUAhvFJ35B2JsxpRY6G4Cg72MCJRc");
 
 #[program]
 pub mod daemon_registry {
