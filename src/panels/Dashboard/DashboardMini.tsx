@@ -89,7 +89,7 @@ function ImportMintForm({ walletId, onImported }: { walletId: string; onImported
         className="dash-import-input"
         placeholder="Paste mint address..."
         value={mintInput}
-        onChange={(e) => setMintInput(e.target.value)}
+        onChange={(e) => { setMintInput(e.target.value); if (status === 'error') { setStatus('idle'); setErrorMsg('') } }}
         onKeyDown={(e) => { if (e.key === 'Enter') handleImport() }}
         disabled={status === 'loading'}
       />

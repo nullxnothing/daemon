@@ -17,9 +17,10 @@ export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const [model, setModel] = useState(agent?.model ?? 'claude-sonnet-4-20250514')
   const [prompt, setPrompt] = useState(agent?.system_prompt ?? '')
   const [shortcut, setShortcut] = useState(agent?.shortcut ?? '')
+  const [nameError, setNameError] = useState('')
 
   const handleSubmit = async () => {
-    if (!name.trim()) return
+    if (!name.trim()) { setNameError('Name is required'); return }
 
     if (agent) {
       await window.daemon.agents.update(agent.id, {
@@ -45,7 +46,13 @@ export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
       <div className="agent-form-title">{agent ? 'Edit Agent' : 'New Agent'}</div>
       <div className="agent-form-field">
         <label>Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Agent name" autoFocus />
+        <input
+          value={name}
+          onChange={(e) => { setName(e.target.value); if (nameError) setNameError('') }}
+          placeholder="Agent name"
+          autoFocus
+        />
+        {nameError && <span className="agent-form-error" style={{ fontSize: 11, color: 'var(--red)' }}>{nameError}</span>}
       </div>
       <div className="agent-form-field">
         <label>Model</label>

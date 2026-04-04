@@ -26,7 +26,7 @@ export const StatusBar = memo(function StatusBar() {
         </div>
         <div className={styles.statusGroup}>
           <GitBranch />
-          <HackathonCountdown />
+          {typeof HackathonCountdown !== 'undefined' && <HackathonCountdown />}
           <TerminalCount />
         </div>
       </div>

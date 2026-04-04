@@ -223,6 +223,7 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               disabled={!activeProjectId}
+              maxLength={200}
             />
             {error && <div className="agent-launcher-error">{error}</div>}
             <div className="agent-launcher-list">
