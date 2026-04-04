@@ -333,6 +333,12 @@ declare global {
     clearCrashes: () => Promise<IpcResponse>
     getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
+    solanaSkillEnabled: (projectId: string) => Promise<IpcResponse<boolean>>
+    solanaSkillToggle: (projectId: string, enabled: boolean) => Promise<IpcResponse>
+    solanaSkillAutoUpdate: () => Promise<IpcResponse<boolean>>
+    solanaSkillSetAutoUpdate: (enabled: boolean) => Promise<IpcResponse>
+    solanaSkillUpdate: () => Promise<IpcResponse<{ updated: number; errors: string[] }>>
+    solanaSkillLastUpdate: () => Promise<IpcResponse<number | null>>
     onCrashWarning: (callback: (count: number) => void) => () => void
   }
 

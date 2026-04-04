@@ -33,9 +33,19 @@ export function TerminalPanel() {
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
   const [isDragOver, setIsDragOver] = useState(false)
   const [claudeInstallStatus, setClaudeInstallStatus] = useState<'idle' | 'installing' | 'failed'>('idle')
+  const [solanaSkillEnabled, setSolanaSkillEnabled] = useState(true)
   const panelDragDepthRef = useRef(0)
   const creatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
+
+  useEffect(() => {
+    if (!activeProjectId) return
+    let cancelled = false
+    window.daemon.settings.solanaSkillEnabled(activeProjectId).then((res) => {
+      if (!cancelled && res.ok && res.data !== undefined) setSolanaSkillEnabled(res.data)
+    })
+    return () => { cancelled = true }
+  }, [activeProjectId])
 
   const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
     setLaunchRecents((prev) => addToRecents(prev, recent))
@@ -241,6 +251,7 @@ export function TerminalPanel() {
         centerMode={centerMode}
         splitLayout={splitLayout}
         launchRecents={launchRecents}
+        solanaSkillEnabled={solanaSkillEnabled}
         onSelectTerminal={(id) => activeProjectId && setActiveTerminal(activeProjectId, id)}
         onCloseTerminal={handleCloseTerminal}
         onToggleGrindMode={() => setCenterMode(centerMode === 'grind' ? 'canvas' : 'grind')}

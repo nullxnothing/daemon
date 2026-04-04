@@ -171,7 +171,7 @@ export function registerTerminalHandlers() {
     if (!agent) throw new Error('Agent not found')
     if (!project) throw new Error('Project not found')
 
-    const { command, args, contextFilePath } = await buildCommand(agent, project)
+    const { command, args, contextFilePath } = await buildCommand(agent, project, { projectId: opts.projectId })
     const id = crypto.randomUUID()
     const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
 

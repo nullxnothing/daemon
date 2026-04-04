@@ -1,4 +1,4 @@
-import { rmSync } from 'node:fs'
+import { rmSync, cpSync, existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -23,6 +23,18 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       react(),
+      // Copy static assets (skill files) into dist-electron for packaging
+      {
+        name: 'copy-electron-assets',
+        closeBundle() {
+          const src = path.join(__dirname, 'electron', 'skills')
+          const dest = path.join(__dirname, 'dist-electron', 'skills')
+          if (existsSync(src)) {
+            mkdirSync(dest, { recursive: true })
+            cpSync(src, dest, { recursive: true })
+          }
+        },
+      },
       electron({
         main: {
           entry: 'electron/main/index.ts',

@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import crypto from 'node:crypto'
 import * as Settings from '../services/SettingsService'
+import * as SolanaSkill from '../services/SolanaSkillService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { getDb } from '../db/db'
 
@@ -72,5 +73,33 @@ export function registerSettingsHandlers() {
     if (!VALID_NAMES.includes(profile.name)) throw new Error('Invalid profile name')
     if (!profile.toolVisibility || typeof profile.toolVisibility !== 'object') throw new Error('Invalid toolVisibility')
     Settings.setWorkspaceProfile(profile)
+  }))
+
+  // --- Solana Dev Skill ---
+
+  ipcMain.handle('settings:solana-skill-enabled', ipcHandler(async (_event, projectId: string) => {
+    if (!projectId || typeof projectId !== 'string') throw new Error('Invalid projectId')
+    return SolanaSkill.isEnabled(projectId)
+  }))
+
+  ipcMain.handle('settings:solana-skill-toggle', ipcHandler(async (_event, projectId: string, enabled: boolean) => {
+    if (!projectId || typeof projectId !== 'string') throw new Error('Invalid projectId')
+    SolanaSkill.setEnabled(projectId, enabled)
+  }))
+
+  ipcMain.handle('settings:solana-skill-auto-update', ipcHandler(async () => {
+    return SolanaSkill.isAutoUpdateEnabled()
+  }))
+
+  ipcMain.handle('settings:solana-skill-set-auto-update', ipcHandler(async (_event, enabled: boolean) => {
+    SolanaSkill.setAutoUpdateEnabled(enabled)
+  }))
+
+  ipcMain.handle('settings:solana-skill-update', ipcHandler(async () => {
+    return await SolanaSkill.updateSkillFiles()
+  }))
+
+  ipcMain.handle('settings:solana-skill-last-update', ipcHandler(async () => {
+    return SolanaSkill.getLastUpdateTime()
   }))
 }
