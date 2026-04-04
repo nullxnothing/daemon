@@ -223,11 +223,13 @@ export function runMigrations(db: Database.Database) {
         'Solana Agent',
         `You are a Solana development agent specializing in on-chain programs and DeFi integrations.
 
-<context-tags>project</context-tags>
+<context-tags>project,solana,x402</context-tags>
 
 Capabilities:
 - Build, debug, and audit Anchor programs and native Solana BPF/SBF programs
 - Work with SPL tokens, Metaplex, Raydium, Jupiter, Pump.fun, and PumpSwap
+- Implement x402 payment protocols using PayAI facilitator for API monetization
+- Use Machine Payments Protocol (MPP) for autonomous agent-to-agent payments
 - Write and review Rust (on-chain), TypeScript (client/SDK), and Python (scripts/bots)
 - Analyze transaction logs, CPI traces, and account state
 - Optimize compute units and transaction size
@@ -311,6 +313,36 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
     }
   } catch (err) {
     console.warn('[Migrations] solana-mcp-server registry seed check failed:', (err as Error).message)
+  }
+
+  // Ensure payai-mcp-server exists in registry (x402 payment protocol for AI agents)
+  try {
+    const hasPayaiMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'payai-mcp-server'").get()
+    if (!hasPayaiMcp) {
+      db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
+        'payai-mcp-server',
+        JSON.stringify({ command: 'npx', args: ['-y', 'payai-mcp-server'] }),
+        'x402 payment protocol — monetize APIs with USDC micropayments via PayAI facilitator',
+        0,
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] payai-mcp-server registry seed check failed:', (err as Error).message)
+  }
+
+  // Ensure x402-mcp exists in registry (Coinbase x402 protocol tools)
+  try {
+    const hasX402Mcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'x402-mcp'").get()
+    if (!hasX402Mcp) {
+      db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
+        'x402-mcp',
+        JSON.stringify({ command: 'npx', args: ['-y', '@x402/mcp'] }),
+        'x402 HTTP 402 payment tools — build and consume paid APIs with stablecoin micropayments',
+        0,
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] x402-mcp registry seed check failed:', (err as Error).message)
   }
 
   // Ensure all registry plugins have DB rows (handles plugins added after initial migration)
@@ -465,7 +497,7 @@ Do not attempt to fix failing tests. Do not modify any files. Report only. Proce
       name: 'Solana Agent',
       prompt: `You are an expert Solana development agent with access to live blockchain data, protocol SDKs, and security analysis tools.
 
-<context-tags>project,ports</context-tags>
+<context-tags>project,ports,solana,x402</context-tags>
 
 TOOLS — Use these for real-time chain data:
 - Helius MCP: getBalance, getTokenBalances, getAsset, getAssetsByOwner, searchAssets, getTokenHolders, parseTransactions, getTransactionHistory, getWalletBalances, getPriorityFeeEstimate, transferSol, transferToken
@@ -489,6 +521,7 @@ SKILLS — You have these skills available. Use /skill-name to invoke them:
 - /vulnhunter — Security vulnerability detection and variant analysis
 - /kamino — Concentrated liquidity management, lending
 - /sanctum — Liquid staking (mSOL, jitoSOL, bSOL, INF)
+- /payai-x402 — x402 payment protocol, PayAI facilitator, monetize APIs with USDC micropayments
 
 Capabilities:
 - Build, debug, and audit Anchor programs and native BPF/SBF programs
@@ -497,6 +530,8 @@ Capabilities:
 - Query live blockchain state via Helius MCP tools
 - Analyze transaction logs, CPI traces, and account state
 - Optimize compute units and transaction size
+- Implement x402 payment protocols (PayAI facilitator) for API monetization
+- Use Machine Payments Protocol (MPP) for autonomous agent-to-agent payments
 
 Rules:
 - Always use getPriorityFeeEstimate before sending transactions
