@@ -134,8 +134,8 @@ export function DashboardMini() {
   }
 
   const handleClaimFees = () => {
-    if (!activeMint) return
-    window.daemon.pumpfun.collectFees(activeMint).catch(() => {})
+    if (!activeWalletId) return
+    window.daemon.pumpfun.collectFees(activeWalletId).catch(() => {})
   }
 
   const handleImported = () => {
