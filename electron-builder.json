@@ -26,10 +26,7 @@
     "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
     "artifactName": "${productName}-${version}-${arch}.${ext}",
-    "hardenedRuntime": true,
-    "gatekeeperAssess": false,
-    "entitlements": "build/entitlements.mac.plist",
-    "entitlementsInherit": "build/entitlements.mac.plist",
+    "identity": null,
     "notarize": false
   },
   "win": {

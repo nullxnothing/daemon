@@ -23,7 +23,7 @@ DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships
 
 <a name="mac-install"></a>
 
-**Mac:** Build from source (dmg builds coming soon):
+**Mac:** Build from source (signed builds coming soon):
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
@@ -33,7 +33,21 @@ pnpm run build
 pnpm run package
 ```
 
-The installer will be in `release/1.3.0/`. Open the `.dmg` and drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet notarized).
+The `.dmg` will be in `release/1.3.0/`. Drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet signed/notarized).
+
+<a name="linux-install"></a>
+
+**Linux:** Build from source (AppImage builds coming soon):
+
+```bash
+git clone https://github.com/nullxnothing/daemon.git
+cd daemon
+pnpm install
+pnpm run build
+pnpm run package
+```
+
+The AppImage will be in `release/1.3.0/`. Make it executable with `chmod +x` and run directly.
 
 **Build from source (any platform):**
 
