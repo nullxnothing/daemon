@@ -33,6 +33,7 @@
 /* Panel switches: green left accent bar when active */
 .sidebar-icon.active {
   color: var(--t1);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 .sidebar-icon.active::before {
@@ -59,6 +60,32 @@
 .sidebar-icon.sidebar-launcher:active {
   transform: scale(0.92);
   transition: transform 0.08s;
+}
+
+/* Drag states */
+.sidebar-icon--dragging {
+  opacity: 0.3;
+}
+
+.sidebar-icon--drop-target {
+  background: var(--green-glow);
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+/* Drop zone for adding new pinned tools */
+.sidebar-drop-zone {
+  width: 36px;
+  height: 8px;
+  border-radius: 4px;
+  margin: 2px 0;
+  transition: height 0.15s, background 0.15s, border-color 0.15s;
+  border: 1px dashed transparent;
+}
+
+.sidebar-drop-zone--active {
+  height: 36px;
+  background: var(--green-glow);
+  border-color: var(--green);
 }
 
 /* ─── Zone Dividers ─── */

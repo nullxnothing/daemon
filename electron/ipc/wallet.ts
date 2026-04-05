@@ -17,6 +17,13 @@ export function registerWalletHandlers() {
     return WalletService.createWallet(wallet.name, wallet.address)
   }))
 
+  ipcMain.handle('wallet:rename', ipcHandler(async (_event, id: string, name: string) => {
+    const trimmed = (name ?? '').trim().slice(0, 100)
+    if (!trimmed) throw new Error('Wallet name cannot be empty')
+    const db = (await import('../db/db')).getDb()
+    db.prepare('UPDATE wallets SET name = ? WHERE id = ?').run(trimmed, id)
+  }))
+
   ipcMain.handle('wallet:delete', ipcHandler(async (_event, id: string) => {
     WalletService.deleteWallet(id)
   }))
@@ -140,6 +147,6 @@ export function registerWalletHandlers() {
     setTimeout(() => {
       if (clipboard.readText() === keyString) clipboard.writeText('')
     }, 30000)
-    return { copied: true }
+    return keyString
   }))
 }

@@ -289,8 +289,8 @@
   outline: none;
 }
 
-.email__search:focus {
-  border-color: var(--t3);
+.email__search:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .email__refresh-btn {
@@ -373,7 +373,7 @@
 }
 
 .email__checkbox:hover {
-  border-color: var(--t3);
+  border-color: var(--s6);
 }
 
 .email__checkbox--checked {
@@ -1095,8 +1095,8 @@
   outline: none;
 }
 
-.email__auth-input:focus {
-  border-color: var(--t3);
+.email__auth-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .email__auth-input::placeholder {

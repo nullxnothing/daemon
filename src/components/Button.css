@@ -2,15 +2,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--space-xs);
   font-family: inherit;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: all var(--transition-normal);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
 }
 
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  filter: grayscale(100%);
 }
 
 /* Variants */
@@ -55,15 +71,22 @@
 
 /* Sizes */
 .btn--sm {
-  height: 24px;
-  padding: 0 10px;
-  font-size: 10px;
-  border-radius: 3px;
+  height: var(--btn-h-sm);
+  padding: 0 var(--space-sm);
+  font-size: var(--font-sm);
+  border-radius: var(--radius-sm);
 }
 
 .btn--md {
-  height: 30px;
-  padding: 0 14px;
-  font-size: 12px;
-  border-radius: 4px;
+  height: var(--btn-h-md);
+  padding: 0 var(--space-md);
+  font-size: var(--font-base);
+  border-radius: var(--radius-md);
+}
+
+.btn--lg {
+  height: var(--btn-h-lg);
+  padding: 0 var(--space-lg);
+  font-size: var(--font-md);
+  border-radius: var(--radius-md);
 }

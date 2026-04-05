@@ -87,7 +87,7 @@ export function endSession(params: {
   sessionId: string
   linesGenerated?: number
   toolsUsed?: string[]
-  status?: 'completed' | 'cancelled'
+  status?: 'completed' | 'cancelled' | 'failed'
 }): void {
   const { sessionId, linesGenerated = 0, toolsUsed = [], status = 'completed' } = params
   const now = Date.now()

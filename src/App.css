@@ -8,6 +8,25 @@
   overflow: hidden;
 }
 
+/* Skip navigation links — visible only on focus */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 8px 16px;
+  background: var(--green);
+  color: var(--bg);
+  font-size: var(--font-base);
+  font-weight: 600;
+  z-index: 10000;
+  text-decoration: none;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 /* Crash warning banner */
 .crash-warning-banner {
   display: flex;

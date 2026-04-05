@@ -92,6 +92,7 @@ const exportCooldowns = new Map<string, number>()
 // In-memory balance cache with 30-second TTL
 const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
 const BALANCE_CACHE_TTL = 30_000
+let lastSolPrice = 0
 
 async function runWithConcurrency<T, R>(
   items: T[],
@@ -211,10 +212,12 @@ export async function getDashboard(projectId?: string | null) {
 
   const walletIds = wallets.map((w) => w.id)
   const previousTotalUsd = getPreviousTotalUsd(walletIds)
-  const delta24hUsd = previousTotalUsd !== null ? totalUsd - previousTotalUsd : 0
-  const delta24hPct = previousTotalUsd !== null && previousTotalUsd > 0
-    ? (delta24hUsd / previousTotalUsd) * 100
-    : 0
+  // Only show delta if previous snapshot existed and was meaningful (> $1)
+  // This avoids absurd percentages from deposits into near-empty wallets
+  const hasMeaningfulPrevious = previousTotalUsd !== null && previousTotalUsd > 1
+  const delta24hUsd = hasMeaningfulPrevious ? totalUsd - previousTotalUsd : 0
+  const rawPct = hasMeaningfulPrevious ? (delta24hUsd / previousTotalUsd!) * 100 : 0
+  const delta24hPct = Math.max(-999, Math.min(999, rawPct))
 
   return {
     heliusConfigured,
@@ -261,6 +264,9 @@ export function createWallet(name: string, address: string) {
 
 export function deleteWallet(id: string) {
   const db = getDb()
+
+  // Warn but don't block — user may need to remove a broken wallet
+  // The keypair is destroyed so this operation is irreversible for funded wallets
 
   db.transaction(() => {
     const row = db.prepare('SELECT is_default FROM wallets WHERE id = ?').get(id) as { is_default: number } | undefined
@@ -318,9 +324,11 @@ async function getMarketTape() {
     const response = await fetch(API_ENDPOINTS.COINGECKO_PRICE)
     if (!response.ok) throw new Error(`CoinGecko error: ${response.status}`)
     const json = await response.json() as Record<string, { usd: number; usd_24h_change?: number }>
+    const solPrice = json.solana?.usd ?? 0
+    lastSolPrice = solPrice
     return [
       { symbol: 'BTC', priceUsd: json.bitcoin?.usd ?? 0, change24hPct: json.bitcoin?.usd_24h_change ?? 0 },
-      { symbol: 'SOL', priceUsd: json.solana?.usd ?? 0, change24hPct: json.solana?.usd_24h_change ?? 0 },
+      { symbol: 'SOL', priceUsd: solPrice, change24hPct: json.solana?.usd_24h_change ?? 0 },
       { symbol: 'ETH', priceUsd: json.ethereum?.usd ?? 0, change24hPct: json.ethereum?.usd_24h_change ?? 0 },
     ]
   } catch {
@@ -345,9 +353,31 @@ async function getWalletBalances(address: string, apiKey: string): Promise<Heliu
   url.searchParams.set('limit', '100')
 
   const response = await fetchWithRetry(url.toString())
-  const data = await response.json() as HeliusBalancesResponse
-  balanceCache.set(address, { data, timestamp: Date.now() })
-  return data
+  const raw = await response.json() as HeliusBalancesResponse & { nativeBalance?: number }
+
+  // Helius returns native SOL as a top-level `nativeBalance` (lamports), not in the balances array.
+  // Inject it as a synthetic balance entry so it appears in holdings.
+  if (raw.nativeBalance && raw.nativeBalance > 0) {
+    const solAmount = raw.nativeBalance / 1e9
+    // Use cached SOL price from market tape (already fetched, no extra network call)
+    const solPrice = lastSolPrice
+    raw.balances = [
+      {
+        mint: 'So11111111111111111111111111111111111111112',
+        balance: solAmount,
+        decimals: 9,
+        symbol: 'SOL',
+        name: 'Solana',
+        pricePerToken: solPrice,
+        usdValue: solAmount * solPrice,
+        logoUri: undefined,
+      },
+      ...raw.balances,
+    ]
+  }
+
+  balanceCache.set(address, { data: raw, timestamp: Date.now() })
+  return raw
 }
 
 async function getWalletHistory(address: string, apiKey: string): Promise<HeliusHistoryEvent[]> {

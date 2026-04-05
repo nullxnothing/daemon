@@ -48,6 +48,7 @@
 .right-panel-tab.active {
   color: var(--t1);
   border-bottom-color: var(--green);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 /* Status dot inside tab */

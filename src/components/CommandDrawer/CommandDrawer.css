@@ -89,7 +89,7 @@
   border-radius: var(--radius-sm);
   color: var(--t3);
   cursor: pointer;
-  transition: color 0.1s, background 0.1s;
+  transition: color var(--transition-fast), background var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -117,7 +117,7 @@
 /* Tool Grid */
 .drawer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 8px;
   padding: 12px;
 }
@@ -132,27 +132,43 @@
   border: 1px solid var(--s4);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s, box-shadow 0.15s;
+  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-normal);
   text-align: center;
+  box-shadow: var(--shadow-lifted);
 }
 
 .drawer-tool-card:hover {
-  background: var(--s3);
-  border-color: var(--s5);
-  box-shadow: var(--shadow-lifted);
+  background: var(--tool-glow, var(--s3));
+  border-color: var(--tool-color, var(--s5));
 }
 
 .drawer-tool-card:active {
   transform: scale(0.97);
 }
 
+.drawer-tool-card--disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.drawer-tool-soon {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
 .drawer-tool-icon {
-  color: var(--t2);
-  transition: color 0.1s;
+  color: var(--tool-color, var(--t2));
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
 }
 
 .drawer-tool-card:hover .drawer-tool-icon {
-  color: var(--green);
+  opacity: 1;
 }
 
 .drawer-tool-name {
@@ -165,6 +181,25 @@
   font-size: 10px;
   color: var(--t3);
   line-height: 1.3;
+}
+
+/* Drag states */
+.drawer-tool-card--dragging {
+  opacity: 0.3;
+}
+
+.drawer-tool-card--drop-target {
+  border-color: var(--tool-color, var(--green)) !important;
+  box-shadow: 0 0 0 1px var(--tool-color, var(--green)), 0 0 12px var(--tool-glow, var(--green-glow));
+}
+
+.drawer-hint {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 8px;
+  font-size: 10px;
+  color: var(--t4);
+  letter-spacing: 0.3px;
 }
 
 .drawer-empty {

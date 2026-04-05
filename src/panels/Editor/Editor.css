@@ -15,8 +15,9 @@
   justify-content: center;
   gap: 0;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
   background: var(--bg);
+  min-height: 0;
 }
 
 /* Ambient radial glow behind the logo */
@@ -34,6 +35,7 @@
 .editor-empty-logo {
   width: 64px;
   height: 64px;
+  margin-top: 40px;
   margin-bottom: 20px;
   opacity: 0.85;
   filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.06));
@@ -54,6 +56,10 @@
   color: var(--t4);
   letter-spacing: 0.5px;
   margin-bottom: 36px;
+}
+
+.editor-empty-branch {
+  color: var(--green);
 }
 
 .editor-empty-drop-hint {
@@ -110,6 +116,23 @@
   color: var(--green);
 }
 
+.editor-empty-btn--primary {
+  background: rgba(62, 207, 142, 0.08);
+  border-color: rgba(62, 207, 142, 0.25);
+  color: var(--green);
+}
+
+.editor-empty-btn--primary svg {
+  opacity: 0.8;
+  color: var(--green);
+}
+
+.editor-empty-btn--primary:hover {
+  background: rgba(62, 207, 142, 0.15);
+  border-color: var(--green);
+  box-shadow: var(--glow-green-soft);
+}
+
 .editor-empty-shortcut {
   font-size: 9px;
   color: var(--t4);
@@ -118,6 +141,74 @@
   border-radius: 3px;
   font-family: var(--font-code);
   line-height: 1;
+}
+
+/* Start building section */
+.editor-empty-starter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.editor-empty-starter-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.editor-empty-templates {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.editor-empty-template {
+  --tmpl-color: var(--green);
+  --tmpl-glow: rgba(62, 207, 142, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--t3);
+  background: transparent;
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-family: var(--font-ui);
+}
+
+.editor-empty-template svg {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.editor-empty-template:hover {
+  color: var(--t1);
+  border-color: var(--tmpl-color);
+  background: var(--tmpl-glow);
+}
+
+.editor-empty-template:hover svg {
+  opacity: 1;
+}
+
+.editor-empty-template--more {
+  color: var(--t4);
+  border-style: dashed;
+}
+
+.editor-empty-template--more:hover {
+  color: var(--green);
+  border-color: var(--green);
+  border-style: solid;
+  background: rgba(62, 207, 142, 0.04);
 }
 
 /* Keyboard shortcuts reference */
@@ -198,7 +289,7 @@
   border-bottom: 2px solid var(--green);
   border-left-color: transparent;
   border-right-color: transparent;
-  box-shadow: 0 1px 0 rgba(62, 207, 142, 0.06);
+  box-shadow: 0 1px 0 rgba(62, 207, 142, 0.06), 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 .editor-tab.active + .editor-tab {

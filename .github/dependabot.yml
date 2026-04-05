@@ -1,0 +1,72 @@
+version: 2
+
+updates:
+  # npm dependencies (pnpm-compatible)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "nullxnothing"
+    labels:
+      - "dependencies"
+    groups:
+      # Group minor/patch updates to reduce PR noise
+      electron:
+        patterns:
+          - "electron"
+          - "electron-*"
+          - "@electron/*"
+        update-types:
+          - "minor"
+          - "patch"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-tooling:
+        patterns:
+          - "vite"
+          - "vite-*"
+          - "vitest"
+          - "typescript"
+          - "eslint"
+          - "eslint-*"
+          - "@typescript-eslint/*"
+        update-types:
+          - "minor"
+          - "patch"
+      solana:
+        patterns:
+          - "@solana/*"
+          - "@coral-xyz/*"
+          - "@metaplex-foundation/*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Security updates always get their own PR (not grouped)
+    # Major version bumps always get their own PR (review manually)
+
+  # GitHub Actions versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

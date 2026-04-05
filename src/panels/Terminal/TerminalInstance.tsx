@@ -78,12 +78,25 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
   const input = useTerminalInput(id)
 
+  // Track whether this instance has been disposed to prevent post-teardown fits
+  const disposedRef = useRef(false)
+
   const doFit = useCallback(() => {
+    if (disposedRef.current) return
     const fit = fitRef.current
     const term = xtermRef.current
     if (!fit || !term || !containerRef.current) return
+    // Guard against xterm Viewport.syncScrollArea crash when renderer dimensions
+    // are not yet initialized or the terminal DOM element is unmounted
+    if (!term.element?.parentElement) return
     const { clientWidth, clientHeight } = containerRef.current
     if (clientWidth === 0 || clientHeight === 0) return
+    // Guard: xterm's internal _renderService must have dimensions initialized
+    // before fit() triggers syncScrollArea — otherwise we hit a TypeError
+    try {
+      const rs = (term as any)._core?._renderService
+      if (rs && !rs.dimensions) return
+    } catch {}
     try {
       fit.fit()
       window.daemon.terminal.resize(id, term.cols, term.rows)
@@ -355,23 +368,49 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     })
 
     const cleanupData = window.daemon.terminal.onData((payload) => {
-      if (payload.id === id) term.write(payload.data)
+      if (payload.id === id && xtermRef.current) {
+        try { term.write(payload.data) } catch {}
+      }
     })
 
+    // Signal main process that xterm listener is attached — flush buffered PTY data
+    window.daemon.terminal.ready(id)
+
     const cleanupExit = window.daemon.terminal.onExit((payload) => {
-      if (payload.id === id) term.write('\r\n[Process exited]\r\n')
+      if (payload.id === id && xtermRef.current) {
+        try { term.write('\r\n[Process exited]\r\n') } catch {}
+      }
     })
 
     const resizeObserver = new ResizeObserver(debouncedFit)
     resizeObserver.observe(containerRef.current)
 
     return () => {
+      // Mark disposed immediately so pending doFit / observer callbacks bail out
+      disposedRef.current = true
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
+      // Null refs BEFORE dispose to prevent doFit/debouncedFit from accessing
+      // the terminal during or after teardown (Viewport.syncScrollArea crash)
       xtermRef.current = null
       fitRef.current = null
+      // Detach the terminal element from DOM before dispose to stop internal
+      // observers (ResizeObserver/MutationObserver) from firing syncScrollArea
+      // on a partially torn-down renderer — prevents "dimensions" TypeError
+      const termEl = term.element
+      if (termEl?.parentElement) {
+        termEl.parentElement.removeChild(termEl)
+      }
+      // Stub out the internal _renderService.dimensions to prevent any
+      // lingering async callbacks (MutationObserver, RAF) from crashing
+      try {
+        const core = (term as any)._core
+        if (core?._renderService && !core._renderService.dimensions) {
+          core._renderService.dimensions = { css: { cell: { width: 0, height: 0 } }, device: { cell: { width: 0, height: 0 } } }
+        }
+      } catch {}
       try {
         term.dispose()
       } catch {}
@@ -381,8 +420,16 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   }, [id, doFit, debouncedFit, openSearch, handleFilePathClick])
 
   useEffect(() => {
-    if (isVisible) {
-      requestAnimationFrame(() => { doFit(); xtermRef.current?.focus() })
+    if (isVisible && !disposedRef.current) {
+      // Double-RAF to ensure xterm's internal renderer is fully initialized
+      // before we attempt to fit (prevents dimensions TypeError on fast switches)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (disposedRef.current) return
+          try { doFit() } catch {}
+          xtermRef.current?.focus()
+        })
+      })
     }
   }, [isVisible, doFit])
 

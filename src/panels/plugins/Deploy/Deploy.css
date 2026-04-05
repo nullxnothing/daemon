@@ -146,7 +146,7 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-.deploy-input:focus {
+.deploy-input:focus-visible {
   border-color: var(--s6);
 }
 

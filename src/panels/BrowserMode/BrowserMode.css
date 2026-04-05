@@ -30,8 +30,8 @@
   outline: none;
 }
 
-.browser-url:focus {
-  border-color: var(--t3);
+.browser-url:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .browser-url::placeholder {
@@ -310,8 +310,8 @@
   transition: border-color 0.15s;
 }
 
-.browser-agent__input:focus {
-  border-color: var(--t3);
+.browser-agent__input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .browser-agent__input::placeholder {

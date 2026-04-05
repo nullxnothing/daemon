@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('daemon', {
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
+    ready: (id: string) => ipcRenderer.send('terminal:ready', id),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
@@ -151,6 +152,7 @@ contextBridge.exposeInMainWorld('daemon', {
     list: () => ipcRenderer.invoke('wallet:list'),
     create: (wallet: { name: string; address: string }) => ipcRenderer.invoke('wallet:create', wallet),
     delete: (id: string) => ipcRenderer.invoke('wallet:delete', id),
+    rename: (id: string, name: string) => ipcRenderer.invoke('wallet:rename', id, name),
     setDefault: (id: string) => ipcRenderer.invoke('wallet:set-default', id),
     assignProject: (projectId: string, walletId: string | null) => ipcRenderer.invoke('wallet:assign-project', projectId, walletId),
     storeHeliusKey: (value: string) => ipcRenderer.invoke('wallet:store-helius-key', value),
@@ -167,6 +169,13 @@ contextBridge.exposeInMainWorld('daemon', {
     hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
     transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
     exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
+  },
+
+  pnl: {
+    syncHistory: (walletAddress?: string) => ipcRenderer.invoke('pnl:sync-history', walletAddress),
+    getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => ipcRenderer.invoke('pnl:get-portfolio', walletAddress, holdings),
+    getTokenDetail: (walletAddress: string, mint: string) => ipcRenderer.invoke('pnl:get-token-detail', walletAddress, mint),
+    refreshPrices: (mints: string[]) => ipcRenderer.invoke('pnl:refresh-prices', mints),
   },
 
   settings: {

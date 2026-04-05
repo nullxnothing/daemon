@@ -182,7 +182,6 @@ export default function Remotion() {
             ref={webviewRef}
             src={url}
             partition="persist:remotion"
-            nodeintegration={false}
             style={{ width: '100%', height: '100%' }}
           />
         )}

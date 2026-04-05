@@ -96,6 +96,7 @@ interface UIState {
   drawerOpen: boolean
   drawerFullscreen: boolean
   pinnedTools: string[]
+  drawerToolOrder: string[]
   setDrawerTool: (tool: string | null) => void
   closeDrawer: () => void
   toggleDrawer: () => void
@@ -103,6 +104,7 @@ interface UIState {
   setPinnedTools: (tools: string[]) => void
   pinTool: (toolId: string) => void
   unpinTool: (toolId: string) => void
+  setDrawerToolOrder: (order: string[]) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -133,6 +135,7 @@ export const useUIStore = create<UIState>((set) => ({
   drawerOpen: false,
   drawerFullscreen: false,
   pinnedTools: ['git', 'browser', 'solana-toolbox'],
+  drawerToolOrder: [],
 
   setActivePanel: (panel) => set({ activePanel: panel, walletQuickViewOpen: false, emailQuickViewOpen: false }),
 
@@ -334,4 +337,5 @@ export const useUIStore = create<UIState>((set) => ({
   unpinTool: (toolId) => set((state) => ({
     pinnedTools: state.pinnedTools.filter((id) => id !== toolId),
   })),
+  setDrawerToolOrder: (order) => set({ drawerToolOrder: order }),
 }))

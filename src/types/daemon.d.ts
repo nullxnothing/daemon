@@ -69,6 +69,12 @@ import type {
   OnboardingStepStatus,
   WorkspaceProfile,
   WorkspaceProfileName,
+  PnlPortfolio,
+  PnlHolding,
+  PnlTokenDetail,
+  PnlSyncResult,
+  TradeRecord,
+  CostBasisEntry,
 } from '../../electron/shared/types'
 
 export type {
@@ -142,6 +148,12 @@ export type {
   OnboardingStepStatus,
   WorkspaceProfile,
   WorkspaceProfileName,
+  PnlPortfolio,
+  PnlHolding,
+  PnlTokenDetail,
+  PnlSyncResult,
+  TradeRecord,
+  CostBasisEntry,
 }
 
 declare global {
@@ -203,6 +215,7 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    ready: (id: string) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
     kill: (id: string) => Promise<IpcResponse>
@@ -294,6 +307,7 @@ declare global {
     list: () => Promise<IpcResponse<WalletListEntry[]>>
     create: (wallet: { name: string; address: string }) => Promise<IpcResponse<WalletListEntry>>
     delete: (id: string) => Promise<IpcResponse>
+    rename: (id: string, name: string) => Promise<IpcResponse>
     setDefault: (id: string) => Promise<IpcResponse>
     assignProject: (projectId: string, walletId: string | null) => Promise<IpcResponse>
     storeHeliusKey: (value: string) => Promise<IpcResponse>
@@ -310,6 +324,13 @@ declare global {
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
     transactionHistory: (walletId: string, limit?: number) => Promise<IpcResponse<Array<{ id: string; wallet_id: string; type: string; signature: string | null; from_address: string; to_address: string; amount: number; mint: string | null; symbol: string | null; status: string; error: string | null; created_at: number }>>>
     exportPrivateKey: (walletId: string) => Promise<IpcResponse<string>>
+  }
+
+  interface DaemonPnl {
+    syncHistory: (walletAddress?: string) => Promise<IpcResponse<PnlSyncResult>>
+    getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => Promise<IpcResponse<PnlPortfolio>>
+    getTokenDetail: (walletAddress: string, mint: string) => Promise<IpcResponse<PnlTokenDetail>>
+    refreshPrices: (mints: string[]) => Promise<IpcResponse<{ refreshed: number }>>
   }
 
   interface AppCrashEntry {
@@ -645,6 +666,7 @@ declare global {
     colosseum: DaemonColosseum
     vault: DaemonVault
     validator: DaemonValidator
+    pnl: DaemonPnl
   }
 
   interface VaultFileMeta {

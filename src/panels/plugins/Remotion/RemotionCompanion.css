@@ -184,8 +184,8 @@
   line-height: 1.5;
 }
 
-.remotion-prompt-input:focus {
-  border-color: var(--t3);
+.remotion-prompt-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .remotion-prompt-input::placeholder {

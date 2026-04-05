@@ -199,3 +199,30 @@
 .hackathonUrgent {
   color: var(--red);
 }
+
+/* Panel toggle buttons (VS Code style) */
+.panelToggles {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+
+.panelToggle {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t4);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+
+.panelToggle:hover {
+  color: var(--t1);
+  background: var(--s3);
+}

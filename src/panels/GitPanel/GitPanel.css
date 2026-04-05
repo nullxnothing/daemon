@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
+  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
@@ -31,6 +32,7 @@
   color: var(--success);
   font-family: var(--font-code);
   appearance: none;
+  box-shadow: var(--shadow-lifted);
 }
 
 .git-branch-selector {
@@ -68,13 +70,14 @@
   height: 28px;
   padding: 0 14px;
   font-size: 11px;
-  color: var(--t1);
+  color: var(--amber);
   background: var(--s2);
+  border: 1px solid rgba(240, 180, 41, 0.25);
   border-radius: 4px;
   margin-left: auto;
 }
 
-.git-push-btn:hover { background: var(--hover-bg); }
+.git-push-btn:hover { background: rgba(240, 180, 41, 0.1); }
 .git-push-btn:disabled { opacity: 0.5; }
 
 .git-add-menu-wrap {
@@ -210,10 +213,11 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--t1);
+  box-shadow: var(--shadow-lifted);
 }
 
 .git-commit-input::placeholder { color: var(--t3); }
-.git-commit-input:focus {
+.git-commit-input:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -259,12 +263,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding-bottom: 6px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -299,6 +303,7 @@
   gap: 8px;
   padding: 5px 0;
   font-size: 12px;
+  transition: all var(--transition-fast);
 }
 
 .git-file-status {
@@ -386,7 +391,7 @@
 }
 
 .git-log-header {
-  font-size: 10px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;

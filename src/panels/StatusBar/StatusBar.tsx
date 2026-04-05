@@ -51,6 +51,7 @@ export const StatusBar = memo(function StatusBar() {
             </span>
           </div>
         )}
+        <PanelToggles />
       </div>
     </div>
   )
@@ -231,6 +232,47 @@ function HackathonCountdown() {
     >
       {label}
     </button>
+  )
+}
+
+function PanelToggles() {
+  const dispatchKey = (key: string, ctrl = true, shift = false) => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: ctrl, shiftKey: shift, bubbles: true }))
+  }
+
+  return (
+    <div className={styles.panelToggles}>
+      <button
+        className={styles.panelToggle}
+        onClick={() => dispatchKey('e')}
+        title="Toggle Sidebar (Ctrl+E)"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="9" y1="3" x2="9" y2="21" />
+        </svg>
+      </button>
+      <button
+        className={styles.panelToggle}
+        onClick={() => dispatchKey('`')}
+        title="Toggle Terminal (Ctrl+`)"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="3" y1="15" x2="21" y2="15" />
+        </svg>
+      </button>
+      <button
+        className={styles.panelToggle}
+        onClick={() => dispatchKey('b')}
+        title="Toggle Right Panel (Ctrl+B)"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="15" y1="3" x2="15" y2="21" />
+        </svg>
+      </button>
+    </div>
   )
 }
 

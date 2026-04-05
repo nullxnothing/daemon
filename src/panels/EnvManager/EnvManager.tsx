@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useUIStore } from '../../store/ui'
 import { Toggle } from '../../components/Toggle'
 import { Dot } from '../../components/Dot'
+import { FocusTrap } from '../../components/FocusTrap'
 import './EnvManager.css'
 
 interface UnifiedKey {
@@ -737,7 +738,8 @@ function PropagateModal({ envKey, onClose, onDone }: {
 
   return (
     <div className="env-modal-overlay" onClick={onClose}>
-      <div className="env-modal" onClick={(e) => e.stopPropagation()}>
+      <FocusTrap>
+      <div className="env-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Propagate environment variable">
         <div className="env-modal-header">
           <h3>Propagate <code>{envKey.key}</code></h3>
           <span className="env-modal-close" onClick={onClose}>&times;</span>
@@ -793,6 +795,7 @@ function PropagateModal({ envKey, onClose, onDone }: {
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   )
 }

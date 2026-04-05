@@ -39,8 +39,8 @@
   outline: none;
 }
 
-.gmail__auth-input:focus {
-  border-color: var(--t3);
+.gmail__auth-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .gmail__auth-input::placeholder {
@@ -95,8 +95,8 @@
   outline: none;
 }
 
-.gmail__search:focus {
-  border-color: var(--t3);
+.gmail__search:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .gmail__disconnect {

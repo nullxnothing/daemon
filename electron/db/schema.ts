@@ -440,6 +440,54 @@ CREATE INDEX IF NOT EXISTS idx_vault_files_created ON vault_files(created_at DES
 CREATE INDEX IF NOT EXISTS idx_vault_files_wallet ON vault_files(owner_wallet);
 `
 
+export const SCHEMA_V21 = `
+CREATE TABLE IF NOT EXISTS pnl_trades (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  signature TEXT UNIQUE NOT NULL,
+  wallet TEXT NOT NULL,
+  mint TEXT NOT NULL,
+  side TEXT NOT NULL CHECK(side IN ('buy', 'sell')),
+  token_amount REAL NOT NULL,
+  sol_amount REAL NOT NULL,
+  price_per_token REAL NOT NULL,
+  source TEXT DEFAULT 'unknown',
+  timestamp INTEGER NOT NULL,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+
+CREATE INDEX IF NOT EXISTS idx_pnl_trades_wallet_mint ON pnl_trades(wallet, mint);
+CREATE INDEX IF NOT EXISTS idx_pnl_trades_timestamp ON pnl_trades(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_pnl_trades_signature ON pnl_trades(signature);
+
+CREATE TABLE IF NOT EXISTS pnl_cost_basis (
+  wallet TEXT NOT NULL,
+  mint TEXT NOT NULL,
+  total_bought REAL DEFAULT 0,
+  total_sol_spent REAL DEFAULT 0,
+  total_sold REAL DEFAULT 0,
+  total_sol_received REAL DEFAULT 0,
+  avg_buy_price REAL DEFAULT 0,
+  realized_pnl_sol REAL DEFAULT 0,
+  last_updated INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  PRIMARY KEY (wallet, mint)
+);
+
+CREATE TABLE IF NOT EXISTS pnl_price_cache (
+  mint TEXT PRIMARY KEY,
+  price_usd REAL NOT NULL,
+  price_sol REAL NOT NULL,
+  source TEXT DEFAULT 'jupiter',
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+
+CREATE TABLE IF NOT EXISTS pnl_sync_state (
+  wallet TEXT PRIMARY KEY,
+  last_signature TEXT,
+  last_timestamp INTEGER,
+  is_full_sync_done INTEGER DEFAULT 0
+);
+`
+
 export const SCHEMA_V17 = `
 CREATE TABLE IF NOT EXISTS launched_tokens (
   id TEXT PRIMARY KEY,

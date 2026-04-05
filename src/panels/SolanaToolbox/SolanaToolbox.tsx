@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
-import { ProjectStatusSection } from './ProjectStatusSection'
-import { ValidatorSection } from './ValidatorSection'
-import { McpSection } from './McpSection'
-import { PaymentSection } from './PaymentSection'
-import { SkillsSection } from './SkillsSection'
+import { EnvironmentBar } from './EnvironmentBar'
+import { ValidatorCard } from './ValidatorCard'
+import { ConnectedServices } from './ConnectedServices'
+import { CapabilitiesSection } from './CapabilitiesSection'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -14,6 +13,7 @@ export function SolanaToolbox() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
   const projectInfo = useSolanaToolboxStore((s) => s.projectInfo)
+  const validator = useSolanaToolboxStore((s) => s.validator)
   const loadMcps = useSolanaToolboxStore((s) => s.loadMcps)
   const toggleMcp = useSolanaToolboxStore((s) => s.toggleMcp)
   const detectProject = useSolanaToolboxStore((s) => s.detectProject)
@@ -40,21 +40,26 @@ export function SolanaToolbox() {
 
   return (
     <div className="solana-toolbox">
-      <ProjectStatusSection info={projectInfo} />
-      <ValidatorSection />
-      <McpSection
-        mcps={mcps}
-        projectPath={activeProjectPath}
-        onToggle={toggleMcp}
-      />
-      <PaymentSection
-        mcps={mcps}
-        projectPath={activeProjectPath}
-        onToggle={toggleMcp}
-        onScaffoldX402={handleScaffoldX402}
-        onScaffoldMpp={handleScaffoldMpp}
-      />
-      <SkillsSection />
+      <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} />
+
+      <div className="solana-validator-zone">
+        <ValidatorCard />
+      </div>
+
+      <div className="solana-split">
+        <ConnectedServices
+          mcps={mcps}
+          projectPath={activeProjectPath}
+          onToggle={toggleMcp}
+        />
+        <CapabilitiesSection
+          mcps={mcps}
+          projectPath={activeProjectPath}
+          onToggle={toggleMcp}
+          onScaffoldX402={handleScaffoldX402}
+          onScaffoldMpp={handleScaffoldMpp}
+        />
+      </div>
     </div>
   )
 }

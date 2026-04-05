@@ -36,7 +36,7 @@
 }
 
 .plugin-dashboard-search::placeholder { color: var(--t3); }
-.plugin-dashboard-search:focus {
+.plugin-dashboard-search:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -54,22 +54,25 @@
   gap: 12px;
   padding: 20px 24px;
   background: var(--s1);
+  background-image: var(--surface-gradient-subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
   border-left: 3px solid transparent;
   min-height: 140px;
   cursor: default;
   transition: background 0.15s, border-color 0.15s;
+  box-shadow: var(--shadow-lifted);
 }
 
 .plugin-card-v2:not(.plugin-card-v2--disabled):hover {
   background: var(--s2);
-  border-color: var(--t3);
+  border-color: var(--s6);
   border-left-color: var(--t3);
 }
 
 .plugin-card-v2--active {
   border-left-color: var(--success);
+  box-shadow: var(--shadow-lifted), 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 .plugin-card-v2--active:hover {
@@ -190,7 +193,7 @@
 .plugin-card-v2-btn--enable:hover {
   background: var(--hover-bg);
   color: var(--t1);
-  border-color: var(--t3);
+  border-color: var(--s6);
 }
 
 .plugin-card-v2-btn--active {

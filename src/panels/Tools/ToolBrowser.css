@@ -45,7 +45,7 @@
 }
 
 .tool-search::placeholder { color: var(--t3); }
-.tool-search:focus { border-color: var(--t3); }
+.tool-search:focus-visible { border-color: var(--focus); box-shadow: var(--focus-ring); }
 
 .tool-categories {
   display: flex;
@@ -68,7 +68,7 @@
 .tool-category-btn:not(:last-child) { border-right: none; }
 
 .tool-category-btn:hover { color: var(--t1); background: var(--s2); }
-.tool-category-btn.active { color: var(--t1); background: var(--s3); border-color: var(--t3); }
+.tool-category-btn.active { color: var(--t1); background: var(--s3); border-color: var(--green); }
 
 .tool-browser-empty {
   padding: 60px 24px;
@@ -290,8 +290,8 @@
 }
 
 .tool-dialog-input:focus,
-.tool-dialog-select:focus {
-  border-color: var(--t3);
+.tool-dialog-select:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .tool-dialog-select {

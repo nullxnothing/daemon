@@ -119,24 +119,10 @@ function PumpFunIcon({ size = 18 }: { size?: number }) {
 }
 
 export const PLUGIN_REGISTRY: Record<string, PluginManifest> = {
-  'pumpfun': {
-    id: 'pumpfun',
-    name: 'PumpFun',
-    description: 'Token launches, bonding curve trading, fee collection',
-    mountPosition: 'right-panel-tab',
-    icon: PumpFunIcon,
-    component: lazy(() => import('../panels/plugins/PumpFunTool/PumpFunTool')),
-  },
   // Unshipped plugins — uncomment when service/UI implementations are complete
+  // 'pumpfun': { id: 'pumpfun', name: 'PumpFun', description: 'Token launches, bonding curve trading, fee collection', mountPosition: 'right-panel-tab', icon: PumpFunIcon, component: lazy(() => import('../panels/plugins/PumpFunTool/PumpFunTool')) },
   // 'imagegen': { id: 'imagegen', name: 'Image Gen', description: 'Generate images with AI models', mountPosition: 'right-panel-tab', icon: ImageGenIcon, component: lazy(() => import('../panels/plugins/ImageGen/ImageGen')) },
-  'tweet-generator': {
-    id: 'tweet-generator',
-    name: 'X Replies',
-    description: 'Generate sharp replies, quotes, and threads',
-    mountPosition: 'right-panel-tab',
-    icon: TweetIcon,
-    component: lazy(() => import('../panels/plugins/TweetGenerator/TweetGenerator')),
-  },
+  // 'tweet-generator': { id: 'tweet-generator', name: 'X Replies', description: 'Generate sharp replies, quotes, and threads', mountPosition: 'right-panel-tab', icon: TweetIcon, component: lazy(() => import('../panels/plugins/TweetGenerator/TweetGenerator')) },
   // 'remotion': { id: 'remotion', name: 'Remotion', description: 'Video editor via localhost Remotion', mountPosition: 'center-panel', icon: RemotionIcon, component: lazy(() => import('../panels/plugins/Remotion/Remotion')), companionPanel: lazy(() => import('../panels/plugins/Remotion/RemotionCompanion')) },
   // 'browser': { id: 'browser', name: 'Browser', description: 'Embedded browser view', mountPosition: 'right-panel-tab', icon: BrowserIcon, component: lazy(() => import('../panels/plugins/Browser/Browser')) },
   // 'email' — moved to native panel (sidebar icon + center panel)

@@ -63,8 +63,8 @@
   min-width: 0;
 }
 
-.remotion-url-input:focus {
-  border-color: var(--t3);
+.remotion-url-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .remotion-status-dot {

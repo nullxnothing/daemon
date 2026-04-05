@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
+  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
@@ -61,10 +62,11 @@
   border: 1px solid var(--s5);
   border-radius: 6px;
   color: var(--t1);
+  box-shadow: var(--shadow-lifted);
 }
 
 .env-search-input::placeholder { color: var(--t3); }
-.env-search-input:focus { border-color: var(--t3); }
+.env-search-input:focus-visible { border-color: var(--focus); box-shadow: var(--focus-ring); }
 
 /* Banner */
 .env-banner {
@@ -138,7 +140,7 @@
   align-items: center;
   padding: 10px 12px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .env-row:hover { background: var(--s2); }
@@ -203,7 +205,7 @@
 
 .env-value-text {
   cursor: default;
-  transition: color 0.15s;
+  transition: color var(--transition-normal);
 }
 
 .env-value-text:hover {
@@ -420,7 +422,7 @@
   width: 100%;
 }
 
-.env-add-input:focus {
+.env-add-input:focus-visible {
   border-color: var(--green);
   outline: none;
 }
@@ -522,7 +524,7 @@
   color: var(--t1);
 }
 
-.env-modal-input:focus { border-color: var(--t3); }
+.env-modal-input:focus-visible { border-color: var(--focus); box-shadow: var(--focus-ring); }
 
 .env-modal-projects {
   max-height: 250px;
@@ -631,7 +633,7 @@
   border: 1px solid var(--s5);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
 }
 
 .env-template-btn:hover {
