@@ -28,7 +28,7 @@
 }
 
 .claude-section {
-  padding: 12px;
+  padding: 14px 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -169,6 +169,7 @@
 
 .toggle-switch.on {
   background: var(--success);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 .toggle-switch::after {
@@ -213,7 +214,7 @@
 
 .mcp-add-btn:hover {
   color: var(--t1);
-  border-color: var(--t3);
+  border-color: var(--s6);
 }
 
 /* Usage Section */
@@ -228,6 +229,7 @@
   background: var(--s2);
   border-radius: 4px;
   border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-lifted);
 }
 
 .usage-label {

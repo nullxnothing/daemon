@@ -82,7 +82,7 @@
   transition: border-color 0.15s;
 }
 
-.hackathon-input:focus {
+.hackathon-input:focus-visible {
   border-color: var(--green);
 }
 

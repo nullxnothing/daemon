@@ -29,6 +29,7 @@ interface SolanaToolboxState {
   projectInfo: SolanaProjectInfo | null
   loading: boolean
   dismissed: boolean
+  collapsedSections: Record<string, boolean>
 
   loadMcps: (projectPath: string) => Promise<void>
   toggleMcp: (projectPath: string, name: string, enabled: boolean) => Promise<void>
@@ -37,6 +38,7 @@ interface SolanaToolboxState {
   detectProject: (projectPath: string) => Promise<void>
   refreshValidatorStatus: () => Promise<void>
   dismiss: () => void
+  toggleSection: (section: string) => void
 }
 
 const SOLANA_MCP_CATALOG: Record<string, { label: string; description: string; category: 'rpc' | 'payments' | 'defi'; docsUrl?: string }> = {
@@ -54,6 +56,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   projectInfo: null,
   loading: false,
   dismissed: false,
+  collapsedSections: { capabilities: true },
 
   loadMcps: async (projectPath) => {
     set({ loading: true })
@@ -136,7 +139,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     try {
       const res = await window.daemon.validator.detectProject(projectPath)
       if (res.ok && res.data) {
-        set({ projectInfo: res.data as SolanaProjectInfo, dismissed: false })
+        set({ projectInfo: res.data as SolanaProjectInfo })
       } else {
         set({ projectInfo: null })
       }
@@ -146,4 +149,8 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   },
 
   dismiss: () => set({ dismissed: true }),
+
+  toggleSection: (section) => set((s) => ({
+    collapsedSections: { ...s.collapsedSections, [section]: !s.collapsedSections[section] },
+  })),
 }))

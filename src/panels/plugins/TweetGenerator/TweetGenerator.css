@@ -89,7 +89,7 @@
   outline: none;
 }
 
-.tweet-gen__source-input:focus {
+.tweet-gen__source-input:focus-visible {
   border-color: var(--blue-dim);
 }
 
@@ -118,8 +118,8 @@
   outline: none;
 }
 
-.tweet-gen__textarea:focus {
-  border-color: var(--t3);
+.tweet-gen__textarea:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .tweet-gen__textarea::placeholder {
@@ -446,8 +446,8 @@
   cursor: default;
 }
 
-.tweet-gen__voice-prompt:not(:read-only):focus {
-  border-color: var(--t3);
+.tweet-gen__voice-prompt:not(:read-only):focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .tweet-gen__voice-prompt::placeholder {
@@ -519,8 +519,8 @@
   outline: none;
 }
 
-.tweet-gen__example-input:focus {
-  border-color: var(--t3);
+.tweet-gen__example-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 /* ---- Shared ---- */

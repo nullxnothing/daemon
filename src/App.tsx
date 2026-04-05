@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, lazy, Suspense } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
 import { BootLoader } from './components/BootLoader/BootLoader'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
@@ -52,8 +52,9 @@ function App() {
 
   const { loadProjects, addProject, removeProject } = useProjects()
   const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
+  const closeAgentLauncher = useCallback(() => setShowAgentLauncher(false), [])
 
-  useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowRightPanel, setShowTerminal })
+  useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
 
   const centerRef = useRef<HTMLDivElement>(null)
   const halfCenter = Math.round((window.innerHeight - 80) / 2)
@@ -177,6 +178,8 @@ function App() {
 
   return (
     <div className="app">
+      <a href="#editor-area" className="skip-link">Skip to editor</a>
+      <a href="#terminal-area" className="skip-link">Skip to terminal</a>
       <BootLoader ready={appReady} />
       {crashWarningCount !== null && (
         <div className="crash-warning-banner">
@@ -204,15 +207,13 @@ function App() {
       <div className="main-layout">
         <IconSidebar
           showExplorer={showExplorer}
-          showRightPanel={showRightPanel}
           onToggleExplorer={() => setShowExplorer(!showExplorer)}
-          onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
           onOpenAgentLauncher={() => setShowAgentLauncher(true)}
           isAgentLauncherOpen={showAgentLauncher}
         />
 
         {showExplorer && activeProjectPath && (
-          <div className="left-panel" data-tour="file-explorer" style={drawerOpen ? { pointerEvents: 'none' } : undefined}>
+          <div className="left-panel" data-tour="file-explorer">
             <FileExplorer />
           </div>
         )}
@@ -220,7 +221,7 @@ function App() {
         <div className="center-area" style={{ position: 'relative' }} ref={centerRef}>
           <SolanaOnboardingBanner />
           {!isEditorCollapsed && (
-            <div className="editor-area" data-tour="editor" style={drawerOpen ? { pointerEvents: 'none' } : undefined}>
+            <div id="editor-area" className="editor-area" data-tour="editor">
               {centerMode === 'grind' ? (
                 <AgentGrid />
               ) : (
@@ -233,6 +234,7 @@ function App() {
           {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
           {centerMode === 'canvas' && (
             <div
+              id="terminal-area"
               className="terminal-area"
               data-tour="terminal"
               style={{
@@ -258,7 +260,7 @@ function App() {
 
       <AgentLauncher
         isOpen={showAgentLauncher}
-        onClose={() => setShowAgentLauncher(false)}
+        onClose={closeAgentLauncher}
       />
 
       {paletteMode && (

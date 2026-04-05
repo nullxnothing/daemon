@@ -254,7 +254,13 @@ export function TerminalPanel() {
       />
       <div className="terminal-views">
         {paneIds.length <= 1 ? (
-          activeTerminalId ? <TerminalInstance key={activeTerminalId} id={activeTerminalId} isVisible /> : null
+          /* Render ALL terminal instances to avoid unmount/remount on tab switch.
+             Only the active one is visible — the rest are hidden via isVisible=false.
+             This prevents xterm's Viewport.syncScrollArea "dimensions" crash that
+             occurs when the terminal is disposed while internal observers are pending. */
+          visibleTerminals.map((tab) => (
+            <TerminalInstance key={tab.id} id={tab.id} isVisible={tab.id === activeTerminalId} />
+          ))
         ) : (
           <div className={`terminal-split ${splitLayout?.direction ?? 'vertical'}`}>
             {paneIds.map((id) => (

@@ -4,6 +4,7 @@ import { useUIStore } from '../store/ui'
 interface UseAppShortcutsOptions {
   setPaletteMode: Dispatch<SetStateAction<'commands' | 'files' | null>>
   setShowAgentLauncher: Dispatch<SetStateAction<boolean>>
+  setShowExplorer: Dispatch<SetStateAction<boolean>>
   setShowRightPanel: Dispatch<SetStateAction<boolean>>
   setShowTerminal: Dispatch<SetStateAction<boolean>>
 }
@@ -11,6 +12,7 @@ interface UseAppShortcutsOptions {
 export function useAppShortcuts({
   setPaletteMode,
   setShowAgentLauncher,
+  setShowExplorer,
   setShowRightPanel,
   setShowTerminal,
 }: UseAppShortcutsOptions) {
@@ -47,6 +49,9 @@ export function useAppShortcuts({
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
         e.preventDefault()
         useUIStore.getState().toggleDashboardTab()
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'e') {
+        e.preventDefault()
+        setShowExplorer((v) => !v)
       } else if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault()
         setShowTerminal((v) => !v)
@@ -69,5 +74,5 @@ export function useAppShortcuts({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setPaletteMode, setShowAgentLauncher, setShowRightPanel, setShowTerminal])
+  }, [setPaletteMode, setShowAgentLauncher, setShowExplorer, setShowRightPanel, setShowTerminal])
 }

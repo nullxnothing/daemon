@@ -286,7 +286,7 @@
 
 .agent-form-field input:focus,
 .agent-form-field select:focus,
-.agent-form-field textarea:focus {
+.agent-form-field textarea:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }

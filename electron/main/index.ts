@@ -33,6 +33,7 @@ import { registerRegistryHandlers } from '../ipc/registry'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
+import { registerPnlHandlers } from '../ipc/pnl'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
@@ -131,6 +132,7 @@ function registerAllIpc() {
   registerColosseumHandlers()
   registerVaultHandlers()
   registerValidatorHandlers()
+  registerPnlHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -153,13 +155,13 @@ function registerAllIpc() {
   ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
 
   // Shell utilities
-  ipcMain.handle('shell:open-external', (_event, url: string) => {
+  ipcMain.handle('shell:open-external', async (_event, url: string) => {
     try {
       const parsed = new URL(url)
       if (parsed.protocol !== 'https:') return
       if (parsed.username || parsed.password) return
-      shell.openExternal(url)
-    } catch { return }
+      await shell.openExternal(url)
+    } catch { /* invalid URL */ }
   })
 }
 

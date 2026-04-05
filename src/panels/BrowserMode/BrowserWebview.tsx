@@ -200,8 +200,6 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     ref: webviewRef as React.Ref<HTMLElement>,
     className: 'browser-webview',
     partition: 'persist:browser',
-    nodeintegration: false,
-    allowpopups: false,
     allowedfeatures: '',
     src: currentUrl,
   } as React.DetailedHTMLProps<React.WebViewHTMLAttributes<HTMLWebViewElement>, HTMLWebViewElement>

@@ -451,6 +451,10 @@ export interface TerminalSession {
   isAgentShell?: boolean
   /** Local session tracker ID — set when agent spawns via spawnAgent. */
   localSessionId?: string | null
+  /** Buffers PTY data until renderer signals ready */
+  dataBuffer?: string[]
+  /** True once renderer has attached its xterm onData listener */
+  rendererReady?: boolean
 }
 
 export interface TerminalCreateInput {
@@ -557,6 +561,81 @@ export interface AgentWalletEntry {
 export interface WalletBalanceResult {
   sol: number
   lamports: number
+}
+
+// --- PnL Tracking ---
+
+export interface TradeRecord {
+  id: number
+  signature: string
+  wallet: string
+  mint: string
+  side: 'buy' | 'sell'
+  tokenAmount: number
+  solAmount: number
+  pricePerToken: number
+  source: string
+  timestamp: number
+}
+
+export interface CostBasisEntry {
+  wallet: string
+  mint: string
+  totalBought: number
+  totalSolSpent: number
+  totalSold: number
+  totalSolReceived: number
+  avgBuyPrice: number
+  realizedPnlSol: number
+  lastUpdated: number
+}
+
+export interface PnlHolding {
+  mint: string
+  symbol: string
+  name: string
+  logoUri: string | null
+  amount: number
+  currentPriceUsd: number
+  currentPriceSol: number
+  valueUsd: number
+  avgBuyPriceSol: number
+  avgBuyPriceUsd: number
+  costBasisUsd: number
+  unrealizedPnlUsd: number
+  unrealizedPnlPct: number
+  realizedPnlUsd: number
+  totalTrades: number
+  priceSource: string
+}
+
+export interface PnlPortfolio {
+  totalValueUsd: number
+  totalCostBasisUsd: number
+  totalUnrealizedPnlUsd: number
+  totalUnrealizedPnlPct: number
+  totalRealizedPnlUsd: number
+  holdings: PnlHolding[]
+  lastPriceUpdate: number
+  syncStatus: 'idle' | 'syncing' | 'done' | 'error'
+  syncProgress?: { current: number; total: number }
+}
+
+export interface PnlTokenDetail {
+  mint: string
+  symbol: string
+  name: string
+  costBasis: CostBasisEntry | null
+  trades: TradeRecord[]
+  currentPriceUsd: number
+  currentPriceSol: number
+  priceSource: string
+}
+
+export interface PnlSyncResult {
+  tradesFound: number
+  newTrades: number
+  walletsProcessed: number
 }
 
 // --- MCP Management ---

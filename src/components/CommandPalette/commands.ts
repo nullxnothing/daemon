@@ -82,6 +82,12 @@ export function buildCommands(deps: CommandDeps): Command[] {
       action: () => setDrawerTool('wallet'),
     },
     {
+      id: 'nav:starter',
+      label: 'New Project from Template',
+      category: 'Navigation',
+      action: () => setDrawerTool('starter'),
+    },
+    {
       id: 'nav:settings',
       label: 'Open Settings',
       shortcut: 'Ctrl+,',
@@ -99,12 +105,6 @@ export function buildCommands(deps: CommandDeps): Command[] {
       label: 'Open Processes',
       category: 'Navigation',
       action: () => setDrawerTool('processes'),
-    },
-    {
-      id: 'nav:tools',
-      label: 'Open Tools',
-      category: 'Navigation',
-      action: () => setActivePanel('tools'),
     },
     {
       id: 'nav:plugins',

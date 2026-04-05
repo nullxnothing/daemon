@@ -1,0 +1,334 @@
+/* ProjectStarter Panel */
+.starter-panel {
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* Hero section */
+.starter-hero {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.starter-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--t1);
+  margin: 0 0 4px;
+  letter-spacing: -0.3px;
+}
+
+.starter-subtitle {
+  font-size: 12px;
+  color: var(--t3);
+  margin: 0 0 16px;
+}
+
+.starter-filter {
+  width: 100%;
+  max-width: 320px;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-size: 12px;
+  padding: 7px 12px;
+  font-family: var(--font-ui);
+  outline: none;
+}
+
+.starter-filter:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-glow);
+}
+
+.starter-filter::placeholder {
+  color: var(--t4);
+}
+
+/* Template grid */
+.starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.starter-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  text-align: left;
+}
+
+.starter-card:hover {
+  background: var(--s3);
+  border-color: var(--green-dim);
+  transform: translateY(-1px);
+}
+
+.starter-card:active {
+  transform: scale(0.98);
+}
+
+.starter-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--s3);
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.starter-card-icon--lg {
+  width: 52px;
+  height: 52px;
+}
+
+.starter-card:hover .starter-card-icon {
+  background: var(--green-glow);
+}
+
+.starter-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.starter-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 2px;
+}
+
+.starter-card-desc {
+  font-size: 11px;
+  color: var(--t3);
+  line-height: 1.4;
+}
+
+.starter-card-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.starter-tag {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--t3);
+  background: var(--s4);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs, 3px);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.starter-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 32px;
+  font-size: 12px;
+  color: var(--t3);
+}
+
+/* Back button */
+.starter-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--t3);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.starter-back:hover {
+  color: var(--t1);
+  background: var(--s3);
+}
+
+/* Configure step */
+.starter-configure {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.starter-configure-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.starter-configure-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t1);
+  margin: 0 0 2px;
+}
+
+.starter-configure-desc {
+  font-size: 11px;
+  color: var(--t3);
+  margin: 0;
+}
+
+.starter-field {
+  margin-bottom: 16px;
+}
+
+.starter-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.starter-input {
+  width: 100%;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-size: 13px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.starter-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-glow);
+}
+
+.starter-input::placeholder {
+  color: var(--t4);
+}
+
+.starter-path-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.starter-path-display {
+  flex: 1;
+  font-size: 11px;
+  color: var(--t3);
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.starter-browse-btn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t1);
+  background: var(--s3);
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.starter-browse-btn:hover {
+  background: var(--s4);
+  border-color: var(--s6);
+}
+
+.starter-error {
+  font-size: 11px;
+  color: var(--red);
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  background: var(--red-glow);
+  border-radius: var(--radius-sm);
+}
+
+.starter-build-btn {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--green);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.starter-build-btn:hover:not(:disabled) {
+  background: var(--green-dim);
+}
+
+.starter-build-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.starter-build-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Building state */
+.starter-building {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  gap: 12px;
+}
+
+.starter-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--s4);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: starterSpin 0.8s linear infinite;
+}
+
+@keyframes starterSpin {
+  to { transform: rotate(360deg); }
+}
+
+.starter-building-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  margin: 0;
+}
+
+.starter-building-desc {
+  font-size: 11px;
+  color: var(--t3);
+  margin: 0;
+  max-width: 300px;
+  line-height: 1.4;
+}

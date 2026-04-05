@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
+  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
@@ -32,7 +33,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color var(--transition-normal);
 }
 
 .settings-tab:hover {
@@ -75,7 +76,7 @@
 .settings-divider {
   height: 1px;
   background: var(--s5);
-  margin: 4px 0;
+  margin: 12px 0;
 }
 
 .settings-empty {
@@ -92,6 +93,8 @@
   border: 1px solid var(--s5);
   border-radius: 6px;
   overflow: hidden;
+  background: var(--s1);
+  box-shadow: var(--shadow-lifted);
 }
 
 .settings-key-row {
@@ -140,8 +143,8 @@
   outline: none;
 }
 
-.settings-input:focus {
-  border-color: var(--t3);
+.settings-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .settings-btn {
@@ -193,8 +196,8 @@
 }
 
 .settings-integration-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--t3);
   flex-shrink: 0;
@@ -324,7 +327,7 @@
   gap: 10px;
   padding: 8px 14px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .settings-crash-summary:hover {
@@ -370,7 +373,7 @@
 
 .settings-crash-chevron {
   flex-shrink: 0;
-  transition: transform 0.15s;
+  transition: transform var(--transition-normal);
 }
 
 .settings-crash-chevron.expanded {

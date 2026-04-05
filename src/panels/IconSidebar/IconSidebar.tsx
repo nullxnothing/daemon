@@ -1,19 +1,18 @@
+import { useState, useCallback, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
-import { TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
+import { TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
 
 interface IconSidebarProps {
   showExplorer: boolean
-  showRightPanel: boolean
   onToggleExplorer: () => void
-  onToggleRightPanel: () => void
   onOpenAgentLauncher: () => void
   isAgentLauncherOpen: boolean
 }
 
-export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, onToggleRightPanel, onOpenAgentLauncher }: IconSidebarProps) {
+export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLauncher }: IconSidebarProps) {
   const drawerOpen = useUIStore((s) => s.drawerOpen)
   const drawerTool = useUIStore((s) => s.drawerTool)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
@@ -21,23 +20,24 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
   const rightPanelTab = useUIStore((s) => s.rightPanelTab)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
 
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+  const [dropZoneActive, setDropZoneActive] = useState(false)
+
   const handleExplorerClick = () => {
     if (drawerOpen) useUIStore.getState().closeDrawer()
     onToggleExplorer()
   }
 
   const handlePinnedToolClick = (toolId: string) => {
-    // Browser is a pinned editor tab, not a drawer panel
     if (toolId === 'browser') {
+      if (useUIStore.getState().drawerOpen) useUIStore.getState().closeDrawer()
       useUIStore.getState().toggleBrowserTab()
       return
     }
     const state = useUIStore.getState()
     if (state.drawerOpen && state.drawerTool === toolId) {
-      // Already showing this tool — close drawer
       state.closeDrawer()
     } else {
-      // Open drawer with this tool
       state.setDrawerTool(toolId)
     }
   }
@@ -51,6 +51,81 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
     }
   }
 
+  // --- Drag-and-drop for pinned tools ---
+  const handlePinDragStart = useCallback((e: DragEvent<HTMLButtonElement>, toolId: string) => {
+    e.dataTransfer.setData(TOOL_DND_MIME, toolId)
+    e.dataTransfer.effectAllowed = 'move'
+    ;(e.currentTarget as HTMLElement).classList.add('sidebar-icon--dragging')
+  }, [])
+
+  const handlePinDragEnd = useCallback((e: DragEvent<HTMLButtonElement>) => {
+    ;(e.currentTarget as HTMLElement).classList.remove('sidebar-icon--dragging')
+    setDragOverIdx(null)
+    setDropZoneActive(false)
+  }, [])
+
+  const handlePinDragOver = useCallback((e: DragEvent<HTMLButtonElement>, idx: number) => {
+    if (!e.dataTransfer.types.includes(TOOL_DND_MIME)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverIdx(idx)
+  }, [])
+
+  const handlePinDrop = useCallback((e: DragEvent<HTMLButtonElement>, targetIdx: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverIdx(null)
+    setDropZoneActive(false)
+    const toolId = e.dataTransfer.getData(TOOL_DND_MIME)
+    if (!toolId) return
+
+    const store = useUIStore.getState()
+    const currentPinned = [...store.pinnedTools]
+    const existingIdx = currentPinned.indexOf(toolId)
+
+    if (existingIdx !== -1) {
+      // Reorder within pinned
+      currentPinned.splice(existingIdx, 1)
+      currentPinned.splice(targetIdx, 0, toolId)
+    } else {
+      // Drop from drawer — pin at position
+      currentPinned.splice(targetIdx, 0, toolId)
+    }
+    store.setPinnedTools(currentPinned)
+  }, [])
+
+  // Drop zone at end of pinned tools (for adding new pins)
+  const handleZoneDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    if (!e.dataTransfer.types.includes(TOOL_DND_MIME)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDropZoneActive(true)
+  }, [])
+
+  const handleZoneDragLeave = useCallback(() => {
+    setDropZoneActive(false)
+  }, [])
+
+  const handleZoneDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDropZoneActive(false)
+    setDragOverIdx(null)
+    const toolId = e.dataTransfer.getData(TOOL_DND_MIME)
+    if (!toolId) return
+
+    const store = useUIStore.getState()
+    if (store.pinnedTools.includes(toolId)) return // already pinned, ignore
+    store.pinTool(toolId)
+  }, [])
+
+  // Right-click to unpin
+  const handleContextMenu = useCallback((e: React.MouseEvent, toolId: string) => {
+    e.preventDefault()
+    useUIStore.getState().unpinTool(toolId)
+  }, [])
+
+  const visiblePinned = pinnedTools.filter((id) => isToolVisible(id))
+
   return (
     <aside className="icon-sidebar" data-tour="sidebar">
       {/* Files */}
@@ -62,18 +137,6 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H13L11 5H5C3.9 5 3 5.9 3 7Z"/>
-        </svg>
-      </button>
-
-      {/* Claude — toggle right panel */}
-      <button
-        className={`sidebar-icon sidebar-toggle ${showRightPanel ? 'active' : ''}`}
-        onClick={onToggleRightPanel}
-        title="Claude (Ctrl+B)"
-        aria-label="Claude"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
       </button>
 
@@ -91,26 +154,42 @@ export function IconSidebar({ showExplorer, showRightPanel, onToggleExplorer, on
         </svg>
       </button>
 
-      {/* Pinned tools — filtered by workspace profile visibility */}
-      {pinnedTools.filter((id) => isToolVisible(id)).length > 0 && <div className="sidebar-divider" />}
-      {pinnedTools.filter((id) => isToolVisible(id)).map((toolId) => {
-        // Check built-in icons first, then plugin registry
+      {/* Pinned tools — draggable + drop targets */}
+      {visiblePinned.length > 0 && <div className="sidebar-divider" />}
+      {visiblePinned.map((toolId, idx) => {
         const Icon = TOOL_ICONS[toolId] ?? PLUGIN_REGISTRY[toolId]?.icon
         const name = TOOL_NAMES[toolId] ?? PLUGIN_REGISTRY[toolId]?.name ?? toolId
         if (!Icon) return null
         const isActive = toolId === 'browser' ? browserTabActive : (drawerOpen && drawerTool === toolId)
+        const color = TOOL_COLORS[toolId]
         return (
           <button
             key={toolId}
-            className={`sidebar-icon ${isActive ? 'active' : ''}`}
+            className={`sidebar-icon ${isActive ? 'active' : ''}${dragOverIdx === idx ? ' sidebar-icon--drop-target' : ''}`}
+            style={color ? { color } as React.CSSProperties : undefined}
             onClick={() => handlePinnedToolClick(toolId)}
-            title={name}
+            onContextMenu={(e) => handleContextMenu(e, toolId)}
+            draggable
+            onDragStart={(e) => handlePinDragStart(e, toolId)}
+            onDragEnd={handlePinDragEnd}
+            onDragOver={(e) => handlePinDragOver(e, idx)}
+            onDragLeave={() => setDragOverIdx(null)}
+            onDrop={(e) => handlePinDrop(e, idx)}
+            title={`${name} (right-click to unpin)`}
             aria-label={name}
           >
             <Icon size={18} />
           </button>
         )
       })}
+
+      {/* Drop zone for pinning new tools from drawer */}
+      <div
+        className={`sidebar-drop-zone${dropZoneActive ? ' sidebar-drop-zone--active' : ''}`}
+        onDragOver={handleZoneDragOver}
+        onDragLeave={handleZoneDragLeave}
+        onDrop={handleZoneDrop}
+      />
 
       <div className="sidebar-spacer" />
 

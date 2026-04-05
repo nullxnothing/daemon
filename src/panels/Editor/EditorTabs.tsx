@@ -148,16 +148,24 @@ export function EditorTabs({
             {file.isDirty ? (
               <span className="editor-tab-dirty" title="Unsaved changes" />
             ) : (
-              <button
+              <span
                 className="editor-tab-close"
+                role="button"
+                tabIndex={0}
                 aria-label="Close tab"
                 onClick={(e) => {
                   e.stopPropagation()
                   onCloseFile(file.projectId, file.path)
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation()
+                    onCloseFile(file.projectId, file.path)
+                  }
+                }}
               >
                 &times;
-              </button>
+              </span>
             )}
           </button>
         ))}

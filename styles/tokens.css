@@ -68,6 +68,19 @@
   --space-lg: 16px;
   --space-xl: 24px;
 
+  /* Typography scale */
+  --font-xs: 9px;     /* Badges, chip labels */
+  --font-sm: 10px;    /* Section headers, captions */
+  --font-base: 11px;  /* Body text, inputs */
+  --font-md: 12px;    /* List items, labels */
+  --font-lg: 14px;    /* Panel sub-titles */
+  --font-xl: 16px;    /* Panel titles */
+
+  /* Button heights */
+  --btn-h-sm: 24px;
+  --btn-h-md: 28px;
+  --btn-h-lg: 32px;
+
   /* Border radius */
   --radius-sm: 3px;
   --radius-md: 4px;
@@ -81,13 +94,9 @@
   /* ── Premium Enhancement Tokens ── */
 
   /* Surface gradients — felt, not seen */
-  --surface-gradient: linear-gradient(180deg, var(--s2) 0%, var(--s1) 100%);
   --surface-gradient-subtle: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
-  --surface-depth: radial-gradient(ellipse at top center, rgba(255,255,255,0.015) 0%, transparent 60%);
 
-  /* Luminous border tokens — thin light lines that feel engineered */
-  --border-glow: rgba(62, 207, 142, 0.08);
-  --border-luminous: linear-gradient(90deg, var(--green-dim), transparent 80%);
+  /* Luminous border tokens */
   --border-glass: rgba(255, 255, 255, 0.04);
 
   /* Micro-shadow tokens — depth without heaviness */
@@ -98,7 +107,6 @@
   /* Ambient glow tokens — soft emission, not neon */
   --glow-green-ambient: 0 0 20px rgba(62, 207, 142, 0.04);
   --glow-green-soft: 0 0 12px rgba(62, 207, 142, 0.06);
-  --glow-blue-ambient: 0 0 20px rgba(96, 165, 250, 0.04);
 
   /* Frosted glass */
   --glass-blur: blur(12px) saturate(130%);

@@ -4,82 +4,388 @@
   height: 100%;
   overflow-y: auto;
   gap: 0;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(62, 207, 142, 0.03) 0%, transparent 60%),
+    var(--surface-gradient-subtle);
 }
 
-.solana-section {
-  padding: 10px 12px;
-  border-top: 1px solid var(--s5);
+/* ── Validator zone (full width) ── */
+.solana-validator-zone {
+  padding: 16px;
+  border-bottom: 1px solid rgba(62, 207, 142, 0.06);
 }
 
-.solana-section:first-child {
-  border-top: none;
+/* ── 50/50 split layout ── */
+.solana-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  flex: 1;
+  min-height: 0;
+  background: rgba(62, 207, 142, 0.06);
 }
 
-.solana-section-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--t2);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 8px;
+.solana-split-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.solana-row {
+.solana-split-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 5px 0;
+  padding: 12px 14px 8px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
 }
 
-.solana-row-info {
+.solana-split-title {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.solana-split-count {
+  font-size: var(--font-xs);
+  color: var(--t4);
+  font-family: var(--font-code);
+}
+
+.solana-split-body {
+  padding: 0 14px 14px;
+  flex: 1;
+}
+
+/* ── Zone headers ── */
+.solana-zone {
+  border-top: 1px solid rgba(62, 207, 142, 0.06);
+}
+
+.solana-zone:first-child {
+  border-top: none;
+}
+
+.solana-zone-header {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.solana-zone-header:hover {
+  background: rgba(62, 207, 142, 0.02);
+}
+
+.solana-zone-label {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.solana-zone-summary {
+  font-size: var(--font-xs);
+  color: var(--t4);
+  margin-left: auto;
+  margin-right: 6px;
+  font-family: var(--font-code);
+}
+
+.solana-zone-chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--t4);
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.solana-zone-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+.solana-zone-body {
+  padding: 0 16px 16px;
+  overflow: hidden;
+}
+
+.solana-zone-body.collapsed {
+  display: none;
+}
+
+/* ── Zone A: Environment Bar ── */
+.solana-env-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-bottom: 1px solid rgba(62, 207, 142, 0.08);
+  background: rgba(62, 207, 142, 0.02);
+}
+
+.solana-env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(62, 207, 142, 0.2);
+  background: rgba(62, 207, 142, 0.06);
+  font-family: var(--font-code);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgba(62, 207, 142, 0.04);
+}
+
+.solana-env-indicators {
+  font-size: var(--font-sm);
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   flex: 1;
   min-width: 0;
 }
 
-.solana-row-name {
-  font-size: 12px;
-  color: var(--t1);
-  font-weight: 500;
+.solana-env-health {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
 }
 
-.solana-row-desc {
-  font-size: 10px;
-  color: var(--t3);
+.solana-env-health.green { background: var(--green); color: rgba(62, 207, 142, 0.4); }
+.solana-env-health.amber { background: var(--amber); color: rgba(240, 180, 41, 0.4); }
+.solana-env-health.red { background: var(--red); color: rgba(239, 83, 80, 0.4); }
+.solana-env-health.grey { background: var(--t4); color: transparent; }
+
+.solana-env-none {
+  font-size: var(--font-base);
+  color: var(--t4);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--s4);
 }
 
-/* Status dot */
-.solana-dot {
+/* ── Status dot ── */
+.sol-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.solana-dot.green { background: var(--green); }
-.solana-dot.grey { background: var(--t4); }
-.solana-dot.amber { background: var(--amber); }
-.solana-dot.red { background: var(--red); }
+.sol-dot.green { background: var(--green); box-shadow: 0 0 6px rgba(62, 207, 142, 0.3); }
+.sol-dot.grey { background: var(--t4); }
+.sol-dot.amber { background: var(--amber); box-shadow: 0 0 6px rgba(240, 180, 41, 0.3); }
+.sol-dot.red { background: var(--red); box-shadow: 0 0 6px rgba(239, 83, 80, 0.3); }
+.sol-dot.blue { background: var(--blue); box-shadow: 0 0 6px rgba(96, 165, 250, 0.3); }
+
+/* ── Validator hero card ── */
+.solana-validator-card {
+  background: var(--s1);
+  background-image: var(--surface-gradient-subtle);
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-lifted);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle top-edge accent line */
+.solana-validator-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(62, 207, 142, 0.15), transparent);
+}
+
+.solana-validator-card.running {
+  border-color: rgba(62, 207, 142, 0.25);
+  box-shadow: var(--shadow-lifted), var(--glow-green-soft), inset 0 0 30px rgba(62, 207, 142, 0.02);
+}
+
+.solana-validator-card.running::before {
+  background: linear-gradient(90deg, transparent, rgba(62, 207, 142, 0.4), transparent);
+  height: 2px;
+}
+
+.solana-validator-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.solana-validator-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--t1);
+  letter-spacing: 0.3px;
+}
+
+.solana-validator-status-text {
+  font-size: var(--font-sm);
+  color: var(--t3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-code);
+}
+
+/* Segmented toggle */
+.solana-seg-toggle {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.solana-seg-btn {
+  flex: 1;
+  height: 28px;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--t4);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.solana-seg-btn:hover:not(.active):not(:disabled) {
+  color: var(--t2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.solana-seg-btn.active {
+  background: var(--s2);
+  border-color: rgba(62, 207, 142, 0.3);
+  color: var(--green);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
+}
+
+.solana-seg-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.solana-validator-endpoint {
+  font-family: var(--font-code);
+  font-size: var(--font-sm);
+  color: var(--green);
+  padding: 6px 8px;
+  background: rgba(62, 207, 142, 0.04);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(62, 207, 142, 0.1);
+  margin-bottom: 4px;
+}
+
+.solana-validator-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ── Compact service rows (MCP + integrations) ── */
+.solana-services-label {
+  font-size: var(--font-xs);
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 14px 0 6px;
+  font-weight: 600;
+}
+
+.solana-service-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.solana-service-row + .solana-service-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.solana-service-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-service-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.solana-service-name {
+  font-size: var(--font-md);
+  color: var(--t1);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.solana-service-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--s4);
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
 
 /* Toggle switch */
 .solana-toggle {
   position: relative;
-  width: 28px;
-  height: 14px;
-  border-radius: 7px;
+  width: 30px;
+  height: 16px;
+  border-radius: 8px;
   background: var(--s4);
   cursor: pointer;
   flex-shrink: 0;
   border: none;
   padding: 0;
-  transition: background 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .solana-toggle.on {
   background: var(--green);
+  box-shadow: 0 0 10px rgba(62, 207, 142, 0.2);
 }
 
 .solana-toggle::after {
@@ -87,169 +393,239 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--t1);
-  transition: transform 0.15s;
+  transition: transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .solana-toggle.on::after {
   transform: translateX(14px);
 }
 
-/* Buttons */
-.solana-btn {
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  color: var(--t2);
-  background: var(--s2);
-  border: 1px solid var(--border);
-  cursor: pointer;
-}
-
-.solana-btn:hover:not(:disabled) {
-  background: var(--s4);
-  color: var(--t1);
-}
-
-.solana-btn.primary {
-  background: rgba(62, 207, 142, 0.1);
-  border-color: rgba(62, 207, 142, 0.2);
-  color: var(--green);
-}
-
-.solana-btn.primary:hover:not(:disabled) {
-  background: rgba(62, 207, 142, 0.18);
-}
-
-.solana-btn:disabled {
+.solana-toggle:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.solana-btn-row {
-  display: flex;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-/* Validator section */
-.solana-validator-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.solana-validator-tab {
-  flex: 1;
-  height: 26px;
-  font-size: 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
+/* ── Buttons ── */
+.sol-btn {
+  height: var(--btn-h-sm);
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--t2);
   background: var(--s2);
-  color: var(--t3);
+  border: 1px solid var(--s5);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
-.solana-validator-tab.active {
-  background: var(--s4);
+.sol-btn:hover:not(:disabled) {
+  background: var(--s3);
   color: var(--t1);
-  border-color: var(--t3);
+  border-color: var(--s6);
+  transform: translateY(-1px);
 }
 
-.solana-validator-status {
+.sol-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.sol-btn.green {
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.06);
+  border-color: rgba(62, 207, 142, 0.2);
+}
+
+.sol-btn.green:hover:not(:disabled) {
+  background: rgba(62, 207, 142, 0.12);
+  border-color: rgba(62, 207, 142, 0.4);
+  box-shadow: 0 0 12px rgba(62, 207, 142, 0.08);
+}
+
+.sol-btn.red {
+  color: var(--red);
+  border-color: rgba(239, 83, 80, 0.2);
+}
+
+.sol-btn.red:hover:not(:disabled) {
+  background: rgba(239, 83, 80, 0.08);
+  border-color: rgba(239, 83, 80, 0.3);
+}
+
+.sol-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sol-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* ── Integration rows (payment protocols) ── */
+.solana-integration-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 10px;
+  margin: 0 -10px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.solana-integration-row + .solana-integration-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.solana-integration-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.solana-integration-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.solana-integration-name {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--t1);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  color: var(--t2);
-  padding: 6px 8px;
-  background: var(--s1);
-  border-radius: 4px;
-  border: 1px solid var(--s4);
 }
 
-/* Project status */
-.solana-project-info {
+.solana-integration-desc {
+  font-size: var(--font-sm);
+  color: var(--t4);
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.solana-integration-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
-  background: var(--s1);
-  border-radius: 4px;
-  border: 1px solid var(--s4);
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.solana-project-framework {
-  font-size: 11px;
-  color: var(--t1);
-  font-weight: 500;
+/* ── Skills section ── */
+.solana-skill-group {
+  margin-bottom: 10px;
 }
 
-.solana-project-indicator {
-  font-size: 9px;
-  color: var(--t3);
+.solana-skill-group:last-child {
+  margin-bottom: 0;
 }
 
-.solana-empty {
-  font-size: 11px;
-  color: var(--t3);
-  padding: 8px 0;
+.solana-skill-group-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
 }
 
-/* Skill chips */
 .solana-skills-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
 }
 
 .solana-skill-chip {
   display: inline-flex;
   align-items: center;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 3px;
-  font-size: 9px;
-  font-family: var(--font-code, 'JetBrains Mono', monospace);
-  color: var(--t2);
-  background: var(--s2);
-  border: 1px solid var(--s5);
-}
-
-/* Payment cards */
-.solana-payment-card {
-  padding: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  font-family: var(--font-code);
+  color: var(--t3);
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
 }
 
-.solana-payment-card + .solana-payment-card {
-  margin-top: 6px;
+.solana-skill-chip:hover {
+  background: var(--s2);
+  color: var(--green);
+  border-color: rgba(62, 207, 142, 0.3);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
+  transform: translateY(-1px);
 }
 
-.solana-payment-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+.solana-skill-chip.copied {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.06);
 }
 
-.solana-payment-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--t1);
+.solana-skill-chip.dimmed {
+  opacity: 0.35;
+  cursor: default;
 }
 
-.solana-payment-desc {
-  font-size: 10px;
+.solana-skill-chip.dimmed:hover {
+  background: var(--s1);
   color: var(--t3);
-  line-height: 1.3;
+  border-color: var(--s4);
+  box-shadow: none;
+  transform: none;
+}
+
+.solana-skills-expand {
+  font-size: var(--font-sm);
+  color: var(--green);
+  cursor: pointer;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  font-family: var(--font-code);
+  font-weight: 500;
+  transition: opacity var(--transition-fast);
+}
+
+.solana-skills-expand:hover {
+  opacity: 0.8;
+}
+
+/* ── Toast ── */
+.solana-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(62, 207, 142, 0.1);
+  border: 1px solid rgba(62, 207, 142, 0.3);
+  color: var(--green);
+  font-size: var(--font-base);
+  font-family: var(--font-code);
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(62, 207, 142, 0.08);
+  animation: solana-toast-in 0.2s ease-out;
+}
+
+@keyframes solana-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* ── Empty state ── */
+.solana-empty {
+  font-size: var(--font-base);
+  color: var(--t4);
+  padding: 8px 0;
 }

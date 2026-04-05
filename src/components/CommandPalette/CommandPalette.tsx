@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { Command } from './commands'
+import { FocusTrap } from '../FocusTrap'
 import './CommandPalette.css'
 
 interface FileItem {
@@ -133,7 +134,8 @@ export function CommandPalette({ mode, commands, files, projectRoot, onClose, on
 
   return (
     <div className="palette-overlay" onClick={handleOverlayClick}>
-      <div className="palette-box" onKeyDown={handleKeyDown}>
+      <FocusTrap>
+      <div className="palette-box" onKeyDown={handleKeyDown} role="dialog" aria-label="Command palette">
         <input
           ref={inputRef}
           className="palette-input"
@@ -197,6 +199,7 @@ export function CommandPalette({ mode, commands, files, projectRoot, onClose, on
           )}
         </div>
       </div>
+      </FocusTrap>
     </div>
   )
 }

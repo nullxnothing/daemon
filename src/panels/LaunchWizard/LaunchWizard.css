@@ -150,7 +150,7 @@
   transition: border-color var(--transition-fast);
 }
 
-.lw-input:focus {
+.lw-input:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -172,7 +172,7 @@
   transition: border-color var(--transition-fast);
 }
 
-.lw-textarea:focus {
+.lw-textarea:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }

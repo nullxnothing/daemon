@@ -280,7 +280,7 @@
   outline: none;
 }
 
-.wizard-token-input:focus {
+.wizard-token-input:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -315,7 +315,7 @@
   outline: none;
 }
 
-.wizard-api-input:focus {
+.wizard-api-input:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }

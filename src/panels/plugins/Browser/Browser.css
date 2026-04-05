@@ -32,8 +32,8 @@
   outline: none;
 }
 
-.browser__url-input:focus {
-  border-color: var(--t3);
+.browser__url-input:focus-visible {
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 .browser__url-input::placeholder {
@@ -119,7 +119,7 @@
 .browser__action-btn--active {
   background: var(--s4);
   color: var(--t1);
-  border-color: var(--t3);
+  border-color: var(--focus); box-shadow: var(--focus-ring);
 }
 
 /* Content area */

@@ -76,10 +76,15 @@ function createPtySession(
     },
   })
 
-  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath, isAgentShell: false }
+  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath, isAgentShell: false, dataBuffer: [], rendererReady: false }
   sessions.set(id, session)
 
   ptyProcess.onData((data) => {
+    // Buffer data until the renderer signals it has attached the xterm listener
+    if (!session.rendererReady) {
+      session.dataBuffer!.push(data)
+      return
+    }
     getWin()?.webContents.send('terminal:data', { id, data })
 
     // Auto-detect port announcements and register them
@@ -110,7 +115,7 @@ function createPtySession(
     if (exiting?.localSessionId) {
       SessionTracker.endSession({
         sessionId: exiting.localSessionId,
-        status: exitCode === 0 ? 'completed' : 'completed',
+        status: exitCode === 0 ? 'completed' : 'failed',
       })
     }
     sessions.delete(id)
@@ -190,9 +195,10 @@ export function registerTerminalHandlers() {
     ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
 
     // If an initial prompt was provided, write it to the pty after a brief delay
-    // so the Claude CLI has time to initialize
+    // so the Claude CLI has time to initialize.
+    // Strip control characters to prevent injection via pty input.
     if (opts.initialPrompt?.trim()) {
-      const prompt = opts.initialPrompt.trim()
+      const prompt = opts.initialPrompt.trim().replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
       setTimeout(() => {
         try { session.pty.write(`${prompt}\r`) } catch { /* pty may have exited */ }
       }, 3000)
@@ -201,6 +207,20 @@ export function registerTerminalHandlers() {
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
     return response
   }))
+
+  // Renderer signals that xterm onData listener is attached — flush buffered data
+  ipcMain.on('terminal:ready', (_event, id: string) => {
+    const session = sessions.get(id)
+    if (!session) return
+    session.rendererReady = true
+    const win = getWin()
+    if (win && session.dataBuffer) {
+      for (const chunk of session.dataBuffer) {
+        win.webContents.send('terminal:data', { id, data: chunk })
+      }
+    }
+    session.dataBuffer = undefined
+  })
 
   ipcMain.on('terminal:write', (_event, id: string, data: string) => {
     const session = sessions.get(id)
@@ -248,6 +268,8 @@ export function registerTerminalHandlers() {
     let text = clipboard.readText()
     if (!text) return { pasted: false }
     if (text.length > PASTE_MAX_BYTES) text = text.slice(0, PASTE_MAX_BYTES)
+    // Strip dangerous control characters (keep tab, newline, carriage return)
+    text = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
 
     session.pty.write(text)
     return { pasted: true }

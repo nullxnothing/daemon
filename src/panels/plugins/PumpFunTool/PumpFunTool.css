@@ -98,7 +98,7 @@
   font-family: var(--font-ui);
 }
 
-.pf-input:focus {
+.pf-input:focus-visible {
   border-color: var(--green);
   outline: none;
 }
@@ -116,7 +116,7 @@
   min-height: 60px;
 }
 
-.pf-textarea:focus {
+.pf-textarea:focus-visible {
   border-color: var(--green);
   outline: none;
 }
