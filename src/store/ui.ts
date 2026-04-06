@@ -105,6 +105,7 @@ interface UIState {
   pinTool: (toolId: string) => void
   unpinTool: (toolId: string) => void
   setDrawerToolOrder: (order: string[]) => void
+  loadPinnedState: () => Promise<void>
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -330,12 +331,34 @@ export const useUIStore = create<UIState>((set) => ({
   closeDrawer: () => set({ drawerOpen: false, drawerFullscreen: false }),
   toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen, drawerFullscreen: false })),
   toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
-  setPinnedTools: (tools) => set({ pinnedTools: tools }),
-  pinTool: (toolId) => set((state) => ({
-    pinnedTools: state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId],
-  })),
-  unpinTool: (toolId) => set((state) => ({
-    pinnedTools: state.pinnedTools.filter((id) => id !== toolId),
-  })),
-  setDrawerToolOrder: (order) => set({ drawerToolOrder: order }),
+  setPinnedTools: (tools) => {
+    set({ pinnedTools: tools })
+    window.daemon.settings.setPinnedTools(tools).catch(() => {})
+  },
+  pinTool: (toolId) => set((state) => {
+    const next = state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId]
+    window.daemon.settings.setPinnedTools(next).catch(() => {})
+    return { pinnedTools: next }
+  }),
+  unpinTool: (toolId) => set((state) => {
+    const next = state.pinnedTools.filter((id) => id !== toolId)
+    window.daemon.settings.setPinnedTools(next).catch(() => {})
+    return { pinnedTools: next }
+  }),
+  setDrawerToolOrder: (order) => {
+    set({ drawerToolOrder: order })
+    window.daemon.settings.setDrawerToolOrder(order).catch(() => {})
+  },
+  loadPinnedState: async () => {
+    try {
+      const [pinnedRes, orderRes] = await Promise.all([
+        window.daemon.settings.getPinnedTools(),
+        window.daemon.settings.getDrawerToolOrder(),
+      ])
+      const updates: Partial<UIState> = {}
+      if (pinnedRes.ok && pinnedRes.data) updates.pinnedTools = pinnedRes.data
+      if (orderRes.ok && orderRes.data) updates.drawerToolOrder = orderRes.data
+      if (Object.keys(updates).length > 0) set(updates)
+    } catch { /* first run — use defaults */ }
+  },
 }))

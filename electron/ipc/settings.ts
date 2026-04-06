@@ -62,6 +62,26 @@ export function registerSettingsHandlers() {
     db.prepare('DELETE FROM app_crashes').run()
   }))
 
+  ipcMain.handle('settings:get-pinned-tools', ipcHandler(async () => {
+    return Settings.getPinnedTools()
+  }))
+
+  ipcMain.handle('settings:set-pinned-tools', ipcHandler(async (_event, tools: string[]) => {
+    if (!Array.isArray(tools)) throw new Error('Invalid pinned tools')
+    const safe = tools.filter((t) => typeof t === 'string').slice(0, 50)
+    Settings.setPinnedTools(safe)
+  }))
+
+  ipcMain.handle('settings:get-drawer-tool-order', ipcHandler(async () => {
+    return Settings.getDrawerToolOrder()
+  }))
+
+  ipcMain.handle('settings:set-drawer-tool-order', ipcHandler(async (_event, order: string[]) => {
+    if (!Array.isArray(order)) throw new Error('Invalid drawer tool order')
+    const safe = order.filter((t) => typeof t === 'string').slice(0, 50)
+    Settings.setDrawerToolOrder(safe)
+  }))
+
   ipcMain.handle('settings:get-workspace-profile', ipcHandler(async () => {
     return Settings.getWorkspaceProfile()
   }))
