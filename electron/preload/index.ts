@@ -189,6 +189,10 @@ contextBridge.exposeInMainWorld('daemon', {
     reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
     getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
     clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
+    getPinnedTools: () => ipcRenderer.invoke('settings:get-pinned-tools'),
+    setPinnedTools: (tools: string[]) => ipcRenderer.invoke('settings:set-pinned-tools', tools),
+    getDrawerToolOrder: () => ipcRenderer.invoke('settings:get-drawer-tool-order'),
+    setDrawerToolOrder: (order: string[]) => ipcRenderer.invoke('settings:set-drawer-tool-order', order),
     getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
     onCrashWarning: (callback: (count: number) => void) => {

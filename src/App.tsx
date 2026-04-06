@@ -87,6 +87,7 @@ function App() {
     loadProjects(guard)
     usePluginStore.getState().load()
     useWorkspaceProfileStore.getState().load()
+    useUIStore.getState().loadPinnedState()
     // Debug: expose store for CDP testing
     if (import.meta.env.DEV) {
       ;(window as any).__uiStore = useUIStore

@@ -352,6 +352,10 @@ declare global {
     reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
     getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
     clearCrashes: () => Promise<IpcResponse>
+    getPinnedTools: () => Promise<IpcResponse<string[]>>
+    setPinnedTools: (tools: string[]) => Promise<IpcResponse>
+    getDrawerToolOrder: () => Promise<IpcResponse<string[]>>
+    setDrawerToolOrder: (order: string[]) => Promise<IpcResponse>
     getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void

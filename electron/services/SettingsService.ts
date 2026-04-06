@@ -72,3 +72,21 @@ export function getWorkspaceProfile(): WorkspaceProfile | null {
 export function setWorkspaceProfile(profile: WorkspaceProfile): void {
   setJsonSetting('workspace_profile', profile)
 }
+
+const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'solana-toolbox']
+
+export function getPinnedTools(): string[] {
+  return getJsonSetting<string[]>('pinned_tools', DEFAULT_PINNED_TOOLS)
+}
+
+export function setPinnedTools(tools: string[]): void {
+  setJsonSetting('pinned_tools', tools)
+}
+
+export function getDrawerToolOrder(): string[] {
+  return getJsonSetting<string[]>('drawer_tool_order', [])
+}
+
+export function setDrawerToolOrder(order: string[]): void {
+  setJsonSetting('drawer_tool_order', order)
+}
