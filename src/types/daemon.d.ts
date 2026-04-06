@@ -409,10 +409,6 @@ declare global {
     autoDetect: (projectPath: string) => Promise<IpcResponse<Record<string, unknown[]>>>
   }
 
-  interface DaemonScanner {
-    open: (url: string) => Promise<IpcResponse<{ url: string }>>
-  }
-
   interface DaemonShell {
     openExternal: (url: string) => Promise<void>
   }
@@ -659,7 +655,6 @@ declare global {
     browser: DaemonBrowser
     recovery: DaemonRecovery
     deploy: DaemonDeploy
-    scanner: DaemonScanner
     shell: DaemonShell
     pumpfun: DaemonPumpFun
     email: DaemonEmail
