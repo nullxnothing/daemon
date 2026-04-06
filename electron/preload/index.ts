@@ -258,10 +258,6 @@ contextBridge.exposeInMainWorld('daemon', {
     openDialog: () => ipcRenderer.invoke('projects:openDialog'),
   },
 
-  scanner: {
-    open: (url: string) => ipcRenderer.invoke('scanner:open', url),
-  },
-
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
   },

@@ -96,7 +96,6 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let win: BrowserWindow | null = null
-let scannerWin: BrowserWindow | null = null
 let ipcRegistered = false
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
@@ -154,47 +153,6 @@ function registerAllIpc() {
     }
   })
   ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
-
-  // Block Scanner window (Orb)
-  ipcMain.handle('scanner:open', async (_event, url: string) => {
-    try {
-      const parsed = new URL(url)
-      if (parsed.origin !== 'https://orbmarkets.io' && parsed.origin !== 'https://www.orbmarkets.io') {
-        return { ok: false, error: 'Scanner only supports orbmarkets.io URLs' }
-      }
-
-      if (scannerWin && !scannerWin.isDestroyed()) {
-        scannerWin.loadURL(url)
-        scannerWin.focus()
-        return { ok: true, data: { url } }
-      }
-
-      scannerWin = new BrowserWindow({
-        title: 'Block Scanner — Orb',
-        width: 1200,
-        height: 800,
-        minWidth: 800,
-        minHeight: 500,
-        backgroundColor: '#0a0a0a',
-        icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
-        webPreferences: {
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-        },
-      })
-
-      scannerWin.loadURL(url)
-
-      scannerWin.on('closed', () => {
-        scannerWin = null
-      })
-
-      return { ok: true, data: { url } }
-    } catch {
-      return { ok: false, error: 'Invalid scanner URL' }
-    }
-  })
 
   // Shell utilities
   ipcMain.handle('shell:open-external', async (_event, url: string) => {
