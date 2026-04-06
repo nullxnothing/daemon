@@ -358,16 +358,6 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       return true
     })
 
-    // Defer initial fit to after CSS layout settles — immediate doFit() races
-    // with flexbox/grid calculations and gets stale container dimensions
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (disposedRef.current) return
-        try { doFit() } catch {}
-        term.focus()
-      })
-    })
-
     term.onData((data) => {
       if (!input.handleKeystroke(data)) {
         window.daemon.terminal.write(id, data)
@@ -380,8 +370,17 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       }
     })
 
-    // Signal main process that xterm listener is attached — flush buffered PTY data
-    window.daemon.terminal.ready(id)
+    // Defer initial fit to after CSS layout settles, then flush buffered PTY data.
+    // Order matters: fit first (so PTY gets correct cols), THEN ready (flush buffer).
+    // This prevents content from being rendered at the wrong column width.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (disposedRef.current) return
+        try { doFit() } catch {}
+        window.daemon.terminal.ready(id)
+        term.focus()
+      })
+    })
 
     const cleanupExit = window.daemon.terminal.onExit((payload) => {
       if (payload.id === id && xtermRef.current) {
