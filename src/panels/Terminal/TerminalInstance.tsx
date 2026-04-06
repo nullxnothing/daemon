@@ -358,8 +358,15 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       return true
     })
 
-    doFit()
-    term.focus()
+    // Defer initial fit to after CSS layout settles — immediate doFit() races
+    // with flexbox/grid calculations and gets stale container dimensions
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (disposedRef.current) return
+        try { doFit() } catch {}
+        term.focus()
+      })
+    })
 
     term.onData((data) => {
       if (!input.handleKeystroke(data)) {

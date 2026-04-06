@@ -339,7 +339,12 @@ function AgentGridTerminal({ id }: { id: string }) {
     xtermRef.current = term
     fitRef.current = fitAddon
 
-    setTimeout(() => doFit(), 150)
+    // Defer initial fit to after CSS layout settles
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        doFit()
+      })
+    })
 
     term.onData((data) => {
       window.daemon.terminal.write(id, data)
