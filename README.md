@@ -4,6 +4,13 @@
 </p>
 
 <p align="center">
+  <img src="https://github.com/nullxnothing/daemon/actions/workflows/ci.yml/badge.svg" alt="CI">
+  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/tests-281%20passing-brightgreen" alt="Tests">
+</p>
+
+<p align="center">
   <a href="#install">Install</a> &middot;
   <a href="#features">Features</a> &middot;
   <a href="#architecture">Architecture</a> &middot;
@@ -13,13 +20,15 @@
 
 ---
 
-<!-- screenshot: hero — full window with editor, terminal, and sidebar visible -->
+<p align="center">
+  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON IDE — full window with editor, terminal, and sidebar" width="800">
+</p>
 
 DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships a Monaco editor, integrated PTY terminals, Claude Code agent spawning, MCP server management, a Git panel, a Solana wallet, and a plugin system — all purpose-built from scratch. Not a VS Code fork.
 
 ## Install
 
-**Windows:** Download the [latest .exe](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-1.3.0-setup.exe)
+**Windows:** Download the [latest .exe](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-2.0.0-setup.exe)
 
 <a name="mac-install"></a>
 
@@ -33,7 +42,7 @@ pnpm run build
 pnpm run package
 ```
 
-The `.dmg` will be in `release/1.3.0/`. Drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet signed/notarized).
+The `.dmg` will be in `release/2.0.0/`. Drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet signed/notarized).
 
 <a name="linux-install"></a>
 
@@ -47,7 +56,7 @@ pnpm run build
 pnpm run package
 ```
 
-The AppImage will be in `release/1.3.0/`. Make it executable with `chmod +x` and run directly.
+The AppImage will be in `release/2.0.0/`. Make it executable with `chmod +x` and run directly.
 
 **Build from source (any platform):**
 
@@ -62,13 +71,17 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 ## Features
 
-<!-- screenshot: editor with multiple tabs, breadcrumbs, and file tree -->
+<p align="center">
+  <img src="docs/screenshots/editor.webp" alt="Editor with multiple tabs, breadcrumbs, and file tree" width="800">
+</p>
 
 **Editor** — Monaco running fully offline via a custom protocol handler. Multi-tab, breadcrumbs, syntax highlighting, Ctrl+S save. No CDN dependency.
 
 **Terminal** — Real PTY sessions powered by node-pty and xterm.js. Multiple tabs, split panes, command history search (Ctrl+R), tab-completion hints, and dedicated agent session management.
 
-<!-- screenshot: agent launcher with model selection and MCP config -->
+<p align="center">
+  <img src="docs/screenshots/agent-launcher.webp" alt="Agent launcher with model selection and MCP config" width="800">
+</p>
 
 **Agent Launcher** — Spawn Claude Code agents with custom system prompts, model selection, and per-project MCP configurations. Agents run as real CLI sessions in dedicated terminal tabs.
 
@@ -78,7 +91,9 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 **Wallet** — Live Solana portfolio tracking via Helius. SOL balance and SPL token holdings with USD values from Jupiter.
 
-<!-- screenshot: wallet panel showing token balances -->
+<p align="center">
+  <img src="docs/screenshots/wallet.webp" alt="Wallet panel showing token balances" width="800">
+</p>
 
 **Settings** — API keys encrypted via the OS keychain. MCP integrations, agent defaults, and display preferences.
 
