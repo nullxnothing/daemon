@@ -24,6 +24,8 @@
   <img src="docs/screenshots/ui-overview.webp" alt="DAEMON IDE — full window with editor, terminal, and sidebar" width="800">
 </p>
 
+**[Watch the demo video](https://daemon-landing.vercel.app/daemon-demo.mp4)** — 60-second walkthrough of the IDE in action.
+
 DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships a Monaco editor, integrated PTY terminals, Claude Code agent spawning, MCP server management, a Git panel, a Solana wallet, and a plugin system — all purpose-built from scratch. Not a VS Code fork.
 
 ## Install
