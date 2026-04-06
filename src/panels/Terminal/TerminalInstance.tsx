@@ -372,15 +372,20 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
     // Defer initial fit to after CSS layout settles, then flush buffered PTY data.
     // Order matters: fit first (so PTY gets correct cols), THEN ready (flush buffer).
-    // This prevents content from being rendered at the wrong column width.
+    // terminal:ready MUST be called even if doFit bails (guards for zero dimensions
+    // etc.), otherwise data stays buffered forever and the terminal appears blank.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (disposedRef.current) return
         try { doFit() } catch {}
-        window.daemon.terminal.ready(id)
-        term.focus()
+        try { term.focus() } catch {}
       })
     })
+    // Signal ready after a short delay to let the RAF fit land first,
+    // but guarantee it always fires so data is never stuck in the buffer.
+    const readyTimer = setTimeout(() => {
+      window.daemon.terminal.ready(id)
+    }, 80)
 
     const cleanupExit = window.daemon.terminal.onExit((payload) => {
       if (payload.id === id && xtermRef.current) {
@@ -394,6 +399,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     return () => {
       // Mark disposed immediately so pending doFit / observer callbacks bail out
       disposedRef.current = true
+      clearTimeout(readyTimer)
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
       resizeObserver.disconnect()
       cleanupData()
