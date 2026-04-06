@@ -7,6 +7,13 @@ import { getDb } from '../db/db'
 import * as SecureKey from './SecureKeyService'
 import type { AriaMessage, AriaResponse, AriaAction } from '../shared/types'
 
+// Strip ANSI escape codes (same regex as strip-ansi package)
+const ANSI_REGEX = /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d/#&.:=?%@~_]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g
+
+function stripAnsi(text: string): string {
+  return text.replace(ANSI_REGEX, '')
+}
+
 const ARIA_SYSTEM = `You are ARIA, the orchestrator assistant for DAEMON IDE. You help the user manage agents, files, panels, and development workflows.
 
 RULES:
@@ -164,14 +171,16 @@ export async function sendMessage(sessionId: string, userMessage: string): Promi
     .map((block) => block.text)
     .join('\n')
 
-  history.push({ role: 'assistant', content: rawText })
+  const cleanText = stripAnsi(rawText)
 
-  const actions = parseActions(rawText)
-  const displayText = stripActionTags(rawText)
+  history.push({ role: 'assistant', content: cleanText })
+
+  const actions = parseActions(cleanText)
+  const displayText = stripActionTags(cleanText)
 
   persistMessage({
     role: 'assistant',
-    content: rawText,
+    content: cleanText,
     metadata: JSON.stringify({ actions }),
     session_id: sessionId,
   })
