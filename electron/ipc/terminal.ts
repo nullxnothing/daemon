@@ -41,6 +41,8 @@ function createPtySession(
   cwd: string,
   agentId: string | null,
   contextFilePath: string | null,
+  initialCols?: number,
+  initialRows?: number,
 ): TerminalSession {
   let shell: string
   let shellArgs: string[]
@@ -67,8 +69,8 @@ function createPtySession(
 
   const ptyProcess = pty.spawn(shell, shellArgs, {
     name: 'xterm-256color',
-    cols: 120,
-    rows: 30,
+    cols: initialCols && initialCols > 0 ? initialCols : 80,
+    rows: initialRows && initialRows > 0 ? initialRows : 24,
     cwd,
     env: {
       ...baseEnv,
@@ -151,7 +153,7 @@ export function registerTerminalHandlers() {
       }
     }
 
-    const session = createPtySession(id, '', [], cwd, null, null)
+    const session = createPtySession(id, '', [], cwd, null, null, opts?.cols, opts?.rows)
     if (opts?.isAgent) {
       session.isAgentShell = true
     }

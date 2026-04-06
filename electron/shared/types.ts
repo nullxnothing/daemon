@@ -464,6 +464,9 @@ export interface TerminalCreateInput {
   userInitiated?: boolean
   /** When true, classify this session as an agent in the process manager. */
   isAgent?: boolean
+  /** Initial terminal dimensions from renderer (avoids 120-col hardcode). */
+  cols?: number
+  rows?: number
 }
 
 export interface TerminalSpawnAgentInput {
