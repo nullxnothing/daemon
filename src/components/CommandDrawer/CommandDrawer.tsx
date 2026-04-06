@@ -101,6 +101,14 @@ function StarterIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function ScannerIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+      <line x1="7" y1="12" x2="17" y2="12"/><line x1="12" y1="7" x2="12" y2="17"/>
+    </svg>
+  )
+}
 function SolanaIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 397.7 311.7">
@@ -129,7 +137,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon,
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
-  'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, docs: DocsIcon, starter: StarterIcon,
+  'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
 }
 
 // Tool name lookup
@@ -137,7 +145,7 @@ export const TOOL_NAMES: Record<string, string> = {
   git: 'Git', deploy: 'Deploy', env: 'Env',
   wallet: 'Wallet', email: 'Email', browser: 'Browser',
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
-  'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', docs: 'Docs', starter: 'New Project',
+  'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
 }
 
 // Lazy-load all tool components
@@ -152,6 +160,7 @@ const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessMan
 const BrowserMode = lazy(() => import('../../panels/BrowserMode/BrowserMode').then(m => ({ default: m.BrowserMode })))
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
 const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
+const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
 const DocsPanel = lazy(() => import('../../panels/DocsPanel/DocsPanel').then(m => ({ default: m.DocsPanel })))
 const ProjectStarter = lazy(() => import('../../panels/ProjectStarter/ProjectStarter'))
 
@@ -168,6 +177,7 @@ export const TOOL_COLORS: Record<string, string> = {
   settings: '#9ca3af',
   'image-editor': '#e879f9',
   'solana-toolbox': '#14f195',
+  'block-scanner': '#38bdf8',
   docs: '#94a3b8',
 }
 
@@ -185,6 +195,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, category: 'system' },
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, category: 'create' },
   { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, category: 'crypto' },
+  { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, category: 'system' },
 ]
 
