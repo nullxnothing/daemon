@@ -95,9 +95,11 @@ export function TerminalTabs({
         <button className="terminal-tool-btn" onClick={() => void onSplit('horizontal')} title="Split horizontal">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
         </button>
-        <button className="terminal-tool-btn" onClick={onUnsplit} title="Unsplit" disabled={!splitLayout}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        {splitLayout && (
+          <button className="terminal-tool-btn" onClick={onUnsplit} title="Unsplit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        )}
       </div>
     </div>
   )

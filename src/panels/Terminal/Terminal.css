@@ -66,6 +66,13 @@
   padding: 0 4px;
   gap: 2px;
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.terminal-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .terminal-tab {
@@ -73,12 +80,14 @@
   align-items: center;
   gap: 6px;
   height: 26px;
-  padding: 0 10px;
+  padding: 0 6px 0 10px;
   font-size: 11px;
   color: var(--t2);
   background: transparent;
   border-radius: 4px;
   transition: background 0.1s;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .terminal-tab:hover {
@@ -88,8 +97,7 @@
 .terminal-tab.active {
   background: var(--s2);
   color: var(--t1);
-  border-bottom: 2px solid var(--green);
-  box-shadow: 0 1px 0 rgba(62, 207, 142, 0.06), 0 0 8px rgba(62, 207, 142, 0.06);
+  box-shadow: inset 0 -2px 0 var(--green), 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 .terminal-tab-dot {
@@ -105,14 +113,31 @@
 }
 
 .terminal-tab-close {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
   color: var(--t3);
-  margin-left: 4px;
   line-height: 1;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.1s, background 0.1s, color 0.1s;
+}
+
+.terminal-tab:hover .terminal-tab-close {
+  opacity: 1;
+}
+
+.terminal-tab.active .terminal-tab-close {
+  opacity: 0.6;
 }
 
 .terminal-tab-close:hover {
   color: var(--t1);
+  background: var(--s4);
+  opacity: 1 !important;
 }
 
 .terminal-tab-add {
@@ -133,6 +158,7 @@
 
 .terminal-launcher {
   position: relative;
+  flex-shrink: 0;
 }
 
 .terminal-launcher-menu {
@@ -197,6 +223,11 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
+  position: sticky;
+  right: 0;
+  background: var(--s1);
+  padding-left: 8px;
 }
 
 .terminal-tool-btn {
@@ -229,6 +260,43 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+.terminal-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.terminal-empty-state:hover {
+  background: var(--s1);
+}
+
+.terminal-empty-state:hover .terminal-empty-icon {
+  color: var(--green);
+}
+
+.terminal-empty-icon {
+  font-size: 20px;
+  font-family: var(--font-code);
+  color: var(--t3);
+  transition: color 0.15s;
+}
+
+.terminal-empty-label {
+  font-size: 12px;
+  color: var(--t2);
+  font-weight: 500;
+}
+
+.terminal-empty-hint {
+  font-size: 10px;
+  color: var(--t4);
 }
 
 .terminal-split {

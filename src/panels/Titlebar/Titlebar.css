@@ -36,6 +36,18 @@
   text-transform: uppercase;
 }
 
+.titlebar-beta {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--amber);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  margin-left: 6px;
+  line-height: 1.4;
+}
+
 /* Project Tabs — container is still draggable, only tab buttons opt out */
 .project-tabs {
   flex: 1;
