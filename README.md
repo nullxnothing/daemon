@@ -5,8 +5,9 @@
 
 <p align="center">
   <img src="https://github.com/nullxnothing/daemon/actions/workflows/ci.yml/badge.svg" alt="CI">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
+  <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
+  <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
   <img src="https://img.shields.io/badge/tests-281%20passing-brightgreen" alt="Tests">
 </p>
 

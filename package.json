@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "main": "dist-electron/main/index.js",
   "description": "Custom Electron IDE for AI-native development",
   "author": "nullxnothing",
