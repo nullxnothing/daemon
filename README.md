@@ -11,11 +11,18 @@
 </p>
 
 <p align="center">
+  <a href="https://daemon-landing.vercel.app">Website</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#features">Features</a> &middot;
   <a href="#architecture">Architecture</a> &middot;
   <a href="#development">Development</a> &middot;
   <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+---
+
+<p align="center">
+  <strong>$DAEMON CA:</strong> <code>4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump</code>
 </p>
 
 ---
