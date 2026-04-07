@@ -3,7 +3,9 @@ import os from 'node:os'
 import fs from 'node:fs'
 import * as pty from 'node-pty'
 import { getDb } from '../db/db'
-import { buildCommand, cleanupContextFile, getClaudePath } from '../services/ClaudeRouter'
+import { cleanupContextFile, getClaudePath } from '../services/ClaudeRouter'
+import { ProviderRegistry } from '../services/providers'
+import type { ProviderInterface } from '../services/providers'
 import { registerPort } from '../services/PortService'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
@@ -41,6 +43,7 @@ function createPtySession(
   cwd: string,
   agentId: string | null,
   contextFilePath: string | null,
+  provider?: ProviderInterface | null,
   initialCols?: number,
   initialRows?: number,
 ): TerminalSession {
@@ -50,7 +53,7 @@ function createPtySession(
   if (!command) {
     // Default interactive shell
     shell = process.platform === 'win32' ? 'powershell.exe' : '/bin/bash'
-    shellArgs = args
+    shellArgs = process.platform === 'win32' ? ['-NoLogo', ...args] : args
   } else if (process.platform === 'win32' && command.endsWith('.cmd')) {
     // .cmd files must be spawned through cmd.exe on Windows
     shell = 'cmd.exe'
@@ -60,11 +63,14 @@ function createPtySession(
     shellArgs = args
   }
 
-  // Strip API key for agent terminals so Claude CLI uses subscription OAuth
+  // Strip ALL provider API keys from agent terminal environment (defense-in-depth)
   const baseEnv = { ...process.env } as Record<string, string>
   if (agentId) {
-    delete baseEnv.ANTHROPIC_API_KEY
-    delete baseEnv.ANTHROPIC_AUTH_TOKEN
+    for (const p of ProviderRegistry.getAll()) {
+      for (const key of p.getStrippedEnvKeys()) {
+        delete baseEnv[key]
+      }
+    }
   }
 
   const ptyProcess = pty.spawn(shell, shellArgs, {
@@ -78,7 +84,7 @@ function createPtySession(
     },
   })
 
-  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath, isAgentShell: false, dataBuffer: [], rendererReady: false }
+  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath, providerId: provider?.id ?? null, isAgentShell: false, dataBuffer: [], rendererReady: false }
   sessions.set(id, session)
 
   ptyProcess.onData((data) => {
@@ -153,7 +159,7 @@ export function registerTerminalHandlers() {
       }
     }
 
-    const session = createPtySession(id, '', [], cwd, null, null, opts?.cols, opts?.rows)
+    const session = createPtySession(id, '', [], cwd, null, null, null, opts?.cols, opts?.rows)
     if (opts?.isAgent) {
       session.isAgentShell = true
     }
@@ -178,9 +184,10 @@ export function registerTerminalHandlers() {
     if (!agent) throw new Error('Agent not found')
     if (!project) throw new Error('Project not found')
 
-    const { command, args, contextFilePath } = await buildCommand(agent, project)
+    const provider = ProviderRegistry.resolveForAgent(agent)
+    const { command, args, contextFilePath } = await provider.buildCommand(agent, project)
     const id = crypto.randomUUID()
-    const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
+    const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath, provider)
 
     // Start a local session record — fire and forget, never blocks spawn
     const localSessionId = SessionTracker.startSession({
@@ -239,12 +246,21 @@ export function registerTerminalHandlers() {
 
   ipcMain.handle('terminal:check-claude', ipcHandler(async () => {
     const claudePath = getClaudePath()
-    // Resolve the real binary name for shell PATH lookup — strip the .cmd extension check
-    // We try existsSync first; if the resolved path is just 'claude' or 'claude.cmd' (PATH fallback),
-    // we treat it as installed because node-pty will resolve it through the shell.
     const isAbsolute = claudePath.includes('/') || claudePath.includes('\\')
     const installed = isAbsolute ? fs.existsSync(claudePath) : true
     return { installed, claudePath }
+  }))
+
+  ipcMain.handle('terminal:check-codex', ipcHandler(async () => {
+    try {
+      const codexProvider = ProviderRegistry.get('codex')
+      const codexPath = codexProvider.resolvePath()
+      const isAbsolute = codexPath.includes('/') || codexPath.includes('\\')
+      const installed = isAbsolute ? fs.existsSync(codexPath) : true
+      return { installed, codexPath }
+    } catch {
+      return { installed: false, codexPath: null }
+    }
   }))
 
   ipcMain.handle('terminal:kill', ipcHandler(async (_event, id: string) => {

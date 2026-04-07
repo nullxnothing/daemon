@@ -253,7 +253,13 @@ export function TerminalPanel() {
         onLaunchCommand={handleLaunchCommand}
       />
       <div className="terminal-views">
-        {paneIds.length <= 1 ? (
+        {visibleTerminals.length === 0 ? (
+          <div className="terminal-empty-state" onClick={handleStartShell}>
+            <span className="terminal-empty-icon">&gt;_</span>
+            <span className="terminal-empty-label">Click to start a terminal</span>
+            <span className="terminal-empty-hint">or press Ctrl+`</span>
+          </div>
+        ) : paneIds.length <= 1 ? (
           /* Render ALL terminal instances to avoid unmount/remount on tab switch.
              Only the active one is visible — the rest are hidden via isVisible=false.
              This prevents xterm's Viewport.syncScrollArea "dimensions" crash that

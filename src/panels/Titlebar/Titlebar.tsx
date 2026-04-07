@@ -25,6 +25,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
       <div className="titlebar-left">
         <img src={daemonIcon} alt="" className="titlebar-icon" draggable={false} />
         <span className="titlebar-title">DAEMON</span>
+        <span className="titlebar-beta">BETA</span>
       </div>
       <div className="project-tabs">
         {projects.map((p) => (

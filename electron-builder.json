@@ -17,9 +17,8 @@
   ],
   "publish": [
     {
-      "provider": "github",
-      "owner": "nullxnothing",
-      "repo": "daemon"
+      "provider": "generic",
+      "url": "https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev"
     }
   ],
   "mac": {
