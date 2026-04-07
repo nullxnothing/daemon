@@ -103,12 +103,17 @@ export function registerClaudeHandlers() {
     return { id: terminalId }
   }))
 
-  // Restart ALL terminal sessions (used when MCP is toggled)
+  // Restart ALL Claude terminal sessions (used when MCP is toggled)
   ipcMain.handle('claude:restart-all-sessions', ipcHandler(async () => {
     const allIds = getAllSessionIds()
-    const results = await Promise.allSettled(allIds.map(restartClaudeInPty))
+    // Only restart sessions that were spawned by Claude (or have no providerId for backward compat)
+    const claudeIds = allIds.filter((id) => {
+      const session = getSession(id)
+      return session?.agentId && (!session.providerId || session.providerId === 'claude')
+    })
+    const results = await Promise.allSettled(claudeIds.map(restartClaudeInPty))
     const succeeded = results.filter((r) => r.status === 'fulfilled').length
-    return { restarted: succeeded, total: allIds.length }
+    return { restarted: succeeded, total: claudeIds.length }
   }))
 
   // --- Anthropic Status ---

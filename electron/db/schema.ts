@@ -440,6 +440,10 @@ CREATE INDEX IF NOT EXISTS idx_vault_files_created ON vault_files(created_at DES
 CREATE INDEX IF NOT EXISTS idx_vault_files_wallet ON vault_files(owner_wallet);
 `
 
+export const SCHEMA_V22 = `
+ALTER TABLE agents ADD COLUMN provider TEXT DEFAULT 'claude';
+`
+
 export const SCHEMA_V21 = `
 CREATE TABLE IF NOT EXISTS pnl_trades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

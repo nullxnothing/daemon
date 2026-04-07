@@ -13,6 +13,7 @@ export interface GridCell {
   id: string | null
   label: string
   visible: boolean
+  providerId?: 'claude' | 'codex' | null
 }
 
 interface TerminalTab {
@@ -23,7 +24,7 @@ interface TerminalTab {
 }
 
 export type CenterMode = 'canvas' | 'grind'
-export type RightPanelTab = 'claude' | 'dashboard' | 'sessions' | 'hackathon'
+export type RightPanelTab = 'claude' | 'codex' | 'dashboard' | 'sessions' | 'hackathon'
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy' | 'email' | 'images'

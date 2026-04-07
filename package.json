@@ -50,7 +50,8 @@
     "nodemailer": "^8.0.4",
     "pidusage": "^4.0.1",
     "ps-list": "^8.1.1",
-    "simple-git": "^3.27.0"
+    "simple-git": "^3.27.0",
+    "smol-toml": "^1.6.1"
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.1",

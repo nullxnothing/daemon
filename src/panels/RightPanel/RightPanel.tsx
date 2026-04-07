@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { ClaudePanel } from '../ClaudePanel/ClaudePanel'
+import { CodexPanel } from '../CodexPanel/CodexPanel'
 import { DashboardMini } from '../Dashboard/DashboardMini'
 import { SessionHistory } from '../SessionRegistry/SessionHistory'
 import { AriaChat } from '../ClaudePanel/AriaChat'
@@ -34,10 +35,30 @@ function useClaudeStatus(): 'live' | 'unknown' {
   return isLive ? 'live' : 'unknown'
 }
 
+function useCodexStatus(): 'live' | 'unknown' {
+  const [isLive, setIsLive] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const poll = () => {
+      window.daemon.codex.verifyConnection().then((res) => {
+        if (cancelled) return
+        setIsLive(res.ok && !!res.data && (res.data.isAuthenticated || res.data.authMode !== 'none'))
+      }).catch(() => { if (!cancelled) setIsLive(false) })
+    }
+    poll()
+    const interval = setInterval(poll, 300_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  return isLive ? 'live' : 'unknown'
+}
+
 export function RightPanel() {
   const rightPanelTab = useUIStore((s) => s.rightPanelTab)
   const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
   const claudeStatus = useClaudeStatus()
+  const codexStatus = useCodexStatus()
 
   return (
     <div className="right-panel-wrap">
@@ -47,9 +68,22 @@ export function RightPanel() {
           role="tab"
           aria-selected={rightPanelTab === 'claude'}
           onClick={() => setRightPanelTab('claude')}
+          aria-label="Claude"
+          title="Claude"
         >
           <span className={`right-panel-tab-dot${claudeStatus === 'live' ? ' live' : ''}`} />
-          Claude
+          <img src="./claude-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
+        </button>
+        <button
+          className={`right-panel-tab${rightPanelTab === 'codex' ? ' active' : ''}`}
+          role="tab"
+          aria-selected={rightPanelTab === 'codex'}
+          onClick={() => setRightPanelTab('codex')}
+          aria-label="Codex"
+          title="Codex"
+        >
+          <span className={`right-panel-tab-dot${codexStatus === 'live' ? ' live' : ''}`} />
+          <img src="./codex-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
         </button>
         <button
           className={`right-panel-tab${rightPanelTab === 'dashboard' ? ' active' : ''}`}
@@ -88,6 +122,8 @@ export function RightPanel() {
       <div className="right-panel-content">
         {rightPanelTab === 'claude' ? (
           <ClaudePanel />
+        ) : rightPanelTab === 'codex' ? (
+          <CodexPanel />
         ) : rightPanelTab === 'sessions' ? (
           <SessionHistory />
         ) : rightPanelTab === 'hackathon' ? (

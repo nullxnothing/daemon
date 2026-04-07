@@ -5,7 +5,7 @@ import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { Agent, AgentCreateInput } from '../shared/types'
 
 const ALLOWED_AGENT_COLUMNS = new Set([
-  'name', 'system_prompt', 'model', 'mcps', 'project_id', 'shortcut', 'source', 'external_path',
+  'name', 'system_prompt', 'model', 'mcps', 'provider', 'project_id', 'shortcut', 'source', 'external_path',
 ])
 
 export function registerAgentHandlers() {
@@ -18,13 +18,14 @@ export function registerAgentHandlers() {
     const db = getDb()
     const id = crypto.randomUUID()
     db.prepare(
-      'INSERT INTO agents (id, name, system_prompt, model, mcps, project_id, shortcut, source, external_path) VALUES (?,?,?,?,?,?,?,?,?)'
+      'INSERT INTO agents (id, name, system_prompt, model, mcps, provider, project_id, shortcut, source, external_path) VALUES (?,?,?,?,?,?,?,?,?,?)'
     ).run(
       id,
       agent.name,
       agent.systemPrompt,
       agent.model,
       JSON.stringify(agent.mcps),
+      agent.provider ?? 'claude',
       agent.projectId ?? null,
       agent.shortcut ?? null,
       agent.source ?? 'daemon',

@@ -184,7 +184,7 @@ export function registerTerminalHandlers() {
     if (!agent) throw new Error('Agent not found')
     if (!project) throw new Error('Project not found')
 
-    const provider = ProviderRegistry.resolveForAgent(agent)
+    const provider = await ProviderRegistry.resolveForAgent(agent)
     const { command, args, contextFilePath } = await provider.buildCommand(agent, project)
     const id = crypto.randomUUID()
     const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath, provider)
@@ -214,6 +214,30 @@ export function registerTerminalHandlers() {
     }
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
+    return response
+  }))
+
+  ipcMain.handle('terminal:spawnProvider', ipcHandler(async (_event, opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => {
+    if (opts.providerId !== 'claude' && opts.providerId !== 'codex') {
+      throw new Error(`PROVIDER_UNKNOWN: Unknown provider '${opts.providerId}'`)
+    }
+    const provider = ProviderRegistry.get(opts.providerId)
+    const conn = await provider.verifyConnection()
+    if (!conn.isAuthenticated && conn.authMode === 'none') {
+      throw new Error(`NOT_AUTHENTICATED: Sign in to ${opts.providerId} first.`)
+    }
+    const cliPath = provider.resolvePath()
+    const isAbsolute = cliPath.includes('/') || cliPath.includes('\\')
+    if (isAbsolute && !fs.existsSync(cliPath)) {
+      throw new Error(`CLI_NOT_INSTALLED: ${opts.providerId} CLI not found at ${cliPath}`)
+    }
+
+    const id = crypto.randomUUID()
+    const cwd = opts.cwd || os.homedir()
+    const session = createPtySession(id, cliPath, [], cwd, null, null, provider)
+    session.isAgentShell = true
+
+    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
     return response
   }))
 

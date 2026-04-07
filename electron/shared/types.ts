@@ -35,6 +35,7 @@ export interface Agent {
   model: string
   mcps: string
   shortcut: string | null
+  provider?: string | null
   source?: string | null
   external_path?: string | null
   created_at: number
@@ -393,6 +394,20 @@ export interface ClaudeConnection {
   authMode: 'api' | 'cli' | 'both' | 'none'
 }
 
+export interface CodexConnection {
+  providerId: 'codex'
+  cliPath: string
+  hasApiKey: boolean
+  isAuthenticated: boolean
+  authMode: 'api' | 'cli' | 'both' | 'none'
+}
+
+export interface ProviderConnectionInfo {
+  claude: ClaudeConnection | null
+  codex: CodexConnection | null
+  defaultProvider: string
+}
+
 // --- UI Settings ---
 
 export interface UiSettings {
@@ -447,6 +462,8 @@ export interface TerminalSession {
   pty: IPty
   agentId: string | null
   contextFilePath: string | null
+  /** Which AI provider spawned this session ('claude' | 'codex' | null for plain shells). */
+  providerId?: string | null
   /** True when session was created via terminal:create with isAgent flag (e.g. AgentGrid claude cells). */
   isAgentShell?: boolean
   /** Local session tracker ID — set when agent spawns via spawnAgent. */
@@ -489,6 +506,7 @@ export interface AgentCreateInput {
   systemPrompt: string
   model: string
   mcps: string[]
+  provider?: string
   projectId?: string
   shortcut?: string
   source?: string
