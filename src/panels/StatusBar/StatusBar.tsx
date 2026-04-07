@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
+import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { formatCompactUsd } from '../../utils/format'
 import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
@@ -177,7 +178,7 @@ function ClaudeStatus() {
     <span
       className={styles.item}
       style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
-      onClick={() => { if (!isConnected) { import('../../store/onboarding').then((m) => m.useOnboardingStore.getState().openWizard()) } }}
+      onClick={() => { if (!isConnected) { useOnboardingStore.getState().openWizard() } }}
       title={label}
     >
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
