@@ -24,10 +24,9 @@ interface TerminalTab {
 }
 
 export type CenterMode = 'canvas' | 'grind'
-export type RightPanelTab = 'claude' | 'codex' | 'dashboard' | 'sessions' | 'hackathon'
+export type RightPanelTab = 'claude' | 'codex'
 
 interface UIState {
-  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings' | 'tools' | 'terminal' | 'browser' | 'deploy' | 'email' | 'images'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]
@@ -49,7 +48,6 @@ interface UIState {
   activeGrindPage: number
   grindPages: Record<string, GridCell[][]>
 
-  setActivePanel: (panel: UIState['activePanel']) => void
   setActiveProject: (id: string | null, path: string | null) => void
   setProjects: (projects: Project[]) => void
   openFile: (file: { path: string; name: string; content: string; projectId: string }) => void
@@ -110,7 +108,6 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-  activePanel: 'claude',
   activeProjectId: null,
   activeProjectPath: null,
   projects: [],
@@ -139,8 +136,6 @@ export const useUIStore = create<UIState>((set) => ({
   pinnedTools: ['git', 'browser', 'solana-toolbox'],
   drawerToolOrder: [],
 
-  setActivePanel: (panel) => set({ activePanel: panel, walletQuickViewOpen: false, emailQuickViewOpen: false }),
-
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),
 
   setProjects: (projects) => set({ projects }),
@@ -149,7 +144,8 @@ export const useUIStore = create<UIState>((set) => ({
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
-        activePanel: 'claude',
+        drawerTool: null,
+        drawerOpen: false,
         centerMode: 'canvas' as CenterMode,
         browserTabActive: false,
         dashboardTabActive: false,
@@ -157,7 +153,8 @@ export const useUIStore = create<UIState>((set) => ({
       }
     }
     return {
-      activePanel: 'claude',
+      drawerTool: null,
+      drawerOpen: false,
       centerMode: 'canvas' as CenterMode,
       browserTabActive: false,
       dashboardTabActive: false,
@@ -224,7 +221,12 @@ export const useUIStore = create<UIState>((set) => ({
 
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
-  setCenterMode: (mode) => set({ centerMode: mode }),
+  setCenterMode: (mode) => {
+    set({ centerMode: mode })
+    if (typeof window !== 'undefined' && window.daemon?.settings?.setLayout) {
+      window.daemon.settings.setLayout({ centerMode: mode }).catch(() => {})
+    }
+  },
   toggleBrowserTab: () => set((state) => {
     const isOpen = !state.browserTabOpen
     return { browserTabOpen: isOpen, browserTabActive: isOpen }
@@ -232,7 +234,12 @@ export const useUIStore = create<UIState>((set) => ({
   openBrowserTab: () => set({ browserTabOpen: true, browserTabActive: true }),
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
   setBrowserTabActive: (active) => set({ browserTabActive: active }),
-  setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+  setRightPanelTab: (tab) => {
+    set({ rightPanelTab: tab })
+    if (typeof window !== 'undefined' && window.daemon?.settings?.setLayout) {
+      window.daemon.settings.setLayout({ rightPanelTab: tab }).catch(() => {})
+    }
+  },
   toggleDashboardTab: () => set((state) => {
     const isOpen = !state.dashboardTabOpen
     return { dashboardTabOpen: isOpen, dashboardTabActive: isOpen }
@@ -352,13 +359,22 @@ export const useUIStore = create<UIState>((set) => ({
   },
   loadPinnedState: async () => {
     try {
-      const [pinnedRes, orderRes] = await Promise.all([
+      const [pinnedRes, orderRes, layoutRes] = await Promise.all([
         window.daemon.settings.getPinnedTools(),
         window.daemon.settings.getDrawerToolOrder(),
+        window.daemon.settings.getLayout(),
       ])
       const updates: Partial<UIState> = {}
       if (pinnedRes.ok && pinnedRes.data) updates.pinnedTools = pinnedRes.data
       if (orderRes.ok && orderRes.data) updates.drawerToolOrder = orderRes.data
+      if (layoutRes.ok && layoutRes.data) {
+        if (layoutRes.data.centerMode === 'canvas' || layoutRes.data.centerMode === 'grind') {
+          updates.centerMode = layoutRes.data.centerMode
+        }
+        if (layoutRes.data.rightPanelTab === 'claude' || layoutRes.data.rightPanelTab === 'codex') {
+          updates.rightPanelTab = layoutRes.data.rightPanelTab
+        }
+      }
       if (Object.keys(updates).length > 0) set(updates)
     } catch { /* first run — use defaults */ }
   },

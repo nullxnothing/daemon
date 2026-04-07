@@ -41,6 +41,20 @@
   border-bottom-color: color-mix(in srgb, var(--red) 20%, transparent);
 }
 
+.claude-install-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  border-top-color: var(--amber);
+  border-radius: 50%;
+  animation: claude-install-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes claude-install-spin {
+  to { transform: rotate(360deg); }
+}
+
 .claude-install-dismiss {
   margin-left: auto;
   background: none;

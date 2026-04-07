@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useAppActions } from '../../store/appActions'
 import daemonLogo from '../../assets/daemon-icon.png'
 
 interface EditorWelcomeProps {
@@ -53,11 +54,11 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
   }, [activeProjectId, addTerminal])
 
   const handleOpenFileExplorer = useCallback(() => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: true, bubbles: true }))
+    useAppActions.getState().openFilePalette()
   }, [])
 
   const handleLaunchAgent = useCallback(() => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'A', ctrlKey: true, shiftKey: true, bubbles: true }))
+    useAppActions.getState().openAgentLauncher()
   }, [])
 
   const handleNewProject = useCallback(() => {
@@ -65,7 +66,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
   }, [])
 
   const handleOpenTerminal = useCallback(() => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: '`', ctrlKey: true, bubbles: true }))
+    useAppActions.getState().focusTerminal()
   }, [])
 
   return (

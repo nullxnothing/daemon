@@ -93,4 +93,33 @@ export function registerSettingsHandlers() {
     if (!profile.toolVisibility || typeof profile.toolVisibility !== 'object') throw new Error('Invalid toolVisibility')
     Settings.setWorkspaceProfile(profile)
   }))
+
+  // --- Generic layout state KV (centerMode, rightPanelTab, etc.) ---
+
+  ipcMain.handle('settings:get-layout', ipcHandler(async () => {
+    const db = getDb()
+    const rows = db.prepare(
+      "SELECT key, value FROM app_settings WHERE key IN ('layout_center_mode','layout_right_panel_tab')"
+    ).all() as { key: string; value: string }[]
+    const out: Record<string, string> = {}
+    for (const r of rows) out[r.key] = r.value
+    return {
+      centerMode: out['layout_center_mode'] ?? null,
+      rightPanelTab: out['layout_right_panel_tab'] ?? null,
+    }
+  }))
+
+  ipcMain.handle('settings:set-layout', ipcHandler(async (_event, layout: { centerMode?: string; rightPanelTab?: string }) => {
+    const db = getDb()
+    const upsert = db.prepare(
+      'INSERT INTO app_settings (key, value, updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at'
+    )
+    const now = Date.now()
+    if (layout.centerMode === 'canvas' || layout.centerMode === 'grind') {
+      upsert.run('layout_center_mode', layout.centerMode, now)
+    }
+    if (layout.rightPanelTab === 'claude' || layout.rightPanelTab === 'codex') {
+      upsert.run('layout_right_panel_tab', layout.rightPanelTab, now)
+    }
+  }))
 }

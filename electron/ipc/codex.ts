@@ -12,6 +12,7 @@ import * as CodexMcp from '../services/CodexMcpConfig'
 import { CodexProvider } from '../services/providers/CodexProvider'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { broadcast } from '../services/EventBus'
 import { getSession, getAllSessionIds } from './terminal'
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -55,7 +56,9 @@ export function registerCodexHandlers() {
   // --- Connection ---
 
   ipcMain.handle('codex:verify-connection', ipcHandler(async () => {
-    return await CodexProvider.verifyConnection()
+    const conn = await CodexProvider.verifyConnection()
+    broadcast('auth:changed', { providerId: 'codex' })
+    return conn
   }))
 
   ipcMain.handle('codex:get-connection', ipcHandler(async () => {
@@ -140,6 +143,7 @@ export function registerCodexHandlers() {
     try { SecureKey.storeKey('OPENAI_API_KEY', '') } catch { /* non-fatal */ }
 
     CodexProvider.clearCache()
+    broadcast('auth:changed', { providerId: 'codex' })
 
     // Clear persisted connection so UI refetches cleanly
     try {
@@ -175,6 +179,7 @@ export function registerCodexHandlers() {
     })
 
     CodexProvider.clearCache()
+    broadcast('auth:changed', { providerId: 'codex' })
 
     return { stdout: stdout.trim(), stderr: stderr.trim() }
   }))

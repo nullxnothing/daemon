@@ -17,7 +17,7 @@ export function TerminalPanel() {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const removeTerminal = useUIStore((s) => s.removeTerminal)
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const centerMode = useUIStore((s) => s.centerMode)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -33,6 +33,7 @@ export function TerminalPanel() {
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
   const [isDragOver, setIsDragOver] = useState(false)
   const [claudeInstallStatus, setClaudeInstallStatus] = useState<'idle' | 'installing' | 'failed'>('idle')
+  const [installTerminalId, setInstallTerminalId] = useState<string | null>(null)
   const panelDragDepthRef = useRef(0)
   const creatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
@@ -82,8 +83,8 @@ export function TerminalPanel() {
   }, [addLaunchRecent, handleNewTerminal])
 
   const handleStartClaudeChat = useCallback(() => {
-    setActivePanel('claude')
-  }, [setActivePanel])
+    setDrawerTool(null)
+  }, [setDrawerTool])
 
   const handleStartSolanaAgent = useCallback(async () => {
     if (!activeProjectId) return
@@ -157,12 +158,30 @@ export function TerminalPanel() {
           setClaudeInstallStatus('failed')
           return
         }
+        setInstallTerminalId(terminalId)
         window.daemon.terminal.write(terminalId, 'npm install -g @anthropic-ai/claude-code\r')
       })
     }).finally(() => {
       creatingRef.current = false
     })
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
+
+  // Auto-dismiss the Claude install banner when the install terminal exits.
+  // The install runs `npm install -g @anthropic-ai/claude-code` interactively in
+  // a real shell, so we treat any clean exit as success.
+  useEffect(() => {
+    if (!installTerminalId) return
+    const cleanup = window.daemon.terminal.onExit((payload) => {
+      if (payload.id !== installTerminalId) return
+      if (payload.exitCode === 0) {
+        setClaudeInstallStatus('idle')
+      } else {
+        setClaudeInstallStatus('failed')
+      }
+      setInstallTerminalId(null)
+    })
+    return cleanup
+  }, [installTerminalId])
 
   // Sync split layout when terminals change
   useEffect(() => {
@@ -224,8 +243,9 @@ export function TerminalPanel() {
     >
       {claudeInstallStatus === 'installing' && (
         <div className="claude-install-banner">
-          Claude CLI not found. Installing via npm — this may take a moment.
-          <button className="claude-install-dismiss" onClick={() => setClaudeInstallStatus('idle')}>Dismiss</button>
+          <span className="claude-install-spinner" aria-hidden="true" />
+          Installing Claude CLI via npm... auto-dismisses when complete.
+          <button className="claude-install-dismiss" onClick={() => { setClaudeInstallStatus('idle'); setInstallTerminalId(null) }}>Dismiss</button>
         </div>
       )}
       {claudeInstallStatus === 'failed' && (

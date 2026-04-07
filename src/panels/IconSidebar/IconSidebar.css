@@ -72,20 +72,40 @@
   box-shadow: 0 0 0 1px var(--green);
 }
 
-/* Drop zone for adding new pinned tools */
+/* Drop zone for adding new pinned tools — visible faint outline so users
+   discover that they can drag drawer tools here */
 .sidebar-drop-zone {
-  width: 36px;
-  height: 8px;
-  border-radius: 4px;
-  margin: 2px 0;
-  transition: height 0.15s, background 0.15s, border-color 0.15s;
-  border: 1px dashed transparent;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  margin: 4px auto;
+  transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
+  border: 1px dashed var(--s5);
+  opacity: 0.35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t4);
+  font-size: 14px;
+}
+
+.sidebar-drop-zone::before {
+  content: '+';
+  font-weight: 300;
+}
+
+.sidebar-drop-zone:hover {
+  opacity: 0.6;
 }
 
 .sidebar-drop-zone--active {
   height: 36px;
+  width: 36px;
   background: var(--green-glow);
   border-color: var(--green);
+  border-style: solid;
+  opacity: 1;
+  color: var(--green);
 }
 
 /* ─── Zone Dividers ─── */

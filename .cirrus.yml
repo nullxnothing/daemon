@@ -1,0 +1,24 @@
+macos_build_task:
+  only_if: $CIRRUS_TAG =~ 'v.*' || $CIRRUS_BRANCH == 'main'
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-runner:sonoma
+  env:
+    CLOUDFLARE_API_TOKEN: ENCRYPTED[!REPLACE_WITH_ENCRYPTED_TOKEN!]
+    CLOUDFLARE_ACCOUNT_ID: ENCRYPTED[!REPLACE_WITH_ENCRYPTED_ACCOUNT_ID!]
+  install_script:
+    - brew install node pnpm
+    - pnpm install
+  build_script:
+    - pnpm run build
+  package_script:
+    - pnpm exec electron-builder --mac --config.npmRebuild=false
+  upload_artifacts:
+    path: "release/*/DAEMON-*-arm64.dmg"
+  upload_release_script:
+    - npm install -g wrangler
+    - |
+      for f in release/*/DAEMON-*.dmg release/*/DAEMON-*.zip release/*/latest-mac.yml; do
+        if [ -f "$f" ]; then
+          wrangler r2 object put "daemon-releases/$(basename $f)" --file "$f" --remote
+        fi
+      done

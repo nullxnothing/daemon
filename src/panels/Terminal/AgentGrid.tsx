@@ -3,6 +3,7 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { useUIStore } from '../../store/ui'
+import { useNotificationsStore } from '../../store/notifications'
 
 type ProviderId = 'claude' | 'codex'
 
@@ -323,16 +324,48 @@ function CellErrorView({
   onRetry: () => void
   onPick: () => void
 }) {
+  const titleByCode: Record<string, string> = {
+    NO_PROVIDER_AUTH: 'Not signed in',
+    NOT_AUTHENTICATED: 'Provider unauthenticated',
+    CLI_NOT_INSTALLED: 'CLI missing',
+    NO_AGENT: 'No agents yet',
+    UNKNOWN: 'Failed to launch',
+  }
+  const title = titleByCode[error.code] ?? error.code.replace(/_/g, ' ')
+
+  // Define CTA actions per error code
   let cta = 'Retry'
-  let action = onRetry
-  if (error.code === 'NO_PROVIDER_AUTH') { cta = 'Open Settings'; action = onRetry }
-  else if (error.code === 'NOT_AUTHENTICATED') { cta = 'Pick another agent'; action = onPick }
-  else if (error.code === 'CLI_NOT_INSTALLED') { cta = 'Install CLI'; action = onRetry }
-  else if (error.code === 'NO_AGENT') { cta = 'Open Agents'; action = onRetry }
+  let action: () => void = onRetry
+
+  if (error.code === 'NO_PROVIDER_AUTH') {
+    cta = 'Open Settings'
+    action = () => useUIStore.getState().setDrawerTool('settings')
+  } else if (error.code === 'NOT_AUTHENTICATED') {
+    cta = 'Open Settings'
+    action = () => useUIStore.getState().setDrawerTool('settings')
+  } else if (error.code === 'CLI_NOT_INSTALLED') {
+    cta = 'Install CLI'
+    action = async () => {
+      try {
+        const res = await window.daemon.codex.installCli()
+        if (res.ok) {
+          useNotificationsStore.getState().pushSuccess('Codex CLI installed.', 'Codex')
+          onRetry()
+        } else {
+          useNotificationsStore.getState().pushError(res.error ?? 'Install failed', 'Codex')
+        }
+      } catch (err) {
+        useNotificationsStore.getState().pushError(err, 'Codex')
+      }
+    }
+  } else if (error.code === 'NO_AGENT') {
+    cta = 'Pick a service'
+    action = onPick
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, textAlign: 'center' }}>
-      <span className="activate-label" style={{ color: 'var(--red)' }}>{error.code.replace(/_/g, ' ')}</span>
+      <span className="activate-label" style={{ color: 'var(--red)' }}>{title}</span>
       <span className="activate-hint" style={{ maxWidth: 240 }}>{error.message}</span>
       <button
         onClick={(e) => { e.stopPropagation(); action() }}

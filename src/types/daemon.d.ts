@@ -363,6 +363,8 @@ declare global {
     setDrawerToolOrder: (order: string[]) => Promise<IpcResponse>
     getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
+    getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
   }
 
@@ -673,6 +675,26 @@ declare global {
     setDefault: (id: string) => Promise<IpcResponse<{ defaultProvider: string }>>
   }
 
+  interface DaemonActivityEntry {
+    id: string
+    kind: 'info' | 'success' | 'warning' | 'error'
+    message: string
+    context: string | null
+    createdAt: number
+  }
+
+  interface DaemonActivity {
+    append: (entry: DaemonActivityEntry) => Promise<IpcResponse<void>>
+    list: (limit?: number) => Promise<IpcResponse<DaemonActivityEntry[]>>
+    clear: () => Promise<IpcResponse<void>>
+  }
+
+  type DaemonEventChannel = 'auth:changed' | 'process:changed' | 'port:changed' | 'wallet:changed'
+
+  interface DaemonEvents {
+    on: (channel: DaemonEventChannel, callback: (payload: unknown) => void) => () => void
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -690,6 +712,8 @@ declare global {
     claude: DaemonClaude
     codex: DaemonCodex
     provider: DaemonProvider
+    activity: DaemonActivity
+    events: DaemonEvents
     tweets: DaemonTweets
     plugins: DaemonPlugins
     browser: DaemonBrowser

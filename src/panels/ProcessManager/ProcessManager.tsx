@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { useUIStore } from '../../store/ui'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
 import type { ProcessInfo, OrphanProcess } from '../../../electron/shared/types'
 import './ProcessManager.css'
 
@@ -15,7 +17,7 @@ export const ProcessManager = memo(function ProcessManager() {
   const [orphans, setOrphans] = useState<OrphanProcess[]>([])
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   const load = useCallback(async () => {
     const [procRes, orphanRes] = await Promise.all([
@@ -26,16 +28,29 @@ export const ProcessManager = memo(function ProcessManager() {
     if (orphanRes.ok && orphanRes.data) setOrphans(orphanRes.data)
   }, [])
 
-  // Poll every 5s
+  // Background poll + event-driven refresh
   useEffect(() => {
     load()
-    const interval = setInterval(load, 5000)
-    return () => clearInterval(interval)
+    const interval = setInterval(load, 15000)
+    const unsubscribe = window.daemon.events.on('process:changed', () => load())
+    return () => { clearInterval(interval); unsubscribe() }
   }, [load])
 
   const handleKill = async (pid: number) => {
-    await window.daemon.process.kill(pid)
-    setTimeout(load, 1000)
+    const ok = await confirm({
+      title: `Kill process ${pid}?`,
+      body: 'The process will be terminated immediately.',
+      danger: true,
+      confirmLabel: 'Kill',
+    })
+    if (!ok) return
+    const res = await window.daemon.process.kill(pid)
+    if (res.ok) {
+      useNotificationsStore.getState().pushSuccess(`Killed PID ${pid}`, 'Processes')
+    } else {
+      useNotificationsStore.getState().pushError(res.error ?? 'Kill failed', 'Processes')
+    }
+    setTimeout(load, 500)
   }
 
   const handleFocus = (proc: ProcessInfo) => {
@@ -43,14 +58,24 @@ export const ProcessManager = memo(function ProcessManager() {
       setActiveProject(proc.projectId, proc.projectPath)
       setActiveTerminal(proc.projectId, proc.id)
     }
-    setActivePanel('claude') // Switch back to main view to see terminal
+    setDrawerTool(null) // Close drawer to reveal main view
   }
 
   const totalMemory = processes.reduce((s, p) => s + p.memory, 0)
 
   return (
     <div className="process-panel">
-      <div className="panel-header">Processes</div>
+      <div className="panel-header">
+        Processes
+        <button
+          className="panel-header-action"
+          onClick={() => load()}
+          title="Refresh"
+          aria-label="Refresh processes"
+        >
+          ↻
+        </button>
+      </div>
 
       <CollapsibleSection title="Active Sessions" count={processes.length} defaultOpen>
         {processes.length === 0 ? (

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
 import './PortsPanel.css'
 
 interface RegisteredPort {
@@ -33,18 +35,43 @@ export const PortsPanel = memo(function PortsPanel() {
 
   useEffect(() => {
     load()
-    const interval = setInterval(load, 10000)
-    return () => clearInterval(interval)
+    // Slow background poll while we work toward main-side push events.
+    // Manual refresh button covers the immediate-feedback case.
+    const interval = setInterval(load, 30000)
+    const unsubscribe = window.daemon.events.on('port:changed', () => load())
+    return () => { clearInterval(interval); unsubscribe() }
   }, [load])
 
   const handleKill = async (port: number) => {
-    await window.daemon.ports.kill(port)
-    setTimeout(load, 1000)
+    const ok = await confirm({
+      title: `Kill port :${port}?`,
+      body: 'The process bound to this port will be terminated.',
+      danger: true,
+      confirmLabel: 'Kill',
+    })
+    if (!ok) return
+    const res = await window.daemon.ports.kill(port)
+    if (res.ok) {
+      useNotificationsStore.getState().pushSuccess(`Killed port :${port}`, 'Ports')
+    } else {
+      useNotificationsStore.getState().pushError(res.error ?? 'Kill failed', 'Ports')
+    }
+    setTimeout(load, 500)
   }
 
   return (
     <div className="ports-panel">
-      <div className="panel-header">Ports</div>
+      <div className="panel-header">
+        Ports
+        <button
+          className="panel-header-action"
+          onClick={() => load()}
+          title="Refresh"
+          aria-label="Refresh ports"
+        >
+          ↻
+        </button>
+      </div>
 
       <CollapsibleSection title="Registered" count={registered.length} defaultOpen>
         {registered.length === 0 ? (

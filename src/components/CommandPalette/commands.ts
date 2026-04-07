@@ -6,26 +6,23 @@ export interface Command {
   action: () => void
 }
 
-type PanelSetter = (panel: string) => void
 type CenterModeSetter = (mode: string) => void
 type CenterModeGetter = () => string
 type VoidCallback = () => void
 
 interface CommandDeps {
-  setActivePanel: PanelSetter
   setCenterMode: CenterModeSetter
   getCenterMode: CenterModeGetter
   toggleRightPanel: VoidCallback
   openAgentLauncher: VoidCallback
   toggleExplorer: VoidCallback
-  setDrawerTool: (tool: string) => void
+  setDrawerTool: (tool: string | null) => void
   toggleBrowserTab?: VoidCallback
   toggleDashboardTab?: VoidCallback
 }
 
 export function buildCommands(deps: CommandDeps): Command[] {
   const {
-    setActivePanel,
     setCenterMode,
     getCenterMode,
     toggleRightPanel,
@@ -55,7 +52,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
       id: 'nav:git',
       label: 'Open Git Panel',
       category: 'Navigation',
-      action: () => setActivePanel('git'),
+      action: () => setDrawerTool('git'),
     },
     {
       id: 'nav:deploy',
@@ -110,19 +107,19 @@ export function buildCommands(deps: CommandDeps): Command[] {
       id: 'nav:plugins',
       label: 'Open Plugins',
       category: 'Navigation',
-      action: () => setActivePanel('plugins'),
+      action: () => setDrawerTool('plugins'),
     },
     {
       id: 'nav:recovery',
       label: 'Open Recovery',
       category: 'Navigation',
-      action: () => setActivePanel('recovery'),
+      action: () => setDrawerTool('recovery'),
     },
     {
-      id: 'nav:claude',
-      label: 'Open Claude Panel',
+      id: 'nav:main-view',
+      label: 'Return to Editor',
       category: 'Navigation',
-      action: () => setActivePanel('claude'),
+      action: () => setDrawerTool(null),
     },
 
     // View

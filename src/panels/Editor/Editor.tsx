@@ -7,6 +7,8 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
 import { EditorWelcome } from './EditorWelcome'
@@ -321,7 +323,7 @@ export function EditorPanel() {
       }
 
       if (tidyRes.data === activeFile.content) {
-        setTidyError('No tidy changes suggested.')
+        useNotificationsStore.getState().pushInfo('Document is already tidy.', 'Markdown')
         return
       }
 
@@ -368,9 +370,17 @@ export function EditorPanel() {
   }, [])
 
   // Dispose models for closed files to avoid memory leaks
-  const handleCloseFile = useCallback((projectId: string, path: string) => {
+  const handleCloseFile = useCallback(async (projectId: string, path: string) => {
     const file = useUIStore.getState().openFiles.find((f) => f.projectId === projectId && f.path === path)
-    if (file?.isDirty && !window.confirm(`Discard unsaved changes to ${file.name}?`)) return
+    if (file?.isDirty) {
+      const ok = await confirm({
+        title: `Discard unsaved changes to ${file.name}?`,
+        body: 'Your unsaved edits will be lost.',
+        danger: true,
+        confirmLabel: 'Discard',
+      })
+      if (!ok) return
+    }
 
     // Save view state before disposing so it persists if reopened
     const editor = editorRef.current

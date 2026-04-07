@@ -122,6 +122,30 @@
   padding: 12px;
 }
 
+.drawer-grid-categorized {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawer-category-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-category-section .drawer-grid {
+  padding: 4px 12px 12px;
+}
+
+.drawer-category-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--t4);
+  padding: 12px 12px 0;
+  font-weight: 600;
+}
+
 .drawer-tool-card {
   display: flex;
   flex-direction: column;
