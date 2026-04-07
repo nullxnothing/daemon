@@ -10,6 +10,9 @@ import { registerFilesystemHandlers } from '../ipc/filesystem'
 import { registerProjectHandlers } from '../ipc/projects'
 import { registerAgentHandlers } from '../ipc/agents'
 import { registerClaudeHandlers } from '../ipc/claude'
+import { registerCodexHandlers } from '../ipc/codex'
+import { registerProviderHandlers } from '../ipc/provider'
+import { ClaudeProvider, CodexProvider, ProviderRegistry } from '../services/providers'
 import { registerGitHandlers } from '../ipc/git'
 import { registerProcessHandlers } from '../ipc/processes'
 import { registerEnvHandlers } from '../ipc/env'
@@ -104,11 +107,17 @@ function registerAllIpc() {
   if (ipcRegistered) return
   ipcRegistered = true
 
+  // Bootstrap provider registry before any handlers that resolve providers
+  ProviderRegistry.register(ClaudeProvider)
+  ProviderRegistry.register(CodexProvider)
+
   registerTerminalHandlers()
   registerFilesystemHandlers()
   registerProjectHandlers()
   registerAgentHandlers()
   registerClaudeHandlers()
+  registerCodexHandlers()
+  registerProviderHandlers()
   registerGitHandlers()
   registerProcessHandlers()
   registerEnvHandlers()

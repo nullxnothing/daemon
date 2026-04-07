@@ -22,11 +22,13 @@ contextBridge.exposeInMainWorld('daemon', {
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
+    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
     ready: (id: string) => ipcRenderer.send('terminal:ready', id),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
     checkClaude: () => ipcRenderer.invoke('terminal:check-claude'),
+    checkCodex: () => ipcRenderer.invoke('terminal:check-codex'),
     pasteFromClipboard: (id: string) => ipcRenderer.invoke('terminal:paste-from-clipboard', id),
     onData: (callback: (payload: { id: string; data: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, payload: { id: string; data: string }) => callback(payload)
@@ -45,7 +47,7 @@ contextBridge.exposeInMainWorld('daemon', {
     claudeList: () => ipcRenderer.invoke('agents:claude-list'),
     importClaude: (filePath: string) => ipcRenderer.invoke('agents:import-claude', filePath),
     syncClaude: (filePath: string) => ipcRenderer.invoke('agents:sync-claude', filePath),
-    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; shortcut?: string }) =>
+    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; provider?: string; shortcut?: string }) =>
       ipcRenderer.invoke('agents:create', agent),
     update: (id: string, data: Record<string, unknown>) => ipcRenderer.invoke('agents:update', id, data),
     delete: (id: string) => ipcRenderer.invoke('agents:delete', id),
@@ -114,6 +116,30 @@ contextBridge.exposeInMainWorld('daemon', {
     disconnect: () => ipcRenderer.invoke('claude:disconnect'),
     suggestCommitMessage: (diff: string) => ipcRenderer.invoke('claude:suggest-commit-message', diff),
     tidyMarkdown: (filePath: string, content: string) => ipcRenderer.invoke('claude:tidy-markdown', filePath, content),
+  },
+
+  codex: {
+    verifyConnection: () => ipcRenderer.invoke('codex:verify-connection'),
+    getConnection: () => ipcRenderer.invoke('codex:get-connection'),
+    mcpAll: () => ipcRenderer.invoke('codex:mcp-all'),
+    mcpToggle: (name: string, enabled: boolean) => ipcRenderer.invoke('codex:mcp-toggle', name, enabled),
+    mcpAdd: (name: string, command: string, args?: string[], env?: Record<string, string>) => ipcRenderer.invoke('codex:mcp-add', name, command, args, env),
+    restartSession: (terminalId: string) => ipcRenderer.invoke('codex:restart-session', terminalId),
+    restartAllSessions: () => ipcRenderer.invoke('codex:restart-all-sessions'),
+    storeKey: (name: string, value: string) => ipcRenderer.invoke('codex:store-key', name, value),
+    agentsMdRead: (projectPath: string) => ipcRenderer.invoke('codex:agentsmd-read', projectPath),
+    agentsMdWrite: (projectPath: string, content: string) => ipcRenderer.invoke('codex:agentsmd-write', projectPath, content),
+    installCli: () => ipcRenderer.invoke('codex:install-cli'),
+    logout: () => ipcRenderer.invoke('codex:logout'),
+    getModel: () => ipcRenderer.invoke('codex:get-model'),
+    getReasoningEffort: () => ipcRenderer.invoke('codex:get-reasoning-effort'),
+  },
+
+  provider: {
+    verifyAll: () => ipcRenderer.invoke('provider:verify-all'),
+    getAllConnections: () => ipcRenderer.invoke('provider:get-all-connections'),
+    getDefault: () => ipcRenderer.invoke('provider:get-default'),
+    setDefault: (id: string) => ipcRenderer.invoke('provider:set-default', id),
   },
 
   git: {

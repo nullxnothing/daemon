@@ -4,6 +4,8 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { useUIStore } from '../../store/ui'
 
+type ProviderId = 'claude' | 'codex'
+
 export function AgentGrid() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -23,7 +25,7 @@ export function AgentGrid() {
 
   const [dragSource, setDragSource] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
-  const [cellError, setCellError] = useState<Record<number, string>>({})
+  const [cellError, setCellError] = useState<Record<number, { code: string; message: string }>>({})
 
   // Initialize grind pages for this project on mount
   useEffect(() => {
@@ -53,29 +55,16 @@ export function AgentGrid() {
 
   const cells = pages[activeGrindPage] ?? []
 
-  const activateCell = useCallback(async (index: number) => {
+  const activateCell = useCallback(async (index: number, providerOverride?: ProviderId) => {
     if (!activeProjectId) return
     const currentPages = useUIStore.getState().grindPages[activeProjectId]
     if (!currentPages || !currentPages[activeGrindPage]) return
     const currentCells = currentPages[activeGrindPage]
-    if (!currentCells[index]) return
+    const cell = currentCells[index]
+    if (!cell) return
 
-    // Resolve Claude CLI path — prefer cached connection, fall back to verify
-    let claudePath: string | null = null
-    const cached = await window.daemon.claude.getConnection()
-    if (cached.ok && cached.data?.claudePath) {
-      claudePath = cached.data.claudePath
-    } else {
-      const verified = await window.daemon.claude.verifyConnection()
-      if (verified.ok && verified.data?.claudePath) {
-        claudePath = verified.data.claudePath
-      }
-    }
-
-    if (!claudePath) {
-      setCellError((prev) => ({ ...prev, [index]: 'Claude CLI not found. Check Settings.' }))
-      return
-    }
+    const providerId = providerOverride ?? cell.providerId
+    if (!providerId) return // empty cell shows picker inline
 
     setCellError((prev) => {
       const next = { ...prev }
@@ -83,20 +72,35 @@ export function AgentGrid() {
       return next
     })
 
-    const label = currentCells[index].label
-    const res = await window.daemon.terminal.create({
+    const res = await window.daemon.terminal.spawnProvider({
+      providerId,
+      projectId: activeProjectId,
       cwd: activeProjectPath ?? undefined,
-      startupCommand: 'claude',
-      isAgent: true,
     })
+
     if (res.ok && res.data) {
       const termId = res.data.id
+      const label = providerId === 'claude' ? 'Claude' : 'Codex'
       addTerminal(activeProjectId, termId, label)
-      setGrindCell(activeProjectId, activeGrindPage, index, { id: termId })
+      setGrindCell(activeProjectId, activeGrindPage, index, {
+        id: termId,
+        providerId,
+        label,
+      })
     } else {
-      setCellError((prev) => ({ ...prev, [index]: res.error ?? 'Failed to create terminal' }))
+      const raw = res.error ?? 'Failed to launch service'
+      const m = raw.match(/^([A-Z_]+):\s*(.*)$/)
+      const code = m ? m[1] : 'UNKNOWN'
+      const message = m ? m[2] : raw
+      setCellError((prev) => ({ ...prev, [index]: { code, message } }))
     }
   }, [activeProjectId, activeProjectPath, addTerminal, activeGrindPage, setGrindCell])
+
+  const handlePickService = useCallback((cellIndex: number, providerId: ProviderId) => {
+    if (!activeProjectId) return
+    setGrindCell(activeProjectId, activeGrindPage, cellIndex, { providerId })
+    activateCell(cellIndex, providerId)
+  }, [activeProjectId, activeGrindPage, setGrindCell, activateCell])
 
   const handleClose = useCallback(async (index: number) => {
     if (!activeProjectId) return
@@ -255,22 +259,35 @@ export function AgentGrid() {
                 {cell.id ? (
                   <AgentGridTerminal id={cell.id} />
                 ) : (
-                  <div className="agent-grid-cell-activate" onClick={() => activateCell(i)}>
+                  <div className="agent-grid-cell-activate">
                     {cellError[i] ? (
-                      <>
-                        <span className="activate-label" style={{ color: 'var(--red)' }}>{cellError[i]}</span>
-                        <span className="activate-hint">Click to retry</span>
-                      </>
+                      <CellErrorView
+                        error={cellError[i]}
+                        onRetry={() => activateCell(i)}
+                        onPick={() => {
+                          setGrindCell(activeProjectId!, activeGrindPage, i, { providerId: null })
+                          setCellError((prev) => { const n = { ...prev }; delete n[i]; return n })
+                        }}
+                      />
+                    ) : cells[i]?.providerId ? (
+                      <div
+                        onClick={() => activateCell(i)}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                      >
+                        <img
+                          src={cells[i].providerId === 'claude' ? './claude-logo.png' : './codex-logo.png'}
+                          alt={cells[i].providerId ?? ''}
+                          style={{ width: 36, height: 36 }}
+                        />
+                        <span className="activate-label">
+                          {cells[i].providerId === 'claude' ? 'Claude' : 'Codex'}
+                        </span>
+                        <span className="activate-hint">Click to launch</span>
+                      </div>
                     ) : (
-                      <>
-                        <div className="activate-icon">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <polygon points="5 3 19 12 5 21 5 3" />
-                          </svg>
-                        </div>
-                        <span className="activate-label">Activate</span>
-                        <span className="activate-hint">Launch an AI coding agent</span>
-                      </>
+                      <ServicePicker
+                        onPick={(providerId) => handlePickService(i, providerId)}
+                      />
                     )}
                   </div>
                 )}
@@ -292,6 +309,110 @@ export function AgentGrid() {
             </button>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+function CellErrorView({
+  error,
+  onRetry,
+  onPick,
+}: {
+  error: { code: string; message: string }
+  onRetry: () => void
+  onPick: () => void
+}) {
+  let cta = 'Retry'
+  let action = onRetry
+  if (error.code === 'NO_PROVIDER_AUTH') { cta = 'Open Settings'; action = onRetry }
+  else if (error.code === 'NOT_AUTHENTICATED') { cta = 'Pick another agent'; action = onPick }
+  else if (error.code === 'CLI_NOT_INSTALLED') { cta = 'Install CLI'; action = onRetry }
+  else if (error.code === 'NO_AGENT') { cta = 'Open Agents'; action = onRetry }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 12, textAlign: 'center' }}>
+      <span className="activate-label" style={{ color: 'var(--red)' }}>{error.code.replace(/_/g, ' ')}</span>
+      <span className="activate-hint" style={{ maxWidth: 240 }}>{error.message}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); action() }}
+        style={{
+          marginTop: 4, padding: '4px 10px', fontSize: 11,
+          background: 'var(--s3)', color: 'var(--t1)',
+          border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
+        }}
+      >
+        {cta}
+      </button>
+    </div>
+  )
+}
+
+function ServicePicker({
+  onPick,
+  onCancel,
+}: {
+  onPick: (providerId: ProviderId) => void
+  onCancel?: () => void
+}) {
+  const services: { id: ProviderId; label: string; logo: string }[] = [
+    { id: 'claude', label: 'Claude', logo: './claude-logo.png' },
+    { id: 'codex', label: 'Codex', logo: './codex-logo.png' },
+  ]
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 10,
+        padding: 16, width: '100%', maxWidth: 280, alignItems: 'center',
+      }}
+    >
+      <div style={{ fontSize: 10, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: 1 }}>
+        Pick Service
+      </div>
+      <div style={{ display: 'flex', gap: 12, width: '100%', justifyContent: 'center' }}>
+        {services.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onPick(s.id)}
+            className="service-pick-btn"
+            style={{
+              flex: 1, maxWidth: 110,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+              padding: '14px 10px',
+              background: 'var(--s2)',
+              color: 'var(--t1)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              cursor: 'pointer',
+              transition: 'background 0.15s, border-color 0.15s, transform 0.1s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--s3)'
+              e.currentTarget.style.borderColor = 'var(--s5)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--s2)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+            }}
+          >
+            <img src={s.logo} alt={s.label} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+            <span style={{ fontSize: 12, fontWeight: 500 }}>{s.label}</span>
+          </button>
+        ))}
+      </div>
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          style={{
+            marginTop: 4, padding: '4px 12px', fontSize: 10,
+            background: 'transparent', color: 'var(--t3)',
+            border: '1px solid var(--border)', borderRadius: 3, cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
       )}
     </div>
   )
@@ -357,6 +478,9 @@ function AgentGridTerminal({ id }: { id: string }) {
     const cleanupExit = window.daemon.terminal.onExit((payload) => {
       if (payload.id === id) term.write('\r\n[Process exited]\r\n')
     })
+
+    // Tell main process the renderer is attached so it flushes buffered pty output
+    window.daemon.terminal.ready(id)
 
     const resizeObserver = new ResizeObserver(() => {
       setTimeout(doFit, 60)

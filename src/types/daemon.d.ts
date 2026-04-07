@@ -14,6 +14,8 @@ import type {
   WalletDashboard,
   ClaudeMdData,
   ClaudeConnection,
+  CodexConnection,
+  ProviderConnectionInfo,
   ProcessInfo,
   OrphanProcess,
   GitFile,
@@ -93,6 +95,8 @@ export type {
   WalletDashboard,
   ClaudeMdData,
   ClaudeConnection,
+  CodexConnection,
+  ProviderConnectionInfo,
   ProcessInfo,
   OrphanProcess,
   GitFile,
@@ -215,6 +219,7 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     ready: (id: string) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
@@ -366,7 +371,7 @@ declare global {
     claudeList: () => Promise<IpcResponse<ClaudeAgentFile[]>>
     importClaude: (filePath: string) => Promise<IpcResponse<Agent>>
     syncClaude: (filePath: string) => Promise<IpcResponse<Agent>>
-    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; shortcut?: string; source?: string; externalPath?: string | null }) => Promise<IpcResponse<Agent>>
+    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; provider?: string; shortcut?: string; source?: string; externalPath?: string | null }) => Promise<IpcResponse<Agent>>
     update: (id: string, data: Record<string, unknown>) => Promise<IpcResponse<Agent>>
     delete: (id: string) => Promise<IpcResponse>
   }
@@ -639,6 +644,35 @@ declare global {
     isConfigured: () => Promise<IpcResponse<boolean>>
   }
 
+  interface DaemonCodex {
+    verifyConnection: () => Promise<IpcResponse<CodexConnection>>
+    getConnection: () => Promise<IpcResponse<CodexConnection | null>>
+    mcpAll: () => Promise<IpcResponse<Array<{ name: string; config: { command: string; args?: string[]; env?: Record<string, string> }; enabled: boolean; source: string }>>>
+    mcpToggle: (name: string, enabled: boolean) => Promise<IpcResponse>
+    mcpAdd: (name: string, command: string, args?: string[], env?: Record<string, string>) => Promise<IpcResponse>
+    restartSession: (terminalId: string) => Promise<IpcResponse<{ id: string }>>
+    restartAllSessions: () => Promise<IpcResponse<{ restarted: number; total: number }>>
+    storeKey: (name: string, value: string) => Promise<IpcResponse>
+    agentsMdRead: (projectPath: string) => Promise<IpcResponse<{ content: string; diff: string }>>
+    agentsMdWrite: (projectPath: string, content: string) => Promise<IpcResponse>
+    installCli: () => Promise<IpcResponse<{ stdout: string; stderr: string }>>
+    logout: () => Promise<IpcResponse<{ removedAuthFile: boolean }>>
+    getModel: () => Promise<IpcResponse<string>>
+    getReasoningEffort: () => Promise<IpcResponse<string>>
+  }
+
+  interface ProviderConnectionMap {
+    claude: { providerId: 'claude'; cliPath: string; hasApiKey: boolean; isAuthenticated: boolean; authMode: string } | null
+    codex: { providerId: 'codex'; cliPath: string; hasApiKey: boolean; isAuthenticated: boolean; authMode: string } | null
+  }
+
+  interface DaemonProvider {
+    verifyAll: () => Promise<IpcResponse<ProviderConnectionMap>>
+    getAllConnections: () => Promise<IpcResponse<ProviderConnectionMap>>
+    getDefault: () => Promise<IpcResponse<string>>
+    setDefault: (id: string) => Promise<IpcResponse<{ defaultProvider: string }>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -654,6 +688,8 @@ declare global {
     projects: DaemonProjects
     agents: DaemonAgents
     claude: DaemonClaude
+    codex: DaemonCodex
+    provider: DaemonProvider
     tweets: DaemonTweets
     plugins: DaemonPlugins
     browser: DaemonBrowser

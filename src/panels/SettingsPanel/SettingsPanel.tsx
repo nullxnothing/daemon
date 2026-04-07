@@ -206,6 +206,9 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
   return (
     <div className="settings-section">
+      <DefaultProviderSection />
+      <div className="settings-divider" />
+
       {/* Claude Connection */}
       <div className="settings-section-label">Claude Connection</div>
       <div className="settings-section-desc">
@@ -275,6 +278,101 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function DefaultProviderSection() {
+  const [defaultId, setDefaultId] = useState<'claude' | 'codex'>('claude')
+  const [conns, setConns] = useState<{ claude: boolean; codex: boolean }>({ claude: false, codex: false })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    const [defRes, connRes] = await Promise.all([
+      window.daemon.provider.getDefault(),
+      window.daemon.provider.verifyAll(),
+    ])
+    if (defRes.ok && defRes.data) setDefaultId(defRes.data as 'claude' | 'codex')
+    if (connRes.ok && connRes.data) {
+      setConns({
+        claude: !!connRes.data.claude && (connRes.data.claude.isAuthenticated || connRes.data.claude.authMode !== 'none'),
+        codex: !!connRes.data.codex && (connRes.data.codex.isAuthenticated || connRes.data.codex.authMode !== 'none'),
+      })
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const handlePick = async (id: 'claude' | 'codex') => {
+    setError(null)
+    const res = await window.daemon.provider.setDefault(id)
+    if (res.ok) {
+      setDefaultId(id)
+    } else {
+      setError(res.error ?? 'Failed to set default')
+    }
+  }
+
+  const authedCount = Number(conns.claude) + Number(conns.codex)
+
+  return (
+    <>
+      <div className="settings-section-label">Default Provider</div>
+      <div className="settings-section-desc">
+        Used when an agent is set to "auto". Switching mid-session only affects new agents.
+      </div>
+
+      {loading ? (
+        <div className="settings-empty">Checking...</div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            {(['claude', 'codex'] as const).map((id) => {
+              const isAuthed = conns[id]
+              const isActive = defaultId === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => handlePick(id)}
+                  disabled={!isAuthed && authedCount > 0}
+                  title={!isAuthed ? `Sign in to ${id} to enable` : ''}
+                  style={{
+                    flex: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    padding: '8px 12px',
+                    background: isActive ? 'var(--s4)' : 'var(--s2)',
+                    color: isActive ? 'var(--t1)' : 'var(--t2)',
+                    border: `1px solid ${isActive ? 'var(--s5)' : 'var(--border)'}`,
+                    borderRadius: 4,
+                    fontSize: 12,
+                    cursor: (!isAuthed && authedCount > 0) ? 'not-allowed' : 'pointer',
+                    opacity: (!isAuthed && authedCount > 0) ? 0.5 : 1,
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 5, height: 5, borderRadius: '50%',
+                      background: isAuthed ? 'var(--green)' : 'var(--t4)',
+                    }}
+                  />
+                  {id}
+                </button>
+              )
+            })}
+          </div>
+          {authedCount === 0 && (
+            <div className="settings-section-desc" style={{ marginTop: 8, color: 'var(--amber)' }}>
+              Not signed in to any provider. Sign in below to start spawning agents.
+            </div>
+          )}
+          {error && (
+            <div className="settings-section-desc" style={{ marginTop: 8, color: 'var(--red)' }}>{error}</div>
+          )}
+        </>
+      )}
+    </>
   )
 }
 
