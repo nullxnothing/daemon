@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useUIStore } from '../../store/ui'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
 import { Dot } from '../../components/Dot'
 import { FocusTrap } from '../../components/FocusTrap'
@@ -151,7 +153,7 @@ export function EnvManager() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const projects = useUIStore((s) => s.projects)
   const openFile = useUIStore((s) => s.openFile)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   const [localKeys, setLocalKeys] = useState<UnifiedKey[]>([])
   const [vercelVars, setVercelVars] = useState<VercelEnvVar[]>([])
@@ -247,7 +249,7 @@ export function EnvManager() {
     const res = await window.daemon.fs.readFile(filePath)
     if (res.ok && res.data && activeProjectId) {
       openFile({ path: res.data.path, name: filePath.split(/[\\/]/).pop() ?? '.env', content: res.data.content, projectId: activeProjectId })
-      setActivePanel('claude')
+      setDrawerTool(null)
     }
   }
 
@@ -278,6 +280,14 @@ export function EnvManager() {
 
   const handlePush = async (m: MergedVar) => {
     if (!activeProjectId || m.devValue === null) return
+    const ok = await confirm({
+      title: `Push ${m.key} to Vercel production?`,
+      body: `This will overwrite the production value for "${m.key}". Type the variable name to confirm.`,
+      danger: true,
+      confirmLabel: 'Push to production',
+      typedConfirmation: m.key,
+    })
+    if (!ok) return
     setPushingKeys(prev => new Set(prev).add(m.key))
     try {
       if (m.prodVarId) {
@@ -285,7 +295,10 @@ export function EnvManager() {
       } else {
         await window.daemon.env.vercelCreateVar(activeProjectId, m.key, m.devValue, ['production', 'preview', 'development'])
       }
+      useNotificationsStore.getState().pushSuccess(`Pushed ${m.key} to Vercel`, 'Env')
       loadVercel()
+    } catch (err) {
+      useNotificationsStore.getState().pushError(err, 'Env push')
     } finally {
       setPushingKeys(prev => { const next = new Set(prev); next.delete(m.key); return next })
     }
@@ -582,13 +595,18 @@ function EnvRow({
           ) : hasDev ? (
             <span
               className={`env-value-text ${isDevRevealed ? 'env-plain' : 'env-obscured'} env-clickable`}
-              onMouseEnter={() => toggleReveal(`${m.key}:dev`)}
-              onMouseLeave={() => toggleReveal(`${m.key}:dev`)}
               onClick={(e) => {
                 e.stopPropagation()
-                if (m.devFilePath) onStartEditDev(m.key, m.devFilePath, m.devValue!)
+                // Single click toggles reveal; double-click opens editor.
+                // Prevents the prior conflict where hover-reveal fired
+                // unintentionally on every cursor pass.
+                if (e.detail === 2 && m.devFilePath) {
+                  onStartEditDev(m.key, m.devFilePath, m.devValue!)
+                } else {
+                  toggleReveal(`${m.key}:dev`)
+                }
               }}
-              title={isDevRevealed ? m.devValue! : 'Hover to reveal, click to edit'}
+              title="Click to reveal, double-click to edit"
             >
               {isDevRevealed ? truncate(m.devValue!, 28) : obscure(m.devValue!)}
             </span>

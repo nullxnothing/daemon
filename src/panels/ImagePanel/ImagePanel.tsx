@@ -153,7 +153,7 @@ export function ImagePanel() {
   }
 
   const handleGoToSettings = () => {
-    useUIStore.getState().setActivePanel('settings')
+    useUIStore.getState().setDrawerTool('settings')
   }
 
   const handleSaveKey = async () => {

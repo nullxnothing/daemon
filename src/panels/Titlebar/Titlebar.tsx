@@ -100,7 +100,7 @@ const MODE_OPTIONS: Array<{ value: CenterMode; label: string; shortcut: string |
   },
   {
     value: 'grind',
-    label: 'Grind',
+    label: 'Agents',
     shortcut: 'Ctrl+Shift+G',
     icon: (
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

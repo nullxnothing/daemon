@@ -3,7 +3,6 @@ import { useUIStore } from '../src/store/ui'
 
 function resetStore() {
   useUIStore.setState({
-    activePanel: 'claude',
     activeProjectId: null,
     activeProjectPath: null,
     projects: [],
@@ -17,6 +16,8 @@ function resetStore() {
     grindPageCount: 1,
     activeGrindPage: 0,
     grindPages: {},
+    drawerTool: null,
+    drawerOpen: false,
   })
 }
 
@@ -25,7 +26,6 @@ describe('useUIStore — initial state', () => {
 
   it('has correct defaults', () => {
     const state = useUIStore.getState()
-    expect(state.activePanel).toBe('claude')
     expect(state.activeProjectId).toBeNull()
     expect(state.activeProjectPath).toBeNull()
     expect(state.projects).toEqual([])
@@ -33,6 +33,7 @@ describe('useUIStore — initial state', () => {
     expect(state.terminals).toEqual([])
     expect(state.mcpDirty).toBe(false)
     expect(state.centerMode).toBe('canvas')
+    expect(state.drawerTool).toBeNull()
   })
 })
 
@@ -113,13 +114,14 @@ describe('useUIStore — openFile / closeFile / setActiveFile', () => {
     expect(useUIStore.getState().openFiles[0].isDirty).toBe(false)
   })
 
-  it('openFile resets centerMode to canvas and panel to claude', () => {
+  it('openFile resets centerMode to canvas and closes drawer', () => {
     useUIStore.getState().setCenterMode('grind')
-    useUIStore.getState().setActivePanel('git')
+    useUIStore.getState().setDrawerTool('git')
     useUIStore.getState().openFile({ projectId: 'p1', path: '/a.ts', name: 'a.ts', content: 'a' })
     const state = useUIStore.getState()
     expect(state.centerMode).toBe('canvas')
-    expect(state.activePanel).toBe('claude')
+    expect(state.drawerTool).toBeNull()
+    expect(state.drawerOpen).toBe(false)
   })
 })
 
@@ -163,19 +165,29 @@ describe('useUIStore — addTerminal / removeTerminal', () => {
   })
 })
 
-describe('useUIStore — setActivePanel / setCenterMode', () => {
+describe('useUIStore — setDrawerTool / setCenterMode', () => {
   beforeEach(resetStore)
 
-  it('changes active panel', () => {
-    useUIStore.getState().setActivePanel('git')
-    expect(useUIStore.getState().activePanel).toBe('git')
+  it('changes drawer tool and opens drawer', () => {
+    useUIStore.getState().setDrawerTool('git')
+    const state = useUIStore.getState()
+    expect(state.drawerTool).toBe('git')
+    expect(state.drawerOpen).toBe(true)
+  })
+
+  it('clears drawer tool when set to null', () => {
+    useUIStore.getState().setDrawerTool('git')
+    useUIStore.getState().setDrawerTool(null)
+    const state = useUIStore.getState()
+    expect(state.drawerTool).toBeNull()
+    expect(state.drawerOpen).toBe(false)
   })
 
   it('changes center mode', () => {
     useUIStore.getState().setCenterMode('grind')
     expect(useUIStore.getState().centerMode).toBe('grind')
-    useUIStore.getState().setCenterMode('browser')
-    expect(useUIStore.getState().centerMode).toBe('browser')
+    useUIStore.getState().setCenterMode('canvas')
+    expect(useUIStore.getState().centerMode).toBe('canvas')
   })
 })
 

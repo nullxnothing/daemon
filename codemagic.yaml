@@ -1,0 +1,38 @@
+workflows:
+  macos-release:
+    name: macOS Release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 22
+      groups:
+        - cloudflare
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+    scripts:
+      - name: Install pnpm
+        script: npm install -g pnpm@9
+      - name: Install dependencies
+        script: pnpm install --frozen-lockfile
+      - name: Build
+        script: pnpm run build
+      - name: Package
+        script: pnpm exec electron-builder --mac --config.npmRebuild=false
+      - name: Upload to R2
+        script: |
+          npm install -g wrangler
+          export CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN
+          export CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID
+          for f in release/*/DAEMON-*-arm64.dmg release/*/DAEMON-*-arm64.zip release/*/latest-mac.yml; do
+            if [ -f "$f" ]; then
+              wrangler r2 object put "daemon-releases/$(basename $f)" --file "$f" --remote
+            fi
+          done
+    artifacts:
+      - release/*/DAEMON-*.dmg
+      - release/*/DAEMON-*.zip
+      - release/*/latest-mac.yml

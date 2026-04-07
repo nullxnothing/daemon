@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
+import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import type { WorkspaceProfileName } from '../../../electron/shared/types'
@@ -27,14 +28,48 @@ interface AgentRow {
   model: string
 }
 
+// Lookup table mapping common search keywords to the tab they live in
+const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
+  { tab: 'keys', keywords: ['key', 'api', 'token', 'secret', 'helius', 'openai', 'anthropic', 'birdeye', 'gemini'] },
+  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
+  { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
+  { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market'] },
+  { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding', 'profile', 'workspace'] },
+  { tab: 'crashes', keywords: ['crash', 'error', 'log', 'recovery'] },
+]
+
+function findTabForQuery(query: string): SettingsTab | null {
+  const q = query.trim().toLowerCase()
+  if (!q) return null
+  for (const entry of SEARCH_INDEX) {
+    if (entry.keywords.some((k) => k.includes(q) || q.includes(k))) return entry.tab
+  }
+  return null
+}
+
 export function SettingsPanel() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const [tab, setTab] = useState<SettingsTab>('keys')
+  const [search, setSearch] = useState('')
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    const matchedTab = findTabForQuery(value)
+    if (matchedTab) setTab(matchedTab)
+  }
 
   return (
     <div className="settings-center">
       <div className="settings-header">
         <h2 className="settings-title">Settings</h2>
+        <input
+          type="text"
+          className="settings-search"
+          placeholder="Search settings..."
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          aria-label="Search settings"
+        />
       </div>
 
       <div className="settings-tabs">
@@ -131,6 +166,9 @@ function KeysSection() {
           {saving ? 'Saving...' : 'Add Key'}
         </button>
       </div>
+      <div className="settings-section-desc" style={{ marginTop: 4, fontSize: 10 }}>
+        Key names: uppercase letters, numbers, and underscores only.
+      </div>
     </div>
   )
 }
@@ -181,9 +219,24 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
   const handleSignIn = async () => {
     setSigningIn(true)
-    await window.daemon.claude.authLogin()
-    setSigningIn(false)
-    load()
+    // Auto-clear waiting state after 30s in case the OAuth flow stalls or
+    // the user closes the browser without completing it.
+    const timeoutId = window.setTimeout(() => {
+      setSigningIn(false)
+      useNotificationsStore.getState().pushInfo(
+        'Sign-in is still pending. Click "Sign in with Claude" again if needed.',
+        'Claude',
+      )
+    }, 30000)
+    try {
+      await window.daemon.claude.authLogin()
+    } catch (err) {
+      useNotificationsStore.getState().pushError(err, 'Claude sign-in')
+    } finally {
+      window.clearTimeout(timeoutId)
+      setSigningIn(false)
+      load()
+    }
   }
 
   const handleSaveApiKey = async () => {
@@ -206,9 +259,6 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
   return (
     <div className="settings-section">
-      <DefaultProviderSection />
-      <div className="settings-divider" />
-
       {/* Claude Connection */}
       <div className="settings-section-label">Claude Connection</div>
       <div className="settings-section-desc">
@@ -389,6 +439,9 @@ function AgentsSection() {
 
   return (
     <div className="settings-section">
+      <DefaultProviderSection />
+      <div className="settings-divider" />
+
       <div className="settings-section-desc">
         Registered agents and model preferences. Use the Agent Launcher (Ctrl+Shift+A) to create or edit agents.
       </div>
@@ -495,8 +548,23 @@ function CrashesSection() {
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </div>
-              {expandedId === crash.id && crash.stack && (
-                <pre className="settings-crash-stack">{crash.stack}</pre>
+              {expandedId === crash.id && (
+                <div className="settings-crash-detail">
+                  {crash.message.length > 120 && (
+                    <pre className="settings-crash-stack" style={{ marginBottom: 8 }}>{crash.message}</pre>
+                  )}
+                  {crash.stack && <pre className="settings-crash-stack">{crash.stack}</pre>}
+                  <button
+                    onClick={() => navigator.clipboard.writeText([crash.type, crash.message, crash.stack].filter(Boolean).join('\n\n'))}
+                    style={{
+                      marginTop: 6, padding: '3px 8px', fontSize: 10,
+                      background: 'var(--s3)', color: 'var(--t2)',
+                      border: '1px solid var(--border)', borderRadius: 3, cursor: 'pointer',
+                    }}
+                  >
+                    Copy stack
+                  </button>
+                </div>
               )}
             </div>
           ))}

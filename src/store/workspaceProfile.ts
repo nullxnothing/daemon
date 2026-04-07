@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { WorkspaceProfileName, WorkspaceProfile } from '../../electron/shared/types'
 import { getDefaultVisibility, PROFILE_PRESETS } from '../constants/workspaceProfiles'
 import { BUILTIN_TOOL_IDS } from '../constants/toolIds'
+import { useUIStore } from './ui'
+import { useNotificationsStore } from './notifications'
 
 interface WorkspaceProfileState {
   profileName: WorkspaceProfileName
@@ -46,6 +48,20 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     set({ profileName: name, toolVisibility: visibility })
     const profile: WorkspaceProfile = { name, toolVisibility: visibility }
     await window.daemon.settings.setWorkspaceProfile(profile).catch(() => {})
+
+    // Hide pinned tools that are no longer visible in the new profile.
+    // We don't delete them — pinnedTools persists, but the sidebar will
+    // filter via isToolVisible. Surface a toast so the user notices.
+    const pinned = useUIStore.getState().pinnedTools
+    const hidden = pinned.filter((id) => id !== 'settings' && visibility[id] === false)
+    if (hidden.length > 0) {
+      useNotificationsStore.getState().pushToast({
+        kind: 'info',
+        message: `${hidden.length} pinned tool${hidden.length === 1 ? '' : 's'} hidden in this profile`,
+        context: 'Workspace profile',
+        ttlMs: 7000,
+      })
+    }
   },
 
   setToolVisible: async (toolId, visible) => {

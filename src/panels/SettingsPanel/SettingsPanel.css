@@ -9,6 +9,10 @@
 
 .settings-header {
   padding: 16px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .settings-title {
@@ -16,6 +20,28 @@
   font-weight: 600;
   color: var(--t1);
   margin: 0;
+  flex-shrink: 0;
+}
+
+.settings-search {
+  flex: 1;
+  max-width: 280px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--t1);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.settings-search::placeholder {
+  color: var(--t4);
+}
+
+.settings-search:focus {
+  border-color: var(--s5);
 }
 
 .settings-tabs {

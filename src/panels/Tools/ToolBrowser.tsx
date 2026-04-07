@@ -11,21 +11,21 @@ export function ToolBrowser() {
   const { tools, loaded, load, filter, setFilter, setActiveTool, runningToolIds } = useToolsStore()
   const openFile = useUIStore((s) => s.openFile)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const [showCreate, setShowCreate] = useState(false)
 
   useEffect(() => { if (!loaded) load() }, [loaded, load])
 
-  // Map built-in tool IDs to their panel routes
-  const BUILTIN_PANELS: Record<string, Parameters<typeof setActivePanel>[0]> = {
+  // Map built-in tool IDs to their drawer destinations
+  const BUILTIN_DRAWER_TOOLS: Record<string, string> = {
     'builtin-wallet-recovery': 'recovery',
   }
 
   const handleRun = useCallback(async (toolId: string) => {
-    // Built-in tools navigate to their dedicated panel
-    const builtinPanel = BUILTIN_PANELS[toolId]
-    if (builtinPanel) {
-      setActivePanel(builtinPanel)
+    // Built-in tools navigate to their dedicated drawer tool
+    const builtinTool = BUILTIN_DRAWER_TOOLS[toolId]
+    if (builtinTool) {
+      setDrawerTool(builtinTool)
       return
     }
 
@@ -40,9 +40,9 @@ export function ToolBrowser() {
       useUIStore.getState().addTerminal(activeProjectId, termRes.data.id, tool?.name ?? 'Tool')
       await window.daemon.tools.markRunning(toolId, termRes.data.id, termRes.data.pid)
       useToolsStore.getState().addRunning(toolId)
-      setActivePanel('claude')
+      setDrawerTool(null)
     }
-  }, [activeProjectId, tools, setActivePanel])
+  }, [activeProjectId, tools, setDrawerTool])
 
   const handleEdit = useCallback(async (toolId: string) => {
     const res = await window.daemon.tools.get(toolId)
@@ -54,9 +54,9 @@ export function ToolBrowser() {
     const fileRes = await window.daemon.fs.readFile(filePath)
     if (fileRes.ok && fileRes.data) {
       openFile({ path: filePath, name: tool.entrypoint, content: fileRes.data.content, projectId: activeProjectId })
-      setActivePanel('claude')
+      setDrawerTool(null)
     }
-  }, [activeProjectId, openFile, setActivePanel])
+  }, [activeProjectId, openFile, setDrawerTool])
 
   const handleOpenFolder = useCallback(async (toolId: string) => {
     await window.daemon.tools.openFolder(toolId)

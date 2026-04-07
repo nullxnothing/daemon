@@ -17,7 +17,6 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const drawerTool = useUIStore((s) => s.drawerTool)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
-  const rightPanelTab = useUIStore((s) => s.rightPanelTab)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
 
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -189,16 +188,19 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
         onDragOver={handleZoneDragOver}
         onDragLeave={handleZoneDragLeave}
         onDrop={handleZoneDrop}
+        title="Drag a tool here to pin it. Right-click a pinned tool to unpin."
+        aria-label="Drop here to pin a tool"
       />
 
       <div className="sidebar-spacer" />
 
-      {/* Colosseum */}
+      {/* Colosseum / Hackathon — opens in drawer */}
       <div className="sidebar-divider" />
-      <div
-        className={`colosseum-icon-wrap${rightPanelTab === 'hackathon' ? ' active' : ''}`}
-        onClick={() => useUIStore.getState().setRightPanelTab('hackathon')}
+      <button
+        className={`colosseum-icon-wrap${drawerTool === 'hackathon' ? ' active' : ''}`}
+        onClick={() => useUIStore.getState().setDrawerTool('hackathon')}
         title="Hackathon (Colosseum)"
+        aria-label="Hackathon"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
           <path d="M2 12V6a6 6 0 0 1 12 0v6" strokeLinecap="round"/>
@@ -207,7 +209,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
           <line x1="8" y1="12" x2="8" y2="5"/>
           <line x1="11" y1="12" x2="11" y2="7"/>
         </svg>
-      </div>
+      </button>
 
       {/* Command Drawer Launcher */}
       <button

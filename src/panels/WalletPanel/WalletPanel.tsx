@@ -45,7 +45,19 @@ export function WalletPanel() {
         <div className="wallet-panel-header">
           <span className="wallet-panel-title">Wallet</span>
         </div>
-        <div className="wallet-empty">Wallet data unavailable</div>
+        <div className="wallet-empty">
+          <div style={{ marginBottom: 12 }}>Wallet data couldn't load.</div>
+          <button
+            onClick={() => void load()}
+            style={{
+              padding: '6px 14px', fontSize: 12,
+              background: 'var(--s3)', color: 'var(--t1)',
+              border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
       </div>
     )
   }
@@ -70,6 +82,7 @@ export function WalletPanel() {
           className="wallet-expand-btn"
           onClick={toggleDrawerFullscreen}
           title={drawerFullscreen ? 'Collapse' : 'Expand'}
+          aria-label={drawerFullscreen ? 'Collapse wallet panel' : 'Expand wallet panel'}
         >
           {drawerFullscreen ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

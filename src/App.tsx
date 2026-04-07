@@ -15,6 +15,10 @@ import { StatusBar } from './panels/StatusBar/StatusBar'
 import { OnboardingWizard } from './panels/Onboarding/OnboardingWizard'
 import { LaunchWizard } from './panels/LaunchWizard/LaunchWizard'
 import { TourOverlay } from './components/Tour/TourOverlay'
+import { ToastHost } from './components/ToastHost'
+import { ConfirmDialog } from './components/ConfirmDialog'
+import { useNotificationsStore } from './store/notifications'
+import { useAppActions } from './store/appActions'
 import { useOnboardingStore } from './store/onboarding'
 import { useWorkspaceProfileStore } from './store/workspaceProfile'
 import { PanelErrorBoundary } from './components/ErrorBoundary'
@@ -33,7 +37,6 @@ import './App.css'
 function App() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const activePanel = useUIStore((s) => s.activePanel)
   const projects = useUIStore((s) => s.projects)
   const wizardOpen = useOnboardingStore((s) => s.wizardOpen)
   const showResumeBanner = useOnboardingStore((s) => s.showResumeBanner)
@@ -57,7 +60,13 @@ function App() {
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
 
   const centerRef = useRef<HTMLDivElement>(null)
-  const halfCenter = Math.round((window.innerHeight - 80) / 2)
+  const [windowHeight, setWindowHeight] = useState(() => window.innerHeight)
+  useEffect(() => {
+    const onResize = () => setWindowHeight(window.innerHeight)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  const halfCenter = Math.round((windowHeight - 80) / 2)
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
@@ -106,6 +115,20 @@ function App() {
     }
   }, [])
 
+  // Load activity history once on mount so the activity log is populated
+  useEffect(() => {
+    useNotificationsStore.getState().loadActivity()
+  }, [])
+
+  // Imperative app actions from nested components — replaces synthetic keyboard
+  // events. Each requestId increments to retrigger.
+  const filePaletteRequestId = useAppActions((s) => s.filePaletteRequestId)
+  const agentLauncherRequestId = useAppActions((s) => s.agentLauncherRequestId)
+  const terminalFocusRequestId = useAppActions((s) => s.terminalFocusRequestId)
+  useEffect(() => { if (filePaletteRequestId > 0) setPaletteMode('files') }, [filePaletteRequestId, setPaletteMode])
+  useEffect(() => { if (agentLauncherRequestId > 0) setShowAgentLauncher(true) }, [agentLauncherRequestId])
+  useEffect(() => { if (terminalFocusRequestId > 0) setShowTerminal(true) }, [terminalFocusRequestId])
+
   // Renderer crash capture — forward errors to main process via IPC
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -132,10 +155,15 @@ function App() {
     }
   }, [])
 
-  // Listen for startup crash warning from main process
+  // Listen for startup crash warning from main process.
+  // Only show the banner when at least 3 crashes occurred — single transient
+  // errors are not worth interrupting the user.
   useEffect(() => {
+    const CRASH_BANNER_THRESHOLD = 3
     return window.daemon.settings.onCrashWarning((count) => {
-      setCrashWarningCount(count)
+      if (count >= CRASH_BANNER_THRESHOLD) {
+        setCrashWarningCount(count)
+      }
     })
   }, [])
 
@@ -164,7 +192,6 @@ function App() {
   const paletteCommands = useMemo(
     () =>
       buildCommands({
-        setActivePanel: (p) => useUIStore.getState().setActivePanel(p as any),
         setCenterMode: (m) => useUIStore.getState().setCenterMode(m as any),
         getCenterMode: () => useUIStore.getState().centerMode,
         toggleRightPanel: () => setShowRightPanel((v) => !v),
@@ -187,7 +214,7 @@ function App() {
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
           <button
             className="crash-warning-link"
-            onClick={() => { useUIStore.getState().setActivePanel('settings'); setCrashWarningCount(null) }}
+            onClick={() => { useUIStore.getState().setDrawerTool('settings'); setCrashWarningCount(null) }}
           >
             View crash log
           </button>
@@ -315,6 +342,8 @@ function App() {
       )}
 
       {tourActive && <TourOverlay />}
+      <ToastHost />
+      <ConfirmDialog />
     </div>
   )
 }

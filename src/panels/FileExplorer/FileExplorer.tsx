@@ -14,7 +14,6 @@ export function FileExplorer() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const openFile = useUIStore((s) => s.openFile)
   const addTerminal = useUIStore((s) => s.addTerminal)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -310,7 +309,6 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
   }, [collapseSignal])
   const [children, setChildren] = useState<FileEntry[] | null>(entry.children ?? null)
   const openFile = useUIStore((s) => s.openFile)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const renameRef = useRef<HTMLInputElement>(null)
   const gitStatus = !entry.isDirectory ? gitStatusByPath[normalizePath(entry.path)] : undefined
 

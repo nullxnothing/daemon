@@ -11,6 +11,7 @@ import { getDb } from '../db/db'
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
+import { broadcast } from '../services/EventBus'
 import * as Skills from '../services/SkillsConfig'
 import * as ClaudeRouter from '../services/ClaudeRouter'
 import { isPathSafe } from '../shared/pathValidation'
@@ -231,7 +232,9 @@ ${content}`,
   // --- Connection Management ---
 
   ipcMain.handle('claude:verify-connection', ipcHandler(async () => {
-    return await ClaudeRouter.verifyConnection()
+    const conn = await ClaudeRouter.verifyConnection()
+    broadcast('auth:changed', { providerId: 'claude' })
+    return conn
   }))
 
   ipcMain.handle('claude:get-connection', ipcHandler(async () => {
@@ -302,6 +305,8 @@ ${content}`,
         isSettled = true
         clearTimeout(timeout)
         if (code === 0) {
+          ClaudeRouter.clearCachedConnection()
+          broadcast('auth:changed', { providerId: 'claude' })
           resolve({ success: true })
         } else {
           reject(new Error(stderr.trim() || `claude login exited with code ${code}`))
@@ -339,6 +344,7 @@ ${content}`,
       }
     } catch {}
 
+    broadcast('auth:changed', { providerId: 'claude' })
     return { disconnected: true }
   }))
 }

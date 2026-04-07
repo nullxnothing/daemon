@@ -109,6 +109,21 @@ function ScannerIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function DashboardIcon({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+}
+function SessionsIcon({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+}
+function HackathonIcon({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12V6a6 6 0 0 1 12 0v6"/><line x1="2" y1="12" x2="14" y2="12"/><line x1="5" y1="12" x2="5" y2="7"/><line x1="8" y1="12" x2="8" y2="5"/><line x1="11" y1="12" x2="11" y2="7"/></svg>
+}
+function PluginsIcon({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+}
+function RecoveryIcon({ size = 18 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+}
 function SolanaIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 397.7 311.7">
@@ -138,6 +153,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
+  dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon,
 }
 
 // Tool name lookup
@@ -146,6 +162,7 @@ export const TOOL_NAMES: Record<string, string> = {
   wallet: 'Wallet', email: 'Email', browser: 'Browser',
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
+  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery',
 }
 
 // Lazy-load all tool components
@@ -163,6 +180,11 @@ const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbo
 const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
 const DocsPanel = lazy(() => import('../../panels/DocsPanel/DocsPanel').then(m => ({ default: m.DocsPanel })))
 const ProjectStarter = lazy(() => import('../../panels/ProjectStarter/ProjectStarter'))
+const DashboardCanvas = lazy(() => import('../../panels/Dashboard/DashboardCanvas').then(m => ({ default: m.DashboardCanvas })))
+const SessionHistory = lazy(() => import('../../panels/SessionRegistry/SessionHistory').then(m => ({ default: m.SessionHistory })))
+const HackathonPanel = lazy(() => import('../../panels/Colosseum/HackathonPanel').then(m => ({ default: m.HackathonPanel })))
+const PluginManager = lazy(() => import('../../panels/PluginManager/PluginManager').then(m => ({ default: m.PluginManager })))
+const RecoveryPanel = lazy(() => import('../../panels/RecoveryPanel/RecoveryPanel').then(m => ({ default: m.RecoveryPanel })))
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -197,6 +219,11 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, category: 'system' },
+  { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, category: 'crypto' },
+  { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, category: 'dev' },
+  { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, category: 'crypto' },
+  { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, category: 'system' },
+  { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, category: 'system' },
 ]
 
 function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
@@ -404,38 +431,150 @@ export function CommandDrawer() {
             </Suspense>
           </PanelErrorBoundary>
         ) : (
-          <div className="drawer-grid">
-            {filteredTools.map((tool, idx) => {
-              const Icon = tool.icon
-              const color = TOOL_COLORS[tool.id] ?? '#3ecf8e'
-              return (
-                <button
-                  key={tool.id}
-                  className={`drawer-tool-card${dragOverIdx === idx ? ' drawer-tool-card--drop-target' : ''}`}
-                  style={{ '--tool-color': color, '--tool-glow': `${color}20` } as React.CSSProperties}
-                  draggable
-                  onClick={() => handleToolClick(tool.id)}
-                  onDragStart={(e) => handleDragStart(e, tool.id)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={(e) => handleCardDragOver(e, idx)}
-                  onDragLeave={() => setDragOverIdx(null)}
-                  onDrop={(e) => handleCardDrop(e, idx)}
-                >
-                  <div className="drawer-tool-icon"><Icon size={20} /></div>
-                  <div className="drawer-tool-name">{tool.name}</div>
-                  <div className="drawer-tool-desc">{tool.description}</div>
-                </button>
-              )
-            })}
-            {filteredTools.length === 0 && (
-              <div className="drawer-empty">No tools match "{search}"</div>
-            )}
-            {filteredTools.length > 0 && !search && (
-              <div className="drawer-hint">Drag favorites to sidebar</div>
-            )}
-          </div>
+          <DrawerGrid
+            tools={filteredTools}
+            search={search}
+            dragOverIdx={dragOverIdx}
+            onToolClick={handleToolClick}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onCardDragOver={handleCardDragOver}
+            onCardDragLeave={() => setDragOverIdx(null)}
+            onCardDrop={handleCardDrop}
+          />
         )}
       </div>
     </div>
+  )
+}
+
+// --- Drawer grid (categorized when not searching, flat when searching) ---
+
+const CATEGORY_LABELS: Record<DrawerTool['category'], string> = {
+  dev: 'Development',
+  crypto: 'Crypto',
+  create: 'Create',
+  system: 'System',
+}
+
+const CATEGORY_ORDER: DrawerTool['category'][] = ['dev', 'crypto', 'create', 'system']
+
+interface DrawerGridProps {
+  tools: DrawerTool[]
+  search: string
+  dragOverIdx: number | null
+  onToolClick: (id: string) => void
+  onDragStart: (e: DragEvent<HTMLButtonElement>, id: string) => void
+  onDragEnd: (e: DragEvent<HTMLButtonElement>) => void
+  onCardDragOver: (e: DragEvent<HTMLButtonElement>, idx: number) => void
+  onCardDragLeave: () => void
+  onCardDrop: (e: DragEvent<HTMLButtonElement>, idx: number) => void
+}
+
+function DrawerGrid({
+  tools, search, dragOverIdx,
+  onToolClick, onDragStart, onDragEnd, onCardDragOver, onCardDragLeave, onCardDrop,
+}: DrawerGridProps) {
+  if (tools.length === 0) {
+    return <div className="drawer-empty">No tools match "{search}"</div>
+  }
+
+  // When searching, render a flat grid
+  if (search) {
+    return (
+      <div className="drawer-grid">
+        {tools.map((tool, idx) => (
+          <DrawerCard
+            key={tool.id}
+            tool={tool}
+            idx={idx}
+            isDropTarget={dragOverIdx === idx}
+            onClick={onToolClick}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onCardDragOver={onCardDragOver}
+            onCardDragLeave={onCardDragLeave}
+            onCardDrop={onCardDrop}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  // When browsing, render categorized sections
+  const grouped = new Map<DrawerTool['category'], DrawerTool[]>()
+  for (const tool of tools) {
+    const arr = grouped.get(tool.category) ?? []
+    arr.push(tool)
+    grouped.set(tool.category, arr)
+  }
+
+  // Use a global index across categories so the drag-drop reorder still works
+  let globalIdx = 0
+  return (
+    <div className="drawer-grid-categorized">
+      {CATEGORY_ORDER.filter((c) => grouped.has(c)).map((category) => (
+        <section key={category} className="drawer-category-section">
+          <div className="drawer-category-header">{CATEGORY_LABELS[category]}</div>
+          <div className="drawer-grid">
+            {grouped.get(category)!.map((tool) => {
+              const idx = globalIdx++
+              return (
+                <DrawerCard
+                  key={tool.id}
+                  tool={tool}
+                  idx={idx}
+                  isDropTarget={dragOverIdx === idx}
+                  onClick={onToolClick}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onCardDragOver={onCardDragOver}
+                  onCardDragLeave={onCardDragLeave}
+                  onCardDrop={onCardDrop}
+                />
+              )
+            })}
+          </div>
+        </section>
+      ))}
+      <div className="drawer-hint">Drag favorites to sidebar</div>
+    </div>
+  )
+}
+
+interface DrawerCardProps {
+  tool: DrawerTool
+  idx: number
+  isDropTarget: boolean
+  onClick: (id: string) => void
+  onDragStart: (e: DragEvent<HTMLButtonElement>, id: string) => void
+  onDragEnd: (e: DragEvent<HTMLButtonElement>) => void
+  onCardDragOver: (e: DragEvent<HTMLButtonElement>, idx: number) => void
+  onCardDragLeave: () => void
+  onCardDrop: (e: DragEvent<HTMLButtonElement>, idx: number) => void
+}
+
+function DrawerCard({
+  tool, idx, isDropTarget,
+  onClick, onDragStart, onDragEnd, onCardDragOver, onCardDragLeave, onCardDrop,
+}: DrawerCardProps) {
+  const Icon = tool.icon
+  const color = TOOL_COLORS[tool.id] ?? '#3ecf8e'
+  return (
+    <button
+      className={`drawer-tool-card${isDropTarget ? ' drawer-tool-card--drop-target' : ''}`}
+      style={{ '--tool-color': color, '--tool-glow': `${color}20` } as React.CSSProperties}
+      draggable
+      onClick={() => onClick(tool.id)}
+      onDragStart={(e) => onDragStart(e, tool.id)}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => onCardDragOver(e, idx)}
+      onDragLeave={onCardDragLeave}
+      onDrop={(e) => onCardDrop(e, idx)}
+    >
+      <div className="drawer-tool-icon"><Icon size={20} /></div>
+      <div className="drawer-tool-name">{tool.name}</div>
+      <div className="drawer-tool-desc">{tool.description}</div>
+    </button>
   )
 }

@@ -126,7 +126,7 @@ export function AriaChat() {
   const sendMessage = useAriaStore((s) => s.sendMessage)
   const clearMessages = useAriaStore((s) => s.clearMessages)
   const loadHistory = useAriaStore((s) => s.loadHistory)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   const [input, setInput] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -194,7 +194,7 @@ export function AriaChat() {
   const handleAction = useCallback((action: AriaAction) => {
     switch (action.type) {
       case 'switch_panel':
-        setActivePanel(action.value as any)
+        setDrawerTool(action.value === 'claude' ? null : action.value)
         break
       case 'open_file': {
         const activeProjectId = useUIStore.getState().activeProjectId
@@ -232,7 +232,7 @@ export function AriaChat() {
         break
       }
     }
-  }, [setActivePanel])
+  }, [setDrawerTool])
 
   const hasMessages = messages.length > 0 || isLoading
   const showChamber = !hasMessages

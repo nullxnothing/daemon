@@ -444,6 +444,17 @@ export const SCHEMA_V22 = `
 ALTER TABLE agents ADD COLUMN provider TEXT DEFAULT 'claude';
 `
 
+export const SCHEMA_V23 = `
+CREATE TABLE IF NOT EXISTS activity_log (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL CHECK(kind IN ('info','success','warning','error')),
+  message TEXT NOT NULL,
+  context TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at DESC);
+`
+
 export const SCHEMA_V21 = `
 CREATE TABLE IF NOT EXISTS pnl_trades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

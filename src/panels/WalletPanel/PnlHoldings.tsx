@@ -69,8 +69,13 @@ export function PnlHoldings({ walletAddress, holdings }: PnlHoldingsProps) {
 
   useEffect(() => {
     void fetchPortfolio()
-    pollRef.current = setInterval(() => void fetchPortfolio(), 10_000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    // Slow background poll — wallet:changed event drives immediate refresh
+    pollRef.current = setInterval(() => void fetchPortfolio(), 60_000)
+    const unsubscribe = window.daemon.events.on('wallet:changed', () => { void fetchPortfolio() })
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current)
+      unsubscribe()
+    }
   }, [fetchPortfolio])
 
   const pnlHoldings = portfolio?.holdings ?? []

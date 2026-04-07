@@ -88,7 +88,14 @@ function ConnectionSection() {
     if (e.ok && e.data) setEffort(String(e.data))
   }, [])
 
-  useEffect(() => { refetch() }, [refetch])
+  useEffect(() => {
+    refetch()
+    const unsubscribe = window.daemon.events.on('auth:changed', (payload) => {
+      const p = payload as { providerId?: string } | undefined
+      if (!p || p.providerId === 'codex') refetch()
+    })
+    return () => unsubscribe()
+  }, [refetch])
 
   const handleVerify = async () => {
     setBusy('verify')

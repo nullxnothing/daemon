@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useOnboardingStore } from '../../store/onboarding'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
 import type { GitFile, GitCommit, DeployStatus } from '../../../electron/shared/types'
 import './GitPanel.css'
 
@@ -169,15 +171,31 @@ export function GitPanel() {
 
   const handlePush = async () => {
     if (!projectPath) return
+    // Gate pushes to main/master with a typed-name confirmation
+    if (branch === 'main' || branch === 'master') {
+      const ok = await confirm({
+        title: `Push to ${branch}?`,
+        body: `You're about to push directly to ${branch}. Type the branch name to confirm.`,
+        danger: true,
+        confirmLabel: 'Push',
+        typedConfirmation: branch,
+      })
+      if (!ok) return
+    }
     setPushing(true)
     setError(null)
     const res = await window.daemon.git.push(projectPath)
     setPushing(false)
     if (!res.ok) {
       maybeShowGitHubOnboarding(res.error)
-      setError(parseGitError(res.error) ?? 'Push failed')
+      const msg = parseGitError(res.error) ?? 'Push failed'
+      setError(msg)
+      useNotificationsStore.getState().pushError(msg, 'Git push')
+    } else {
+      useNotificationsStore.getState().pushSuccess(`Pushed ${branch ?? 'branch'}`, 'Git')
+      load()
+      loadDeployStatus()
     }
-    else { load(); loadDeployStatus() }
   }
 
   const handleCheckout = async (br: string) => {
@@ -304,12 +322,23 @@ export function GitPanel() {
 
   const handleDiscard = async (filePath: string) => {
     if (!projectPath) return
+    const fileName = filePath.split(/[\\/]/).pop() ?? filePath
+    const ok = await confirm({
+      title: `Discard changes to ${fileName}?`,
+      body: 'This permanently reverts uncommitted changes and cannot be undone.',
+      danger: true,
+      confirmLabel: 'Discard',
+    })
+    if (!ok) return
     setError(null)
     const res = await window.daemon.git.discard(projectPath, filePath)
     if (!res.ok) {
-      setError(res.error ?? 'Discard failed')
+      const msg = res.error ?? 'Discard failed'
+      setError(msg)
+      useNotificationsStore.getState().pushError(msg, 'Git discard')
       return
     }
+    useNotificationsStore.getState().pushSuccess(`Discarded ${fileName}`, 'Git')
     if (selectedDiffFile === filePath) {
       setSelectedDiffFile(null)
       setDiffContent(null)
@@ -493,7 +522,7 @@ export function GitPanel() {
         return (
           <div
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', margin: '0 16px', fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', border: '1px solid var(--s5)', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start' }}
-            onClick={() => useUIStore.getState().setActivePanel('deploy')}
+            onClick={() => useUIStore.getState().setDrawerTool('deploy')}
           >
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
             <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>
@@ -512,7 +541,7 @@ export function GitPanel() {
           onChange={(e) => setCommitMsg(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
         />
-        <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0}>
+        <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0} title="Generate AI commit message" aria-label="Generate AI commit message">
           {generatingCommitMsg ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>}
         </button>
         <button className="git-commit-btn" onClick={handleCommit} disabled={staged.length === 0 || !commitMsg.trim() || committing}>

@@ -142,6 +142,33 @@ contextBridge.exposeInMainWorld('daemon', {
     setDefault: (id: string) => ipcRenderer.invoke('provider:set-default', id),
   },
 
+  activity: {
+    append: (entry: { id: string; kind: string; message: string; context: string | null; createdAt: number }) =>
+      ipcRenderer.invoke('activity:append', entry),
+    list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
+    clear: () => ipcRenderer.invoke('activity:clear'),
+  },
+
+  events: {
+    on: (channel: string, callback: (payload: unknown) => void) => {
+      // Whitelist of event channels the renderer is allowed to subscribe to.
+      // Add new channels here as new broadcast events are introduced.
+      const allowed = new Set([
+        'auth:changed',
+        'process:changed',
+        'port:changed',
+        'wallet:changed',
+      ])
+      if (!allowed.has(channel)) {
+        console.warn(`[preload] events.on rejected unknown channel: ${channel}`)
+        return () => { /* no-op */ }
+      }
+      const handler = (_: unknown, payload: unknown) => callback(payload)
+      ipcRenderer.on(channel, handler)
+      return () => ipcRenderer.off(channel, handler)
+    },
+  },
+
   git: {
     branch: (cwd: string) => ipcRenderer.invoke('git:branch', cwd),
     branches: (cwd: string) => ipcRenderer.invoke('git:branches', cwd),
@@ -221,6 +248,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setDrawerToolOrder: (order: string[]) => ipcRenderer.invoke('settings:set-drawer-tool-order', order),
     getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
+    getLayout: () => ipcRenderer.invoke('settings:get-layout'),
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
     onCrashWarning: (callback: (count: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)

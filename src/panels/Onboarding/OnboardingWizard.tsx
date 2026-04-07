@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useOnboardingStore, STEP_ORDER } from '../../store/onboarding'
 import type { OnboardingStepId } from '../../store/onboarding'
+import { confirm } from '../../store/confirm'
 import { StepProfile } from './steps/StepProfile'
 import { StepClaude } from './steps/StepClaude'
 import { StepGmail } from './steps/StepGmail'
@@ -37,19 +38,34 @@ export function OnboardingWizard() {
   const currentStepIndex = useOnboardingStore((s) => s.currentStepIndex)
   const progress = useOnboardingStore((s) => s.progress)
   const skipWizard = useOnboardingStore((s) => s.skipWizard)
+  const goToStep = useOnboardingStore((s) => s.goToStep)
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const currentStepId = STEP_ORDER[currentStepIndex]
   const StepComponent = STEP_COMPONENTS[currentStepId]
+  const canGoBack = currentStepIndex > 0
+  const progressPct = Math.round(((currentStepIndex + 1) / STEP_ORDER.length) * 100)
 
   useEffect(() => {
     overlayRef.current?.focus()
   }, [wizardOpen])
 
+  const handleSkipWithConfirm = async () => {
+    const ok = await confirm({
+      title: 'Exit setup?',
+      body: "You can re-run the setup wizard anytime from Settings → Setup. Your progress so far will be saved.",
+      confirmLabel: 'Exit',
+    })
+    if (ok) skipWizard()
+  }
+
   if (!wizardOpen) return null
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') skipWizard()
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      handleSkipWithConfirm()
+    }
   }
 
   return (
@@ -89,11 +105,19 @@ export function OnboardingWizard() {
 
         {/* Footer */}
         <div className="wizard-footer">
-          <button className="wizard-skip-link" onClick={skipWizard}>
+          <button
+            className="wizard-skip-link"
+            onClick={() => goToStep(currentStepIndex - 1)}
+            disabled={!canGoBack}
+            style={{ opacity: canGoBack ? 1 : 0.3, cursor: canGoBack ? 'pointer' : 'not-allowed' }}
+          >
+            ← Back
+          </button>
+          <button className="wizard-skip-link" onClick={handleSkipWithConfirm}>
             Skip setup, explore first
           </button>
           <span className="wizard-step-counter">
-            {currentStepIndex + 1} of {STEP_ORDER.length}
+            {currentStepIndex + 1} of {STEP_ORDER.length} · {progressPct}%
           </span>
         </div>
       </div>

@@ -102,7 +102,7 @@ function ValidatorStatus() {
 
 function GitBranch() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const setActivePanel = useUIStore((s) => s.setActivePanel)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const [branch, setBranch] = useState<string | null>(null)
 
   useEffect(() => {
@@ -116,7 +116,7 @@ function GitBranch() {
   return (
     <span
       className={`${styles.item} ${styles.branch} ${styles.clickable}`}
-      onClick={() => setActivePanel('git')}
+      onClick={() => setDrawerTool('git')}
       title="Open Git panel"
     >
       {branch}
@@ -187,7 +187,7 @@ function ClaudeStatus() {
 }
 
 function HackathonCountdown() {
-  const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
+  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const [label, setLabel] = useState<string | null>(null)
   const [urgency, setUrgency] = useState<'normal' | 'warning' | 'urgent'>('normal')
 
@@ -227,7 +227,7 @@ function HackathonCountdown() {
   return (
     <button
       className={`${styles.hackathonBtn} ${colorClass}`}
-      onClick={() => setRightPanelTab('hackathon')}
+      onClick={() => setDrawerTool('hackathon')}
       title="Hackathon deadline"
     >
       {label}

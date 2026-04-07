@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useUIStore } from '../../store/ui'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
 import { AgentForm } from './AgentForm'
 import { DaemonAgentRow, ClaudeAgentRow } from './AgentRow'
 import './AgentLauncher.css'
@@ -187,8 +189,48 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
 
   const handleDelete = useCallback(async (e: React.MouseEvent, agent: Agent) => {
     e.stopPropagation()
-    await window.daemon.agents.delete(agent.id)
+    const ok = await confirm({
+      title: `Delete agent "${agent.name}"?`,
+      body: 'This removes the agent from your library. You can undo for a few seconds.',
+      danger: true,
+      confirmLabel: 'Delete',
+    })
+    if (!ok) return
+
+    // Snapshot for undo
+    const snapshot = {
+      name: agent.name,
+      systemPrompt: agent.system_prompt,
+      model: agent.model,
+      mcps: (() => { try { return JSON.parse(agent.mcps) as string[] } catch { return [] } })(),
+      provider: (agent as unknown as { provider?: string }).provider,
+      shortcut: agent.shortcut ?? undefined,
+    }
+
+    const res = await window.daemon.agents.delete(agent.id)
+    if (!res.ok) {
+      useNotificationsStore.getState().pushError(res.error ?? 'Delete failed', 'Agents')
+      return
+    }
     loadAgents()
+    useNotificationsStore.getState().pushToast({
+      kind: 'success',
+      message: `Deleted "${agent.name}"`,
+      context: 'Agents',
+      ttlMs: 6000,
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          const restoreRes = await window.daemon.agents.create(snapshot)
+          if (restoreRes.ok) {
+            useNotificationsStore.getState().pushSuccess(`Restored "${agent.name}"`, 'Agents')
+            loadAgents()
+          } else {
+            useNotificationsStore.getState().pushError(restoreRes.error ?? 'Restore failed', 'Agents')
+          }
+        },
+      },
+    })
   }, [loadAgents])
 
   const handleFormSave = () => {

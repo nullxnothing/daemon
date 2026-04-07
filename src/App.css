@@ -93,6 +93,8 @@
   height: 32px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 0 12px;
   font-size: 11px;
   font-weight: 600;
@@ -102,6 +104,27 @@
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background-image: var(--surface-gradient-subtle);
+}
+
+.panel-header-action {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--t3);
+  font-size: 13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.panel-header-action:hover {
+  background: var(--s3);
+  color: var(--t1);
+  border-color: var(--border);
 }
 
 /* Center Area */
