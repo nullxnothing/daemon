@@ -484,6 +484,30 @@ function isValidSolanaAddress(value: string): boolean {
   try { new PublicKey(value); return true } catch { return false }
 }
 
+function toRawTokenAmount(amount: number, decimals: number): bigint {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Amount must be greater than 0')
+  }
+
+  const [wholePart = '0', fractionalPart = ''] = amount.toString().split('.')
+  const normalizedFraction = fractionalPart.padEnd(decimals, '0').slice(0, decimals)
+  return BigInt(`${wholePart}${normalizedFraction}`.replace(/^0+(?=\d)/, '') || '0')
+}
+
+function formatTokenAmount(rawAmount: bigint, decimals: number): string {
+  if (decimals <= 0) return rawAmount.toString()
+
+  const sign = rawAmount < 0n ? '-' : ''
+  const absolute = rawAmount < 0n ? -rawAmount : rawAmount
+  const divisor = 10n ** BigInt(decimals)
+  const whole = absolute / divisor
+  const fraction = absolute % divisor
+
+  if (fraction === 0n) return `${sign}${whole.toString()}`
+
+  return `${sign}${whole.toString()}.${fraction.toString().padStart(decimals, '0').replace(/0+$/, '')}`
+}
+
 // ---------------------------------------------------------------------------
 // Solana Transaction Support
 // ---------------------------------------------------------------------------
@@ -604,19 +628,18 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     let amountToRecord: number
     try {
       const accountInfo = await getAccount(connection, fromAta)
-      const rawBalance = Number(accountInfo.amount)
+      const rawBalance = accountInfo.amount
       rawAmount = sendMax
-        ? BigInt(rawBalance)
-        : BigInt(Math.round((amount ?? 0) * Math.pow(10, decimals)))
+        ? rawBalance
+        : toRawTokenAmount(amount ?? 0, decimals)
 
       if (rawAmount <= 0n) {
         throw new Error('No token balance available to send')
       }
-      if (BigInt(rawBalance) < rawAmount) {
-        const humanBalance = rawBalance / Math.pow(10, decimals)
-        throw new Error(`Insufficient token balance: have ${humanBalance.toFixed(decimals)}, need ${amount}`)
+      if (rawBalance < rawAmount) {
+        throw new Error(`Insufficient token balance: have ${formatTokenAmount(rawBalance, decimals)}, need ${amount}`)
       }
-      amountToRecord = Number(rawAmount) / Math.pow(10, decimals)
+      amountToRecord = Number.parseFloat(formatTokenAmount(rawAmount, decimals))
     } catch (err) {
       if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
       if (err instanceof Error && err.message.startsWith('No token balance')) throw err
@@ -782,11 +805,10 @@ export async function executeSwap(
       try {
         const ata = await getAta(mintPubkey, keypair.publicKey)
         const accountInfo = await getAcc(connection, ata)
-        const rawBalance = Number(accountInfo.amount)
-        const rawRequired = Math.round(amount * Math.pow(10, decimals))
+        const rawBalance = accountInfo.amount
+        const rawRequired = toRawTokenAmount(amount, decimals)
         if (rawBalance < rawRequired) {
-          const humanBalance = rawBalance / Math.pow(10, decimals)
-          throw new Error(`Insufficient token balance: have ${humanBalance.toFixed(decimals)}, need ${amount}`)
+          throw new Error(`Insufficient token balance: have ${formatTokenAmount(rawBalance, decimals)}, need ${amount}`)
         }
       } catch (err) {
         if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
