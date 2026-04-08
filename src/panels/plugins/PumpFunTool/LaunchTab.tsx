@@ -11,10 +11,10 @@ export function LaunchTab({ walletId }: Props) {
   const [initialBuy, setInitialBuy] = useState('0.1')
   const [mayhemMode, setMayhemMode] = useState(false)
   const [launching, setLaunching] = useState(false)
-  const [result, setResult] = useState<{ signature?: string; error?: string } | null>(null)
+  const [result, setResult] = useState<{ signature?: string; mint?: string; error?: string } | null>(null)
 
   const handlePickImage = async () => {
-    const res = await window.daemon.pumpfun.pickImage()
+    const res = await window.daemon.launch.pickImage()
     if (res.ok && res.data) setImagePath(res.data)
   }
 
@@ -23,18 +23,24 @@ export function LaunchTab({ walletId }: Props) {
     setLaunching(true)
     setResult(null)
 
-    const res = await window.daemon.pumpfun.createToken({
+    const res = await window.daemon.launch.createToken({
+      launchpad: 'pumpfun',
+      walletId,
       name: name.trim(),
       symbol: symbol.trim().toUpperCase(),
       description: description.trim(),
       imagePath,
-      initialBuyAmountSol: parseFloat(initialBuy) || 0,
+      twitter: '',
+      telegram: '',
+      website: '',
+      initialBuySol: parseFloat(initialBuy) || 0,
+      slippageBps: 1000,
+      priorityFeeSol: 0.005,
       mayhemMode,
-      walletId,
     })
 
     if (res.ok && res.data) {
-      setResult({ signature: res.data.signature })
+      setResult({ signature: res.data.signature, mint: res.data.mint })
     } else {
       setResult({ error: res.error ?? 'Launch failed' })
     }
@@ -101,7 +107,7 @@ export function LaunchTab({ walletId }: Props) {
 
       {result?.signature && (
         <div className="pf-result success">
-          Token launched.{' '}
+          Token launched{result.mint ? ` (${result.mint.slice(0, 6)}...${result.mint.slice(-4)})` : ''}.{' '}
           <span className="pf-tx-link" onClick={() => openTx(result.signature!)}>
             {result.signature.slice(0, 20)}...
           </span>

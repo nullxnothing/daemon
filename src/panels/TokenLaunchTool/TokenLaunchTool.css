@@ -1,0 +1,45 @@
+.token-launch-tool {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(62, 207, 142, 0.035) 0%, transparent 58%),
+    radial-gradient(ellipse at 100% 0%, rgba(96, 165, 250, 0.03) 0%, transparent 42%),
+    var(--surface-gradient-subtle);
+}
+
+.token-launch-tool-header {
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid rgba(62, 207, 142, 0.08);
+}
+
+.token-launch-tool-kicker {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  margin-bottom: 8px;
+}
+
+.token-launch-tool-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.05;
+  color: var(--t1);
+}
+
+.token-launch-tool-copy {
+  margin: 10px 0 0;
+  max-width: 760px;
+  color: var(--t3);
+  font-size: var(--font-md);
+  line-height: 1.5;
+}
+
+.token-launch-tool-zone {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(62, 207, 142, 0.08);
+}

@@ -1,6 +1,10 @@
 import { useState, useCallback } from 'react'
+import { useBrowserStore } from '../../store/browser'
+import { useUIStore } from '../../store/ui'
 
 export interface LaunchParams {
+  launchpad: LaunchpadId
+  projectId?: string
   // Step 1 — Token details
   name: string
   symbol: string
@@ -24,9 +28,7 @@ export interface LaunchResult {
 
 export type LaunchPhase =
   | 'idle'
-  | 'uploading'
   | 'creating'
-  | 'confirming'
   | 'done'
   | 'error'
 
@@ -44,53 +46,40 @@ export function useTokenLaunch() {
   })
 
   const launch = useCallback(async (params: LaunchParams): Promise<void> => {
-    setState({ phase: 'uploading', result: null, error: null })
+    setState({ phase: 'creating', result: null, error: null })
 
     try {
-      // The PumpFunService handles IPFS upload + token creation in one call.
-      // We drive the phase transitions by timing — uploading -> creating -> confirming.
-      const createTimer = setTimeout(() => {
-        setState((s) => s.phase === 'uploading' ? { ...s, phase: 'creating' } : s)
-      }, 2000)
-
-      const confirmTimer = setTimeout(() => {
-        setState((s) => s.phase === 'creating' ? { ...s, phase: 'confirming' } : s)
-      }, 5000)
-
-      const res = await window.daemon.pumpfun.createToken({
+      const res = await window.daemon.launch.createToken({
+        launchpad: params.launchpad,
+        projectId: params.projectId,
         name: params.name,
         symbol: params.symbol,
         description: params.description,
         imagePath: params.imagePath,
-        initialBuyAmountSol: params.initialBuySol,
-        mayhemMode: false,
+        twitter: params.twitter,
+        telegram: params.telegram,
+        website: params.website,
+        initialBuySol: params.initialBuySol,
+        slippageBps: params.slippageBps,
+        priorityFeeSol: params.priorityFeeSol,
         walletId: params.walletId,
       })
-
-      clearTimeout(createTimer)
-      clearTimeout(confirmTimer)
 
       if (!res.ok || !res.data) {
         throw new Error((res as { ok: false; error: string }).error ?? 'Token creation failed')
       }
 
-      const { signature } = res.data
+      const { signature, mint } = res.data
 
-      // Save to launched_tokens via IPC
-      await window.daemon.launch.saveToken({
-        walletId: params.walletId,
-        mint: '',
-        name: params.name,
-        symbol: params.symbol,
-        imagePath: params.imagePath ?? undefined,
-        launchpad: 'pumpfun',
-        createSignature: signature,
-        initialBuySol: params.initialBuySol,
-      })
+      if (params.launchpad === 'pumpfun' && mint) {
+        const tokenUrl = `https://pump.fun/coin/${mint}`
+        useBrowserStore.getState().setUrl(tokenUrl)
+        useUIStore.getState().openBrowserTab()
+      }
 
       setState({
         phase: 'done',
-        result: { mint: '', signature, success: true },
+        result: { mint, signature, success: true },
         error: null,
       })
     } catch (err) {
