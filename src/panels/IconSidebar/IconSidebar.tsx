@@ -94,7 +94,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }, [])
 
   // Drop zone at end of pinned tools (for adding new pins)
-  const handleZoneDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const handleZoneDragOver = useCallback((e: DragEvent<HTMLElement>) => {
     if (!e.dataTransfer.types.includes(TOOL_DND_MIME)) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
@@ -105,7 +105,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     setDropZoneActive(false)
   }, [])
 
-  const handleZoneDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const handleZoneDrop = useCallback((e: DragEvent<HTMLElement>) => {
     e.preventDefault()
     setDropZoneActive(false)
     setDragOverIdx(null)
@@ -183,13 +183,15 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       })}
 
       {/* Drop zone for pinning new tools from drawer */}
-      <div
-        className={`sidebar-drop-zone${dropZoneActive ? ' sidebar-drop-zone--active' : ''}`}
+      <button
+        type="button"
+        className={`sidebar-drop-zone${dropZoneActive ? ' sidebar-drop-zone--active' : ''}${drawerOpen && !drawerTool ? ' active' : ''}`}
+        onClick={handleLauncherClick}
         onDragOver={handleZoneDragOver}
         onDragLeave={handleZoneDragLeave}
         onDrop={handleZoneDrop}
-        title="Drag a tool here to pin it. Right-click a pinned tool to unpin."
-        aria-label="Drop here to pin a tool"
+        title="Add or pin tools"
+        aria-label="Add tool"
       />
 
       <div className="sidebar-spacer" />

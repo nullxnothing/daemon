@@ -87,6 +87,8 @@
   justify-content: center;
   color: var(--t4);
   font-size: 14px;
+  background: transparent;
+  cursor: pointer;
 }
 
 .sidebar-drop-zone::before {
@@ -96,6 +98,13 @@
 
 .sidebar-drop-zone:hover {
   opacity: 0.6;
+}
+
+.sidebar-drop-zone.active {
+  opacity: 0.9;
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.08);
 }
 
 .sidebar-drop-zone--active {
