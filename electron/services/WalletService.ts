@@ -528,7 +528,7 @@ export async function transferSOL(fromWalletId: string, toAddress: string, amoun
   const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
   if (walletRow?.wallet_type === 'agent') {
     const dayAgo = Date.now() - 86_400_000
-    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'sol_transfer', dayAgo) as { total: number }
+    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status IN (?, ?) AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'pending', 'sol_transfer', dayAgo) as { total: number }
     if (row.total + amountSol > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
   }
 
