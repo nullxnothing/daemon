@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense, type ComponentType, type DragEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, Suspense, type ComponentType, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
-import { lazyWithReload } from '../../utils/lazyWithReload'
+import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -179,25 +179,25 @@ export const TOOL_NAMES: Record<string, string> = {
 }
 
 // Lazy-load all tool components
-const GitPanel = lazy(() => import('../../panels/GitPanel/GitPanel').then(m => ({ default: m.GitPanel })))
-const EnvManager = lazy(() => import('../../panels/EnvManager/EnvManager').then(m => ({ default: m.EnvManager })))
-const DeployPanel = lazy(() => import('../../panels/plugins/Deploy/Deploy'))
-const EmailPanel = lazy(() => import('../../panels/plugins/Email/EmailPanel'))
-const WalletPanel = lazy(() => import('../../panels/WalletPanel/WalletPanel').then(m => ({ default: m.WalletPanel })))
-const SettingsPanel = lazy(() => import('../../panels/SettingsPanel/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
-const PortsPanel = lazy(() => import('../../panels/PortsPanel/PortsPanel').then(m => ({ default: m.PortsPanel })))
-const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessManager').then(m => ({ default: m.ProcessManager })))
-const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
-const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
+const GitPanel = lazyNamedWithReload('git-panel', () => import('../../panels/GitPanel/GitPanel'), (m) => m.GitPanel)
+const EnvManager = lazyNamedWithReload('env-manager', () => import('../../panels/EnvManager/EnvManager'), (m) => m.EnvManager)
+const DeployPanel = lazyWithReload('deploy-panel', () => import('../../panels/plugins/Deploy/Deploy'))
+const EmailPanel = lazyWithReload('email-panel', () => import('../../panels/plugins/Email/EmailPanel'))
+const WalletPanel = lazyNamedWithReload('wallet-panel', () => import('../../panels/WalletPanel/WalletPanel'), (m) => m.WalletPanel)
+const SettingsPanel = lazyNamedWithReload('settings-panel', () => import('../../panels/SettingsPanel/SettingsPanel'), (m) => m.SettingsPanel)
+const PortsPanel = lazyNamedWithReload('ports-panel', () => import('../../panels/PortsPanel/PortsPanel'), (m) => m.PortsPanel)
+const ProcessManager = lazyNamedWithReload('process-manager', () => import('../../panels/ProcessManager/ProcessManager'), (m) => m.ProcessManager)
+const ImageEditor = lazyWithReload('image-editor', () => import('../../panels/ImageEditor/ImageEditor'))
+const SolanaToolbox = lazyWithReload('solana-toolbox', () => import('../../panels/SolanaToolbox/SolanaToolbox'))
 const TokenLaunchTool = lazyWithReload('token-launch-tool', () => import('../../panels/TokenLaunchTool/TokenLaunchTool'))
-const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
-const DocsPanel = lazy(() => import('../../panels/DocsPanel/DocsPanel').then(m => ({ default: m.DocsPanel })))
-const ProjectStarter = lazy(() => import('../../panels/ProjectStarter/ProjectStarter'))
-const DashboardCanvas = lazy(() => import('../../panels/Dashboard/DashboardCanvas').then(m => ({ default: m.DashboardCanvas })))
-const SessionHistory = lazy(() => import('../../panels/SessionRegistry/SessionHistory').then(m => ({ default: m.SessionHistory })))
-const HackathonPanel = lazy(() => import('../../panels/Colosseum/HackathonPanel').then(m => ({ default: m.HackathonPanel })))
-const PluginManager = lazy(() => import('../../panels/PluginManager/PluginManager').then(m => ({ default: m.PluginManager })))
-const RecoveryPanel = lazy(() => import('../../panels/RecoveryPanel/RecoveryPanel').then(m => ({ default: m.RecoveryPanel })))
+const BlockScanner = lazyWithReload('block-scanner', () => import('../../panels/BlockScanner/BlockScanner'))
+const DocsPanel = lazyNamedWithReload('docs-panel', () => import('../../panels/DocsPanel/DocsPanel'), (m) => m.DocsPanel)
+const ProjectStarter = lazyWithReload('project-starter', () => import('../../panels/ProjectStarter/ProjectStarter'))
+const DashboardCanvas = lazyNamedWithReload('dashboard-canvas', () => import('../../panels/Dashboard/DashboardCanvas'), (m) => m.DashboardCanvas)
+const SessionHistory = lazyNamedWithReload('session-history', () => import('../../panels/SessionRegistry/SessionHistory'), (m) => m.SessionHistory)
+const HackathonPanel = lazyNamedWithReload('hackathon-panel', () => import('../../panels/Colosseum/HackathonPanel'), (m) => m.HackathonPanel)
+const PluginManager = lazyNamedWithReload('plugin-manager', () => import('../../panels/PluginManager/PluginManager'), (m) => m.PluginManager)
+const RecoveryPanel = lazyNamedWithReload('recovery-panel', () => import('../../panels/RecoveryPanel/RecoveryPanel'), (m) => m.RecoveryPanel)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
