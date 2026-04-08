@@ -35,6 +35,36 @@ interface WalletRow {
   created_at: number
 }
 
+/**
+ * Narrow shape of the `parsed` field returned by Connection.getParsedAccountInfo
+ * for SPL mint accounts. Upstream @solana/web3.js types this as `any`, so we
+ * pin the fields we actually read to avoid silent breakage if the shape drifts.
+ */
+interface ParsedMintAccountData {
+  program?: string
+  parsed?: {
+    type?: string
+    info?: {
+      decimals?: number
+      supply?: string
+      mintAuthority?: string | null
+      freezeAuthority?: string | null
+    }
+  }
+}
+
+function readMintDecimals(
+  data: unknown,
+  fallback = 9,
+): number {
+  // data is either Buffer (unparsed) or ParsedAccountData (what we want).
+  // Only the parsed shape has the `.parsed.info.decimals` field.
+  if (!data || typeof data !== 'object' || Buffer.isBuffer(data)) return fallback
+  const parsed = (data as ParsedMintAccountData).parsed
+  const decimals = parsed?.info?.decimals
+  return typeof decimals === 'number' ? decimals : fallback
+}
+
 interface HeliusBalance {
   mint: string
   balance: number
@@ -589,7 +619,7 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     // Fetch the source token account balance and validate before building the transaction.
     const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
     const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
-    const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+    const decimals = readMintDecimals(mintInfo.value?.data)
     try {
       const accountInfo = await getAccount(connection, fromAta)
       const rawBalance = Number(accountInfo.amount)
@@ -881,7 +911,7 @@ async function getMintDecimals(mint: string): Promise<number> {
     const connection = getConnection()
     const mintPubkey = new PublicKey(mint)
     const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
-    return (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+    return readMintDecimals(mintInfo.value?.data)
   } catch {
     return 9
   }

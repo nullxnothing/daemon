@@ -83,7 +83,25 @@ function evictFromPool(account: EmailAccountRow): void {
   }
 }
 
-function parseEnvelopeMessage(msg: { uid: number; envelope: any; source?: Buffer }, accountId: string): EmailMessage {
+interface ImapAddress {
+  name?: string
+  address?: string
+}
+
+interface ImapEnvelope {
+  from?: ImapAddress[]
+  subject?: string
+  date?: Date | string
+}
+
+interface ImapFetchedMessage {
+  uid: number
+  envelope: ImapEnvelope
+  flags?: Set<string>
+  source?: Buffer
+}
+
+function parseEnvelopeMessage(msg: ImapFetchedMessage, accountId: string): EmailMessage {
   const env = msg.envelope
   const from = env.from?.[0]
     ? `${env.from[0].name || ''} <${env.from[0].address || ''}>`.trim()
@@ -135,10 +153,10 @@ export const icloudProvider: EmailProvider = {
         const range = `${startSeq}:*`
 
         for await (const msg of client.fetch(range, { envelope: true, flags: true })) {
-          const parsed = parseEnvelopeMessage(msg as any, account.id)
-          const flags = (msg as any).flags as Set<string> | undefined
-          if (flags) {
-            parsed.isRead = flags.has('\\Seen')
+          const typed = msg as unknown as ImapFetchedMessage
+          const parsed = parseEnvelopeMessage(typed, account.id)
+          if (typed.flags) {
+            parsed.isRead = typed.flags.has('\\Seen')
           }
           messages.push(parsed)
         }
@@ -166,14 +184,15 @@ export const icloudProvider: EmailProvider = {
 
       try {
         const rawMsg = await client.fetchOne(String(uid), { source: true, envelope: true, flags: true, uid: true })
-        const source = (rawMsg as any).source as Buffer | undefined
+        const typed = rawMsg as unknown as ImapFetchedMessage
+        const source = typed.source
 
         if (!source) {
           throw new Error(`Message ${messageId} has no source data`)
         }
 
         const parsed = await simpleParser(source)
-        const flags = (rawMsg as any).flags as Set<string> | undefined
+        const flags = typed.flags
 
         returnToPool(account)
         return {

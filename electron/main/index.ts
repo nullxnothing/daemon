@@ -190,14 +190,27 @@ async function createWindow() {
   registerAllIpc()
 
   // CSP headers only in production — in dev, Vite serves /@react-refresh and
-  // HMR websockets from localhost which a restrictive 'self' policy blocks
+  // HMR websockets from localhost which a restrictive 'self' policy blocks.
+  //
+  // We apply two different policies based on URL:
+  //   1. App documents (file://): strict — no 'unsafe-eval', no minipaint: script source.
+  //   2. minipaint:// iframe:     relaxed — 'unsafe-eval' is required by the bundled
+  //      miniPaint editor. The iframe is cross-origin (its own protocol) and sandboxed
+  //      at the webPreferences level, so its relaxed CSP can't reach the parent.
+  //
+  // The parent document's `frame-src minipaint:` still gates which origins may be
+  // loaded as frames, so the iframe can't be swapped out from untrusted content.
+  const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: daemon-icon:; worker-src 'self' blob: monaco-editor:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self'; frame-src minipaint:; object-src 'none'"
+  const MINIPAINT_CSP = "default-src 'self' minipaint:; script-src 'self' minipaint: 'unsafe-eval'; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: blob: minipaint:; worker-src 'self' blob: minipaint:; connect-src 'self' minipaint: blob: data:; font-src 'self' minipaint:; object-src 'none'"
+
   if (!VITE_DEV_SERVER_URL) {
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      const isMinipaint = details.url.startsWith('minipaint://')
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'unsafe-eval'; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
-        }
+          'Content-Security-Policy': [isMinipaint ? MINIPAINT_CSP : APP_CSP],
+        },
       })
     })
   }

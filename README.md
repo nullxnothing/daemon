@@ -111,6 +111,8 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 **Embedded Browser** — Built-in browser with a security sandbox for previewing and testing.
 
+**Inbox** — Optional Gmail and iCloud integration for triaging verification emails, 2FA codes, and agent-relevant messages without leaving the IDE. Gmail uses OAuth; iCloud uses app-specific passwords. All credentials are encrypted via the OS keychain (see [Settings](#features)). Agents can request code extraction (`email:extract`) and summaries (`email:summarize`) over IPC.
+
 **PumpFun Integration** — Token launches and bonding curve interactions directly from the IDE.
 
 **Multi-Project Tabs** — Tabbed project switching with per-project terminal sessions, MCP configs, and file trees. Context switching without losing state.
