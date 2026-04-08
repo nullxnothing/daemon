@@ -1,0 +1,10 @@
+{
+  "name": "meme-launcher",
+  "version": "0.1.0",
+  "description": "Automated PumpFun token launch agent. Handles metadata generation, image handling, bonding curve launch, initial buy configuration, and post-launch monitoring. Includes safety checks for liquidity lock and dev wallet percentages.",
+  "kind": "agent",
+  "model": "claude-opus-4-20250514",
+  "mcps": ["filesystem", "pumpfun"],
+  "shortcut": "cmd+shift+m",
+  "category": "defi"
+}
