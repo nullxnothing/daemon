@@ -83,6 +83,9 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1
     devDependencies:
+      '@electron/notarize':
+        specifier: ^2.2.1
+        version: 2.2.1
       '@electron/rebuild':
         specifier: ^3.7.1
         version: 3.7.2
