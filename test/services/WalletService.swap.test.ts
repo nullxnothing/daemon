@@ -6,6 +6,20 @@ const { mockPrepare, mockGetBalance, mockWithKeypair } = vi.hoisted(() => ({
   mockWithKeypair: vi.fn(),
 }))
 
+const {
+  mockGetAssociatedTokenAddress,
+  mockCreateTransferInstruction,
+  mockCreateAssociatedTokenAccountInstruction,
+  mockGetAccount,
+  mockGetParsedAccountInfo,
+} = vi.hoisted(() => ({
+  mockGetAssociatedTokenAddress: vi.fn(),
+  mockCreateTransferInstruction: vi.fn(),
+  mockCreateAssociatedTokenAccountInstruction: vi.fn(),
+  mockGetAccount: vi.fn(),
+  mockGetParsedAccountInfo: vi.fn(),
+}))
+
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp/daemon-test' },
   safeStorage: {
@@ -50,12 +64,14 @@ vi.mock('../../electron/services/SolanaService', () => {
       getBalance: mockGetBalance,
       getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: 'hash', lastValidBlockHeight: 999 }),
       getAccountInfo: vi.fn().mockResolvedValue(null),
+      getParsedAccountInfo: mockGetParsedAccountInfo,
       sendRawTransaction: vi.fn().mockResolvedValue('sig'),
     })),
     getConnectionStrict: vi.fn(() => ({
       getBalance: mockGetBalance,
       getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: 'hash', lastValidBlockHeight: 999 }),
       getAccountInfo: vi.fn().mockResolvedValue(null),
+      getParsedAccountInfo: mockGetParsedAccountInfo,
       sendRawTransaction: vi.fn().mockResolvedValue('sig'),
     })),
     loadKeypair: vi.fn(() => fakeKeypair),
@@ -78,6 +94,13 @@ vi.mock('@solana/web3.js', () => ({
   LAMPORTS_PER_SOL: 1_000_000_000,
   sendAndConfirmTransaction: vi.fn().mockResolvedValue('fake-sig'),
   TOKEN_PROGRAM_ID: { toBase58: () => 'TokenProgram' },
+}))
+
+vi.mock('@solana/spl-token', () => ({
+  getAssociatedTokenAddress: mockGetAssociatedTokenAddress,
+  createTransferInstruction: mockCreateTransferInstruction,
+  createAssociatedTokenAccountInstruction: mockCreateAssociatedTokenAccountInstruction,
+  getAccount: mockGetAccount,
 }))
 
 import { transferSOL, transferToken } from '../../electron/services/WalletService'
@@ -170,5 +193,41 @@ describe('transferToken — validation', () => {
     await expect(
       transferToken('w1', 'So11111111111111111111111111111111111111112', 'So11111111111111111111111111111111111111112', 10)
     ).rejects.toThrow(/watch-only/i)
+  })
+
+  it('uses the full bigint token balance for sendMax without Number coercion', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain())
+    mockGetParsedAccountInfo.mockResolvedValue({ value: { data: { parsed: { info: { decimals: 6 } } } } })
+    mockGetAssociatedTokenAddress
+      .mockResolvedValueOnce('from-ata')
+      .mockResolvedValueOnce('to-ata')
+    mockGetAccount
+      .mockResolvedValueOnce({ amount: 9007199254740993123456789n })
+      .mockResolvedValueOnce({ amount: 1n })
+    mockCreateTransferInstruction.mockReturnValue({})
+    mockCreateAssociatedTokenAccountInstruction.mockReturnValue({})
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await transferToken(
+      'w1',
+      'So11111111111111111111111111111111111111112',
+      'So11111111111111111111111111111111111111112',
+      undefined,
+      true,
+    )
+
+    expect(mockCreateTransferInstruction).toHaveBeenCalledWith(
+      'from-ata',
+      'to-ata',
+      fakeKeypair.publicKey,
+      9007199254740993123456789n,
+    )
   })
 })
