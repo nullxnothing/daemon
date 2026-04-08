@@ -38,7 +38,7 @@ DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships
 
 ## Install
 
-**Windows:** Download the [latest .exe](https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev/DAEMON-2.0.0-setup.exe)
+**Windows:** Download the [latest .exe](https://github.com/nullxnothing/daemon/releases/latest/download/DAEMON-setup.exe)
 
 <a name="mac-install"></a>
 

@@ -189,6 +189,46 @@ describe('useUIStore — setDrawerTool / setCenterMode', () => {
     useUIStore.getState().setCenterMode('canvas')
     expect(useUIStore.getState().centerMode).toBe('canvas')
   })
+
+  it('activating browser closes the drawer and deactivates dashboard', () => {
+    useUIStore.setState({
+      drawerTool: 'hackathon',
+      drawerOpen: true,
+      drawerFullscreen: true,
+      dashboardTabOpen: true,
+      dashboardTabActive: true,
+    })
+
+    useUIStore.getState().openBrowserTab()
+
+    const state = useUIStore.getState()
+    expect(state.browserTabOpen).toBe(true)
+    expect(state.browserTabActive).toBe(true)
+    expect(state.dashboardTabActive).toBe(false)
+    expect(state.drawerTool).toBeNull()
+    expect(state.drawerOpen).toBe(false)
+    expect(state.drawerFullscreen).toBe(false)
+  })
+
+  it('activating dashboard closes the drawer and deactivates browser', () => {
+    useUIStore.setState({
+      drawerTool: 'hackathon',
+      drawerOpen: true,
+      drawerFullscreen: true,
+      browserTabOpen: true,
+      browserTabActive: true,
+    })
+
+    useUIStore.getState().openDashboardTab()
+
+    const state = useUIStore.getState()
+    expect(state.dashboardTabOpen).toBe(true)
+    expect(state.dashboardTabActive).toBe(true)
+    expect(state.browserTabActive).toBe(false)
+    expect(state.drawerTool).toBeNull()
+    expect(state.drawerOpen).toBe(false)
+    expect(state.drawerFullscreen).toBe(false)
+  })
 })
 
 describe('useUIStore — MCP dirty state', () => {

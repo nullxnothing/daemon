@@ -6,11 +6,14 @@ export interface WorkspaceProfile {
 }
 
 const WEB_TOOLS = [
-  'starter', 'git', 'deploy', 'env', 'browser', 'ports', 'processes', 'settings', 'email', 'image-editor',
+  'starter', 'git', 'deploy', 'env', 'email', 'ports',
+  'processes', 'settings', 'image-editor', 'docs',
+  'sessions', 'plugins', 'recovery',
 ]
 
 const SOLANA_TOOLS = [
   ...WEB_TOOLS, 'wallet', 'solana-toolbox', 'block-scanner',
+  'dashboard', 'hackathon',
 ]
 
 export const PROFILE_PRESETS: Record<WorkspaceProfileName, string[]> = {

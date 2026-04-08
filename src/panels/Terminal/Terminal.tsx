@@ -1,11 +1,13 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
+import { getEmbeddedProviderStartupCommand } from '../../../electron/shared/providerLaunch'
 import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
 import './Terminal.css'
 
 const SOLANA_AGENT_DB_ID = 'solana-agent'
+const IS_SMOKE_TEST = new URLSearchParams(window.location.search).get('smoke') === '1'
 
 type SplitLayout = {
   direction: 'horizontal' | 'vertical'
@@ -136,6 +138,7 @@ export function TerminalPanel() {
 
   // Auto-create first terminal for project — starts in Claude mode if CLI is available
   useEffect(() => {
+    if (IS_SMOKE_TEST) return
     if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
     creatingRef.current = true
 
@@ -148,7 +151,7 @@ export function TerminalPanel() {
       const { installed } = res.data
 
       if (installed) {
-        return handleNewTerminal('Claude', 'claude').then(() => {})
+        return handleNewTerminal('Claude', getEmbeddedProviderStartupCommand('claude')).then(() => {})
       }
 
       // Claude CLI not found — open terminal and run the install command

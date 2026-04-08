@@ -8,6 +8,7 @@ import { ProviderRegistry } from '../services/providers'
 import type { ProviderInterface } from '../services/providers'
 import { registerPort } from '../services/PortService'
 import { isPathSafe } from '../shared/pathValidation'
+import { getEmbeddedProviderArgs } from '../shared/providerLaunch'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as SessionTracker from '../services/SessionTracker'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
@@ -234,7 +235,7 @@ export function registerTerminalHandlers() {
 
     const id = crypto.randomUUID()
     const cwd = opts.cwd || os.homedir()
-    const session = createPtySession(id, cliPath, [], cwd, null, null, provider)
+    const session = createPtySession(id, cliPath, getEmbeddedProviderArgs(opts.providerId), cwd, null, null, provider)
     session.isAgentShell = true
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
