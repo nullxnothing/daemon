@@ -4,6 +4,7 @@ import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
+import { lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -188,7 +189,7 @@ const PortsPanel = lazy(() => import('../../panels/PortsPanel/PortsPanel').then(
 const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessManager').then(m => ({ default: m.ProcessManager })))
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
 const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
-const TokenLaunchTool = lazy(() => import('../../panels/TokenLaunchTool/TokenLaunchTool'))
+const TokenLaunchTool = lazyWithReload('token-launch-tool', () => import('../../panels/TokenLaunchTool/TokenLaunchTool'))
 const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
 const DocsPanel = lazy(() => import('../../panels/DocsPanel/DocsPanel').then(m => ({ default: m.DocsPanel })))
 const ProjectStarter = lazy(() => import('../../panels/ProjectStarter/ProjectStarter'))
