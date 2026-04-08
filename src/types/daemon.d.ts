@@ -731,6 +731,17 @@ declare global {
     vault: DaemonVault
     validator: DaemonValidator
     pnl: DaemonPnl
+    feedback: DaemonFeedback
+  }
+
+  interface DaemonFeedback {
+    submit: (input: {
+      title: string
+      description: string
+      activePanel?: string
+      logs?: string
+    }) => Promise<IpcResponse<{ number?: number; url?: string }>>
+    openUrl: (url: string) => Promise<IpcResponse<{ ok: boolean }>>
   }
 
   interface VaultFileMeta {

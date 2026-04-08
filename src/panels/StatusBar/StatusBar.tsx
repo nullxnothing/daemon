@@ -7,6 +7,7 @@ import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { formatCompactUsd } from '../../utils/format'
 import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
+import { BugReportModal } from '../../components/BugReportModal/BugReportModal'
 import styles from './StatusBar.module.css'
 
 const EMPTY_MARKET: MarketTickerEntry[] = []
@@ -38,6 +39,7 @@ export const StatusBar = memo(function StatusBar() {
       </div>
       <div className={styles.right}>
         <div className={styles.statusGroup}>
+          <BugReportButton />
           <EmailIndicator />
           <ClaudeStatus />
         </div>
@@ -122,6 +124,35 @@ function GitBranch() {
     >
       {branch}
     </span>
+  )
+}
+
+function BugReportButton() {
+  const [open, setOpen] = useState(false)
+  const drawerTool = useUIStore((s) => s.drawerTool)
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`${styles.item} ${styles.clickable}`}
+        onClick={() => setOpen(true)}
+        title="Report a bug"
+        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M12 2v4M8 6h8l-1 4H9l-1-4z" />
+          <path d="M7 10c0 4 2 8 5 8s5-4 5-8" />
+          <path d="M4 14h3M17 14h3M5 18h2M17 18h2" />
+        </svg>
+        <span style={{ fontSize: 10 }}>Report</span>
+      </button>
+      <BugReportModal
+        open={open}
+        onClose={() => setOpen(false)}
+        activePanel={drawerTool ?? undefined}
+      />
+    </>
   )
 }
 

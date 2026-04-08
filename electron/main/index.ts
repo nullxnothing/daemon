@@ -38,6 +38,7 @@ import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
+import { registerFeedbackHandlers } from '../ipc/feedback'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
@@ -45,7 +46,6 @@ const { autoUpdater } = pkg
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 process.env.APP_ROOT = path.join(__dirname, '../..')
-
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
@@ -151,6 +151,7 @@ function registerAllIpc() {
   registerVaultHandlers()
   registerValidatorHandlers()
   registerPnlHandlers()
+  registerFeedbackHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -281,7 +282,6 @@ async function createWindow() {
     },
   })
   if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:browser-window-created')
-
   if (VITE_DEV_SERVER_URL) {
     const url = new URL(VITE_DEV_SERVER_URL)
     if (SMOKE_TEST_MODE) {
@@ -339,7 +339,6 @@ async function createWindow() {
     }
   } catch { /* table may not exist yet on first run */ }
 }
-
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
   createWindow().catch((err) => {
