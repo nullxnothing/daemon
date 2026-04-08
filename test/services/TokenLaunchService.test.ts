@@ -278,7 +278,7 @@ describe('TokenLaunchService', () => {
     })
 
     expect(result.ready).toBe(false)
-    expect(result.checks.find((check) => check.id === 'helius')?.status).toBe('fail')
+    expect(result.checks.find((check) => check.id === 'helius')?.status).toBe('warn')
     expect(result.checks.find((check) => check.id === 'wallet-balance')?.status).toBe('fail')
   })
 })

@@ -1,4 +1,4 @@
-import * as SecureKey from './SecureKeyService'
+import { getHeliusApiKey } from './SolanaService'
 
 const JUPITER_PRICE_URL = 'https://api.jup.ag/price/v2'
 const HELIUS_RPC_BASE = 'https://mainnet.helius-rpc.com'
@@ -27,7 +27,7 @@ export interface TokenHolders {
 }
 
 function getHeliusKey(): string {
-  const key = SecureKey.getKey('HELIUS_API_KEY')
+  const key = getHeliusApiKey()
   if (!key) throw new Error('Helius API key not configured')
   return key
 }

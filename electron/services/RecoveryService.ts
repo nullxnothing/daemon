@@ -12,6 +12,7 @@ import {
 import bs58 from 'bs58'
 import * as fs from 'node:fs'
 import * as SecureKey from './SecureKeyService'
+import { getHeliusApiKey } from './SolanaService'
 import type { RecoveryWalletInfo, RecoveryProgressEvent, RecoveryStatus } from '../shared/types'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ let loadedPubkeys: string[] = []
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function getConnection(): Connection {
-  const key = SecureKey.getKey('HELIUS_API_KEY')
+  const key = getHeliusApiKey()
   if (!key) throw new Error('Helius API key not configured')
   return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
 }
