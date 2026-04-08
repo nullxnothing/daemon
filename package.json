@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "main": "dist-electron/main/index.js",
   "description": "Custom Electron IDE for AI-native development",
   "author": "nullxnothing",
@@ -55,6 +55,7 @@
     "smol-toml": "^1.6.1"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.2.1",
     "@electron/rebuild": "^3.7.1",
     "@monaco-editor/react": "^4.7.0",
     "@types/better-sqlite3": "^7.6.12",

@@ -128,7 +128,7 @@ jobs:
             echo "Notarization secrets found, enabling notarize"
             npx json -I -f electron-builder.json -e 'this.mac.notarize=true'
           fi
-          pnpm exec electron-builder --publish never
+          pnpm exec electron-builder --mac dmg zip --arm64 --x64 --publish never
       - name: Generate checksums
         run: |
           cd release
