@@ -212,8 +212,8 @@ contextBridge.exposeInMainWorld('daemon', {
     deleteHeliusKey: () => ipcRenderer.invoke('wallet:delete-helius-key'),
     hasHeliusKey: () => ipcRenderer.invoke('wallet:has-helius-key'),
     generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
-    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => ipcRenderer.invoke('wallet:send-sol', input),
-    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => ipcRenderer.invoke('wallet:send-token', input),
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => ipcRenderer.invoke('wallet:swap-execute', input),
@@ -248,6 +248,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setDrawerToolOrder: (order: string[]) => ipcRenderer.invoke('settings:set-drawer-tool-order', order),
     getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
+    getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
+    setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
     onCrashWarning: (callback: (count: number) => void) => {
@@ -339,6 +341,11 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   launch: {
+    listLaunchpads: () => ipcRenderer.invoke('launch:list-launchpads'),
+    listWalletOptions: (projectId?: string | null) => ipcRenderer.invoke('launch:list-wallet-options', projectId),
+    pickImage: () => ipcRenderer.invoke('launch:pick-image'),
+    preflightToken: (input: object) => ipcRenderer.invoke('launch:preflight-token', input),
+    createToken: (input: object) => ipcRenderer.invoke('launch:create-token', input),
     saveToken: (input: object) => ipcRenderer.invoke('launch:save-token', input),
     listTokens: (walletId?: string) => ipcRenderer.invoke('launch:list-tokens', walletId),
     getToken: (idOrMint: string) => ipcRenderer.invoke('launch:get-token', idOrMint),

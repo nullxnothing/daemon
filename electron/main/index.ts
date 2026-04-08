@@ -267,7 +267,7 @@ async function createWindow() {
     title: 'DAEMON',
     width: 1440,
     height: 900,
-    minWidth: 960,
+    minWidth: 640,
     minHeight: 600,
     frame: false,
     titleBarStyle: 'hidden',

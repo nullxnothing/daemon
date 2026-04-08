@@ -1,7 +1,8 @@
-import { useState, useCallback, type DragEvent } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
+import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
-import { TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME } from '../../components/CommandDrawer/CommandDrawer'
+import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
 
@@ -18,9 +19,48 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const browserTabActive = useUIStore((s) => s.browserTabActive)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
+  const plugins = usePluginStore((s) => s.plugins)
 
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const [dropZoneActive, setDropZoneActive] = useState(false)
+  const [toolMenuOpen, setToolMenuOpen] = useState(false)
+  const toolMenuRef = useRef<HTMLDivElement | null>(null)
+
+  const availableTools = useMemo(() => {
+    const pluginTools = plugins
+      .filter((plugin) => plugin.enabled)
+      .filter((plugin) => !BUILTIN_TOOLS.some((tool) => tool.id === plugin.id))
+      .map((plugin) => ({
+        id: plugin.id,
+        name: PLUGIN_REGISTRY[plugin.id]?.name ?? plugin.id,
+      }))
+
+    return [...BUILTIN_TOOLS.map((tool) => ({ id: tool.id, name: tool.name })), ...pluginTools]
+      .filter((tool) => tool.id !== 'browser')
+      .filter((tool) => !pinnedTools.includes(tool.id))
+      .filter((tool) => isToolVisible(tool.id))
+  }, [isToolVisible, pinnedTools, plugins])
+
+  useEffect(() => {
+    if (!toolMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!toolMenuRef.current?.contains(event.target as Node)) {
+        setToolMenuOpen(false)
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setToolMenuOpen(false)
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [toolMenuOpen])
 
   const handleExplorerClick = () => {
     if (drawerOpen) useUIStore.getState().closeDrawer()
@@ -41,13 +81,11 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     }
   }
 
-  const handleLauncherClick = () => {
-    const state = useUIStore.getState()
-    if (state.drawerOpen && !state.drawerTool) {
-      state.closeDrawer()
-    } else {
-      useUIStore.setState({ drawerOpen: true, drawerTool: null })
-    }
+  const handleAddToolClick = () => setToolMenuOpen((open) => !open)
+
+  const handleAddToolSelect = (toolId: string) => {
+    useUIStore.getState().pinTool(toolId)
+    setToolMenuOpen(false)
   }
 
   // --- Drag-and-drop for pinned tools ---
@@ -94,7 +132,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }, [])
 
   // Drop zone at end of pinned tools (for adding new pins)
-  const handleZoneDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const handleZoneDragOver = useCallback((e: DragEvent<HTMLElement>) => {
     if (!e.dataTransfer.types.includes(TOOL_DND_MIME)) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
@@ -105,7 +143,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     setDropZoneActive(false)
   }, [])
 
-  const handleZoneDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const handleZoneDrop = useCallback((e: DragEvent<HTMLElement>) => {
     e.preventDefault()
     setDropZoneActive(false)
     setDragOverIdx(null)
@@ -183,14 +221,41 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       })}
 
       {/* Drop zone for pinning new tools from drawer */}
-      <div
-        className={`sidebar-drop-zone${dropZoneActive ? ' sidebar-drop-zone--active' : ''}`}
-        onDragOver={handleZoneDragOver}
-        onDragLeave={handleZoneDragLeave}
-        onDrop={handleZoneDrop}
-        title="Drag a tool here to pin it. Right-click a pinned tool to unpin."
-        aria-label="Drop here to pin a tool"
-      />
+      <div className="sidebar-submenu-wrap" ref={toolMenuRef}>
+        <button
+          type="button"
+          className={`sidebar-drop-zone${dropZoneActive ? ' sidebar-drop-zone--active' : ''}${toolMenuOpen ? ' active' : ''}`}
+          onClick={handleAddToolClick}
+          onDragOver={handleZoneDragOver}
+          onDragLeave={handleZoneDragLeave}
+          onDrop={handleZoneDrop}
+          title="Add tool"
+          aria-label="Add tool"
+        />
+        {toolMenuOpen && (
+          <div className="sidebar-submenu sidebar-submenu--tools">
+            <div className="sidebar-submenu-group">Add To Sidebar</div>
+            {availableTools.length > 0 ? (
+              availableTools.map((tool) => {
+                const Icon = TOOL_ICONS[tool.id] ?? PLUGIN_REGISTRY[tool.id]?.icon
+                return (
+                  <button
+                    key={tool.id}
+                    className="sidebar-submenu-item sidebar-submenu-item--tool"
+                    onClick={() => handleAddToolSelect(tool.id)}
+                    title={`Pin ${tool.name}`}
+                  >
+                    {Icon ? <Icon size={14} /> : null}
+                    <span>{tool.name}</span>
+                  </button>
+                )
+              })
+            ) : (
+              <div className="sidebar-submenu-empty">All available tools are already pinned.</div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="sidebar-spacer" />
 
@@ -214,7 +279,14 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       {/* Command Drawer Launcher */}
       <button
         className={`sidebar-icon ${drawerOpen && !drawerTool ? 'active' : ''}`}
-        onClick={handleLauncherClick}
+        onClick={() => {
+          const state = useUIStore.getState()
+          if (state.drawerOpen && !state.drawerTool) {
+            state.closeDrawer()
+          } else {
+            useUIStore.setState({ drawerOpen: true, drawerTool: null })
+          }
+        }}
         title="Tools (Ctrl+K)"
         aria-label="Tools"
       >

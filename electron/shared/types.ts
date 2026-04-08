@@ -543,14 +543,16 @@ export interface WalletGenerateInput {
 export interface TransferSOLInput {
   fromWalletId: string
   toAddress: string
-  amountSol: number
+  amountSol?: number
+  sendMax?: boolean
 }
 
 export interface TransferTokenInput {
   fromWalletId: string
   toAddress: string
   mint: string
-  amount: number
+  amount?: number
+  sendMax?: boolean
 }
 
 export interface TransactionHistoryEntry {

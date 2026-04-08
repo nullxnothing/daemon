@@ -4,6 +4,7 @@ import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
+import { lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -146,6 +147,16 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function TokenLaunchIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 14c-1.7 1.7-2.3 4.2-1.5 6.5 2.3.7 4.8.2 6.5-1.5l7.6-7.6a3.2 3.2 0 0 0-4.5-4.5L6.5 14Z" />
+      <path d="M9 9 4 4" />
+      <path d="m5 9 4-4" />
+      <path d="M15 4h5v5" />
+    </svg>
+  )
+}
 
 // Icon lookup for pinned sidebar tools
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
@@ -153,6 +164,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
+  'token-launch': TokenLaunchIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon,
 }
 
@@ -162,6 +174,7 @@ export const TOOL_NAMES: Record<string, string> = {
   wallet: 'Wallet', email: 'Email', browser: 'Browser',
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
+  'token-launch': 'Token Launch',
   dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery',
 }
 
@@ -176,6 +189,7 @@ const PortsPanel = lazy(() => import('../../panels/PortsPanel/PortsPanel').then(
 const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessManager').then(m => ({ default: m.ProcessManager })))
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
 const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
+const TokenLaunchTool = lazyWithReload('token-launch-tool', () => import('../../panels/TokenLaunchTool/TokenLaunchTool'))
 const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
 const DocsPanel = lazy(() => import('../../panels/DocsPanel/DocsPanel').then(m => ({ default: m.DocsPanel })))
 const ProjectStarter = lazy(() => import('../../panels/ProjectStarter/ProjectStarter'))
@@ -198,6 +212,7 @@ export const TOOL_COLORS: Record<string, string> = {
   settings: '#9ca3af',
   'image-editor': '#e879f9',
   'solana-toolbox': '#14f195',
+  'token-launch': '#38d39f',
   'block-scanner': '#38bdf8',
   docs: '#94a3b8',
 }
@@ -215,6 +230,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, category: 'system' },
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, category: 'system' },
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, category: 'create' },
+  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, and Meteora launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, category: 'crypto' },
   { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, category: 'system' },

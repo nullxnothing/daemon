@@ -54,11 +54,11 @@ export function registerWalletHandlers() {
   }))
 
   ipcMain.handle('wallet:send-sol', ipcHandler(async (_event, input: TransferSOLInput) => {
-    return await WalletService.transferSOL(input.fromWalletId, input.toAddress, input.amountSol)
+    return await WalletService.transferSOL(input.fromWalletId, input.toAddress, input.amountSol, input.sendMax === true)
   }))
 
   ipcMain.handle('wallet:send-token', ipcHandler(async (_event, input: TransferTokenInput) => {
-    return await WalletService.transferToken(input.fromWalletId, input.toAddress, input.mint, input.amount)
+    return await WalletService.transferToken(input.fromWalletId, input.toAddress, input.mint, input.amount, input.sendMax === true)
   }))
 
   ipcMain.handle('wallet:swap-quote', ipcHandler(async (_event, input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {

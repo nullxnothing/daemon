@@ -133,7 +133,7 @@ export const useUIStore = create<UIState>((set) => ({
   drawerTool: null,
   drawerOpen: false,
   drawerFullscreen: false,
-  pinnedTools: ['git', 'browser', 'solana-toolbox'],
+  pinnedTools: ['git', 'browser', 'token-launch', 'solana-toolbox'],
   drawerToolOrder: [],
 
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),

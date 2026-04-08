@@ -36,6 +36,7 @@ interface Step1State {
 
 // ── Step 2 state ──────────────────────────────────────────────
 interface Step2State {
+  launchpad: LaunchpadId
   initialBuySol: string
   slippage: string
   priorityFee: string
@@ -43,9 +44,7 @@ interface Step2State {
 }
 
 const PHASE_STEPS = [
-  { key: 'uploading', label: 'Uploading metadata to IPFS' },
-  { key: 'creating', label: 'Creating token on-chain' },
-  { key: 'confirming', label: 'Confirming transaction' },
+  { key: 'creating', label: 'Creating token launch' },
 ] as const
 
 type PhaseKey = typeof PHASE_STEPS[number]['key']
@@ -57,13 +56,18 @@ function phaseIndex(phase: string): number {
 // ── Main component ─────────────────────────────────────────────
 export function LaunchWizard() {
   const closeLaunchWizard = useUIStore((s) => s.closeLaunchWizard)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const [step, setStep] = useState<Step>(1)
   const [hasAttemptedNext, setHasAttemptedNext] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
-  const [wallets, setWallets] = useState<Array<{ id: string; name: string; address: string }>>([])
+  const [wallets, setWallets] = useState<LaunchWalletOption[]>([])
+  const [launchpads, setLaunchpads] = useState<LaunchpadDefinition[]>([])
+  const [preflight, setPreflight] = useState<TokenLaunchPreflight | null>(null)
+  const [preflightLoading, setPreflightLoading] = useState(false)
+  const [preflightError, setPreflightError] = useState<string | null>(null)
 
   const { state: launchState, launch, reset } = useTokenLaunch()
 
@@ -79,6 +83,7 @@ export function LaunchWizard() {
   })
 
   const [s2, setS2] = useState<Step2State>({
+    launchpad: 'pumpfun',
     initialBuySol: '0.1',
     slippage: '10',
     priorityFee: '0.005',
@@ -100,13 +105,30 @@ export function LaunchWizard() {
 
   // Load wallets on mount
   useEffect(() => {
-    window.daemon.wallet.list().then((res) => {
+    window.daemon.launch.listWalletOptions(activeProjectId).then((res) => {
       if (res.ok && res.data) {
-        const list = res.data.map((w) => ({ id: w.id, name: w.name, address: w.address }))
+        const list = res.data
         setWallets(list)
         if (list.length > 0 && !s2.walletId) {
-          setS2((prev) => ({ ...prev, walletId: list[0].id }))
+          const preferred = list.find((wallet) => wallet.isAssignedToActiveProject && wallet.hasKeypair)
+            ?? list.find((wallet) => wallet.isDefault && wallet.hasKeypair)
+            ?? list.find((wallet) => wallet.hasKeypair)
+            ?? list.find((wallet) => wallet.isAssignedToActiveProject)
+            ?? list.find((wallet) => wallet.isDefault)
+            ?? list[0]
+          setS2((prev) => ({ ...prev, walletId: preferred.id }))
         }
+      }
+    }).catch(() => {})
+  }, [activeProjectId, s2.walletId])
+
+  useEffect(() => {
+    window.daemon.launch.listLaunchpads().then((res) => {
+      if (!res.ok || !res.data) return
+      setLaunchpads(res.data)
+      const active = res.data.find((pad) => pad.enabled)
+      if (active) {
+        setS2((prev) => ({ ...prev, launchpad: active.id }))
       }
     }).catch(() => {})
   }, [])
@@ -121,7 +143,7 @@ export function LaunchWizard() {
   }, [s2.walletId])
 
   const handlePickImage = async () => {
-    const res = await window.daemon.pumpfun.pickImage()
+    const res = await window.daemon.launch.pickImage()
     if (res.ok && res.data) {
       const filePath = res.data
       // Read as base64 for preview
@@ -133,9 +155,12 @@ export function LaunchWizard() {
 
   const s2BuySol = parseFloat(s2.initialBuySol) || 0
   const s2Priority = parseFloat(s2.priorityFee) || 0
+  const selectedWallet = wallets.find((wallet) => wallet.id === s2.walletId) ?? null
   const TX_BASE_COST = 0.02
   const totalCost = s2BuySol + s2Priority + TX_BASE_COST
   const isBalanceLow = walletBalance !== null && walletBalance < totalCost
+  const selectedWalletMissingKeypair = selectedWallet ? !selectedWallet.hasKeypair : false
+  const launchChecksPassing = preflight?.ready ?? false
 
   const canProceedStep1 =
     s1.name.trim().length > 0 &&
@@ -146,10 +171,13 @@ export function LaunchWizard() {
     s2BuySol > 0 &&
     parseFloat(s2.slippage) > 0 &&
     s2Priority >= 0 &&
-    s2.walletId.length > 0
+    s2.walletId.length > 0 &&
+    !selectedWalletMissingKeypair
 
   const handleLaunch = () => {
     const params: LaunchParams = {
+      launchpad: s2.launchpad,
+      projectId: activeProjectId ?? undefined,
       name: s1.name.trim(),
       symbol: s1.symbol.trim().toUpperCase(),
       description: s1.description.trim(),
@@ -173,6 +201,64 @@ export function LaunchWizard() {
   }
 
   const activePhaseIdx = phaseIndex(launchState.phase)
+  const selectedLaunchpad = launchpads.find((pad) => pad.id === s2.launchpad) ?? null
+
+  useEffect(() => {
+    if (step !== 3) return
+    if (!s2.walletId) return
+
+    let cancelled = false
+    const run = async () => {
+      setPreflightLoading(true)
+      setPreflightError(null)
+      const res = await window.daemon.launch.preflightToken({
+        launchpad: s2.launchpad,
+        walletId: s2.walletId,
+        projectId: activeProjectId ?? undefined,
+        name: s1.name.trim(),
+        symbol: s1.symbol.trim().toUpperCase(),
+        description: s1.description.trim(),
+        imagePath: s1.imagePath,
+        twitter: s1.twitter.trim(),
+        telegram: s1.telegram.trim(),
+        website: s1.website.trim(),
+        initialBuySol: s2BuySol,
+        slippageBps: Math.round(parseFloat(s2.slippage) * 100),
+        priorityFeeSol: s2Priority,
+      })
+      if (cancelled) return
+      if (!res.ok || !res.data) {
+        setPreflight(null)
+        setPreflightError(res.error ?? 'Launch preflight failed')
+      } else {
+        setPreflight(res.data)
+        setPreflightError(null)
+      }
+      setPreflightLoading(false)
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    step,
+    s2.launchpad,
+    s2.walletId,
+    s2.initialBuySol,
+    s2.priorityFee,
+    s2.slippage,
+    s1.name,
+    s1.symbol,
+    s1.description,
+    s1.imagePath,
+    s1.twitter,
+    s1.telegram,
+    s1.website,
+    activeProjectId,
+    s2BuySol,
+    s2Priority,
+  ])
 
   return (
     <div
@@ -209,15 +295,19 @@ export function LaunchWizard() {
             <StepDetails s1={s1} setS1={setS1} onPickImage={handlePickImage} showErrors={hasAttemptedNext} />
           )}
           {step === 2 && (
-            <StepConfig s2={s2} setS2={setS2} wallets={wallets} />
+            <StepConfig s2={s2} setS2={setS2} wallets={wallets} launchpads={launchpads} />
           )}
           {step === 3 && (
             <StepPreview
               s1={s1}
               s2={s2}
+              launchpadName={selectedLaunchpad?.name ?? 'Pump.fun'}
               totalCost={totalCost}
               walletBalance={walletBalance}
               isBalanceLow={isBalanceLow}
+              preflight={preflight}
+              preflightLoading={preflightLoading}
+              preflightError={preflightError}
               confirmed={confirmed}
               onToggleConfirm={() => setConfirmed((v) => !v)}
             />
@@ -273,7 +363,7 @@ export function LaunchWizard() {
               {step === 3 && (
                 <button
                   className="lw-btn primary"
-                  disabled={!confirmed || isBalanceLow}
+                  disabled={!confirmed || !launchChecksPassing || preflightLoading || isBalanceLow || selectedWalletMissingKeypair}
                   onClick={handleLaunch}
                 >
                   Launch Token
@@ -437,43 +527,52 @@ function StepConfig({
   s2,
   setS2,
   wallets,
+  launchpads,
 }: {
   s2: Step2State
   setS2: React.Dispatch<React.SetStateAction<Step2State>>
-  wallets: Array<{ id: string; name: string; address: string }>
+  wallets: LaunchWalletOption[]
+  launchpads: LaunchpadDefinition[]
 }) {
+  const selectedWallet = wallets.find((wallet) => wallet.id === s2.walletId) ?? null
+
   return (
     <div>
       <div className="lw-field">
         <label className="lw-label">Launchpad</label>
         <div className="lw-launchpad-grid">
-          <div className="lw-launchpad-option selected">
-            <div className="lw-launchpad-radio">
-              <div className="lw-launchpad-radio-dot" />
-            </div>
-            <div className="lw-launchpad-info">
-              <div className="lw-launchpad-name">Pump.fun</div>
-              <div className="lw-launchpad-desc">Bonding curve launch on Pump.fun V2</div>
-            </div>
-          </div>
+          {launchpads.map((launchpad) => {
+            const selected = s2.launchpad === launchpad.id
+            const classes = [
+              'lw-launchpad-option',
+              selected ? 'selected' : '',
+              !launchpad.enabled ? 'disabled' : '',
+            ].filter(Boolean).join(' ')
 
-          <div className="lw-launchpad-option disabled">
-            <div className="lw-launchpad-radio" />
-            <div className="lw-launchpad-info">
-              <div className="lw-launchpad-name">Raydium</div>
-              <div className="lw-launchpad-desc">Direct AMM pool creation</div>
-            </div>
-            <div className="lw-launchpad-badge">Soon</div>
-          </div>
-
-          <div className="lw-launchpad-option disabled">
-            <div className="lw-launchpad-radio" />
-            <div className="lw-launchpad-info">
-              <div className="lw-launchpad-name">Meteora</div>
-              <div className="lw-launchpad-desc">Dynamic liquidity pools</div>
-            </div>
-            <div className="lw-launchpad-badge">Soon</div>
-          </div>
+            return (
+              <button
+                key={launchpad.id}
+                type="button"
+                className={classes}
+                disabled={!launchpad.enabled}
+                onClick={() => setS2((prev) => ({ ...prev, launchpad: launchpad.id }))}
+              >
+                <div className="lw-launchpad-radio">
+                  {selected && <div className="lw-launchpad-radio-dot" />}
+                </div>
+                <div className="lw-launchpad-info">
+                  <div className="lw-launchpad-name">{launchpad.name}</div>
+                  <div className="lw-launchpad-desc">{launchpad.description}</div>
+                  {!launchpad.enabled && launchpad.reason && (
+                    <div className="lw-launchpad-desc">{launchpad.reason}</div>
+                  )}
+                </div>
+                {!launchpad.enabled && (
+                  <div className="lw-launchpad-badge">Soon</div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -492,10 +591,24 @@ function StepConfig({
           )}
           {wallets.map((w) => (
             <option key={w.id} value={w.id}>
-              {w.name} — {w.address.slice(0, 6)}...{w.address.slice(-4)}
+              {w.name}
+              {w.isAssignedToActiveProject ? ' (Project)' : w.isDefault ? ' (Default)' : ''}
+              {!w.hasKeypair ? ' (Watch-only)' : ''}
+              {' — '}
+              {w.address.slice(0, 6)}...{w.address.slice(-4)}
             </option>
           ))}
         </select>
+        {selectedWallet && (
+          <div className="lw-help-text">
+            {selectedWallet.isAssignedToActiveProject
+              ? 'This wallet is assigned to the active project.'
+              : selectedWallet.isDefault
+                ? 'This wallet is your default portfolio wallet.'
+                : 'This wallet is available in your portfolio.'}
+            {!selectedWallet.hasKeypair ? ' Import a keypair for this wallet before launching.' : ''}
+          </div>
+        )}
       </div>
 
       <div className="lw-num-row">
@@ -544,17 +657,25 @@ function StepConfig({
 function StepPreview({
   s1,
   s2,
+  launchpadName,
   totalCost,
   walletBalance,
   isBalanceLow,
+  preflight,
+  preflightLoading,
+  preflightError,
   confirmed,
   onToggleConfirm,
 }: {
   s1: Step1State
   s2: Step2State
+  launchpadName: string
   totalCost: number
   walletBalance: number | null
   isBalanceLow: boolean
+  preflight: TokenLaunchPreflight | null
+  preflightLoading: boolean
+  preflightError: string | null
   confirmed: boolean
   onToggleConfirm: () => void
 }) {
@@ -586,7 +707,7 @@ function StepPreview({
         )}
         <div className="lw-summary-row">
           <span className="lw-summary-key">Launchpad</span>
-          <span className="lw-summary-val">Pump.fun</span>
+          <span className="lw-summary-val">{launchpadName}</span>
         </div>
         <div className="lw-summary-row">
           <span className="lw-summary-key">Slippage</span>
@@ -626,6 +747,38 @@ function StepPreview({
           Insufficient balance. You need at least {totalCost.toFixed(4)} SOL but have {walletBalance?.toFixed(4)} SOL.
         </div>
       )}
+
+      <div className="lw-cost-box">
+        <div className="lw-cost-title">Launch Readiness</div>
+        {preflightLoading && (
+          <div className="lw-cost-line">
+            <span className="lw-cost-desc">Checking launch requirements...</span>
+          </div>
+        )}
+        {preflightError && (
+          <div className="lw-warning" style={{ marginTop: 0 }}>
+            {preflightError}
+          </div>
+        )}
+        {preflight && preflight.checks.map((check) => (
+          <div key={check.id} className="lw-cost-line" style={{ alignItems: 'flex-start' }}>
+            <span className="lw-cost-desc">
+              {check.label}
+            </span>
+            <span className={`lw-launch-check ${check.status}`}>
+              {check.status}
+            </span>
+          </div>
+        ))}
+        {preflight && preflight.checks.map((check) => (
+          <div key={`${check.id}-detail`} className="lw-summary-row">
+            <span className="lw-summary-key" />
+            <span className="lw-summary-val" style={{ whiteSpace: 'normal', fontSize: 11, color: 'var(--t3)' }}>
+              {check.detail}
+            </span>
+          </div>
+        ))}
+      </div>
 
       <label className="lw-confirm-check">
         <input
