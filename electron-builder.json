@@ -3,6 +3,7 @@
   "appId": "com.daemon.app",
   "productName": "DAEMON",
   "asar": true,
+  "npmRebuild": false,
   "directories": {
     "output": "release/${version}"
   },
