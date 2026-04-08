@@ -17,6 +17,7 @@ import {
   updateSettings,
 } from '../services/EmailService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { ValidationService } from '../services/ValidationService'
 
 export function registerEmailHandlers() {
   ipcMain.handle('email:accounts', ipcHandler(async () => {
@@ -52,7 +53,35 @@ export function registerEmailHandlers() {
   }))
 
   ipcMain.handle('email:send', ipcHandler(async (_event, accountId: string, to: string, subject: string, body: string, cc?: string, bcc?: string) => {
-    return await sendEmail(accountId, { to, subject, body, cc, bcc })
+    const accountResult = ValidationService.validateString(accountId, 1, 256)
+    if (!accountResult.success) throw new Error(accountResult.errors?.[0] ?? 'Invalid account ID')
+
+    const toResult = ValidationService.validateEmailList(to, true)
+    if (!toResult.success) throw new Error(toResult.errors?.[0] ?? 'Invalid recipient')
+
+    const ccResult = ValidationService.validateEmailList(cc)
+    if (!ccResult.success) throw new Error(ccResult.errors?.[0] ?? 'Invalid cc recipient')
+
+    const bccResult = ValidationService.validateEmailList(bcc)
+    if (!bccResult.success) throw new Error(bccResult.errors?.[0] ?? 'Invalid bcc recipient')
+
+    const subjectResult = ValidationService.validateString(subject, 1, 998)
+    if (!subjectResult.success) throw new Error(subjectResult.errors?.[0] ?? 'Invalid subject')
+
+    const bodyResult = ValidationService.validateString(body, 1, 100_000)
+    if (!bodyResult.success) throw new Error(bodyResult.errors?.[0] ?? 'Invalid body')
+
+    if (!ValidationService.checkRateLimit(`email-send:${accountResult.data}`, 10, 60_000)) {
+      throw new Error('Email send rate limit exceeded for this account. Please wait a minute.')
+    }
+
+    return await sendEmail(accountResult.data!, {
+      to: toResult.data!,
+      subject: subjectResult.data!,
+      body: bodyResult.data!,
+      cc: ccResult.data,
+      bcc: bccResult.data,
+    })
   }))
 
   ipcMain.handle('email:mark-read', ipcHandler(async (_event, accountId: string, messageIds: string[]) => {

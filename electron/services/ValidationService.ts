@@ -23,6 +23,8 @@ interface ValidationRule {
   custom?: (value: any) => boolean;
 }
 
+const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 class ValidationServiceImpl {
   private pathWhitelist: Set<string> = new Set();
   private rateLimitMap: Map<string, number[]> = new Map();
@@ -62,6 +64,55 @@ class ValidationServiceImpl {
     }
 
     return { success: true, data: value };
+  }
+
+  validateEmailAddress(value: unknown): ValidationResult<string> {
+    if (typeof value !== 'string') {
+      return { success: false, errors: ['Expected string'] };
+    }
+
+    const normalized = value.trim();
+    if (!normalized) {
+      return { success: false, errors: ['Email address is required'] };
+    }
+
+    if (!SIMPLE_EMAIL_PATTERN.test(normalized)) {
+      return { success: false, errors: [`Invalid email address: ${normalized}`] };
+    }
+
+    return { success: true, data: normalized };
+  }
+
+  validateEmailList(value: unknown, required: boolean = false): ValidationResult<string | undefined> {
+    if (value === undefined || value === null || value === '') {
+      return required
+        ? { success: false, errors: ['Email address is required'] }
+        : { success: true, data: undefined };
+    }
+
+    if (typeof value !== 'string') {
+      return { success: false, errors: ['Expected string'] };
+    }
+
+    const entries = value
+      .split(/[;,]/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    if (entries.length === 0) {
+      return required
+        ? { success: false, errors: ['Email address is required'] }
+        : { success: true, data: undefined };
+    }
+
+    const normalized: string[] = [];
+    for (const entry of entries) {
+      const result = this.validateEmailAddress(entry);
+      if (!result.success) return { success: false, errors: result.errors };
+      normalized.push(result.data!);
+    }
+
+    return { success: true, data: normalized.join(', ') };
   }
 
   /**

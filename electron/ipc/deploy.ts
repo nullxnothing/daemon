@@ -1,7 +1,21 @@
-import { ipcMain } from 'electron'
+import { ipcMain, dialog } from 'electron'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as DeployService from '../services/DeployService'
 import type { DeployPlatform, VercelLink, RailwayLink } from '../shared/types'
+
+async function confirmTokenStorage(platform: 'vercel' | 'railway'): Promise<void> {
+  const label = platform === 'vercel' ? 'Vercel' : 'Railway'
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    buttons: ['Cancel', `Store ${label} Token`],
+    defaultId: 0,
+    cancelId: 0,
+    title: `Connect ${label}`,
+    message: `Store a ${label} access token in DAEMON?`,
+    detail: 'This grants deployment-related access from the renderer through the preload bridge.',
+  })
+  if (response === 0) throw new Error(`${label} connection cancelled by user`)
+}
 
 export function registerDeployHandlers() {
   ipcMain.handle('deploy:auth-status', ipcHandler(async () => {
@@ -9,12 +23,14 @@ export function registerDeployHandlers() {
   }))
 
   ipcMain.handle('deploy:connect-vercel', ipcHandler(async (_event, token: string) => {
+    await confirmTokenStorage('vercel')
     const user = await DeployService.validateVercelToken(token)
     DeployService.storeToken('vercel', token)
     return user
   }))
 
   ipcMain.handle('deploy:connect-railway', ipcHandler(async (_event, token: string) => {
+    await confirmTokenStorage('railway')
     const user = await DeployService.validateRailwayToken(token)
     DeployService.storeToken('railway', token)
     return user

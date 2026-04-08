@@ -5,6 +5,24 @@ import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
 import type { WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
 
+async function confirmSensitiveAction(options: {
+  title: string
+  message: string
+  detail: string
+  confirmLabel: string
+}): Promise<void> {
+  const { response } = await dialog.showMessageBox({
+    type: 'warning',
+    buttons: ['Cancel', options.confirmLabel],
+    defaultId: 0,
+    cancelId: 0,
+    title: options.title,
+    message: options.message,
+    detail: options.detail,
+  })
+  if (response === 0) throw new Error(`${options.title} cancelled by user`)
+}
+
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', ipcHandler(async (_event, projectId?: string | null) => {
     return await WalletService.getDashboard(projectId)
@@ -54,10 +72,22 @@ export function registerWalletHandlers() {
   }))
 
   ipcMain.handle('wallet:send-sol', ipcHandler(async (_event, input: TransferSOLInput) => {
+    await confirmSensitiveAction({
+      title: 'Send SOL',
+      message: `Send ${input.amountSol} SOL to ${input.toAddress}?`,
+      detail: 'This action signs and broadcasts a real transaction from the selected wallet.',
+      confirmLabel: 'Send SOL',
+    })
     return await WalletService.transferSOL(input.fromWalletId, input.toAddress, input.amountSol)
   }))
 
   ipcMain.handle('wallet:send-token', ipcHandler(async (_event, input: TransferTokenInput) => {
+    await confirmSensitiveAction({
+      title: 'Send Token',
+      message: `Send ${input.amount} tokens to ${input.toAddress}?`,
+      detail: `Mint: ${input.mint}\nThis action signs and broadcasts a real token transfer.`,
+      confirmLabel: 'Send Token',
+    })
     return await WalletService.transferToken(input.fromWalletId, input.toAddress, input.mint, input.amount)
   }))
 
@@ -131,16 +161,12 @@ export function registerWalletHandlers() {
       throw new Error('Too many export attempts. Please wait 5 minutes.')
     }
 
-    const { response } = await dialog.showMessageBox({
-      type: 'warning',
-      buttons: ['Cancel', 'Export Key'],
-      defaultId: 0,
-      cancelId: 0,
+    await confirmSensitiveAction({
       title: 'Export Private Key',
       message: 'This will expose your private key in plaintext.',
       detail: 'Only proceed if you understand the security implications.',
+      confirmLabel: 'Export Key',
     })
-    if (response === 0) throw new Error('Export cancelled by user')
 
     const keyString = await WalletService.exportPrivateKey(walletId)
     clipboard.writeText(keyString)

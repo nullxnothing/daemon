@@ -1,3 +1,4 @@
+import { isIP } from 'node:net'
 import { pluginPrompt, orchestratedPrompt } from './PluginPrompt'
 import type { BrowserPage, BrowserNavResult, BrowserAnalysis } from '../shared/types'
 
@@ -13,13 +14,87 @@ function nextPageId(): string {
 
 // --- URL Safety ---
 
-function isCloudMetadataUrl(urlStr: string): boolean {
+function isIpv4InCidr(ip: string, network: string, prefixLength: number): boolean {
+  const octets = ip.split('.').map(Number)
+  const networkOctets = network.split('.').map(Number)
+  if (octets.length !== 4 || networkOctets.length !== 4 || octets.some(Number.isNaN) || networkOctets.some(Number.isNaN)) {
+    return false
+  }
+
+  let ipValue = 0
+  let networkValue = 0
+  for (let i = 0; i < 4; i++) {
+    ipValue = (ipValue << 8) + octets[i]
+    networkValue = (networkValue << 8) + networkOctets[i]
+  }
+
+  const mask = prefixLength === 0 ? 0 : (0xffffffff << (32 - prefixLength)) >>> 0
+  return (ipValue & mask) === (networkValue & mask)
+}
+
+const BLOCKED_IPV4_RANGES: Array<{ network: string; prefixLength: number }> = [
+  { network: '0.0.0.0', prefixLength: 8 },
+  { network: '10.0.0.0', prefixLength: 8 },
+  { network: '127.0.0.0', prefixLength: 8 },
+  { network: '169.254.0.0', prefixLength: 16 },
+  { network: '172.16.0.0', prefixLength: 12 },
+  { network: '192.168.0.0', prefixLength: 16 },
+  { network: '100.64.0.0', prefixLength: 10 },
+  { network: '198.18.0.0', prefixLength: 15 },
+  { network: '224.0.0.0', prefixLength: 4 },
+  { network: '240.0.0.0', prefixLength: 4 },
+  { network: '168.63.129.16', prefixLength: 32 },
+]
+
+export function isBlockedBrowserHost(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase()
+  if (!normalized) return true
+
+  if (
+    normalized === 'localhost'
+    || normalized.endsWith('.localhost')
+    || normalized === 'metadata.google.internal'
+    || normalized === 'metadata.azure.internal'
+    || normalized === 'kubernetes'
+    || normalized.endsWith('.local')
+    || normalized.endsWith('.internal')
+    || normalized.endsWith('.localdomain')
+    || normalized.endsWith('.home.arpa')
+    || normalized.endsWith('.localdomain')
+    || normalized.endsWith('.cluster.local')
+  ) {
+    return true
+  }
+
+  const ipType = isIP(normalized)
+  if (ipType === 4) {
+    return BLOCKED_IPV4_RANGES.some(({ network, prefixLength }) => isIpv4InCidr(normalized, network, prefixLength))
+  }
+
+  if (ipType === 6) {
+    return normalized === '::1'
+      || normalized === '::'
+      || normalized.startsWith('fe80:')
+      || normalized.startsWith('fc')
+      || normalized.startsWith('fd')
+      || normalized.startsWith('ff')
+      || normalized === '::ffff:127.0.0.1'
+      || normalized.startsWith('::ffff:10.')
+      || normalized.startsWith('::ffff:192.168.')
+      || /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
+      || normalized === '::ffff:169.254.169.254'
+      || normalized === '::ffff:168.63.129.16'
+  }
+
+  return false
+}
+
+export function isBlockedBrowserUrl(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr)
-    const hostname = parsed.hostname
-    // Block cloud metadata endpoints only — real SSRF vectors
-    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') return true
-    return false
+    if (!['http:', 'https:'].includes(parsed.protocol)) return true
+    if (parsed.username || parsed.password) return true
+    return isBlockedBrowserHost(parsed.hostname)
   } catch { return true }
 }
 
@@ -31,8 +106,8 @@ export async function navigate(url: string): Promise<BrowserNavResult> {
     url = `https://${url}`
   }
 
-  if (isCloudMetadataUrl(url)) {
-    throw new Error('Navigation to cloud metadata endpoints is blocked')
+  if (isBlockedBrowserUrl(url)) {
+    throw new Error('Navigation to private, local, or metadata endpoints is blocked')
   }
 
   // Create a page entry with the URL — actual content comes from webview via capturePageContent
