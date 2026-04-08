@@ -24,6 +24,7 @@
     }
   ],
   "mac": {
+    "icon": "build/icon.icns",
     "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
     "artifactName": "${productName}-${arch}.${ext}",
@@ -32,6 +33,7 @@
   },
   "afterSign": "build/notarize.mjs",
   "win": {
+    "icon": "build/icon.ico",
     "target": [
       {
         "target": "nsis",
@@ -46,10 +48,14 @@
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
     "deleteAppDataOnUninstall": false,
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerHeaderIcon": "build/icon.ico",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true
   },
   "linux": {
+    "icon": "build/icon.png",
     "target": ["AppImage"],
     "category": "Development",
     "artifactName": "${productName}.${ext}"
