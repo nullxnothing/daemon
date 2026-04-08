@@ -84,6 +84,13 @@ function BrowserIcon({ size = 18 }: { size?: number }) {
 function DocsIcon({ size = 18 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
 }
+function ProIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  )
+}
 function StarterIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -154,6 +161,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon,
+  pro: ProIcon,
 }
 
 // Tool name lookup
@@ -163,6 +171,7 @@ export const TOOL_NAMES: Record<string, string> = {
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
   dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery',
+  pro: 'Daemon Pro',
 }
 
 // Lazy-load all tool components
@@ -184,6 +193,7 @@ const SessionHistory = lazy(() => import('../../panels/SessionRegistry/SessionHi
 const HackathonPanel = lazy(() => import('../../panels/Colosseum/HackathonPanel').then(m => ({ default: m.HackathonPanel })))
 const PluginManager = lazy(() => import('../../panels/PluginManager/PluginManager').then(m => ({ default: m.PluginManager })))
 const RecoveryPanel = lazy(() => import('../../panels/RecoveryPanel/RecoveryPanel').then(m => ({ default: m.RecoveryPanel })))
+const ProPanel = lazy(() => import('../../panels/ProPanel/ProPanel').then(m => ({ default: m.ProPanel })))
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -200,6 +210,7 @@ export const TOOL_COLORS: Record<string, string> = {
   'solana-toolbox': '#14f195',
   'block-scanner': '#38bdf8',
   docs: '#94a3b8',
+  pro: '#ffd700',
 }
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
@@ -210,6 +221,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'deploy', name: 'Deploy', description: 'Vercel & Railway', icon: DeployIcon, component: DeployPanel, category: 'dev' },
   { id: 'env', name: 'Env', description: 'Environment variables', icon: EnvIcon, component: EnvManager, category: 'dev' },
   { id: 'wallet', name: 'Wallet', description: 'Solana wallets', icon: WalletIcon, component: WalletPanel, category: 'crypto' },
+  { id: 'pro', name: 'Daemon Pro', description: 'Arena, skill pack, MCP sync, priority API', icon: ProIcon, component: ProPanel, category: 'crypto' },
   { id: 'email', name: 'Email', description: 'Gmail & iCloud', icon: EmailIcon, component: EmailPanel, category: 'create' },
   { id: 'ports', name: 'Ports', description: 'Port scanner', icon: PortsIcon, component: PortsPanel, category: 'system' },
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, category: 'system' },
