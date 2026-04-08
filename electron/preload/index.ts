@@ -226,6 +226,23 @@ contextBridge.exposeInMainWorld('daemon', {
     setPlatformFeeEnabled: (enabled: boolean) => ipcRenderer.invoke('wallet:set-platform-fee-enabled', enabled),
   },
 
+  pro: {
+    status: () => ipcRenderer.invoke('pro:status'),
+    refreshStatus: (walletAddress: string) => ipcRenderer.invoke('pro:refresh-status', walletAddress),
+    fetchPrice: () => ipcRenderer.invoke('pro:fetch-price'),
+    subscribe: (walletId: string) => ipcRenderer.invoke('pro:subscribe', walletId),
+    signOut: () => ipcRenderer.invoke('pro:sign-out'),
+    mcpPush: () => ipcRenderer.invoke('pro:mcp-push'),
+    mcpPull: () => ipcRenderer.invoke('pro:mcp-pull'),
+    arenaList: () => ipcRenderer.invoke('pro:arena-list'),
+    arenaSubmit: (input: { title: string; description: string; category: string; githubUrl: string }) => ipcRenderer.invoke('pro:arena-submit', input),
+    arenaVote: (submissionId: string) => ipcRenderer.invoke('pro:arena-vote', submissionId),
+    skillsManifest: () => ipcRenderer.invoke('pro:skills-manifest'),
+    skillsSync: () => ipcRenderer.invoke('pro:skills-sync'),
+    skillsDownload: (skillId: string) => ipcRenderer.invoke('pro:skills-download', skillId),
+    quota: () => ipcRenderer.invoke('pro:quota'),
+  },
+
   pnl: {
     syncHistory: (walletAddress?: string) => ipcRenderer.invoke('pnl:sync-history', walletAddress),
     getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => ipcRenderer.invoke('pnl:get-portfolio', walletAddress, holdings),

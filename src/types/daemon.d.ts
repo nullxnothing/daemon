@@ -333,6 +333,68 @@ declare global {
     exportPrivateKey: (walletId: string) => Promise<IpcResponse<string>>
   }
 
+  type ProFeatureId = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
+
+  interface ProSubscriptionState {
+    active: boolean
+    walletId: string | null
+    walletAddress: string | null
+    expiresAt: number | null
+    features: ProFeatureId[]
+    tier: 'pro' | null
+    priceUsdc: number | null
+    durationDays: number | null
+  }
+
+  interface ProPriceInfo {
+    priceUsdc: number
+    durationDays: number
+    network: string
+    payTo: string
+  }
+
+  interface ArenaSubmissionWire {
+    id: string
+    title: string
+    author: { handle: string; wallet: string }
+    description: string
+    category: 'tool' | 'agent' | 'skill' | 'mcp' | 'grind-recipe'
+    themeWeek: string | null
+    submittedAt: number
+    status: 'submitted' | 'featured' | 'winner' | 'shipped'
+    votes: number
+    githubUrl?: string
+    previewImage?: string
+  }
+
+  interface ProSkillManifestEntryWire {
+    id: string
+    name: string
+    version: string
+    description: string
+    downloadUrl: string
+    sha256: string
+    size: number
+    updatedAt: number
+  }
+
+  interface DaemonPro {
+    status: () => Promise<IpcResponse<ProSubscriptionState>>
+    refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
+    fetchPrice: () => Promise<IpcResponse<ProPriceInfo>>
+    subscribe: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState; price: ProPriceInfo }>>
+    signOut: () => Promise<IpcResponse>
+    mcpPush: () => Promise<IpcResponse<{ count: number }>>
+    mcpPull: () => Promise<IpcResponse<{ count: number }>>
+    arenaList: () => Promise<IpcResponse<ArenaSubmissionWire[]>>
+    arenaSubmit: (input: { title: string; description: string; category: string; githubUrl: string }) => Promise<IpcResponse<{ id: string }>>
+    arenaVote: (submissionId: string) => Promise<IpcResponse>
+    skillsManifest: () => Promise<IpcResponse<{ version: 1; skills: ProSkillManifestEntryWire[] }>>
+    skillsSync: () => Promise<IpcResponse<{ installed: string[]; skipped: string[] }>>
+    skillsDownload: (skillId: string) => Promise<IpcResponse<{ fileCount: number; path: string }>>
+    quota: () => Promise<IpcResponse<{ quota: number; used: number; remaining: number }>>
+  }
+
   interface DaemonPnl {
     syncHistory: (walletAddress?: string) => Promise<IpcResponse<PnlSyncResult>>
     getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => Promise<IpcResponse<PnlPortfolio>>
@@ -706,6 +768,7 @@ declare global {
     process: DaemonProcess
     ports: DaemonPorts
     wallet: DaemonWallet
+    pro: DaemonPro
     settings: DaemonSettings
     fs: DaemonFs
     git: DaemonGit
