@@ -116,6 +116,10 @@ async function openToolFromLauncher(page, toolName) {
     await page.getByRole('button', { name: 'Tools', exact: true }).click()
     await page.waitForSelector('.command-drawer', { timeout: 30000 })
   }
+  const drawerSearchVisible = await page.locator('.drawer-search').isVisible().catch(() => false)
+  if (!drawerSearchVisible) {
+    await closeDrawerToGrid(page)
+  }
   const drawer = page.locator('.command-drawer')
   await drawer.locator('.drawer-tool-card', { hasText: toolName }).first().click()
   await page.waitForFunction((expected) => {
@@ -151,8 +155,25 @@ async function verifySidebarAddToolFlyout(page) {
     const drawerSearch = document.querySelector('.drawer-search')
     return !!flyout && !drawerSearch
   }, { timeout: 30000 })
-  await page.keyboard.press('Escape')
+  await page.locator('.sidebar-submenu-item--tool', { hasText: 'Wallet' }).first().click()
   await page.waitForFunction(() => document.querySelector('.sidebar-submenu--tools') === null, { timeout: 30000 })
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('.icon-sidebar button[aria-label]'))
+      .some((button) => button.getAttribute('aria-label') === 'Wallet')
+  }, { timeout: 30000 })
+}
+
+async function verifyPinnedSidebarToolClicks(page) {
+  const clickAndAssert = async (label, selector, readySelector) => {
+    await page.getByRole('button', { name: label, exact: true }).click()
+    await page.waitForSelector(selector, { timeout: 30000 })
+    await page.waitForSelector(readySelector, { timeout: 30000 })
+  }
+
+  await clickAndAssert('Git', '.command-drawer', '.git-center')
+  await clickAndAssert('Wallet', '.command-drawer', '.wallet-panel')
+  await clickAndAssert('Token Launch', '.command-drawer', '.token-launch-tool')
+  await clickAndAssert('Solana', '.command-drawer', '.solana-toolbox')
 }
 
 async function run() {
@@ -218,6 +239,9 @@ async function run() {
 
   logStep('checking sidebar add-tool flyout')
   await verifySidebarAddToolFlyout(page)
+
+  logStep('checking pinned sidebar tool transitions')
+  await verifyPinnedSidebarToolClicks(page)
 
   logStep('checking tool launcher transitions')
   await cycleDrawerTools(page, ['Git', 'Wallet', 'Token Launch', 'Settings'], 2)

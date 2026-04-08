@@ -77,6 +77,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     if (state.drawerOpen && state.drawerTool === toolId) {
       state.closeDrawer()
     } else {
+      preloadToolPanel(toolId)
       state.setDrawerTool(toolId)
     }
   }
@@ -84,6 +85,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const handleAddToolClick = () => setToolMenuOpen((open) => !open)
 
   const handleAddToolSelect = (toolId: string) => {
+    preloadToolPanel(toolId)
     useUIStore.getState().pinTool(toolId)
     setToolMenuOpen(false)
   }
