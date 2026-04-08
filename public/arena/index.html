@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DAEMON Arena</title>
+    <link rel="stylesheet" href="/arena/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img class="brand-badge" src="/branding/daemon-pro-badge.png" alt="" />
+        <span class="brand-text">DAEMON</span>
+      </a>
+      <nav class="topbar-actions">
+        <a class="topbar-link" href="https://daemon-landing.vercel.app">Home</a>
+        <a class="topbar-link" href="https://github.com/nullxnothing/daemon">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="arena-page">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="hero-badge-row">
+            <img class="hero-badge" src="/branding/daemon-pro-badge.png" alt="" />
+            <div class="eyebrow">DAEMON Arena</div>
+          </div>
+          <h1>Build something that deserves to ship inside DAEMON.</h1>
+          <p class="lede">
+            Three weeks. Top 3 win USDC, lifetime Pro, and founding Discord access.
+            Community voting shapes the board. Final winners are selected by the DAEMON team.
+          </p>
+          <div class="hero-actions">
+            <a class="cta primary" href="#submissions">View submissions</a>
+            <a class="cta" href="#how-it-works">How it works</a>
+            <a class="cta" href="#claim">Holder access</a>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">Build Week 01</div>
+          <div class="hero-card-title">Agent, tool, skill, or MCP workflow</div>
+          <ul class="hero-list">
+            <li>1st: 250 USDC + lifetime Pro + founding Discord access</li>
+            <li>2nd: 150 USDC + lifetime Pro + founding Discord access</li>
+            <li>3rd: 100 USDC + lifetime Pro + founding Discord access</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="sync-strip">
+        <div class="sync-card">
+          <div class="sync-kicker">Live with the app</div>
+          <div class="sync-title">One Arena board, two surfaces.</div>
+          <p>
+            The public board pulls the same live Arena feed as the DAEMON app. Submit inside
+            <strong> Tools &gt; Daemon Pro &gt; Arena</strong>. The website updates from the same backend.
+          </p>
+        </div>
+        <div class="sync-card" id="claim">
+          <div class="sync-kicker">Holder access</div>
+          <div class="sync-title">Claim Pro if you hold enough DAEMON.</div>
+          <p id="holder-copy">
+            Hold the required amount of DAEMON in a local wallet, then claim access directly in the app without a card flow.
+          </p>
+        </div>
+      </section>
+
+      <section class="info-grid" id="how-it-works">
+        <article class="info-card">
+          <h2>What to submit</h2>
+          <p>Projects that make DAEMON more useful: research agents, workflows, tools, skills, MCP servers, and sharp productivity layers.</p>
+        </article>
+        <article class="info-card">
+          <h2>How winners are picked</h2>
+          <p>Votes matter, but they do not decide the final outcome. The DAEMON team uses voting as signal, then selects the three best entries to ship and spotlight.</p>
+        </article>
+        <article class="info-card">
+          <h2>Why it matters</h2>
+          <p>Winning projects get real distribution: shipped features, public credit, pro access, and direct entry into the core builder community.</p>
+        </article>
+      </section>
+
+      <section class="process-grid">
+        <article class="process-card">
+          <div class="process-step">01</div>
+          <h3>Build in public, submit in-app</h3>
+          <p>Use the Arena tab inside DAEMON Pro to submit your project with GitHub, demo links, and social handles.</p>
+        </article>
+        <article class="process-card">
+          <div class="process-step">02</div>
+          <h3>Votes create signal</h3>
+          <p>The live board surfaces what the community cares about. Votes help rank entries, but they do not fully decide winners.</p>
+        </article>
+        <article class="process-card">
+          <div class="process-step">03</div>
+          <h3>DAEMON picks what ships</h3>
+          <p>The final three winners get paid, get Pro for life, and get direct access to the founding builder community.</p>
+        </article>
+      </section>
+
+      <section class="submissions-section" id="submissions">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Live board</div>
+            <h2>Current submissions</h2>
+          </div>
+          <div id="contest-meta" class="contest-meta"></div>
+        </div>
+        <div id="submissions-empty" class="empty-state">Loading submissions…</div>
+        <div id="submissions-list" class="submissions-list" hidden></div>
+      </section>
+    </main>
+
+    <script type="module" src="/arena/app.js"></script>
+  </body>
+  </html>

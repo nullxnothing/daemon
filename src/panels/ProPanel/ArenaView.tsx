@@ -51,9 +51,13 @@ export function ArenaView() {
 
   // Form state
   const [title, setTitle] = useState('')
+  const [pitch, setPitch] = useState('')
   const [description, setDescription] = useState('')
   const [formCategory, setFormCategory] = useState<Exclude<Category, 'all'>>('tool')
   const [githubUrl, setGithubUrl] = useState('')
+  const [demoUrl, setDemoUrl] = useState('')
+  const [xHandle, setXHandle] = useState('')
+  const [discordHandle, setDiscordHandle] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -85,23 +89,36 @@ export function ArenaView() {
     const trimmedDescription = description.trim()
     const trimmedUrl = githubUrl.trim()
 
-    if (!trimmedTitle || !trimmedDescription || !trimmedUrl) {
+    const trimmedPitch = pitch.trim()
+    const trimmedDemoUrl = demoUrl.trim()
+    const trimmedXHandle = xHandle.trim()
+    const trimmedDiscordHandle = discordHandle.trim()
+
+    if (!trimmedTitle || !trimmedPitch || !trimmedDescription || !trimmedUrl) {
       setSubmitting(false)
       return
     }
 
     const id = await submitToArena({
       title: trimmedTitle,
+      pitch: trimmedPitch,
       description: trimmedDescription,
       category: formCategory,
       githubUrl: trimmedUrl,
+      demoUrl: trimmedDemoUrl || undefined,
+      xHandle: trimmedXHandle || undefined,
+      discordHandle: trimmedDiscordHandle || undefined,
     })
     setSubmitting(false)
 
     if (id) {
       setTitle('')
+      setPitch('')
       setDescription('')
       setGithubUrl('')
+      setDemoUrl('')
+      setXHandle('')
+      setDiscordHandle('')
       setShowForm(false)
     }
   }
@@ -116,18 +133,46 @@ export function ArenaView() {
 
   return (
     <div className="pro-arena">
+      <section className="pro-arena-contest">
+        <div className="pro-arena-contest-copy">
+          <div className="pro-arena-kicker">Build Week 01</div>
+          <h2 className="pro-arena-contest-title">Ship something people want inside DAEMON.</h2>
+          <p className="pro-arena-contest-body">
+            Three weeks. Build the best agent, tool, skill, or MCP workflow for DAEMON.
+            Community votes shape the leaderboard, then the DAEMON team picks the final three winners.
+          </p>
+        </div>
+        <div className="pro-arena-contest-prizes">
+          <div className="pro-arena-prize-card">
+            <div className="pro-arena-prize-label">1st</div>
+            <div className="pro-arena-prize-value">250 USDC</div>
+            <div className="pro-arena-prize-note">Lifetime Pro + Founding Builder Discord access</div>
+          </div>
+          <div className="pro-arena-prize-card">
+            <div className="pro-arena-prize-label">2nd</div>
+            <div className="pro-arena-prize-value">150 USDC</div>
+            <div className="pro-arena-prize-note">Lifetime Pro + Founding Builder Discord access</div>
+          </div>
+          <div className="pro-arena-prize-card">
+            <div className="pro-arena-prize-label">3rd</div>
+            <div className="pro-arena-prize-value">100 USDC</div>
+            <div className="pro-arena-prize-note">Lifetime Pro + Founding Builder Discord access</div>
+          </div>
+        </div>
+      </section>
+
       <div className="pro-arena-header">
         <div>
           <div className="pro-section-title">Arena</div>
           <div className="pro-section-caption">
-            Community-submitted tools, agents, and skills. Vote on what should ship next.
+            Submit a polished build, link the repo, and make the case for why it should ship next.
           </div>
         </div>
         <button
           className="pro-btn pro-btn-primary"
           onClick={() => setShowForm((v) => !v)}
         >
-          {showForm ? 'Cancel' : 'Submit a tool'}
+          {showForm ? 'Close submission form' : 'Submit project'}
         </button>
       </div>
 
@@ -149,6 +194,18 @@ export function ArenaView() {
               placeholder="Helius webhook bot"
               maxLength={100}
             />
+          </div>
+
+          <div className="pro-form-row">
+            <label className="pro-form-label">One-line pitch</label>
+            <input
+              className="pro-form-input"
+              value={pitch}
+              onChange={(e) => setPitch(e.target.value)}
+              placeholder="What should people remember after one sentence?"
+              maxLength={120}
+            />
+            <div className="pro-form-counter">{pitch.length} / 120</div>
           </div>
 
           <div className="pro-form-row">
@@ -189,10 +246,42 @@ export function ArenaView() {
             />
           </div>
 
+          <div className="pro-form-row">
+            <label className="pro-form-label">Demo URL</label>
+            <input
+              className="pro-form-input"
+              value={demoUrl}
+              onChange={(e) => setDemoUrl(e.target.value)}
+              placeholder="https://your-demo-site.com or Loom link"
+            />
+          </div>
+
+          <div className="pro-form-split">
+            <div className="pro-form-row">
+              <label className="pro-form-label">X handle</label>
+              <input
+                className="pro-form-input"
+                value={xHandle}
+                onChange={(e) => setXHandle(e.target.value)}
+                placeholder="@yourhandle"
+              />
+            </div>
+
+            <div className="pro-form-row">
+              <label className="pro-form-label">Discord</label>
+              <input
+                className="pro-form-input"
+                value={discordHandle}
+                onChange={(e) => setDiscordHandle(e.target.value)}
+                placeholder="username"
+              />
+            </div>
+          </div>
+
           <div className="pro-form-actions">
             <button
               className="pro-btn pro-btn-primary"
-              disabled={submitting || !title.trim() || !description.trim() || !githubUrl.trim()}
+              disabled={submitting || !title.trim() || !pitch.trim() || !description.trim() || !githubUrl.trim()}
               onClick={handleSubmit}
             >
               {submitting ? 'Submitting…' : 'Submit'}
@@ -224,7 +313,7 @@ export function ArenaView() {
       {!loading && filtered.length === 0 && (
         <div className="pro-arena-empty">
           <div>No submissions{category !== 'all' ? ` in ${CATEGORY_LABELS[category]}` : ''} yet.</div>
-          <div className="pro-arena-empty-cta">Be the first to submit a tool.</div>
+          <div className="pro-arena-empty-cta">Be the first team on the board for Build Week 01.</div>
         </div>
       )}
 
@@ -234,7 +323,10 @@ export function ArenaView() {
           return (
             <div key={sub.id} className={`pro-arena-card pro-status-${sub.status}`}>
               <div className="pro-arena-card-header">
-                <div className="pro-arena-card-title">{sub.title}</div>
+                <div>
+                  <div className="pro-arena-card-title">{sub.title}</div>
+                  <div className="pro-arena-card-pitch">{sub.pitch}</div>
+                </div>
                 <div className={`pro-arena-status pro-status-${sub.status}`}>
                   {STATUS_LABELS[sub.status] ?? sub.status}
                 </div>
@@ -242,22 +334,42 @@ export function ArenaView() {
               <div className="pro-arena-card-meta">
                 <span className="pro-arena-author">@{sub.author.handle}</span>
                 <span className="pro-arena-category">{CATEGORY_LABELS[sub.category] ?? sub.category}</span>
+                {sub.themeWeek && <span className="pro-arena-theme">{sub.themeWeek}</span>}
                 <span className="pro-arena-date">{formatRelative(sub.submittedAt)}</span>
               </div>
               <div className="pro-arena-card-description">{sub.description}</div>
+              <div className="pro-arena-card-links">
+                {sub.demoUrl && (
+                  <button
+                    className="pro-arena-link"
+                    onClick={() => void window.daemon.shell.openExternal(sub.demoUrl!)}
+                  >
+                    Demo
+                  </button>
+                )}
+                {sub.xHandle && (
+                  <button
+                    className="pro-arena-link"
+                    onClick={() => void window.daemon.shell.openExternal(`https://x.com/${sub.xHandle}`)}
+                  >
+                    @{sub.xHandle}
+                  </button>
+                )}
+                {sub.discordHandle && (
+                  <span className="pro-arena-contact">Discord: {sub.discordHandle}</span>
+                )}
+              </div>
               <div className="pro-arena-card-footer">
                 {sub.githubUrl && (
-                  <a
+                  <button
                     className="pro-arena-link"
-                    href={sub.githubUrl}
-                    onClick={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       const url = sub.githubUrl
                       if (url) void window.daemon.shell.openExternal(url)
                     }}
                   >
                     GitHub →
-                  </a>
+                  </button>
                 )}
                 <div className="pro-arena-vote-group">
                   <button

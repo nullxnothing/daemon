@@ -29,18 +29,12 @@
   gap: 4px;
 }
 
-.pro-badge {
-  display: inline-block;
+.pro-badge-image {
+  width: 96px;
+  height: 40px;
+  display: block;
   align-self: flex-start;
-  padding: 2px 8px;
-  background: linear-gradient(135deg, var(--green-glow, rgba(120, 255, 180, 0.2)), rgba(120, 200, 255, 0.15));
-  border: 1px solid var(--green, #7fffc4);
-  border-radius: 3px;
-  color: var(--green, #7fffc4);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  flex-shrink: 0;
 }
 
 .pro-panel-title {
@@ -258,6 +252,35 @@
   gap: 12px;
 }
 
+.pro-holder-banner {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(27, 31, 28, 0.94), rgba(16, 19, 18, 0.98));
+  border: 1px solid rgba(62, 207, 142, 0.18);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pro-holder-banner.eligible {
+  border-color: rgba(62, 207, 142, 0.42);
+  box-shadow: 0 0 0 1px rgba(62, 207, 142, 0.08) inset;
+}
+
+.pro-holder-banner-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green, #7fffc4);
+}
+
+.pro-holder-banner-copy {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
 .pro-subscribe-title {
   font-size: 13px;
   font-weight: 600;
@@ -382,6 +405,12 @@
   gap: 8px;
 }
 
+.pro-form-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 /* ── Section headings ── */
 
 .pro-section-title {
@@ -403,6 +432,75 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.pro-arena-contest {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(255, 215, 0, 0.14);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 215, 0, 0.12), transparent 30%),
+    linear-gradient(145deg, rgba(15, 19, 17, 0.98), rgba(24, 30, 27, 0.92));
+}
+
+.pro-arena-kicker {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #f1cf75;
+  margin-bottom: 10px;
+}
+
+.pro-arena-contest-title {
+  margin: 0 0 10px;
+  font-size: 28px;
+  line-height: 1.02;
+  color: var(--t1);
+}
+
+.pro-arena-contest-body {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+.pro-arena-contest-prizes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.pro-arena-prize-card {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pro-arena-prize-label {
+  font-size: 10px;
+  color: #f1cf75;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+
+.pro-arena-prize-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.pro-arena-prize-note {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--t3);
+  line-height: 1.5;
 }
 
 .pro-arena-header {
@@ -533,6 +631,12 @@
   color: var(--t1);
 }
 
+.pro-arena-card-pitch {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #f1cf75;
+}
+
 .pro-arena-status {
   font-family: var(--font-mono);
   font-size: 9px;
@@ -581,10 +685,24 @@
   color: var(--t3);
 }
 
+.pro-arena-theme {
+  padding: 1px 6px;
+  background: rgba(255, 215, 0, 0.08);
+  border-radius: 3px;
+  color: #f1cf75;
+}
+
 .pro-arena-card-description {
   font-size: 12px;
   color: var(--t2);
   line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.pro-arena-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
@@ -596,14 +714,23 @@
 }
 
 .pro-arena-link {
+  padding: 0;
+  background: transparent;
+  border: 0;
   font-size: 11px;
   color: var(--green, #7fffc4);
-  text-decoration: none;
   font-family: var(--font-mono);
+  cursor: pointer;
 }
 
 .pro-arena-link:hover {
   text-decoration: underline;
+}
+
+.pro-arena-contact {
+  font-size: 11px;
+  color: var(--t3);
+  font-family: var(--font-mono);
 }
 
 .pro-arena-vote-group {
@@ -637,6 +764,16 @@
   border-color: var(--green, #7fffc4);
   color: var(--green, #7fffc4);
   cursor: default;
+}
+
+@media (max-width: 900px) {
+  .pro-arena-contest {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-form-split {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Skills view ── */
@@ -707,17 +844,8 @@
   margin: 40px auto;
 }
 
-.pro-upgrade-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  background: var(--green-glow, rgba(120, 255, 180, 0.15));
-  border: 1px solid var(--green, #7fffc4);
-  border-radius: 3px;
-  color: var(--green, #7fffc4);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+.pro-upgrade-badge-image {
+  align-self: center;
 }
 
 .pro-upgrade-title {

@@ -140,7 +140,8 @@ proSkillsRouter.get('/manifest', requireSubscription(['pro-skills']), (_req: Req
 })
 
 proSkillsRouter.get('/:skillId/files', requireSubscription(['pro-skills']), (req: Request, res: Response) => {
-  const skillId = req.params.skillId
+  const rawSkillId = req.params.skillId
+  const skillId = Array.isArray(rawSkillId) ? rawSkillId[0] : rawSkillId
   if (!skillId || !/^[a-zA-Z0-9_-]+$/.test(skillId)) {
     res.status(400).json({ ok: false, error: 'Invalid skill id' })
     return

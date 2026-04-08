@@ -6,6 +6,7 @@ import { syncRouter } from './routes/sync.js'
 import { arenaRouter } from './routes/arena.js'
 import { proSkillsRouter } from './routes/proSkills.js'
 import { priorityApiRouter } from './routes/priorityApi.js'
+import { initializeSubscribePayments } from './lib/x402.js'
 
 /**
  * Daemon Pro API — entry point.
@@ -34,9 +35,15 @@ export function createApp(): express.Express {
     } else if (config.allowedOrigins.includes('*')) {
       res.setHeader('Access-Control-Allow-Origin', '*')
     }
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Payment')
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Authorization, Content-Type, X-Payment, PAYMENT-SIGNATURE',
+    )
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    res.setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate')
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      'WWW-Authenticate, PAYMENT-REQUIRED, PAYMENT-RESPONSE',
+    )
     if (req.method === 'OPTIONS') {
       res.status(204).end()
       return
@@ -76,16 +83,4 @@ export function createApp(): express.Express {
   })
 
   return app
-}
-
-// When run directly (not imported from a test), start the HTTP server.
-// The ESM-safe "is this module the entrypoint?" check uses import.meta.url.
-const isEntry = import.meta.url === `file://${process.argv[1]}`
-if (isEntry) {
-  const app = createApp()
-  app.listen(config.port, () => {
-    console.log(`[daemon-pro-api] listening on :${config.port} (${config.nodeEnv})`)
-    console.log(`[daemon-pro-api] network: ${config.network}`)
-    console.log(`[daemon-pro-api] price:   ${config.priceUsdc} USDC / ${config.durationDays}d`)
-  })
 }

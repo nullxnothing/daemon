@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useWalletStore } from '../../store/wallet'
 import { useProStore } from '../../store/pro'
 import { ArenaView } from './ArenaView'
+import daemonProBadge from '../../assets/daemon-pro-badge.png'
 import './ProPanel.css'
 
 /**
@@ -28,6 +29,7 @@ export function ProPanel() {
   const refreshStatus = useProStore((s) => s.refreshStatus)
   const fetchPrice = useProStore((s) => s.fetchPrice)
   const subscribe = useProStore((s) => s.subscribe)
+  const claimHolderAccess = useProStore((s) => s.claimHolderAccess)
   const signOut = useProStore((s) => s.signOut)
   const error = useProStore((s) => s.error)
   const clearError = useProStore((s) => s.clearError)
@@ -38,11 +40,17 @@ export function ProPanel() {
 
   const [activeTab, setActiveTab] = useState<ProTab>('overview')
   const [selectedWalletId, setSelectedWalletId] = useState<string>('')
+  const selectedWallet = wallets.find((wallet) => wallet.id === selectedWalletId) ?? null
 
   useEffect(() => {
     void refreshStatus()
     void fetchPrice()
   }, [refreshStatus, fetchPrice])
+
+  useEffect(() => {
+    if (!selectedWallet?.address) return
+    void refreshStatus(selectedWallet.address)
+  }, [refreshStatus, selectedWallet?.address])
 
   useEffect(() => {
     if (subscription.active && !quota) {
@@ -72,13 +80,21 @@ export function ProPanel() {
     }
   }
 
+  const handleClaimHolderAccess = async () => {
+    if (!selectedWalletId) return
+    const ok = await claimHolderAccess(selectedWalletId)
+    if (ok) {
+      await loadQuota()
+    }
+  }
+
   const isActive = subscription.active
 
   return (
     <section className="pro-panel">
       <header className="pro-panel-header">
         <div className="pro-panel-title-group">
-          <div className="pro-badge">DAEMON PRO</div>
+          <img src={daemonProBadge} alt="" className="pro-badge-image" draggable={false} />
           <div className="pro-panel-title">
             {isActive ? 'Subscription active' : 'Unlock the full IDE'}
           </div>
@@ -144,6 +160,9 @@ export function ProPanel() {
             onSelectWallet={setSelectedWalletId}
             subscribing={subscribing}
             onSubscribe={handleSubscribe}
+            onClaimHolderAccess={handleClaimHolderAccess}
+            holderStatus={subscription.holderStatus}
+            accessSource={subscription.accessSource}
           />
         )}
         {activeTab === 'overview' && isActive && (
@@ -152,6 +171,7 @@ export function ProPanel() {
             walletAddress={subscription.walletAddress}
             features={subscription.features}
             quota={quota}
+            accessSource={subscription.accessSource}
           />
         )}
         {activeTab === 'arena' && isActive && <ArenaView />}
@@ -182,6 +202,9 @@ function OverviewSubscribe({
   onSelectWallet,
   subscribing,
   onSubscribe,
+  onClaimHolderAccess,
+  holderStatus,
+  accessSource,
 }: {
   price: ProPriceInfo | null
   wallets: Array<{ id: string; name: string; address: string; isDefault: boolean }>
@@ -189,7 +212,14 @@ function OverviewSubscribe({
   onSelectWallet: (id: string) => void
   subscribing: boolean
   onSubscribe: () => void
+  onClaimHolderAccess: () => void
+  holderStatus: ProSubscriptionState['holderStatus']
+  accessSource: ProSubscriptionState['accessSource']
 }) {
+  const isHolderEligible = holderStatus.enabled && holderStatus.eligible
+  const currentAmount = holderStatus.currentAmount ?? 0
+  const minAmount = holderStatus.minAmount ?? 0
+
   return (
     <div className="pro-overview">
       <div className="pro-hero">
@@ -225,8 +255,20 @@ function OverviewSubscribe({
         />
       </div>
 
+      {holderStatus.enabled && (
+        <div className={`pro-holder-banner ${isHolderEligible ? 'eligible' : ''}`}>
+          <div className="pro-holder-banner-title">
+            {isHolderEligible ? 'Holder access available' : 'DAEMON holder access'}
+          </div>
+          <div className="pro-holder-banner-copy">
+            Hold {minAmount.toLocaleString()}+ DAEMON to unlock Pro. Current selected wallet: {currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} DAEMON.
+            {accessSource === 'holder' ? ' Holder access is currently active on this device.' : ''}
+          </div>
+        </div>
+      )}
+
       <div className="pro-subscribe-box">
-        <div className="pro-subscribe-title">Subscribe</div>
+        <div className="pro-subscribe-title">{isHolderEligible ? 'Claim access' : 'Subscribe'}</div>
         {wallets.length === 0 ? (
           <div className="pro-subscribe-empty">
             You need a wallet to subscribe. Create one from the Wallet panel first.
@@ -251,13 +293,16 @@ function OverviewSubscribe({
             <button
               className="pro-btn pro-btn-primary pro-btn-full"
               disabled={subscribing || !selectedWalletId || !price}
-              onClick={onSubscribe}
+              onClick={isHolderEligible ? onClaimHolderAccess : onSubscribe}
             >
-              {subscribing ? 'Signing payment…' : `Subscribe for $${price?.priceUsdc ?? '—'} USDC`}
+              {subscribing
+                ? (isHolderEligible ? 'Verifying holder wallet…' : 'Signing payment…')
+                : (isHolderEligible ? 'Activate holder access' : `Subscribe for $${price?.priceUsdc ?? '—'} USDC`)}
             </button>
             <div className="pro-subscribe-caption">
-              The selected wallet will sign a one-time USDC payment for {price?.durationDays ?? 30} days of access.
-              The charge is line-itemed before you confirm.
+              {isHolderEligible
+                ? 'The selected wallet will sign a one-time message proving wallet ownership. No payment is required.'
+                : `The selected wallet will sign a one-time USDC payment for ${price?.durationDays ?? 30} days of access. The charge is line-itemed before you confirm.`}
             </div>
           </>
         )}
@@ -284,11 +329,13 @@ function OverviewActive({
   walletAddress,
   features,
   quota,
+  accessSource,
 }: {
   expiresAt: number | null
   walletAddress: string | null
   features: Array<'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'>
   quota: { quota: number; used: number; remaining: number } | null
+  accessSource: ProSubscriptionState['accessSource']
 }) {
   return (
     <div className="pro-overview">
@@ -308,6 +355,10 @@ function OverviewActive({
         <div className="pro-stat-card">
           <div className="pro-stat-label">Features</div>
           <div className="pro-stat-value">{features.length} unlocked</div>
+        </div>
+        <div className="pro-stat-card">
+          <div className="pro-stat-label">Access</div>
+          <div className="pro-stat-value">{accessSource === 'holder' ? 'Holder' : 'Paid'}</div>
         </div>
         <div className="pro-stat-card">
           <div className="pro-stat-label">Priority API</div>

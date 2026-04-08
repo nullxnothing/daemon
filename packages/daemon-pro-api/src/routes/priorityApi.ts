@@ -52,14 +52,13 @@ function checkAndIncrement(req: Request, res: Response): boolean {
 }
 
 priorityApiRouter.post('/explain-tx', requireSubscription(['priority-api']), (req: Request, res: Response) => {
-  if (!checkAndIncrement(req, res)) return
-
   const body = req.body as { signature?: string } | undefined
   const signature = String(body?.signature ?? '').trim()
   if (!signature) {
     res.status(400).json({ ok: false, error: 'signature required' })
     return
   }
+  if (!checkAndIncrement(req, res)) return
 
   // TODO [production]: wire this to the real parsing pipeline by importing the
   // logic from electron/services/TradeParser.ts into this package (shared workspace)
@@ -75,13 +74,12 @@ priorityApiRouter.post('/explain-tx', requireSubscription(['priority-api']), (re
 })
 
 priorityApiRouter.post('/audit-idl', requireSubscription(['priority-api']), (req: Request, res: Response) => {
-  if (!checkAndIncrement(req, res)) return
-
   const body = req.body as { idl?: unknown } | undefined
   if (!body || !body.idl) {
     res.status(400).json({ ok: false, error: 'idl required' })
     return
   }
+  if (!checkAndIncrement(req, res)) return
 
   res.json({
     ok: true,

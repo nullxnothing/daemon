@@ -1,33 +1,17 @@
-import type { PaymentRequiredBody } from '../types.js'
+import type { Request, Response } from 'express'
+import { facilitator } from '@payai/facilitator'
+import { ExpressAdapter, type PaymentPayload, type PaymentRequirements } from '@x402/express'
+import { HTTPFacilitatorClient, x402HTTPResourceServer, x402ResourceServer } from '@x402/core/server'
+import { decodeTransactionFromPayload, getTokenPayerFromTransaction } from '@x402/svm'
+import { ExactSvmScheme } from '@x402/svm/exact/server'
+import type { PaymentRequiredBody, SubscribeSuccessBody } from '../types.js'
 import { config } from '../config.js'
 import { consumeNonce } from './db.js'
 
 /**
- * Minimal x402 handshake for the Daemon Pro subscription flow.
- *
- * This is a hand-rolled implementation of the 402 Payment Required response
- * and the payment-receipt validation path, deliberately kept simple for MVP.
- * It's wire-compatible with the x402 spec so clients written against the
- * @x402/* SDKs work against it, and swapping in the full
- * `@x402/express` middleware later is a contained change in src/index.ts.
- *
- * MVP scope:
- *  1. Build the 402 body with our price + network + payTo
- *  2. Parse the X-Payment header into a (signedPayload, nonce) tuple
- *  3. Verify the nonce hasn't been replayed (via SQLite uniqueness)
- *  4. TODO [production]: verify the signed payload with the PayAI facilitator
- *     before marking the payment as settled. In MVP we trust the client to
- *     submit a real payment; the facilitator verification is a single call to
- *     the PayAI SDK and will be added before any real money moves through this.
- *
- * What this deliberately does NOT do in MVP:
- *  - Settle the payment on-chain (PayAI facilitator handles this in prod)
- *  - Verify cryptographic signatures on the payment payload
- *  - Enforce a minimum payment amount at the protocol level
- *
- * These are all production hardening steps that gate the "flip the switch on
- * real payments" moment. Until they're in place, DAEMON_PRO_NETWORK should be
- * set to 'solana:devnet' and the deployment should be flagged as alpha.
+ * Real x402 verification/settlement for production, with a narrow legacy test
+ * path so the integration suite can still exercise the API without creating
+ * live Solana payments.
  */
 
 export function buildPaymentRequiredBody(resource: string): PaymentRequiredBody {
@@ -54,7 +38,7 @@ export function buildPaymentRequiredBody(resource: string): PaymentRequiredBody 
   }
 }
 
-export interface ParsedPaymentHeader {
+interface ParsedTestPaymentHeader {
   wallet: string
   signature: string
   nonce: string
@@ -62,37 +46,263 @@ export interface ParsedPaymentHeader {
   network: string
 }
 
-export interface PaymentVerificationResult {
+interface TestPaymentVerificationResult {
   ok: true
   wallet: string
   signature: string
 }
 
-export interface PaymentVerificationFailure {
+interface TestPaymentVerificationFailure {
   ok: false
   status: number
   error: string
 }
 
-/**
- * Verify the X-Payment header attached to a subscribe request.
- *
- * MVP format: base64url-encoded JSON with fields { wallet, signature, nonce, amount, network }.
- * Production will swap this for the real x402 PaymentPayload shape which is a
- * superset of this — adding it later doesn't break the client because the client
- * builds the header via @x402/svm's createPaymentPayload, which emits the full shape.
- */
-export function verifyPaymentHeader(
-  header: string | undefined,
-): PaymentVerificationResult | PaymentVerificationFailure {
+type TestPaymentVerification = TestPaymentVerificationResult | TestPaymentVerificationFailure
+
+interface RealVerifiedSubscribePayment {
+  wallet: string
+  paymentPayload: PaymentPayload
+  paymentRequirements: PaymentRequirements
+  declaredExtensions?: Record<string, unknown>
+}
+
+interface TestVerifiedSubscribePayment {
+  wallet: string
+  paymentSignature: string
+}
+
+export type VerifiedSubscribePayment = RealVerifiedSubscribePayment | TestVerifiedSubscribePayment
+
+let subscribeHttpServerPromise: Promise<x402HTTPResourceServer> | null = null
+
+function applyHeaders(res: Response, headers: Record<string, string>): void {
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value)
+  }
+}
+
+function isRealX402Mode(): boolean {
+  // Keep facilitator-backed x402 strict in production, but let local dev use
+  // the legacy test header flow until the Electron client emits real SVM x402
+  // payment payloads. This preserves production safety without blocking the
+  // in-app Pro/Arena workflow during development.
+  return config.isProduction
+}
+
+function isTestVerifiedPayment(
+  verifiedPayment: VerifiedSubscribePayment,
+): verifiedPayment is TestVerifiedSubscribePayment {
+  return 'paymentSignature' in verifiedPayment
+}
+
+function isRealVerifiedPayment(
+  verifiedPayment: VerifiedSubscribePayment,
+): verifiedPayment is RealVerifiedSubscribePayment {
+  return 'paymentPayload' in verifiedPayment
+}
+
+function normalizeIncomingPaymentHeader(req: Request): string | undefined {
+  const paymentSignatureHeader = req.headers['payment-signature']
+  const xPaymentHeader = req.headers['x-payment']
+  const normalized = Array.isArray(paymentSignatureHeader)
+    ? paymentSignatureHeader[0]
+    : paymentSignatureHeader ?? (Array.isArray(xPaymentHeader) ? xPaymentHeader[0] : xPaymentHeader)
+
+  if (normalized && !paymentSignatureHeader) {
+    req.headers['payment-signature'] = normalized
+  }
+
+  return normalized
+}
+
+function getRequestPath(req: Request): string {
+  const path = `${req.baseUrl}${req.path}` || req.originalUrl || req.url
+  return path === '' ? '/' : path
+}
+
+function extractWalletFromPaymentPayload(paymentPayload: PaymentPayload): string {
+  const payload = paymentPayload.payload
+  if (!payload || typeof payload !== 'object' || !('transaction' in payload)) {
+    throw new Error('Verified payment payload missing SVM transaction')
+  }
+
+  const transaction = (payload as { transaction?: unknown }).transaction
+  if (typeof transaction !== 'string' || transaction.length === 0) {
+    throw new Error('Verified payment payload missing SVM transaction')
+  }
+
+  const decoded = decodeTransactionFromPayload({ transaction })
+  const wallet = getTokenPayerFromTransaction(decoded)
+  if (!wallet) {
+    throw new Error('Could not derive payer wallet from verified payment transaction')
+  }
+
+  return wallet
+}
+
+async function getSubscribeHttpServer(): Promise<x402HTTPResourceServer> {
+  if (!subscribeHttpServerPromise) {
+    subscribeHttpServerPromise = (async () => {
+      const server = new x402ResourceServer(new HTTPFacilitatorClient(facilitator))
+        .register(config.network, new ExactSvmScheme())
+
+      const httpServer = new x402HTTPResourceServer(server, {
+        'POST /v1/subscribe': {
+          accepts: [
+            {
+              scheme: 'exact',
+              price: config.priceUsdc,
+              network: config.network,
+              payTo: config.payTo,
+            },
+          ],
+          description: `Daemon Pro — ${config.durationDays}-day subscription`,
+          mimeType: 'application/json',
+          unpaidResponseBody: async () => ({
+            contentType: 'application/json',
+            body: buildPaymentRequiredBody('/v1/subscribe'),
+          }),
+          settlementFailedResponseBody: async (_request, failure) => ({
+            contentType: 'application/json',
+            body: { ok: false, error: failure.errorMessage || 'Payment settlement failed' },
+          }),
+        },
+      })
+
+      await httpServer.initialize()
+      return httpServer
+    })()
+  }
+
+  return subscribeHttpServerPromise
+}
+
+export async function initializeSubscribePayments(): Promise<void> {
+  if (!isRealX402Mode()) return
+  await getSubscribeHttpServer()
+}
+
+export async function verifySubscribePayment(
+  req: Request,
+  res: Response,
+): Promise<VerifiedSubscribePayment | null> {
+  const headerValue = normalizeIncomingPaymentHeader(req)
+  if (!isRealX402Mode() && !headerValue) {
+    res.status(402).json(buildPaymentRequiredBody('/v1/subscribe'))
+    return null
+  }
+
+  if (!isRealX402Mode()) {
+    const verification = verifyTestPaymentHeader(headerValue)
+    if (!verification.ok) {
+      res.status(verification.status).json({ ok: false, error: verification.error })
+      return null
+    }
+
+    return {
+      wallet: verification.wallet,
+      paymentSignature: verification.signature,
+    }
+  }
+
+  const httpServer = await getSubscribeHttpServer()
+  const context = {
+    adapter: new ExpressAdapter(req),
+    path: getRequestPath(req),
+    method: req.method,
+  }
+  const result = await httpServer.processHTTPRequest(context)
+
+  if (result.type === 'payment-error') {
+    applyHeaders(res, result.response.headers)
+    if (result.response.isHtml) {
+      res.status(result.response.status).send(result.response.body)
+    } else {
+      res.status(result.response.status).json(result.response.body ?? {})
+    }
+    return null
+  }
+
+  if (result.type !== 'payment-verified') {
+    throw new Error(`Unexpected x402 processing result: ${result.type}`)
+  }
+
+  return {
+    wallet: extractWalletFromPaymentPayload(result.paymentPayload),
+    paymentPayload: result.paymentPayload,
+    paymentRequirements: result.paymentRequirements,
+    declaredExtensions: result.declaredExtensions,
+  }
+}
+
+export async function settleSubscribePayment(
+  req: Request,
+  res: Response,
+  verifiedPayment: VerifiedSubscribePayment,
+  body: SubscribeSuccessBody,
+): Promise<{ ok: true; paymentSignature: string } | { ok: false }> {
+  if (!isRealX402Mode()) {
+    if (!isTestVerifiedPayment(verifiedPayment)) {
+      throw new Error('Expected test payment verification result in test mode')
+    }
+    return {
+      ok: true,
+      paymentSignature: verifiedPayment.paymentSignature,
+    }
+  }
+
+  const httpServer = await getSubscribeHttpServer()
+  if (!isRealVerifiedPayment(verifiedPayment)) {
+    throw new Error('Expected real x402 verification result outside test mode')
+  }
+  const responseBody = Buffer.from(JSON.stringify(body), 'utf8')
+  const context = {
+    request: {
+      adapter: new ExpressAdapter(req),
+      path: getRequestPath(req),
+      method: req.method,
+    },
+    responseBody,
+    responseHeaders: {
+      'content-type': 'application/json',
+    },
+  }
+
+  const settleResult = await httpServer.processSettlement(
+    verifiedPayment.paymentPayload,
+    verifiedPayment.paymentRequirements,
+    verifiedPayment.declaredExtensions,
+    context,
+  )
+
+  applyHeaders(res, settleResult.headers)
+
+  if (!settleResult.success) {
+    const { response } = settleResult
+    if (response.isHtml) {
+      res.status(response.status).send(response.body)
+    } else {
+      res.status(response.status).json(response.body ?? {})
+    }
+    return { ok: false }
+  }
+
+  return {
+    ok: true,
+    paymentSignature: settleResult.transaction,
+  }
+}
+
+function verifyTestPaymentHeader(header: string | undefined): TestPaymentVerification {
   if (!header) {
     return { ok: false, status: 402, error: 'Missing X-Payment header' }
   }
 
-  let parsed: ParsedPaymentHeader
+  let parsed: ParsedTestPaymentHeader
   try {
     const json = Buffer.from(header, 'base64url').toString('utf8')
-    parsed = JSON.parse(json) as ParsedPaymentHeader
+    parsed = JSON.parse(json) as ParsedTestPaymentHeader
   } catch {
     return { ok: false, status: 400, error: 'Malformed X-Payment header' }
   }
@@ -114,12 +324,10 @@ export function verifyPaymentHeader(
     }
   }
 
-  // Replay protection — the nonce can only ever be consumed once.
   if (!consumeNonce(parsed.nonce, parsed.wallet)) {
     return { ok: false, status: 409, error: 'Payment nonce already consumed' }
   }
 
-  // Amount check — the client must agree to the current price.
   const priceMicroUsdc = Math.round(config.priceUsdc * 1_000_000)
   const submittedAmount = parseInt(parsed.amount, 10)
   if (!Number.isFinite(submittedAmount) || submittedAmount < priceMicroUsdc) {
@@ -129,15 +337,6 @@ export function verifyPaymentHeader(
       error: `Payment below required amount: expected ${priceMicroUsdc} µUSDC, got ${parsed.amount}`,
     }
   }
-
-  // TODO [production]: real facilitator verification goes here.
-  // const facilitator = await createPayaiFacilitator({ network: config.network })
-  // const receipt = await facilitator.verify({
-  //   signature: parsed.signature,
-  //   expectedPayTo: config.payTo,
-  //   expectedAmount: priceMicroUsdc,
-  // })
-  // if (!receipt.ok) return { ok: false, status: 402, error: receipt.error }
 
   return { ok: true, wallet: parsed.wallet, signature: parsed.signature }
 }

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest'
 import request from 'supertest'
 import fs from 'node:fs'
 import path from 'node:path'
+import bs58 from 'bs58'
+import nacl from 'tweetnacl'
 
 /**
  * Integration tests for the Daemon Pro API subscribe + gated-route flow.
@@ -29,12 +31,15 @@ process.env.DAEMON_PRO_JWT_SECRET = 'test-secret-for-integration-suite-xxxxxxxxx
 process.env.DAEMON_PRO_PRICE_USDC = '5'
 process.env.DAEMON_PRO_DURATION_DAYS = '30'
 process.env.DAEMON_PRO_PAY_TO = 'FeeW4lLet1111111111111111111111111111111111'
-process.env.DAEMON_PRO_NETWORK = 'solana:devnet'
+process.env.DAEMON_PRO_NETWORK = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
 process.env.DAEMON_PRO_SKILLS_DIR = path.join(process.cwd(), 'content/pro-skills')
+process.env.DAEMON_PRO_HOLDER_MIN_AMOUNT = '0'
 
 // Import AFTER env is set so config.ts picks up the test values.
 const { createApp } = await import('../src/index.js')
 const { closeDb } = await import('../src/lib/db.js')
+const { config } = await import('../src/config.js')
+const { buildHolderClaimMessage } = await import('../src/lib/holderAccess.js')
 
 const app = createApp()
 
@@ -44,7 +49,7 @@ function buildPaymentHeader(overrides: Record<string, string> = {}): string {
     signature: 'test-signature',
     nonce: `nonce-${Math.random().toString(36).slice(2)}`,
     amount: '5000000',
-    network: 'solana:devnet',
+    network: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
     ...overrides,
   }
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')
@@ -71,7 +76,7 @@ describe('GET /v1/subscribe/price', () => {
     expect(res.status).toBe(200)
     expect(res.body.data.priceUsdc).toBe(5)
     expect(res.body.data.durationDays).toBe(30)
-    expect(res.body.data.network).toBe('solana:devnet')
+    expect(res.body.data.network).toBe('solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1')
     expect(res.body.data.payTo).toBeTruthy()
   })
 })
@@ -83,7 +88,7 @@ describe('POST /v1/subscribe — x402 handshake', () => {
     expect(res.body.x402Version).toBe(1)
     expect(Array.isArray(res.body.accepts)).toBe(true)
     expect(res.body.accepts[0].scheme).toBe('exact')
-    expect(res.body.accepts[0].network).toBe('solana:devnet')
+    expect(res.body.accepts[0].network).toBe('solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1')
     expect(res.body.accepts[0].asset).toBe('USDC')
     expect(res.body.accepts[0].payTo).toBe('FeeW4lLet1111111111111111111111111111111111')
     // 5 USDC in µUSDC
@@ -344,6 +349,86 @@ describe('Arena — submission + voting', () => {
     expect(vote2.status).toBe(409)
     expect(vote2.body.error).toMatch(/already voted/i)
   })
+
+  it('404s when voting on a submission that does not exist', async () => {
+    const res = await request(app)
+      .post('/v1/arena/vote/not-a-real-submission')
+      .set('Authorization', `Bearer ${jwt}`)
+    expect(res.status).toBe(404)
+    expect(res.body.error).toMatch(/not found/i)
+  })
+})
+
+describe('Holder access', () => {
+  const holder = nacl.sign.keyPair()
+  const wallet = bs58.encode(holder.publicKey)
+  const originalFetch = global.fetch
+
+  beforeEach(() => {
+    ;(config as { holderMinAmount: number }).holderMinAmount = 10_000
+    global.fetch = (async () => ({
+      ok: true,
+      json: async () => ({
+        result: {
+          value: [
+            {
+              account: {
+                data: {
+                  parsed: {
+                    info: {
+                      tokenAmount: {
+                        uiAmount: 12_500,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      }),
+    })) as typeof fetch
+  })
+
+  afterAll(() => {
+    global.fetch = originalFetch
+    ;(config as { holderMinAmount: number }).holderMinAmount = 0
+  })
+
+  it('returns holder eligibility on status', async () => {
+    const res = await request(app).get('/v1/subscribe/status').query({ wallet })
+    expect(res.status).toBe(200)
+    expect(res.body.data.active).toBe(false)
+    expect(res.body.data.holderStatus.enabled).toBe(true)
+    expect(res.body.data.holderStatus.eligible).toBe(true)
+    expect(res.body.data.holderStatus.currentAmount).toBe(12500)
+  })
+
+  it('claims holder access with a signed challenge', async () => {
+    const challenge = await request(app)
+      .post('/v1/subscribe/holder/challenge')
+      .send({ wallet })
+    expect(challenge.status).toBe(200)
+    const message = buildHolderClaimMessage(wallet, challenge.body.data.nonce)
+    const signature = bs58.encode(nacl.sign.detached(Buffer.from(message, 'utf8'), holder.secretKey))
+
+    const claim = await request(app)
+      .post('/v1/subscribe/holder/claim')
+      .send({
+        wallet,
+        nonce: challenge.body.data.nonce,
+        signature,
+      })
+
+    expect(claim.status).toBe(200)
+    expect(claim.body.accessSource).toBe('holder')
+    expect(typeof claim.body.jwt).toBe('string')
+
+    const status = await request(app).get('/v1/subscribe/status').query({ wallet })
+    expect(status.status).toBe(200)
+    expect(status.body.data.active).toBe(true)
+    expect(status.body.data.accessSource).toBe('holder')
+  })
 })
 
 describe('Pro skills — manifest + file download', () => {
@@ -457,5 +542,47 @@ describe('Priority API — quota enforcement', () => {
       .send({})
     expect(res.status).toBe(400)
     expect(res.body.error).toMatch(/signature required/i)
+  })
+
+  it('does not consume quota on invalid explain-tx requests', async () => {
+    const wallet = 'ExplainTxNoQuotaBurn1111111111111111111111111'
+    const subscribe = await request(app)
+      .post('/v1/subscribe')
+      .set('X-Payment', buildPaymentHeader({ wallet, nonce: 'explain-no-burn' }))
+    const jwt = subscribe.body.jwt as string
+
+    const invalid = await request(app)
+      .post('/v1/priority/explain-tx')
+      .set('Authorization', `Bearer ${jwt}`)
+      .send({})
+    expect(invalid.status).toBe(400)
+
+    const quota = await request(app)
+      .get('/v1/priority/quota')
+      .set('Authorization', `Bearer ${jwt}`)
+    expect(quota.body.data.used).toBe(0)
+  })
+})
+
+describe('JWT supersession', () => {
+  it('rejects an older JWT after the same wallet subscribes again', async () => {
+    const wallet = 'SupersededWallet111111111111111111111111111'
+    const first = await request(app)
+      .post('/v1/subscribe')
+      .set('X-Payment', buildPaymentHeader({ wallet, nonce: 'supersede-1' }))
+    const second = await request(app)
+      .post('/v1/subscribe')
+      .set('X-Payment', buildPaymentHeader({ wallet, nonce: 'supersede-2' }))
+
+    const staleRes = await request(app)
+      .get('/v1/sync/mcp')
+      .set('Authorization', `Bearer ${first.body.jwt as string}`)
+    expect(staleRes.status).toBe(401)
+    expect(staleRes.body.error).toMatch(/superseded/i)
+
+    const freshRes = await request(app)
+      .get('/v1/sync/mcp')
+      .set('Authorization', `Bearer ${second.body.jwt as string}`)
+    expect(freshRes.status).toBe(200)
   })
 })

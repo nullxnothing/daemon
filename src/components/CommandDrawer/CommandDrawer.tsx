@@ -4,6 +4,7 @@ import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
+import { ProPanel } from '../../panels/ProPanel/ProPanel'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -12,7 +13,7 @@ interface DrawerTool {
   name: string
   description: string
   icon: ComponentType<{ size?: number }>
-  component: React.LazyExoticComponent<ComponentType>
+  component: ComponentType | React.LazyExoticComponent<ComponentType>
   category: 'dev' | 'crypto' | 'create' | 'system'
 }
 
@@ -193,8 +194,6 @@ const SessionHistory = lazy(() => import('../../panels/SessionRegistry/SessionHi
 const HackathonPanel = lazy(() => import('../../panels/Colosseum/HackathonPanel').then(m => ({ default: m.HackathonPanel })))
 const PluginManager = lazy(() => import('../../panels/PluginManager/PluginManager').then(m => ({ default: m.PluginManager })))
 const RecoveryPanel = lazy(() => import('../../panels/RecoveryPanel/RecoveryPanel').then(m => ({ default: m.RecoveryPanel })))
-const ProPanel = lazy(() => import('../../panels/ProPanel/ProPanel').then(m => ({ default: m.ProPanel })))
-
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
   starter: '#3ecf8e',

@@ -6,6 +6,14 @@
  * first request, which is much easier to debug in Railway/Fly logs.
  */
 
+import {
+  SOLANA_DEVNET_CAIP2,
+  SOLANA_MAINNET_CAIP2,
+  SOLANA_TESTNET_CAIP2,
+} from '@x402/svm'
+
+type Caip2Network = `${string}:${string}`
+
 function requireEnv(key: string, fallback?: string): string {
   const value = process.env[key] ?? fallback
   if (value === undefined || value === '') {
@@ -28,10 +36,27 @@ function numericEnv(key: string, fallback: number): number {
   return parsed
 }
 
+function normalizeSvmNetwork(value: string): Caip2Network {
+  switch (value) {
+    case 'solana':
+    case 'solana:mainnet':
+      return SOLANA_MAINNET_CAIP2
+    case 'solana-devnet':
+    case 'solana:devnet':
+      return SOLANA_DEVNET_CAIP2
+    case 'solana-testnet':
+    case 'solana:testnet':
+      return SOLANA_TESTNET_CAIP2
+    default:
+      return value as Caip2Network
+  }
+}
+
 export const config = {
   port: numericEnv('PORT', 4021),
   nodeEnv: optionalEnv('NODE_ENV', 'development'),
   isProduction: optionalEnv('NODE_ENV', 'development') === 'production',
+  isTest: optionalEnv('NODE_ENV', 'development') === 'test',
 
   // JWT signing — dev default is intentionally weak so missing env in prod is obvious
   jwtSecret: optionalEnv('DAEMON_PRO_JWT_SECRET', 'dev-secret-replace-in-production'),
@@ -42,7 +67,13 @@ export const config = {
 
   // x402 settlement
   payTo: requireEnv('DAEMON_PRO_PAY_TO', 'FeeW4lLet1111111111111111111111111111111111'),
-  network: optionalEnv('DAEMON_PRO_NETWORK', 'solana:mainnet'),
+  network: normalizeSvmNetwork(optionalEnv('DAEMON_PRO_NETWORK', SOLANA_MAINNET_CAIP2)),
+  payaiApiKeyId: process.env.PAYAI_API_KEY_ID ?? '',
+  payaiApiKeySecret: process.env.PAYAI_API_KEY_SECRET ?? '',
+  holderMint: optionalEnv('DAEMON_PRO_HOLDER_MINT', '4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump'),
+  holderMinAmount: numericEnv('DAEMON_PRO_HOLDER_MIN_AMOUNT', 1_000_000),
+  holderRpcUrl: optionalEnv('DAEMON_PRO_HOLDER_RPC_URL', 'https://api.mainnet-beta.solana.com'),
+  holderJwtHours: numericEnv('DAEMON_PRO_HOLDER_JWT_HOURS', 12),
 
   // Content paths
   proSkillsDir: optionalEnv('DAEMON_PRO_SKILLS_DIR', './content/pro-skills'),
@@ -62,7 +93,13 @@ if (config.isProduction) {
   if (config.jwtSecret.length < 32) {
     throw new Error('DAEMON_PRO_JWT_SECRET must be at least 32 characters in production')
   }
+  if (!config.payaiApiKeyId || !config.payaiApiKeySecret) {
+    throw new Error('PAYAI_API_KEY_ID and PAYAI_API_KEY_SECRET must be set in production')
+  }
   if (config.allowedOrigins.includes('*')) {
     console.warn('[daemon-pro-api] WARNING: CORS allowlist is "*" in production — consider tightening')
+  }
+  if (!config.holderRpcUrl) {
+    throw new Error('DAEMON_PRO_HOLDER_RPC_URL must be set in production')
   }
 }
