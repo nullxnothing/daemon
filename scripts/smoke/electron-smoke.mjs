@@ -130,7 +130,10 @@ async function openToolFromLauncher(page, toolName) {
 
 async function closeDrawerToGrid(page) {
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => document.querySelector('.drawer-search') !== null, { timeout: 30000 })
+  await page.waitForFunction(() => {
+    return document.querySelector('.drawer-search') !== null
+      && document.querySelector('.drawer-title') === null
+  }, { timeout: 30000 })
 }
 
 async function cycleDrawerTools(page, toolNames, rounds = 1) {
