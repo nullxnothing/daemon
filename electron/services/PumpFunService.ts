@@ -71,6 +71,13 @@ export interface TxResult {
   success: boolean
 }
 
+export interface TokenCreateResult extends TxResult {
+  mint: string
+  metadataUri: string
+  bondingCurveAddress: string
+  associatedBondingCurveAddress: string | null
+}
+
 export async function getBondingCurveState(mint: string): Promise<BondingCurveInfo> {
   const sdk = getSdk()
   const connection = getConnectionStrict()
@@ -113,7 +120,7 @@ export async function getBondingCurveState(mint: string): Promise<BondingCurveIn
   }
 }
 
-export async function createToken(input: TokenCreateInput): Promise<TxResult> {
+export async function createToken(input: TokenCreateInput): Promise<TokenCreateResult> {
   return withKeypair(input.walletId, async (keypair) => {
   const sdk = getSdk()
   const connection = getConnectionStrict()
@@ -140,6 +147,7 @@ export async function createToken(input: TokenCreateInput): Promise<TxResult> {
   const metaJson = await metaRes.json() as { metadataUri: string }
 
   const mintKeypair = Keypair.generate()
+  const bondingCurve = sdk.bondingCurvePda(mintKeypair.publicKey)
   const global = await onlineSdk.fetchGlobal()
   const solLamports = new BN(Math.floor(input.initialBuyAmountSol * 1e9))
 
@@ -165,7 +173,14 @@ export async function createToken(input: TokenCreateInput): Promise<TxResult> {
   })
 
   const signature = await sendAndConfirm(connection, [keypair, mintKeypair], instructions)
-  return { signature, success: true }
+  return {
+    signature,
+    success: true,
+    mint: mintKeypair.publicKey.toBase58(),
+    metadataUri: metaJson.metadataUri,
+    bondingCurveAddress: bondingCurve.toBase58(),
+    associatedBondingCurveAddress: null,
+  }
   })
 }
 

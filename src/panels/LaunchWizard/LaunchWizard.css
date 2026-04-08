@@ -188,6 +188,13 @@
   color: var(--amber);
 }
 
+.lw-help-text {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--t3);
+  line-height: 1.5;
+}
+
 /* ── Image upload ── */
 .lw-image-row {
   display: flex;
@@ -420,6 +427,37 @@
 
 .lw-cost-amount.total {
   color: var(--green);
+}
+
+.lw-launch-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.lw-launch-check.pass {
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.08);
+  border: 1px solid rgba(62, 207, 142, 0.18);
+}
+
+.lw-launch-check.warn {
+  color: var(--amber);
+  background: rgba(240, 180, 41, 0.08);
+  border: 1px solid rgba(240, 180, 41, 0.18);
+}
+
+.lw-launch-check.fail {
+  color: var(--red);
+  background: rgba(239, 83, 80, 0.08);
+  border: 1px solid rgba(239, 83, 80, 0.18);
 }
 
 /* ── Balance row ── */
