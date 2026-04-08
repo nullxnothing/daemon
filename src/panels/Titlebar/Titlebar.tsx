@@ -64,9 +64,8 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
           onClick={() => openProPanel('pro')}
           title="Open Daemon Pro"
           aria-label={subscriptionActive ? 'Open Pro' : 'Get Pro'}
+          style={{ backgroundImage: `url(${daemonProBadge})` }}
         >
-          <img src={daemonProBadge} alt="" className="titlebar-pro-badge-image" draggable={false} />
-          {!subscriptionActive && <span className="titlebar-pro-cta-label">Get Pro</span>}
         </button>
         <TitlebarPortfolioSummary />
         <button
