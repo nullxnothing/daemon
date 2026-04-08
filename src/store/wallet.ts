@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { daemon } from '../lib/daemonBridge'
 
 // Track active polling subscribers (e.g. wallet panel, titlebar widget)
 let pollInterval: ReturnType<typeof setInterval> | null = null
@@ -94,8 +95,8 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
 
     try {
       const [settingsRes, walletRes] = await Promise.all([
-        window.daemon.settings.getUi(),
-        window.daemon.wallet.dashboard(projectId ?? null),
+        daemon.settings.getUi(),
+        daemon.wallet.dashboard(projectId ?? null),
       ])
 
       if (settingsRes.ok && settingsRes.data) {
@@ -123,7 +124,7 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   },
 
   setShowMarketTape: async (enabled) => {
-    const res = await window.daemon.settings.setShowMarketTape(enabled)
+    const res = await daemon.settings.setShowMarketTape(enabled)
     if (res.ok) {
       set({ showMarketTape: enabled })
       return true
@@ -132,7 +133,7 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   },
 
   setShowTitlebarWallet: async (enabled) => {
-    const res = await window.daemon.settings.setShowTitlebarWallet(enabled)
+    const res = await daemon.settings.setShowTitlebarWallet(enabled)
     if (res.ok) {
       set({ showTitlebarWallet: enabled })
       return true
@@ -142,7 +143,7 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
 
   loadAgentWallets: async () => {
     try {
-      const res = await window.daemon.wallet.agentWallets()
+      const res = await daemon.wallet.agentWallets()
       if (res.ok && res.data) {
         set({ agentWallets: res.data })
       }
@@ -153,7 +154,7 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
 
   loadTransactions: async (walletId: string) => {
     try {
-      const res = await window.daemon.wallet.transactionHistory(walletId)
+      const res = await daemon.wallet.transactionHistory(walletId)
       if (res.ok && res.data) {
         set({ transactions: res.data })
       }

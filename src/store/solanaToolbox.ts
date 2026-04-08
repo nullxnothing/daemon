@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { daemon } from '../lib/daemonBridge'
 
 export interface SolanaMcpEntry {
   name: string
@@ -61,7 +62,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   loadMcps: async (projectPath) => {
     set({ loading: true })
     try {
-      const res = await window.daemon.claude.projectMcpAll(projectPath)
+      const res = await daemon.claude.projectMcpAll(projectPath)
       if (res.ok && res.data) {
         const allMcps = res.data as Array<{ name: string; enabled: boolean }>
         const solanaMcps: SolanaMcpEntry[] = SOLANA_MCP_NAMES.map((name) => {
@@ -89,7 +90,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     const prev = get().mcps
     set({ mcps: prev.map((m) => m.name === name ? { ...m, enabled } : m) })
     try {
-      await window.daemon.claude.projectMcpToggle(projectPath, name, enabled)
+      await daemon.claude.projectMcpToggle(projectPath, name, enabled)
     } catch {
       set({ mcps: prev })
     }
@@ -98,7 +99,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   startValidator: async (type) => {
     set({ validator: { type, status: 'starting', terminalId: null, port: null } })
     try {
-      const res = await window.daemon.validator.start(type)
+      const res = await daemon.validator.start(type)
       if (res.ok && res.data) {
         set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899 } })
       } else {
@@ -113,7 +114,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     const { validator } = get()
     if (validator.terminalId) {
       try {
-        await window.daemon.validator.stop()
+        await daemon.validator.stop()
       } catch { /* ignore */ }
     }
     set({ validator: { type: null, status: 'stopped', terminalId: null, port: null } })
@@ -121,7 +122,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
 
   refreshValidatorStatus: async () => {
     try {
-      const res = await window.daemon.validator.status()
+      const res = await daemon.validator.status()
       if (res.ok && res.data) {
         set({
           validator: {
@@ -137,7 +138,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
 
   detectProject: async (projectPath) => {
     try {
-      const res = await window.daemon.validator.detectProject(projectPath)
+      const res = await daemon.validator.detectProject(projectPath)
       if (res.ok && res.data) {
         set({ projectInfo: res.data as SolanaProjectInfo })
       } else {

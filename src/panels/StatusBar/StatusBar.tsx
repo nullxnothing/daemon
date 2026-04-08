@@ -6,6 +6,7 @@ import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { useShellLayout } from '../../hooks/useShellLayout'
+import { daemon } from '../../lib/daemonBridge'
 import { formatCompactUsd } from '../../utils/format'
 import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
 import { BugReportModal } from '../../components/BugReportModal/BugReportModal'
@@ -134,7 +135,7 @@ function GitBranch() {
 
   useEffect(() => {
     if (!activeProjectPath) { setBranch(null); return }
-    window.daemon.git.branch(activeProjectPath).then((res) => {
+    daemon.git.branch(activeProjectPath).then((res) => {
       setBranch(res.ok ? res.data as string : null)
     })
   }, [activeProjectPath])
@@ -216,7 +217,7 @@ function ClaudeStatus() {
 
   useEffect(() => {
     const check = () => {
-      window.daemon.claude.getConnection().then((res) => {
+      daemon.claude.getConnection().then((res) => {
         setAuthMode(res.ok && res.data ? res.data.authMode : 'none')
       })
     }

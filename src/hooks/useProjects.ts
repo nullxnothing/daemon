@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { daemon } from '../lib/daemonBridge'
 import { useUIStore } from '../store/ui'
 
 export function useProjects() {
@@ -6,7 +7,7 @@ export function useProjects() {
   const setActiveProject = useUIStore((s) => s.setActiveProject)
 
   const loadProjects = useCallback(async (guard: { cancelled: boolean } = { cancelled: false }) => {
-    const res = await window.daemon.projects.list()
+    const res = await daemon.projects.list()
     if (guard.cancelled || !res.ok || !res.data) return
     setProjects(res.data)
 
@@ -18,11 +19,11 @@ export function useProjects() {
   }, [setProjects, setActiveProject])
 
   const addProject = useCallback(async () => {
-    const pathRes = await window.daemon.projects.openDialog()
+    const pathRes = await daemon.projects.openDialog()
     if (!pathRes.ok || !pathRes.data) return
     const folderPath = pathRes.data
     const name = folderPath.split(/[/\\]/).pop() ?? 'untitled'
-    const res = await window.daemon.projects.create({ name, path: folderPath })
+    const res = await daemon.projects.create({ name, path: folderPath })
     if (res.ok && res.data) {
       setProjects([res.data, ...useUIStore.getState().projects])
       setActiveProject(res.data.id, res.data.path)
@@ -31,8 +32,8 @@ export function useProjects() {
 
   const removeProject = useCallback(async (projectId: string) => {
     const projectTerminals = useUIStore.getState().terminals.filter((t) => t.projectId === projectId)
-    await Promise.all(projectTerminals.map((t) => window.daemon.terminal.kill(t.id)))
-    await window.daemon.projects.delete(projectId)
+    await Promise.all(projectTerminals.map((t) => daemon.terminal.kill(t.id)))
+    await daemon.projects.delete(projectId)
     useUIStore.getState().removeProjectState(projectId)
     setProjects(useUIStore.getState().projects.filter((pr) => pr.id !== projectId))
     if (useUIStore.getState().activeProjectId === projectId) {

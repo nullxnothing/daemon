@@ -29,6 +29,7 @@ import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useCommandPalette } from './hooks/useCommandPalette'
 import { useShellLayout } from './hooks/useShellLayout'
+import { daemon } from './lib/daemonBridge'
 import { lazyNamedWithReload } from './utils/lazyWithReload'
 import './App.css'
 
@@ -42,6 +43,10 @@ function PanelSkeleton({ className }: { className: string }) {
 }
 
 function App() {
+  const smokeMode = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('smoke') === '1'
+  }, [])
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const projects = useUIStore((s) => s.projects)
@@ -100,6 +105,7 @@ function App() {
     && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
+    if (smokeMode) console.log('[smoke-renderer] app:mount')
     const guard = { cancelled: false }
     loadProjects(guard)
     usePluginStore.getState().load()
@@ -114,6 +120,7 @@ function App() {
     // Signal the boot screen to dismiss after a brief minimum display window.
     // The 700ms floor ensures the loader is never just a flash.
     const readyId = setTimeout(() => {
+      if (smokeMode) console.log('[smoke-renderer] app:ready-timeout-fired')
       setAppReady(true)
       window.postMessage({ payload: 'removeLoading' }, '*')
     }, 700)
@@ -121,7 +128,7 @@ function App() {
       guard.cancelled = true
       clearTimeout(readyId)
     }
-  }, [])
+  }, [loadProjects, smokeMode])
 
   // Load activity history once on mount so the activity log is populated
   useEffect(() => {
@@ -158,7 +165,7 @@ function App() {
   // Renderer crash capture — forward errors to main process via IPC
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      window.daemon.settings.reportCrash({
+      daemon.settings.reportCrash({
         type: 'renderer_error',
         message: event.message,
         stack: event.error?.stack ?? '',
@@ -167,7 +174,7 @@ function App() {
     const handleRejection = (event: PromiseRejectionEvent) => {
       const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
       const stack = event.reason instanceof Error ? event.reason.stack ?? '' : ''
-      window.daemon.settings.reportCrash({
+      daemon.settings.reportCrash({
         type: 'renderer_rejection',
         message,
         stack,
@@ -186,12 +193,31 @@ function App() {
   // errors are not worth interrupting the user.
   useEffect(() => {
     const CRASH_BANNER_THRESHOLD = 3
-    return window.daemon.settings.onCrashWarning((count) => {
+    return daemon.settings.onCrashWarning((count) => {
       if (count >= CRASH_BANNER_THRESHOLD) {
         setCrashWarningCount(count)
       }
     })
   }, [])
+
+  useEffect(() => {
+    if (!smokeMode) return
+    console.log('[smoke-renderer] app:state', JSON.stringify({
+      appReady,
+      activeProjectId,
+      centerMode,
+      drawerOpen,
+      launchWizardOpen,
+      tier,
+      showExplorer,
+      showRightPanel,
+      showTerminal,
+    }))
+  }, [activeProjectId, appReady, centerMode, drawerOpen, launchWizardOpen, showExplorer, showRightPanel, showTerminal, smokeMode, tier])
+
+  useEffect(() => {
+    if (smokeMode) console.log('[smoke-renderer] app:layout-mounted')
+  }, [smokeMode])
 
   useEffect(() => {
     void useWalletStore.getState().refresh(activeProjectId)
