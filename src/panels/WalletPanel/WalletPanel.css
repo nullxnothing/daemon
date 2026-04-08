@@ -690,6 +690,8 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .wallet-actions-card-main,
@@ -697,8 +699,17 @@
   align-items: center;
 }
 
+.wallet-actions-card-main {
+  flex: 1 1 320px;
+}
+
+.wallet-actions-card-main .wallet-btn.primary {
+  min-width: 110px;
+}
+
 .wallet-actions-card-utility {
   margin-left: auto;
+  opacity: 0.92;
 }
 
 @container wallet (max-width: 760px) {
@@ -720,6 +731,11 @@
 
   .wallet-actions-card-utility {
     margin-left: 0;
+  }
+
+  .wallet-actions-card-main,
+  .wallet-actions-card-utility {
+    width: 100%;
   }
 }
 

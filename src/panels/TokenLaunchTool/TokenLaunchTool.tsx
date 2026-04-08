@@ -19,12 +19,45 @@ export function TokenLaunchTool() {
         </div>
       </div>
 
-      <div className="token-launch-tool-zone">
-        <LaunchpadSettingsSection onSettingsSaved={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)} />
+      <div className="token-launch-tool-overview">
+        <div className="token-launch-tool-pill">Wallet-linked launches</div>
+        <div className="token-launch-tool-pill">Preflight before send</div>
+        <div className="token-launch-tool-pill">Pump.live / Raydium / Meteora ready</div>
       </div>
 
-      <div className="token-launch-tool-zone">
-        <TokenLaunchSection refreshNonce={launchpadRefreshNonce} />
+      <div className="token-launch-tool-layout">
+        <div className="token-launch-tool-main">
+          <div className="token-launch-tool-zone token-launch-tool-zone-main">
+            <div className="token-launch-tool-zone-head">
+              <div>
+                <div className="token-launch-tool-zone-kicker">Launch Workflow</div>
+                <div className="token-launch-tool-zone-title">Launch, monitor, and hand off from one place</div>
+              </div>
+            </div>
+            <TokenLaunchSection refreshNonce={launchpadRefreshNonce} />
+          </div>
+        </div>
+
+        <aside className="token-launch-tool-side">
+          <div className="token-launch-tool-zone token-launch-tool-zone-side">
+            <div className="token-launch-tool-zone-head">
+              <div>
+                <div className="token-launch-tool-zone-kicker">Launchpad Config</div>
+                <div className="token-launch-tool-zone-title">Store protocol settings once</div>
+              </div>
+            </div>
+            <LaunchpadSettingsSection onSettingsSaved={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)} />
+          </div>
+
+          <div className="token-launch-tool-note">
+            <div className="token-launch-tool-note-title">Recommended flow</div>
+            <ol className="token-launch-tool-note-list">
+              <li>Pick the wallet you want to launch from.</li>
+              <li>Run preflight and confirm the launchpad is live.</li>
+              <li>Launch once, then open the token in Browser Mode for post-launch work.</li>
+            </ol>
+          </div>
+        </aside>
       </div>
     </div>
   )
