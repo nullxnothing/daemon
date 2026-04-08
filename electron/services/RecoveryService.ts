@@ -112,12 +112,15 @@ export function loadCsvFile(csvPath: string): { count: number; path: string } {
       if (line.includes(',')) {
         const hex = line.split(',')[1]?.trim()
         if (!hex) continue
-        kp = Keypair.fromSecretKey(Buffer.from(hex, 'hex'))
+        const keyBuffer = Buffer.from(hex, 'hex')
+        kp = Keypair.fromSecretKey(keyBuffer)
+        keyBuffer.fill(0)
       } else {
         const decoded = bs58.decode(line)
         kp = decoded.length === 64
           ? Keypair.fromSecretKey(decoded)
           : Keypair.fromSeed(decoded.slice(0, 32))
+        decoded.fill(0)
       }
       const pub = kp.publicKey.toBase58()
       if (!keypairs.has(pub)) keypairs.set(pub, kp)
