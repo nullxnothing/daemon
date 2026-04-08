@@ -7,6 +7,7 @@ import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } fr
 import './Terminal.css'
 
 const SOLANA_AGENT_DB_ID = 'solana-agent'
+const IS_SMOKE_TEST = new URLSearchParams(window.location.search).get('smoke') === '1'
 
 type SplitLayout = {
   direction: 'horizontal' | 'vertical'
@@ -137,6 +138,7 @@ export function TerminalPanel() {
 
   // Auto-create first terminal for project — starts in Claude mode if CLI is available
   useEffect(() => {
+    if (IS_SMOKE_TEST) return
     if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
     creatingRef.current = true
 

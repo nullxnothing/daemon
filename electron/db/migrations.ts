@@ -407,9 +407,11 @@ function seedDefaults(db: Database.Database) {
   const agentCount = (db.prepare('SELECT COUNT(*) as c FROM agents').get() as { c: number }).c
   if (agentCount > 0) return
 
-  const insertAgent = db.prepare(
-    'INSERT INTO agents (id, name, system_prompt, model, mcps, shortcut, source) VALUES (?,?,?,?,?,?,?)'
-  )
+  const agentColumns = db.prepare("PRAGMA table_info('agents')").all() as Array<{ name: string }>
+  const hasSourceColumn = agentColumns.some((column) => column.name === 'source')
+  const insertAgent = hasSourceColumn
+    ? db.prepare('INSERT INTO agents (id, name, system_prompt, model, mcps, shortcut, source) VALUES (?,?,?,?,?,?,?)')
+    : db.prepare('INSERT INTO agents (id, name, system_prompt, model, mcps, shortcut) VALUES (?,?,?,?,?,?)')
 
   const agents = [
     {
@@ -590,7 +592,11 @@ Proceed immediately. Ask for clarification only when target network is ambiguous
   ]
 
   for (const a of agents) {
-    insertAgent.run(a.id, a.name, a.prompt, a.model, a.mcps, a.shortcut, 'daemon')
+    if (hasSourceColumn) {
+      insertAgent.run(a.id, a.name, a.prompt, a.model, a.mcps, a.shortcut, 'daemon')
+    } else {
+      insertAgent.run(a.id, a.name, a.prompt, a.model, a.mcps, a.shortcut)
+    }
   }
 
   db.prepare(
