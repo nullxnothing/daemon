@@ -216,6 +216,7 @@ export async function executeRecovery(
 
   const priorityFee = await getPriorityFee(conn)
 
+  try {
   // ─── Phase 1: Close empty token accounts ──────────────────────────────
   currentStatus.currentPhase = 1
   emit(win, { type: 'phase-start', phase: 1, message: 'Phase 1: Closing empty token accounts...' })
@@ -409,9 +410,12 @@ export async function executeRecovery(
   currentStatus.state = 'complete'
   emit(win, { type: 'complete', totalRecovered, message: `Recovery complete: ${totalRecovered.toFixed(6)} SOL` })
 
-  abortController = null
-  clearLoadedWallets()
   return { totalRecovered }
+  } finally {
+    currentStatus.state = 'idle'
+    abortController = null
+    clearLoadedWallets()
+  }
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────
