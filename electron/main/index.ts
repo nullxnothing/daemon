@@ -324,6 +324,19 @@ async function createWindow() {
   win.webContents.on('did-finish-load', () => {
     if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:did-finish-load')
   })
+  if (SMOKE_TEST_MODE) {
+    win.webContents.on('did-start-loading', () => console.log('[smoke] createWindow:did-start-loading'))
+    win.webContents.on('dom-ready', () => console.log('[smoke] createWindow:dom-ready'))
+    win.webContents.on('did-stop-loading', () => console.log('[smoke] createWindow:did-stop-loading'))
+    win.webContents.on('render-process-gone', (_event, details) => {
+      console.log('[smoke] createWindow:render-process-gone', JSON.stringify(details))
+    })
+    win.webContents.on('unresponsive', () => console.log('[smoke] createWindow:unresponsive'))
+    win.webContents.on('responsive', () => console.log('[smoke] createWindow:responsive'))
+    win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      console.log('[smoke] renderer:console', JSON.stringify({ level, message, line, sourceId }))
+    })
+  }
 
   // Startup crash detection — warn if >3 crashes in the last hour
   try {

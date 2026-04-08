@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { daemon } from '../../lib/daemonBridge'
 import { useUIStore } from '../../store/ui'
 import { ClaudePanel } from '../ClaudePanel/ClaudePanel'
 import { CodexPanel } from '../CodexPanel/CodexPanel'
@@ -12,7 +13,7 @@ function useClaudeStatus(): 'live' | 'unknown' {
     let cancelled = false
 
     const refresh = () => {
-      window.daemon.claude.status().then((res) => {
+      daemon.claude.status().then((res) => {
         if (!cancelled) {
           setIsLive(res.ok && !!res.data && res.data.indicator === 'none')
         }
@@ -20,7 +21,7 @@ function useClaudeStatus(): 'live' | 'unknown' {
     }
 
     refresh()
-    const unsubscribe = window.daemon.events.on('auth:changed', (payload) => {
+    const unsubscribe = daemon.events.on('auth:changed', (payload) => {
       const p = payload as { providerId?: string } | undefined
       if (!p || p.providerId === 'claude') refresh()
     })
@@ -36,14 +37,14 @@ function useCodexStatus(): 'live' | 'unknown' {
   useEffect(() => {
     let cancelled = false
     const refresh = () => {
-      window.daemon.codex.verifyConnection().then((res) => {
+      daemon.codex.verifyConnection().then((res) => {
         if (cancelled) return
         setIsLive(res.ok && !!res.data && (res.data.isAuthenticated || res.data.authMode !== 'none'))
       }).catch(() => { if (!cancelled) setIsLive(false) })
     }
 
     refresh()
-    const unsubscribe = window.daemon.events.on('auth:changed', (payload) => {
+    const unsubscribe = daemon.events.on('auth:changed', (payload) => {
       const p = payload as { providerId?: string } | undefined
       if (!p || p.providerId === 'codex') refresh()
     })

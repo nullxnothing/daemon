@@ -21,6 +21,7 @@ const smokeEcho = `DAEMON_SMOKE_${Date.now()}`
 
 let electronProcess
 let browser
+const rendererConsole = []
 
 function logStep(message) {
   console.log(`[smoke] ${message}`)
@@ -77,6 +78,19 @@ async function getPage() {
   throw new Error('Timed out waiting for a BrowserWindow page')
 }
 
+function attachPageDiagnostics(page) {
+  page.on('console', (message) => {
+    const entry = `[page-console] ${message.type()}: ${message.text()}`
+    rendererConsole.push(entry)
+    console.log(entry)
+  })
+  page.on('pageerror', (error) => {
+    const entry = `[page-error] ${error.message}`
+    rendererConsole.push(entry)
+    console.log(entry)
+  })
+}
+
 async function seedAppState(page) {
   await page.evaluate(async ({ projectPath, projectName }) => {
     await window.daemon.settings.setOnboardingComplete(true)
@@ -115,6 +129,7 @@ async function run() {
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`)
 
   let page = await getPage()
+  attachPageDiagnostics(page)
   logStep('window ready')
   await waitForAppReady(page)
   logStep('seeding app state')
@@ -158,6 +173,10 @@ try {
   await run()
   console.log('DAEMON smoke test passed')
 } finally {
+  if (rendererConsole.length > 0) {
+    console.log('[smoke] collected renderer diagnostics:')
+    for (const line of rendererConsole) console.log(line)
+  }
   await browser?.close().catch(() => {})
   if (electronProcess && electronProcess.exitCode === null) {
     electronProcess.kill('SIGTERM')
