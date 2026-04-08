@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'react'
 import { BootLoader } from './components/BootLoader/BootLoader'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
@@ -29,12 +29,13 @@ import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useCommandPalette } from './hooks/useCommandPalette'
 import { useShellLayout } from './hooks/useShellLayout'
+import { lazyNamedWithReload } from './utils/lazyWithReload'
 import './App.css'
 
-const EditorPanel = lazy(() => import('./panels/Editor/Editor').then((module) => ({ default: module.EditorPanel })))
-const TerminalPanel = lazy(() => import('./panels/Terminal/Terminal').then((module) => ({ default: module.TerminalPanel })))
-const RightPanel = lazy(() => import('./panels/RightPanel/RightPanel').then((module) => ({ default: module.RightPanel })))
-const AgentGrid = lazy(() => import('./panels/Terminal/AgentGrid').then((module) => ({ default: module.AgentGrid })))
+const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
+const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
+const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/RightPanel/RightPanel'), (module) => module.RightPanel)
+const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
 function PanelSkeleton({ className }: { className: string }) {
   return <div className={className} />

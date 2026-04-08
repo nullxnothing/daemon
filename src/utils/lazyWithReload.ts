@@ -34,3 +34,17 @@ export function lazyWithReload<T extends ComponentType<any>>(
     }
   })
 }
+
+export function lazyNamedWithReload<
+  TComponent extends ComponentType<any>,
+  TModule,
+>(
+  cacheKey: string,
+  loader: () => Promise<TModule>,
+  pick: (module: TModule) => TComponent,
+): LazyExoticComponent<TComponent> {
+  return lazyWithReload(cacheKey, async () => {
+    const module = await loader()
+    return { default: pick(module) }
+  })
+}
