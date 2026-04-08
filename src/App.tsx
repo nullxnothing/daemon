@@ -3,12 +3,8 @@ import { BootLoader } from './components/BootLoader/BootLoader'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
 import { buildCommands } from './components/CommandPalette/commands'
-import { EditorPanel } from './panels/Editor/Editor'
-import { TerminalPanel } from './panels/Terminal/Terminal'
 import { AgentLauncher } from './panels/AgentLauncher/AgentLauncher'
-import { RightPanel } from './panels/RightPanel/RightPanel'
 import { CommandDrawer } from './components/CommandDrawer/CommandDrawer'
-import { AgentGrid } from './panels/Terminal/AgentGrid'
 import { Titlebar } from './panels/Titlebar/Titlebar'
 import { IconSidebar } from './panels/IconSidebar/IconSidebar'
 import { StatusBar } from './panels/StatusBar/StatusBar'
@@ -33,6 +29,15 @@ import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useCommandPalette } from './hooks/useCommandPalette'
 import './App.css'
+
+const EditorPanel = lazy(() => import('./panels/Editor/Editor').then((module) => ({ default: module.EditorPanel })))
+const TerminalPanel = lazy(() => import('./panels/Terminal/Terminal').then((module) => ({ default: module.TerminalPanel })))
+const RightPanel = lazy(() => import('./panels/RightPanel/RightPanel').then((module) => ({ default: module.RightPanel })))
+const AgentGrid = lazy(() => import('./panels/Terminal/AgentGrid').then((module) => ({ default: module.AgentGrid })))
+
+function PanelSkeleton({ className }: { className: string }) {
+  return <div className={className} />
+}
 
 function App() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -251,10 +256,14 @@ function App() {
           {!isEditorCollapsed && (
             <div id="editor-area" className="editor-area" data-tour="editor">
               {centerMode === 'grind' ? (
-                <AgentGrid />
+                <Suspense fallback={<PanelSkeleton className="editor-panel" />}>
+                  <AgentGrid />
+                </Suspense>
               ) : (
                 <PanelErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
-                  <EditorPanel />
+                  <Suspense fallback={<PanelSkeleton className="editor-panel" />}>
+                    <EditorPanel />
+                  </Suspense>
                 </PanelErrorBoundary>
               )}
             </div>
@@ -271,7 +280,9 @@ function App() {
                 display: (!showTerminal || drawerOpen) ? 'none' : undefined,
               }}
             >
-              <TerminalPanel />
+              <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
+                <TerminalPanel />
+              </Suspense>
             </div>
           )}
           <CommandDrawer />
@@ -279,7 +290,9 @@ function App() {
 
         {shouldShowRightPanel && (
           <aside className="right-panel" data-tour="right-panel">
-            <RightPanel />
+            <Suspense fallback={<PanelSkeleton className="right-panel" />}>
+              <RightPanel />
+            </Suspense>
           </aside>
         )}
       </div>

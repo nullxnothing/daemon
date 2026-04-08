@@ -276,6 +276,12 @@ contextBridge.exposeInMainWorld('daemon', {
     chatReset: (sessionId: string) => ipcRenderer.invoke('browser:chat-reset', sessionId),
   },
 
+  feedback: {
+    submit: (input: { title: string; description: string; activePanel?: string; logs?: string }) =>
+      ipcRenderer.invoke('feedback:submit', input),
+    openUrl: (url: string) => ipcRenderer.invoke('feedback:open-url', url),
+  },
+
   tweets: {
     generate: (prompt: string, mode: string, sourceTweet?: string) => ipcRenderer.invoke('tweets:generate', prompt, mode, sourceTweet),
     list: (limit?: number) => ipcRenderer.invoke('tweets:list', limit),

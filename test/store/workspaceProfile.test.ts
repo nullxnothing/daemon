@@ -25,32 +25,32 @@ describe('getDefaultVisibility — web profile', () => {
   it('shows web tools', () => {
     const vis = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
     expect(vis['git']).toBe(true)
-    expect(vis['browser']).toBe(true)
     expect(vis['env']).toBe(true)
     expect(vis['settings']).toBe(true)
+    expect(vis['docs']).toBe(true)
   })
 
   it('hides solana-specific tools', () => {
     const vis = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
     expect(vis['wallet']).toBe(false)
-    expect(vis['pumpfun']).toBe(false)
-    expect(vis['xreplies']).toBe(false)
+    expect(vis['solana-toolbox']).toBe(false)
+    expect(vis['dashboard']).toBe(false)
   })
 })
 
 describe('getDefaultVisibility — solana profile', () => {
-  it('shows all tools including wallet and pumpfun', () => {
+  it('shows solana drawer tools', () => {
     const vis = getDefaultVisibility('solana', BUILTIN_TOOL_IDS)
     expect(vis['wallet']).toBe(true)
-    expect(vis['pumpfun']).toBe(true)
-    expect(vis['xreplies']).toBe(true)
+    expect(vis['solana-toolbox']).toBe(true)
+    expect(vis['dashboard']).toBe(true)
   })
 
   it('shows all web tools as well', () => {
     const vis = getDefaultVisibility('solana', BUILTIN_TOOL_IDS)
     expect(vis['git']).toBe(true)
-    expect(vis['browser']).toBe(true)
     expect(vis['settings']).toBe(true)
+    expect(vis['docs']).toBe(true)
   })
 })
 

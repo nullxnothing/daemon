@@ -46,6 +46,8 @@ keypair.json
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/target/
+/programs/*/target/
 
 # Internal planning docs (keep local, not in public repo)
 MASTER_PLAN.md

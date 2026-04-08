@@ -229,11 +229,34 @@ export const useUIStore = create<UIState>((set) => ({
   },
   toggleBrowserTab: () => set((state) => {
     const isOpen = !state.browserTabOpen
-    return { browserTabOpen: isOpen, browserTabActive: isOpen }
+    if (!isOpen) return { browserTabOpen: false, browserTabActive: false }
+    return {
+      browserTabOpen: true,
+      browserTabActive: true,
+      dashboardTabActive: false,
+      drawerTool: null,
+      drawerOpen: false,
+      drawerFullscreen: false,
+    }
   }),
-  openBrowserTab: () => set({ browserTabOpen: true, browserTabActive: true }),
+  openBrowserTab: () => set({
+    browserTabOpen: true,
+    browserTabActive: true,
+    dashboardTabActive: false,
+    drawerTool: null,
+    drawerOpen: false,
+    drawerFullscreen: false,
+  }),
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
-  setBrowserTabActive: (active) => set({ browserTabActive: active }),
+  setBrowserTabActive: (active) => set(active
+    ? {
+        browserTabActive: true,
+        dashboardTabActive: false,
+        drawerTool: null,
+        drawerOpen: false,
+        drawerFullscreen: false,
+      }
+    : { browserTabActive: false }),
   setRightPanelTab: (tab) => {
     set({ rightPanelTab: tab })
     if (typeof window !== 'undefined' && window.daemon?.settings?.setLayout) {
@@ -242,11 +265,34 @@ export const useUIStore = create<UIState>((set) => ({
   },
   toggleDashboardTab: () => set((state) => {
     const isOpen = !state.dashboardTabOpen
-    return { dashboardTabOpen: isOpen, dashboardTabActive: isOpen }
+    if (!isOpen) return { dashboardTabOpen: false, dashboardTabActive: false }
+    return {
+      dashboardTabOpen: true,
+      dashboardTabActive: true,
+      browserTabActive: false,
+      drawerTool: null,
+      drawerOpen: false,
+      drawerFullscreen: false,
+    }
   }),
-  openDashboardTab: () => set({ dashboardTabOpen: true, dashboardTabActive: true }),
+  openDashboardTab: () => set({
+    dashboardTabOpen: true,
+    dashboardTabActive: true,
+    browserTabActive: false,
+    drawerTool: null,
+    drawerOpen: false,
+    drawerFullscreen: false,
+  }),
   closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
-  setDashboardTabActive: (active) => set({ dashboardTabActive: active }),
+  setDashboardTabActive: (active) => set(active
+    ? {
+        dashboardTabActive: true,
+        browserTabActive: false,
+        drawerTool: null,
+        drawerOpen: false,
+        drawerFullscreen: false,
+      }
+    : { dashboardTabActive: false }),
   openLaunchWizard: () => set({ launchWizardOpen: true }),
   closeLaunchWizard: () => set({ launchWizardOpen: false }),
   setActiveDashboardMint: (mint) => set({ activeDashboardMint: mint }),

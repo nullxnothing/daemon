@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect, useMemo } from 'react'
+import { Suspense, lazy, useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
@@ -15,9 +15,10 @@ import { EditorWelcome } from './EditorWelcome'
 import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
-import { BrowserMode } from '../BrowserMode/BrowserMode'
-import { DashboardCanvas } from '../Dashboard/DashboardCanvas'
 import './Editor.css'
+
+const BrowserMode = lazy(() => import('../BrowserMode/BrowserMode').then((module) => ({ default: module.BrowserMode })));
+const DashboardCanvas = lazy(() => import('../Dashboard/DashboardCanvas').then((module) => ({ default: module.DashboardCanvas })));
 
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
 (globalThis as Record<string, unknown>).MonacoEnvironment = {
@@ -49,6 +50,10 @@ function getLanguage(filePath: string): string {
 const viewStateCache = new Map<string, monaco.editor.ICodeEditorViewState>()
 
 let themeIsDefined = false
+
+function WorkspacePanelFallback() {
+  return <div className="editor-content" />
+}
 
 export function EditorPanel() {
   // Derive a stable fingerprint from open files to avoid re-renders on content-only changes.
@@ -441,13 +446,15 @@ export function EditorPanel() {
           onDashboardTabClick={handleDashboardTabClick}
         />
         <div className="editor-content">
-          {dashboardTabActive ? (
-            <DashboardCanvas />
-          ) : (
-            <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
-              <BrowserMode />
-            </PanelErrorBoundary>
-          )}
+          <Suspense fallback={<WorkspacePanelFallback />}>
+            {dashboardTabActive ? (
+              <DashboardCanvas />
+            ) : (
+              <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
+                <BrowserMode />
+              </PanelErrorBoundary>
+            )}
+          </Suspense>
         </div>
       </div>
     )
@@ -474,13 +481,17 @@ export function EditorPanel() {
       />
       {dashboardTabActive ? (
         <div className="editor-content">
-          <DashboardCanvas />
+          <Suspense fallback={<WorkspacePanelFallback />}>
+            <DashboardCanvas />
+          </Suspense>
         </div>
       ) : browserTabActive ? (
         <div className="editor-content">
-          <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
-            <BrowserMode />
-          </PanelErrorBoundary>
+          <Suspense fallback={<WorkspacePanelFallback />}>
+            <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
+              <BrowserMode />
+            </PanelErrorBoundary>
+          </Suspense>
         </div>
       ) : (
         <>

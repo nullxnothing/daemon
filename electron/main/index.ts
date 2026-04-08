@@ -38,6 +38,7 @@ import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
+import { registerFeedbackHandlers } from '../ipc/feedback'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
@@ -45,16 +46,22 @@ const { autoUpdater } = pkg
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 process.env.APP_ROOT = path.join(__dirname, '../..')
-
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+const SMOKE_TEST_MODE = process.env.DAEMON_SMOKE_TEST === '1'
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST
 
-if (!app.isPackaged) {
+if (process.env.DAEMON_USER_DATA_DIR) {
+  app.setPath('userData', process.env.DAEMON_USER_DATA_DIR)
+}
+
+if (SMOKE_TEST_MODE) {
+  app.commandLine.appendSwitch('remote-debugging-port', process.env.DAEMON_SMOKE_CDP_PORT ?? '9333')
+} else if (!app.isPackaged) {
   app.commandLine.appendSwitch('remote-debugging-port', '9222')
 }
 
@@ -94,7 +101,7 @@ process.on('unhandledRejection', (reason) => {
   } catch { /* DB may not be ready */ }
 })
 
-if (!app.requestSingleInstanceLock()) {
+if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
   app.quit()
   process.exit(0)
 }
@@ -144,6 +151,7 @@ function registerAllIpc() {
   registerVaultHandlers()
   registerValidatorHandlers()
   registerPnlHandlers()
+  registerFeedbackHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -177,6 +185,7 @@ function registerAllIpc() {
 }
 
 async function createWindow() {
+  if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:start')
   getDb()
   registerAllIpc()
 
@@ -272,14 +281,18 @@ async function createWindow() {
       webviewTag: true,
     },
   })
-
+  if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:browser-window-created')
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
+    const url = new URL(VITE_DEV_SERVER_URL)
+    if (SMOKE_TEST_MODE) {
+      url.searchParams.set('smoke', '1')
+    }
+    win.loadURL(url.toString())
     if (process.env.DAEMON_OPEN_DEVTOOLS === '1') {
       win.webContents.openDevTools()
     }
   } else {
-    win.loadFile(indexHtml)
+    win.loadFile(indexHtml, SMOKE_TEST_MODE ? { query: { smoke: '1' } } : undefined)
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -308,6 +321,9 @@ async function createWindow() {
 
   win.on('maximize', () => win?.webContents.send('window:maximized'))
   win.on('unmaximize', () => win?.webContents.send('window:unmaximized'))
+  win.webContents.on('did-finish-load', () => {
+    if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:did-finish-load')
+  })
 
   // Startup crash detection — warn if >3 crashes in the last hour
   try {
@@ -323,9 +339,11 @@ async function createWindow() {
     }
   } catch { /* table may not exist yet on first run */ }
 }
-
 app.whenReady().then(() => {
-  createWindow()
+  if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
+  createWindow().catch((err) => {
+    console.error('[smoke] createWindow:error', err)
+  })
 
   if (app.isPackaged) {
     autoUpdater.on('error', (err: Error) => {

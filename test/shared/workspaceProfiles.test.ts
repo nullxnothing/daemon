@@ -7,33 +7,36 @@ describe('getDefaultVisibility — web profile', () => {
 
   it('shows git', () => expect(vis['git']).toBe(true))
   it('shows env', () => expect(vis['env']).toBe(true))
-  it('shows browser', () => expect(vis['browser']).toBe(true))
   it('shows ports', () => expect(vis['ports']).toBe(true))
   it('shows processes', () => expect(vis['processes']).toBe(true))
   it('shows settings', () => expect(vis['settings']).toBe(true))
   it('shows email', () => expect(vis['email']).toBe(true))
-  it('shows tools', () => expect(vis['tools']).toBe(true))
   it('shows deploy', () => expect(vis['deploy']).toBe(true))
   it('shows image-editor', () => expect(vis['image-editor']).toBe(true))
+  it('shows docs', () => expect(vis['docs']).toBe(true))
+  it('shows plugins', () => expect(vis['plugins']).toBe(true))
+  it('shows recovery', () => expect(vis['recovery']).toBe(true))
 
   it('hides wallet', () => expect(vis['wallet']).toBe(false))
-  it('hides pumpfun', () => expect(vis['pumpfun']).toBe(false))
-  it('hides xreplies', () => expect(vis['xreplies']).toBe(false))
-  it('hides images', () => expect(vis['images']).toBe(false))
+  it('hides solana-toolbox', () => expect(vis['solana-toolbox']).toBe(false))
+  it('hides block-scanner', () => expect(vis['block-scanner']).toBe(false))
+  it('hides dashboard', () => expect(vis['dashboard']).toBe(false))
+  it('hides hackathon', () => expect(vis['hackathon']).toBe(false))
 })
 
 describe('getDefaultVisibility — solana profile', () => {
   const vis = getDefaultVisibility('solana', BUILTIN_TOOL_IDS)
 
   it('shows wallet', () => expect(vis['wallet']).toBe(true))
-  it('shows pumpfun', () => expect(vis['pumpfun']).toBe(true))
-  it('shows xreplies', () => expect(vis['xreplies']).toBe(true))
-  it('shows images', () => expect(vis['images']).toBe(true))
+  it('shows solana-toolbox', () => expect(vis['solana-toolbox']).toBe(true))
+  it('shows block-scanner', () => expect(vis['block-scanner']).toBe(true))
+  it('shows dashboard', () => expect(vis['dashboard']).toBe(true))
+  it('shows hackathon', () => expect(vis['hackathon']).toBe(true))
   it('shows all web tools', () => {
     expect(vis['git']).toBe(true)
-    expect(vis['browser']).toBe(true)
     expect(vis['env']).toBe(true)
     expect(vis['settings']).toBe(true)
+    expect(vis['docs']).toBe(true)
   })
 })
 
@@ -91,18 +94,18 @@ describe('getDefaultVisibility — custom tool ids', () => {
 describe('PROFILE_PRESETS', () => {
   it('web preset includes standard web tools', () => {
     expect(PROFILE_PRESETS.web).toContain('git')
-    expect(PROFILE_PRESETS.web).toContain('browser')
     expect(PROFILE_PRESETS.web).toContain('settings')
+    expect(PROFILE_PRESETS.web).toContain('docs')
   })
 
-  it('web preset excludes wallet and pumpfun', () => {
+  it('web preset excludes solana-specific tools', () => {
     expect(PROFILE_PRESETS.web).not.toContain('wallet')
-    expect(PROFILE_PRESETS.web).not.toContain('pumpfun')
+    expect(PROFILE_PRESETS.web).not.toContain('dashboard')
   })
 
   it('solana preset includes all web tools plus solana-specific tools', () => {
     expect(PROFILE_PRESETS.solana).toContain('wallet')
-    expect(PROFILE_PRESETS.solana).toContain('pumpfun')
+    expect(PROFILE_PRESETS.solana).toContain('dashboard')
     expect(PROFILE_PRESETS.solana).toContain('git')
   })
 

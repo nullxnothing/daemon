@@ -3,6 +3,7 @@
   "appId": "com.daemon.app",
   "productName": "DAEMON",
   "asar": true,
+  "npmRebuild": false,
   "directories": {
     "output": "release/${version}"
   },
@@ -17,14 +18,15 @@
   ],
   "publish": [
     {
-      "provider": "generic",
-      "url": "https://pub-1996550623c84fbeb15c66144b09e41e.r2.dev"
+      "provider": "github",
+      "owner": "nullxnothing",
+      "repo": "daemon"
     }
   ],
   "mac": {
     "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
-    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "artifactName": "${productName}-${arch}.${ext}",
     "identity": null,
     "notarize": false
   },
@@ -35,7 +37,7 @@
         "arch": ["x64"]
       }
     ],
-    "artifactName": "${productName}-${version}-setup.${ext}",
+    "artifactName": "${productName}-setup.${ext}",
     "signingHashAlgorithms": ["sha256"]
   },
   "nsis": {
@@ -49,6 +51,6 @@
   "linux": {
     "target": ["AppImage"],
     "category": "Development",
-    "artifactName": "${productName}-${version}.${ext}"
+    "artifactName": "${productName}.${ext}"
   }
 }

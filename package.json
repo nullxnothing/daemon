@@ -26,7 +26,8 @@
     "version:minor": "npm version minor --no-git-tag-version",
     "release": "npm version patch && git push && git push --tags",
     "pretest": "vite build --mode=test",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:smoke": "pnpm run build && node scripts/smoke/electron-smoke.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -71,6 +72,7 @@
     "electron-builder": "^24.13.3",
     "monaco-editor": "^0.52.2",
     "patch-package": "^8.0.1",
+    "playwright": "^1.59.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.4.2",

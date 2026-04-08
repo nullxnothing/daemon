@@ -7,6 +7,10 @@ import { useNotificationsStore } from '../../store/notifications'
 
 type ProviderId = 'claude' | 'codex'
 
+// Stable sentinel so the selector returns the same reference when no pages exist,
+// avoiding a useSyncExternalStore infinite re-render loop.
+const EMPTY_PAGES: import('../../store/ui').GridCell[][] = []
+
 export function AgentGrid() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -22,7 +26,7 @@ export function AgentGrid() {
   const setGrindPageCells = useUIStore((s) => s.setGrindPageCells)
   const removeGrindPageCells = useUIStore((s) => s.removeGrindPageCells)
 
-  const pages = useUIStore((s) => s.grindPages[activeProjectId ?? ''] ?? [])
+  const pages = useUIStore((s) => s.grindPages[activeProjectId ?? '']) ?? EMPTY_PAGES
 
   const [dragSource, setDragSource] = useState<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)

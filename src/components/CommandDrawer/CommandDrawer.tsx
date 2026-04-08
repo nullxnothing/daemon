@@ -174,7 +174,6 @@ const WalletPanel = lazy(() => import('../../panels/WalletPanel/WalletPanel').th
 const SettingsPanel = lazy(() => import('../../panels/SettingsPanel/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
 const PortsPanel = lazy(() => import('../../panels/PortsPanel/PortsPanel').then(m => ({ default: m.PortsPanel })))
 const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessManager').then(m => ({ default: m.ProcessManager })))
-const BrowserMode = lazy(() => import('../../panels/BrowserMode/BrowserMode').then(m => ({ default: m.BrowserMode })))
 const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
 const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
 const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
