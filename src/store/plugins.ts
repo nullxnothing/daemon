@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { daemon } from '../lib/daemonBridge'
 import type { PluginRow } from '../types/daemon.d'
 
 interface PluginState {
@@ -19,12 +20,12 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   activePluginId: null,
 
   load: async () => {
-    const res = await window.daemon.plugins.list()
+    const res = await daemon.plugins.list()
     if (res.ok && res.data) set({ plugins: res.data, loaded: true })
   },
 
   toggle: async (id, enabled) => {
-    const res = await window.daemon.plugins.setEnabled(id, enabled)
+    const res = await daemon.plugins.setEnabled(id, enabled)
     if (res.ok) {
       set((s) => ({
         plugins: s.plugins.map((p) =>
@@ -38,7 +39,7 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   },
 
   reorder: async (orderedIds) => {
-    const res = await window.daemon.plugins.reorder(orderedIds)
+    const res = await daemon.plugins.reorder(orderedIds)
     if (res.ok) {
       set((s) => ({
         plugins: orderedIds.map((id, i) => {
@@ -53,7 +54,7 @@ export const usePluginStore = create<PluginState>((set, get) => ({
 
   updateConfig: async (id, config) => {
     const json = JSON.stringify(config)
-    const res = await window.daemon.plugins.setConfig(id, json)
+    const res = await daemon.plugins.setConfig(id, json)
     if (res.ok) {
       set((s) => ({
         plugins: s.plugins.map((p) =>

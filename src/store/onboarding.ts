@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { daemon } from '../lib/daemonBridge'
 
 export type OnboardingStepId = 'profile' | 'claude' | 'gmail' | 'vercel' | 'railway'
 
@@ -71,7 +72,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   setStepStatus: (id, status) => {
     const newProgress = { ...get().progress, [id]: status }
     set({ progress: newProgress })
-    window.daemon.settings.setOnboardingProgress(newProgress).catch(() => {})
+    daemon.settings.setOnboardingProgress(newProgress).catch(() => {})
   },
 
   advanceStep: () => {
@@ -99,12 +100,12 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   dismissBanner: () => {
     set({ showResumeBanner: false })
-    window.daemon.settings.setOnboardingComplete(true)
+    daemon.settings.setOnboardingComplete(true)
   },
 
   dismissTourOffer: () => {
     set({ showTourOffer: false })
-    window.daemon.settings.setOnboardingComplete(true)
+    daemon.settings.setOnboardingComplete(true)
   },
 
   startTour: () => set({ tourActive: true, tourStepIndex: 0, showTourOffer: false }),
@@ -124,14 +125,14 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     set({ tourActive: false, tourStepIndex: 0 })
     const state = get()
     state.setStepStatus('tour', 'complete')
-    window.daemon.settings.setOnboardingComplete(true)
+    daemon.settings.setOnboardingComplete(true)
   },
 
   loadProgress: async () => {
     try {
       const [progressRes, completeRes] = await Promise.all([
-        window.daemon.settings.getOnboardingProgress(),
-        window.daemon.settings.isOnboardingComplete(),
+        daemon.settings.getOnboardingProgress(),
+        daemon.settings.isOnboardingComplete(),
       ])
 
       const isComplete = completeRes.ok && completeRes.data === true
@@ -154,7 +155,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   saveProgress: async () => {
     const { progress } = get()
-    await window.daemon.settings.setOnboardingProgress(progress).catch(() => {})
+    await daemon.settings.setOnboardingProgress(progress).catch(() => {})
   },
 }))
 

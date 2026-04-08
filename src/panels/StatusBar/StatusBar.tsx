@@ -5,6 +5,8 @@ import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useShellLayout } from '../../hooks/useShellLayout'
+import { daemon } from '../../lib/daemonBridge'
 import { formatCompactUsd } from '../../utils/format'
 import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
 import { BugReportModal } from '../../components/BugReportModal/BugReportModal'
@@ -14,6 +16,7 @@ const EMPTY_MARKET: MarketTickerEntry[] = []
 
 export const StatusBar = memo(function StatusBar() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  const { tier, isDesktop, isCompact, isTablet, isSmall } = useShellLayout()
 
   const handleCopyPath = () => {
     if (activeProjectPath) {
@@ -21,29 +24,51 @@ export const StatusBar = memo(function StatusBar() {
     }
   }
 
+  const showCenterTape = isDesktop
+  const showPath = isDesktop
+  const showHackathon = isDesktop || isCompact
+  const showReportLabel = isDesktop || isCompact
+  const statusbarClassName = [
+    styles.statusbar,
+    isDesktop ? styles.desktop : '',
+    isCompact ? styles.compact : '',
+    isTablet ? styles.tablet : '',
+    isSmall ? styles.small : '',
+  ].filter(Boolean).join(' ')
+
   return (
-    <div className={styles.statusbar} data-tour="statusbar">
+    <div className={statusbarClassName} data-tour="statusbar">
       <div className={styles.left}>
         <div className={styles.statusGroup}>
           <span className={styles.item}>DAEMON</span>
         </div>
         <div className={styles.statusGroup}>
           <GitBranch />
-          {typeof HackathonCountdown !== 'undefined' && <HackathonCountdown />}
+          {showHackathon && <HackathonCountdown />}
           <TerminalCount />
           <ValidatorStatus />
         </div>
       </div>
-      <div className={styles.center}>
-        <MarketTape />
-      </div>
+
+      {showCenterTape && (
+        <div className={styles.center}>
+          <MarketTape maxItems={4} />
+        </div>
+      )}
+
+      {!showCenterTape && (isCompact || isTablet) && (
+        <div className={styles.inlineMarket}>
+          <MarketTape maxItems={isCompact ? 2 : 0} />
+        </div>
+      )}
+
       <div className={styles.right}>
         <div className={styles.statusGroup}>
-          <BugReportButton />
+          <BugReportButton showLabel={showReportLabel} />
           <EmailIndicator />
           <ClaudeStatus />
         </div>
-        {activeProjectPath && (
+        {showPath && activeProjectPath && (
           <div className={styles.statusGroup}>
             <span
               className={`${styles.item} ${styles.path} ${styles.clickable}`}
@@ -110,7 +135,7 @@ function GitBranch() {
 
   useEffect(() => {
     if (!activeProjectPath) { setBranch(null); return }
-    window.daemon.git.branch(activeProjectPath).then((res) => {
+    daemon.git.branch(activeProjectPath).then((res) => {
       setBranch(res.ok ? res.data as string : null)
     })
   }, [activeProjectPath])
@@ -127,7 +152,7 @@ function GitBranch() {
   )
 }
 
-function BugReportButton() {
+function BugReportButton({ showLabel }: { showLabel: boolean }) {
   const [open, setOpen] = useState(false)
   const drawerTool = useUIStore((s) => s.drawerTool)
 
@@ -135,17 +160,16 @@ function BugReportButton() {
     <>
       <button
         type="button"
-        className={`${styles.item} ${styles.clickable}`}
+        className={`${styles.item} ${styles.clickable} ${styles.bugButton}`}
         onClick={() => setOpen(true)}
         title="Report a bug"
-        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M12 2v4M8 6h8l-1 4H9l-1-4z" />
           <path d="M7 10c0 4 2 8 5 8s5-4 5-8" />
           <path d="M4 14h3M17 14h3M5 18h2M17 18h2" />
         </svg>
-        <span style={{ fontSize: 10 }}>Report</span>
+        {showLabel && <span className={styles.bugLabel}>Report</span>}
       </button>
       <BugReportModal
         open={open}
@@ -189,15 +213,16 @@ function EmailIndicator() {
 
 function ClaudeStatus() {
   const [authMode, setAuthMode] = useState<string | null>(null)
+  const { isSmall } = useShellLayout()
 
   useEffect(() => {
     const check = () => {
-      window.daemon.claude.getConnection().then((res) => {
+      daemon.claude.getConnection().then((res) => {
         setAuthMode(res.ok && res.data ? res.data.authMode : 'none')
       })
     }
     check()
-    const interval = setInterval(check, 300_000) // re-check every 5 min
+    const interval = setInterval(check, 300_000)
     return () => clearInterval(interval)
   }, [])
 
@@ -213,7 +238,7 @@ function ClaudeStatus() {
       title={label}
     >
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-      <span style={{ fontSize: 10 }}>Claude</span>
+      {!isSmall && <span style={{ fontSize: 10 }}>Claude</span>}
     </span>
   )
 }
@@ -308,15 +333,15 @@ function PanelToggles() {
   )
 }
 
-function MarketTape() {
+function MarketTape({ maxItems }: { maxItems: number }) {
   const visible = useWalletStore((s) => s.showMarketTape)
   const items = useWalletStore(useShallow((s) => s.dashboard?.market ?? EMPTY_MARKET))
 
-  if (!visible || items.length === 0 || items.every((i) => i.priceUsd === 0)) return null
+  if (!visible || maxItems <= 0 || items.length === 0 || items.every((i) => i.priceUsd === 0)) return null
 
   return (
     <div className={styles.marketTape}>
-      {items.map((item) => {
+      {items.slice(0, maxItems).map((item) => {
         const isSignificant = Math.abs(item.change24hPct) >= 5
         const direction = item.change24hPct >= 0 ? 'up' : 'down'
         const changeClass = isSignificant

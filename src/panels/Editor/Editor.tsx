@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, useCallback, useState, useEffect, useMemo } from 'react'
+import { Suspense, useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
@@ -15,13 +15,14 @@ import { EditorWelcome } from './EditorWelcome'
 import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
+import { lazyNamedWithReload } from '../../utils/lazyWithReload'
 import './Editor.css'
 
-const BrowserMode = lazy(() => import('../BrowserMode/BrowserMode').then((module) => ({ default: module.BrowserMode })));
-const DashboardCanvas = lazy(() => import('../Dashboard/DashboardCanvas').then((module) => ({ default: module.DashboardCanvas })));
+const BrowserMode = lazyNamedWithReload('browser-mode', () => import('../BrowserMode/BrowserMode'), (module) => module.BrowserMode)
+const DashboardCanvas = lazyNamedWithReload('editor-dashboard-canvas', () => import('../Dashboard/DashboardCanvas'), (module) => module.DashboardCanvas)
 
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
-(globalThis as Record<string, unknown>).MonacoEnvironment = {
+;(globalThis as Record<string, unknown>).MonacoEnvironment = {
   getWorker(_: unknown, label: string) {
     if (label === 'json') return new jsonWorker()
     if (label === 'css' || label === 'scss' || label === 'less') return new cssWorker()

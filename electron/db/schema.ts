@@ -455,6 +455,22 @@ CREATE TABLE IF NOT EXISTS activity_log (
 CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at DESC);
 `
 
+export const SCHEMA_V24 = `
+ALTER TABLE launched_tokens ADD COLUMN bonding_curve_address TEXT;
+ALTER TABLE launched_tokens ADD COLUMN launchpad_config_json TEXT DEFAULT '{}';
+ALTER TABLE launched_tokens ADD COLUMN protocol_receipts_json TEXT DEFAULT '{}';
+ALTER TABLE launched_tokens ADD COLUMN error_message TEXT;
+ALTER TABLE launched_tokens ADD COLUMN confirmed_at INTEGER;
+ALTER TABLE launched_tokens ADD COLUMN updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER));
+
+UPDATE launched_tokens SET launchpad_config_json = '{}' WHERE launchpad_config_json IS NULL;
+UPDATE launched_tokens SET protocol_receipts_json = '{}' WHERE protocol_receipts_json IS NULL;
+UPDATE launched_tokens SET updated_at = COALESCE(updated_at, created_at) WHERE updated_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_launched_tokens_status ON launched_tokens(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_launched_tokens_launchpad ON launched_tokens(launchpad, created_at DESC);
+`
+
 export const SCHEMA_V21 = `
 CREATE TABLE IF NOT EXISTS pnl_trades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -94,6 +94,15 @@ export function registerSettingsHandlers() {
     Settings.setWorkspaceProfile(profile)
   }))
 
+  ipcMain.handle('settings:get-token-launch-settings', ipcHandler(async () => {
+    return Settings.getTokenLaunchSettings()
+  }))
+
+  ipcMain.handle('settings:set-token-launch-settings', ipcHandler(async (_event, settings: Settings.TokenLaunchSettings) => {
+    if (!settings || typeof settings !== 'object') throw new Error('Invalid token launch settings')
+    Settings.setTokenLaunchSettings(settings)
+  }))
+
   // --- Generic layout state KV (centerMode, rightPanelTab, etc.) ---
 
   ipcMain.handle('settings:get-layout', ipcHandler(async () => {

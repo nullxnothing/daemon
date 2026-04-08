@@ -8,6 +8,23 @@
   overflow: hidden;
 }
 
+.app--compact {
+  --left-panel-w: 180px;
+  --right-panel-w: 220px;
+}
+
+.app--tablet {
+  --left-panel-w: 168px;
+  --right-panel-w: 200px;
+  --sidebar-w: 44px;
+}
+
+.app--small {
+  --left-panel-w: 156px;
+  --right-panel-w: 188px;
+  --sidebar-w: 42px;
+}
+
 /* Skip navigation links — visible only on focus */
 .skip-link {
   position: absolute;
@@ -75,6 +92,11 @@
   min-height: 0;
 }
 
+.main-layout--tablet,
+.main-layout--small {
+  min-width: 0;
+}
+
 /* Left Panel — resizable via min/max */
 .left-panel {
   width: var(--left-panel-w);
@@ -87,6 +109,15 @@
   flex-direction: column;
   overflow: hidden;
   resize: horizontal;
+}
+
+.app--compact .left-panel {
+  min-width: 156px;
+}
+
+.app--tablet .left-panel {
+  min-width: 148px;
+  resize: none;
 }
 
 .panel-header {
@@ -136,6 +167,15 @@
   min-width: 200px;
 }
 
+.center-area--compact {
+  min-width: 160px;
+}
+
+.center-area--tablet,
+.center-area--small {
+  min-width: 0;
+}
+
 .editor-area {
   flex: 1;
   min-height: 0;
@@ -177,6 +217,15 @@
   overflow: hidden;
   resize: horizontal;
   direction: rtl; /* makes resize handle appear on the left edge */
+}
+
+.app--compact .right-panel {
+  min-width: 208px;
+}
+
+.app--tablet .right-panel,
+.app--small .right-panel {
+  resize: none;
 }
 
 .right-panel > * {

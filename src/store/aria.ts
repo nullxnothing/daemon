@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AriaMessage, AriaResponse, AriaAction } from '../../electron/shared/types'
+import { daemon } from '../lib/daemonBridge'
 
 interface AriaState {
   messages: AriaMessage[]
@@ -52,12 +53,12 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   clearMessages: () => {
     const { sessionId } = get()
     set({ messages: [] })
-    window.daemon.aria.clear(sessionId)
+    daemon.aria.clear(sessionId).catch(() => {})
   },
 
   loadHistory: async () => {
     const { sessionId } = get()
-    const res = await window.daemon.aria.history(sessionId, 50)
+    const res = await daemon.aria.history(sessionId, 50)
     if (res.ok && res.data) {
       set({ messages: res.data })
     }
@@ -69,7 +70,7 @@ export const useAriaStore = create<AriaState>((set, get) => ({
     set({ isLoading: true })
 
     try {
-      const res = await window.daemon.aria.send(sessionId, content)
+      const res = await daemon.aria.send(sessionId, content)
       if (res.ok && res.data) {
         get().addAssistantMessage(
           crypto.randomUUID(),

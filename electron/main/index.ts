@@ -48,7 +48,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 process.env.APP_ROOT = path.join(__dirname, '../..')
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+export const VITE_DEV_SERVER_URL = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL
 const SMOKE_TEST_MODE = process.env.DAEMON_SMOKE_TEST === '1'
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
@@ -196,7 +196,7 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'unsafe-eval'; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint:; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
         }
       })
     })
@@ -267,7 +267,7 @@ async function createWindow() {
     title: 'DAEMON',
     width: 1440,
     height: 900,
-    minWidth: 960,
+    minWidth: 640,
     minHeight: 600,
     frame: false,
     titleBarStyle: 'hidden',
@@ -324,6 +324,19 @@ async function createWindow() {
   win.webContents.on('did-finish-load', () => {
     if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:did-finish-load')
   })
+  if (SMOKE_TEST_MODE) {
+    win.webContents.on('did-start-loading', () => console.log('[smoke] createWindow:did-start-loading'))
+    win.webContents.on('dom-ready', () => console.log('[smoke] createWindow:dom-ready'))
+    win.webContents.on('did-stop-loading', () => console.log('[smoke] createWindow:did-stop-loading'))
+    win.webContents.on('render-process-gone', (_event, details) => {
+      console.log('[smoke] createWindow:render-process-gone', JSON.stringify(details))
+    })
+    win.webContents.on('unresponsive', () => console.log('[smoke] createWindow:unresponsive'))
+    win.webContents.on('responsive', () => console.log('[smoke] createWindow:responsive'))
+    win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      console.log('[smoke] renderer:console', JSON.stringify({ level, message, line, sourceId }))
+    })
+  }
 
   // Startup crash detection — warn if >3 crashes in the last hour
   try {
