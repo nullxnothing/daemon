@@ -56,11 +56,16 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - name: Package (code signing)
-        run: pnpm run package
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      - name: Package
+        shell: pwsh
+        run: |
+          if ("${{ secrets.CSC_LINK }}") {
+            $env:CSC_LINK = "${{ secrets.CSC_LINK }}"
+          }
+          if ("${{ secrets.CSC_KEY_PASSWORD }}") {
+            $env:CSC_KEY_PASSWORD = "${{ secrets.CSC_KEY_PASSWORD }}"
+          }
+          pnpm run package -- --publish never
       - name: Generate checksums
         shell: pwsh
         run: |
@@ -102,19 +107,28 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - name: Package (code signing & notarization)
+      - name: Package
         run: |
+          if [ -n "${{ secrets.CSC_LINK }}" ]; then
+            export CSC_LINK="${{ secrets.CSC_LINK }}"
+          fi
+          if [ -n "${{ secrets.CSC_KEY_PASSWORD }}" ]; then
+            export CSC_KEY_PASSWORD="${{ secrets.CSC_KEY_PASSWORD }}"
+          fi
+          if [ -n "${{ secrets.APPLE_ID }}" ]; then
+            export APPLE_ID="${{ secrets.APPLE_ID }}"
+          fi
+          if [ -n "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ]; then
+            export APPLE_APP_SPECIFIC_PASSWORD="${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
+          fi
+          if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
+          fi
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             echo "Notarization secrets found, enabling notarize"
             npx json -I -f electron-builder.json -e 'this.mac.notarize=true'
           fi
-          pnpm run package
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          pnpm run package -- --publish never
       - name: Generate checksums
         run: |
           cd release
@@ -156,7 +170,7 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: pnpm run package
+      - run: pnpm run package -- --publish never
       - name: Generate checksums
         run: |
           cd release
