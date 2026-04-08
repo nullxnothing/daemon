@@ -4,9 +4,18 @@ import { listClaudeAgents } from '../services/ClaudeAgentService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { Agent, AgentCreateInput } from '../shared/types'
 
-const ALLOWED_AGENT_COLUMNS = new Set([
-  'name', 'system_prompt', 'model', 'mcps', 'provider', 'project_id', 'shortcut', 'source', 'external_path',
-])
+/** Allowed columns for partial agent updates — keys serve as the whitelist */
+const AGENT_COLUMN_MAP: Record<string, true> = {
+  name: true,
+  system_prompt: true,
+  model: true,
+  mcps: true,
+  provider: true,
+  project_id: true,
+  shortcut: true,
+  source: true,
+  external_path: true,
+}
 
 export function registerAgentHandlers() {
   ipcMain.handle('agents:list', ipcHandler(async () => {
@@ -84,17 +93,18 @@ export function registerAgentHandlers() {
 
   ipcMain.handle('agents:update', ipcHandler(async (_event, id: string, data: Record<string, unknown>) => {
     const db = getDb()
-    const fields = Object.keys(data).filter((f) => ALLOWED_AGENT_COLUMNS.has(f))
-    if (fields.length === 0) throw new Error('No valid fields to update')
 
-    // Secondary guard: ensure each column name is safe for interpolation
-    if (fields.some((f) => !/^[a-z_]+$/.test(f))) throw new Error('Invalid field name')
+    const updates: Array<{ column: string; value: unknown }> = []
+    for (const [key, value] of Object.entries(data)) {
+      if (key in AGENT_COLUMN_MAP) {
+        updates.push({ column: key, value: Array.isArray(value) ? JSON.stringify(value) : value })
+      }
+    }
+    if (updates.length === 0) throw new Error('No valid fields to update')
 
-    const sets = fields.map((f) => `${f} = ?`).join(', ')
-    const values = fields.map((f) => {
-      const v = data[f]
-      return Array.isArray(v) ? JSON.stringify(v) : v
-    })
+    // Column names originate exclusively from AGENT_COLUMN_MAP keys
+    const sets = updates.map((u) => `${u.column} = ?`).join(', ')
+    const values = updates.map((u) => u.value)
     db.prepare(`UPDATE agents SET ${sets} WHERE id = ?`).run(...values, id)
     return db.prepare('SELECT * FROM agents WHERE id = ?').get(id)
   }))
