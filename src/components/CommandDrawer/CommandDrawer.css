@@ -108,10 +108,25 @@
 }
 
 .drawer-loading {
+  min-height: 160px;
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   text-align: center;
-  font-size: 11px;
   color: var(--t3);
+}
+
+.drawer-loading-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.drawer-loading-copy {
+  font-size: 11px;
 }
 
 /* Tool Grid */
