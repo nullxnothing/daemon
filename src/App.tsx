@@ -62,6 +62,7 @@ function App() {
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
   const [crashWarningCount, setCrashWarningCount] = useState<number | null>(null)
   const [appReady, setAppReady] = useState(false)
+  const [bootStatus, setBootStatus] = useState('initializing workspace...')
 
   const [showTerminal, setShowTerminal] = useState(true)
   const { tier, isCompact, isTablet, isSmall } = useShellLayout()
@@ -107,26 +108,42 @@ function App() {
   useEffect(() => {
     if (smokeMode) console.log('[smoke-renderer] app:mount')
     const guard = { cancelled: false }
-    loadProjects(guard)
-    usePluginStore.getState().load()
-    useWorkspaceProfileStore.getState().load()
-    useUIStore.getState().loadPinnedState()
+    setAppReady(false)
+    setBootStatus('initializing workspace...')
+
+    const bootSequence = async () => {
+      const minimumDisplay = new Promise((resolve) => setTimeout(resolve, 700))
+      setBootStatus('loading workspace data...')
+      const startupTasks: Array<[string, Promise<unknown>]> = [
+        ['loading projects...', loadProjects(guard)],
+        ['loading plugins...', usePluginStore.getState().load()],
+        ['loading workspace profile...', useWorkspaceProfileStore.getState().load()],
+        ['restoring layout...', useUIStore.getState().loadPinnedState()],
+        ['loading onboarding...', useOnboardingStore.getState().loadProgress()],
+        ['loading activity...', useNotificationsStore.getState().loadActivity()],
+      ]
+
+      const tasksPromise = Promise.allSettled(startupTasks.map(([, task]) => task))
+      const [results] = await Promise.all([tasksPromise, minimumDisplay])
+
+      if (guard.cancelled) return
+      if (smokeMode) {
+        const rejected = results.filter((result) => result.status === 'rejected').length
+        console.log('[smoke-renderer] app:boot-tasks-settled', JSON.stringify({ rejected }))
+      }
+      setBootStatus('ready')
+      setAppReady(true)
+      window.postMessage({ payload: 'removeLoading' }, '*')
+    }
+
+    void bootSequence()
+
     // Debug: expose store for CDP testing
     if (import.meta.env.DEV) {
       ;(window as any).__uiStore = useUIStore
     }
-    // Load onboarding progress — shows wizard or resume banner as needed
-    useOnboardingStore.getState().loadProgress()
-    // Signal the boot screen to dismiss after a brief minimum display window.
-    // The 700ms floor ensures the loader is never just a flash.
-    const readyId = setTimeout(() => {
-      if (smokeMode) console.log('[smoke-renderer] app:ready-timeout-fired')
-      setAppReady(true)
-      window.postMessage({ payload: 'removeLoading' }, '*')
-    }, 700)
     return () => {
       guard.cancelled = true
-      clearTimeout(readyId)
     }
   }, [loadProjects, smokeMode])
 
@@ -260,7 +277,7 @@ function App() {
     <div className={`app app--${tier}`}>
       <a href="#editor-area" className="skip-link">Skip to editor</a>
       <a href="#terminal-area" className="skip-link">Skip to terminal</a>
-      <BootLoader ready={appReady} />
+      <BootLoader ready={appReady} status={bootStatus} />
       {crashWarningCount !== null && (
         <div className="crash-warning-banner">
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
