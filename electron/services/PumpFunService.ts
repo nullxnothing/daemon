@@ -131,7 +131,7 @@ export async function createToken(input: TokenCreateInput): Promise<TxResult> {
     const imageBuffer = fs.readFileSync(input.imagePath)
     const ext = input.imagePath.split('.').pop()?.toLowerCase() ?? 'png'
     const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'gif' ? 'image/gif' : 'image/png'
-    const blob = new Blob([imageBuffer], { type: mimeType })
+    const blob = new Blob([new Uint8Array(imageBuffer)], { type: mimeType })
     formData.append('file', blob, `token.${ext}`)
   }
 
