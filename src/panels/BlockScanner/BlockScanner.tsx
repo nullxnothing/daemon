@@ -41,24 +41,30 @@ export default function BlockScanner() {
   const [canGoForward, setCanGoForward] = useState(false)
   const webviewRef = useRef<WebviewElement | null>(null)
 
-  const navigate = useCallback((target: string) => {
-    setUrl(target)
-    if (webviewRef.current) {
-      webviewRef.current.src = target
+  const navigate = useCallback(async (target: string) => {
+    try {
+      const res = await window.daemon.browser.navigate(target)
+      if (!res.ok || !res.data) return
+      setUrl(target)
+      if (webviewRef.current) {
+        webviewRef.current.src = target
+      }
+    } catch {
+      // blocked by main-process browser safety policy
     }
   }, [])
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const q = search.trim()
     if (!q) {
-      navigate(clusterBase(cluster))
+      await navigate(clusterBase(cluster))
       return
     }
     // Tx signatures are 87-88 base58 chars, addresses are 32-44
     if (q.length > 60) {
-      navigate(txUrl(cluster, q))
+      await navigate(txUrl(cluster, q))
     } else {
-      navigate(addressUrl(cluster, q))
+      await navigate(addressUrl(cluster, q))
     }
     setSearch('')
   }
@@ -96,9 +102,9 @@ export default function BlockScanner() {
   useEffect(() => {
     if (!url) {
       const initial = clusterBase(cluster)
-      setUrl(initial)
+      void navigate(initial)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cluster, navigate, url])
 
   const webviewProps = {
     ref: webviewRef as React.Ref<HTMLElement>,

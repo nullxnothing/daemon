@@ -17,15 +17,13 @@ export function BrowserMode() {
   const loadStatus = useBrowserStore((s) => s.loadStatus)
   const canGoBack = useBrowserStore((s) => s.canGoBack)
   const canGoForward = useBrowserStore((s) => s.canGoForward)
-  const setUrl = useBrowserStore((s) => s.setUrl)
   const setInspectMode = useBrowserStore((s) => s.setInspectMode)
 
   const handleNavigate = useCallback(
     (url: string) => {
-      setUrl(url)
       webviewRef.current?.navigate(url)
     },
-    [setUrl]
+    []
   )
 
   const handleBack = useCallback(() => {
