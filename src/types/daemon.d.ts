@@ -344,6 +344,7 @@ declare global {
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
+    holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<{ signature: string }>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>

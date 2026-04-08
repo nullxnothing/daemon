@@ -109,6 +109,10 @@ export function registerWalletHandlers() {
     return await WalletService.getBalance(walletId)
   }))
 
+  ipcMain.handle('wallet:holdings', ipcHandler(async (_event, walletId: string) => {
+    return await WalletService.getWalletHoldings(walletId)
+  }))
+
   ipcMain.handle('wallet:agent-wallets', ipcHandler(async (_event, agentId?: string) => {
     return WalletService.listAgentWallets(agentId)
   }))
