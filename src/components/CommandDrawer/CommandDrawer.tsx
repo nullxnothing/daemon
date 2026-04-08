@@ -361,6 +361,38 @@ export function CommandDrawer() {
     }
   }, [drawerOpen, drawerTool])
 
+  useEffect(() => {
+    if (!drawerOpen || drawerTool) return
+    const visibleToolIds = filteredTools
+      .slice(0, 8)
+      .map((tool) => tool.id)
+
+    let cancelled = false
+    const prewarmVisibleTools = () => {
+      if (cancelled) return
+      visibleToolIds.forEach((toolId) => preloadToolPanel(toolId))
+    }
+
+    const idleCallback = (window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }).requestIdleCallback
+
+    if (typeof idleCallback === 'function') {
+      const idleId = idleCallback(prewarmVisibleTools, { timeout: 1200 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback?.(idleId)
+      }
+    }
+
+    const timeoutId = window.setTimeout(prewarmVisibleTools, 75)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [drawerOpen, drawerTool, filteredTools])
+
   // Esc to close or go back to grid
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -390,6 +422,7 @@ export function CommandDrawer() {
   }
 
   const handleToolClick = (toolId: string) => {
+    preloadToolPanel(toolId)
     setDrawerTool(toolId)
     setSearch('')
   }
