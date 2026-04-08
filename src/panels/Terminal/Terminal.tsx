@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
+import { getEmbeddedProviderStartupCommand } from '../../../electron/shared/providerLaunch'
 import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
@@ -148,7 +149,7 @@ export function TerminalPanel() {
       const { installed } = res.data
 
       if (installed) {
-        return handleNewTerminal('Claude', 'claude').then(() => {})
+        return handleNewTerminal('Claude', getEmbeddedProviderStartupCommand('claude')).then(() => {})
       }
 
       // Claude CLI not found — open terminal and run the install command
