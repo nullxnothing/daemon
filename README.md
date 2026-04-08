@@ -42,7 +42,7 @@ DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships
 
 <a name="mac-install"></a>
 
-**Mac:** Build from source (signed builds coming soon):
+**Mac:** Build from source (signed builds configurable via Apple credentials):
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
@@ -52,7 +52,7 @@ pnpm run build
 pnpm run package
 ```
 
-The `.dmg` will be in `release/2.0.0/`. Drag to Applications. On first launch, right-click > Open to bypass Gatekeeper (not yet signed/notarized).
+The `.dmg` will be in `release/2.0.0/`. Signed/notarized builds require Apple Developer credentials in the packaging environment. Without them, the app will still package, but Gatekeeper may require right-click > Open on first launch.
 
 <a name="linux-install"></a>
 

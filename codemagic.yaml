@@ -7,6 +7,11 @@ workflows:
       node: 22
       groups:
         - cloudflare
+        # Optional: add a Codemagic group that provides
+        # CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID,
+        # APPLE_APP_SPECIFIC_PASSWORD, and APPLE_TEAM_ID
+        # when you are ready to ship signed/notarized mac builds.
+        # - apple-signing
     triggering:
       events:
         - tag

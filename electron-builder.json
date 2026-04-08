@@ -27,9 +27,10 @@
     "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
     "artifactName": "${productName}-${arch}.${ext}",
-    "identity": null,
-    "notarize": false
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false
   },
+  "afterSign": "build/notarize.mjs",
   "win": {
     "target": [
       {
