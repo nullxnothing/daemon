@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { randomUUID } from 'node:crypto'
 import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../../db/db'
 import * as SecureKey from '../SecureKeyService'
@@ -191,8 +192,8 @@ export const CodexProvider: ProviderInterface = {
     sections.push('</daemon-context>')
 
     const contextContent = sections.filter(Boolean).join('\n')
-    const contextFilePath = path.join(os.tmpdir(), `daemon_codex_${agent.id}_${Date.now()}.txt`)
-    fs.writeFileSync(contextFilePath, contextContent, 'utf8')
+    const contextFilePath = path.join(os.tmpdir(), `daemon_codex_${agent.id}_${randomUUID()}.txt`)
+    fs.writeFileSync(contextFilePath, contextContent, { encoding: 'utf8', mode: 0o600 })
 
     // Resolve model — map Claude models to Codex equivalents
     const model = resolveCodexModel(agent.model)
@@ -232,7 +233,7 @@ export const CodexProvider: ProviderInterface = {
     const codexPath = this.resolvePath()
     const resolvedModel = resolveCodexModel(model)
 
-    const outputFile = path.join(os.tmpdir(), `daemon_codex_out_${Date.now()}.txt`)
+    const outputFile = path.join(os.tmpdir(), `daemon_codex_out_${randomUUID()}.txt`)
 
     const args: string[] = [
       'exec',
@@ -245,8 +246,8 @@ export const CodexProvider: ProviderInterface = {
     // Write system prompt to temp file and pass via -c instructions_file
     let contextFile: string | null = null
     if (systemPrompt) {
-      contextFile = path.join(os.tmpdir(), `daemon_codex_prompt_${Date.now()}.txt`)
-      fs.writeFileSync(contextFile, systemPrompt, 'utf8')
+      contextFile = path.join(os.tmpdir(), `daemon_codex_prompt_${randomUUID()}.txt`)
+      fs.writeFileSync(contextFile, systemPrompt, { encoding: 'utf8', mode: 0o600 })
       args.push('-c', `instructions_file=${contextFile}`)
     }
 
