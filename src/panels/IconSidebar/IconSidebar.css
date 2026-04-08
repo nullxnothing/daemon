@@ -87,6 +87,10 @@
   justify-content: center;
   color: var(--t4);
   font-size: 14px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  z-index: 31;
 }
 
 .sidebar-drop-zone::before {
@@ -96,6 +100,13 @@
 
 .sidebar-drop-zone:hover {
   opacity: 0.6;
+}
+
+.sidebar-drop-zone.active {
+  opacity: 0.9;
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.08);
 }
 
 .sidebar-drop-zone--active {
@@ -149,6 +160,13 @@
   z-index: 30;
 }
 
+.sidebar-submenu--tools {
+  top: -4px;
+  max-height: min(420px, calc(100vh - 120px));
+  width: 220px;
+  overflow-y: auto;
+}
+
 .sidebar-submenu-group {
   font-size: 10px;
   letter-spacing: 0.4px;
@@ -170,6 +188,19 @@
 .sidebar-submenu-item:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.sidebar-submenu-item--tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-submenu-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.5;
 }
 
 /* Colosseum icon */

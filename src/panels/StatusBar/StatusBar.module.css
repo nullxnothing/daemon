@@ -9,6 +9,8 @@
   border-top: 1px solid var(--border);
   border-image: linear-gradient(90deg, var(--border) 0%, var(--border) 70%, rgba(62, 207, 142, 0.12) 100%) 1;
   flex-shrink: 0;
+  min-width: 0;
+  gap: 12px;
 }
 
 .left,
@@ -22,6 +24,12 @@
 
 .right {
   justify-content: flex-end;
+}
+
+.inlineMarket {
+  display: none;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .center {
@@ -52,6 +60,7 @@
 .item {
   font-size: 11px;
   color: var(--t3);
+  white-space: nowrap;
 }
 
 .branch {
@@ -87,6 +96,20 @@
   position: relative;
 }
 
+.bugButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+
+.bugLabel {
+  font-size: 10px;
+}
+
 .emailBtn:hover {
   color: var(--t1);
 }
@@ -110,6 +133,9 @@
   display: inline-flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .marketTapeItem {
@@ -225,4 +251,80 @@
 .panelToggle:hover {
   color: var(--t1);
   background: var(--s3);
+}
+
+.compact .center,
+.tablet .center,
+.small .center {
+  display: none;
+}
+
+.compact .inlineMarket,
+.tablet .inlineMarket {
+  display: flex;
+  align-items: center;
+}
+
+.compact .left,
+.compact .right {
+  gap: 12px;
+}
+
+.compact .statusGroup {
+  padding: 0 6px;
+}
+
+.tablet {
+  gap: 8px;
+}
+
+.tablet .left,
+.tablet .right {
+  gap: 8px;
+}
+
+.tablet .statusGroup {
+  padding: 0 6px;
+  gap: 6px;
+}
+
+.tablet .inlineMarket {
+  display: none;
+}
+
+.small {
+  height: auto;
+  min-height: var(--statusbar-h);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  justify-content: space-between;
+}
+
+.small .left,
+.small .right {
+  flex: 1 1 100%;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.small .statusGroup {
+  padding: 0;
+  gap: 6px;
+  border-left: none;
+}
+
+.small .statusGroup + .statusGroup {
+  border-left: none;
+}
+
+.small .panelToggles {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+.small .item {
+  font-size: 10px;
 }

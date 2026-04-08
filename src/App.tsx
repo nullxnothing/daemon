@@ -28,6 +28,7 @@ import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useCommandPalette } from './hooks/useCommandPalette'
+import { useShellLayout } from './hooks/useShellLayout'
 import './App.css'
 
 const EditorPanel = lazy(() => import('./panels/Editor/Editor').then((module) => ({ default: module.EditorPanel })))
@@ -57,6 +58,7 @@ function App() {
   const [appReady, setAppReady] = useState(false)
 
   const [showTerminal, setShowTerminal] = useState(true)
+  const { tier, isCompact, isTablet, isSmall } = useShellLayout()
 
   const { loadProjects, addProject, removeProject } = useProjects()
   const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
@@ -134,6 +136,24 @@ function App() {
   useEffect(() => { if (agentLauncherRequestId > 0) setShowAgentLauncher(true) }, [agentLauncherRequestId])
   useEffect(() => { if (terminalFocusRequestId > 0) setShowTerminal(true) }, [terminalFocusRequestId])
 
+  const previousTierRef = useRef(tier)
+  useEffect(() => {
+    const previousTier = previousTierRef.current
+    previousTierRef.current = tier
+
+    if (previousTier === tier) return
+
+    if (tier === 'tablet') {
+      setShowRightPanel(false)
+      return
+    }
+
+    if (tier === 'small') {
+      setShowRightPanel(false)
+      setShowExplorer(false)
+    }
+  }, [tier])
+
   // Renderer crash capture — forward errors to main process via IPC
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -210,7 +230,7 @@ function App() {
   )
 
   return (
-    <div className="app">
+    <div className={`app app--${tier}`}>
       <a href="#editor-area" className="skip-link">Skip to editor</a>
       <a href="#terminal-area" className="skip-link">Skip to terminal</a>
       <BootLoader ready={appReady} />
@@ -237,7 +257,7 @@ function App() {
         onRemoveProject={removeProject}
       />
 
-      <div className="main-layout">
+      <div className={`main-layout main-layout--${tier}`}>
         <IconSidebar
           showExplorer={showExplorer}
           onToggleExplorer={() => setShowExplorer(!showExplorer)}
@@ -245,13 +265,17 @@ function App() {
           isAgentLauncherOpen={showAgentLauncher}
         />
 
-        {showExplorer && activeProjectPath && (
+        {showExplorer && activeProjectPath && !isSmall && (
           <div className="left-panel" data-tour="file-explorer">
             <FileExplorer />
           </div>
         )}
 
-        <div className="center-area" style={{ position: 'relative' }} ref={centerRef}>
+        <div
+          className={`center-area${isCompact ? ' center-area--compact' : ''}${isTablet ? ' center-area--tablet' : ''}${isSmall ? ' center-area--small' : ''}`}
+          style={{ position: 'relative' }}
+          ref={centerRef}
+        >
           <SolanaOnboardingBanner />
           {!isEditorCollapsed && (
             <div id="editor-area" className="editor-area" data-tour="editor">
@@ -288,7 +312,7 @@ function App() {
           <CommandDrawer />
         </div>
 
-        {shouldShowRightPanel && (
+        {shouldShowRightPanel && !isTablet && !isSmall && (
           <aside className="right-panel" data-tour="right-panel">
             <Suspense fallback={<PanelSkeleton className="right-panel" />}>
               <RightPanel />

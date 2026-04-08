@@ -4,6 +4,6 @@
 export const BUILTIN_TOOL_IDS: string[] = [
   'starter', 'git', 'deploy', 'env', 'wallet', 'email',
   'ports', 'processes', 'settings', 'image-editor',
-  'solana-toolbox', 'block-scanner', 'docs', 'dashboard',
+  'token-launch', 'solana-toolbox', 'block-scanner', 'docs', 'dashboard',
   'sessions', 'hackathon', 'plugins', 'recovery',
 ]
