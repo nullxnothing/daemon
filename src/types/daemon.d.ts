@@ -161,6 +161,28 @@ export type {
 }
 
 declare global {
+  type LaunchWalletOption = {
+    id: string
+    name: string
+    address: string
+    isDefault: boolean
+    hasKeypair: boolean
+    isAssignedToActiveProject: boolean
+    assignedProjectIds: string[]
+  }
+
+  type TokenLaunchSettings = {
+    raydium: {
+      configId: string
+      quoteMint: string
+    }
+    meteora: {
+      configId: string
+      quoteMint: string
+      baseSupply: string
+    }
+  }
+
   // Re-export shared types as global ambient types so existing code
   // that references them without explicit imports continues to work.
   type Project = import('../../electron/shared/types').Project
@@ -319,9 +341,10 @@ declare global {
     deleteHeliusKey: () => Promise<IpcResponse>
     hasHeliusKey: () => Promise<IpcResponse<boolean>>
     generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
-    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => Promise<IpcResponse<{ signature: string }>>
-    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => Promise<IpcResponse<{ signature: string }>>
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
+    holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<{ signature: string }>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
@@ -363,6 +386,8 @@ declare global {
     setDrawerToolOrder: (order: string[]) => Promise<IpcResponse>
     getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
+    getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
+    setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
@@ -569,13 +594,89 @@ declare global {
     metadata_uri: string | null
     launchpad: string
     pool_address: string | null
+    bonding_curve_address: string | null
     create_signature: string | null
     initial_buy_sol: number | null
+    launchpad_config_json: string
+    protocol_receipts_json: string
     status: string
+    error_message: string | null
+    confirmed_at: number | null
+    updated_at: number | null
     created_at: number
   }
 
+  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'bonk'
+  type LaunchpadStatus = 'available' | 'planned'
+
+  interface LaunchpadDefinition {
+    id: LaunchpadId
+    name: string
+    description: string
+    status: LaunchpadStatus
+    enabled: boolean
+    reason: string | null
+  }
+
+  interface TokenLaunchResult {
+    launch: LaunchedToken
+    signature: string
+    mint: string
+    metadataUri: string | null
+    poolAddress: string | null
+    bondingCurveAddress: string | null
+  }
+
+  interface TokenLaunchCheck {
+    id: string
+    label: string
+    status: 'pass' | 'warn' | 'fail'
+    detail: string
+  }
+
+  interface TokenLaunchPreflight {
+    ready: boolean
+    estimatedTotalSol: number
+    walletBalanceSol: number | null
+    checks: TokenLaunchCheck[]
+  }
+
   interface DaemonLaunch {
+    listLaunchpads: () => Promise<IpcResponse<LaunchpadDefinition[]>>
+    listWalletOptions: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption[]>>
+    pickImage: () => Promise<IpcResponse<string | null>>
+    preflightToken: (input: {
+      launchpad: LaunchpadId
+      walletId: string
+      projectId?: string
+      name: string
+      symbol: string
+      description: string
+      imagePath: string | null
+      twitter?: string
+      telegram?: string
+      website?: string
+      initialBuySol: number
+      slippageBps: number
+      priorityFeeSol: number
+      mayhemMode?: boolean
+    }) => Promise<IpcResponse<TokenLaunchPreflight>>
+    createToken: (input: {
+      launchpad: LaunchpadId
+      walletId: string
+      projectId?: string
+      name: string
+      symbol: string
+      description: string
+      imagePath: string | null
+      twitter?: string
+      telegram?: string
+      website?: string
+      initialBuySol: number
+      slippageBps: number
+      priorityFeeSol: number
+      mayhemMode?: boolean
+    }) => Promise<IpcResponse<TokenLaunchResult>>
     saveToken: (input: {
       walletId: string
       projectId?: string
@@ -587,6 +688,13 @@ declare global {
       launchpad?: string
       createSignature?: string
       initialBuySol?: number
+      poolAddress?: string
+      bondingCurveAddress?: string
+      launchpadConfigJson?: string
+      protocolReceiptsJson?: string
+      status?: string
+      errorMessage?: string
+      confirmedAt?: number
     }) => Promise<IpcResponse<{ id: string }>>
     listTokens: (walletId?: string) => Promise<IpcResponse<LaunchedToken[]>>
     getToken: (idOrMint: string) => Promise<IpcResponse<LaunchedToken | null>>

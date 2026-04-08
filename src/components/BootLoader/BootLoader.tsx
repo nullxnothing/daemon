@@ -14,9 +14,10 @@ const STATUS_SEQUENCE = [
 interface BootLoaderProps {
   /** When true, the loader fades out and unmounts after the transition. */
   ready: boolean
+  status?: string
 }
 
-export function BootLoader({ ready }: BootLoaderProps) {
+export function BootLoader({ ready, status }: BootLoaderProps) {
   const [mounted, setMounted] = useState(true)
   const [statusIndex, setStatusIndex] = useState(0)
 
@@ -69,7 +70,7 @@ export function BootLoader({ ready }: BootLoaderProps) {
       </div>
 
       <div className="bootloader__status">
-        {STATUS_SEQUENCE[statusIndex]}
+        {status ?? STATUS_SEQUENCE[statusIndex]}
       </div>
 
       <div className="bootloader__progress-track">

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback, lazy, Suspense } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'react'
 import { BootLoader } from './components/BootLoader/BootLoader'
 import { FileExplorer } from './panels/FileExplorer/FileExplorer'
 import { CommandPalette } from './components/CommandPalette/CommandPalette'
@@ -28,18 +28,26 @@ import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 import { useCommandPalette } from './hooks/useCommandPalette'
+import { useShellLayout } from './hooks/useShellLayout'
+import { daemon } from './lib/daemonBridge'
+import { lazyNamedWithReload } from './utils/lazyWithReload'
+import { preloadToolPanel } from './components/CommandDrawer/CommandDrawer'
 import './App.css'
 
-const EditorPanel = lazy(() => import('./panels/Editor/Editor').then((module) => ({ default: module.EditorPanel })))
-const TerminalPanel = lazy(() => import('./panels/Terminal/Terminal').then((module) => ({ default: module.TerminalPanel })))
-const RightPanel = lazy(() => import('./panels/RightPanel/RightPanel').then((module) => ({ default: module.RightPanel })))
-const AgentGrid = lazy(() => import('./panels/Terminal/AgentGrid').then((module) => ({ default: module.AgentGrid })))
+const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
+const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
+const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/RightPanel/RightPanel'), (module) => module.RightPanel)
+const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
 function PanelSkeleton({ className }: { className: string }) {
   return <div className={className} />
 }
 
 function App() {
+  const smokeMode = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('smoke') === '1'
+  }, [])
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const projects = useUIStore((s) => s.projects)
@@ -55,8 +63,10 @@ function App() {
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
   const [crashWarningCount, setCrashWarningCount] = useState<number | null>(null)
   const [appReady, setAppReady] = useState(false)
+  const [bootStatus, setBootStatus] = useState('initializing workspace...')
 
   const [showTerminal, setShowTerminal] = useState(true)
+  const { tier, isCompact, isTablet, isSmall } = useShellLayout()
 
   const { loadProjects, addProject, removeProject } = useProjects()
   const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
@@ -97,28 +107,46 @@ function App() {
     && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
+    if (smokeMode) console.log('[smoke-renderer] app:mount')
     const guard = { cancelled: false }
-    loadProjects(guard)
-    usePluginStore.getState().load()
-    useWorkspaceProfileStore.getState().load()
-    useUIStore.getState().loadPinnedState()
+    setAppReady(false)
+    setBootStatus('initializing workspace...')
+
+    const bootSequence = async () => {
+      const minimumDisplay = new Promise((resolve) => setTimeout(resolve, 700))
+      setBootStatus('loading workspace data...')
+      const startupTasks: Array<[string, Promise<unknown>]> = [
+        ['loading projects...', loadProjects(guard)],
+        ['loading plugins...', usePluginStore.getState().load()],
+        ['loading workspace profile...', useWorkspaceProfileStore.getState().load()],
+        ['restoring layout...', useUIStore.getState().loadPinnedState()],
+        ['loading onboarding...', useOnboardingStore.getState().loadProgress()],
+        ['loading activity...', useNotificationsStore.getState().loadActivity()],
+      ]
+
+      const tasksPromise = Promise.allSettled(startupTasks.map(([, task]) => task))
+      const [results] = await Promise.all([tasksPromise, minimumDisplay])
+
+      if (guard.cancelled) return
+      if (smokeMode) {
+        const rejected = results.filter((result) => result.status === 'rejected').length
+        console.log('[smoke-renderer] app:boot-tasks-settled', JSON.stringify({ rejected }))
+      }
+      setBootStatus('ready')
+      setAppReady(true)
+      window.postMessage({ payload: 'removeLoading' }, '*')
+    }
+
+    void bootSequence()
+
     // Debug: expose store for CDP testing
     if (import.meta.env.DEV) {
       ;(window as any).__uiStore = useUIStore
     }
-    // Load onboarding progress — shows wizard or resume banner as needed
-    useOnboardingStore.getState().loadProgress()
-    // Signal the boot screen to dismiss after a brief minimum display window.
-    // The 700ms floor ensures the loader is never just a flash.
-    const readyId = setTimeout(() => {
-      setAppReady(true)
-      window.postMessage({ payload: 'removeLoading' }, '*')
-    }, 700)
     return () => {
       guard.cancelled = true
-      clearTimeout(readyId)
     }
-  }, [])
+  }, [loadProjects, smokeMode])
 
   // Load activity history once on mount so the activity log is populated
   useEffect(() => {
@@ -134,10 +162,28 @@ function App() {
   useEffect(() => { if (agentLauncherRequestId > 0) setShowAgentLauncher(true) }, [agentLauncherRequestId])
   useEffect(() => { if (terminalFocusRequestId > 0) setShowTerminal(true) }, [terminalFocusRequestId])
 
+  const previousTierRef = useRef(tier)
+  useEffect(() => {
+    const previousTier = previousTierRef.current
+    previousTierRef.current = tier
+
+    if (previousTier === tier) return
+
+    if (tier === 'tablet') {
+      setShowRightPanel(false)
+      return
+    }
+
+    if (tier === 'small') {
+      setShowRightPanel(false)
+      setShowExplorer(false)
+    }
+  }, [tier])
+
   // Renderer crash capture — forward errors to main process via IPC
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      window.daemon.settings.reportCrash({
+      daemon.settings.reportCrash({
         type: 'renderer_error',
         message: event.message,
         stack: event.error?.stack ?? '',
@@ -146,7 +192,7 @@ function App() {
     const handleRejection = (event: PromiseRejectionEvent) => {
       const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
       const stack = event.reason instanceof Error ? event.reason.stack ?? '' : ''
-      window.daemon.settings.reportCrash({
+      daemon.settings.reportCrash({
         type: 'renderer_rejection',
         message,
         stack,
@@ -165,7 +211,7 @@ function App() {
   // errors are not worth interrupting the user.
   useEffect(() => {
     const CRASH_BANNER_THRESHOLD = 3
-    return window.daemon.settings.onCrashWarning((count) => {
+    return daemon.settings.onCrashWarning((count) => {
       if (count >= CRASH_BANNER_THRESHOLD) {
         setCrashWarningCount(count)
       }
@@ -173,8 +219,61 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!smokeMode) return
+    console.log('[smoke-renderer] app:state', JSON.stringify({
+      appReady,
+      activeProjectId,
+      centerMode,
+      drawerOpen,
+      launchWizardOpen,
+      tier,
+      showExplorer,
+      showRightPanel,
+      showTerminal,
+    }))
+  }, [activeProjectId, appReady, centerMode, drawerOpen, launchWizardOpen, showExplorer, showRightPanel, showTerminal, smokeMode, tier])
+
+  useEffect(() => {
+    if (smokeMode) console.log('[smoke-renderer] app:layout-mounted')
+  }, [smokeMode])
+
+  useEffect(() => {
     void useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
+
+  useEffect(() => {
+    if (!appReady) return
+    const pinnedTools = useUIStore.getState().pinnedTools
+    const likelyNext = ['wallet', 'git', 'token-launch']
+    const warmSet = [...new Set([...pinnedTools, ...likelyNext])]
+      .filter((toolId) => toolId !== 'browser')
+      .slice(0, 6)
+
+    let cancelled = false
+    const warmPanels = () => {
+      if (cancelled) return
+      warmSet.forEach((toolId) => preloadToolPanel(toolId))
+    }
+
+    const idleCallback = (window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }).requestIdleCallback
+
+    if (typeof idleCallback === 'function') {
+      const idleId = idleCallback(warmPanels, { timeout: 1500 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback?.(idleId)
+      }
+    }
+
+    const timeoutId = window.setTimeout(warmPanels, 250)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [appReady])
 
   // Detect Solana project when active project changes
   useEffect(() => {
@@ -210,10 +309,10 @@ function App() {
   )
 
   return (
-    <div className="app">
+    <div className={`app app--${tier}`}>
       <a href="#editor-area" className="skip-link">Skip to editor</a>
       <a href="#terminal-area" className="skip-link">Skip to terminal</a>
-      <BootLoader ready={appReady} />
+      <BootLoader ready={appReady} status={bootStatus} />
       {crashWarningCount !== null && (
         <div className="crash-warning-banner">
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
@@ -237,7 +336,7 @@ function App() {
         onRemoveProject={removeProject}
       />
 
-      <div className="main-layout">
+      <div className={`main-layout main-layout--${tier}`}>
         <IconSidebar
           showExplorer={showExplorer}
           onToggleExplorer={() => setShowExplorer(!showExplorer)}
@@ -245,13 +344,17 @@ function App() {
           isAgentLauncherOpen={showAgentLauncher}
         />
 
-        {showExplorer && activeProjectPath && (
+        {showExplorer && activeProjectPath && !isSmall && (
           <div className="left-panel" data-tour="file-explorer">
             <FileExplorer />
           </div>
         )}
 
-        <div className="center-area" style={{ position: 'relative' }} ref={centerRef}>
+        <div
+          className={`center-area${isCompact ? ' center-area--compact' : ''}${isTablet ? ' center-area--tablet' : ''}${isSmall ? ' center-area--small' : ''}`}
+          style={{ position: 'relative' }}
+          ref={centerRef}
+        >
           <SolanaOnboardingBanner />
           {!isEditorCollapsed && (
             <div id="editor-area" className="editor-area" data-tour="editor">
@@ -288,7 +391,7 @@ function App() {
           <CommandDrawer />
         </div>
 
-        {shouldShowRightPanel && (
+        {shouldShowRightPanel && !isTablet && !isSmall && (
           <aside className="right-panel" data-tour="right-panel">
             <Suspense fallback={<PanelSkeleton className="right-panel" />}>
               <RightPanel />

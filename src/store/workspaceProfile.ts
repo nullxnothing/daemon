@@ -4,6 +4,7 @@ import { getDefaultVisibility, PROFILE_PRESETS } from '../constants/workspacePro
 import { BUILTIN_TOOL_IDS } from '../constants/toolIds'
 import { useUIStore } from './ui'
 import { useNotificationsStore } from './notifications'
+import { daemon } from '../lib/daemonBridge'
 
 interface WorkspaceProfileState {
   profileName: WorkspaceProfileName
@@ -23,7 +24,7 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
 
   load: async () => {
     try {
-      const res = await window.daemon.settings.getWorkspaceProfile()
+      const res = await daemon.settings.getWorkspaceProfile()
       if (res.ok && res.data) {
         set({
           profileName: res.data.name,
@@ -47,7 +48,7 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     const visibility = getDefaultVisibility(name, BUILTIN_TOOL_IDS)
     set({ profileName: name, toolVisibility: visibility })
     const profile: WorkspaceProfile = { name, toolVisibility: visibility }
-    await window.daemon.settings.setWorkspaceProfile(profile).catch(() => {})
+    await daemon.settings.setWorkspaceProfile(profile).catch(() => {})
 
     // Hide pinned tools that are no longer visible in the new profile.
     // We don't delete them — pinnedTools persists, but the sidebar will
@@ -71,7 +72,7 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     const updated = { ...toolVisibility, [toolId]: visible }
     set({ toolVisibility: updated, profileName: 'custom' })
     const profile: WorkspaceProfile = { name: 'custom', toolVisibility: updated }
-    await window.daemon.settings.setWorkspaceProfile(profile).catch(() => {})
+    await daemon.settings.setWorkspaceProfile(profile).catch(() => {})
   },
 
   isToolVisible: (toolId) => {

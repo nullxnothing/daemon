@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { daemon } from '../lib/daemonBridge'
 import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
 
 interface OpenFile {
@@ -133,7 +134,7 @@ export const useUIStore = create<UIState>((set) => ({
   drawerTool: null,
   drawerOpen: false,
   drawerFullscreen: false,
-  pinnedTools: ['git', 'browser', 'solana-toolbox'],
+  pinnedTools: ['git', 'browser', 'token-launch', 'solana-toolbox'],
   drawerToolOrder: [],
 
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),
@@ -223,8 +224,8 @@ export const useUIStore = create<UIState>((set) => ({
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
   setCenterMode: (mode) => {
     set({ centerMode: mode })
-    if (typeof window !== 'undefined' && window.daemon?.settings?.setLayout) {
-      window.daemon.settings.setLayout({ centerMode: mode }).catch(() => {})
+    if (typeof window !== 'undefined') {
+      daemon.settings.setLayout({ centerMode: mode }).catch(() => {})
     }
   },
   toggleBrowserTab: () => set((state) => {
@@ -259,8 +260,8 @@ export const useUIStore = create<UIState>((set) => ({
     : { browserTabActive: false }),
   setRightPanelTab: (tab) => {
     set({ rightPanelTab: tab })
-    if (typeof window !== 'undefined' && window.daemon?.settings?.setLayout) {
-      window.daemon.settings.setLayout({ rightPanelTab: tab }).catch(() => {})
+    if (typeof window !== 'undefined') {
+      daemon.settings.setLayout({ rightPanelTab: tab }).catch(() => {})
     }
   },
   toggleDashboardTab: () => set((state) => {
@@ -381,34 +382,40 @@ export const useUIStore = create<UIState>((set) => ({
   })),
   closeAllQuickViews: () => set({ walletQuickViewOpen: false, emailQuickViewOpen: false }),
 
-  setDrawerTool: (tool) => set({ drawerTool: tool, drawerOpen: tool !== null, drawerFullscreen: tool !== null }),
-  closeDrawer: () => set({ drawerOpen: false, drawerFullscreen: false }),
-  toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen, drawerFullscreen: false })),
+  setDrawerTool: (tool) => set((state) => ({
+    drawerTool: tool,
+    drawerOpen: tool !== null,
+    drawerFullscreen: tool !== null ? state.drawerFullscreen : false,
+  })),
+  closeDrawer: () => set({ drawerOpen: false, drawerTool: null, drawerFullscreen: false }),
+  toggleDrawer: () => set((state) => state.drawerOpen
+    ? { drawerOpen: false, drawerTool: null, drawerFullscreen: false }
+    : { drawerOpen: true, drawerTool: null, drawerFullscreen: false }),
   toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
   setPinnedTools: (tools) => {
     set({ pinnedTools: tools })
-    window.daemon.settings.setPinnedTools(tools).catch(() => {})
+    daemon.settings.setPinnedTools(tools).catch(() => {})
   },
   pinTool: (toolId) => set((state) => {
     const next = state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId]
-    window.daemon.settings.setPinnedTools(next).catch(() => {})
+    daemon.settings.setPinnedTools(next).catch(() => {})
     return { pinnedTools: next }
   }),
   unpinTool: (toolId) => set((state) => {
     const next = state.pinnedTools.filter((id) => id !== toolId)
-    window.daemon.settings.setPinnedTools(next).catch(() => {})
+    daemon.settings.setPinnedTools(next).catch(() => {})
     return { pinnedTools: next }
   }),
   setDrawerToolOrder: (order) => {
     set({ drawerToolOrder: order })
-    window.daemon.settings.setDrawerToolOrder(order).catch(() => {})
+    daemon.settings.setDrawerToolOrder(order).catch(() => {})
   },
   loadPinnedState: async () => {
     try {
       const [pinnedRes, orderRes, layoutRes] = await Promise.all([
-        window.daemon.settings.getPinnedTools(),
-        window.daemon.settings.getDrawerToolOrder(),
-        window.daemon.settings.getLayout(),
+        daemon.settings.getPinnedTools(),
+        daemon.settings.getDrawerToolOrder(),
+        daemon.settings.getLayout(),
       ])
       const updates: Partial<UIState> = {}
       if (pinnedRes.ok && pinnedRes.data) updates.pinnedTools = pinnedRes.data

@@ -4,7 +4,7 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { getConnection, withKeypair } from './SolanaService'
+import { getConnection, getHeliusApiKey, withKeypair } from './SolanaService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -316,7 +316,7 @@ export function deleteHeliusKey() {
 }
 
 export function hasHeliusKey() {
-  return Boolean(SecureKey.getKey('HELIUS_API_KEY'))
+  return Boolean(getHeliusApiKey())
 }
 
 async function getMarketTape() {
@@ -484,6 +484,30 @@ function isValidSolanaAddress(value: string): boolean {
   try { new PublicKey(value); return true } catch { return false }
 }
 
+function toRawTokenAmount(amount: number, decimals: number): bigint {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Amount must be greater than 0')
+  }
+
+  const [wholePart = '0', fractionalPart = ''] = amount.toString().split('.')
+  const normalizedFraction = fractionalPart.padEnd(decimals, '0').slice(0, decimals)
+  return BigInt(`${wholePart}${normalizedFraction}`.replace(/^0+(?=\d)/, '') || '0')
+}
+
+function formatTokenAmount(rawAmount: bigint, decimals: number): string {
+  if (decimals <= 0) return rawAmount.toString()
+
+  const sign = rawAmount < 0n ? '-' : ''
+  const absolute = rawAmount < 0n ? -rawAmount : rawAmount
+  const divisor = 10n ** BigInt(decimals)
+  const whole = absolute / divisor
+  const fraction = absolute % divisor
+
+  if (fraction === 0n) return `${sign}${whole.toString()}`
+
+  return `${sign}${whole.toString()}.${fraction.toString().padStart(decimals, '0').replace(/0+$/, '')}`
+}
+
 // ---------------------------------------------------------------------------
 // Solana Transaction Support
 // ---------------------------------------------------------------------------
@@ -518,43 +542,53 @@ export function generateWallet(name: string, walletType: 'user' | 'agent' = 'use
   return db.prepare('SELECT id, name, address, is_default, wallet_type, agent_id, created_at FROM wallets WHERE id = ?').get(id)
 }
 
-export async function transferSOL(fromWalletId: string, toAddress: string, amountSol: number) {
-  if (amountSol <= 0) throw new Error('Amount must be greater than 0')
+export async function transferSOL(fromWalletId: string, toAddress: string, amountSol?: number, sendMax = false) {
+  if (!sendMax && (!amountSol || amountSol <= 0)) throw new Error('Amount must be greater than 0')
   if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
 
   const db = getDb()
 
-  // Agent spend limit check — only count SOL transfers toward the SOL-denominated limit
   const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
-  if (walletRow?.wallet_type === 'agent') {
-    const dayAgo = Date.now() - 86_400_000
-    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'sol_transfer', dayAgo) as { total: number }
-    if (row.total + amountSol > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
-  }
 
   return withKeypair(fromWalletId, async (keypair) => {
     const connection = getConnection()
     const fromAddress = keypair.publicKey.toBase58()
 
-    // Balance check before building transaction
     const balance = await connection.getBalance(keypair.publicKey)
-    const lamportsNeeded = Math.round(amountSol * LAMPORTS_PER_SOL) + 10_000
+    const feeBufferLamports = 10_000
+    const lamportsToSend = sendMax
+      ? Math.max(0, balance - feeBufferLamports)
+      : Math.round((amountSol ?? 0) * LAMPORTS_PER_SOL)
+
+    if (lamportsToSend <= 0) {
+      throw new Error('Not enough SOL to send after reserving network fees')
+    }
+
+    const amountToRecord = lamportsToSend / LAMPORTS_PER_SOL
+    const lamportsNeeded = lamportsToSend + feeBufferLamports
     if (balance < lamportsNeeded) {
-      throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountSol} SOL + fees`)
+      throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountToRecord.toFixed(4)} SOL + fees`)
+    }
+
+    // Agent spend limit check — only count SOL transfers toward the SOL-denominated limit
+    if (walletRow?.wallet_type === 'agent') {
+      const dayAgo = Date.now() - 86_400_000
+      const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status = ? AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'sol_transfer', dayAgo) as { total: number }
+      if (row.total + amountToRecord > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
     }
 
     const txId = crypto.randomUUID()
 
     db.prepare(
       'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
-    ).run(txId, fromWalletId, 'sol_transfer', fromAddress, toAddress, amountSol, 'pending', Date.now())
+    ).run(txId, fromWalletId, 'sol_transfer', fromAddress, toAddress, amountToRecord, 'pending', Date.now())
 
     try {
       const transaction = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: keypair.publicKey,
           toPubkey: new PublicKey(toAddress),
-          lamports: Math.round(amountSol * LAMPORTS_PER_SOL),
+          lamports: lamportsToSend,
         })
       )
 
@@ -570,8 +604,8 @@ export async function transferSOL(fromWalletId: string, toAddress: string, amoun
   })
 }
 
-export async function transferToken(fromWalletId: string, toAddress: string, mint: string, amount: number) {
-  if (amount <= 0) throw new Error('Amount must be greater than 0')
+export async function transferToken(fromWalletId: string, toAddress: string, mint: string, amount?: number, sendMax = false) {
+  if (!sendMax && (!amount || amount <= 0)) throw new Error('Amount must be greater than 0')
   if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
   if (!isValidSolanaAddress(mint)) throw new Error('Invalid mint address')
 
@@ -590,16 +624,25 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
     const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
     const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+    let rawAmount: bigint
+    let amountToRecord: number
     try {
       const accountInfo = await getAccount(connection, fromAta)
-      const rawBalance = Number(accountInfo.amount)
-      const rawRequired = BigInt(Math.round(amount * Math.pow(10, decimals)))
-      if (BigInt(rawBalance) < rawRequired) {
-        const humanBalance = rawBalance / Math.pow(10, decimals)
-        throw new Error(`Insufficient token balance: have ${humanBalance.toFixed(decimals)}, need ${amount}`)
+      const rawBalance = accountInfo.amount
+      rawAmount = sendMax
+        ? rawBalance
+        : toRawTokenAmount(amount ?? 0, decimals)
+
+      if (rawAmount <= 0n) {
+        throw new Error('No token balance available to send')
       }
+      if (rawBalance < rawAmount) {
+        throw new Error(`Insufficient token balance: have ${formatTokenAmount(rawBalance, decimals)}, need ${amount}`)
+      }
+      amountToRecord = Number.parseFloat(formatTokenAmount(rawAmount, decimals))
     } catch (err) {
       if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
+      if (err instanceof Error && err.message.startsWith('No token balance')) throw err
       throw new Error('Could not verify token balance — token account may not exist')
     }
 
@@ -607,7 +650,7 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
 
     db.prepare(
       'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
-    ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amount, mint, 'pending', Date.now())
+    ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amountToRecord, mint, 'pending', Date.now())
 
     try {
       const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey)
@@ -627,9 +670,6 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
           )
         )
       }
-
-      // decimals already resolved above during balance check
-      const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
 
       transaction.add(
         createTransferInstruction(
@@ -765,11 +805,10 @@ export async function executeSwap(
       try {
         const ata = await getAta(mintPubkey, keypair.publicKey)
         const accountInfo = await getAcc(connection, ata)
-        const rawBalance = Number(accountInfo.amount)
-        const rawRequired = Math.round(amount * Math.pow(10, decimals))
+        const rawBalance = accountInfo.amount
+        const rawRequired = toRawTokenAmount(amount, decimals)
         if (rawBalance < rawRequired) {
-          const humanBalance = rawBalance / Math.pow(10, decimals)
-          throw new Error(`Insufficient token balance: have ${humanBalance.toFixed(decimals)}, need ${amount}`)
+          throw new Error(`Insufficient token balance: have ${formatTokenAmount(rawBalance, decimals)}, need ${amount}`)
         }
       } catch (err) {
         if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
@@ -895,6 +934,18 @@ export async function getBalance(walletId: string) {
   const connection = getConnection()
   const lamports = await connection.getBalance(new PublicKey(row.address))
   return { sol: lamports / LAMPORTS_PER_SOL, lamports }
+}
+
+export async function getWalletHoldings(walletId: string): Promise<HoldingSummary[]> {
+  const db = getDb()
+  const row = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
+  if (!row) throw new Error('Wallet not found')
+
+  const heliusKey = getHeliusApiKey()
+  if (!heliusKey) return []
+
+  const balances = await getWalletBalances(row.address, heliusKey)
+  return normalizeHoldings(balances.balances)
 }
 
 export function createAgentWallet(agentId: string, agentName: string) {

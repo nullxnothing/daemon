@@ -249,7 +249,9 @@ function ImportPanel({
 export function DashboardCanvas() {
   const activeMint = useUIStore((s) => s.activeDashboardMint)
   const setActiveMint = useUIStore((s) => s.setActiveDashboardMint)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
+  const openTokenLaunch = useCallback(() => {
+    useUIStore.getState().setDrawerTool('token-launch')
+  }, [])
 
   const dashboard = useWalletStore((s) => s.dashboard)
   const defaultWallet = dashboard?.wallets?.find((w) => w.isDefault) ?? null
@@ -294,8 +296,8 @@ export function DashboardCanvas() {
         <div className="dash-canvas-empty">
           <span className="dash-canvas-empty-title">No tokens launched</span>
           <span className="dash-canvas-empty-sub">Launch your first token to see live data here</span>
-          <button className="dash-btn dash-btn-primary dash-btn-lg" onClick={openLaunchWizard}>
-            Launch Token
+          <button className="dash-btn dash-btn-primary dash-btn-lg" onClick={openTokenLaunch}>
+            Open Token Launch
           </button>
           {activeWalletId && (
             <button className="dash-btn dash-btn-outline-full" onClick={() => setShowImport(true)}>
@@ -340,8 +342,8 @@ export function DashboardCanvas() {
               {showImport ? 'Cancel' : 'Import Token'}
             </button>
           )}
-          <button className="dash-btn dash-btn-primary" onClick={openLaunchWizard}>
-            + Launch Token
+          <button className="dash-btn dash-btn-primary" onClick={openTokenLaunch}>
+            Open Token Launch
           </button>
         </div>
       </div>

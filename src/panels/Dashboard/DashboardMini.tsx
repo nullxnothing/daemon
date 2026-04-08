@@ -110,7 +110,6 @@ function ImportMintForm({ walletId, onImported }: { walletId: string; onImported
 export function DashboardMini() {
   const activeMint = useUIStore((s) => s.activeDashboardMint)
   const setActiveMint = useUIStore((s) => s.setActiveDashboardMint)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
   const toggleDashboardTab = useUIStore((s) => s.toggleDashboardTab)
 
   const dashboard = useWalletStore((s) => s.dashboard)
@@ -143,15 +142,15 @@ export function DashboardMini() {
     reload()
   }
 
-  const openSolanaToolbox = () => {
-    useUIStore.getState().setDrawerTool('solana-toolbox')
+  const openTokenLaunch = () => {
+    useUIStore.getState().setDrawerTool('token-launch')
   }
 
   if (tokens.length === 0) {
     return (
       <div className="dash-mini">
         <div className="dash-mini-toolbar">
-          <button className="dash-mini-expand-btn" onClick={openSolanaToolbox} title="Solana Toolbox">
+          <button className="dash-mini-expand-btn" onClick={openTokenLaunch} title="Token Launch">
             <svg width="12" height="12" viewBox="0 0 397.7 311.7" fill="currentColor"><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z"/></svg>
           </button>
           <button className="dash-mini-expand-btn" onClick={toggleDashboardTab} title="Expand dashboard (Ctrl+Shift+D)">
@@ -160,8 +159,8 @@ export function DashboardMini() {
         </div>
         <div className="dash-mini-empty">
           <span className="dash-mini-empty-label">No tokens launched yet</span>
-          <button className="dash-btn dash-btn-primary" onClick={openLaunchWizard}>
-            Launch Token
+          <button className="dash-btn dash-btn-primary" onClick={openTokenLaunch}>
+            Open Token Launch
           </button>
           {activeWalletId && !showImport && (
             <button className="dash-btn dash-btn-outline-full" onClick={() => setShowImport(true)}>
@@ -191,7 +190,7 @@ export function DashboardMini() {
             </option>
           ))}
         </select>
-        <button className="dash-mini-expand-btn" onClick={openSolanaToolbox} title="Solana Toolbox">
+        <button className="dash-mini-expand-btn" onClick={openTokenLaunch} title="Token Launch">
           <svg width="12" height="12" viewBox="0 0 397.7 311.7" fill="currentColor"><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z"/></svg>
         </button>
         <button className="dash-mini-expand-btn" onClick={toggleDashboardTab} title="Expand dashboard (Ctrl+Shift+D)">
@@ -256,8 +255,8 @@ export function DashboardMini() {
       )}
 
       <div className="dash-mini-footer">
-        <button className="dash-btn dash-btn-outline-full" onClick={openLaunchWizard}>
-          + Launch New Token
+        <button className="dash-btn dash-btn-outline-full" onClick={openTokenLaunch}>
+          Open Token Launch
         </button>
         {activeWalletId && (
           <button

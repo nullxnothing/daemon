@@ -34,6 +34,10 @@ export function WalletTab({ onRefresh }: Props) {
   const [sendDest, setSendDest] = useState('')
   const [sendAmount, setSendAmount] = useState('')
   const [sendMint, setSendMint] = useState('')
+  const [sendMax, setSendMax] = useState(false)
+  const [selectedRecipientWalletId, setSelectedRecipientWalletId] = useState('')
+  const [walletBalances, setWalletBalances] = useState<Record<string, number>>({})
+  const [walletTokenOptions, setWalletTokenOptions] = useState<Record<string, Array<{ mint: string; symbol: string; amount: number }>>>({})
   const [sendLoading, setSendLoading] = useState(false)
   const [sendResult, setSendResult] = useState<string | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -44,7 +48,7 @@ export function WalletTab({ onRefresh }: Props) {
   const [exportConfirmText, setExportConfirmText] = useState('')
   const sendLockRef = useRef(false)
   const [pendingSend, setPendingSend] = useState<{
-    walletId: string; mode: 'sol' | 'token'; dest: string; amount: number; mint?: string
+    walletId: string; mode: 'sol' | 'token'; dest: string; amount?: number; sendMax?: boolean; mint?: string
   } | null>(null)
 
   useEffect(() => {
@@ -52,9 +56,48 @@ export function WalletTab({ onRefresh }: Props) {
       setSendWalletId(dashboard.activeWallet.id)
       setSendMode('sol')
       setSendDest(''); setSendAmount(''); setSendMint('')
+      setSendMax(false); setSelectedRecipientWalletId('')
       setSendResult(null); setSendError(null)
     }
   }, [activeView, dashboard.activeWallet, sendWalletId])
+
+  useEffect(() => {
+    if (!sendWalletId) return
+    const walletId = sendWalletId
+    window.daemon.wallet.balance(sendWalletId).then((res) => {
+      const data = res.data
+      if (res.ok && data) {
+        setWalletBalances((prev) => ({ ...prev, [walletId]: data.sol }))
+      }
+    }).catch(() => {})
+  }, [sendWalletId, dashboard.wallets])
+
+  useEffect(() => {
+    if (!sendWalletId || sendMode !== 'token') return
+
+    const existing = walletTokenOptions[sendWalletId]
+    if (existing) {
+      if (!sendMint) {
+        const firstToken = existing.find((holding) => holding.amount > 0)
+        if (firstToken) setSendMint(firstToken.mint)
+      }
+      return
+    }
+
+    let cancelled = false
+    void window.daemon.wallet.holdings(sendWalletId).then((res) => {
+      if (!res.ok || !res.data || cancelled) return
+      const holdings = res.data.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL')
+        .map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))
+      setWalletTokenOptions((prev) => ({ ...prev, [sendWalletId]: holdings }))
+      if (!sendMint) {
+        const firstToken = holdings[0]
+        if (firstToken) setSendMint(firstToken.mint)
+      }
+    }).catch(() => {})
+
+    return () => { cancelled = true }
+  }, [sendWalletId, sendMode, sendMint, walletTokenOptions])
 
   useEffect(() => {
     if (!dashboard.wallets) return
@@ -125,11 +168,11 @@ export function WalletTab({ onRefresh }: Props) {
     setSendError(null); setSendResult(null)
     const amount = parseFloat(sendAmount)
     if (sendMode === 'sol') {
-      if (!sendDest.trim() || isNaN(amount) || amount <= 0) { setSendError('Invalid destination or amount'); return }
-      setPendingSend({ walletId: fromWalletId, mode: 'sol', dest: sendDest.trim(), amount })
+      if (!sendDest.trim() || (!sendMax && (isNaN(amount) || amount <= 0))) { setSendError('Invalid destination or amount'); return }
+      setPendingSend({ walletId: fromWalletId, mode: 'sol', dest: sendDest.trim(), amount: sendMax ? undefined : amount, sendMax })
     } else {
-      if (!sendDest.trim() || !sendMint.trim() || isNaN(amount) || amount <= 0) { setSendError('Invalid destination, mint, or amount'); return }
-      setPendingSend({ walletId: fromWalletId, mode: 'token', dest: sendDest.trim(), amount, mint: sendMint.trim() })
+      if (!sendDest.trim() || !sendMint.trim() || (!sendMax && (isNaN(amount) || amount <= 0))) { setSendError('Invalid destination, mint, or amount'); return }
+      setPendingSend({ walletId: fromWalletId, mode: 'token', dest: sendDest.trim(), amount: sendMax ? undefined : amount, sendMax, mint: sendMint.trim() })
     }
   }
 
@@ -139,14 +182,14 @@ export function WalletTab({ onRefresh }: Props) {
     setSendLoading(true); setSendError(null)
     try {
       if (pendingSend.mode === 'sol') {
-        const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount })
+        const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount, sendMax: pendingSend.sendMax })
         setPendingSend(null)
-        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); await onRefresh() }
+        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMax(false); setSelectedRecipientWalletId(''); await onRefresh() }
         else setSendError(res.error ?? 'Send failed')
       } else {
-        const res = await window.daemon.wallet.sendToken({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, mint: pendingSend.mint!, amount: pendingSend.amount })
+        const res = await window.daemon.wallet.sendToken({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, mint: pendingSend.mint!, amount: pendingSend.amount, sendMax: pendingSend.sendMax })
         setPendingSend(null)
-        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMint(''); await onRefresh() }
+        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMint(''); setSendMax(false); setSelectedRecipientWalletId(''); await onRefresh() }
         else setSendError(res.error ?? 'Send failed')
       }
     } finally { setSendLoading(false); sendLockRef.current = false }
@@ -175,12 +218,28 @@ export function WalletTab({ onRefresh }: Props) {
   const openSend = (walletId: string, mode: 'sol' | 'token') => {
     setSendWalletId(walletId); setSendMode(mode)
     setSendDest(''); setSendAmount(''); setSendMint('')
+    setSendMax(false); setSelectedRecipientWalletId('')
     setSendResult(null); setSendError(null)
   }
 
   const closeSend = () => {
     setSendWalletId(null); setSendMode(null)
+    setSendMax(false); setSelectedRecipientWalletId('')
     if (activeView === 'send') setActiveView('overview')
+  }
+
+  const handleRecipientWalletChange = (walletId: string) => {
+    setSelectedRecipientWalletId(walletId)
+    const next = dashboard.wallets.find((wallet) => wallet.id === walletId)
+    setSendDest(next?.address ?? '')
+  }
+
+  const toggleSendMax = () => {
+    setSendMax((current) => {
+      const next = !current
+      if (!next) setSendAmount('')
+      return next
+    })
   }
 
   const renderWalletInline = (walletId: string) => (
@@ -196,13 +255,30 @@ export function WalletTab({ onRefresh }: Props) {
         onCancel={() => { setExportConfirmId(null); setExportConfirmText('') }}
       />
       {sendWalletId === walletId && sendMode && (
+        (() => {
+          const tokenOptions = sendMode === 'token'
+            ? (walletTokenOptions[walletId]
+              ?? (walletId === dashboard.activeWallet?.id
+                ? dashboard.activeWallet.holdings.filter((holding) => holding.amount > 0)
+                  .map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))
+                : []))
+            : []
+          return (
         <WalletSendForm
-          walletId={walletId} sendMode={sendMode} sendDest={sendDest} sendAmount={sendAmount}
-          sendMint={sendMint} sendLoading={sendLoading} sendError={sendError} sendResult={sendResult}
-          pendingSend={pendingSend} onDestChange={setSendDest} onAmountChange={setSendAmount}
-          onMintChange={setSendMint} onConfirmSend={handleConfirmSend} onExecuteSend={handleExecuteSend}
+          walletId={walletId} walletName={dashboard.wallets.find((wallet) => wallet.id === walletId)?.name ?? 'Wallet'} sendMode={sendMode} sendDest={sendDest} sendAmount={sendAmount}
+          sendMint={sendMint} sendMax={sendMax} selectedRecipientWalletId={selectedRecipientWalletId}
+          recipientWallets={dashboard.wallets.filter((wallet) => wallet.id !== walletId).map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))}
+          tokenOptions={tokenOptions}
+          walletBalanceSol={walletBalances[walletId] ?? null}
+          sendLoading={sendLoading} sendError={sendError} sendResult={sendResult}
+          pendingSend={pendingSend} onRecipientWalletChange={handleRecipientWalletChange}
+          onDestChange={setSendDest} onAmountChange={setSendAmount}
+          onMintChange={setSendMint} onToggleSendMax={toggleSendMax}
+          onConfirmSend={handleConfirmSend} onExecuteSend={handleExecuteSend}
           onCancelSend={handleCancelSend} onClose={closeSend}
         />
+          )
+        })()
       )}
     </>
   )
@@ -210,6 +286,19 @@ export function WalletTab({ onRefresh }: Props) {
   const activeWallet = dashboard.activeWallet
   const activeWalletMeta = dashboard.wallets.find((w) => w.id === activeWallet?.id)
   const hasKeypair = activeWalletMeta ? keypairCache[activeWalletMeta.id] === true : false
+
+  useEffect(() => {
+    if (sendMode !== 'token') return
+    if (sendMint) return
+    const tokenOptions = sendWalletId && walletTokenOptions[sendWalletId]
+      ? walletTokenOptions[sendWalletId]
+      : sendWalletId === dashboard.activeWallet?.id
+        ? dashboard.activeWallet.holdings.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL')
+          .map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))
+        : []
+    const firstToken = tokenOptions.find((holding) => holding.amount > 0)
+    if (firstToken) setSendMint(firstToken.mint)
+  }, [sendMode, sendMint, sendWalletId, dashboard.activeWallet, walletTokenOptions])
 
   if (activeView === 'vault') return <VaultSection onBack={() => setActiveView('overview')} />
 
@@ -272,7 +361,7 @@ export function WalletTab({ onRefresh }: Props) {
             </div>
           </div>
           {sendWalletId === activeWallet.id && sendMode && (
-            <WalletSendForm walletId={activeWallet.id} sendMode={sendMode} sendDest={sendDest} sendAmount={sendAmount} sendMint={sendMint} sendLoading={sendLoading} sendError={sendError} sendResult={sendResult} pendingSend={pendingSend} onDestChange={setSendDest} onAmountChange={setSendAmount} onMintChange={setSendMint} onConfirmSend={handleConfirmSend} onExecuteSend={handleExecuteSend} onCancelSend={handleCancelSend} onClose={closeSend} />
+            <WalletSendForm walletId={activeWallet.id} walletName={activeWallet.name} sendMode={sendMode} sendDest={sendDest} sendAmount={sendAmount} sendMint={sendMint} sendMax={sendMax} selectedRecipientWalletId={selectedRecipientWalletId} recipientWallets={dashboard.wallets.filter((wallet) => wallet.id !== activeWallet.id).map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))} tokenOptions={sendMode === 'token' ? ((walletTokenOptions[activeWallet.id] ?? activeWallet.holdings.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL').map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount })))) : []} walletBalanceSol={walletBalances[activeWallet.id] ?? null} sendLoading={sendLoading} sendError={sendError} sendResult={sendResult} pendingSend={pendingSend} onRecipientWalletChange={handleRecipientWalletChange} onDestChange={setSendDest} onAmountChange={setSendAmount} onMintChange={setSendMint} onToggleSendMax={toggleSendMax} onConfirmSend={handleConfirmSend} onExecuteSend={handleExecuteSend} onCancelSend={handleCancelSend} onClose={closeSend} />
           )}
         </section>
       )}

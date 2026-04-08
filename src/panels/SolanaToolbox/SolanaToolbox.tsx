@@ -18,7 +18,6 @@ export function SolanaToolbox() {
   const toggleMcp = useSolanaToolboxStore((s) => s.toggleMcp)
   const detectProject = useSolanaToolboxStore((s) => s.detectProject)
   const refreshValidatorStatus = useSolanaToolboxStore((s) => s.refreshValidatorStatus)
-
   useEffect(() => {
     if (activeProjectPath) {
       void loadMcps(activeProjectPath)
@@ -41,7 +40,6 @@ export function SolanaToolbox() {
   return (
     <div className="solana-toolbox">
       <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} />
-
       <div className="solana-validator-zone">
         <ValidatorCard />
       </div>

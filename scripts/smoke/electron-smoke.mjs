@@ -21,6 +21,8 @@ const smokeEcho = `DAEMON_SMOKE_${Date.now()}`
 
 let electronProcess
 let browser
+const rendererConsole = []
+const rendererFailures = []
 
 function logStep(message) {
   console.log(`[smoke] ${message}`)
@@ -77,6 +79,21 @@ async function getPage() {
   throw new Error('Timed out waiting for a BrowserWindow page')
 }
 
+function attachPageDiagnostics(page) {
+  page.on('console', (message) => {
+    const entry = `[page-console] ${message.type()}: ${message.text()}`
+    rendererConsole.push(entry)
+    console.log(entry)
+    if (message.type() === 'error') rendererFailures.push(entry)
+  })
+  page.on('pageerror', (error) => {
+    const entry = `[page-error] ${error.message}`
+    rendererConsole.push(entry)
+    rendererFailures.push(entry)
+    console.log(entry)
+  })
+}
+
 async function seedAppState(page) {
   await page.evaluate(async ({ projectPath, projectName }) => {
     await window.daemon.settings.setOnboardingComplete(true)
@@ -91,6 +108,75 @@ async function seedAppState(page) {
 async function waitForAppReady(page) {
   await page.waitForSelector('.titlebar', { timeout: 30000 })
   await page.waitForSelector('.main-layout', { timeout: 30000 })
+}
+
+async function openToolFromLauncher(page, toolName) {
+  const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
+  if (!drawerVisible) {
+    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.waitForSelector('.command-drawer', { timeout: 30000 })
+  }
+  const drawerSearchVisible = await page.locator('.drawer-search').isVisible().catch(() => false)
+  if (!drawerSearchVisible) {
+    await closeDrawerToGrid(page)
+  }
+  const drawer = page.locator('.command-drawer')
+  await drawer.locator('.drawer-tool-card', { hasText: toolName }).first().click()
+  await page.waitForFunction((expected) => {
+    const title = document.querySelector('.drawer-title')?.textContent?.trim()
+    return title?.toLowerCase() === String(expected).toLowerCase()
+  }, toolName, { timeout: 30000 })
+}
+
+async function closeDrawerToGrid(page) {
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => {
+    return document.querySelector('.drawer-search') !== null
+      && document.querySelector('.drawer-title') === null
+  }, { timeout: 30000 })
+}
+
+async function cycleDrawerTools(page, toolNames, rounds = 1) {
+  for (let round = 0; round < rounds; round += 1) {
+    for (const toolName of toolNames) {
+      await openToolFromLauncher(page, toolName)
+      if (toolName === 'Git') await page.waitForSelector('.git-center', { timeout: 30000 })
+      if (toolName === 'Wallet') await page.waitForSelector('.wallet-panel', { timeout: 30000 })
+      if (toolName === 'Token Launch') await page.waitForSelector('.token-launch-tool', { timeout: 30000 })
+      if (toolName === 'Settings') await page.waitForSelector('.settings-center', { timeout: 30000 })
+      await closeDrawerToGrid(page)
+    }
+  }
+}
+
+async function verifySidebarAddToolFlyout(page) {
+  const addToolButton = page.getByRole('button', { name: 'Add tool', exact: true })
+  await addToolButton.click()
+  await page.waitForSelector('.sidebar-submenu--tools', { timeout: 30000 })
+  await page.waitForFunction(() => {
+    const flyout = document.querySelector('.sidebar-submenu--tools')
+    const drawerSearch = document.querySelector('.drawer-search')
+    return !!flyout && !drawerSearch
+  }, { timeout: 30000 })
+  await page.locator('.sidebar-submenu-item--tool', { hasText: 'Wallet' }).first().click()
+  await page.waitForFunction(() => document.querySelector('.sidebar-submenu--tools') === null, { timeout: 30000 })
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('.icon-sidebar button[aria-label]'))
+      .some((button) => button.getAttribute('aria-label') === 'Wallet')
+  }, { timeout: 30000 })
+}
+
+async function verifyPinnedSidebarToolClicks(page) {
+  const clickAndAssert = async (label, selector, readySelector) => {
+    await page.getByRole('button', { name: label, exact: true }).click()
+    await page.waitForSelector(selector, { timeout: 30000 })
+    await page.waitForSelector(readySelector, { timeout: 30000 })
+  }
+
+  await clickAndAssert('Git', '.command-drawer', '.git-center')
+  await clickAndAssert('Wallet', '.command-drawer', '.wallet-panel')
+  await clickAndAssert('Token Launch', '.command-drawer', '.token-launch-tool')
+  await clickAndAssert('Solana', '.command-drawer', '.solana-toolbox')
 }
 
 async function run() {
@@ -115,6 +201,7 @@ async function run() {
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`)
 
   let page = await getPage()
+  attachPageDiagnostics(page)
   logStep('window ready')
   await waitForAppReady(page)
   logStep('seeding app state')
@@ -152,12 +239,27 @@ async function run() {
 
   const activeEditorTabs = await page.locator('.editor-tab.active').allTextContents()
   assert(activeEditorTabs.some((text) => text.toLowerCase().includes('dashboard')), 'dashboard tab did not become active')
+
+  logStep('checking sidebar add-tool flyout')
+  await verifySidebarAddToolFlyout(page)
+
+  logStep('checking pinned sidebar tool transitions')
+  await verifyPinnedSidebarToolClicks(page)
+
+  logStep('checking tool launcher transitions')
+  await cycleDrawerTools(page, ['Git', 'Wallet', 'Token Launch', 'Settings'], 2)
+
+  assert.equal(rendererFailures.length, 0, `renderer failures detected:\n${rendererFailures.join('\n')}`)
 }
 
 try {
   await run()
   console.log('DAEMON smoke test passed')
 } finally {
+  if (rendererConsole.length > 0) {
+    console.log('[smoke] collected renderer diagnostics:')
+    for (const line of rendererConsole) console.log(line)
+  }
   await browser?.close().catch(() => {})
   if (electronProcess && electronProcess.exitCode === null) {
     electronProcess.kill('SIGTERM')

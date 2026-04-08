@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense, type ComponentType, type DragEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, Suspense, type ComponentType, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
+import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -13,6 +14,7 @@ interface DrawerTool {
   description: string
   icon: ComponentType<{ size?: number }>
   component: React.LazyExoticComponent<ComponentType>
+  preload?: () => void
   category: 'dev' | 'crypto' | 'create' | 'system'
 }
 
@@ -146,6 +148,16 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function TokenLaunchIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 14c-1.7 1.7-2.3 4.2-1.5 6.5 2.3.7 4.8.2 6.5-1.5l7.6-7.6a3.2 3.2 0 0 0-4.5-4.5L6.5 14Z" />
+      <path d="M9 9 4 4" />
+      <path d="m5 9 4-4" />
+      <path d="M15 4h5v5" />
+    </svg>
+  )
+}
 
 // Icon lookup for pinned sidebar tools
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
@@ -153,6 +165,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
+  'token-launch': TokenLaunchIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon,
 }
 
@@ -162,28 +175,50 @@ export const TOOL_NAMES: Record<string, string> = {
   wallet: 'Wallet', email: 'Email', browser: 'Browser',
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
+  'token-launch': 'Token Launch',
   dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery',
 }
 
 // Lazy-load all tool components
-const GitPanel = lazy(() => import('../../panels/GitPanel/GitPanel').then(m => ({ default: m.GitPanel })))
-const EnvManager = lazy(() => import('../../panels/EnvManager/EnvManager').then(m => ({ default: m.EnvManager })))
-const DeployPanel = lazy(() => import('../../panels/plugins/Deploy/Deploy'))
-const EmailPanel = lazy(() => import('../../panels/plugins/Email/EmailPanel'))
-const WalletPanel = lazy(() => import('../../panels/WalletPanel/WalletPanel').then(m => ({ default: m.WalletPanel })))
-const SettingsPanel = lazy(() => import('../../panels/SettingsPanel/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
-const PortsPanel = lazy(() => import('../../panels/PortsPanel/PortsPanel').then(m => ({ default: m.PortsPanel })))
-const ProcessManager = lazy(() => import('../../panels/ProcessManager/ProcessManager').then(m => ({ default: m.ProcessManager })))
-const ImageEditor = lazy(() => import('../../panels/ImageEditor/ImageEditor'))
-const SolanaToolbox = lazy(() => import('../../panels/SolanaToolbox/SolanaToolbox'))
-const BlockScanner = lazy(() => import('../../panels/BlockScanner/BlockScanner'))
-const DocsPanel = lazy(() => import('../../panels/DocsPanel/DocsPanel').then(m => ({ default: m.DocsPanel })))
-const ProjectStarter = lazy(() => import('../../panels/ProjectStarter/ProjectStarter'))
-const DashboardCanvas = lazy(() => import('../../panels/Dashboard/DashboardCanvas').then(m => ({ default: m.DashboardCanvas })))
-const SessionHistory = lazy(() => import('../../panels/SessionRegistry/SessionHistory').then(m => ({ default: m.SessionHistory })))
-const HackathonPanel = lazy(() => import('../../panels/Colosseum/HackathonPanel').then(m => ({ default: m.HackathonPanel })))
-const PluginManager = lazy(() => import('../../panels/PluginManager/PluginManager').then(m => ({ default: m.PluginManager })))
-const RecoveryPanel = lazy(() => import('../../panels/RecoveryPanel/RecoveryPanel').then(m => ({ default: m.RecoveryPanel })))
+const loadGitPanel = () => import('../../panels/GitPanel/GitPanel')
+const loadEnvManager = () => import('../../panels/EnvManager/EnvManager')
+const loadDeployPanel = () => import('../../panels/plugins/Deploy/Deploy')
+const loadEmailPanel = () => import('../../panels/plugins/Email/EmailPanel')
+const loadWalletPanel = () => import('../../panels/WalletPanel/WalletPanel')
+const loadSettingsPanel = () => import('../../panels/SettingsPanel/SettingsPanel')
+const loadPortsPanel = () => import('../../panels/PortsPanel/PortsPanel')
+const loadProcessManager = () => import('../../panels/ProcessManager/ProcessManager')
+const loadImageEditor = () => import('../../panels/ImageEditor/ImageEditor')
+const loadSolanaToolbox = () => import('../../panels/SolanaToolbox/SolanaToolbox')
+const loadTokenLaunchTool = () => import('../../panels/TokenLaunchTool/TokenLaunchTool')
+const loadBlockScanner = () => import('../../panels/BlockScanner/BlockScanner')
+const loadDocsPanel = () => import('../../panels/DocsPanel/DocsPanel')
+const loadProjectStarter = () => import('../../panels/ProjectStarter/ProjectStarter')
+const loadDashboardCanvas = () => import('../../panels/Dashboard/DashboardCanvas')
+const loadSessionHistory = () => import('../../panels/SessionRegistry/SessionHistory')
+const loadHackathonPanel = () => import('../../panels/Colosseum/HackathonPanel')
+const loadPluginManager = () => import('../../panels/PluginManager/PluginManager')
+const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
+
+const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
+const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
+const DeployPanel = lazyWithReload('deploy-panel', loadDeployPanel)
+const EmailPanel = lazyWithReload('email-panel', loadEmailPanel)
+const WalletPanel = lazyNamedWithReload('wallet-panel', loadWalletPanel, (m) => m.WalletPanel)
+const SettingsPanel = lazyNamedWithReload('settings-panel', loadSettingsPanel, (m) => m.SettingsPanel)
+const PortsPanel = lazyNamedWithReload('ports-panel', loadPortsPanel, (m) => m.PortsPanel)
+const ProcessManager = lazyNamedWithReload('process-manager', loadProcessManager, (m) => m.ProcessManager)
+const ImageEditor = lazyWithReload('image-editor', loadImageEditor)
+const SolanaToolbox = lazyWithReload('solana-toolbox', loadSolanaToolbox)
+const TokenLaunchTool = lazyWithReload('token-launch-tool', loadTokenLaunchTool)
+const BlockScanner = lazyWithReload('block-scanner', loadBlockScanner)
+const DocsPanel = lazyNamedWithReload('docs-panel', loadDocsPanel, (m) => m.DocsPanel)
+const ProjectStarter = lazyWithReload('project-starter', loadProjectStarter)
+const DashboardCanvas = lazyNamedWithReload('dashboard-canvas', loadDashboardCanvas, (m) => m.DashboardCanvas)
+const SessionHistory = lazyNamedWithReload('session-history', loadSessionHistory, (m) => m.SessionHistory)
+const HackathonPanel = lazyNamedWithReload('hackathon-panel', loadHackathonPanel, (m) => m.HackathonPanel)
+const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (m) => m.PluginManager)
+const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -198,6 +233,7 @@ export const TOOL_COLORS: Record<string, string> = {
   settings: '#9ca3af',
   'image-editor': '#e879f9',
   'solana-toolbox': '#14f195',
+  'token-launch': '#38d39f',
   'block-scanner': '#38bdf8',
   docs: '#94a3b8',
 }
@@ -205,25 +241,36 @@ export const TOOL_COLORS: Record<string, string> = {
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
 // Note: 'browser' is intentionally excluded — it opens as a pinned editor tab (Ctrl+Shift+B), not a drawer panel
 export const BUILTIN_TOOLS: DrawerTool[] = [
-  { id: 'starter', name: 'New Project', description: 'Scaffold a Solana project with AI', icon: StarterIcon, component: ProjectStarter, category: 'dev' },
-  { id: 'git', name: 'Git', description: 'Source control', icon: GitIcon, component: GitPanel, category: 'dev' },
-  { id: 'deploy', name: 'Deploy', description: 'Vercel & Railway', icon: DeployIcon, component: DeployPanel, category: 'dev' },
-  { id: 'env', name: 'Env', description: 'Environment variables', icon: EnvIcon, component: EnvManager, category: 'dev' },
-  { id: 'wallet', name: 'Wallet', description: 'Solana wallets', icon: WalletIcon, component: WalletPanel, category: 'crypto' },
-  { id: 'email', name: 'Email', description: 'Gmail & iCloud', icon: EmailIcon, component: EmailPanel, category: 'create' },
-  { id: 'ports', name: 'Ports', description: 'Port scanner', icon: PortsIcon, component: PortsPanel, category: 'system' },
-  { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, category: 'system' },
-  { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, category: 'system' },
-  { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, category: 'create' },
-  { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, category: 'crypto' },
-  { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, category: 'crypto' },
-  { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, category: 'system' },
-  { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, category: 'crypto' },
-  { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, category: 'dev' },
-  { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, category: 'crypto' },
-  { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, category: 'system' },
-  { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, category: 'system' },
+  { id: 'starter', name: 'New Project', description: 'Scaffold a Solana project with AI', icon: StarterIcon, component: ProjectStarter, preload: () => { void loadProjectStarter() }, category: 'dev' },
+  { id: 'git', name: 'Git', description: 'Source control', icon: GitIcon, component: GitPanel, preload: () => { void loadGitPanel() }, category: 'dev' },
+  { id: 'deploy', name: 'Deploy', description: 'Vercel & Railway', icon: DeployIcon, component: DeployPanel, preload: () => { void loadDeployPanel() }, category: 'dev' },
+  { id: 'env', name: 'Env', description: 'Environment variables', icon: EnvIcon, component: EnvManager, preload: () => { void loadEnvManager() }, category: 'dev' },
+  { id: 'wallet', name: 'Wallet', description: 'Solana wallets', icon: WalletIcon, component: WalletPanel, preload: () => { void loadWalletPanel() }, category: 'crypto' },
+  { id: 'email', name: 'Email', description: 'Gmail & iCloud', icon: EmailIcon, component: EmailPanel, preload: () => { void loadEmailPanel() }, category: 'create' },
+  { id: 'ports', name: 'Ports', description: 'Port scanner', icon: PortsIcon, component: PortsPanel, preload: () => { void loadPortsPanel() }, category: 'system' },
+  { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, preload: () => { void loadProcessManager() }, category: 'system' },
+  { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, preload: () => { void loadSettingsPanel() }, category: 'system' },
+  { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, preload: () => { void loadImageEditor() }, category: 'create' },
+  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, and Meteora launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
+  { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
+  { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, preload: () => { void loadBlockScanner() }, category: 'crypto' },
+  { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, preload: () => { void loadDocsPanel() }, category: 'system' },
+  { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, preload: () => { void loadDashboardCanvas() }, category: 'crypto' },
+  { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
+  { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'crypto' },
+  { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
+  { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
 ]
+
+const BUILTIN_TOOL_PRELOADERS = new Map(
+  BUILTIN_TOOLS
+    .filter((tool) => typeof tool.preload === 'function')
+    .map((tool) => [tool.id, tool.preload as () => void]),
+)
+
+export function preloadToolPanel(toolId: string) {
+  BUILTIN_TOOL_PRELOADERS.get(toolId)?.()
+}
 
 function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
   const tools = [...BUILTIN_TOOLS]
@@ -254,8 +301,13 @@ function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
   })
 }
 
-function ToolFallback() {
-  return <div className="drawer-loading">Loading...</div>
+function ToolFallback({ tool }: { tool?: DrawerTool | null }) {
+  return (
+    <div className="drawer-loading">
+      <div className="drawer-loading-title">{tool?.name ?? 'Loading tool'}</div>
+      <div className="drawer-loading-copy">Preparing panel...</div>
+    </div>
+  )
 }
 
 // Shared MIME type for tool drag-and-drop (drawer <-> sidebar)
@@ -309,6 +361,38 @@ export function CommandDrawer() {
     }
   }, [drawerOpen, drawerTool])
 
+  useEffect(() => {
+    if (!drawerOpen || drawerTool) return
+    const visibleToolIds = filteredTools
+      .slice(0, 8)
+      .map((tool) => tool.id)
+
+    let cancelled = false
+    const prewarmVisibleTools = () => {
+      if (cancelled) return
+      visibleToolIds.forEach((toolId) => preloadToolPanel(toolId))
+    }
+
+    const idleCallback = (window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }).requestIdleCallback
+
+    if (typeof idleCallback === 'function') {
+      const idleId = idleCallback(prewarmVisibleTools, { timeout: 1200 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback?.(idleId)
+      }
+    }
+
+    const timeoutId = window.setTimeout(prewarmVisibleTools, 75)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [drawerOpen, drawerTool, filteredTools])
+
   // Esc to close or go back to grid
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -338,6 +422,7 @@ export function CommandDrawer() {
   }
 
   const handleToolClick = (toolId: string) => {
+    preloadToolPanel(toolId)
     setDrawerTool(toolId)
     setSearch('')
   }
@@ -424,8 +509,8 @@ export function CommandDrawer() {
       {/* Content */}
       <div className="drawer-content">
         {activeTool ? (
-          <PanelErrorBoundary fallbackLabel="Tool crashed — press Esc to go back">
-            <Suspense fallback={<ToolFallback />}>
+            <PanelErrorBoundary fallbackLabel="Tool crashed — press Esc to go back">
+            <Suspense fallback={<ToolFallback tool={activeTool} />}>
               <activeTool.component />
             </Suspense>
           </PanelErrorBoundary>
@@ -570,6 +655,8 @@ function DrawerCard({
       onDragOver={(e) => onCardDragOver(e, idx)}
       onDragLeave={onCardDragLeave}
       onDrop={(e) => onCardDrop(e, idx)}
+      onMouseEnter={tool.preload}
+      onFocus={tool.preload}
     >
       <div className="drawer-tool-icon"><Icon size={20} /></div>
       <div className="drawer-tool-name">{tool.name}</div>

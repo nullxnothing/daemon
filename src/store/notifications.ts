@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { daemon } from '../lib/daemonBridge'
 
 export type ToastKind = 'info' | 'success' | 'error' | 'warning'
 
@@ -48,8 +49,8 @@ const DEFAULT_TTL: Record<ToastKind, number> = {
 function persistEntry(entry: ActivityEntry): void {
   // Fire-and-forget; never block UI on logging.
   // Guarded so unit tests (no preload) don't crash.
-  if (typeof window === 'undefined' || !window.daemon?.activity) return
-  window.daemon.activity.append({
+  if (typeof window === 'undefined') return
+  daemon.activity.append({
     id: entry.id,
     kind: entry.kind,
     message: entry.message,
@@ -106,12 +107,12 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   clearAll: () => set({ toasts: [] }),
 
   loadActivity: async () => {
-    const res = await window.daemon.activity.list(500)
+    const res = await daemon.activity.list(500)
     if (res.ok && res.data) set({ activity: res.data })
   },
 
   clearActivity: async () => {
-    const res = await window.daemon.activity.clear()
+    const res = await daemon.activity.clear()
     if (res.ok) set({ activity: [] })
   },
 }))
