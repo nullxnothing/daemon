@@ -10,6 +10,7 @@
   user-select: none;
   flex-shrink: 0;
   position: relative;
+  min-width: 0;
 }
 
 .titlebar-left {
@@ -17,6 +18,11 @@
   align-items: center;
   padding: 0 12px;
   flex-shrink: 0;
+  min-width: 0;
+}
+
+.titlebar-left--icon-only {
+  padding-right: 8px;
 }
 
 .titlebar-icon {
@@ -56,6 +62,7 @@
   gap: 2px;
   padding: 0 4px;
   overflow-x: auto;
+  min-width: 0;
 }
 
 .project-tabs::-webkit-scrollbar {
@@ -76,6 +83,7 @@
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
   -webkit-app-region: no-drag;
+  max-width: 220px;
 }
 
 .project-tab:hover {
@@ -123,6 +131,7 @@
 .project-tab-name {
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .project-tab-add {
@@ -147,6 +156,7 @@
   display: flex;
   -webkit-app-region: no-drag;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .titlebar-portfolio {
@@ -198,6 +208,16 @@
   font-size: 11px;
   font-weight: 500;
   transition: background 0.15s, color 0.15s;
+}
+
+.titlebar-mode-toggle--icon-only {
+  width: 34px;
+  justify-content: center;
+  padding: 0;
+}
+
+.titlebar-mode-toggle--icon-only svg:last-child {
+  display: none;
 }
 
 .titlebar-mode-toggle:hover {
@@ -269,6 +289,132 @@
   font-family: var(--font-code);
 }
 
+.titlebar-switcher {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+}
+
+.titlebar-switcher-toggle {
+  max-width: 100%;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: var(--s2);
+  color: var(--t2);
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-switcher-toggle:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.titlebar-switcher-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-switcher-menu,
+.titlebar-overflow-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 4px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  box-shadow: var(--shadow-float);
+  z-index: 50;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-switcher-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.titlebar-switcher-item,
+.titlebar-switcher-add,
+.titlebar-overflow-item {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--t2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.titlebar-switcher-item:hover,
+.titlebar-switcher-add:hover,
+.titlebar-overflow-item:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
+}
+
+.titlebar-switcher-item.active,
+.titlebar-overflow-item.active {
+  color: var(--green);
+  background: var(--green-glow);
+}
+
+.titlebar-switcher-item-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-switcher-remove {
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--t3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.titlebar-switcher-remove:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+}
+
+.titlebar-overflow {
+  position: relative;
+  margin-right: 2px;
+}
+
+.titlebar-btn-overflow {
+  width: 32px;
+}
+
+.titlebar-overflow-menu {
+  left: auto;
+  right: 0;
+  min-width: 180px;
+}
+
 .titlebar-btn {
   width: 36px;
   height: var(--titlebar-h);
@@ -296,4 +442,35 @@
 .titlebar-btn-browser.active:hover {
   color: var(--green);
   background: rgba(62, 207, 142, 0.08);
+}
+
+.titlebar--compact .titlebar-left {
+  padding: 0 8px;
+}
+
+.titlebar--compact .project-tab {
+  padding: 0 8px;
+  max-width: 180px;
+}
+
+.titlebar--compact .titlebar-btn {
+  width: 32px;
+}
+
+.titlebar--tablet .titlebar-btn,
+.titlebar--small .titlebar-btn {
+  width: 32px;
+}
+
+.titlebar--small .titlebar-left {
+  padding-left: 8px;
+  padding-right: 6px;
+}
+
+.titlebar--small .titlebar-switcher {
+  padding: 0 4px;
+}
+
+.titlebar--small .titlebar-switcher-toggle {
+  padding: 0 8px;
 }
