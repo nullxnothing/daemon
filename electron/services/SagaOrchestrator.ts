@@ -5,6 +5,20 @@
 
 import { TIMEOUTS } from '../config/constants'
 
+// Silence lifecycle chatter in tests; production runs still write to stdout.
+// We can't route this through LogService here because LogService imports electron
+// at module load time, which would require every SagaOrchestrator test to mock
+// electron. Keep this local.
+const SAGA_LOGS_ENABLED = process.env.NODE_ENV !== 'test' && !process.env.VITEST
+
+function sagaInfo(message: string): void {
+  if (SAGA_LOGS_ENABLED) console.log(message)
+}
+
+function sagaError(message: string, err?: unknown): void {
+  if (SAGA_LOGS_ENABLED) console.error(message, err)
+}
+
 export interface SagaStep<T = unknown> {
   name: string;
   execute: () => Promise<T>;
@@ -46,7 +60,7 @@ class SagaOrchestratorImpl {
         definition.idempotencyKey,
       );
       if (cached && cached.status === 'completed') {
-        console.log(
+        sagaInfo(
           `[Saga] Returning cached result for idempotencyKey: ${definition.idempotencyKey}`,
         );
         return cached;
@@ -74,7 +88,7 @@ class SagaOrchestratorImpl {
         execution.currentStep = i;
 
         try {
-          console.log(
+          sagaInfo(
             `[Saga ${definition.name}] Executing step ${i + 1}/${definition.steps.length}: ${step.name}`,
           );
 
@@ -92,7 +106,7 @@ class SagaOrchestratorImpl {
             error: errorMsg,
           });
 
-          console.error(
+          sagaError(
             `[Saga ${definition.name}] Step failed: ${step.name}`,
             error,
           );
@@ -105,7 +119,7 @@ class SagaOrchestratorImpl {
                 execution.results[i],
               );
             } catch (handlerError) {
-              console.error(
+              sagaError(
                 `[Saga ${definition.name}] Error handler failed:`,
                 handlerError,
               );
@@ -143,7 +157,7 @@ class SagaOrchestratorImpl {
       }
       this.executions.delete(definition.id);
 
-      console.log(
+      sagaInfo(
         `[Saga ${definition.name}] Completed successfully in ${Date.now() - execution.startedAt}ms`,
       );
 
@@ -169,7 +183,7 @@ class SagaOrchestratorImpl {
 
     execution.status = 'compensating';
 
-    console.log(
+    sagaInfo(
       `[Saga ${definition.name}] Compensating from step ${lastSuccessfulStep}`,
     );
 
@@ -181,7 +195,7 @@ class SagaOrchestratorImpl {
       if (!step.compensate) continue;
 
       try {
-        console.log(
+        sagaInfo(
           `[Saga ${definition.name}] Compensating step ${i + 1}: ${step.name}`,
         );
         await this.executeWithTimeout(
@@ -189,7 +203,7 @@ class SagaOrchestratorImpl {
           definition.timeout || TIMEOUTS.SAGA_DEFAULT,
         );
       } catch (error) {
-        console.error(
+        sagaError(
           `[Saga ${definition.name}] Compensation failed for step ${step.name}:`,
           error,
         );
