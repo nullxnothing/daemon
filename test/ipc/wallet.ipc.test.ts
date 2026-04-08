@@ -10,6 +10,8 @@ const {
   dbCalls,
   walletServiceSpies,
   validationServiceSpies,
+  settingsServiceSpies,
+  platformFeeMock,
   dialogSpy,
   clipboardWriteSpy,
   clipboardReadSpy,
@@ -66,6 +68,16 @@ const {
     validationServiceSpies: {
       checkRateLimit: vi.fn(() => true),
     },
+    settingsServiceSpies: {
+      getBooleanSetting: vi.fn((_key: string, fallback: boolean) => fallback),
+      setBooleanSetting: vi.fn(),
+    },
+    platformFeeMock: {
+      BPS: 50,
+      WALLET_PUBKEY: 'FeeW4lLet1111111111111111111111111111111111',
+      ENABLED_SETTING_KEY: 'platform_fee_enabled',
+      ENABLED_DEFAULT: true,
+    },
     dialogSpy: vi.fn(),
     clipboardWriteSpy: vi.fn(),
     clipboardReadSpy: vi.fn(() => ''),
@@ -95,6 +107,12 @@ vi.mock('../../electron/services/ValidationService', () => ({
   ValidationService: validationServiceSpies,
 }))
 
+vi.mock('../../electron/services/SettingsService', () => settingsServiceSpies)
+
+vi.mock('../../electron/config/constants', () => ({
+  PLATFORM_FEE: platformFeeMock,
+}))
+
 // registerWalletHandlers is imported AFTER the mocks above are declared
 import { registerWalletHandlers } from '../../electron/ipc/wallet'
 
@@ -103,6 +121,10 @@ beforeEach(() => {
   dbCalls.length = 0
   Object.values(walletServiceSpies).forEach((s) => s.mockReset())
   validationServiceSpies.checkRateLimit.mockReset().mockReturnValue(true)
+  settingsServiceSpies.getBooleanSetting.mockReset().mockImplementation((_key, fallback) => fallback)
+  settingsServiceSpies.setBooleanSetting.mockReset()
+  platformFeeMock.BPS = 50
+  platformFeeMock.WALLET_PUBKEY = 'FeeW4lLet1111111111111111111111111111111111'
   dialogSpy.mockReset()
   clipboardWriteSpy.mockReset()
   clipboardReadSpy.mockReset().mockReturnValue('')
@@ -299,5 +321,67 @@ describe('wallet:export-private-key — rate limit + user confirmation', () => {
 
     // Only the original write, no clearing write
     expect(clipboardWriteSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('wallet:get-platform-fee', () => {
+  it('reports configured=true + enabled=true when build config + user opt-in are both set', async () => {
+    settingsServiceSpies.getBooleanSetting.mockReturnValue(true)
+    const res = await handlers.invoke('wallet:get-platform-fee')
+    expect(res).toEqual({ ok: true, data: { bps: 50, configured: true, enabled: true } })
+  })
+
+  it('reports enabled=false when the user has toggled the fee off', async () => {
+    settingsServiceSpies.getBooleanSetting.mockReturnValue(false)
+    const res = await handlers.invoke('wallet:get-platform-fee') as { ok: true; data: { enabled: boolean } }
+    expect(res.ok).toBe(true)
+    expect(res.data.enabled).toBe(false)
+  })
+
+  it('reports configured=false when build has no fee wallet set', async () => {
+    platformFeeMock.WALLET_PUBKEY = ''
+    const res = await handlers.invoke('wallet:get-platform-fee') as { ok: true; data: { configured: boolean; enabled: boolean } }
+    expect(res.data.configured).toBe(false)
+    // Even if the user setting is true, enabled collapses to false when not configured
+    expect(res.data.enabled).toBe(false)
+  })
+
+  it('reports configured=false when build has zero bps', async () => {
+    platformFeeMock.BPS = 0
+    const res = await handlers.invoke('wallet:get-platform-fee') as { ok: true; data: { configured: boolean } }
+    expect(res.data.configured).toBe(false)
+  })
+
+  it('uses the configured ENABLED_DEFAULT when no user preference is stored', async () => {
+    // Pass-through: getBooleanSetting returns its fallback arg (default impl from beforeEach)
+    const res = await handlers.invoke('wallet:get-platform-fee') as { ok: true; data: { enabled: boolean } }
+    expect(res.data.enabled).toBe(true)
+    expect(settingsServiceSpies.getBooleanSetting).toHaveBeenCalledWith('platform_fee_enabled', true)
+  })
+})
+
+describe('wallet:set-platform-fee-enabled', () => {
+  it('persists the boolean through SettingsService', async () => {
+    const res = await handlers.invoke('wallet:set-platform-fee-enabled', false)
+    expect(res.ok).toBe(true)
+    expect(settingsServiceSpies.setBooleanSetting).toHaveBeenCalledWith('platform_fee_enabled', false)
+  })
+
+  it('persists true', async () => {
+    const res = await handlers.invoke('wallet:set-platform-fee-enabled', true)
+    expect(res.ok).toBe(true)
+    expect(settingsServiceSpies.setBooleanSetting).toHaveBeenCalledWith('platform_fee_enabled', true)
+  })
+
+  it('rejects non-boolean input', async () => {
+    const res = await handlers.invoke('wallet:set-platform-fee-enabled', 'yes')
+    expect(res).toEqual({ ok: false, error: 'enabled must be a boolean' })
+    expect(settingsServiceSpies.setBooleanSetting).not.toHaveBeenCalled()
+  })
+
+  it('rejects numeric input', async () => {
+    const res = await handlers.invoke('wallet:set-platform-fee-enabled', 1)
+    expect(res.ok).toBe(false)
+    expect(settingsServiceSpies.setBooleanSetting).not.toHaveBeenCalled()
   })
 })

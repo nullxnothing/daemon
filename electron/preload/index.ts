@@ -222,6 +222,8 @@ contextBridge.exposeInMainWorld('daemon', {
     hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
     transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
     exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
+    getPlatformFee: () => ipcRenderer.invoke('wallet:get-platform-fee'),
+    setPlatformFeeEnabled: (enabled: boolean) => ipcRenderer.invoke('wallet:set-platform-fee-enabled', enabled),
   },
 
   pnl: {

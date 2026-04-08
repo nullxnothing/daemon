@@ -322,8 +322,10 @@ declare global {
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol: number }) => Promise<IpcResponse<{ signature: string }>>
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount: number }) => Promise<IpcResponse<{ signature: string }>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
-    swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; platformFee: { bps: number; amount: string; symbol: string | null } | null; rawQuoteResponse: unknown }>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<{ signature: string }>>
+    getPlatformFee: () => Promise<IpcResponse<{ bps: number; configured: boolean; enabled: boolean }>>
+    setPlatformFeeEnabled: (enabled: boolean) => Promise<IpcResponse>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>

@@ -17,6 +17,13 @@ interface SwapQuote {
   outAmount: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
+  // Disclosed DAEMON platform fee on this swap. `null` when no fee applies
+  // (fee disabled, not configured on this build, or ATA not initialized).
+  platformFee: {
+    bps: number
+    amount: string
+    symbol: string | null
+  } | null
   // Raw Jupiter quoteResponse, passed back to execute so the backend uses the
   // exact same quote the user saw rather than fetching a fresh one at a different price.
   rawQuoteResponse: unknown
@@ -321,6 +328,13 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
               {isVeryHighImpact && ' — Very high price impact'}
               {!isVeryHighImpact && isHighImpact && ' — High price impact'}
             </div>
+            {quote.platformFee && (
+              <div className="wallet-caption">
+                DAEMON fee ({(quote.platformFee.bps / 100).toFixed(2)}%):{' '}
+                {formatLargeNumber(quote.platformFee.amount)}{' '}
+                {outputToken?.symbol ?? shortMint(outputMint)}
+              </div>
+            )}
             {quote.routePlan.length > 0 && (
               <div className="wallet-caption">
                 Route: {quote.routePlan.map((r) => `${r.label} (${r.percent}%)`).join(' → ')}
@@ -353,6 +367,12 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
               {pendingSwap.impactPct < 5 && pendingSwap.impactPct >= 1 && ' — High price impact'}
             </div>
             <div className="wallet-caption">Slippage: {pendingSwap.slippagePct}%</div>
+            {pendingSwap.quote.platformFee && (
+              <div className="wallet-caption">
+                DAEMON fee ({(pendingSwap.quote.platformFee.bps / 100).toFixed(2)}%):{' '}
+                {formatLargeNumber(pendingSwap.quote.platformFee.amount)} {pendingSwap.outputSymbol}
+              </div>
+            )}
 
             {pendingSwap.impactPct >= 5 && (
               <label className="wallet-swap-ack-row">
