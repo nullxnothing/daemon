@@ -46,6 +46,34 @@ describe('validateString', () => {
   })
 })
 
+describe('validateEmailAddress', () => {
+  it('accepts a simple valid email address', () => {
+    const result = ValidationService.validateEmailAddress('alice@example.com')
+    expect(result.success).toBe(true)
+    expect(result.data).toBe('alice@example.com')
+  })
+
+  it('rejects malformed email addresses', () => {
+    const result = ValidationService.validateEmailAddress('not-an-email')
+    expect(result.success).toBe(false)
+    expect(result.errors![0]).toMatch(/invalid email/i)
+  })
+})
+
+describe('validateEmailList', () => {
+  it('normalizes comma and semicolon separated recipient lists', () => {
+    const result = ValidationService.validateEmailList('alice@example.com; bob@example.com, carol@example.com', true)
+    expect(result.success).toBe(true)
+    expect(result.data).toBe('alice@example.com, bob@example.com, carol@example.com')
+  })
+
+  it('rejects invalid recipients in the list', () => {
+    const result = ValidationService.validateEmailList('alice@example.com, nope', true)
+    expect(result.success).toBe(false)
+    expect(result.errors![0]).toMatch(/invalid email/i)
+  })
+})
+
 describe('validateNumber', () => {
   it('passes a valid number', () => {
     const result = ValidationService.validateNumber(42, 0, 100)
