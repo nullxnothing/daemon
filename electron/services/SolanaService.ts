@@ -9,8 +9,12 @@ import fs from 'node:fs'
  * Centralizes RPC connection creation and keypair lifecycle management.
  */
 
+export function getHeliusApiKey(): string | null {
+  return SecureKey.getKey('HELIUS_API_KEY') ?? process.env.HELIUS_API_KEY ?? null
+}
+
 export function getConnection(): Connection {
-  const key = SecureKey.getKey('HELIUS_API_KEY')
+  const key = getHeliusApiKey()
   if (key) {
     return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
   }
@@ -18,7 +22,7 @@ export function getConnection(): Connection {
 }
 
 export function getConnectionStrict(): Connection {
-  const key = SecureKey.getKey('HELIUS_API_KEY')
+  const key = getHeliusApiKey()
   if (!key) throw new Error('HELIUS_API_KEY not configured. Add it in Wallet settings.')
   return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
 }

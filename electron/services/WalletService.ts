@@ -4,7 +4,7 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { getConnection, withKeypair } from './SolanaService'
+import { getConnection, getHeliusApiKey, withKeypair } from './SolanaService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -316,7 +316,7 @@ export function deleteHeliusKey() {
 }
 
 export function hasHeliusKey() {
-  return Boolean(SecureKey.getKey('HELIUS_API_KEY'))
+  return Boolean(getHeliusApiKey())
 }
 
 async function getMarketTape() {

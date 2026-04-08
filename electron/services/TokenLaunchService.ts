@@ -197,10 +197,10 @@ export async function preflightLaunch(input: TokenLaunchInput): Promise<TokenLau
   checks.push({
     id: 'helius',
     label: 'RPC Access',
-    status: heliusConfigured ? 'pass' : 'fail',
+    status: heliusConfigured ? 'pass' : 'warn',
     detail: heliusConfigured
-      ? 'Helius RPC key is configured for launch execution.'
-      : 'Helius API key is required before token launch transactions can be built.',
+      ? 'Helius RPC key is configured via wallet settings or environment.'
+      : 'Helius RPC key is not configured. Launch preflight will use the public Solana RPC fallback.',
   })
 
   let walletBalanceSol: number | null = null
