@@ -121,6 +121,19 @@ async function openToolFromLauncher(page, toolName) {
   }, toolName, { timeout: 30000 })
 }
 
+async function verifySidebarAddToolFlyout(page) {
+  const addToolButton = page.getByRole('button', { name: 'Add tool', exact: true })
+  await addToolButton.click()
+  await page.waitForSelector('.sidebar-submenu--tools', { timeout: 30000 })
+  await page.waitForFunction(() => {
+    const flyout = document.querySelector('.sidebar-submenu--tools')
+    const drawerSearch = document.querySelector('.drawer-search')
+    return !!flyout && !drawerSearch
+  }, { timeout: 30000 })
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => document.querySelector('.sidebar-submenu--tools') === null, { timeout: 30000 })
+}
+
 async function run() {
   const cdpPort = await getFreePort()
   logStep('spawning electron')
@@ -181,6 +194,9 @@ async function run() {
 
   const activeEditorTabs = await page.locator('.editor-tab.active').allTextContents()
   assert(activeEditorTabs.some((text) => text.toLowerCase().includes('dashboard')), 'dashboard tab did not become active')
+
+  logStep('checking sidebar add-tool flyout')
+  await verifySidebarAddToolFlyout(page)
 
   logStep('checking tool launcher transitions')
   await openToolFromLauncher(page, 'Git')
