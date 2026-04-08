@@ -1,4 +1,5 @@
 import { ipcMain, dialog, clipboard } from 'electron'
+import { getDb } from '../db/db'
 import * as WalletService from '../services/WalletService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
@@ -20,7 +21,7 @@ export function registerWalletHandlers() {
   ipcMain.handle('wallet:rename', ipcHandler(async (_event, id: string, name: string) => {
     const trimmed = (name ?? '').trim().slice(0, 100)
     if (!trimmed) throw new Error('Wallet name cannot be empty')
-    const db = (await import('../db/db')).getDb()
+    const db = getDb()
     db.prepare('UPDATE wallets SET name = ? WHERE id = ?').run(trimmed, id)
   }))
 
