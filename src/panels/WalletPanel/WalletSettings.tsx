@@ -212,10 +212,7 @@ export function WalletSettings({
                     <button className="wallet-btn primary-soft" onClick={() => onAssignProject(wallet.id)}>Use For Project</button>
                   )}
                   {keypairCache[wallet.id] && (
-                    <>
-                      <button className="wallet-btn" onClick={() => onOpenSend(wallet.id, 'sol')}>Send SOL</button>
-                      <button className="wallet-btn" onClick={() => onOpenSend(wallet.id, 'token')}>Send Token</button>
-                    </>
+                    <button className="wallet-btn primary" onClick={() => onOpenSend(wallet.id, 'sol')}>Send Funds</button>
                   )}
                 </div>
                 <div className="wallet-actions wallet-actions-wrap wallet-actions-card-utility">
