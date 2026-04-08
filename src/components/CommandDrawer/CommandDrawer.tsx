@@ -262,6 +262,16 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
 ]
 
+const BUILTIN_TOOL_PRELOADERS = new Map(
+  BUILTIN_TOOLS
+    .filter((tool) => typeof tool.preload === 'function')
+    .map((tool) => [tool.id, tool.preload as () => void]),
+)
+
+export function preloadToolPanel(toolId: string) {
+  BUILTIN_TOOL_PRELOADERS.get(toolId)?.()
+}
+
 function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
   const tools = [...BUILTIN_TOOLS]
 

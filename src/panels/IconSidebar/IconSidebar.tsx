@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, type DragEvent } fro
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
-import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME } from '../../components/CommandDrawer/CommandDrawer'
+import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
 
@@ -212,6 +212,8 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
             onDragOver={(e) => handlePinDragOver(e, idx)}
             onDragLeave={() => setDragOverIdx(null)}
             onDrop={(e) => handlePinDrop(e, idx)}
+            onMouseEnter={() => preloadToolPanel(toolId)}
+            onFocus={() => preloadToolPanel(toolId)}
             title={`${name} (right-click to unpin)`}
             aria-label={name}
           >
@@ -243,6 +245,8 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
                     key={tool.id}
                     className="sidebar-submenu-item sidebar-submenu-item--tool"
                     onClick={() => handleAddToolSelect(tool.id)}
+                    onMouseEnter={() => preloadToolPanel(tool.id)}
+                    onFocus={() => preloadToolPanel(tool.id)}
                     title={`Pin ${tool.name}`}
                   >
                     {Icon ? <Icon size={14} /> : null}
