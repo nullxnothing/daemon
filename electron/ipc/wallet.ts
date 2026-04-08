@@ -1,6 +1,8 @@
 import { ipcMain, dialog, clipboard } from 'electron'
 import { getDb } from '../db/db'
 import * as WalletService from '../services/WalletService'
+import * as Settings from '../services/SettingsService'
+import { PLATFORM_FEE } from '../config/constants'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
 import type { WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
@@ -124,6 +126,26 @@ export function registerWalletHandlers() {
   ipcMain.handle('wallet:transaction-history', ipcHandler(async (_event, walletId: string, limit?: number) => {
     const safeLimitVal = Math.min(Math.max(limit ?? 50, 1), 200)
     return WalletService.getTransactionHistory(walletId, safeLimitVal)
+  }))
+
+  ipcMain.handle('wallet:get-platform-fee', ipcHandler(async () => {
+    // The UI uses this to render the toggle and the "DAEMON takes X bps" caption.
+    // Returns the user-effective state, not just the build-time config.
+    const configured = !!PLATFORM_FEE.WALLET_PUBKEY && PLATFORM_FEE.BPS > 0
+    const enabledByUser = Settings.getBooleanSetting(
+      PLATFORM_FEE.ENABLED_SETTING_KEY,
+      PLATFORM_FEE.ENABLED_DEFAULT,
+    )
+    return {
+      bps: PLATFORM_FEE.BPS,
+      configured,
+      enabled: configured && enabledByUser,
+    }
+  }))
+
+  ipcMain.handle('wallet:set-platform-fee-enabled', ipcHandler(async (_event, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') throw new Error('enabled must be a boolean')
+    Settings.setBooleanSetting(PLATFORM_FEE.ENABLED_SETTING_KEY, enabled)
   }))
 
   ipcMain.handle('wallet:export-private-key', ipcHandler(async (_event, walletId: string) => {

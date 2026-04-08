@@ -19,9 +19,11 @@ export function WalletTab({ onRefresh }: Props) {
   const dashboard = useWalletStore((s) => s.dashboard)!
   const showMarketTape = useWalletStore((s) => s.showMarketTape)
   const showTitlebarWallet = useWalletStore((s) => s.showTitlebarWallet)
+  const platformFee = useWalletStore((s) => s.platformFee)
   const transactions = useWalletStore((s) => s.transactions)
   const setStoreShowMarketTape = useWalletStore((s) => s.setShowMarketTape)
   const setStoreShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
+  const setStorePlatformFeeEnabled = useWalletStore((s) => s.setPlatformFeeEnabled)
   const activeView = useWalletStore((s) => s.activeView)
   const setActiveView = useWalletStore((s) => s.setActiveView)
 
@@ -280,10 +282,12 @@ export function WalletTab({ onRefresh }: Props) {
       {showSettings && (
         <WalletSettings
           showMarketTape={showMarketTape} showTitlebarWallet={showTitlebarWallet}
+          platformFee={platformFee}
           heliusConfigured={dashboard.heliusConfigured} wallets={dashboard.wallets}
           keypairCache={keypairCache} activeProjectId={activeProjectId}
           error={error} genSuccess={genSuccess}
           onToggleTape={async (c) => { await setStoreShowMarketTape(c) }} onToggleTitlebarWallet={async (c) => { await setStoreShowTitlebarWallet(c) }}
+          onTogglePlatformFee={async (c) => { await setStorePlatformFeeEnabled(c) }}
           onSaveHelius={handleSaveHelius} onDeleteHelius={handleDeleteHelius}
           onAddWallet={handleAddWallet} onGenerateWallet={handleGenerate}
           onClearGenSuccess={() => setGenSuccess(null)} onSetDefault={handleSetDefault}

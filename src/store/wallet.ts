@@ -53,10 +53,17 @@ interface WalletTransaction {
 type WalletActiveView = 'overview' | 'send' | 'swap' | 'receive' | 'vault'
 type WalletTab = 'wallet' | 'agents'
 
+interface PlatformFeeState {
+  bps: number
+  configured: boolean
+  enabled: boolean
+}
+
 interface WalletStoreState {
   dashboard: WalletDashboard | null
   showMarketTape: boolean
   showTitlebarWallet: boolean
+  platformFee: PlatformFeeState | null
   loading: boolean
   error: string | null
   agentWallets: AgentWallet[] | null
@@ -68,6 +75,7 @@ interface WalletStoreState {
   refresh: (projectId?: string | null) => Promise<void>
   setShowMarketTape: (enabled: boolean) => Promise<boolean>
   setShowTitlebarWallet: (enabled: boolean) => Promise<boolean>
+  setPlatformFeeEnabled: (enabled: boolean) => Promise<boolean>
   loadAgentWallets: () => Promise<void>
   loadTransactions: (walletId: string) => Promise<void>
   /** Call when a fast-polling consumer mounts (wallet panel). Returns cleanup fn. */
@@ -80,6 +88,7 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   dashboard: null,
   showMarketTape: true,
   showTitlebarWallet: true,
+  platformFee: null,
   loading: false,
   error: null,
   agentWallets: null,
@@ -93,9 +102,10 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
     set({ loading: true, error: null })
 
     try {
-      const [settingsRes, walletRes] = await Promise.all([
+      const [settingsRes, walletRes, feeRes] = await Promise.all([
         window.daemon.settings.getUi(),
         window.daemon.wallet.dashboard(projectId ?? null),
+        window.daemon.wallet.getPlatformFee(),
       ])
 
       if (settingsRes.ok && settingsRes.data) {
@@ -103,6 +113,10 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
           showMarketTape: settingsRes.data.showMarketTape,
           showTitlebarWallet: settingsRes.data.showTitlebarWallet,
         })
+      }
+
+      if (feeRes.ok && feeRes.data) {
+        set({ platformFee: feeRes.data })
       }
 
       if (walletRes.ok && walletRes.data) {
@@ -135,6 +149,20 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
     const res = await window.daemon.settings.setShowTitlebarWallet(enabled)
     if (res.ok) {
       set({ showTitlebarWallet: enabled })
+      return true
+    }
+    return false
+  },
+
+  setPlatformFeeEnabled: async (enabled) => {
+    const res = await window.daemon.wallet.setPlatformFeeEnabled(enabled)
+    if (res.ok) {
+      // Re-read from main so we pick up the effective enabled state (which also
+      // reflects whether the fee is configured at the build level).
+      const feeRes = await window.daemon.wallet.getPlatformFee()
+      if (feeRes.ok && feeRes.data) {
+        set({ platformFee: feeRes.data })
+      }
       return true
     }
     return false

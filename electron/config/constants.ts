@@ -51,3 +51,24 @@ export const GOOGLE_OAUTH = {
   CLIENT_ID: process.env.DAEMON_GOOGLE_CLIENT_ID ?? '',
   CLIENT_SECRET: process.env.DAEMON_GOOGLE_CLIENT_SECRET ?? '',
 } as const
+
+// --- Platform Fee (Jupiter integration) ---
+// DAEMON takes a disclosed platform fee on Jupiter swaps. The fee is routed through
+// Jupiter's native `platformFeeBps` parameter — it's line-itemed in the quote, visible
+// to the user in the confirmation UI, and paid out in the OUTPUT token to an ATA owned
+// by DAEMON_FEE_WALLET_PUBKEY. Users can disable the fee entirely from wallet settings.
+//
+// Hard cap at 100 bps (1%) to prevent misconfiguration from ever sending a silently
+// excessive fee. Jupiter also enforces its own cap (≤255 bps) server-side.
+export const PLATFORM_FEE = {
+  BPS: clampFeeBps(parseInt(process.env.DAEMON_PLATFORM_FEE_BPS ?? '50', 10)),
+  WALLET_PUBKEY: process.env.DAEMON_FEE_WALLET_PUBKEY ?? '',
+  // Setting key used by SettingsService / UI toggle — true by default, per-install opt-out.
+  ENABLED_SETTING_KEY: 'platform_fee_enabled',
+  ENABLED_DEFAULT: true,
+} as const
+
+function clampFeeBps(bps: number): number {
+  if (!Number.isFinite(bps) || bps < 0) return 0
+  return Math.min(bps, 100)
+}

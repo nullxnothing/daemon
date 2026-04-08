@@ -6,6 +6,7 @@ interface WalletSettingsProps {
   showMarketTape: boolean
   showTitlebarWallet: boolean
   heliusConfigured: boolean
+  platformFee: { bps: number; configured: boolean; enabled: boolean } | null
   wallets: Array<{
     id: string
     name: string
@@ -20,6 +21,7 @@ interface WalletSettingsProps {
   genSuccess: string | null
   onToggleTape: (checked: boolean) => Promise<void>
   onToggleTitlebarWallet: (checked: boolean) => Promise<void>
+  onTogglePlatformFee: (checked: boolean) => Promise<void>
   onSaveHelius: (key: string) => Promise<void>
   onDeleteHelius: () => Promise<void>
   onAddWallet: (name: string, address: string) => Promise<void>
@@ -37,6 +39,7 @@ export function WalletSettings({
   showMarketTape,
   showTitlebarWallet,
   heliusConfigured,
+  platformFee,
   wallets,
   keypairCache,
   activeProjectId,
@@ -44,6 +47,7 @@ export function WalletSettings({
   genSuccess,
   onToggleTape,
   onToggleTitlebarWallet,
+  onTogglePlatformFee,
   onSaveHelius,
   onDeleteHelius,
   onAddWallet,
@@ -99,6 +103,18 @@ export function WalletSettings({
         </div>
         <Toggle checked={showTitlebarWallet} onChange={onToggleTitlebarWallet} />
       </div>
+      {platformFee?.configured && (
+        <div className="wallet-toggle-row">
+          <div>
+            <div className="wallet-label">Support DAEMON ({(platformFee.bps / 100).toFixed(2)}%)</div>
+            <div className="wallet-caption">
+              Keeps the lights on — a disclosed {platformFee.bps} bps fee on swaps, routed through Jupiter&apos;s
+              native platform-fee mechanism. Shown as a line item on every quote. Turn off any time.
+            </div>
+          </div>
+          <Toggle checked={platformFee.enabled} onChange={onTogglePlatformFee} />
+        </div>
+      )}
       <div className="wallet-settings-block">
         <div className="wallet-label">Helius API Key</div>
         <div className="wallet-caption">

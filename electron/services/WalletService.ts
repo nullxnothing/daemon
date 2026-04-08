@@ -1,6 +1,7 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
-import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
+import { API_ENDPOINTS, PLATFORM_FEE, RETRY_CONFIG } from '../config/constants'
+import * as Settings from './SettingsService'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
@@ -690,6 +691,72 @@ const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6/quote'
 const JUPITER_SWAP_API = 'https://quote-api.jup.ag/v6/swap'
 const LAMPORTS_DECIMALS = 9
 
+/**
+ * Platform fee resolution for a given swap.
+ *
+ * DAEMON charges a disclosed fee (PLATFORM_FEE.BPS, default 50 bps / 0.5%) on
+ * Jupiter swaps via Jupiter's native `platformFeeBps` + `feeAccount` parameters.
+ * The fee is paid in the OUTPUT token to an ATA owned by PLATFORM_FEE.WALLET_PUBKEY.
+ *
+ * We deliberately skip the fee (returning `null`) in three cases:
+ *   1. Build has no fee wallet configured (dev builds, forks).
+ *   2. User has toggled `platform_fee_enabled = false` in wallet settings.
+ *   3. The fee ATA for this output mint hasn't been initialized yet.
+ *
+ * Case 3 matters because Jupiter's swap will fail at the instruction level if the
+ * feeAccount doesn't exist. Rather than fund an ATA init tx on every first-time
+ * mint (which costs rent), we skip the fee for long-tail mints and let the fee
+ * wallet operator pre-create ATAs for whichever mints they want to earn on.
+ *
+ * Returns `null` when no fee should be charged. Returns `{ bps, feeAccount }`
+ * ready to be threaded through the Jupiter quote + swap calls.
+ */
+interface ResolvedPlatformFee {
+  bps: number
+  feeAccount: string
+}
+
+async function resolvePlatformFee(outputMint: string): Promise<ResolvedPlatformFee | null> {
+  // Case 1: build-time disable (no fee wallet configured).
+  if (!PLATFORM_FEE.WALLET_PUBKEY || PLATFORM_FEE.BPS === 0) return null
+
+  // Case 2: user-level opt-out via wallet settings.
+  const enabled = Settings.getBooleanSetting(
+    PLATFORM_FEE.ENABLED_SETTING_KEY,
+    PLATFORM_FEE.ENABLED_DEFAULT,
+  )
+  if (!enabled) return null
+
+  // Derive and existence-check the ATA of the output mint for the fee wallet.
+  let feeWalletPubkey: PublicKey
+  let outputMintPubkey: PublicKey
+  try {
+    feeWalletPubkey = new PublicKey(PLATFORM_FEE.WALLET_PUBKEY)
+    outputMintPubkey = new PublicKey(outputMint)
+  } catch {
+    console.warn('[WalletService] Invalid fee wallet or output mint — skipping platform fee')
+    return null
+  }
+
+  try {
+    const feeAta = await getAssociatedTokenAddress(outputMintPubkey, feeWalletPubkey)
+    const connection = getConnection()
+    const accountInfo = await connection.getAccountInfo(feeAta)
+    if (!accountInfo) {
+      // Case 3: fee ATA doesn't exist yet. Skip the fee on this swap rather than
+      // failing the swap or paying rent to init the ATA during a user action.
+      console.warn(
+        `[WalletService] Fee ATA not initialized for output mint ${outputMint} — skipping platform fee`,
+      )
+      return null
+    }
+    return { bps: PLATFORM_FEE.BPS, feeAccount: feeAta.toBase58() }
+  } catch (err) {
+    console.warn('[WalletService] Platform fee resolution failed:', (err as Error).message)
+    return null
+  }
+}
+
 interface JupiterQuoteResponse {
   inputMint: string
   outputMint: string
@@ -706,6 +773,13 @@ interface SwapQuoteResult {
   outAmount: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
+  // Platform fee charged on this quote — null when no fee is applied. The UI uses
+  // this to show a disclosed fee line item in the swap confirmation.
+  platformFee: {
+    bps: number
+    amount: string        // human-readable, denominated in the output token
+    symbol: string | null // resolved symbol if known (display-only)
+  } | null
   rawQuoteResponse: unknown
 }
 
@@ -724,11 +798,20 @@ export async function getSwapQuote(
   const decimals = await getMintDecimals(inputMint)
   const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
 
+  // Resolve the platform fee BEFORE hitting Jupiter so the fee is baked into the
+  // quoted outAmount the user actually sees. If resolvePlatformFee returns null
+  // (disabled, unset, or ATA missing), we quote normally and pass platformFee=null
+  // through so the UI doesn't show a fee row.
+  const feeResolution = await resolvePlatformFee(outputMint)
+
   const url = new URL(JUPITER_QUOTE_API)
   url.searchParams.set('inputMint', inputMint)
   url.searchParams.set('outputMint', outputMint)
   url.searchParams.set('amount', rawAmount.toString())
   url.searchParams.set('slippageBps', String(slippageBps))
+  if (feeResolution) {
+    url.searchParams.set('platformFeeBps', String(feeResolution.bps))
+  }
 
   const response = await fetch(url.toString())
   if (!response.ok) {
@@ -743,6 +826,25 @@ export async function getSwapQuote(
   const humanInAmount = (Number(BigInt(data.inAmount)) / Math.pow(10, decimals)).toString()
   const humanOutAmount = (Number(BigInt(data.outAmount)) / Math.pow(10, outputDecimals)).toString()
 
+  // Compute the displayable fee amount, denominated in the output token.
+  // Jupiter returns `platformFee: { amount, feeBps }` on the quote response when
+  // platformFeeBps was supplied. Prefer that raw value; fall back to deriving it
+  // from (quoted outAmount * bps / (10000 - bps)) since the quoted outAmount is
+  // already net of the fee Jupiter will take.
+  let platformFee: SwapQuoteResult['platformFee'] = null
+  if (feeResolution) {
+    const rawFee = (data as unknown as { platformFee?: { amount?: string; feeBps?: number } }).platformFee
+    const rawFeeAmount = rawFee?.amount ? parseFloat(rawFee.amount) : null
+    const humanFeeAmount = rawFeeAmount !== null
+      ? (rawFeeAmount / Math.pow(10, outputDecimals)).toString()
+      : ((Number(BigInt(data.outAmount)) * feeResolution.bps / (10_000 - feeResolution.bps)) / Math.pow(10, outputDecimals)).toString()
+    platformFee = {
+      bps: feeResolution.bps,
+      amount: humanFeeAmount,
+      symbol: null,
+    }
+  }
+
   return {
     inputMint: data.inputMint,
     outputMint: data.outputMint,
@@ -753,6 +855,7 @@ export async function getSwapQuote(
       label: r.swapInfo?.label ?? 'Unknown',
       percent: r.percent,
     })),
+    platformFee,
     // The raw Jupiter response is passed back to executeSwap so it can use the
     // exact quote the user reviewed rather than fetching at a potentially different price.
     rawQuoteResponse: data,
@@ -849,6 +952,15 @@ export async function executeSwap(
       quoteData = await quoteRes.json()
     }
 
+    // If the quote was built with a platform fee, the /swap call must include the
+    // matching feeAccount so Jupiter knows where to route the output-token fee.
+    // We trust the quote's `platformFee.feeBps` field: if it's present AND the
+    // configured fee wallet still resolves to a usable ATA for this output mint,
+    // attach the feeAccount. Otherwise we omit it and Jupiter will route no fee —
+    // this is the graceful path when the ATA was deleted between quote and execute.
+    const quoteHasPlatformFee = !!(quoteData as { platformFee?: { feeBps?: number } }).platformFee?.feeBps
+    const feeResolution = quoteHasPlatformFee ? await resolvePlatformFee(outputMint) : null
+
     // Get the swap transaction from Jupiter
     const swapRes = await fetch(JUPITER_SWAP_API, {
       method: 'POST',
@@ -857,6 +969,7 @@ export async function executeSwap(
         quoteResponse: quoteData,
         userPublicKey,
         wrapAndUnwrapSol: true,
+        ...(feeResolution ? { feeAccount: feeResolution.feeAccount } : {}),
       }),
     })
 
