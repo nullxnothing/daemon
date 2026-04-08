@@ -55,6 +55,7 @@
     "smol-toml": "^1.6.1"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.2.1",
     "@electron/rebuild": "^3.7.1",
     "@monaco-editor/react": "^4.7.0",
     "@types/better-sqlite3": "^7.6.12",
