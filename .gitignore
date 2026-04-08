@@ -72,3 +72,4 @@ release-plan.md
 docs/
 !docs/screenshots/
 .wrangler/
+.vercel
