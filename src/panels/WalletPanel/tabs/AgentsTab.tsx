@@ -132,8 +132,8 @@ export function AgentsTab() {
   const handleExportConfirm = useCallback(async () => {
     if (!activeWalletId || exportConfirmText !== 'EXPORT') return
     const res = await window.daemon.wallet.exportPrivateKey(activeWalletId)
-    if (res.ok && res.data) {
-      setRevealedKey(res.data as string)
+    if (res.ok) {
+      setRevealedKey('Copied to clipboard. Auto-clears in 30s.')
       setExportConfirmText('')
       setTimeout(() => { setRevealedKey(null); clearAction() }, 5000)
     } else { setError(res.error ?? 'Export failed') }

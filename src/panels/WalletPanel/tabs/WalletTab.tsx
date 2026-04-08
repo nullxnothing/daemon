@@ -162,8 +162,8 @@ export function WalletTab({ onRefresh }: Props) {
   const handleExportKeyConfirm = async () => {
     if (!exportConfirmId || exportConfirmText !== 'EXPORT') return
     const res = await window.daemon.wallet.exportPrivateKey(exportConfirmId)
-    if (res.ok && res.data) {
-      setRevealKeyId(exportConfirmId); setRevealedKey(res.data)
+    if (res.ok) {
+      setRevealKeyId(exportConfirmId); setRevealedKey('Copied to clipboard. Auto-clears in 30s.')
       setExportConfirmId(null); setExportConfirmText('')
       setTimeout(() => { setRevealKeyId(null); setRevealedKey(null) }, 5_000)
     } else {
