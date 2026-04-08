@@ -387,8 +387,10 @@ export const useUIStore = create<UIState>((set) => ({
     drawerOpen: tool !== null,
     drawerFullscreen: tool !== null ? state.drawerFullscreen : false,
   })),
-  closeDrawer: () => set({ drawerOpen: false, drawerFullscreen: false }),
-  toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen, drawerFullscreen: false })),
+  closeDrawer: () => set({ drawerOpen: false, drawerTool: null, drawerFullscreen: false }),
+  toggleDrawer: () => set((state) => state.drawerOpen
+    ? { drawerOpen: false, drawerTool: null, drawerFullscreen: false }
+    : { drawerOpen: true, drawerTool: null, drawerFullscreen: false }),
   toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
   setPinnedTools: (tools) => {
     set({ pinnedTools: tools })
