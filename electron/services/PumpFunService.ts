@@ -1,5 +1,4 @@
 import { Connection, Keypair, VersionedTransaction, TransactionMessage, PublicKey } from '@solana/web3.js'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { dialog } from 'electron'
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
@@ -17,6 +16,16 @@ let _sdk: typeof import('@nirholas/pump-sdk') | null = null
 function getSdk() {
   if (!_sdk) _sdk = require('@nirholas/pump-sdk') as typeof import('@nirholas/pump-sdk')
   return _sdk
+}
+
+type SplTokenModule = typeof import('@solana/spl-token')
+let splTokenModulePromise: Promise<SplTokenModule> | null = null
+
+async function getSplTokenModule(): Promise<SplTokenModule> {
+  if (!splTokenModulePromise) {
+    splTokenModulePromise = import('@solana/spl-token')
+  }
+  return splTokenModulePromise
 }
 
 async function sendAndConfirm(connection: Connection, keypairs: Keypair[], instructions: import('@solana/web3.js').TransactionInstruction[]): Promise<string> {
@@ -172,6 +181,7 @@ export async function createToken(input: TokenCreateInput): Promise<TxResult> {
 export async function buyToken(input: TradeInput): Promise<TxResult> {
   return withKeypair(input.walletId, async (keypair) => {
   const sdk = getSdk()
+  const splToken = await getSplTokenModule()
   const connection = getConnectionStrict()
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
   const mintPk = new PublicKey(input.mint)
@@ -197,8 +207,7 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
   const bcInfo = await connection.getAccountInfo(bcPda)
   if (!bcInfo) throw new Error('Bonding curve account not found')
 
-  const { getAssociatedTokenAddressSync } = await import('@solana/spl-token')
-  const userAtaAddress = getAssociatedTokenAddressSync(mintPk, keypair.publicKey)
+  const userAtaAddress = splToken.getAssociatedTokenAddressSync(mintPk, keypair.publicKey)
   const userAtaInfo = await connection.getAccountInfo(userAtaAddress)
 
   const instructions = await onlineSdk.buyInstructions({
@@ -210,7 +219,7 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
     amount: tokenAmount,
     solAmount: solLamports,
     slippage: input.slippageBps / 100,
-    tokenProgram: TOKEN_PROGRAM_ID,
+    tokenProgram: splToken.TOKEN_PROGRAM_ID,
   })
 
   const signature = await sendAndConfirm(connection, [keypair], instructions)
@@ -221,6 +230,7 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
 export async function sellToken(input: TradeInput): Promise<TxResult> {
   return withKeypair(input.walletId, async (keypair) => {
   const sdk = getSdk()
+  const splToken = await getSplTokenModule()
   const connection = getConnectionStrict()
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
   const mintPk = new PublicKey(input.mint)
@@ -254,7 +264,7 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
     amount: tokenAmount,
     solAmount,
     slippage: input.slippageBps / 100,
-    tokenProgram: TOKEN_PROGRAM_ID,
+    tokenProgram: splToken.TOKEN_PROGRAM_ID,
   })
 
   const signature = await sendAndConfirm(connection, [keypair], instructions)

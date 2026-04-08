@@ -3,9 +3,18 @@ import { getDb } from '../db/db'
 import { API_ENDPOINTS, PLATFORM_FEE, RETRY_CONFIG } from '../config/constants'
 import * as Settings from './SettingsService'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
-import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
 import { getConnection, withKeypair } from './SolanaService'
+
+type SplTokenModule = typeof import('@solana/spl-token')
+let splTokenModulePromise: Promise<SplTokenModule> | null = null
+
+async function getSplTokenModule(): Promise<SplTokenModule> {
+  if (!splTokenModulePromise) {
+    splTokenModulePromise = import('@solana/spl-token')
+  }
+  return splTokenModulePromise
+}
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -616,13 +625,14 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     const fromAddress = keypair.publicKey.toBase58()
     const mintPubkey = new PublicKey(mint)
     const destPubkey = new PublicKey(toAddress)
+    const splToken = await getSplTokenModule()
 
     // Fetch the source token account balance and validate before building the transaction.
-    const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
+    const fromAta = await splToken.getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
     const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
     const decimals = readMintDecimals(mintInfo.value?.data)
     try {
-      const accountInfo = await getAccount(connection, fromAta)
+      const accountInfo = await splToken.getAccount(connection, fromAta)
       const rawBalance = Number(accountInfo.amount)
       const rawRequired = BigInt(Math.round(amount * Math.pow(10, decimals)))
       if (BigInt(rawBalance) < rawRequired) {
@@ -641,16 +651,16 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
     ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amount, mint, 'pending', Date.now())
 
     try {
-      const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey)
+      const toAta = await splToken.getAssociatedTokenAddress(mintPubkey, destPubkey)
 
       const transaction = new Transaction()
 
       // Create destination ATA if it doesn't exist
       try {
-        await getAccount(connection, toAta)
+        await splToken.getAccount(connection, toAta)
       } catch {
         transaction.add(
-          createAssociatedTokenAccountInstruction(
+          splToken.createAssociatedTokenAccountInstruction(
             keypair.publicKey,
             toAta,
             destPubkey,
@@ -663,7 +673,7 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
       const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
 
       transaction.add(
-        createTransferInstruction(
+        splToken.createTransferInstruction(
           fromAta,
           toAta,
           keypair.publicKey,
@@ -739,7 +749,8 @@ async function resolvePlatformFee(outputMint: string): Promise<ResolvedPlatformF
   }
 
   try {
-    const feeAta = await getAssociatedTokenAddress(outputMintPubkey, feeWalletPubkey)
+    const splToken = await getSplTokenModule()
+    const feeAta = await splToken.getAssociatedTokenAddress(outputMintPubkey, feeWalletPubkey)
     const connection = getConnection()
     const accountInfo = await connection.getAccountInfo(feeAta)
     if (!accountInfo) {
