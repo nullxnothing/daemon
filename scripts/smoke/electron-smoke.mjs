@@ -22,6 +22,7 @@ const smokeEcho = `DAEMON_SMOKE_${Date.now()}`
 let electronProcess
 let browser
 const rendererConsole = []
+const rendererFailures = []
 
 function logStep(message) {
   console.log(`[smoke] ${message}`)
@@ -83,10 +84,12 @@ function attachPageDiagnostics(page) {
     const entry = `[page-console] ${message.type()}: ${message.text()}`
     rendererConsole.push(entry)
     console.log(entry)
+    if (message.type() === 'error') rendererFailures.push(entry)
   })
   page.on('pageerror', (error) => {
     const entry = `[page-error] ${error.message}`
     rendererConsole.push(entry)
+    rendererFailures.push(entry)
     console.log(entry)
   })
 }
@@ -119,6 +122,24 @@ async function openToolFromLauncher(page, toolName) {
     const title = document.querySelector('.drawer-title')?.textContent?.trim()
     return title?.toLowerCase() === String(expected).toLowerCase()
   }, toolName, { timeout: 30000 })
+}
+
+async function closeDrawerToGrid(page) {
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => document.querySelector('.drawer-search') !== null, { timeout: 30000 })
+}
+
+async function cycleDrawerTools(page, toolNames, rounds = 1) {
+  for (let round = 0; round < rounds; round += 1) {
+    for (const toolName of toolNames) {
+      await openToolFromLauncher(page, toolName)
+      if (toolName === 'Git') await page.waitForSelector('.git-center', { timeout: 30000 })
+      if (toolName === 'Wallet') await page.waitForSelector('.wallet-panel', { timeout: 30000 })
+      if (toolName === 'Token Launch') await page.waitForSelector('.token-launch-tool', { timeout: 30000 })
+      if (toolName === 'Settings') await page.waitForSelector('.settings-center', { timeout: 30000 })
+      await closeDrawerToGrid(page)
+    }
+  }
 }
 
 async function verifySidebarAddToolFlyout(page) {
@@ -199,18 +220,9 @@ async function run() {
   await verifySidebarAddToolFlyout(page)
 
   logStep('checking tool launcher transitions')
-  await openToolFromLauncher(page, 'Git')
-  await page.waitForSelector('.git-center', { timeout: 30000 })
-  await page.keyboard.press('Escape')
-  await page.waitForFunction(() => document.querySelector('.drawer-search') !== null, { timeout: 30000 })
+  await cycleDrawerTools(page, ['Git', 'Wallet', 'Token Launch', 'Settings'], 2)
 
-  await openToolFromLauncher(page, 'Wallet')
-  await page.waitForSelector('.wallet-panel', { timeout: 30000 })
-  await page.keyboard.press('Escape')
-  await page.waitForFunction(() => document.querySelector('.drawer-search') !== null, { timeout: 30000 })
-
-  await openToolFromLauncher(page, 'Token Launch')
-  await page.waitForSelector('.token-launch-tool', { timeout: 30000 })
+  assert.equal(rendererFailures.length, 0, `renderer failures detected:\n${rendererFailures.join('\n')}`)
 }
 
 try {
