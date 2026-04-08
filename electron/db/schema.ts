@@ -455,6 +455,18 @@ CREATE TABLE IF NOT EXISTS activity_log (
 CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at DESC);
 `
 
+export const SCHEMA_V24 = `
+CREATE TABLE IF NOT EXISTS pro_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  wallet_id TEXT,
+  wallet_address TEXT,
+  expires_at INTEGER,
+  features TEXT,
+  tier TEXT,
+  updated_at INTEGER NOT NULL
+);
+`
+
 export const SCHEMA_V21 = `
 CREATE TABLE IF NOT EXISTS pnl_trades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

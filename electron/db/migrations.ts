@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -250,6 +250,19 @@ export function runMigrations(db: Database.Database) {
         }
       }
       db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(23)
+    })()
+  }
+
+  if (currentVersion < 24) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V24.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(24)
     })()
   }
 
