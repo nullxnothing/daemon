@@ -215,6 +215,7 @@ contextBridge.exposeInMainWorld('daemon', {
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
+    holdings: (walletId: string) => ipcRenderer.invoke('wallet:holdings', walletId),
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => ipcRenderer.invoke('wallet:swap-execute', input),
     agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),

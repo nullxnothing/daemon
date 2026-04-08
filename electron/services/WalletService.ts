@@ -936,6 +936,18 @@ export async function getBalance(walletId: string) {
   return { sol: lamports / LAMPORTS_PER_SOL, lamports }
 }
 
+export async function getWalletHoldings(walletId: string): Promise<HoldingSummary[]> {
+  const db = getDb()
+  const row = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
+  if (!row) throw new Error('Wallet not found')
+
+  const heliusKey = getHeliusApiKey()
+  if (!heliusKey) return []
+
+  const balances = await getWalletBalances(row.address, heliusKey)
+  return normalizeHoldings(balances.balances)
+}
+
 export function createAgentWallet(agentId: string, agentName: string) {
   // agentName may already include "Wallet" suffix (from UI default), so use it directly
   return generateWallet(agentName, 'agent', agentId)
