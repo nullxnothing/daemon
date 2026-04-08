@@ -855,12 +855,13 @@ export async function executeSwap(
         maxRetries: 3,
       })
 
-      // Confirm the transaction
-      const latestBlockhash = await connection.getLatestBlockhash()
+      // Confirm using the blockhash embedded in the transaction by Jupiter
+      const txBlockhash = transaction.message.recentBlockhash
+      const { lastValidBlockHeight } = await connection.getLatestBlockhash()
       await connection.confirmTransaction({
         signature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        blockhash: txBlockhash,
+        lastValidBlockHeight,
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
