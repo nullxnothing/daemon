@@ -31,6 +31,7 @@ import { useCommandPalette } from './hooks/useCommandPalette'
 import { useShellLayout } from './hooks/useShellLayout'
 import { daemon } from './lib/daemonBridge'
 import { lazyNamedWithReload } from './utils/lazyWithReload'
+import { preloadToolPanel } from './components/CommandDrawer/CommandDrawer'
 import './App.css'
 
 const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
@@ -239,6 +240,40 @@ function App() {
   useEffect(() => {
     void useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
+
+  useEffect(() => {
+    if (!appReady) return
+    const pinnedTools = useUIStore.getState().pinnedTools
+    const likelyNext = ['wallet', 'git', 'token-launch']
+    const warmSet = [...new Set([...pinnedTools, ...likelyNext])]
+      .filter((toolId) => toolId !== 'browser')
+      .slice(0, 6)
+
+    let cancelled = false
+    const warmPanels = () => {
+      if (cancelled) return
+      warmSet.forEach((toolId) => preloadToolPanel(toolId))
+    }
+
+    const idleCallback = (window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }).requestIdleCallback
+
+    if (typeof idleCallback === 'function') {
+      const idleId = idleCallback(warmPanels, { timeout: 1500 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback?.(idleId)
+      }
+    }
+
+    const timeoutId = window.setTimeout(warmPanels, 250)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [appReady])
 
   // Detect Solana project when active project changes
   useEffect(() => {
