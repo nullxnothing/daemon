@@ -40,6 +40,7 @@ import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
 import { clearLoadedWallets } from '../services/RecoveryService'
+import { isBlockedBrowserUrl } from '../services/BrowserService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -110,6 +111,10 @@ let win: BrowserWindow | null = null
 let ipcRegistered = false
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
+
+function isBlockedWebviewNavigation(url: string): boolean {
+  return isBlockedBrowserUrl(url)
+}
 
 function registerAllIpc() {
   if (ipcRegistered) return
@@ -301,11 +306,31 @@ async function createWindow() {
   })
 
   // Enforce security on webview creation from main process
-  win.webContents.on('will-attach-webview', (_event, webPreferences) => {
+  win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
     webPreferences.nodeIntegration = false
     webPreferences.contextIsolation = true
     webPreferences.sandbox = true
     delete (webPreferences as Record<string, unknown>).preload
+
+    if (params.src && isBlockedWebviewNavigation(params.src)) {
+      event.preventDefault()
+    }
+  })
+
+  win.webContents.on('did-attach-webview', (_event, contents) => {
+    contents.setWindowOpenHandler(({ url }) => {
+      if (isBlockedWebviewNavigation(url)) {
+        return { action: 'deny' }
+      }
+      void shell.openExternal(url)
+      return { action: 'deny' }
+    })
+
+    contents.on('will-navigate', (event, url) => {
+      if (isBlockedWebviewNavigation(url)) {
+        event.preventDefault()
+      }
+    })
   })
 
   // Block navigation away from app origin (XSS defense)

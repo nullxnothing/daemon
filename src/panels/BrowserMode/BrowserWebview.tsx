@@ -57,22 +57,24 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     async (url: string) => {
       const normalized = normalizeUrl(url)
       if (!normalized) return
-      setUrl(normalized)
       setLoadStatus('loading')
-      isNavigated.current = true
 
       // Create page cache entry in main process and store the pageId
       try {
         const res = await window.daemon.browser.navigate(normalized)
-        if (res.ok && res.data) {
-          useBrowserStore.getState().setLastPageId(res.data.pageId)
+        if (!res.ok || !res.data) {
+          setLoadStatus('error')
+          return
+        }
+
+        useBrowserStore.getState().setLastPageId(res.data.pageId)
+        setUrl(normalized)
+        isNavigated.current = true
+        if (webviewRef.current) {
+          webviewRef.current.src = normalized
         }
       } catch {
-        // Cache entry creation failed — capture will use fallback ID
-      }
-
-      if (webviewRef.current) {
-        webviewRef.current.src = normalized
+        setLoadStatus('error')
       }
     },
     [normalizeUrl, setUrl, setLoadStatus]
