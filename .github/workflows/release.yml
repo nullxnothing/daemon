@@ -65,7 +65,7 @@ jobs:
           if ("${{ secrets.CSC_KEY_PASSWORD }}") {
             $env:CSC_KEY_PASSWORD = "${{ secrets.CSC_KEY_PASSWORD }}"
           }
-          pnpm run package -- --publish never
+          pnpm exec electron-builder --publish never
       - name: Generate checksums
         shell: pwsh
         run: |
@@ -128,7 +128,7 @@ jobs:
             echo "Notarization secrets found, enabling notarize"
             npx json -I -f electron-builder.json -e 'this.mac.notarize=true'
           fi
-          pnpm run package -- --publish never
+          pnpm exec electron-builder --publish never
       - name: Generate checksums
         run: |
           cd release
@@ -170,7 +170,7 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: pnpm run package -- --publish never
+      - run: pnpm exec electron-builder --publish never
       - name: Generate checksums
         run: |
           cd release
