@@ -1,0 +1,10 @@
+{
+  "name": "anchor-auditor",
+  "version": "0.1.0",
+  "description": "Security-focused audit agent for Anchor programs. Runs static checks for missing signer constraints, unchecked accounts, CPI safety, PDA derivation, and integer overflow. Outputs a severity-ranked findings report.",
+  "kind": "agent",
+  "model": "claude-opus-4-20250514",
+  "mcps": ["filesystem", "solana-mcp-server"],
+  "shortcut": "cmd+shift+a",
+  "category": "security"
+}

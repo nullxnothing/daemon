@@ -1,0 +1,9 @@
+dist/
+node_modules/
+dev.db
+dev.db-journal
+dev.db-wal
+dev.db-shm
+.env
+.env.local
+.env.*.local

@@ -1,0 +1,31 @@
+{
+  "name": "@daemon/pro-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Daemon Pro API — subscription server for curated content, arena, and hosted sync",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.2",
+    "vitest": "^2.1.5"
+  }
+}

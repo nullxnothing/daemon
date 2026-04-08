@@ -1,0 +1,10 @@
+{
+  "name": "onchain-researcher",
+  "version": "0.1.0",
+  "description": "Research agent for Solana tokens and protocols. Pulls Helius transaction history, Jupiter price data, DexScreener metadata, and holder distribution. Produces a structured report with risk flags.",
+  "kind": "agent",
+  "model": "claude-opus-4-20250514",
+  "mcps": ["helius", "solana-mcp-server"],
+  "shortcut": "cmd+shift+r",
+  "category": "research"
+}

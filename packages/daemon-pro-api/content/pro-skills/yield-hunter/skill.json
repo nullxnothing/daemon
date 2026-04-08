@@ -1,0 +1,10 @@
+{
+  "name": "yield-hunter",
+  "version": "0.1.0",
+  "description": "DeFi yield strategist. Scans Kamino, Marginfi, Drift, Jito, and Sanctum for current yields, computes risk-adjusted returns, and proposes concrete deposit strategies with position sizing.",
+  "kind": "agent",
+  "model": "claude-opus-4-20250514",
+  "mcps": ["helius"],
+  "shortcut": "cmd+shift+y",
+  "category": "defi"
+}

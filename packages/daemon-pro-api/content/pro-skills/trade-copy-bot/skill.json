@@ -1,0 +1,10 @@
+{
+  "name": "trade-copy-bot",
+  "version": "0.1.0",
+  "description": "Copy-trading agent. Watches a target wallet via Helius webhooks, mirrors buys and sells with configurable position sizing and slippage guards. Includes stop-loss, take-profit, and blacklist.",
+  "kind": "agent",
+  "model": "claude-opus-4-20250514",
+  "mcps": ["helius", "solana-mcp-server"],
+  "shortcut": "cmd+shift+c",
+  "category": "trading"
+}
