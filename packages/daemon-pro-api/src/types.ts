@@ -54,6 +54,16 @@ export interface SubscribeSuccessBody {
   expiresAt: number // ms since epoch
   features: ProFeature[]
   tier: 'pro'
+  accessSource?: 'payment' | 'holder'
+}
+
+export interface HolderStatus {
+  enabled: boolean
+  eligible: boolean
+  mint: string | null
+  minAmount: number | null
+  currentAmount: number | null
+  symbol: string
 }
 
 export interface StatusResponseBody {
@@ -62,12 +72,15 @@ export interface StatusResponseBody {
   features: ProFeature[]
   quotaRemaining: number | null
   tier: 'pro' | null
+  accessSource: 'payment' | 'holder' | null
+  holderStatus: HolderStatus
 }
 
 /** Arena submission — what the server sends to the client */
 export interface ArenaSubmission {
   id: string
   title: string
+  pitch: string
   author: {
     handle: string
     wallet: string
@@ -79,15 +92,23 @@ export interface ArenaSubmission {
   status: 'submitted' | 'featured' | 'winner' | 'shipped'
   votes: number
   githubUrl?: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+  contestSlug?: string
   previewImage?: string
 }
 
 /** Arena submission payload — what the client sends when submitting */
 export interface ArenaSubmissionInput {
   title: string
+  pitch: string
   description: string
   category: ArenaSubmission['category']
   githubUrl: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
 }
 
 /** MCP sync payload — mirrors the client's local MCP config shape */

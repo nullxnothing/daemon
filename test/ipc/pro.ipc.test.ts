@@ -201,7 +201,7 @@ describe('pro:mcp-push + pro:mcp-pull', () => {
 describe('pro:arena-list', () => {
   it('returns submissions list', async () => {
     proServiceSpies.listArenaSubmissions.mockResolvedValue([
-      { id: 's1', title: 'Tool 1', author: { handle: 'a', wallet: 'w' }, description: '', category: 'tool', themeWeek: null, submittedAt: 0, status: 'submitted', votes: 0 },
+      { id: 's1', title: 'Tool 1', pitch: 'Fast pitch', author: { handle: 'a', wallet: 'w' }, description: '', category: 'tool', themeWeek: null, submittedAt: 0, status: 'submitted', votes: 0 },
     ])
     const res = await handlers.invoke('pro:arena-list')
     expect(res.ok).toBe(true)
@@ -221,23 +221,31 @@ describe('pro:arena-submit', () => {
     proServiceSpies.submitToArena.mockResolvedValue({ id: 'new-id' })
     const res = await handlers.invoke('pro:arena-submit', {
       title: 'Test Tool',
+      pitch: 'A fast one-line pitch',
       description: 'A test submission',
       category: 'tool',
       githubUrl: 'https://github.com/test/test',
+      demoUrl: 'https://example.com/demo',
+      xHandle: '@test',
+      discordHandle: 'testbuilder',
     })
     expect(res).toEqual({ ok: true, data: { id: 'new-id' } })
     expect(proServiceSpies.submitToArena).toHaveBeenCalledWith({
       title: 'Test Tool',
+      pitch: 'A fast one-line pitch',
       description: 'A test submission',
       category: 'tool',
       githubUrl: 'https://github.com/test/test',
+      demoUrl: 'https://example.com/demo',
+      xHandle: '@test',
+      discordHandle: 'testbuilder',
     })
   })
 
   it('forwards validation errors from the server', async () => {
     proServiceSpies.submitToArena.mockRejectedValue(new Error('githubUrl must be a valid https://github.com/… URL'))
     const res = await handlers.invoke('pro:arena-submit', {
-      title: 'x', description: 'y', category: 'tool', githubUrl: 'https://gitlab.com/bad',
+      title: 'x', pitch: 'z', description: 'y', category: 'tool', githubUrl: 'https://gitlab.com/bad',
     })
     expect(res.ok).toBe(false)
     expect(res.error).toMatch(/github/i)

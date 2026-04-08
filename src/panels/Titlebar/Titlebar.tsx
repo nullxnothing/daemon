@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useUIStore, type CenterMode } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
+import { useProStore } from '../../store/pro'
 import { formatCompactUsd } from '../../utils/format'
 import { WalletQuickView } from '../../components/QuickView/WalletQuickView'
 import daemonIcon from '../../assets/daemon-icon-48.png'
+import daemonProBadge from '../../assets/daemon-pro-badge.png'
 import './Titlebar.css'
 
 interface TitlebarProps {
@@ -19,6 +21,13 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
   const setCenterMode = useUIStore((s) => s.setCenterMode)
   const browserTabOpen = useUIStore((s) => s.browserTabOpen)
   const toggleBrowserTab = useUIStore((s) => s.toggleBrowserTab)
+  const openProPanel = useUIStore((s) => s.setDrawerTool)
+  const subscriptionActive = useProStore((s) => s.subscription.active)
+  const refreshProStatus = useProStore((s) => s.refreshStatus)
+
+  useEffect(() => {
+    void refreshProStatus()
+  }, [refreshProStatus])
 
   return (
     <div className="titlebar">
@@ -50,6 +59,15 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
         <button className="project-tab-add" onClick={onAddProject}>+</button>
       </div>
       <div className="titlebar-controls">
+        <button
+          className={`titlebar-pro-cta${subscriptionActive ? ' active' : ''}`}
+          onClick={() => openProPanel('pro')}
+          title="Open Daemon Pro"
+          aria-label={subscriptionActive ? 'Open Pro' : 'Get Pro'}
+        >
+          <img src={daemonProBadge} alt="" className="titlebar-pro-badge-image" draggable={false} />
+          {!subscriptionActive && <span className="titlebar-pro-cta-label">Get Pro</span>}
+        </button>
         <TitlebarPortfolioSummary />
         <button
           className={`titlebar-btn titlebar-btn-browser${browserTabOpen ? ' active' : ''}`}

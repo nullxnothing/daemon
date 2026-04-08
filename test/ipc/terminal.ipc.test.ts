@@ -250,7 +250,7 @@ describe('terminal:create — pty spawn setup', () => {
   it('spawns the default shell with a sane env', async () => {
     const res = await handlers.invoke('terminal:create', {})
     expect(res.ok).toBe(true)
-    expect(lastPtySpawn?.shell).toBe('/bin/bash')
+    expect(lastPtySpawn?.shell).toBe(process.platform === 'win32' ? 'powershell.exe' : '/bin/bash')
     expect(lastPtySpawn?.options.env.TERM).toBe('xterm-256color')
   })
 

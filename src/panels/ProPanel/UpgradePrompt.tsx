@@ -1,4 +1,5 @@
 import { useProStore } from '../../store/pro'
+import daemonProBadge from '../../assets/daemon-pro-badge.png'
 import './ProPanel.css'
 
 /**
@@ -29,7 +30,7 @@ export function UpgradePrompt({ reason, onOpenProPanel }: UpgradePromptProps) {
 
   return (
     <div className="pro-upgrade-prompt">
-      <div className="pro-upgrade-badge">DAEMON PRO</div>
+      <img src={daemonProBadge} alt="" className="pro-badge-image pro-upgrade-badge-image" draggable={false} />
       <div className="pro-upgrade-title">Upgrade to unlock</div>
       <div className="pro-upgrade-reason">{reason}</div>
       {price && (

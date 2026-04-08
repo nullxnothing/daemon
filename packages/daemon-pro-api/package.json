@@ -4,18 +4,26 @@
   "private": true,
   "type": "module",
   "description": "Daemon Pro API — subscription server for curated content, arena, and hosted sync",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:x402": "tsx scripts/test-x402.ts"
   },
   "dependencies": {
+    "@payai/facilitator": "^2.3.6",
+    "@solana/kit": "^5.5.1",
+    "@x402/core": "^2.9.0",
+    "@x402/express": "^2.9.0",
+    "@x402/svm": "^2.9.0",
     "better-sqlite3": "^11.7.0",
+    "bs58": "^6.0.0",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",

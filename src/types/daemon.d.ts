@@ -334,6 +334,16 @@ declare global {
   }
 
   type ProFeatureId = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
+  type ProAccessSource = 'payment' | 'holder'
+
+  interface ProHolderStatus {
+    enabled: boolean
+    eligible: boolean
+    mint: string | null
+    minAmount: number | null
+    currentAmount: number | null
+    symbol: string
+  }
 
   interface ProSubscriptionState {
     active: boolean
@@ -342,6 +352,8 @@ declare global {
     expiresAt: number | null
     features: ProFeatureId[]
     tier: 'pro' | null
+    accessSource: ProAccessSource | null
+    holderStatus: ProHolderStatus
     priceUsdc: number | null
     durationDays: number | null
   }
@@ -351,11 +363,14 @@ declare global {
     durationDays: number
     network: string
     payTo: string
+    holderMint?: string
+    holderMinAmount?: number
   }
 
   interface ArenaSubmissionWire {
     id: string
     title: string
+    pitch: string
     author: { handle: string; wallet: string }
     description: string
     category: 'tool' | 'agent' | 'skill' | 'mcp' | 'grind-recipe'
@@ -364,6 +379,10 @@ declare global {
     status: 'submitted' | 'featured' | 'winner' | 'shipped'
     votes: number
     githubUrl?: string
+    demoUrl?: string
+    xHandle?: string
+    discordHandle?: string
+    contestSlug?: string
     previewImage?: string
   }
 
@@ -383,11 +402,12 @@ declare global {
     refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
     fetchPrice: () => Promise<IpcResponse<ProPriceInfo>>
     subscribe: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState; price: ProPriceInfo }>>
+    claimHolderAccess: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState }>>
     signOut: () => Promise<IpcResponse>
     mcpPush: () => Promise<IpcResponse<{ count: number }>>
     mcpPull: () => Promise<IpcResponse<{ count: number }>>
     arenaList: () => Promise<IpcResponse<ArenaSubmissionWire[]>>
-    arenaSubmit: (input: { title: string; description: string; category: string; githubUrl: string }) => Promise<IpcResponse<{ id: string }>>
+    arenaSubmit: (input: { title: string; pitch: string; description: string; category: string; githubUrl: string; demoUrl?: string; xHandle?: string; discordHandle?: string }) => Promise<IpcResponse<{ id: string }>>
     arenaVote: (submissionId: string) => Promise<IpcResponse>
     skillsManifest: () => Promise<IpcResponse<{ version: 1; skills: ProSkillManifestEntryWire[] }>>
     skillsSync: () => Promise<IpcResponse<{ installed: string[]; skipped: string[] }>>

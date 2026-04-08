@@ -462,6 +462,28 @@ export function SolanaDevelopmentDoc() {
         This is optional and can be enabled per-project in{' '}
         <strong>Settings &gt; Solana &gt; Session Registry</strong>.
       </Paragraph>
+
+      <H2 id="daemon-pro">Daemon Pro</H2>
+      <Paragraph>
+        Daemon Pro is the hosted layer on top of the open DAEMON IDE. It adds Arena, Pro Skill Pack,
+        Hosted MCP Sync, and the Priority API without changing the core app's open-source licensing.
+      </Paragraph>
+      <List
+        items={[
+          'Arena: submit projects, vote on entries, and track what ships next',
+          'Pro Skill Pack: curated agents, templates, and workflows synced into the app',
+          'Hosted MCP Sync: one MCP setup, multiple machines',
+          'Priority API: higher-value routes like explain-tx and audit-idl without per-call friction',
+        ]}
+      />
+      <Paragraph>
+        Access can be claimed two ways: subscribe with USDC via x402, or hold at least{' '}
+        <strong>1,000,000 DAEMON</strong> in a local wallet and claim holder access directly in the app.
+      </Paragraph>
+      <Paragraph>
+        To submit to Arena, open <strong>Tools &gt; Daemon Pro &gt; Arena</strong>. The public Arena page
+        mirrors the same live board the app reads from, so submissions and votes stay in sync.
+      </Paragraph>
     </>
   )
 }

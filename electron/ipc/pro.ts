@@ -38,6 +38,13 @@ export function registerProHandlers() {
     return await ProService.subscribe(walletId)
   }))
 
+  ipcMain.handle('pro:claim-holder-access', ipcHandler(async (_event, walletId: string) => {
+    if (!walletId || typeof walletId !== 'string') {
+      throw new Error('walletId required')
+    }
+    return await ProService.claimHolderAccess(walletId)
+  }))
+
   ipcMain.handle('pro:sign-out', ipcHandler(async () => {
     ProService.signOut()
   }))

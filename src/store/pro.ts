@@ -18,6 +18,8 @@ interface PriceInfo {
   durationDays: number
   network: string
   payTo: string
+  holderMint?: string
+  holderMinAmount?: number
 }
 
 interface SubscriptionState {
@@ -27,11 +29,21 @@ interface SubscriptionState {
   expiresAt: number | null
   features: Array<'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'>
   tier: 'pro' | null
+  accessSource: 'payment' | 'holder' | null
+  holderStatus: {
+    enabled: boolean
+    eligible: boolean
+    mint: string | null
+    minAmount: number | null
+    currentAmount: number | null
+    symbol: string
+  }
 }
 
 interface ArenaSubmission {
   id: string
   title: string
+  pitch: string
   author: { handle: string; wallet: string }
   description: string
   category: 'tool' | 'agent' | 'skill' | 'mcp' | 'grind-recipe'
@@ -40,6 +52,10 @@ interface ArenaSubmission {
   status: 'submitted' | 'featured' | 'winner' | 'shipped'
   votes: number
   githubUrl?: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+  contestSlug?: string
 }
 
 interface Quota {
@@ -61,12 +77,13 @@ interface ProStoreState {
   syncingMcp: boolean
   error: string | null
 
-  refreshStatus: () => Promise<void>
+  refreshStatus: (walletAddress?: string | null) => Promise<void>
   fetchPrice: () => Promise<void>
   subscribe: (walletId: string) => Promise<boolean>
+  claimHolderAccess: (walletId: string) => Promise<boolean>
   signOut: () => Promise<void>
   loadArena: () => Promise<void>
-  submitToArena: (input: { title: string; description: string; category: string; githubUrl: string }) => Promise<string | null>
+  submitToArena: (input: { title: string; pitch: string; description: string; category: string; githubUrl: string; demoUrl?: string; xHandle?: string; discordHandle?: string }) => Promise<string | null>
   voteArena: (submissionId: string) => Promise<boolean>
   loadQuota: () => Promise<void>
   syncSkills: () => Promise<{ installed: string[]; skipped: string[] } | null>
@@ -82,6 +99,15 @@ const EMPTY_SUBSCRIPTION: SubscriptionState = {
   expiresAt: null,
   features: [],
   tier: null,
+  accessSource: null,
+  holderStatus: {
+    enabled: false,
+    eligible: false,
+    mint: null,
+    minAmount: null,
+    currentAmount: null,
+    symbol: 'DAEMON',
+  },
 }
 
 export const useProStore = create<ProStoreState>((set, get) => ({
@@ -96,9 +122,11 @@ export const useProStore = create<ProStoreState>((set, get) => ({
   syncingMcp: false,
   error: null,
 
-  refreshStatus: async () => {
+  refreshStatus: async (walletAddress) => {
     try {
-      const res = await window.daemon.pro.status()
+      const res = walletAddress
+        ? await window.daemon.pro.refreshStatus(walletAddress)
+        : await window.daemon.pro.status()
       if (res.ok && res.data) {
         set({
           subscription: {
@@ -108,6 +136,8 @@ export const useProStore = create<ProStoreState>((set, get) => ({
             expiresAt: res.data.expiresAt,
             features: res.data.features,
             tier: res.data.tier,
+            accessSource: res.data.accessSource,
+            holderStatus: res.data.holderStatus,
           },
         })
       }
@@ -142,6 +172,8 @@ export const useProStore = create<ProStoreState>((set, get) => ({
             expiresAt: res.data.state.expiresAt,
             features: res.data.state.features,
             tier: res.data.state.tier,
+            accessSource: res.data.state.accessSource,
+            holderStatus: res.data.state.holderStatus,
           },
           price: res.data.price,
           subscribing: false,
@@ -153,6 +185,37 @@ export const useProStore = create<ProStoreState>((set, get) => ({
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Subscribe failed',
+        subscribing: false,
+      })
+      return false
+    }
+  },
+
+  claimHolderAccess: async (walletId) => {
+    set({ subscribing: true, error: null })
+    try {
+      const res = await window.daemon.pro.claimHolderAccess(walletId)
+      if (res.ok && res.data) {
+        set({
+          subscription: {
+            active: res.data.state.active,
+            walletId: res.data.state.walletId,
+            walletAddress: res.data.state.walletAddress,
+            expiresAt: res.data.state.expiresAt,
+            features: res.data.state.features,
+            tier: res.data.state.tier,
+            accessSource: res.data.state.accessSource,
+            holderStatus: res.data.state.holderStatus,
+          },
+          subscribing: false,
+        })
+        return true
+      }
+      set({ error: res.error ?? 'Holder claim failed', subscribing: false })
+      return false
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : 'Holder claim failed',
         subscribing: false,
       })
       return false

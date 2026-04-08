@@ -47,6 +47,13 @@ export function requireSubscription(requiredFeatures: ProFeature[] = []) {
       })
       return
     }
+    if (!result.payload.jti || !row.jwt_id || row.jwt_id !== result.payload.jti) {
+      res.status(401).json({
+        ok: false,
+        error: 'Subscription token superseded',
+      })
+      return
+    }
 
     for (const required of requiredFeatures) {
       if (!result.payload.features.includes(required)) {

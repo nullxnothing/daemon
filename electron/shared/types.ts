@@ -992,6 +992,16 @@ export interface WorkspaceProfile {
 // --- Daemon Pro ---
 
 export type ProFeature = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
+export type ProAccessSource = 'payment' | 'holder'
+
+export interface ProHolderStatus {
+  enabled: boolean
+  eligible: boolean
+  mint: string | null
+  minAmount: number | null
+  currentAmount: number | null
+  symbol: string
+}
 
 export interface ProSubscriptionState {
   active: boolean
@@ -1000,6 +1010,8 @@ export interface ProSubscriptionState {
   expiresAt: number | null
   features: ProFeature[]
   tier: 'pro' | null
+  accessSource: ProAccessSource | null
+  holderStatus: ProHolderStatus
   priceUsdc: number | null
   durationDays: number | null
 }
@@ -1009,11 +1021,14 @@ export interface ProPriceInfo {
   durationDays: number
   network: string
   payTo: string
+  holderMint?: string
+  holderMinAmount?: number
 }
 
 export interface ArenaSubmission {
   id: string
   title: string
+  pitch: string
   author: {
     handle: string
     wallet: string
@@ -1025,14 +1040,22 @@ export interface ArenaSubmission {
   status: 'submitted' | 'featured' | 'winner' | 'shipped'
   votes: number
   githubUrl?: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+  contestSlug?: string
   previewImage?: string
 }
 
 export interface ArenaSubmissionInput {
   title: string
+  pitch: string
   description: string
   category: ArenaSubmission['category']
   githubUrl: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
 }
 
 export interface ProSkillManifestEntry {
