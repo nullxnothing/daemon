@@ -107,6 +107,20 @@ async function waitForAppReady(page) {
   await page.waitForSelector('.main-layout', { timeout: 30000 })
 }
 
+async function openToolFromLauncher(page, toolName) {
+  const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
+  if (!drawerVisible) {
+    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.waitForSelector('.command-drawer', { timeout: 30000 })
+  }
+  const drawer = page.locator('.command-drawer')
+  await drawer.locator('.drawer-tool-card', { hasText: toolName }).first().click()
+  await page.waitForFunction((expected) => {
+    const title = document.querySelector('.drawer-title')?.textContent?.trim()
+    return title?.toLowerCase() === String(expected).toLowerCase()
+  }, toolName, { timeout: 30000 })
+}
+
 async function run() {
   const cdpPort = await getFreePort()
   logStep('spawning electron')
@@ -167,6 +181,20 @@ async function run() {
 
   const activeEditorTabs = await page.locator('.editor-tab.active').allTextContents()
   assert(activeEditorTabs.some((text) => text.toLowerCase().includes('dashboard')), 'dashboard tab did not become active')
+
+  logStep('checking tool launcher transitions')
+  await openToolFromLauncher(page, 'Git')
+  await page.waitForSelector('.git-center', { timeout: 30000 })
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => document.querySelector('.drawer-search') !== null, { timeout: 30000 })
+
+  await openToolFromLauncher(page, 'Wallet')
+  await page.waitForSelector('.wallet-panel', { timeout: 30000 })
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => document.querySelector('.drawer-search') !== null, { timeout: 30000 })
+
+  await openToolFromLauncher(page, 'Token Launch')
+  await page.waitForSelector('.token-launch-tool', { timeout: 30000 })
 }
 
 try {
