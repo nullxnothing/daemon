@@ -7,12 +7,16 @@ import {
   LAMPORTS_PER_SOL,
   sendAndConfirmTransaction,
 } from '@solana/web3.js'
-import {
-  getAssociatedTokenAddress,
-  createTransferInstruction,
-  createAssociatedTokenAccountInstruction,
-  getAccount,
-} from '@solana/spl-token'
+
+type SplTokenModule = typeof import('@solana/spl-token')
+let splTokenModulePromise: Promise<SplTokenModule> | null = null
+
+async function getSplTokenModule(): Promise<SplTokenModule> {
+  if (!splTokenModulePromise) {
+    splTokenModulePromise = import('@solana/spl-token')
+  }
+  return splTokenModulePromise
+}
 
 export async function transferSOL(
   connection: Connection,
@@ -43,18 +47,19 @@ export async function transferSPLToken(
 ): Promise<string> {
   const mintPubkey = new PublicKey(mint)
   const toPubkey = new PublicKey(toAddress)
+  const splToken = await getSplTokenModule()
 
-  const fromAta = await getAssociatedTokenAddress(mintPubkey, fromKeypair.publicKey)
-  const toAta = await getAssociatedTokenAddress(mintPubkey, toPubkey)
+  const fromAta = await splToken.getAssociatedTokenAddress(mintPubkey, fromKeypair.publicKey)
+  const toAta = await splToken.getAssociatedTokenAddress(mintPubkey, toPubkey)
 
   const tx = new Transaction()
 
   // Create recipient ATA if needed
   try {
-    await getAccount(connection, toAta)
+    await splToken.getAccount(connection, toAta)
   } catch {
     tx.add(
-      createAssociatedTokenAccountInstruction(
+      splToken.createAssociatedTokenAccountInstruction(
         fromKeypair.publicKey,
         toAta,
         toPubkey,
@@ -64,7 +69,7 @@ export async function transferSPLToken(
   }
 
   tx.add(
-    createTransferInstruction(fromAta, toAta, fromKeypair.publicKey, amount),
+    splToken.createTransferInstruction(fromAta, toAta, fromKeypair.publicKey, amount),
   )
 
   return sendAndConfirmTransaction(connection, tx, [fromKeypair])
