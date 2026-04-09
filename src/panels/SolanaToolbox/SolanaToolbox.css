@@ -10,6 +10,84 @@
     var(--surface-gradient-subtle);
 }
 
+.solana-workflow-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.solana-workflow-header {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid rgba(62, 207, 142, 0.06);
+}
+
+.solana-workflow-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.08;
+  color: var(--t1);
+}
+
+.solana-workflow-copy {
+  margin: 10px 0 0;
+  max-width: 72ch;
+  color: var(--t3);
+  font-size: var(--font-md);
+  line-height: 1.5;
+}
+
+.solana-view-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 20px 18px;
+}
+
+.solana-view-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--s5);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--t2);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.solana-view-tab:hover {
+  border-color: rgba(62, 207, 142, 0.18);
+  background: rgba(62, 207, 142, 0.04);
+}
+
+.solana-view-tab.active {
+  border-color: rgba(62, 207, 142, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(62, 207, 142, 0.12), transparent 45%),
+    rgba(62, 207, 142, 0.05);
+  box-shadow: var(--shadow-lifted);
+}
+
+.solana-view-tab-label {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.solana-view-tab-summary {
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  color: var(--t4);
+}
+
+.solana-view-panel {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Validator zone (full width) ── */
 .solana-validator-zone {
   padding: 16px;
@@ -429,6 +507,10 @@
 }
 
 @media (max-width: 1100px) {
+  .solana-view-tabs {
+    grid-template-columns: 1fr;
+  }
+
   .solana-token-launch-header,
   .solana-launchpad-settings-header,
   .solana-launchpad-row,

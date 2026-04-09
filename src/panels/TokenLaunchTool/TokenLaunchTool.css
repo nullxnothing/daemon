@@ -110,19 +110,7 @@
   line-height: 1.5;
 }
 
-.token-launch-tool-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-  gap: 18px;
-  min-height: 0;
-}
-
-.token-launch-tool-main,
-.token-launch-tool-side {
-  min-width: 0;
-}
-
-.token-launch-tool-side {
+.token-launch-tool-flow {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -190,13 +178,8 @@
     align-items: stretch;
   }
 
-  .token-launch-tool-highlight-grid,
-  .token-launch-tool-layout {
+  .token-launch-tool-highlight-grid {
     grid-template-columns: 1fr;
-  }
-
-  .token-launch-tool-side {
-    gap: 16px;
   }
 }
 
