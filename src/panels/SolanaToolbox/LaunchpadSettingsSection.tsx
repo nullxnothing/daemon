@@ -94,23 +94,40 @@ export function LaunchpadSettingsSection({
 
   return (
     <section className="solana-launchpad-settings">
-      <div className="solana-launchpad-settings-header">
-        <div>
-          {!embedded && <div className="solana-token-launch-kicker">Launchpad Settings</div>}
-          <h2 className="solana-token-launch-title">{embedded ? 'Launchpad config' : 'Enable LaunchLab and DBC in-app'}</h2>
-          <p className="solana-launchpad-settings-copy">
-            {embedded
-              ? 'Store protocol config once and let the unified launch flow pick it up automatically.'
-              : 'Store protocol config once, keep env fallback in place, and let the unified Token Launch tool resolve readiness from DAEMON state.'}
-          </p>
+      {!embedded && (
+        <div className="solana-launchpad-settings-header">
+          <div>
+            <div className="solana-token-launch-kicker">Launchpad Settings</div>
+            <h2 className="solana-token-launch-title">Enable LaunchLab and DBC in-app</h2>
+            <p className="solana-launchpad-settings-copy">
+              Store protocol config once, keep env fallback in place, and let the unified Token Launch tool resolve readiness from DAEMON state.
+            </p>
+          </div>
+          <div className="solana-token-launch-actions">
+            <button className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
+            <button className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+              {saving ? 'Saving...' : 'Save Settings'}
+            </button>
+          </div>
         </div>
-        <div className="solana-token-launch-actions">
-          <button className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-          <button className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
+      )}
+
+      {embedded && (
+        <div className="solana-launchpad-settings-compact-head">
+          <div>
+            <div className="solana-token-launch-card-title">Launchpad config</div>
+            <div className="solana-token-launch-card-copy">
+              Save the protocol config once here and the launch flow will pick it up automatically.
+            </div>
+          </div>
+          <div className="solana-token-launch-actions">
+            <button className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
+            <button className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="solana-launchpad-settings-grid">
         <div className="solana-launchpad-settings-card">
