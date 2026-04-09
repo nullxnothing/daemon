@@ -5,6 +5,9 @@ import './ImageEditor.css'
 // miniPaint is served via the minipaint:// custom protocol.
 // Communication with the iframe uses postMessage (cross-origin safe).
 const MINIPAINT_URL = 'minipaint://app/index.html'
+const READY_RETRY_INTERVAL_MS = 250
+const READY_RETRY_LIMIT = 20
+const READY_FALLBACK_MS = 2500
 
 export default function ImageEditor() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -17,6 +20,30 @@ export default function ImageEditor() {
     resolve: (base64: string) => void
     reject: (err: Error) => void
   } | null>(null)
+  const readyRetryRef = useRef<number | null>(null)
+  const readyFallbackRef = useRef<number | null>(null)
+
+  const clearReadyTimers = useCallback(() => {
+    if (readyRetryRef.current !== null) {
+      window.clearInterval(readyRetryRef.current)
+      readyRetryRef.current = null
+    }
+    if (readyFallbackRef.current !== null) {
+      window.clearTimeout(readyFallbackRef.current)
+      readyFallbackRef.current = null
+    }
+  }, [])
+
+  const markReady = useCallback(() => {
+    setReady(true)
+    clearReadyTimers()
+  }, [clearReadyTimers])
+
+  const pingMiniPaint = useCallback(() => {
+    const iframe = iframeRef.current
+    if (!iframe?.contentWindow) return
+    iframe.contentWindow.postMessage({ type: 'mp:ping' }, '*')
+  }, [])
 
   // Load the image that triggered the editor from the active file in the store
   useEffect(() => {
@@ -36,7 +63,7 @@ export default function ImageEditor() {
       if (!msg || typeof msg.type !== 'string') return
 
       if (msg.type === 'mp:ready') {
-        setReady(true)
+        markReady()
         return
       }
 
@@ -60,7 +87,7 @@ export default function ImageEditor() {
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [])
+  }, [markReady])
 
   // Once miniPaint signals ready and we have an image path, inject it
   useEffect(() => {
@@ -136,13 +163,33 @@ export default function ImageEditor() {
   }, [])
 
   const handleIframeLoad = useCallback(() => {
-    // miniPaint's bundle.js initializes asynchronously after DOM load.
-    // The iframe itself sends mp:ready via postMessage once it's up.
-    // We ping it here as a fallback in case the load event fires before our listener.
-    const iframe = iframeRef.current
-    if (!iframe?.contentWindow) return
-    iframe.contentWindow.postMessage({ type: 'mp:ping' }, '*')
-  }, [])
+    setReady(false)
+    clearReadyTimers()
+    pingMiniPaint()
+
+    let attempts = 1
+    readyRetryRef.current = window.setInterval(() => {
+      if (attempts >= READY_RETRY_LIMIT) {
+        clearReadyTimers()
+        return
+      }
+      attempts += 1
+      pingMiniPaint()
+    }, READY_RETRY_INTERVAL_MS)
+
+    // The iframe can finish booting before our initial ready listener sees the first signal.
+    // Once we have given the bridge several chances to respond, unblock the UI instead of
+    // leaving it in a permanent loading state.
+    readyFallbackRef.current = window.setTimeout(() => {
+      markReady()
+    }, READY_FALLBACK_MS)
+  }, [clearReadyTimers, markReady, pingMiniPaint])
+
+  useEffect(() => {
+    return () => {
+      clearReadyTimers()
+    }
+  }, [clearReadyTimers])
 
   return (
     <div className="image-editor">
