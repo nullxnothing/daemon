@@ -26,6 +26,7 @@ interface WalletSwapFormProps {
   walletId: string
   walletName: string
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
+  executionMode: WalletInfrastructureSettings['executionMode']
   onBack: () => void
   onRefresh: () => Promise<void>
 }
@@ -44,7 +45,7 @@ interface PendingSwap {
   confirmedAt: number
 }
 
-export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefresh }: WalletSwapFormProps) {
+export function WalletSwapForm({ walletId, walletName, holdings, executionMode, onBack, onRefresh }: WalletSwapFormProps) {
   const [inputMint, setInputMint] = useState(SOL_MINT)
   const [outputMint, setOutputMint] = useState(USDC_MINT)
   const [amount, setAmount] = useState('')
@@ -59,7 +60,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
   const [highImpactAcknowledged, setHighImpactAcknowledged] = useState(false)
 
   const [swapLoading, setSwapLoading] = useState(false)
-  const [swapResult, setSwapResult] = useState<string | null>(null)
+  const [swapResult, setSwapResult] = useState<WalletExecutionResult | null>(null)
   const [swapError, setSwapError] = useState<string | null>(null)
 
   // Ref-based mutex — prevents double-submit even if React state update is batched
@@ -149,7 +150,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
       })
 
       if (res.ok && res.data) {
-        setSwapResult(res.data.signature)
+        setSwapResult(res.data)
         setQuote(null)
         setPendingSwap(null)
         setAmount('')
@@ -204,6 +205,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
 
       <div className="wallet-swap-container">
         <div className="wallet-caption">{walletName}</div>
+        <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
 
         {/* Input token */}
         <div className="wallet-swap-field">
@@ -384,7 +386,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
         {swapError && <div className="wallet-empty">{swapError}</div>}
         {swapResult && (
           <div className="wallet-success-msg">
-            Swap confirmed! Sig: {swapResult.slice(0, 8)}...{swapResult.slice(-8)}
+            Swap confirmed via {swapResult.transport === 'jito' ? 'Jito' : 'RPC'}! Sig: {swapResult.signature.slice(0, 8)}...{swapResult.signature.slice(-8)}
           </div>
         )}
       </div>

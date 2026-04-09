@@ -26,7 +26,7 @@ const TEMPLATES: Template[] = [
 - Deployment scripts for devnet and mainnet
 - .env.example with RPC_URL, WALLET_PATH, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, INITIAL_SUPPLY
 - README with setup instructions
-Use @solana/web3.js v2 and anchor. Initialize git repo.`,
+Use Anchor 0.32+, AVM-managed toolchains, and @solana/kit (or @solana/web3-compat only when required by third-party SDKs). Initialize git repo.`,
   },
   {
     id: 'nft-collection',
@@ -42,7 +42,7 @@ Use @solana/web3.js v2 and anchor. Initialize git repo.`,
 - Example metadata JSON and asset folder structure
 - .env.example with RPC_URL, WALLET_PATH, COLLECTION_NAME, COLLECTION_SIZE
 - README with full setup and deployment guide
-Use Metaplex Umi framework. Initialize git repo.`,
+Use Metaplex Umi plus @solana/kit-compatible client code. Initialize git repo.`,
   },
   {
     id: 'trading-bot',
@@ -51,16 +51,17 @@ Use Metaplex Umi framework. Initialize git repo.`,
     tags: ['DeFi', 'Jupiter'],
     icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
     prompt: `Scaffold a Solana trading bot project. Include:
-- Jupiter API v6 integration for swaps (quote + execute)
+- Jupiter integration for quote, execution, and token routing using the current public APIs
 - Price monitoring loop with configurable intervals
 - Wallet management with keypair loading from file
 - Position tracking and P&L calculation
 - Configurable slippage, amount, and token pairs
+- Optional Jito bundle-send hook for fast execution
 - Logging with timestamps
 - .env.example with RPC_URL, WALLET_PATH, TOKEN_MINT_A, TOKEN_MINT_B, SLIPPAGE_BPS, CHECK_INTERVAL_MS
 - TypeScript with strict mode
 - README with setup and running instructions
-Initialize git repo. Use @solana/web3.js v2.`,
+Initialize git repo. Use @solana/kit and Helius or QuickNode as the transport layer.`,
   },
   {
     id: 'dapp-nextjs',
@@ -70,14 +71,15 @@ Initialize git repo. Use @solana/web3.js v2.`,
     icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9',
     prompt: `Scaffold a full-stack Solana dApp with Next.js. Include:
 - Next.js 15 App Router with TypeScript
-- Wallet adapter setup (Phantom, Solflare, Backpack)
+- Base the project on create-solana-dapp conventions where practical
+- Phantom Connect or Wallet Standard setup (Phantom, Solflare, Backpack compatible)
 - Connection provider with devnet/mainnet toggle
 - Example pages: home (connect wallet), dashboard (show SOL balance, recent txs)
 - Helius RPC integration for enhanced data
 - Tailwind CSS for styling
 - .env.example with NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_HELIUS_API_KEY
 - README with dev server and deployment instructions
-Initialize git repo. Use @solana/wallet-adapter-react.`,
+Initialize git repo. Prefer @solana/client, @solana/react-hooks, and @solana/web3-compat only when compatibility shims are needed.`,
   },
   {
     id: 'anchor-program',
@@ -90,13 +92,14 @@ Initialize git repo. Use @solana/wallet-adapter-react.`,
 - Example instruction: initialize, update, close (demonstrating PDA patterns)
 - Account validation with proper constraints
 - Custom error codes
-- TypeScript test suite using anchor's testing framework
+- TypeScript test suite using Anchor's current testing framework with LiteSVM-ready structure
 - Client SDK with typed instruction builders
 - IDL generation setup
+- AVM setup notes and optional Mollusk test harness stub
 - Deployment scripts for devnet
 - .env.example with RPC_URL, WALLET_PATH, PROGRAM_ID
 - README with build, test, and deploy instructions
-Use anchor 0.30+. Initialize git repo.`,
+Use Anchor 0.32+ with AVM. Initialize git repo.`,
   },
   {
     id: 'pump-token',
@@ -114,7 +117,7 @@ Use anchor 0.30+. Initialize git repo.`,
 - Wallet generation and fund distribution utilities
 - .env.example with RPC_URL, MASTER_WALLET_PATH, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DESCRIPTION, IMAGE_URL
 - README with full workflow guide
-Use @solana/web3.js v2. Initialize git repo.`,
+Use @solana/kit plus web3 compatibility only where Pump tooling requires it. Initialize git repo.`,
   },
   {
     id: 'telegram-bot',
@@ -133,7 +136,7 @@ Use @solana/web3.js v2. Initialize git repo.`,
 - SQLite database for user wallets and settings
 - .env.example with TELEGRAM_BOT_TOKEN, RPC_URL, MASTER_WALLET_PATH
 - README with setup and deployment guide
-Use TypeScript with strict mode. Initialize git repo.`,
+Use TypeScript with strict mode and @solana/kit for transaction construction. Initialize git repo.`,
   },
   {
     id: 'mcp-server',
@@ -145,6 +148,7 @@ Use TypeScript with strict mode. Initialize git repo.`,
 - MCP server setup using @modelcontextprotocol/sdk
 - Tools: get-balance, get-token-balances, send-sol, send-token, get-transaction-history
 - Helius RPC integration for enhanced data
+- Optional provider abstraction so the same server can target Helius or QuickNode
 - Input validation with zod schemas
 - Error handling with descriptive messages
 - stdio transport for Claude Code integration
@@ -152,6 +156,23 @@ Use TypeScript with strict mode. Initialize git repo.`,
 - README with installation and Claude Code integration instructions
 - Example .mcp.json configuration
 Use TypeScript. Initialize git repo.`,
+  },
+  {
+    id: 'solana-foundation',
+    name: 'Solana Foundation App',
+    description: 'Modern frontend starter aligned with current Solana app architecture',
+    tags: ['Frontend', 'Kit'],
+    icon: 'M5 12h14M12 5l7 7-7 7',
+    prompt: `Scaffold a modern Solana application foundation. Include:
+- create-solana-dapp-style project structure
+- Next.js or React app shell with TypeScript
+- @solana/client and @solana/react-hooks setup
+- Wallet Standard integration with Phantom as the primary wallet experience
+- Helius-backed RPC configuration plus a provider abstraction layer
+- Example balance, token list, and send transaction flows
+- .env.example with RPC_URL, HELIUS_API_KEY, NEXT_PUBLIC_CLUSTER
+- README explaining how @solana/kit, @solana/client, and @solana/web3-compat fit together
+Initialize git repo.`,
   },
 ]
 
@@ -164,6 +185,101 @@ interface WizardState {
   template: Template | null
   projectName: string
   savePath: string
+}
+
+function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
+  if (!settings) return ''
+
+  const rpcPreference = settings.rpcProvider === 'quicknode'
+    ? `Use QuickNode as the preferred RPC provider. Endpoint hint: ${settings.quicknodeRpcUrl || 'expect QUICKNODE_RPC_URL from env'}.`
+    : settings.rpcProvider === 'custom'
+      ? `Use a custom RPC provider. Endpoint hint: ${settings.customRpcUrl || 'expect RPC_URL from env'}.`
+      : settings.rpcProvider === 'public'
+        ? 'Default to the public Solana RPC path and keep provider config overridable via env.'
+        : 'Default to Helius-backed RPC and keep HELIUS_API_KEY support first-class.'
+
+  const walletPreference = settings.preferredWallet === 'wallet-standard'
+    ? 'Prefer Wallet Standard integration and keep Backpack, Solflare, and Phantom compatibility explicit.'
+    : 'Prefer Phantom-first wallet integration while keeping Wallet Standard fallback paths available.'
+
+  const executionPreference = settings.executionMode === 'jito'
+    ? `Add an optional Jito execution path and environment variable for the block engine URL (${settings.jitoBlockEngineUrl || 'JITO_BLOCK_ENGINE_URL'}).`
+    : 'Use standard RPC submission as the default transaction execution path.'
+
+  return [
+    'Runtime stack requirements from this DAEMON workspace:',
+    `- ${rpcPreference}`,
+    `- ${walletPreference}`,
+    `- Use ${settings.swapProvider === 'jupiter' ? 'Jupiter' : settings.swapProvider} as the default swap and routing layer when swaps are part of the scaffold.`,
+    `- ${executionPreference}`,
+  ].join('\n')
+}
+
+function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
+  if (!settings) return ''
+
+  const walletFlow = settings.preferredWallet === 'phantom'
+    ? [
+        'For wallet scaffolding:',
+        '- Build a dedicated `providers/phantom-provider` or equivalent app-level wallet wrapper.',
+        '- Use the current official Phantom Connect SDK for the primary connect/sign flow.',
+        '- Keep a secondary Wallet Standard compatibility layer so the app can expand beyond Phantom later.',
+        '- Include clear connect, disconnect, sign message, and send transaction examples.',
+      ]
+    : [
+        'For wallet scaffolding:',
+        '- Build around Wallet Standard as the primary abstraction.',
+        '- Keep Phantom, Backpack, and Solflare compatibility explicit in the provider layer.',
+        '- Add a dedicated adapter boundary so wallet-specific behavior stays isolated from app pages and hooks.',
+        '- Include connect, disconnect, sign message, and send transaction examples using the shared wallet abstraction.',
+      ]
+
+  const providerFlow = settings.rpcProvider === 'helius'
+    ? '- Add a transport module that defaults to Helius and reads `HELIUS_API_KEY` plus `NEXT_PUBLIC_RPC_URL` or `RPC_URL` from env.'
+    : settings.rpcProvider === 'quicknode'
+      ? '- Add a transport module that defaults to QuickNode and reads `QUICKNODE_RPC_URL` from env while still allowing override via `RPC_URL`.'
+      : settings.rpcProvider === 'custom'
+        ? '- Add a transport module that reads `RPC_URL` from env and keeps provider-specific logic out of feature code.'
+        : '- Add a transport module that defaults to public Solana RPC and allows easy switch-over to Helius or QuickNode later.'
+
+  const executionFlow = settings.executionMode === 'jito'
+    ? '- Include an execution service with a toggleable Jito path and `JITO_BLOCK_ENGINE_URL` in `.env.example`.'
+    : '- Include an execution service boundary so RPC submission can later be upgraded to Jito without refactoring page-level code.'
+
+  if (templateId === 'dapp-nextjs' || templateId === 'solana-foundation') {
+    return [
+      'Frontend architecture requirements:',
+      ...walletFlow,
+      providerFlow,
+      executionFlow,
+      '- Create `lib/solana/transport`, `lib/solana/wallet`, and `lib/solana/transactions` modules instead of mixing RPC logic into React components.',
+      '- Add an example page that shows connected wallet, SOL balance, token list, and one transaction action using the chosen wallet path.',
+      '- Include `.env.example` entries that match the selected provider and execution stack.',
+    ].join('\n')
+  }
+
+  if (templateId === 'trading-bot' || templateId === 'pump-token' || templateId === 'telegram-bot') {
+    return [
+      'Execution architecture requirements:',
+      providerFlow,
+      executionFlow,
+      '- Keep quote, build, sign, and submit steps separated into explicit services.',
+      '- Add transaction logging that records provider choice, execution path, and signature.',
+      '- Document how to switch between standard RPC submission and Jito in configuration.',
+    ].join('\n')
+  }
+
+  if (templateId === 'mcp-server') {
+    return [
+      'MCP architecture requirements:',
+      providerFlow,
+      executionFlow,
+      '- Separate read-only RPC methods from signing or transaction-submission methods.',
+      '- Expose provider config through env vars and document failover behavior clearly.',
+    ].join('\n')
+  }
+
+  return ''
 }
 
 export function ProjectStarter() {
@@ -183,6 +299,7 @@ export function ProjectStarter() {
   })
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
+  const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
 
   // Focus name input when entering configure step
@@ -191,6 +308,18 @@ export function ProjectStarter() {
       setTimeout(() => nameRef.current?.focus(), 50)
     }
   }, [wizard.step])
+
+  useEffect(() => {
+    let cancelled = false
+    void window.daemon.settings.getWalletInfrastructureSettings().then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setWalletInfrastructure(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const selectTemplate = useCallback((template: Template) => {
     setWizard({
@@ -253,16 +382,20 @@ export function ProjectStarter() {
       setActiveProject(newProject.id, projectPath)
 
       // Spawn a terminal with Claude agent to scaffold the project
+      const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
+      const templateSpecificPrompt = buildTemplateSpecificPrompt(wizard.template.id, walletInfrastructure)
       const agentPrompt = [
         `You are scaffolding a new project called "${name}" in the current directory.`,
         `The directory is empty and ready for you to create files.`,
         ``,
         wizard.template.prompt,
+        runtimePrompt,
+        templateSpecificPrompt,
         ``,
         `IMPORTANT: Create all files directly. Do not ask questions. Just build it.`,
         `After scaffolding, run any install commands (npm install / cargo build) as needed.`,
         `Keep output concise. When done, print "Project scaffolding complete."`,
-      ].join('\n')
+      ].filter(Boolean).join('\n')
 
       const termRes = await window.daemon.terminal.create({
         cwd: projectPath,
@@ -344,6 +477,11 @@ export function ProjectStarter() {
     const displayPath = wizard.savePath
       ? `${wizard.savePath}/${wizard.projectName.trim() || '...'}`
       : 'Choose a location...'
+    const runtimeSummary = walletInfrastructure ? [
+      walletInfrastructure.rpcProvider === 'quicknode' ? 'QuickNode RPC' : walletInfrastructure.rpcProvider === 'custom' ? 'Custom RPC' : walletInfrastructure.rpcProvider === 'public' ? 'Public RPC' : 'Helius RPC',
+      walletInfrastructure.preferredWallet === 'phantom' ? 'Phantom-first wallet flow' : 'Wallet Standard flow',
+      walletInfrastructure.executionMode === 'jito' ? 'Jito execution' : 'RPC execution',
+    ] : []
 
     return (
       <div className="starter-panel">
@@ -387,6 +525,20 @@ export function ProjectStarter() {
               <button className="starter-browse-btn" onClick={pickFolder}>Browse</button>
             </div>
           </div>
+
+          {runtimeSummary.length > 0 && (
+            <div className="starter-runtime-card">
+              <div className="starter-runtime-title">Solana Runtime Preset</div>
+              <div className="starter-runtime-copy">
+                This scaffold will follow the current DAEMON Solana runtime preferences.
+              </div>
+              <div className="starter-runtime-tags">
+                {runtimeSummary.map((item) => (
+                  <span key={item} className="starter-tag">{item}</span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && <div className="starter-error">{error}</div>}
 

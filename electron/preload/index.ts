@@ -211,6 +211,9 @@ contextBridge.exposeInMainWorld('daemon', {
     storeHeliusKey: (value: string) => ipcRenderer.invoke('wallet:store-helius-key', value),
     deleteHeliusKey: () => ipcRenderer.invoke('wallet:delete-helius-key'),
     hasHeliusKey: () => ipcRenderer.invoke('wallet:has-helius-key'),
+    storeJupiterKey: (value: string) => ipcRenderer.invoke('wallet:store-jupiter-key', value),
+    deleteJupiterKey: () => ipcRenderer.invoke('wallet:delete-jupiter-key'),
+    hasJupiterKey: () => ipcRenderer.invoke('wallet:has-jupiter-key'),
     generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
@@ -251,6 +254,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
     getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
     setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
+    getWalletInfrastructureSettings: () => ipcRenderer.invoke('settings:get-wallet-infrastructure-settings'),
+    setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
     onCrashWarning: (callback: (count: number) => void) => {
@@ -470,6 +475,7 @@ contextBridge.exposeInMainWorld('daemon', {
     stop: () => ipcRenderer.invoke('validator:stop'),
     status: () => ipcRenderer.invoke('validator:status'),
     detect: () => ipcRenderer.invoke('validator:detect'),
+    toolchainStatus: (projectPath?: string) => ipcRenderer.invoke('validator:toolchain-status', projectPath),
     detectProject: (projectPath: string) => ipcRenderer.invoke('validator:detect-project', projectPath),
     onStatusChange: (callback: (state: unknown) => void) => {
       const handler = (_event: unknown, state: unknown) => callback(state)

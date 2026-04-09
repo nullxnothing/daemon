@@ -33,9 +33,10 @@ interface WalletSendFormProps {
   recipientWallets: RecipientWalletOption[]
   tokenOptions: SendTokenOption[]
   walletBalanceSol: number | null
+  executionMode: WalletInfrastructureSettings['executionMode']
   sendLoading: boolean
   sendError: string | null
-  sendResult: string | null
+  sendResult: WalletExecutionResult | null
   pendingSend: PendingSend | null
   onRecipientWalletChange: (walletId: string) => void
   onDestChange: (value: string) => void
@@ -60,6 +61,7 @@ export function WalletSendForm({
   recipientWallets,
   tokenOptions,
   walletBalanceSol,
+  executionMode,
   sendLoading,
   sendError,
   sendResult,
@@ -83,6 +85,7 @@ export function WalletSendForm({
           <div>
             <div className="wallet-caption">{sendMode === 'sol' ? 'Send SOL' : 'Send Token'}</div>
             <div className="wallet-label">From {walletName}</div>
+            <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
           </div>
           {sendMode === 'sol' && walletBalanceSol !== null && (
             <div className="wallet-send-balance">Available {walletBalanceSol.toFixed(4)} SOL</div>
@@ -190,7 +193,7 @@ export function WalletSendForm({
         {sendError && <div className="wallet-empty">{sendError}</div>}
         {sendResult && (
           <div className="wallet-success-msg">
-            Sent! Sig: {sendResult.slice(0, 8)}...{sendResult.slice(-8)}
+            Sent via {sendResult.transport === 'jito' ? 'Jito' : 'RPC'}! Sig: {sendResult.signature.slice(0, 8)}...{sendResult.signature.slice(-8)}
           </div>
         )}
       </div>

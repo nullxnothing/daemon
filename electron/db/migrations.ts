@@ -560,7 +560,8 @@ TOOLS — Use these for real-time chain data:
 - Solana MCP: program deployment, account inspection, Solana docs search
 
 SKILLS — You have these skills available. Use /skill-name to invoke them:
-- /solana-dev — Anchor programs, LiteSVM testing, program security reviews
+- /solana-architect — Solana program/client architecture, account-model constraints, compute and RPC choices
+- /solana-wallet-tx-pipeline — Wallet flows, signing, ATA creation, priority fees, and transaction UX
 - /build or /helius — Helius infrastructure (Sender, DAS API, WebSockets, webhooks, priority fees)
 - /raydium — CLMM, CPMM, AMM pools, LaunchLab token launches, farming, CPI
 - /meteora — DLMM pools, Dynamic AMM, bonding curves, Alpha Vaults, Zap
