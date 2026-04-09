@@ -79,6 +79,13 @@ export function WalletSendForm({
   onClose,
 }: WalletSendFormProps) {
   const selectedToken = tokenOptions.find((token) => token.mint === sendMint) ?? null
+  const selectedRecipientWallet = recipientWallets.find((wallet) => wallet.id === selectedRecipientWalletId) ?? null
+  const amountLabel = sendMode === 'sol'
+    ? 'SOL'
+    : selectedToken?.symbol || 'tokens'
+  const maxButtonLabel = sendMax
+    ? `Using Max ${amountLabel}`
+    : `Send All ${amountLabel}`
   const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
   const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
 
@@ -115,15 +122,20 @@ export function WalletSendForm({
             <div className="wallet-label">From {walletName}</div>
             <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
           </div>
-          {sendMode === 'sol' && walletBalanceSol !== null && (
-            <div className="wallet-send-balance">Available {walletBalanceSol.toFixed(4)} SOL</div>
-          )}
+          <div className="wallet-send-balance-stack">
+            {sendMode === 'sol' && walletBalanceSol !== null && (
+              <div className="wallet-send-balance">Available {walletBalanceSol.toFixed(4)} SOL</div>
+            )}
+            {sendMode === 'token' && selectedToken && (
+              <div className="wallet-send-balance">Available {formatAmount(selectedToken.amount)} {selectedToken.symbol}</div>
+            )}
+          </div>
         </div>
         {!pendingSend && (
           <>
             {recipientWallets.length > 0 && (
-              <>
-                <label className="wallet-caption">Send to tracked wallet</label>
+              <div className="wallet-send-group">
+                <label className="wallet-caption">Transfer to tracked wallet</label>
                 <select
                   className="wallet-input"
                   value={selectedRecipientWalletId}
@@ -136,16 +148,26 @@ export function WalletSendForm({
                     </option>
                   ))}
                 </select>
-              </>
+                {selectedRecipientWallet && (
+                  <div className="wallet-send-helper">
+                    Internal transfer to <strong>{selectedRecipientWallet.name}</strong> at {shortAddress(selectedRecipientWallet.address)}
+                  </div>
+                )}
+              </div>
             )}
+            <div className="wallet-send-group">
+              <label className="wallet-caption">{selectedRecipientWallet ? 'Recipient address' : 'Destination address'}</label>
             <input
               className="wallet-input"
               value={sendDest}
               onChange={(e) => onDestChange(e.target.value)}
-              placeholder="Destination address"
+              placeholder={selectedRecipientWallet ? selectedRecipientWallet.address : 'Destination address'}
             />
+            </div>
             {sendMode === 'token' && (
-              tokenOptions.length > 0 ? (
+              <div className="wallet-send-group">
+                <label className="wallet-caption">Token</label>
+                {tokenOptions.length > 0 ? (
                 <select
                   className="wallet-input"
                   value={sendMint}
@@ -165,14 +187,15 @@ export function WalletSendForm({
                   onChange={(e) => onMintChange(e.target.value)}
                   placeholder="Token mint address"
                 />
-              )
+              )}
+              </div>
             )}
             <div className="wallet-send-amount-row">
               <input
                 className="wallet-input"
                 value={sendAmount}
                 onChange={(e) => onAmountChange(e.target.value)}
-                placeholder={sendMode === 'sol' ? 'Amount (SOL)' : 'Amount'}
+                placeholder={sendMode === 'sol' ? 'Amount (SOL)' : `Amount (${amountLabel})`}
                 type="number"
                 step="any"
                 min="0"
@@ -183,11 +206,13 @@ export function WalletSendForm({
                 type="button"
                 onClick={onToggleSendMax}
               >
-                {sendMax ? 'Using Max' : 'Send Max'}
+                {maxButtonLabel}
               </button>
             </div>
-            {sendMode === 'token' && selectedToken && (
-              <div className="wallet-caption">Available {formatAmount(selectedToken.amount)} {selectedToken.symbol}</div>
+            {sendMode === 'sol' && walletBalanceSol !== null && !sendMax && sendAmount.trim() && !Number.isNaN(Number(sendAmount)) && (
+              <div className="wallet-send-helper">
+                Remaining after send: {Math.max(walletBalanceSol - Number(sendAmount), 0).toFixed(4)} SOL before network fees
+              </div>
             )}
             <div className="wallet-actions">
               <button
