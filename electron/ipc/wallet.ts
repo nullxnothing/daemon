@@ -49,6 +49,18 @@ export function registerWalletHandlers() {
     return WalletService.hasHeliusKey()
   }))
 
+  ipcMain.handle('wallet:store-jupiter-key', ipcHandler(async (_event, value: string) => {
+    await WalletService.storeJupiterKey(value)
+  }))
+
+  ipcMain.handle('wallet:delete-jupiter-key', ipcHandler(async () => {
+    WalletService.deleteJupiterKey()
+  }))
+
+  ipcMain.handle('wallet:has-jupiter-key', ipcHandler(async () => {
+    return WalletService.hasJupiterKey()
+  }))
+
   ipcMain.handle('wallet:generate', ipcHandler(async (_event, input: WalletGenerateInput) => {
     return WalletService.generateWallet(input.name, input.walletType, input.agentId)
   }))

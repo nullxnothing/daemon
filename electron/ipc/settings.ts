@@ -103,6 +103,15 @@ export function registerSettingsHandlers() {
     Settings.setTokenLaunchSettings(settings)
   }))
 
+  ipcMain.handle('settings:get-wallet-infrastructure-settings', ipcHandler(async () => {
+    return Settings.getWalletInfrastructureSettings()
+  }))
+
+  ipcMain.handle('settings:set-wallet-infrastructure-settings', ipcHandler(async (_event, settings: Settings.WalletInfrastructureSettings) => {
+    if (!settings || typeof settings !== 'object') throw new Error('Invalid wallet infrastructure settings')
+    Settings.setWalletInfrastructureSettings(settings)
+  }))
+
   // --- Generic layout state KV (centerMode, rightPanelTab, etc.) ---
 
   ipcMain.handle('settings:get-layout', ipcHandler(async () => {

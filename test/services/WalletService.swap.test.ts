@@ -74,6 +74,9 @@ vi.mock('../../electron/services/SolanaService', () => {
       getParsedAccountInfo: mockGetParsedAccountInfo,
       sendRawTransaction: vi.fn().mockResolvedValue('sig'),
     })),
+    confirmSignature: vi.fn().mockResolvedValue({ err: null }),
+    getTransactionSubmissionSettings: vi.fn(() => ({ mode: 'rpc' })),
+    submitRawTransaction: vi.fn().mockResolvedValue('sig'),
     loadKeypair: vi.fn(() => fakeKeypair),
     withKeypair: mockWithKeypair,
   }
