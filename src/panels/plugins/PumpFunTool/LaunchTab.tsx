@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { openLaunchInBrowserMode } from '../../../lib/launchHandoff'
 import { Toggle } from '../../../components/Toggle'
 
 interface Props { walletId: string | null }
@@ -40,6 +41,9 @@ export function LaunchTab({ walletId }: Props) {
     })
 
     if (res.ok && res.data) {
+      if (res.data.mint) {
+        openLaunchInBrowserMode('pumpfun', res.data.mint)
+      }
       setResult({ signature: res.data.signature, mint: res.data.mint })
     } else {
       setResult({ error: res.error ?? 'Launch failed' })

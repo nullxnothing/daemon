@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useBrowserStore } from '../../store/browser'
-import { useUIStore } from '../../store/ui'
+import { openLaunchInBrowserMode } from '../../lib/launchHandoff'
 
 export interface LaunchParams {
   launchpad: LaunchpadId
@@ -71,11 +70,7 @@ export function useTokenLaunch() {
 
       const { signature, mint } = res.data
 
-      if (params.launchpad === 'pumpfun' && mint) {
-        const tokenUrl = `https://pump.fun/coin/${mint}`
-        useBrowserStore.getState().setUrl(tokenUrl)
-        useUIStore.getState().openBrowserTab()
-      }
+      openLaunchInBrowserMode(params.launchpad, mint)
 
       setState({
         phase: 'done',
