@@ -219,6 +219,21 @@ function App() {
   }, [])
 
   useEffect(() => {
+    return daemon.settings.onUiRecoveryApplied((result) => {
+      const cleared = result.clearedKeys.length
+      const sessionSuffix = result.clearedActiveSessions > 0
+        ? ` and ${result.clearedActiveSessions} stale session${result.clearedActiveSessions === 1 ? '' : 's'}`
+        : ''
+      useNotificationsStore.getState().pushToast({
+        kind: 'warning',
+        context: 'Workspace recovery',
+        ttlMs: 9000,
+        message: `DAEMON reset ${cleared} unstable UI setting${cleared === 1 ? '' : 's'}${sessionSuffix} so the workspace could boot cleanly.`,
+      })
+    })
+  }, [])
+
+  useEffect(() => {
     if (!smokeMode) return
     console.log('[smoke-renderer] app:state', JSON.stringify({
       appReady,

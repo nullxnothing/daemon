@@ -575,6 +575,8 @@ function CrashesSection() {
 }
 
 function SetupSection() {
+  const [resettingLayout, setResettingLayout] = useState(false)
+
   const handleRerunWizard = async () => {
     const freshProgress = { profile: 'pending' as const, claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
     await window.daemon.settings.setOnboardingComplete(false)
@@ -588,18 +590,46 @@ function SetupSection() {
     useOnboardingStore.getState().startTour()
   }
 
+  const handleResetLayout = async () => {
+    setResettingLayout(true)
+    try {
+      const res = await window.daemon.settings.recoverUiState()
+      if (!res.ok) throw new Error(res.error ?? 'Failed to reset UI layout')
+      useNotificationsStore.getState().pushToast({
+        kind: 'warning',
+        context: 'Workspace recovery',
+        ttlMs: 5000,
+        message: 'UI layout reset. Reloading workspace...',
+      })
+      window.daemon.window.reload()
+    } catch (err) {
+      useNotificationsStore.getState().pushError(err, 'Reset UI layout')
+      setResettingLayout(false)
+    }
+  }
+
   return (
     <div className="settings-section">
       <div className="settings-section-desc">
         Re-run the setup wizard or take the app tour again.
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button className="settings-btn primary" onClick={handleRerunWizard}>
           Re-run Setup Wizard
         </button>
         <button className="settings-btn" onClick={handleStartTour}>
           Take App Tour
         </button>
+        <button className="settings-btn danger" onClick={handleResetLayout} disabled={resettingLayout}>
+          {resettingLayout ? 'Resetting...' : 'Reset UI Layout'}
+        </button>
+      </div>
+      <div className="settings-section-desc" style={{ marginTop: 8 }}>
+        Reset UI Layout clears saved panel/layout state and stale sessions, then reloads DAEMON. Project, wallet, key, and history data stay intact.
+      </div>
+      <div className="settings-divider" />
+      <div className="settings-section-desc">
+        Recovery is the right first step if the app opens blank, freezes after launch, or restores into a broken layout.
       </div>
     </div>
   )
