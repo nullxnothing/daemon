@@ -298,6 +298,136 @@
   font-family: var(--font-code);
 }
 
+.solana-runtime-stack {
+  padding: 18px 20px 20px;
+}
+
+.solana-toolchain {
+  padding: 18px 20px 20px;
+}
+
+.solana-protocol-packs {
+  padding: 18px 20px 20px;
+}
+
+.solana-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-toolchain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-runtime-card {
+  border: 1px solid rgba(62, 207, 142, 0.12);
+  background: rgba(62, 207, 142, 0.03);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-height: 148px;
+}
+
+.solana-toolchain-card {
+  border: 1px solid rgba(62, 207, 142, 0.12);
+  background: rgba(62, 207, 142, 0.03);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-height: 138px;
+}
+
+.solana-protocol-card {
+  border: 1px solid rgba(62, 207, 142, 0.12);
+  background: rgba(62, 207, 142, 0.03);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-height: 172px;
+}
+
+.solana-runtime-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.solana-runtime-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-runtime-value {
+  margin-top: 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.solana-runtime-detail {
+  margin-top: 10px;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--t3);
+  word-break: break-word;
+}
+
+.solana-toolchain-version {
+  margin-top: 12px;
+  font-size: var(--font-sm);
+  color: var(--t2);
+  font-family: var(--font-code);
+  word-break: break-word;
+}
+
+.solana-protocol-hint {
+  margin-top: 12px;
+  font-size: var(--font-sm);
+  color: var(--t2);
+  font-family: var(--font-code);
+  word-break: break-word;
+}
+
+.solana-protocol-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.solana-runtime-troubleshooting {
+  margin-top: 14px;
+  border: 1px solid rgba(240, 180, 41, 0.16);
+  background: rgba(240, 180, 41, 0.04);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+}
+
+.solana-runtime-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.solana-runtime-warning {
+  margin-top: 8px;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--t2);
+}
+
 @media (max-width: 1100px) {
   .solana-token-launch-header,
   .solana-launchpad-settings-header,
@@ -319,6 +449,10 @@
 
   .solana-token-launch-grid,
   .solana-launchpad-settings-grid,
+  .solana-runtime-grid,
+  .solana-toolchain-grid,
+  .solana-protocol-grid,
+  .solana-ecosystem-grid,
   .solana-split {
     grid-template-columns: 1fr;
   }
@@ -630,10 +764,10 @@
 
 .solana-service-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  height: 40px;
-  padding: 0 8px;
+  min-height: 40px;
+  padding: 10px 8px;
   margin: 0 -8px;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
@@ -649,17 +783,24 @@
 
 .solana-service-info {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   flex: 1;
   min-width: 0;
+}
+
+.solana-service-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .solana-service-name {
   font-size: var(--font-md);
   color: var(--t1);
   font-weight: 500;
-  white-space: nowrap;
 }
 
 .solana-service-tag {
@@ -675,6 +816,23 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+}
+
+.solana-service-description {
+  font-size: var(--font-sm);
+  color: var(--t4);
+  line-height: 1.35;
+}
+
+.solana-service-docs {
+  font-size: var(--font-xs);
+  color: var(--green);
+  text-decoration: none;
+  font-family: var(--font-code);
+}
+
+.solana-service-docs:hover {
+  text-decoration: underline;
 }
 
 /* Toggle switch */
@@ -903,6 +1061,141 @@
 
 .solana-skills-expand:hover {
   opacity: 0.8;
+}
+
+/* ── Ecosystem coverage matrix ── */
+.solana-ecosystem {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.solana-ecosystem-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.solana-ecosystem-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-ecosystem-card {
+  background: var(--s1);
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-lifted);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.solana-ecosystem-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.solana-ecosystem-card-title {
+  margin: 0;
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.solana-ecosystem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.solana-ecosystem-row {
+  padding: 12px;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-ecosystem-main {
+  min-width: 0;
+}
+
+.solana-ecosystem-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.solana-ecosystem-status,
+.solana-ecosystem-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.solana-ecosystem-status.native {
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.08);
+  border: 1px solid rgba(62, 207, 142, 0.2);
+}
+
+.solana-ecosystem-status.guided {
+  color: var(--amber);
+  background: rgba(240, 180, 41, 0.08);
+  border: 1px solid rgba(240, 180, 41, 0.2);
+}
+
+.solana-ecosystem-status.external {
+  color: var(--t3);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.solana-ecosystem-kind {
+  color: var(--t4);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.solana-ecosystem-desc {
+  margin-top: 6px;
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  color: var(--t4);
+}
+
+.solana-ecosystem-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: var(--font-xs);
+  color: var(--t3);
+}
+
+.solana-ecosystem-meta a {
+  color: var(--green);
+  text-decoration: none;
+}
+
+.solana-ecosystem-meta a:hover {
+  text-decoration: underline;
 }
 
 /* ── Toast ── */

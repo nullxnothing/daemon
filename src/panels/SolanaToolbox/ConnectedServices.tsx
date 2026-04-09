@@ -27,8 +27,16 @@ export function ConnectedServices({ mcps, projectPath, onToggle }: ConnectedServ
           <div key={mcp.name} className="solana-service-row">
             <span className={`sol-dot ${mcp.enabled ? 'green' : 'grey'}`} />
             <div className="solana-service-info">
-              <span className="solana-service-name">{mcp.label}</span>
-              <span className="solana-service-tag">{MCP_TAGS[mcp.name] ?? 'MCP'}</span>
+              <div className="solana-service-title">
+                <span className="solana-service-name">{mcp.label}</span>
+                <span className="solana-service-tag">{MCP_TAGS[mcp.name] ?? 'MCP'}</span>
+              </div>
+              <span className="solana-service-description">{mcp.description}</span>
+              {mcp.docsUrl && (
+                <a className="solana-service-docs" href={mcp.docsUrl} target="_blank" rel="noreferrer">
+                  Docs
+                </a>
+              )}
             </div>
             <button
               className={`solana-toggle ${mcp.enabled ? 'on' : ''}`}
