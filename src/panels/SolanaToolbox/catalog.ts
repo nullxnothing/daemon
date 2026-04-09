@@ -30,6 +30,16 @@ export interface SolanaIntegrationEntry {
   skill?: string
 }
 
+export interface SolanaProtocolPack {
+  id: string
+  label: string
+  status: 'native' | 'guided'
+  skill: string
+  docsUrl: string
+  kickoff: string
+  installHint: string
+}
+
 export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
   helius: {
     label: 'Helius',
@@ -316,6 +326,63 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     status: 'native',
     description: 'Agent-to-agent payment scaffolding using @solana/mpp.',
     docsUrl: 'https://github.com/solana-foundation/machine-payments-protocol',
+  },
+]
+
+export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
+  {
+    id: 'jupiter',
+    label: 'Jupiter',
+    status: 'guided',
+    skill: '/integrating-jupiter',
+    docsUrl: 'https://dev.jup.ag/get-started',
+    kickoff: 'Start with quotes, swap execution, and price endpoints before adding trigger or recurring flows.',
+    installHint: 'pnpm add @solana/kit',
+  },
+  {
+    id: 'metaplex',
+    label: 'Metaplex',
+    status: 'guided',
+    skill: '/metaplex',
+    docsUrl: 'https://developers.metaplex.com/',
+    kickoff: 'Use Metaplex for metadata, Core assets, Bubblegum, and mint workflows.',
+    installHint: 'pnpm add @metaplex-foundation/umi',
+  },
+  {
+    id: 'raydium',
+    label: 'Raydium',
+    status: 'native',
+    skill: '/raydium',
+    docsUrl: 'https://docs.raydium.io/',
+    kickoff: 'DAEMON already uses Raydium in launch flows; extend from launch config and liquidity paths.',
+    installHint: 'Use existing token launch integration as the starting point.',
+  },
+  {
+    id: 'meteora',
+    label: 'Meteora',
+    status: 'native',
+    skill: '/meteora',
+    docsUrl: 'https://docs.meteora.ag/',
+    kickoff: 'Use the existing Meteora launch support before adding new vault or DLMM flows.',
+    installHint: 'Use existing token launch integration as the starting point.',
+  },
+  {
+    id: 'drift',
+    label: 'Drift',
+    status: 'guided',
+    skill: '/drift',
+    docsUrl: 'https://drift-labs.github.io/documentation-v2/',
+    kickoff: 'Start with account bootstrap, market discovery, and read-only position views.',
+    installHint: 'pnpm add @drift-labs/sdk',
+  },
+  {
+    id: 'kamino',
+    label: 'Kamino',
+    status: 'guided',
+    skill: '/kamino',
+    docsUrl: 'https://docs.kamino.finance/',
+    kickoff: 'Start with lending market reads and deposit flows before multiply or leverage paths.',
+    installHint: 'pnpm add @kamino-finance/klend-sdk',
   },
 ]
 

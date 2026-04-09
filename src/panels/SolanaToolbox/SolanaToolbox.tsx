@@ -8,6 +8,7 @@ import { CapabilitiesSection } from './CapabilitiesSection'
 import { EcosystemSection } from './EcosystemSection'
 import { RuntimeStackSection } from './RuntimeStackSection'
 import { ToolchainSection } from './ToolchainSection'
+import { ProtocolPacksSection } from './ProtocolPacksSection'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -72,6 +73,10 @@ export function SolanaToolbox() {
 
       <div className="solana-validator-zone">
         <RuntimeStackSection />
+      </div>
+
+      <div className="solana-validator-zone">
+        <ProtocolPacksSection />
       </div>
 
       <div className="solana-validator-zone">

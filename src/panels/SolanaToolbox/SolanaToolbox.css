@@ -306,6 +306,10 @@
   padding: 18px 20px 20px;
 }
 
+.solana-protocol-packs {
+  padding: 18px 20px 20px;
+}
+
 .solana-runtime-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -313,6 +317,12 @@
 }
 
 .solana-toolchain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-protocol-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
@@ -332,6 +342,14 @@
   border-radius: var(--radius-lg);
   padding: 14px;
   min-height: 138px;
+}
+
+.solana-protocol-card {
+  border: 1px solid rgba(62, 207, 142, 0.12);
+  background: rgba(62, 207, 142, 0.03);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-height: 172px;
 }
 
 .solana-runtime-title-row {
@@ -372,6 +390,44 @@
   word-break: break-word;
 }
 
+.solana-protocol-hint {
+  margin-top: 12px;
+  font-size: var(--font-sm);
+  color: var(--t2);
+  font-family: var(--font-code);
+  word-break: break-word;
+}
+
+.solana-protocol-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.solana-runtime-troubleshooting {
+  margin-top: 14px;
+  border: 1px solid rgba(240, 180, 41, 0.16);
+  background: rgba(240, 180, 41, 0.04);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+}
+
+.solana-runtime-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.solana-runtime-warning {
+  margin-top: 8px;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--t2);
+}
+
 @media (max-width: 1100px) {
   .solana-token-launch-header,
   .solana-launchpad-settings-header,
@@ -395,6 +451,7 @@
   .solana-launchpad-settings-grid,
   .solana-runtime-grid,
   .solana-toolchain-grid,
+  .solana-protocol-grid,
   .solana-ecosystem-grid,
   .solana-split {
     grid-template-columns: 1fr;

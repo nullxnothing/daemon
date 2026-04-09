@@ -215,6 +215,73 @@ function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): stri
   ].join('\n')
 }
 
+function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
+  if (!settings) return ''
+
+  const walletFlow = settings.preferredWallet === 'phantom'
+    ? [
+        'For wallet scaffolding:',
+        '- Build a dedicated `providers/phantom-provider` or equivalent app-level wallet wrapper.',
+        '- Use the current official Phantom Connect SDK for the primary connect/sign flow.',
+        '- Keep a secondary Wallet Standard compatibility layer so the app can expand beyond Phantom later.',
+        '- Include clear connect, disconnect, sign message, and send transaction examples.',
+      ]
+    : [
+        'For wallet scaffolding:',
+        '- Build around Wallet Standard as the primary abstraction.',
+        '- Keep Phantom, Backpack, and Solflare compatibility explicit in the provider layer.',
+        '- Add a dedicated adapter boundary so wallet-specific behavior stays isolated from app pages and hooks.',
+        '- Include connect, disconnect, sign message, and send transaction examples using the shared wallet abstraction.',
+      ]
+
+  const providerFlow = settings.rpcProvider === 'helius'
+    ? '- Add a transport module that defaults to Helius and reads `HELIUS_API_KEY` plus `NEXT_PUBLIC_RPC_URL` or `RPC_URL` from env.'
+    : settings.rpcProvider === 'quicknode'
+      ? '- Add a transport module that defaults to QuickNode and reads `QUICKNODE_RPC_URL` from env while still allowing override via `RPC_URL`.'
+      : settings.rpcProvider === 'custom'
+        ? '- Add a transport module that reads `RPC_URL` from env and keeps provider-specific logic out of feature code.'
+        : '- Add a transport module that defaults to public Solana RPC and allows easy switch-over to Helius or QuickNode later.'
+
+  const executionFlow = settings.executionMode === 'jito'
+    ? '- Include an execution service with a toggleable Jito path and `JITO_BLOCK_ENGINE_URL` in `.env.example`.'
+    : '- Include an execution service boundary so RPC submission can later be upgraded to Jito without refactoring page-level code.'
+
+  if (templateId === 'dapp-nextjs' || templateId === 'solana-foundation') {
+    return [
+      'Frontend architecture requirements:',
+      ...walletFlow,
+      providerFlow,
+      executionFlow,
+      '- Create `lib/solana/transport`, `lib/solana/wallet`, and `lib/solana/transactions` modules instead of mixing RPC logic into React components.',
+      '- Add an example page that shows connected wallet, SOL balance, token list, and one transaction action using the chosen wallet path.',
+      '- Include `.env.example` entries that match the selected provider and execution stack.',
+    ].join('\n')
+  }
+
+  if (templateId === 'trading-bot' || templateId === 'pump-token' || templateId === 'telegram-bot') {
+    return [
+      'Execution architecture requirements:',
+      providerFlow,
+      executionFlow,
+      '- Keep quote, build, sign, and submit steps separated into explicit services.',
+      '- Add transaction logging that records provider choice, execution path, and signature.',
+      '- Document how to switch between standard RPC submission and Jito in configuration.',
+    ].join('\n')
+  }
+
+  if (templateId === 'mcp-server') {
+    return [
+      'MCP architecture requirements:',
+      providerFlow,
+      executionFlow,
+      '- Separate read-only RPC methods from signing or transaction-submission methods.',
+      '- Expose provider config through env vars and document failover behavior clearly.',
+    ].join('\n')
+  }
+
+  return ''
+}
+
 export function ProjectStarter() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const addTerminal = useUIStore((s) => s.addTerminal)
@@ -316,13 +383,14 @@ export function ProjectStarter() {
 
       // Spawn a terminal with Claude agent to scaffold the project
       const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
+      const templateSpecificPrompt = buildTemplateSpecificPrompt(wizard.template.id, walletInfrastructure)
       const agentPrompt = [
         `You are scaffolding a new project called "${name}" in the current directory.`,
         `The directory is empty and ready for you to create files.`,
         ``,
         wizard.template.prompt,
-        runtimePrompt ? '' : '',
         runtimePrompt,
+        templateSpecificPrompt,
         ``,
         `IMPORTANT: Create all files directly. Do not ask questions. Just build it.`,
         `After scaffolding, run any install commands (npm install / cargo build) as needed.`,
