@@ -70,6 +70,14 @@ export function RuntimeStackSection() {
           ? 'Helius key connected'
           : 'Helius key missing'
 
+  const troubleshooting = [
+    settings.rpcProvider === 'helius' && !state.heliusConfigured ? 'Helius is selected but no Helius API key is stored. Wallet reads will degrade to non-Helius behavior where possible.' : null,
+    settings.rpcProvider === 'quicknode' && !settings.quicknodeRpcUrl ? 'QuickNode is selected but the endpoint is blank. Add a QuickNode RPC URL before using this stack.' : null,
+    settings.rpcProvider === 'custom' && !settings.customRpcUrl ? 'Custom RPC is selected but no RPC URL is configured.' : null,
+    !state.jupiterConfigured ? 'Jupiter is the active swap engine but no Jupiter API key is stored, so quotes and swaps will fail until configured.' : null,
+    settings.executionMode === 'jito' && settings.rpcProvider === 'public' ? 'Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.' : null,
+  ].filter(Boolean) as string[]
+
   return (
     <div className="solana-runtime-stack">
       <div className="solana-ecosystem-header">
@@ -137,6 +145,15 @@ export function RuntimeStackSection() {
           </div>
         </section>
       </div>
+
+      {troubleshooting.length > 0 && (
+        <div className="solana-runtime-troubleshooting">
+          <div className="solana-runtime-title">Troubleshooting</div>
+          {troubleshooting.map((item) => (
+            <div key={item} className="solana-runtime-warning">{item}</div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
