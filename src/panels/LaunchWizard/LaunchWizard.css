@@ -12,12 +12,12 @@
 .lw-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 32px;
-  width: 480px;
-  max-width: 92vw;
+  border-radius: 18px;
+  padding: 28px;
+  width: min(680px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
 }
 
 /* ── Header ── */
@@ -86,10 +86,13 @@
 }
 
 .lw-subtitle {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--t2);
   text-align: center;
   margin-bottom: 24px;
+  max-width: 54ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ── Content area ── */
@@ -726,6 +729,8 @@
   justify-content: space-between;
   border-top: 1px solid var(--border);
   padding-top: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .lw-footer-close {
@@ -750,4 +755,27 @@
   height: 1px;
   background: var(--border);
   margin: 16px 0;
+}
+
+@media (max-width: 760px) {
+  .lw-card {
+    padding: 20px;
+    width: min(100vw - 24px, 640px);
+  }
+
+  .lw-num-row {
+    grid-template-columns: 1fr;
+  }
+
+  .lw-summary-row {
+    align-items: flex-start;
+  }
+
+  .lw-summary-key {
+    width: 72px;
+  }
+
+  .lw-footer {
+    align-items: stretch;
+  }
 }

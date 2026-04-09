@@ -18,6 +18,7 @@ const userDataDir = mkdtempSync(path.join(tmpdir(), 'daemon-smoke-'))
 const projectPath = repoRoot
 const projectName = 'DAEMON Smoke'
 const smokeEcho = `DAEMON_SMOKE_${Date.now()}`
+const smokeImagePath = path.join(repoRoot, 'src', 'assets', 'daemon-icon.png')
 
 let electronProcess
 let browser
@@ -149,6 +150,23 @@ async function cycleDrawerTools(page, toolNames, rounds = 1) {
   }
 }
 
+async function verifyImageEditor(page) {
+  const explorerSearch = page.locator('.file-explorer-search-input')
+  await explorerSearch.fill(path.basename(smokeImagePath))
+  await page.locator('.file-search-result', { hasText: path.basename(smokeImagePath) }).first().click()
+  await openToolFromLauncher(page, 'Image Editor')
+  await page.waitForSelector('.image-editor', { timeout: 30000 })
+  await page.waitForFunction((expectedName) => {
+    return document.querySelector('.ie-filepath')?.textContent?.trim() === expectedName
+  }, path.basename(smokeImagePath), { timeout: 30000 })
+  await page.waitForFunction(() => {
+    const loading = document.querySelector('.ie-status--dim')
+    const saveButton = Array.from(document.querySelectorAll('.ie-btn')).find((button) => button.textContent?.trim() === 'Save')
+    return !loading && saveButton instanceof HTMLButtonElement && !saveButton.disabled
+  }, { timeout: 30000 })
+  await closeDrawerToGrid(page)
+}
+
 async function verifySidebarAddToolFlyout(page) {
   const addToolButton = page.getByRole('button', { name: 'Add tool', exact: true })
   await addToolButton.click()
@@ -248,6 +266,9 @@ async function run() {
 
   logStep('checking tool launcher transitions')
   await cycleDrawerTools(page, ['Git', 'Wallet', 'Token Launch', 'Settings'], 2)
+
+  logStep('checking image editor readiness flow')
+  await verifyImageEditor(page)
 
   assert.equal(rendererFailures.length, 0, `renderer failures detected:\n${rendererFailures.join('\n')}`)
 }
