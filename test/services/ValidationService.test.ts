@@ -148,6 +148,46 @@ describe('checkRateLimit', () => {
   })
 })
 
+describe('validateEmailAddress', () => {
+  it('accepts a valid email address', () => {
+    const result = ValidationService.validateEmailAddress('dev@daemon.dev')
+    expect(result.success).toBe(true)
+    expect(result.data).toBe('dev@daemon.dev')
+  })
+
+  it('trims surrounding whitespace', () => {
+    const result = ValidationService.validateEmailAddress('  dev@daemon.dev  ')
+    expect(result.success).toBe(true)
+    expect(result.data).toBe('dev@daemon.dev')
+  })
+
+  it('rejects malformed email addresses', () => {
+    const result = ValidationService.validateEmailAddress('not-an-email')
+    expect(result.success).toBe(false)
+    expect(result.errors![0]).toMatch(/invalid email/i)
+  })
+})
+
+describe('validateEmailList', () => {
+  it('accepts comma-separated email lists', () => {
+    const result = ValidationService.validateEmailList('a@daemon.dev, b@daemon.dev')
+    expect(result.success).toBe(true)
+    expect(result.data).toBe('a@daemon.dev, b@daemon.dev')
+  })
+
+  it('allows empty optional email lists', () => {
+    const result = ValidationService.validateEmailList('')
+    expect(result.success).toBe(true)
+    expect(result.data).toBeUndefined()
+  })
+
+  it('rejects invalid addresses in the list', () => {
+    const result = ValidationService.validateEmailList('a@daemon.dev, nope')
+    expect(result.success).toBe(false)
+    expect(result.errors![0]).toMatch(/invalid email/i)
+  })
+})
+
 describe('validateObject', () => {
   it('passes a valid object matching schema', () => {
     const result = ValidationService.validateObject(

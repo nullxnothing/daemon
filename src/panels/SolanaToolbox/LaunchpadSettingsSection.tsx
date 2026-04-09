@@ -31,7 +31,13 @@ function LaunchpadStatusBadge({ definition }: { definition?: LaunchpadDefinition
   )
 }
 
-export function LaunchpadSettingsSection({ onSettingsSaved }: { onSettingsSaved?: () => void }) {
+export function LaunchpadSettingsSection({
+  onSettingsSaved,
+  embedded = false,
+}: {
+  onSettingsSaved?: () => void
+  embedded?: boolean
+}) {
   const pushError = useNotificationsStore((s) => s.pushError)
   const pushSuccess = useNotificationsStore((s) => s.pushSuccess)
 
@@ -90,10 +96,12 @@ export function LaunchpadSettingsSection({ onSettingsSaved }: { onSettingsSaved?
     <section className="solana-launchpad-settings">
       <div className="solana-launchpad-settings-header">
         <div>
-          <div className="solana-token-launch-kicker">Launchpad Settings</div>
-          <h2 className="solana-token-launch-title">Enable LaunchLab and DBC in-app</h2>
+          {!embedded && <div className="solana-token-launch-kicker">Launchpad Settings</div>}
+          <h2 className="solana-token-launch-title">{embedded ? 'Launchpad config' : 'Enable LaunchLab and DBC in-app'}</h2>
           <p className="solana-launchpad-settings-copy">
-            Store protocol config once, keep env fallback in place, and let the unified Token Launch tool resolve readiness from DAEMON state.
+            {embedded
+              ? 'Store protocol config once and let the unified launch flow pick it up automatically.'
+              : 'Store protocol config once, keep env fallback in place, and let the unified Token Launch tool resolve readiness from DAEMON state.'}
           </p>
         </div>
         <div className="solana-token-launch-actions">

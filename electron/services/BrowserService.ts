@@ -13,26 +13,47 @@ function nextPageId(): string {
 
 // --- URL Safety ---
 
-function isCloudMetadataUrl(urlStr: string): boolean {
+function isBlockedBrowserHost(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase().replace(/\.$/, '')
+  if (!normalized) return true
+
+  if (normalized === 'localhost' || normalized.endsWith('.localhost')) return true
+  if (normalized === '0.0.0.0' || normalized === '::' || normalized === '::1') return true
+  if (normalized === 'metadata.google.internal') return true
+  if (normalized.endsWith('.local') || normalized.endsWith('.internal')) return true
+
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+  if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+
+  if (normalized.startsWith('fe80:')) return true
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true
+
+  return false
+}
+
+function isBlockedNavigationUrl(urlStr: string): boolean {
   try {
     const parsed = new URL(urlStr)
-    const hostname = parsed.hostname
-    // Block cloud metadata endpoints only — real SSRF vectors
-    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') return true
-    return false
+    if (!['http:', 'https:'].includes(parsed.protocol)) return true
+    if (parsed.username || parsed.password) return true
+    return isBlockedBrowserHost(parsed.hostname)
   } catch { return true }
 }
 
 // --- Navigation ---
 
 export async function navigate(url: string): Promise<BrowserNavResult> {
-  // Normalize URL
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+  // Normalize bare hostnames without mutating explicit non-http schemes.
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) {
     url = `https://${url}`
   }
 
-  if (isCloudMetadataUrl(url)) {
-    throw new Error('Navigation to cloud metadata endpoints is blocked')
+  if (isBlockedNavigationUrl(url)) {
+    throw new Error('Navigation blocked: URL targets an internal or unsafe address')
   }
 
   // Create a page entry with the URL — actual content comes from webview via capturePageContent

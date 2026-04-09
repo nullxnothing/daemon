@@ -17,7 +17,15 @@ function formatCreatedAt(createdAt: number) {
   })
 }
 
-export function TokenLaunchSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+export function TokenLaunchSection({
+  refreshNonce = 0,
+  embedded = false,
+  onRefreshRequested,
+}: {
+  refreshNonce?: number
+  embedded?: boolean
+  onRefreshRequested?: () => void
+}) {
   const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
   const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
 
@@ -59,18 +67,30 @@ export function TokenLaunchSection({ refreshNonce = 0 }: { refreshNonce?: number
   }, [launchWizardOpen, reload])
 
   return (
-    <section className="solana-token-launch">
+    <section className={`solana-token-launch ${embedded ? 'embedded' : ''}`}>
       <div className="solana-token-launch-header">
         <div>
-          <div className="solana-token-launch-kicker">Token Launch</div>
-          <h2 className="solana-token-launch-title">One launch surface for Solana token launches</h2>
+          {!embedded && <div className="solana-token-launch-kicker">Token Launch</div>}
+          <h2 className="solana-token-launch-title">
+            {embedded ? 'Live launchpads and recent launches' : 'One launch surface for Solana token launches'}
+          </h2>
           <p className="solana-token-launch-copy">
-            Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.
+            {embedded
+              ? 'Keep launch availability and recent history visible while the main CTA stays at the tool level.'
+              : 'Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.'}
           </p>
         </div>
         <div className="solana-token-launch-actions">
           <button className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
-          <button className="sol-btn" onClick={() => { void reload() }}>Refresh</button>
+          <button
+            className="sol-btn"
+            onClick={() => {
+              onRefreshRequested?.()
+              void reload()
+            }}
+          >
+            Refresh
+          </button>
         </div>
       </div>
 
