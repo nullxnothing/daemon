@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useTokenLaunch } from './useTokenLaunch'
 import type { LaunchParams } from './useTokenLaunch'
 import './LaunchWizard.css'
@@ -55,7 +56,7 @@ function phaseIndex(phase: string): number {
 
 // ── Main component ─────────────────────────────────────────────
 export function LaunchWizard() {
-  const closeLaunchWizard = useUIStore((s) => s.closeLaunchWizard)
+  const closeLaunchWizard = useWorkflowShellStore((s) => s.closeLaunchWizard)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const overlayRef = useRef<HTMLDivElement>(null)
 

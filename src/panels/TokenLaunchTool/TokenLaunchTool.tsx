@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
-import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import '../SolanaToolbox/SolanaToolbox.css'
 import './TokenLaunchTool.css'
 
 export function TokenLaunchTool() {
   const [launchpadRefreshNonce, setLaunchpadRefreshNonce] = useState(0)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
+  const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
 
   const highlights = useMemo(() => ([
     {

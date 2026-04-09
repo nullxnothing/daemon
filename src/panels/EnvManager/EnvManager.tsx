@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
@@ -153,7 +154,7 @@ export function EnvManager() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const projects = useUIStore((s) => s.projects)
   const openFile = useUIStore((s) => s.openFile)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
 
   const [localKeys, setLocalKeys] = useState<UnifiedKey[]>([])
   const [vercelVars, setVercelVars] = useState<VercelEnvVar[]>([])

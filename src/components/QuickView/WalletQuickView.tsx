@@ -1,6 +1,7 @@
 import { useState, useCallback, type RefObject } from 'react'
 import { useWalletStore } from '../../store/wallet'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { formatCompactUsd } from '../../utils/format'
 import { QuickView } from './QuickView'
 
@@ -465,7 +466,7 @@ function mergeWithCommon(
 export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
   const isOpen = useUIStore((s) => s.walletQuickViewOpen)
   const closeAll = useUIStore((s) => s.closeAllQuickViews)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const dashboard = useWalletStore((s) => s.dashboard)
 
   const [mode, setMode] = useState<QuickViewMode>('overview')

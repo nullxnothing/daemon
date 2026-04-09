@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useToolsStore } from '../../store/tools'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { ToolCard } from './ToolCard'
 import { ToolCreateDialog } from './ToolCreateDialog'
 import './ToolBrowser.css'
@@ -11,7 +12,7 @@ export function ToolBrowser() {
   const { tools, loaded, load, filter, setFilter, setActiveTool, runningToolIds } = useToolsStore()
   const openFile = useUIStore((s) => s.openFile)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const [showCreate, setShowCreate] = useState(false)
 
   useEffect(() => { if (!loaded) load() }, [loaded, load])

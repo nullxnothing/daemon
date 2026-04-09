@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 
 function truncateMiddle(value: string, head = 6, tail = 6) {
   if (value.length <= head + tail + 3) return value
@@ -26,8 +26,8 @@ export function TokenLaunchSection({
   embedded?: boolean
   onRefreshRequested?: () => void
 }) {
-  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
+  const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
+  const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
 
   const [launchpads, setLaunchpads] = useState<LaunchpadDefinition[]>([])
   const [launches, setLaunches] = useState<LaunchedToken[]>([])

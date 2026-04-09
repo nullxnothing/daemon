@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useBrowserStore } from '../../store/browser'
 import { AriaPresence } from './AriaPresence'
 import type { AriaAction, AriaMessage } from '../../../electron/shared/types'
@@ -126,7 +127,7 @@ export function AriaChat() {
   const sendMessage = useAriaStore((s) => s.sendMessage)
   const clearMessages = useAriaStore((s) => s.clearMessages)
   const loadHistory = useAriaStore((s) => s.loadHistory)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
 
   const [input, setInput] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)

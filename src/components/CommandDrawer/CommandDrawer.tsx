@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, Suspense, type Compo
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { PanelErrorBoundary } from '../ErrorBoundary'
 import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
@@ -314,13 +315,13 @@ function ToolFallback({ tool }: { tool?: DrawerTool | null }) {
 export const TOOL_DND_MIME = 'application/x-daemon-tool'
 
 export function CommandDrawer() {
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const drawerTool = useUIStore((s) => s.drawerTool)
-  const drawerFullscreen = useUIStore((s) => s.drawerFullscreen)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
+  const drawerTool = useWorkflowShellStore((s) => s.drawerTool)
+  const drawerFullscreen = useWorkflowShellStore((s) => s.drawerFullscreen)
   const drawerToolOrder = useUIStore((s) => s.drawerToolOrder)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
-  const closeDrawer = useUIStore((s) => s.closeDrawer)
-  const toggleDrawerFullscreen = useUIStore((s) => s.toggleDrawerFullscreen)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
+  const closeDrawer = useWorkflowShellStore((s) => s.closeDrawer)
+  const toggleDrawerFullscreen = useWorkflowShellStore((s) => s.toggleDrawerFullscreen)
 
   const [search, setSearch] = useState('')
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -400,7 +401,7 @@ export function CommandDrawer() {
       e.preventDefault()
       e.stopPropagation()
       if (drawerTool) {
-        useUIStore.setState({ drawerTool: null, drawerFullscreen: false })
+        useWorkflowShellStore.getState().setDrawerTool(null)
       } else {
         closeDrawer()
       }
@@ -469,7 +470,7 @@ export function CommandDrawer() {
       <div className="drawer-header">
         {activeTool ? (
           <>
-            <button className="drawer-back" onClick={() => useUIStore.setState({ drawerTool: null, drawerFullscreen: false })} title="Back to tools">
+            <button className="drawer-back" onClick={() => useWorkflowShellStore.getState().setDrawerTool(null)} title="Back to tools">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>

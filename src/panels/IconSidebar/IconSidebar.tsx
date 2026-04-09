@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef, type DragEvent } fro
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
@@ -14,8 +15,8 @@ interface IconSidebarProps {
 }
 
 export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLauncher }: IconSidebarProps) {
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const drawerTool = useUIStore((s) => s.drawerTool)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
+  const drawerTool = useWorkflowShellStore((s) => s.drawerTool)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
@@ -63,17 +64,17 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }, [toolMenuOpen])
 
   const handleExplorerClick = () => {
-    if (drawerOpen) useUIStore.getState().closeDrawer()
+    if (drawerOpen) useWorkflowShellStore.getState().closeDrawer()
     onToggleExplorer()
   }
 
   const handlePinnedToolClick = (toolId: string) => {
     if (toolId === 'browser') {
-      if (useUIStore.getState().drawerOpen) useUIStore.getState().closeDrawer()
+      if (useWorkflowShellStore.getState().drawerOpen) useWorkflowShellStore.getState().closeDrawer()
       useUIStore.getState().toggleBrowserTab()
       return
     }
-    const state = useUIStore.getState()
+    const state = useWorkflowShellStore.getState()
     if (state.drawerOpen && state.drawerTool === toolId) {
       state.closeDrawer()
     } else {
@@ -269,7 +270,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       <div className="sidebar-divider" />
       <button
         className={`colosseum-icon-wrap${drawerTool === 'hackathon' ? ' active' : ''}`}
-        onClick={() => useUIStore.getState().setDrawerTool('hackathon')}
+        onClick={() => useWorkflowShellStore.getState().setDrawerTool('hackathon')}
         title="Hackathon (Colosseum)"
         aria-label="Hackathon"
       >
@@ -286,11 +287,11 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       <button
         className={`sidebar-icon ${drawerOpen && !drawerTool ? 'active' : ''}`}
         onClick={() => {
-          const state = useUIStore.getState()
+          const state = useWorkflowShellStore.getState()
           if (state.drawerOpen && !state.drawerTool) {
             state.closeDrawer()
           } else {
-            useUIStore.setState({ drawerOpen: true, drawerTool: null })
+            state.toggleDrawer()
           }
         }}
         title="Tools (Ctrl+K)"

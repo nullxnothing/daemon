@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
@@ -250,7 +251,7 @@ export function DashboardCanvas() {
   const activeMint = useUIStore((s) => s.activeDashboardMint)
   const setActiveMint = useUIStore((s) => s.setActiveDashboardMint)
   const openTokenLaunch = useCallback(() => {
-    useUIStore.getState().setDrawerTool('token-launch')
+    useWorkflowShellStore.getState().setDrawerTool('token-launch')
   }, [])
 
   const dashboard = useWalletStore((s) => s.dashboard)

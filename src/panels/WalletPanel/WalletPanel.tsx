@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
 import './WalletPanel.css'
@@ -11,8 +12,8 @@ export function WalletPanel() {
   const loading = useWalletStore((s) => s.loading)
   const activeTab = useWalletStore((s) => s.activeTab)
   const setActiveTab = useWalletStore((s) => s.setActiveTab)
-  const drawerFullscreen = useUIStore((s) => s.drawerFullscreen)
-  const toggleDrawerFullscreen = useUIStore((s) => s.toggleDrawerFullscreen)
+  const drawerFullscreen = useWorkflowShellStore((s) => s.drawerFullscreen)
+  const toggleDrawerFullscreen = useWorkflowShellStore((s) => s.toggleDrawerFullscreen)
 
   const load = useCallback(async () => {
     await useWalletStore.getState().refresh(activeProjectId)

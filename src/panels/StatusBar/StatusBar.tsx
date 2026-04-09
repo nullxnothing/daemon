@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useShellLayout } from '../../hooks/useShellLayout'
 import { daemon } from '../../lib/daemonBridge'
 import { formatCompactUsd } from '../../utils/format'
@@ -108,7 +109,7 @@ function TerminalCount() {
 
 function ValidatorStatus() {
   const validator = useSolanaToolboxStore((s) => s.validator)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
 
   if (validator.status === 'stopped') return null
 
@@ -130,7 +131,7 @@ function ValidatorStatus() {
 
 function GitBranch() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const [branch, setBranch] = useState<string | null>(null)
 
   useEffect(() => {
@@ -154,7 +155,7 @@ function GitBranch() {
 
 function BugReportButton({ showLabel }: { showLabel: boolean }) {
   const [open, setOpen] = useState(false)
-  const drawerTool = useUIStore((s) => s.drawerTool)
+  const drawerTool = useWorkflowShellStore((s) => s.drawerTool)
 
   return (
     <>
@@ -244,7 +245,7 @@ function ClaudeStatus() {
 }
 
 function HackathonCountdown() {
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const [label, setLabel] = useState<string | null>(null)
   const [urgency, setUrgency] = useState<'normal' | 'warning' | 'urgent'>('normal')
 

@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react'
 import { useUIStore } from '../store/ui'
+import { useWorkflowShellStore } from '../store/workflowShell'
 
 interface UseAppShortcutsOptions {
   setPaletteMode: Dispatch<SetStateAction<'commands' | 'files' | null>>
@@ -66,10 +67,10 @@ export function useAppShortcuts({
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault()
-        useUIStore.getState().setDrawerTool('settings')
+        useWorkflowShellStore.getState().setDrawerTool('settings')
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
-        useUIStore.getState().toggleDrawer()
+        useWorkflowShellStore.getState().toggleDrawer()
       }
     }
     window.addEventListener('keydown', handleKeyDown)

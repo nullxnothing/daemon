@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useOnboardingStore } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
@@ -522,7 +523,7 @@ export function GitPanel() {
         return (
           <div
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', margin: '0 16px', fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', border: '1px solid var(--s5)', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start' }}
-            onClick={() => useUIStore.getState().setDrawerTool('deploy')}
+            onClick={() => useWorkflowShellStore.getState().setDrawerTool('deploy')}
           >
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
             <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>

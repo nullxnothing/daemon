@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
@@ -17,7 +18,7 @@ export const ProcessManager = memo(function ProcessManager() {
   const [orphans, setOrphans] = useState<OrphanProcess[]>([])
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
 
   const load = useCallback(async () => {
     const [procRes, orphanRes] = await Promise.all([

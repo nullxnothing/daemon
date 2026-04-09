@@ -7,6 +7,7 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
@@ -609,7 +610,7 @@ function ImagePreview({ filePath }: { filePath: string }) {
         {fileSize > 0 && <span className="image-preview-size">{formatFileSize(fileSize)}</span>}
         <button
           className="image-preview-edit"
-          onClick={() => useUIStore.getState().setDrawerTool('image-editor')}
+          onClick={() => useWorkflowShellStore.getState().setDrawerTool('image-editor')}
         >
           Edit in miniPaint
         </button>
