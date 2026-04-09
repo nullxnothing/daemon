@@ -40,6 +40,7 @@ import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
 import { clearLoadedWallets } from '../services/RecoveryService'
+import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -108,6 +109,7 @@ if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let ipcRegistered = false
+let startupUiRecovery: UiRecoveryResult | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
@@ -344,10 +346,16 @@ async function createWindow() {
     const recentCrashes = db.prepare(
       'SELECT COUNT(*) as count FROM app_crashes WHERE created_at > ?'
     ).get(Date.now() - 3600_000) as { count: number }
+    startupUiRecovery = maybeRecoverUnstableUiState(recentCrashes.count)
 
     if (recentCrashes.count > 3) {
       win.webContents.on('did-finish-load', () => {
         win?.webContents.send('crash-warning', recentCrashes.count)
+      })
+    }
+    if (startupUiRecovery) {
+      win.webContents.on('did-finish-load', () => {
+        win?.webContents.send('ui-recovery-applied', startupUiRecovery)
       })
     }
   } catch { /* table may not exist yet on first run */ }

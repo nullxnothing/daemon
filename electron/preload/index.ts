@@ -246,6 +246,7 @@ contextBridge.exposeInMainWorld('daemon', {
     reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
     getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
     clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
+    recoverUiState: () => ipcRenderer.invoke('settings:recover-ui-state'),
     getPinnedTools: () => ipcRenderer.invoke('settings:get-pinned-tools'),
     setPinnedTools: (tools: string[]) => ipcRenderer.invoke('settings:set-pinned-tools', tools),
     getDrawerToolOrder: () => ipcRenderer.invoke('settings:get-drawer-tool-order'),
@@ -262,6 +263,11 @@ contextBridge.exposeInMainWorld('daemon', {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)
       return () => ipcRenderer.off('crash-warning', handler)
+    },
+    onUiRecoveryApplied: (callback: (result: { clearedKeys: string[]; clearedActiveSessions: number; ranAt: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, result: { clearedKeys: string[]; clearedActiveSessions: number; ranAt: number }) => callback(result)
+      ipcRenderer.on('ui-recovery-applied', handler)
+      return () => ipcRenderer.off('ui-recovery-applied', handler)
     },
   },
 

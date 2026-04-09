@@ -387,6 +387,12 @@ declare global {
     created_at: number
   }
 
+  interface UiRecoveryResult {
+    clearedKeys: string[]
+    clearedActiveSessions: number
+    ranAt: number
+  }
+
   interface DaemonSettings {
     getUi: () => Promise<IpcResponse<UiSettings>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
@@ -398,6 +404,7 @@ declare global {
     reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
     getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
     clearCrashes: () => Promise<IpcResponse>
+    recoverUiState: () => Promise<IpcResponse<UiRecoveryResult>>
     getPinnedTools: () => Promise<IpcResponse<string[]>>
     setPinnedTools: (tools: string[]) => Promise<IpcResponse>
     getDrawerToolOrder: () => Promise<IpcResponse<string[]>>
@@ -411,6 +418,7 @@ declare global {
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
+    onUiRecoveryApplied: (callback: (result: UiRecoveryResult) => void) => () => void
   }
 
   interface DaemonAgents {

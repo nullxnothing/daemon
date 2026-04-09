@@ -62,6 +62,10 @@ export function registerSettingsHandlers() {
     db.prepare('DELETE FROM app_crashes').run()
   }))
 
+  ipcMain.handle('settings:recover-ui-state', ipcHandler(async () => {
+    return Settings.recoverUiState()
+  }))
+
   ipcMain.handle('settings:get-pinned-tools', ipcHandler(async () => {
     return Settings.getPinnedTools()
   }))
