@@ -78,6 +78,8 @@ jobs:
           name: windows-release
           path: |
             release/**/*.exe
+            release/**/*.yml
+            release/**/*.blockmap
             release/checksums-windows.txt
           retention-days: 1
 
@@ -141,6 +143,8 @@ jobs:
           path: |
             release/**/*.dmg
             release/**/*.zip
+            release/**/*.yml
+            release/**/*.blockmap
             release/checksums-macos.txt
           retention-days: 1
 
@@ -182,6 +186,8 @@ jobs:
           name: linux-release
           path: |
             release/**/*.AppImage
+            release/**/*.yml
+            release/**/*.blockmap
             release/checksums-linux.txt
           retention-days: 1
 
@@ -228,9 +234,15 @@ jobs:
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
           files: |
             artifacts/windows/**/*.exe
+            artifacts/windows/**/*.yml
+            artifacts/windows/**/*.blockmap
             artifacts/macos/**/*.dmg
             artifacts/macos/**/*.zip
+            artifacts/macos/**/*.yml
+            artifacts/macos/**/*.blockmap
             artifacts/linux/**/*.AppImage
+            artifacts/linux/**/*.yml
+            artifacts/linux/**/*.blockmap
             artifacts/windows/checksums-windows.txt
             artifacts/macos/checksums-macos.txt
             artifacts/linux/checksums-linux.txt
