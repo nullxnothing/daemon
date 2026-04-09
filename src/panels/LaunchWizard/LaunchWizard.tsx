@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { openLaunchInBrowserMode } from '../../lib/launchHandoff'
+import { useNotificationsStore } from '../../store/notifications'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useTokenLaunch } from './useTokenLaunch'
@@ -58,7 +60,9 @@ function phaseIndex(phase: string): number {
 export function LaunchWizard() {
   const closeLaunchWizard = useWorkflowShellStore((s) => s.closeLaunchWizard)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const pushSuccess = useNotificationsStore((s) => s.pushSuccess)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const hasAutoHandedOffRef = useRef(false)
 
   const [step, setStep] = useState<Step>(1)
   const [hasAttemptedNext, setHasAttemptedNext] = useState(false)
@@ -205,6 +209,21 @@ export function LaunchWizard() {
   const selectedLaunchpad = launchpads.find((pad) => pad.id === s2.launchpad) ?? null
 
   useEffect(() => {
+    if (launchState.phase !== 'done' || !launchState.result) {
+      hasAutoHandedOffRef.current = false
+      return
+    }
+    if (hasAutoHandedOffRef.current) return
+    if (s2.launchpad !== 'pumpfun' || !launchState.result.mint) return
+
+    hasAutoHandedOffRef.current = true
+    pushSuccess(`Opened ${s1.symbol.toUpperCase()} in Browser mode`, 'Token Launch')
+    window.setTimeout(() => {
+      closeLaunchWizard()
+    }, 120)
+  }, [launchState.phase, launchState.result, s2.launchpad, s1.symbol, pushSuccess, closeLaunchWizard])
+
+  useEffect(() => {
     if (step !== 3) return
     if (!s2.walletId) return
 
@@ -319,6 +338,7 @@ export function LaunchWizard() {
               result={launchState.result}
               error={launchState.error}
               activePhaseIdx={activePhaseIdx}
+              launchpad={s2.launchpad}
               onRetry={handleRetry}
               onClose={closeLaunchWizard}
             />
@@ -801,6 +821,7 @@ function StepExecuting({
   result,
   error,
   activePhaseIdx,
+  launchpad,
   onRetry,
   onClose,
 }: {
@@ -808,6 +829,7 @@ function StepExecuting({
   result: { mint: string; signature: string; success: boolean } | null
   error: string | null
   activePhaseIdx: number
+  launchpad: LaunchpadId
   onRetry: () => void
   onClose: () => void
 }) {
@@ -828,19 +850,27 @@ function StepExecuting({
             Signature: {result.signature}
           </div>
         )}
-        <button
-          className="lw-success-link"
-          onClick={() => {
-            if (result.signature) {
-              window.daemon.shell.openExternal(`https://solscan.io/tx/${result.signature}`)
-            }
-          }}
-        >
-          View on Solscan
-        </button>
-        <button className="lw-btn primary" style={{ marginTop: 4 }} onClick={onClose}>
-          Done
-        </button>
+        <div className="lw-btn-row" style={{ marginTop: 4 }}>
+          <button
+            className="lw-btn primary"
+            onClick={() => openLaunchInBrowserMode(launchpad, result.mint)}
+          >
+            Open in Browser
+          </button>
+          <button
+            className="lw-btn secondary"
+            onClick={() => {
+              if (result.signature) {
+                window.daemon.shell.openExternal(`https://solscan.io/tx/${result.signature}`)
+              }
+            }}
+          >
+            View on Solscan
+          </button>
+          <button className="lw-btn secondary" onClick={onClose}>
+            Done
+          </button>
+        </div>
       </div>
     )
   }
