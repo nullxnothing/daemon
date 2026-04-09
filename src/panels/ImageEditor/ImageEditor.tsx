@@ -92,17 +92,22 @@ export default function ImageEditor() {
   // Once miniPaint signals ready and we have an image path, inject it
   useEffect(() => {
     if (!ready || !imagePath) return
-    const iframe = iframeRef.current
-    if (!iframe?.contentWindow) return
+    let cancelled = false
 
     window.daemon.fs.readImageBase64(imagePath).then((res) => {
-      if (!res.ok || !res.data) return
-      iframe.contentWindow!.postMessage({
+      if (cancelled || !res.ok || !res.data) return
+      const targetWindow = iframeRef.current?.contentWindow
+      if (!targetWindow) return
+      targetWindow.postMessage({
         type: 'mp:insert-image',
         name: imagePath.split(/[\\/]/).pop() ?? 'image',
         dataUrl: res.data.dataUrl,
       }, '*')
     })
+
+    return () => {
+      cancelled = true
+    }
   }, [ready, imagePath])
 
   const requestExport = useCallback((mimeType: string): Promise<string> => {
