@@ -26,6 +26,7 @@ interface ValidationRule {
 class ValidationServiceImpl {
   private pathWhitelist: Set<string> = new Set();
   private rateLimitMap: Map<string, number[]> = new Map();
+  private readonly emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   /**
    * Validate string input
@@ -250,6 +251,58 @@ class ValidationServiceImpl {
     recent.push(now);
     this.rateLimitMap.set(key, recent);
     return true;
+  }
+
+  validateEmailAddress(value: unknown): ValidationResult<string> {
+    if (typeof value !== 'string') {
+      return { success: false, errors: ['Expected string'] };
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return { success: false, errors: ['Email address is required'] };
+    }
+
+    if (trimmed.length > 320) {
+      return { success: false, errors: ['Email address too long'] };
+    }
+
+    if (!this.emailPattern.test(trimmed)) {
+      return { success: false, errors: ['Invalid email address'] };
+    }
+
+    return { success: true, data: trimmed };
+  }
+
+  validateEmailList(value: unknown): ValidationResult<string | undefined> {
+    if (value === undefined || value === null || value === '') {
+      return { success: true, data: undefined };
+    }
+
+    if (typeof value !== 'string') {
+      return { success: false, errors: ['Expected string'] };
+    }
+
+    const emails = value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    if (emails.length === 0) {
+      return { success: true, data: undefined };
+    }
+
+    for (const email of emails) {
+      const result = this.validateEmailAddress(email);
+      if (!result.success) {
+        return {
+          success: false,
+          errors: result.errors?.map((error) => `${email}: ${error}`) ?? ['Invalid email list'],
+        };
+      }
+    }
+
+    return { success: true, data: emails.join(', ') };
   }
 
   /**
