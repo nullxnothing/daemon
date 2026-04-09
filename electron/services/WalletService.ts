@@ -1,10 +1,10 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
-import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js'
+import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { getConnection, getHeliusApiKey, withKeypair } from './SolanaService'
+import { confirmSignature, getConnection, getHeliusApiKey, getJupiterApiKey, getTransactionSubmissionSettings, submitRawTransaction, withKeypair } from './SolanaService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -319,6 +319,25 @@ export function hasHeliusKey() {
   return Boolean(getHeliusApiKey())
 }
 
+export async function storeJupiterKey(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) throw new Error('Jupiter API key is required')
+
+  const res = await fetch('https://api.jup.ag/swap/v1/program-id-to-label', {
+    headers: { 'x-api-key': trimmed },
+  })
+  if (!res.ok) throw new Error('Invalid Jupiter API key — connection failed')
+  SecureKey.storeKey('JUPITER_API_KEY', trimmed)
+}
+
+export function deleteJupiterKey() {
+  SecureKey.deleteKey('JUPITER_API_KEY')
+}
+
+export function hasJupiterKey() {
+  return Boolean(getJupiterApiKey())
+}
+
 async function getMarketTape() {
   try {
     const response = await fetch(API_ENDPOINTS.COINGECKO_PRICE)
@@ -512,13 +531,19 @@ function formatTokenAmount(rawAmount: bigint, decimals: number): string {
 // Solana Transaction Support
 // ---------------------------------------------------------------------------
 
-function sendWithTimeout(connection: Connection, transaction: Transaction, signers: Keypair[], timeoutMs = 60_000): Promise<string> {
-  const txPromise = sendAndConfirmTransaction(connection, transaction, signers)
-  let timer: ReturnType<typeof setTimeout>
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('Transaction confirmation timed out (60s). It may still confirm — check Solscan.')), timeoutMs)
+async function sendWithTimeout(connection: Connection, transaction: Transaction, signers: Keypair[], timeoutMs = 60_000): Promise<string> {
+  const { mode } = getTransactionSubmissionSettings()
+  const latest = await connection.getLatestBlockhash('confirmed')
+  transaction.feePayer = signers[0]?.publicKey
+  transaction.recentBlockhash = latest.blockhash
+  transaction.sign(...signers)
+
+  const signature = await submitRawTransaction(connection, transaction.serialize(), {
+    skipPreflight: mode === 'jito',
+    maxRetries: mode === 'jito' ? 0 : 3,
   })
-  return Promise.race([txPromise, timeoutPromise]).finally(() => clearTimeout(timer!))
+  await confirmSignature(connection, signature, timeoutMs)
+  return signature
 }
 
 export function generateWallet(name: string, walletType: 'user' | 'agent' = 'user', agentId?: string) {
@@ -542,7 +567,12 @@ export function generateWallet(name: string, walletType: 'user' | 'agent' = 'use
   return db.prepare('SELECT id, name, address, is_default, wallet_type, agent_id, created_at FROM wallets WHERE id = ?').get(id)
 }
 
-export async function transferSOL(fromWalletId: string, toAddress: string, amountSol?: number, sendMax = false) {
+export async function transferSOL(
+  fromWalletId: string,
+  toAddress: string,
+  amountSol?: number,
+  sendMax = false,
+): Promise<TransactionExecutionResult & { id: string; status: 'confirmed' }> {
   if (!sendMax && (!amountSol || amountSol <= 0)) throw new Error('Amount must be greater than 0')
   if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
 
@@ -595,7 +625,7 @@ export async function transferSOL(fromWalletId: string, toAddress: string, amoun
       const signature = await sendWithTimeout(connection, transaction, [keypair])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      return { id: txId, signature, status: 'confirmed' }
+      return { id: txId, signature, status: 'confirmed', transport: getTransactionSubmissionSettings().mode }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
@@ -604,7 +634,13 @@ export async function transferSOL(fromWalletId: string, toAddress: string, amoun
   })
 }
 
-export async function transferToken(fromWalletId: string, toAddress: string, mint: string, amount?: number, sendMax = false) {
+export async function transferToken(
+  fromWalletId: string,
+  toAddress: string,
+  mint: string,
+  amount?: number,
+  sendMax = false,
+): Promise<TransactionExecutionResult & { id: string; status: 'confirmed' }> {
   if (!sendMax && (!amount || amount <= 0)) throw new Error('Amount must be greater than 0')
   if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
   if (!isValidSolanaAddress(mint)) throw new Error('Invalid mint address')
@@ -683,7 +719,7 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
       const signature = await sendWithTimeout(connection, transaction, [keypair])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      return { id: txId, signature, status: 'confirmed' }
+      return { id: txId, signature, status: 'confirmed', transport: getTransactionSubmissionSettings().mode }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
@@ -696,8 +732,8 @@ export async function transferToken(fromWalletId: string, toAddress: string, min
 // Jupiter Swap Integration
 // ---------------------------------------------------------------------------
 
-const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6/quote'
-const JUPITER_SWAP_API = 'https://quote-api.jup.ag/v6/swap'
+const JUPITER_QUOTE_API = 'https://api.jup.ag/swap/v1/quote'
+const JUPITER_SWAP_API = 'https://api.jup.ag/swap/v1/swap'
 const LAMPORTS_DECIMALS = 9
 
 interface JupiterQuoteResponse {
@@ -719,6 +755,11 @@ interface SwapQuoteResult {
   rawQuoteResponse: unknown
 }
 
+export interface TransactionExecutionResult {
+  signature: string
+  transport: 'rpc' | 'jito'
+}
+
 export async function getSwapQuote(
   inputMint: string,
   outputMint: string,
@@ -730,6 +771,9 @@ export async function getSwapQuote(
   if (amount <= 0) throw new Error('Amount must be greater than 0')
   if (inputMint === outputMint) throw new Error('Input and output mints must differ')
 
+  const jupiterApiKey = getJupiterApiKey()
+  if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
+
   // Resolve decimals for the input mint to convert human amount to raw
   const decimals = await getMintDecimals(inputMint)
   const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
@@ -740,7 +784,9 @@ export async function getSwapQuote(
   url.searchParams.set('amount', rawAmount.toString())
   url.searchParams.set('slippageBps', String(slippageBps))
 
-  const response = await fetch(url.toString())
+  const response = await fetch(url.toString(), {
+    headers: { 'x-api-key': jupiterApiKey },
+  })
   if (!response.ok) {
     const body = await response.text()
     throw new Error(`Jupiter quote failed (${response.status}): ${body}`)
@@ -776,10 +822,13 @@ export async function executeSwap(
   amount: number,
   slippageBps: number,
   rawQuoteResponse?: unknown,
-): Promise<{ signature: string }> {
+): Promise<TransactionExecutionResult> {
   if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
   if (amount <= 0) throw new Error('Amount must be greater than 0')
+
+  const jupiterApiKey = getJupiterApiKey()
+  if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
 
   const db = getDb()
 
@@ -853,7 +902,9 @@ export async function executeSwap(
       quoteUrl.searchParams.set('amount', rawAmount.toString())
       quoteUrl.searchParams.set('slippageBps', String(slippageBps))
 
-      const quoteRes = await fetch(quoteUrl.toString())
+      const quoteRes = await fetch(quoteUrl.toString(), {
+        headers: { 'x-api-key': jupiterApiKey },
+      })
       if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${quoteRes.status}`)
       quoteData = await quoteRes.json()
     }
@@ -861,7 +912,10 @@ export async function executeSwap(
     // Get the swap transaction from Jupiter
     const swapRes = await fetch(JUPITER_SWAP_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': jupiterApiKey,
+      },
       body: JSON.stringify({
         quoteResponse: quoteData,
         userPublicKey,
@@ -889,21 +943,15 @@ export async function executeSwap(
 
     try {
       const rawTx = transaction.serialize()
-      const signature = await connection.sendRawTransaction(rawTx, {
-        skipPreflight: false,
-        maxRetries: 3,
+      const { mode } = getTransactionSubmissionSettings()
+      const signature = await submitRawTransaction(connection, rawTx, {
+        skipPreflight: mode === 'jito',
+        maxRetries: mode === 'jito' ? 0 : 3,
       })
-
-      // Confirm the transaction
-      const latestBlockhash = await connection.getLatestBlockhash()
-      await connection.confirmTransaction({
-        signature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      })
+      await confirmSignature(connection, signature)
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      return { signature }
+      return { signature, transport: mode }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
