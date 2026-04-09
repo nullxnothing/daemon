@@ -75,6 +75,10 @@ export function registerValidatorHandlers() {
     return ValidatorManager.detectAvailable()
   }))
 
+  ipcMain.handle('validator:toolchain-status', ipcHandler(async (_event, projectPath?: string) => {
+    return ValidatorManager.detectToolchain(projectPath)
+  }))
+
   ipcMain.handle('validator:detect-project', ipcHandler(async (_event, projectPath: string) => {
     return SolanaDetector.detect(projectPath)
   }))
