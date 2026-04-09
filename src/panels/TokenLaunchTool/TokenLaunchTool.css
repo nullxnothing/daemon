@@ -21,6 +21,9 @@
     rgba(255, 255, 255, 0.02);
   box-shadow: var(--shadow-lifted);
   overflow: hidden;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
 }
 
 .token-launch-tool-header {
@@ -116,6 +119,8 @@
   flex-direction: column;
   gap: 18px;
   max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .token-launch-tool-zone-head {
