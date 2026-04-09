@@ -183,6 +183,21 @@ declare global {
     }
   }
 
+  type WalletInfrastructureSettings = {
+    rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
+    quicknodeRpcUrl: string
+    customRpcUrl: string
+    swapProvider: 'jupiter'
+    preferredWallet: 'phantom' | 'wallet-standard'
+    executionMode: 'rpc' | 'jito'
+    jitoBlockEngineUrl: string
+  }
+
+  type WalletExecutionResult = {
+    signature: string
+    transport: 'rpc' | 'jito'
+  }
+
   // Re-export shared types as global ambient types so existing code
   // that references them without explicit imports continues to work.
   type Project = import('../../electron/shared/types').Project
@@ -340,13 +355,16 @@ declare global {
     storeHeliusKey: (value: string) => Promise<IpcResponse>
     deleteHeliusKey: () => Promise<IpcResponse>
     hasHeliusKey: () => Promise<IpcResponse<boolean>>
+    storeJupiterKey: (value: string) => Promise<IpcResponse>
+    deleteJupiterKey: () => Promise<IpcResponse>
+    hasJupiterKey: () => Promise<IpcResponse<boolean>>
     generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
-    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
-    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
-    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<{ signature: string }>>
+    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
@@ -388,6 +406,8 @@ declare global {
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
     getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
     setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
+    getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>
+    setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
@@ -873,6 +893,14 @@ declare global {
     stop: () => Promise<IpcResponse<{ stopped: boolean }>>
     status: () => Promise<IpcResponse<{ type: string | null; status: string; terminalId: string | null; port: number | null }>>
     detect: () => Promise<IpcResponse<{ surfpool: boolean; testValidator: boolean }>>
+    toolchainStatus: (projectPath?: string) => Promise<IpcResponse<{
+      solanaCli: { installed: boolean; version: string | null }
+      anchor: { installed: boolean; version: string | null }
+      avm: { installed: boolean; version: string | null }
+      surfpool: { installed: boolean; version: string | null }
+      testValidator: { installed: boolean; version: string | null }
+      litesvm: { installed: boolean; source: 'project' | 'none' }
+    }>>
     detectProject: (projectPath: string) => Promise<IpcResponse<{ isSolanaProject: boolean; framework: string | null; indicators: string[]; suggestedMcps: string[] }>>
     onStatusChange: (callback: (state: unknown) => void) => () => void
   }

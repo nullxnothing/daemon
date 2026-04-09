@@ -18,6 +18,16 @@ export interface TokenLaunchSettings {
   meteora: MeteoraLaunchpadSettings
 }
 
+export interface WalletInfrastructureSettings {
+  rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
+  quicknodeRpcUrl: string
+  customRpcUrl: string
+  swapProvider: 'jupiter'
+  preferredWallet: 'phantom' | 'wallet-standard'
+  executionMode: 'rpc' | 'jito'
+  jitoBlockEngineUrl: string
+}
+
 export function getBooleanSetting(key: string, fallback: boolean): boolean {
   const db = getDb()
   const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined
@@ -120,6 +130,16 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
   },
 }
 
+const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
+  rpcProvider: 'helius',
+  quicknodeRpcUrl: '',
+  customRpcUrl: '',
+  swapProvider: 'jupiter',
+  preferredWallet: 'phantom',
+  executionMode: 'rpc',
+  jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+}
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -144,6 +164,19 @@ function validateOptionalPositiveInteger(value: string, fieldName: string): void
   }
   if (BigInt(value) <= 0n) {
     throw new Error(`${fieldName} must be greater than zero`)
+  }
+}
+
+function validateOptionalHttpUrl(value: string, fieldName: string): void {
+  if (!value) return
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error(`${fieldName} must be a valid URL`)
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(`${fieldName} must use http or https`)
   }
 }
 
@@ -182,4 +215,56 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   validateOptionalPositiveInteger(next.meteora.baseSupply, 'Meteora base supply')
 
   setJsonSetting('token_launch_settings', next)
+}
+
+export function getWalletInfrastructureSettings(): WalletInfrastructureSettings {
+  const value = getJsonSetting<WalletInfrastructureSettings>(
+    'wallet_infrastructure_settings',
+    DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS,
+  )
+
+  return {
+    rpcProvider: value?.rpcProvider === 'public' || value?.rpcProvider === 'quicknode' || value?.rpcProvider === 'custom'
+      ? value.rpcProvider
+      : 'helius',
+    quicknodeRpcUrl: normalizeText(value?.quicknodeRpcUrl),
+    customRpcUrl: normalizeText(value?.customRpcUrl),
+    swapProvider: 'jupiter',
+    preferredWallet: value?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    executionMode: value?.executionMode === 'jito' ? 'jito' : 'rpc',
+    jitoBlockEngineUrl: normalizeText(value?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
+  }
+}
+
+export function setWalletInfrastructureSettings(settings: WalletInfrastructureSettings): void {
+  const next: WalletInfrastructureSettings = {
+    rpcProvider: settings?.rpcProvider === 'public' || settings?.rpcProvider === 'quicknode' || settings?.rpcProvider === 'custom'
+      ? settings.rpcProvider
+      : 'helius',
+    quicknodeRpcUrl: normalizeText(settings?.quicknodeRpcUrl),
+    customRpcUrl: normalizeText(settings?.customRpcUrl),
+    swapProvider: 'jupiter',
+    preferredWallet: settings?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    executionMode: settings?.executionMode === 'jito' ? 'jito' : 'rpc',
+    jitoBlockEngineUrl: normalizeText(settings?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
+  }
+
+  if (next.rpcProvider === 'quicknode') {
+    if (!next.quicknodeRpcUrl) throw new Error('QuickNode RPC URL is required when using QuickNode')
+    validateOptionalHttpUrl(next.quicknodeRpcUrl, 'QuickNode RPC URL')
+    next.customRpcUrl = ''
+  } else if (next.rpcProvider === 'custom') {
+    if (!next.customRpcUrl) throw new Error('Custom RPC URL is required when using a custom RPC provider')
+    validateOptionalHttpUrl(next.customRpcUrl, 'Custom RPC URL')
+    next.quicknodeRpcUrl = ''
+  } else {
+    next.quicknodeRpcUrl = ''
+    next.customRpcUrl = ''
+  }
+
+  if (next.executionMode === 'jito') {
+    validateOptionalHttpUrl(next.jitoBlockEngineUrl, 'Jito block engine URL')
+  }
+
+  setJsonSetting('wallet_infrastructure_settings', next)
 }

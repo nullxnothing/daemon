@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
+import { SOLANA_MCP_CATALOG, type SolanaMcpCategory } from '../panels/SolanaToolbox/catalog'
 
 export interface SolanaMcpEntry {
   name: string
   label: string
   description: string
-  category: 'rpc' | 'payments' | 'defi'
+  category: SolanaMcpCategory
   enabled: boolean
   docsUrl?: string
 }
@@ -24,10 +25,20 @@ export interface SolanaProjectInfo {
   suggestedMcps: string[]
 }
 
+export interface SolanaToolchainStatus {
+  solanaCli: { installed: boolean; version: string | null }
+  anchor: { installed: boolean; version: string | null }
+  avm: { installed: boolean; version: string | null }
+  surfpool: { installed: boolean; version: string | null }
+  testValidator: { installed: boolean; version: string | null }
+  litesvm: { installed: boolean; source: 'project' | 'none' }
+}
+
 interface SolanaToolboxState {
   mcps: SolanaMcpEntry[]
   validator: ValidatorState
   projectInfo: SolanaProjectInfo | null
+  toolchain: SolanaToolchainStatus | null
   loading: boolean
   dismissed: boolean
   collapsedSections: Record<string, boolean>
@@ -37,16 +48,10 @@ interface SolanaToolboxState {
   startValidator: (type: 'surfpool' | 'test-validator') => Promise<void>
   stopValidator: () => Promise<void>
   detectProject: (projectPath: string) => Promise<void>
+  loadToolchain: (projectPath?: string) => Promise<void>
   refreshValidatorStatus: () => Promise<void>
   dismiss: () => void
   toggleSection: (section: string) => void
-}
-
-const SOLANA_MCP_CATALOG: Record<string, { label: string; description: string; category: 'rpc' | 'payments' | 'defi'; docsUrl?: string }> = {
-  'helius': { label: 'Helius', description: 'Solana RPC, DAS API, webhooks, priority fees', category: 'rpc', docsUrl: 'https://docs.helius.dev' },
-  'solana-mcp-server': { label: 'Solana MCP', description: 'Program deployment, account inspection, docs', category: 'rpc' },
-  'payai-mcp-server': { label: 'PayAI', description: 'x402 payment protocol via PayAI facilitator', category: 'payments', docsUrl: 'https://docs.payai.network' },
-  'x402-mcp': { label: 'x402', description: 'HTTP 402 payment tools for paid APIs', category: 'payments', docsUrl: 'https://github.com/coinbase/x402' },
 }
 
 const SOLANA_MCP_NAMES = Object.keys(SOLANA_MCP_CATALOG)
@@ -55,6 +60,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   mcps: [],
   validator: { type: null, status: 'stopped', terminalId: null, port: null },
   projectInfo: null,
+  toolchain: null,
   loading: false,
   dismissed: false,
   collapsedSections: { capabilities: true },
@@ -146,6 +152,19 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
       }
     } catch {
       set({ projectInfo: null })
+    }
+  },
+
+  loadToolchain: async (projectPath) => {
+    try {
+      const res = await daemon.validator.toolchainStatus(projectPath)
+      if (res.ok && res.data) {
+        set({ toolchain: res.data as SolanaToolchainStatus })
+      } else {
+        set({ toolchain: null })
+      }
+    } catch {
+      set({ toolchain: null })
     }
   },
 

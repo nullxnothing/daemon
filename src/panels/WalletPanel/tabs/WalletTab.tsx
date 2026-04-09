@@ -28,6 +28,16 @@ export function WalletTab({ onRefresh }: Props) {
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [genSuccess, setGenSuccess] = useState<string | null>(null)
+  const [jupiterConfigured, setJupiterConfigured] = useState(false)
+  const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>({
+    rpcProvider: 'helius',
+    quicknodeRpcUrl: '',
+    customRpcUrl: '',
+    swapProvider: 'jupiter',
+    preferredWallet: 'phantom',
+    executionMode: 'rpc',
+    jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+  })
 
   const [sendWalletId, setSendWalletId] = useState<string | null>(null)
   const [sendMode, setSendMode] = useState<'sol' | 'token' | null>(null)
@@ -39,7 +49,7 @@ export function WalletTab({ onRefresh }: Props) {
   const [walletBalances, setWalletBalances] = useState<Record<string, number>>({})
   const [walletTokenOptions, setWalletTokenOptions] = useState<Record<string, Array<{ mint: string; symbol: string; amount: number }>>>({})
   const [sendLoading, setSendLoading] = useState(false)
-  const [sendResult, setSendResult] = useState<string | null>(null)
+  const [sendResult, setSendResult] = useState<WalletExecutionResult | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const [keypairCache, setKeypairCache] = useState<Record<string, boolean>>({})
   const [revealKeyId, setRevealKeyId] = useState<string | null>(null)
@@ -114,6 +124,16 @@ export function WalletTab({ onRefresh }: Props) {
     void check()
   }, [dashboard.wallets])
 
+  useEffect(() => {
+    void Promise.all([
+      window.daemon.wallet.hasJupiterKey(),
+      window.daemon.settings.getWalletInfrastructureSettings(),
+    ]).then(([jupiterRes, infraRes]) => {
+      if (jupiterRes.ok) setJupiterConfigured(jupiterRes.data === true)
+      if (infraRes.ok && infraRes.data) setWalletInfrastructure(infraRes.data)
+    }).catch(() => {})
+  }, [])
+
   const handleAddWallet = async (name: string, address: string) => {
     setError(null)
     const res = await window.daemon.wallet.create({ name, address })
@@ -140,6 +160,37 @@ export function WalletTab({ onRefresh }: Props) {
     const res = await window.daemon.wallet.deleteHeliusKey()
     if (res.ok) { await onRefresh(); return }
     setError(res.error ?? 'Failed to delete Helius key')
+  }
+
+  const handleSaveJupiter = async (key: string) => {
+    setError(null)
+    const res = await window.daemon.wallet.storeJupiterKey(key)
+    if (res.ok) {
+      setJupiterConfigured(true)
+      return
+    }
+    setError(res.error ?? 'Failed to save Jupiter key')
+  }
+
+  const handleDeleteJupiter = async () => {
+    setError(null)
+    const res = await window.daemon.wallet.deleteJupiterKey()
+    if (res.ok) {
+      setJupiterConfigured(false)
+      return
+    }
+    setError(res.error ?? 'Failed to delete Jupiter key')
+  }
+
+  const handleSaveInfrastructure = async (settings: WalletInfrastructureSettings) => {
+    setError(null)
+    const res = await window.daemon.settings.setWalletInfrastructureSettings(settings)
+    if (res.ok) {
+      setWalletInfrastructure(settings)
+      await onRefresh()
+      return
+    }
+    setError(res.error ?? 'Failed to save wallet infrastructure settings')
   }
 
   const handleSetDefault = async (walletId: string) => {
@@ -184,12 +235,12 @@ export function WalletTab({ onRefresh }: Props) {
       if (pendingSend.mode === 'sol') {
         const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount, sendMax: pendingSend.sendMax })
         setPendingSend(null)
-        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMax(false); setSelectedRecipientWalletId(''); await onRefresh() }
+        if (res.ok && res.data) { setSendResult(res.data); setSendDest(''); setSendAmount(''); setSendMax(false); setSelectedRecipientWalletId(''); await onRefresh() }
         else setSendError(res.error ?? 'Send failed')
       } else {
         const res = await window.daemon.wallet.sendToken({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, mint: pendingSend.mint!, amount: pendingSend.amount, sendMax: pendingSend.sendMax })
         setPendingSend(null)
-        if (res.ok && res.data) { setSendResult(res.data.signature); setSendDest(''); setSendAmount(''); setSendMint(''); setSendMax(false); setSelectedRecipientWalletId(''); await onRefresh() }
+        if (res.ok && res.data) { setSendResult(res.data); setSendDest(''); setSendAmount(''); setSendMint(''); setSendMax(false); setSelectedRecipientWalletId(''); await onRefresh() }
         else setSendError(res.error ?? 'Send failed')
       }
     } finally { setSendLoading(false); sendLockRef.current = false }
@@ -270,6 +321,7 @@ export function WalletTab({ onRefresh }: Props) {
           recipientWallets={dashboard.wallets.filter((wallet) => wallet.id !== walletId).map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))}
           tokenOptions={tokenOptions}
           walletBalanceSol={walletBalances[walletId] ?? null}
+          executionMode={walletInfrastructure.executionMode}
           sendLoading={sendLoading} sendError={sendError} sendResult={sendResult}
           pendingSend={pendingSend} onRecipientWalletChange={handleRecipientWalletChange}
           onDestChange={setSendDest} onAmountChange={setSendAmount}
@@ -307,7 +359,7 @@ export function WalletTab({ onRefresh }: Props) {
   }
 
   if (activeView === 'swap' && activeWallet && hasKeypair) {
-    return <WalletSwapForm walletId={activeWallet.id} walletName={activeWallet.name} holdings={activeWallet.holdings} onBack={() => setActiveView('overview')} onRefresh={onRefresh} />
+    return <WalletSwapForm walletId={activeWallet.id} walletName={activeWallet.name} holdings={activeWallet.holdings} executionMode={walletInfrastructure.executionMode} onBack={() => setActiveView('overview')} onRefresh={onRefresh} />
   }
 
   return (
@@ -361,7 +413,7 @@ export function WalletTab({ onRefresh }: Props) {
             </div>
           </div>
           {sendWalletId === activeWallet.id && sendMode && (
-            <WalletSendForm walletId={activeWallet.id} walletName={activeWallet.name} sendMode={sendMode} sendDest={sendDest} sendAmount={sendAmount} sendMint={sendMint} sendMax={sendMax} selectedRecipientWalletId={selectedRecipientWalletId} recipientWallets={dashboard.wallets.filter((wallet) => wallet.id !== activeWallet.id).map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))} tokenOptions={sendMode === 'token' ? ((walletTokenOptions[activeWallet.id] ?? activeWallet.holdings.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL').map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount })))) : []} walletBalanceSol={walletBalances[activeWallet.id] ?? null} sendLoading={sendLoading} sendError={sendError} sendResult={sendResult} pendingSend={pendingSend} onRecipientWalletChange={handleRecipientWalletChange} onDestChange={setSendDest} onAmountChange={setSendAmount} onMintChange={setSendMint} onToggleSendMax={toggleSendMax} onConfirmSend={handleConfirmSend} onExecuteSend={handleExecuteSend} onCancelSend={handleCancelSend} onClose={closeSend} />
+            <WalletSendForm walletId={activeWallet.id} walletName={activeWallet.name} sendMode={sendMode} sendDest={sendDest} sendAmount={sendAmount} sendMint={sendMint} sendMax={sendMax} selectedRecipientWalletId={selectedRecipientWalletId} recipientWallets={dashboard.wallets.filter((wallet) => wallet.id !== activeWallet.id).map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))} tokenOptions={sendMode === 'token' ? ((walletTokenOptions[activeWallet.id] ?? activeWallet.holdings.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL').map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount })))) : []} walletBalanceSol={walletBalances[activeWallet.id] ?? null} executionMode={walletInfrastructure.executionMode} sendLoading={sendLoading} sendError={sendError} sendResult={sendResult} pendingSend={pendingSend} onRecipientWalletChange={handleRecipientWalletChange} onDestChange={setSendDest} onAmountChange={setSendAmount} onMintChange={setSendMint} onToggleSendMax={toggleSendMax} onConfirmSend={handleConfirmSend} onExecuteSend={handleExecuteSend} onCancelSend={handleCancelSend} onClose={closeSend} />
           )}
         </section>
       )}
@@ -369,11 +421,12 @@ export function WalletTab({ onRefresh }: Props) {
       {showSettings && (
         <WalletSettings
           showMarketTape={showMarketTape} showTitlebarWallet={showTitlebarWallet}
-          heliusConfigured={dashboard.heliusConfigured} wallets={dashboard.wallets}
+          heliusConfigured={dashboard.heliusConfigured} jupiterConfigured={jupiterConfigured} infrastructure={walletInfrastructure} wallets={dashboard.wallets}
           keypairCache={keypairCache} activeProjectId={activeProjectId}
           error={error} genSuccess={genSuccess}
           onToggleTape={async (c) => { await setStoreShowMarketTape(c) }} onToggleTitlebarWallet={async (c) => { await setStoreShowTitlebarWallet(c) }}
           onSaveHelius={handleSaveHelius} onDeleteHelius={handleDeleteHelius}
+          onSaveJupiter={handleSaveJupiter} onDeleteJupiter={handleDeleteJupiter} onSaveInfrastructure={handleSaveInfrastructure}
           onAddWallet={handleAddWallet} onGenerateWallet={handleGenerate}
           onClearGenSuccess={() => setGenSuccess(null)} onSetDefault={handleSetDefault}
           onAssignProject={handleAssignProject} onDeleteWallet={handleDeleteWallet}
