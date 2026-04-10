@@ -16,6 +16,7 @@ interface CommandDeps {
   toggleRightPanel: VoidCallback
   openAgentLauncher: VoidCallback
   toggleExplorer: VoidCallback
+  returnToEditor: VoidCallback
   openWorkspaceTool: (tool: string) => void
   closeDrawer: VoidCallback
   toggleBrowserTab?: VoidCallback
@@ -29,6 +30,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
     toggleRightPanel,
     openAgentLauncher,
     toggleExplorer,
+    returnToEditor,
     openWorkspaceTool,
     closeDrawer,
     toggleBrowserTab,
@@ -121,7 +123,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
       id: 'nav:main-view',
       label: 'Return to Editor',
       category: 'Navigation',
-      action: () => closeDrawer(),
+      action: () => returnToEditor(),
     },
 
     // View

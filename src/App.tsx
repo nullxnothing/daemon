@@ -317,6 +317,14 @@ function App() {
         toggleRightPanel: () => setShowRightPanel((v) => !v),
         openAgentLauncher: () => setShowAgentLauncher(true),
         toggleExplorer: () => setShowExplorer((v) => !v),
+        returnToEditor: () => {
+          const ui = useUIStore.getState()
+          ui.setCenterMode('canvas')
+          ui.setBrowserTabActive(false)
+          ui.setDashboardTabActive(false)
+          ui.setActiveWorkspaceTool(null)
+          useWorkflowShellStore.getState().closeDrawer()
+        },
         openWorkspaceTool: (tool) => useUIStore.getState().openWorkspaceTool(tool),
         closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),

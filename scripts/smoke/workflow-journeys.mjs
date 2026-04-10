@@ -169,13 +169,11 @@ async function verifyWalletJourney(page) {
     const body = document.body.textContent ?? ''
     return body.includes('tracked') || body.includes('Wallet data couldn\'t load')
   }, { timeout: 30000 })
-  await page.locator('.wallet-panel .wallet-icon-btn').click()
+  await page.getByRole('button', { name: 'Infra', exact: true }).click()
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
-    return body.includes('Wallet Infrastructure') || body.includes('No wallets configured') || body.includes('Add Wallet')
+    return body.includes('Infrastructure') || body.includes('Save RPC Settings') || body.includes('Save Execution Settings')
   }, { timeout: 30000 })
-  await page.keyboard.press('Escape')
-  await page.waitForFunction(() => !document.querySelector('.wallet-panel'), { timeout: 30000 })
 }
 
 async function verifySolanaWorkflowTabs(page) {
@@ -206,10 +204,13 @@ async function verifySolanaWorkflowTabs(page) {
       return activeLabel === expectedTab
     }, tab.name, { timeout: 30000 })
     await tab.check()
+    if (tab.name === 'Connect') {
+      await page.waitForFunction(() => {
+        const body = document.body.textContent ?? ''
+        return body.includes('Phantom Docs') || body.includes('phantom-docs')
+      }, { timeout: 30000 })
+    }
   }
-
-  await page.keyboard.press('Escape')
-  await page.waitForFunction(() => !document.querySelector('.solana-toolbox'), { timeout: 30000 })
 }
 
 async function verifyTokenLaunchFlow(page) {
@@ -226,8 +227,6 @@ async function verifyTokenLaunchFlow(page) {
     const body = document.body.textContent ?? ''
     return body.includes('Pump live now') && body.includes('Launch Token')
   }, { timeout: 30000 })
-  await page.keyboard.press('Escape')
-  await page.waitForFunction(() => !document.querySelector('.token-launch-tool'), { timeout: 30000 })
 }
 
 async function verifyRecoverySurface(page) {
