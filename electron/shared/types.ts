@@ -201,6 +201,88 @@ export interface GhostPort {
   processName: string | null
 }
 
+// --- Daemon Pro ---
+
+export type ProFeature = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
+export type ProAccessSource = 'payment' | 'holder'
+
+export interface ProHolderStatus {
+  enabled: boolean
+  eligible: boolean
+  mint: string | null
+  minAmount: number | null
+  currentAmount: number | null
+  symbol: string
+}
+
+export interface ProSubscriptionState {
+  active: boolean
+  walletId: string | null
+  walletAddress: string | null
+  expiresAt: number | null
+  features: ProFeature[]
+  tier: 'pro' | null
+  accessSource: ProAccessSource | null
+  holderStatus: ProHolderStatus
+  priceUsdc: number | null
+  durationDays: number | null
+}
+
+export interface ProPriceInfo {
+  priceUsdc: number
+  durationDays: number
+  network: string
+  payTo: string
+  holderMint?: string
+  holderMinAmount?: number
+}
+
+export interface ArenaSubmission {
+  id: string
+  title: string
+  pitch: string
+  author: {
+    handle: string
+    wallet: string
+  }
+  description: string
+  category: 'tool' | 'agent' | 'skill' | 'mcp' | 'grind-recipe'
+  themeWeek: string | null
+  submittedAt: number
+  status: 'submitted' | 'featured' | 'winner' | 'shipped'
+  votes: number
+  githubUrl?: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+  contestSlug?: string
+}
+
+export interface ArenaSubmissionInput {
+  title: string
+  pitch: string
+  description: string
+  category: ArenaSubmission['category']
+  githubUrl: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+}
+
+export interface ProSkillManifestEntry {
+  id: string
+  name: string
+  version: string
+  description: string
+  downloadUrl: string
+  sha256: string
+}
+
+export interface ProSkillManifest {
+  version: 1
+  skills: ProSkillManifestEntry[]
+}
+
 // --- MCP ---
 
 export interface McpEntry {

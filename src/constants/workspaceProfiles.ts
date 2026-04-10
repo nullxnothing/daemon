@@ -13,7 +13,7 @@ const WEB_TOOLS = [
 
 const SOLANA_TOOLS = [
   ...WEB_TOOLS, 'wallet', 'token-launch', 'solana-toolbox', 'block-scanner',
-  'dashboard', 'hackathon',
+  'dashboard', 'hackathon', 'pro',
 ]
 
 export const PROFILE_PRESETS: Record<WorkspaceProfileName, string[]> = {
