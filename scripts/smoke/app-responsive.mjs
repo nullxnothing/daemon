@@ -250,7 +250,11 @@ async function verifySolanaTabs(page) {
 
 async function run() {
   const cdpPort = await getFreePort()
-  electronProcess = spawn(electronBinary, [mainEntry], {
+  const electronArgs = process.platform === 'linux' || process.env.CI
+    ? ['--no-sandbox', mainEntry]
+    : [mainEntry]
+
+  electronProcess = spawn(electronBinary, electronArgs, {
     cwd: repoRoot,
     env: {
       ...process.env,
