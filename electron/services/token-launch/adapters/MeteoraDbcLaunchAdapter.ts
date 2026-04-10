@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import BN from 'bn.js'
 import { Keypair, PublicKey, VersionedTransaction, Transaction, TransactionInstruction } from '@solana/web3.js'
-import { getConnectionStrict, withKeypair } from '../../SolanaService'
+import { executeInstructions, executeTransaction, getConnectionStrict, withKeypair } from '../../SolanaService'
 import { uploadTokenMetadata } from '../metadata'
 import type { AdapterLaunchResult, MeteoraLaunchpadConfig, TokenLaunchAdapter, TokenLaunchCheck, TokenLaunchInput } from '../types'
 
@@ -220,29 +220,21 @@ async function executeMeteoraLaunch(input: {
 
   const transaction = createResult?.transaction ?? createResult?.tx
   if (transaction instanceof VersionedTransaction) {
-    transaction.sign([keypair, mintKeypair])
-    return await connection.sendTransaction(transaction, { skipPreflight: false })
+    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair])
+    return result.signature
   }
 
   if (transaction instanceof Transaction) {
-    transaction.sign(keypair, mintKeypair)
-    return await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false })
+    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair])
+    return result.signature
   }
 
   const instructions = createResult?.instructions as TransactionInstruction[] | undefined
   if (Array.isArray(instructions) && instructions.length > 0) {
-    const { TransactionMessage } = await import('@solana/web3.js')
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
-    const message = new TransactionMessage({
-      payerKey: keypair.publicKey,
-      recentBlockhash: blockhash,
-      instructions,
-    }).compileToV0Message()
-    const tx = new VersionedTransaction(message)
-    tx.sign([keypair, mintKeypair])
-    const signature = await connection.sendTransaction(tx, { skipPreflight: false })
-    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-    return signature
+    const result = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
+      payer: keypair.publicKey,
+    })
+    return result.signature
   }
 
   if (typeof createResult?.execute === 'function') {

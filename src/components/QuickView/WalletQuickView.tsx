@@ -1,9 +1,10 @@
-import { useState, useCallback, type RefObject } from 'react'
+import { useState, useEffect, useCallback, type RefObject } from 'react'
 import { useWalletStore } from '../../store/wallet'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { formatCompactUsd } from '../../utils/format'
 import { QuickView } from './QuickView'
+import { TransactionPreviewCard } from '../../panels/WalletPanel/TransactionPreviewCard'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -43,10 +44,12 @@ function SubviewHeader({ title, onBack }: { title: string; onBack: () => void })
 
 // ─── Send Sub-View ───
 
-function SendView({ walletId, holdings, onBack }: {
+function SendView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
   walletId: string
   holdings: Array<{ mint: string; symbol: string; amount: number }>
   onBack: () => void
+  executionLabel: string
+  signerLabel: string
 }) {
   const [selectedMint, setSelectedMint] = useState(SOL_MINT)
   const [amount, setAmount] = useState('')
@@ -54,6 +57,14 @@ function SendView({ walletId, holdings, onBack }: {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
+  const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
+  const [pendingSend, setPendingSend] = useState<{
+    recipient: string
+    amount: number
+    mode: 'sol' | 'token'
+    mint: string
+    sendMax: boolean
+  } | null>(null)
 
   const selectedToken = holdings.find((h) => h.mint === selectedMint)
   const isSol = selectedMint === SOL_MINT
@@ -64,7 +75,31 @@ function SendView({ walletId, holdings, onBack }: {
     }
   }
 
-  const handleSend = async () => {
+  useEffect(() => {
+    let cancelled = false
+    setPreview(null)
+
+    if (!pendingSend) return
+
+    void window.daemon.wallet.transactionPreview({
+      kind: pendingSend.mode === 'sol' ? 'send-sol' : 'send-token',
+      walletId,
+      destination: pendingSend.recipient,
+      amount: pendingSend.amount,
+      sendMax: pendingSend.sendMax,
+      mint: pendingSend.mint,
+      tokenSymbol: selectedToken?.symbol,
+    }).then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setPreview(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [pendingSend, selectedToken?.symbol, walletId])
+
+  const handleReviewSend = () => {
     setError(null)
     setResult(null)
 
@@ -78,25 +113,38 @@ function SendView({ walletId, holdings, onBack }: {
       return
     }
 
+    setPendingSend({
+      recipient: recipient.trim(),
+      amount: parsedAmount,
+      mode: isSol ? 'sol' : 'token',
+      mint: selectedMint,
+      sendMax: false,
+    })
+  }
+
+  const handleSend = async () => {
+    if (!pendingSend) return
+
     setLoading(true)
     try {
-      const res = isSol
+      const res = pendingSend.mode === 'sol'
         ? await window.daemon.wallet.sendSol({
-            fromWalletId: walletId,
-            toAddress: recipient.trim(),
-            amountSol: parsedAmount,
+          fromWalletId: walletId,
+            toAddress: pendingSend.recipient,
+            amountSol: pendingSend.amount,
           })
         : await window.daemon.wallet.sendToken({
             fromWalletId: walletId,
-            toAddress: recipient.trim(),
-            mint: selectedMint,
-            amount: parsedAmount,
+            toAddress: pendingSend.recipient,
+            mint: pendingSend.mint,
+            amount: pendingSend.amount,
           })
 
       if (res.ok && res.data) {
         setResult(res.data.signature)
         setAmount('')
         setRecipient('')
+        setPendingSend(null)
       } else {
         setError(res.error ?? 'Send failed')
       }
@@ -147,13 +195,45 @@ function SendView({ walletId, holdings, onBack }: {
           spellCheck={false}
         />
 
-        <button
-          className="qv-primary-btn"
-          disabled={loading}
-          onClick={handleSend}
-        >
-          {loading ? 'Sending...' : 'Send'}
-        </button>
+        {!pendingSend ? (
+          <button
+            className="qv-primary-btn"
+            disabled={loading}
+            onClick={handleReviewSend}
+          >
+            Review Send
+          </button>
+        ) : (
+          <>
+            <TransactionPreviewCard
+              title={preview?.title ?? 'Review Send'}
+              backendLabel={preview?.backendLabel ?? executionLabel}
+              signerLabel={preview?.signerLabel ?? signerLabel}
+              destinationLabel={preview?.targetLabel ?? shortAddr(pendingSend.recipient)}
+              amountLabel={preview?.amountLabel ?? `${pendingSend.amount} ${pendingSend.mode === 'sol' ? 'SOL' : selectedToken?.symbol ?? 'token'}`}
+              feeLabel={preview?.feeLabel}
+              warnings={preview?.warnings}
+              notes={preview?.notes ?? [
+                pendingSend.mode === 'token'
+                  ? 'If the recipient does not have the token account yet, DAEMON will create it when needed.'
+                  : 'This uses the same shared DAEMON transaction pipeline as the full wallet panel.',
+              ]}
+            />
+            <button
+              className="qv-primary-btn"
+              disabled={loading}
+              onClick={handleSend}
+            >
+              {loading ? 'Sending...' : 'Send Now'}
+            </button>
+            <button
+              className="qv-secondary-btn"
+              onClick={() => { setPendingSend(null); setError(null) }}
+            >
+              Cancel
+            </button>
+          </>
+        )}
 
         {error && <div className="qv-feedback qv-feedback--error">{error}</div>}
         {result && (
@@ -176,10 +256,12 @@ interface SwapQuote {
   rawQuoteResponse: unknown
 }
 
-function SwapView({ walletId, holdings, onBack }: {
+function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
   walletId: string
   holdings: Array<{ mint: string; symbol: string; amount: number }>
   onBack: () => void
+  executionLabel: string
+  signerLabel: string
 }) {
   const [inputMint, setInputMint] = useState(SOL_MINT)
   const [outputMint, setOutputMint] = useState(USDC_MINT)
@@ -191,6 +273,11 @@ function SwapView({ walletId, holdings, onBack }: {
   const [swapLoading, setSwapLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
+  const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
+  const [pendingSwap, setPendingSwap] = useState<{
+    impactPct: number
+    acknowledgedImpact: boolean
+  } | null>(null)
 
   // Merge holdings with common tokens for output selector
   const allTokens = mergeWithCommon(holdings)
@@ -202,6 +289,7 @@ function SwapView({ walletId, holdings, onBack }: {
     setOutputMint(inputMint)
     setQuote(null)
     setResult(null)
+    setPendingSwap(null)
     setError(null)
   }
 
@@ -240,13 +328,44 @@ function SwapView({ walletId, holdings, onBack }: {
     }
   }
 
+  useEffect(() => {
+    let cancelled = false
+    setPreview(null)
+
+    if (!quote || !pendingSwap) return
+
+    void window.daemon.wallet.transactionPreview({
+      kind: 'swap',
+      walletId,
+      inputMint,
+      outputMint,
+      inputSymbol: inputToken?.symbol,
+      outputSymbol: outputToken?.symbol,
+      inputAmount: quote.inAmount,
+      outputAmount: quote.outAmount,
+      amount: parseFloat(amount),
+      slippageBps,
+      priceImpactPct: quote.priceImpactPct,
+    }).then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setPreview(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [amount, inputMint, inputToken?.symbol, outputMint, outputToken?.symbol, pendingSwap, quote, slippageBps, walletId])
+
   const handleSwap = async () => {
     if (!quote) return
+    const impactPct = parseFloat(quote.priceImpactPct)
+    if (impactPct >= 5 && !pendingSwap?.acknowledgedImpact) {
+      setError('Acknowledge the high price impact before executing this swap')
+      return
+    }
     setSwapLoading(true)
     setError(null)
     setResult(null)
-
-    const impactPct = parseFloat(quote.priceImpactPct)
 
     try {
       const res = await window.daemon.wallet.swapExecute({
@@ -258,11 +377,12 @@ function SwapView({ walletId, holdings, onBack }: {
         rawQuoteResponse: quote.rawQuoteResponse,
         // User clicked "Swap" which serves as the confirmation gesture here
         confirmedAt: Date.now(),
-        acknowledgedImpact: impactPct >= 5,
+        acknowledgedImpact: impactPct < 5 || pendingSwap?.acknowledgedImpact === true,
       })
       if (res.ok && res.data) {
         setResult(res.data.signature)
         setQuote(null)
+        setPendingSwap(null)
         setAmount('')
       } else {
         setError(res.error ?? 'Swap failed')
@@ -350,7 +470,7 @@ function SwapView({ walletId, holdings, onBack }: {
           </button>
         )}
 
-        {quote && (
+        {quote && !pendingSwap && (
           <div className="qv-quote-box">
             <div className="qv-quote-rate">
               {formatAmount(parseFloat(quote.inAmount))} {inputToken?.symbol ?? '?'} -{'>'}{' '}
@@ -362,13 +482,55 @@ function SwapView({ walletId, holdings, onBack }: {
             <button
               className="qv-primary-btn"
               disabled={swapLoading}
+              onClick={() => setPendingSwap({ impactPct: parseFloat(quote.priceImpactPct), acknowledgedImpact: false })}
+            >
+              Review Swap
+            </button>
+            <button
+              className="qv-secondary-btn"
+              onClick={() => { setQuote(null); setError(null) }}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {quote && pendingSwap && (
+          <div className="qv-quote-box">
+            <TransactionPreviewCard
+              title={preview?.title ?? 'Review Swap'}
+              backendLabel={preview?.backendLabel ?? executionLabel}
+              signerLabel={preview?.signerLabel ?? signerLabel}
+              destinationLabel={preview?.targetLabel ?? `${inputToken?.symbol ?? '?'} -> ${outputToken?.symbol ?? '?'}`}
+              amountLabel={preview?.amountLabel ?? `${formatAmount(parseFloat(quote.inAmount))} -> ${formatAmount(parseFloat(quote.outAmount))}`}
+              feeLabel={preview?.feeLabel}
+              warnings={preview?.warnings}
+              notes={preview?.notes ?? [
+                `Slippage: ${(slippageBps / 100).toFixed(2)}%`,
+                `Price impact: ${pendingSwap.impactPct.toFixed(3)}%`,
+                'This quote should be confirmed quickly to avoid stale pricing.',
+              ]}
+            />
+            {pendingSwap.impactPct >= 5 && (
+              <label className="qv-field-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={pendingSwap.acknowledgedImpact}
+                  onChange={(e) => setPendingSwap((current) => current ? { ...current, acknowledgedImpact: e.target.checked } : current)}
+                />
+                {preview?.acknowledgementLabel ?? 'I understand this swap has very high price impact.'}
+              </label>
+            )}
+            <button
+              className="qv-primary-btn"
+              disabled={swapLoading || (pendingSwap.impactPct >= 5 && !pendingSwap.acknowledgedImpact)}
               onClick={handleSwap}
             >
               {swapLoading ? 'Swapping...' : 'Execute Swap'}
             </button>
             <button
               className="qv-secondary-btn"
-              onClick={() => { setQuote(null); setError(null) }}
+              onClick={() => { setPendingSwap(null); setError(null) }}
             >
               Cancel
             </button>
@@ -470,6 +632,20 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
   const dashboard = useWalletStore((s) => s.dashboard)
 
   const [mode, setMode] = useState<QuickViewMode>('overview')
+  const [runtime, setRuntime] = useState<SolanaRuntimeStatusSummary | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    void window.daemon.settings.getSolanaRuntimeStatus().then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setRuntime(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const navigateToWallet = () => {
     closeAll()
@@ -483,9 +659,12 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
   const holdings = activeWallet?.holdings ?? []
   const visibleHoldings = holdings.slice(0, 6)
   const walletId = activeWallet?.id ?? ''
+  const walletName = activeWallet?.name ?? 'Tracked wallet'
   const walletAddress = activeWallet?.address ?? ''
 
   const isPositive = (portfolio?.delta24hUsd ?? 0) >= 0
+  const executionLabel = runtime?.executionBackend.label ?? 'Shared RPC executor'
+  const signerLabel = walletAddress ? shortAddr(walletAddress) : walletName
 
   // Reset mode when popout closes
   const handleClose = useCallback(() => {
@@ -501,6 +680,8 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
             walletId={walletId}
             holdings={holdings}
             onBack={goBack}
+            executionLabel={executionLabel}
+            signerLabel={signerLabel}
           />
         )
       case 'swap':
@@ -509,6 +690,8 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
             walletId={walletId}
             holdings={holdings}
             onBack={goBack}
+            executionLabel={executionLabel}
+            signerLabel={signerLabel}
           />
         )
       case 'receive':

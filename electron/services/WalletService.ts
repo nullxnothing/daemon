@@ -4,7 +4,7 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { confirmSignature, getConnection, getHeliusApiKey, getJupiterApiKey, getTransactionSubmissionSettings, submitRawTransaction, withKeypair } from './SolanaService'
+import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getTransactionSubmissionSettings, withKeypair, type TransactionExecutionResult } from './SolanaService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -113,6 +113,7 @@ export async function getDashboard(projectId?: string | null) {
   const heliusConfigured = Boolean(heliusKey)
   const wallets = listWalletsRaw()
   const projectAssignments = getProjectAssignments()
+  const activeWalletRow = resolveActiveWallet(wallets, projectId ?? null)
 
   const market = await getMarketTape()
 
@@ -135,14 +136,20 @@ export async function getDashboard(projectId?: string | null) {
         tokenCount: 0,
         assignedProjectIds: projectAssignments.get(wallet.id) ?? [],
       })),
-      activeWallet: null,
+      activeWallet: activeWalletRow
+        ? {
+            id: activeWalletRow.id,
+            name: activeWalletRow.name,
+            address: activeWalletRow.address,
+            holdings: [],
+          }
+        : null,
       feed: [] as PortfolioFeedEntry[],
       recentActivity: [] as HeliusHistoryEvent[],
     }
   }
 
   const apiKey = heliusKey as string
-  const activeWalletRow = resolveActiveWallet(wallets, projectId ?? null)
 
   // Process wallets with bounded concurrency to avoid overwhelming the Helius API
   const WALLET_CONCURRENCY = 3
@@ -527,25 +534,6 @@ function formatTokenAmount(rawAmount: bigint, decimals: number): string {
   return `${sign}${whole.toString()}.${fraction.toString().padStart(decimals, '0').replace(/0+$/, '')}`
 }
 
-// ---------------------------------------------------------------------------
-// Solana Transaction Support
-// ---------------------------------------------------------------------------
-
-async function sendWithTimeout(connection: Connection, transaction: Transaction, signers: Keypair[], timeoutMs = 60_000): Promise<string> {
-  const { mode } = getTransactionSubmissionSettings()
-  const latest = await connection.getLatestBlockhash('confirmed')
-  transaction.feePayer = signers[0]?.publicKey
-  transaction.recentBlockhash = latest.blockhash
-  transaction.sign(...signers)
-
-  const signature = await submitRawTransaction(connection, transaction.serialize(), {
-    skipPreflight: mode === 'jito',
-    maxRetries: mode === 'jito' ? 0 : 3,
-  })
-  await confirmSignature(connection, signature, timeoutMs)
-  return signature
-}
-
 export function generateWallet(name: string, walletType: 'user' | 'agent' = 'user', agentId?: string) {
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('Wallet name is required')
@@ -622,10 +610,10 @@ export async function transferSOL(
         })
       )
 
-      const signature = await sendWithTimeout(connection, transaction, [keypair])
+      const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      return { id: txId, signature, status: 'confirmed', transport: getTransactionSubmissionSettings().mode }
+      return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
@@ -716,10 +704,10 @@ export async function transferToken(
         )
       )
 
-      const signature = await sendWithTimeout(connection, transaction, [keypair])
+      const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      return { id: txId, signature, status: 'confirmed', transport: getTransactionSubmissionSettings().mode }
+      return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
@@ -755,10 +743,7 @@ interface SwapQuoteResult {
   rawQuoteResponse: unknown
 }
 
-export interface TransactionExecutionResult {
-  signature: string
-  transport: 'rpc' | 'jito'
-}
+export type { TransactionExecutionResult } from './SolanaService'
 
 export async function getSwapQuote(
   inputMint: string,
@@ -942,16 +927,10 @@ export async function executeSwap(
     ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
 
     try {
-      const rawTx = transaction.serialize()
-      const { mode } = getTransactionSubmissionSettings()
-      const signature = await submitRawTransaction(connection, rawTx, {
-        skipPreflight: mode === 'jito',
-        maxRetries: mode === 'jito' ? 0 : 3,
-      })
-      await confirmSignature(connection, signature)
+      const { signature, transport } = await executeTransaction(connection, transaction, [])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      return { signature, transport: mode }
+      return { signature, transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)

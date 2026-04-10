@@ -23,9 +23,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Install Linux UI test dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck
       - run: pnpm run test
+      - name: Responsive UI smoke
+        run: xvfb-run -a pnpm run test:responsive
 
   build-windows:
     name: build-windows

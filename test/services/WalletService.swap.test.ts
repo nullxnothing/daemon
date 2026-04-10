@@ -75,6 +75,7 @@ vi.mock('../../electron/services/SolanaService', () => {
       sendRawTransaction: vi.fn().mockResolvedValue('sig'),
     })),
     confirmSignature: vi.fn().mockResolvedValue({ err: null }),
+    executeTransaction: vi.fn().mockResolvedValue({ signature: 'sig', transport: 'rpc' }),
     getTransactionSubmissionSettings: vi.fn(() => ({ mode: 'rpc' })),
     submitRawTransaction: vi.fn().mockResolvedValue('sig'),
     loadKeypair: vi.fn(() => fakeKeypair),
@@ -106,7 +107,7 @@ vi.mock('@solana/spl-token', () => ({
   getAccount: mockGetAccount,
 }))
 
-import { transferSOL, transferToken } from '../../electron/services/WalletService'
+import { getDashboard, transferSOL, transferToken } from '../../electron/services/WalletService'
 
 function makeWalletDbChain(overrides: { walletRow?: object | null } = {}) {
   const walletRow = overrides.walletRow !== undefined
@@ -151,6 +152,97 @@ describe('transferSOL — validation', () => {
     await expect(
       transferSOL('w1', 'So11111111111111111111111111111111111111112', 0.1)
     ).rejects.toThrow(/watch-only/i)
+  })
+})
+
+describe('getDashboard — fallback active wallet', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns the default wallet as active even when Helius is not configured', async () => {
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            {
+              id: 'wallet-1',
+              name: 'Primary Wallet',
+              address: 'So11111111111111111111111111111111111111112',
+              is_default: 1,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 123,
+            },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT id, wallet_id FROM projects WHERE wallet_id IS NOT NULL')) {
+        return { all: vi.fn().mockReturnValue([]) }
+      }
+      if (sql.includes('SELECT wallet_id FROM projects WHERE id = ?')) {
+        return { get: vi.fn().mockReturnValue(undefined) }
+      }
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined), run: vi.fn() }
+    })
+
+    const dashboard = await getDashboard(null)
+
+    expect(dashboard.portfolio.walletCount).toBe(1)
+    expect(dashboard.activeWallet).toEqual({
+      id: 'wallet-1',
+      name: 'Primary Wallet',
+      address: 'So11111111111111111111111111111111111111112',
+      holdings: [],
+    })
+    expect(dashboard.recentActivity).toEqual([])
+  })
+
+  it('prefers the project-assigned wallet in the non-Helius fallback', async () => {
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            {
+              id: 'wallet-default',
+              name: 'Default Wallet',
+              address: 'Default111111111111111111111111111111111111',
+              is_default: 1,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 1,
+            },
+            {
+              id: 'wallet-project',
+              name: 'Project Wallet',
+              address: 'Project111111111111111111111111111111111111',
+              is_default: 0,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 2,
+            },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT id, wallet_id FROM projects WHERE wallet_id IS NOT NULL')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            { id: 'project-1', wallet_id: 'wallet-project' },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT wallet_id FROM projects WHERE id = ?')) {
+        return { get: vi.fn().mockReturnValue({ wallet_id: 'wallet-project' }) }
+      }
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined), run: vi.fn() }
+    })
+
+    const dashboard = await getDashboard('project-1')
+
+    expect(dashboard.activeWallet).toEqual({
+      id: 'wallet-project',
+      name: 'Project Wallet',
+      address: 'Project111111111111111111111111111111111111',
+      holdings: [],
+    })
   })
 })
 

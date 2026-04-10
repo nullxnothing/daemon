@@ -1,4 +1,4 @@
-import { Connection, Keypair, VersionedTransaction, TransactionMessage, PublicKey } from '@solana/web3.js'
+import { Keypair, PublicKey } from '@solana/web3.js'
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { dialog } from 'electron'
 import * as SecureKey from './SecureKeyService'
@@ -6,7 +6,7 @@ import { getDb } from '../db/db'
 import BN from 'bn.js'
 import bs58 from 'bs58'
 import fs from 'node:fs'
-import { getConnectionStrict, withKeypair, loadKeypair } from './SolanaService'
+import { executeInstructions, getConnectionStrict, withKeypair, loadKeypair } from './SolanaService'
 
 // Lazy-load the SDK to avoid startup cost
 // The package's ESM exports map points to index.js but the file is index.mjs — use CJS instead
@@ -17,22 +17,6 @@ let _sdk: typeof import('@nirholas/pump-sdk') | null = null
 function getSdk() {
   if (!_sdk) _sdk = require('@nirholas/pump-sdk') as typeof import('@nirholas/pump-sdk')
   return _sdk
-}
-
-async function sendAndConfirm(connection: Connection, keypairs: Keypair[], instructions: import('@solana/web3.js').TransactionInstruction[]): Promise<string> {
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
-  const messageV0 = new TransactionMessage({
-    payerKey: keypairs[0].publicKey,
-    recentBlockhash: blockhash,
-    instructions,
-  }).compileToV0Message()
-
-  const tx = new VersionedTransaction(messageV0)
-  tx.sign(keypairs)
-
-  const signature = await connection.sendTransaction(tx, { skipPreflight: false })
-  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-  return signature
 }
 
 export interface TokenCreateInput {
@@ -172,7 +156,9 @@ export async function createToken(input: TokenCreateInput): Promise<TokenCreateR
     mayhemMode: input.mayhemMode,
   })
 
-  const signature = await sendAndConfirm(connection, [keypair, mintKeypair], instructions)
+  const { signature } = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
+    payer: keypair.publicKey,
+  })
   return {
     signature,
     success: true,
@@ -228,7 +214,9 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
-  const signature = await sendAndConfirm(connection, [keypair], instructions)
+  const { signature } = await executeInstructions(connection, instructions, [keypair], {
+    payer: keypair.publicKey,
+  })
   return { signature, success: true }
   })
 }
@@ -272,7 +260,9 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
-  const signature = await sendAndConfirm(connection, [keypair], instructions)
+  const { signature } = await executeInstructions(connection, instructions, [keypair], {
+    payer: keypair.publicKey,
+  })
   return { signature, success: true }
   })
 }
@@ -284,7 +274,9 @@ export async function collectCreatorFees(walletId: string): Promise<TxResult> {
   const pumpSdk = new sdk.PumpSdk()
 
   const ix = await pumpSdk.ammCollectCoinCreatorFeeInstruction({ creator: keypair.publicKey })
-  const signature = await sendAndConfirm(connection, [keypair], [ix])
+  const { signature } = await executeInstructions(connection, [ix], [keypair], {
+    payer: keypair.publicKey,
+  })
   return { signature, success: true }
   })
 }
