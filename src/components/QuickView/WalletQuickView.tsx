@@ -473,7 +473,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
 
   const navigateToWallet = () => {
     closeAll()
-    setDrawerTool('wallet')
+    useUIStore.getState().openWorkspaceTool('wallet')
   }
 
   const goBack = useCallback(() => setMode('overview'), [])

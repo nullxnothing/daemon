@@ -32,7 +32,7 @@ interface BrowserState {
 }
 
 export const useBrowserStore = create<BrowserState>((set) => ({
-  currentUrl: 'http://localhost:3000',
+  currentUrl: 'https://www.daemonide.tech/',
   isInspectMode: false,
   loadStatus: 'idle',
   agentTerminalId: null,

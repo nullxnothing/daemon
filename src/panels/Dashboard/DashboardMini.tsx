@@ -144,7 +144,7 @@ export function DashboardMini() {
   }
 
   const openTokenLaunch = () => {
-    useWorkflowShellStore.getState().setDrawerTool('token-launch')
+    useUIStore.getState().openWorkspaceTool('token-launch')
   }
 
   if (tokens.length === 0) {

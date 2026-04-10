@@ -237,6 +237,7 @@ contextBridge.exposeInMainWorld('daemon', {
 
   settings: {
     getUi: () => ipcRenderer.invoke('settings:get-ui'),
+    getAppMeta: () => ipcRenderer.invoke('settings:get-app-meta'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
     isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),

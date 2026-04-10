@@ -154,7 +154,7 @@ export function ImagePanel() {
   }
 
   const handleGoToSettings = () => {
-    useWorkflowShellStore.getState().setDrawerTool('settings')
+    useUIStore.getState().openWorkspaceTool('settings')
   }
 
   const handleSaveKey = async () => {

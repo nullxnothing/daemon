@@ -317,7 +317,8 @@ function App() {
         toggleRightPanel: () => setShowRightPanel((v) => !v),
         openAgentLauncher: () => setShowAgentLauncher(true),
         toggleExplorer: () => setShowExplorer((v) => !v),
-        setDrawerTool: (tool) => useWorkflowShellStore.getState().setDrawerTool(tool),
+        openWorkspaceTool: (tool) => useUIStore.getState().openWorkspaceTool(tool),
+        closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
         toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
       }),
@@ -334,7 +335,7 @@ function App() {
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
           <button
             className="crash-warning-link"
-            onClick={() => { useWorkflowShellStore.getState().setDrawerTool('settings'); setCrashWarningCount(null) }}
+            onClick={() => { useUIStore.getState().openWorkspaceTool('settings'); setCrashWarningCount(null) }}
           >
             View crash log
           </button>

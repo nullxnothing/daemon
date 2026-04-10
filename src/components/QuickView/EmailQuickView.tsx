@@ -38,7 +38,7 @@ export function EmailQuickView({ triggerRef }: EmailQuickViewProps) {
 
   const navigateToEmail = () => {
     closeAll()
-    setDrawerTool('email')
+    useUIStore.getState().openWorkspaceTool('email')
   }
 
   const handleCompose = () => {

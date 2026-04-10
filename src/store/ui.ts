@@ -41,6 +41,8 @@ interface UIState {
   centerMode: CenterMode
   browserTabOpen: boolean
   browserTabActive: boolean
+  workspaceToolTabs: string[]
+  activeWorkspaceToolId: string | null
   rightPanelTab: RightPanelTab
   dashboardTabOpen: boolean
   dashboardTabActive: boolean
@@ -67,6 +69,10 @@ interface UIState {
   openBrowserTab: () => void
   closeBrowserTab: () => void
   setBrowserTabActive: (active: boolean) => void
+  openWorkspaceTool: (toolId: string) => void
+  closeWorkspaceTool: (toolId: string) => void
+  setActiveWorkspaceTool: (toolId: string | null) => void
+  toggleWorkspaceTool: (toolId: string) => void
   setRightPanelTab: (tab: RightPanelTab) => void
   toggleDashboardTab: () => void
   openDashboardTab: () => void
@@ -112,6 +118,8 @@ export const useUIStore = create<UIState>((set) => ({
   centerMode: 'canvas' as CenterMode,
   browserTabOpen: false,
   browserTabActive: false,
+  workspaceToolTabs: [],
+  activeWorkspaceToolId: null,
   rightPanelTab: 'claude' as RightPanelTab,
   dashboardTabOpen: false,
   dashboardTabActive: false,
@@ -136,6 +144,7 @@ export const useUIStore = create<UIState>((set) => ({
         centerMode: 'canvas' as CenterMode,
         browserTabActive: false,
         dashboardTabActive: false,
+        activeWorkspaceToolId: null,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
@@ -143,6 +152,7 @@ export const useUIStore = create<UIState>((set) => ({
       centerMode: 'canvas' as CenterMode,
       browserTabActive: false,
       dashboardTabActive: false,
+      activeWorkspaceToolId: null,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -161,6 +171,9 @@ export const useUIStore = create<UIState>((set) => ({
   }),
 
   setActiveFile: (projectId, path) => set((state) => ({
+    browserTabActive: false,
+    dashboardTabActive: false,
+    activeWorkspaceToolId: null,
     activeFilePathByProject: updateRecord(state.activeFilePathByProject, projectId, path),
   })),
 
@@ -228,6 +241,7 @@ export const useUIStore = create<UIState>((set) => ({
       browserTabOpen: true,
       browserTabActive: true,
       dashboardTabActive: false,
+      activeWorkspaceToolId: null,
     })
   },
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
@@ -237,9 +251,92 @@ export const useUIStore = create<UIState>((set) => ({
       ? {
           browserTabActive: true,
           dashboardTabActive: false,
+          activeWorkspaceToolId: null,
         }
       : { browserTabActive: false })
   },
+  openWorkspaceTool: (toolId) => {
+    if (toolId === 'browser') {
+      useUIStore.getState().openBrowserTab()
+      return
+    }
+    if (toolId === 'dashboard') {
+      useUIStore.getState().openDashboardTab()
+      return
+    }
+    useWorkflowShellStore.getState().closeDrawer()
+    set((state) => ({
+      centerMode: 'canvas' as CenterMode,
+      browserTabActive: false,
+      dashboardTabActive: false,
+      workspaceToolTabs: state.workspaceToolTabs.includes(toolId)
+        ? state.workspaceToolTabs
+        : [...state.workspaceToolTabs, toolId],
+      activeWorkspaceToolId: toolId,
+    }))
+  },
+  closeWorkspaceTool: (toolId) => set((state) => {
+    const nextTabs = state.workspaceToolTabs.filter((id) => id !== toolId)
+    return {
+      workspaceToolTabs: nextTabs,
+      activeWorkspaceToolId: state.activeWorkspaceToolId === toolId
+        ? nextTabs[nextTabs.length - 1] ?? null
+        : state.activeWorkspaceToolId,
+    }
+  }),
+  setActiveWorkspaceTool: (toolId) => {
+    if (toolId === 'browser') {
+      useUIStore.getState().setBrowserTabActive(true)
+      return
+    }
+    if (toolId === 'dashboard') {
+      useUIStore.getState().setDashboardTabActive(true)
+      return
+    }
+    if (toolId) useWorkflowShellStore.getState().closeDrawer()
+    set(toolId
+      ? {
+          browserTabActive: false,
+          dashboardTabActive: false,
+          activeWorkspaceToolId: toolId,
+        }
+      : { activeWorkspaceToolId: null })
+  },
+  toggleWorkspaceTool: (toolId) => set((state) => {
+    if (toolId === 'browser') {
+      if (state.browserTabActive) {
+        useUIStore.getState().closeBrowserTab()
+      } else {
+        useUIStore.getState().openBrowserTab()
+      }
+      return {}
+    }
+    if (toolId === 'dashboard') {
+      if (state.dashboardTabActive) {
+        useUIStore.getState().closeDashboardTab()
+      } else {
+        useUIStore.getState().openDashboardTab()
+      }
+      return {}
+    }
+    if (state.activeWorkspaceToolId === toolId) {
+      const nextTabs = state.workspaceToolTabs.filter((id) => id !== toolId)
+      return {
+        workspaceToolTabs: nextTabs,
+        activeWorkspaceToolId: nextTabs[nextTabs.length - 1] ?? null,
+      }
+    }
+    useWorkflowShellStore.getState().closeDrawer()
+    return {
+      centerMode: 'canvas' as CenterMode,
+      browserTabActive: false,
+      dashboardTabActive: false,
+      workspaceToolTabs: state.workspaceToolTabs.includes(toolId)
+        ? state.workspaceToolTabs
+        : [...state.workspaceToolTabs, toolId],
+      activeWorkspaceToolId: toolId,
+    }
+  }),
   setRightPanelTab: (tab) => {
     set({ rightPanelTab: tab })
     if (typeof window !== 'undefined') {
@@ -262,6 +359,7 @@ export const useUIStore = create<UIState>((set) => ({
       dashboardTabOpen: true,
       dashboardTabActive: true,
       browserTabActive: false,
+      activeWorkspaceToolId: null,
     })
   },
   closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
@@ -271,6 +369,7 @@ export const useUIStore = create<UIState>((set) => ({
       ? {
           dashboardTabActive: true,
           browserTabActive: false,
+          activeWorkspaceToolId: null,
         }
       : { dashboardTabActive: false })
   },

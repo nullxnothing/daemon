@@ -67,7 +67,7 @@ export function useAppShortcuts({
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === ',') {
         e.preventDefault()
-        useWorkflowShellStore.getState().setDrawerTool('settings')
+        useUIStore.getState().openWorkspaceTool('settings')
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         useWorkflowShellStore.getState().toggleDrawer()

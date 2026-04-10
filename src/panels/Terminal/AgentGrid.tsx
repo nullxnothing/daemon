@@ -344,10 +344,10 @@ function CellErrorView({
 
   if (error.code === 'NO_PROVIDER_AUTH') {
     cta = 'Open Settings'
-    action = () => useWorkflowShellStore.getState().setDrawerTool('settings')
+    action = () => useUIStore.getState().openWorkspaceTool('settings')
   } else if (error.code === 'NOT_AUTHENTICATED') {
     cta = 'Open Settings'
-    action = () => useWorkflowShellStore.getState().setDrawerTool('settings')
+    action = () => useUIStore.getState().openWorkspaceTool('settings')
   } else if (error.code === 'CLI_NOT_INSTALLED') {
     cta = 'Install CLI'
     action = async () => {

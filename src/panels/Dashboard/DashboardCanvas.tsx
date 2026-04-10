@@ -251,7 +251,7 @@ export function DashboardCanvas() {
   const activeMint = useUIStore((s) => s.activeDashboardMint)
   const setActiveMint = useUIStore((s) => s.setActiveDashboardMint)
   const openTokenLaunch = useCallback(() => {
-    useWorkflowShellStore.getState().setDrawerTool('token-launch')
+    useUIStore.getState().openWorkspaceTool('token-launch')
   }, [])
 
   const dashboard = useWalletStore((s) => s.dashboard)

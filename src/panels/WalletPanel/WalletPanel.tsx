@@ -8,6 +8,7 @@ import './WalletPanel.css'
 
 export function WalletPanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const projects = useUIStore((s) => s.projects)
   const dashboard = useWalletStore((s) => s.dashboard)
   const loading = useWalletStore((s) => s.loading)
   const activeTab = useWalletStore((s) => s.activeTab)
@@ -18,6 +19,11 @@ export function WalletPanel() {
   const load = useCallback(async () => {
     await useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
+
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? null
+  const activeWalletName = dashboard?.activeWallet?.name ?? 'No active wallet'
+  const walletCount = dashboard?.portfolio.walletCount ?? 0
+  const transportLabel = dashboard?.heliusConfigured ? 'Helius connected' : 'Local mode'
 
   useEffect(() => { void load() }, [load])
   useEffect(() => useWalletStore.getState().subscribeFastPoll(), [])
@@ -65,6 +71,30 @@ export function WalletPanel() {
 
   return (
     <div className="wallet-panel">
+      <div className="wallet-workspace-bar">
+        <div className="wallet-workspace-copy">
+          <span className="wallet-workspace-kicker">Wallet workspace</span>
+          <h2 className="wallet-workspace-title">Move funds, inspect holdings, and act from one place</h2>
+          <span className="wallet-workspace-subtitle">
+            {activeProject ? activeProject.name : 'No active project'} · {activeWalletName}
+          </span>
+        </div>
+        <div className="wallet-workspace-metrics">
+          <div className="wallet-workspace-metric">
+            <span className="wallet-workspace-metric-label">Tracked</span>
+            <strong>{walletCount}</strong>
+          </div>
+          <div className="wallet-workspace-metric">
+            <span className="wallet-workspace-metric-label">Transport</span>
+            <strong>{transportLabel}</strong>
+          </div>
+          <div className="wallet-workspace-metric">
+            <span className="wallet-workspace-metric-label">Tab</span>
+            <strong>{activeTab === 'wallet' ? 'Wallet' : 'Agents'}</strong>
+          </div>
+        </div>
+      </div>
+
       {/* Tab bar */}
       <div className="wallet-tabs">
         <button

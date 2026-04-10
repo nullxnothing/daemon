@@ -18,6 +18,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
   const drawerTool = useWorkflowShellStore((s) => s.drawerTool)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
+  const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
   const plugins = usePluginStore((s) => s.plugins)
@@ -69,18 +70,8 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }
 
   const handlePinnedToolClick = (toolId: string) => {
-    if (toolId === 'browser') {
-      if (useWorkflowShellStore.getState().drawerOpen) useWorkflowShellStore.getState().closeDrawer()
-      useUIStore.getState().toggleBrowserTab()
-      return
-    }
-    const state = useWorkflowShellStore.getState()
-    if (state.drawerOpen && state.drawerTool === toolId) {
-      state.closeDrawer()
-    } else {
-      preloadToolPanel(toolId)
-      state.setDrawerTool(toolId)
-    }
+    preloadToolPanel(toolId)
+    useUIStore.getState().toggleWorkspaceTool(toolId)
   }
 
   const handleAddToolClick = () => setToolMenuOpen((open) => !open)
@@ -200,7 +191,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
         const Icon = TOOL_ICONS[toolId] ?? PLUGIN_REGISTRY[toolId]?.icon
         const name = TOOL_NAMES[toolId] ?? PLUGIN_REGISTRY[toolId]?.name ?? toolId
         if (!Icon) return null
-        const isActive = toolId === 'browser' ? browserTabActive : (drawerOpen && drawerTool === toolId)
+        const isActive = toolId === 'browser' ? browserTabActive : activeWorkspaceToolId === toolId
         const color = TOOL_COLORS[toolId]
         return (
           <button
@@ -269,8 +260,8 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       {/* Colosseum / Hackathon — opens in drawer */}
       <div className="sidebar-divider" />
       <button
-        className={`colosseum-icon-wrap${drawerTool === 'hackathon' ? ' active' : ''}`}
-        onClick={() => useWorkflowShellStore.getState().setDrawerTool('hackathon')}
+        className={`colosseum-icon-wrap${activeWorkspaceToolId === 'hackathon' ? ' active' : ''}`}
+        onClick={() => useUIStore.getState().openWorkspaceTool('hackathon')}
         title="Hackathon (Colosseum)"
         aria-label="Hackathon"
       >

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import crypto from 'node:crypto'
 import * as Settings from '../services/SettingsService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
@@ -7,6 +7,16 @@ import { getDb } from '../db/db'
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get-ui', ipcHandler(async () => {
     return Settings.getUiSettings()
+  }))
+
+  ipcMain.handle('settings:get-app-meta', ipcHandler(async () => {
+    return {
+      version: app.getVersion(),
+      electronVersion: process.versions.electron,
+      platform: process.platform,
+      updateChannel: 'release',
+      releaseUrl: 'https://github.com/nullxnothing/daemon/releases/latest',
+    }
   }))
 
   ipcMain.handle('settings:set-show-market-tape', ipcHandler(async (_event, enabled: boolean) => {
