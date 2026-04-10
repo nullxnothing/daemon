@@ -69,7 +69,7 @@ jobs:
       - name: Generate checksums
         shell: pwsh
         run: |
-          Get-ChildItem -Path release -Recurse -Include *.exe | ForEach-Object {
+          Get-ChildItem -Path release -Recurse -File -Include DAEMON-setup.exe | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             "$hash  $($_.Name)" | Out-File -Append -FilePath release/checksums-windows.txt
           }
@@ -77,9 +77,9 @@ jobs:
         with:
           name: windows-release
           path: |
-            release/**/*.exe
-            release/**/*.yml
-            release/**/*.blockmap
+            release/*/DAEMON-setup.exe
+            release/*/latest.yml
+            release/*/DAEMON-setup.exe.blockmap
             release/checksums-windows.txt
           retention-days: 1
 
@@ -141,10 +141,10 @@ jobs:
         with:
           name: macos-release
           path: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.yml
-            release/**/*.blockmap
+            release/*/DAEMON-*.dmg
+            release/*/DAEMON-*.zip
+            release/*/latest-mac.yml
+            release/*/DAEMON-*.blockmap
             release/checksums-macos.txt
           retention-days: 1
 
@@ -185,9 +185,8 @@ jobs:
         with:
           name: linux-release
           path: |
-            release/**/*.AppImage
-            release/**/*.yml
-            release/**/*.blockmap
+            release/*/DAEMON.AppImage
+            release/*/latest-linux.yml
             release/checksums-linux.txt
           retention-days: 1
 
@@ -233,16 +232,15 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
           files: |
-            artifacts/windows/**/*.exe
-            artifacts/windows/**/*.yml
-            artifacts/windows/**/*.blockmap
-            artifacts/macos/**/*.dmg
-            artifacts/macos/**/*.zip
-            artifacts/macos/**/*.yml
-            artifacts/macos/**/*.blockmap
-            artifacts/linux/**/*.AppImage
-            artifacts/linux/**/*.yml
-            artifacts/linux/**/*.blockmap
+            artifacts/windows/*/DAEMON-setup.exe
+            artifacts/windows/*/latest.yml
+            artifacts/windows/*/DAEMON-setup.exe.blockmap
+            artifacts/macos/*/DAEMON-*.dmg
+            artifacts/macos/*/DAEMON-*.zip
+            artifacts/macos/*/latest-mac.yml
+            artifacts/macos/*/DAEMON-*.blockmap
+            artifacts/linux/*/DAEMON.AppImage
+            artifacts/linux/*/latest-linux.yml
             artifacts/windows/checksums-windows.txt
             artifacts/macos/checksums-macos.txt
             artifacts/linux/checksums-linux.txt
