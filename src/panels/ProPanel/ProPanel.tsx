@@ -1,0 +1,352 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useProStore } from '../../store/pro'
+import { useWalletStore } from '../../store/wallet'
+import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../electron/shared/types'
+import { ArenaView } from './ArenaView'
+import './ProPanel.css'
+
+type ProTab = 'overview' | 'arena' | 'skills' | 'sync'
+
+export function ProPanel() {
+  const subscription = useProStore((state) => state.subscription)
+  const price = useProStore((state) => state.price)
+  const subscribing = useProStore((state) => state.subscribing)
+  const refreshStatus = useProStore((state) => state.refreshStatus)
+  const fetchPrice = useProStore((state) => state.fetchPrice)
+  const subscribe = useProStore((state) => state.subscribe)
+  const claimHolderAccess = useProStore((state) => state.claimHolderAccess)
+  const signOut = useProStore((state) => state.signOut)
+  const error = useProStore((state) => state.error)
+  const clearError = useProStore((state) => state.clearError)
+  const quota = useProStore((state) => state.quota)
+  const loadQuota = useProStore((state) => state.loadQuota)
+  const wallets = useWalletStore((state) => state.dashboard?.wallets ?? [])
+
+  const [activeTab, setActiveTab] = useState<ProTab>('overview')
+  const [selectedWalletId, setSelectedWalletId] = useState('')
+  const selectedWallet = wallets.find((wallet) => wallet.id === selectedWalletId) ?? null
+
+  useEffect(() => {
+    void refreshStatus()
+    void fetchPrice()
+  }, [refreshStatus, fetchPrice])
+
+  useEffect(() => {
+    if (!selectedWallet?.address) return
+    void refreshStatus(selectedWallet.address)
+  }, [refreshStatus, selectedWallet?.address])
+
+  useEffect(() => {
+    if (subscription.active && !quota) {
+      void loadQuota()
+    }
+  }, [subscription.active, quota, loadQuota])
+
+  useEffect(() => {
+    if (selectedWalletId || wallets.length === 0) return
+    const next = wallets.find((wallet) => wallet.isDefault) ?? wallets[0]
+    setSelectedWalletId(next.id)
+  }, [wallets, selectedWalletId])
+
+  const daysRemaining = useMemo(() => {
+    if (!subscription.expiresAt) return null
+    const diff = subscription.expiresAt - Date.now()
+    if (diff <= 0) return 0
+    return Math.ceil(diff / (24 * 60 * 60 * 1000))
+  }, [subscription.expiresAt])
+
+  const handleSubscribe = async () => {
+    if (!selectedWalletId) return
+    const ok = await subscribe(selectedWalletId)
+    if (ok) await loadQuota()
+  }
+
+  const handleClaimHolderAccess = async () => {
+    if (!selectedWalletId) return
+    const ok = await claimHolderAccess(selectedWalletId)
+    if (ok) await loadQuota()
+  }
+
+  const isActive = subscription.active
+
+  return (
+    <section className="pro-panel">
+      <header className="pro-panel-header">
+        <div className="pro-panel-title-group">
+          <div className="pro-panel-kicker">DAEMON PRO</div>
+          <div className="pro-panel-title">{isActive ? 'Subscription active' : 'Unlock the full IDE'}</div>
+          {isActive && daysRemaining !== null && (
+            <div className="pro-panel-subtitle">{daysRemaining} day{daysRemaining === 1 ? '' : 's'} remaining</div>
+          )}
+        </div>
+        {isActive && <button className="pro-btn" onClick={() => { void signOut() }}>Sign out</button>}
+      </header>
+
+      {error && (
+        <div className="pro-error">
+          {error}
+          <button className="pro-error-dismiss" onClick={clearError}>×</button>
+        </div>
+      )}
+
+      <nav className="pro-tabs">
+        <button className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')} disabled={!isActive}>Arena</button>
+        <button className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
+        <button className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
+      </nav>
+
+      <div className="pro-panel-body">
+        {activeTab === 'overview' && !isActive && (
+          <OverviewSubscribe
+            price={price}
+            wallets={wallets}
+            selectedWalletId={selectedWalletId}
+            onSelectWallet={setSelectedWalletId}
+            subscribing={subscribing}
+            onSubscribe={handleSubscribe}
+            onClaimHolderAccess={handleClaimHolderAccess}
+            holderStatus={subscription.holderStatus}
+            accessSource={subscription.accessSource}
+          />
+        )}
+        {activeTab === 'overview' && isActive && (
+          <OverviewActive
+            expiresAt={subscription.expiresAt}
+            walletAddress={subscription.walletAddress}
+            features={subscription.features}
+            quota={quota}
+            accessSource={subscription.accessSource}
+          />
+        )}
+        {activeTab === 'arena' && isActive && <ArenaView />}
+        {activeTab === 'skills' && isActive && <SkillsView />}
+        {activeTab === 'sync' && isActive && <SyncView />}
+      </div>
+
+      <footer className="pro-panel-footer">
+        <div className="pro-disclaimer">
+          DAEMON stays open source. Pro adds curated content, hosted sync, and priority endpoints on top of the IDE.
+        </div>
+      </footer>
+    </section>
+  )
+}
+
+function OverviewSubscribe({
+  price,
+  wallets,
+  selectedWalletId,
+  onSelectWallet,
+  subscribing,
+  onSubscribe,
+  onClaimHolderAccess,
+  holderStatus,
+  accessSource,
+}: {
+  price: ProPriceInfo | null
+  wallets: Array<{ id: string; name: string; address: string; isDefault: boolean }>
+  selectedWalletId: string
+  onSelectWallet: (walletId: string) => void
+  subscribing: boolean
+  onSubscribe: () => void
+  onClaimHolderAccess: () => void
+  holderStatus: ProSubscriptionState['holderStatus']
+  accessSource: ProSubscriptionState['accessSource']
+}) {
+  const isHolderEligible = holderStatus.enabled && holderStatus.eligible
+  const currentAmount = holderStatus.currentAmount ?? 0
+  const minAmount = holderStatus.minAmount ?? 0
+
+  return (
+    <div className="pro-overview">
+      <div className="pro-hero">
+        <div className="pro-hero-price">
+          {price ? (
+            <>
+              <span className="pro-hero-price-amount">${price.priceUsdc}</span>
+              <span className="pro-hero-price-period">/ {price.durationDays} days</span>
+            </>
+          ) : (
+            <span className="pro-hero-price-loading">…</span>
+          )}
+        </div>
+        <div className="pro-hero-subtitle">Pay in USDC via x402. No separate dashboard, no separate account, no card flow.</div>
+      </div>
+
+      <div className="pro-features-grid">
+        <FeatureCard title="Arena" description="Submit your tools, vote on community submissions, and see what ships next." />
+        <FeatureCard title="Pro skill pack" description="Curated agents, audit pipelines, and templates updated monthly." />
+        <FeatureCard title="Hosted MCP sync" description="One MCP config, every machine. Push from one install, pull on the next." />
+        <FeatureCard title="Priority API quota" description="500 calls / month to the paid AI endpoints without per-call charges." />
+      </div>
+
+      {holderStatus.enabled && (
+        <div className={`pro-holder-banner ${isHolderEligible ? 'eligible' : ''}`}>
+          <div className="pro-holder-banner-title">{isHolderEligible ? 'Holder access available' : 'DAEMON holder access'}</div>
+          <div className="pro-holder-banner-copy">
+            Hold {minAmount.toLocaleString()}+ DAEMON to unlock Pro. Current selected wallet: {currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} DAEMON.
+            {accessSource === 'holder' ? ' Holder access is currently active on this device.' : ''}
+          </div>
+        </div>
+      )}
+
+      <div className="pro-subscribe-box">
+        <div className="pro-subscribe-title">{isHolderEligible ? 'Claim access' : 'Subscribe'}</div>
+        {wallets.length === 0 ? (
+          <div className="pro-subscribe-empty">You need a wallet to subscribe. Create one from the Wallet panel first.</div>
+        ) : (
+          <>
+            <div className="pro-form-row">
+              <label className="pro-form-label">Pay from wallet</label>
+              <select className="pro-form-input" value={selectedWalletId} onChange={(e) => onSelectWallet(e.target.value)}>
+                {wallets.map((wallet) => (
+                  <option key={wallet.id} value={wallet.id}>
+                    {wallet.name} ({wallet.address.slice(0, 4)}…{wallet.address.slice(-4)}){wallet.isDefault ? ' — default' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="pro-btn pro-btn-primary pro-btn-full" disabled={subscribing || !selectedWalletId || !price} onClick={isHolderEligible ? onClaimHolderAccess : onSubscribe}>
+              {subscribing
+                ? (isHolderEligible ? 'Verifying holder wallet…' : 'Signing payment…')
+                : (isHolderEligible ? 'Activate holder access' : `Subscribe for $${price?.priceUsdc ?? '—'} USDC`)}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FeatureCard({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="pro-feature-card">
+      <div className="pro-feature-title">{title}</div>
+      <div className="pro-feature-description">{description}</div>
+    </div>
+  )
+}
+
+function OverviewActive({
+  expiresAt,
+  walletAddress,
+  features,
+  quota,
+  accessSource,
+}: {
+  expiresAt: number | null
+  walletAddress: string | null
+  features: ProFeature[]
+  quota: { quota: number; used: number; remaining: number } | null
+  accessSource: ProSubscriptionState['accessSource']
+}) {
+  return (
+    <div className="pro-overview">
+      <div className="pro-active-grid">
+        <StatCard label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
+        <StatCard label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
+        <StatCard label="Features" value={`${features.length} unlocked`} />
+        <StatCard label="Access" value={accessSource === 'holder' ? 'Holder' : 'Paid'} />
+        <StatCard label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
+      </div>
+      <div className="pro-active-features">
+        {features.map((feature) => (
+          <div key={feature} className="pro-active-feature">
+            <span className="pro-active-check">✓</span> {featureLabel(feature)}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="pro-stat-card">
+      <div className="pro-stat-label">{label}</div>
+      <div className={`pro-stat-value${mono ? ' pro-stat-mono' : ''}`}>{value}</div>
+    </div>
+  )
+}
+
+function featureLabel(feature: ProFeature) {
+  switch (feature) {
+    case 'arena':
+      return 'Arena access'
+    case 'pro-skills':
+      return 'Pro skill pack'
+    case 'mcp-sync':
+      return 'Hosted MCP sync'
+    case 'priority-api':
+      return 'Priority API quota'
+    default:
+      return feature
+  }
+}
+
+function SkillsView() {
+  const syncSkills = useProStore((state) => state.syncSkills)
+  const syncingSkills = useProStore((state) => state.syncingSkills)
+  const [lastResult, setLastResult] = useState<{ installed: string[]; skipped: string[] } | null>(null)
+
+  const handleSync = async () => {
+    const result = await syncSkills()
+    if (result) setLastResult(result)
+  }
+
+  return (
+    <div className="pro-skills">
+      <div className="pro-section-title">Pro skill pack</div>
+      <div className="pro-section-caption">Curated agents, audit pipelines, and templates. Sync downloads the latest pack into your local skill directory.</div>
+      <button className="pro-btn pro-btn-primary" disabled={syncingSkills} onClick={() => { void handleSync() }}>
+        {syncingSkills ? 'Syncing…' : 'Sync skill pack'}
+      </button>
+      {lastResult && (
+        <div className="pro-skills-result">
+          <div>
+            <span className="pro-skills-stat">{lastResult.installed.length}</span> installed · <span className="pro-skills-stat">{lastResult.skipped.length}</span> unchanged
+          </div>
+          {lastResult.installed.length > 0 && (
+            <ul className="pro-skills-list">
+              {lastResult.installed.map((id) => <li key={id}>{id}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SyncView() {
+  const pushMcp = useProStore((state) => state.pushMcp)
+  const pullMcp = useProStore((state) => state.pullMcp)
+  const syncingMcp = useProStore((state) => state.syncingMcp)
+  const [lastAction, setLastAction] = useState<string | null>(null)
+
+  const handlePush = async () => {
+    const count = await pushMcp()
+    if (count !== null) setLastAction(`Pushed ${count} MCP servers`)
+  }
+
+  const handlePull = async () => {
+    const count = await pullMcp()
+    if (count !== null) setLastAction(`Pulled ${count} MCP servers`)
+  }
+
+  return (
+    <div className="pro-sync">
+      <div className="pro-section-title">MCP sync</div>
+      <div className="pro-section-caption">Push your current MCP config to the server, then pull it on another machine. Server state is last-write-wins.</div>
+      <div className="pro-sync-actions">
+        <button className="pro-btn pro-btn-primary" disabled={syncingMcp} onClick={() => { void handlePush() }}>
+          {syncingMcp ? 'Pushing…' : 'Push local → server'}
+        </button>
+        <button className="pro-btn" disabled={syncingMcp} onClick={() => { void handlePull() }}>
+          {syncingMcp ? 'Pulling…' : 'Pull server → local'}
+        </button>
+      </div>
+      {lastAction && <div className="pro-sync-result">{lastAction}</div>}
+    </div>
+  )
+}
