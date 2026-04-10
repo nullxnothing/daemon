@@ -88,6 +88,9 @@ importers:
       smol-toml:
         specifier: ^1.6.1
         version: 1.6.1
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
     devDependencies:
       '@electron/notarize':
         specifier: ^2.2.1
