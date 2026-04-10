@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
 import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
+import { useWorkflowShellStore } from './workflowShell'
 
 interface OpenFile {
   path: string
@@ -40,10 +41,11 @@ interface UIState {
   centerMode: CenterMode
   browserTabOpen: boolean
   browserTabActive: boolean
+  workspaceToolTabs: string[]
+  activeWorkspaceToolId: string | null
   rightPanelTab: RightPanelTab
   dashboardTabOpen: boolean
   dashboardTabActive: boolean
-  launchWizardOpen: boolean
   activeDashboardMint: string | null
   grindPageCount: number
   activeGrindPage: number
@@ -67,13 +69,15 @@ interface UIState {
   openBrowserTab: () => void
   closeBrowserTab: () => void
   setBrowserTabActive: (active: boolean) => void
+  openWorkspaceTool: (toolId: string) => void
+  closeWorkspaceTool: (toolId: string) => void
+  setActiveWorkspaceTool: (toolId: string | null) => void
+  toggleWorkspaceTool: (toolId: string) => void
   setRightPanelTab: (tab: RightPanelTab) => void
   toggleDashboardTab: () => void
   openDashboardTab: () => void
   closeDashboardTab: () => void
   setDashboardTabActive: (active: boolean) => void
-  openLaunchWizard: () => void
-  closeLaunchWizard: () => void
   setActiveDashboardMint: (mint: string | null) => void
   setActiveGrindPage: (page: number) => void
   addGrindPage: () => void
@@ -92,15 +96,8 @@ interface UIState {
   closeAllQuickViews: () => void
 
   // Command drawer
-  drawerTool: string | null
-  drawerOpen: boolean
-  drawerFullscreen: boolean
   pinnedTools: string[]
   drawerToolOrder: string[]
-  setDrawerTool: (tool: string | null) => void
-  closeDrawer: () => void
-  toggleDrawer: () => void
-  toggleDrawerFullscreen: () => void
   setPinnedTools: (tools: string[]) => void
   pinTool: (toolId: string) => void
   unpinTool: (toolId: string) => void
@@ -121,19 +118,17 @@ export const useUIStore = create<UIState>((set) => ({
   centerMode: 'canvas' as CenterMode,
   browserTabOpen: false,
   browserTabActive: false,
+  workspaceToolTabs: [],
+  activeWorkspaceToolId: null,
   rightPanelTab: 'claude' as RightPanelTab,
   dashboardTabOpen: false,
   dashboardTabActive: false,
-  launchWizardOpen: false,
   activeDashboardMint: null,
   grindPageCount: 1,
   activeGrindPage: 0,
   grindPages: {},
   walletQuickViewOpen: false,
   emailQuickViewOpen: false,
-  drawerTool: null,
-  drawerOpen: false,
-  drawerFullscreen: false,
   pinnedTools: ['git', 'browser', 'token-launch', 'solana-toolbox'],
   drawerToolOrder: [],
 
@@ -142,23 +137,22 @@ export const useUIStore = create<UIState>((set) => ({
   setProjects: (projects) => set({ projects }),
 
   openFile: (file) => set((state) => {
+    useWorkflowShellStore.getState().closeDrawer()
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
-        drawerTool: null,
-        drawerOpen: false,
         centerMode: 'canvas' as CenterMode,
         browserTabActive: false,
         dashboardTabActive: false,
+        activeWorkspaceToolId: null,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
-      drawerTool: null,
-      drawerOpen: false,
       centerMode: 'canvas' as CenterMode,
       browserTabActive: false,
       dashboardTabActive: false,
+      activeWorkspaceToolId: null,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -177,6 +171,9 @@ export const useUIStore = create<UIState>((set) => ({
   }),
 
   setActiveFile: (projectId, path) => set((state) => ({
+    browserTabActive: false,
+    dashboardTabActive: false,
+    activeWorkspaceToolId: null,
     activeFilePathByProject: updateRecord(state.activeFilePathByProject, projectId, path),
   })),
 
@@ -231,33 +228,115 @@ export const useUIStore = create<UIState>((set) => ({
   toggleBrowserTab: () => set((state) => {
     const isOpen = !state.browserTabOpen
     if (!isOpen) return { browserTabOpen: false, browserTabActive: false }
+    useWorkflowShellStore.getState().closeDrawer()
     return {
       browserTabOpen: true,
       browserTabActive: true,
       dashboardTabActive: false,
-      drawerTool: null,
-      drawerOpen: false,
-      drawerFullscreen: false,
     }
   }),
-  openBrowserTab: () => set({
-    browserTabOpen: true,
-    browserTabActive: true,
-    dashboardTabActive: false,
-    drawerTool: null,
-    drawerOpen: false,
-    drawerFullscreen: false,
-  }),
+  openBrowserTab: () => {
+    useWorkflowShellStore.getState().closeDrawer()
+    set({
+      browserTabOpen: true,
+      browserTabActive: true,
+      dashboardTabActive: false,
+      activeWorkspaceToolId: null,
+    })
+  },
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
-  setBrowserTabActive: (active) => set(active
-    ? {
-        browserTabActive: true,
-        dashboardTabActive: false,
-        drawerTool: null,
-        drawerOpen: false,
-        drawerFullscreen: false,
+  setBrowserTabActive: (active) => {
+    if (active) useWorkflowShellStore.getState().closeDrawer()
+    set(active
+      ? {
+          browserTabActive: true,
+          dashboardTabActive: false,
+          activeWorkspaceToolId: null,
+        }
+      : { browserTabActive: false })
+  },
+  openWorkspaceTool: (toolId) => {
+    if (toolId === 'browser') {
+      useUIStore.getState().openBrowserTab()
+      return
+    }
+    if (toolId === 'dashboard') {
+      useUIStore.getState().openDashboardTab()
+      return
+    }
+    useWorkflowShellStore.getState().closeDrawer()
+    set((state) => ({
+      centerMode: 'canvas' as CenterMode,
+      browserTabActive: false,
+      dashboardTabActive: false,
+      workspaceToolTabs: state.workspaceToolTabs.includes(toolId)
+        ? state.workspaceToolTabs
+        : [...state.workspaceToolTabs, toolId],
+      activeWorkspaceToolId: toolId,
+    }))
+  },
+  closeWorkspaceTool: (toolId) => set((state) => {
+    const nextTabs = state.workspaceToolTabs.filter((id) => id !== toolId)
+    return {
+      workspaceToolTabs: nextTabs,
+      activeWorkspaceToolId: state.activeWorkspaceToolId === toolId
+        ? nextTabs[nextTabs.length - 1] ?? null
+        : state.activeWorkspaceToolId,
+    }
+  }),
+  setActiveWorkspaceTool: (toolId) => {
+    if (toolId === 'browser') {
+      useUIStore.getState().setBrowserTabActive(true)
+      return
+    }
+    if (toolId === 'dashboard') {
+      useUIStore.getState().setDashboardTabActive(true)
+      return
+    }
+    if (toolId) useWorkflowShellStore.getState().closeDrawer()
+    set(toolId
+      ? {
+          browserTabActive: false,
+          dashboardTabActive: false,
+          activeWorkspaceToolId: toolId,
+        }
+      : { activeWorkspaceToolId: null })
+  },
+  toggleWorkspaceTool: (toolId) => set((state) => {
+    if (toolId === 'browser') {
+      if (state.browserTabActive) {
+        useUIStore.getState().closeBrowserTab()
+      } else {
+        useUIStore.getState().openBrowserTab()
       }
-    : { browserTabActive: false }),
+      return {}
+    }
+    if (toolId === 'dashboard') {
+      if (state.dashboardTabActive) {
+        useUIStore.getState().closeDashboardTab()
+      } else {
+        useUIStore.getState().openDashboardTab()
+      }
+      return {}
+    }
+    if (state.activeWorkspaceToolId === toolId) {
+      const nextTabs = state.workspaceToolTabs.filter((id) => id !== toolId)
+      return {
+        workspaceToolTabs: nextTabs,
+        activeWorkspaceToolId: nextTabs[nextTabs.length - 1] ?? null,
+      }
+    }
+    useWorkflowShellStore.getState().closeDrawer()
+    return {
+      centerMode: 'canvas' as CenterMode,
+      browserTabActive: false,
+      dashboardTabActive: false,
+      workspaceToolTabs: state.workspaceToolTabs.includes(toolId)
+        ? state.workspaceToolTabs
+        : [...state.workspaceToolTabs, toolId],
+      activeWorkspaceToolId: toolId,
+    }
+  }),
   setRightPanelTab: (tab) => {
     set({ rightPanelTab: tab })
     if (typeof window !== 'undefined') {
@@ -267,35 +346,33 @@ export const useUIStore = create<UIState>((set) => ({
   toggleDashboardTab: () => set((state) => {
     const isOpen = !state.dashboardTabOpen
     if (!isOpen) return { dashboardTabOpen: false, dashboardTabActive: false }
+    useWorkflowShellStore.getState().closeDrawer()
     return {
       dashboardTabOpen: true,
       dashboardTabActive: true,
       browserTabActive: false,
-      drawerTool: null,
-      drawerOpen: false,
-      drawerFullscreen: false,
     }
   }),
-  openDashboardTab: () => set({
-    dashboardTabOpen: true,
-    dashboardTabActive: true,
-    browserTabActive: false,
-    drawerTool: null,
-    drawerOpen: false,
-    drawerFullscreen: false,
-  }),
+  openDashboardTab: () => {
+    useWorkflowShellStore.getState().closeDrawer()
+    set({
+      dashboardTabOpen: true,
+      dashboardTabActive: true,
+      browserTabActive: false,
+      activeWorkspaceToolId: null,
+    })
+  },
   closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
-  setDashboardTabActive: (active) => set(active
-    ? {
-        dashboardTabActive: true,
-        browserTabActive: false,
-        drawerTool: null,
-        drawerOpen: false,
-        drawerFullscreen: false,
-      }
-    : { dashboardTabActive: false }),
-  openLaunchWizard: () => set({ launchWizardOpen: true }),
-  closeLaunchWizard: () => set({ launchWizardOpen: false }),
+  setDashboardTabActive: (active) => {
+    if (active) useWorkflowShellStore.getState().closeDrawer()
+    set(active
+      ? {
+          dashboardTabActive: true,
+          browserTabActive: false,
+          activeWorkspaceToolId: null,
+        }
+      : { dashboardTabActive: false })
+  },
   setActiveDashboardMint: (mint) => set({ activeDashboardMint: mint }),
   setActiveGrindPage: (page) => set({ activeGrindPage: page }),
   addGrindPage: () => set((state) => ({
@@ -382,16 +459,6 @@ export const useUIStore = create<UIState>((set) => ({
   })),
   closeAllQuickViews: () => set({ walletQuickViewOpen: false, emailQuickViewOpen: false }),
 
-  setDrawerTool: (tool) => set((state) => ({
-    drawerTool: tool,
-    drawerOpen: tool !== null,
-    drawerFullscreen: tool !== null ? state.drawerFullscreen : false,
-  })),
-  closeDrawer: () => set({ drawerOpen: false, drawerTool: null, drawerFullscreen: false }),
-  toggleDrawer: () => set((state) => state.drawerOpen
-    ? { drawerOpen: false, drawerTool: null, drawerFullscreen: false }
-    : { drawerOpen: true, drawerTool: null, drawerFullscreen: false }),
-  toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
   setPinnedTools: (tools) => {
     set({ pinnedTools: tools })
     daemon.settings.setPinnedTools(tools).catch(() => {})

@@ -1,4 +1,5 @@
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 
 /** Dispatch scaffold prompts to the Solana Agent via terminal */
 
@@ -6,7 +7,7 @@ async function spawnAndShowAgent(projectId: string, prompt: string, taskLabel: s
   const state = useUIStore.getState()
 
   // Close drawer so terminal is visible
-  state.closeDrawer()
+  useWorkflowShellStore.getState().closeDrawer()
 
   const res = await window.daemon.terminal.spawnAgent({
     agentId: 'solana-agent',

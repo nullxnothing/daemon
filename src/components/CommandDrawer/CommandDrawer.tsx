@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useCallback, useMemo, Suspense, type ComponentType, type DragEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type ComponentType, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
-import { PanelErrorBoundary } from '../ErrorBoundary'
 import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
@@ -301,26 +301,14 @@ function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
   })
 }
 
-function ToolFallback({ tool }: { tool?: DrawerTool | null }) {
-  return (
-    <div className="drawer-loading">
-      <div className="drawer-loading-title">{tool?.name ?? 'Loading tool'}</div>
-      <div className="drawer-loading-copy">Preparing panel...</div>
-    </div>
-  )
-}
-
 // Shared MIME type for tool drag-and-drop (drawer <-> sidebar)
 export const TOOL_DND_MIME = 'application/x-daemon-tool'
 
 export function CommandDrawer() {
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const drawerTool = useUIStore((s) => s.drawerTool)
-  const drawerFullscreen = useUIStore((s) => s.drawerFullscreen)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
   const drawerToolOrder = useUIStore((s) => s.drawerToolOrder)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
-  const closeDrawer = useUIStore((s) => s.closeDrawer)
-  const toggleDrawerFullscreen = useUIStore((s) => s.toggleDrawerFullscreen)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const closeDrawer = useWorkflowShellStore((s) => s.closeDrawer)
 
   const [search, setSearch] = useState('')
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -356,13 +344,13 @@ export function CommandDrawer() {
 
   // Focus search input when drawer opens in grid mode
   useEffect(() => {
-    if (drawerOpen && !drawerTool) {
+    if (drawerOpen) {
       setTimeout(() => searchRef.current?.focus(), 50)
     }
-  }, [drawerOpen, drawerTool])
+  }, [drawerOpen])
 
   useEffect(() => {
-    if (!drawerOpen || drawerTool) return
+    if (!drawerOpen) return
     const visibleToolIds = filteredTools
       .slice(0, 8)
       .map((tool) => tool.id)
@@ -391,7 +379,7 @@ export function CommandDrawer() {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [drawerOpen, drawerTool, filteredTools])
+  }, [drawerOpen, filteredTools])
 
   // Esc to close or go back to grid
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -399,13 +387,9 @@ export function CommandDrawer() {
       if (document.querySelector('.agent-launcher-overlay, .palette-overlay')) return
       e.preventDefault()
       e.stopPropagation()
-      if (drawerTool) {
-        useUIStore.setState({ drawerTool: null, drawerFullscreen: false })
-      } else {
-        closeDrawer()
-      }
+      closeDrawer()
     }
-  }, [drawerTool, closeDrawer])
+  }, [closeDrawer])
 
   useEffect(() => {
     if (!drawerOpen) return
@@ -416,14 +400,14 @@ export function CommandDrawer() {
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && filteredTools.length > 0) {
       e.preventDefault()
-      setDrawerTool(filteredTools[0].id)
+      openWorkspaceTool(filteredTools[0].id)
       setSearch('')
     }
   }
 
   const handleToolClick = (toolId: string) => {
     preloadToolPanel(toolId)
-    setDrawerTool(toolId)
+    openWorkspaceTool(toolId)
     setSearch('')
   }
 
@@ -461,44 +445,18 @@ export function CommandDrawer() {
 
   if (!drawerOpen) return null
 
-  const activeTool = drawerTool ? allTools.find(t => t.id === drawerTool) : null
-
   return (
-    <div className={`command-drawer${drawerFullscreen ? ' command-drawer--fullscreen' : ''}`} ref={drawerRef}>
+    <div className="command-drawer" ref={drawerRef}>
       {/* Header */}
       <div className="drawer-header">
-        {activeTool ? (
-          <>
-            <button className="drawer-back" onClick={() => useUIStore.setState({ drawerTool: null, drawerFullscreen: false })} title="Back to tools">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
-            </button>
-            <span className="drawer-title">{activeTool.name}</span>
-          </>
-        ) : (
-          <input
-            ref={searchRef}
-            className="drawer-search"
-            placeholder="Search tools..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-          />
-        )}
-        {activeTool && (
-          <button className="drawer-fullscreen" onClick={toggleDrawerFullscreen} title={drawerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
-            {drawerFullscreen ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-              </svg>
-            )}
-          </button>
-        )}
+        <input
+          ref={searchRef}
+          className="drawer-search"
+          placeholder="Search tools..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+        />
         <button className="drawer-close" onClick={closeDrawer} title="Close (Esc)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -508,25 +466,17 @@ export function CommandDrawer() {
 
       {/* Content */}
       <div className="drawer-content">
-        {activeTool ? (
-            <PanelErrorBoundary fallbackLabel="Tool crashed — press Esc to go back">
-            <Suspense fallback={<ToolFallback tool={activeTool} />}>
-              <activeTool.component />
-            </Suspense>
-          </PanelErrorBoundary>
-        ) : (
-          <DrawerGrid
-            tools={filteredTools}
-            search={search}
-            dragOverIdx={dragOverIdx}
-            onToolClick={handleToolClick}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onCardDragOver={handleCardDragOver}
-            onCardDragLeave={() => setDragOverIdx(null)}
-            onCardDrop={handleCardDrop}
-          />
-        )}
+        <DrawerGrid
+          tools={filteredTools}
+          search={search}
+          dragOverIdx={dragOverIdx}
+          onToolClick={handleToolClick}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onCardDragOver={handleCardDragOver}
+          onCardDragLeave={() => setDragOverIdx(null)}
+          onCardDrop={handleCardDrop}
+        />
       </div>
     </div>
   )

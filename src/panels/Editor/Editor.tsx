@@ -1,4 +1,4 @@
-import { Suspense, useRef, useCallback, useState, useEffect, useMemo } from 'react'
+import { Suspense, useRef, useCallback, useState, useEffect, useMemo, type ComponentType, type LazyExoticComponent } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
@@ -7,6 +7,8 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
+import { usePluginStore } from '../../store/plugins'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
@@ -16,6 +18,8 @@ import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { lazyNamedWithReload } from '../../utils/lazyWithReload'
+import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
+import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './Editor.css'
 
 const BrowserMode = lazyNamedWithReload('browser-mode', () => import('../BrowserMode/BrowserMode'), (module) => module.BrowserMode)
@@ -80,9 +84,14 @@ export function EditorPanel() {
   const browserTabOpen = useUIStore((s) => s.browserTabOpen)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
   const setBrowserTabActive = useUIStore((s) => s.setBrowserTabActive)
+  const workspaceToolTabs = useUIStore((s) => s.workspaceToolTabs)
+  const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
+  const setActiveWorkspaceTool = useUIStore((s) => s.setActiveWorkspaceTool)
+  const closeWorkspaceTool = useUIStore((s) => s.closeWorkspaceTool)
   const dashboardTabOpen = useUIStore((s) => s.dashboardTabOpen)
   const dashboardTabActive = useUIStore((s) => s.dashboardTabActive)
   const setDashboardTabActive = useUIStore((s) => s.setDashboardTabActive)
+  const plugins = usePluginStore((s) => s.plugins)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -113,6 +122,42 @@ export function EditorPanel() {
     [activeFile?.path, activeProjectPath]
   )
   const isActiveFileMarkdown = isMarkdownFile(activeFile?.path)
+  const workspaceToolRegistry = useMemo(() => {
+    const toolMap = new Map<string, { name: string; component: LazyExoticComponent<ComponentType>; Icon: ComponentType<{ size?: number }> }>()
+    for (const tool of BUILTIN_TOOLS) {
+      toolMap.set(tool.id, {
+        name: tool.name,
+        component: tool.component,
+        Icon: TOOL_ICONS[tool.id] ?? tool.icon,
+      })
+    }
+    for (const plugin of plugins) {
+      if (!plugin.enabled) continue
+      const manifest = PLUGIN_REGISTRY[plugin.id]
+      if (!manifest) continue
+      toolMap.set(plugin.id, {
+        name: manifest.name,
+        component: manifest.component,
+        Icon: manifest.icon,
+      })
+    }
+    return toolMap
+  }, [plugins])
+  const workspaceToolTabMeta = useMemo(
+    () => workspaceToolTabs
+      .map((id) => {
+        const tool = workspaceToolRegistry.get(id)
+        if (!tool) return null
+        return {
+          id,
+          name: TOOL_NAMES[id] ?? tool.name,
+          Icon: tool.Icon,
+        }
+      })
+      .filter((tool): tool is { id: string; name: string; Icon: ComponentType<{ size?: number }> } => tool !== null),
+    [workspaceToolRegistry, workspaceToolTabs]
+  )
+  const activeWorkspaceTool = activeWorkspaceToolId ? workspaceToolRegistry.get(activeWorkspaceToolId) ?? null : null
 
   // Keep ref in sync so the onChange callback always has current path
   activeFilePathRef.current = activeFilePath
@@ -415,14 +460,16 @@ export function EditorPanel() {
   const handleBrowserTabClick = useCallback(() => {
     setBrowserTabActive(true)
     setDashboardTabActive(false)
+    setActiveWorkspaceTool(null)
   }, [setBrowserTabActive, setDashboardTabActive])
 
   const handleDashboardTabClick = useCallback(() => {
     setDashboardTabActive(true)
     setBrowserTabActive(false)
+    setActiveWorkspaceTool(null)
   }, [setDashboardTabActive, setBrowserTabActive])
 
-  const hasAnyPinnedTab = browserTabOpen || dashboardTabOpen
+  const hasAnyPinnedTab = browserTabOpen || dashboardTabOpen || workspaceToolTabs.length > 0
 
   // Show welcome when no project and no pinned tabs open
   if (!activeProjectId && !hasAnyPinnedTab) {
@@ -434,6 +481,10 @@ export function EditorPanel() {
     return (
       <div className="editor-panel">
         <EditorTabs
+          toolTabs={workspaceToolTabMeta}
+          activeToolId={activeWorkspaceToolId}
+          onSelectTool={setActiveWorkspaceTool}
+          onCloseTool={closeWorkspaceTool}
           files={[]}
           activeFilePath={null}
           savedFlash={null}
@@ -448,7 +499,11 @@ export function EditorPanel() {
         />
         <div className="editor-content">
           <Suspense fallback={<WorkspacePanelFallback />}>
-            {dashboardTabActive ? (
+            {activeWorkspaceTool ? (
+              <PanelErrorBoundary fallbackLabel={`${activeWorkspaceTool.name} crashed — reopen the tab to reload`}>
+                <activeWorkspaceTool.component />
+              </PanelErrorBoundary>
+            ) : dashboardTabActive ? (
               <DashboardCanvas />
             ) : (
               <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
@@ -468,6 +523,10 @@ export function EditorPanel() {
   return (
     <div className="editor-panel">
       <EditorTabs
+        toolTabs={workspaceToolTabMeta}
+        activeToolId={activeWorkspaceToolId}
+        onSelectTool={setActiveWorkspaceTool}
+        onCloseTool={closeWorkspaceTool}
         files={projectOpenFiles}
         activeFilePath={activeFilePath}
         savedFlash={savedFlash}
@@ -480,7 +539,15 @@ export function EditorPanel() {
         dashboardTabActive={dashboardTabActive}
         onDashboardTabClick={handleDashboardTabClick}
       />
-      {dashboardTabActive ? (
+      {activeWorkspaceTool ? (
+        <div className="editor-content">
+          <Suspense fallback={<WorkspacePanelFallback />}>
+            <PanelErrorBoundary fallbackLabel={`${activeWorkspaceTool.name} crashed — reopen the tab to reload`}>
+              <activeWorkspaceTool.component />
+            </PanelErrorBoundary>
+          </Suspense>
+        </div>
+      ) : dashboardTabActive ? (
         <div className="editor-content">
           <Suspense fallback={<WorkspacePanelFallback />}>
             <DashboardCanvas />
@@ -609,7 +676,7 @@ function ImagePreview({ filePath }: { filePath: string }) {
         {fileSize > 0 && <span className="image-preview-size">{formatFileSize(fileSize)}</span>}
         <button
           className="image-preview-edit"
-          onClick={() => useUIStore.getState().setDrawerTool('image-editor')}
+          onClick={() => useUIStore.getState().openWorkspaceTool('image-editor')}
         >
           Edit in miniPaint
         </button>

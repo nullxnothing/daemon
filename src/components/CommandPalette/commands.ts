@@ -16,7 +16,9 @@ interface CommandDeps {
   toggleRightPanel: VoidCallback
   openAgentLauncher: VoidCallback
   toggleExplorer: VoidCallback
-  setDrawerTool: (tool: string | null) => void
+  returnToEditor: VoidCallback
+  openWorkspaceTool: (tool: string) => void
+  closeDrawer: VoidCallback
   toggleBrowserTab?: VoidCallback
   toggleDashboardTab?: VoidCallback
 }
@@ -28,7 +30,9 @@ export function buildCommands(deps: CommandDeps): Command[] {
     toggleRightPanel,
     openAgentLauncher,
     toggleExplorer,
-    setDrawerTool,
+    returnToEditor,
+    openWorkspaceTool,
+    closeDrawer,
     toggleBrowserTab,
     toggleDashboardTab,
   } = deps
@@ -52,74 +56,74 @@ export function buildCommands(deps: CommandDeps): Command[] {
       id: 'nav:git',
       label: 'Open Git Panel',
       category: 'Navigation',
-      action: () => setDrawerTool('git'),
+      action: () => openWorkspaceTool('git'),
     },
     {
       id: 'nav:deploy',
       label: 'Open Deploy Panel',
       category: 'Navigation',
-      action: () => setDrawerTool('deploy'),
+      action: () => openWorkspaceTool('deploy'),
     },
     {
       id: 'nav:email',
       label: 'Open Email',
       category: 'Navigation',
-      action: () => setDrawerTool('email'),
+      action: () => openWorkspaceTool('email'),
     },
     {
       id: 'nav:env',
       label: 'Open Env Manager',
       category: 'Navigation',
-      action: () => setDrawerTool('env'),
+      action: () => openWorkspaceTool('env'),
     },
     {
       id: 'nav:wallet',
       label: 'Open Wallet Panel',
       category: 'Navigation',
-      action: () => setDrawerTool('wallet'),
+      action: () => openWorkspaceTool('wallet'),
     },
     {
       id: 'nav:starter',
       label: 'New Project from Template',
       category: 'Navigation',
-      action: () => setDrawerTool('starter'),
+      action: () => openWorkspaceTool('starter'),
     },
     {
       id: 'nav:settings',
       label: 'Open Settings',
       shortcut: 'Ctrl+,',
       category: 'Navigation',
-      action: () => setDrawerTool('settings'),
+      action: () => openWorkspaceTool('settings'),
     },
     {
       id: 'nav:ports',
       label: 'Open Ports',
       category: 'Navigation',
-      action: () => setDrawerTool('ports'),
+      action: () => openWorkspaceTool('ports'),
     },
     {
       id: 'nav:process',
       label: 'Open Processes',
       category: 'Navigation',
-      action: () => setDrawerTool('processes'),
+      action: () => openWorkspaceTool('processes'),
     },
     {
       id: 'nav:plugins',
       label: 'Open Plugins',
       category: 'Navigation',
-      action: () => setDrawerTool('plugins'),
+      action: () => openWorkspaceTool('plugins'),
     },
     {
       id: 'nav:recovery',
       label: 'Open Recovery',
       category: 'Navigation',
-      action: () => setDrawerTool('recovery'),
+      action: () => openWorkspaceTool('recovery'),
     },
     {
       id: 'nav:main-view',
       label: 'Return to Editor',
       category: 'Navigation',
-      action: () => setDrawerTool(null),
+      action: () => returnToEditor(),
     },
 
     // View

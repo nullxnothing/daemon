@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
+import type { ComponentType } from 'react'
 
 interface OpenFile {
   path: string
@@ -8,6 +9,10 @@ interface OpenFile {
 }
 
 interface EditorTabsProps {
+  toolTabs: Array<{ id: string; name: string; Icon: ComponentType<{ size?: number }> }>
+  activeToolId: string | null
+  onSelectTool: (toolId: string) => void
+  onCloseTool: (toolId: string) => void
   files: OpenFile[]
   activeFilePath: string | null
   savedFlash: string | null
@@ -59,6 +64,10 @@ function GlobeIcon({ active }: { active: boolean }) {
 }
 
 export function EditorTabs({
+  toolTabs,
+  activeToolId,
+  onSelectTool,
+  onCloseTool,
   files,
   activeFilePath,
   savedFlash,
@@ -110,6 +119,35 @@ export function EditorTabs({
   return (
     <>
       <div className="editor-tabs">
+        {toolTabs.map(({ id, name, Icon }) => (
+          <button
+            key={id}
+            className={`editor-tab editor-tab-browser${activeToolId === id ? ' active' : ''}`}
+            onClick={() => onSelectTool(id)}
+            aria-label={`${name} tab`}
+          >
+            <Icon size={12} />
+            <span className="editor-tab-name">{name}</span>
+            <span
+              className="editor-tab-close"
+              role="button"
+              tabIndex={0}
+              aria-label={`Close ${name} tab`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCloseTool(id)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation()
+                  onCloseTool(id)
+                }
+              }}
+            >
+              &times;
+            </span>
+          </button>
+        ))}
         {browserTabOpen && (
           <>
             <button
@@ -134,13 +172,13 @@ export function EditorTabs({
             </button>
           </>
         )}
-        {(browserTabOpen || dashboardTabOpen) && files.length > 0 && (
+        {(toolTabs.length > 0 || browserTabOpen || dashboardTabOpen) && files.length > 0 && (
           <div className="editor-tab-browser-sep" />
         )}
         {files.map((file) => (
           <button
             key={file.path}
-            className={`editor-tab ${!browserTabActive && activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
+            className={`editor-tab ${!browserTabActive && !dashboardTabActive && !activeToolId && activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
             onClick={() => onSelectFile(file.projectId, file.path)}
             onContextMenu={(e) => handleTabContextMenu(e, file.projectId, file.path)}
           >
