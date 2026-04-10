@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import './WalletPanel.css'
+import { TransactionPreviewCard } from './TransactionPreviewCard'
 
 interface PendingSend {
   walletId: string
@@ -77,6 +79,32 @@ export function WalletSendForm({
   onClose,
 }: WalletSendFormProps) {
   const selectedToken = tokenOptions.find((token) => token.mint === sendMint) ?? null
+  const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
+  const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setPreview(null)
+
+    if (!pendingSend || pendingSend.walletId !== walletId) return
+
+    void window.daemon.wallet.transactionPreview({
+      kind: pendingSend.mode === 'sol' ? 'send-sol' : 'send-token',
+      walletId: pendingSend.walletId,
+      destination: pendingSend.dest,
+      amount: pendingSend.amount,
+      sendMax: pendingSend.sendMax,
+      mint: pendingSend.mint,
+      tokenSymbol: selectedToken?.symbol,
+    }).then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setPreview(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [pendingSend, selectedToken?.symbol, walletId])
 
   return (
     <div className="wallet-send-form">
@@ -175,9 +203,21 @@ export function WalletSendForm({
         )}
         {pendingSend && pendingSend.walletId === walletId && (
           <div>
-            <div className="wallet-caption">
-              Send {pendingSend.sendMax ? 'max' : pendingSend.amount} {pendingSend.mode === 'sol' ? 'SOL' : pendingSend.mint ? shortAddress(pendingSend.mint) : 'tokens'} to {shortAddress(pendingSend.dest)}?
-            </div>
+            <TransactionPreviewCard
+              title={preview?.title ?? 'Review Send'}
+              backendLabel={preview?.backendLabel ?? backendLabel}
+              signerLabel={preview?.signerLabel ?? walletName}
+              destinationLabel={preview?.targetLabel ?? shortAddress(pendingSend.dest)}
+              amountLabel={preview?.amountLabel ?? (pendingSend.sendMax
+                ? `Max ${pendingSend.mode === 'sol' ? 'SOL' : selectedToken?.symbol ?? 'token'}`
+                : `${pendingSend.amount} ${pendingSend.mode === 'sol' ? 'SOL' : selectedToken?.symbol ?? shortAddress(pendingSend.mint ?? 'token')}`)}
+              feeLabel={preview?.feeLabel}
+              warnings={preview?.warnings}
+              notes={preview?.notes ?? [
+                pendingSend.sendMax ? 'This will send the maximum transferable balance after reserving fees.' : 'The send amount is fixed to the value shown above.',
+                pendingSend.mode === 'token' ? 'If the destination does not already have the token account, DAEMON will create it when needed.' : 'This uses the currently selected Solana execution backend.',
+              ]}
+            />
             <div className="wallet-actions">
               <button className="wallet-btn" onClick={onCancelSend}>Cancel</button>
               <button

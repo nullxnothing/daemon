@@ -28,7 +28,8 @@
     "pretest": "vite build --mode=test",
     "test": "vitest run",
     "test:smoke": "pnpm run build && node scripts/smoke/electron-smoke.mjs",
-    "test:journeys": "pnpm run build && node scripts/smoke/workflow-journeys.mjs"
+    "test:journeys": "pnpm run build && node scripts/smoke/workflow-journeys.mjs",
+    "test:responsive": "pnpm run build && node scripts/smoke/app-responsive.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -62,6 +63,9 @@
     "@electron/notarize": "^2.2.1",
     "@electron/rebuild": "^3.7.1",
     "@monaco-editor/react": "^4.7.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.12",
     "@types/bn.js": "^5.2.0",
     "@types/express": "^5.0.1",
@@ -75,6 +79,7 @@
     "@xterm/xterm": "^5.5.0",
     "electron": "^33.2.0",
     "electron-builder": "^24.13.3",
+    "happy-dom": "^20.8.9",
     "monaco-editor": "^0.52.2",
     "patch-package": "^8.0.1",
     "playwright": "^1.59.0",
