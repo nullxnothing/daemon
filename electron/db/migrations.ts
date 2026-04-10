@@ -369,6 +369,21 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
     console.warn('[Migrations] solana-mcp-server registry seed check failed:', (err as Error).message)
   }
 
+  // Ensure Phantom Connect SDK docs MCP exists in registry (remote HTTP MCP from Phantom docs)
+  try {
+    const hasPhantomDocsMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'phantom-docs'").get()
+    if (!hasPhantomDocsMcp) {
+      db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
+        'phantom-docs',
+        JSON.stringify({ type: 'http', url: 'https://docs.phantom.com/mcp' }),
+        'Phantom Connect SDK documentation MCP for wallet connection, signing, and Phantom Portal guidance',
+        0,
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] phantom-docs registry seed check failed:', (err as Error).message)
+  }
+
   // Ensure payai-mcp-server exists in registry (x402 payment protocol for AI agents)
   try {
     const hasPayaiMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'payai-mcp-server'").get()
@@ -677,6 +692,12 @@ function seedMcpRegistry(db: Database.Database) {
       name: 'solana-mcp-server',
       config: JSON.stringify({ command: 'npx', args: ['-y', 'solana-mcp-server'] }),
       description: 'Solana program deployment, account inspection, and docs search',
+      isGlobal: 0,
+    },
+    {
+      name: 'phantom-docs',
+      config: JSON.stringify({ type: 'http', url: 'https://docs.phantom.com/mcp' }),
+      description: 'Phantom Connect SDK docs MCP for wallet connection, signing, and Phantom Portal guidance',
       isGlobal: 0,
     },
     {

@@ -393,8 +393,17 @@ declare global {
     ranAt: number
   }
 
+  interface AppMeta {
+    version: string
+    electronVersion: string
+    platform: string
+    updateChannel: string
+    releaseUrl: string
+  }
+
   interface DaemonSettings {
     getUi: () => Promise<IpcResponse<UiSettings>>
+    getAppMeta: () => Promise<IpcResponse<AppMeta>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
     isOnboardingComplete: () => Promise<IpcResponse<boolean>>

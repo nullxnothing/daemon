@@ -27,7 +27,8 @@
     "release": "npm version patch && git push && git push --tags",
     "pretest": "vite build --mode=test",
     "test": "vitest run",
-    "test:smoke": "pnpm run build && node scripts/smoke/electron-smoke.mjs"
+    "test:smoke": "pnpm run build && node scripts/smoke/electron-smoke.mjs",
+    "test:journeys": "pnpm run build && node scripts/smoke/workflow-journeys.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

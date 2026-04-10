@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNotificationsStore } from '../../store/notifications'
 import './WalletPanel.css'
 
 interface WalletReceiveViewProps {
@@ -9,23 +10,18 @@ interface WalletReceiveViewProps {
 
 export function WalletReceiveView({ address, walletName, onBack }: WalletReceiveViewProps) {
   const [copied, setCopied] = useState(false)
+  const pushSuccess = useNotificationsStore((s) => s.pushSuccess)
+  const pushError = useNotificationsStore((s) => s.pushError)
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(address)
+    const res = await window.daemon.env.copyValue(address)
+    if (res.ok) {
       setCopied(true)
+      pushSuccess(`${walletName} address copied`, 'Wallet')
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Fallback for clipboard failures
-      const textarea = document.createElement('textarea')
-      textarea.value = address
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      return
     }
+    pushError(res.error ?? 'Failed to copy wallet address', 'Wallet')
   }
 
   return (

@@ -3,6 +3,7 @@ import type { SolanaMcpEntry } from '../../store/solanaToolbox'
 const MCP_TAGS: Record<string, string> = {
   helius: 'RPC',
   'solana-mcp-server': 'TOOLS',
+  'phantom-docs': 'WALLET',
   'payai-mcp-server': 'PAY',
   'x402-mcp': 'PAY',
 }

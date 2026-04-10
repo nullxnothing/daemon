@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { getEmbeddedProviderStartupCommand } from '../../../electron/shared/providerLaunch'
 import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
@@ -19,7 +20,7 @@ export function TerminalPanel() {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const removeTerminal = useUIStore((s) => s.removeTerminal)
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const centerMode = useUIStore((s) => s.centerMode)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
   const activeProjectId = useUIStore((s) => s.activeProjectId)

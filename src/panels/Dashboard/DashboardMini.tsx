@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
@@ -143,7 +144,7 @@ export function DashboardMini() {
   }
 
   const openTokenLaunch = () => {
-    useUIStore.getState().setDrawerTool('token-launch')
+    useUIStore.getState().openWorkspaceTool('token-launch')
   }
 
   if (tokens.length === 0) {

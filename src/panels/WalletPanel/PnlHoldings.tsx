@@ -14,6 +14,8 @@ interface HoldingInput {
 interface PnlHoldingsProps {
   walletAddress: string
   holdings: HoldingInput[]
+  onSwapHolding?: (mint: string) => void
+  onCopyMint?: (mint: string, symbol: string) => void
 }
 
 function formatUsd(v: number): string {
@@ -34,7 +36,7 @@ function formatPct(v: number): string {
   return v >= 0 ? `+${str}%` : `-${str}%`
 }
 
-export function PnlHoldings({ walletAddress, holdings }: PnlHoldingsProps) {
+export function PnlHoldings({ walletAddress, holdings, onSwapHolding, onCopyMint }: PnlHoldingsProps) {
   const [portfolio, setPortfolio] = useState<PnlPortfolio | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
@@ -119,25 +121,37 @@ export function PnlHoldings({ walletAddress, holdings }: PnlHoldingsProps) {
         </div>
       )}
 
-      <div className="wallet-holdings">
+        <div className="wallet-holdings">
         {pnlHoldings.length > 0 ? pnlHoldings.map((h: PnlHolding) => (
-          <PnlRow key={h.mint} holding={h} />
+          <PnlRow key={h.mint} holding={h} onSwapHolding={onSwapHolding} onCopyMint={onCopyMint} />
         )) : holdings.map((h: HoldingInput) => (
-          <FallbackRow key={h.mint} holding={h} />
+          <FallbackRow key={h.mint} holding={h} onSwapHolding={onSwapHolding} onCopyMint={onCopyMint} />
         ))}
       </div>
     </section>
   )
 }
 
-function PnlRow({ holding }: { holding: PnlHolding }) {
+function PnlRow({ holding, onSwapHolding, onCopyMint }: {
+  holding: PnlHolding
+  onSwapHolding?: (mint: string) => void
+  onCopyMint?: (mint: string, symbol: string) => void
+}) {
   const hasPnl = holding.totalTrades > 0
 
   return (
     <div className="wallet-holding-row">
-      <div>
+      <div className="wallet-holding-main">
         <div className="wallet-label">{holding.symbol}</div>
         <div className="wallet-caption">{holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+        <div className="wallet-holding-actions">
+          {onSwapHolding && (
+            <button className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
+          )}
+          {onCopyMint && (
+            <button className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
+          )}
+        </div>
       </div>
       <div className="wallet-holding-value">
         <div>${formatUsd(holding.valueUsd)}</div>
@@ -156,12 +170,24 @@ function PnlRow({ holding }: { holding: PnlHolding }) {
   )
 }
 
-function FallbackRow({ holding }: { holding: HoldingInput }) {
+function FallbackRow({ holding, onSwapHolding, onCopyMint }: {
+  holding: HoldingInput
+  onSwapHolding?: (mint: string) => void
+  onCopyMint?: (mint: string, symbol: string) => void
+}) {
   return (
     <div className="wallet-holding-row">
-      <div>
+      <div className="wallet-holding-main">
         <div className="wallet-label">{holding.symbol}</div>
         <div className="wallet-caption">{holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+        <div className="wallet-holding-actions">
+          {onSwapHolding && (
+            <button className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
+          )}
+          {onCopyMint && (
+            <button className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
+          )}
+        </div>
       </div>
       <div className="wallet-holding-value">
         <div>${formatUsd(holding.valueUsd)}</div>

@@ -80,7 +80,7 @@ export function detect(projectPath: string): SolanaProjectInfo {
   // Suggest MCPs based on detection
   const suggestedMcps: string[] = []
   if (isSolanaProject) {
-    suggestedMcps.push('solana-mcp-server', 'helius')
+    suggestedMcps.push('solana-mcp-server', 'helius', 'phantom-docs')
   }
 
   return { isSolanaProject, framework, indicators, suggestedMcps }

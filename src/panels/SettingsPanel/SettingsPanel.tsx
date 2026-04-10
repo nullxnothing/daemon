@@ -10,6 +10,13 @@ import './SettingsPanel.css'
 
 
 type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'setup' | 'crashes'
+interface AppMeta {
+  version: string
+  electronVersion: string
+  platform: string
+  updateChannel: string
+  releaseUrl: string
+}
 
 interface SecureKeyEntry {
   key_name: string
@@ -49,7 +56,7 @@ function findTabForQuery(query: string): SettingsTab | null {
 
 export function SettingsPanel() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const [tab, setTab] = useState<SettingsTab>('keys')
+  const [tab, setTab] = useState<SettingsTab>('setup')
   const [search, setSearch] = useState('')
 
   const handleSearchChange = (value: string) => {
@@ -576,6 +583,15 @@ function CrashesSection() {
 
 function SetupSection() {
   const [resettingLayout, setResettingLayout] = useState(false)
+  const [appMeta, setAppMeta] = useState<AppMeta | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    window.daemon.settings.getAppMeta().then((res) => {
+      if (!cancelled && res.ok && res.data) setAppMeta(res.data)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const handleRerunWizard = async () => {
     const freshProgress = { profile: 'pending' as const, claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
@@ -610,6 +626,41 @@ function SetupSection() {
 
   return (
     <div className="settings-section">
+      {appMeta && (
+        <div className="settings-setup-card">
+          <div className="settings-setup-card-head">
+            <div>
+              <div className="settings-section-label">Release Status</div>
+              <div className="settings-section-desc">
+                Keep recovery and update trust surfaces in one place.
+              </div>
+            </div>
+            <span className="settings-version-pill">v{appMeta.version}</span>
+          </div>
+
+          <div className="settings-setup-meta-grid">
+            <div className="settings-setup-meta">
+              <span className="settings-setup-meta-label">App</span>
+              <strong>DAEMON {appMeta.version}</strong>
+            </div>
+            <div className="settings-setup-meta">
+              <span className="settings-setup-meta-label">Electron</span>
+              <strong>{appMeta.electronVersion}</strong>
+            </div>
+            <div className="settings-setup-meta">
+              <span className="settings-setup-meta-label">Channel</span>
+              <strong>{appMeta.updateChannel}</strong>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="settings-btn" onClick={() => window.daemon.feedback.openUrl(appMeta.releaseUrl)}>
+              Open Latest Release
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="settings-section-desc">
         Re-run the setup wizard or take the app tour again.
       </div>
@@ -617,9 +668,9 @@ function SetupSection() {
         <button className="settings-btn primary" onClick={handleRerunWizard}>
           Re-run Setup Wizard
         </button>
-        <button className="settings-btn" onClick={handleStartTour}>
-          Take App Tour
-        </button>
+          <button className="settings-btn" onClick={handleStartTour}>
+            Take App Tour
+          </button>
         <button className="settings-btn danger" onClick={handleResetLayout} disabled={resettingLayout}>
           {resettingLayout ? 'Resetting...' : 'Reset UI Layout'}
         </button>

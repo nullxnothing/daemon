@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 
 function truncateMiddle(value: string, head = 6, tail = 6) {
   if (value.length <= head + tail + 3) return value
@@ -26,8 +26,8 @@ export function TokenLaunchSection({
   embedded?: boolean
   onRefreshRequested?: () => void
 }) {
-  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
+  const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
+  const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
 
   const [launchpads, setLaunchpads] = useState<LaunchpadDefinition[]>([])
   const [launches, setLaunches] = useState<LaunchedToken[]>([])
@@ -68,35 +68,53 @@ export function TokenLaunchSection({
 
   return (
     <section className={`solana-token-launch ${embedded ? 'embedded' : ''}`}>
-      <div className="solana-token-launch-header">
-        <div>
-          {!embedded && <div className="solana-token-launch-kicker">Token Launch</div>}
-          <h2 className="solana-token-launch-title">
-            {embedded ? 'Live launchpads and recent launches' : 'One launch surface for Solana token launches'}
-          </h2>
-          <p className="solana-token-launch-copy">
-            {embedded
-              ? 'Keep launch availability and recent history visible while the main CTA stays at the tool level.'
-              : 'Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.'}
-          </p>
+      {!embedded && (
+        <div className="solana-token-launch-header">
+          <div>
+            <div className="solana-token-launch-kicker">Token Launch</div>
+            <h2 className="solana-token-launch-title">One launch surface for Solana token launches</h2>
+            <p className="solana-token-launch-copy">
+              Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.
+            </p>
+          </div>
+          <div className="solana-token-launch-actions">
+            <button className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
+            <button
+              className="sol-btn"
+              onClick={() => {
+                onRefreshRequested?.()
+                void reload()
+              }}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
-        <div className="solana-token-launch-actions">
-          <button className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
-          <button
-            className="sol-btn"
-            onClick={() => {
-              onRefreshRequested?.()
-              void reload()
-            }}
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="solana-token-launch-grid">
         <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-title">Launchpads</div>
+          <div className="solana-token-launch-card-head">
+            <div>
+              <div className="solana-token-launch-card-title">Launchpads</div>
+              {embedded && (
+                <div className="solana-token-launch-card-copy">
+                  Live protocol availability stays here so the main tool CTA always has context.
+                </div>
+              )}
+            </div>
+            {embedded && (
+              <button
+                className="sol-btn"
+                onClick={() => {
+                  onRefreshRequested?.()
+                  void reload()
+                }}
+              >
+                Refresh
+              </button>
+            )}
+          </div>
           <div className="solana-launchpad-list">
             {launchpads.map((launchpad) => (
               <div key={launchpad.id} className={`solana-launchpad-row ${launchpad.enabled ? 'enabled' : 'planned'}`}>
@@ -125,7 +143,16 @@ export function TokenLaunchSection({
         </div>
 
         <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-title">Recent Launches</div>
+          <div className="solana-token-launch-card-head">
+            <div>
+              <div className="solana-token-launch-card-title">Recent Launches</div>
+              {embedded && (
+                <div className="solana-token-launch-card-copy">
+                  Wallet-linked launch history gives you the quickest handoff back into post-launch work.
+                </div>
+              )}
+            </div>
+          </div>
           {loading ? (
             <div className="solana-empty">Loading launches...</div>
           ) : launches.length === 0 ? (

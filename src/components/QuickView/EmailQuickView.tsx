@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from 'react'
 import { useEmailStore } from '../../store/email'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { QuickView } from './QuickView'
 
 interface EmailQuickViewProps {
@@ -18,7 +19,7 @@ function relativeTime(timestamp: number): string {
 export function EmailQuickView({ triggerRef }: EmailQuickViewProps) {
   const isOpen = useUIStore((s) => s.emailQuickViewOpen)
   const closeAll = useUIStore((s) => s.closeAllQuickViews)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
 
   const accounts = useEmailStore((s) => s.accounts)
   const messages = useEmailStore((s) => s.messages)
@@ -37,7 +38,7 @@ export function EmailQuickView({ triggerRef }: EmailQuickViewProps) {
 
   const navigateToEmail = () => {
     closeAll()
-    setDrawerTool('email')
+    useUIStore.getState().openWorkspaceTool('email')
   }
 
   const handleCompose = () => {

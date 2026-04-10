@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { EnvironmentBar } from './EnvironmentBar'
@@ -12,7 +12,36 @@ import { ProtocolPacksSection } from './ProtocolPacksSection'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
 import './SolanaToolbox.css'
 
+const SOLANA_VIEWS = [
+  {
+    id: 'overview',
+    label: 'Overview',
+    summary: 'Runtime, validator, and project state',
+  },
+  {
+    id: 'connect',
+    label: 'Connect',
+    summary: 'Providers, MCPs, and wallet paths',
+  },
+  {
+    id: 'build',
+    label: 'Build',
+    summary: 'Scaffolds, skills, and payment setup',
+  },
+  {
+    id: 'integrate',
+    label: 'Integrate',
+    summary: 'Protocol packs and ecosystem coverage',
+  },
+  {
+    id: 'diagnose',
+    label: 'Diagnose',
+    summary: 'Toolchain readiness and environment checks',
+  },
+] as const
+
 export function SolanaToolbox() {
+  const [activeView, setActiveView] = useState<(typeof SOLANA_VIEWS)[number]['id']>('overview')
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
@@ -48,40 +77,86 @@ export function SolanaToolbox() {
   return (
     <div className="solana-toolbox">
       <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} toolchain={toolchain} />
-      <div className="solana-validator-zone">
-        <ValidatorCard />
-      </div>
 
-      <div className="solana-validator-zone">
-        <ToolchainSection toolchain={toolchain} />
-      </div>
+      <section className="solana-workflow-shell">
+        <div className="solana-workflow-header">
+          <div>
+            <div className="solana-token-launch-kicker">Solana Workspace</div>
+            <h1 className="solana-workflow-title">Choose the task you need right now</h1>
+            <p className="solana-workflow-copy">
+              Keep DAEMON focused on the next Solana job instead of making you scroll through one oversized toolbox page.
+            </p>
+          </div>
+        </div>
 
-      <div className="solana-split">
-        <ConnectedServices
-          mcps={mcps}
-          projectPath={activeProjectPath}
-          onToggle={toggleMcp}
-        />
-        <CapabilitiesSection
-          mcps={mcps}
-          projectPath={activeProjectPath}
-          onToggle={toggleMcp}
-          onScaffoldX402={handleScaffoldX402}
-          onScaffoldMpp={handleScaffoldMpp}
-        />
-      </div>
+        <div className="solana-view-tabs" role="tablist" aria-label="Solana workflow views">
+          {SOLANA_VIEWS.map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              role="tab"
+              aria-selected={activeView === view.id}
+              className={`solana-view-tab${activeView === view.id ? ' active' : ''}`}
+              onClick={() => setActiveView(view.id)}
+            >
+              <span className="solana-view-tab-label">{view.label}</span>
+              <span className="solana-view-tab-summary">{view.summary}</span>
+            </button>
+          ))}
+        </div>
 
-      <div className="solana-validator-zone">
-        <RuntimeStackSection />
-      </div>
+        <div className="solana-view-panel">
+          {activeView === 'overview' && (
+            <>
+              <div className="solana-validator-zone">
+                <ValidatorCard />
+              </div>
+              <div className="solana-validator-zone">
+                <RuntimeStackSection />
+              </div>
+            </>
+          )}
 
-      <div className="solana-validator-zone">
-        <ProtocolPacksSection />
-      </div>
+          {activeView === 'connect' && (
+            <div className="solana-validator-zone">
+              <ConnectedServices
+                mcps={mcps}
+                projectPath={activeProjectPath}
+                onToggle={toggleMcp}
+              />
+            </div>
+          )}
 
-      <div className="solana-validator-zone">
-        <EcosystemSection />
-      </div>
+          {activeView === 'build' && (
+            <div className="solana-validator-zone">
+              <CapabilitiesSection
+                mcps={mcps}
+                projectPath={activeProjectPath}
+                onToggle={toggleMcp}
+                onScaffoldX402={handleScaffoldX402}
+                onScaffoldMpp={handleScaffoldMpp}
+              />
+            </div>
+          )}
+
+          {activeView === 'integrate' && (
+            <>
+              <div className="solana-validator-zone">
+                <ProtocolPacksSection />
+              </div>
+              <div className="solana-validator-zone">
+                <EcosystemSection />
+              </div>
+            </>
+          )}
+
+          {activeView === 'diagnose' && (
+            <div className="solana-validator-zone">
+              <ToolchainSection toolchain={toolchain} />
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

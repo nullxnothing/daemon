@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useImageStore } from '../../store/images'
 import './ImagePanel.css'
 
@@ -153,7 +154,7 @@ export function ImagePanel() {
   }
 
   const handleGoToSettings = () => {
-    useUIStore.getState().setDrawerTool('settings')
+    useUIStore.getState().openWorkspaceTool('settings')
   }
 
   const handleSaveKey = async () => {

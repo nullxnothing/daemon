@@ -23,6 +23,7 @@ import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
 import { useEmailStore } from './store/email'
 import { useSolanaToolboxStore } from './store/solanaToolbox'
+import { useWorkflowShellStore } from './store/workflowShell'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
 import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
@@ -56,8 +57,8 @@ function App() {
   const tourActive = useOnboardingStore((s) => s.tourActive)
   const showTourOffer = useOnboardingStore((s) => s.showTourOffer)
   const centerMode = useUIStore((s) => s.centerMode)
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
+  const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -316,7 +317,16 @@ function App() {
         toggleRightPanel: () => setShowRightPanel((v) => !v),
         openAgentLauncher: () => setShowAgentLauncher(true),
         toggleExplorer: () => setShowExplorer((v) => !v),
-        setDrawerTool: (tool) => useUIStore.getState().setDrawerTool(tool),
+        returnToEditor: () => {
+          const ui = useUIStore.getState()
+          ui.setCenterMode('canvas')
+          ui.setBrowserTabActive(false)
+          ui.setDashboardTabActive(false)
+          ui.setActiveWorkspaceTool(null)
+          useWorkflowShellStore.getState().closeDrawer()
+        },
+        openWorkspaceTool: (tool) => useUIStore.getState().openWorkspaceTool(tool),
+        closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
         toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
       }),
@@ -333,7 +343,7 @@ function App() {
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
           <button
             className="crash-warning-link"
-            onClick={() => { useUIStore.getState().setDrawerTool('settings'); setCrashWarningCount(null) }}
+            onClick={() => { useUIStore.getState().openWorkspaceTool('settings'); setCrashWarningCount(null) }}
           >
             View crash log
           </button>

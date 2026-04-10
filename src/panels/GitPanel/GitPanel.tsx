@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useOnboardingStore } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
@@ -357,41 +358,51 @@ export function GitPanel() {
   const staged = files.filter((f) => f.staged)
   const unstaged = files.filter((f) => f.unstaged || f.untracked)
   const isWorkingInCopy = !!branch && branch !== 'main' && branch !== 'master'
+  const workingTreeLabel = files.length === 0 ? 'Clean' : `${unstaged.length} changes`
+  const deployLabel = deployStatus ? `${deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'} ${deployStatus.latestStatus ?? 'Linked'}` : 'No linked deploy'
 
   return (
     <div className="git-center">
-      {/* Header */}
-      <div className="git-header">
-        <h2 className="git-title">Git</h2>
-        <div className="git-branch-selector">
-          <select value={branch ?? ''} onChange={(e) => handleCheckout(e.target.value)}>
-            {branches.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
-          <span className="git-branch-chevron" aria-hidden="true">▾</span>
-          {isWorkingInCopy && (
-            <div className="git-branch-safety-pill">
-              Working safely in a copy (Branch: {branch})
+      <section className="git-workflow-hero">
+        <div className="git-workflow-header">
+          <div className="git-workflow-copy">
+            <div className="git-workflow-kicker">Version Control</div>
+            <h2 className="git-title">Git workflow</h2>
+            <p className="git-workflow-text">
+              Read branch state first, stage deliberately, then commit and push from one surface without losing deploy context.
+            </p>
+          </div>
+
+          <div className="git-workflow-topbar">
+            <div className="git-branch-selector">
+              <select value={branch ?? ''} onChange={(e) => handleCheckout(e.target.value)}>
+                {branches.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              <span className="git-branch-chevron" aria-hidden="true">▾</span>
+              {isWorkingInCopy && (
+                <div className="git-branch-safety-pill">
+                  Working safely in a copy (Branch: {branch})
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div className="git-add-menu-wrap">
-          <button
-            className="git-add-btn"
-            onClick={() => {
-              setShowAddMenu((prev) => !prev)
-              setShowCreateBranch(false)
-              setShowCreateTag(false)
-              setShowStashSave(false)
-            }}
-            aria-expanded={showAddMenu}
-            aria-haspopup="menu"
-          >
-            + Add
-          </button>
-          {showAddMenu && (
-            <div className="git-add-menu" role="menu">
+            <div className="git-add-menu-wrap">
+              <button
+                className="git-add-btn"
+                onClick={() => {
+                  setShowAddMenu((prev) => !prev)
+                  setShowCreateBranch(false)
+                  setShowCreateTag(false)
+                  setShowStashSave(false)
+                }}
+                aria-expanded={showAddMenu}
+                aria-haspopup="menu"
+              >
+                + Add
+              </button>
+              {showAddMenu && (
+                <div className="git-add-menu" role="menu">
               <button
                 className="git-add-option"
                 onClick={() => setShowCreateBranch((prev) => !prev)}
@@ -507,13 +518,34 @@ export function GitPanel() {
               {latestStashMessage && (
                 <div className="git-add-meta">Latest stash: {latestStashMessage}</div>
               )}
+                </div>
+              )}
             </div>
-          )}
+            <button className="git-push-btn" onClick={handlePush} disabled={pushing}>
+              {pushing ? 'Pushing...' : 'Push'}
+            </button>
+          </div>
         </div>
-        <button className="git-push-btn" onClick={handlePush} disabled={pushing}>
-          {pushing ? 'Pushing...' : 'Push'}
-        </button>
-      </div>
+
+        <div className="git-workflow-metrics">
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Branch</div>
+            <div className="git-workflow-metric-value git-workflow-metric-value--mono">{branch ?? 'Detached'}</div>
+          </div>
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Working tree</div>
+            <div className="git-workflow-metric-value">{workingTreeLabel}</div>
+          </div>
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Ready to commit</div>
+            <div className="git-workflow-metric-value">{staged.length} staged</div>
+          </div>
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Deploy link</div>
+            <div className="git-workflow-metric-value">{deployLabel}</div>
+          </div>
+        </div>
+      </section>
 
       {deployStatus && (() => {
         const dotColor = deployStatus.latestStatus === 'READY' ? 'var(--green)'
@@ -522,7 +554,7 @@ export function GitPanel() {
         return (
           <div
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', margin: '0 16px', fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', border: '1px solid var(--s5)', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start' }}
-            onClick={() => useUIStore.getState().setDrawerTool('deploy')}
+            onClick={() => useUIStore.getState().openWorkspaceTool('deploy')}
           >
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
             <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>

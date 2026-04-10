@@ -21,6 +21,9 @@
     rgba(255, 255, 255, 0.02);
   box-shadow: var(--shadow-lifted);
   overflow: hidden;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
 }
 
 .token-launch-tool-header {
@@ -62,6 +65,7 @@
   display: flex;
   gap: 10px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .token-launch-tool-zone {
@@ -74,7 +78,7 @@
 
 .token-launch-tool-highlight-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   padding: 0 22px 22px;
 }
@@ -110,22 +114,13 @@
   line-height: 1.5;
 }
 
-.token-launch-tool-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-  gap: 18px;
-  min-height: 0;
-}
-
-.token-launch-tool-main,
-.token-launch-tool-side {
-  min-width: 0;
-}
-
-.token-launch-tool-side {
+.token-launch-tool-flow {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .token-launch-tool-zone-head {
@@ -190,13 +185,8 @@
     align-items: stretch;
   }
 
-  .token-launch-tool-highlight-grid,
-  .token-launch-tool-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .token-launch-tool-side {
-    gap: 16px;
+  .token-launch-tool-actions .sol-btn {
+    width: 100%;
   }
 }
 

@@ -168,46 +168,54 @@ export function HackathonPanel() {
   if (!isConfigured) {
     return (
       <div className="hackathon-panel">
-        <div className="hackathon-header">
-          <span className="hackathon-dot disconnected" />
-          <span className="hackathon-header-label">COLOSSEUM</span>
+        <div className="hackathon-workspace-bar">
+          <div className="hackathon-workspace-copy">
+            <span className="hackathon-workspace-kicker">Build week</span>
+            <h2 className="hackathon-workspace-title">Turn hackathon prep into a real workspace</h2>
+            <p className="hackathon-workspace-subtitle">
+              Connect Colosseum once, keep a submission checklist in-app, and jump straight into research when you need it.
+            </p>
+          </div>
         </div>
 
         <div className="hackathon-connect">
-          <p className="hackathon-desc">
-            Connect to research 5,400+ hackathon projects and track your submission.
-          </p>
+          <div className="hackathon-card">
+            <span className="hackathon-card-title">Connect Colosseum</span>
+            <p className="hackathon-desc">
+              Research 5,400+ projects, keep deadline pressure visible, and work from one place instead of bouncing to the Arena manually.
+            </p>
 
-          <div className="hackathon-input-row">
-            <input
-              type="password"
-              className="hackathon-input"
-              placeholder="Copilot PAT"
-              value={patInput}
-              onChange={(e) => setPatInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleConnect() }}
-            />
-            <button
-              className="hackathon-btn"
-              onClick={handleConnect}
-              disabled={connecting || !patInput.trim()}
+            <div className="hackathon-input-row">
+              <input
+                type="password"
+                className="hackathon-input"
+                placeholder="Copilot PAT"
+                value={patInput}
+                onChange={(e) => setPatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleConnect() }}
+              />
+              <button
+                className="hackathon-btn"
+                onClick={handleConnect}
+                disabled={connecting || !patInput.trim()}
+              >
+                {connecting ? 'Connecting...' : 'Connect'}
+              </button>
+            </div>
+
+
+            <span
+              className="hackathon-link"
+              onClick={() => {
+                useBrowserStore.getState().setUrl('https://arena.colosseum.org/copilot')
+                useUIStore.getState().openBrowserTab()
+              }}
             >
-              {connecting ? 'Connecting...' : 'Connect'}
-            </button>
+              Get a token at arena.colosseum.org/copilot
+            </span>
+
+            {error && <div className="hackathon-error">{error}</div>}
           </div>
-
-
-          <span
-            className="hackathon-link"
-            onClick={() => {
-              useBrowserStore.getState().setUrl('https://arena.colosseum.org/copilot')
-              useUIStore.getState().openBrowserTab()
-            }}
-          >
-            Get a token at arena.colosseum.org/copilot
-          </span>
-
-          {error && <div className="hackathon-error">{error}</div>}
         </div>
       </div>
     )
@@ -218,23 +226,36 @@ export function HackathonPanel() {
 
   return (
     <div className="hackathon-panel">
-      <div className="hackathon-header">
-        <span className="hackathon-dot connected" />
-        <span className="hackathon-header-label">COLOSSEUM</span>
-        <span className="hackathon-header-status">Connected</span>
+      <div className="hackathon-workspace-bar">
+        <div className="hackathon-workspace-copy">
+          <span className="hackathon-workspace-kicker">Build week</span>
+          <h2 className="hackathon-workspace-title">Keep hackathon momentum visible</h2>
+          <p className="hackathon-workspace-subtitle">
+            Track deadline pressure, research comparable projects, and jump from planning to Arena without leaving DAEMON.
+          </p>
+        </div>
       </div>
 
-      {/* Active hackathon card */}
-      <div className="hackathon-card">
-        <span className="hackathon-card-title">Frontier</span>
-        {countdown && (
-          <span className={`hackathon-countdown ${countdown.urgency}`}>
-            {countdown.text}
-          </span>
-        )}
+      <div className="hackathon-summary-grid">
+        <div className="hackathon-card">
+          <span className="hackathon-card-title">Arena status</span>
+          <strong className="hackathon-card-value">Connected</strong>
+          <span className="hackathon-card-detail">Colosseum research is available</span>
+        </div>
+        <div className="hackathon-card">
+          <span className="hackathon-card-title">Active hackathon</span>
+          <strong className="hackathon-card-value">Frontier</strong>
+          <span className="hackathon-card-detail">Current working target</span>
+        </div>
+        <div className="hackathon-card">
+          <span className="hackathon-card-title">Deadline</span>
+          <strong className={`hackathon-card-value ${countdown?.urgency ?? 'normal'}`}>
+            {countdown?.text ?? 'No deadline'}
+          </strong>
+          <span className="hackathon-card-detail">{completedCount}/{CHECKLIST_ITEMS.length} checklist items done</span>
+        </div>
       </div>
 
-      {/* Submission checklist */}
       <span className="hackathon-section-title">Submission Checklist ({completedCount}/{CHECKLIST_ITEMS.length})</span>
       <div className="hackathon-checklist">
         {CHECKLIST_ITEMS.map((item) => (
@@ -252,7 +273,6 @@ export function HackathonPanel() {
         ))}
       </div>
 
-      {/* Research search */}
       <span className="hackathon-section-title">Research</span>
       <form className="hackathon-search-form" onSubmit={handleSearch}>
         <input
@@ -301,10 +321,9 @@ export function HackathonPanel() {
         </div>
       )}
 
-      {/* Quick actions */}
       <span className="hackathon-section-title">Quick Actions</span>
       <div className="hackathon-actions">
-        <button className="hackathon-btn-secondary" onClick={handleResearchAgent}>
+        <button className="hackathon-btn" onClick={handleResearchAgent}>
           Research Competition
         </button>
         <button className="hackathon-btn-secondary" onClick={handleOpenArena}>

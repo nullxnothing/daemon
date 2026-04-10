@@ -205,7 +205,7 @@ export interface GhostPort {
 
 export interface McpEntry {
   name: string
-  config: { command?: string; args?: string[]; env?: Record<string, string>; type?: string }
+  config: { command?: string; args?: string[]; env?: Record<string, string>; type?: string; url?: string }
   source: string
   enabled: boolean
 }
