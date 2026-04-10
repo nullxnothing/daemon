@@ -158,6 +158,13 @@ function TokenLaunchIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function ProIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l2.9 5.88 6.49.95-4.7 4.58 1.11 6.47L12 17.77l-5.8 3.06 1.11-6.47-4.7-4.58 6.49-.95L12 3z" />
+    </svg>
+  )
+}
 
 // Icon lookup for pinned sidebar tools
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
@@ -166,7 +173,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
   'token-launch': TokenLaunchIcon,
-  dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon,
+  dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon,
 }
 
 // Tool name lookup
@@ -176,7 +183,7 @@ export const TOOL_NAMES: Record<string, string> = {
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
   'token-launch': 'Token Launch',
-  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery',
+  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery', pro: 'Daemon Pro',
 }
 
 // Lazy-load all tool components
@@ -199,6 +206,7 @@ const loadSessionHistory = () => import('../../panels/SessionRegistry/SessionHis
 const loadHackathonPanel = () => import('../../panels/Colosseum/HackathonPanel')
 const loadPluginManager = () => import('../../panels/PluginManager/PluginManager')
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
+const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -219,6 +227,7 @@ const SessionHistory = lazyNamedWithReload('session-history', loadSessionHistory
 const HackathonPanel = lazyNamedWithReload('hackathon-panel', loadHackathonPanel, (m) => m.HackathonPanel)
 const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (m) => m.PluginManager)
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
+const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -236,6 +245,7 @@ export const TOOL_COLORS: Record<string, string> = {
   'token-launch': '#38d39f',
   'block-scanner': '#38bdf8',
   docs: '#94a3b8',
+  pro: '#ffd700',
 }
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
@@ -258,6 +268,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, preload: () => { void loadDashboardCanvas() }, category: 'crypto' },
   { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
   { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'crypto' },
+  { id: 'pro', name: 'Daemon Pro', description: 'Arena, Pro skills, MCP sync, and priority API', icon: ProIcon, component: ProPanel, preload: () => { void loadProPanel() }, category: 'crypto' },
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
 ]

@@ -540,3 +540,15 @@ CREATE TABLE IF NOT EXISTS launched_tokens (
 CREATE INDEX IF NOT EXISTS idx_launched_tokens_wallet ON launched_tokens(wallet_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_launched_tokens_mint ON launched_tokens(mint);
 `
+
+export const SCHEMA_V25 = `
+CREATE TABLE IF NOT EXISTS pro_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  wallet_id TEXT,
+  wallet_address TEXT,
+  expires_at INTEGER,
+  features TEXT,
+  tier TEXT,
+  updated_at INTEGER NOT NULL
+);
+`
