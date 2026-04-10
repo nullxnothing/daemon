@@ -12,7 +12,7 @@ import {
 import bs58 from 'bs58'
 import * as fs from 'node:fs'
 import * as SecureKey from './SecureKeyService'
-import { getHeliusApiKey } from './SolanaService'
+import { executeTransaction, getHeliusApiKey } from './SolanaService'
 import type { RecoveryWalletInfo, RecoveryProgressEvent, RecoveryStatus } from '../shared/types'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -72,10 +72,14 @@ async function sendAndConfirm(
   conn: Connection, tx: VersionedTransaction, timeout = 15_000,
 ): Promise<string | null> {
   try {
-    const sig = await conn.sendRawTransaction(tx.serialize(), { skipPreflight: true, maxRetries: 2 })
-    const result = await conn.confirmTransaction(sig, 'confirmed')
-    if (result.value.err) return null
-    return sig
+    const { signature } = await executeTransaction(conn, tx, [], {
+      timeoutMs: timeout,
+      sendOptions: {
+        skipPreflight: true,
+        maxRetries: 2,
+      },
+    })
+    return signature
   } catch {
     return null
   }

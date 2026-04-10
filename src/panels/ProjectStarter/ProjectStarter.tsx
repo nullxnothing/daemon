@@ -188,7 +188,7 @@ interface WizardState {
   savePath: string
 }
 
-function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
+export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
   if (!settings) return ''
 
   const rpcPreference = settings.rpcProvider === 'quicknode'
@@ -213,7 +213,33 @@ function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): stri
     `- ${walletPreference}`,
     `- Use ${settings.swapProvider === 'jupiter' ? 'Jupiter' : settings.swapProvider} as the default swap and routing layer when swaps are part of the scaffold.`,
     `- ${executionPreference}`,
+    '- Read the generated `daemon.solana-runtime.json` file and wire the scaffold around that runtime preset instead of inventing a different stack.',
   ].join('\n')
+}
+
+export function buildRuntimePreset(settings: WalletInfrastructureSettings | null) {
+  if (!settings) return null
+
+  return {
+    version: 1,
+    generatedBy: 'DAEMON',
+    generatedAt: new Date().toISOString(),
+    transport: {
+      provider: settings.rpcProvider,
+      quicknodeRpcUrl: settings.quicknodeRpcUrl || null,
+      customRpcUrl: settings.customRpcUrl || null,
+    },
+    wallet: {
+      preferredWallet: settings.preferredWallet,
+    },
+    execution: {
+      mode: settings.executionMode,
+      jitoBlockEngineUrl: settings.jitoBlockEngineUrl,
+    },
+    swaps: {
+      provider: settings.swapProvider,
+    },
+  }
 }
 
 function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
@@ -382,6 +408,19 @@ export function ProjectStarter() {
       }
       setActiveProject(newProject.id, projectPath)
 
+      const runtimePreset = buildRuntimePreset(walletInfrastructure)
+      if (runtimePreset) {
+        const runtimePresetRes = await window.daemon.fs.writeFile(
+          `${projectPath}/daemon.solana-runtime.json`,
+          `${JSON.stringify(runtimePreset, null, 2)}\n`,
+        )
+        if (!runtimePresetRes.ok) {
+          setError(runtimePresetRes.error ?? 'Failed to write runtime preset')
+          setWizard((prev) => ({ ...prev, step: 'configure' }))
+          return
+        }
+      }
+
       // Spawn a terminal with Claude agent to scaffold the project
       const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
       const templateSpecificPrompt = buildTemplateSpecificPrompt(wizard.template.id, walletInfrastructure)
@@ -393,6 +432,7 @@ export function ProjectStarter() {
         runtimePrompt,
         templateSpecificPrompt,
         ``,
+        `Create or update project files so the app runtime matches \`daemon.solana-runtime.json\`.`,
         `IMPORTANT: Create all files directly. Do not ask questions. Just build it.`,
         `After scaffolding, run any install commands (npm install / cargo build) as needed.`,
         `Keep output concise. When done, print "Project scaffolding complete."`,
@@ -481,6 +521,7 @@ export function ProjectStarter() {
     const runtimeSummary = walletInfrastructure ? [
       walletInfrastructure.rpcProvider === 'quicknode' ? 'QuickNode RPC' : walletInfrastructure.rpcProvider === 'custom' ? 'Custom RPC' : walletInfrastructure.rpcProvider === 'public' ? 'Public RPC' : 'Helius RPC',
       walletInfrastructure.preferredWallet === 'phantom' ? 'Phantom-first wallet flow' : 'Wallet Standard flow',
+      `${walletInfrastructure.swapProvider === 'jupiter' ? 'Jupiter' : walletInfrastructure.swapProvider} swaps`,
       walletInfrastructure.executionMode === 'jito' ? 'Jito execution' : 'RPC execution',
     ] : []
 
@@ -531,7 +572,7 @@ export function ProjectStarter() {
             <div className="starter-runtime-card">
               <div className="starter-runtime-title">Solana Runtime Preset</div>
               <div className="starter-runtime-copy">
-                This scaffold will follow the current DAEMON Solana runtime preferences.
+                This scaffold will follow the current DAEMON Solana runtime preferences and include a `daemon.solana-runtime.json` file that the generated app should read.
               </div>
               <div className="starter-runtime-tags">
                 {runtimeSummary.map((item) => (

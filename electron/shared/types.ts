@@ -406,6 +406,40 @@ export interface WalletDashboard {
   }>
 }
 
+export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'
+
+export interface SolanaTransactionPreviewInput {
+  kind: SolanaTransactionPreviewKind
+  walletId?: string
+  destination?: string
+  amount?: number
+  sendMax?: boolean
+  mint?: string
+  tokenSymbol?: string
+  inputMint?: string
+  outputMint?: string
+  inputSymbol?: string
+  outputSymbol?: string
+  inputAmount?: string
+  outputAmount?: string
+  slippageBps?: number
+  priceImpactPct?: string
+  protocol?: string
+}
+
+export interface SolanaTransactionPreview {
+  title: string
+  backendLabel: string
+  signerLabel: string
+  targetLabel: string
+  amountLabel: string
+  feeLabel: string
+  notes: string[]
+  warnings: string[]
+  requiresAcknowledgement: boolean
+  acknowledgementLabel: string | null
+}
+
 // --- Env ---
 
 export interface EnvVar {

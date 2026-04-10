@@ -1,4 +1,4 @@
-import { Connection, Keypair, type SendOptions } from '@solana/web3.js'
+import { Connection, Keypair, Transaction, TransactionMessage, VersionedTransaction, type SendOptions, type TransactionInstruction, type PublicKey } from '@solana/web3.js'
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { getWalletInfrastructureSettings } from './SettingsService'
@@ -53,6 +53,13 @@ export function getTransactionSubmissionSettings() {
   }
 }
 
+export type TransactionTransport = ReturnType<typeof getTransactionSubmissionSettings>['mode']
+
+export interface TransactionExecutionResult {
+  signature: string
+  transport: TransactionTransport
+}
+
 export async function submitRawTransaction(
   connection: Connection,
   rawTx: Buffer | Uint8Array,
@@ -103,6 +110,73 @@ export async function confirmSignature(connection: Connection, signature: string
   } finally {
     if (timer) clearTimeout(timer)
   }
+}
+
+export async function executeTransaction(
+  connection: Connection,
+  transaction: Transaction | VersionedTransaction,
+  signers: Keypair[],
+  options?: {
+    timeoutMs?: number
+    feePayer?: PublicKey
+    sendOptions?: SendOptions
+  },
+): Promise<TransactionExecutionResult> {
+  const { mode } = getTransactionSubmissionSettings()
+
+  if (transaction instanceof Transaction) {
+    const latest = await connection.getLatestBlockhash('confirmed')
+    transaction.feePayer = options?.feePayer ?? transaction.feePayer ?? signers[0]?.publicKey
+    transaction.recentBlockhash = latest.blockhash
+    if (signers.length > 0) {
+      transaction.sign(...signers)
+    }
+  } else if (signers.length > 0) {
+    transaction.sign(signers)
+  }
+
+  const signature = await submitRawTransaction(connection, transaction.serialize(), {
+    skipPreflight: mode === 'jito',
+    maxRetries: mode === 'jito' ? 0 : 3,
+    ...options?.sendOptions,
+  })
+  await confirmSignature(connection, signature, options?.timeoutMs)
+
+  return {
+    signature,
+    transport: mode,
+  }
+}
+
+export async function executeInstructions(
+  connection: Connection,
+  instructions: TransactionInstruction[],
+  signers: Keypair[],
+  options?: {
+    timeoutMs?: number
+    payer?: PublicKey
+  },
+): Promise<TransactionExecutionResult> {
+  if (instructions.length === 0) {
+    throw new Error('Cannot execute an empty instruction set')
+  }
+
+  const payer = options?.payer ?? signers[0]?.publicKey
+  if (!payer) {
+    throw new Error('A fee payer is required to execute instructions')
+  }
+
+  const { blockhash } = await connection.getLatestBlockhash('confirmed')
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions,
+  }).compileToV0Message()
+
+  return executeTransaction(connection, new VersionedTransaction(message), signers, {
+    timeoutMs: options?.timeoutMs,
+    feePayer: payer,
+  })
 }
 
 export function loadKeypair(walletId: string): Keypair {

@@ -1,9 +1,10 @@
 import { ipcMain, dialog, clipboard } from 'electron'
 import { getDb } from '../db/db'
 import * as WalletService from '../services/WalletService'
+import { previewSolanaTransaction } from '../services/SolanaTransactionPreviewService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
-import type { WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
+import type { SolanaTransactionPreviewInput, WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
 
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', ipcHandler(async (_event, projectId?: string | null) => {
@@ -75,6 +76,10 @@ export function registerWalletHandlers() {
 
   ipcMain.handle('wallet:swap-quote', ipcHandler(async (_event, input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {
     return await WalletService.getSwapQuote(input.inputMint, input.outputMint, input.amount, input.slippageBps)
+  }))
+
+  ipcMain.handle('wallet:transaction-preview', ipcHandler(async (_event, input: SolanaTransactionPreviewInput) => {
+    return previewSolanaTransaction(input)
   }))
 
   ipcMain.handle('wallet:swap-execute', ipcHandler(async (_event, input: {

@@ -64,6 +64,63 @@ export function WalletSettings({
       {error && <div className="wallet-empty">{error}</div>}
 
       <div className="wallet-settings-layout">
+        <div className="wallet-settings-card wallet-settings-card--full wallet-runtime-summary-card">
+          <div className="wallet-settings-card-head">
+            <div>
+              <div className="wallet-label">DAEMON Solana Runtime</div>
+              <div className="wallet-caption">
+                These settings are not just wallet preferences. DAEMON uses them to steer project scaffolds, wallet flows,
+                token launch execution, toolbox guidance, and the Solana runtime it will keep expanding.
+              </div>
+            </div>
+            <span className={`wallet-state-badge ${heliusConfigured ? 'live' : 'muted'}`}>
+              {heliusConfigured ? 'Runtime Active' : 'Needs Setup'}
+            </span>
+          </div>
+
+          <div className="wallet-runtime-summary-grid">
+            <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Reads + Data</div>
+              <div className="wallet-runtime-summary-value">
+                {draftInfra.rpcProvider === 'helius' ? 'Helius indexed runtime' : draftInfra.rpcProvider === 'public' ? 'Public RPC fallback' : draftInfra.rpcProvider === 'quicknode' ? 'QuickNode runtime' : 'Custom RPC runtime'}
+              </div>
+              <div className="wallet-caption">
+                DAEMON uses this path for balance reads, holdings, toolbox checks, and generated Solana transports.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Wallet UX</div>
+              <div className="wallet-runtime-summary-value">
+                {draftInfra.preferredWallet === 'phantom' ? 'Phantom-first' : 'Wallet Standard'}
+              </div>
+              <div className="wallet-caption">
+                This should become the default connect and signing experience across DAEMON-generated apps.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Execution</div>
+              <div className="wallet-runtime-summary-value">
+                {draftInfra.executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC submission'}
+              </div>
+              <div className="wallet-caption">
+                Wallet sends, swaps, and launch flows should converge on this same transaction pipeline.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Swap Layer</div>
+              <div className="wallet-runtime-summary-value">
+                {jupiterConfigured ? 'Jupiter ready' : 'Jupiter key missing'}
+              </div>
+              <div className="wallet-caption">
+                DAEMON already treats Jupiter as the shared swap engine. The key makes that runtime usable instead of aspirational.
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">
             <div>
@@ -91,8 +148,10 @@ export function WalletSettings({
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">
             <div>
-              <div className="wallet-label">RPC Provider</div>
-              <div className="wallet-caption">Choose how DAEMON resolves Solana reads and transaction submission.</div>
+              <div className="wallet-label">Reads + RPC Provider</div>
+              <div className="wallet-caption">
+                Choose the Solana transport DAEMON should trust for wallet reads, toolbox checks, and generated project defaults.
+              </div>
             </div>
             <span className={`wallet-state-badge ${draftInfra.rpcProvider === 'helius' && heliusConfigured ? 'live' : 'muted'}`}>
               {draftInfra.rpcProvider.toUpperCase()}
@@ -135,7 +194,7 @@ export function WalletSettings({
             <div>
               <div className="wallet-label">Helius API Key</div>
               <div className="wallet-caption">
-                {heliusConfigured ? 'A Helius key is stored for indexed wallet data and Helius RPC access.' : 'Add a Helius key to enable indexed balances, holdings, and Helius-backed RPC.'}
+                {heliusConfigured ? 'A Helius key is stored for indexed wallet data, Helius RPC access, and DAEMON runtime upgrades built on Helius.' : 'Add a Helius key to enable indexed balances, holdings, realtime-ready reads, and the Helius-backed DAEMON runtime.'}
               </div>
             </div>
             <span className={`wallet-state-badge ${heliusConfigured ? 'live' : 'muted'}`}>
@@ -160,8 +219,10 @@ export function WalletSettings({
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">
             <div>
-              <div className="wallet-label">Swap Execution</div>
-              <div className="wallet-caption">Configure the wallet path and submission route DAEMON uses for swaps and sends.</div>
+              <div className="wallet-label">Wallet + Execution Pipeline</div>
+              <div className="wallet-caption">
+                Configure the wallet model and transaction path DAEMON should keep reusing for sends, swaps, and launches.
+              </div>
             </div>
             <span className={`wallet-state-badge ${jupiterConfigured ? 'live' : 'muted'}`}>
               {jupiterConfigured ? 'Ready' : 'Key Missing'}

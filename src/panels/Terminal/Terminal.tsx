@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
-import { getEmbeddedProviderStartupCommand } from '../../../electron/shared/providerLaunch'
 import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
@@ -35,8 +34,6 @@ export function TerminalPanel() {
   const [splitLayoutsByProject, setSplitLayoutsByProject] = useState<Record<string, SplitLayout | undefined>>({})
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
   const [isDragOver, setIsDragOver] = useState(false)
-  const [claudeInstallStatus, setClaudeInstallStatus] = useState<'idle' | 'installing' | 'failed'>('idle')
-  const [installTerminalId, setInstallTerminalId] = useState<string | null>(null)
   const panelDragDepthRef = useRef(0)
   const creatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
@@ -137,55 +134,17 @@ export function TerminalPanel() {
     setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
   }, [activeProjectId])
 
-  // Auto-create first terminal for project — starts in Claude mode if CLI is available
+  // Auto-create the first terminal as a neutral shell. Agent sessions should only
+  // start from explicit user actions, not from opening the bottom terminal.
   useEffect(() => {
     if (IS_SMOKE_TEST) return
     if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
     creatingRef.current = true
 
-    window.daemon.terminal.checkClaude().then((res): Promise<void> => {
-      if (!res.ok || !res.data) {
-        // Fallback to plain shell if the check itself fails
-        return handleNewTerminal('Terminal').then(() => {})
-      }
-
-      const { installed } = res.data
-
-      if (installed) {
-        return handleNewTerminal('Claude', getEmbeddedProviderStartupCommand('claude')).then(() => {})
-      }
-
-      // Claude CLI not found — open terminal and run the install command
-      setClaudeInstallStatus('installing')
-      return handleNewTerminal('Installing Claude').then((terminalId) => {
-        if (!terminalId) {
-          setClaudeInstallStatus('failed')
-          return
-        }
-        setInstallTerminalId(terminalId)
-        window.daemon.terminal.write(terminalId, 'npm install -g @anthropic-ai/claude-code\r')
-      })
-    }).finally(() => {
+    handleNewTerminal('Terminal').finally(() => {
       creatingRef.current = false
     })
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
-
-  // Auto-dismiss the Claude install banner when the install terminal exits.
-  // The install runs `npm install -g @anthropic-ai/claude-code` interactively in
-  // a real shell, so we treat any clean exit as success.
-  useEffect(() => {
-    if (!installTerminalId) return
-    const cleanup = window.daemon.terminal.onExit((payload) => {
-      if (payload.id !== installTerminalId) return
-      if (payload.exitCode === 0) {
-        setClaudeInstallStatus('idle')
-      } else {
-        setClaudeInstallStatus('failed')
-      }
-      setInstallTerminalId(null)
-    })
-    return cleanup
-  }, [installTerminalId])
 
   // Sync split layout when terminals change
   useEffect(() => {
@@ -227,7 +186,7 @@ export function TerminalPanel() {
 
   return (
     <div
-      className={`terminal-panel ${isDragOver ? 'drag-over' : ''} ${claudeInstallStatus !== 'idle' ? 'has-install-banner' : ''}`}
+      className={`terminal-panel ${isDragOver ? 'drag-over' : ''}`}
       onDragEnter={(e) => {
         if (!e.dataTransfer.types.includes('Files')) return
         e.preventDefault()
@@ -245,19 +204,6 @@ export function TerminalPanel() {
       }}
       onDrop={handleFolderDrop}
     >
-      {claudeInstallStatus === 'installing' && (
-        <div className="claude-install-banner">
-          <span className="claude-install-spinner" aria-hidden="true" />
-          Installing Claude CLI via npm... auto-dismisses when complete.
-          <button className="claude-install-dismiss" onClick={() => { setClaudeInstallStatus('idle'); setInstallTerminalId(null) }}>Dismiss</button>
-        </div>
-      )}
-      {claudeInstallStatus === 'failed' && (
-        <div className="claude-install-banner claude-install-banner--error">
-          Failed to create install terminal. Open a new terminal and run: npm install -g @anthropic-ai/claude-code
-          <button className="claude-install-dismiss" onClick={() => setClaudeInstallStatus('idle')}>Dismiss</button>
-        </div>
-      )}
       <TerminalTabs
         visibleTerminals={visibleTerminals}
         activeTerminalId={activeTerminalId}
