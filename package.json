@@ -55,7 +55,8 @@
     "pidusage": "^4.0.1",
     "ps-list": "^8.1.1",
     "simple-git": "^3.27.0",
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.6.1",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "@electron/notarize": "^2.2.1",

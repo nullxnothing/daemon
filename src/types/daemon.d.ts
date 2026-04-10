@@ -243,6 +243,11 @@ declare global {
   type OnboardingStepStatus = import('../../electron/shared/types').OnboardingStepStatus
   type WorkspaceProfile = import('../../electron/shared/types').WorkspaceProfile
   type WorkspaceProfileName = import('../../electron/shared/types').WorkspaceProfileName
+  type ProSubscriptionState = import('../../electron/shared/types').ProSubscriptionState
+  type ProPriceInfo = import('../../electron/shared/types').ProPriceInfo
+  type ArenaSubmission = import('../../electron/shared/types').ArenaSubmission
+  type ArenaSubmissionInput = import('../../electron/shared/types').ArenaSubmissionInput
+  type ProSkillManifest = import('../../electron/shared/types').ProSkillManifest
 
   interface DaemonWindow {
     minimize: () => void
@@ -840,6 +845,24 @@ declare global {
     on: (channel: DaemonEventChannel, callback: (payload: unknown) => void) => () => void
   }
 
+  interface DaemonPro {
+    status: () => Promise<IpcResponse<ProSubscriptionState>>
+    refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
+    fetchPrice: () => Promise<IpcResponse<ProPriceInfo>>
+    subscribe: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState; price: ProPriceInfo }>>
+    claimHolderAccess: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState }>>
+    signOut: () => Promise<IpcResponse<void>>
+    arenaList: () => Promise<IpcResponse<ArenaSubmission[]>>
+    arenaSubmit: (input: ArenaSubmissionInput) => Promise<IpcResponse<{ id: string }>>
+    arenaVote: (submissionId: string) => Promise<IpcResponse<void>>
+    skillsManifest: () => Promise<IpcResponse<ProSkillManifest>>
+    skillsSync: () => Promise<IpcResponse<{ installed: string[]; skipped: string[] }>>
+    skillsDownload: (skillId: string) => Promise<IpcResponse<{ fileCount: number; path: string }>>
+    quota: () => Promise<IpcResponse<{ quota: number; used: number; remaining: number }>>
+    mcpPush: () => Promise<IpcResponse<{ count: number }>>
+    mcpPull: () => Promise<IpcResponse<{ count: number }>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -876,6 +899,7 @@ declare global {
     vault: DaemonVault
     validator: DaemonValidator
     pnl: DaemonPnl
+    pro: DaemonPro
     feedback: DaemonFeedback
   }
 
