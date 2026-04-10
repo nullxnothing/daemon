@@ -3,6 +3,7 @@ import crypto from 'node:crypto'
 import * as Settings from '../services/SettingsService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { getDb } from '../db/db'
+import { getSolanaRuntimeStatus } from '../services/SolanaRuntimeStatusService'
 
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get-ui', ipcHandler(async () => {
@@ -119,6 +120,10 @@ export function registerSettingsHandlers() {
 
   ipcMain.handle('settings:get-wallet-infrastructure-settings', ipcHandler(async () => {
     return Settings.getWalletInfrastructureSettings()
+  }))
+
+  ipcMain.handle('settings:get-solana-runtime-status', ipcHandler(async () => {
+    return getSolanaRuntimeStatus()
   }))
 
   ipcMain.handle('settings:set-wallet-infrastructure-settings', ipcHandler(async (_event, settings: Settings.WalletInfrastructureSettings) => {

@@ -1,48 +1,55 @@
 import { useEffect, useState } from 'react'
 
 interface RuntimeStackState {
-  settings: WalletInfrastructureSettings | null
-  heliusConfigured: boolean
-  jupiterConfigured: boolean
+  runtime: SolanaRuntimeStatusSummary | null
 }
 
-const DEFAULT_SETTINGS: WalletInfrastructureSettings = {
-  rpcProvider: 'helius',
-  quicknodeRpcUrl: '',
-  customRpcUrl: '',
-  swapProvider: 'jupiter',
-  preferredWallet: 'phantom',
-  executionMode: 'rpc',
-  jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+const DEFAULT_RUNTIME: SolanaRuntimeStatusSummary = {
+  rpc: {
+    label: 'Helius',
+    detail: 'Helius key missing',
+    status: 'setup',
+  },
+  walletPath: {
+    label: 'Phantom-first',
+    detail: 'Optimize flows for Phantom Connect, with Solana wallet UX anchored around Phantom-first handoff.',
+    status: 'live',
+  },
+  swapEngine: {
+    label: 'Jupiter',
+    detail: 'Add a Jupiter API key in Wallet settings to enable quotes and execution.',
+    status: 'setup',
+  },
+  executionBackend: {
+    label: 'Shared RPC executor',
+    detail: 'DAEMON routes wallet sends, swaps, launches, Pump.fun actions, and recovery flows through one shared RPC executor with shared confirmation behavior.',
+    status: 'partial',
+  },
+  executionCoverage: [],
+  troubleshooting: [],
+}
+
+function statusTone(status: SolanaRuntimeStatusLevel) {
+  return status === 'live' ? 'native' : status === 'partial' ? 'guided' : 'external'
 }
 
 export function RuntimeStackSection() {
   const [state, setState] = useState<RuntimeStackState>({
-    settings: null,
-    heliusConfigured: false,
-    jupiterConfigured: false,
+    runtime: null,
   })
 
   useEffect(() => {
     let cancelled = false
 
-    void Promise.all([
-      window.daemon.settings.getWalletInfrastructureSettings(),
-      window.daemon.wallet.hasHeliusKey(),
-      window.daemon.wallet.hasJupiterKey(),
-    ]).then(([settingsRes, heliusRes, jupiterRes]) => {
+    void window.daemon.settings.getSolanaRuntimeStatus().then((runtimeRes) => {
       if (cancelled) return
       setState({
-        settings: settingsRes.ok && settingsRes.data ? settingsRes.data : DEFAULT_SETTINGS,
-        heliusConfigured: heliusRes.ok && heliusRes.data === true,
-        jupiterConfigured: jupiterRes.ok && jupiterRes.data === true,
+        runtime: runtimeRes.ok && runtimeRes.data ? runtimeRes.data : DEFAULT_RUNTIME,
       })
     }).catch(() => {
       if (cancelled) return
       setState({
-        settings: DEFAULT_SETTINGS,
-        heliusConfigured: false,
-        jupiterConfigured: false,
+        runtime: DEFAULT_RUNTIME,
       })
     })
 
@@ -51,32 +58,7 @@ export function RuntimeStackSection() {
     }
   }, [])
 
-  const settings = state.settings ?? DEFAULT_SETTINGS
-  const rpcLabel = settings.rpcProvider === 'quicknode'
-    ? 'QuickNode'
-    : settings.rpcProvider === 'custom'
-      ? 'Custom RPC'
-      : settings.rpcProvider === 'public'
-        ? 'Public RPC'
-        : 'Helius'
-
-  const rpcDetail = settings.rpcProvider === 'quicknode'
-    ? settings.quicknodeRpcUrl || 'QuickNode endpoint not set'
-    : settings.rpcProvider === 'custom'
-      ? settings.customRpcUrl || 'Custom endpoint not set'
-      : settings.rpcProvider === 'public'
-        ? 'https://api.mainnet-beta.solana.com'
-        : state.heliusConfigured
-          ? 'Helius key connected'
-          : 'Helius key missing'
-
-  const troubleshooting = [
-    settings.rpcProvider === 'helius' && !state.heliusConfigured ? 'Helius is selected but no Helius API key is stored. Wallet reads will degrade to non-Helius behavior where possible.' : null,
-    settings.rpcProvider === 'quicknode' && !settings.quicknodeRpcUrl ? 'QuickNode is selected but the endpoint is blank. Add a QuickNode RPC URL before using this stack.' : null,
-    settings.rpcProvider === 'custom' && !settings.customRpcUrl ? 'Custom RPC is selected but no RPC URL is configured.' : null,
-    !state.jupiterConfigured ? 'Jupiter is the active swap engine but no Jupiter API key is stored, so quotes and swaps will fail until configured.' : null,
-    settings.executionMode === 'jito' && settings.rpcProvider === 'public' ? 'Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.' : null,
-  ].filter(Boolean) as string[]
+  const runtime = state.runtime ?? DEFAULT_RUNTIME
 
   return (
     <div className="solana-runtime-stack">
@@ -85,7 +67,7 @@ export function RuntimeStackSection() {
           <div className="solana-token-launch-kicker">Runtime Stack</div>
           <h3 className="solana-token-launch-title">What DAEMON will actually use right now</h3>
           <p className="solana-token-launch-copy">
-            The wallet settings now define the live Solana runtime path for RPC, wallet UX, swaps, and transaction submission.
+            This view now comes from a backend Solana runtime summary instead of frontend guesses, so the Toolbox is reflecting the actual DAEMON runtime state.
           </p>
         </div>
       </div>
@@ -94,62 +76,71 @@ export function RuntimeStackSection() {
         <section className="solana-runtime-card">
           <div className="solana-runtime-title-row">
             <span className="solana-runtime-label">RPC</span>
-            <span className={`solana-ecosystem-status ${settings.rpcProvider === 'helius' ? (state.heliusConfigured ? 'native' : 'guided') : 'native'}`}>
-              {rpcLabel}
+            <span className={`solana-ecosystem-status ${statusTone(runtime.rpc.status)}`}>
+              {runtime.rpc.label}
             </span>
           </div>
-          <div className="solana-runtime-value">{rpcLabel}</div>
-          <div className="solana-runtime-detail">{rpcDetail}</div>
+          <div className="solana-runtime-value">{runtime.rpc.label}</div>
+          <div className="solana-runtime-detail">{runtime.rpc.detail}</div>
         </section>
 
         <section className="solana-runtime-card">
           <div className="solana-runtime-title-row">
             <span className="solana-runtime-label">Wallet Path</span>
-            <span className="solana-ecosystem-status native">{settings.preferredWallet === 'phantom' ? 'Phantom' : 'Wallet Standard'}</span>
+            <span className={`solana-ecosystem-status ${statusTone(runtime.walletPath.status)}`}>
+              {runtime.walletPath.label}
+            </span>
           </div>
-          <div className="solana-runtime-value">{settings.preferredWallet === 'phantom' ? 'Phantom-first' : 'Wallet Standard'}</div>
-          <div className="solana-runtime-detail">
-            {settings.preferredWallet === 'phantom'
-              ? 'Optimize flows for Phantom Connect, with Solana wallet UX anchored around Phantom-first handoff.'
-              : 'Prefer the multi-wallet compatibility path for Backpack, Solflare, and other Wallet Standard clients.'}
-          </div>
+          <div className="solana-runtime-value">{runtime.walletPath.label}</div>
+          <div className="solana-runtime-detail">{runtime.walletPath.detail}</div>
         </section>
 
         <section className="solana-runtime-card">
           <div className="solana-runtime-title-row">
             <span className="solana-runtime-label">Swap Engine</span>
-            <span className={`solana-ecosystem-status ${state.jupiterConfigured ? 'native' : 'guided'}`}>
-              {state.jupiterConfigured ? 'Ready' : 'Needs Key'}
+            <span className={`solana-ecosystem-status ${statusTone(runtime.swapEngine.status)}`}>
+              {runtime.swapEngine.status === 'live' ? 'Ready' : runtime.swapEngine.status === 'partial' ? 'Partial' : 'Needs Setup'}
             </span>
           </div>
-          <div className="solana-runtime-value">Jupiter</div>
-          <div className="solana-runtime-detail">
-            {state.jupiterConfigured
-              ? 'Quotes and swap execution are live through the Jupiter API.'
-              : 'Add a Jupiter API key in Wallet settings to enable quotes and execution.'}
-          </div>
+          <div className="solana-runtime-value">{runtime.swapEngine.label}</div>
+          <div className="solana-runtime-detail">{runtime.swapEngine.detail}</div>
         </section>
 
         <section className="solana-runtime-card">
           <div className="solana-runtime-title-row">
-            <span className="solana-runtime-label">Submission</span>
-            <span className={`solana-ecosystem-status ${settings.executionMode === 'jito' ? 'native' : 'guided'}`}>
-              {settings.executionMode === 'jito' ? 'Jito' : 'RPC'}
+            <span className="solana-runtime-label">Execution Backend</span>
+            <span className={`solana-ecosystem-status ${statusTone(runtime.executionBackend.status)}`}>
+              {runtime.executionBackend.label.includes('Jito') ? 'Jito' : 'RPC'}
             </span>
           </div>
-          <div className="solana-runtime-value">{settings.executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC path'}</div>
-          <div className="solana-runtime-detail">
-            {settings.executionMode === 'jito'
-              ? settings.jitoBlockEngineUrl
-              : 'Transfers and swaps submit over the selected RPC provider with standard confirmation.'}
-          </div>
+          <div className="solana-runtime-value">{runtime.executionBackend.label}</div>
+          <div className="solana-runtime-detail">{runtime.executionBackend.detail}</div>
         </section>
       </div>
 
-      {troubleshooting.length > 0 && (
+      <div className="solana-runtime-coverage">
+        <div className="solana-runtime-title">Execution Coverage</div>
+        <div className="solana-runtime-coverage-list">
+          {runtime.executionCoverage.map((item) => (
+            <div key={item.label} className="solana-runtime-coverage-row">
+              <div className="solana-runtime-coverage-main">
+                <div className="solana-runtime-coverage-label-row">
+                  <span className="solana-runtime-coverage-label">{item.label}</span>
+                  <span className={`solana-runtime-status ${item.status}`}>
+                    {item.status === 'live' ? 'On Shared Executor' : item.status === 'partial' ? 'Partial' : 'Needs Setup'}
+                  </span>
+                </div>
+                <div className="solana-runtime-coverage-detail">{item.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {runtime.troubleshooting.length > 0 && (
         <div className="solana-runtime-troubleshooting">
           <div className="solana-runtime-title">Troubleshooting</div>
-          {troubleshooting.map((item) => (
+          {runtime.troubleshooting.map((item) => (
             <div key={item} className="solana-runtime-warning">{item}</div>
           ))}
         </div>

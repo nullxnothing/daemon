@@ -47,6 +47,8 @@ import type {
   WalletGenerateInput,
   TransferSOLInput,
   TransferTokenInput,
+  SolanaTransactionPreview,
+  SolanaTransactionPreviewInput,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -128,6 +130,8 @@ export type {
   WalletGenerateInput,
   TransferSOLInput,
   TransferTokenInput,
+  SolanaTransactionPreview,
+  SolanaTransactionPreviewInput,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -196,6 +200,43 @@ declare global {
   type WalletExecutionResult = {
     signature: string
     transport: 'rpc' | 'jito'
+  }
+
+  type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
+  type SolanaTransactionPreview = import('../../electron/shared/types').SolanaTransactionPreview
+
+  type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
+
+  type SolanaExecutionCoverageItem = {
+    id: 'wallet-sends' | 'jupiter-swaps' | 'launch-adapters' | 'pumpfun' | 'recovery'
+    label: string
+    status: SolanaRuntimeStatusLevel
+    detail: string
+  }
+
+  type SolanaRuntimeStatusSummary = {
+    rpc: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    walletPath: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    swapEngine: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    executionBackend: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    executionCoverage: SolanaExecutionCoverageItem[]
+    troubleshooting: string[]
   }
 
   // Re-export shared types as global ambient types so existing code
@@ -369,6 +410,7 @@ declare global {
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    transactionPreview: (input: SolanaTransactionPreviewInput) => Promise<IpcResponse<SolanaTransactionPreview>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
@@ -428,6 +470,7 @@ declare global {
     getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
     setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
     getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>
+    getSolanaRuntimeStatus: () => Promise<IpcResponse<SolanaRuntimeStatusSummary>>
     setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
