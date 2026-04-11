@@ -410,3 +410,104 @@
   flex: 1;
   min-height: 0;
 }
+
+/* Right sidebar polish */
+
+.claude-panel {
+  background: transparent;
+}
+
+.claude-panel-scroll {
+  padding: 0 0 2px;
+}
+
+.claude-empty {
+  margin: 0 0 var(--drawer-rail-card-gap);
+  padding: 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
+    color-mix(in srgb, var(--s2) 88%, black 12%);
+}
+
+.status-badge,
+.claude-section {
+  margin: 0 0 var(--drawer-rail-card-gap);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
+    color-mix(in srgb, var(--s2) 88%, black 12%);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.status-badge {
+  padding: 10px var(--drawer-space-inline-tight);
+  gap: 7px;
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.claude-section {
+  padding: 10px var(--drawer-space-inline-tight);
+  border-bottom: none;
+}
+
+.claude-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.restart-btn,
+.claudemd-btn {
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--s3) 88%, black 12%);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.restart-btn:hover,
+.claudemd-btn:hover {
+  background: color-mix(in srgb, var(--s4) 88%, black 12%);
+}
+
+.mcp-row {
+  min-height: 34px;
+  padding: 6px 0;
+  gap: 10px;
+}
+
+.mcp-row + .mcp-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mcp-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mcp-desc {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--t3);
+}
+
+.usage-grid {
+  gap: 6px;
+}
+
+.usage-stat {
+  padding: 8px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  background: color-mix(in srgb, var(--s1) 88%, black 12%);
+}

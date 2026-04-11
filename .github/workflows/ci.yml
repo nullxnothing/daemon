@@ -30,6 +30,8 @@ jobs:
       - run: pnpm run test
       - name: Responsive UI smoke
         run: xvfb-run -a pnpm run test:responsive
+      - name: Layout cohesion smoke
+        run: xvfb-run -a pnpm run test:layout
 
   build-windows:
     name: build-windows
@@ -57,6 +59,7 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - run: pnpm run test:visual
       - run: pnpm run package
 
   build-macos:

@@ -23,108 +23,237 @@ export function GitIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
       <defs>
-        <linearGradient id="git-flow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f0f0f0">
-            <animate attributeName="stop-color" values="#f0f0f0;#6e40c9;#f0f0f0" dur="5s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="50%" stopColor="#6e40c9">
-            <animate attributeName="stop-color" values="#6e40c9;#238636;#6e40c9" dur="5s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="100%" stopColor="#238636">
-            <animate attributeName="stop-color" values="#238636;#f0f0f0;#238636" dur="5s" repeatCount="indefinite" />
-          </stop>
+        <linearGradient id="git-flow" x1="3" y1="4" x2="21" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="50%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#4ade80" />
         </linearGradient>
       </defs>
-      <circle cx="12" cy="6" r="3" stroke="url(#git-flow)"/><circle cx="6" cy="18" r="3" stroke="url(#git-flow)"/><circle cx="18" cy="18" r="3" stroke="url(#git-flow)"/><line x1="12" y1="9" x2="12" y2="12" stroke="url(#git-flow)"/><line x1="12" y1="12" x2="6" y2="15" stroke="url(#git-flow)"/><line x1="12" y1="12" x2="18" y2="15" stroke="url(#git-flow)"/>
+      <path d="M8 6.5v8.5a3 3 0 1 0 1.5 2.6V11h5a3 3 0 1 0 0-1.5H9.5V6.5a3 3 0 1 0-1.5 0Z" stroke="url(#git-flow)" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="8" cy="5" r="1.75" fill="#a78bfa"/>
+      <circle cx="17" cy="10.25" r="1.75" fill="#8b5cf6"/>
+      <circle cx="8" cy="18" r="1.75" fill="#4ade80"/>
     </svg>
   )
 }
 function EnvIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 3.5 18.5 6M12 12.5l5-5 2.5 2.5-5 5" stroke="#14b8a6" />
+      <path d="M11.25 12.75a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78Z" stroke="#f0b429" />
+      <circle cx="6.2" cy="17.8" r="1.1" fill="#f0b429" />
+    </svg>
+  )
 }
 function DeployIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L12 16M12 2L8 6M12 2L16 6"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="deploy-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="100%" stopColor="#38bdf8" />
+        </linearGradient>
+      </defs>
+      <path d="M12 3.5v8.5m0-8.5-3 3m3-3 3 3" stroke="url(#deploy-flow)"/>
+      <path d="M5 13.5h14v4.25A2.25 2.25 0 0 1 16.75 20H7.25A2.25 2.25 0 0 1 5 17.75V13.5Z" stroke="url(#deploy-flow)"/>
+      <path d="M8 16.5h8" stroke="url(#deploy-flow)"/>
+    </svg>
+  )
 }
 function EmailIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="14" height="12" rx="2" /><path d="M2 5l7 5 7-5" /></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="14" height="12" rx="2" stroke="#fb923c" />
+      <path d="M2.5 5 9 9.75 15.5 5" stroke="#f97316" />
+      <path d="M3 13.5 7 9.75M15 13.5l-4-3.75" stroke="#fdba74" opacity="0.8" />
+    </svg>
+  )
 }
 function WalletIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h11A2.5 2.5 0 0 1 19 7.5V9h1.5A1.5 1.5 0 0 1 22 10.5v5a1.5 1.5 0 0 1-1.5 1.5H19v1.5A2.5 2.5 0 0 1 16.5 21h-11A2.5 2.5 0 0 1 3 18.5v-11Z"/><circle cx="18" cy="13" r="1"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="wallet-flow" x1="4" y1="5" x2="21" y2="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f472b6" />
+          <stop offset="100%" stopColor="#fb7185" />
+        </linearGradient>
+      </defs>
+      <path d="M4 8.25A2.25 2.25 0 0 1 6.25 6h10.5A2.25 2.25 0 0 1 19 8.25V9h1.5A1.5 1.5 0 0 1 22 10.5v4.75a1.75 1.75 0 0 1-1.75 1.75H19v.75A2.25 2.25 0 0 1 16.75 20H6.25A2.25 2.25 0 0 1 4 17.75v-9.5Z" stroke="url(#wallet-flow)"/>
+      <path d="M4 9.5h15" stroke="url(#wallet-flow)"/>
+      <circle cx="18" cy="13.25" r="1.2" fill="#fb7185"/>
+    </svg>
+  )
 }
 function SettingsIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.75 14.1 4.4l1.9-1.2 1.8 1.8-1.2 1.9.65 2.1 2.1.95v2.55l-2.1.95-.65 2.1 1.2 1.9-1.8 1.8-1.9-1.2-2.1.65-.95 2.1H10.95L10 19.95l-2.1-.65-1.9 1.2-1.8-1.8 1.2-1.9-.65-2.1-2.1-.95V9.2l2.1-.95.65-2.1-1.2-1.9 1.8-1.8 1.9 1.2 2.1-.65.95-2.1h2.55L12 3.75Z" stroke="#94a3b8" />
+      <circle cx="12" cy="12" r="2.8" stroke="#e2e8f0" />
+    </svg>
+  )
 }
 function PortsIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.75" stroke="#38bdf8" />
+      <circle cx="12" cy="12" r="2.75" stroke="#67e8f9" />
+      <path d="M12 3.25v5.5M12 15.25v5.5M20.75 12h-5.5M8.75 12h-5.5" stroke="#0ea5e9" opacity="0.8" />
+    </svg>
+  )
 }
 function ProcessIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="10" y1="4" x2="10" y2="20"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4.25" y="4.25" width="15.5" height="15.5" rx="2.5" stroke="#f87171" />
+      <path d="M4.75 9.75h14.5M9.75 4.75v14.5" stroke="#ef4444" opacity="0.9" />
+      <circle cx="14.75" cy="14.75" r="1.1" fill="#fca5a5" />
+    </svg>
+  )
 }
 function PaintIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/><path d="M7 13.5Q9 9 12 13.5T17 10"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="#e879f9" />
+      <circle cx="8.25" cy="8.25" r="1.4" fill="#f0abfc" />
+      <path d="M7.5 14c1.4-2.9 3.05-4.35 4.95-4.35 1.5 0 2.88.82 4.05 2.45" stroke="#d946ef" />
+      <path d="M7 17.5h10" stroke="#c026d3" opacity="0.82" />
+    </svg>
+  )
 }
 function BrowserIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <defs>
-        <linearGradient id="browser-flow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#60a5fa">
-            <animate attributeName="stop-color" values="#60a5fa;#38bdf8;#818cf8;#60a5fa" dur="4s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="50%" stopColor="#38bdf8">
-            <animate attributeName="stop-color" values="#38bdf8;#818cf8;#60a5fa;#38bdf8" dur="4s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="100%" stopColor="#818cf8">
-            <animate attributeName="stop-color" values="#818cf8;#60a5fa;#38bdf8;#818cf8" dur="4s" repeatCount="indefinite" />
-          </stop>
+        <linearGradient id="browser-flow" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="50%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#818cf8" />
         </linearGradient>
       </defs>
-      <circle cx="12" cy="12" r="10" stroke="url(#browser-flow)" /><line x1="2" y1="12" x2="22" y2="12" stroke="url(#browser-flow)" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="url(#browser-flow)" />
+      <circle cx="12" cy="12" r="9" stroke="url(#browser-flow)" />
+      <path d="M3.5 9.5h17" stroke="url(#browser-flow)" />
+      <path d="M3.5 14.5h17" stroke="url(#browser-flow)" opacity="0.72" />
+      <path d="M12 3a13 13 0 0 1 3.5 9A13 13 0 0 1 12 21a13 13 0 0 1-3.5-9A13 13 0 0 1 12 3Z" stroke="url(#browser-flow)" />
     </svg>
   )
 }
 function DocsIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="docs-flow" x1="5" y1="2" x2="19" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+      </defs>
+      <path d="M7 3.5h8.5L19 7v13.5H7A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5Z" stroke="url(#docs-flow)"/>
+      <path d="M15.5 3.5V7H19" stroke="url(#docs-flow)"/>
+      <path d="M8 10h7M8 13h7M8 16h5" stroke="url(#docs-flow)"/>
+    </svg>
+  )
 }
 function StarterIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <defs>
-        <linearGradient id="starter-flow" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#3ecf8e">
-            <animate attributeName="stop-color" values="#3ecf8e;#60a5fa;#3ecf8e" dur="4s" repeatCount="indefinite" />
-          </stop>
-          <stop offset="100%" stopColor="#60a5fa">
-            <animate attributeName="stop-color" values="#60a5fa;#3ecf8e;#60a5fa" dur="4s" repeatCount="indefinite" />
-          </stop>
+        <linearGradient id="starter-flow" x1="4" y1="20" x2="20" y2="4" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#3ecf8e" />
+          <stop offset="100%" stopColor="#60a5fa" />
         </linearGradient>
       </defs>
-      <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="url(#starter-flow)" />
+      <path d="M13.25 3.5 5 13h5l-.5 7.5L19 11h-5.25l-.5-7.5Z" stroke="url(#starter-flow)" />
     </svg>
   )
 }
 function ScannerIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-      <line x1="7" y1="12" x2="17" y2="12"/><line x1="12" y1="7" x2="12" y2="17"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="scanner-flow" x1="3" y1="4" x2="21" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#2563eb" />
+        </linearGradient>
+      </defs>
+      <path d="M5.5 6.5h13v11h-13z" rx="2" stroke="url(#scanner-flow)"/>
+      <path d="M8 4.5H5.5A1.5 1.5 0 0 0 4 6v2.5M20 8.5V6a1.5 1.5 0 0 0-1.5-1.5H16M8 19.5H5.5A1.5 1.5 0 0 1 4 18v-2.5M20 15.5V18a1.5 1.5 0 0 1-1.5 1.5H16" stroke="url(#scanner-flow)"/>
+      <path d="M8 12h8" stroke="url(#scanner-flow)"/>
+      <path d="M12 9v6" stroke="url(#scanner-flow)" opacity="0.72"/>
     </svg>
   )
 }
 function DashboardIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="dashboard-flow" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#22c55e" />
+          <stop offset="100%" stopColor="#14b8a6" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="6.5" height="7.5" rx="1.5" stroke="url(#dashboard-flow)"/>
+      <rect x="13.5" y="4" width="6.5" height="4.5" rx="1.5" stroke="url(#dashboard-flow)"/>
+      <rect x="13.5" y="11.5" width="6.5" height="8.5" rx="1.5" stroke="url(#dashboard-flow)"/>
+      <rect x="4" y="14.5" width="6.5" height="5.5" rx="1.5" stroke="url(#dashboard-flow)"/>
+    </svg>
+  )
 }
 function SessionsIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="sessions-flow" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#0ea5e9" />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="8.5" stroke="url(#sessions-flow)"/>
+      <path d="M12 7.5v5l3 1.75" stroke="url(#sessions-flow)"/>
+      <path d="M8 4.75 6.5 3.5M16 4.75l1.5-1.25" stroke="url(#sessions-flow)" opacity="0.7"/>
+    </svg>
+  )
 }
 function HackathonIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12V6a6 6 0 0 1 12 0v6"/><line x1="2" y1="12" x2="14" y2="12"/><line x1="5" y1="12" x2="5" y2="7"/><line x1="8" y1="12" x2="8" y2="5"/><line x1="11" y1="12" x2="11" y2="7"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="hackathon-flow" x1="3" y1="5" x2="21" y2="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#facc15" />
+          <stop offset="100%" stopColor="#f59e0b" />
+        </linearGradient>
+      </defs>
+      <path d="M4 18.5h16M6 18.5V11a6 6 0 0 1 12 0v7.5" stroke="url(#hackathon-flow)"/>
+      <path d="M9 10.5v8M12 8.5v10M15 10.5v8" stroke="url(#hackathon-flow)"/>
+      <path d="M4 14h16" stroke="url(#hackathon-flow)" opacity="0.72"/>
+    </svg>
+  )
 }
 function PluginsIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="plugins-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#94a3b8" />
+          <stop offset="100%" stopColor="#e2e8f0" />
+        </linearGradient>
+      </defs>
+      <path d="M8 5.5h8A2.5 2.5 0 0 1 18.5 8v8a2.5 2.5 0 0 1-2.5 2.5H8A2.5 2.5 0 0 1 5.5 16V8A2.5 2.5 0 0 1 8 5.5Z" stroke="url(#plugins-flow)"/>
+      <path d="M12 8v8M8 12h8" stroke="url(#plugins-flow)"/>
+    </svg>
+  )
 }
 function RecoveryIcon({ size = 18 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="recovery-flow" x1="3" y1="5" x2="19" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f472b6" />
+          <stop offset="100%" stopColor="#ec4899" />
+        </linearGradient>
+      </defs>
+      <path d="M5 11a7 7 0 1 1 2 5" stroke="url(#recovery-flow)"/>
+      <path d="M5 6v5h5" stroke="url(#recovery-flow)"/>
+    </svg>
+  )
 }
 function SolanaIcon({ size = 18 }: { size?: number }) {
   return (
@@ -150,18 +279,25 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
 }
 function TokenLaunchIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 14c-1.7 1.7-2.3 4.2-1.5 6.5 2.3.7 4.8.2 6.5-1.5l7.6-7.6a3.2 3.2 0 0 0-4.5-4.5L6.5 14Z" />
-      <path d="M9 9 4 4" />
-      <path d="m5 9 4-4" />
-      <path d="M15 4h5v5" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="token-launch-flow" x1="4" y1="18" x2="20" y2="4" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#14f195" />
+          <stop offset="100%" stopColor="#2dd4bf" />
+        </linearGradient>
+      </defs>
+      <path d="M8 15c-1.8 1.5-2.6 4-2 6 2 .5 4.4-.3 5.9-2l6.5-7.25A3 3 0 0 0 14.2 7.6L8 15Z" stroke="url(#token-launch-flow)"/>
+      <path d="M9.5 8.5 5 4M5 8.5 9.5 4" stroke="url(#token-launch-flow)" opacity="0.72"/>
+      <path d="M15 4h5v5" stroke="url(#token-launch-flow)"/>
     </svg>
   )
 }
 function ProIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3l2.9 5.88 6.49.95-4.7 4.58 1.11 6.47L12 17.77l-5.8 3.06 1.11-6.47-4.7-4.58 6.49-.95L12 3z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 14.68 8.92l5.98.86-4.33 4.22 1.02 5.96L12 17.15 6.65 19.96l1.02-5.96-4.33-4.22 5.98-.86L12 3.5Z" stroke="#facc15" />
+      <path d="M12 8.2v5.1" stroke="#fde68a" />
+      <circle cx="12" cy="16" r="0.9" fill="#fde68a" />
     </svg>
   )
 }
@@ -237,6 +373,7 @@ export const TOOL_COLORS: Record<string, string> = {
   env: '#f0b429',
   wallet: '#f472b6',
   email: '#fb923c',
+  browser: '#60a5fa',
   ports: '#38bdf8',
   processes: '#ef5350',
   settings: '#9ca3af',
@@ -244,7 +381,12 @@ export const TOOL_COLORS: Record<string, string> = {
   'solana-toolbox': '#14f195',
   'token-launch': '#38d39f',
   'block-scanner': '#38bdf8',
-  docs: '#94a3b8',
+  docs: '#f59e0b',
+  dashboard: '#22c55e',
+  sessions: '#0ea5e9',
+  hackathon: '#f59e0b',
+  plugins: '#cbd5e1',
+  recovery: '#ec4899',
   pro: '#ffd700',
 }
 

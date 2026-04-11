@@ -4,7 +4,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useShellLayout } from '../../hooks/useShellLayout'
 import { formatCompactUsd } from '../../utils/format'
 import { WalletQuickView } from '../../components/QuickView/WalletQuickView'
-import daemonIcon from '../../assets/daemon-icon-48.png'
+import daemonIcon from '../../assets/daemon-mark.svg'
 import './Titlebar.css'
 
 interface TitlebarProps {

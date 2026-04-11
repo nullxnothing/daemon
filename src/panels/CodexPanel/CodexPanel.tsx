@@ -38,7 +38,6 @@ export function CodexPanel() {
   if (!activeProjectPath) {
     return (
       <div className="codex-panel">
-        <div className="panel-header">Codex</div>
         <div className="codex-panel-scroll">
           <div className="codex-empty">Select a project</div>
         </div>
@@ -48,7 +47,6 @@ export function CodexPanel() {
 
   return (
     <div className="codex-panel">
-      <div className="panel-header">Codex</div>
       <div className="codex-panel-scroll">
         <ConnectionSection />
         <RestartButton />

@@ -11,7 +11,10 @@ interface QuickViewProps {
   children: ReactNode
 }
 
-const CARD_WIDTH = 320
+const CARD_WIDTH = {
+  wallet: 372,
+  email: 320,
+} as const
 const VIEWPORT_MARGIN = 8
 
 export function QuickView({ isOpen, onClose, triggerRef, anchor, variant, children }: QuickViewProps) {
@@ -27,9 +30,11 @@ export function QuickView({ isOpen, onClose, triggerRef, anchor, variant, childr
     const vw = window.innerWidth
     const vh = window.innerHeight
 
-    let left = rect.right - CARD_WIDTH
+    const cardWidth = CARD_WIDTH[variant]
+
+    let left = rect.right - cardWidth
     if (left < VIEWPORT_MARGIN) left = VIEWPORT_MARGIN
-    if (left + CARD_WIDTH > vw - VIEWPORT_MARGIN) left = vw - VIEWPORT_MARGIN - CARD_WIDTH
+    if (left + cardWidth > vw - VIEWPORT_MARGIN) left = vw - VIEWPORT_MARGIN - cardWidth
 
     let top: number
     if (anchor === 'below') {
@@ -45,7 +50,7 @@ export function QuickView({ isOpen, onClose, triggerRef, anchor, variant, childr
     }
 
     setPosition({ top, left })
-  }, [triggerRef, anchor])
+  }, [triggerRef, anchor, variant])
 
   useEffect(() => {
     if (!isOpen) return
@@ -99,6 +104,7 @@ export function QuickView({ isOpen, onClose, triggerRef, anchor, variant, childr
         style={{
           top: position.top,
           left: position.left,
+          width: CARD_WIDTH[variant],
           '--enter-dir': enterDir,
         } as React.CSSProperties}
         role="dialog"
