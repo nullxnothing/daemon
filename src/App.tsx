@@ -34,6 +34,7 @@ import { daemon } from './lib/daemonBridge'
 import { lazyNamedWithReload } from './utils/lazyWithReload'
 import { preloadToolPanel } from './components/CommandDrawer/CommandDrawer'
 import './App.css'
+import './styles/drawerSurfaces.css'
 
 const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
 const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
