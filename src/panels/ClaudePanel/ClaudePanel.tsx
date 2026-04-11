@@ -32,7 +32,6 @@ export function ClaudePanel() {
   if (!activeProjectPath) {
     return (
       <div className="claude-panel">
-        <div className="panel-header">Claude</div>
         <div className="claude-panel-scroll">
           <div className="claude-empty">Select a project</div>
         </div>
@@ -42,7 +41,6 @@ export function ClaudePanel() {
 
   return (
     <div className="claude-panel">
-      <div className="panel-header">Claude</div>
       <div className="claude-panel-scroll">
         <StatusBadge />
         <RestartButton />

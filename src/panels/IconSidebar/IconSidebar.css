@@ -9,7 +9,7 @@
   align-items: center;
   padding-top: 8px;
   padding-bottom: 8px;
-  gap: 2px;
+  gap: 4px;
   position: relative;
 }
 
@@ -19,35 +19,47 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--t4);
-  border-radius: 4px;
+  color: var(--t3);
+  border-radius: 10px;
   position: relative;
-  transition: color 0.15s, background 0.12s;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.12s;
+}
+
+.sidebar-icon svg {
+  display: block;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .sidebar-icon:hover {
-  color: var(--t2);
+  color: var(--t1);
   background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
 }
 
-/* Panel switches: green left accent bar when active */
+.sidebar-icon:hover svg {
+  transform: scale(1.04);
+}
+
 .sidebar-icon.active {
   color: var(--t1);
-  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar-icon.active::before {
   content: '';
   position: absolute;
   left: -1px;
-  top: 8px;
-  bottom: 8px;
+  top: 10px;
+  bottom: 10px;
   width: 2px;
   background: var(--green);
-  border-radius: 1px;
+  border-radius: 999px;
 }
 
-/* Toggles (Explorer, Browser): filled background instead of accent bar */
 .sidebar-icon.sidebar-toggle.active {
   background: var(--s3);
 }
@@ -75,13 +87,13 @@
 /* Drop zone for adding new pinned tools — visible faint outline so users
    discover that they can drag drawer tools here */
 .sidebar-drop-zone {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   margin: 4px auto;
   transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
   border: 1px dashed var(--s5);
-  opacity: 0.35;
+  opacity: 0.5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,23 +220,30 @@
 .colosseum-icon-wrap {
   position: relative;
   overflow: hidden;
-  border-radius: 6px;
-  width: 32px;
-  height: 32px;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--t3);
-  transition: color 0.15s;
+  color: #ffd84d;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.12s;
 }
 
 .colosseum-icon-wrap:hover {
-  color: var(--green);
+  color: #ffe270;
+  border-color: rgba(255, 216, 77, 0.14);
+  background: rgba(255, 216, 77, 0.05);
+  transform: translateY(-1px);
 }
 
 .colosseum-icon-wrap.active {
-  color: var(--green);
+  color: #ffe270;
+  border-color: rgba(255, 216, 77, 0.18);
+  background: rgba(255, 216, 77, 0.06);
 }
 
 .colosseum-icon-wrap::after {
@@ -238,6 +257,7 @@
   animation: colosseum-pulse 3s linear infinite;
   opacity: 0.6;
 }
+
 
 @keyframes colosseum-pulse {
   0% { transform: translateX(0); }

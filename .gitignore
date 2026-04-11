@@ -44,6 +44,7 @@ keypair.json
 
 # Build artifacts
 /test-results/
+/test-results/visual-regression/
 /playwright-report/
 /playwright/.cache/
 /target/

@@ -3,74 +3,131 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.06), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 20%),
+    color-mix(in srgb, var(--s1) 92%, black 8%);
 }
 
-/* Tab strip */
+.right-panel-header {
+  padding: var(--drawer-space-block) var(--drawer-space-inline-tight) var(--drawer-space-block-tight);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent),
+    color-mix(in srgb, var(--s1) 94%, black 6%);
+}
+
+.right-panel-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.right-panel-kicker {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--green) 70%, white 30%);
+}
+
+.right-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--t1);
+}
 
 .right-panel-tabs {
-  display: flex;
-  align-items: stretch;
-  height: 32px;
-  flex-shrink: 0;
-  background: var(--s1);
-  border-bottom: 1px solid var(--s5);
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-}
-
-.right-panel-tabs::-webkit-scrollbar {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: var(--drawer-space-block-tight) var(--drawer-space-inline-tight) var(--drawer-space-block);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+    color-mix(in srgb, var(--s1) 94%, black 6%);
 }
 
 .right-panel-tab {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  font-size: 10px;
-  font-family: var(--font-ui);
-  color: var(--t3);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
+  gap: 8px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
+    color-mix(in srgb, var(--s2) 86%, black 14%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: var(--drawer-control-radius);
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-  white-space: nowrap;
-  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  min-width: 0;
 }
 
 .right-panel-tab:hover {
-  color: var(--t2);
-  background: var(--hover-overlay);
+  color: var(--t1);
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .right-panel-tab.active {
-  color: var(--t1);
-  border-bottom-color: var(--green);
-  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
+  border-color: color-mix(in srgb, var(--green) 28%, var(--border) 72%);
+  background:
+    linear-gradient(180deg, rgba(62, 207, 142, 0.08), transparent 100%),
+    color-mix(in srgb, var(--s2) 84%, black 16%);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(62, 207, 142, 0.06) inset;
 }
 
-/* Status dot inside tab */
+.right-panel-tab img {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
 
 .right-panel-tab-dot {
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: var(--s5);
+  background: color-mix(in srgb, var(--s5) 80%, rgba(255, 255, 255, 0.1) 20%);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.02);
 }
 
 .right-panel-tab-dot.live {
   background: var(--green);
+  box-shadow: 0 0 0 4px rgba(62, 207, 142, 0.08);
 }
 
-/* Content area */
+.right-panel-tab-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.right-panel-tab-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.right-panel-tab-status {
+  font-size: 9px;
+  color: var(--t4);
+}
 
 .right-panel-content {
-  flex: 1;
+  flex: 1.15 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: var(--drawer-rail-shell-pad);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 12%);
 }

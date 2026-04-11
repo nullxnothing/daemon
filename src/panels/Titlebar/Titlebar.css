@@ -3,14 +3,18 @@
   height: var(--titlebar-h);
   display: flex;
   align-items: center;
-  background: var(--s1);
-  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 75%),
+    color-mix(in srgb, var(--s1) 88%, black 12%);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
   border-image: linear-gradient(90deg, rgba(62, 207, 142, 0.12) 0%, var(--border) 30%, var(--border) 100%) 1;
   -webkit-app-region: drag;
   user-select: none;
   flex-shrink: 0;
   position: relative;
   min-width: 0;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
 }
 
 .titlebar-left {
@@ -37,8 +41,8 @@
   font-size: 10px;
   font-weight: 600;
   color: var(--green);
-  opacity: 0.3;
-  letter-spacing: 1.5px;
+  opacity: 0.65;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -59,8 +63,8 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 4px;
+  gap: 4px;
+  padding: 0 6px;
   overflow-x: auto;
   min-width: 0;
 }
@@ -73,37 +77,46 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 26px;
-  padding: 0 12px;
+  height: 30px;
+  padding: 0 13px;
   font-size: 12px;
   color: var(--t2);
-  background: transparent;
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--s2) 42%, transparent 58%);
+  border: 1px solid transparent;
+  border-radius: 10px;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.15s;
   -webkit-app-region: no-drag;
   max-width: 220px;
 }
 
 .project-tab:hover {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--hover-bg) 82%, white 4%);
   color: var(--t1);
-  box-shadow: var(--glow-green-ambient);
+  border-color: color-mix(in srgb, var(--green) 26%, transparent 74%);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 
 .project-tab.active {
-  background: var(--s2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent),
+    color-mix(in srgb, var(--s2) 84%, black 16%);
   color: var(--t1);
-  border-bottom: 1px solid rgba(62, 207, 142, 0.2);
+  border-color: rgba(62, 207, 142, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 12px 28px rgba(0, 0, 0, 0.16);
 }
 
 .project-tab-dot {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--t3);
   flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.03);
 }
 
 .project-tab-dot.live {
@@ -135,21 +148,23 @@
 }
 
 .project-tab-add {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   color: var(--t3);
-  border-radius: 4px;
+  border-radius: 10px;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
+  border: 1px solid transparent;
 }
 
 .project-tab-add:hover {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--hover-bg) 82%, white 4%);
   color: var(--t1);
+  border-color: color-mix(in srgb, var(--green) 20%, transparent 80%);
 }
 
 .titlebar-controls {
@@ -160,14 +175,17 @@
 }
 
 .titlebar-portfolio {
-  height: 26px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 10px;
+  padding: 0 12px;
   margin-right: 8px;
-  border-radius: 4px;
-  background: var(--s2);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    color-mix(in srgb, var(--s2) 84%, black 16%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
   color: var(--t1);
   font-size: 11px;
 }
@@ -197,17 +215,20 @@
 }
 
 .titlebar-mode-toggle {
-  height: 26px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 10px;
-  border-radius: 4px;
-  background: var(--s2);
+  padding: 0 12px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    color-mix(in srgb, var(--s2) 84%, black 16%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
   color: var(--t2);
   font-size: 11px;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
 }
 
 .titlebar-mode-toggle--icon-only {
@@ -221,8 +242,10 @@
 }
 
 .titlebar-mode-toggle:hover {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--hover-bg) 82%, white 4%);
   color: var(--t1);
+  border-color: color-mix(in srgb, var(--green) 22%, transparent 78%);
+  transform: translateY(-1px);
 }
 
 .titlebar-mode-toggle.grind {
@@ -299,20 +322,24 @@
 
 .titlebar-switcher-toggle {
   max-width: 100%;
-  height: 26px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 0 10px;
-  border-radius: 4px;
-  background: var(--s2);
+  padding: 0 12px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    color-mix(in srgb, var(--s2) 84%, black 16%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
   color: var(--t2);
   -webkit-app-region: no-drag;
 }
 
 .titlebar-switcher-toggle:hover {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--hover-bg) 82%, white 4%);
   color: var(--t1);
+  border-color: color-mix(in srgb, var(--green) 22%, transparent 78%);
 }
 
 .titlebar-switcher-label {
@@ -332,7 +359,7 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
+  border-radius: 12px;
   box-shadow: var(--shadow-float);
   z-index: 50;
   -webkit-app-region: no-drag;
@@ -349,12 +376,12 @@
 .titlebar-overflow-item {
   width: 100%;
   min-width: 0;
-  height: 30px;
+  height: 32px;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 11px;
   color: var(--t2);
   background: transparent;
@@ -422,12 +449,14 @@
   align-items: center;
   justify-content: center;
   color: var(--t2);
-  transition: background 0.1s, color 0.1s;
+  border-radius: 10px;
+  transition: background 0.1s, color 0.1s, transform 0.1s;
 }
 
 .titlebar-btn:hover {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--hover-bg) 84%, white 4%);
   color: var(--t1);
+  transform: translateY(-1px);
 }
 
 .titlebar-btn-close:hover {

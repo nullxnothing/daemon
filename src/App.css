@@ -1,11 +1,44 @@
 .app {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at top left, rgba(62, 207, 142, 0.08), transparent 26%),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.07), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 94%, black 6%), var(--bg));
   color: var(--t1);
   overflow: hidden;
+  isolation: isolate;
+}
+
+.app::before,
+.app::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  inset: auto;
+  border-radius: 999px;
+  filter: blur(80px);
+  opacity: 0.35;
+  z-index: 0;
+}
+
+.app::before {
+  width: 320px;
+  height: 320px;
+  top: -120px;
+  left: -90px;
+  background: rgba(62, 207, 142, 0.12);
+}
+
+.app::after {
+  width: 280px;
+  height: 280px;
+  top: 22%;
+  right: -120px;
+  background: rgba(96, 165, 250, 0.12);
 }
 
 .app--compact {
@@ -86,10 +119,12 @@
 
 /* Main Layout */
 .main-layout {
+  position: relative;
   display: flex;
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  z-index: 1;
 }
 
 .main-layout--tablet,
@@ -102,13 +137,17 @@
   width: var(--left-panel-w);
   min-width: 140px;
   max-width: 350px;
-  background: var(--s1);
-  border-right: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 24%),
+    color-mix(in srgb, var(--s1) 88%, black 12%);
+  border-right: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   resize: horizontal;
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.02) inset;
+  backdrop-filter: blur(18px);
 }
 
 .app--compact .left-panel {
@@ -132,9 +171,11 @@
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 78%, rgba(255, 255, 255, 0.06) 22%);
   flex-shrink: 0;
-  background-image: var(--surface-gradient-subtle);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    var(--surface-gradient-subtle);
 }
 
 .panel-header-action {
@@ -165,6 +206,10 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 200px;
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 18%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 96%, black 4%), color-mix(in srgb, var(--bg) 92%, black 8%));
 }
 
 .center-area--compact {
@@ -180,20 +225,33 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .splitter {
   height: 4px;
-  background: var(--border);
+  background: color-mix(in srgb, var(--border) 78%, rgba(255, 255, 255, 0.04) 22%);
   cursor: row-resize;
   flex-shrink: 0;
   transition: background 0.2s, box-shadow 0.2s;
   position: relative;
 }
 
+.splitter::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 50%;
+  width: 64px;
+  height: 2px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+}
+
 .splitter:hover {
-  background: var(--green-dim);
-  box-shadow: 0 0 8px rgba(62, 207, 142, 0.1);
+  background: color-mix(in srgb, var(--green-dim) 72%, rgba(96, 165, 250, 0.12) 28%);
+  box-shadow: 0 0 12px rgba(62, 207, 142, 0.12);
 }
 
 .splitter:active {
@@ -204,6 +262,8 @@
   min-height: 0;
   flex-shrink: 0;
   overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 12%);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 /* Right Panel — resizable via min/max */
@@ -211,12 +271,16 @@
   width: var(--right-panel-w);
   min-width: 200px;
   max-width: 400px;
-  background: var(--s1);
-  border-left: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 24%),
+    color-mix(in srgb, var(--s1) 88%, black 12%);
+  border-left: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
   flex-shrink: 0;
   overflow: hidden;
   resize: horizontal;
   direction: rtl; /* makes resize handle appear on the left edge */
+  box-shadow: -1px 0 0 rgba(255, 255, 255, 0.02) inset;
+  backdrop-filter: blur(18px);
 }
 
 .app--compact .right-panel {
@@ -243,47 +307,6 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.right-panel-content {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.right-panel-tabs {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  background: var(--s1);
-}
-
-.rp-tab {
-  width: 34px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: var(--t3);
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
-  position: relative;
-}
-
-.rp-tab:hover {
-  color: var(--t2);
-  background: var(--s3);
-}
-
-.rp-tab.active {
-  color: var(--t1);
-  background: var(--s4);
-  box-shadow: 0 2px 0 rgba(62, 207, 142, 0.25);
 }
 
 .right-panel-placeholder {

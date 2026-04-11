@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useAppActions } from '../../store/appActions'
-import daemonLogo from '../../assets/daemon-icon.png'
+import daemonLogo from '../../assets/daemon-mark.svg'
 
 interface EditorWelcomeProps {
   activeProjectId: string | null

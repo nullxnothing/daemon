@@ -7,11 +7,19 @@ import { AriaPresence } from './AriaPresence'
 import type { AriaAction, AriaMessage } from '../../../electron/shared/types'
 import './AriaChat.css'
 
-function AriaChamber({ isChatFocused }: { isChatFocused: boolean }) {
+function AriaChamber({ isChatFocused, onActivate }: { isChatFocused: boolean; onActivate: () => void }) {
   return (
     <div className="aria-chamber">
-      <div className="aria-chamber-face">
-        <AriaPresence isChatFocused={isChatFocused} isChatExpanded={false} size="large" />
+      <div className="aria-chamber-core">
+        <button className="aria-chamber-orbit" onClick={onActivate} aria-label="Focus ARIA prompt">
+          <AriaPresence isChatFocused={isChatFocused} isChatExpanded={false} size="large" />
+        </button>
+        <div className="aria-chamber-copy">
+          <div className="aria-chamber-title">ARIA is ready</div>
+          <div className="aria-chamber-text">
+            Ask for next steps, open the right tool, or get a quick read on the current project.
+          </div>
+        </div>
       </div>
       <span className="aria-chamber-label">aria</span>
     </div>
@@ -181,6 +189,12 @@ export function AriaChat() {
     el.style.height = Math.min(el.scrollHeight, 80) + 'px'
   }
 
+  const handleChamberActivate = useCallback(() => {
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+    })
+  }, [])
+
   const handleFocus = () => {
     setIsChatFocused(true)
     if (messages.length > 0 || isLoading) {
@@ -264,7 +278,7 @@ export function AriaChat() {
   return (
     <div className={`aria-dock ${isExpanded && hasMessages ? 'aria-dock-expanded' : ''} ${showChamber ? 'aria-dock-chamber' : ''}`}>
       {showChamber && (
-        <AriaChamber isChatFocused={isChatFocused} />
+        <AriaChamber isChatFocused={isChatFocused} onActivate={handleChamberActivate} />
       )}
       {isExpanded && hasMessages && (
         <div className="aria-toolbar">
