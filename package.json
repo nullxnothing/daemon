@@ -36,7 +36,7 @@
     "test:visual:update": "pnpm run build && node scripts/smoke/visual-regression.mjs --update"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
+    "@anthropic-ai/sdk": "^0.88.0",
     "@google/genai": "^1.48.0",
     "@meteora-ag/dynamic-bonding-curve-sdk": "1.5.7",
     "@nirholas/pump-sdk": "1.30.0",
