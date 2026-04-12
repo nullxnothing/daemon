@@ -10,6 +10,7 @@ import { WalletSwapForm } from '../WalletSwapForm'
 import { VaultSection } from '../VaultSection'
 import { PnlHoldings } from '../PnlHoldings'
 import { WalletSendForm } from '../WalletSendForm'
+import { buildSolanaRouteReadiness } from '../../../lib/solanaReadiness'
 
 interface Props {
   onRefresh: () => Promise<void>
@@ -439,6 +440,54 @@ export function WalletTab({ onRefresh }: Props) {
     />
   )
 
+  const rpcProviderLabel = walletInfrastructure.rpcProvider === 'helius'
+    ? 'Helius RPC'
+    : walletInfrastructure.rpcProvider === 'quicknode'
+      ? 'QuickNode RPC'
+      : walletInfrastructure.rpcProvider === 'custom'
+        ? 'Custom RPC'
+        : 'Public RPC'
+  const rpcReady = walletInfrastructure.rpcProvider === 'helius'
+    ? dashboard.heliusConfigured
+    : walletInfrastructure.rpcProvider === 'quicknode'
+      ? walletInfrastructure.quicknodeRpcUrl.trim().length > 0
+      : walletInfrastructure.rpcProvider === 'custom'
+        ? walletInfrastructure.customRpcUrl.trim().length > 0
+        : true
+  const walletReadiness = buildSolanaRouteReadiness({
+    walletPresent: Boolean(activeWallet),
+    walletName: activeWallet?.name,
+    walletAddress: activeWallet?.address,
+    isMainWallet: Boolean(activeWalletMeta?.isDefault),
+    signerReady: hasKeypair,
+    hasActiveProject: Boolean(activeProjectId),
+    projectAssigned: activeProjectId ? Boolean(activeWalletMeta?.assignedProjectIds.includes(activeProjectId)) : true,
+    preferredWallet: walletInfrastructure.preferredWallet,
+    executionMode: walletInfrastructure.executionMode,
+    rpcLabel: rpcProviderLabel,
+    rpcReady,
+  })
+  const walletPrimaryAction = walletReadiness.nextAction.id === 'open-wallet'
+    ? {
+      label: activeWallet ? 'Add signer' : 'Create wallet',
+      onClick: () => setActiveView('manage'),
+    }
+    : walletReadiness.nextAction.id === 'assign-project' && activeWallet
+      ? { label: 'Use for current project', onClick: () => void handleAssignProject(activeWallet.id) }
+      : walletReadiness.nextAction.id === 'set-main-wallet' && activeWallet
+        ? { label: 'Make main wallet', onClick: () => void handleSetDefault(activeWallet.id) }
+        : walletReadiness.nextAction.id === 'open-infrastructure'
+          ? { label: 'Finish infrastructure', onClick: () => setShowInfrastructure(true) }
+          : activeWallet
+            ? {
+              label: walletReadiness.nextAction.id === 'transact' ? 'Send SOL' : walletReadiness.nextAction.label,
+              onClick: () => openSend(activeWallet.id, 'sol'),
+            }
+            : null
+  const walletSecondaryAction = hasKeypair
+    ? { label: 'Open holdings', onClick: () => setActiveView('holdings') }
+    : { label: 'Receive', onClick: () => setActiveView('receive') }
+
   if (activeView === 'vault') return <VaultSection onBack={() => setActiveView('overview')} />
 
   if (activeView === 'receive' && activeWallet) {
@@ -531,29 +580,45 @@ export function WalletTab({ onRefresh }: Props) {
                 {hasKeypair && <button className="wallet-btn primary-soft" onClick={() => handleExportKeyStart(activeWallet.id)}>Export key</button>}
               </div>
             </div>
-            <div className="wallet-overview-grid">
-              <div className="wallet-overview-card">
-                <span className="wallet-overview-label">Best next action</span>
-                <strong>{hasKeypair ? 'Move funds or sell a holding' : 'Turn this into a signer'}</strong>
-                <p>{hasKeypair ? 'Use Move for transfers and Holdings for quick sell and swap actions.' : 'Import or generate a signing wallet so this workspace can send and trade.'}</p>
+            <div className="wallet-readiness-shell">
+              <div className="wallet-readiness-hero">
+                <span className="wallet-overview-label">Wallet readiness</span>
+                <strong>{walletReadiness.headline}</strong>
+                <p>{walletReadiness.description}</p>
+                <div className="wallet-readiness-progress">
+                  <span>{walletReadiness.readyCount}/{walletReadiness.totalCount} checks ready</span>
+                  <span>{activeProjectId ? 'Project-aware route' : 'Workspace route'}</span>
+                </div>
                 <div className="wallet-actions wallet-actions-wrap">
-                  {hasKeypair ? (
-                    <>
-                      <button className="wallet-btn primary" onClick={() => openSend(activeWallet.id, 'sol')}>Move funds</button>
-                      <button className="wallet-btn" onClick={() => setActiveView('holdings')}>Open holdings</button>
-                    </>
-                  ) : (
-                    <button className="wallet-btn primary" onClick={() => setActiveView('manage')}>Open manage</button>
-                  )}
+                  {walletPrimaryAction ? (
+                    <button className="wallet-btn primary" onClick={walletPrimaryAction.onClick}>{walletPrimaryAction.label}</button>
+                  ) : null}
+                  <button className="wallet-btn" onClick={walletSecondaryAction.onClick}>{walletSecondaryAction.label}</button>
                 </div>
               </div>
-              <div className="wallet-overview-card">
-                <span className="wallet-overview-label">Quick status</span>
-                <strong>{activeWallet.holdings.length} assets tracked</strong>
-                <p>{transactions?.length ? `${transactions.length} recent transaction${transactions.length === 1 ? '' : 's'} loaded.` : 'No recent transactions loaded yet.'}</p>
-                <div className="wallet-actions wallet-actions-wrap">
-                  <button className="wallet-btn" onClick={() => setActiveView('history')}>View history</button>
-                  <button className="wallet-btn" onClick={() => setActiveView('manage')}>Switch wallet</button>
+              <div className="wallet-readiness-grid">
+                {walletReadiness.items.map((item) => (
+                  <div key={item.label} className={`wallet-readiness-item${item.ready ? ' ready' : ''}`}>
+                    <span className={`wallet-readiness-dot${item.ready ? ' ready' : ''}`} />
+                    <div>
+                      <strong>{item.label}</strong>
+                      <p>{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="wallet-readiness-item">
+                  <span className="wallet-readiness-dot ready" />
+                  <div>
+                    <strong>Activity snapshot</strong>
+                    <p>{transactions?.length ? `${transactions.length} recent transaction${transactions.length === 1 ? '' : 's'} loaded.` : 'No recent transactions loaded yet.'}</p>
+                  </div>
+                </div>
+                <div className="wallet-readiness-item">
+                  <span className="wallet-readiness-dot ready" />
+                  <div>
+                    <strong>Asset coverage</strong>
+                    <p>{activeWallet.holdings.length} asset{activeWallet.holdings.length === 1 ? '' : 's'} tracked for this wallet.</p>
+                  </div>
                 </div>
               </div>
             </div>

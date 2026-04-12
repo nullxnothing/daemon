@@ -43,6 +43,7 @@ interface UIState {
   browserTabActive: boolean
   workspaceToolTabs: string[]
   activeWorkspaceToolId: string | null
+  integrationCommandSelectionId: string | null
   rightPanelTab: RightPanelTab
   dashboardTabOpen: boolean
   dashboardTabActive: boolean
@@ -72,6 +73,7 @@ interface UIState {
   openWorkspaceTool: (toolId: string) => void
   closeWorkspaceTool: (toolId: string) => void
   setActiveWorkspaceTool: (toolId: string | null) => void
+  setIntegrationCommandSelectionId: (integrationId: string | null) => void
   toggleWorkspaceTool: (toolId: string) => void
   setRightPanelTab: (tab: RightPanelTab) => void
   toggleDashboardTab: () => void
@@ -120,6 +122,7 @@ export const useUIStore = create<UIState>((set) => ({
   browserTabActive: false,
   workspaceToolTabs: [],
   activeWorkspaceToolId: null,
+  integrationCommandSelectionId: null,
   rightPanelTab: 'claude' as RightPanelTab,
   dashboardTabOpen: false,
   dashboardTabActive: false,
@@ -302,6 +305,7 @@ export const useUIStore = create<UIState>((set) => ({
         }
       : { activeWorkspaceToolId: null })
   },
+  setIntegrationCommandSelectionId: (integrationId) => set({ integrationCommandSelectionId: integrationId }),
   toggleWorkspaceTool: (toolId) => set((state) => {
     if (toolId === 'browser') {
       if (state.browserTabActive) {
