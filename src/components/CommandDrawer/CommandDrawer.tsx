@@ -277,6 +277,26 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function IntegrationsIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="integrations-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#14f195" />
+          <stop offset="55%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#a78bfa" />
+        </linearGradient>
+      </defs>
+      <path d="M7.5 7.5h9v9h-9z" stroke="url(#integrations-flow)" />
+      <path d="M4 12h3.5M16.5 12H20M12 4v3.5M12 16.5V20" stroke="url(#integrations-flow)" opacity="0.72" />
+      <circle cx="12" cy="12" r="1.75" fill="#14f195" />
+      <circle cx="4" cy="12" r="1.15" fill="#38bdf8" />
+      <circle cx="20" cy="12" r="1.15" fill="#a78bfa" />
+      <circle cx="12" cy="4" r="1.15" fill="#38bdf8" />
+      <circle cx="12" cy="20" r="1.15" fill="#a78bfa" />
+    </svg>
+  )
+}
 function TokenLaunchIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -308,7 +328,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
-  'token-launch': TokenLaunchIcon,
+  'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon,
 }
 
@@ -318,7 +338,7 @@ export const TOOL_NAMES: Record<string, string> = {
   wallet: 'Wallet', email: 'Email', browser: 'Browser',
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
-  'token-launch': 'Token Launch',
+  'token-launch': 'Token Launch', integrations: 'Integrations',
   dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery', pro: 'Daemon Pro',
 }
 
@@ -333,6 +353,7 @@ const loadPortsPanel = () => import('../../panels/PortsPanel/PortsPanel')
 const loadProcessManager = () => import('../../panels/ProcessManager/ProcessManager')
 const loadImageEditor = () => import('../../panels/ImageEditor/ImageEditor')
 const loadSolanaToolbox = () => import('../../panels/SolanaToolbox/SolanaToolbox')
+const loadIntegrationCommandCenter = () => import('../../panels/IntegrationCommandCenter/IntegrationCommandCenter')
 const loadTokenLaunchTool = () => import('../../panels/TokenLaunchTool/TokenLaunchTool')
 const loadBlockScanner = () => import('../../panels/BlockScanner/BlockScanner')
 const loadDocsPanel = () => import('../../panels/DocsPanel/DocsPanel')
@@ -354,6 +375,7 @@ const PortsPanel = lazyNamedWithReload('ports-panel', loadPortsPanel, (m) => m.P
 const ProcessManager = lazyNamedWithReload('process-manager', loadProcessManager, (m) => m.ProcessManager)
 const ImageEditor = lazyWithReload('image-editor', loadImageEditor)
 const SolanaToolbox = lazyWithReload('solana-toolbox', loadSolanaToolbox)
+const IntegrationCommandCenter = lazyWithReload('integration-command-center', loadIntegrationCommandCenter)
 const TokenLaunchTool = lazyWithReload('token-launch-tool', loadTokenLaunchTool)
 const BlockScanner = lazyWithReload('block-scanner', loadBlockScanner)
 const DocsPanel = lazyNamedWithReload('docs-panel', loadDocsPanel, (m) => m.DocsPanel)
@@ -379,6 +401,7 @@ export const TOOL_COLORS: Record<string, string> = {
   settings: '#9ca3af',
   'image-editor': '#e879f9',
   'solana-toolbox': '#14f195',
+  integrations: '#38bdf8',
   'token-launch': '#38d39f',
   'block-scanner': '#38bdf8',
   docs: '#f59e0b',
@@ -405,6 +428,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, preload: () => { void loadImageEditor() }, category: 'create' },
   { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, and Meteora launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
   { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
+  { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, preload: () => { void loadBlockScanner() }, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, preload: () => { void loadDocsPanel() }, category: 'system' },
   { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, preload: () => { void loadDashboardCanvas() }, category: 'crypto' },

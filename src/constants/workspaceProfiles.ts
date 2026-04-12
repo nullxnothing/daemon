@@ -12,7 +12,7 @@ const WEB_TOOLS = [
 ]
 
 const SOLANA_TOOLS = [
-  ...WEB_TOOLS, 'wallet', 'token-launch', 'solana-toolbox', 'block-scanner',
+  ...WEB_TOOLS, 'wallet', 'token-launch', 'solana-toolbox', 'integrations', 'block-scanner',
   'dashboard', 'hackathon', 'pro',
 ]
 
