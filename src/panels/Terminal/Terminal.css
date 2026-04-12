@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
   background: var(--bg);
   position: relative;
 }
@@ -41,15 +42,36 @@
   display: none;
 }
 
+.terminal-tabs-leading {
+  display: none;
+}
+
+.terminal-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.terminal-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .terminal-tab {
   display: flex;
   align-items: center;
   gap: 6px;
   height: 26px;
+  max-width: 180px;
   padding: 0 6px 0 10px;
   font-size: 11px;
   color: var(--t2);
   background: transparent;
+  border: 0;
   border-radius: 4px;
   transition: background 0.1s;
   flex-shrink: 0;
@@ -76,6 +98,12 @@
 
 .terminal-tab-dot.agent {
   background: var(--amber);
+}
+
+.terminal-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .terminal-tab-close {
@@ -115,11 +143,22 @@
   font-size: 14px;
   color: var(--t3);
   border-radius: 4px;
+  border: 0;
+  background: transparent;
 }
 
 .terminal-tab-add:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.terminal-tab-add-plus {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.terminal-tab-add-label {
+  display: none;
 }
 
 .terminal-launcher {
@@ -129,7 +168,7 @@
 
 .terminal-launcher-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  bottom: calc(100% + 6px);
   left: 0;
   min-width: 240px;
   max-width: 320px;
@@ -145,6 +184,10 @@
   z-index: 8;
 }
 
+.terminal-launcher-header {
+  display: none;
+}
+
 .terminal-launcher-item {
   min-height: 26px;
   border-radius: 5px;
@@ -152,6 +195,9 @@
   padding: 0 8px;
   font-size: 11px;
   color: var(--t2);
+  display: flex;
+  align-items: center;
+  transition: background 0.1s, color 0.1s;
 }
 
 .terminal-launcher-item:hover:not(:disabled) {
@@ -170,6 +216,14 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
   padding: 4px 8px 2px;
+}
+
+.terminal-launcher-item-title {
+  color: inherit;
+}
+
+.terminal-launcher-item-desc {
+  display: none;
 }
 
 .terminal-launcher-empty {
@@ -224,6 +278,7 @@
 
 .terminal-views {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   position: relative;
 }
@@ -331,12 +386,16 @@
 .terminal-view-wrap {
   position: absolute;
   inset: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .terminal-view {
   position: absolute;
   inset: 0;
-  padding: 4px 0 0 4px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px;
 }
 
 .terminal-view.drag-active {
@@ -384,6 +443,13 @@
 
 .terminal-view .xterm-screen {
   height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.terminal-view .xterm-rows {
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .terminal-view .xterm-viewport {

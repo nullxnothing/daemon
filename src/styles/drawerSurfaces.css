@@ -246,3 +246,39 @@
     font-size: 22px;
   }
 }
+
+@media (max-width: 720px) {
+  :root {
+    --drawer-space-inline: 12px;
+    --drawer-section-pad: 14px;
+    --drawer-space-block: 10px;
+  }
+
+  .wallet-panel .wallet-workspace-bar,
+  .env-center .env-workspace-bar,
+  .ports-panel .ports-workspace-bar,
+  .process-panel .process-workspace-bar,
+  .session-history .sr-workspace-bar,
+  .hackathon-panel .hackathon-workspace-bar,
+  .solana-toolbox .solana-workflow-header,
+  .git-center .git-workflow-hero,
+  .pro-panel .pro-panel-header,
+  .settings-center .settings-header,
+  .token-launch-tool .token-launch-tool-header {
+    gap: 8px;
+  }
+
+  .wallet-panel .wallet-workspace-title,
+  .env-center .env-title,
+  .ports-panel .ports-workspace-title,
+  .process-panel .process-workspace-title,
+  .session-history .sr-workspace-title,
+  .hackathon-panel .hackathon-workspace-title,
+  .solana-toolbox .solana-workflow-title,
+  .git-center .git-title,
+  .token-launch-tool .token-launch-tool-title,
+  .pro-panel .pro-panel-title {
+    font-size: 18px;
+    line-height: 1.16;
+  }
+}
