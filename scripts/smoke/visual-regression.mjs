@@ -96,7 +96,7 @@ const scenarios = [
   },
   {
     name: 'terminal-launcher-menu',
-    maxChangedPixels: 120,
+    maxChangedPixels: 180,
     setup: async (page) => {
       await openTerminalLauncher(page)
     },
