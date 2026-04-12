@@ -15,9 +15,9 @@ import './SolanaToolbox.css'
 
 const SOLANA_VIEWS = [
   {
-    id: 'overview',
-    label: 'Overview',
-    summary: 'Runtime, validator, and project state',
+    id: 'start',
+    label: 'Start',
+    summary: 'Readiness, runtime, and first moves',
   },
   {
     id: 'connect',
@@ -25,24 +25,24 @@ const SOLANA_VIEWS = [
     summary: 'Providers, MCPs, and wallet paths',
   },
   {
-    id: 'build',
-    label: 'Build',
-    summary: 'Scaffolds, skills, and payment setup',
+    id: 'transact',
+    label: 'Transact',
+    summary: 'Quotes, execution, and agent capabilities',
   },
   {
-    id: 'integrate',
-    label: 'Integrate',
-    summary: 'Protocol packs and ecosystem coverage',
+    id: 'launch',
+    label: 'Launch',
+    summary: 'Protocol flows and launch-oriented surfaces',
   },
   {
-    id: 'diagnose',
-    label: 'Diagnose',
+    id: 'debug',
+    label: 'Debug',
     summary: 'Toolchain readiness and environment checks',
   },
 ] as const
 
 export function SolanaToolbox() {
-  const [activeView, setActiveView] = useState<(typeof SOLANA_VIEWS)[number]['id']>('overview')
+  const [activeView, setActiveView] = useState<(typeof SOLANA_VIEWS)[number]['id']>('start')
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
@@ -83,9 +83,9 @@ export function SolanaToolbox() {
         <div className="solana-workflow-header">
           <div>
             <div className="solana-token-launch-kicker">Solana Workspace</div>
-            <h1 className="solana-workflow-title">Choose the task you need right now</h1>
+            <h1 className="solana-workflow-title">Work through one Solana task at a time</h1>
             <p className="solana-workflow-copy">
-              Keep DAEMON focused on the next Solana job instead of making you scroll through one oversized toolbox page.
+              Use the same task language as Wallet and Integrations so setup, execution, launch, and debugging feel like one Solana workflow.
             </p>
           </div>
         </div>
@@ -107,10 +107,34 @@ export function SolanaToolbox() {
         </div>
 
         <div className="solana-view-panel">
-          {activeView === 'overview' && (
+          {activeView === 'start' && (
             <>
               <div className="solana-validator-zone">
+                <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
+              </div>
+              <div className="solana-validator-zone">
                 <ValidatorCard />
+              </div>
+              <div className="solana-validator-zone">
+                <CapabilitiesSection
+                  mcps={mcps}
+                  projectPath={activeProjectPath}
+                  onToggle={toggleMcp}
+                  onScaffoldX402={handleScaffoldX402}
+                  onScaffoldMpp={handleScaffoldMpp}
+                />
+              </div>
+            </>
+          )}
+
+          {activeView === 'connect' && (
+            <>
+              <div className="solana-validator-zone">
+                <ConnectedServices
+                  mcps={mcps}
+                  projectPath={activeProjectPath}
+                  onToggle={toggleMcp}
+                />
               </div>
               <div className="solana-validator-zone">
                 <RuntimeStackSection />
@@ -118,33 +142,25 @@ export function SolanaToolbox() {
             </>
           )}
 
-          {activeView === 'connect' && (
-            <div className="solana-validator-zone">
-              <ConnectedServices
-                mcps={mcps}
-                projectPath={activeProjectPath}
-                onToggle={toggleMcp}
-              />
-            </div>
-          )}
-
-          {activeView === 'build' && (
-            <div className="solana-validator-zone">
-              <CapabilitiesSection
-                mcps={mcps}
-                projectPath={activeProjectPath}
-                onToggle={toggleMcp}
-                onScaffoldX402={handleScaffoldX402}
-                onScaffoldMpp={handleScaffoldMpp}
-              />
-            </div>
-          )}
-
-          {activeView === 'integrate' && (
+          {activeView === 'transact' && (
             <>
               <div className="solana-validator-zone">
-                <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
+                <RuntimeStackSection />
               </div>
+              <div className="solana-validator-zone">
+                <CapabilitiesSection
+                  mcps={mcps}
+                  projectPath={activeProjectPath}
+                  onToggle={toggleMcp}
+                  onScaffoldX402={handleScaffoldX402}
+                  onScaffoldMpp={handleScaffoldMpp}
+                />
+              </div>
+            </>
+          )}
+
+          {activeView === 'launch' && (
+            <>
               <div className="solana-validator-zone">
                 <ProtocolPacksSection />
               </div>
@@ -154,10 +170,15 @@ export function SolanaToolbox() {
             </>
           )}
 
-          {activeView === 'diagnose' && (
-            <div className="solana-validator-zone">
-              <ToolchainSection toolchain={toolchain} />
-            </div>
+          {activeView === 'debug' && (
+            <>
+              <div className="solana-validator-zone">
+                <ToolchainSection toolchain={toolchain} />
+              </div>
+              <div className="solana-validator-zone">
+                <ValidatorCard />
+              </div>
+            </>
           )}
         </div>
       </section>

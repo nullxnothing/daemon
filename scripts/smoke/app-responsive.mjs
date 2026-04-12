@@ -233,7 +233,7 @@ async function assertNoHorizontalOverflow(page, viewportName, contextName) {
 }
 
 async function verifySolanaTabs(page) {
-  const tabs = ['Overview', 'Connect', 'Build', 'Integrate', 'Diagnose']
+  const tabs = ['Start', 'Connect', 'Transact', 'Launch', 'Debug']
   for (const tab of tabs) {
     await page.locator('.solana-view-tab').evaluateAll((nodes, expected) => {
       for (const node of nodes) {

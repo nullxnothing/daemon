@@ -1,14 +1,35 @@
 import { useCallback, useState } from 'react'
 import { SOLANA_PROTOCOL_PACKS } from './catalog'
+import { useUIStore } from '../../store/ui'
+
+const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
+  jupiter: 'jupiter',
+  metaplex: 'metaplex',
+  raydium: 'token-launch-stack',
+  meteora: 'token-launch-stack',
+}
 
 export function ProtocolPacksSection() {
   const [copied, setCopied] = useState<string | null>(null)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const setIntegrationCommandSelectionId = useUIStore((s) => s.setIntegrationCommandSelectionId)
 
   const copyText = useCallback((value: string) => {
     navigator.clipboard.writeText(value).catch(() => {})
     setCopied(value)
     setTimeout(() => setCopied(null), 1500)
   }, [])
+
+  const openPackFlow = useCallback((packId: string) => {
+    const integrationId = PACK_INTEGRATION_MAP[packId]
+    if (integrationId) {
+      setIntegrationCommandSelectionId(integrationId)
+      openWorkspaceTool('integrations')
+      return
+    }
+
+    openWorkspaceTool('solana-toolbox')
+  }, [openWorkspaceTool, setIntegrationCommandSelectionId])
 
   return (
     <div className="solana-protocol-packs">
@@ -40,6 +61,9 @@ export function ProtocolPacksSection() {
             </div>
             <div className="solana-protocol-footer">
               <div className="solana-protocol-actions">
+                <button className="sol-btn green" onClick={() => openPackFlow(pack.id)}>
+                  {pack.status === 'native' ? 'Open Flow' : 'Open Integration'}
+                </button>
                 <button className="sol-btn" onClick={() => copyText(pack.skill)}>
                   {copied === pack.skill ? 'Copied Skill' : 'Copy Skill'}
                 </button>
