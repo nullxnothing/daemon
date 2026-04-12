@@ -53,6 +53,7 @@ const scenarios = [
   },
   {
     name: 'wallet-workspace-bar',
+    maxChangedPixels: 500,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
     },

@@ -11,6 +11,7 @@ import { useWorkspaceProfileStore } from '../../src/store/workspaceProfile'
 import { WalletSendForm } from '../../src/panels/WalletPanel/WalletSendForm'
 import { SolanaToolbox } from '../../src/panels/SolanaToolbox/SolanaToolbox'
 import { TokenLaunchTool } from '../../src/panels/TokenLaunchTool/TokenLaunchTool'
+import { IntegrationCommandCenter } from '../../src/panels/IntegrationCommandCenter/IntegrationCommandCenter'
 
 vi.mock('../../src/utils/lazyWithReload', () => ({
   lazyWithReload: () => () => null,
@@ -38,8 +39,43 @@ function installDaemonBridge() {
     configurable: true,
     value: {
       claude: {
-        projectMcpAll: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        projectMcpAll: vi.fn().mockResolvedValue({
+          ok: true,
+          data: [
+            { name: 'helius', enabled: true },
+            { name: 'solana-mcp-server', enabled: true },
+            { name: 'phantom-docs', enabled: false },
+          ],
+        }),
         projectMcpToggle: vi.fn().mockResolvedValue({ ok: true }),
+      },
+      env: {
+        projectVars: vi.fn().mockResolvedValue({
+          ok: true,
+          data: [
+            {
+              filePath: 'C:/work/daemon-app/.env',
+              fileName: '.env',
+              vars: [
+                { key: 'RPC_URL', value: 'https://example-rpc.test', isComment: false, isSecret: false, secretLabel: null, lineIndex: 0, raw: 'RPC_URL=https://example-rpc.test' },
+              ],
+            },
+          ],
+        }),
+      },
+      fs: {
+        readFile: vi.fn().mockResolvedValue({
+          ok: true,
+          data: {
+            path: 'C:/work/daemon-app/package.json',
+            content: JSON.stringify({
+              dependencies: {
+                'solana-agent-kit': '^2.0.0',
+                '@metaplex-foundation/umi': '^1.0.0',
+              },
+            }),
+          },
+        }),
       },
       launch: {
         listLaunchpads: vi.fn().mockResolvedValue({
@@ -105,7 +141,10 @@ function installDaemonBridge() {
         }),
       },
       wallet: {
-        list: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'wallet-1', name: 'Main Wallet' }] }),
+        list: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'wallet-1', name: 'Main Wallet', address: '7Y12wallet9AbC', is_default: 1, created_at: 1, assigned_project_ids: [] }] }),
+        hasHeliusKey: vi.fn().mockResolvedValue({ ok: true, data: true }),
+        hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
+        balance: vi.fn().mockResolvedValue({ ok: true, data: { sol: 2.5, lamports: 2500000000 } }),
         transactionPreview,
       },
     },
@@ -159,12 +198,32 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByText('New Project')).toBeInTheDocument()
     expect(screen.getByText('Token Launch')).toBeInTheDocument()
     expect(screen.getByText('Solana')).toBeInTheDocument()
+    expect(screen.getByText('Integrations')).toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText('Search tools...'), 'solana')
     await userEvent.click(screen.getByText('Solana').closest('button')!)
 
     expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(useWorkflowShellStore.getState().drawerOpen).toBe(false)
+  })
+
+  it('renders Integration Command Center setup status and safe checks', async () => {
+    render(<IntegrationCommandCenter />)
+
+    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
+    expect(screen.getByText('safe checks')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'DeFi' }))
+    expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'All' }))
+    await userEvent.click(screen.getByText('Phantom'))
+    await userEvent.click(screen.getByRole('button', { name: /Check balance/ }))
+
+    expect(await screen.findByText('Wallet balance')).toBeInTheDocument()
+    expect(screen.getByText(/2.5 SOL/)).toBeInTheDocument()
   })
 
   it('renders Solana toolbox workflow tabs and switches views', async () => {
