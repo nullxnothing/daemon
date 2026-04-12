@@ -353,6 +353,13 @@
     rgba(255, 255, 255, 0.02);
 }
 
+.icc-setup-workflow--secondary {
+  border-color: rgba(102, 172, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(102, 172, 255, 0.06), transparent 120px),
+    rgba(255, 255, 255, 0.02);
+}
+
 .icc-setup-head {
   display: flex;
   align-items: flex-start;
@@ -438,6 +445,16 @@
   border-top: 1px solid rgba(255, 255, 255, 0.055);
 }
 
+.icc-inline-note {
+  padding: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(245, 158, 11, 0.06);
+  color: var(--t3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .icc-safety-notes span::before {
   content: 'safe';
   display: inline-block;
@@ -451,6 +468,13 @@
 
 .icc-apply-setup {
   align-self: flex-end;
+}
+
+.icc-setup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .icc-action {
@@ -617,6 +641,7 @@
     grid-template-columns: 1fr;
   }
 
+  .icc-setup-actions,
   .icc-footer-actions {
     justify-content: stretch;
   }

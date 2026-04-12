@@ -8,11 +8,17 @@ import { INTEGRATION_CATEGORIES, INTEGRATION_REGISTRY, type IntegrationCategory,
 import { runIntegrationAction, type IntegrationActionResult } from './actionRunner'
 import { resolveIntegrationStatus, summarizeRegistry, type IntegrationContext, type IntegrationStatusSummary } from './status'
 import {
+  buildFirstSolanaAgentFile,
+  buildFirstSolanaAgentReadme,
+  createFirstAgentPlan,
   createSendAiSetupPlan,
   mergeEnvExample,
   parsePackageInfo,
+  upsertPackageJsonScript,
+  SENDAI_FIRST_AGENT_ENTRY,
   type PackageInfo,
   type PackageManager,
+  type FirstAgentPlan,
   type SendAiSetupPlan,
 } from './sendaiSetup'
 import './IntegrationCommandCenter.css'
@@ -27,7 +33,7 @@ function statusLabel(summary: IntegrationStatusSummary): string {
   return 'Setup needed'
 }
 
-const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), packageManagerHint: null }
+const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), scripts: new Set(), packageManagerHint: null }
 
 function RiskPill({ risk }: { risk: string }) {
   return <span className={`icc-risk icc-risk--${risk}`}>{risk.replace('-', ' ')}</span>
@@ -111,6 +117,82 @@ function SendAiSetupWorkflow({
   )
 }
 
+function SendAiFirstAgentWorkflow({
+  plan,
+  scaffolding,
+  running,
+  onScaffold,
+  onRun,
+}: {
+  plan: FirstAgentPlan
+  scaffolding: boolean
+  running: boolean
+  onScaffold: () => void
+  onRun: () => void
+}) {
+  return (
+    <div className="icc-setup-workflow icc-setup-workflow--secondary">
+      <div className="icc-setup-head">
+        <div>
+          <span className="icc-section-title">First success</span>
+          <h3>Create your first Solana agent</h3>
+          <p>DAEMON can scaffold a starter file, add one package script, and give the project a single command to run.</p>
+        </div>
+        <span className={`icc-status-badge ${plan.alreadyScaffolded ? 'ready' : 'partial'}`}>
+          {plan.alreadyScaffolded ? 'scaffolded' : 'ready to scaffold'}
+        </span>
+      </div>
+
+      <div className="icc-plan-grid">
+        <div className="icc-plan-card">
+          <span>Starter file</span>
+          <code>{plan.entryFilePath}</code>
+        </div>
+        <div className="icc-plan-card">
+          <span>Run command</span>
+          <code>{plan.runCommand}</code>
+        </div>
+      </div>
+
+      <div className="icc-plan-columns">
+        <div>
+          <span className="icc-mini-title">What DAEMON adds</span>
+          <div className="icc-check-list">
+            <span>{plan.entryFilePath}</span>
+            <span>{plan.readmePath}</span>
+            <span>{plan.scriptName} in package.json</span>
+          </div>
+        </div>
+        <div>
+          <span className="icc-mini-title">Readiness</span>
+          <div className="icc-check-list">
+            {plan.prerequisites.map((item) => <span key={item}>{item}</span>)}
+          </div>
+        </div>
+      </div>
+
+      {plan.missingPackages.length > 0 && (
+        <div className="icc-inline-note">
+          Install the SendAI runtime packages first. The scaffold is safe to create now, but the starter check should wait until install completes.
+        </div>
+      )}
+
+      <div className="icc-safety-notes">
+        {plan.safetyNotes.map((note) => <span key={note}>{note}</span>)}
+      </div>
+
+      <div className="icc-setup-actions">
+        <button type="button" className="icc-secondary" onClick={onScaffold} disabled={!plan.canScaffold || scaffolding}>
+          {scaffolding ? 'Creating files...' : plan.alreadyScaffolded ? 'Starter files created' : 'Create Starter Files'}
+        </button>
+        <button type="button" className="icc-primary" onClick={onRun} disabled={!plan.canRun || running}>
+          {running ? 'Opening terminal...' : 'Run Starter Check'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function IntegrationCard({
   integration,
   selected,
@@ -157,11 +239,15 @@ export function IntegrationCommandCenter() {
   const [selectedId, setSelectedId] = useState(INTEGRATION_REGISTRY[0]?.id ?? '')
   const [envFiles, setEnvFiles] = useState<EnvFile[]>([])
   const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
+  const [packageJsonContent, setPackageJsonContent] = useState<string | null>(null)
   const [lockfiles, setLockfiles] = useState<Partial<Record<PackageManager, boolean>>>({})
+  const [hasStarterAgentFile, setHasStarterAgentFile] = useState(false)
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [secureKeys, setSecureKeys] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(false)
   const [applyingSetup, setApplyingSetup] = useState(false)
+  const [scaffoldingFirstAgent, setScaffoldingFirstAgent] = useState(false)
+  const [runningStarterCheck, setRunningStarterCheck] = useState(false)
   const [actionResult, setActionResult] = useState<IntegrationActionResult | null>(null)
   const [runningActionId, setRunningActionId] = useState<string | null>(null)
 
@@ -193,29 +279,34 @@ export function IntegrationCommandCenter() {
             loadToolchain(activeProjectPath),
           ])
 
-          const [envRes, packageRes, pnpmLockRes, npmLockRes, yarnLockRes, bunLockRes] = await Promise.all([
+          const [envRes, packageRes, pnpmLockRes, npmLockRes, yarnLockRes, bunLockRes, starterFileRes] = await Promise.all([
             daemon.env.projectVars(activeProjectPath),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package.json')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-lock.yaml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package-lock.json')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'yarn.lock')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'bun.lockb')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, SENDAI_FIRST_AGENT_ENTRY)),
           ])
 
           if (cancelled) return
 
           setEnvFiles(envRes.ok && envRes.data ? envRes.data : [])
           setPackageInfo(packageRes.ok && packageRes.data ? parsePackageInfo(packageRes.data.content) : EMPTY_PACKAGE_INFO)
+          setPackageJsonContent(packageRes.ok && packageRes.data ? packageRes.data.content : null)
           setLockfiles({
             pnpm: Boolean(pnpmLockRes.ok),
             npm: Boolean(npmLockRes.ok),
             yarn: Boolean(yarnLockRes.ok),
             bun: Boolean(bunLockRes.ok),
           })
+          setHasStarterAgentFile(Boolean(starterFileRes.ok))
         } else {
           setEnvFiles([])
           setPackageInfo(EMPTY_PACKAGE_INFO)
+          setPackageJsonContent(null)
           setLockfiles({})
+          setHasStarterAgentFile(false)
           await loadToolchain(undefined)
         }
       } finally {
@@ -251,6 +342,15 @@ export function IntegrationCommandCenter() {
   const sendAiSetupPlan = useMemo(
     () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
     [packageInfo, lockfiles, envKeys],
+  )
+  const firstAgentPlan = useMemo(
+    () => createFirstAgentPlan({
+      packageInfo,
+      lockfiles,
+      hasPackageJson: Boolean(packageJsonContent),
+      hasStarterFile: hasStarterAgentFile,
+    }),
+    [packageInfo, lockfiles, packageJsonContent, hasStarterAgentFile],
   )
 
   const visibleIntegrations = useMemo(() => {
@@ -354,6 +454,129 @@ export function IntegrationCommandCenter() {
     }
   }
 
+  async function ensureDir(path: string) {
+    const result = await daemon.fs.createDir(path)
+    if (!result.ok && !/exist/i.test(result.error ?? '')) {
+      throw new Error(result.error ?? `Could not create ${path}`)
+    }
+  }
+
+  async function handleCreateFirstAgent(plan: FirstAgentPlan) {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a first SendAI agent.',
+      })
+      return
+    }
+
+    setScaffoldingFirstAgent(true)
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const packageRes = await daemon.fs.readFile(packageJsonPath)
+      if (!packageRes.ok || !packageRes.data) {
+        throw new Error(packageRes.error ?? 'Could not read package.json')
+      }
+
+      const nextPackageJson = upsertPackageJsonScript(packageRes.data.content, plan.scriptName, plan.scriptCommand)
+      const srcDir = joinProjectPath(activeProjectPath, 'src')
+      const agentsDir = joinProjectPath(activeProjectPath, 'src/agents')
+      const changedFiles: string[] = []
+
+      if (nextPackageJson !== packageRes.data.content) {
+        const writePackageRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!writePackageRes.ok) {
+          throw new Error(writePackageRes.error ?? 'Could not update package.json')
+        }
+        changedFiles.push('package.json')
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(srcDir)
+      await ensureDir(agentsDir)
+
+      const entryRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, plan.entryFilePath),
+        buildFirstSolanaAgentFile(),
+      )
+      if (!entryRes.ok) {
+        throw new Error(entryRes.error ?? `Could not write ${plan.entryFilePath}`)
+      }
+      changedFiles.push(plan.entryFilePath)
+
+      const readmeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, plan.readmePath),
+        buildFirstSolanaAgentReadme(plan.runCommand),
+      )
+      if (!readmeRes.ok) {
+        throw new Error(readmeRes.error ?? `Could not write ${plan.readmePath}`)
+      }
+      changedFiles.push(plan.readmePath)
+      setHasStarterAgentFile(true)
+
+      setActionResult({
+        title: 'Starter agent scaffolded',
+        status: 'success',
+        detail: 'DAEMON wrote a first Solana agent file, added a simple package script, and left the run step as a visible terminal action.',
+        items: changedFiles,
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Starter scaffold failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not create the starter agent files.',
+      })
+    } finally {
+      setScaffoldingFirstAgent(false)
+    }
+  }
+
+  async function handleRunFirstAgent(plan: FirstAgentPlan) {
+    if (!activeProjectPath || !activeProjectId) {
+      setActionResult({
+        title: 'Open a project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project before it can open the starter run command in a terminal.',
+      })
+      return
+    }
+
+    setRunningStarterCheck(true)
+    setActionResult(null)
+
+    try {
+      const terminalRes = await daemon.terminal.create({
+        cwd: activeProjectPath,
+        startupCommand: plan.runCommand,
+        userInitiated: true,
+      })
+      if (!terminalRes.ok || !terminalRes.data) {
+        throw new Error(terminalRes.error ?? 'Could not start starter terminal')
+      }
+
+      addTerminal(activeProjectId, terminalRes.data.id, 'SendAI Starter Check', terminalRes.data.agentId)
+      focusTerminal()
+      setActionResult({
+        title: 'Starter check opened',
+        status: 'success',
+        detail: 'DAEMON opened a visible terminal so you can watch the first-agent readiness check run.',
+        items: [plan.runCommand],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Starter check failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not open the starter terminal.',
+      })
+    } finally {
+      setRunningStarterCheck(false)
+    }
+  }
+
   function openDocs() {
     void daemon.shell.openExternal(selectedIntegration.docsUrl)
   }
@@ -445,11 +668,20 @@ export function IntegrationCommandCenter() {
           )}
 
           {selectedIntegration.id === 'sendai-agent-kit' && (
-            <SendAiSetupWorkflow
-              plan={sendAiSetupPlan}
-              applying={applyingSetup}
-              onApply={() => void handleApplySendAiSetup(sendAiSetupPlan)}
-            />
+            <>
+              <SendAiSetupWorkflow
+                plan={sendAiSetupPlan}
+                applying={applyingSetup}
+                onApply={() => void handleApplySendAiSetup(sendAiSetupPlan)}
+              />
+              <SendAiFirstAgentWorkflow
+                plan={firstAgentPlan}
+                scaffolding={scaffoldingFirstAgent}
+                running={runningStarterCheck}
+                onScaffold={() => void handleCreateFirstAgent(firstAgentPlan)}
+                onRun={() => void handleRunFirstAgent(firstAgentPlan)}
+              />
+            </>
           )}
 
           <div className="icc-detail-section">

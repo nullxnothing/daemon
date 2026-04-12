@@ -49,7 +49,7 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use SendAI action plugins for token, NFT, DeFi, Blink, price, staking, and bridge workflows once DAEMON has previewed the risk.',
     category: 'agent',
     docsUrl: 'https://github.com/sendaifun/solana-agent-kit',
-    installCommand: 'pnpm add solana-agent-kit @solana-agent-kit/plugin-token @solana-agent-kit/plugin-defi @solana-agent-kit/plugin-nft',
+    installCommand: 'pnpm add solana-agent-kit @solana-agent-kit/plugin-token @solana-agent-kit/plugin-defi @solana-agent-kit/plugin-nft @solana-agent-kit/plugin-misc @solana-agent-kit/plugin-blinks @solana/web3.js bs58',
     recommendedFor: ['agent workflows', 'guided Solana actions', 'protocol automation'],
     requirements: [
       { type: 'package', key: 'solana-agent-kit', label: 'solana-agent-kit package' },
