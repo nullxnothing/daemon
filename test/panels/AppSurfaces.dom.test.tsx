@@ -21,6 +21,31 @@ vi.mock('../../src/utils/lazyWithReload', () => ({
 const { CommandDrawer } = await import('../../src/components/CommandDrawer/CommandDrawer')
 
 function installDaemonBridge() {
+  const readFile = vi.fn().mockImplementation(async (filePath: string) => {
+    if (filePath.endsWith('package.json')) {
+      return {
+        ok: true,
+        data: {
+          path: filePath,
+          content: JSON.stringify({
+            packageManager: 'pnpm@9.15.3',
+            dependencies: {
+              'solana-agent-kit': '^2.0.0',
+              '@metaplex-foundation/umi': '^1.0.0',
+            },
+          }),
+        },
+      }
+    }
+
+    if (filePath.endsWith('pnpm-lock.yaml')) {
+      return { ok: true, data: { path: filePath, content: 'lockfileVersion: 9.0' } }
+    }
+
+    return { ok: false, error: 'File not found' }
+  })
+  const writeFile = vi.fn().mockResolvedValue({ ok: true })
+  const createTerminal = vi.fn().mockResolvedValue({ ok: true, data: { id: 'terminal-sendai', pid: 123, agentId: null } })
   const transactionPreview = vi.fn().mockResolvedValue({
     ok: true,
     data: {
@@ -64,18 +89,11 @@ function installDaemonBridge() {
         }),
       },
       fs: {
-        readFile: vi.fn().mockResolvedValue({
-          ok: true,
-          data: {
-            path: 'C:/work/daemon-app/package.json',
-            content: JSON.stringify({
-              dependencies: {
-                'solana-agent-kit': '^2.0.0',
-                '@metaplex-foundation/umi': '^1.0.0',
-              },
-            }),
-          },
-        }),
+        readFile,
+        writeFile,
+      },
+      terminal: {
+        create: createTerminal,
       },
       launch: {
         listLaunchpads: vi.fn().mockResolvedValue({
@@ -150,7 +168,7 @@ function installDaemonBridge() {
     },
   })
 
-  return { transactionPreview }
+  return { createTerminal, readFile, transactionPreview, writeFile }
 }
 
 function resetStores() {
@@ -214,6 +232,21 @@ describe('App surface DOM coverage', () => {
     expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
     expect(screen.getByText('safe checks')).toBeInTheDocument()
+    expect(screen.getByText('Add Solana Agent Kit to this project')).toBeInTheDocument()
+    expect(await screen.findByText(/pnpm add @solana-agent-kit\/plugin-token/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Apply Setup' }))
+
+    expect(await screen.findByText('SendAI setup started')).toBeInTheDocument()
+    expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/.env.example',
+      expect.stringContaining('SOLANA_PRIVATE_KEY=replace_with_devnet_wallet_private_key_or_use_daemon_wallet'),
+    )
+    expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
+      cwd: 'C:/work/daemon-app',
+      startupCommand: expect.stringContaining('pnpm add @solana-agent-kit/plugin-token'),
+    }))
+    expect(useUIStore.getState().terminals.some((terminal) => terminal.id === 'terminal-sendai')).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'DeFi' }))
     expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()

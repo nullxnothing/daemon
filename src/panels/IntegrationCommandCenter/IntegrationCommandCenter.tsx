@@ -1,32 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { daemon } from '../../lib/daemonBridge'
+import { useAppActions } from '../../store/appActions'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import type { EnvFile, WalletListEntry } from '../../types/daemon'
 import { INTEGRATION_CATEGORIES, INTEGRATION_REGISTRY, type IntegrationCategory, type IntegrationDefinition } from './registry'
 import { runIntegrationAction, type IntegrationActionResult } from './actionRunner'
 import { resolveIntegrationStatus, summarizeRegistry, type IntegrationContext, type IntegrationStatusSummary } from './status'
+import {
+  createSendAiSetupPlan,
+  mergeEnvExample,
+  parsePackageInfo,
+  type PackageInfo,
+  type PackageManager,
+  type SendAiSetupPlan,
+} from './sendaiSetup'
 import './IntegrationCommandCenter.css'
 
 function joinProjectPath(projectPath: string, child: string): string {
   return `${projectPath.replace(/[\\/]+$/, '')}/${child}`
-}
-
-function collectPackages(packageJson: string): Set<string> {
-  try {
-    const parsed = JSON.parse(packageJson) as {
-      dependencies?: Record<string, string>
-      devDependencies?: Record<string, string>
-      optionalDependencies?: Record<string, string>
-    }
-    return new Set([
-      ...Object.keys(parsed.dependencies ?? {}),
-      ...Object.keys(parsed.devDependencies ?? {}),
-      ...Object.keys(parsed.optionalDependencies ?? {}),
-    ])
-  } catch {
-    return new Set()
-  }
 }
 
 function statusLabel(summary: IntegrationStatusSummary): string {
@@ -34,6 +26,8 @@ function statusLabel(summary: IntegrationStatusSummary): string {
   if (summary.status === 'partial') return 'Partial'
   return 'Setup needed'
 }
+
+const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), packageManagerHint: null }
 
 function RiskPill({ risk }: { risk: string }) {
   return <span className={`icc-risk icc-risk--${risk}`}>{risk.replace('-', ' ')}</span>
@@ -54,6 +48,65 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function SendAiSetupWorkflow({
+  plan,
+  applying,
+  onApply,
+}: {
+  plan: SendAiSetupPlan
+  applying: boolean
+  onApply: () => void
+}) {
+  return (
+    <div className="icc-setup-workflow">
+      <div className="icc-setup-head">
+        <div>
+          <span className="icc-section-title">Guided setup</span>
+          <h3>Add Solana Agent Kit to this project</h3>
+          <p>Preview what DAEMON will do, then apply only the package install and env template changes.</p>
+        </div>
+        <span className="icc-status-badge partial">{plan.packageManager}</span>
+      </div>
+
+      <div className="icc-plan-grid">
+        <div className="icc-plan-card">
+          <span>Install command</span>
+          <code>{plan.installCommand ?? 'All SendAI packages are already installed'}</code>
+        </div>
+        <div className="icc-plan-card">
+          <span>Env template</span>
+          <code>{plan.envFileName} adds {plan.missingEnvKeys.length} missing key{plan.missingEnvKeys.length === 1 ? '' : 's'}</code>
+        </div>
+      </div>
+
+      <div className="icc-plan-columns">
+        <div>
+          <span className="icc-mini-title">Packages</span>
+          <div className="icc-check-list">
+            {plan.missingPackages.map((name) => <span key={name}>Install {name}</span>)}
+            {plan.missingPackages.length === 0 ? <span>All recommended packages are present</span> : null}
+          </div>
+        </div>
+        <div>
+          <span className="icc-mini-title">Env keys</span>
+          <div className="icc-check-list">
+            {plan.missingEnvKeys.map((key) => <span key={key}>Template {key}</span>)}
+            {plan.missingEnvKeys.length === 0 ? <span>Env template keys already detected</span> : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="icc-safety-notes">
+        {plan.safetyNotes.map((note) => <span key={note}>{note}</span>)}
+      </div>
+
+      <button type="button" className="icc-primary icc-apply-setup" onClick={onApply} disabled={applying}>
+        {applying ? 'Applying setup...' : 'Apply Setup'}
+      </button>
     </div>
   )
 }
@@ -92,6 +145,8 @@ export function IntegrationCommandCenter() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const addTerminal = useUIStore((s) => s.addTerminal)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
   const toolchain = useSolanaToolboxStore((s) => s.toolchain)
   const loadMcps = useSolanaToolboxStore((s) => s.loadMcps)
@@ -101,10 +156,12 @@ export function IntegrationCommandCenter() {
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState(INTEGRATION_REGISTRY[0]?.id ?? '')
   const [envFiles, setEnvFiles] = useState<EnvFile[]>([])
-  const [packages, setPackages] = useState<Set<string>>(new Set())
+  const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
+  const [lockfiles, setLockfiles] = useState<Partial<Record<PackageManager, boolean>>>({})
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [secureKeys, setSecureKeys] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(false)
+  const [applyingSetup, setApplyingSetup] = useState(false)
   const [actionResult, setActionResult] = useState<IntegrationActionResult | null>(null)
   const [runningActionId, setRunningActionId] = useState<string | null>(null)
 
@@ -136,18 +193,29 @@ export function IntegrationCommandCenter() {
             loadToolchain(activeProjectPath),
           ])
 
-          const [envRes, packageRes] = await Promise.all([
+          const [envRes, packageRes, pnpmLockRes, npmLockRes, yarnLockRes, bunLockRes] = await Promise.all([
             daemon.env.projectVars(activeProjectPath),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package.json')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-lock.yaml')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package-lock.json')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'yarn.lock')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'bun.lockb')),
           ])
 
           if (cancelled) return
 
           setEnvFiles(envRes.ok && envRes.data ? envRes.data : [])
-          setPackages(packageRes.ok && packageRes.data ? collectPackages(packageRes.data.content) : new Set())
+          setPackageInfo(packageRes.ok && packageRes.data ? parsePackageInfo(packageRes.data.content) : EMPTY_PACKAGE_INFO)
+          setLockfiles({
+            pnpm: Boolean(pnpmLockRes.ok),
+            npm: Boolean(npmLockRes.ok),
+            yarn: Boolean(yarnLockRes.ok),
+            bun: Boolean(bunLockRes.ok),
+          })
         } else {
           setEnvFiles([])
-          setPackages(new Set())
+          setPackageInfo(EMPTY_PACKAGE_INFO)
+          setLockfiles({})
           await loadToolchain(undefined)
         }
       } finally {
@@ -169,14 +237,21 @@ export function IntegrationCommandCenter() {
   const context: IntegrationContext = useMemo(() => ({
     envFiles,
     mcps,
-    packages,
+    packages: packageInfo.packages,
     walletReady: Boolean(defaultWallet),
     defaultWallet,
     secureKeys,
     toolchain,
-  }), [envFiles, mcps, packages, defaultWallet, secureKeys, toolchain])
+  }), [envFiles, mcps, packageInfo, defaultWallet, secureKeys, toolchain])
 
   const registrySummary = useMemo(() => summarizeRegistry(INTEGRATION_REGISTRY, context), [context])
+  const envKeys = useMemo(() => new Set(
+    envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
+  ), [envFiles])
+  const sendAiSetupPlan = useMemo(
+    () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
+    [packageInfo, lockfiles, envKeys],
+  )
 
   const visibleIntegrations = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -215,6 +290,67 @@ export function IntegrationCommandCenter() {
       setActionResult(result)
     } finally {
       setRunningActionId(null)
+    }
+  }
+
+  async function handleApplySendAiSetup(plan: SendAiSetupPlan) {
+    if (!activeProjectPath || !activeProjectId) {
+      setActionResult({
+        title: 'Open a project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project before it can install packages or write .env.example.',
+      })
+      return
+    }
+
+    setApplyingSetup(true)
+    setActionResult(null)
+
+    try {
+      const envExamplePath = joinProjectPath(activeProjectPath, plan.envFileName)
+      const currentEnvRes = await daemon.fs.readFile(envExamplePath)
+      const currentEnv = currentEnvRes.ok && currentEnvRes.data ? currentEnvRes.data.content : ''
+      const nextEnv = mergeEnvExample(currentEnv)
+      const changedFiles: string[] = []
+
+      if (nextEnv !== currentEnv) {
+        const writeRes = await daemon.fs.writeFile(envExamplePath, nextEnv)
+        if (!writeRes.ok) {
+          throw new Error(writeRes.error ?? `Could not write ${plan.envFileName}`)
+        }
+        changedFiles.push(plan.envFileName)
+      }
+
+      if (plan.installCommand) {
+        const terminalRes = await daemon.terminal.create({
+          cwd: activeProjectPath,
+          startupCommand: plan.installCommand,
+          userInitiated: true,
+        })
+        if (!terminalRes.ok || !terminalRes.data) {
+          throw new Error(terminalRes.error ?? 'Could not start package install terminal')
+        }
+        addTerminal(activeProjectId, terminalRes.data.id, 'Install SendAI', terminalRes.data.agentId)
+        focusTerminal()
+        changedFiles.push(`terminal: ${plan.installCommand}`)
+      }
+
+      setActionResult({
+        title: 'SendAI setup started',
+        status: 'success',
+        detail: plan.installCommand
+          ? 'DAEMON updated the env template and opened a visible terminal for package installation.'
+          : 'DAEMON updated the env template. Required SendAI packages were already present.',
+        items: changedFiles.length > 0 ? changedFiles : ['No changes needed'],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'SendAI setup failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not apply the setup plan.',
+      })
+    } finally {
+      setApplyingSetup(false)
     }
   }
 
@@ -306,6 +442,14 @@ export function IntegrationCommandCenter() {
               <span>Install</span>
               <code>{selectedIntegration.installCommand}</code>
             </div>
+          )}
+
+          {selectedIntegration.id === 'sendai-agent-kit' && (
+            <SendAiSetupWorkflow
+              plan={sendAiSetupPlan}
+              applying={applyingSetup}
+              onApply={() => void handleApplySendAiSetup(sendAiSetupPlan)}
+            />
           )}
 
           <div className="icc-detail-section">
