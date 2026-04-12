@@ -18,6 +18,7 @@ const userDataDir = mkdtempSync(path.join(tmpdir(), 'daemon-app-responsive-'))
 const projectPath = repoRoot
 const projectName = 'DAEMON App Responsive Smoke'
 const viewports = [
+  { name: 'narrow', width: 640, height: 700 },
   { name: 'compact', width: 900, height: 760 },
   { name: 'desktop', width: 1366, height: 900 },
   { name: 'wide', width: 1720, height: 980 },
@@ -177,6 +178,10 @@ async function assertNoHorizontalOverflow(page, viewportName, contextName) {
       '.dash-canvas',
       '.session-history',
       '.recovery-panel',
+      '.terminal-panel',
+      '.terminal-views',
+      '.terminal-view',
+      '.terminal-view .xterm-screen',
     ]
 
     const overflowingSelectors = selectors
