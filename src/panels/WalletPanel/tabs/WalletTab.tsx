@@ -468,15 +468,21 @@ export function WalletTab({ onRefresh }: Props) {
     rpcReady,
   })
   const walletPrimaryAction = walletReadiness.nextAction.id === 'open-wallet'
-    ? { label: 'Open manage', onClick: () => setActiveView('manage') }
+    ? {
+      label: activeWallet ? 'Add signer' : 'Create wallet',
+      onClick: () => setActiveView('manage'),
+    }
     : walletReadiness.nextAction.id === 'assign-project' && activeWallet
       ? { label: 'Use for current project', onClick: () => void handleAssignProject(activeWallet.id) }
       : walletReadiness.nextAction.id === 'set-main-wallet' && activeWallet
         ? { label: 'Make main wallet', onClick: () => void handleSetDefault(activeWallet.id) }
         : walletReadiness.nextAction.id === 'open-infrastructure'
-          ? { label: 'Open infrastructure', onClick: () => setShowInfrastructure(true) }
+          ? { label: 'Finish infrastructure', onClick: () => setShowInfrastructure(true) }
           : activeWallet
-            ? { label: walletReadiness.nextAction.label, onClick: () => openSend(activeWallet.id, 'sol') }
+            ? {
+              label: walletReadiness.nextAction.id === 'transact' ? 'Send SOL' : walletReadiness.nextAction.label,
+              onClick: () => openSend(activeWallet.id, 'sol'),
+            }
             : null
   const walletSecondaryAction = hasKeypair
     ? { label: 'Open holdings', onClick: () => setActiveView('holdings') }

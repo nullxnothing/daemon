@@ -171,6 +171,7 @@ function SendAiAgentLaunchpad({
   projectReady,
   setupPlan,
   agentPlan,
+  result,
   setupApplied,
   applying,
   scaffolding,
@@ -183,6 +184,7 @@ function SendAiAgentLaunchpad({
   projectReady: boolean
   setupPlan: SendAiSetupPlan
   agentPlan: FirstAgentPlan
+  result?: IntegrationActionResult | null
   setupApplied: boolean
   applying: boolean
   scaffolding: boolean
@@ -310,6 +312,18 @@ function SendAiAgentLaunchpad({
         </div>
       </div>
 
+      {result ? (
+        <div className={`icc-result ${result.status}`}>
+          <span className="icc-result-title">{result.title}</span>
+          <p>{result.detail}</p>
+          {result.items?.length ? (
+            <div className="icc-result-items">
+              {result.items.map((item) => <code key={item}>{item}</code>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="icc-setup-actions">
         <button type="button" className="icc-primary" onClick={nextAction.action} disabled={nextAction.disabled}>
           {nextAction.label}
@@ -322,11 +336,13 @@ function SendAiAgentLaunchpad({
 function SendAiSkillsWorkflow({
   installCommand,
   suggestions,
+  result,
   installing,
   onInstall,
 }: {
   installCommand: string
   suggestions: string[]
+  result?: IntegrationActionResult | null
   installing: boolean
   onInstall: () => void
 }) {
@@ -373,6 +389,18 @@ function SendAiSkillsWorkflow({
         This opens a visible terminal and runs the skills install command in the current project. It does not execute any on-chain action.
       </div>
 
+      {result ? (
+        <div className={`icc-result ${result.status}`}>
+          <span className="icc-result-title">{result.title}</span>
+          <p>{result.detail}</p>
+          {result.items?.length ? (
+            <div className="icc-result-items">
+              {result.items.map((item) => <code key={item}>{item}</code>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="icc-setup-actions">
         <button type="button" className="icc-primary" onClick={onInstall} disabled={installing}>
           {installing ? 'Opening install terminal...' : 'Install skills in terminal'}
@@ -387,6 +415,7 @@ function IntegrationFirstWinWorkflow({
   title,
   description,
   status,
+  result,
   nextLabel,
   nextDetail,
   cards,
@@ -403,6 +432,7 @@ function IntegrationFirstWinWorkflow({
   title: string
   description: string
   status: 'ready' | 'partial'
+  result?: IntegrationActionResult | null
   nextLabel: string
   nextDetail: string
   cards: Array<{ label: string; value: string }>
@@ -456,6 +486,18 @@ function IntegrationFirstWinWorkflow({
 
       {note ? <div className="icc-inline-note">{note}</div> : null}
 
+      {result ? (
+        <div className={`icc-result ${result.status}`}>
+          <span className="icc-result-title">{result.title}</span>
+          <p>{result.detail}</p>
+          {result.items?.length ? (
+            <div className="icc-result-items">
+              {result.items.map((item) => <code key={item}>{item}</code>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="icc-setup-actions">
         <button type="button" className="icc-primary" onClick={onPrimary} disabled={busy}>
           {busy ? primaryBusyLabel : primaryLabel}
@@ -480,6 +522,7 @@ function PhantomWalletWorkflow({
   executionMode,
   rpcLabel,
   rpcReady,
+  result,
   busy,
   onOpenWallet,
   onSetMainWallet,
@@ -496,6 +539,7 @@ function PhantomWalletWorkflow({
   executionMode: WalletInfrastructureSettings['executionMode']
   rpcLabel: string
   rpcReady: boolean
+  result?: IntegrationActionResult | null
   busy: boolean
   onOpenWallet: () => void
   onSetMainWallet: () => void
@@ -569,6 +613,18 @@ function PhantomWalletWorkflow({
           </div>
         ))}
       </div>
+
+      {result ? (
+        <div className={`icc-result ${result.status}`}>
+          <span className="icc-result-title">{result.title}</span>
+          <p>{result.detail}</p>
+          {result.items?.length ? (
+            <div className="icc-result-items">
+              {result.items.map((item) => <code key={item}>{item}</code>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="icc-setup-actions">
         <button type="button" className="icc-primary" onClick={nextAction} disabled={busy}>
@@ -791,8 +847,10 @@ export function IntegrationCommandCenter() {
 
   useEffect(() => {
     if (!integrationCommandSelectionId) return
-    const exists = INTEGRATION_REGISTRY.some((integration) => integration.id === integrationCommandSelectionId)
-    if (exists) {
+    const target = INTEGRATION_REGISTRY.find((integration) => integration.id === integrationCommandSelectionId)
+    if (target) {
+      setCategory('all')
+      setSearch('')
       setSelectedId(integrationCommandSelectionId)
       setActionResult(null)
     }
@@ -1482,7 +1540,6 @@ export function IntegrationCommandCenter() {
   }
 
   function handleOpenMcpSetup() {
-    setIntegrationCommandSelectionId('sendai-solana-mcp')
     openWorkspaceTool('solana-toolbox')
     setActionResult({
       title: 'Open MCP setup',
@@ -1586,6 +1643,7 @@ export function IntegrationCommandCenter() {
               projectReady={Boolean(activeProjectPath && packageJsonContent)}
               setupPlan={sendAiSetupPlan}
               agentPlan={firstAgentPlan}
+              result={actionResult}
               setupApplied={sendAiSetupApplied}
               applying={applyingSetup}
               scaffolding={scaffoldingFirstAgent}
@@ -1601,6 +1659,7 @@ export function IntegrationCommandCenter() {
             <SendAiSkillsWorkflow
               installCommand={selectedIntegration.installCommand}
               suggestions={sendAiSkillSuggestions}
+              result={actionResult}
               installing={installingSkills}
               onInstall={() => void handleInstallSkills(selectedIntegration.installCommand!)}
             />
@@ -1617,6 +1676,7 @@ export function IntegrationCommandCenter() {
               executionMode={walletInfrastructure.executionMode}
               rpcLabel={walletRpcLabel}
               rpcReady={walletRpcReady}
+              result={actionResult}
               busy={updatingWalletFlow}
               onOpenWallet={() => openWorkspaceTool('wallet')}
               onSetMainWallet={() => void handleSetMainWallet()}
@@ -1632,6 +1692,7 @@ export function IntegrationCommandCenter() {
               title="Route one Solana MCP path inside DAEMON"
               description="The MCP setup should not be a dead end. DAEMON should guide the developer straight into the server path that exposes read-only Solana tools to agents."
               status={selectedSummary.status === 'ready' ? 'ready' : 'partial'}
+              result={actionResult}
               nextLabel={selectedSummary.status === 'ready' ? 'Check MCP server state' : 'Open MCP setup'}
               nextDetail={selectedSummary.status === 'ready'
                 ? 'The MCP server looks configured. Move into toolbox setup to verify which tools are exposed.'
@@ -1660,6 +1721,7 @@ export function IntegrationCommandCenter() {
               title="Verify the Helius-backed wallet data path"
               description="Helius should feel operational immediately. The first win here is reading live wallet data inside DAEMON, not just proving a key exists."
               status={secureKeys.HELIUS_API_KEY && Boolean(defaultWallet) ? 'ready' : 'partial'}
+              result={actionResult}
               nextLabel={secureKeys.HELIUS_API_KEY ? (defaultWallet ? 'Read default wallet data' : 'Open wallet manager') : 'Open env manager'}
               nextDetail={secureKeys.HELIUS_API_KEY
                 ? (defaultWallet ? 'Run one safe wallet read to verify balance and holdings flow through the provider route.' : 'Create or connect a wallet so DAEMON has a target for the provider-backed read.')
@@ -1689,6 +1751,7 @@ export function IntegrationCommandCenter() {
               title="Get to a first Jupiter quote before any signing"
               description="The Jupiter path should start with a quote and transaction preview, not with docs or abstract swap capability labels."
               status={Boolean(defaultWallet) && defaultWalletSignerReady ? 'ready' : 'partial'}
+              result={actionResult}
               nextLabel={defaultWallet && defaultWalletSignerReady ? 'Preview SOL to USDC quote' : 'Open wallet manager'}
               nextDetail={defaultWallet && defaultWalletSignerReady
                 ? 'Fetch a small read-only route preview so the developer sees the swap path and impact before signing exists.'
@@ -1718,6 +1781,7 @@ export function IntegrationCommandCenter() {
               title="Create a first metadata draft inside the project"
               description="The first Metaplex success should be a metadata scaffold the project can edit immediately, not a vague promise of NFT support."
               status={Boolean(activeProjectPath) && packageInfo.packages.has('@metaplex-foundation/umi') ? 'ready' : 'partial'}
+              result={actionResult}
               nextLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@metaplex-foundation/umi') ? 'Install Metaplex packages' : 'Create metadata draft'}
               nextDetail={!activeProjectPath
                 ? 'Open or scaffold a project first so the metadata draft has somewhere to live.'
@@ -1753,6 +1817,7 @@ export function IntegrationCommandCenter() {
               title="Scaffold the first Light compression starter"
               description="Light Protocol should begin with a concrete compression-capable project check, not a generic package status card."
               status={Boolean(activeProjectPath) && packageInfo.packages.has('@lightprotocol/stateless.js') && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              result={actionResult}
               nextLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
               nextDetail={!activeProjectPath
                 ? 'Open or scaffold a project first so the compression starter can be written into source.'
@@ -1809,7 +1874,7 @@ export function IntegrationCommandCenter() {
             </div>
           )}
 
-          {actionResult && (
+          {actionResult && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className={`icc-result ${actionResult.status}`}>
               <span className="icc-result-title">{actionResult.title}</span>
               <p>{actionResult.detail}</p>

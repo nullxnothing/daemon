@@ -142,4 +142,14 @@ describe('WalletTab readiness UX', () => {
       expect(onRefresh).toHaveBeenCalled()
     })
   })
+
+  it('uses a specific add-signer CTA when the active wallet is watch-only', async () => {
+    window.daemon.wallet.hasKeypair.mockResolvedValueOnce({ ok: true, data: false })
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+
+    render(<WalletTab onRefresh={onRefresh} />)
+
+    expect(await screen.findByText('Wallet readiness')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Add signer' })).toBeInTheDocument()
+  })
 })

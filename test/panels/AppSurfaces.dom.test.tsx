@@ -419,6 +419,35 @@ describe('App surface DOM coverage', () => {
     expect(await screen.findByRole('heading', { name: 'Metaplex' })).toBeInTheDocument()
   })
 
+  it('resets hidden integration filters when another surface targets a workflow', async () => {
+    render(<IntegrationCommandCenter />)
+
+    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+
+    await userEvent.type(screen.getByPlaceholderText('Search integrations, actions, protocols...'), 'phantom')
+    expect(screen.getByDisplayValue('phantom')).toBeInTheDocument()
+
+    useUIStore.getState().setIntegrationCommandSelectionId('sendai-solana-mcp')
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'SendAI Solana MCP' })).toBeInTheDocument()
+    })
+    expect(screen.getByDisplayValue('')).toBeInTheDocument()
+  })
+
+  it('opens MCP setup without leaving stale integration selection behind', async () => {
+    render(<IntegrationCommandCenter />)
+
+    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByText('SendAI Solana MCP')[0].closest('button')!)
+    await userEvent.click(screen.getByRole('button', { name: 'Open MCP setup' }))
+
+    expect(useUIStore.getState().integrationCommandSelectionId).toBeNull()
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
+    expect(await screen.findByText('Open MCP setup', { selector: '.icc-result-title' })).toBeInTheDocument()
+  })
+
   it('renders Solana toolbox workflow tabs and switches views', async () => {
     render(<SolanaToolbox />)
 
