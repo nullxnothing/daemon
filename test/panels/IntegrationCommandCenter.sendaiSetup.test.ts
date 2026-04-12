@@ -97,6 +97,8 @@ describe('SendAI Agent Kit setup planner', () => {
     const file = buildFirstSolanaAgentFile()
 
     expect(file).toContain("console.log('SendAI Solana agent is ready.')")
+    expect(file).toContain('connection.getBalance(keypair.publicKey)')
+    expect(file).toContain('Wallet balance:')
     expect(file).toContain('Object.keys(agent.methods ?? {}).sort()')
     expect(file).not.toContain('deployToken(')
     expect(file).not.toContain('trade(')

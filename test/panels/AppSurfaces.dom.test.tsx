@@ -52,7 +52,11 @@ function installDaemonBridge() {
   const createTerminal = vi.fn().mockImplementation(async ({ startupCommand }: { startupCommand?: string }) => ({
     ok: true,
     data: {
-      id: startupCommand?.includes('agent:first-solana') ? 'terminal-sendai-run' : 'terminal-sendai',
+      id: startupCommand?.includes('agent:first-solana')
+        ? 'terminal-sendai-run'
+        : startupCommand?.includes('npx skills add')
+          ? 'terminal-sendai-skills'
+          : 'terminal-sendai',
       pid: 123,
       agentId: null,
     },
@@ -68,6 +72,41 @@ function installDaemonBridge() {
       feeLabel: '~0.00001 SOL',
       warnings: ['Check the destination before signing.'],
       notes: ['This transaction is simulated before send.'],
+    },
+  })
+  const holdings = vi.fn().mockResolvedValue({
+    ok: true,
+    data: [
+      {
+        mint: 'So11111111111111111111111111111111111111112',
+        symbol: 'SOL',
+        name: 'Solana',
+        amount: 2.5,
+        priceUsd: 150,
+        valueUsd: 375,
+        logoUri: null,
+      },
+      {
+        mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+        symbol: 'USDC',
+        name: 'USD Coin',
+        amount: 45,
+        priceUsd: 1,
+        valueUsd: 45,
+        logoUri: null,
+      },
+    ],
+  })
+  const swapQuote = vi.fn().mockResolvedValue({
+    ok: true,
+    data: {
+      inputMint: 'So11111111111111111111111111111111111111112',
+      outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      inAmount: '100000000',
+      outAmount: '14.82',
+      priceImpactPct: '0.17',
+      routePlan: [{ label: 'Jupiter', percent: 100 }],
+      rawQuoteResponse: {},
     },
   })
 
@@ -126,7 +165,20 @@ function installDaemonBridge() {
             meteora: { configId: '', quoteMint: '', baseSupply: '' },
           },
         }),
+        getWalletInfrastructureSettings: vi.fn().mockResolvedValue({
+          ok: true,
+          data: {
+            rpcProvider: 'helius',
+            quicknodeRpcUrl: '',
+            customRpcUrl: '',
+            swapProvider: 'jupiter',
+            preferredWallet: 'wallet-standard',
+            executionMode: 'rpc',
+            jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+          },
+        }),
         setLayout: vi.fn().mockResolvedValue({ ok: true }),
+        setWalletInfrastructureSettings: vi.fn().mockResolvedValue({ ok: true }),
         getSolanaRuntimeStatus: vi.fn().mockResolvedValue({
           ok: true,
           data: {
@@ -172,15 +224,20 @@ function installDaemonBridge() {
       },
       wallet: {
         list: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'wallet-1', name: 'Main Wallet', address: '7Y12wallet9AbC', is_default: 1, created_at: 1, assigned_project_ids: [] }] }),
+        hasKeypair: vi.fn().mockResolvedValue({ ok: true, data: true }),
         hasHeliusKey: vi.fn().mockResolvedValue({ ok: true, data: true }),
         hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
+        assignProject: vi.fn().mockResolvedValue({ ok: true }),
+        setDefault: vi.fn().mockResolvedValue({ ok: true }),
         balance: vi.fn().mockResolvedValue({ ok: true, data: { sol: 2.5, lamports: 2500000000 } }),
+        holdings,
+        swapQuote,
         transactionPreview,
       },
     },
   })
 
-  return { createDir, createTerminal, readFile, transactionPreview, writeFile }
+  return { createDir, createTerminal, holdings, readFile, swapQuote, transactionPreview, writeFile }
 }
 
 function resetStores() {
@@ -198,6 +255,7 @@ function resetStores() {
     drawerToolOrder: [],
     workspaceToolTabs: [],
     activeWorkspaceToolId: null,
+    integrationCommandSelectionId: null,
     browserTabOpen: false,
     browserTabActive: false,
     dashboardTabOpen: false,
@@ -244,11 +302,11 @@ describe('App surface DOM coverage', () => {
     expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
     expect(screen.getByText('safe checks')).toBeInTheDocument()
-    expect(screen.getByText('Add Solana Agent Kit to this project')).toBeInTheDocument()
-    expect(screen.getByText('Create your first Solana agent')).toBeInTheDocument()
+    expect(screen.getByText('Get this project to a first working SendAI agent')).toBeInTheDocument()
+    expect(screen.getByText('Next step')).toBeInTheDocument()
     expect(await screen.findByText(/pnpm add @solana-agent-kit\/plugin-token/)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Apply Setup' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Apply project setup' }))
 
     expect(await screen.findByText('SendAI setup started')).toBeInTheDocument()
     expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
@@ -260,8 +318,9 @@ describe('App surface DOM coverage', () => {
       startupCommand: expect.stringContaining('pnpm add @solana-agent-kit/plugin-token'),
     }))
     expect(useUIStore.getState().terminals.some((terminal) => terminal.id === 'terminal-sendai')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Create starter files' })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Create Starter Files' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Create starter files' }))
 
     expect(await screen.findByText('Starter agent scaffolded')).toBeInTheDocument()
     expect(window.daemon.fs.createDir).toHaveBeenCalledWith('C:/work/daemon-app/src')
@@ -272,22 +331,92 @@ describe('App surface DOM coverage', () => {
     )
     expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
       'C:/work/daemon-app/src/agents/first-solana-agent.mjs',
-      expect.stringContaining("console.log('SendAI Solana agent is ready.')"),
+      expect.stringContaining('Wallet balance:'),
     )
     expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
       'C:/work/daemon-app/src/agents/README.md',
       expect.stringContaining('pnpm run agent:first-solana'),
     )
+    expect(screen.getByRole('button', { name: 'Run starter check' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('SendAI Skills'))
+    expect(screen.getByText('Bring protocol knowledge into this project')).toBeInTheDocument()
+    expect(screen.getByText(/solana-agent-kit, helius, metaplex/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Install skills in terminal' }))
+    expect(await screen.findByText('Skills install opened')).toBeInTheDocument()
+    expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
+      cwd: 'C:/work/daemon-app',
+      startupCommand: 'npx skills add sendaifun/skills',
+    }))
+    expect(useUIStore.getState().terminals.some((terminal) => terminal.id === 'terminal-sendai-skills')).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'DeFi' }))
     expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
-    await userEvent.click(screen.getByText('Phantom'))
-    await userEvent.click(screen.getByRole('button', { name: /Check balance/ }))
+    await userEvent.click(screen.getByText('Token Launch Stack'))
+    expect(screen.getByRole('button', { name: 'Open Token Launch' })).toBeInTheDocument()
 
-    expect(await screen.findByText('Wallet balance')).toBeInTheDocument()
-    expect(screen.getByText(/2.5 SOL/)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Phantom'))
+    expect(screen.getByText('Get the wallet route ready for Phantom-first signing')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Use wallet for current project' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Use wallet for current project' }))
+    expect(await screen.findByText('Project wallet linked')).toBeInTheDocument()
+    expect(window.daemon.wallet.assignProject).toHaveBeenCalledWith('project-1', 'wallet-1')
+    expect(screen.getByRole('button', { name: 'Set Phantom as preferred wallet' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Set Phantom as preferred wallet' }))
+    expect(await screen.findByText('Preferred wallet updated')).toBeInTheDocument()
+    expect(window.daemon.settings.setWalletInfrastructureSettings).toHaveBeenCalledWith(expect.objectContaining({
+      preferredWallet: 'phantom',
+    }))
+    expect(screen.getByRole('button', { name: 'Preview first transaction' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Preview first transaction' }))
+
+    expect(await screen.findByText('Phantom signing preview ready')).toBeInTheDocument()
+    expect(window.daemon.wallet.transactionPreview).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'send-sol',
+      walletId: 'wallet-1',
+      destination: '7Y12wallet9AbC',
+      amount: 0.01,
+    }))
+
+    await userEvent.click(screen.getByText('Helius'))
+    expect(screen.getByText('Verify the Helius-backed wallet data path')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Read wallet with Helius' }))
+    expect(await screen.findByText('Helius wallet read complete')).toBeInTheDocument()
+    expect(window.daemon.wallet.holdings).toHaveBeenCalledWith('wallet-1')
+
+    await userEvent.click(screen.getByText('Jupiter'))
+    expect(screen.getByText('Get to a first Jupiter quote before any signing')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Preview Jupiter quote' }))
+    expect(await screen.findByText('Jupiter quote ready')).toBeInTheDocument()
+    expect(window.daemon.wallet.swapQuote).toHaveBeenCalledWith({
+      inputMint: 'So11111111111111111111111111111111111111112',
+      outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      amount: 0.1,
+      slippageBps: 50,
+    })
+
+    await userEvent.click(screen.getByText('Metaplex'))
+    expect(screen.getByText('Create a first metadata draft inside the project')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Create metadata draft' }))
+    expect(await screen.findByText('Metaplex draft created')).toBeInTheDocument()
+    expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/assets/metaplex/metadata.example.json',
+      expect.stringContaining('"name": "DAEMON Collection Example"'),
+    )
+
+    await userEvent.click(screen.getByText('Light Protocol'))
+    expect(screen.getByText('Scaffold the first Light compression starter')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Install Light SDK' }))
+    expect(await screen.findByText('Install Light SDK opened')).toBeInTheDocument()
+    expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
+      startupCommand: 'pnpm add @lightprotocol/stateless.js',
+    }))
+
+    useUIStore.getState().setIntegrationCommandSelectionId('metaplex')
+    expect(await screen.findByRole('heading', { name: 'Metaplex' })).toBeInTheDocument()
   })
 
   it('renders Solana toolbox workflow tabs and switches views', async () => {
@@ -298,11 +427,15 @@ describe('App surface DOM coverage', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Connect/ }))
     expect(screen.getByRole('tab', { name: /Connect/ })).toHaveAttribute('aria-selected', 'true')
 
-    await userEvent.click(screen.getByRole('tab', { name: /Integrate/ }))
-    expect(screen.getByRole('tab', { name: /Integrate/ })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(screen.getByRole('tab', { name: /Launch/ }))
+    expect(screen.getByRole('tab', { name: /Launch/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Onboard ecosystem integrations deliberately')).toBeInTheDocument()
+    await userEvent.click(screen.getAllByRole('button', { name: 'Open Integration' })[0]!)
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('integrations')
+    expect(useUIStore.getState().integrationCommandSelectionId).toBe('jupiter')
 
-    await userEvent.click(screen.getByRole('tab', { name: /Diagnose/ }))
-    expect(screen.getByRole('tab', { name: /Diagnose/ })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))
+    expect(screen.getByRole('tab', { name: /Debug/ })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('keeps Token Launch actions and config obvious', async () => {

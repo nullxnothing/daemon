@@ -224,7 +224,7 @@ export function upsertPackageJsonScript(packageJson: string, scriptName: string,
 
 export function buildFirstSolanaAgentFile(): string {
   return `import bs58 from 'bs58'
-import { Keypair } from '@solana/web3.js'
+import { Connection, Keypair, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { SolanaAgentKit, KeypairWallet } from 'solana-agent-kit'
 import TokenPlugin from '@solana-agent-kit/plugin-token'
 import NFTPlugin from '@solana-agent-kit/plugin-nft'
@@ -257,6 +257,7 @@ async function main() {
 
   const keypair = Keypair.fromSecretKey(secretKey)
   const wallet = new KeypairWallet(keypair)
+  const connection = new Connection(rpcUrl, 'confirmed')
 
   const agent = new SolanaAgentKit(
     wallet,
@@ -270,13 +271,16 @@ async function main() {
     .use(BlinksPlugin)
 
   const methods = Object.keys(agent.methods ?? {}).sort()
+  const balanceLamports = await connection.getBalance(keypair.publicKey)
+  const balanceSol = balanceLamports / LAMPORTS_PER_SOL
 
   console.log('SendAI Solana agent is ready.')
   console.log(\`Wallet: \${keypair.publicKey.toBase58()}\`)
   console.log(\`RPC: \${rpcUrl}\`)
+  console.log(\`Wallet balance: \${balanceSol.toFixed(6)} SOL\`)
   console.log(\`Methods loaded: \${methods.length}\`)
   console.log(\`Sample methods: \${methods.slice(0, 12).join(', ')}\`)
-  console.log('Next step: replace this inventory script with a read-only method like price, asset, or wallet inspection.')
+  console.log('Next step: replace this starter with the first protocol action you want DAEMON to own.')
 }
 
 main().catch((error) => {
@@ -310,14 +314,15 @@ This folder is the first runnable Solana agent scaffold created by DAEMON.
 ${runCommand}
 \`\`\`
 
-The starter does a safe readiness check only:
+The starter does a safe first-read only flow:
 
 - builds the agent
 - loads the plugins
+- reads the current wallet balance from the configured RPC
 - prints the available methods
 - does not send a transaction
 
-After that, the next safe upgrade is replacing the inventory log with a read-only method such as token price, asset lookup, or wallet inspection.
+After that, the next safe upgrade is replacing the balance check with a protocol-specific read such as token price, asset lookup, or wallet inspection.
 `
 }
 

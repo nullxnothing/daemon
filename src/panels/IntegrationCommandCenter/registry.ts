@@ -120,6 +120,7 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Jupiter for quote previews, swap routing, token metadata, recurring orders, lend, perps, and wallet portfolio flows.',
     category: 'defi',
     docsUrl: 'https://dev.jup.ag/',
+    installCommand: 'pnpm add @solana/kit',
     recommendedFor: ['swap previews', 'token routing', 'DeFi app UX'],
     requirements: [
       { type: 'secure-key', key: 'JUPITER_API_KEY', label: 'Jupiter API key', optional: true },
@@ -137,6 +138,7 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Metaplex for NFT collections, metadata, compressed NFTs, Candy Machine, and digital asset workflows.',
     category: 'nft',
     docsUrl: 'https://developers.metaplex.com/',
+    installCommand: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/mpl-token-metadata',
     recommendedFor: ['NFT minting', 'metadata', 'collections'],
     requirements: [
       { type: 'package', key: '@metaplex-foundation/umi', label: 'Umi package', optional: true },
@@ -171,6 +173,7 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Light Protocol when the app needs rent-efficient compressed state, compressed tokens, or large-scale drops.',
     category: 'infra',
     docsUrl: 'https://www.lightprotocol.com/docs',
+    installCommand: 'pnpm add @lightprotocol/stateless.js',
     recommendedFor: ['compressed airdrops', 'rent reduction', 'high-scale state'],
     requirements: [
       { type: 'env', key: 'RPC_URL', label: 'Compression-capable RPC' },
