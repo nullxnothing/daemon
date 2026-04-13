@@ -38,8 +38,7 @@
         "arch": ["x64"]
       }
     ],
-    "artifactName": "${productName}-setup.${ext}",
-    "signingHashAlgorithms": ["sha256"]
+    "artifactName": "${productName}-setup.${ext}"
   },
   "nsis": {
     "oneClick": false,
