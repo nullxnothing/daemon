@@ -30,6 +30,7 @@ const toolChecks = [
   { name: 'Env', readySelector: '.env-center', expectedText: 'Environment' },
   { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Wallet workspace' },
   { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Launch Token' },
+  { name: 'Project Readiness', readySelector: '.project-readiness', expectedText: 'Project Readiness' },
   { name: 'Solana', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
   { name: 'Settings', readySelector: '.settings-center', expectedText: 'Settings' },
   { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Dashboard' },

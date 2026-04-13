@@ -83,6 +83,12 @@ export function buildCommands(deps: CommandDeps): Command[] {
       action: () => openWorkspaceTool('wallet'),
     },
     {
+      id: 'nav:project-readiness',
+      label: 'Open Solana Project Readiness',
+      category: 'Navigation',
+      action: () => openWorkspaceTool('project-readiness'),
+    },
+    {
       id: 'nav:starter',
       label: 'New Project from Template',
       category: 'Navigation',
