@@ -109,14 +109,18 @@ vi.mock('@solana/spl-token', () => ({
 
 import { getDashboard, transferSOL, transferToken } from '../../electron/services/WalletService'
 
-function makeWalletDbChain(overrides: { walletRow?: object | null } = {}) {
+function makeWalletDbChain(overrides: { walletRow?: object | null; dailySpendTotal?: number } = {}) {
   const walletRow = overrides.walletRow !== undefined
     ? overrides.walletRow
     : { id: 'w1', name: 'Test', address: 'So11111111111111111111111111111111111111112', is_default: 1, wallet_type: 'user', keypair_path: null }
+  const dailySpendTotal = overrides.dailySpendTotal ?? 0
 
   return (sql: string) => {
     if (sql.includes('FROM wallets WHERE id') || sql.includes('wallet_type FROM wallets')) {
       return { get: vi.fn().mockReturnValue(walletRow) }
+    }
+    if (sql.includes('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history')) {
+      return { get: vi.fn().mockReturnValue({ total: dailySpendTotal }) }
     }
     if (sql.includes('INSERT INTO transaction_history') || sql.includes('UPDATE transaction_history')) {
       return { run: vi.fn() }
@@ -264,6 +268,30 @@ describe('transferSOL — insufficient balance', () => {
     await expect(
       transferSOL('w1', 'So11111111111111111111111111111111111111112', 1)
     ).rejects.toThrow(/insufficient/i)
+  })
+})
+
+describe('transferSOL — agent spend limit', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('counts pending transfers toward the daily spend limit', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain({
+      walletRow: { wallet_type: 'agent' },
+      dailySpendTotal: 1.75,
+    }))
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockGetBalance.mockResolvedValue(5_000_000_000)
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await expect(
+      transferSOL('w1', 'So11111111111111111111111111111111111111112', 0.3)
+    ).rejects.toThrow(/daily spend limit/i)
   })
 })
 
