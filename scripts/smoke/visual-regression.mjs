@@ -164,6 +164,23 @@ function attachPageDiagnostics(page) {
   })
 }
 
+async function cleanupUserDataDir(dir) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      rmSync(dir, { recursive: true, force: true })
+      return
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined
+      if ((code === 'EBUSY' || code === 'EPERM') && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)))
+        continue
+      }
+      console.warn(`[visual-smoke] unable to remove temp dir ${dir}: ${error instanceof Error ? error.message : String(error)}`)
+      return
+    }
+  }
+}
+
 async function waitForAppReady(page) {
   await page.waitForFunction(() => !!window.daemon, { timeout: 30000 })
   await page.waitForSelector('.titlebar', { timeout: 30000 })
@@ -578,5 +595,5 @@ try {
       })
     })
   }
-  rmSync(userDataDir, { recursive: true, force: true })
+  await cleanupUserDataDir(userDataDir)
 }
