@@ -133,7 +133,7 @@ export function AgentsTab() {
     if (!activeWalletId || exportConfirmText !== 'EXPORT') return
     const res = await window.daemon.wallet.exportPrivateKey(activeWalletId)
     if (res.ok && res.data) {
-      setRevealedKey(res.data as string)
+      setRevealedKey('Private key copied to clipboard for 30 seconds.')
       setExportConfirmText('')
       setTimeout(() => { setRevealedKey(null); clearAction() }, 5000)
     } else { setError(res.error ?? 'Export failed') }

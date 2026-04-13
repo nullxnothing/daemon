@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { randomUUID } from 'node:crypto'
 import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../../db/db'
 import * as SecureKey from '../SecureKeyService'
@@ -221,8 +222,8 @@ export const ClaudeProvider: ProviderInterface = {
     sections.push('</daemon-context>')
 
     const contextContent = sections.filter(Boolean).join('\n')
-    const contextFilePath = path.join(os.tmpdir(), `daemon_agent_${agent.id}_${Date.now()}.txt`)
-    fs.writeFileSync(contextFilePath, contextContent, 'utf8')
+    const contextFilePath = path.join(os.tmpdir(), `daemon_agent_${agent.id}_${randomUUID()}.txt`)
+    fs.writeFileSync(contextFilePath, contextContent, { encoding: 'utf8', mode: 0o600 })
 
     bootstrapAgentMcps(project.path, agent.mcps)
 
@@ -359,8 +360,8 @@ async function runPromptViaCli(
 
   let systemPromptFile: string | null = null
   if (systemPrompt) {
-    systemPromptFile = path.join(os.tmpdir(), `daemon_prompt_${Date.now()}.txt`)
-    fs.writeFileSync(systemPromptFile, systemPrompt, 'utf8')
+    systemPromptFile = path.join(os.tmpdir(), `daemon_prompt_${randomUUID()}.txt`)
+    fs.writeFileSync(systemPromptFile, systemPrompt, { encoding: 'utf8', mode: 0o600 })
     args.push('--append-system-prompt-file', systemPromptFile)
   }
 

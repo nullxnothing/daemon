@@ -210,7 +210,7 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
     user: keypair.publicKey,
     amount: tokenAmount,
     solAmount: solLamports,
-    slippage: input.slippageBps / 100,
+    slippage: input.slippageBps / 10_000,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
@@ -256,7 +256,7 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
     user: keypair.publicKey,
     amount: tokenAmount,
     solAmount,
-    slippage: input.slippageBps / 100,
+    slippage: input.slippageBps / 10_000,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
