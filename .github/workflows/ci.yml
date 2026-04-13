@@ -47,7 +47,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
@@ -76,7 +76,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
