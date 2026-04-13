@@ -99,7 +99,8 @@
 }
 
 .project-readiness-error,
-.project-readiness-loading {
+.project-readiness-loading,
+.project-readiness-action-message {
   margin: 14px 22px 0;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(248, 113, 113, 0.28);
@@ -113,6 +114,18 @@
   border-color: rgba(62, 207, 142, 0.18);
   background: rgba(62, 207, 142, 0.06);
   color: var(--t3);
+}
+
+.project-readiness-action-message.success {
+  border-color: rgba(62, 207, 142, 0.22);
+  background: rgba(62, 207, 142, 0.08);
+  color: var(--accent);
+}
+
+.project-readiness-action-message.error {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fecaca;
 }
 
 .project-readiness-next {
@@ -180,6 +193,54 @@
 
 .project-readiness-primary:hover {
   background: color-mix(in srgb, var(--accent) 88%, white 12%);
+}
+
+.project-readiness-primary:disabled,
+.project-readiness-secondary:disabled,
+.project-readiness-link:disabled,
+.project-readiness-shortcuts button:disabled {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
+}
+
+.project-readiness-quick {
+  padding-top: 18px;
+}
+
+.project-readiness-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.project-readiness-quick-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  border-radius: 22px;
+  border: 1px solid var(--s5);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(255, 255, 255, 0.02);
+  padding: 15px;
+}
+
+.project-readiness-quick-card.ready {
+  border-color: rgba(62, 207, 142, 0.2);
+  background: rgba(62, 207, 142, 0.045);
+}
+
+.project-readiness-quick-card strong {
+  display: block;
+  color: var(--t1);
+  font-size: var(--font-md);
+}
+
+.project-readiness-quick-card p {
+  font-size: var(--font-sm);
 }
 
 .project-readiness-grid {
@@ -332,9 +393,19 @@
   }
 
   .project-readiness-grid,
+  .project-readiness-quick-grid,
   .project-readiness-action-grid,
   .project-readiness-strip {
     grid-template-columns: 1fr;
+  }
+
+  .project-readiness-quick-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .project-readiness-quick-card button {
+    grid-column: 1 / -1;
+    justify-self: flex-start;
   }
 }
 

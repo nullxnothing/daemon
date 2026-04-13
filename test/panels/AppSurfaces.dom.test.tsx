@@ -138,6 +138,7 @@ function installDaemonBridge() {
             },
           ],
         }),
+        updateVar: vi.fn().mockResolvedValue({ ok: true }),
       },
       fs: {
         readFile,
@@ -225,6 +226,7 @@ function installDaemonBridge() {
       },
       wallet: {
         list: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'wallet-1', name: 'Main Wallet', address: '7Y12wallet9AbC', is_default: 1, created_at: 1, assigned_project_ids: [] }] }),
+        generate: vi.fn().mockResolvedValue({ ok: true, data: { id: 'wallet-2', name: 'DAEMON Solana Dev Wallet', address: '8Y12wallet9AbC', is_default: 1, created_at: 2, assigned_project_ids: ['project-1'] } }),
         hasKeypair: vi.fn().mockResolvedValue({ ok: true, data: true }),
         hasHeliusKey: vi.fn().mockResolvedValue({ ok: true, data: true }),
         hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
@@ -431,11 +433,21 @@ describe('App surface DOM coverage', () => {
     })
     expect(screen.getByLabelText('Solana readiness score')).toBeInTheDocument()
     expect(screen.getByText('Project open')).toBeInTheDocument()
+    expect(screen.getByText('Fix the obvious blockers here')).toBeInTheDocument()
+    expect(screen.getByText('Create dev wallet')).toBeInTheDocument()
+    expect(screen.getByText('Link wallet to project')).toBeInTheDocument()
+    expect(screen.getByText('Enable Solana MCP')).toBeInTheDocument()
+    expect(screen.getByText('Write RPC_URL')).toBeInTheDocument()
     expect(screen.getAllByText('Wallet route').length).toBeGreaterThan(0)
     expect(screen.getByText('Provider path')).toBeInTheDocument()
     expect(screen.getByText('MCP tools')).toBeInTheDocument()
     expect(screen.getByText('SendAI first agent')).toBeInTheDocument()
     expect(screen.getByText('Pick the workflow that proves the project works')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Assign wallet' })[0])
+
+    expect(await screen.findByText('Linked the default wallet to this project.')).toBeInTheDocument()
+    expect(window.daemon.wallet.assignProject).toHaveBeenCalledWith('project-1', 'wallet-1')
 
     await userEvent.click(screen.getByText('SendAI Agent Kit').closest('button')!)
 
