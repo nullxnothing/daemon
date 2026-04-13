@@ -12,6 +12,7 @@ import { WalletSendForm } from '../../src/panels/WalletPanel/WalletSendForm'
 import { SolanaToolbox } from '../../src/panels/SolanaToolbox/SolanaToolbox'
 import { TokenLaunchTool } from '../../src/panels/TokenLaunchTool/TokenLaunchTool'
 import { IntegrationCommandCenter } from '../../src/panels/IntegrationCommandCenter/IntegrationCommandCenter'
+import { ProjectReadiness } from '../../src/panels/ProjectReadiness/ProjectReadiness'
 
 vi.mock('../../src/utils/lazyWithReload', () => ({
   lazyWithReload: () => () => null,
@@ -287,6 +288,7 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByText('Token Launch')).toBeInTheDocument()
     expect(screen.getByText('Solana')).toBeInTheDocument()
     expect(screen.getByText('Integrations')).toBeInTheDocument()
+    expect(screen.getByText('Project Readiness')).toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText('Search tools...'), 'solana')
     await userEvent.click(screen.getByText('Solana').closest('button')!)
@@ -417,6 +419,28 @@ describe('App surface DOM coverage', () => {
 
     useUIStore.getState().setIntegrationCommandSelectionId('metaplex')
     expect(await screen.findByRole('heading', { name: 'Metaplex' })).toBeInTheDocument()
+  })
+
+  it('renders Project Readiness as the Solana entry point and routes into first actions', async () => {
+    render(<ProjectReadiness />)
+
+    expect(await screen.findByText('Project Readiness')).toBeInTheDocument()
+    expect(screen.getByText('Start Solana development from one checklist')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText('Refreshing readiness...')).not.toBeInTheDocument()
+    })
+    expect(screen.getByLabelText('Solana readiness score')).toBeInTheDocument()
+    expect(screen.getByText('Project open')).toBeInTheDocument()
+    expect(screen.getAllByText('Wallet route').length).toBeGreaterThan(0)
+    expect(screen.getByText('Provider path')).toBeInTheDocument()
+    expect(screen.getByText('MCP tools')).toBeInTheDocument()
+    expect(screen.getByText('SendAI first agent')).toBeInTheDocument()
+    expect(screen.getByText('Pick the workflow that proves the project works')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('SendAI Agent Kit').closest('button')!)
+
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('integrations')
+    expect(useUIStore.getState().integrationCommandSelectionId).toBe('sendai-agent-kit')
   })
 
   it('resets hidden integration filters when another surface targets a workflow', async () => {

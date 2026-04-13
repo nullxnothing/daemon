@@ -18,6 +18,7 @@ describe('getDefaultVisibility — web profile', () => {
   it('shows recovery', () => expect(vis['recovery']).toBe(true))
 
   it('hides wallet', () => expect(vis['wallet']).toBe(false))
+  it('hides project-readiness', () => expect(vis['project-readiness']).toBe(false))
   it('hides solana-toolbox', () => expect(vis['solana-toolbox']).toBe(false))
   it('hides block-scanner', () => expect(vis['block-scanner']).toBe(false))
   it('hides dashboard', () => expect(vis['dashboard']).toBe(false))
@@ -28,6 +29,7 @@ describe('getDefaultVisibility — solana profile', () => {
   const vis = getDefaultVisibility('solana', BUILTIN_TOOL_IDS)
 
   it('shows wallet', () => expect(vis['wallet']).toBe(true))
+  it('shows project-readiness', () => expect(vis['project-readiness']).toBe(true))
   it('shows solana-toolbox', () => expect(vis['solana-toolbox']).toBe(true))
   it('shows block-scanner', () => expect(vis['block-scanner']).toBe(true))
   it('shows dashboard', () => expect(vis['dashboard']).toBe(true))

@@ -46,8 +46,8 @@ export function SolanaOnboardingBanner() {
             Enable Suggested MCPs
           </button>
         )}
-        <button className="solana-onboarding-btn" onClick={() => { useUIStore.getState().openWorkspaceTool('solana-toolbox'); dismiss() }}>
-          Open Solana Toolbox
+        <button className="solana-onboarding-btn" onClick={() => { useUIStore.getState().openWorkspaceTool('project-readiness'); dismiss() }}>
+          Open Readiness
         </button>
         <button className="solana-onboarding-btn dismiss" onClick={dismiss}>
           Dismiss
