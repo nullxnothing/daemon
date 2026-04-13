@@ -292,8 +292,10 @@ export function deleteWallet(id: string) {
 
 export function setDefaultWallet(id: string) {
   const db = getDb()
-  db.prepare('UPDATE wallets SET is_default = 0').run()
-  db.prepare('UPDATE wallets SET is_default = 1 WHERE id = ?').run(id)
+  db.transaction(() => {
+    db.prepare('UPDATE wallets SET is_default = 0').run()
+    db.prepare('UPDATE wallets SET is_default = 1 WHERE id = ?').run(id)
+  })()
 }
 
 export function assignWalletToProject(projectId: string, walletId: string | null) {

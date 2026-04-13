@@ -35,6 +35,8 @@ yarn.lock
 *.p12
 credentials.json
 keypair.json
+target/deploy/*-keypair.json
+programs/*/target/deploy/*-keypair.json
 
 # SQLite
 *.db
