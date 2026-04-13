@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore, type SolanaToolchainStatus } from '../../store/solanaToolbox'
@@ -30,6 +30,16 @@ interface ReadinessItem {
   action?: () => void
 }
 
+interface QuickSetupAction {
+  id: string
+  label: string
+  detail: string
+  ready: boolean
+  cta: string
+  disabled?: boolean
+  run: () => Promise<void> | void
+}
+
 function joinProjectPath(projectPath: string, child: string): string {
   return `${projectPath.replace(/[\\/]+$/, '')}/${child}`
 }
@@ -50,6 +60,13 @@ function isRpcReady(settings: WalletInfrastructureSettings, heliusReady: boolean
   if (settings.rpcProvider === 'quicknode') return settings.quicknodeRpcUrl.trim().length > 0
   if (settings.rpcProvider === 'custom') return settings.customRpcUrl.trim().length > 0
   return true
+}
+
+function getWritableRpcUrl(settings: WalletInfrastructureSettings): string | null {
+  if (settings.rpcProvider === 'quicknode' && settings.quicknodeRpcUrl.trim()) return settings.quicknodeRpcUrl.trim()
+  if (settings.rpcProvider === 'custom' && settings.customRpcUrl.trim()) return settings.customRpcUrl.trim()
+  if (settings.rpcProvider === 'public') return 'https://api.mainnet-beta.solana.com'
+  return null
 }
 
 function compactPath(path: string | null): string {
@@ -79,11 +96,14 @@ export function ProjectReadiness() {
   const projectInfo = useSolanaToolboxStore((s) => s.projectInfo)
   const toolchain = useSolanaToolboxStore((s) => s.toolchain)
   const loadMcps = useSolanaToolboxStore((s) => s.loadMcps)
+  const toggleMcp = useSolanaToolboxStore((s) => s.toggleMcp)
   const detectProject = useSolanaToolboxStore((s) => s.detectProject)
   const loadToolchain = useSolanaToolboxStore((s) => s.loadToolchain)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [busyAction, setBusyAction] = useState<string | null>(null)
   const [envFiles, setEnvFiles] = useState<EnvFile[]>([])
   const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
@@ -92,10 +112,7 @@ export function ProjectReadiness() {
   const [secureKeys, setSecureKeys] = useState<Record<string, boolean>>({})
   const [hasFirstAgent, setHasFirstAgent] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadReadiness() {
+  const loadReadiness = useCallback(async (isCancelled: () => boolean = () => false) => {
       setLoading(true)
       setError(null)
 
@@ -107,7 +124,7 @@ export function ProjectReadiness() {
           daemon.settings.getWalletInfrastructureSettings(),
         ])
 
-        if (cancelled) return
+        if (isCancelled()) return
 
         const nextWallets = walletRes.ok && walletRes.data ? walletRes.data : []
         setWallets(nextWallets)
@@ -121,7 +138,7 @@ export function ProjectReadiness() {
           const signerRes = await daemon.wallet.hasKeypair(wallet.id)
           return [wallet.id, Boolean(signerRes.ok && signerRes.data)] as const
         }))
-        if (cancelled) return
+        if (isCancelled()) return
         setWalletSignerReady(Object.fromEntries(signerEntries))
 
         if (activeProjectPath) {
@@ -137,29 +154,31 @@ export function ProjectReadiness() {
             daemon.fs.readFile(joinProjectPath(activeProjectPath, SENDAI_FIRST_AGENT_ENTRY)),
           ])
 
-          if (cancelled) return
+          if (isCancelled()) return
           setEnvFiles(envRes.ok && envRes.data ? envRes.data : [])
           setPackageInfo(packageRes.ok && packageRes.data ? parsePackageInfo(packageRes.data.content) : EMPTY_PACKAGE_INFO)
           setHasFirstAgent(Boolean(agentRes.ok))
         } else {
           await loadToolchain(undefined)
-          if (cancelled) return
+          if (isCancelled()) return
           setEnvFiles([])
           setPackageInfo(EMPTY_PACKAGE_INFO)
           setHasFirstAgent(false)
         }
       } catch (loadError) {
-        if (!cancelled) {
+        if (!isCancelled()) {
           setError(loadError instanceof Error ? loadError.message : 'Could not load Solana readiness.')
         }
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!isCancelled()) setLoading(false)
       }
-    }
-
-    void loadReadiness()
-    return () => { cancelled = true }
   }, [activeProjectPath, detectProject, loadMcps, loadToolchain])
+
+  useEffect(() => {
+    let cancelled = false
+    void loadReadiness(() => cancelled)
+    return () => { cancelled = true }
+  }, [loadReadiness])
 
   const defaultWallet = wallets.find((wallet) => wallet.is_default === 1) ?? wallets[0] ?? null
   const defaultWalletSignerReady = defaultWallet ? walletSignerReady[defaultWallet.id] === true : false
@@ -172,6 +191,7 @@ export function ProjectReadiness() {
   const solanaMcpReady = mcps.some((entry) => entry.name === 'solana-mcp-server' && entry.enabled)
   const heliusMcpReady = mcps.some((entry) => entry.name === 'helius' && entry.enabled)
   const agentKitReady = packageInfo.packages.has('solana-agent-kit')
+  const writableRpcUrl = getWritableRpcUrl(walletInfrastructure)
 
   const walletRoute = buildSolanaRouteReadiness({
     walletPresent: Boolean(defaultWallet),
@@ -210,6 +230,89 @@ export function ProjectReadiness() {
     setIntegrationCommandSelectionId(integrationId)
     openWorkspaceTool('integrations')
   }
+
+  const runQuickAction = async (id: string, successText: string, action: () => Promise<void>) => {
+    setBusyAction(id)
+    setActionMessage(null)
+    try {
+      await action()
+      setActionMessage({ type: 'success', text: successText })
+      await loadReadiness()
+    } catch (setupError) {
+      setActionMessage({
+        type: 'error',
+        text: setupError instanceof Error ? setupError.message : 'Setup action failed.',
+      })
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  const assignDefaultWalletToProject = () => runQuickAction('assign-wallet', 'Linked the default wallet to this project.', async () => {
+    if (!activeProjectId || !defaultWallet) throw new Error('Open a project and create a wallet first.')
+    const result = await daemon.wallet.assignProject(activeProjectId, defaultWallet.id)
+    if (!result.ok) throw new Error(result.error ?? 'Could not assign wallet to project.')
+  })
+
+  const quickActions: QuickSetupAction[] = [
+    {
+      id: 'create-wallet',
+      label: 'Create dev wallet',
+      detail: defaultWallet ? `${defaultWallet.name} is available.` : 'Generate a local signing wallet so previews and dev actions have a clear signer.',
+      ready: Boolean(defaultWallet),
+      cta: 'Generate wallet',
+      run: () => runQuickAction('create-wallet', 'Generated a local Solana dev wallet.', async () => {
+        const result = await daemon.wallet.generate({ name: 'DAEMON Solana Dev Wallet' })
+        if (!result.ok || !result.data) throw new Error(result.error ?? 'Could not generate wallet.')
+        await daemon.wallet.setDefault(result.data.id)
+        if (activeProjectId) await daemon.wallet.assignProject(activeProjectId, result.data.id)
+      }),
+    },
+    {
+      id: 'assign-wallet',
+      label: 'Link wallet to project',
+      detail: defaultWalletAssignedToProject ? 'The active project has a wallet route.' : 'Assign the default wallet to this project so DAEMON never guesses which wallet to use.',
+      ready: defaultWalletAssignedToProject,
+      cta: 'Assign wallet',
+      disabled: !activeProjectId || !defaultWallet,
+      run: assignDefaultWalletToProject,
+    },
+    {
+      id: 'enable-solana-mcp',
+      label: 'Enable Solana MCP',
+      detail: solanaMcpReady ? 'Solana MCP is enabled for agent reads.' : 'Turn on the project MCP that exposes Solana tools to agents.',
+      ready: solanaMcpReady,
+      cta: 'Enable MCP',
+      disabled: !activeProjectPath,
+      run: () => runQuickAction('enable-solana-mcp', 'Enabled Solana MCP for this project.', async () => {
+        if (!activeProjectPath) throw new Error('Open a project before enabling project MCPs.')
+        await toggleMcp(activeProjectPath, 'solana-mcp-server', true)
+      }),
+    },
+    {
+      id: 'write-rpc-url',
+      label: 'Write RPC_URL',
+      detail: envRpcReady
+        ? 'RPC_URL is already present in project env.'
+        : writableRpcUrl
+          ? 'Write the selected RPC endpoint into the project .env file.'
+          : 'DAEMON needs the actual RPC URL. Helius keys stay secret, so add the URL from Env or Wallet Infra.',
+      ready: envRpcReady,
+      cta: writableRpcUrl ? 'Write env' : 'Open setup',
+      run: () => {
+        if (!writableRpcUrl) {
+          openWorkspaceTool(walletInfrastructure.rpcProvider === 'helius' ? 'env' : 'wallet')
+          return
+        }
+        return runQuickAction('write-rpc-url', 'Wrote RPC_URL to project env.', async () => {
+          if (!activeProjectPath) throw new Error('Open a project before writing env vars.')
+          const filePath = envFiles[0]?.filePath ?? joinProjectPath(activeProjectPath, '.env')
+          const result = await daemon.env.updateVar(filePath, 'RPC_URL', writableRpcUrl)
+          if (!result.ok) throw new Error(result.error ?? 'Could not write RPC_URL.')
+        })
+      },
+    },
+  ]
 
   const items: ReadinessItem[] = [
     {
@@ -254,7 +357,13 @@ export function ProjectReadiness() {
       ready: defaultWalletAssignedToProject,
       detail: defaultWalletAssignedToProject ? 'The active project already has a wallet route.' : 'Assign the default wallet to this project so Solana flows do not guess.',
       actionLabel: 'Assign wallet',
-      action: () => openWorkspaceTool('wallet'),
+      action: () => {
+        if (activeProjectId && defaultWallet) {
+          void assignDefaultWalletToProject()
+          return
+        }
+        openWorkspaceTool('wallet')
+      },
     },
     {
       id: 'provider',
@@ -320,6 +429,7 @@ export function ProjectReadiness() {
       </section>
 
       {error ? <div className="project-readiness-error">{error}</div> : null}
+      {actionMessage ? <div className={`project-readiness-action-message ${actionMessage.type}`}>{actionMessage.text}</div> : null}
 
       <section className="project-readiness-next">
         <div>
@@ -332,6 +442,37 @@ export function ProjectReadiness() {
             {nextItem.actionLabel}
           </button>
         ) : null}
+      </section>
+
+      <section className="project-readiness-section project-readiness-quick">
+        <div className="project-readiness-section-head">
+          <div>
+            <span className="project-readiness-mini">Quick setup</span>
+            <h2>Fix the obvious blockers here</h2>
+          </div>
+          <button type="button" className="project-readiness-secondary" onClick={() => void loadReadiness()}>
+            Refresh checks
+          </button>
+        </div>
+        <div className="project-readiness-quick-grid">
+          {quickActions.map((action) => (
+            <article key={action.id} className={`project-readiness-quick-card${action.ready ? ' ready' : ''}`}>
+              <span className={`project-readiness-dot${action.ready ? ' ready' : ''}`} />
+              <div>
+                <strong>{action.label}</strong>
+                <p>{action.detail}</p>
+              </div>
+              <button
+                type="button"
+                className="project-readiness-secondary"
+                disabled={action.ready || action.disabled || busyAction === action.id}
+                onClick={() => void action.run()}
+              >
+                {busyAction === action.id ? 'Working...' : action.ready ? 'Ready' : action.cta}
+              </button>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="project-readiness-grid" aria-label="Readiness checks">
