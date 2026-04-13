@@ -50,7 +50,7 @@
     "@x402/svm": "^2.9.0",
     "better-sqlite3": "^11.7.0",
     "bs58": "^6.0.0",
-    "chokidar": "^4.0.3",
+    "chokidar": "^5.0.0",
     "electron-updater": "^6.8.3",
     "express": "^5.1.0",
     "imapflow": "^1.2.18",
