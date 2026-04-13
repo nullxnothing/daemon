@@ -54,7 +54,7 @@ jobs:
             ~/.cache/electron-builder
             ~\AppData\Local\electron\cache
             ~\AppData\Local\electron-builder\cache
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
@@ -81,9 +81,19 @@ jobs:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - name: Pre-cache Electron binary
+        shell: bash
+        run: |
+          ELECTRON_VERSION="$(node -p "require('./package.json').devDependencies.electron.replace(/^[^0-9]*/, '')")"
+          ELECTRON_CACHE="$HOME/.cache/electron"
+          ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-darwin-arm64.zip"
+          mkdir -p "$ELECTRON_CACHE"
+          curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
+            --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
+            "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
       - run: pnpm exec electron-builder --publish never

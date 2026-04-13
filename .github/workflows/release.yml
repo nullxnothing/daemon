@@ -51,7 +51,7 @@ jobs:
             ~/.cache/electron-builder
             ~\AppData\Local\electron\cache
             ~\AppData\Local\electron-builder\cache
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
@@ -104,11 +104,23 @@ jobs:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - name: Pre-cache Electron binaries
+        shell: bash
+        run: |
+          ELECTRON_VERSION="$(node -p "require('./package.json').devDependencies.electron.replace(/^[^0-9]*/, '')")"
+          ELECTRON_CACHE="$HOME/.cache/electron"
+          mkdir -p "$ELECTRON_CACHE"
+          for arch in arm64 x64; do
+            ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-darwin-${arch}.zip"
+            curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
+              --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
+              "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
+          done
       - name: Package
         run: |
           if [ -n "${{ secrets.CSC_LINK }}" ]; then
@@ -169,7 +181,7 @@ jobs:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
