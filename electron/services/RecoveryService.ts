@@ -117,12 +117,15 @@ export function loadCsvFile(csvPath: string): { count: number; path: string } {
       if (line.includes(',')) {
         const hex = line.split(',')[1]?.trim()
         if (!hex) continue
-        kp = Keypair.fromSecretKey(Buffer.from(hex, 'hex'))
+        const keyBuffer = Buffer.from(hex, 'hex')
+        kp = Keypair.fromSecretKey(keyBuffer)
+        keyBuffer.fill(0)
       } else {
         const decoded = bs58.decode(line)
         kp = decoded.length === 64
           ? Keypair.fromSecretKey(decoded)
           : Keypair.fromSeed(decoded.slice(0, 32))
+        decoded.fill(0)
       }
       const pub = kp.publicKey.toBase58()
       if (!keypairs.has(pub)) keypairs.set(pub, kp)
@@ -221,6 +224,7 @@ export async function executeRecovery(
 
   const priorityFee = await getPriorityFee(conn)
 
+  try {
   // ─── Phase 1: Close empty token accounts ──────────────────────────────
   currentStatus.currentPhase = 1
   emit(win, { type: 'phase-start', phase: 1, message: 'Phase 1: Closing empty token accounts...' })
@@ -414,9 +418,12 @@ export async function executeRecovery(
   currentStatus.state = 'complete'
   emit(win, { type: 'complete', totalRecovered, message: `Recovery complete: ${totalRecovered.toFixed(6)} SOL` })
 
-  abortController = null
-  clearLoadedWallets()
   return { totalRecovered }
+  } finally {
+    abortController = null
+    clearLoadedWallets()
+    if (currentStatus.state !== 'complete') currentStatus.state = 'idle'
+  }
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────

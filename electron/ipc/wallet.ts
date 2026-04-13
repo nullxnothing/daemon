@@ -169,6 +169,6 @@ export function registerWalletHandlers() {
     setTimeout(() => {
       if (clipboard.readText() === keyString) clipboard.writeText('')
     }, 30000)
-    return keyString
+    return true
   }))
 }

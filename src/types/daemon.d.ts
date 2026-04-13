@@ -416,7 +416,7 @@ declare global {
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
     transactionHistory: (walletId: string, limit?: number) => Promise<IpcResponse<Array<{ id: string; wallet_id: string; type: string; signature: string | null; from_address: string; to_address: string; amount: number; mint: string | null; symbol: string | null; status: string; error: string | null; created_at: number }>>>
-    exportPrivateKey: (walletId: string) => Promise<IpcResponse<string>>
+    exportPrivateKey: (walletId: string) => Promise<IpcResponse<boolean>>
   }
 
   interface DaemonPnl {

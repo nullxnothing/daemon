@@ -4,9 +4,23 @@ import { listClaudeAgents } from '../services/ClaudeAgentService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { Agent, AgentCreateInput } from '../shared/types'
 
-const ALLOWED_AGENT_COLUMNS = new Set([
-  'name', 'system_prompt', 'model', 'mcps', 'provider', 'project_id', 'shortcut', 'source', 'external_path',
-])
+const AGENT_COLUMN_MAP = {
+  name: 'name',
+  system_prompt: 'system_prompt',
+  model: 'model',
+  mcps: 'mcps',
+  provider: 'provider',
+  project_id: 'project_id',
+  shortcut: 'shortcut',
+  source: 'source',
+  external_path: 'external_path',
+} as const
+
+function getAgentColumn(field: string): string | null {
+  return Object.prototype.hasOwnProperty.call(AGENT_COLUMN_MAP, field)
+    ? AGENT_COLUMN_MAP[field as keyof typeof AGENT_COLUMN_MAP]
+    : null
+}
 
 export function registerAgentHandlers() {
   ipcMain.handle('agents:list', ipcHandler(async () => {
@@ -84,15 +98,14 @@ export function registerAgentHandlers() {
 
   ipcMain.handle('agents:update', ipcHandler(async (_event, id: string, data: Record<string, unknown>) => {
     const db = getDb()
-    const fields = Object.keys(data).filter((f) => ALLOWED_AGENT_COLUMNS.has(f))
-    if (fields.length === 0) throw new Error('No valid fields to update')
+    const updates = Object.keys(data)
+      .map((field) => ({ field, column: getAgentColumn(field) }))
+      .filter((entry): entry is { field: string; column: string } => entry.column !== null)
+    if (updates.length === 0) throw new Error('No valid fields to update')
 
-    // Secondary guard: ensure each column name is safe for interpolation
-    if (fields.some((f) => !/^[a-z_]+$/.test(f))) throw new Error('Invalid field name')
-
-    const sets = fields.map((f) => `${f} = ?`).join(', ')
-    const values = fields.map((f) => {
-      const v = data[f]
+    const sets = updates.map(({ column }) => `${column} = ?`).join(', ')
+    const values = updates.map(({ field }) => {
+      const v = data[field]
       return Array.isArray(v) ? JSON.stringify(v) : v
     })
     db.prepare(`UPDATE agents SET ${sets} WHERE id = ?`).run(...values, id)

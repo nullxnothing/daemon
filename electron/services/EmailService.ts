@@ -162,16 +162,18 @@ export async function removeAccount(accountId: string): Promise<void> {
   const db = getDb()
   const row = getAccountRow(accountId)
 
-  // Clean up secure keys for Gmail
-  if (row.client_id_ref) {
-    db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_id_ref)
-  }
-  if (row.client_secret_ref) {
-    db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_secret_ref)
-  }
+  db.transaction(() => {
+    // Clean up secure keys for Gmail
+    if (row.client_id_ref) {
+      db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_id_ref)
+    }
+    if (row.client_secret_ref) {
+      db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_secret_ref)
+    }
 
-  db.prepare('DELETE FROM email_message_cache WHERE account_id = ?').run(accountId)
-  db.prepare('DELETE FROM email_accounts WHERE id = ?').run(accountId)
+    db.prepare('DELETE FROM email_message_cache WHERE account_id = ?').run(accountId)
+    db.prepare('DELETE FROM email_accounts WHERE id = ?').run(accountId)
+  })()
 }
 
 export async function getMessages(accountId: string, query?: string, max?: number): Promise<EmailMessage[]> {

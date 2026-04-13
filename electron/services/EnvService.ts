@@ -20,6 +20,7 @@ const SECRET_PATTERNS: Array<{ pattern: string; label: string }> = [
 ]
 
 const ENV_FILE_NAMES = ['.env', '.env.local', '.env.production', '.env.staging', '.env.development']
+const VALID_ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/
 const VERCEL_TOKEN_PATTERN = /^[A-Za-z0-9]{24,}$/
 const VERCEL_API_BASE = 'https://api.vercel.com'
 
@@ -152,6 +153,7 @@ export function scanAllProjects(): UnifiedKey[] {
 }
 
 export function writeEnvVar(filePath: string, key: string, newValue: string): void {
+  if (!VALID_ENV_KEY.test(key)) throw new Error(`Invalid environment variable name: "${key}"`)
   const content = fs.readFileSync(filePath, 'utf8')
   const lines = content.split('\n')
   let found = false
@@ -186,6 +188,7 @@ export function writeEnvVar(filePath: string, key: string, newValue: string): vo
 }
 
 export function addEnvVar(filePath: string, key: string, value: string): void {
+  if (!VALID_ENV_KEY.test(key)) throw new Error(`Invalid environment variable name: "${key}"`)
   let content = ''
   if (fs.existsSync(filePath)) {
     content = fs.readFileSync(filePath, 'utf8')

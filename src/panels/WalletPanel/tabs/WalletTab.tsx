@@ -380,15 +380,9 @@ export function WalletTab({ onRefresh }: Props) {
     if (!exportConfirmId || exportConfirmText !== 'EXPORT') return
     const res = await window.daemon.wallet.exportPrivateKey(exportConfirmId)
     if (res.ok && res.data) {
-      setRevealKeyId(exportConfirmId)
-      setRevealedKey(res.data)
       setExportConfirmId(null)
       setExportConfirmText('')
       pushSuccess('Private key copied to clipboard for 30 seconds', 'Wallet')
-      setTimeout(() => {
-        setRevealKeyId(null)
-        setRevealedKey(null)
-      }, 5_000)
     } else {
       setError(res.error ?? 'Failed to export key')
       setExportConfirmId(null)
