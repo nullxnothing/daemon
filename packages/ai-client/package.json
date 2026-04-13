@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@daemon/shared": "workspace:*",
-    "@anthropic-ai/sdk": "^0.80.0"
+    "@anthropic-ai/sdk": "^0.88.0"
   },
   "devDependencies": {
     "typescript": "^5.4.2"
