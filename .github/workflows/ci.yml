@@ -60,7 +60,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - run: pnpm run test:visual
-      - run: pnpm run package
+      - run: pnpm exec electron-builder --publish never
 
   build-macos:
     name: build-macos
@@ -86,4 +86,4 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: pnpm run package
+      - run: pnpm exec electron-builder --publish never
