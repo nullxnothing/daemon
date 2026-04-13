@@ -132,7 +132,7 @@ export const useUIStore = create<UIState>((set) => ({
   grindPages: {},
   walletQuickViewOpen: false,
   emailQuickViewOpen: false,
-  pinnedTools: ['git', 'browser', 'solana-toolbox', 'integrations', 'token-launch', 'pro'],
+  pinnedTools: ['git', 'browser', 'project-readiness', 'solana-toolbox', 'integrations', 'token-launch', 'pro'],
   drawerToolOrder: [],
 
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),

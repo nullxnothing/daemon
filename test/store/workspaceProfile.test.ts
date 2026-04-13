@@ -33,6 +33,7 @@ describe('getDefaultVisibility — web profile', () => {
   it('hides solana-specific tools', () => {
     const vis = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
     expect(vis['wallet']).toBe(false)
+    expect(vis['project-readiness']).toBe(false)
     expect(vis['solana-toolbox']).toBe(false)
     expect(vis['dashboard']).toBe(false)
   })
@@ -42,6 +43,7 @@ describe('getDefaultVisibility — solana profile', () => {
   it('shows solana drawer tools', () => {
     const vis = getDefaultVisibility('solana', BUILTIN_TOOL_IDS)
     expect(vis['wallet']).toBe(true)
+    expect(vis['project-readiness']).toBe(true)
     expect(vis['solana-toolbox']).toBe(true)
     expect(vis['dashboard']).toBe(true)
   })
