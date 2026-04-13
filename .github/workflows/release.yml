@@ -73,7 +73,7 @@ jobs:
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             "$hash  $($_.Name)" | Out-File -Append -FilePath release/checksums-windows.txt
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-release
           path: |
@@ -149,7 +149,7 @@ jobs:
           find . -name "*.dmg" -o -name "*.zip" | while read f; do
             shasum -a 256 "$f" >> checksums-macos.txt
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-release
           path: |
@@ -193,7 +193,7 @@ jobs:
           find . -name "*.AppImage" | while read f; do
             sha256sum "$f" >> checksums-linux.txt
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-release
           path: |
