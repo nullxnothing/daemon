@@ -16,7 +16,7 @@
     "@expo/metro-runtime": "~4.0.1",
     "expo": "~52.0.0",
     "expo-router": "~4.0.0",
-    "expo-status-bar": "~2.0.0",
+    "expo-status-bar": "~55.0.5",
     "expo-secure-store": "~14.0.0",
     "expo-constants": "~17.0.0",
     "react": "^19.2.5",
