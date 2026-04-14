@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react'
 import { useUIStore, type CenterMode } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useShellLayout } from '../../hooks/useShellLayout'
@@ -445,7 +445,7 @@ function WindowControls() {
 
 function useDismissOnOutsideClick(
   isOpen: boolean,
-  ref: React.RefObject<HTMLElement>,
+  ref: RefObject<HTMLElement | null>,
   onDismiss: () => void,
 ) {
   useEffect(() => {
