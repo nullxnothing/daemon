@@ -42,7 +42,7 @@
     "@nirholas/pump-sdk": "1.30.0",
     "@payai/facilitator": "^2.3.6",
     "@raydium-io/raydium-sdk-v2": "0.2.39-alpha",
-    "@solana/mpp": "^0.2.0",
+    "@solana/mpp": "^0.5.2",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.4",
     "@x402/core": "^2.9.0",
