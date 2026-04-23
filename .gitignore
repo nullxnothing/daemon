@@ -46,6 +46,7 @@ keypair.json
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/mobile/.expo/
 /target/
 /programs/*/target/
 

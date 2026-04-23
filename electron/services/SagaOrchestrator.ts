@@ -31,6 +31,10 @@ export interface SagaExecution {
   completedAt?: number;
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 class SagaOrchestratorImpl {
   private executions: Map<string, SagaExecution> = new Map();
   private idempotencyCache: Map<string, SagaExecution> = new Map();
@@ -80,25 +84,24 @@ class SagaOrchestratorImpl {
           );
           execution.results.push(result);
         } catch (error) {
-          const errorMsg = error instanceof Error
-            ? error.message
-            : String(error);
+          const normalizedError = toError(error);
+          const errorMsg = normalizedError.message;
           execution.errors.push({
             step: step.name,
             error: errorMsg,
           });
 
-          LogService.error('Saga', `${definition.name} step failed: ${step.name}`, error);
+          LogService.error('Saga', `${definition.name} step failed: ${step.name}`, normalizedError);
 
           // Call error handler if provided
           if (step.onError) {
             try {
               await step.onError(
-                error instanceof Error ? error : new Error(errorMsg),
+                normalizedError,
                 execution.results[i],
               );
             } catch (handlerError) {
-              LogService.error('Saga', `${definition.name} error handler failed`, handlerError);
+              LogService.error('Saga', `${definition.name} error handler failed`, toError(handlerError));
             }
           }
 
@@ -164,7 +167,7 @@ class SagaOrchestratorImpl {
           definition.timeout || 30000,
         );
       } catch (error) {
-        LogService.error('Saga', `${definition.name} compensation failed for step ${step.name}`, error);
+        LogService.error('Saga', `${definition.name} compensation failed for step ${step.name}`, toError(error));
         // Continue compensating even if one step fails
       }
     }

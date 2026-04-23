@@ -7,6 +7,7 @@ interface IconSidebarProps {
   showExplorer: boolean
   onToggleExplorer: () => void
   onOpenAgentLauncher: () => void
+  isAgentLauncherOpen?: boolean
 }
 
 export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLauncher }: IconSidebarProps) {
