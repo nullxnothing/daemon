@@ -26,6 +26,7 @@ interface ValidationRule {
 
 class ValidationServiceImpl {
   private pathWhitelist: Set<string> = new Set();
+  private rateLimitStore: Map<string, number[]> = new Map();
   private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   /**
@@ -179,8 +180,9 @@ class ValidationServiceImpl {
   }
 
   validateEmailAddress(value: unknown): ValidationResult<string> {
+    const trimmedValue = typeof value === 'string' ? value.trim() : value;
     const result = this.validateString(
-      value,
+      trimmedValue,
       3,
       320,
       ValidationServiceImpl.EMAIL_PATTERN,
@@ -277,11 +279,17 @@ class ValidationServiceImpl {
   ): boolean {
     const key = `rl:${identifier}`;
     const now = Date.now();
+    const windowStart = now - Math.max(windowMs, 0);
+    const existing = this.rateLimitStore.get(key) ?? [];
+    const recent = existing.filter((timestamp) => timestamp > windowStart);
 
-    // In production, this would use Redis. For now, use in-memory store.
-    // This is a placeholder that should be replaced with proper rate limiter.
-    LogService.warn('ValidationService', 'Rate limiting not implemented - using placeholder');
+    if (recent.length >= maxRequests) {
+      this.rateLimitStore.set(key, recent);
+      return false;
+    }
 
+    recent.push(now);
+    this.rateLimitStore.set(key, recent);
     return true;
   }
 

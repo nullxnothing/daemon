@@ -189,6 +189,14 @@ export function getClaudePath(): string {
   return cachedConnection?.claudePath ?? resolveClaudePath()
 }
 
+export function clearCachedPath(): void {
+  cachedClaudePath = null
+}
+
+export function clearCachedConnection(): void {
+  cachedConnection = null
+}
+
 // --- One-Shot Prompt Execution ---
 
 export async function runPrompt(opts: RunPromptOpts): Promise<string> {
