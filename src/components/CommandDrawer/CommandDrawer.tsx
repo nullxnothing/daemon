@@ -151,10 +151,9 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
 function TokenLaunchIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 14c-1.7 1.7-2.3 4.2-1.5 6.5 2.3.7 4.8.2 6.5-1.5l7.6-7.6a3.2 3.2 0 0 0-4.5-4.5L6.5 14Z" />
-      <path d="M9 9 4 4" />
-      <path d="m5 9 4-4" />
-      <path d="M15 4h5v5" />
+      <circle cx="12" cy="12" r="8" />
+      <path d="M10 14 15 9" />
+      <path d="M11 9h4v4" />
     </svg>
   )
 }

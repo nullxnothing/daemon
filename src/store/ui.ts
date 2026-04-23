@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { daemon } from '../lib/daemonBridge'
 import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
 
 interface OpenFile {
@@ -10,13 +9,6 @@ interface OpenFile {
   projectId: string
 }
 
-export interface GridCell {
-  id: string | null
-  label: string
-  visible: boolean
-  providerId?: 'claude' | 'codex' | null
-}
-
 interface TerminalTab {
   id: string
   label: string
@@ -24,10 +16,8 @@ interface TerminalTab {
   projectId: string
 }
 
-export type CenterMode = 'canvas' | 'grind'
-export type RightPanelTab = 'claude' | 'codex'
-
 interface UIState {
+  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]
@@ -36,19 +26,12 @@ interface UIState {
   terminals: TerminalTab[]
   activeTerminalIdByProject: Record<string, string | null>
   mcpDirty: boolean
+  // Monotonically incremented whenever any MCP toggle fires, from any panel.
+  // Subscribe to this to re-fetch MCP state without duplicating toggle logic.
   mcpVersion: number
-  centerMode: CenterMode
-  browserTabOpen: boolean
-  browserTabActive: boolean
-  rightPanelTab: RightPanelTab
-  dashboardTabOpen: boolean
-  dashboardTabActive: boolean
-  launchWizardOpen: boolean
-  activeDashboardMint: string | null
-  grindPageCount: number
-  activeGrindPage: number
-  grindPages: Record<string, GridCell[][]>
+  showOnboarding: boolean
 
+  setActivePanel: (panel: UIState['activePanel']) => void
   setActiveProject: (id: string | null, path: string | null) => void
   setProjects: (projects: Project[]) => void
   openFile: (file: { path: string; name: string; content: string; projectId: string }) => void
@@ -62,53 +45,11 @@ interface UIState {
   removeProjectState: (projectId: string) => void
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
-  setCenterMode: (mode: CenterMode) => void
-  toggleBrowserTab: () => void
-  openBrowserTab: () => void
-  closeBrowserTab: () => void
-  setBrowserTabActive: (active: boolean) => void
-  setRightPanelTab: (tab: RightPanelTab) => void
-  toggleDashboardTab: () => void
-  openDashboardTab: () => void
-  closeDashboardTab: () => void
-  setDashboardTabActive: (active: boolean) => void
-  openLaunchWizard: () => void
-  closeLaunchWizard: () => void
-  setActiveDashboardMint: (mint: string | null) => void
-  setActiveGrindPage: (page: number) => void
-  addGrindPage: () => void
-  removeGrindPage: (page: number) => void
-  initGrindPages: (projectId: string) => void
-  setGrindCell: (projectId: string, pageIndex: number, cellIndex: number, cell: Partial<GridCell>) => void
-  addGrindCellToPage: (projectId: string, pageIndex: number) => void
-  setGrindPageCells: (projectId: string, pageIndex: number, cells: GridCell[]) => void
-  removeGrindPageCells: (projectId: string, pageIndex: number) => void
-
-  // QuickView popouts
-  walletQuickViewOpen: boolean
-  emailQuickViewOpen: boolean
-  toggleWalletQuickView: () => void
-  toggleEmailQuickView: () => void
-  closeAllQuickViews: () => void
-
-  // Command drawer
-  drawerTool: string | null
-  drawerOpen: boolean
-  drawerFullscreen: boolean
-  pinnedTools: string[]
-  drawerToolOrder: string[]
-  setDrawerTool: (tool: string | null) => void
-  closeDrawer: () => void
-  toggleDrawer: () => void
-  toggleDrawerFullscreen: () => void
-  setPinnedTools: (tools: string[]) => void
-  pinTool: (toolId: string) => void
-  unpinTool: (toolId: string) => void
-  setDrawerToolOrder: (order: string[]) => void
-  loadPinnedState: () => Promise<void>
+  setShowOnboarding: (show: boolean) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
+  activePanel: 'claude',
   activeProjectId: null,
   activeProjectPath: null,
   projects: [],
@@ -118,24 +59,9 @@ export const useUIStore = create<UIState>((set) => ({
   activeTerminalIdByProject: {},
   mcpDirty: false,
   mcpVersion: 0,
-  centerMode: 'canvas' as CenterMode,
-  browserTabOpen: false,
-  browserTabActive: false,
-  rightPanelTab: 'claude' as RightPanelTab,
-  dashboardTabOpen: false,
-  dashboardTabActive: false,
-  launchWizardOpen: false,
-  activeDashboardMint: null,
-  grindPageCount: 1,
-  activeGrindPage: 0,
-  grindPages: {},
-  walletQuickViewOpen: false,
-  emailQuickViewOpen: false,
-  drawerTool: null,
-  drawerOpen: false,
-  drawerFullscreen: false,
-  pinnedTools: ['git', 'browser', 'token-launch', 'solana-toolbox'],
-  drawerToolOrder: [],
+  showOnboarding: false,
+
+  setActivePanel: (panel) => set({ activePanel: panel }),
 
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),
 
@@ -145,20 +71,10 @@ export const useUIStore = create<UIState>((set) => ({
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
-        drawerTool: null,
-        drawerOpen: false,
-        centerMode: 'canvas' as CenterMode,
-        browserTabActive: false,
-        dashboardTabActive: false,
         activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
       }
     }
     return {
-      drawerTool: null,
-      drawerOpen: false,
-      centerMode: 'canvas' as CenterMode,
-      browserTabActive: false,
-      dashboardTabActive: false,
       openFiles: [...state.openFiles, { ...file, isDirty: false }],
       activeFilePathByProject: updateRecord(state.activeFilePathByProject, file.projectId, file.path),
     }
@@ -222,213 +138,5 @@ export const useUIStore = create<UIState>((set) => ({
 
   setMcpDirty: (dirty) => set({ mcpDirty: dirty }),
   bumpMcpVersion: () => set((state) => ({ mcpVersion: state.mcpVersion + 1 })),
-  setCenterMode: (mode) => {
-    set({ centerMode: mode })
-    if (typeof window !== 'undefined') {
-      daemon.settings.setLayout({ centerMode: mode }).catch(() => {})
-    }
-  },
-  toggleBrowserTab: () => set((state) => {
-    const isOpen = !state.browserTabOpen
-    if (!isOpen) return { browserTabOpen: false, browserTabActive: false }
-    return {
-      browserTabOpen: true,
-      browserTabActive: true,
-      dashboardTabActive: false,
-      drawerTool: null,
-      drawerOpen: false,
-      drawerFullscreen: false,
-    }
-  }),
-  openBrowserTab: () => set({
-    browserTabOpen: true,
-    browserTabActive: true,
-    dashboardTabActive: false,
-    drawerTool: null,
-    drawerOpen: false,
-    drawerFullscreen: false,
-  }),
-  closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
-  setBrowserTabActive: (active) => set(active
-    ? {
-        browserTabActive: true,
-        dashboardTabActive: false,
-        drawerTool: null,
-        drawerOpen: false,
-        drawerFullscreen: false,
-      }
-    : { browserTabActive: false }),
-  setRightPanelTab: (tab) => {
-    set({ rightPanelTab: tab })
-    if (typeof window !== 'undefined') {
-      daemon.settings.setLayout({ rightPanelTab: tab }).catch(() => {})
-    }
-  },
-  toggleDashboardTab: () => set((state) => {
-    const isOpen = !state.dashboardTabOpen
-    if (!isOpen) return { dashboardTabOpen: false, dashboardTabActive: false }
-    return {
-      dashboardTabOpen: true,
-      dashboardTabActive: true,
-      browserTabActive: false,
-      drawerTool: null,
-      drawerOpen: false,
-      drawerFullscreen: false,
-    }
-  }),
-  openDashboardTab: () => set({
-    dashboardTabOpen: true,
-    dashboardTabActive: true,
-    browserTabActive: false,
-    drawerTool: null,
-    drawerOpen: false,
-    drawerFullscreen: false,
-  }),
-  closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
-  setDashboardTabActive: (active) => set(active
-    ? {
-        dashboardTabActive: true,
-        browserTabActive: false,
-        drawerTool: null,
-        drawerOpen: false,
-        drawerFullscreen: false,
-      }
-    : { dashboardTabActive: false }),
-  openLaunchWizard: () => set({ launchWizardOpen: true }),
-  closeLaunchWizard: () => set({ launchWizardOpen: false }),
-  setActiveDashboardMint: (mint) => set({ activeDashboardMint: mint }),
-  setActiveGrindPage: (page) => set({ activeGrindPage: page }),
-  addGrindPage: () => set((state) => ({
-    grindPageCount: state.grindPageCount + 1,
-    activeGrindPage: state.grindPageCount,
-  })),
-  removeGrindPage: (page) => set((state) => {
-    if (state.grindPageCount <= 1) return {}
-    const newCount = state.grindPageCount - 1
-    return {
-      grindPageCount: newCount,
-      activeGrindPage: Math.min(state.activeGrindPage, newCount - 1),
-    }
-  }),
-
-  initGrindPages: (projectId) => set((state) => {
-    if (state.grindPages[projectId]) return {}
-    return {
-      grindPages: {
-        ...state.grindPages,
-        [projectId]: [[
-          { id: null, label: 'Agent 1', visible: true },
-          { id: null, label: 'Agent 2', visible: true },
-          { id: null, label: 'Agent 3', visible: true },
-          { id: null, label: 'Agent 4', visible: true },
-        ]],
-      },
-    }
-  }),
-
-  setGrindCell: (projectId, pageIndex, cellIndex, cell) => set((state) => {
-    const projectPages = state.grindPages[projectId]
-    if (!projectPages || !projectPages[pageIndex]) return {}
-    const updatedPage = [...projectPages[pageIndex]]
-    updatedPage[cellIndex] = { ...updatedPage[cellIndex], ...cell }
-    const updatedPages = [...projectPages]
-    updatedPages[pageIndex] = updatedPage
-    return {
-      grindPages: { ...state.grindPages, [projectId]: updatedPages },
-    }
-  }),
-
-  addGrindCellToPage: (projectId, pageIndex) => set((state) => {
-    const projectPages = state.grindPages[projectId]
-    if (!projectPages || !projectPages[pageIndex]) return {}
-    const page = projectPages[pageIndex]
-    const updatedPage = [
-      ...page,
-      { id: null, label: `Agent ${page.length + 1}`, visible: true },
-    ]
-    const updatedPages = [...projectPages]
-    updatedPages[pageIndex] = updatedPage
-    return {
-      grindPages: { ...state.grindPages, [projectId]: updatedPages },
-    }
-  }),
-
-  setGrindPageCells: (projectId, pageIndex, cells) => set((state) => {
-    const projectPages = state.grindPages[projectId]
-    if (!projectPages) return {}
-    const updatedPages = [...projectPages]
-    updatedPages[pageIndex] = cells
-    return {
-      grindPages: { ...state.grindPages, [projectId]: updatedPages },
-    }
-  }),
-
-  removeGrindPageCells: (projectId, pageIndex) => set((state) => {
-    const projectPages = state.grindPages[projectId]
-    if (!projectPages || projectPages.length <= 1) return {}
-    const updatedPages = projectPages.filter((_, i) => i !== pageIndex)
-    return {
-      grindPages: { ...state.grindPages, [projectId]: updatedPages },
-    }
-  }),
-
-  toggleWalletQuickView: () => set((state) => ({
-    walletQuickViewOpen: !state.walletQuickViewOpen,
-    emailQuickViewOpen: false,
-  })),
-  toggleEmailQuickView: () => set((state) => ({
-    emailQuickViewOpen: !state.emailQuickViewOpen,
-    walletQuickViewOpen: false,
-  })),
-  closeAllQuickViews: () => set({ walletQuickViewOpen: false, emailQuickViewOpen: false }),
-
-  setDrawerTool: (tool) => set((state) => ({
-    drawerTool: tool,
-    drawerOpen: tool !== null,
-    drawerFullscreen: tool !== null ? state.drawerFullscreen : false,
-  })),
-  closeDrawer: () => set({ drawerOpen: false, drawerTool: null, drawerFullscreen: false }),
-  toggleDrawer: () => set((state) => state.drawerOpen
-    ? { drawerOpen: false, drawerTool: null, drawerFullscreen: false }
-    : { drawerOpen: true, drawerTool: null, drawerFullscreen: false }),
-  toggleDrawerFullscreen: () => set((state) => ({ drawerFullscreen: !state.drawerFullscreen })),
-  setPinnedTools: (tools) => {
-    set({ pinnedTools: tools })
-    daemon.settings.setPinnedTools(tools).catch(() => {})
-  },
-  pinTool: (toolId) => set((state) => {
-    const next = state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId]
-    daemon.settings.setPinnedTools(next).catch(() => {})
-    return { pinnedTools: next }
-  }),
-  unpinTool: (toolId) => set((state) => {
-    const next = state.pinnedTools.filter((id) => id !== toolId)
-    daemon.settings.setPinnedTools(next).catch(() => {})
-    return { pinnedTools: next }
-  }),
-  setDrawerToolOrder: (order) => {
-    set({ drawerToolOrder: order })
-    daemon.settings.setDrawerToolOrder(order).catch(() => {})
-  },
-  loadPinnedState: async () => {
-    try {
-      const [pinnedRes, orderRes, layoutRes] = await Promise.all([
-        daemon.settings.getPinnedTools(),
-        daemon.settings.getDrawerToolOrder(),
-        daemon.settings.getLayout(),
-      ])
-      const updates: Partial<UIState> = {}
-      if (pinnedRes.ok && pinnedRes.data) updates.pinnedTools = pinnedRes.data
-      if (orderRes.ok && orderRes.data) updates.drawerToolOrder = orderRes.data
-      if (layoutRes.ok && layoutRes.data) {
-        if (layoutRes.data.centerMode === 'canvas' || layoutRes.data.centerMode === 'grind') {
-          updates.centerMode = layoutRes.data.centerMode
-        }
-        if (layoutRes.data.rightPanelTab === 'claude' || layoutRes.data.rightPanelTab === 'codex') {
-          updates.rightPanelTab = layoutRes.data.rightPanelTab
-        }
-      }
-      if (Object.keys(updates).length > 0) set(updates)
-    } catch { /* first run — use defaults */ }
-  },
+  setShowOnboarding: (show) => set({ showOnboarding: show }),
 }))

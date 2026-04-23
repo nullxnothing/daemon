@@ -172,7 +172,10 @@ export function SessionHistory() {
   const [publishAllBusy, setPublishAllBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { terminals, activeProjectId, setActiveTerminal, activeTerminalIdByProject, setCenterMode, centerMode } = useUIStore()
+  const terminals = useUIStore((s) => s.terminals)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
 
   const load = useCallback(() => {
     window.daemon.registry.listSessions(30).then((res) => {

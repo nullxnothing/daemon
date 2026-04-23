@@ -7,6 +7,7 @@ import { ConnectedServices } from './ConnectedServices'
 import { CapabilitiesSection } from './CapabilitiesSection'
 import { EcosystemSection } from './EcosystemSection'
 import { RuntimeStackSection } from './RuntimeStackSection'
+import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
@@ -69,6 +70,10 @@ export function SolanaToolbox() {
           onScaffoldX402={handleScaffoldX402}
           onScaffoldMpp={handleScaffoldMpp}
         />
+      </div>
+
+      <div className="solana-validator-zone">
+        <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
       </div>
 
       <div className="solana-validator-zone">

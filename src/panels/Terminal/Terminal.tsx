@@ -1,52 +1,144 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
+import { Terminal as XTerm } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
+import { WebLinksAddon } from '@xterm/addon-web-links'
+import '@xterm/xterm/css/xterm.css'
 import { useUIStore } from '../../store/ui'
-import { getEmbeddedProviderStartupCommand } from '../../../electron/shared/providerLaunch'
-import { TerminalTabs } from './TerminalTabs'
-import { TerminalInstance } from './TerminalInstance'
-import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
 import './Terminal.css'
 
-const SOLANA_AGENT_DB_ID = 'solana-agent'
-const IS_SMOKE_TEST = new URLSearchParams(window.location.search).get('smoke') === '1'
+const COMMAND_HINTS = [
+  'git status',
+  'git diff',
+  'git add .',
+  'git commit -m ""',
+  'npm run dev',
+  'npm run build',
+  'npm test',
+  'pnpm install',
+  'pnpm dev',
+  'pnpm build',
+  'ls',
+  'cd ..',
+  'pwd',
+  'clear',
+]
+
+const SOLANA_AGENT_STARTUP_COMMAND = 'pnpm run solana:agent'
 
 type SplitLayout = {
   direction: 'horizontal' | 'vertical'
   secondaryId: string
 }
 
+type TerminalLaunchRecent = {
+  kind: 'agent' | 'command'
+  key: string
+  label: string
+  command?: string
+  timestamp: number
+}
+
+const TERMINAL_LAUNCH_RECENTS_KEY = 'daemon.terminal.launchRecents'
+const MAX_TERMINAL_LAUNCH_RECENTS = 8
+
+function readTerminalLaunchRecents(): TerminalLaunchRecent[] {
+  try {
+    const raw = window.localStorage.getItem(TERMINAL_LAUNCH_RECENTS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .filter((item) => item && (item.kind === 'agent' || item.kind === 'command') && typeof item.key === 'string' && typeof item.label === 'string')
+      .map((item) => ({
+        kind: item.kind as 'agent' | 'command',
+        key: item.key as string,
+        label: item.label as string,
+        command: typeof item.command === 'string' ? item.command : undefined,
+        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, MAX_TERMINAL_LAUNCH_RECENTS)
+  } catch {
+    return []
+  }
+}
+
+function writeTerminalLaunchRecents(recents: TerminalLaunchRecent[]) {
+  try {
+    window.localStorage.setItem(TERMINAL_LAUNCH_RECENTS_KEY, JSON.stringify(recents.slice(0, MAX_TERMINAL_LAUNCH_RECENTS)))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function TerminalPanel() {
-  const terminals = useUIStore((s) => s.terminals)
-  const addTerminal = useUIStore((s) => s.addTerminal)
-  const removeTerminal = useUIStore((s) => s.removeTerminal)
-  const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
-  const centerMode = useUIStore((s) => s.centerMode)
-  const setCenterMode = useUIStore((s) => s.setCenterMode)
+  const { terminals, addTerminal, removeTerminal, setActiveTerminal } = useUIStore()
+  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeTerminalId = useUIStore((s) =>
     s.activeProjectId ? s.activeTerminalIdByProject[s.activeProjectId] ?? null : null,
   )
-  const visibleTerminals = useMemo(
-    () => terminals.filter((tab) => tab.projectId === activeProjectId),
-    [terminals, activeProjectId],
-  )
+  const visibleTerminals = terminals.filter((tab) => tab.projectId === activeProjectId)
   const [splitLayoutsByProject, setSplitLayoutsByProject] = useState<Record<string, SplitLayout | undefined>>({})
+  const [launcherOpen, setLauncherOpen] = useState(false)
+  const [agents, setAgents] = useState<Agent[]>([])
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [claudeInstallStatus, setClaudeInstallStatus] = useState<'idle' | 'installing' | 'failed'>('idle')
-  const [installTerminalId, setInstallTerminalId] = useState<string | null>(null)
-  const panelDragDepthRef = useRef(0)
-  const creatingRef = useRef(false)
+  const launcherRef = useRef<HTMLDivElement>(null)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
 
   const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
-    setLaunchRecents((prev) => addToRecents(prev, recent))
+    setLaunchRecents((prev) => {
+      const next: TerminalLaunchRecent[] = [
+        { ...recent, timestamp: Date.now() },
+        ...prev.filter((item) => !(item.kind === recent.kind && item.key === recent.key)),
+      ].slice(0, MAX_TERMINAL_LAUNCH_RECENTS)
+      writeTerminalLaunchRecents(next)
+      return next
+    })
   }, [])
 
+  useEffect(() => {
+    if (!launcherOpen) return
+    window.daemon.agents.list().then((res) => {
+      if (res.ok && res.data) {
+        setAgents(res.data)
+      }
+    })
+  }, [launcherOpen])
+
+  useEffect(() => {
+    if (!launcherOpen) return
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null
+      if (!launcherRef.current || !target) return
+      if (!launcherRef.current.contains(target)) {
+        setLauncherOpen(false)
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setLauncherOpen(false)
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [launcherOpen])
+
   const handleNewTerminal = useCallback(async (label = 'Terminal', startupCommand?: string) => {
-    if (!activeProjectId) return null
-    const res = await window.daemon.terminal.create({ cwd: activeProjectPath ?? undefined, startupCommand })
+    if (!activeProjectId) return
+    const res = await window.daemon.terminal.create({
+      cwd: activeProjectPath ?? undefined,
+      startupCommand,
+    })
     if (res.ok && res.data) {
       addTerminal(activeProjectId, res.data.id, label)
       return res.data.id
@@ -54,54 +146,40 @@ export function TerminalPanel() {
     return null
   }, [activeProjectId, activeProjectPath, addTerminal])
 
-  const handleFolderDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    panelDragDepthRef.current = 0
-    setIsDragOver(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    for (const file of files) {
-      const filePath = (file as File & { path?: string }).path
-      if (!filePath) continue
-
-      const folderName = filePath.replace(/\\/g, '/').split('/').pop() ?? 'Terminal'
-      const res = await window.daemon.terminal.create({ cwd: filePath, userInitiated: true })
-      if (res.ok && res.data && activeProjectId) {
-        addTerminal(activeProjectId, res.data.id, folderName)
-      }
-    }
-  }, [activeProjectId, addTerminal])
-
   const handleStartShell = useCallback(async () => {
     await handleNewTerminal('Terminal')
+    setLauncherOpen(false)
   }, [handleNewTerminal])
 
-  const handleLaunchCommand = useCallback(async (command: string, label: string) => {
+  const launchCommand = useCallback(async (command: string, label: string) => {
     const terminalId = await handleNewTerminal(label)
     if (!terminalId) return
     window.daemon.terminal.write(terminalId, `${command}\n`)
     addLaunchRecent({ kind: 'command', key: command, command, label })
+    setLauncherOpen(false)
   }, [addLaunchRecent, handleNewTerminal])
 
   const handleStartClaudeChat = useCallback(() => {
-    setDrawerTool(null)
-  }, [setDrawerTool])
+    setActivePanel('claude')
+    setLauncherOpen(false)
+  }, [setActivePanel])
 
   const handleStartSolanaAgent = useCallback(async () => {
-    if (!activeProjectId) return
-    const res = await window.daemon.terminal.spawnAgent({ agentId: SOLANA_AGENT_DB_ID, projectId: activeProjectId })
-    if (res.ok && res.data) {
-      addTerminal(activeProjectId, res.data.id, res.data.agentName ?? 'Solana Agent', res.data.agentId)
-    }
-  }, [activeProjectId, addTerminal])
+    await handleNewTerminal('Solana Agent', SOLANA_AGENT_STARTUP_COMMAND)
+    setLauncherOpen(false)
+  }, [handleNewTerminal])
 
-  const handleLaunchAgent = useCallback(async (agent: Agent) => {
+  const launchAgent = useCallback(async (agent: Agent) => {
     if (!activeProjectId) return
-    const res = await window.daemon.terminal.spawnAgent({ agentId: agent.id, projectId: activeProjectId })
+
+    const res = await window.daemon.terminal.spawnAgent({
+      agentId: agent.id,
+      projectId: activeProjectId,
+    })
     if (res.ok && res.data) {
       addTerminal(activeProjectId, res.data.id, res.data.agentName ?? agent.name, res.data.agentId)
       addLaunchRecent({ kind: 'agent', key: agent.id, label: agent.name })
+      setLauncherOpen(false)
     }
   }, [activeProjectId, addLaunchRecent, addTerminal])
 
@@ -109,7 +187,8 @@ export function TerminalPanel() {
     if (!activeProjectId) return
     await window.daemon.terminal.kill(id)
     removeTerminal(activeProjectId, id)
-    setSplitLayoutsByProject((prev) => {
+
+     setSplitLayoutsByProject((prev) => {
       const current = prev[activeProjectId]
       if (!current || current.secondaryId !== id) return prev
       return { ...prev, [activeProjectId]: undefined }
@@ -118,8 +197,10 @@ export function TerminalPanel() {
 
   const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
     if (!activeProjectId || !activeTerminalId) return
+
     let secondaryId = splitLayoutsByProject[activeProjectId]?.secondaryId
     const hasExistingSecondary = Boolean(secondaryId && visibleTerminals.some((tab) => tab.id === secondaryId))
+
     if (!hasExistingSecondary) {
       const res = await window.daemon.terminal.create({ cwd: activeProjectPath ?? undefined })
       if (!res.ok || !res.data) return
@@ -127,8 +208,13 @@ export function TerminalPanel() {
       addTerminal(activeProjectId, secondaryId, 'Split')
       setActiveTerminal(activeProjectId, activeTerminalId)
     }
+
     if (!secondaryId) return
-    setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: { direction, secondaryId } }))
+
+    setSplitLayoutsByProject((prev) => ({
+      ...prev,
+      [activeProjectId]: { direction, secondaryId },
+    }))
   }, [activeProjectId, activeProjectPath, activeTerminalId, addTerminal, setActiveTerminal, splitLayoutsByProject, visibleTerminals])
 
   const handleUnsplit = useCallback(() => {
@@ -136,61 +222,18 @@ export function TerminalPanel() {
     setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
   }, [activeProjectId])
 
-  // Auto-create first terminal for project — starts in Claude mode if CLI is available
   useEffect(() => {
-    if (IS_SMOKE_TEST) return
-    if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
-    creatingRef.current = true
-
-    window.daemon.terminal.checkClaude().then((res): Promise<void> => {
-      if (!res.ok || !res.data) {
-        // Fallback to plain shell if the check itself fails
-        return handleNewTerminal('Terminal').then(() => {})
-      }
-
-      const { installed } = res.data
-
-      if (installed) {
-        return handleNewTerminal('Claude', getEmbeddedProviderStartupCommand('claude')).then(() => {})
-      }
-
-      // Claude CLI not found — open terminal and run the install command
-      setClaudeInstallStatus('installing')
-      return handleNewTerminal('Installing Claude').then((terminalId) => {
-        if (!terminalId) {
-          setClaudeInstallStatus('failed')
-          return
-        }
-        setInstallTerminalId(terminalId)
-        window.daemon.terminal.write(terminalId, 'npm install -g @anthropic-ai/claude-code\r')
-      })
-    }).finally(() => {
-      creatingRef.current = false
-    })
+    if (activeProjectId && visibleTerminals.length === 0) {
+      void handleNewTerminal()
+    }
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
 
-  // Auto-dismiss the Claude install banner when the install terminal exits.
-  // The install runs `npm install -g @anthropic-ai/claude-code` interactively in
-  // a real shell, so we treat any clean exit as success.
-  useEffect(() => {
-    if (!installTerminalId) return
-    const cleanup = window.daemon.terminal.onExit((payload) => {
-      if (payload.id !== installTerminalId) return
-      if (payload.exitCode === 0) {
-        setClaudeInstallStatus('idle')
-      } else {
-        setClaudeInstallStatus('failed')
-      }
-      setInstallTerminalId(null)
-    })
-    return cleanup
-  }, [installTerminalId])
-
-  // Sync split layout when terminals change
   useEffect(() => {
     if (!activeProjectId || !activeTerminalId) return
+
     const split = splitLayoutsByProject[activeProjectId]
     if (!split) return
+
     const hasSecondary = visibleTerminals.some((tab) => tab.id === split.secondaryId)
     if (!hasSecondary) {
       const fallback = visibleTerminals.find((tab) => tab.id !== activeTerminalId)?.id
@@ -200,12 +243,16 @@ export function TerminalPanel() {
       }))
       return
     }
+
     if (split.secondaryId === activeTerminalId) {
       const fallback = visibleTerminals.find((tab) => tab.id !== activeTerminalId)?.id
       if (!fallback) {
         setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
       } else {
-        setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: { ...split, secondaryId: fallback } }))
+        setSplitLayoutsByProject((prev) => ({
+          ...prev,
+          [activeProjectId]: { ...split, secondaryId: fallback },
+        }))
       }
     }
   }, [activeProjectId, activeTerminalId, splitLayoutsByProject, visibleTerminals])
@@ -224,72 +271,120 @@ export function TerminalPanel() {
     return [activeTerminalId, splitLayout.secondaryId]
   }, [activeTerminalId, splitLayout, terminalById])
 
+  const launchableAgents = useMemo(
+    () => agents.filter((agent) => (agent.source ?? 'daemon') !== 'claude-import'),
+    [agents],
+  )
+
+  const recentAgentItems = useMemo(
+    () => launchRecents.filter((item) => item.kind === 'agent').slice(0, 5),
+    [launchRecents],
+  )
+
+  const recentCommandItems = useMemo(
+    () => launchRecents.filter((item) => item.kind === 'command').slice(0, 3),
+    [launchRecents],
+  )
+
   return (
-    <div
-      className={`terminal-panel ${isDragOver ? 'drag-over' : ''} ${claudeInstallStatus !== 'idle' ? 'has-install-banner' : ''}`}
-      onDragEnter={(e) => {
-        if (!e.dataTransfer.types.includes('Files')) return
-        e.preventDefault()
-        panelDragDepthRef.current += 1
-        setIsDragOver(true)
-      }}
-      onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes('Files')) return
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'copy'
-      }}
-      onDragLeave={() => {
-        panelDragDepthRef.current = Math.max(0, panelDragDepthRef.current - 1)
-        if (panelDragDepthRef.current === 0) setIsDragOver(false)
-      }}
-      onDrop={handleFolderDrop}
-    >
-      {claudeInstallStatus === 'installing' && (
-        <div className="claude-install-banner">
-          <span className="claude-install-spinner" aria-hidden="true" />
-          Installing Claude CLI via npm... auto-dismisses when complete.
-          <button className="claude-install-dismiss" onClick={() => { setClaudeInstallStatus('idle'); setInstallTerminalId(null) }}>Dismiss</button>
+    <div className="terminal-panel">
+      <div className="terminal-tabs">
+        {visibleTerminals.map((tab) => (
+          <button
+            key={tab.id}
+            className={`terminal-tab ${activeTerminalId === tab.id ? 'active' : ''}`}
+            onClick={() => activeProjectId && setActiveTerminal(activeProjectId, tab.id)}
+          >
+            <span className={`terminal-tab-dot ${tab.agentId ? 'agent' : ''}`} />
+            <span>{tab.label}</span>
+            <span
+              className="terminal-tab-close"
+              onClick={(e) => { e.stopPropagation(); handleCloseTerminal(tab.id) }}
+            >
+              &times;
+            </span>
+          </button>
+        ))}
+        <div className="terminal-launcher" ref={launcherRef}>
+          <button className="terminal-tab-add" onClick={() => setLauncherOpen((v) => !v)} title="New tab options">+</button>
+          {launcherOpen && (
+            <div className="terminal-launcher-menu" role="menu" aria-label="New terminal options">
+              <button
+                className="terminal-launcher-item"
+                onClick={() => void handleStartShell()}
+                disabled={!activeProjectId}
+              >
+                Standard Terminal
+              </button>
+              <button
+                className="terminal-launcher-item"
+                onClick={handleStartClaudeChat}
+              >
+                Claude Chat
+              </button>
+              <button
+                className="terminal-launcher-item"
+                onClick={() => void handleStartSolanaAgent()}
+                disabled={!activeProjectId}
+              >
+                Solana Agent
+              </button>
+
+              <div className="terminal-launcher-divider" />
+              <div className="terminal-launcher-section">Recent Agents</div>
+              {recentAgentItems.length === 0 ? (
+                <div className="terminal-launcher-empty">No recent agents</div>
+              ) : (
+                recentAgentItems.map((item) => {
+                  const agent = launchableAgents.find((candidate) => candidate.id === item.key)
+                  return (
+                    <button
+                      key={`recent-agent-${item.key}`}
+                      className="terminal-launcher-item"
+                      onClick={() => agent && void launchAgent(agent)}
+                      disabled={!activeProjectId || !agent}
+                      title={agent ? undefined : 'Agent no longer available'}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })
+              )}
+
+              {recentCommandItems.length > 0 && (
+                <>
+                  <div className="terminal-launcher-divider" />
+                  <div className="terminal-launcher-section">Recent Commands</div>
+                  {recentCommandItems.map((item) => (
+                    <button
+                      key={`recent-command-${item.key}`}
+                      className="terminal-launcher-item"
+                      onClick={() => item.command && void launchCommand(item.command, item.label)}
+                      disabled={!activeProjectId || !item.command}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
         </div>
-      )}
-      {claudeInstallStatus === 'failed' && (
-        <div className="claude-install-banner claude-install-banner--error">
-          Failed to create install terminal. Open a new terminal and run: npm install -g @anthropic-ai/claude-code
-          <button className="claude-install-dismiss" onClick={() => setClaudeInstallStatus('idle')}>Dismiss</button>
+        <div className="terminal-tools">
+          <button className="terminal-tool-btn" onClick={() => void handleSplit('vertical')} title="Split vertical">
+            │
+          </button>
+          <button className="terminal-tool-btn" onClick={() => void handleSplit('horizontal')} title="Split horizontal">
+            ─
+          </button>
+          <button className="terminal-tool-btn" onClick={handleUnsplit} title="Unsplit" disabled={!splitLayout}>
+            ⨯
+          </button>
         </div>
-      )}
-      <TerminalTabs
-        visibleTerminals={visibleTerminals}
-        activeTerminalId={activeTerminalId}
-        activeProjectId={activeProjectId}
-        centerMode={centerMode}
-        splitLayout={splitLayout}
-        launchRecents={launchRecents}
-        onSelectTerminal={(id) => activeProjectId && setActiveTerminal(activeProjectId, id)}
-        onCloseTerminal={handleCloseTerminal}
-        onToggleGrindMode={() => setCenterMode(centerMode === 'grind' ? 'canvas' : 'grind')}
-        onSplit={handleSplit}
-        onUnsplit={handleUnsplit}
-        onStartShell={handleStartShell}
-        onStartClaudeChat={handleStartClaudeChat}
-        onStartSolanaAgent={handleStartSolanaAgent}
-        onLaunchAgent={handleLaunchAgent}
-        onLaunchCommand={handleLaunchCommand}
-      />
+      </div>
       <div className="terminal-views">
-        {visibleTerminals.length === 0 ? (
-          <div className="terminal-empty-state" onClick={handleStartShell}>
-            <span className="terminal-empty-icon">&gt;_</span>
-            <span className="terminal-empty-label">Click to start a terminal</span>
-            <span className="terminal-empty-hint">or press Ctrl+`</span>
-          </div>
-        ) : paneIds.length <= 1 ? (
-          /* Render ALL terminal instances to avoid unmount/remount on tab switch.
-             Only the active one is visible — the rest are hidden via isVisible=false.
-             This prevents xterm's Viewport.syncScrollArea "dimensions" crash that
-             occurs when the terminal is disposed while internal observers are pending. */
-          visibleTerminals.map((tab) => (
-            <TerminalInstance key={tab.id} id={tab.id} isVisible={tab.id === activeTerminalId} />
-          ))
+        {paneIds.length <= 1 ? (
+          activeTerminalId ? <TerminalView key={activeTerminalId} id={activeTerminalId} isVisible /> : null
         ) : (
           <div className={`terminal-split ${splitLayout?.direction ?? 'vertical'}`}>
             {paneIds.map((id) => (
@@ -302,11 +397,11 @@ export function TerminalPanel() {
                     {terminalById.get(id)?.label ?? 'Terminal'}
                   </button>
                   {splitLayout?.secondaryId === id && (
-                    <button className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">&times;</button>
+                    <button className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">×</button>
                   )}
                 </div>
                 <div className="terminal-pane-body">
-                  <TerminalInstance id={id} isVisible />
+                  <TerminalView id={id} isVisible />
                 </div>
               </div>
             ))}
@@ -317,4 +412,474 @@ export function TerminalPanel() {
   )
 }
 
-export default TerminalPanel
+function TerminalView({ id, isVisible }: { id: string; isVisible: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const xtermRef = useRef<XTerm | null>(null)
+  const fitRef = useRef<FitAddon | null>(null)
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dragDepthRef = useRef(0)
+  const [currentInput, setCurrentInputState] = useState('')
+  const [commandHistory, setCommandHistoryState] = useState<string[]>([])
+  const [historySearchOpen, setHistorySearchOpenState] = useState(false)
+  const [historySearchQuery, setHistorySearchQueryState] = useState('')
+  const [historySelectionIndex, setHistorySelectionIndexState] = useState(0)
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+  })
+  const currentInputRef = useRef('')
+  const commandHistoryRef = useRef<string[]>([])
+  const completionHintsRef = useRef<string[]>([])
+  const historySearchOpenRef = useRef(false)
+  const historySearchQueryRef = useRef('')
+  const historySelectionIndexRef = useRef(0)
+
+  const setCurrentInput = (value: string) => {
+    currentInputRef.current = value
+    setCurrentInputState(value)
+  }
+
+  const setCommandHistory = (value: string[]) => {
+    commandHistoryRef.current = value
+    setCommandHistoryState(value)
+  }
+
+  const setHistorySearchOpen = (value: boolean) => {
+    historySearchOpenRef.current = value
+    setHistorySearchOpenState(value)
+  }
+
+  const setHistorySearchQuery = (value: string) => {
+    historySearchQueryRef.current = value
+    setHistorySearchQueryState(value)
+  }
+
+  const setHistorySelectionIndex = (value: number) => {
+    historySelectionIndexRef.current = value
+    setHistorySelectionIndexState(value)
+  }
+
+  const historyMatches = useMemo(() => {
+    const query = historySearchQuery.trim().toLowerCase()
+    const source = [...commandHistory].reverse()
+    return query
+      ? source.filter((command) => command.toLowerCase().includes(query))
+      : source
+  }, [commandHistory, historySearchQuery])
+
+  const completionHints = useMemo(() => {
+    const query = currentInput.trim().toLowerCase()
+    if (!query || historySearchOpen) return []
+
+    const historyHints = [...commandHistory]
+      .reverse()
+      .filter((command) => command.toLowerCase().startsWith(query) && command.toLowerCase() !== query)
+
+    const staticHints = COMMAND_HINTS
+      .filter((command) => command.toLowerCase().startsWith(query) && command.toLowerCase() !== query)
+
+    const hints = [...new Set([...historyHints, ...staticHints])].slice(0, 8)
+    completionHintsRef.current = hints
+    return hints
+  }, [commandHistory, currentInput, historySearchOpen])
+
+  const pushHistory = (command: string) => {
+    const normalized = command.trim()
+    if (!normalized) return
+    const deduped = commandHistoryRef.current.filter((item) => item !== normalized)
+    const next = [...deduped, normalized].slice(-200)
+    setCommandHistory(next)
+  }
+
+  const applyHistorySelection = () => {
+    const selection = historyMatches[historySelectionIndexRef.current]
+    if (!selection) return
+    window.daemon.terminal.write(id, '\u0003')
+    window.setTimeout(() => {
+      window.daemon.terminal.write(id, selection)
+    }, 10)
+    setCurrentInput(selection)
+  }
+
+  const acceptHint = (hint: string) => {
+    const existing = currentInputRef.current
+    if (!existing) {
+      window.daemon.terminal.write(id, hint)
+      setCurrentInput(hint)
+      return
+    }
+
+    if (hint.toLowerCase().startsWith(existing.toLowerCase())) {
+      const remainder = hint.slice(existing.length)
+      window.daemon.terminal.write(id, remainder)
+      setCurrentInput(hint)
+      return
+    }
+
+    window.daemon.terminal.write(id, '\u0003')
+    window.setTimeout(() => {
+      window.daemon.terminal.write(id, hint)
+    }, 10)
+    setCurrentInput(hint)
+  }
+
+  const trackInputFromData = (data: string) => {
+    let nextInput = currentInputRef.current
+    for (const char of data) {
+      if (char === '\r') {
+        pushHistory(nextInput)
+        nextInput = ''
+        continue
+      }
+
+      if (char === '\u007f' || char === '\b') {
+        nextInput = nextInput.slice(0, -1)
+        continue
+      }
+
+      if (char === '\u0015') {
+        nextInput = ''
+        continue
+      }
+
+      const code = char.charCodeAt(0)
+      const isPrintable = code >= 32 && code !== 127
+      if (isPrintable) {
+        nextInput += char
+      }
+    }
+    setCurrentInput(nextInput)
+  }
+
+  const interceptHistorySearchInput = (data: string): boolean => {
+    if (!historySearchOpenRef.current) return false
+
+    if (data === '\u001b') {
+      setHistorySearchOpen(false)
+      setHistorySearchQuery('')
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    if (data === '\u007f' || data === '\b') {
+      const next = historySearchQueryRef.current.slice(0, -1)
+      setHistorySearchQuery(next)
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    if (data === '\r') {
+      applyHistorySelection()
+      setHistorySearchOpen(false)
+      setHistorySearchQuery('')
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    if (data === '\u0010') {
+      const next = Math.max(0, historySelectionIndexRef.current - 1)
+      setHistorySelectionIndex(next)
+      return true
+    }
+
+    if (data === '\u000e') {
+      const next = Math.min(Math.max(0, historyMatches.length - 1), historySelectionIndexRef.current + 1)
+      setHistorySelectionIndex(next)
+      return true
+    }
+
+    if (data.length === 1 && data >= ' ' && data !== '\u007f') {
+      const next = historySearchQueryRef.current + data
+      setHistorySearchQuery(next)
+      setHistorySelectionIndex(0)
+      return true
+    }
+
+    return true
+  }
+
+  const doFit = useCallback(() => {
+    const fit = fitRef.current
+    const term = xtermRef.current
+    if (!fit || !term) return
+    if (!containerRef.current) return
+
+    const { clientWidth, clientHeight } = containerRef.current
+    if (clientWidth === 0 || clientHeight === 0) return
+
+    try {
+      fit.fit()
+      window.daemon.terminal.resize(id, term.cols, term.rows)
+    } catch {}
+  }, [id])
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev))
+  }, [])
+
+  const handleContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const rect = event.currentTarget.getBoundingClientRect()
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    })
+  }, [])
+
+  const handlePasteFromContextMenu = useCallback(async () => {
+    await window.daemon.terminal.pasteFromClipboard(id)
+    closeContextMenu()
+    xtermRef.current?.focus()
+  }, [closeContextMenu, id])
+
+  const debouncedFit = useCallback(() => {
+    if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+    resizeTimerRef.current = setTimeout(doFit, 60)
+  }, [doFit])
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const term = new XTerm({
+      fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+      fontSize: 13,
+      lineHeight: 1.3,
+      cursorBlink: true,
+      cursorStyle: 'bar',
+      theme: {
+        background: '#090909',
+        foreground: '#ebebeb',
+        cursor: '#ebebeb',
+        selectionBackground: '#2a2a2a',
+        black: '#090909',
+        brightBlack: '#3d3d3d',
+        red: '#8c4a4a',
+        brightRed: '#a65c5c',
+        green: '#4a8c62',
+        brightGreen: '#5ca674',
+        yellow: '#8c7a4a',
+        brightYellow: '#a6925c',
+        blue: '#4a6a8c',
+        brightBlue: '#5c82a6',
+        magenta: '#7a4a8c',
+        brightMagenta: '#925ca6',
+        cyan: '#4a8c8c',
+        brightCyan: '#5ca6a6',
+        white: '#ebebeb',
+        brightWhite: '#ffffff',
+      },
+    })
+
+    const fitAddon = new FitAddon()
+    term.loadAddon(fitAddon)
+    term.loadAddon(new WebLinksAddon())
+
+    term.open(containerRef.current)
+    xtermRef.current = term
+    fitRef.current = fitAddon
+
+    // Fit after layout settles
+    setTimeout(() => {
+      doFit()
+      term.focus()
+    }, 150)
+
+    // Keystrokes -> PTY
+    term.onData((data) => {
+      if (data === '\u0012') {
+        setHistorySearchOpen(true)
+        setHistorySearchQuery('')
+        setHistorySelectionIndex(0)
+        return
+      }
+
+      if (interceptHistorySearchInput(data)) {
+        return
+      }
+
+      if (data === '\x1b' && completionHintsRef.current.length > 0) {
+        setCurrentInput('')
+        return
+      }
+
+      if (data === '\t' && completionHintsRef.current.length > 0) {
+        acceptHint(completionHintsRef.current[0])
+        return
+      }
+
+      trackInputFromData(data)
+      window.daemon.terminal.write(id, data)
+    })
+
+    // PTY -> xterm
+    const cleanupData = window.daemon.terminal.onData((payload) => {
+      if (payload.id === id) {
+        term.write(payload.data)
+      }
+    })
+
+    const cleanupExit = window.daemon.terminal.onExit((payload) => {
+      if (payload.id === id) {
+        term.write('\r\n[Process exited]\r\n')
+      }
+    })
+
+    // Resize observer with debounce
+    const resizeObserver = new ResizeObserver(debouncedFit)
+    resizeObserver.observe(containerRef.current)
+
+    return () => {
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      resizeObserver.disconnect()
+      cleanupData()
+      cleanupExit()
+      term.dispose()
+    }
+  }, [id, doFit, debouncedFit])
+
+  useEffect(() => {
+    if (!contextMenu.isOpen) return
+
+    const handlePointerDown = () => closeContextMenu()
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeContextMenu()
+      }
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [closeContextMenu, contextMenu.isOpen])
+
+  // Re-fit + focus when tab becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          doFit()
+          xtermRef.current?.focus()
+        }, 50)
+      })
+    }
+  }, [isVisible, doFit])
+
+  // Click to focus
+  const handleClick = () => {
+    xtermRef.current?.focus()
+  }
+
+  const setDragActive = (active: boolean) => {
+    if (!containerRef.current) return
+    containerRef.current.classList.toggle('drag-active', active)
+  }
+
+  const quotePath = (value: string) => {
+    const escaped = value.replace(/"/g, '\\"')
+    return `"${escaped}"`
+  }
+
+  const writeDroppedPaths = (paths: string[]) => {
+    if (paths.length === 0) return
+    const payload = paths.map(quotePath).join(' ') + ' '
+    window.daemon.terminal.write(id, payload)
+    xtermRef.current?.focus()
+  }
+
+  const extractDroppedPaths = (event: React.DragEvent<HTMLDivElement>) => {
+    const filePaths = Array.from(event.dataTransfer.files)
+      .map((file) => (file as File & { path?: string }).path)
+      .filter((value): value is string => Boolean(value))
+
+    if (filePaths.length > 0) return filePaths
+
+    const text = event.dataTransfer.getData('text/plain').trim()
+    return text ? [text] : []
+  }
+
+  return (
+    <div className="terminal-view-wrap">
+      <div
+        ref={containerRef}
+        className="terminal-view"
+        style={{ visibility: isVisible ? 'visible' : 'hidden' }}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onDragEnter={(e) => {
+          e.preventDefault()
+          dragDepthRef.current += 1
+          setDragActive(true)
+        }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }}
+        onDragLeave={() => {
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+          if (dragDepthRef.current === 0) setDragActive(false)
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          dragDepthRef.current = 0
+          setDragActive(false)
+          writeDroppedPaths(extractDroppedPaths(e))
+        }}
+      >
+        {contextMenu.isOpen && (
+          <div
+            className="terminal-context-menu"
+            style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button className="terminal-context-menu-item" onClick={() => void handlePasteFromContextMenu()}>
+              Paste
+            </button>
+          </div>
+        )}
+      </div>
+
+      {completionHints.length > 0 && !historySearchOpen && (
+        <div className="terminal-overlay hints" onPointerDown={(e) => e.stopPropagation()}>
+          <div className="terminal-overlay-header">
+            <div className="terminal-overlay-title">Hints (Tab)</div>
+            <button className="terminal-overlay-dismiss" onClick={() => setCurrentInput('')}>×</button>
+          </div>
+          {completionHints.slice(0, 5).map((hint) => (
+            <button key={hint} className="terminal-overlay-item" onClick={() => acceptHint(hint)}>{hint}</button>
+          ))}
+        </div>
+      )}
+
+      {historySearchOpen && (
+        <div className="terminal-overlay history-search">
+          <div className="terminal-overlay-title">History Search (Ctrl+R)</div>
+          <div className="terminal-history-query">{historySearchQuery || 'type to filter...'}</div>
+          <div className="terminal-history-results">
+            {historyMatches.slice(0, 8).map((match, index) => (
+              <button
+                key={`${match}-${index}`}
+                className={`terminal-overlay-item ${index === historySelectionIndex ? 'active' : ''}`}
+                onClick={() => {
+                  setHistorySelectionIndex(index)
+                  applyHistorySelection()
+                  setHistorySearchOpen(false)
+                  setHistorySearchQuery('')
+                }}
+              >
+                {match}
+              </button>
+            ))}
+            {historyMatches.length === 0 && (
+              <div className="terminal-history-empty">No matching commands</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -85,7 +85,7 @@
 }
 
 .recovery-select:focus,
-.recovery-input:focus-visible {
+.recovery-input:focus {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }

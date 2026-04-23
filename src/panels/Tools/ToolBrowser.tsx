@@ -8,7 +8,12 @@ import './ToolBrowser.css'
 const CATEGORIES = ['all', 'solana', 'web3', 'dev', 'general']
 
 export function ToolBrowser() {
-  const { tools, loaded, load, filter, setFilter, setActiveTool, runningToolIds } = useToolsStore()
+  const tools = useToolsStore((s) => s.tools)
+  const loaded = useToolsStore((s) => s.loaded)
+  const load = useToolsStore((s) => s.load)
+  const filter = useToolsStore((s) => s.filter)
+  const setFilter = useToolsStore((s) => s.setFilter)
+  const runningToolIds = useToolsStore((s) => s.runningToolIds)
   const openFile = useUIStore((s) => s.openFile)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const setDrawerTool = useUIStore((s) => s.setDrawerTool)

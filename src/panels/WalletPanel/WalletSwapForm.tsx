@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './WalletPanel.css'
+import { TransactionPreviewCard } from './TransactionPreviewCard'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -62,6 +63,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const [swapLoading, setSwapLoading] = useState(false)
   const [swapResult, setSwapResult] = useState<WalletExecutionResult | null>(null)
   const [swapError, setSwapError] = useState<string | null>(null)
+  const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
 
   // Ref-based mutex — prevents double-submit even if React state update is batched
   const swapLockRef = useRef(false)
@@ -71,6 +73,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
+  const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
 
   const handleGetQuote = async () => {
     setQuoteError(null)
@@ -194,6 +197,34 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const isHighImpact = impactPct >= 1
   const isVeryHighImpact = impactPct >= 5
   const executeBlocked = isVeryHighImpact && !highImpactAcknowledged
+
+  useEffect(() => {
+    let cancelled = false
+    setPreview(null)
+
+    if (!pendingSwap) return
+
+    void window.daemon.wallet.transactionPreview({
+      kind: 'swap',
+      walletId,
+      inputMint,
+      outputMint,
+      inputSymbol: pendingSwap.inputSymbol,
+      outputSymbol: pendingSwap.outputSymbol,
+      inputAmount: pendingSwap.quote.inAmount,
+      outputAmount: pendingSwap.quote.outAmount,
+      amount: parseFloat(amount),
+      slippageBps: parseInt(slippageBps, 10),
+      priceImpactPct: pendingSwap.quote.priceImpactPct,
+    }).then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setPreview(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [amount, inputMint, outputMint, pendingSwap, slippageBps, walletId])
 
   return (
     <section className="wallet-section">
@@ -343,18 +374,20 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
         {/* Confirmation panel — shown after "Review Swap" is clicked */}
         {pendingSwap && (
           <div className="wallet-swap-quote">
-            <div className="wallet-label">Confirm Swap</div>
-            <div className="wallet-caption">
-              {formatLargeNumber(pendingSwap.quote.inAmount)} {pendingSwap.inputSymbol}
-              {' → '}
-              {formatLargeNumber(pendingSwap.quote.outAmount)} {pendingSwap.outputSymbol}
-            </div>
-            <div className="wallet-caption" style={{ color: pendingSwap.impactPct >= 5 ? 'var(--red)' : pendingSwap.impactPct >= 1 ? 'var(--amber)' : 'var(--t3)' }}>
-              Price impact: {pendingSwap.impactPct.toFixed(4)}%
-              {pendingSwap.impactPct >= 5 && ' — Very high price impact'}
-              {pendingSwap.impactPct < 5 && pendingSwap.impactPct >= 1 && ' — High price impact'}
-            </div>
-            <div className="wallet-caption">Slippage: {pendingSwap.slippagePct}%</div>
+            <TransactionPreviewCard
+              title={preview?.title ?? 'Review Swap'}
+              backendLabel={preview?.backendLabel ?? backendLabel}
+              signerLabel={preview?.signerLabel ?? walletName}
+              destinationLabel={preview?.targetLabel ?? `${pendingSwap.inputSymbol} → ${pendingSwap.outputSymbol}`}
+              amountLabel={preview?.amountLabel ?? `${formatLargeNumber(pendingSwap.quote.inAmount)} ${pendingSwap.inputSymbol} → ${formatLargeNumber(pendingSwap.quote.outAmount)} ${pendingSwap.outputSymbol}`}
+              feeLabel={preview?.feeLabel}
+              warnings={preview?.warnings}
+              notes={preview?.notes ?? [
+                `Slippage setting: ${pendingSwap.slippagePct}%`,
+                `Price impact: ${pendingSwap.impactPct.toFixed(4)}%${pendingSwap.impactPct >= 5 ? ' (very high)' : pendingSwap.impactPct >= 1 ? ' (high)' : ''}`,
+                'This quote confirmation expires after 60 seconds.',
+              ]}
+            />
 
             {pendingSwap.impactPct >= 5 && (
               <label className="wallet-swap-ack-row">

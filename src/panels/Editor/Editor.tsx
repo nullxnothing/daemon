@@ -1,5 +1,6 @@
-import { Suspense, useRef, useCallback, useState, useEffect, useMemo } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
+import { DiffEditor } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
@@ -7,22 +8,12 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
-import { confirm } from '../../store/confirm'
-import { useNotificationsStore } from '../../store/notifications'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
-import { PanelErrorBoundary } from '../../components/ErrorBoundary'
-import { EditorWelcome } from './EditorWelcome'
-import { EditorTabs } from './EditorTabs'
-import { EditorBreadcrumbs } from './EditorBreadcrumbs'
-import { MarkdownTidyPreview } from './MarkdownTidyPreview'
-import { lazyNamedWithReload } from '../../utils/lazyWithReload'
+import { PluginErrorBoundary } from '../../components/ErrorBoundary'
 import './Editor.css'
 
-const BrowserMode = lazyNamedWithReload('browser-mode', () => import('../BrowserMode/BrowserMode'), (module) => module.BrowserMode)
-const DashboardCanvas = lazyNamedWithReload('editor-dashboard-canvas', () => import('../Dashboard/DashboardCanvas'), (module) => module.DashboardCanvas)
-
 // Wire up Monaco workers for Vite — required for syntax highlighting, validation, etc.
-;(globalThis as Record<string, unknown>).MonacoEnvironment = {
+(globalThis as Record<string, unknown>).MonacoEnvironment = {
   getWorker(_: unknown, label: string) {
     if (label === 'json') return new jsonWorker()
     if (label === 'css' || label === 'scss' || label === 'less') return new cssWorker()
@@ -52,37 +43,17 @@ const viewStateCache = new Map<string, monaco.editor.ICodeEditorViewState>()
 
 let themeIsDefined = false
 
-function WorkspacePanelFallback() {
-  return <div className="editor-content" />
-}
-
 export function EditorPanel() {
-  // Derive a stable fingerprint from open files to avoid re-renders on content-only changes.
-  // The fingerprint captures tab metadata (path, name, isDirty) but NOT content.
-  // Returns empty string when no files are open — a stable primitive that won't loop.
-  const tabFingerprint = useUIStore((s) => {
-    const files = s.openFiles
-    if (files.length === 0) return ''
-    return files.map((f) => `${f.projectId}|${f.path}|${f.name}|${f.isDirty}`).join('\n')
-  })
-  // Recompute tab objects only when the fingerprint changes
-  const openFileTabs = useMemo(() => {
-    if (!tabFingerprint) return []
-    return useUIStore.getState().openFiles.map((f) => ({ path: f.path, name: f.name, isDirty: f.isDirty, projectId: f.projectId }))
-  }, [tabFingerprint])
-  const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const activeFilePathByProject = useUIStore((s) => s.activeFilePathByProject)
-  const setActiveFile = useUIStore((s) => s.setActiveFile)
-  const closeFile = useUIStore((s) => s.closeFile)
-  const updateFileContent = useUIStore((s) => s.updateFileContent)
-  const markFileSaved = useUIStore((s) => s.markFileSaved)
-  const browserTabOpen = useUIStore((s) => s.browserTabOpen)
-  const browserTabActive = useUIStore((s) => s.browserTabActive)
-  const setBrowserTabActive = useUIStore((s) => s.setBrowserTabActive)
-  const dashboardTabOpen = useUIStore((s) => s.dashboardTabOpen)
-  const dashboardTabActive = useUIStore((s) => s.dashboardTabActive)
-  const setDashboardTabActive = useUIStore((s) => s.setDashboardTabActive)
+  const {
+    openFiles,
+    activeProjectId,
+    activeProjectPath,
+    activeFilePathByProject,
+    setActiveFile,
+    closeFile,
+    updateFileContent,
+    markFileSaved,
+  } = useUIStore()
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -98,20 +69,12 @@ export function EditorPanel() {
     position: { top: number; left: number }
   } | null>(null)
 
-  const projectOpenFiles = useMemo(
-    () => openFileTabs.filter((f) => f.projectId === activeProjectId),
-    [openFileTabs, activeProjectId]
-  )
+  const projectOpenFiles = openFiles.filter((f) => f.projectId === activeProjectId)
   const activeFilePath = activeProjectId ? activeFilePathByProject[activeProjectId] ?? null : null
-  const activeFile = useMemo(
-    () => useUIStore.getState().openFiles.find((f) => f.path === activeFilePath),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeFilePath, openFileTabs]
-  )
-  const breadcrumbs = useMemo(
-    () => activeFile && activeProjectPath ? buildBreadcrumbs(activeProjectPath, activeFile.path) : [],
-    [activeFile?.path, activeProjectPath]
-  )
+  const activeFile = openFiles.find((f) => f.path === activeFilePath)
+  const breadcrumbs = activeFile && activeProjectPath
+    ? buildBreadcrumbs(activeProjectPath, activeFile.path)
+    : []
   const isActiveFileMarkdown = isMarkdownFile(activeFile?.path)
 
   // Keep ref in sync so the onChange callback always has current path
@@ -121,17 +84,6 @@ export function EditorPanel() {
     setMarkdownTidyPreview(null)
     setTidyError(null)
   }, [activeFile?.path])
-
-  // Prune viewStateCache entries for files no longer open in any project.
-  // Runs on project switch to prevent unbounded cache growth.
-  useEffect(() => {
-    const openPaths = new Set(useUIStore.getState().openFiles.map((f) => f.path))
-    for (const cachedPath of viewStateCache.keys()) {
-      if (!openPaths.has(cachedPath)) {
-        viewStateCache.delete(cachedPath)
-      }
-    }
-  }, [activeProjectId])
 
   // Swap Monaco model when the active file changes — no remount
   useEffect(() => {
@@ -194,25 +146,17 @@ export function EditorPanel() {
     prevFilePathRef.current = activeFile.path
   }, [activeFile?.path]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync external content changes into existing models.
-  // Read content from getState() so this effect doesn't subscribe to content updates.
-  // Trigger is the slim tab list (isDirty flag changes are visible there).
-  const cleanTabPaths = useMemo(
-    () => openFileTabs.filter((f) => !f.isDirty).map((f) => f.path),
-    [openFileTabs]
-  )
+  // Sync external content changes into existing models
+  // (e.g. file watcher updated content while tab was in background)
   useEffect(() => {
-    const allFiles = useUIStore.getState().openFiles
-    for (const path of cleanTabPaths) {
-      const file = allFiles.find((f) => f.path === path)
-      if (!file) continue
+    for (const file of openFiles) {
       const uri = monaco.Uri.parse(`file://${file.path}`)
       const model = monaco.editor.getModel(uri)
-      if (model && model.getValue() !== file.content) {
+      if (model && model.getValue() !== file.content && !file.isDirty) {
         model.setValue(file.content)
       }
     }
-  }, [cleanTabPaths]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [openFiles])
 
   const handleBeforeMount: BeforeMount = (monacoInstance) => {
     if (themeIsDefined) return
@@ -220,9 +164,8 @@ export function EditorPanel() {
       base: 'vs-dark',
       inherit: true,
       rules: [],
-      // Monaco API requires hex values — keep in sync with tokens.css
       colors: {
-        'editor.background': '#0a0a0a',
+        'editor.background': '#090909',
         'editor.foreground': '#ebebeb',
         'editorLineNumber.foreground': '#3d3d3d',
         'editorLineNumber.activeForeground': '#7a7a7a',
@@ -329,7 +272,7 @@ export function EditorPanel() {
       }
 
       if (tidyRes.data === activeFile.content) {
-        useNotificationsStore.getState().pushInfo('Document is already tidy.', 'Markdown')
+        setTidyError('No tidy changes suggested.')
         return
       }
 
@@ -376,17 +319,9 @@ export function EditorPanel() {
   }, [])
 
   // Dispose models for closed files to avoid memory leaks
-  const handleCloseFile = useCallback(async (projectId: string, path: string) => {
-    const file = useUIStore.getState().openFiles.find((f) => f.projectId === projectId && f.path === path)
-    if (file?.isDirty) {
-      const ok = await confirm({
-        title: `Discard unsaved changes to ${file.name}?`,
-        body: 'Your unsaved edits will be lost.',
-        danger: true,
-        confirmLabel: 'Discard',
-      })
-      if (!ok) return
-    }
+  const handleCloseFile = useCallback((projectId: string, path: string) => {
+    const file = openFiles.find((f) => f.projectId === projectId && f.path === path)
+    if (file?.isDirty && !window.confirm(`Discard unsaved changes to ${file.name}?`)) return
 
     // Save view state before disposing so it persists if reopened
     const editor = editorRef.current
@@ -404,158 +339,156 @@ export function EditorPanel() {
     viewStateCache.delete(path)
 
     closeFile(projectId, path)
-  }, [closeFile, activeFilePath])
+  }, [openFiles, closeFile, activeFilePath])
 
-  const handleSelectFileTab = useCallback((projectId: string, path: string) => {
-    setBrowserTabActive(false)
-    setDashboardTabActive(false)
-    setActiveFile(projectId, path)
-  }, [setBrowserTabActive, setDashboardTabActive, setActiveFile])
-
-  const handleBrowserTabClick = useCallback(() => {
-    setBrowserTabActive(true)
-    setDashboardTabActive(false)
-  }, [setBrowserTabActive, setDashboardTabActive])
-
-  const handleDashboardTabClick = useCallback(() => {
-    setDashboardTabActive(true)
-    setBrowserTabActive(false)
-  }, [setDashboardTabActive, setBrowserTabActive])
-
-  const hasAnyPinnedTab = browserTabOpen || dashboardTabOpen
-
-  // Show welcome when no project and no pinned tabs open
-  if (!activeProjectId && !hasAnyPinnedTab) {
-    return <EditorWelcome activeProjectId={activeProjectId} />
-  }
-
-  // If a pinned tab is the only content (no project), render a minimal shell
-  if (!activeProjectId && hasAnyPinnedTab) {
+  if (!activeProjectId || projectOpenFiles.length === 0) {
     return (
-      <div className="editor-panel">
-        <EditorTabs
-          files={[]}
-          activeFilePath={null}
-          savedFlash={null}
-          onSelectFile={handleSelectFileTab}
-          onCloseFile={handleCloseFile}
-          browserTabOpen={browserTabOpen}
-          browserTabActive={browserTabActive}
-          onBrowserTabClick={handleBrowserTabClick}
-          dashboardTabOpen={dashboardTabOpen}
-          dashboardTabActive={dashboardTabActive}
-          onDashboardTabClick={handleDashboardTabClick}
-        />
-        <div className="editor-content">
-          <Suspense fallback={<WorkspacePanelFallback />}>
-            {dashboardTabActive ? (
-              <DashboardCanvas />
-            ) : (
-              <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
-                <BrowserMode />
-              </PanelErrorBoundary>
-            )}
-          </Suspense>
-        </div>
+      <div className="editor-empty">
+        <span className="editor-empty-title">DAEMON</span>
+        <span className="editor-empty-sub">
+          {activeProjectId ? 'Open a file from the explorer' : 'Select a project'}
+        </span>
       </div>
     )
   }
 
-  if (projectOpenFiles.length === 0 && !hasAnyPinnedTab) {
-    return <EditorWelcome activeProjectId={activeProjectId} />
-  }
-
   return (
     <div className="editor-panel">
-      <EditorTabs
-        files={projectOpenFiles}
-        activeFilePath={activeFilePath}
-        savedFlash={savedFlash}
-        onSelectFile={handleSelectFileTab}
-        onCloseFile={handleCloseFile}
-        browserTabOpen={browserTabOpen}
-        browserTabActive={browserTabActive}
-        onBrowserTabClick={handleBrowserTabClick}
-        dashboardTabOpen={dashboardTabOpen}
-        dashboardTabActive={dashboardTabActive}
-        onDashboardTabClick={handleDashboardTabClick}
-      />
-      {dashboardTabActive ? (
-        <div className="editor-content">
-          <Suspense fallback={<WorkspacePanelFallback />}>
-            <DashboardCanvas />
-          </Suspense>
-        </div>
-      ) : browserTabActive ? (
-        <div className="editor-content">
-          <Suspense fallback={<WorkspacePanelFallback />}>
-            <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
-              <BrowserMode />
-            </PanelErrorBoundary>
-          </Suspense>
-        </div>
-      ) : (
-        <>
-          <EditorBreadcrumbs
-            breadcrumbs={breadcrumbs}
-            isMarkdown={isActiveFileMarkdown}
-            isTidying={isTidyingMarkdown}
-            tidyError={tidyError}
-            showTidyButton={!markdownTidyPreview && !!activeFile}
-            onTidy={() => void handleTidyMarkdown()}
-          />
-          <div className="editor-content">
-            {isImageFile(activeFile?.path) ? (
-              <ImagePreview filePath={activeFile!.path} />
-            ) : markdownTidyPreview && activeFile ? (
-              <MarkdownTidyPreview
-                original={markdownTidyPreview.original}
-                tidied={markdownTidyPreview.tidied}
-                language={getLanguage(activeFile.path)}
-                tidyError={tidyError}
-                isApplying={isApplyingMarkdownTidy}
-                onApply={() => void handleApplyMarkdownTidy()}
-                onDiscard={handleDiscardMarkdownTidy}
-              />
-            ) : activeFile ? (
-              <PanelErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
-                <MonacoEditor
-                  theme="daemon-dark"
-                  beforeMount={handleBeforeMount}
-                  onMount={handleEditorMount}
-                  onChange={handleChange}
-                  options={{
-                    fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
-                    fontSize: 13,
-                    lineHeight: 20,
-                    minimap: { enabled: false },
-                    scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
-                    padding: { top: 8 },
-                    renderLineHighlight: 'line',
-                    smoothScrolling: true,
-                    cursorBlinking: 'smooth',
-                    cursorSmoothCaretAnimation: 'on',
-                    bracketPairColorization: { enabled: true },
-                    wordWrap: 'on',
-                    tabSize: 2,
-                    glyphMargin: true,
-                  }}
-                />
-              </PanelErrorBoundary>
-            ) : (
-              <EditorWelcome activeProjectId={activeProjectId} />
-            )}
-          </div>
-          {askClaudeState?.visible && activeFile && (
-            <AskClaudeWidget
-              lineNumber={askClaudeState.lineNumber}
-              lineContent={askClaudeState.lineContent}
-              filePath={activeFile.path}
-              position={askClaudeState.position}
-              onClose={() => setAskClaudeState(null)}
-            />
+      <div className="editor-tabs">
+        {projectOpenFiles.map((file) => (
+          <button
+            key={file.path}
+            className={`editor-tab ${activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
+            onClick={() => setActiveFile(file.projectId, file.path)}
+          >
+            <span className="editor-tab-name">
+              {file.isDirty ? '\u25CF ' : ''}{file.name}
+            </span>
+            <span
+              className="editor-tab-close"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleCloseFile(file.projectId, file.path)
+              }}
+            >
+              &times;
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="editor-breadcrumbs" role="navigation" aria-label="File breadcrumbs">
+        <div className="editor-breadcrumbs-left">
+          {breadcrumbs.length > 0 ? breadcrumbs.map((segment, index) => (
+            <span key={`${segment.label}-${segment.path}`} className="editor-breadcrumb-item-wrap">
+              <button
+                className={`editor-breadcrumb-item ${segment.isFile ? 'is-file' : ''}`}
+                onClick={() => void window.daemon.fs.reveal(segment.path)}
+                title={segment.path}
+              >
+                {segment.label}
+              </button>
+              {index < breadcrumbs.length - 1 && <span className="editor-breadcrumb-sep">/</span>}
+            </span>
+          )) : (
+            <span className="editor-breadcrumb-empty">No active file</span>
           )}
-        </>
+        </div>
+        {isActiveFileMarkdown && activeFile && (
+          <div className="editor-breadcrumbs-actions">
+            <span className="editor-tidy-hint">Use the wand to preview tidy changes</span>
+            {tidyError && <span className="editor-tidy-error">{tidyError}</span>}
+          </div>
+        )}
+      </div>
+      <div className="editor-content">
+        {isActiveFileMarkdown && activeFile && !markdownTidyPreview && (
+          <button
+            className="editor-wand-fab"
+            onClick={() => void handleTidyMarkdown()}
+            disabled={isTidyingMarkdown}
+            title="Tidy this Markdown with Claude"
+            aria-label="Tidy up markdown"
+          >
+            {isTidyingMarkdown ? '⏳' : '✨'}
+          </button>
+        )}
+
+        {markdownTidyPreview && activeFile ? (
+          <div className="editor-tidy-preview">
+            <div className="editor-tidy-preview-header">
+              <div className="editor-tidy-preview-title">Preview tidy changes</div>
+              <div className="editor-tidy-preview-actions">
+                <button
+                  className="editor-tidy-preview-btn subtle"
+                  onClick={handleDiscardMarkdownTidy}
+                  disabled={isApplyingMarkdownTidy}
+                >
+                  Keep Original
+                </button>
+                <button
+                  className="editor-tidy-preview-btn primary"
+                  onClick={() => void handleApplyMarkdownTidy()}
+                  disabled={isApplyingMarkdownTidy}
+                >
+                  {isApplyingMarkdownTidy ? 'Applying…' : 'Accept & Apply'}
+                </button>
+              </div>
+            </div>
+            {tidyError && <div className="editor-tidy-preview-error">{tidyError}</div>}
+            <div className="editor-tidy-preview-diff">
+              <DiffEditor
+                original={markdownTidyPreview.original}
+                modified={markdownTidyPreview.tidied}
+                language={getLanguage(activeFile.path)}
+                theme="daemon-dark"
+                options={{
+                  readOnly: true,
+                  renderSideBySide: true,
+                  minimap: { enabled: false },
+                  fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+                  fontSize: 13,
+                  lineHeight: 20,
+                  wordWrap: 'on',
+                  scrollBeyondLastLine: false,
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <PluginErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
+            <MonacoEditor
+              theme="daemon-dark"
+              beforeMount={handleBeforeMount}
+              onMount={handleEditorMount}
+              onChange={handleChange}
+              options={{
+                fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+                fontSize: 13,
+                lineHeight: 20,
+                minimap: { enabled: false },
+                scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+                padding: { top: 8 },
+                renderLineHighlight: 'line',
+                smoothScrolling: true,
+                cursorBlinking: 'smooth',
+                cursorSmoothCaretAnimation: 'on',
+                bracketPairColorization: { enabled: true },
+                wordWrap: 'off',
+                tabSize: 2,
+                glyphMargin: true,
+              }}
+            />
+          </PluginErrorBoundary>
+        )}
+      </div>
+      {askClaudeState?.visible && activeFile && (
+        <AskClaudeWidget
+          lineNumber={askClaudeState.lineNumber}
+          lineContent={askClaudeState.lineContent}
+          filePath={activeFile.path}
+          position={askClaudeState.position}
+          onClose={() => setAskClaudeState(null)}
+        />
       )}
     </div>
   )
@@ -564,64 +497,6 @@ export function EditorPanel() {
 function isMarkdownFile(filePath?: string | null): boolean {
   if (!filePath) return false
   return /\.(md|mdx)$/i.test(filePath)
-}
-
-const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'])
-
-function isImageFile(filePath?: string | null): boolean {
-  if (!filePath) return false
-  const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
-  return IMAGE_EXTENSIONS.has(ext)
-}
-
-function ImagePreview({ filePath }: { filePath: string }) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null)
-  const [fileSize, setFileSize] = useState<number>(0)
-  const [error, setError] = useState<string | null>(null)
-  const fileName = filePath.split(/[\\/]/).pop() ?? filePath
-
-  useEffect(() => {
-    setDataUrl(null)
-    setError(null)
-    window.daemon.fs.readImageBase64(filePath).then((res) => {
-      if (res.ok && res.data) {
-        setDataUrl(res.data.dataUrl)
-        setFileSize(res.data.size)
-      } else {
-        setError(res.error ?? 'Failed to load image')
-      }
-    })
-  }, [filePath])
-
-  return (
-    <div className="image-preview">
-      <div className="image-preview-container">
-        {dataUrl ? (
-          <img src={dataUrl} alt={fileName} className="image-preview-img" draggable={false} />
-        ) : error ? (
-          <div className="image-preview-error">{error}</div>
-        ) : (
-          <div className="image-preview-loading">Loading...</div>
-        )}
-      </div>
-      <div className="image-preview-info">
-        <span className="image-preview-name">{fileName}</span>
-        {fileSize > 0 && <span className="image-preview-size">{formatFileSize(fileSize)}</span>}
-        <button
-          className="image-preview-edit"
-          onClick={() => useUIStore.getState().setDrawerTool('image-editor')}
-        >
-          Edit in miniPaint
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function buildBreadcrumbs(projectPath: string, filePath: string): Array<{ label: string; path: string; isFile: boolean }> {

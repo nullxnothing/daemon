@@ -40,6 +40,15 @@ export interface SolanaProtocolPack {
   installHint: string
 }
 
+export type SolanaRuntimeModuleStatus = 'live' | 'partial' | 'setup'
+
+export interface SolanaRuntimeModule {
+  id: string
+  label: string
+  summary: string
+  ownedByDaemon: string
+}
+
 export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
   helius: {
     label: 'Helius',
@@ -72,6 +81,45 @@ export const SOLANA_AGENT_SKILL_GROUPS: Array<{ label: string; skills: string[] 
   { label: 'Trading', skills: ['/integrating-jupiter', '/raydium', '/meteora', '/drift', '/orca'] },
   { label: 'Protocols', skills: ['/kamino', '/sanctum', '/metaplex', '/pumpfun', '/squads'] },
   { label: 'Security', skills: ['/helios-solana-forensics', '/vulnhunter'] },
+]
+
+export const SOLANA_RUNTIME_MODULES: SolanaRuntimeModule[] = [
+  {
+    id: 'transport',
+    label: 'Reads + Transport',
+    summary: 'How DAEMON resolves RPC reads, indexed wallet data, and provider fallbacks.',
+    ownedByDaemon: 'Wallet panel, toolbox checks, project scaffolds, and shared service defaults.',
+  },
+  {
+    id: 'wallet',
+    label: 'Wallet UX',
+    summary: 'How DAEMON expects apps to connect, sign, and present wallet actions.',
+    ownedByDaemon: 'Wallet settings, generated providers, and future app scaffolds.',
+  },
+  {
+    id: 'execution',
+    label: 'Execution Pipeline',
+    summary: 'How DAEMON should prepare, route, and confirm transactions across swaps, sends, and launches.',
+    ownedByDaemon: 'Wallet sends, swap execution, token launch flows, and future protocol actions.',
+  },
+  {
+    id: 'realtime',
+    label: 'Realtime + Monitoring',
+    summary: 'How DAEMON should watch accounts, transactions, and indexed activity.',
+    ownedByDaemon: 'Toolbox monitoring, future dashboards, bots, and alerting flows.',
+  },
+  {
+    id: 'protocols',
+    label: 'Protocol Adapters',
+    summary: 'How DAEMON wraps Solana protocols behind explicit launch and trading adapters.',
+    ownedByDaemon: 'Pump.fun, Raydium, Meteora, and future Jupiter/Drift/Orca surfaces.',
+  },
+  {
+    id: 'testing',
+    label: 'Dev + Testing',
+    summary: 'How DAEMON starts validators and nudges projects toward reproducible Solana tooling.',
+    ownedByDaemon: 'Validator controls, toolchain checks, and scaffold defaults.',
+  },
 ]
 
 export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [

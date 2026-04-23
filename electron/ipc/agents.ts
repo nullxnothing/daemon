@@ -5,7 +5,7 @@ import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { Agent, AgentCreateInput } from '../shared/types'
 
 const ALLOWED_AGENT_COLUMNS = new Set([
-  'name', 'system_prompt', 'model', 'mcps', 'provider', 'project_id', 'shortcut', 'source', 'external_path',
+  'name', 'system_prompt', 'model', 'mcps', 'project_id', 'shortcut', 'source', 'external_path',
 ])
 
 export function registerAgentHandlers() {
@@ -18,14 +18,13 @@ export function registerAgentHandlers() {
     const db = getDb()
     const id = crypto.randomUUID()
     db.prepare(
-      'INSERT INTO agents (id, name, system_prompt, model, mcps, provider, project_id, shortcut, source, external_path) VALUES (?,?,?,?,?,?,?,?,?,?)'
+      'INSERT INTO agents (id, name, system_prompt, model, mcps, project_id, shortcut, source, external_path) VALUES (?,?,?,?,?,?,?,?,?)'
     ).run(
       id,
       agent.name,
       agent.systemPrompt,
       agent.model,
       JSON.stringify(agent.mcps),
-      agent.provider ?? 'claude',
       agent.projectId ?? null,
       agent.shortcut ?? null,
       agent.source ?? 'daemon',
@@ -86,9 +85,6 @@ export function registerAgentHandlers() {
     const db = getDb()
     const fields = Object.keys(data).filter((f) => ALLOWED_AGENT_COLUMNS.has(f))
     if (fields.length === 0) throw new Error('No valid fields to update')
-
-    // Secondary guard: ensure each column name is safe for interpolation
-    if (fields.some((f) => !/^[a-z_]+$/.test(f))) throw new Error('Invalid field name')
 
     const sets = fields.map((f) => `${f} = ?`).join(', ')
     const values = fields.map((f) => {

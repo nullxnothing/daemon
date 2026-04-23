@@ -25,11 +25,14 @@ export function ProtocolPacksSection() {
       <div className="solana-protocol-grid">
         {SOLANA_PROTOCOL_PACKS.map((pack) => (
           <section key={pack.id} className="solana-protocol-card">
-            <div className="solana-runtime-title-row">
-              <span className="solana-runtime-label">{pack.label}</span>
+            <div className="solana-protocol-card-top">
+              <div className="solana-protocol-card-copy">
+                <div className="solana-protocol-card-eyebrow">Protocol</div>
+                <div className="solana-protocol-card-title">{pack.label}</div>
+              </div>
               <span className={`solana-ecosystem-status ${pack.status}`}>{pack.status === 'native' ? 'Native' : 'Guided'}</span>
             </div>
-            <div className="solana-runtime-detail">{pack.kickoff}</div>
+            <div className="solana-protocol-card-body">{pack.kickoff}</div>
             <div className="solana-protocol-hint">{pack.installHint}</div>
             <div className="solana-protocol-actions">
               <button className="sol-btn" onClick={() => copyText(pack.skill)}>
@@ -39,7 +42,7 @@ export function ProtocolPacksSection() {
                 {copied === pack.installHint ? 'Copied Install' : 'Copy Install'}
               </button>
               <a className="sol-btn" href={pack.docsUrl} target="_blank" rel="noreferrer">
-                Docs
+                Open Docs
               </a>
             </div>
           </section>

@@ -24,13 +24,13 @@ html, body, #root {
 }
 
 ::selection {
-  background: rgba(74, 140, 98, 0.3);
+  background: var(--s4);
   color: var(--t1);
 }
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -38,17 +38,12 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--s3);
+  background: var(--s4);
   border-radius: 3px;
-  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--s5);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 input, button, textarea {
@@ -67,34 +62,13 @@ select:focus-visible,
 a:focus-visible,
 [role='button']:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
   border-color: var(--border-focus);
-}
-
-/* Monaco editor manages its own focus — avoid conflicts */
-.monaco-editor *:focus-visible {
-  outline: revert;
 }
 
 button {
   cursor: pointer;
-}
-
-/* Tactile button feedback */
-button:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-/* Smooth panel content transitions */
-.panel-transition-enter {
-  opacity: 0;
-  transform: translateY(2px);
-}
-.panel-transition-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 code, pre {
@@ -104,11 +78,4 @@ code, pre {
 a {
   color: var(--t2);
   text-decoration: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
 }

@@ -2,27 +2,14 @@ import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, fonts, fontSize } from '@/theme/tokens';
 
-interface TabIconProps {
-  char: string;
-  focused: boolean;
-  accentColor?: string;
-}
-
-function TabIcon({ char, focused, accentColor }: TabIconProps) {
-  const active = accentColor ?? colors.green;
+function TabIcon({ label, focused, accent }: { label: string; focused: boolean; accent?: string }) {
+  const active = accent ?? colors.green;
   return (
     <View style={styles.iconWrap}>
-      <Text
-        style={[
-          styles.iconChar,
-          { color: focused ? active : colors.t4 },
-        ]}
-      >
-        {char}
+      <Text style={[styles.iconLabel, { color: focused ? active : colors.t4 }]}>
+        {label}
       </Text>
-      {focused && (
-        <View style={[styles.activeDot, { backgroundColor: active }]} />
-      )}
+      {focused && <View style={[styles.indicator, { backgroundColor: active }]} />}
     </View>
   );
 }
@@ -34,46 +21,38 @@ export default function TabLayout() {
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: colors.green,
+        tabBarInactiveTintColor: colors.t4,
       }}
     >
       <Tabs.Screen
         name="agent"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon char=">" focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon label="Agent" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="wallet"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon char="$" focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon label="Wallet" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="code"
+        name="projects"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon char="{}" focused={focused} accentColor={colors.blue} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon label="Projects" focused={focused} accent={colors.blue} />,
         }}
       />
       <Tabs.Screen
         name="terminal"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon char="_" focused={focused} accentColor={colors.amber} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon label="Term" focused={focused} accent={colors.amber} />,
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="settings"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon char="..." focused={focused} accentColor={colors.t3} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon label="Settings" focused={focused} accent={colors.t2} />,
         }}
       />
     </Tabs>
@@ -85,28 +64,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.s1,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    height: 52,
-    paddingBottom: 0,
-    paddingTop: 0,
+    height: 56,
+    paddingTop: 4,
+    paddingBottom: 4,
     elevation: 0,
     shadowOpacity: 0,
   },
   iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
+    width: 56,
     height: 44,
-    gap: 3,
+    gap: 4,
   },
-  iconChar: {
+  iconLabel: {
     fontFamily: fonts.code,
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    lineHeight: 18,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
-  activeDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
+  indicator: {
+    width: 16,
+    height: 2,
+    borderRadius: 1,
   },
 });

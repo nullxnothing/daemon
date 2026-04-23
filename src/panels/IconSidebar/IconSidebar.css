@@ -1,15 +1,14 @@
 /* Icon Sidebar */
 .icon-sidebar {
   width: var(--sidebar-w);
-  background: var(--bg);
+  background: var(--s1);
   border-right: 1px solid var(--border);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 8px;
-  padding-bottom: 8px;
-  gap: 2px;
+  gap: 4px;
   position: relative;
 }
 
@@ -19,129 +18,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--t4);
-  border-radius: 4px;
-  position: relative;
-  transition: color 0.15s, background 0.12s;
+  color: var(--t3);
+  border-radius: 6px;
+  transition: background 0.1s, color 0.1s;
 }
 
 .sidebar-icon:hover {
-  color: var(--t2);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
+  color: var(--t1);
 }
 
-/* Panel switches: green left accent bar when active */
 .sidebar-icon.active {
   color: var(--t1);
-  box-shadow: 0 0 8px rgba(62, 207, 142, 0.06);
+  background: var(--s2);
 }
 
-.sidebar-icon.active::before {
-  content: '';
-  position: absolute;
-  left: -1px;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  background: var(--green);
-  border-radius: 1px;
-}
-
-/* Toggles (Explorer, Browser): filled background instead of accent bar */
-.sidebar-icon.sidebar-toggle.active {
-  background: var(--s3);
-}
-
-.sidebar-icon.sidebar-toggle.active::before {
-  display: none;
-}
-
-/* Launchers: brief press feedback, no persistent active state */
-.sidebar-icon.sidebar-launcher:active {
-  transform: scale(0.92);
-  transition: transform 0.08s;
-}
-
-/* Drag states */
-.sidebar-icon--dragging {
-  opacity: 0.3;
-}
-
-.sidebar-icon--drop-target {
-  background: var(--green-glow);
-  box-shadow: 0 0 0 1px var(--green);
-}
-
-/* Drop zone for adding new pinned tools — visible faint outline so users
-   discover that they can drag drawer tools here */
-.sidebar-drop-zone {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  margin: 4px auto;
-  transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
-  border: 1px dashed var(--s5);
-  opacity: 0.35;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--t4);
-  font-size: 14px;
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  z-index: 31;
-}
-
-.sidebar-drop-zone::before {
-  content: '+';
-  font-weight: 300;
-}
-
-.sidebar-drop-zone:hover {
-  opacity: 0.6;
-}
-
-.sidebar-drop-zone.active {
-  opacity: 0.9;
-  border-color: var(--green);
-  color: var(--green);
-  background: rgba(62, 207, 142, 0.08);
-}
-
-.sidebar-drop-zone--active {
-  height: 36px;
-  width: 36px;
-  background: var(--green-glow);
-  border-color: var(--green);
-  border-style: solid;
-  opacity: 1;
-  color: var(--green);
-}
-
-/* ─── Zone Dividers ─── */
-.sidebar-divider {
-  width: 24px;
-  height: 1px;
-  background: var(--s4);
-  margin: 6px auto;
-  flex-shrink: 0;
-}
-
-/* Thin rule between core panels and plugins (lighter, within a zone) */
-.sidebar-rule {
-  width: 16px;
-  height: 1px;
-  background: var(--s3);
-  margin: 4px auto;
-  flex-shrink: 0;
-}
-
-.sidebar-spacer {
-  flex: 1;
-}
-
-/* Submenu (kept for agent launcher flyout) */
 .sidebar-submenu-wrap {
   position: relative;
 }
@@ -152,19 +43,11 @@
   top: 0;
   min-width: 180px;
   padding: 8px;
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-float);
+  background: var(--s1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 30;
-}
-
-.sidebar-submenu--tools {
-  top: -4px;
-  max-height: min(420px, calc(100vh - 120px));
-  width: 220px;
-  overflow-y: auto;
 }
 
 .sidebar-submenu-group {
@@ -190,56 +73,6 @@
   color: var(--t1);
 }
 
-.sidebar-submenu-item--tool {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sidebar-submenu-empty {
-  padding: 8px;
-  font-size: 12px;
-  color: var(--t3);
-  line-height: 1.5;
-}
-
-/* Colosseum icon */
-
-.colosseum-icon-wrap {
-  position: relative;
-  overflow: hidden;
-  border-radius: 6px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--t3);
-  transition: color 0.15s;
-}
-
-.colosseum-icon-wrap:hover {
-  color: var(--green);
-}
-
-.colosseum-icon-wrap.active {
-  color: var(--green);
-}
-
-.colosseum-icon-wrap::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -100%;
-  width: 200%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, transparent 40%, var(--green) 48%, rgba(62,207,142,0.6) 50%, var(--green) 52%, transparent 60%, transparent 100%);
-  animation: colosseum-pulse 3s linear infinite;
-  opacity: 0.6;
-}
-
-@keyframes colosseum-pulse {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(50%); }
+.sidebar-spacer {
+  flex: 1;
 }

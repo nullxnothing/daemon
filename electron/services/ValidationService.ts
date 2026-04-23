@@ -1,4 +1,5 @@
 import path from 'path';
+import { LogService } from './LogService';
 
 /**
  * ValidationService: Input validation at IPC boundaries
@@ -25,8 +26,6 @@ interface ValidationRule {
 
 class ValidationServiceImpl {
   private pathWhitelist: Set<string> = new Set();
-  private rateLimitMap: Map<string, number[]> = new Map();
-  private readonly emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   /**
    * Validate string input
@@ -227,7 +226,7 @@ class ValidationServiceImpl {
   }
 
   /**
-   * Validate rate limit using in-memory sliding window
+   * Validate rate limit
    */
   checkRateLimit(
     identifier: string,
@@ -237,72 +236,11 @@ class ValidationServiceImpl {
     const key = `rl:${identifier}`;
     const now = Date.now();
 
-    const timestamps = this.rateLimitMap.get(key) ?? [];
-    const windowStart = now - windowMs;
+    // In production, this would use Redis. For now, use in-memory store.
+    // This is a placeholder that should be replaced with proper rate limiter.
+    LogService.warn('ValidationService', 'Rate limiting not implemented - using placeholder');
 
-    // Prune entries older than the window
-    const recent = timestamps.filter((ts) => ts > windowStart);
-
-    if (recent.length >= maxRequests) {
-      this.rateLimitMap.set(key, recent);
-      return false;
-    }
-
-    recent.push(now);
-    this.rateLimitMap.set(key, recent);
     return true;
-  }
-
-  validateEmailAddress(value: unknown): ValidationResult<string> {
-    if (typeof value !== 'string') {
-      return { success: false, errors: ['Expected string'] };
-    }
-
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return { success: false, errors: ['Email address is required'] };
-    }
-
-    if (trimmed.length > 320) {
-      return { success: false, errors: ['Email address too long'] };
-    }
-
-    if (!this.emailPattern.test(trimmed)) {
-      return { success: false, errors: ['Invalid email address'] };
-    }
-
-    return { success: true, data: trimmed };
-  }
-
-  validateEmailList(value: unknown): ValidationResult<string | undefined> {
-    if (value === undefined || value === null || value === '') {
-      return { success: true, data: undefined };
-    }
-
-    if (typeof value !== 'string') {
-      return { success: false, errors: ['Expected string'] };
-    }
-
-    const emails = value
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-
-    if (emails.length === 0) {
-      return { success: true, data: undefined };
-    }
-
-    for (const email of emails) {
-      const result = this.validateEmailAddress(email);
-      if (!result.success) {
-        return {
-          success: false,
-          errors: result.errors?.map((error) => `${email}: ${error}`) ?? ['Invalid email list'],
-        };
-      }
-    }
-
-    return { success: true, data: emails.join(', ') };
   }
 
   /**

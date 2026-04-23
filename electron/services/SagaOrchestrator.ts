@@ -3,9 +3,9 @@
  * Handles saga pattern with compensation logic for rollback
  */
 
-import { TIMEOUTS } from '../config/constants'
+import { LogService } from './LogService'
 
-export interface SagaStep<T = unknown> {
+export interface SagaStep<T = any> {
   name: string;
   execute: () => Promise<T>;
   compensate?: (result: T) => Promise<void>;
@@ -25,7 +25,7 @@ export interface SagaExecution {
   name: string;
   status: 'pending' | 'executing' | 'completed' | 'compensating' | 'failed';
   currentStep: number;
-  results: unknown[];
+  results: any[];
   errors: Array<{ step: string; error: string }>;
   startedAt: number;
   completedAt?: number;
@@ -46,9 +46,7 @@ class SagaOrchestratorImpl {
         definition.idempotencyKey,
       );
       if (cached && cached.status === 'completed') {
-        console.log(
-          `[Saga] Returning cached result for idempotencyKey: ${definition.idempotencyKey}`,
-        );
+        LogService.info('Saga', `Returning cached result for idempotencyKey: ${definition.idempotencyKey}`);
         return cached;
       }
     }
@@ -74,13 +72,11 @@ class SagaOrchestratorImpl {
         execution.currentStep = i;
 
         try {
-          console.log(
-            `[Saga ${definition.name}] Executing step ${i + 1}/${definition.steps.length}: ${step.name}`,
-          );
+          LogService.info('Saga', `${definition.name} executing step ${i + 1}/${definition.steps.length}: ${step.name}`);
 
           const result = await this.executeWithTimeout(
             step.execute(),
-            definition.timeout || TIMEOUTS.SAGA_DEFAULT,
+            definition.timeout || 30000,
           );
           execution.results.push(result);
         } catch (error) {
@@ -92,10 +88,7 @@ class SagaOrchestratorImpl {
             error: errorMsg,
           });
 
-          console.error(
-            `[Saga ${definition.name}] Step failed: ${step.name}`,
-            error,
-          );
+          LogService.error('Saga', `${definition.name} step failed: ${step.name}`, error);
 
           // Call error handler if provided
           if (step.onError) {
@@ -105,10 +98,7 @@ class SagaOrchestratorImpl {
                 execution.results[i],
               );
             } catch (handlerError) {
-              console.error(
-                `[Saga ${definition.name}] Error handler failed:`,
-                handlerError,
-              );
+              LogService.error('Saga', `${definition.name} error handler failed`, handlerError);
             }
           }
 
@@ -129,23 +119,12 @@ class SagaOrchestratorImpl {
       // Cache successful saga execution
       if (definition.idempotencyKey) {
         this.idempotencyCache.set(definition.idempotencyKey, execution);
-        // Evict oldest entries when cache exceeds limit
-        if (this.idempotencyCache.size > 500) {
-          const firstKey = this.idempotencyCache.keys().next().value
-          if (firstKey) this.idempotencyCache.delete(firstKey)
-        }
       }
 
       this.completedSagas.push(execution);
-      // Cap completed sagas history
-      if (this.completedSagas.length > 200) {
-        this.completedSagas.splice(0, this.completedSagas.length - 200);
-      }
       this.executions.delete(definition.id);
 
-      console.log(
-        `[Saga ${definition.name}] Completed successfully in ${Date.now() - execution.startedAt}ms`,
-      );
+      LogService.info('Saga', `${definition.name} completed successfully in ${Date.now() - execution.startedAt}ms`);
 
       return execution;
     } catch (error) {
@@ -169,9 +148,7 @@ class SagaOrchestratorImpl {
 
     execution.status = 'compensating';
 
-    console.log(
-      `[Saga ${definition.name}] Compensating from step ${lastSuccessfulStep}`,
-    );
+    LogService.info('Saga', `${definition.name} compensating from step ${lastSuccessfulStep}`);
 
     // Rollback in reverse order
     for (let i = lastSuccessfulStep; i >= 0; i--) {
@@ -181,18 +158,13 @@ class SagaOrchestratorImpl {
       if (!step.compensate) continue;
 
       try {
-        console.log(
-          `[Saga ${definition.name}] Compensating step ${i + 1}: ${step.name}`,
-        );
+        LogService.info('Saga', `${definition.name} compensating step ${i + 1}: ${step.name}`);
         await this.executeWithTimeout(
           step.compensate(result),
-          definition.timeout || TIMEOUTS.SAGA_DEFAULT,
+          definition.timeout || 30000,
         );
       } catch (error) {
-        console.error(
-          `[Saga ${definition.name}] Compensation failed for step ${step.name}:`,
-          error,
-        );
+        LogService.error('Saga', `${definition.name} compensation failed for step ${step.name}`, error);
         // Continue compensating even if one step fails
       }
     }
@@ -258,7 +230,7 @@ class SagaOrchestratorImpl {
    */
   async waitFor(
     sagaId: string,
-    timeoutMs: number = TIMEOUTS.SAGA_WAIT,
+    timeoutMs: number = 60000,
   ): Promise<SagaExecution> {
     const startTime = Date.now();
 

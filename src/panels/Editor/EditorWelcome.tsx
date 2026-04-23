@@ -8,7 +8,7 @@ interface EditorWelcomeProps {
 }
 
 const QUICK_TEMPLATES = [
-  { id: 'token-launch', name: 'Token Launch', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5', color: '#3ecf8e' },
+  { id: 'token-launch', name: 'Token Launch', icon: 'M12 4a8 8 0 1 0 8 8 8 8 0 0 0-8-8Zm-2 10 5-5M11 9h4v4', color: '#3ecf8e' },
   { id: 'anchor-program', name: 'Anchor Program', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', color: '#60a5fa' },
   { id: 'trading-bot', name: 'Trading Bot', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: '#f0b429' },
   { id: 'dapp-nextjs', name: 'dApp', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9', color: '#c084fc' },
@@ -151,7 +151,16 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
                   style={{ '--tmpl-color': t.color, '--tmpl-glow': `${t.color}15` } as React.CSSProperties}
                   onClick={handleNewProject}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill={t.id === 'token-launch' ? t.color : 'none'}
+                    stroke={t.id === 'token-launch' ? 'none' : t.color}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d={t.icon} />
                   </svg>
                   {t.name}

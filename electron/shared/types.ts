@@ -1,5 +1,3 @@
-import type { IPty } from 'node-pty'
-
 // Single source of truth for all entity types shared between main and renderer.
 // Both tsconfigs include the electron/ directory, so these types are importable everywhere.
 
@@ -35,7 +33,6 @@ export interface Agent {
   model: string
   mcps: string
   shortcut: string | null
-  provider?: string | null
   source?: string | null
   external_path?: string | null
   created_at: number
@@ -133,8 +130,6 @@ export interface ProcessInfo {
   id: string
   pid: number
   name: string
-  /** 'agent' = spawned via spawnAgent, 'shell' = plain interactive terminal */
-  kind: 'agent' | 'shell'
   agentId: string | null
   agentName: string | null
   projectId: string | null
@@ -159,7 +154,6 @@ export interface GitFile {
   staged: boolean
   unstaged: boolean
   untracked: boolean
-  deleted: boolean
   status: string
 }
 
@@ -361,7 +355,6 @@ export interface EnvDiff {
 export interface Tweet {
   id: string
   content: string
-  /** 'original' | 'reply' | 'quote' | 'thread' */
   mode: string | null
   source_tweet: string | null
   status: string
@@ -392,20 +385,6 @@ export interface ClaudeConnection {
   hasApiKey: boolean
   isAuthenticated: boolean
   authMode: 'api' | 'cli' | 'both' | 'none'
-}
-
-export interface CodexConnection {
-  providerId: 'codex'
-  cliPath: string
-  hasApiKey: boolean
-  isAuthenticated: boolean
-  authMode: 'api' | 'cli' | 'both' | 'none'
-}
-
-export interface ProviderConnectionInfo {
-  claude: ClaudeConnection | null
-  codex: CodexConnection | null
-  defaultProvider: string
 }
 
 // --- UI Settings ---
@@ -459,37 +438,19 @@ export interface RecoveryStatus {
 // --- Terminal ---
 
 export interface TerminalSession {
-  pty: IPty
+  pty: any // IPty from node-pty
   agentId: string | null
   contextFilePath: string | null
-  /** Which AI provider spawned this session ('claude' | 'codex' | null for plain shells). */
-  providerId?: string | null
-  /** True when session was created via terminal:create with isAgent flag (e.g. AgentGrid claude cells). */
-  isAgentShell?: boolean
-  /** Local session tracker ID — set when agent spawns via spawnAgent. */
-  localSessionId?: string | null
-  /** Buffers PTY data until renderer signals ready */
-  dataBuffer?: string[]
-  /** True once renderer has attached its xterm onData listener */
-  rendererReady?: boolean
 }
 
 export interface TerminalCreateInput {
   cwd?: string
   startupCommand?: string
-  /** When true, skip project-path validation (used for user-initiated folder drops). */
-  userInitiated?: boolean
-  /** When true, classify this session as an agent in the process manager. */
-  isAgent?: boolean
-  /** Initial terminal dimensions from renderer (avoids 120-col hardcode). */
-  cols?: number
-  rows?: number
 }
 
 export interface TerminalSpawnAgentInput {
   agentId: string
   projectId: string
-  initialPrompt?: string
 }
 
 export interface TerminalCreateOutput {
@@ -506,7 +467,6 @@ export interface AgentCreateInput {
   systemPrompt: string
   model: string
   mcps: string[]
-  provider?: string
   projectId?: string
   shortcut?: string
   source?: string
@@ -532,133 +492,6 @@ export interface TweetUpdateInput {
 export interface WalletCreateInput {
   name: string
   address: string
-}
-
-export interface WalletGenerateInput {
-  name: string
-  walletType?: 'user' | 'agent'
-  agentId?: string
-}
-
-export interface TransferSOLInput {
-  fromWalletId: string
-  toAddress: string
-  amountSol?: number
-  sendMax?: boolean
-}
-
-export interface TransferTokenInput {
-  fromWalletId: string
-  toAddress: string
-  mint: string
-  amount?: number
-  sendMax?: boolean
-}
-
-export interface TransactionHistoryEntry {
-  id: string
-  wallet_id: string
-  type: string
-  signature: string | null
-  from_address: string
-  to_address: string
-  amount: number
-  mint: string | null
-  symbol: string | null
-  status: string
-  error: string | null
-  created_at: number
-}
-
-export interface AgentWalletEntry {
-  id: string
-  name: string
-  address: string
-  is_default: number
-  agent_id: string
-  wallet_type: string
-  created_at: number
-  assigned_project_ids: string[]
-}
-
-export interface WalletBalanceResult {
-  sol: number
-  lamports: number
-}
-
-// --- PnL Tracking ---
-
-export interface TradeRecord {
-  id: number
-  signature: string
-  wallet: string
-  mint: string
-  side: 'buy' | 'sell'
-  tokenAmount: number
-  solAmount: number
-  pricePerToken: number
-  source: string
-  timestamp: number
-}
-
-export interface CostBasisEntry {
-  wallet: string
-  mint: string
-  totalBought: number
-  totalSolSpent: number
-  totalSold: number
-  totalSolReceived: number
-  avgBuyPrice: number
-  realizedPnlSol: number
-  lastUpdated: number
-}
-
-export interface PnlHolding {
-  mint: string
-  symbol: string
-  name: string
-  logoUri: string | null
-  amount: number
-  currentPriceUsd: number
-  currentPriceSol: number
-  valueUsd: number
-  avgBuyPriceSol: number
-  avgBuyPriceUsd: number
-  costBasisUsd: number
-  unrealizedPnlUsd: number
-  unrealizedPnlPct: number
-  realizedPnlUsd: number
-  totalTrades: number
-  priceSource: string
-}
-
-export interface PnlPortfolio {
-  totalValueUsd: number
-  totalCostBasisUsd: number
-  totalUnrealizedPnlUsd: number
-  totalUnrealizedPnlPct: number
-  totalRealizedPnlUsd: number
-  holdings: PnlHolding[]
-  lastPriceUpdate: number
-  syncStatus: 'idle' | 'syncing' | 'done' | 'error'
-  syncProgress?: { current: number; total: number }
-}
-
-export interface PnlTokenDetail {
-  mint: string
-  symbol: string
-  name: string
-  costBasis: CostBasisEntry | null
-  trades: TradeRecord[]
-  currentPriceUsd: number
-  currentPriceSol: number
-  priceSource: string
-}
-
-export interface PnlSyncResult {
-  tradesFound: number
-  newTrades: number
-  walletsProcessed: number
 }
 
 // --- MCP Management ---
@@ -718,114 +551,6 @@ export interface ToolRunStatus {
   startedAt: number | null
 }
 
-// --- Email (Multi-Account) ---
-
-export interface EmailAccount {
-  id: string
-  provider: 'gmail' | 'icloud'
-  email: string
-  display_name: string | null
-  status: 'connected' | 'error' | 'refreshing'
-  last_sync_at: number | null
-  settings: string
-  created_at: number
-  unreadCount: number
-}
-
-export interface EmailMessage {
-  id: string
-  accountId: string
-  provider: 'gmail' | 'icloud'
-  from: string
-  subject: string
-  snippet: string
-  body: string
-  date: number
-  isRead: boolean
-  labels: string[]
-}
-
-export interface EmailAccountRow {
-  id: string
-  provider: string
-  email: string
-  display_name: string | null
-  access_token: Buffer | null
-  refresh_token: Buffer | null
-  imap_password: Buffer | null
-  token_expiry: number | null
-  client_id_ref: string | null
-  client_secret_ref: string | null
-  status: string
-  last_sync_at: number | null
-  settings: string
-  created_at: number
-  updated_at: number
-}
-
-// --- Gmail ---
-
-export interface GmailMessage {
-  id: string
-  threadId: string
-  from: string
-  subject: string
-  snippet: string
-  body: string
-  date: number
-  isRead: boolean
-  labels: string[]
-}
-
-export interface ExtractedItem {
-  type: 'code' | 'config' | 'error' | 'link' | 'task'
-  content: string
-  language?: string
-  context: string
-}
-
-export interface GmailExtractionResult {
-  messageId: string
-  items: ExtractedItem[]
-  summary: string
-}
-
-export interface GmailAuthStatus {
-  isAuthenticated: boolean
-  email: string | null
-}
-
-export interface ExtractionResult {
-  messageId: string
-  items: ExtractedItem[]
-  summary: string
-}
-
-// --- Browser ---
-
-export interface BrowserPage {
-  id: string
-  url: string
-  title: string
-  content: string
-  timestamp: number
-}
-
-export interface BrowserAnalysis {
-  url: string
-  summary: string
-  findings: string[]
-  type: 'summarize' | 'extract' | 'audit' | 'compare'
-}
-
-export interface BrowserNavResult {
-  pageId: string
-  url: string
-  title: string
-  status: number
-  contentLength: number
-}
-
 // --- Engine ---
 
 export type EngineActionType =
@@ -850,148 +575,6 @@ export interface EngineResult {
   artifacts?: Record<string, string>
   error?: string
 }
-
-// --- Deploy ---
-
-export type DeployPlatform = 'vercel' | 'railway'
-
-export interface ProjectInfra {
-  vercel?: VercelLink
-  railway?: RailwayLink
-}
-
-export interface VercelLink {
-  projectId: string
-  projectName: string
-  teamId: string | null
-  teamSlug: string | null
-  productionUrl: string | null
-  framework: string | null
-  linkedAt: number
-}
-
-export interface RailwayLink {
-  projectId: string
-  projectName: string
-  serviceId: string
-  environmentId: string
-  productionUrl: string | null
-  linkedAt: number
-}
-
-export interface DeploymentEntry {
-  id: string
-  platform: DeployPlatform
-  status: 'BUILDING' | 'READY' | 'ERROR' | 'CANCELED' | 'QUEUED'
-  url: string | null
-  branch: string | null
-  commitSha: string | null
-  commitMessage: string | null
-  createdAt: number
-}
-
-export interface DeployStatus {
-  platform: DeployPlatform
-  linked: boolean
-  projectName: string | null
-  productionUrl: string | null
-  latestStatus: string | null
-  latestUrl: string | null
-  latestBranch: string | null
-  latestCreatedAt: number | null
-}
-
-export interface DeployAuthStatus {
-  vercel: { authenticated: boolean; user: string | null }
-  railway: { authenticated: boolean; user: string | null }
-}
-
-export interface VercelEnvVar {
-  id: string
-  key: string
-  value: string
-  target: string[]
-  type: string
-}
-
-// --- Images ---
-
-export interface ImageRecord {
-  id: string
-  filename: string
-  filepath: string
-  prompt: string | null
-  model: string | null
-  project_id: string | null
-  tags: string
-  source: string
-  created_at: number
-}
-
-export type ImageModelTier = 'fast' | 'standard' | 'ultra'
-export type ImageAspectRatio = '1:1' | '16:9' | '4:3' | '9:16' | '3:4'
-
-export interface ImageGenerateInput {
-  prompt: string
-  model: ImageModelTier
-  aspectRatio: ImageAspectRatio
-  projectId?: string
-  tags?: string[]
-}
-
-export interface ImageFilter {
-  projectId?: string
-  source?: string
-  model?: string
-  limit?: number
-  offset?: number
-}
-
-// --- ARIA ---
-
-export interface AriaMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  metadata: string
-  session_id: string
-  created_at: number
-}
-
-export interface AriaResponse {
-  text: string
-  actions: AriaAction[]
-}
-
-export interface AriaAction {
-  type: 'spawn_agent' | 'open_file' | 'switch_panel'
-  label: string
-  value: string
-}
-
-// --- Onboarding ---
-
-export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
-
-export interface OnboardingProgress {
-  profile: OnboardingStepStatus
-  claude: OnboardingStepStatus
-  gmail: OnboardingStepStatus
-  vercel: OnboardingStepStatus
-  railway: OnboardingStepStatus
-  tour: OnboardingStepStatus
-}
-
-// --- Workspace Profile ---
-
-export type WorkspaceProfileName = 'web' | 'solana' | 'custom'
-
-export interface WorkspaceProfile {
-  name: WorkspaceProfileName
-  toolVisibility: Record<string, boolean>
-}
-
-// --- Engine ---
 
 export interface EngineContext {
   projects: Array<{

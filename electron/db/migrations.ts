@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -266,6 +266,19 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 25) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V25.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(25)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -367,6 +380,21 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
     }
   } catch (err) {
     console.warn('[Migrations] solana-mcp-server registry seed check failed:', (err as Error).message)
+  }
+
+  // Ensure Phantom Connect SDK docs MCP exists in registry (remote HTTP MCP from Phantom docs)
+  try {
+    const hasPhantomDocsMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'phantom-docs'").get()
+    if (!hasPhantomDocsMcp) {
+      db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
+        'phantom-docs',
+        JSON.stringify({ type: 'http', url: 'https://docs.phantom.com/mcp' }),
+        'Phantom Connect SDK documentation MCP for wallet connection, signing, and Phantom Portal guidance',
+        0,
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] phantom-docs registry seed check failed:', (err as Error).message)
   }
 
   // Ensure payai-mcp-server exists in registry (x402 payment protocol for AI agents)
@@ -677,6 +705,12 @@ function seedMcpRegistry(db: Database.Database) {
       name: 'solana-mcp-server',
       config: JSON.stringify({ command: 'npx', args: ['-y', 'solana-mcp-server'] }),
       description: 'Solana program deployment, account inspection, and docs search',
+      isGlobal: 0,
+    },
+    {
+      name: 'phantom-docs',
+      config: JSON.stringify({ type: 'http', url: 'https://docs.phantom.com/mcp' }),
+      description: 'Phantom Connect SDK docs MCP for wallet connection, signing, and Phantom Portal guidance',
       isGlobal: 0,
     },
     {
