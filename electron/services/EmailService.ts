@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { safeStorage, shell } from 'electron'
 import { getDb } from '../db/db'
+import { LogService } from './LogService'
 import { GOOGLE_OAUTH } from '../config/constants'
 import { pluginPrompt, orchestratedPrompt } from './PluginPrompt'
 import type { EmailProvider, SendEmailInput } from './email/EmailProvider'
@@ -285,7 +286,7 @@ export async function extractCode(accountId: string, messageId: string): Promise
         const parsed = JSON.parse(match[0])
         items = parsed.items ?? []
       } catch (err) {
-        console.warn('[EmailService] JSON extraction fallback failed:', (err as Error).message)
+        LogService.warn('EmailService', 'JSON extraction fallback failed: ' + (err as Error).message)
       }
     }
   }

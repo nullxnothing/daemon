@@ -38,6 +38,7 @@ describe('SettingsService token launch settings', () => {
     expect(getTokenLaunchSettings()).toEqual({
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
     })
   })
 
@@ -45,6 +46,7 @@ describe('SettingsService token launch settings', () => {
     expect(() => setTokenLaunchSettings({
       raydium: { configId: 'not-a-key', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
     })).toThrow('Raydium config ID must be a valid Solana public key')
   })
 
@@ -52,6 +54,7 @@ describe('SettingsService token launch settings', () => {
     expect(() => setTokenLaunchSettings({
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: 'abc' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
     })).toThrow('Meteora base supply must be a positive integer')
   })
 
@@ -65,6 +68,13 @@ describe('SettingsService token launch settings', () => {
         configId: '11111111111111111111111111111111',
         quoteMint: 'So11111111111111111111111111111111111111112',
         baseSupply: '1000000',
+      },
+      printr: {
+        apiBaseUrl: '',
+        apiKey: '',
+        quotePath: '',
+        createPath: '',
+        chain: '',
       },
     })
 

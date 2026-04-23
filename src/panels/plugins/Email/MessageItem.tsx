@@ -98,7 +98,9 @@ function detectTags(message: EmailMessage): string[] {
 }
 
 export function MessageItem({ message, isSelected, isUnified, onClick }: MessageItemProps) {
-  const { selectMode, selectedIds, toggleSelected } = useEmailStore()
+  const selectMode = useEmailStore((s) => s.selectMode)
+  const selectedIds = useEmailStore((s) => s.selectedIds)
+  const toggleSelected = useEmailStore((s) => s.toggleSelected)
 
   const senderName = parseSenderName(message.from)
   const senderEmail = parseSenderEmail(message.from)

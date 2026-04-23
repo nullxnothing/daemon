@@ -1,5 +1,4 @@
 import { IpcMainInvokeEvent } from 'electron'
-import { getDb } from '../db/db'
 
 export type IpcResponse<T = unknown> = 
   | { ok: true; data?: T }
@@ -32,17 +31,9 @@ export function ipcHandler<R = unknown>(
       const result = await handler(event, ...args)
       return { ok: true, data: result }
     } catch (err) {
-      const message = onError
+      const message = onError 
         ? (onError(err) ?? (err as Error).message ?? String(err))
         : (err as Error).message ?? String(err)
-
-      try {
-        const db = getDb()
-        db.prepare(
-          'INSERT INTO error_logs (operation, category, severity, message, context, created_at) VALUES (?,?,?,?,?,?)'
-        ).run('ipc', 'ipc-handler', 'error', message, null, Date.now())
-      } catch { /* best-effort — never let logging crash the response */ }
-
       return { ok: false, error: message }
     }
   }

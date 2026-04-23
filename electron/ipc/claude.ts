@@ -1,80 +1,52 @@
 import { ipcMain } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import os from 'node:os'
-import { exec, execFile, spawn } from 'node:child_process'
-import { promisify } from 'node:util'
-
-const execAsync = promisify(exec)
-const execFileAsync = promisify(execFile)
-import { getDb } from '../db/db'
+import { execSync } from 'node:child_process'
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
-import { broadcast } from '../services/EventBus'
 import * as Skills from '../services/SkillsConfig'
 import * as ClaudeRouter from '../services/ClaudeRouter'
 import { isPathSafe } from '../shared/pathValidation'
-import { ipcHandler } from '../services/IpcHandlerFactory'
-import { getSession, getAllSessionIds } from './terminal'
+import { ipcHandler, withValidation } from '../services/IpcHandlerFactory'
+import { restartProviderInPty, restartAllProviderSessions } from '../shared/providerRestart'
 import type { McpAddInput } from '../shared/types'
-
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /**
  * Gracefully exit Claude in a PTY and resume with `claude -c`.
  * Uses fixed delays — more reliable than prompt detection which can false-positive.
  */
 async function restartClaudeInPty(terminalId: string): Promise<void> {
-  const session = getSession(terminalId)
-  if (!session) throw new Error('Session not found')
-
-  // Only restart terminals that are running Claude (have an agentId)
-  if (!session.agentId) return
-
-  // Ctrl+C to exit Claude
-  session.pty.write('\x03')
-  await wait(2000)
-
-  // Second Ctrl+C in case Claude asked for confirmation
-  session.pty.write('\x03')
-  await wait(1000)
-
-  // Clear any partial input, then resume
-  session.pty.write('\r')
-  await wait(300)
-  session.pty.write('claude -c\r')
+  return restartProviderInPty(terminalId, 'claude -c')
 }
 
-async function getClaudeMdContext(projectPath: string): Promise<{ content: string; diff: string }> {
+function getClaudeMdContext(projectPath: string): { content: string; diff: string } {
   const mdPath = path.join(projectPath, 'CLAUDE.md')
   const content = fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf8') : ''
   let diff = ''
   try {
-    const { stdout } = await execAsync('git diff HEAD~5', { cwd: projectPath, encoding: 'utf8', timeout: 10000 })
-    diff = stdout.slice(0, 5000)
+    diff = execSync('git diff HEAD~5', { cwd: projectPath, encoding: 'utf8', timeout: 10000 })
   } catch {
     diff = '(no git history)'
   }
   return { content, diff }
 }
 
-function validateProjectPath(projectPath: string): void {
-  if (!isPathSafe(projectPath)) throw new Error('Path not within a registered project')
-}
-
 export function registerClaudeHandlers() {
   // --- MCP ---
 
   ipcMain.handle('claude:project-mcp-all', ipcHandler(async (_event, projectPath: string) => {
-    validateProjectPath(projectPath)
     return McpConfig.getProjectMcps(projectPath)
   }))
 
-  ipcMain.handle('claude:project-mcp-toggle', ipcHandler(async (_event, projectPath: string, name: string, enabled: boolean) => {
-    validateProjectPath(projectPath)
-    McpConfig.toggleProjectMcp(projectPath, name, enabled)
-  }))
+  ipcMain.handle('claude:project-mcp-toggle', ipcHandler(
+    withValidation(
+      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      async (_event, projectPath: string, name: string, enabled: boolean) => {
+        McpConfig.toggleProjectMcp(projectPath, name, enabled)
+      }
+    )
+  ))
 
   ipcMain.handle('claude:global-mcp-all', ipcHandler(async () => {
     return McpConfig.getGlobalMcps()
@@ -104,17 +76,9 @@ export function registerClaudeHandlers() {
     return { id: terminalId }
   }))
 
-  // Restart ALL Claude terminal sessions (used when MCP is toggled)
+  // Restart ALL terminal sessions (used when MCP is toggled)
   ipcMain.handle('claude:restart-all-sessions', ipcHandler(async () => {
-    const allIds = getAllSessionIds()
-    // Only restart sessions that were spawned by Claude (or have no providerId for backward compat)
-    const claudeIds = allIds.filter((id) => {
-      const session = getSession(id)
-      return session?.agentId && (!session.providerId || session.providerId === 'claude')
-    })
-    const results = await Promise.allSettled(claudeIds.map(restartClaudeInPty))
-    const succeeded = results.filter((r) => r.status === 'fulfilled').length
-    return { restarted: succeeded, total: claudeIds.length }
+    return await restartAllProviderSessions('claude -c')
   }))
 
   // --- Anthropic Status ---
@@ -155,7 +119,9 @@ export function registerClaudeHandlers() {
       throw new Error('Only Markdown files are supported (.md, .mdx)')
     }
 
-    validateProjectPath(filePath)
+    if (!isPathSafe(filePath)) {
+      throw new Error('Path not within a registered project')
+    }
 
     if (!content || !content.trim()) {
       throw new Error('File is empty, nothing to tidy')
@@ -191,7 +157,6 @@ ${content}`,
   // --- Secure Keys ---
 
   ipcMain.handle('claude:store-key', ipcHandler(async (_event, name: string, value: string) => {
-    if (!/^[A-Z0-9_-]{1,100}$/.test(name)) throw new Error('Invalid key name')
     SecureKey.storeKey(name, value)
   }))
 
@@ -205,146 +170,49 @@ ${content}`,
 
   // --- CLAUDE.md ---
 
-  ipcMain.handle('claude:claudemd-read', ipcHandler(async (_event, projectPath: string) => {
-    validateProjectPath(projectPath)
-    return await getClaudeMdContext(projectPath)
-  }))
+  ipcMain.handle('claude:claudemd-read', ipcHandler(
+    withValidation(
+      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      async (_event, projectPath: string) => {
+        return getClaudeMdContext(projectPath)
+      }
+    )
+  ))
 
-  ipcMain.handle('claude:claudemd-generate', ipcHandler(async (_event, projectPath: string) => {
-    validateProjectPath(projectPath)
-    const { content, diff } = await getClaudeMdContext(projectPath)
+  ipcMain.handle('claude:claudemd-generate', ipcHandler(
+    withValidation(
+      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      async (_event, projectPath: string) => {
+        const { content, diff } = getClaudeMdContext(projectPath)
 
-    return await ClaudeRouter.runPrompt({
-      prompt: `Update this CLAUDE.md based on recent changes. Preserve structure and style. Return ONLY the updated markdown.\n\nCurrent CLAUDE.md:\n${content}\n\nRecent changes:\n${diff}`,
-      systemPrompt: 'You are a technical documentation expert. Update the CLAUDE.md file based on recent code changes. Preserve the existing structure and style. Only add or modify sections that are affected by the changes. Return ONLY the updated markdown content, no explanations.',
-      model: 'sonnet',
-      effort: 'medium',
-      cwd: projectPath,
-    })
-  }))
+        return await ClaudeRouter.runPrompt({
+          prompt: `Update this CLAUDE.md based on recent changes. Preserve structure and style. Return ONLY the updated markdown.\n\nCurrent CLAUDE.md:\n${content}\n\nRecent changes:\n${diff}`,
+          systemPrompt: 'You are a technical documentation expert. Update the CLAUDE.md file based on recent code changes. Preserve the existing structure and style. Only add or modify sections that are affected by the changes. Return ONLY the updated markdown content, no explanations.',
+          model: 'sonnet',
+          effort: 'medium',
+          cwd: projectPath,
+        })
+      }
+    )
+  ))
 
-  ipcMain.handle('claude:claudemd-write', ipcHandler(async (_event, projectPath: string, content: string) => {
-    validateProjectPath(projectPath)
-    const mdPath = path.join(projectPath, 'CLAUDE.md')
-    fs.writeFileSync(mdPath, content, 'utf8')
-  }))
+  ipcMain.handle('claude:claudemd-write', ipcHandler(
+    withValidation(
+      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      async (_event, projectPath: string, content: string) => {
+        const mdPath = path.join(projectPath, 'CLAUDE.md')
+        fs.writeFileSync(mdPath, content, 'utf8')
+      }
+    )
+  ))
 
   // --- Connection Management ---
 
   ipcMain.handle('claude:verify-connection', ipcHandler(async () => {
-    const conn = await ClaudeRouter.verifyConnection()
-    broadcast('auth:changed', { providerId: 'claude' })
-    return conn
+    return await ClaudeRouter.verifyConnection()
   }))
 
   ipcMain.handle('claude:get-connection', ipcHandler(async () => {
     return ClaudeRouter.getConnection()
-  }))
-
-  // --- CLI Install ---
-
-  ipcMain.handle('claude:install-cli', ipcHandler(async () => {
-    // Resolve npm path first
-    const isWin = process.platform === 'win32'
-    let npmPath = isWin ? 'npm.cmd' : 'npm'
-
-    try {
-      const npmPrefix = require('child_process')
-        .execSync('npm prefix -g', { encoding: 'utf8', timeout: 10000 }).trim()
-      const candidate = isWin
-        ? path.join(npmPrefix, 'npm.cmd')
-        : path.join(npmPrefix, 'bin', 'npm')
-      if (fs.existsSync(candidate)) npmPath = candidate
-    } catch {
-      // fallback to PATH resolution
-    }
-
-    const { stdout, stderr } = await execFileAsync(npmPath, ['install', '-g', '@anthropic-ai/claude-code'], {
-      timeout: 120000,
-      env: { ...process.env },
-    })
-
-    // Invalidate cached path so next verifyConnection picks up the new binary
-    ClaudeRouter.clearCachedPath()
-
-    return { stdout: stdout.trim(), stderr: stderr.trim() }
-  }))
-
-  // --- Auth Login (opens browser for OAuth) ---
-
-  ipcMain.handle('claude:auth-login', ipcHandler(async () => {
-    const claudePath = ClaudeRouter.getClaudePath()
-
-    return new Promise<{ success: boolean }>((resolve, reject) => {
-      const child = spawn(claudePath, ['login'], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env },
-      })
-
-      child.stdin.end()
-
-      let stdout = ''
-      let stderr = ''
-      let isSettled = false
-
-      const timeout = setTimeout(() => {
-        if (!isSettled) {
-          isSettled = true
-          try { child.kill() } catch {}
-          // If the process ran for 60s it likely opened a browser and is waiting
-          // Treat as success — user may still be completing OAuth in browser
-          resolve({ success: true })
-        }
-      }, 60000)
-
-      child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
-      child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
-
-      child.on('close', (code) => {
-        if (isSettled) return
-        isSettled = true
-        clearTimeout(timeout)
-        if (code === 0) {
-          ClaudeRouter.clearCachedConnection()
-          broadcast('auth:changed', { providerId: 'claude' })
-          resolve({ success: true })
-        } else {
-          reject(new Error(stderr.trim() || `claude login exited with code ${code}`))
-        }
-      })
-
-      child.on('error', (err) => {
-        if (isSettled) return
-        isSettled = true
-        clearTimeout(timeout)
-        reject(new Error(err.message || 'Failed to start claude login'))
-      })
-    })
-  }))
-
-  // Disconnect: clear credentials, API key, and cached connection state
-  ipcMain.handle('claude:disconnect', ipcHandler(async () => {
-    // Clear stored API key
-    try { SecureKey.deleteKey('ANTHROPIC_API_KEY') } catch {}
-
-    // Clear OAuth credentials file
-    const credPath = path.join(os.homedir(), '.claude', '.credentials.json')
-    try {
-      if (fs.existsSync(credPath)) fs.unlinkSync(credPath)
-    } catch {}
-
-    // Clear cached connection in ClaudeRouter
-    ClaudeRouter.clearCachedConnection()
-
-    // Clear persisted connection from app_settings
-    try {
-      const db = getDb()
-      for (const key of ['claude_path', 'claude_auth_mode', 'claude_verified_at']) {
-        db.prepare('DELETE FROM app_settings WHERE key = ?').run(key)
-      }
-    } catch {}
-
-    broadcast('auth:changed', { providerId: 'claude' })
-    return { disconnected: true }
   }))
 }

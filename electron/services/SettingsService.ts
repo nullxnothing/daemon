@@ -13,9 +13,18 @@ export interface MeteoraLaunchpadSettings {
   baseSupply: string
 }
 
+export interface PrintrLaunchpadSettings {
+  apiBaseUrl: string
+  apiKey: string
+  quotePath: string
+  createPath: string
+  chain: string
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadSettings
   meteora: MeteoraLaunchpadSettings
+  printr: PrintrLaunchpadSettings
 }
 
 export interface WalletInfrastructureSettings {
@@ -204,6 +213,13 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
     quoteMint: '',
     baseSupply: '',
   },
+  printr: {
+    apiBaseUrl: '',
+    apiKey: '',
+    quotePath: '',
+    createPath: '',
+    chain: '',
+  },
 }
 
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
@@ -268,6 +284,13 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
       quoteMint: normalizeText(value?.meteora?.quoteMint),
       baseSupply: normalizeText(value?.meteora?.baseSupply),
     },
+    printr: {
+      apiBaseUrl: normalizeText(value?.printr?.apiBaseUrl),
+      apiKey: normalizeText(value?.printr?.apiKey),
+      quotePath: normalizeText(value?.printr?.quotePath),
+      createPath: normalizeText(value?.printr?.createPath),
+      chain: normalizeText(value?.printr?.chain),
+    },
   }
 }
 
@@ -282,6 +305,13 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
       quoteMint: normalizeText(settings?.meteora?.quoteMint),
       baseSupply: normalizeText(settings?.meteora?.baseSupply),
     },
+    printr: {
+      apiBaseUrl: normalizeText(settings?.printr?.apiBaseUrl),
+      apiKey: normalizeText(settings?.printr?.apiKey),
+      quotePath: normalizeText(settings?.printr?.quotePath),
+      createPath: normalizeText(settings?.printr?.createPath),
+      chain: normalizeText(settings?.printr?.chain),
+    },
   }
 
   validateOptionalPublicKey(next.raydium.configId, 'Raydium config ID')
@@ -289,6 +319,13 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   validateOptionalPublicKey(next.meteora.configId, 'Meteora config ID')
   validateOptionalPublicKey(next.meteora.quoteMint, 'Meteora quote mint')
   validateOptionalPositiveInteger(next.meteora.baseSupply, 'Meteora base supply')
+  validateOptionalHttpUrl(next.printr.apiBaseUrl, 'Printr API base URL')
+  if (next.printr.quotePath && !next.printr.quotePath.startsWith('/')) {
+    throw new Error('Printr quote path must start with "/"')
+  }
+  if (next.printr.createPath && !next.printr.createPath.startsWith('/')) {
+    throw new Error('Printr create path must start with "/"')
+  }
 
   setJsonSetting('token_launch_settings', next)
 }

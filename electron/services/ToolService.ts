@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
 import { getDb } from '../db/db'
+import { LogService } from './LogService'
 import type { ToolRow, ToolCreateInput, ToolManifest, ToolRunStatus } from '../shared/types'
 
 const TOOLS_DIR_NAME = 'tools'
@@ -155,7 +156,7 @@ export function discoverTools(): ToolRow[] {
     try {
       imported.push(importTool(toolDir))
     } catch (err) {
-      console.warn('[ToolService] failed to import tool from', toolDir + ':', (err as Error).message)
+      LogService.warn('ToolService', 'failed to import tool from ' + toolDir + ': ' + (err as Error).message)
     }
   }
 

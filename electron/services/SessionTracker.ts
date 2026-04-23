@@ -1,5 +1,6 @@
 import * as crypto from 'node:crypto'
 import { getDb } from '../db/db'
+import { LogService } from './LogService'
 
 export interface LocalSession {
   id: string
@@ -64,7 +65,7 @@ export function startSession(params: {
       VALUES (?, ?, ?, ?, ?, ?, 'active', 0, '[]', ?, ?)
     `).run(id, params.projectId, params.agentId, params.agentName, params.model, now, now, params.terminalId ?? null)
   } catch (err) {
-    console.warn('[SessionTracker] failed to start session:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to start session: ' + (err as Error).message)
   }
 
   return id
@@ -79,7 +80,7 @@ export function renameSession(sessionId: string, customName: string): void {
       UPDATE agent_sessions_local SET custom_name = ? WHERE id = ?
     `).run(value, sessionId)
   } catch (err) {
-    console.warn('[SessionTracker] failed to rename session:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to rename session: ' + (err as Error).message)
   }
 }
 
@@ -99,7 +100,7 @@ export function endSession(params: {
       WHERE id = ?
     `).run(now, status, linesGenerated, JSON.stringify(toolsUsed), sessionId)
   } catch (err) {
-    console.warn('[SessionTracker] failed to end session:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to end session: ' + (err as Error).message)
   }
 }
 
@@ -109,7 +110,7 @@ export function markPublished(sessionId: string, signature: string): void {
       UPDATE agent_sessions_local SET published_signature = ? WHERE id = ?
     `).run(signature, sessionId)
   } catch (err) {
-    console.warn('[SessionTracker] failed to mark session published:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to mark session published: ' + (err as Error).message)
   }
 }
 
@@ -130,7 +131,7 @@ export function listSessions(opts: { limit?: number; status?: string } = {}): Lo
     `).all(limit) as SessionRow[]
     return rows.map(rowToSession)
   } catch (err) {
-    console.warn('[SessionTracker] failed to list sessions:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to list sessions: ' + (err as Error).message)
     return []
   }
 }
@@ -169,7 +170,7 @@ export function getProfileStats(): {
       unpublishedCount: totals.unpublishedCount ?? 0,
     }
   } catch (err) {
-    console.warn('[SessionTracker] failed to get profile stats:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to get profile stats: ' + (err as Error).message)
     return { totalSessions: 0, totalDuration: 0, totalAgentsSpawned: 0, projectsCount: 0, unpublishedCount: 0 }
   }
 }
@@ -183,7 +184,7 @@ export function getUnpublishedSessions(): LocalSession[] {
     `).all() as SessionRow[]
     return rows.map(rowToSession)
   } catch (err) {
-    console.warn('[SessionTracker] failed to get unpublished sessions:', (err as Error).message)
+    LogService.warn('SessionTracker', 'failed to get unpublished sessions: ' + (err as Error).message)
     return []
   }
 }

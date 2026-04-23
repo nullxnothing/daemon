@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml'
+import { LogService } from './LogService'
 
 interface CodexConfig {
   model?: string
@@ -36,7 +37,7 @@ function readConfig(): CodexConfig {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf8')
     return parseToml(raw) as CodexConfig
   } catch (err) {
-    console.warn('[CodexMcpConfig] failed to parse config.toml:', (err as Error).message)
+    LogService.warn('CodexMcpConfig', 'failed to parse config.toml: ' + (err as Error).message)
     return {}
   }
 }

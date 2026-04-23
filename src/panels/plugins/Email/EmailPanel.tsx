@@ -12,19 +12,17 @@ import '../plugin.css'
 import './EmailPanel.css'
 
 export default function EmailPanel() {
-  const {
-    accounts,
-    activeAccountId,
-    viewMode,
-    aiSidebar,
-    showSettings,
-    showAddAccount,
-    loadAccounts,
-    setActiveAccount,
-    loadMessages,
-    setShowSettings,
-    setShowAddAccount,
-  } = useEmailStore()
+  const accounts = useEmailStore((s) => s.accounts)
+  const activeAccountId = useEmailStore((s) => s.activeAccountId)
+  const viewMode = useEmailStore((s) => s.viewMode)
+  const aiSidebar = useEmailStore((s) => s.aiSidebar)
+  const showSettings = useEmailStore((s) => s.showSettings)
+  const showAddAccount = useEmailStore((s) => s.showAddAccount)
+  const loadAccounts = useEmailStore((s) => s.loadAccounts)
+  const setActiveAccount = useEmailStore((s) => s.setActiveAccount)
+  const loadMessages = useEmailStore((s) => s.loadMessages)
+  const setShowSettings = useEmailStore((s) => s.setShowSettings)
+  const setShowAddAccount = useEmailStore((s) => s.setShowAddAccount)
 
   useEffect(() => {
     loadAccounts()

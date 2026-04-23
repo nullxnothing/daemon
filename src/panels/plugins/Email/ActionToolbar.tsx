@@ -9,21 +9,18 @@ const FILTERS: { label: string; value: FilterMode }[] = [
 ]
 
 export function ActionToolbar() {
-  const {
-    filterMode,
-    setFilterMode,
-    selectMode,
-    toggleSelectMode,
-    selectedIds,
-    selectAll,
-    clearSelection,
-    setViewMode,
-    messages,
-    activeAccountId,
-    summarize,
-    extractCode,
-    setAISidebar,
-  } = useEmailStore()
+  const filterMode = useEmailStore((s) => s.filterMode)
+  const setFilterMode = useEmailStore((s) => s.setFilterMode)
+  const selectMode = useEmailStore((s) => s.selectMode)
+  const toggleSelectMode = useEmailStore((s) => s.toggleSelectMode)
+  const selectedIds = useEmailStore((s) => s.selectedIds)
+  const selectAll = useEmailStore((s) => s.selectAll)
+  const clearSelection = useEmailStore((s) => s.clearSelection)
+  const setViewMode = useEmailStore((s) => s.setViewMode)
+  const messages = useEmailStore((s) => s.messages)
+  const summarize = useEmailStore((s) => s.summarize)
+  const extractCode = useEmailStore((s) => s.extractCode)
+  const setAISidebar = useEmailStore((s) => s.setAISidebar)
 
   const [showAIMenu, setShowAIMenu] = useState(false)
   const aiMenuRef = useRef<HTMLDivElement>(null)

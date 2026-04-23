@@ -1,7 +1,6 @@
 import { ipcMain, dialog } from 'electron'
 import { getDb } from '../db/db'
 import { ipcHandler } from '../services/IpcHandlerFactory'
-import { invalidatePathCache } from '../shared/pathValidation'
 import type { ProjectCreateInput } from '../shared/types'
 
 export function registerProjectHandlers() {
@@ -15,14 +14,12 @@ export function registerProjectHandlers() {
     const id = crypto.randomUUID()
     db.prepare('INSERT INTO projects (id, name, path, last_active) VALUES (?,?,?,?)')
       .run(id, project.name, project.path, Date.now())
-    invalidatePathCache()
     return db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
   }))
 
   ipcMain.handle('projects:delete', ipcHandler(async (_event, id: string) => {
     const db = getDb()
     db.prepare('DELETE FROM projects WHERE id = ?').run(id)
-    invalidatePathCache()
   }))
 
   ipcMain.handle('projects:openDialog', ipcHandler(async () => {

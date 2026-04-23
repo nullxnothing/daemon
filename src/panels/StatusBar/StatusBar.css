@@ -7,7 +7,6 @@
   padding: 0 12px;
   background: var(--s1);
   border-top: 1px solid var(--border);
-  border-image: linear-gradient(90deg, var(--border) 0%, var(--border) 70%, rgba(62, 207, 142, 0.12) 100%) 1;
   flex-shrink: 0;
 }
 
@@ -38,17 +37,6 @@
   pointer-events: auto;
 }
 
-.status-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 8px;
-}
-
-.status-group + .status-group {
-  border-left: 1px solid var(--border);
-}
-
 .statusbar-item {
   font-size: 11px;
   color: var(--t3);
@@ -65,51 +53,10 @@
   max-width: 100%;
 }
 
-.statusbar-clickable {
-  cursor: pointer;
-  transition: color 0.12s;
-}
-
-.statusbar-clickable:hover {
-  color: var(--t1);
-}
-
-.statusbar-email-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  color: var(--t3);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  position: relative;
-}
-
-.statusbar-email-btn:hover {
-  color: var(--t1);
-}
-
-.statusbar-email-badge {
-  min-width: 14px;
-  height: 14px;
-  background: var(--green);
-  color: var(--bg);
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3px;
-  line-height: 1;
-}
-
 .market-tape {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .market-tape-item {
@@ -119,11 +66,6 @@
   font-size: 11px;
 }
 
-.market-tape-item + .market-tape-item {
-  padding-left: 14px;
-  border-left: 1px solid var(--s5);
-}
-
 .market-symbol {
   color: var(--t2);
   font-weight: 600;
@@ -131,13 +73,6 @@
 
 .market-price {
   color: var(--t1);
-  font-family: var(--font-code);
-  font-size: 10.5px;
-}
-
-.market-change {
-  font-family: var(--font-code);
-  font-size: 10.5px;
 }
 
 .market-change.up {
@@ -146,24 +81,4 @@
 
 .market-change.down {
   color: var(--error);
-}
-
-.market-change.up.significant {
-  color: var(--success);
-  animation: pulse-green 1.5s ease-out;
-}
-
-.market-change.down.significant {
-  color: var(--error);
-  animation: pulse-red 1.5s ease-out;
-}
-
-@keyframes pulse-green {
-  0% { text-shadow: 0 0 6px rgba(62, 207, 142, 0.4); }
-  100% { text-shadow: none; }
-}
-
-@keyframes pulse-red {
-  0% { text-shadow: 0 0 6px rgba(239, 83, 80, 0.4); }
-  100% { text-shadow: none; }
 }

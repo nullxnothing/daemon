@@ -185,6 +185,13 @@ declare global {
       quoteMint: string
       baseSupply: string
     }
+    printr: {
+      apiBaseUrl: string
+      apiKey: string
+      quotePath: string
+      createPath: string
+      chain: string
+    }
   }
 
   type WalletInfrastructureSettings = {
@@ -691,8 +698,46 @@ declare global {
     created_at: number
   }
 
-  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'bonk'
+  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bonk'
   type LaunchpadStatus = 'available' | 'planned'
+
+  type PulseTokenCategory = 'newly-created' | 'almost-graduated' | 'graduated'
+
+  interface PulseTokenMetrics {
+    trend: number | null
+    graduationProgress: number | null
+    marketCapUsd: number | null
+    volume24Usd: number | null
+    holders: number | null
+    txnCount24: number | null
+    buyCount24: number | null
+    sellCount24: number | null
+  }
+
+  interface PulseToken {
+    id: string
+    category: PulseTokenCategory
+    name: string
+    symbol: string
+    imageUrl: string | null
+    creator: string | null
+    createdAt: number | null
+    deployments: number | null
+    contractAddress: string
+    contractAddressByChain: Record<string, string>
+    graduatedChains: string[]
+    externalUrlX: string | null
+    externalUrlWebsite: string | null
+    metrics: PulseTokenMetrics
+  }
+
+  interface PulseTokenFeed {
+    category: PulseTokenCategory
+    pageNumber: number
+    pageSize: number
+    fetchedAt: number
+    tokens: PulseToken[]
+  }
 
   interface LaunchpadDefinition {
     id: LaunchpadId
@@ -729,6 +774,7 @@ declare global {
   interface DaemonLaunch {
     listLaunchpads: () => Promise<IpcResponse<LaunchpadDefinition[]>>
     listWalletOptions: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption[]>>
+    listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => Promise<IpcResponse<PulseTokenFeed>>
     pickImage: () => Promise<IpcResponse<string | null>>
     preflightToken: (input: {
       launchpad: LaunchpadId
