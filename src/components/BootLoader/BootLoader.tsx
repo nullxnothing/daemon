@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import daemonIcon from '../../assets/daemon-icon.png'
+import daemonIcon from '../../assets/daemon-mark.svg'
 import './BootLoader.css'
 
 const LETTERS = ['D', 'A', 'E', 'M', 'O', 'N']

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type RefObject } from 'react'
 import { useWalletStore } from '../../store/wallet'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { formatCompactUsd } from '../../utils/format'
 import { QuickView } from './QuickView'
 import { TransactionPreviewCard } from '../../panels/WalletPanel/TransactionPreviewCard'
@@ -627,7 +628,7 @@ function mergeWithCommon(
 export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
   const isOpen = useUIStore((s) => s.walletQuickViewOpen)
   const closeAll = useUIStore((s) => s.closeAllQuickViews)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const dashboard = useWalletStore((s) => s.dashboard)
 
   const [mode, setMode] = useState<QuickViewMode>('overview')
@@ -648,7 +649,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
 
   const navigateToWallet = () => {
     closeAll()
-    setDrawerTool('wallet')
+    useUIStore.getState().openWorkspaceTool('wallet')
   }
 
   const goBack = useCallback(() => setMode('overview'), [])
@@ -703,6 +704,19 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
       default:
         return (
           <>
+            <div className="quickview-wallet-meta">
+              <div className="quickview-wallet-meta-copy">
+                <div className="quickview-wallet-eyebrow">Active wallet</div>
+                <div className="quickview-wallet-name">{walletName}</div>
+                <div className="quickview-wallet-address">
+                  {walletAddress ? shortAddr(walletAddress) : 'No wallet selected'} · {executionLabel}
+                </div>
+              </div>
+              <button className="quickview-top-link" onClick={navigateToWallet}>
+                Open drawer
+              </button>
+            </div>
+
             <div className="quickview-header">
               <div className="quickview-balance">
                 ${portfolio ? formatCompactUsd(portfolio.totalUsd) : '0.00'}
@@ -716,6 +730,21 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
                   <span className="quickview-delta-timeframe">24H</span>
                 </div>
               )}
+            </div>
+
+            <div className="quickview-stat-grid">
+              <div className="quickview-stat-card">
+                <div className="quickview-stat-label">Tracked tokens</div>
+                <div className="quickview-stat-value">{holdings.length}</div>
+              </div>
+              <div className="quickview-stat-card">
+                <div className="quickview-stat-label">Wallets</div>
+                <div className="quickview-stat-value">{portfolio?.walletCount ?? 0}</div>
+              </div>
+              <div className="quickview-stat-card">
+                <div className="quickview-stat-label">Execution</div>
+                <div className="quickview-stat-value quickview-stat-value--sm">{executionLabel}</div>
+              </div>
             </div>
 
             <div className="quickview-actions">
@@ -792,6 +821,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
             </div>
 
             <div className="quickview-footer">
+              <div className="quickview-footer-copy">Need the full wallet workflow?</div>
               <button className="quickview-footer-link" onClick={navigateToWallet}>
                 Manage Wallets
               </button>

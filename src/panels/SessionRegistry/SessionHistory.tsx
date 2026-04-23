@@ -281,14 +281,30 @@ export function SessionHistory() {
   }, [activeProjectId, load])
 
   const unpublishedCount = profile?.unpublishedCount ?? 0
+  const activeCount = sessions.filter((s) => s.status === 'active' && (!s.terminal_id || terminals.some((t) => t.id === s.terminal_id))).length
+  const completedCount = sessions.filter((s) => s.status === 'completed').length
 
   return (
     <div className="session-history">
+      <div className="sr-workspace-bar">
+        <div className="sr-workspace-copy">
+          <span className="sr-workspace-kicker">Agent memory</span>
+          <h2 className="sr-workspace-title">Track what is still running and what is worth publishing</h2>
+          <p className="sr-workspace-subtitle">
+            Sessions should be easy to resume, relaunch, rename, and publish without scanning a terminal graveyard.
+          </p>
+        </div>
+      </div>
+
       {profile && (
         <div className="sr-stats">
           <div className="sr-stat">
-            <span className="sr-stat-value">{profile.totalSessions}</span>
-            <span className="sr-stat-label">sessions</span>
+            <span className="sr-stat-value">{activeCount}</span>
+            <span className="sr-stat-label">active now</span>
+          </div>
+          <div className="sr-stat">
+            <span className="sr-stat-value">{completedCount}</span>
+            <span className="sr-stat-label">completed</span>
           </div>
           <div className="sr-stat">
             <span className="sr-stat-value">{profile.projectsCount}</span>
@@ -296,7 +312,7 @@ export function SessionHistory() {
           </div>
           <div className="sr-stat">
             <span className="sr-stat-value">{Math.round(profile.totalDuration / 60000)}m</span>
-            <span className="sr-stat-label">total time</span>
+            <span className="sr-stat-label">logged time</span>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import './ProjectStarter.css'
 
 // --- Template definitions ---
@@ -315,7 +316,7 @@ export function ProjectStarter() {
   const setActiveProject = useUIStore((s) => s.setActiveProject)
   const setProjects = useUIStore((s) => s.setProjects)
   const projects = useUIStore((s) => s.projects)
-  const closeDrawer = useUIStore((s) => s.closeDrawer)
+  const closeDrawer = useWorkflowShellStore((s) => s.closeDrawer)
 
   const [wizard, setWizard] = useState<WizardState>({
     step: 'templates',

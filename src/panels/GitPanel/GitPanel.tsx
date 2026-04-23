@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
-import type { GitFile, GitCommit } from '../../../electron/shared/types'
+import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useOnboardingStore } from '../../store/onboarding'
+import { confirm } from '../../store/confirm'
+import { useNotificationsStore } from '../../store/notifications'
+import type { GitFile, GitCommit, DeployStatus } from '../../../electron/shared/types'
 import './GitPanel.css'
 
 export function GitPanel() {
   const projectPath = useUIStore((s) => s.activeProjectPath)
-  const setShowOnboarding = useUIStore((s) => s.setShowOnboarding)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
   const [branch, setBranch] = useState<string | null>(null)
   const [branches, setBranches] = useState<string[]>([])
   const [files, setFiles] = useState<GitFile[]>([])
@@ -13,6 +17,9 @@ export function GitPanel() {
   const [commitMsg, setCommitMsg] = useState('')
   const [pushing, setPushing] = useState(false)
   const [committing, setCommitting] = useState(false)
+  const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null)
+  const [diffContent, setDiffContent] = useState<string | null>(null)
+  const [loadingDiff, setLoadingDiff] = useState(false)
   const [generatingCommitMsg, setGeneratingCommitMsg] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showCreateBranch, setShowCreateBranch] = useState(false)
@@ -29,6 +36,20 @@ export function GitPanel() {
   const [stashCount, setStashCount] = useState(0)
   const [latestStashMessage, setLatestStashMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [deployStatus, setDeployStatus] = useState<DeployStatus | null>(null)
+
+  const loadDeployStatus = useCallback(async () => {
+    if (!activeProjectId) return
+    try {
+      const res = await window.daemon.deploy.status(activeProjectId)
+      if (res.ok && res.data) {
+        const linked = res.data.find((s: DeployStatus) => s.linked)
+        setDeployStatus(linked ?? null)
+      }
+    } catch { /* deploy backend may not be ready yet */ }
+  }, [activeProjectId])
+
+  useEffect(() => { loadDeployStatus() }, [loadDeployStatus])
 
   const parseGitError = (message: string | undefined) => {
     if (!message) return 'Git operation failed'
@@ -37,7 +58,7 @@ export function GitPanel() {
 
   const maybeShowGitHubOnboarding = (message: string | undefined) => {
     if (message?.includes('[CONNECT_GITHUB]')) {
-      setShowOnboarding(true)
+      useOnboardingStore.getState().openWizard()
     }
   }
 
@@ -92,13 +113,13 @@ export function GitPanel() {
   const handleStageFolder = async (folder: string) => {
     if (!projectPath) return
     const folderFiles = files
-      .filter((f) => (f.unstaged || f.untracked) && f.path.startsWith(folder))
+      .filter((f) => (f.unstaged || f.untracked) && f.path.startsWith(folder + '/'))
       .map((f) => f.path)
     if (folderFiles.length > 0) await window.daemon.git.stage(projectPath, folderFiles)
     load()
   }
 
-  const handleCommitAndPush = async () => {
+  const handleCommit = async () => {
     if (!projectPath || !commitMsg.trim()) return
     const hasStagedFiles = files.some((f) => f.staged)
     if (!hasStagedFiles) return
@@ -114,15 +135,8 @@ export function GitPanel() {
       return
     }
 
-    const pushRes = await window.daemon.git.push(projectPath)
-    if (pushRes.ok) {
-      setCommitMsg('')
-      load()
-    } else {
-      maybeShowGitHubOnboarding(pushRes.error)
-      setError(parseGitError(pushRes.error) ?? 'Push failed')
-    }
-
+    setCommitMsg('')
+    load()
     setCommitting(false)
   }
 
@@ -158,15 +172,31 @@ export function GitPanel() {
 
   const handlePush = async () => {
     if (!projectPath) return
+    // Gate pushes to main/master with a typed-name confirmation
+    if (branch === 'main' || branch === 'master') {
+      const ok = await confirm({
+        title: `Push to ${branch}?`,
+        body: `You're about to push directly to ${branch}. Type the branch name to confirm.`,
+        danger: true,
+        confirmLabel: 'Push',
+        typedConfirmation: branch,
+      })
+      if (!ok) return
+    }
     setPushing(true)
     setError(null)
     const res = await window.daemon.git.push(projectPath)
     setPushing(false)
     if (!res.ok) {
       maybeShowGitHubOnboarding(res.error)
-      setError(parseGitError(res.error) ?? 'Push failed')
+      const msg = parseGitError(res.error) ?? 'Push failed'
+      setError(msg)
+      useNotificationsStore.getState().pushError(msg, 'Git push')
+    } else {
+      useNotificationsStore.getState().pushSuccess(`Pushed ${branch ?? 'branch'}`, 'Git')
+      load()
+      loadDeployStatus()
     }
-    else load()
   }
 
   const handleCheckout = async (br: string) => {
@@ -275,6 +305,48 @@ export function GitPanel() {
     load()
   }
 
+  const handleFileClick = async (filePath: string) => {
+    if (!projectPath) return
+    if (selectedDiffFile === filePath) {
+      setSelectedDiffFile(null)
+      setDiffContent(null)
+      return
+    }
+    setSelectedDiffFile(filePath)
+    setLoadingDiff(true)
+    setDiffContent(null)
+    const res = await window.daemon.git.diff(projectPath, filePath)
+    setLoadingDiff(false)
+    if (res.ok && res.data) setDiffContent(res.data)
+    else setDiffContent(null)
+  }
+
+  const handleDiscard = async (filePath: string) => {
+    if (!projectPath) return
+    const fileName = filePath.split(/[\\/]/).pop() ?? filePath
+    const ok = await confirm({
+      title: `Discard changes to ${fileName}?`,
+      body: 'This permanently reverts uncommitted changes and cannot be undone.',
+      danger: true,
+      confirmLabel: 'Discard',
+    })
+    if (!ok) return
+    setError(null)
+    const res = await window.daemon.git.discard(projectPath, filePath)
+    if (!res.ok) {
+      const msg = res.error ?? 'Discard failed'
+      setError(msg)
+      useNotificationsStore.getState().pushError(msg, 'Git discard')
+      return
+    }
+    useNotificationsStore.getState().pushSuccess(`Discarded ${fileName}`, 'Git')
+    if (selectedDiffFile === filePath) {
+      setSelectedDiffFile(null)
+      setDiffContent(null)
+    }
+    load()
+  }
+
   if (!projectPath) {
     return (
       <div className="git-center">
@@ -286,41 +358,51 @@ export function GitPanel() {
   const staged = files.filter((f) => f.staged)
   const unstaged = files.filter((f) => f.unstaged || f.untracked)
   const isWorkingInCopy = !!branch && branch !== 'main' && branch !== 'master'
+  const workingTreeLabel = files.length === 0 ? 'Clean' : `${unstaged.length} changes`
+  const deployLabel = deployStatus ? `${deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'} ${deployStatus.latestStatus ?? 'Linked'}` : 'No linked deploy'
 
   return (
     <div className="git-center">
-      {/* Header */}
-      <div className="git-header">
-        <h2 className="git-title">Git</h2>
-        <div className="git-branch-selector">
-          <select value={branch ?? ''} onChange={(e) => handleCheckout(e.target.value)}>
-            {branches.map((b) => (
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
-          <span className="git-branch-chevron" aria-hidden="true">▾</span>
-          {isWorkingInCopy && (
-            <div className="git-branch-safety-pill">
-              Working safely in a copy (Branch: {branch})
+      <section className="git-workflow-hero">
+        <div className="git-workflow-header">
+          <div className="git-workflow-copy">
+            <div className="git-workflow-kicker">Version Control</div>
+            <h2 className="git-title">Git workflow</h2>
+            <p className="git-workflow-text">
+              Read branch state first, stage deliberately, then commit and push from one surface without losing deploy context.
+            </p>
+          </div>
+
+          <div className="git-workflow-topbar">
+            <div className="git-branch-selector">
+              <select value={branch ?? ''} onChange={(e) => handleCheckout(e.target.value)}>
+                {branches.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              <span className="git-branch-chevron" aria-hidden="true">▾</span>
+              {isWorkingInCopy && (
+                <div className="git-branch-safety-pill">
+                  Working safely in a copy (Branch: {branch})
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div className="git-add-menu-wrap">
-          <button
-            className="git-add-btn"
-            onClick={() => {
-              setShowAddMenu((prev) => !prev)
-              setShowCreateBranch(false)
-              setShowCreateTag(false)
-              setShowStashSave(false)
-            }}
-            aria-expanded={showAddMenu}
-            aria-haspopup="menu"
-          >
-            + Add
-          </button>
-          {showAddMenu && (
-            <div className="git-add-menu" role="menu">
+            <div className="git-add-menu-wrap">
+              <button
+                className="git-add-btn"
+                onClick={() => {
+                  setShowAddMenu((prev) => !prev)
+                  setShowCreateBranch(false)
+                  setShowCreateTag(false)
+                  setShowStashSave(false)
+                }}
+                aria-expanded={showAddMenu}
+                aria-haspopup="menu"
+              >
+                + Add
+              </button>
+              {showAddMenu && (
+                <div className="git-add-menu" role="menu">
               <button
                 className="git-add-option"
                 onClick={() => setShowCreateBranch((prev) => !prev)}
@@ -436,13 +518,49 @@ export function GitPanel() {
               {latestStashMessage && (
                 <div className="git-add-meta">Latest stash: {latestStashMessage}</div>
               )}
+                </div>
+              )}
             </div>
-          )}
+            <button className="git-push-btn" onClick={handlePush} disabled={pushing}>
+              {pushing ? 'Pushing...' : 'Push'}
+            </button>
+          </div>
         </div>
-        <button className="git-push-btn" onClick={handlePush} disabled={pushing}>
-          {pushing ? 'Pushing...' : 'Push'}
-        </button>
-      </div>
+
+        <div className="git-workflow-metrics">
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Branch</div>
+            <div className="git-workflow-metric-value git-workflow-metric-value--mono">{branch ?? 'Detached'}</div>
+          </div>
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Working tree</div>
+            <div className="git-workflow-metric-value">{workingTreeLabel}</div>
+          </div>
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Ready to commit</div>
+            <div className="git-workflow-metric-value">{staged.length} staged</div>
+          </div>
+          <div className="git-workflow-metric">
+            <div className="git-workflow-metric-label">Deploy link</div>
+            <div className="git-workflow-metric-value">{deployLabel}</div>
+          </div>
+        </div>
+      </section>
+
+      {deployStatus && (() => {
+        const dotColor = deployStatus.latestStatus === 'READY' ? 'var(--green)'
+          : deployStatus.latestStatus === 'BUILDING' || deployStatus.latestStatus === 'QUEUED' ? 'var(--amber)'
+          : deployStatus.latestStatus === 'ERROR' ? 'var(--red)' : 'var(--t4)'
+        return (
+          <div
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', margin: '0 16px', fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', border: '1px solid var(--s5)', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start' }}
+            onClick={() => useUIStore.getState().openWorkspaceTool('deploy')}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+            <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>
+          </div>
+        )
+      })()}
 
       {error && <div className="git-error">{error}</div>}
 
@@ -453,13 +571,13 @@ export function GitPanel() {
           placeholder="Commit message..."
           value={commitMsg}
           onChange={(e) => setCommitMsg(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleCommitAndPush()}
+          onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
         />
-        <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0}>
-          {generatingCommitMsg ? 'Generating…' : '✨'}
+        <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0} title="Generate AI commit message" aria-label="Generate AI commit message">
+          {generatingCommitMsg ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>}
         </button>
-        <button className="git-commit-btn" onClick={handleCommitAndPush} disabled={staged.length === 0 || !commitMsg.trim() || committing || pushing}>
-          {committing ? 'Committing & Pushing…' : 'Commit & Push to Cloud'}
+        <button className="git-commit-btn" onClick={handleCommit} disabled={staged.length === 0 || !commitMsg.trim() || committing}>
+          {committing ? 'Committing…' : 'Commit'}
         </button>
       </div>
 
@@ -470,11 +588,11 @@ export function GitPanel() {
             <div className="git-file-section-header">
               <span>Staged ({staged.length})</span>
             </div>
-            <div className="git-file-section-subtext">Select files to include in this update.</div>
+            <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {staged.map((f) => (
-              <div key={f.path} className="git-file-row staged">
+              <div key={f.path} className={`git-file-row staged${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
                 <span className="git-file-status">S</span>
-                <span className="git-file-path">{f.path}</span>
+                <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
                 <button className="git-file-btn" onClick={() => handleUnstage(f.path)}>Unstage</button>
               </div>
             ))}
@@ -487,7 +605,7 @@ export function GitPanel() {
               <span>Changes ({unstaged.length})</span>
               <button className="git-file-btn" onClick={handleStageAll}>Stage All</button>
             </div>
-            <div className="git-file-section-subtext">Select files to include in this update.</div>
+            <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {(() => {
               const folders = new Map<string, typeof unstaged>()
               for (const f of unstaged) {
@@ -507,11 +625,17 @@ export function GitPanel() {
                     </div>
                   )}
                   {folderFiles.map((f) => (
-                    <div key={f.path} className="git-file-row">
-                      <span className={`git-file-status ${f.untracked ? 'untracked' : 'modified'}`}>
-                        {f.untracked ? 'U' : 'M'}
+                    <div key={f.path} className={`git-file-row${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
+                      <span className={`git-file-status ${f.untracked ? 'untracked' : f.deleted ? 'deleted' : 'modified'}`}>
+                        {f.untracked ? 'U' : f.deleted ? 'D' : 'M'}
                       </span>
-                      <span className="git-file-path">{f.path}</span>
+                      <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
+                      {!f.untracked && (
+                        <button className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Discard</button>
+                      )}
+                      {f.untracked && (
+                        <button className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Delete</button>
+                      )}
                       <button className="git-file-btn" onClick={() => handleStage(f.path)}>Stage</button>
                     </div>
                   ))}
@@ -525,6 +649,38 @@ export function GitPanel() {
           <div className="git-empty-files">Working tree clean</div>
         )}
       </div>
+
+      {/* Inline diff viewer */}
+      {selectedDiffFile && (
+        <div className="git-diff-viewer">
+          <div className="git-diff-header">
+            <span className="git-diff-filename">{selectedDiffFile}</span>
+            <button className="git-diff-close" onClick={() => { setSelectedDiffFile(null); setDiffContent(null) }}>x</button>
+          </div>
+          {loadingDiff && <div className="git-diff-loading">Loading diff...</div>}
+          {!loadingDiff && diffContent && (
+            <pre className="git-diff-body">
+              {diffContent.split('\n').map((line, i) => {
+                const isAddition = line.startsWith('+') && !line.startsWith('+++')
+                const isDeletion = line.startsWith('-') && !line.startsWith('---')
+                const isHunk = line.startsWith('@@')
+                return (
+                  <div
+                    key={i}
+                    className={`git-diff-line${isAddition ? ' git-diff-line--add' : ''}${isDeletion ? ' git-diff-line--del' : ''}${isHunk ? ' git-diff-line--hunk' : ''}`}
+                  >
+                    <span className="git-diff-lineno">{i + 1}</span>
+                    <span className="git-diff-text">{line}</span>
+                  </div>
+                )
+              })}
+            </pre>
+          )}
+          {!loadingDiff && !diffContent && (
+            <div className="git-diff-loading">No diff available (file may be untracked or binary)</div>
+          )}
+        </div>
+      )}
 
       {/* Recent commits */}
       <div className="git-log">

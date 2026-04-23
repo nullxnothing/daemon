@@ -20,11 +20,15 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   terminal: {
-    create: (opts?: { cwd?: string; startupCommand?: string }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
-    spawnAgent: (opts: { agentId: string; projectId: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
+    create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
+    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
+    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
+    ready: (id: string) => ipcRenderer.send('terminal:ready', id),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
+    checkClaude: () => ipcRenderer.invoke('terminal:check-claude'),
+    checkCodex: () => ipcRenderer.invoke('terminal:check-codex'),
     pasteFromClipboard: (id: string) => ipcRenderer.invoke('terminal:paste-from-clipboard', id),
     onData: (callback: (payload: { id: string; data: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, payload: { id: string; data: string }) => callback(payload)
@@ -43,7 +47,7 @@ contextBridge.exposeInMainWorld('daemon', {
     claudeList: () => ipcRenderer.invoke('agents:claude-list'),
     importClaude: (filePath: string) => ipcRenderer.invoke('agents:import-claude', filePath),
     syncClaude: (filePath: string) => ipcRenderer.invoke('agents:sync-claude', filePath),
-    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; shortcut?: string }) =>
+    create: (agent: { name: string; systemPrompt: string; model: string; mcps: string[]; provider?: string; shortcut?: string }) =>
       ipcRenderer.invoke('agents:create', agent),
     update: (id: string, data: Record<string, unknown>) => ipcRenderer.invoke('agents:update', id, data),
     delete: (id: string) => ipcRenderer.invoke('agents:delete', id),
@@ -60,6 +64,10 @@ contextBridge.exposeInMainWorld('daemon', {
     propagate: (key: string, value: string, projectPaths: string[]) => ipcRenderer.invoke('env:propagate', key, value, projectPaths),
     pullVercel: (projectPath: string, environment?: string) => ipcRenderer.invoke('env:pull-vercel', projectPath, environment),
     projects: () => ipcRenderer.invoke('env:projects'),
+    vercelVars: (projectId: string) => ipcRenderer.invoke('env:vercel-vars', projectId),
+    vercelCreateVar: (projectId: string, key: string, value: string, target: string[], type?: string) => ipcRenderer.invoke('env:vercel-create-var', projectId, key, value, target, type),
+    vercelUpdateVar: (projectId: string, envVarId: string, value: string, target?: string[]) => ipcRenderer.invoke('env:vercel-update-var', projectId, envVarId, value, target),
+    vercelDeleteVar: (projectId: string, envVarId: string) => ipcRenderer.invoke('env:vercel-delete-var', projectId, envVarId),
   },
 
   process: {
@@ -71,6 +79,9 @@ contextBridge.exposeInMainWorld('daemon', {
   fs: {
     readDir: (dirPath: string, depth?: number) => ipcRenderer.invoke('fs:readDir', dirPath, depth),
     readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
+    readImageBase64: (filePath: string) => ipcRenderer.invoke('fs:readImageBase64', filePath),
+    writeImageFromBase64: (filePath: string, base64: string) => ipcRenderer.invoke('fs:writeImageFromBase64', filePath, base64),
+    pickImage: () => ipcRenderer.invoke('fs:pickImage'),
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
     createFile: (filePath: string) => ipcRenderer.invoke('fs:createFile', filePath),
     createDir: (dirPath: string) => ipcRenderer.invoke('fs:createDir', dirPath),
@@ -100,8 +111,62 @@ contextBridge.exposeInMainWorld('daemon', {
     claudeMdWrite: (projectPath: string, content: string) => ipcRenderer.invoke('claude:claudemd-write', projectPath, content),
     verifyConnection: () => ipcRenderer.invoke('claude:verify-connection'),
     getConnection: () => ipcRenderer.invoke('claude:get-connection'),
+    installCli: () => ipcRenderer.invoke('claude:install-cli'),
+    authLogin: () => ipcRenderer.invoke('claude:auth-login'),
+    disconnect: () => ipcRenderer.invoke('claude:disconnect'),
     suggestCommitMessage: (diff: string) => ipcRenderer.invoke('claude:suggest-commit-message', diff),
     tidyMarkdown: (filePath: string, content: string) => ipcRenderer.invoke('claude:tidy-markdown', filePath, content),
+  },
+
+  codex: {
+    verifyConnection: () => ipcRenderer.invoke('codex:verify-connection'),
+    getConnection: () => ipcRenderer.invoke('codex:get-connection'),
+    mcpAll: () => ipcRenderer.invoke('codex:mcp-all'),
+    mcpToggle: (name: string, enabled: boolean) => ipcRenderer.invoke('codex:mcp-toggle', name, enabled),
+    mcpAdd: (name: string, command: string, args?: string[], env?: Record<string, string>) => ipcRenderer.invoke('codex:mcp-add', name, command, args, env),
+    restartSession: (terminalId: string) => ipcRenderer.invoke('codex:restart-session', terminalId),
+    restartAllSessions: () => ipcRenderer.invoke('codex:restart-all-sessions'),
+    storeKey: (name: string, value: string) => ipcRenderer.invoke('codex:store-key', name, value),
+    agentsMdRead: (projectPath: string) => ipcRenderer.invoke('codex:agentsmd-read', projectPath),
+    agentsMdWrite: (projectPath: string, content: string) => ipcRenderer.invoke('codex:agentsmd-write', projectPath, content),
+    installCli: () => ipcRenderer.invoke('codex:install-cli'),
+    logout: () => ipcRenderer.invoke('codex:logout'),
+    getModel: () => ipcRenderer.invoke('codex:get-model'),
+    getReasoningEffort: () => ipcRenderer.invoke('codex:get-reasoning-effort'),
+  },
+
+  provider: {
+    verifyAll: () => ipcRenderer.invoke('provider:verify-all'),
+    getAllConnections: () => ipcRenderer.invoke('provider:get-all-connections'),
+    getDefault: () => ipcRenderer.invoke('provider:get-default'),
+    setDefault: (id: string) => ipcRenderer.invoke('provider:set-default', id),
+  },
+
+  activity: {
+    append: (entry: { id: string; kind: string; message: string; context: string | null; createdAt: number }) =>
+      ipcRenderer.invoke('activity:append', entry),
+    list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
+    clear: () => ipcRenderer.invoke('activity:clear'),
+  },
+
+  events: {
+    on: (channel: string, callback: (payload: unknown) => void) => {
+      // Whitelist of event channels the renderer is allowed to subscribe to.
+      // Add new channels here as new broadcast events are introduced.
+      const allowed = new Set([
+        'auth:changed',
+        'process:changed',
+        'port:changed',
+        'wallet:changed',
+      ])
+      if (!allowed.has(channel)) {
+        console.warn(`[preload] events.on rejected unknown channel: ${channel}`)
+        return () => { /* no-op */ }
+      }
+      const handler = (_: unknown, payload: unknown) => callback(payload)
+      ipcRenderer.on(channel, handler)
+      return () => ipcRenderer.off(channel, handler)
+    },
   },
 
   git: {
@@ -123,6 +188,7 @@ contextBridge.exposeInMainWorld('daemon', {
     stashSave: (cwd: string, message?: string) => ipcRenderer.invoke('git:stash-save', cwd, message),
     stashPop: (cwd: string) => ipcRenderer.invoke('git:stash-pop', cwd),
     stashList: (cwd: string) => ipcRenderer.invoke('git:stash-list', cwd),
+    discard: (cwd: string, filePath: string) => ipcRenderer.invoke('git:discard', cwd, filePath),
   },
 
   ports: {
@@ -139,17 +205,91 @@ contextBridge.exposeInMainWorld('daemon', {
     list: () => ipcRenderer.invoke('wallet:list'),
     create: (wallet: { name: string; address: string }) => ipcRenderer.invoke('wallet:create', wallet),
     delete: (id: string) => ipcRenderer.invoke('wallet:delete', id),
+    rename: (id: string, name: string) => ipcRenderer.invoke('wallet:rename', id, name),
     setDefault: (id: string) => ipcRenderer.invoke('wallet:set-default', id),
     assignProject: (projectId: string, walletId: string | null) => ipcRenderer.invoke('wallet:assign-project', projectId, walletId),
     storeHeliusKey: (value: string) => ipcRenderer.invoke('wallet:store-helius-key', value),
     deleteHeliusKey: () => ipcRenderer.invoke('wallet:delete-helius-key'),
     hasHeliusKey: () => ipcRenderer.invoke('wallet:has-helius-key'),
+    storeJupiterKey: (value: string) => ipcRenderer.invoke('wallet:store-jupiter-key', value),
+    deleteJupiterKey: () => ipcRenderer.invoke('wallet:delete-jupiter-key'),
+    hasJupiterKey: () => ipcRenderer.invoke('wallet:has-jupiter-key'),
+    generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
+    balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
+    holdings: (walletId: string) => ipcRenderer.invoke('wallet:holdings', walletId),
+    swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
+    transactionPreview: (input: object) => ipcRenderer.invoke('wallet:transaction-preview', input),
+    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => ipcRenderer.invoke('wallet:swap-execute', input),
+    agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
+    createAgentWallet: (agentId: string, agentName: string) => ipcRenderer.invoke('wallet:create-agent-wallet', agentId, agentName),
+    hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
+    transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
+    exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
+  },
+
+  pro: {
+    status: () => ipcRenderer.invoke('pro:status'),
+    refreshStatus: (walletAddress: string) => ipcRenderer.invoke('pro:refresh-status', walletAddress),
+    fetchPrice: () => ipcRenderer.invoke('pro:fetch-price'),
+    subscribe: (walletId: string) => ipcRenderer.invoke('pro:subscribe', walletId),
+    claimHolderAccess: (walletId: string) => ipcRenderer.invoke('pro:claim-holder-access', walletId),
+    signOut: () => ipcRenderer.invoke('pro:sign-out'),
+    arenaList: () => ipcRenderer.invoke('pro:arena-list'),
+    arenaSubmit: (input: unknown) => ipcRenderer.invoke('pro:arena-submit', input),
+    arenaVote: (submissionId: string) => ipcRenderer.invoke('pro:arena-vote', submissionId),
+    skillsManifest: () => ipcRenderer.invoke('pro:skills-manifest'),
+    skillsSync: () => ipcRenderer.invoke('pro:skills-sync'),
+    skillsDownload: (skillId: string) => ipcRenderer.invoke('pro:skills-download', skillId),
+    quota: () => ipcRenderer.invoke('pro:quota'),
+    mcpPush: () => ipcRenderer.invoke('pro:mcp-push'),
+    mcpPull: () => ipcRenderer.invoke('pro:mcp-pull'),
+  },
+
+  pnl: {
+    syncHistory: (walletAddress?: string) => ipcRenderer.invoke('pnl:sync-history', walletAddress),
+    getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => ipcRenderer.invoke('pnl:get-portfolio', walletAddress, holdings),
+    getTokenDetail: (walletAddress: string, mint: string) => ipcRenderer.invoke('pnl:get-token-detail', walletAddress, mint),
+    refreshPrices: (mints: string[]) => ipcRenderer.invoke('pnl:refresh-prices', mints),
   },
 
   settings: {
     getUi: () => ipcRenderer.invoke('settings:get-ui'),
+    getAppMeta: () => ipcRenderer.invoke('settings:get-app-meta'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
+    isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),
+    setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke('settings:set-onboarding-complete', complete),
+    getOnboardingProgress: () => ipcRenderer.invoke('settings:get-onboarding-progress'),
+    setOnboardingProgress: (progress: object) => ipcRenderer.invoke('settings:set-onboarding-progress', progress),
+    reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
+    getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
+    clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
+    recoverUiState: () => ipcRenderer.invoke('settings:recover-ui-state'),
+    getPinnedTools: () => ipcRenderer.invoke('settings:get-pinned-tools'),
+    setPinnedTools: (tools: string[]) => ipcRenderer.invoke('settings:set-pinned-tools', tools),
+    getDrawerToolOrder: () => ipcRenderer.invoke('settings:get-drawer-tool-order'),
+    setDrawerToolOrder: (order: string[]) => ipcRenderer.invoke('settings:set-drawer-tool-order', order),
+    getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
+    setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
+    getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
+    setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
+    getWalletInfrastructureSettings: () => ipcRenderer.invoke('settings:get-wallet-infrastructure-settings'),
+    getSolanaRuntimeStatus: () => ipcRenderer.invoke('settings:get-solana-runtime-status'),
+    setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
+    getLayout: () => ipcRenderer.invoke('settings:get-layout'),
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
+    onCrashWarning: (callback: (count: number) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
+      ipcRenderer.on('crash-warning', handler)
+      return () => ipcRenderer.off('crash-warning', handler)
+    },
+    onUiRecoveryApplied: (callback: (result: { clearedKeys: string[]; clearedActiveSessions: number; ranAt: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, result: { clearedKeys: string[]; clearedActiveSessions: number; ranAt: number }) => callback(result)
+      ipcRenderer.on('ui-recovery-applied', handler)
+      return () => ipcRenderer.off('ui-recovery-applied', handler)
+    },
   },
 
   plugins: {
@@ -157,6 +297,24 @@ contextBridge.exposeInMainWorld('daemon', {
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('plugins:set-enabled', id, enabled),
     setConfig: (id: string, config: string) => ipcRenderer.invoke('plugins:set-config', id, config),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),
+  },
+
+  browser: {
+    navigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
+    capture: (pageId: string, url: string, title: string, content: string) => ipcRenderer.invoke('browser:capture', pageId, url, title, content),
+    content: (pageId: string) => ipcRenderer.invoke('browser:content', pageId),
+    analyze: (pageId: string, type: string, target?: string) => ipcRenderer.invoke('browser:analyze', pageId, type, target),
+    audit: (pageId: string) => ipcRenderer.invoke('browser:audit', pageId),
+    history: () => ipcRenderer.invoke('browser:history'),
+    clear: () => ipcRenderer.invoke('browser:clear'),
+    chat: (sessionId: string, message: string, browserContext?: string) => ipcRenderer.invoke('browser:chat', sessionId, message, browserContext),
+    chatReset: (sessionId: string) => ipcRenderer.invoke('browser:chat-reset', sessionId),
+  },
+
+  feedback: {
+    submit: (input: { title: string; description: string; activePanel?: string; logs?: string }) =>
+      ipcRenderer.invoke('feedback:submit', input),
+    openUrl: (url: string) => ipcRenderer.invoke('feedback:open-url', url),
   },
 
   tweets: {
@@ -181,23 +339,6 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
-  tools: {
-    list: () => ipcRenderer.invoke('tools:list'),
-    get: (id: string) => ipcRenderer.invoke('tools:get', id),
-    create: (input: { name: string; description?: string; category?: string; language?: string }) =>
-      ipcRenderer.invoke('tools:create', input),
-    update: (id: string, data: Record<string, unknown>) => ipcRenderer.invoke('tools:update', id, data),
-    delete: (id: string, removeFiles?: boolean) => ipcRenderer.invoke('tools:delete', id, removeFiles),
-    import: () => ipcRenderer.invoke('tools:import'),
-    discover: () => ipcRenderer.invoke('tools:discover'),
-    runCommand: (id: string) => ipcRenderer.invoke('tools:run-command', id),
-    markRunning: (toolId: string, terminalId: string, pid: number) => ipcRenderer.invoke('tools:mark-running', toolId, terminalId, pid),
-    markStopped: (toolId: string) => ipcRenderer.invoke('tools:mark-stopped', toolId),
-    status: (id: string) => ipcRenderer.invoke('tools:status', id),
-    openFolder: (id: string) => ipcRenderer.invoke('tools:open-folder', id),
-    basePath: () => ipcRenderer.invoke('tools:base-path'),
-  },
-
   engine: {
     run: (action: { type: string; projectId?: string; payload?: Record<string, unknown> }) =>
       ipcRenderer.invoke('engine:run', action),
@@ -220,6 +361,156 @@ contextBridge.exposeInMainWorld('daemon', {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
   },
+
+  pumpfun: {
+    bondingCurve: (mint: string) => ipcRenderer.invoke('pumpfun:bonding-curve', mint),
+    createToken: (input: object) => ipcRenderer.invoke('pumpfun:create-token', input),
+    buy: (input: object) => ipcRenderer.invoke('pumpfun:buy', input),
+    sell: (input: object) => ipcRenderer.invoke('pumpfun:sell', input),
+    collectFees: (walletId: string) => ipcRenderer.invoke('pumpfun:collect-fees', walletId),
+    pickImage: () => ipcRenderer.invoke('pumpfun:pick-image'),
+    hasKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:has-keypair', walletId),
+    importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
+  },
+
+  launch: {
+    listLaunchpads: () => ipcRenderer.invoke('launch:list-launchpads'),
+    listWalletOptions: (projectId?: string | null) => ipcRenderer.invoke('launch:list-wallet-options', projectId),
+    listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => ipcRenderer.invoke('launch:list-pulse-tokens', input),
+    pickImage: () => ipcRenderer.invoke('launch:pick-image'),
+    preflightToken: (input: object) => ipcRenderer.invoke('launch:preflight-token', input),
+    createToken: (input: object) => ipcRenderer.invoke('launch:create-token', input),
+    saveToken: (input: object) => ipcRenderer.invoke('launch:save-token', input),
+    listTokens: (walletId?: string) => ipcRenderer.invoke('launch:list-tokens', walletId),
+    getToken: (idOrMint: string) => ipcRenderer.invoke('launch:get-token', idOrMint),
+  },
+
+  aria: {
+    send: (sessionId: string, message: string) => ipcRenderer.invoke('aria:send', sessionId, message),
+    history: (sessionId: string, limit?: number) => ipcRenderer.invoke('aria:history', sessionId, limit),
+    clear: (sessionId: string) => ipcRenderer.invoke('aria:clear', sessionId),
+  },
+
+  dashboard: {
+    tokenPrice: (mint: string) => ipcRenderer.invoke('dashboard:token-price', mint),
+    tokenMetadata: (mint: string) => ipcRenderer.invoke('dashboard:token-metadata', mint),
+    tokenHolders: (mint: string) => ipcRenderer.invoke('dashboard:token-holders', mint),
+    detectTokens: (walletAddress: string) => ipcRenderer.invoke('dashboard:detect-tokens', walletAddress),
+    importToken: (mint: string, walletId: string) => ipcRenderer.invoke('dashboard:import-token', mint, walletId),
+  },
+
+  images: {
+    generate: (input: { prompt: string; model: string; aspectRatio: string; projectId?: string; tags?: string[] }) => ipcRenderer.invoke('images:generate', input),
+    list: (filter?: { projectId?: string; source?: string; model?: string; limit?: number; offset?: number }) => ipcRenderer.invoke('images:list', filter ?? {}),
+    get: (id: string) => ipcRenderer.invoke('images:get', id),
+    delete: (id: string) => ipcRenderer.invoke('images:delete', id),
+    updateTags: (id: string, tags: string[]) => ipcRenderer.invoke('images:update-tags', id, tags),
+    getBase64: (id: string) => ipcRenderer.invoke('images:get-base64', id),
+    importFile: () => ipcRenderer.invoke('images:import-file'),
+    reveal: (id: string) => ipcRenderer.invoke('images:reveal', id),
+    startWatcher: () => ipcRenderer.invoke('images:watcher-start'),
+    stopWatcher: () => ipcRenderer.invoke('images:watcher-stop'),
+    watcherStatus: () => ipcRenderer.invoke('images:watcher-status'),
+    hasApiKey: () => ipcRenderer.invoke('images:has-api-key'),
+    onWatcherNew: (callback: (payload: { id: string; filename: string; source: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { id: string; filename: string; source: string }) => callback(payload)
+      ipcRenderer.on('images:watcher-new', handler)
+      return () => ipcRenderer.off('images:watcher-new', handler)
+    },
+  },
+
+  email: {
+    accounts: () => ipcRenderer.invoke('email:accounts'),
+    hasGmailCreds: () => ipcRenderer.invoke('email:has-gmail-creds'),
+    storeGmailCreds: (clientId: string, clientSecret: string) => ipcRenderer.invoke('email:store-gmail-creds', clientId, clientSecret),
+    addGmail: (clientId?: string, clientSecret?: string) => ipcRenderer.invoke('email:add-gmail', clientId, clientSecret),
+    addICloud: (email: string, appPassword: string) => ipcRenderer.invoke('email:add-icloud', email, appPassword),
+    remove: (accountId: string) => ipcRenderer.invoke('email:remove', accountId),
+    messages: (accountId: string, query?: string, max?: number) => ipcRenderer.invoke('email:messages', accountId, query, max),
+    read: (accountId: string, messageId: string) => ipcRenderer.invoke('email:read', accountId, messageId),
+    send: (accountId: string, to: string, subject: string, body: string, cc?: string, bcc?: string) => ipcRenderer.invoke('email:send', accountId, to, subject, body, cc, bcc),
+    markRead: (accountId: string, messageIds: string[]) => ipcRenderer.invoke('email:mark-read', accountId, messageIds),
+    markAllRead: (accountId?: string) => ipcRenderer.invoke('email:mark-all-read', accountId),
+    extract: (accountId: string, messageId: string) => ipcRenderer.invoke('email:extract', accountId, messageId),
+    summarize: (accountId: string, messageId: string) => ipcRenderer.invoke('email:summarize', accountId, messageId),
+    sync: (accountId: string) => ipcRenderer.invoke('email:sync', accountId),
+    unreadCounts: () => ipcRenderer.invoke('email:unread-counts'),
+    settings: (accountId: string, settings: string) => ipcRenderer.invoke('email:settings', accountId, settings),
+  },
+
+  deploy: {
+    authStatus: () => ipcRenderer.invoke('deploy:auth-status'),
+    connectVercel: (token: string) => ipcRenderer.invoke('deploy:connect-vercel', token),
+    connectRailway: (token: string) => ipcRenderer.invoke('deploy:connect-railway', token),
+    disconnect: (platform: string) => ipcRenderer.invoke('deploy:disconnect', platform),
+    vercelProjects: (teamId?: string) => ipcRenderer.invoke('deploy:vercel-projects', teamId),
+    railwayProjects: () => ipcRenderer.invoke('deploy:railway-projects'),
+    link: (projectId: string, platform: string, linkData: object) => ipcRenderer.invoke('deploy:link', projectId, platform, linkData),
+    unlink: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:unlink', projectId, platform),
+    status: (projectId: string) => ipcRenderer.invoke('deploy:status', projectId),
+    deployments: (projectId: string, platform: string, limit?: number) => ipcRenderer.invoke('deploy:deployments', projectId, platform, limit),
+    redeploy: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:redeploy', projectId, platform),
+    envVars: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:env-vars', projectId, platform),
+    autoDetect: (projectPath: string) => ipcRenderer.invoke('deploy:auto-detect', projectPath),
+  },
+
+  registry: {
+    listSessions: (limit?: number) => ipcRenderer.invoke('registry:list-sessions', limit),
+    getProfile: () => ipcRenderer.invoke('registry:get-profile'),
+    publishSession: (sessionId: string) => ipcRenderer.invoke('registry:publish-session', sessionId),
+    publishAll: () => ipcRenderer.invoke('registry:publish-all'),
+    renameSession: (sessionId: string, name: string) => ipcRenderer.invoke('registry:rename-session', sessionId, name),
+  },
+
+  colosseum: {
+    status: () => ipcRenderer.invoke('colosseum:status'),
+    searchProjects: (query: string, limit?: number, filters?: object) => ipcRenderer.invoke('colosseum:search-projects', query, limit, filters),
+    searchArchives: (query: string, limit?: number) => ipcRenderer.invoke('colosseum:search-archives', query, limit),
+    projectDetail: (slug: string) => ipcRenderer.invoke('colosseum:project-detail', slug),
+    filters: () => ipcRenderer.invoke('colosseum:filters'),
+    storePat: (pat: string) => ipcRenderer.invoke('colosseum:store-pat', pat),
+    isConfigured: () => ipcRenderer.invoke('colosseum:is-configured'),
+  },
+
+  tools: {
+    list: () => ipcRenderer.invoke('tools:list'),
+    get: (id: string) => ipcRenderer.invoke('tools:get', id),
+    create: (opts: { name: string; description?: string; category: string; language: string }) => ipcRenderer.invoke('tools:create', opts),
+    delete: (id: string, deleteFiles: boolean) => ipcRenderer.invoke('tools:delete', id, deleteFiles),
+    runCommand: (id: string) => ipcRenderer.invoke('tools:runCommand', id),
+    markRunning: (id: string, terminalId: string, pid: number) => ipcRenderer.invoke('tools:markRunning', id, terminalId, pid),
+    markStopped: (toolId: string) => ipcRenderer.invoke('tools:markStopped', toolId),
+    update: (id: string, data: Record<string, unknown>) => ipcRenderer.invoke('tools:update', id, data),
+    discover: () => ipcRenderer.invoke('tools:discover'),
+    status: (id: string) => ipcRenderer.invoke('tools:status', id),
+    basePath: () => ipcRenderer.invoke('tools:basePath'),
+    openFolder: (id: string) => ipcRenderer.invoke('tools:openFolder', id),
+    import: () => ipcRenderer.invoke('tools:import'),
+  },
+
+  vault: {
+    list: () => ipcRenderer.invoke('vault:list'),
+    get: (id: string) => ipcRenderer.invoke('vault:get', id),
+    store: (opts: { name: string; data: string; fileType: string; ownerWallet?: string }) => ipcRenderer.invoke('vault:store', opts),
+    retrieve: (id: string) => ipcRenderer.invoke('vault:retrieve', id),
+    delete: (id: string) => ipcRenderer.invoke('vault:delete', id),
+    setOwner: (id: string, ownerWallet: string | null) => ipcRenderer.invoke('vault:set-owner', id, ownerWallet),
+    importFile: () => ipcRenderer.invoke('vault:import-file'),
+  },
+
+  validator: {
+    start: (type: string) => ipcRenderer.invoke('validator:start', type),
+    stop: () => ipcRenderer.invoke('validator:stop'),
+    status: () => ipcRenderer.invoke('validator:status'),
+    detect: () => ipcRenderer.invoke('validator:detect'),
+    toolchainStatus: (projectPath?: string) => ipcRenderer.invoke('validator:toolchain-status', projectPath),
+    detectProject: (projectPath: string) => ipcRenderer.invoke('validator:detect-project', projectPath),
+    onStatusChange: (callback: (state: unknown) => void) => {
+      const handler = (_event: unknown, state: unknown) => callback(state)
+      ipcRenderer.on('validator:status-change', handler)
+      return () => { ipcRenderer.off('validator:status-change', handler) }
+    },
+  },
 })
 
 // Loading screen
@@ -241,14 +532,97 @@ function useLoading() {
   position: fixed;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #090909;
+  background: #0a0a0a;
   z-index: 9;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #7a7a7a;
-  font-size: 14px;
-  letter-spacing: 0.5px;
+  gap: 28px;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+.daemon-loading--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.daemon-loading__ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(62,207,142,0.12),
+    inset 0 0 12px rgba(62,207,142,0.08),
+    0 0 16px rgba(62,207,142,0.06);
+  animation: dl-spin 2.4s cubic-bezier(0.45,0.05,0.55,0.95) infinite;
+  position: relative;
+}
+.daemon-loading__ring::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: #3ecf8e;
+  border-right-color: rgba(62,207,142,0.4);
+  box-shadow: 0 0 8px rgba(62,207,142,0.35), 0 0 20px rgba(62,207,142,0.12);
+}
+.daemon-loading__text {
+  display: flex;
+  gap: 2px;
+}
+.daemon-loading__letter {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #f0f0f0;
+  display: inline-block;
+  animation: dl-pulse 2.8s ease-in-out infinite;
+}
+.daemon-loading__letter:nth-child(1) { animation-delay: 0.00s; }
+.daemon-loading__letter:nth-child(2) { animation-delay: 0.08s; }
+.daemon-loading__letter:nth-child(3) { animation-delay: 0.16s; }
+.daemon-loading__letter:nth-child(4) { animation-delay: 0.24s; }
+.daemon-loading__letter:nth-child(5) { animation-delay: 0.32s; }
+.daemon-loading__letter:nth-child(6) { animation-delay: 0.40s; }
+.daemon-loading__status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #505050;
+  min-height: 14px;
+}
+.daemon-loading__bar {
+  width: 160px;
+  height: 1px;
+  background: #222222;
+  border-radius: 1px;
+  overflow: hidden;
+}
+.daemon-loading__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2a8c62, #3ecf8e);
+  box-shadow: 0 0 6px rgba(62,207,142,0.5);
+  border-radius: 1px;
+  animation: dl-sweep 2s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+@keyframes dl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes dl-pulse {
+  0%, 60%, 100% { color: #f0f0f0; text-shadow: none; }
+  30% { color: #3ecf8e; text-shadow: 0 0 12px rgba(62,207,142,0.5); }
+}
+@keyframes dl-sweep {
+  0%   { width: 0%;  margin-left: 0%; }
+  50%  { width: 60%; margin-left: 20%; }
+  100% { width: 0%;  margin-left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daemon-loading__ring, .daemon-loading__letter, .daemon-loading__fill { animation: none; }
+  .daemon-loading__fill { width: 40%; }
 }
   `
   const oStyle = document.createElement('style')
@@ -257,7 +631,19 @@ function useLoading() {
   oStyle.id = 'daemon-loading-style'
   oStyle.innerHTML = styleContent
   oDiv.className = 'daemon-loading'
-  oDiv.innerHTML = 'DAEMON'
+  oDiv.innerHTML = `
+    <div class="daemon-loading__ring"></div>
+    <div class="daemon-loading__text">
+      <span class="daemon-loading__letter">D</span>
+      <span class="daemon-loading__letter">A</span>
+      <span class="daemon-loading__letter">E</span>
+      <span class="daemon-loading__letter">M</span>
+      <span class="daemon-loading__letter">O</span>
+      <span class="daemon-loading__letter">N</span>
+    </div>
+    <div class="daemon-loading__status">initializing...</div>
+    <div class="daemon-loading__bar"><div class="daemon-loading__fill"></div></div>
+  `
 
   return {
     appendLoading() {
@@ -265,8 +651,8 @@ function useLoading() {
       document.body.appendChild(oDiv)
     },
     removeLoading() {
-      oStyle.remove()
-      oDiv.remove()
+      oDiv.classList.add('daemon-loading--hidden')
+      setTimeout(() => { oStyle.remove(); oDiv.remove() }, 450)
     },
   }
 }

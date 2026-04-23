@@ -5,14 +5,45 @@
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  padding: 8px;
-  gap: 8px;
+  padding: 0 20px 28px;
+  gap: 16px;
+  background: var(--bg);
 }
 
-.hackathon-header {
+.hackathon-workspace-bar {
+  padding: 18px 0 14px;
+  border-bottom: 1px solid var(--s4);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+}
+
+.hackathon-workspace-copy {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hackathon-workspace-kicker,
+.hackathon-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.hackathon-workspace-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.08;
+  color: var(--t1);
+}
+
+.hackathon-workspace-subtitle {
+  margin: 0;
+  max-width: 720px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--t3);
 }
 
 .hackathon-header-label {
@@ -48,23 +79,19 @@
 .hackathon-connect {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .hackathon-desc {
-  font-size: 11px;
+  margin: 0;
+  font-size: 12px;
   color: var(--t3);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.55;
 }
 
 .hackathon-input-row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .hackathon-input {
@@ -150,19 +177,32 @@
 /* Active hackathon card */
 
 .hackathon-card {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  border: 1px solid var(--s4);
+  border-radius: 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .hackathon-card-title {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.hackathon-card-value {
+  font-size: 20px;
+  line-height: 1.1;
   color: var(--t1);
+}
+
+.hackathon-card-detail {
+  font-size: 12px;
+  color: var(--t3);
 }
 
 .hackathon-countdown {
@@ -183,15 +223,6 @@
 }
 
 /* Checklist */
-
-.hackathon-section-title {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--t3);
-  margin-top: 2px;
-}
 
 .hackathon-checklist {
   display: flex;
@@ -226,7 +257,6 @@
 
 .hackathon-search-form {
   display: flex;
-  flex-direction: column;
   gap: 6px;
 }
 
@@ -234,8 +264,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 360px;
-  overflow-y: auto;
 }
 
 .hackathon-result-card {
@@ -290,7 +318,6 @@
 
 .hackathon-actions {
   display: flex;
-  flex-direction: column;
   gap: 6px;
 }
 
@@ -310,4 +337,28 @@
   font-size: 11px;
   color: var(--t4);
   padding: 8px 0;
+}
+
+.hackathon-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .hackathon-panel {
+    padding: 0 16px 24px;
+  }
+
+  .hackathon-workspace-title {
+    font-size: 18px;
+  }
+
+  .hackathon-summary-grid,
+  .hackathon-input-row,
+  .hackathon-search-form,
+  .hackathon-actions {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
 }

@@ -61,6 +61,12 @@ export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
     description: 'Program deployment, account inspection, and Solana docs tooling.',
     category: 'rpc',
   },
+  'phantom-docs': {
+    label: 'Phantom Docs',
+    description: 'Official Phantom Connect SDK MCP for wallet connection, signing, and Portal guidance.',
+    category: 'wallets',
+    docsUrl: 'https://docs.phantom.com/resources/mcp-server',
+  },
   'payai-mcp-server': {
     label: 'PayAI',
     description: 'x402 payment protocol via the PayAI facilitator.',
@@ -155,10 +161,11 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     id: 'phantom-connect',
     label: 'Phantom Connect',
     area: 'Wallets',
-    kind: 'SDK',
-    status: 'guided',
-    description: 'First-class wallet connectivity for Solana desktop and web flows.',
-    docsUrl: 'https://docs.phantom.com/sdks/browser-sdk',
+    kind: 'MCP',
+    status: 'native',
+    description: 'Official Phantom Connect SDK docs MCP plus starter guidance for wallet connection and signing flows.',
+    docsUrl: 'https://docs.phantom.com/resources/mcp-server',
+    mcpName: 'phantom-docs',
     skill: '/phantom-connect',
   },
   {

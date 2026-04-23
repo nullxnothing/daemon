@@ -126,9 +126,20 @@ export async function createToken(input: TokenCreateInput): Promise<TokenCreateR
     formData.append('file', blob, `token.${ext}`)
   }
 
-  const metaRes = await fetch('https://pump.fun/api/ipfs', { method: 'POST', body: formData })
-  if (!metaRes.ok) throw new Error('Failed to upload token metadata')
-  const metaJson = await metaRes.json() as { metadataUri: string }
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30_000)
+  let metaJson: { metadataUri: string }
+  try {
+    const metaRes = await fetch('https://pump.fun/api/ipfs', { method: 'POST', body: formData, signal: controller.signal })
+    if (!metaRes.ok) throw new Error('Failed to upload token metadata')
+    metaJson = await metaRes.json() as { metadataUri: string }
+  } catch (e) {
+    throw e instanceof Error && e.name === 'AbortError'
+      ? new Error('Token metadata upload timed out after 30s')
+      : e
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   const mintKeypair = Keypair.generate()
   const bondingCurve = sdk.bondingCurvePda(mintKeypair.publicKey)
@@ -185,7 +196,8 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
 
   if (curve.complete) throw new Error('Bonding curve graduated. Use AMM trading.')
 
-  const solLamports = new BN(Math.floor((input.amountSol ?? 0) * 1e9))
+  if (!input.amountSol || input.amountSol <= 0) throw new Error('Buy amount must be greater than 0')
+  const solLamports = new BN(Math.floor(input.amountSol * 1e9))
   const tokenAmount = sdk.getBuyTokenAmountFromSolAmount({
     global,
     feeConfig,
@@ -210,7 +222,7 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
     user: keypair.publicKey,
     amount: tokenAmount,
     solAmount: solLamports,
-    slippage: input.slippageBps / 100,
+    slippage: input.slippageBps / 10_000,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
@@ -236,7 +248,8 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
 
   if (curve.complete) throw new Error('Bonding curve graduated. Use AMM trading.')
 
-  const tokenAmount = new BN(Math.floor((input.amountTokens ?? 0) * 1e6))
+  if (!input.amountTokens || input.amountTokens <= 0) throw new Error('Sell amount must be greater than 0')
+  const tokenAmount = new BN(Math.floor(input.amountTokens * 1e6))
   const solAmount = sdk.getSellSolAmountFromTokenAmount({
     global,
     feeConfig,
@@ -256,7 +269,7 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
     user: keypair.publicKey,
     amount: tokenAmount,
     solAmount,
-    slippage: input.slippageBps / 100,
+    slippage: input.slippageBps / 10_000,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 
 const PULSE_CATEGORIES: Array<{ id: PulseTokenCategory; label: string }> = [
   { id: 'newly-created', label: 'New' },
@@ -40,8 +40,8 @@ export function TokenLaunchSection({
   embedded?: boolean
   onRefreshRequested?: () => void
 }) {
-  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
+  const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
+  const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
 
   const [launchpads, setLaunchpads] = useState<LaunchpadDefinition[]>([])
   const [launches, setLaunches] = useState<LaunchedToken[]>([])
@@ -53,10 +53,14 @@ export function TokenLaunchSection({
   const reload = useCallback(async () => {
     setLoading(true)
     try {
+      const pulsePromise = typeof window.daemon.launch.listPulseTokens === 'function'
+        ? window.daemon.launch.listPulseTokens({ category: pulseCategory, pageSize: 6 })
+        : Promise.resolve<IpcResponse<PulseTokenFeed>>({ ok: false, error: 'Pulse feed unavailable' })
+
       const [launchpadsRes, launchesRes, pulseRes] = await Promise.all([
         window.daemon.launch.listLaunchpads(),
         window.daemon.launch.listTokens(),
-        window.daemon.launch.listPulseTokens({ category: pulseCategory, pageSize: 6 }),
+        pulsePromise,
       ])
       const walletsRes = await window.daemon.wallet.list()
       if (launchpadsRes.ok && launchpadsRes.data) {
@@ -67,6 +71,8 @@ export function TokenLaunchSection({
       }
       if (pulseRes.ok && pulseRes.data) {
         setPulseFeed(pulseRes.data)
+      } else {
+        setPulseFeed(null)
       }
       if (walletsRes.ok && walletsRes.data) {
         setWalletNames(Object.fromEntries(walletsRes.data.map((wallet) => [wallet.id, wallet.name])))
@@ -88,35 +94,53 @@ export function TokenLaunchSection({
 
   return (
     <section className={`solana-token-launch ${embedded ? 'embedded' : ''}`}>
-      <div className="solana-token-launch-header">
-        <div>
-          {!embedded && <div className="solana-token-launch-kicker">Token Launch</div>}
-          <h2 className="solana-token-launch-title">
-            {embedded ? 'Live launchpads and recent launches' : 'One launch surface for Solana token launches'}
-          </h2>
-          <p className="solana-token-launch-copy">
-            {embedded
-              ? 'Keep launch availability and recent history visible while the main CTA stays at the tool level.'
-              : 'Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.'}
-          </p>
+      {!embedded && (
+        <div className="solana-token-launch-header">
+          <div>
+            <div className="solana-token-launch-kicker">Token Launch</div>
+            <h2 className="solana-token-launch-title">One launch surface for Solana token launches</h2>
+            <p className="solana-token-launch-copy">
+              Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.
+            </p>
+          </div>
+          <div className="solana-token-launch-actions">
+            <button className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
+            <button
+              className="sol-btn"
+              onClick={() => {
+                onRefreshRequested?.()
+                void reload()
+              }}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
-        <div className="solana-token-launch-actions">
-          <button className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
-          <button
-            className="sol-btn"
-            onClick={() => {
-              onRefreshRequested?.()
-              void reload()
-            }}
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="solana-token-launch-grid">
         <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-title">Launchpads</div>
+          <div className="solana-token-launch-card-head">
+            <div>
+              <div className="solana-token-launch-card-title">Launchpads</div>
+              {embedded && (
+                <div className="solana-token-launch-card-copy">
+                  Live protocol availability stays here so the main tool CTA always has context.
+                </div>
+              )}
+            </div>
+            {embedded && (
+              <button
+                className="sol-btn"
+                onClick={() => {
+                  onRefreshRequested?.()
+                  void reload()
+                }}
+              >
+                Refresh
+              </button>
+            )}
+          </div>
           <div className="solana-launchpad-list">
             {launchpads.map((launchpad) => (
               <div key={launchpad.id} className={`solana-launchpad-row ${launchpad.enabled ? 'enabled' : 'planned'}`}>
@@ -145,7 +169,16 @@ export function TokenLaunchSection({
         </div>
 
         <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-title">Recent Launches</div>
+          <div className="solana-token-launch-card-head">
+            <div>
+              <div className="solana-token-launch-card-title">Recent Launches</div>
+              {embedded && (
+                <div className="solana-token-launch-card-copy">
+                  Wallet-linked launch history gives you the quickest handoff back into post-launch work.
+                </div>
+              )}
+            </div>
+          </div>
           {loading ? (
             <div className="solana-empty">Loading launches...</div>
           ) : launches.length === 0 ? (
@@ -204,7 +237,7 @@ export function TokenLaunchSection({
           {loading ? (
             <div className="solana-empty">Loading Pulse feed...</div>
           ) : !pulseFeed || pulseFeed.tokens.length === 0 ? (
-            <div className="solana-empty">No Pulse tokens returned for this category.</div>
+            <div className="solana-empty">Pulse feed unavailable for this workspace.</div>
           ) : (
             <div className="solana-launch-history">
               {pulseFeed.tokens.map((token) => (

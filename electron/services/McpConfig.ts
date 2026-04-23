@@ -9,10 +9,11 @@ export type { McpEntry }
 export type McpListEntry = McpEntry
 
 interface McpServerConfig {
-  command: string
-  args: string[]
+  command?: string
+  args?: string[]
   env?: Record<string, string>
   type?: string
+  url?: string
 }
 
 const CLAUDE_JSON_PATH = path.join(os.homedir(), '.claude.json')

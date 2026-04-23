@@ -153,7 +153,6 @@ export function EnvManager() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const projects = useUIStore((s) => s.projects)
   const openFile = useUIStore((s) => s.openFile)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   const [localKeys, setLocalKeys] = useState<UnifiedKey[]>([])
   const [vercelVars, setVercelVars] = useState<VercelEnvVar[]>([])
@@ -222,6 +221,10 @@ export function EnvManager() {
   useEffect(() => { loadVercel() }, [loadVercel])
 
   const merged = useMemo(() => mergeVars(localKeys, vercelVars), [localKeys, vercelVars])
+  const activeProject = useMemo(
+    () => projects.find((project) => project.id === activeProjectId) ?? null,
+    [activeProjectId, projects]
+  )
 
   const filtered = merged.filter((m) => {
     if (filter && !m.key.toLowerCase().includes(filter.toLowerCase())) return false
@@ -249,7 +252,6 @@ export function EnvManager() {
     const res = await window.daemon.fs.readFile(filePath)
     if (res.ok && res.data && activeProjectId) {
       openFile({ path: res.data.path, name: filePath.split(/[\\/]/).pop() ?? '.env', content: res.data.content, projectId: activeProjectId })
-      setDrawerTool(null)
     }
   }
 
@@ -345,20 +347,41 @@ export function EnvManager() {
 
   return (
     <div className="env-center">
-      {/* Header */}
-      <div className="env-header">
-        <div className="env-header-left">
-          <h2 className="env-title">Environment Variables</h2>
+      <div className="env-workspace-bar">
+        <div className="env-workspace-copy">
+          <span className="env-workspace-kicker">Environment workspace</span>
+          <h2 className="env-title">Keep local and production config aligned</h2>
           <span className="env-subtitle">
-            {stats.localCount} local / {stats.prodCount} production / {stats.syncedCount} synced
+            {activeProject ? activeProject.name : 'No active project'} · {vercelLinked ? 'Vercel linked' : 'Local only'}
           </span>
         </div>
         <div className="env-header-actions">
+          <button className="env-btn" onClick={loadLocal}>Refresh local</button>
+          {vercelLinked && (
+            <button className="env-btn" onClick={loadVercel} disabled={loadingVercel}>
+              {loadingVercel ? 'Refreshing prod…' : 'Refresh prod'}
+            </button>
+          )}
           <label className="env-secrets-toggle">
             <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
             <span>Secrets only</span>
           </label>
           <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
+        </div>
+      </div>
+
+      <div className="env-stats-row">
+        <div className="env-stat-card">
+          <span className="env-stat-label">Local keys</span>
+          <strong className="env-stat-value">{stats.localCount}</strong>
+        </div>
+        <div className="env-stat-card">
+          <span className="env-stat-label">Production keys</span>
+          <strong className="env-stat-value">{stats.prodCount}</strong>
+        </div>
+        <div className="env-stat-card">
+          <span className="env-stat-label">Synced</span>
+          <strong className="env-stat-value">{stats.syncedCount}</strong>
         </div>
       </div>
 

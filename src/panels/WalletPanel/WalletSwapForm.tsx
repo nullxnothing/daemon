@@ -28,6 +28,8 @@ interface WalletSwapFormProps {
   walletName: string
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
   executionMode: WalletInfrastructureSettings['executionMode']
+  initialInputMint?: string
+  initialOutputMint?: string
   onBack: () => void
   onRefresh: () => Promise<void>
 }
@@ -46,9 +48,9 @@ interface PendingSwap {
   confirmedAt: number
 }
 
-export function WalletSwapForm({ walletId, walletName, holdings, executionMode, onBack, onRefresh }: WalletSwapFormProps) {
-  const [inputMint, setInputMint] = useState(SOL_MINT)
-  const [outputMint, setOutputMint] = useState(USDC_MINT)
+export function WalletSwapForm({ walletId, walletName, holdings, executionMode, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
+  const [inputMint, setInputMint] = useState(initialInputMint ?? SOL_MINT)
+  const [outputMint, setOutputMint] = useState(initialOutputMint ?? USDC_MINT)
   const [amount, setAmount] = useState('')
   const [slippageBps, setSlippageBps] = useState('50')
 
@@ -74,6 +76,11 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
   const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
+
+  useEffect(() => {
+    if (initialInputMint) setInputMint(initialInputMint)
+    if (initialOutputMint) setOutputMint(initialOutputMint)
+  }, [initialInputMint, initialOutputMint])
 
   const handleGetQuote = async () => {
     setQuoteError(null)

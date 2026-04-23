@@ -217,3 +217,111 @@
   padding: 8px;
   font-family: var(--mono);
 }
+
+/* Right sidebar polish */
+
+.codex-panel {
+  background: transparent;
+}
+
+.codex-panel-scroll {
+  padding: 0 0 2px;
+}
+
+.codex-empty,
+.codex-status-row,
+.codex-restart-row,
+.codex-statusbar,
+.codex-panel .collapsible-section {
+  margin: 0 0 var(--drawer-rail-card-gap);
+  border-radius: 12px;
+}
+
+.codex-empty {
+  padding: 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
+    color-mix(in srgb, var(--s2) 88%, black 12%);
+}
+
+.codex-status-row,
+.codex-restart-row,
+.codex-panel .collapsible-section {
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
+    color-mix(in srgb, var(--s2) 88%, black 12%);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.codex-status-row,
+.codex-restart-row {
+  padding: 10px var(--drawer-space-inline-tight);
+  border-bottom: none;
+}
+
+.codex-info-row {
+  margin: 0;
+  padding: 7px var(--drawer-space-inline-tight);
+  border-left: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-right: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  background: color-mix(in srgb, var(--s2) 90%, black 10%);
+}
+
+.codex-info-row + .codex-info-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.codex-actions-row {
+  margin: 0 0 var(--drawer-rail-card-gap);
+  padding: 8px var(--drawer-space-inline-tight) 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  background: color-mix(in srgb, var(--s2) 90%, black 10%);
+}
+
+.codex-btn,
+.codex-restart-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--s3) 88%, black 12%);
+}
+
+.codex-btn-primary {
+  background: rgba(62, 207, 142, 0.12);
+  border-color: rgba(62, 207, 142, 0.22);
+}
+
+.codex-mcp-item {
+  min-height: 34px;
+  padding: 6px 0;
+}
+
+.codex-mcp-item + .codex-mcp-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.codex-mcp-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.codex-statusbar {
+  padding: 7px 9px;
+  border-radius: 9px;
+}
+
+.codex-agents-editor,
+.codex-agents-preview {
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  background: color-mix(in srgb, var(--s1) 88%, black 12%);
+}

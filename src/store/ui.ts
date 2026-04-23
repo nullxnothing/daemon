@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
 import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
+import { useWorkflowShellStore } from './workflowShell'
 
 interface OpenFile {
   path: string
@@ -26,14 +27,6 @@ interface TerminalTab {
 
 export type CenterMode = 'canvas' | 'grind'
 export type RightPanelTab = 'claude' | 'codex'
-
-const closeWorkflowDrawer = () => {
-  try {
-    useUIStore.getState().closeDrawer()
-  } catch {
-    // Store may not be initialized yet during module setup.
-  }
-}
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings'
@@ -168,7 +161,7 @@ export const useUIStore = create<UIState>((set) => ({
   setProjects: (projects) => set({ projects }),
 
   openFile: (file) => set((state) => {
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     const exists = state.openFiles.find((f) => f.path === file.path && f.projectId === file.projectId)
     if (exists) {
       return {
@@ -259,7 +252,7 @@ export const useUIStore = create<UIState>((set) => ({
   toggleBrowserTab: () => set((state) => {
     const isOpen = !state.browserTabOpen
     if (!isOpen) return { browserTabOpen: false, browserTabActive: false }
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     return {
       browserTabOpen: true,
       browserTabActive: true,
@@ -267,7 +260,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
   openBrowserTab: () => {
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     set({
       browserTabOpen: true,
       browserTabActive: true,
@@ -277,7 +270,7 @@ export const useUIStore = create<UIState>((set) => ({
   },
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
   setBrowserTabActive: (active) => {
-    if (active) closeWorkflowDrawer()
+    if (active) useWorkflowShellStore.getState().closeDrawer()
     set(active
       ? {
           browserTabActive: true,
@@ -295,7 +288,7 @@ export const useUIStore = create<UIState>((set) => ({
       useUIStore.getState().openDashboardTab()
       return
     }
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     set((state) => ({
       centerMode: 'canvas' as CenterMode,
       browserTabActive: false,
@@ -324,7 +317,7 @@ export const useUIStore = create<UIState>((set) => ({
       useUIStore.getState().setDashboardTabActive(true)
       return
     }
-    if (toolId) closeWorkflowDrawer()
+    if (toolId) useWorkflowShellStore.getState().closeDrawer()
     set(toolId
       ? {
           browserTabActive: false,
@@ -358,7 +351,7 @@ export const useUIStore = create<UIState>((set) => ({
         activeWorkspaceToolId: nextTabs[nextTabs.length - 1] ?? null,
       }
     }
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     return {
       centerMode: 'canvas' as CenterMode,
       browserTabActive: false,
@@ -378,7 +371,7 @@ export const useUIStore = create<UIState>((set) => ({
   toggleDashboardTab: () => set((state) => {
     const isOpen = !state.dashboardTabOpen
     if (!isOpen) return { dashboardTabOpen: false, dashboardTabActive: false }
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     return {
       dashboardTabOpen: true,
       dashboardTabActive: true,
@@ -386,7 +379,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
   openDashboardTab: () => {
-    closeWorkflowDrawer()
+    useWorkflowShellStore.getState().closeDrawer()
     set({
       dashboardTabOpen: true,
       dashboardTabActive: true,
@@ -396,7 +389,7 @@ export const useUIStore = create<UIState>((set) => ({
   },
   closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
   setDashboardTabActive: (active) => {
-    if (active) closeWorkflowDrawer()
+    if (active) useWorkflowShellStore.getState().closeDrawer()
     set(active
       ? {
           dashboardTabActive: true,

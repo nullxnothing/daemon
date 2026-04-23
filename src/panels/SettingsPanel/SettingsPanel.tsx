@@ -10,6 +10,13 @@ import './SettingsPanel.css'
 
 
 type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'setup' | 'crashes'
+interface AppMeta {
+  version: string
+  electronVersion: string
+  platform: string
+  updateChannel: string
+  releaseUrl: string
+}
 
 interface SecureKeyEntry {
   key_name: string
@@ -49,7 +56,7 @@ function findTabForQuery(query: string): SettingsTab | null {
 
 export function SettingsPanel() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const [tab, setTab] = useState<SettingsTab>('keys')
+  const [tab, setTab] = useState<SettingsTab>('setup')
   const [search, setSearch] = useState('')
 
   const handleSearchChange = (value: string) => {
@@ -166,7 +173,7 @@ function KeysSection() {
           {saving ? 'Saving...' : 'Add Key'}
         </button>
       </div>
-      <div className="settings-section-desc" style={{ marginTop: 4, fontSize: 10 }}>
+      <div className="settings-section-desc tight">
         Key names: uppercase letters, numbers, and underscores only.
       </div>
     </div>
@@ -275,13 +282,13 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
         <div className="settings-integration-row">
           <div className="settings-integration-dot green" />
           <span className="settings-integration-name">CLI Path</span>
-          <span className="settings-integration-status" style={{ fontFamily: 'var(--font-code)', fontSize: 11 }}>
+          <span className="settings-integration-status path">
             {connection.claudePath}
           </span>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+      <div className="settings-actions-row">
         {isConnected ? (
           <button className="settings-btn danger" onClick={handleDisconnect} disabled={disconnecting}>
             {disconnecting ? 'Disconnecting...' : 'Disconnect'}
@@ -299,7 +306,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
       </div>
 
       {showApiInput && !isConnected && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <div className="settings-inline-row">
           <input
             className="settings-input"
             type="password"
@@ -377,7 +384,7 @@ function DefaultProviderSection() {
         <div className="settings-empty">Checking...</div>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <div className="settings-provider-grid">
             {(['claude', 'codex'] as const).map((id) => {
               const isAuthed = conns[id]
               const isActive = defaultId === id
@@ -387,38 +394,21 @@ function DefaultProviderSection() {
                   onClick={() => handlePick(id)}
                   disabled={!isAuthed && authedCount > 0}
                   title={!isAuthed ? `Sign in to ${id} to enable` : ''}
-                  style={{
-                    flex: 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px 12px',
-                    background: isActive ? 'var(--s4)' : 'var(--s2)',
-                    color: isActive ? 'var(--t1)' : 'var(--t2)',
-                    border: `1px solid ${isActive ? 'var(--s5)' : 'var(--border)'}`,
-                    borderRadius: 4,
-                    fontSize: 12,
-                    cursor: (!isAuthed && authedCount > 0) ? 'not-allowed' : 'pointer',
-                    opacity: (!isAuthed && authedCount > 0) ? 0.5 : 1,
-                    textTransform: 'capitalize',
-                  }}
+                  className={`settings-provider-btn${isActive ? ' active' : ''}`}
                 >
-                  <span
-                    style={{
-                      width: 5, height: 5, borderRadius: '50%',
-                      background: isAuthed ? 'var(--green)' : 'var(--t4)',
-                    }}
-                  />
+                  <span className={`settings-provider-dot${isAuthed ? ' connected' : ''}`} />
                   {id}
                 </button>
               )
             })}
           </div>
           {authedCount === 0 && (
-            <div className="settings-section-desc" style={{ marginTop: 8, color: 'var(--amber)' }}>
+            <div className="settings-section-desc settings-inline-note warn">
               Not signed in to any provider. Sign in below to start spawning agents.
             </div>
           )}
           {error && (
-            <div className="settings-section-desc" style={{ marginTop: 8, color: 'var(--red)' }}>{error}</div>
+            <div className="settings-section-desc settings-inline-note error">{error}</div>
           )}
         </>
       )}
@@ -551,16 +541,12 @@ function CrashesSection() {
               {expandedId === crash.id && (
                 <div className="settings-crash-detail">
                   {crash.message.length > 120 && (
-                    <pre className="settings-crash-stack" style={{ marginBottom: 8 }}>{crash.message}</pre>
+                    <pre className="settings-crash-stack spaced">{crash.message}</pre>
                   )}
                   {crash.stack && <pre className="settings-crash-stack">{crash.stack}</pre>}
                   <button
                     onClick={() => navigator.clipboard.writeText([crash.type, crash.message, crash.stack].filter(Boolean).join('\n\n'))}
-                    style={{
-                      marginTop: 6, padding: '3px 8px', fontSize: 10,
-                      background: 'var(--s3)', color: 'var(--t2)',
-                      border: '1px solid var(--border)', borderRadius: 3, cursor: 'pointer',
-                    }}
+                    className="settings-copy-stack-btn"
                   >
                     Copy stack
                   </button>
@@ -575,6 +561,17 @@ function CrashesSection() {
 }
 
 function SetupSection() {
+  const [resettingLayout, setResettingLayout] = useState(false)
+  const [appMeta, setAppMeta] = useState<AppMeta | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    window.daemon.settings.getAppMeta().then((res) => {
+      if (!cancelled && res.ok && res.data) setAppMeta(res.data)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   const handleRerunWizard = async () => {
     const freshProgress = { profile: 'pending' as const, claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
     await window.daemon.settings.setOnboardingComplete(false)
@@ -588,18 +585,81 @@ function SetupSection() {
     useOnboardingStore.getState().startTour()
   }
 
+  const handleResetLayout = async () => {
+    setResettingLayout(true)
+    try {
+      const res = await window.daemon.settings.recoverUiState()
+      if (!res.ok) throw new Error(res.error ?? 'Failed to reset UI layout')
+      useNotificationsStore.getState().pushToast({
+        kind: 'warning',
+        context: 'Workspace recovery',
+        ttlMs: 5000,
+        message: 'UI layout reset. Reloading workspace...',
+      })
+      window.daemon.window.reload()
+    } catch (err) {
+      useNotificationsStore.getState().pushError(err, 'Reset UI layout')
+      setResettingLayout(false)
+    }
+  }
+
   return (
     <div className="settings-section">
+      {appMeta && (
+        <div className="settings-setup-card">
+          <div className="settings-setup-card-head">
+            <div>
+              <div className="settings-section-label">Release Status</div>
+              <div className="settings-section-desc">
+                Keep recovery and update trust surfaces in one place.
+              </div>
+            </div>
+            <span className="settings-version-pill">v{appMeta.version}</span>
+          </div>
+
+          <div className="settings-setup-meta-grid">
+            <div className="settings-setup-meta">
+              <span className="settings-setup-meta-label">App</span>
+              <strong>DAEMON {appMeta.version}</strong>
+            </div>
+            <div className="settings-setup-meta">
+              <span className="settings-setup-meta-label">Electron</span>
+              <strong>{appMeta.electronVersion}</strong>
+            </div>
+            <div className="settings-setup-meta">
+              <span className="settings-setup-meta-label">Channel</span>
+              <strong>{appMeta.updateChannel}</strong>
+            </div>
+          </div>
+
+          <div className="settings-meta-actions">
+            <button className="settings-btn" onClick={() => window.daemon.feedback.openUrl(appMeta.releaseUrl)}>
+              Open Latest Release
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="settings-section-desc">
         Re-run the setup wizard or take the app tour again.
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="settings-actions-row">
         <button className="settings-btn primary" onClick={handleRerunWizard}>
           Re-run Setup Wizard
         </button>
-        <button className="settings-btn" onClick={handleStartTour}>
-          Take App Tour
+          <button className="settings-btn" onClick={handleStartTour}>
+            Take App Tour
+          </button>
+        <button className="settings-btn danger" onClick={handleResetLayout} disabled={resettingLayout}>
+          {resettingLayout ? 'Resetting...' : 'Reset UI Layout'}
         </button>
+      </div>
+      <div className="settings-section-desc settings-inline-note">
+        Reset UI Layout clears saved panel/layout state and stale sessions, then reloads DAEMON. Project, wallet, key, and history data stay intact.
+      </div>
+      <div className="settings-divider" />
+      <div className="settings-section-desc">
+        Recovery is the right first step if the app opens blank, freezes after launch, or restores into a broken layout.
       </div>
     </div>
   )
@@ -678,7 +738,7 @@ function DisplaySection() {
         ))}
       </div>
 
-      <div className="settings-section-label" style={{ marginTop: 16 }}>Tool Visibility</div>
+      <div className="settings-section-label settings-tools-label">Tool Visibility</div>
       {BUILTIN_TOOLS.map((tool) => {
         const isVisible = toolVisibility[tool.id] ?? true
         const isAlwaysOn = tool.id === 'settings'

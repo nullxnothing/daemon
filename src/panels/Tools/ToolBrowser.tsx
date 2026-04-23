@@ -16,7 +16,6 @@ export function ToolBrowser() {
   const runningToolIds = useToolsStore((s) => s.runningToolIds)
   const openFile = useUIStore((s) => s.openFile)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const [showCreate, setShowCreate] = useState(false)
 
   useEffect(() => { if (!loaded) load() }, [loaded, load])
@@ -30,7 +29,7 @@ export function ToolBrowser() {
     // Built-in tools navigate to their dedicated drawer tool
     const builtinTool = BUILTIN_DRAWER_TOOLS[toolId]
     if (builtinTool) {
-      setDrawerTool(builtinTool)
+      useUIStore.getState().openWorkspaceTool(builtinTool)
       return
     }
 
@@ -45,9 +44,8 @@ export function ToolBrowser() {
       useUIStore.getState().addTerminal(activeProjectId, termRes.data.id, tool?.name ?? 'Tool')
       await window.daemon.tools.markRunning(toolId, termRes.data.id, termRes.data.pid)
       useToolsStore.getState().addRunning(toolId)
-      setDrawerTool(null)
     }
-  }, [activeProjectId, tools, setDrawerTool])
+  }, [activeProjectId, tools])
 
   const handleEdit = useCallback(async (toolId: string) => {
     const res = await window.daemon.tools.get(toolId)
@@ -59,9 +57,8 @@ export function ToolBrowser() {
     const fileRes = await window.daemon.fs.readFile(filePath)
     if (fileRes.ok && fileRes.data) {
       openFile({ path: filePath, name: tool.entrypoint, content: fileRes.data.content, projectId: activeProjectId })
-      setDrawerTool(null)
     }
-  }, [activeProjectId, openFile, setDrawerTool])
+  }, [activeProjectId, openFile])
 
   const handleOpenFolder = useCallback(async (toolId: string) => {
     await window.daemon.tools.openFolder(toolId)

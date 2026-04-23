@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import crypto from 'node:crypto'
 import * as Settings from '../services/SettingsService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
@@ -8,6 +8,16 @@ import { getSolanaRuntimeStatus } from '../services/SolanaRuntimeStatusService'
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get-ui', ipcHandler(async () => {
     return Settings.getUiSettings()
+  }))
+
+  ipcMain.handle('settings:get-app-meta', ipcHandler(async () => {
+    return {
+      version: app.getVersion(),
+      electronVersion: process.versions.electron,
+      platform: process.platform,
+      updateChannel: 'release',
+      releaseUrl: 'https://github.com/nullxnothing/daemon/releases/latest',
+    }
   }))
 
   ipcMain.handle('settings:set-show-market-tape', ipcHandler(async (_event, enabled: boolean) => {
@@ -61,6 +71,10 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:clear-crashes', ipcHandler(async () => {
     const db = getDb()
     db.prepare('DELETE FROM app_crashes').run()
+  }))
+
+  ipcMain.handle('settings:recover-ui-state', ipcHandler(async () => {
+    return Settings.recoverUiState()
   }))
 
   ipcMain.handle('settings:get-pinned-tools', ipcHandler(async () => {

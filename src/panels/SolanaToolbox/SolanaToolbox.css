@@ -1,13 +1,109 @@
 .solana-toolbox {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  overflow: visible;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   gap: 0;
   background: var(--bg);
   background-image:
     radial-gradient(ellipse at 50% 0%, rgba(62, 207, 142, 0.03) 0%, transparent 60%),
     var(--surface-gradient-subtle);
+  scrollbar-gutter: stable;
+}
+
+.solana-toolbox::-webkit-scrollbar {
+  width: 10px;
+}
+
+.solana-toolbox::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--s5) 78%, rgba(255, 255, 255, 0.08));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.solana-toolbox::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.solana-workflow-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.solana-workflow-header {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid rgba(62, 207, 142, 0.06);
+}
+
+.solana-workflow-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.08;
+  color: var(--t1);
+}
+
+.solana-workflow-copy {
+  margin: 10px 0 0;
+  max-width: 72ch;
+  color: var(--t3);
+  font-size: var(--font-md);
+  line-height: 1.5;
+}
+
+.solana-view-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 20px 18px;
+}
+
+.solana-view-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--s5);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--t2);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.solana-view-tab:hover {
+  border-color: rgba(62, 207, 142, 0.18);
+  background: rgba(62, 207, 142, 0.04);
+}
+
+.solana-view-tab.active {
+  border-color: rgba(62, 207, 142, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(62, 207, 142, 0.12), transparent 45%),
+    rgba(62, 207, 142, 0.05);
+  box-shadow: var(--shadow-lifted);
+}
+
+.solana-view-tab-label {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.solana-view-tab-summary {
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  color: var(--t4);
+}
+
+.solana-view-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Validator zone (full width) ── */
@@ -48,6 +144,14 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   min-width: 0;
+}
+
+.solana-launchpad-settings-compact-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .solana-launchpad-settings-card {
@@ -185,7 +289,7 @@
 
 .solana-token-launch-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   min-width: 0;
 }
@@ -199,25 +303,28 @@
   min-width: 0;
 }
 
+.solana-token-launch-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .solana-token-launch-card-title {
   font-size: var(--font-sm);
   font-weight: 700;
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  margin-bottom: 12px;
 }
 
-.solana-token-launch-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.solana-token-launch-card-header .solana-token-launch-card-title {
-  margin-bottom: 0;
+.solana-token-launch-card-copy {
+  margin-top: 6px;
+  max-width: 52ch;
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  color: var(--t4);
 }
 
 .solana-launchpad-list,
@@ -343,30 +450,6 @@
   width: 100%;
 }
 
-.solana-pulse-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.solana-pulse-tab {
-  border: 1px solid var(--s4);
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--t3);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
-}
-
-.solana-pulse-tab.active {
-  border-color: rgba(62, 207, 142, 0.24);
-  background: rgba(62, 207, 142, 0.08);
-  color: var(--green);
-}
-
 .solana-launchpad-settings .solana-launchpad-settings-top {
   align-items: flex-start;
 }
@@ -454,44 +537,29 @@
   border: 1px solid rgba(62, 207, 142, 0.12);
   background: rgba(62, 207, 142, 0.03);
   border-radius: var(--radius-lg);
-  padding: 18px;
-  min-height: 196px;
+  padding: 16px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
-.solana-protocol-card-top {
+.solana-protocol-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 
-.solana-protocol-card-copy {
-  min-width: 0;
-}
-
-.solana-protocol-card-eyebrow {
-  font-size: 10px;
+.solana-protocol-name {
+  font-size: 18px;
+  line-height: 1.15;
   font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--t4);
-  margin-bottom: 8px;
-}
-
-.solana-protocol-card-title {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.1;
   color: var(--t1);
 }
 
-.solana-protocol-card-body {
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: var(--t3);
+.solana-protocol-status-line {
+  margin-top: 8px;
 }
 
 .solana-runtime-title-row {
@@ -584,35 +652,62 @@
 }
 
 .solana-protocol-hint {
-  margin-top: auto;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  font-size: 12px;
+  font-size: var(--font-sm);
   color: var(--t2);
   font-family: var(--font-code);
   word-break: break-word;
-  line-height: 1.45;
+  display: block;
+}
+
+.solana-protocol-snippet {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-protocol-snippet-label {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--t4);
 }
 
 .solana-protocol-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.solana-protocol-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.solana-protocol-card .solana-runtime-detail {
   margin-top: 0;
 }
 
-.solana-protocol-card .sol-btn,
-.solana-protocol-card a.sol-btn {
+.solana-protocol-actions .sol-btn {
   min-width: 0;
+}
+
+.solana-protocol-doc-link {
+  color: var(--green);
+  font-size: var(--font-sm);
+  font-weight: 600;
   text-decoration: none;
 }
 
-.solana-protocol-card a.sol-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.solana-protocol-doc-link:hover {
+  text-decoration: underline;
 }
 
 .command-drawer:not(.command-drawer--fullscreen) .solana-protocol-grid {
@@ -718,6 +813,10 @@
 }
 
 @media (max-width: 1100px) {
+  .solana-view-tabs {
+    grid-template-columns: 1fr;
+  }
+
   .solana-token-launch-header,
   .solana-launchpad-settings-header,
   .solana-launchpad-row,
@@ -729,11 +828,6 @@
   .solana-token-launch-actions {
     width: 100%;
     justify-content: flex-start;
-  }
-
-  .solana-token-launch-card-header {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .solana-token-launch-actions .sol-btn,
@@ -752,6 +846,19 @@
   .solana-ecosystem-grid,
   .solana-split {
     grid-template-columns: 1fr;
+  }
+
+  .solana-launchpad-settings-compact-head,
+  .solana-token-launch-card-head,
+  .solana-protocol-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .solana-token-launch-card-head .sol-btn,
+  .solana-launchpad-settings-compact-head .sol-btn,
+  .solana-protocol-actions .sol-btn {
+    width: 100%;
   }
 }
 
@@ -773,11 +880,6 @@
   .token-launch-tool .solana-token-launch-actions {
     width: 100%;
     justify-content: flex-start;
-  }
-
-  .token-launch-tool .solana-token-launch-card-header {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .token-launch-tool .solana-token-launch-actions .sol-btn,

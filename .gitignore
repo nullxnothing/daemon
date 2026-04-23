@@ -35,6 +35,8 @@ yarn.lock
 *.p12
 credentials.json
 keypair.json
+target/deploy/*-keypair.json
+programs/*/target/deploy/*-keypair.json
 
 # SQLite
 *.db
@@ -44,6 +46,7 @@ keypair.json
 
 # Build artifacts
 /test-results/
+/test-results/visual-regression/
 /playwright-report/
 /playwright/.cache/
 /mobile/.expo/

@@ -1,13 +1,31 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
-import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import '../SolanaToolbox/SolanaToolbox.css'
 import './TokenLaunchTool.css'
 
 export function TokenLaunchTool() {
   const [launchpadRefreshNonce, setLaunchpadRefreshNonce] = useState(0)
-  const openLaunchWizard = useUIStore((s) => s.openLaunchWizard)
+  const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
+
+  const highlights = useMemo(() => ([
+    {
+      label: 'One flow',
+      value: 'Launch once',
+      detail: 'Wallet pick, preflight, launch, browser handoff.',
+    },
+    {
+      label: 'Post-launch',
+      value: 'Stay in DAEMON',
+      detail: 'Open Pump tokens in Browser mode immediately after success.',
+    },
+    {
+      label: 'Launchpads',
+      value: 'Pump live now',
+      detail: 'Raydium and Meteora stay in the same surface as they come online.',
+    },
+  ]), [])
 
   return (
     <div className="token-launch-tool">
@@ -31,33 +49,43 @@ export function TokenLaunchTool() {
             </button>
           </div>
         </div>
-      </section>
 
-      <section className="token-launch-tool-zone token-launch-tool-zone-main">
-        <div className="token-launch-tool-zone-head">
-          <div>
-            <div className="token-launch-tool-zone-kicker">Workflow</div>
-            <div className="token-launch-tool-zone-title">Launch, monitor, and hand off from one place</div>
-            <p className="token-launch-tool-zone-copy">
-              Use one entry point for launchpad availability, recent launches, and the flow that opens your token in-app after send.
-            </p>
-          </div>
+        <div className="token-launch-tool-highlight-grid">
+          {highlights.map((highlight) => (
+            <div key={highlight.label} className="token-launch-tool-highlight">
+              <div className="token-launch-tool-highlight-label">{highlight.label}</div>
+              <div className="token-launch-tool-highlight-value">{highlight.value}</div>
+              <div className="token-launch-tool-highlight-detail">{highlight.detail}</div>
+            </div>
+          ))}
         </div>
-        <TokenLaunchSection
-          refreshNonce={launchpadRefreshNonce}
-          embedded
-          onRefreshRequested={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)}
-        />
       </section>
 
-      <div className="token-launch-tool-support">
+      <div className="token-launch-tool-flow">
+        <section className="token-launch-tool-zone token-launch-tool-zone-main">
+          <div className="token-launch-tool-zone-head">
+            <div>
+              <div className="token-launch-tool-zone-kicker">Step 1</div>
+              <div className="token-launch-tool-zone-title">Check readiness and recent launches</div>
+              <p className="token-launch-tool-zone-copy">
+                Keep launchpad status, launch history, and the main launch CTA together so the workflow always has one obvious next action.
+              </p>
+            </div>
+          </div>
+          <TokenLaunchSection
+            refreshNonce={launchpadRefreshNonce}
+            embedded
+            onRefreshRequested={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)}
+          />
+        </section>
+
         <section className="token-launch-tool-zone token-launch-tool-zone-side">
           <div className="token-launch-tool-zone-head">
             <div>
-              <div className="token-launch-tool-zone-kicker">Settings</div>
-              <div className="token-launch-tool-zone-title">Store protocol settings once</div>
+              <div className="token-launch-tool-zone-kicker">Step 2</div>
+              <div className="token-launch-tool-zone-title">Save protocol config once</div>
               <p className="token-launch-tool-zone-copy">
-                Keep LaunchLab and DBC config in-app so the launch workflow can resolve readiness without bouncing you out to env setup.
+                Keep LaunchLab and DBC config in-app so the launch workflow can resolve readiness without bouncing out to env setup.
               </p>
             </div>
           </div>
@@ -67,14 +95,14 @@ export function TokenLaunchTool() {
           />
         </section>
 
-        <aside className="token-launch-tool-note">
+        <div className="token-launch-tool-note">
           <div className="token-launch-tool-note-title">Recommended flow</div>
           <ol className="token-launch-tool-note-list">
             <li>Pick the wallet you want to launch from.</li>
-            <li>Run preflight and confirm the launchpad is live.</li>
+            <li>Confirm the launchpad is live and the config is saved.</li>
             <li>Launch once, then open the token in Browser Mode for post-launch work.</li>
           </ol>
-        </aside>
+        </div>
       </div>
     </div>
   )

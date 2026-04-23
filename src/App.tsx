@@ -23,6 +23,7 @@ import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
 import { useEmailStore } from './store/email'
 import { useSolanaToolboxStore } from './store/solanaToolbox'
+import { useWorkflowShellStore } from './store/workflowShell'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
 import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
@@ -33,6 +34,7 @@ import { daemon } from './lib/daemonBridge'
 import { lazyNamedWithReload } from './utils/lazyWithReload'
 import { preloadToolPanel } from './components/CommandDrawer/CommandDrawer'
 import './App.css'
+import './styles/drawerSurfaces.css'
 
 const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
 const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
@@ -56,8 +58,8 @@ function App() {
   const tourActive = useOnboardingStore((s) => s.tourActive)
   const showTourOffer = useOnboardingStore((s) => s.showTourOffer)
   const centerMode = useUIStore((s) => s.centerMode)
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
+  const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -219,6 +221,21 @@ function App() {
   }, [])
 
   useEffect(() => {
+    return daemon.settings.onUiRecoveryApplied((result) => {
+      const cleared = result.clearedKeys.length
+      const sessionSuffix = result.clearedActiveSessions > 0
+        ? ` and ${result.clearedActiveSessions} stale session${result.clearedActiveSessions === 1 ? '' : 's'}`
+        : ''
+      useNotificationsStore.getState().pushToast({
+        kind: 'warning',
+        context: 'Workspace recovery',
+        ttlMs: 9000,
+        message: `DAEMON reset ${cleared} unstable UI setting${cleared === 1 ? '' : 's'}${sessionSuffix} so the workspace could boot cleanly.`,
+      })
+    })
+  }, [])
+
+  useEffect(() => {
     if (!smokeMode) return
     console.log('[smoke-renderer] app:state', JSON.stringify({
       appReady,
@@ -301,7 +318,16 @@ function App() {
         toggleRightPanel: () => setShowRightPanel((v) => !v),
         openAgentLauncher: () => setShowAgentLauncher(true),
         toggleExplorer: () => setShowExplorer((v) => !v),
-        setDrawerTool: (tool) => useUIStore.getState().setDrawerTool(tool),
+        returnToEditor: () => {
+          const ui = useUIStore.getState()
+          ui.setCenterMode('canvas')
+          ui.setBrowserTabActive(false)
+          ui.setDashboardTabActive(false)
+          ui.setActiveWorkspaceTool(null)
+          useWorkflowShellStore.getState().closeDrawer()
+        },
+        openWorkspaceTool: (tool) => useUIStore.getState().openWorkspaceTool(tool),
+        closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
         toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
       }),
@@ -318,7 +344,7 @@ function App() {
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
           <button
             className="crash-warning-link"
-            onClick={() => { useUIStore.getState().setDrawerTool('settings'); setCrashWarningCount(null) }}
+            onClick={() => { useUIStore.getState().openWorkspaceTool('settings'); setCrashWarningCount(null) }}
           >
             View crash log
           </button>

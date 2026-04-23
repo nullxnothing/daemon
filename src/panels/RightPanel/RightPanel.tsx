@@ -62,6 +62,13 @@ export function RightPanel() {
 
   return (
     <div className="right-panel-wrap">
+      <div className="right-panel-header" aria-hidden="true">
+        <div className="right-panel-header-copy">
+          <span className="right-panel-kicker">Assistants</span>
+          <span className="right-panel-title">Keep the right model in view</span>
+        </div>
+      </div>
+
       <div className="right-panel-tabs" role="tablist">
         <button
           className={`right-panel-tab${rightPanelTab === 'claude' ? ' active' : ''}`}
@@ -73,6 +80,10 @@ export function RightPanel() {
         >
           <span className={`right-panel-tab-dot${claudeStatus === 'live' ? ' live' : ''}`} />
           <img src="./claude-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
+          <span className="right-panel-tab-copy">
+            <span className="right-panel-tab-label">Claude</span>
+            <span className="right-panel-tab-status">{claudeStatus === 'live' ? 'Connected' : 'Check auth'}</span>
+          </span>
         </button>
         <button
           className={`right-panel-tab${rightPanelTab === 'codex' ? ' active' : ''}`}
@@ -84,6 +95,10 @@ export function RightPanel() {
         >
           <span className={`right-panel-tab-dot${codexStatus === 'live' ? ' live' : ''}`} />
           <img src="./codex-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
+          <span className="right-panel-tab-copy">
+            <span className="right-panel-tab-label">Codex</span>
+            <span className="right-panel-tab-status">{codexStatus === 'live' ? 'Connected' : 'Check auth'}</span>
+          </span>
         </button>
       </div>
 

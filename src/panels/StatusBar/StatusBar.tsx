@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useShellLayout } from '../../hooks/useShellLayout'
 import { daemon } from '../../lib/daemonBridge'
 import { formatCompactUsd } from '../../utils/format'
@@ -108,7 +109,6 @@ function TerminalCount() {
 
 function ValidatorStatus() {
   const validator = useSolanaToolboxStore((s) => s.validator)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   if (validator.status === 'stopped') return null
 
@@ -119,7 +119,7 @@ function ValidatorStatus() {
   return (
     <span
       className={`${styles.item} ${styles.clickable}`}
-      onClick={() => setDrawerTool('solana-toolbox')}
+      onClick={() => useUIStore.getState().openWorkspaceTool('solana-toolbox')}
       title="Open Solana Toolbox"
     >
       <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: color, marginRight: 4 }} />
@@ -130,7 +130,6 @@ function ValidatorStatus() {
 
 function GitBranch() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const [branch, setBranch] = useState<string | null>(null)
 
   useEffect(() => {
@@ -144,7 +143,7 @@ function GitBranch() {
   return (
     <span
       className={`${styles.item} ${styles.branch} ${styles.clickable}`}
-      onClick={() => setDrawerTool('git')}
+      onClick={() => useUIStore.getState().openWorkspaceTool('git')}
       title="Open Git panel"
     >
       {branch}
@@ -154,7 +153,8 @@ function GitBranch() {
 
 function BugReportButton({ showLabel }: { showLabel: boolean }) {
   const [open, setOpen] = useState(false)
-  const drawerTool = useUIStore((s) => s.drawerTool)
+  const drawerTool = useWorkflowShellStore((s) => s.drawerTool)
+  const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
 
   return (
     <>
@@ -174,7 +174,7 @@ function BugReportButton({ showLabel }: { showLabel: boolean }) {
       <BugReportModal
         open={open}
         onClose={() => setOpen(false)}
-        activePanel={drawerTool ?? undefined}
+        activePanel={activeWorkspaceToolId ?? drawerTool ?? undefined}
       />
     </>
   )
@@ -244,7 +244,6 @@ function ClaudeStatus() {
 }
 
 function HackathonCountdown() {
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
   const [label, setLabel] = useState<string | null>(null)
   const [urgency, setUrgency] = useState<'normal' | 'warning' | 'urgent'>('normal')
 
@@ -284,7 +283,7 @@ function HackathonCountdown() {
   return (
     <button
       className={`${styles.hackathonBtn} ${colorClass}`}
-      onClick={() => setDrawerTool('hackathon')}
+      onClick={() => useUIStore.getState().openWorkspaceTool('hackathon')}
       title="Hackathon deadline"
     >
       {label}

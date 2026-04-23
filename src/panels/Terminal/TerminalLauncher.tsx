@@ -100,35 +100,55 @@ export function TerminalLauncher({
 
   return (
     <div className="terminal-launcher" ref={launcherRef}>
-      <button className="terminal-tab-add" onClick={() => setIsOpen((v) => !v)} title="New tab options">+</button>
+      <button
+        className="terminal-tab-add"
+        onClick={() => setIsOpen((v) => !v)}
+        title="New tab options"
+        aria-label="New tab options"
+      >
+        <span className="terminal-tab-add-plus" aria-hidden="true">+</span>
+        <span className="terminal-tab-add-label" aria-hidden="true">New</span>
+      </button>
       {isOpen && (
         <div className="terminal-launcher-menu" role="menu" aria-label="New terminal options">
+          <div className="terminal-launcher-header" aria-hidden="true">
+            <span className="terminal-launcher-kicker">Quick Start</span>
+            <span className="terminal-launcher-title">Open the right session</span>
+          </div>
           <button
             className="terminal-launcher-item"
             onClick={handleShell}
             disabled={!activeProjectId}
+            aria-label="Standard Terminal"
           >
-            Standard Terminal
+            <span className="terminal-launcher-item-title">Standard Terminal</span>
+            <span className="terminal-launcher-item-desc">Plain shell in the current project</span>
           </button>
           <button
             className="terminal-launcher-item"
             onClick={handleClaude}
+            aria-label="Claude Chat"
           >
-            Claude Chat
+            <span className="terminal-launcher-item-title">Claude Chat</span>
+            <span className="terminal-launcher-item-desc">Open the assistant drawer for Claude</span>
           </button>
           <button
             className="terminal-launcher-item"
             onClick={handleSolana}
             disabled={!activeProjectId}
+            aria-label="Solana Agent"
           >
-            Solana Agent
+            <span className="terminal-launcher-item-title">Solana Agent</span>
+            <span className="terminal-launcher-item-desc">Start the Solana-focused coding agent</span>
           </button>
           <button
             className="terminal-launcher-item"
             onClick={() => handleCommand('surfpool', 'Surfpool')}
             disabled={!activeProjectId}
+            aria-label="Surfpool"
           >
-            Surfpool
+            <span className="terminal-launcher-item-title">Surfpool</span>
+            <span className="terminal-launcher-item-desc">Launch the local Solana dev validator</span>
           </button>
 
           <div className="terminal-launcher-divider" />
@@ -146,7 +166,8 @@ export function TerminalLauncher({
                   disabled={!activeProjectId || !agent}
                   title={agent ? undefined : 'Agent no longer available'}
                 >
-                  {item.label}
+                  <span className="terminal-launcher-item-title">{item.label}</span>
+                  <span className="terminal-launcher-item-desc">Recent agent launch</span>
                 </button>
               )
             })
@@ -163,7 +184,8 @@ export function TerminalLauncher({
                   onClick={() => item.command && handleCommand(item.command, item.label)}
                   disabled={!activeProjectId || !item.command}
                 >
-                  {item.label}
+                  <span className="terminal-launcher-item-title">{item.label}</span>
+                  <span className="terminal-launcher-item-desc">Recent command</span>
                 </button>
               ))}
             </>

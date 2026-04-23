@@ -1,5 +1,6 @@
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import './SolanaOnboardingBanner.css'
 
 const FRAMEWORK_LABELS: Record<string, string> = {
@@ -12,7 +13,7 @@ export function SolanaOnboardingBanner() {
   const projectInfo = useSolanaToolboxStore((s) => s.projectInfo)
   const dismissed = useSolanaToolboxStore((s) => s.dismissed)
   const dismiss = useSolanaToolboxStore((s) => s.dismiss)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const toggleMcp = useSolanaToolboxStore((s) => s.toggleMcp)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
@@ -45,8 +46,8 @@ export function SolanaOnboardingBanner() {
             Enable Suggested MCPs
           </button>
         )}
-        <button className="solana-onboarding-btn" onClick={() => { setDrawerTool('solana-toolbox'); dismiss() }}>
-          Open Solana Toolbox
+        <button className="solana-onboarding-btn" onClick={() => { useUIStore.getState().openWorkspaceTool('project-readiness'); dismiss() }}>
+          Open Readiness
         </button>
         <button className="solana-onboarding-btn dismiss" onClick={dismiss}>
           Dismiss
