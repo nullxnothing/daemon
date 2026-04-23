@@ -71,8 +71,10 @@ export function useTokenLaunch() {
 
       const { signature, mint } = res.data
 
-      if (params.launchpad === 'pumpfun' && mint) {
-        const tokenUrl = `https://pump.fun/coin/${mint}`
+      if (mint && (params.launchpad === 'pumpfun' || params.launchpad === 'printr')) {
+        const tokenUrl = params.launchpad === 'printr'
+          ? `https://app.printr.money/v2/trade/${mint}`
+          : `https://pump.fun/coin/${mint}`
         useBrowserStore.getState().setUrl(tokenUrl)
         useUIStore.getState().openBrowserTab()
       }

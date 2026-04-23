@@ -49,6 +49,7 @@ programs/*/target/deploy/*-keypair.json
 /test-results/visual-regression/
 /playwright-report/
 /playwright/.cache/
+/mobile/.expo/
 /target/
 /programs/*/target/
 

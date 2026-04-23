@@ -6,6 +6,7 @@ import * as WalletService from './WalletService'
 import { pumpFunLaunchAdapter } from './token-launch/adapters/PumpFunLaunchAdapter'
 import { createRaydiumLaunchLabAdapter } from './token-launch/adapters/RaydiumLaunchLabAdapter'
 import { createMeteoraDbcLaunchAdapter } from './token-launch/adapters/MeteoraDbcLaunchAdapter'
+import { createPrintrLaunchAdapter } from './token-launch/adapters/PrintrLaunchAdapter'
 import type {
   AdapterLaunchResult,
   LaunchpadDefinition,
@@ -104,6 +105,7 @@ function getAdapters(settings: TokenLaunchSettings): Record<LaunchpadId, TokenLa
     pumpfun: pumpFunLaunchAdapter,
     raydium: createRaydiumLaunchLabAdapter({ settings: settings.raydium }),
     meteora: createMeteoraDbcLaunchAdapter({ settings: settings.meteora }),
+    printr: createPrintrLaunchAdapter({ settings: settings.printr }),
     bonk: null,
   }
 }
@@ -114,6 +116,7 @@ export function listLaunchpads(): LaunchpadDefinition[] {
     adapters.pumpfun!.definition,
     adapters.raydium!.definition,
     adapters.meteora!.definition,
+    adapters.printr!.definition,
     bonkDefinition,
   ]
 }
