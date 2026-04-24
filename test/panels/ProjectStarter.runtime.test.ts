@@ -60,6 +60,8 @@ describe('ProjectStarter runtime preset helpers', () => {
     expect(files.map((file) => file.path)).toEqual([
       'DAEMON_RUNTIME.md',
       'scripts/read-daemon-runtime.mjs',
+      'daemon/solana/runtime.ts',
+      'src/config/daemonRuntime.ts',
     ])
 
     const docsFile = files.find((file) => file.path === 'DAEMON_RUNTIME.md')
@@ -72,6 +74,13 @@ describe('ProjectStarter runtime preset helpers', () => {
     expect(loaderFile?.content).toContain('readDaemonSolanaRuntime')
     expect(loaderFile?.content).toContain('runtimeFileName')
     expect(loaderFile?.content).toContain('summarizeDaemonSolanaRuntime')
+
+    const runtimeModule = files.find((file) => file.path === 'daemon/solana/runtime.ts')
+    expect(runtimeModule?.content).toContain('daemonProjectRuntime')
+    expect(runtimeModule?.content).toContain('daemonRuntimeEnv')
+
+    const executionWrapper = files.find((file) => file.path === 'src/config/daemonRuntime.ts')
+    expect(executionWrapper?.content).toContain("export * from '../../daemon/solana/runtime'")
   })
 
   it('adds app-facing runtime wrappers for frontend-oriented templates', () => {
@@ -88,6 +97,7 @@ describe('ProjectStarter runtime preset helpers', () => {
     expect(files.map((file) => file.path)).toEqual([
       'DAEMON_RUNTIME.md',
       'scripts/read-daemon-runtime.mjs',
+      'daemon/solana/runtime.ts',
       'lib/solana/daemonRuntime.ts',
       'src/lib/solana/daemonRuntime.ts',
     ])
@@ -100,5 +110,28 @@ describe('ProjectStarter runtime preset helpers', () => {
 
     const srcRuntimeModule = files.find((file) => file.path === 'src/lib/solana/daemonRuntime.ts')
     expect(srcRuntimeModule?.content).toContain("export * from '../../../lib/solana/daemonRuntime'")
+  })
+
+  it('adds anchor-oriented runtime helpers for program-style templates', () => {
+    const files = buildRuntimeBootstrapFiles({
+      rpcProvider: 'public',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'phantom',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: '',
+    }, 'anchor-program')
+
+    expect(files.map((file) => file.path)).toEqual([
+      'DAEMON_RUNTIME.md',
+      'scripts/read-daemon-runtime.mjs',
+      'daemon/solana/runtime.ts',
+      'clients/daemonRuntime.ts',
+    ])
+
+    const anchorRuntime = files.find((file) => file.path === 'clients/daemonRuntime.ts')
+    expect(anchorRuntime?.content).toContain("export * from '../daemon/solana/runtime'")
+    expect(anchorRuntime?.content).toContain('daemonAnchorExecutionNotes')
   })
 })

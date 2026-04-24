@@ -197,6 +197,19 @@ function isFrontendTemplate(templateId: string | null | undefined) {
   return templateId === 'dapp-nextjs' || templateId === 'solana-foundation'
 }
 
+function isExecutionTemplate(templateId: string | null | undefined) {
+  return templateId === 'trading-bot'
+    || templateId === 'pump-token'
+    || templateId === 'telegram-bot'
+    || templateId === 'mcp-server'
+}
+
+function isAnchorStyleTemplate(templateId: string | null | undefined) {
+  return templateId === 'anchor-program'
+    || templateId === 'token-launch'
+    || templateId === 'nft-collection'
+}
+
 export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
   if (!settings) return ''
 
@@ -396,6 +409,90 @@ function buildFrontendRuntimeModuleSource(settings: WalletInfrastructureSettings
   ].join('\n')
 }
 
+function buildRuntimeTypeScriptModuleSource(settings: WalletInfrastructureSettings) {
+  const quicknodeRpcUrl = JSON.stringify(settings.quicknodeRpcUrl || null)
+  const customRpcUrl = JSON.stringify(settings.customRpcUrl || null)
+  const jitoBlockEngineUrl = JSON.stringify(settings.jitoBlockEngineUrl || null)
+
+  return [
+    'export type DaemonProjectRuntime = {',
+    '  transport: {',
+    "    provider: 'helius' | 'public' | 'quicknode' | 'custom'",
+    '    quicknodeRpcUrl: string | null',
+    '    customRpcUrl: string | null',
+    '  }',
+    '  wallet: {',
+    "    preferredWallet: 'phantom' | 'wallet-standard'",
+    '  }',
+    '  execution: {',
+    "    mode: 'rpc' | 'jito'",
+    '    jitoBlockEngineUrl: string | null',
+    '  }',
+    '  swaps: {',
+    "    provider: 'jupiter'",
+    '  }',
+    '}',
+    '',
+    '// DAEMON pre-seeds this module so generated projects can import one stable runtime contract.',
+    'export const daemonProjectRuntime: DaemonProjectRuntime = {',
+    '  transport: {',
+    `    provider: '${settings.rpcProvider}',`,
+    `    quicknodeRpcUrl: ${quicknodeRpcUrl},`,
+    `    customRpcUrl: ${customRpcUrl},`,
+    '  },',
+    '  wallet: {',
+    `    preferredWallet: '${settings.preferredWallet}',`,
+    '  },',
+    '  execution: {',
+    `    mode: '${settings.executionMode}',`,
+    `    jitoBlockEngineUrl: ${jitoBlockEngineUrl},`,
+    '  },',
+    '  swaps: {',
+    `    provider: '${settings.swapProvider}',`,
+    '  },',
+    '}',
+    '',
+    'export function daemonRuntimeEnv(env: Record<string, string | undefined>) {',
+    '  return {',
+    '    rpcUrl:',
+    '      daemonProjectRuntime.transport.provider === \'quicknode\'',
+    '        ? env.QUICKNODE_RPC_URL || daemonProjectRuntime.transport.quicknodeRpcUrl || env.RPC_URL || null',
+    '        : daemonProjectRuntime.transport.provider === \'custom\'',
+    '          ? env.RPC_URL || daemonProjectRuntime.transport.customRpcUrl || null',
+    '          : env.NEXT_PUBLIC_RPC_URL || env.RPC_URL || null,',
+    '    preferredWallet: daemonProjectRuntime.wallet.preferredWallet,',
+    '    executionMode: daemonProjectRuntime.execution.mode,',
+    '    jitoBlockEngineUrl: env.JITO_BLOCK_ENGINE_URL || daemonProjectRuntime.execution.jitoBlockEngineUrl || null,',
+    '    swapProvider: daemonProjectRuntime.swaps.provider,',
+    '  }',
+    '}',
+    '',
+  ].join('\n')
+}
+
+function buildExecutionRuntimeModuleSource() {
+  return [
+    "export * from '../../daemon/solana/runtime'",
+    '',
+    '// Import this file from quote/build/sign/submit flows instead of duplicating runtime assumptions.',
+    '',
+  ].join('\n')
+}
+
+function buildAnchorRuntimeStubSource() {
+  return [
+    "export * from '../daemon/solana/runtime'",
+    '',
+    'export function daemonAnchorExecutionNotes() {',
+    '  return [',
+    "    'Use daemonProjectRuntime.transport and daemonProjectRuntime.execution when wiring client scripts.',",
+    "    'Keep validator, deploy, and test instructions aligned with daemon.solana-runtime.json.',",
+    '  ]',
+    '}',
+    '',
+  ].join('\n')
+}
+
 export function buildRuntimeBootstrapFiles(
   settings: WalletInfrastructureSettings | null,
   templateId?: string | null,
@@ -410,6 +507,10 @@ export function buildRuntimeBootstrapFiles(
     {
       path: 'scripts/read-daemon-runtime.mjs',
       content: buildRuntimeLoaderSource(),
+    },
+    {
+      path: 'daemon/solana/runtime.ts',
+      content: buildRuntimeTypeScriptModuleSource(settings),
     },
   ]
 
@@ -429,6 +530,20 @@ export function buildRuntimeBootstrapFiles(
         ].join('\n'),
       },
     )
+  }
+
+  if (isExecutionTemplate(templateId)) {
+    files.push({
+      path: 'src/config/daemonRuntime.ts',
+      content: buildExecutionRuntimeModuleSource(),
+    })
+  }
+
+  if (isAnchorStyleTemplate(templateId)) {
+    files.push({
+      path: 'clients/daemonRuntime.ts',
+      content: buildAnchorRuntimeStubSource(),
+    })
   }
 
   return files
@@ -498,6 +613,17 @@ function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrast
     ].join('\n')
   }
 
+  if (isAnchorStyleTemplate(templateId)) {
+    return [
+      'Anchor-style scaffold requirements:',
+      providerFlow,
+      executionFlow,
+      '- Keep client scripts and test helpers aligned with the DAEMON runtime preset instead of hardcoding RPC behavior.',
+      '- Reuse `clients/daemonRuntime.ts` from generated scripts, tests, or SDK helpers.',
+      '- Document how validator, deploy, and test flows map back to `daemon.solana-runtime.json`.',
+    ].join('\n')
+  }
+
   return ''
 }
 
@@ -513,6 +639,10 @@ function buildBootstrapPrompt(templateId: string, settings: WalletInfrastructure
 
   if (templateId === 'dapp-nextjs' || templateId === 'solana-foundation') {
     keepRules.push('Create a runtime wrapper module such as `src/lib/solana/daemonRuntime.ts` or `lib/solana/daemonRuntime.ts` that centralizes transport, wallet, and execution defaults from the DAEMON runtime preset.')
+  } else if (isExecutionTemplate(templateId)) {
+    keepRules.push('Reuse `src/config/daemonRuntime.ts` from quote, build, sign, submit, or server setup code so bot and server scaffolds keep one runtime contract.')
+  } else if (isAnchorStyleTemplate(templateId)) {
+    keepRules.push('Reuse `clients/daemonRuntime.ts` from generated client scripts, tests, or SDK helpers so Anchor-oriented scaffolds stay aligned with the DAEMON runtime preset.')
   } else {
     keepRules.push('Reference `scripts/read-daemon-runtime.mjs` from project setup docs, scripts, or runtime configuration so the generated project has a concrete DAEMON-owned runtime entrypoint.')
   }
