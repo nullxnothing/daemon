@@ -6,7 +6,7 @@ import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../../db/db'
 import * as SecureKey from '../SecureKeyService'
 import { TIMEOUTS } from '../../config/constants'
-import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
+import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext, buildSolanaRuntimeContext } from './contextUtils'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
 
 // --- In-memory cache ---
@@ -186,6 +186,7 @@ export const CodexProvider: ProviderInterface = {
     }
 
     if (tags.has('solana')) {
+      sections.push(...buildSolanaRuntimeContext(project))
       sections.push(...buildMppContext())
     }
 

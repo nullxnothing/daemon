@@ -7,7 +7,7 @@ import { getDb } from '../../db/db'
 import * as SecureKey from '../SecureKeyService'
 import { TIMEOUTS } from '../../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from '../McpConfig'
-import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
+import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext, buildSolanaRuntimeContext } from './contextUtils'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
 
 // --- In-memory cache ---
@@ -202,6 +202,7 @@ export const ClaudeProvider: ProviderInterface = {
     }
 
     if (tags.has('solana')) {
+      sections.push(...buildSolanaRuntimeContext(project))
       sections.push(...buildMppContext())
     }
 
