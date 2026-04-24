@@ -38,8 +38,8 @@ export function TerminalPanel() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [launchError, setLaunchError] = useState<string | null>(null)
   const panelDragDepthRef = useRef(0)
-  const autoCreatingRef = useRef(false)
-  const userCreatingRef = useRef(false)
+  const terminalCreateInFlightRef = useRef<Promise<string | null> | null>(null)
+  const splitCreatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
 
   const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
@@ -67,21 +67,13 @@ export function TerminalPanel() {
   const handleNewTerminal = useCallback(async (
     label = 'Terminal',
     startupCommand?: string,
-    origin: 'user' | 'auto' = 'user',
   ) => {
-    if (origin === 'auto') {
-      if (autoCreatingRef.current || userCreatingRef.current) return null
-      autoCreatingRef.current = true
-    } else {
-      userCreatingRef.current = true
-    }
+    if (terminalCreateInFlightRef.current) return terminalCreateInFlightRef.current
+
     const projectContext = resolveProjectContext()
-    if (!projectContext) {
-      if (origin === 'auto') autoCreatingRef.current = false
-      else userCreatingRef.current = false
-      return null
-    }
-    try {
+    if (!projectContext) return null
+
+    const createTerminal = async () => {
       setLaunchError(null)
       const res = await window.daemon.terminal.create({ cwd: projectContext.projectPath, startupCommand })
       if (res.ok && res.data) {
@@ -90,10 +82,13 @@ export function TerminalPanel() {
       }
       setLaunchError(res.error ?? 'Failed to open terminal.')
       return null
-    } finally {
-      if (origin === 'auto') autoCreatingRef.current = false
-      else userCreatingRef.current = false
     }
+
+    const createPromise = createTerminal().finally(() => {
+      if (terminalCreateInFlightRef.current === createPromise) terminalCreateInFlightRef.current = null
+    })
+    terminalCreateInFlightRef.current = createPromise
+    return createPromise
   }, [resolveProjectContext, addTerminal])
 
   const handleFolderDrop = useCallback(async (e: React.DragEvent) => {
@@ -168,6 +163,7 @@ export function TerminalPanel() {
   }, [activeProjectId, removeTerminal])
 
   const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
+    if (splitCreatingRef.current) return
     const projectContext = resolveProjectContext()
     if (!projectContext) return
     const projectId = projectContext.projectId
@@ -179,14 +175,19 @@ export function TerminalPanel() {
     let secondaryId = splitLayoutsByProject[projectId]?.secondaryId
     const hasExistingSecondary = Boolean(secondaryId && visibleTerminals.some((tab) => tab.id === secondaryId))
     if (!hasExistingSecondary) {
-      const res = await window.daemon.terminal.create({ cwd: projectContext.projectPath })
-      if (!res.ok || !res.data) {
-        setLaunchError(res.error ?? 'Failed to open split terminal.')
-        return
+      splitCreatingRef.current = true
+      try {
+        const res = await window.daemon.terminal.create({ cwd: projectContext.projectPath })
+        if (!res.ok || !res.data) {
+          setLaunchError(res.error ?? 'Failed to open split terminal.')
+          return
+        }
+        secondaryId = res.data.id
+        addTerminal(projectId, secondaryId, 'Split')
+        setActiveTerminal(projectId, currentActiveTerminalId)
+      } finally {
+        splitCreatingRef.current = false
       }
-      secondaryId = res.data.id
-      addTerminal(projectId, secondaryId, 'Split')
-      setActiveTerminal(projectId, currentActiveTerminalId)
     }
     if (!secondaryId) return
     setLaunchError(null)
@@ -202,8 +203,8 @@ export function TerminalPanel() {
   // start from explicit user actions, not from opening the bottom terminal.
   useEffect(() => {
     if (IS_SMOKE_TEST) return
-    if (!activeProjectId || visibleTerminals.length !== 0 || autoCreatingRef.current || userCreatingRef.current) return
-    void handleNewTerminal('Terminal', undefined, 'auto')
+    if (!activeProjectId || visibleTerminals.length !== 0 || terminalCreateInFlightRef.current) return
+    void handleNewTerminal('Terminal')
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
 
   // Sync split layout when terminals change

@@ -16,10 +16,13 @@ const { TerminalPanel } = await import('../../src/panels/Terminal/Terminal')
 
 function installDaemonBridge(createTerminal = vi.fn()) {
   let terminalId = 0
-  const terminalCreate = createTerminal.mockImplementation(async () => {
-    terminalId += 1
-    return { ok: true, data: { id: `term-${terminalId}` } }
-  })
+  const terminalCreate = createTerminal
+  if (!terminalCreate.getMockImplementation()) {
+    terminalCreate.mockImplementation(async () => {
+      terminalId += 1
+      return { ok: true, data: { id: `term-${terminalId}` } }
+    })
+  }
 
   Object.defineProperty(window, 'daemon', {
     configurable: true,
@@ -48,6 +51,14 @@ function installDaemonBridge(createTerminal = vi.fn()) {
   })
 
   return terminalCreate
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
 }
 
 function resetStores() {
@@ -120,6 +131,39 @@ describe('TerminalPanel DOM behavior', () => {
     expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1', 'term-2'])
     expect(useUIStore.getState().activeTerminalIdByProject['project-1']).toBe('term-2')
     expect(screen.getByTestId('terminal-instance-term-2')).toHaveAttribute('data-visible', 'true')
+  })
+
+  it('does not duplicate the first terminal when the empty state is clicked while auto-create is pending', async () => {
+    const pendingTerminal = deferred<{ ok: true; data: { id: string } }>()
+    const terminalCreate = installDaemonBridge(vi.fn().mockReturnValueOnce(pendingTerminal.promise))
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getByText('Click to start a terminal'))
+    expect(terminalCreate).toHaveBeenCalledTimes(1)
+
+    pendingTerminal.resolve({ ok: true, data: { id: 'term-1' } })
+    await waitFor(() => expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1']))
+  })
+
+  it('does not create duplicate split terminals from rapid split clicks', async () => {
+    const pendingSplit = deferred<{ ok: true; data: { id: string } }>()
+    let createCount = 0
+    const terminalCreate = installDaemonBridge(vi.fn().mockImplementation(() => {
+      createCount += 1
+      if (createCount === 1) return Promise.resolve({ ok: true, data: { id: 'term-1' } })
+      if (createCount === 2) return pendingSplit.promise
+      return Promise.resolve({ ok: true, data: { id: `term-${createCount}` } })
+    }))
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getByTitle('Split vertical'))
+    await userEvent.click(screen.getByTitle('Split vertical'))
+    expect(terminalCreate).toHaveBeenCalledTimes(2)
+
+    pendingSplit.resolve({ ok: true, data: { id: 'term-2' } })
+    await waitFor(() => expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1', 'term-2']))
   })
 
   it('falls back to the most recent project when the user starts a terminal without an active project', async () => {
