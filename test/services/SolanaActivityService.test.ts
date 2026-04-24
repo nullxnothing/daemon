@@ -22,6 +22,19 @@ vi.mock('../../electron/services/SettingsService', () => ({
   })),
 }))
 
+vi.mock('../../electron/services/SolanaService', () => ({
+  getSolanaExecutionContext: vi.fn(() => ({
+    requestedProvider: 'helius',
+    provider: 'helius',
+    providerLabel: 'Helius RPC',
+    executionMode: 'jito',
+    executionLabel: 'Jito block engine',
+    pathLabel: 'Jito submission + Helius RPC reads',
+    fallbackReason: null,
+    warnings: ['Submission uses Jito while reads and confirmations use Helius RPC.'],
+  })),
+}))
+
 import {
   createSolanaActivity,
   listSolanaActivity,

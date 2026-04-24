@@ -2,6 +2,7 @@ import { Connection, Keypair, Transaction, TransactionMessage, VersionedTransact
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { getWalletInfrastructureSettings } from './SettingsService'
+import type { SolanaActivityProvider } from '../shared/types'
 import bs58 from 'bs58'
 import fs from 'node:fs'
 
@@ -55,9 +56,70 @@ export function getTransactionSubmissionSettings() {
 
 export type TransactionTransport = ReturnType<typeof getTransactionSubmissionSettings>['mode']
 
+export interface SolanaExecutionContext {
+  requestedProvider: SolanaActivityProvider
+  provider: SolanaActivityProvider
+  providerLabel: string
+  executionMode: TransactionTransport
+  executionLabel: string
+  pathLabel: string
+  fallbackReason: string | null
+  warnings: string[]
+}
+
 export interface TransactionExecutionResult {
   signature: string
   transport: TransactionTransport
+}
+
+function providerLabel(provider: SolanaActivityProvider): string {
+  switch (provider) {
+    case 'helius':
+      return 'Helius RPC'
+    case 'quicknode':
+      return 'QuickNode RPC'
+    case 'custom':
+      return 'Custom RPC'
+    default:
+      return 'Public RPC'
+  }
+}
+
+export function getSolanaExecutionContext(): SolanaExecutionContext {
+  const settings = getWalletInfrastructureSettings()
+  const requestedProvider = settings.rpcProvider
+  let provider: SolanaActivityProvider = requestedProvider
+  let fallbackReason: string | null = null
+
+  if (requestedProvider === 'helius' && !getHeliusApiKey()) {
+    provider = 'public'
+    fallbackReason = 'Helius RPC is selected but no Helius API key is configured, so DAEMON will use public RPC reads and confirmations.'
+  } else if (requestedProvider === 'quicknode' && !settings.quicknodeRpcUrl) {
+    provider = 'public'
+    fallbackReason = 'QuickNode RPC is selected but no QuickNode URL is configured, so DAEMON will use public RPC reads and confirmations.'
+  } else if (requestedProvider === 'custom' && !settings.customRpcUrl) {
+    provider = 'public'
+    fallbackReason = 'Custom RPC is selected but no custom RPC URL is configured, so DAEMON will use public RPC reads and confirmations.'
+  }
+
+  const executionLabel = settings.executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'
+  const warnings = fallbackReason ? [fallbackReason] : []
+  if (settings.executionMode === 'jito') {
+    warnings.push(`Submission uses Jito while reads and confirmations use ${providerLabel(provider)}.`)
+  }
+
+  return {
+    requestedProvider,
+    provider,
+    providerLabel: providerLabel(provider),
+    executionMode: settings.executionMode,
+    executionLabel,
+    pathLabel: settings.executionMode === 'jito'
+      ? `Jito submission + ${providerLabel(provider)} reads`
+      : `${providerLabel(provider)} submission`,
+    fallbackReason,
+    warnings,
+  }
 }
 
 export async function submitRawTransaction(

@@ -4,7 +4,7 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getTransactionSubmissionSettings, withKeypair, type TransactionExecutionResult } from './SolanaService'
+import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getSolanaExecutionContext, getTransactionSubmissionSettings, withKeypair, type TransactionExecutionResult } from './SolanaService'
 import { createSolanaActivity, markSolanaActivityConfirmed, markSolanaActivityFailed } from './SolanaActivityService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
@@ -94,6 +94,56 @@ const exportCooldowns = new Map<string, number>()
 const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
 const BALANCE_CACHE_TTL = 30_000
 let lastSolPrice = 0
+
+function buildExecutionTelemetry(extra: Record<string, unknown> = {}) {
+  const execution = getSolanaExecutionContext()
+  return {
+    requestedProvider: execution.requestedProvider,
+    effectiveProvider: execution.provider,
+    providerLabel: execution.providerLabel,
+    executionLabel: execution.executionLabel,
+    executionPath: execution.pathLabel,
+    fallbackReason: execution.fallbackReason,
+    preflightWarnings: execution.warnings,
+    ...extra,
+  }
+}
+
+function recordBlockedActivity(input: {
+  walletId: string
+  kind: 'send-sol' | 'send-token' | 'swap'
+  title: string
+  detail: string
+  fromAddress: string
+  toAddress?: string | null
+  inputMint?: string | null
+  outputMint?: string | null
+  inputSymbol?: string | null
+  outputSymbol?: string | null
+  inputAmount?: number | null
+  outputAmount?: number | null
+  metadata?: Record<string, unknown>
+}) {
+  createSolanaActivity({
+    walletId: input.walletId,
+    kind: input.kind,
+    status: 'failed',
+    title: input.title,
+    detail: input.detail,
+    fromAddress: input.fromAddress,
+    toAddress: input.toAddress,
+    inputMint: input.inputMint,
+    outputMint: input.outputMint,
+    inputSymbol: input.inputSymbol,
+    outputSymbol: input.outputSymbol,
+    inputAmount: input.inputAmount,
+    outputAmount: input.outputAmount,
+    metadata: buildExecutionTelemetry({
+      stage: 'preflight',
+      ...input.metadata,
+    }),
+  })
+}
 
 async function runWithConcurrency<T, R>(
   items: T[],
@@ -569,81 +619,117 @@ export async function transferSOL(
 
   const db = getDb()
 
-  const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
+  const walletRow = db.prepare('SELECT address, wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { address: string; wallet_type: string } | undefined
 
-  return withKeypair(fromWalletId, async (keypair) => {
-    const connection = getConnection()
-    const fromAddress = keypair.publicKey.toBase58()
+  try {
+    return await withKeypair(fromWalletId, async (keypair) => {
+      const connection = getConnection()
+      const fromAddress = keypair.publicKey.toBase58()
+      const execution = getSolanaExecutionContext()
+      const activityId = createSolanaActivity({
+        walletId: fromWalletId,
+        kind: 'send-sol',
+        title: 'SOL transfer',
+        detail: sendMax
+          ? 'Running preflight for a max SOL transfer.'
+          : `Running preflight for ${Number(amountSol ?? 0).toFixed(6)} SOL.`,
+        fromAddress,
+        toAddress,
+        inputSymbol: 'SOL',
+        inputAmount: sendMax ? null : amountSol ?? null,
+        metadata: buildExecutionTelemetry({
+          stage: 'preflight',
+          sendMax,
+        }),
+      })
+      let historyInserted = false
+      let txId: string | null = null
 
-    const balance = await connection.getBalance(keypair.publicKey)
-    const feeBufferLamports = 10_000
-    const lamportsToSend = sendMax
-      ? Math.max(0, balance - feeBufferLamports)
-      : Math.round((amountSol ?? 0) * LAMPORTS_PER_SOL)
+      try {
+        const balance = await connection.getBalance(keypair.publicKey)
+        const feeBufferLamports = 10_000
+        const lamportsToSend = sendMax
+          ? Math.max(0, balance - feeBufferLamports)
+          : Math.round((amountSol ?? 0) * LAMPORTS_PER_SOL)
 
-    if (lamportsToSend <= 0) {
-      throw new Error('Not enough SOL to send after reserving network fees')
-    }
+        if (lamportsToSend <= 0) {
+          throw new Error('Not enough SOL to send after reserving network fees')
+        }
 
-    const amountToRecord = lamportsToSend / LAMPORTS_PER_SOL
-    const lamportsNeeded = lamportsToSend + feeBufferLamports
-    if (balance < lamportsNeeded) {
-      throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountToRecord.toFixed(4)} SOL + fees`)
-    }
+        const amountToRecord = lamportsToSend / LAMPORTS_PER_SOL
+        const lamportsNeeded = lamportsToSend + feeBufferLamports
+        if (balance < lamportsNeeded) {
+          throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountToRecord.toFixed(4)} SOL + fees`)
+        }
 
-    // Agent spend limit check — only count SOL transfers toward the SOL-denominated limit
-    if (walletRow?.wallet_type === 'agent') {
-      const dayAgo = Date.now() - 86_400_000
-      const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status IN (?, ?) AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'pending', 'sol_transfer', dayAgo) as { total: number }
-      if (row.total + amountToRecord > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
-    }
+        if (walletRow?.wallet_type === 'agent') {
+          const dayAgo = Date.now() - 86_400_000
+          const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status IN (?, ?) AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'pending', 'sol_transfer', dayAgo) as { total: number }
+          if (row.total + amountToRecord > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
+        }
 
-    const txId = crypto.randomUUID()
-    const activityId = createSolanaActivity({
-      walletId: fromWalletId,
-      kind: 'send-sol',
-      title: 'SOL transfer',
-      detail: sendMax
-        ? 'Sending the maximum transferable SOL balance after reserving fees.'
-        : `Preparing to send ${amountToRecord.toFixed(6)} SOL.`,
-      fromAddress,
-      toAddress,
-      inputSymbol: 'SOL',
-      inputAmount: amountToRecord,
-      metadata: { sendMax },
-    })
+        txId = crypto.randomUUID()
+        db.prepare(
+          'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
+        ).run(txId, fromWalletId, 'sol_transfer', fromAddress, toAddress, amountToRecord, 'pending', Date.now())
+        historyInserted = true
 
-    db.prepare(
-      'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
-    ).run(txId, fromWalletId, 'sol_transfer', fromAddress, toAddress, amountToRecord, 'pending', Date.now())
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: keypair.publicKey,
+            toPubkey: new PublicKey(toAddress),
+            lamports: lamportsToSend,
+          })
+        )
 
-    try {
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: keypair.publicKey,
-          toPubkey: new PublicKey(toAddress),
-          lamports: lamportsToSend,
+        const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
+
+        db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+        markSolanaActivityConfirmed(activityId, {
+          signature,
+          transport,
+          detail: `Confirmed ${amountToRecord.toFixed(6)} SOL transfer via ${execution.pathLabel}.`,
+          metadata: buildExecutionTelemetry({
+            stage: 'confirmed',
+            sendMax,
+            amount: amountToRecord,
+          }),
         })
-      )
-
-      const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
-
-      db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      markSolanaActivityConfirmed(activityId, {
-        signature,
-        transport,
-        detail: `Confirmed ${amountToRecord.toFixed(6)} SOL transfer.`,
-      })
-      return { id: txId, signature, status: 'confirmed', transport }
-    } catch (err) {
+        return { id: txId, signature, status: 'confirmed', transport }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        if (historyInserted && txId) {
+          db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+        }
+        markSolanaActivityFailed(activityId, errorMsg, {
+          detail: historyInserted
+            ? `SOL transfer failed after submit on ${execution.pathLabel}: ${errorMsg}`
+            : `SOL transfer blocked during preflight on ${execution.pathLabel}: ${errorMsg}`,
+          metadata: buildExecutionTelemetry({
+            stage: historyInserted ? 'submit' : 'preflight',
+            sendMax,
+          }),
+        })
+        throw err
+      }
+    })
+  } catch (err) {
+    if (walletRow?.address) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
-      markSolanaActivityFailed(activityId, errorMsg, {
-        detail: `SOL transfer failed: ${errorMsg}`,
+      recordBlockedActivity({
+        walletId: fromWalletId,
+        kind: 'send-sol',
+        title: 'SOL transfer',
+        detail: `SOL transfer blocked before signer load: ${errorMsg}`,
+        fromAddress: walletRow.address,
+        toAddress,
+        inputSymbol: 'SOL',
+        inputAmount: sendMax ? null : amountSol ?? null,
+        metadata: { sendMax },
       })
-      throw err
     }
-  })
+    throw err
+  }
 }
 
 export async function transferToken(
@@ -662,103 +748,142 @@ export async function transferToken(
   // Token transfers are not subject to the SOL-denominated spend limit.
   // The SOL spend limit only applies to SOL transfers (see transferSOL).
 
-  return withKeypair(fromWalletId, async (keypair) => {
-    const connection = getConnection()
-    const fromAddress = keypair.publicKey.toBase58()
-    const mintPubkey = new PublicKey(mint)
-    const destPubkey = new PublicKey(toAddress)
+  const walletRow = db.prepare('SELECT address FROM wallets WHERE id = ?').get(fromWalletId) as { address: string } | undefined
 
-    // Fetch the source token account balance and validate before building the transaction.
-    const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
-    const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
-    const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
-    let rawAmount: bigint
-    let amountToRecord: number
-    try {
-      const accountInfo = await getAccount(connection, fromAta)
-      const rawBalance = accountInfo.amount
-      rawAmount = sendMax
-        ? rawBalance
-        : toRawTokenAmount(amount ?? 0, decimals)
+  try {
+    return await withKeypair(fromWalletId, async (keypair) => {
+      const connection = getConnection()
+      const fromAddress = keypair.publicKey.toBase58()
+      const mintPubkey = new PublicKey(mint)
+      const destPubkey = new PublicKey(toAddress)
+      const execution = getSolanaExecutionContext()
+      const activityId = createSolanaActivity({
+        walletId: fromWalletId,
+        kind: 'send-token',
+        title: 'Token transfer',
+        detail: sendMax
+          ? 'Running preflight for a max token transfer.'
+          : `Running preflight for ${amount ?? 0} tokens.`,
+        fromAddress,
+        toAddress,
+        inputMint: mint,
+        inputAmount: sendMax ? null : amount ?? null,
+        metadata: buildExecutionTelemetry({
+          stage: 'preflight',
+          sendMax,
+        }),
+      })
+      let historyInserted = false
+      let txId: string | null = null
 
-      if (rawAmount <= 0n) {
-        throw new Error('No token balance available to send')
-      }
-      if (rawBalance < rawAmount) {
-        throw new Error(`Insufficient token balance: have ${formatTokenAmount(rawBalance, decimals)}, need ${amount}`)
-      }
-      amountToRecord = Number.parseFloat(formatTokenAmount(rawAmount, decimals))
-    } catch (err) {
-      if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
-      if (err instanceof Error && err.message.startsWith('No token balance')) throw err
-      throw new Error('Could not verify token balance — token account may not exist')
-    }
-
-    const txId = crypto.randomUUID()
-    const activityId = createSolanaActivity({
-      walletId: fromWalletId,
-      kind: 'send-token',
-      title: 'Token transfer',
-      detail: sendMax
-        ? 'Sending the full token balance using the shared executor.'
-        : `Preparing token transfer for ${amountToRecord}.`,
-      fromAddress,
-      toAddress,
-      inputMint: mint,
-      inputAmount: amountToRecord,
-      metadata: { sendMax },
-    })
-
-    db.prepare(
-      'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
-    ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amountToRecord, mint, 'pending', Date.now())
-
-    try {
-      const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey)
-
-      const transaction = new Transaction()
-
-      // Create destination ATA if it doesn't exist
+      const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
+      const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
+      const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals ?? 9
+      let rawAmount: bigint
+      let amountToRecord: number
       try {
-        await getAccount(connection, toAta)
-      } catch {
+        const accountInfo = await getAccount(connection, fromAta)
+        const rawBalance = accountInfo.amount
+        rawAmount = sendMax
+          ? rawBalance
+          : toRawTokenAmount(amount ?? 0, decimals)
+
+        if (rawAmount <= 0n) {
+          throw new Error('No token balance available to send')
+        }
+        if (rawBalance < rawAmount) {
+          throw new Error(`Insufficient token balance: have ${formatTokenAmount(rawBalance, decimals)}, need ${amount}`)
+        }
+        amountToRecord = Number.parseFloat(formatTokenAmount(rawAmount, decimals))
+      } catch (err) {
+        if (err instanceof Error && err.message.startsWith('Insufficient')) throw err
+        if (err instanceof Error && err.message.startsWith('No token balance')) throw err
+        throw new Error('Could not verify token balance — token account may not exist')
+      }
+
+      try {
+        txId = crypto.randomUUID()
+        db.prepare(
+          'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
+        ).run(txId, fromWalletId, 'token_transfer', fromAddress, toAddress, amountToRecord, mint, 'pending', Date.now())
+        historyInserted = true
+
+        const toAta = await getAssociatedTokenAddress(mintPubkey, destPubkey)
+
+        const transaction = new Transaction()
+
+        try {
+          await getAccount(connection, toAta)
+        } catch {
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              keypair.publicKey,
+              toAta,
+              destPubkey,
+              mintPubkey,
+            )
+          )
+        }
+
         transaction.add(
-          createAssociatedTokenAccountInstruction(
-            keypair.publicKey,
+          createTransferInstruction(
+            fromAta,
             toAta,
-            destPubkey,
-            mintPubkey,
+            keypair.publicKey,
+            rawAmount,
           )
         )
+
+        const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
+
+        db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+        markSolanaActivityConfirmed(activityId, {
+          signature,
+          transport,
+          detail: `Confirmed token transfer for ${amountToRecord} via ${execution.pathLabel}.`,
+          metadata: buildExecutionTelemetry({
+            stage: 'confirmed',
+            sendMax,
+            amount: amountToRecord,
+            mint,
+          }),
+        })
+        return { id: txId, signature, status: 'confirmed', transport }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        if (historyInserted && txId) {
+          db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+        }
+        markSolanaActivityFailed(activityId, errorMsg, {
+          detail: historyInserted
+            ? `Token transfer failed after submit on ${execution.pathLabel}: ${errorMsg}`
+            : `Token transfer blocked during preflight on ${execution.pathLabel}: ${errorMsg}`,
+          metadata: buildExecutionTelemetry({
+            stage: historyInserted ? 'submit' : 'preflight',
+            sendMax,
+            mint,
+          }),
+        })
+        throw err
       }
-
-      transaction.add(
-        createTransferInstruction(
-          fromAta,
-          toAta,
-          keypair.publicKey,
-          rawAmount,
-        )
-      )
-
-      const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
-
-      db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      markSolanaActivityConfirmed(activityId, {
-        signature,
-        transport,
-        detail: `Confirmed token transfer for ${amountToRecord}.`,
-      })
-      return { id: txId, signature, status: 'confirmed', transport }
-    } catch (err) {
+    })
+  } catch (err) {
+    if (walletRow?.address) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
-      markSolanaActivityFailed(activityId, errorMsg, {
-        detail: `Token transfer failed: ${errorMsg}`,
+      recordBlockedActivity({
+        walletId: fromWalletId,
+        kind: 'send-token',
+        title: 'Token transfer',
+        detail: `Token transfer blocked before signer load: ${errorMsg}`,
+        fromAddress: walletRow.address,
+        toAddress,
+        inputMint: mint,
+        inputAmount: sendMax ? null : amount ?? null,
+        metadata: { sendMax },
       })
-      throw err
     }
-  })
+    throw err
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -857,14 +982,33 @@ export async function executeSwap(
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
   if (amount <= 0) throw new Error('Amount must be greater than 0')
 
-  const jupiterApiKey = getJupiterApiKey()
-  if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
-
   const db = getDb()
+  const walletRow = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
 
-  return withKeypair(walletId, async (keypair) => {
-    const connection = getConnection()
-    const userPublicKey = keypair.publicKey.toBase58()
+  try {
+    return await withKeypair(walletId, async (keypair) => {
+      const connection = getConnection()
+      const userPublicKey = keypair.publicKey.toBase58()
+      const execution = getSolanaExecutionContext()
+      const activityId = createSolanaActivity({
+        walletId,
+        kind: 'swap',
+        title: 'Jupiter swap',
+        detail: `Running swap preflight for ${amount} from ${inputMint} to ${outputMint}.`,
+        fromAddress: userPublicKey,
+        inputMint,
+        outputMint,
+        inputAmount: amount,
+        metadata: buildExecutionTelemetry({
+          stage: 'preflight',
+          slippageBps,
+        }),
+      })
+      let historyInserted = false
+      let txId: string | null = null
+
+      const jupiterApiKey = getJupiterApiKey()
+      if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
 
     // Balance check: verify the wallet holds enough of the input token before
     // building the transaction. This prevents sending a doomed tx to the network.
@@ -966,43 +1110,60 @@ export async function executeSwap(
     const transaction = VTx.deserialize(txBuf)
     transaction.sign([keypair])
 
-    const txId = crypto.randomUUID()
-    const activityId = createSolanaActivity({
-      walletId,
-      kind: 'swap',
-      title: 'Jupiter swap',
-      detail: `Preparing ${amount} swap from ${inputMint} to ${outputMint}.`,
-      fromAddress: userPublicKey,
-      inputMint,
-      outputMint,
-      inputAmount: amount,
-      metadata: {
-        slippageBps,
-      },
+      txId = crypto.randomUUID()
+      db.prepare(
+        'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
+      ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
+      historyInserted = true
+
+      try {
+        const { signature, transport } = await executeTransaction(connection, transaction, [])
+
+        db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+        markSolanaActivityConfirmed(activityId, {
+          signature,
+          transport,
+          detail: `Confirmed Jupiter swap from ${inputMint} to ${outputMint} via ${execution.pathLabel}.`,
+          metadata: buildExecutionTelemetry({
+            stage: 'confirmed',
+            slippageBps,
+          }),
+        })
+        return { signature, transport }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        if (historyInserted && txId) {
+          db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+        }
+        markSolanaActivityFailed(activityId, errorMsg, {
+          detail: historyInserted
+            ? `Swap failed after submit on ${execution.pathLabel}: ${errorMsg}`
+            : `Swap blocked during preflight on ${execution.pathLabel}: ${errorMsg}`,
+          metadata: buildExecutionTelemetry({
+            stage: historyInserted ? 'submit' : 'preflight',
+            slippageBps,
+          }),
+        })
+        throw err
+      }
     })
-    db.prepare(
-      'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
-    ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
-
-    try {
-      const { signature, transport } = await executeTransaction(connection, transaction, [])
-
-      db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
-      markSolanaActivityConfirmed(activityId, {
-        signature,
-        transport,
-        detail: `Confirmed Jupiter swap from ${inputMint} to ${outputMint}.`,
-      })
-      return { signature, transport }
-    } catch (err) {
+  } catch (err) {
+    if (walletRow?.address) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
-      markSolanaActivityFailed(activityId, errorMsg, {
-        detail: `Swap failed: ${errorMsg}`,
+      recordBlockedActivity({
+        walletId,
+        kind: 'swap',
+        title: 'Jupiter swap',
+        detail: `Swap blocked before signer load: ${errorMsg}`,
+        fromAddress: walletRow.address,
+        inputMint,
+        outputMint,
+        inputAmount: amount,
+        metadata: { slippageBps },
       })
-      throw err
     }
-  })
+    throw err
+  }
 }
 
 async function getMintDecimals(mint: string): Promise<number> {

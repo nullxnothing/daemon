@@ -33,6 +33,7 @@ export function TransactionHistory({ transactions, activity = [] }: TransactionH
                 : shortAddress(entry.fromAddress)}
             </div>
             <div className="wallet-caption">{entry.detail}</div>
+            {formatExecutionPath(entry) && <div className="wallet-caption">{formatExecutionPath(entry)}</div>}
           </div>
           <div style={{ textAlign: 'right' }}>
             <div className="wallet-label">{formatActivityAmount(entry)}</div>
@@ -87,6 +88,41 @@ function formatActivityAmount(entry: SolanaActivityEntry): string {
 
   if (entry.inputAmount == null) return entry.inputSymbol ?? entry.kind
   return `${entry.inputAmount}${entry.inputSymbol ? ` ${entry.inputSymbol}` : ''}`
+}
+
+function formatExecutionPath(entry: SolanaActivityEntry): string | null {
+  const metadata = parseMetadata(entry.metadataJson)
+  const provider = typeof metadata.providerLabel === 'string' ? metadata.providerLabel : providerLabel(entry.provider)
+  const path = typeof metadata.executionPath === 'string'
+    ? metadata.executionPath
+    : entry.transport === 'jito'
+      ? `Jito submission + ${provider} reads`
+      : `${provider} submission`
+  const fallback = typeof metadata.fallbackReason === 'string' && metadata.fallbackReason
+    ? ` • ${metadata.fallbackReason}`
+    : ''
+  return `${path}${fallback}`
+}
+
+function parseMetadata(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+function providerLabel(provider: SolanaActivityEntry['provider']): string {
+  switch (provider) {
+    case 'helius':
+      return 'Helius RPC'
+    case 'quicknode':
+      return 'QuickNode RPC'
+    case 'custom':
+      return 'Custom RPC'
+    default:
+      return 'Public RPC'
+  }
 }
 
 function relativeTime(ts: number): string {

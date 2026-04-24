@@ -1,5 +1,5 @@
 import { getDb } from '../db/db'
-import { getWalletInfrastructureSettings } from './SettingsService'
+import { getSolanaExecutionContext } from './SolanaService'
 import type {
   SolanaActivityEntry,
   SolanaActivityExecutionMode,
@@ -82,7 +82,7 @@ export function createSolanaActivity(input: CreateSolanaActivityInput): string {
   const db = getDb()
   const now = Date.now()
   const id = input.id ?? crypto.randomUUID()
-  const settings = getWalletInfrastructureSettings()
+  const execution = getSolanaExecutionContext()
 
   db.prepare(`
     INSERT INTO solana_activity (
@@ -114,8 +114,8 @@ export function createSolanaActivity(input: CreateSolanaActivityInput): string {
     input.walletId ?? null,
     input.kind,
     input.status ?? 'pending',
-    settings.rpcProvider,
-    settings.executionMode,
+    execution.provider,
+    execution.executionMode,
     null,
     null,
     input.title,

@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js'
 import type { SolanaTransactionPreview, SolanaTransactionPreviewInput } from '../shared/types'
 import { getSolanaRuntimeStatus } from './SolanaRuntimeStatusService'
+import { getSolanaExecutionContext } from './SolanaService'
 import { listWallets } from './WalletService'
 
 function shortAddress(value: string | undefined): string {
@@ -33,10 +34,11 @@ function getWalletLabel(walletId: string | undefined): string {
 
 export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): SolanaTransactionPreview {
   const runtime = getSolanaRuntimeStatus()
+  const execution = getSolanaExecutionContext()
   const signerLabel = getWalletLabel(input.walletId)
-  const warnings = [...runtime.troubleshooting]
+  const warnings = [...runtime.troubleshooting, ...execution.warnings]
   const notes: string[] = [
-    `Execution backend: ${runtime.executionBackend.label}.`,
+    `Execution path: ${execution.pathLabel}.`,
     'Network fees are finalized when DAEMON builds and submits the transaction.',
   ]
   let title = 'Review Transaction'
@@ -109,11 +111,11 @@ export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): 
 
   return {
     title,
-    backendLabel: runtime.executionBackend.label,
+    backendLabel: execution.pathLabel,
     signerLabel,
     targetLabel,
     amountLabel,
-    feeLabel: runtime.executionBackend.label.includes('Jito') ? 'Jito + network fees at submit time' : 'RPC network fee at submit time',
+    feeLabel: execution.executionMode === 'jito' ? 'Jito + network fees at submit time' : 'RPC network fee at submit time',
     notes,
     warnings,
     requiresAcknowledgement,

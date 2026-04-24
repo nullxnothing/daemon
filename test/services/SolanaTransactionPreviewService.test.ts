@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockGetSolanaRuntimeStatus, mockListWallets } = vi.hoisted(() => ({
+const { mockGetSolanaRuntimeStatus, mockListWallets, mockGetSolanaExecutionContext } = vi.hoisted(() => ({
   mockGetSolanaRuntimeStatus: vi.fn(),
   mockListWallets: vi.fn(),
+  mockGetSolanaExecutionContext: vi.fn(),
 }))
 
 vi.mock('../../electron/services/SolanaRuntimeStatusService', () => ({
@@ -11,6 +12,10 @@ vi.mock('../../electron/services/SolanaRuntimeStatusService', () => ({
 
 vi.mock('../../electron/services/WalletService', () => ({
   listWallets: mockListWallets,
+}))
+
+vi.mock('../../electron/services/SolanaService', () => ({
+  getSolanaExecutionContext: mockGetSolanaExecutionContext,
 }))
 
 import { previewSolanaTransaction } from '../../electron/services/SolanaTransactionPreviewService'
@@ -36,6 +41,16 @@ describe('SolanaTransactionPreviewService', () => {
         assigned_project_ids: [],
       },
     ])
+    mockGetSolanaExecutionContext.mockReturnValue({
+      requestedProvider: 'helius',
+      provider: 'helius',
+      providerLabel: 'Helius RPC',
+      executionMode: 'rpc',
+      executionLabel: 'Standard RPC',
+      pathLabel: 'Helius RPC submission',
+      fallbackReason: null,
+      warnings: [],
+    })
   })
 
   it('builds a backend preview for SOL sends', () => {
@@ -47,7 +62,7 @@ describe('SolanaTransactionPreviewService', () => {
     })
 
     expect(preview.title).toBe('Review SOL Send')
-    expect(preview.backendLabel).toBe('Shared RPC executor')
+    expect(preview.backendLabel).toBe('Helius RPC submission')
     expect(preview.signerLabel).toContain('Main Wallet')
     expect(preview.amountLabel).toBe('0.5 SOL')
     expect(preview.warnings).toEqual([])
