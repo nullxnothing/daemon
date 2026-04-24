@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db/db'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import * as SolanaActivityService from '../services/SolanaActivityService'
 
 interface ActivityEntryInput {
   id: string
@@ -65,5 +66,13 @@ export function registerActivityHandlers() {
   ipcMain.handle('activity:clear', ipcHandler(async () => {
     const db = getDb()
     db.prepare('DELETE FROM activity_log').run()
+  }))
+
+  ipcMain.handle('activity:solana-list', ipcHandler(async (_event, walletId?: string | null, limit?: number) => {
+    return SolanaActivityService.listSolanaActivity(limit, walletId)
+  }))
+
+  ipcMain.handle('activity:solana-clear', ipcHandler(async () => {
+    SolanaActivityService.clearSolanaActivity()
   }))
 }

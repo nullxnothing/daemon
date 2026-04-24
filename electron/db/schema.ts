@@ -552,3 +552,33 @@ CREATE TABLE IF NOT EXISTS pro_state (
   updated_at INTEGER NOT NULL
 );
 `
+
+export const SCHEMA_V26 = `
+CREATE TABLE IF NOT EXISTS solana_activity (
+  id TEXT PRIMARY KEY,
+  wallet_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK(kind IN ('send-sol','send-token','swap')),
+  status TEXT NOT NULL CHECK(status IN ('pending','confirmed','failed')),
+  provider TEXT NOT NULL CHECK(provider IN ('helius','public','quicknode','custom')),
+  execution_mode TEXT NOT NULL CHECK(execution_mode IN ('rpc','jito')),
+  transport TEXT CHECK(transport IN ('rpc','jito')),
+  signature TEXT,
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  from_address TEXT NOT NULL,
+  to_address TEXT,
+  input_mint TEXT,
+  output_mint TEXT,
+  input_symbol TEXT,
+  output_symbol TEXT,
+  input_amount REAL,
+  output_amount REAL,
+  error TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_solana_activity_wallet_created ON solana_activity(wallet_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_solana_activity_status_created ON solana_activity(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_solana_activity_signature ON solana_activity(signature);
+`

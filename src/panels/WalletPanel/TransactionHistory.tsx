@@ -14,15 +14,38 @@ interface WalletTransaction {
 
 interface TransactionHistoryProps {
   transactions: WalletTransaction[]
+  activity?: SolanaActivityEntry[]
 }
 
-export function TransactionHistory({ transactions }: TransactionHistoryProps) {
-  if (transactions.length === 0) return null
+export function TransactionHistory({ transactions, activity = [] }: TransactionHistoryProps) {
+  if (transactions.length === 0 && activity.length === 0) return null
 
   return (
     <section className="wallet-section">
-      <div className="wallet-section-title">Transaction History</div>
-      {transactions.slice(0, 10).map((tx) => (
+      <div className="wallet-section-title">Solana Activity</div>
+      {activity.slice(0, 10).map((entry) => (
+        <div key={entry.id} className="wallet-tx-row">
+          <div>
+            <div className="wallet-label">{entry.title}</div>
+            <div className="wallet-caption">
+              {entry.toAddress
+                ? `${shortAddress(entry.fromAddress)} → ${shortAddress(entry.toAddress)}`
+                : shortAddress(entry.fromAddress)}
+            </div>
+            <div className="wallet-caption">{entry.detail}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="wallet-label">{formatActivityAmount(entry)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+              <span className={`wallet-tx-status ${entry.status}`}>{entry.status}</span>
+              <span className="wallet-caption">{relativeTime(entry.createdAt)}</span>
+            </div>
+            {entry.signature && <div className="wallet-caption">Sig {shortSignature(entry.signature)}</div>}
+            {entry.error && <div className="wallet-tx-error">{entry.error}</div>}
+          </div>
+        </div>
+      ))}
+      {activity.length === 0 && transactions.slice(0, 10).map((tx) => (
         <div key={tx.id} className="wallet-tx-row">
           <div>
             <div className="wallet-label">{tx.type}</div>
@@ -45,6 +68,21 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
 
 function shortAddress(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`
+}
+
+function shortSignature(value: string): string {
+  return `${value.slice(0, 6)}...${value.slice(-6)}`
+}
+
+function formatActivityAmount(entry: SolanaActivityEntry): string {
+  if (entry.kind === 'swap') {
+    const input = entry.inputAmount != null ? `${entry.inputAmount} ${entry.inputSymbol ?? shortAddress(entry.inputMint ?? 'input')}` : entry.inputSymbol ?? 'Swap'
+    const output = entry.outputAmount != null ? `${entry.outputAmount} ${entry.outputSymbol ?? shortAddress(entry.outputMint ?? 'output')}` : entry.outputSymbol ?? 'output'
+    return `${input} -> ${output}`
+  }
+
+  if (entry.inputAmount == null) return entry.inputSymbol ?? entry.kind
+  return `${entry.inputAmount}${entry.inputSymbol ? ` ${entry.inputSymbol}` : ''}`
 }
 
 function relativeTime(ts: number): string {

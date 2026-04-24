@@ -5,6 +5,7 @@ import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PE
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
 import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getTransactionSubmissionSettings, withKeypair, type TransactionExecutionResult } from './SolanaService'
+import { createSolanaActivity, markSolanaActivityConfirmed, markSolanaActivityFailed } from './SolanaActivityService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -598,6 +599,19 @@ export async function transferSOL(
     }
 
     const txId = crypto.randomUUID()
+    const activityId = createSolanaActivity({
+      walletId: fromWalletId,
+      kind: 'send-sol',
+      title: 'SOL transfer',
+      detail: sendMax
+        ? 'Sending the maximum transferable SOL balance after reserving fees.'
+        : `Preparing to send ${amountToRecord.toFixed(6)} SOL.`,
+      fromAddress,
+      toAddress,
+      inputSymbol: 'SOL',
+      inputAmount: amountToRecord,
+      metadata: { sendMax },
+    })
 
     db.prepare(
       'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
@@ -615,10 +629,18 @@ export async function transferSOL(
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      markSolanaActivityConfirmed(activityId, {
+        signature,
+        transport,
+        detail: `Confirmed ${amountToRecord.toFixed(6)} SOL transfer.`,
+      })
       return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      markSolanaActivityFailed(activityId, errorMsg, {
+        detail: `SOL transfer failed: ${errorMsg}`,
+      })
       throw err
     }
   })
@@ -673,6 +695,19 @@ export async function transferToken(
     }
 
     const txId = crypto.randomUUID()
+    const activityId = createSolanaActivity({
+      walletId: fromWalletId,
+      kind: 'send-token',
+      title: 'Token transfer',
+      detail: sendMax
+        ? 'Sending the full token balance using the shared executor.'
+        : `Preparing token transfer for ${amountToRecord}.`,
+      fromAddress,
+      toAddress,
+      inputMint: mint,
+      inputAmount: amountToRecord,
+      metadata: { sendMax },
+    })
 
     db.prepare(
       'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
@@ -709,10 +744,18 @@ export async function transferToken(
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      markSolanaActivityConfirmed(activityId, {
+        signature,
+        transport,
+        detail: `Confirmed token transfer for ${amountToRecord}.`,
+      })
       return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      markSolanaActivityFailed(activityId, errorMsg, {
+        detail: `Token transfer failed: ${errorMsg}`,
+      })
       throw err
     }
   })
@@ -924,6 +967,19 @@ export async function executeSwap(
     transaction.sign([keypair])
 
     const txId = crypto.randomUUID()
+    const activityId = createSolanaActivity({
+      walletId,
+      kind: 'swap',
+      title: 'Jupiter swap',
+      detail: `Preparing ${amount} swap from ${inputMint} to ${outputMint}.`,
+      fromAddress: userPublicKey,
+      inputMint,
+      outputMint,
+      inputAmount: amount,
+      metadata: {
+        slippageBps,
+      },
+    })
     db.prepare(
       'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, mint, status, created_at) VALUES (?,?,?,?,?,?,?,?,?)'
     ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
@@ -932,10 +988,18 @@ export async function executeSwap(
       const { signature, transport } = await executeTransaction(connection, transaction, [])
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      markSolanaActivityConfirmed(activityId, {
+        signature,
+        transport,
+        detail: `Confirmed Jupiter swap from ${inputMint} to ${outputMint}.`,
+      })
       return { signature, transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      markSolanaActivityFailed(activityId, errorMsg, {
+        detail: `Swap failed: ${errorMsg}`,
+      })
       throw err
     }
   })

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useUIStore } from '../../../store/ui'
 import { useWalletStore } from '../../../store/wallet'
 import { useNotificationsStore } from '../../../store/notifications'
+import { useSolanaActivityStore } from '../../../store/solanaActivity'
 import { WalletSettings } from '../WalletSettings'
 import { WalletExportKey } from '../WalletExportKey'
 import { TransactionHistory } from '../TransactionHistory'
@@ -28,6 +29,7 @@ export function WalletTab({ onRefresh }: Props) {
   const setStoreShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
   const activeView = useWalletStore((s) => s.activeView)
   const setActiveView = useWalletStore((s) => s.setActiveView)
+  const solanaActivity = useSolanaActivityStore((s) => s.entries)
   const pushSuccess = useNotificationsStore((s) => s.pushSuccess)
   const pushError = useNotificationsStore((s) => s.pushError)
 
@@ -613,7 +615,7 @@ export function WalletTab({ onRefresh }: Props) {
                   <span className="wallet-readiness-dot ready" />
                   <div>
                     <strong>Activity snapshot</strong>
-                    <p>{transactions?.length ? `${transactions.length} recent transaction${transactions.length === 1 ? '' : 's'} loaded.` : 'No recent transactions loaded yet.'}</p>
+                    <p>{solanaActivity.length ? `${solanaActivity.length} shared Solana activit${solanaActivity.length === 1 ? 'y' : 'ies'} loaded.` : transactions?.length ? `${transactions.length} recent transaction${transactions.length === 1 ? '' : 's'} loaded.` : 'No recent transactions loaded yet.'}</p>
                   </div>
                 </div>
                 <div className="wallet-readiness-item">
@@ -804,7 +806,9 @@ export function WalletTab({ onRefresh }: Props) {
               <div className="wallet-caption">Recent confirmed transactions for the active wallet.</div>
             </div>
           </div>
-          {transactions && transactions.length > 0 ? <TransactionHistory transactions={transactions} /> : <div className="wallet-empty">No recent transactions for the active wallet yet.</div>}
+          {((transactions && transactions.length > 0) || solanaActivity.length > 0)
+            ? <TransactionHistory transactions={transactions ?? []} activity={solanaActivity} />
+            : <div className="wallet-empty">No recent transactions for the active wallet yet.</div>}
         </section>
       )}
 

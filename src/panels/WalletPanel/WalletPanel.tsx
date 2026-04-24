@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useSolanaActivityStore } from '../../store/solanaActivity'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
 import './WalletPanel.css'
@@ -32,6 +33,7 @@ export function WalletPanel() {
   useEffect(() => {
     if (dashboard?.activeWallet) {
       void useWalletStore.getState().loadTransactions(dashboard.activeWallet.id ?? '')
+      void useSolanaActivityStore.getState().loadRecent(dashboard.activeWallet.id ?? '', 25)
     }
   }, [dashboard?.activeWallet])
 

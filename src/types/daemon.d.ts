@@ -211,6 +211,7 @@ declare global {
 
   type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
   type SolanaTransactionPreview = import('../../electron/shared/types').SolanaTransactionPreview
+  type SolanaActivityEntry = import('../../electron/shared/types').SolanaActivityEntry
 
   type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
 
@@ -935,6 +936,8 @@ declare global {
     append: (entry: DaemonActivityEntry) => Promise<IpcResponse<void>>
     list: (limit?: number) => Promise<IpcResponse<DaemonActivityEntry[]>>
     clear: () => Promise<IpcResponse<void>>
+    listSolana: (walletId?: string | null, limit?: number) => Promise<IpcResponse<SolanaActivityEntry[]>>
+    clearSolana: () => Promise<IpcResponse<void>>
   }
 
   type DaemonEventChannel = 'auth:changed' | 'process:changed' | 'port:changed' | 'wallet:changed'

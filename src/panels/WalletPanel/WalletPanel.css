@@ -1427,6 +1427,14 @@
   background: var(--red-glow);
 }
 
+.wallet-tx-error {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--red);
+  max-width: 260px;
+  line-height: 1.45;
+}
+
 /* ── Export Key ── */
 
 .wallet-key-reveal {

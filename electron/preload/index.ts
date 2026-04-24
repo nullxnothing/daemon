@@ -147,6 +147,8 @@ contextBridge.exposeInMainWorld('daemon', {
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
     clear: () => ipcRenderer.invoke('activity:clear'),
+    listSolana: (walletId?: string | null, limit?: number) => ipcRenderer.invoke('activity:solana-list', walletId ?? null, limit),
+    clearSolana: () => ipcRenderer.invoke('activity:solana-clear'),
   },
 
   events: {
