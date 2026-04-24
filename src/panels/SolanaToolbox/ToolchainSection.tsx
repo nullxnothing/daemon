@@ -1,7 +1,13 @@
+import { useState } from 'react'
+import { useAppActions } from '../../store/appActions'
 import type { SolanaToolchainStatus } from '../../store/solanaToolbox'
+import { useUIStore } from '../../store/ui'
+import { getSolanaToolingGuide } from './toolingGuides'
 
 interface ToolchainSectionProps {
   toolchain: SolanaToolchainStatus | null
+  projectId: string | null
+  projectPath: string | null
 }
 
 const TOOL_ROWS: Array<{
@@ -17,8 +23,34 @@ const TOOL_ROWS: Array<{
   { key: 'litesvm', label: 'LiteSVM', description: 'Project-level fast execution harness for tests.' },
 ]
 
-export function ToolchainSection({ toolchain }: ToolchainSectionProps) {
+export function ToolchainSection({ toolchain, projectId, projectPath }: ToolchainSectionProps) {
+  const addTerminal = useUIStore((s) => s.addTerminal)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
+
   if (!toolchain) return null
+
+  async function handleRunCommand(command: string, label: string) {
+    if (!projectId || !projectPath) {
+      setActionMessage('Open a project before asking DAEMON to run Solana setup commands.')
+      return
+    }
+
+    const terminalRes = await window.daemon.terminal.create({
+      cwd: projectPath,
+      startupCommand: command,
+      userInitiated: true,
+    })
+
+    if (!terminalRes.ok || !terminalRes.data) {
+      setActionMessage(terminalRes.error ?? `Could not open the ${label} terminal.`)
+      return
+    }
+
+    addTerminal(projectId, terminalRes.data.id, label, terminalRes.data.agentId)
+    focusTerminal()
+    setActionMessage(`${label} opened in a project terminal.`)
+  }
 
   return (
     <div className="solana-toolchain">
@@ -36,6 +68,14 @@ export function ToolchainSection({ toolchain }: ToolchainSectionProps) {
         {TOOL_ROWS.map((tool) => {
           const entry = toolchain[tool.key]
           const installed = entry.installed
+          const guide = getSolanaToolingGuide(
+            tool.key === 'solanaCli'
+              ? 'solana-cli'
+              : tool.key === 'testValidator'
+                ? 'surfpool'
+                : tool.key,
+            { avmInstalled: toolchain.avm.installed, hasProject: Boolean(projectPath) },
+          )
           const detail = 'version' in entry
             ? entry.version || 'Installed, version unavailable'
             : entry.source === 'project'
@@ -51,11 +91,32 @@ export function ToolchainSection({ toolchain }: ToolchainSectionProps) {
                 </span>
               </div>
               <div className="solana-runtime-detail">{tool.description}</div>
-              <div className="solana-toolchain-version">{installed ? detail : detail}</div>
+              <div className="solana-toolchain-version">{detail}</div>
+              {(tool.key !== 'testValidator' || !toolchain.surfpool.installed) && (
+                <div className="solana-runtime-actions">
+                  {!installed && guide.installCommand && guide.installLabel && (
+                    <button
+                      type="button"
+                      className="sol-btn green"
+                      onClick={() => void handleRunCommand(guide.installCommand!, guide.installLabel!)}
+                    >
+                      {guide.installLabel}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="sol-btn secondary"
+                    onClick={() => void window.daemon.shell.openExternal(guide.docsUrl)}
+                  >
+                    {guide.docsLabel}
+                  </button>
+                </div>
+              )}
             </section>
           )
         })}
       </div>
+      {actionMessage && <div className="solana-toolchain-feedback">{actionMessage}</div>}
     </div>
   )
 }

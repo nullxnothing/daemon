@@ -185,13 +185,17 @@ function installDaemonBridge() {
           ok: true,
           data: {
             rpc: { label: 'Helius', detail: 'RPC ready', status: 'live' },
-            walletPath: { label: 'Phantom-first', detail: 'Wallet UX ready', status: 'live' },
+            walletPath: { label: 'Wallet Standard', detail: 'Wallet standard path active', status: 'live' },
             swapEngine: { label: 'Jupiter', detail: 'Swap preview ready', status: 'partial' },
             executionBackend: {
               label: 'Shared RPC executor',
               detail: 'Shared confirmation path ready',
               status: 'live',
             },
+            environmentDiagnostics: [
+              { id: 'solana-cli', label: 'Solana CLI', detail: 'solana-cli 2.0.0', status: 'live', action: 'CLI is ready.' },
+              { id: 'anchor', label: 'Anchor', detail: 'anchor-cli 0.31.0', status: 'live', action: 'Anchor CLI is ready.' },
+            ],
             executionCoverage: [
               { label: 'Wallet sends', detail: 'Uses shared executor', status: 'live' },
             ],
@@ -501,6 +505,47 @@ describe('App surface DOM coverage', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))
     expect(screen.getByRole('tab', { name: /Debug/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('opens missing Solana tooling installs from the toolbox debug view', async () => {
+    render(<SolanaToolbox />)
+
+    expect(await screen.findByText('Solana Workspace')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))
+    expect(screen.getByRole('tab', { name: /Debug/ })).toHaveAttribute('aria-selected', 'true')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Install AVM in terminal' }))
+
+    await waitFor(() => {
+      expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
+        cwd: 'C:/work/daemon-app',
+        startupCommand: 'cargo install --git https://github.com/coral-xyz/anchor avm --locked --force',
+      }))
+    })
+    expect(useUIStore.getState().terminals.some((terminal) => terminal.label === 'Install AVM in terminal')).toBe(true)
+    expect(await screen.findByText('Install AVM in terminal opened in a project terminal.')).toBeInTheDocument()
+  })
+
+  it('guides runtime stack fixes from the connect view', async () => {
+    render(<SolanaToolbox />)
+
+    expect(await screen.findByText('Solana Workspace')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: /Connect/ }))
+    expect(screen.getByRole('tab', { name: /Connect/ })).toHaveAttribute('aria-selected', 'true')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Set Phantom-first' }))
+
+    await waitFor(() => {
+      expect(window.daemon.settings.setWalletInfrastructureSettings).toHaveBeenCalledWith(expect.objectContaining({
+        preferredWallet: 'phantom',
+      }))
+    })
+    expect(await screen.findByText('Phantom-first wallet flow saved for the shared Solana runtime.')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Open Wallet Infra' })[0]!)
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('wallet')
   })
 
   it('keeps Token Launch actions and config obvious', async () => {

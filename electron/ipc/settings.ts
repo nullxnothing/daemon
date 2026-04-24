@@ -122,8 +122,8 @@ export function registerSettingsHandlers() {
     return Settings.getWalletInfrastructureSettings()
   }))
 
-  ipcMain.handle('settings:get-solana-runtime-status', ipcHandler(async () => {
-    return getSolanaRuntimeStatus()
+  ipcMain.handle('settings:get-solana-runtime-status', ipcHandler(async (_event, projectPath?: string) => {
+    return getSolanaRuntimeStatus(projectPath)
   }))
 
   ipcMain.handle('settings:set-wallet-infrastructure-settings', ipcHandler(async (_event, settings: Settings.WalletInfrastructureSettings) => {

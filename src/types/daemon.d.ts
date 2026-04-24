@@ -221,6 +221,14 @@ declare global {
     detail: string
   }
 
+  type SolanaEnvironmentDiagnosticItem = {
+    id: 'solana-cli' | 'anchor' | 'avm' | 'surfpool' | 'litesvm'
+    label: string
+    status: SolanaRuntimeStatusLevel
+    detail: string
+    action: string
+  }
+
   type SolanaRuntimeStatusSummary = {
     rpc: {
       label: string
@@ -242,6 +250,7 @@ declare global {
       detail: string
       status: SolanaRuntimeStatusLevel
     }
+    environmentDiagnostics: SolanaEnvironmentDiagnosticItem[]
     executionCoverage: SolanaExecutionCoverageItem[]
     troubleshooting: string[]
   }
@@ -477,7 +486,7 @@ declare global {
     getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
     setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
     getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>
-    getSolanaRuntimeStatus: () => Promise<IpcResponse<SolanaRuntimeStatusSummary>>
+    getSolanaRuntimeStatus: (projectPath?: string) => Promise<IpcResponse<SolanaRuntimeStatusSummary>>
     setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>

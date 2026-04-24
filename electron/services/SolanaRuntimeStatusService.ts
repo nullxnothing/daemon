@@ -1,5 +1,6 @@
 import { getWalletInfrastructureSettings } from './SettingsService'
 import { hasHeliusKey, hasJupiterKey } from './WalletService'
+import { detectToolchain } from './ValidatorManager'
 
 export type RuntimeStatusLevel = 'live' | 'partial' | 'setup'
 
@@ -31,14 +32,24 @@ export interface SolanaRuntimeStatusSummary {
     detail: string
     status: RuntimeStatusLevel
   }
+  environmentDiagnostics: SolanaEnvironmentDiagnosticItem[]
   executionCoverage: SolanaExecutionCoverageItem[]
   troubleshooting: string[]
 }
 
-export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
+export interface SolanaEnvironmentDiagnosticItem {
+  id: 'solana-cli' | 'anchor' | 'avm' | 'surfpool' | 'litesvm'
+  label: string
+  status: RuntimeStatusLevel
+  detail: string
+  action: string
+}
+
+export function getSolanaRuntimeStatus(projectPath?: string): SolanaRuntimeStatusSummary {
   const settings = getWalletInfrastructureSettings()
   const heliusConfigured = hasHeliusKey()
   const jupiterConfigured = hasJupiterKey()
+  const toolchain = detectToolchain(projectPath)
 
   const rpcLabel = settings.rpcProvider === 'quicknode'
     ? 'QuickNode'
@@ -70,6 +81,82 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       ? settings.rpcProvider === 'public' ? 'partial' : 'live'
       : jupiterConfigured ? 'live' : 'partial'
 
+  const environmentDiagnostics: SolanaEnvironmentDiagnosticItem[] = [
+    {
+      id: 'solana-cli',
+      label: 'Solana CLI',
+      status: toolchain.solanaCli.installed ? 'live' : 'setup',
+      detail: toolchain.solanaCli.installed
+        ? toolchain.solanaCli.version || 'Installed and available on PATH.'
+        : 'Missing from PATH. DAEMON cannot rely on local validator, keygen, or account tooling until the Solana CLI is installed.',
+      action: toolchain.solanaCli.installed
+        ? 'CLI is ready.'
+        : 'Install the Solana CLI and make `solana` available on PATH.',
+    },
+    {
+      id: 'anchor',
+      label: 'Anchor',
+      status: toolchain.anchor.installed ? 'live' : 'setup',
+      detail: toolchain.anchor.installed
+        ? toolchain.anchor.version || 'Installed and available on PATH.'
+        : toolchain.avm.installed
+          ? 'AVM is installed, but `anchor` is not currently available on PATH.'
+          : 'Missing from PATH. Anchor program build, test, and deploy flows are not locally available.',
+      action: toolchain.anchor.installed
+        ? 'Anchor CLI is ready.'
+        : toolchain.avm.installed
+          ? 'Use AVM to install and select an Anchor version for this machine.'
+          : 'Install Anchor or AVM before relying on DAEMON for Anchor program workflows.',
+    },
+    {
+      id: 'avm',
+      label: 'AVM',
+      status: toolchain.avm.installed ? 'live' : toolchain.anchor.installed ? 'partial' : 'setup',
+      detail: toolchain.avm.installed
+        ? toolchain.avm.version || 'Installed and available on PATH.'
+        : toolchain.anchor.installed
+          ? 'Anchor is installed directly, but AVM is missing so toolchain pinning and version switching are not yet available.'
+          : 'Missing from PATH. DAEMON cannot lean on AVM-managed Anchor version pinning yet.',
+      action: toolchain.avm.installed
+        ? 'AVM is ready.'
+        : 'Install AVM so DAEMON can recommend pinned Anchor toolchains instead of machine-global assumptions.',
+    },
+    {
+      id: 'surfpool',
+      label: 'Surfpool',
+      status: toolchain.surfpool.installed ? 'live' : toolchain.testValidator.installed ? 'partial' : 'setup',
+      detail: toolchain.surfpool.installed
+        ? toolchain.surfpool.version || 'Installed and available on PATH.'
+        : toolchain.testValidator.installed
+          ? `Falling back to ${toolchain.testValidator.version || 'solana-test-validator'}. Local validation exists, but forked and faster Surfpool workflows are not installed.`
+          : 'Neither Surfpool nor solana-test-validator is available on PATH, so local validator workflows are blocked.',
+      action: toolchain.surfpool.installed
+        ? 'Surfpool is ready.'
+        : toolchain.testValidator.installed
+          ? 'Install Surfpool if you want forked-validator and faster local-debug flows inside DAEMON.'
+          : 'Install Surfpool or at minimum `solana-test-validator` to enable local execution workflows.',
+    },
+    {
+      id: 'litesvm',
+      label: 'LiteSVM',
+      status: toolchain.litesvm.installed ? 'live' : projectPath ? 'setup' : 'partial',
+      detail: toolchain.litesvm.installed
+        ? 'Detected in the active project test/tooling dependencies.'
+        : projectPath
+          ? 'Not detected in the active project. Fast project-local execution tests are not configured yet.'
+          : 'Project context is not loaded, so DAEMON cannot tell whether LiteSVM is configured for this workspace.',
+      action: toolchain.litesvm.installed
+        ? 'LiteSVM is ready.'
+        : projectPath
+          ? 'Add LiteSVM to the active project if you want fast Solana test execution from DAEMON.'
+          : 'Open a project so DAEMON can inspect whether LiteSVM is configured.',
+    },
+  ]
+
+  const environmentWarnings = environmentDiagnostics
+    .filter((item) => item.status !== 'live')
+    .map((item) => item.action)
+
   return {
     rpc: {
       label: rpcLabel,
@@ -97,6 +184,7 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
         : 'DAEMON routes wallet sends, swaps, launches, Pump.fun actions, and recovery flows through one shared RPC executor with shared confirmation behavior.',
       status: executionBackendStatus,
     },
+    environmentDiagnostics,
     executionCoverage: [
       {
         id: 'wallet-sends',
@@ -137,6 +225,7 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       settings.rpcProvider === 'custom' && !settings.customRpcUrl ? 'Custom RPC is selected but no RPC URL is configured.' : null,
       !jupiterConfigured ? 'Jupiter is the active swap engine but no Jupiter API key is stored, so quotes and swaps will fail until configured.' : null,
       settings.executionMode === 'jito' && settings.rpcProvider === 'public' ? 'Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.' : null,
+      ...environmentWarnings,
     ].filter(Boolean) as string[],
   }
 }

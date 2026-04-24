@@ -110,7 +110,12 @@ export function SolanaToolbox() {
           {activeView === 'start' && (
             <>
               <div className="solana-validator-zone">
-                <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
+                <DaemonRuntimeSection
+                  mcps={mcps}
+                  toolchain={toolchain}
+                  projectId={activeProjectId}
+                  projectPath={activeProjectPath ?? undefined}
+                />
               </div>
               <div className="solana-validator-zone">
                 <ValidatorCard />
@@ -173,7 +178,7 @@ export function SolanaToolbox() {
           {activeView === 'debug' && (
             <>
               <div className="solana-validator-zone">
-                <ToolchainSection toolchain={toolchain} />
+                <ToolchainSection toolchain={toolchain} projectId={activeProjectId} projectPath={activeProjectPath} />
               </div>
               <div className="solana-validator-zone">
                 <ValidatorCard />

@@ -16,6 +16,7 @@ export interface ValidatorState {
   status: 'stopped' | 'starting' | 'running' | 'error'
   terminalId: string | null
   port: number | null
+  error: string | null
 }
 
 export interface SolanaProjectInfo {
@@ -58,7 +59,7 @@ const SOLANA_MCP_NAMES = Object.keys(SOLANA_MCP_CATALOG)
 
 export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   mcps: [],
-  validator: { type: null, status: 'stopped', terminalId: null, port: null },
+  validator: { type: null, status: 'stopped', terminalId: null, port: null, error: null },
   projectInfo: null,
   toolchain: null,
   loading: false,
@@ -103,16 +104,24 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   },
 
   startValidator: async (type) => {
-    set({ validator: { type, status: 'starting', terminalId: null, port: null } })
+    set({ validator: { type, status: 'starting', terminalId: null, port: null, error: null } })
     try {
       const res = await daemon.validator.start(type)
       if (res.ok && res.data) {
-        set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899 } })
+        set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899, error: null } })
       } else {
-        set({ validator: { type, status: 'error', terminalId: null, port: null } })
+        set({ validator: { type, status: 'error', terminalId: null, port: null, error: res.error ?? 'Validator failed to start.' } })
       }
-    } catch {
-      set({ validator: { type, status: 'error', terminalId: null, port: null } })
+    } catch (error) {
+      set({
+        validator: {
+          type,
+          status: 'error',
+          terminalId: null,
+          port: null,
+          error: error instanceof Error ? error.message : 'Validator failed to start.',
+        },
+      })
     }
   },
 
@@ -123,7 +132,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
         await daemon.validator.stop()
       } catch { /* ignore */ }
     }
-    set({ validator: { type: null, status: 'stopped', terminalId: null, port: null } })
+    set({ validator: { type: null, status: 'stopped', terminalId: null, port: null, error: null } })
   },
 
   refreshValidatorStatus: async () => {
@@ -136,6 +145,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
             status: res.data.status as ValidatorState['status'],
             terminalId: res.data.terminalId ?? null,
             port: res.data.port ?? null,
+            error: null,
           },
         })
       }

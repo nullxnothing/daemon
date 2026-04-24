@@ -396,6 +396,15 @@ export function WalletTab({ onRefresh }: Props) {
     setSendDest(next?.address ?? '')
   }
 
+  const handleDestChange = (value: string) => {
+    setSendDest(value)
+    if (!selectedRecipientWalletId) return
+    const selectedWallet = dashboard.wallets.find((wallet) => wallet.id === selectedRecipientWalletId)
+    if (!selectedWallet || value.trim() !== selectedWallet.address) {
+      setSelectedRecipientWalletId('')
+    }
+  }
+
   const toggleSendMax = () => {
     setSendMax((current) => {
       const next = !current
@@ -699,7 +708,7 @@ export function WalletTab({ onRefresh }: Props) {
                 sendResult={sendResult}
                 pendingSend={pendingSend}
                 onRecipientWalletChange={handleRecipientWalletChange}
-                onDestChange={setSendDest}
+                onDestChange={handleDestChange}
                 onAmountChange={setSendAmount}
                 onMintChange={setSendMint}
                 onToggleSendMax={toggleSendMax}

@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAppActions } from '../../store/appActions'
 import type { SolanaMcpEntry, SolanaToolchainStatus } from '../../store/solanaToolbox'
+import { useUIStore } from '../../store/ui'
 import { SOLANA_RUNTIME_MODULES, type SolanaRuntimeModuleStatus } from './catalog'
+import { getSolanaToolingGuide } from './toolingGuides'
 
 interface RuntimeState {
   runtime: SolanaRuntimeStatusSummary | null
+  actionMessage: string | null
 }
 
 interface RuntimeModuleView {
@@ -19,6 +23,8 @@ interface RuntimeModuleView {
 interface DaemonRuntimeSectionProps {
   mcps: SolanaMcpEntry[]
   toolchain: SolanaToolchainStatus | null
+  projectId: string | null
+  projectPath?: string
 }
 
 const DEFAULT_RUNTIME: SolanaRuntimeStatusSummary = {
@@ -42,37 +48,65 @@ const DEFAULT_RUNTIME: SolanaRuntimeStatusSummary = {
     detail: 'DAEMON routes wallet sends, swaps, launches, Pump.fun actions, and recovery flows through one shared RPC executor with shared confirmation behavior.',
     status: 'partial',
   },
+  environmentDiagnostics: [],
   executionCoverage: [],
   troubleshooting: [],
 }
 
-export function DaemonRuntimeSection({ mcps, toolchain }: DaemonRuntimeSectionProps) {
+export function DaemonRuntimeSection({ mcps, toolchain, projectId, projectPath }: DaemonRuntimeSectionProps) {
+  const addTerminal = useUIStore((s) => s.addTerminal)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
   const [state, setState] = useState<RuntimeState>({
     runtime: null,
+    actionMessage: null,
   })
 
   useEffect(() => {
     let cancelled = false
 
-    void window.daemon.settings.getSolanaRuntimeStatus().then((runtimeRes) => {
+    void window.daemon.settings.getSolanaRuntimeStatus(projectPath).then((runtimeRes) => {
       if (cancelled) return
       setState({
         runtime: runtimeRes.ok && runtimeRes.data ? runtimeRes.data : DEFAULT_RUNTIME,
+        actionMessage: null,
       })
     }).catch(() => {
       if (cancelled) return
       setState({
         runtime: DEFAULT_RUNTIME,
+        actionMessage: null,
       })
     })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [projectPath])
 
   const heliusMcpEnabled = mcps.some((entry) => entry.name === 'helius' && entry.enabled)
   const runtime = state.runtime ?? DEFAULT_RUNTIME
+
+  async function handleRunCommand(command: string, label: string) {
+    if (!projectId || !projectPath) {
+      setState((prev) => ({ ...prev, actionMessage: 'Open a project before asking DAEMON to run Solana setup commands.' }))
+      return
+    }
+
+    const terminalRes = await window.daemon.terminal.create({
+      cwd: projectPath,
+      startupCommand: command,
+      userInitiated: true,
+    })
+
+    if (!terminalRes.ok || !terminalRes.data) {
+      setState((prev) => ({ ...prev, actionMessage: terminalRes.error ?? `Could not open the ${label} terminal.` }))
+      return
+    }
+
+    addTerminal(projectId, terminalRes.data.id, label, terminalRes.data.agentId)
+    focusTerminal()
+    setState((prev) => ({ ...prev, actionMessage: `${label} opened in a project terminal.` }))
+  }
 
   const modules = useMemo<RuntimeModuleView[]>(() => {
     const realtimeStatus: SolanaRuntimeModuleStatus =
@@ -154,7 +188,12 @@ export function DaemonRuntimeSection({ mcps, toolchain }: DaemonRuntimeSectionPr
   }, [heliusMcpEnabled, runtime, toolchain])
 
   const nextMoves = useMemo(() => {
-    const moves = [...runtime.troubleshooting]
+    const moves = [
+      ...runtime.environmentDiagnostics
+        .filter((item) => item.status !== 'live')
+        .map((item) => item.action),
+      ...runtime.troubleshooting,
+    ]
     if (!heliusMcpEnabled) {
       moves.unshift('Enable the Helius MCP in this project so runtime checks, indexed data, and future DAEMON actions stay project-aware.')
     }
@@ -196,6 +235,63 @@ export function DaemonRuntimeSection({ mcps, toolchain }: DaemonRuntimeSectionPr
           </section>
         ))}
       </div>
+
+      {runtime.environmentDiagnostics.length > 0 && (
+        <div className="solana-runtime-coverage">
+          <div className="solana-runtime-title">Environment Diagnostics</div>
+          <div className="solana-runtime-coverage-list">
+            {runtime.environmentDiagnostics.map((item) => (
+              <div key={item.id} className="solana-runtime-coverage-row">
+                <div className="solana-runtime-coverage-main">
+                  <div className="solana-runtime-coverage-label-row">
+                    <span className="solana-runtime-coverage-label">{item.label}</span>
+                    <span className={`solana-runtime-status ${item.status}`}>
+                      {item.status === 'live' ? 'Ready' : item.status === 'partial' ? 'Fallback' : 'Missing'}
+                    </span>
+                  </div>
+                  <div className="solana-runtime-coverage-detail">{item.detail}</div>
+                  <div className="solana-runtime-actions">
+                    {item.status !== 'live' && (() => {
+                      const guide = getSolanaToolingGuide(item.id, {
+                        avmInstalled: toolchain?.avm.installed,
+                        hasProject: Boolean(projectPath),
+                      })
+                      if (!guide.installCommand || !guide.installLabel) return null
+                      return (
+                        <button
+                          type="button"
+                          className="sol-btn green"
+                          onClick={() => void handleRunCommand(guide.installCommand!, guide.installLabel!)}
+                        >
+                          {guide.installLabel}
+                        </button>
+                      )
+                    })()}
+                    <button
+                      type="button"
+                      className="sol-btn secondary"
+                      onClick={() => {
+                        const guide = getSolanaToolingGuide(item.id, {
+                          avmInstalled: toolchain?.avm.installed,
+                          hasProject: Boolean(projectPath),
+                        })
+                        void window.daemon.shell.openExternal(guide.docsUrl)
+                      }}
+                    >
+                      {getSolanaToolingGuide(item.id, {
+                        avmInstalled: toolchain?.avm.installed,
+                        hasProject: Boolean(projectPath),
+                      }).docsLabel}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {state.actionMessage && <div className="solana-toolchain-feedback">{state.actionMessage}</div>}
 
       <div className="solana-daemon-runtime-next">
         <div className="solana-runtime-title">Next Recommended Moves</div>

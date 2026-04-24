@@ -80,6 +80,10 @@ export function WalletSendForm({
 }: WalletSendFormProps) {
   const selectedToken = tokenOptions.find((token) => token.mint === sendMint) ?? null
   const selectedRecipientWallet = recipientWallets.find((wallet) => wallet.id === selectedRecipientWalletId) ?? null
+  const isTrackedWalletDestination = selectedRecipientWallet
+    ? sendDest.trim() === selectedRecipientWallet.address
+    : false
+  const trackedRecipientWallet = isTrackedWalletDestination ? selectedRecipientWallet : null
   const amountLabel = sendMode === 'sol'
     ? 'SOL'
     : selectedToken?.symbol || 'tokens'
@@ -148,9 +152,9 @@ export function WalletSendForm({
                     </option>
                   ))}
                 </select>
-                {selectedRecipientWallet && (
+                {trackedRecipientWallet && (
                   <div className="wallet-send-helper">
-                    Internal transfer to <strong>{selectedRecipientWallet.name}</strong> at {shortAddress(selectedRecipientWallet.address)}
+                    Internal transfer to <strong>{trackedRecipientWallet.name}</strong> at {shortAddress(trackedRecipientWallet.address)}
                   </div>
                 )}
               </div>

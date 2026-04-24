@@ -276,7 +276,7 @@ contextBridge.exposeInMainWorld('daemon', {
     getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
     setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
     getWalletInfrastructureSettings: () => ipcRenderer.invoke('settings:get-wallet-infrastructure-settings'),
-    getSolanaRuntimeStatus: () => ipcRenderer.invoke('settings:get-solana-runtime-status'),
+    getSolanaRuntimeStatus: (projectPath?: string) => ipcRenderer.invoke('settings:get-solana-runtime-status', projectPath),
     setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),

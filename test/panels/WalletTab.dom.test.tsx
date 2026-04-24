@@ -69,7 +69,7 @@ describe('WalletTab readiness UX', () => {
           totalUsd: 1250,
           delta24hUsd: 42,
           delta24hPct: 3.2,
-          walletCount: 1,
+          walletCount: 2,
         },
         wallets: [
           {
@@ -79,6 +79,15 @@ describe('WalletTab readiness UX', () => {
             isDefault: true,
             totalUsd: 1250,
             tokenCount: 3,
+            assignedProjectIds: [],
+          },
+          {
+            id: 'wallet-2',
+            name: 'Ops Wallet',
+            address: '9Z34opswallet7XyZ',
+            isDefault: false,
+            totalUsd: 300,
+            tokenCount: 1,
             assignedProjectIds: [],
           },
         ],
@@ -151,5 +160,31 @@ describe('WalletTab readiness UX', () => {
 
     expect(await screen.findByText('Wallet readiness')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Add signer' })).toBeInTheDocument()
+  })
+
+  it('falls back to a custom destination when a tracked wallet address is edited', async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+
+    useWalletStore.setState((state) => ({
+      ...state,
+      activeView: 'move',
+    }))
+
+    render(<WalletTab onRefresh={onRefresh} />)
+
+    const recipientSelect = (await screen.findAllByRole('combobox'))[0]
+    await userEvent.selectOptions(recipientSelect, 'wallet-2')
+
+    expect(await screen.findByText(/Internal transfer to/i)).toBeInTheDocument()
+    expect(screen.getByDisplayValue('9Z34opswallet7XyZ')).toBeInTheDocument()
+
+    const addressInput = screen.getByDisplayValue('9Z34opswallet7XyZ')
+    await userEvent.clear(addressInput)
+    await userEvent.type(addressInput, 'CustomExternal111')
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Internal transfer to/i)).not.toBeInTheDocument()
+      expect(recipientSelect).toHaveValue('')
+    })
   })
 })
