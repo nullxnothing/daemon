@@ -55,7 +55,7 @@ describe('ProjectStarter runtime preset helpers', () => {
       preferredWallet: 'phantom',
       executionMode: 'rpc',
       jitoBlockEngineUrl: '',
-    })
+    }, 'trading-bot')
 
     expect(files.map((file) => file.path)).toEqual([
       'DAEMON_RUNTIME.md',
@@ -72,5 +72,33 @@ describe('ProjectStarter runtime preset helpers', () => {
     expect(loaderFile?.content).toContain('readDaemonSolanaRuntime')
     expect(loaderFile?.content).toContain('runtimeFileName')
     expect(loaderFile?.content).toContain('summarizeDaemonSolanaRuntime')
+  })
+
+  it('adds app-facing runtime wrappers for frontend-oriented templates', () => {
+    const files = buildRuntimeBootstrapFiles({
+      rpcProvider: 'helius',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'wallet-standard',
+      executionMode: 'jito',
+      jitoBlockEngineUrl: 'https://jito.example',
+    }, 'dapp-nextjs')
+
+    expect(files.map((file) => file.path)).toEqual([
+      'DAEMON_RUNTIME.md',
+      'scripts/read-daemon-runtime.mjs',
+      'lib/solana/daemonRuntime.ts',
+      'src/lib/solana/daemonRuntime.ts',
+    ])
+
+    const rootRuntimeModule = files.find((file) => file.path === 'lib/solana/daemonRuntime.ts')
+    expect(rootRuntimeModule?.content).toContain('export const daemonRuntime')
+    expect(rootRuntimeModule?.content).toContain("provider: 'helius'")
+    expect(rootRuntimeModule?.content).toContain("preferredWallet: 'wallet-standard'")
+    expect(rootRuntimeModule?.content).toContain('usesJitoExecution')
+
+    const srcRuntimeModule = files.find((file) => file.path === 'src/lib/solana/daemonRuntime.ts')
+    expect(srcRuntimeModule?.content).toContain("export * from '../../../lib/solana/daemonRuntime'")
   })
 })

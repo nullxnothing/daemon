@@ -193,6 +193,10 @@ interface ScaffoldBootstrapFile {
   content: string
 }
 
+function isFrontendTemplate(templateId: string | null | undefined) {
+  return templateId === 'dapp-nextjs' || templateId === 'solana-foundation'
+}
+
 export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
   if (!settings) return ''
 
@@ -324,12 +328,81 @@ function buildRuntimeLoaderSource() {
   ].join('\n')
 }
 
+function buildFrontendRuntimeModuleSource(settings: WalletInfrastructureSettings) {
+  const quicknodeRpcUrl = JSON.stringify(settings.quicknodeRpcUrl || null)
+  const customRpcUrl = JSON.stringify(settings.customRpcUrl || null)
+  const jitoBlockEngineUrl = JSON.stringify(settings.jitoBlockEngineUrl || null)
+
+  return [
+    'export type DaemonScaffoldRuntime = {',
+    '  transport: {',
+    "    provider: 'helius' | 'public' | 'quicknode' | 'custom'",
+    '    quicknodeRpcUrl: string | null',
+    '    customRpcUrl: string | null',
+    '  }',
+    '  wallet: {',
+    "    preferredWallet: 'phantom' | 'wallet-standard'",
+    '  }',
+    '  execution: {',
+    "    mode: 'rpc' | 'jito'",
+    '    jitoBlockEngineUrl: string | null',
+    '  }',
+    '  swaps: {',
+    "    provider: 'jupiter'",
+    '  }',
+    '}',
+    '',
+    '// This file is pre-seeded by DAEMON so scaffolded apps have an app-facing runtime module.',
+    '// Keep it aligned with daemon.solana-runtime.json and avoid scattering Solana runtime assumptions.',
+    'export const daemonRuntime: DaemonScaffoldRuntime = {',
+    '  transport: {',
+    `    provider: '${settings.rpcProvider}',`,
+    `    quicknodeRpcUrl: ${quicknodeRpcUrl},`,
+    `    customRpcUrl: ${customRpcUrl},`,
+    '  },',
+    '  wallet: {',
+    `    preferredWallet: '${settings.preferredWallet}',`,
+    '  },',
+    '  execution: {',
+    `    mode: '${settings.executionMode}',`,
+    `    jitoBlockEngineUrl: ${jitoBlockEngineUrl},`,
+    '  },',
+    '  swaps: {',
+    `    provider: '${settings.swapProvider}',`,
+    '  },',
+    '}',
+    '',
+    'export function getDaemonRpcUrl(env?: Record<string, string | undefined>) {',
+    '  if (daemonRuntime.transport.provider === \'quicknode\') {',
+    '    return env?.QUICKNODE_RPC_URL || daemonRuntime.transport.quicknodeRpcUrl || env?.RPC_URL || null',
+    '  }',
+    '  if (daemonRuntime.transport.provider === \'custom\') {',
+    '    return env?.RPC_URL || daemonRuntime.transport.customRpcUrl || null',
+    '  }',
+    '  if (daemonRuntime.transport.provider === \'helius\') {',
+    '    return env?.NEXT_PUBLIC_RPC_URL || env?.RPC_URL || null',
+    '  }',
+    '  return env?.NEXT_PUBLIC_RPC_URL || env?.RPC_URL || \'https://api.mainnet-beta.solana.com\'',
+    '}',
+    '',
+    'export function prefersPhantomWallet() {',
+    '  return daemonRuntime.wallet.preferredWallet === \'phantom\'',
+    '}',
+    '',
+    'export function usesJitoExecution() {',
+    '  return daemonRuntime.execution.mode === \'jito\'',
+    '}',
+    '',
+  ].join('\n')
+}
+
 export function buildRuntimeBootstrapFiles(
   settings: WalletInfrastructureSettings | null,
+  templateId?: string | null,
 ): ScaffoldBootstrapFile[] {
   if (!settings) return []
 
-  return [
+  const files: ScaffoldBootstrapFile[] = [
     {
       path: 'DAEMON_RUNTIME.md',
       content: buildRuntimeDocs(settings),
@@ -339,6 +412,26 @@ export function buildRuntimeBootstrapFiles(
       content: buildRuntimeLoaderSource(),
     },
   ]
+
+  if (isFrontendTemplate(templateId)) {
+    const frontendModule = buildFrontendRuntimeModuleSource(settings)
+    files.push(
+      {
+        path: 'lib/solana/daemonRuntime.ts',
+        content: frontendModule,
+      },
+      {
+        path: 'src/lib/solana/daemonRuntime.ts',
+        content: [
+          '// Re-export the DAEMON runtime module for src-based app layouts.',
+          "export * from '../../../lib/solana/daemonRuntime'",
+          '',
+        ].join('\n'),
+      },
+    )
+  }
+
+  return files
 }
 
 function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
@@ -542,7 +635,7 @@ export function ProjectStarter() {
         }
       }
 
-      const bootstrapFiles = buildRuntimeBootstrapFiles(walletInfrastructure)
+      const bootstrapFiles = buildRuntimeBootstrapFiles(walletInfrastructure, wizard.template.id)
       for (const file of bootstrapFiles) {
         const targetPath = `${projectPath}/${file.path}`
         const targetDir = targetPath.includes('/')
