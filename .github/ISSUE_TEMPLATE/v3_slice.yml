@@ -1,0 +1,67 @@
+name: v3 Slice
+description: Track a concrete slice of DAEMON's v3 Solana control-plane work
+labels: [enhancement, v3]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for work that directly moves DAEMON toward the v3 Solana control-plane release.
+  - type: dropdown
+    id: pillar
+    attributes:
+      label: Primary pillar
+      options:
+        - Project scaffolding
+        - Unified transaction pipeline
+        - Solana activity timeline
+        - Agent-aware runtime execution
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Intended outcome
+      description: What user-visible capability should exist after this slice ships?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      placeholder: |
+        - UI surface
+        - service or store changes
+        - tests or smoke coverage
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: Keep the slice bounded.
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies or blockers
+      description: What other slices or systems does this rely on?
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Ship checklist
+      placeholder: |
+        - DAEMON can ...
+        - Failure state is exposed ...
+        - Test coverage added ...
+        - Screenshots or smoke proof attached ...
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Verification plan
+      placeholder: |
+        - `pnpm test`
+        - targeted smoke flow
+        - screenshots
+    validations:
+      required: true

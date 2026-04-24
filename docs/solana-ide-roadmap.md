@@ -2,60 +2,116 @@
 
 ## Goal
 
-Make DAEMON a real Solana-first development environment with an accurate runtime stack, current scaffolding, wallet-aware execution, and protocol packs that map cleanly to what is actually shipped.
+Make DAEMON the default operating surface for Solana builders:
 
-## Current branch
+- scaffold a project with the right runtime defaults
+- run a validator and local test stack from inside the IDE
+- execute transactions through one shared pipeline
+- see signatures, logs, errors, and agent actions in one activity stream
+- let agents operate with real project and runtime context instead of blind prompts
 
-Branch: `feat/solana-ide-foundation`
+## v3 definition
 
-Delivered in this branch so far:
+`v3` is the point where DAEMON stops feeling like a general IDE with Solana features bolted on and starts feeling like a Solana-native control plane.
+
+The release should be legible around four pillars:
+
+1. Project scaffolding
+2. Unified transaction pipeline
+3. Solana activity timeline
+4. Agent-aware runtime execution
+
+## Delivered so far
 
 - Solana ecosystem catalog that separates `native` integrations from `guided` coverage.
-- Updated Solana starter prompts around `@solana/kit`, current wallet flows, Jupiter, Jito, AVM, LiteSVM, and provider abstraction.
-- Broader Solana project detection for modern frontend/client stacks.
-- Wallet infrastructure settings for:
-  - Helius
-  - public RPC
-  - QuickNode RPC
-  - custom RPC
-  - Jupiter swap execution
-  - Phantom-first or Wallet Standard wallet path
-  - Jito block-engine submission mode
-- Runtime stack visibility in the Solana toolbox so the UI reflects the live configuration.
+- Updated starter prompts around `@solana/kit`, current wallet flows, Jupiter, Jito, AVM, LiteSVM, and provider abstraction.
+- Broader Solana project detection for modern frontend and client stacks.
+- Wallet infrastructure settings for Helius, public RPC, QuickNode, custom RPC, Jupiter, Phantom-first or Wallet Standard, and Jito execution mode.
+- Runtime stack visibility in the Solana toolbox so the UI reflects live configuration.
+- Environment diagnostics for Solana CLI, Anchor, AVM, Surfpool, LiteSVM, and validator readiness.
+- Guided tooling install and docs actions directly from the Toolbox.
+- Cleaner wallet transfer behavior for tracked internal recipients versus custom destinations.
 
-## Phase 1: Foundation
+## Pillar 1: Project Scaffolding
 
 Status: in progress
 
-- Keep Solana IDE claims accurate in the UI.
-- Prefer `@solana/kit` and current Solana frontend patterns over stale `web3.js`-only guidance.
-- Expose live runtime configuration for RPC, execution, and wallet path.
-- Preserve compatibility with the existing Helius-backed wallet flows.
+DAEMON should generate projects that already match the workspace runtime instead of forcing the user to manually reconcile generated code with local settings.
 
-## Phase 2: Wallet and Execution
+Delivered:
+
+- Project starter writes `daemon.solana-runtime.json`.
+- Starter prompts already encode provider, wallet, swap, and execution preferences.
+
+Remaining:
+
+- Generate stronger starter outputs for app, bot, MCP server, and Anchor program templates.
+- Make starter output read and honor `daemon.solana-runtime.json` consistently.
+- Add starter-side wallet onboarding, provider onboarding, and validator setup guidance.
+- Add project health checks immediately after scaffold so DAEMON can say what is still missing.
+
+Definition of done:
+
+- A new Solana project boots with the expected provider, wallet path, and execution mode without hand-editing config files.
+
+## Pillar 2: Unified Transaction Pipeline
 
 Status: partially delivered
 
-- Add first-class Phantom and Wallet Standard starter flows.
-- Keep Jupiter as the default swap execution engine.
-- Add optional Jito low-latency submission for swaps and transfers.
-- Add provider selection that can target Helius, QuickNode, or custom RPC infrastructure.
+Wallet sends, swaps, launches, recovery flows, and future deploy actions should all run through one shared execution contract.
 
-Remaining work:
+Delivered:
 
-- Add clearer wallet-provider onboarding in the starter output and docs panel.
-- Add UX around missing API keys and provider misconfiguration before execution begins.
-- Add deeper transaction telemetry for Jito-vs-RPC execution outcomes.
+- Shared runtime settings for provider, wallet path, swap engine, and execution mode.
+- Runtime UI that explains the current execution path.
 
-## Phase 3: Testing and Local Dev
+Remaining:
+
+- Introduce one canonical transaction pipeline abstraction for quote/build/sign/submit/confirm.
+- Surface which execution path was used for every action: RPC, Jito, provider, signer, and resulting signature.
+- Add preflight simulation and clearer missing-config checks before execution begins.
+- Reuse the same pipeline across wallet, launch, and future deploy flows.
+
+Definition of done:
+
+- DAEMON can explain every Solana action in the same vocabulary before and after submission.
+
+## Pillar 3: Solana Activity Timeline
 
 Status: planned
 
-- Surface AVM, LiteSVM, Mollusk, and Surfpool as first-class setup flows.
-- Add environment checks for Solana CLI, Anchor, AVM, and validator tooling.
-- Add starter presets for program, client, and full-stack Solana projects.
+DAEMON needs a single timeline that makes Solana work observable.
 
-## Phase 4: Protocol Packs
+Target events:
+
+- validator start, stop, restart, and failure
+- wallet sends, swaps, launches, and deploys
+- transaction signatures, confirmation state, and errors
+- agent-triggered Solana actions
+- project runtime warnings and setup actions
+
+Definition of done:
+
+- Users can answer "what happened?" without opening multiple panels or terminal tabs.
+
+## Pillar 4: Agent-Aware Runtime Execution
+
+Status: planned
+
+Agents should inherit real Solana context from the active project rather than guessing.
+
+Needed:
+
+- expose runtime state to agent scaffolding and action flows
+- give agents project-aware validator, wallet, and provider context
+- let agent actions record into the same activity stream as manual actions
+- keep protocol packs, MCPs, and runtime integrations distinct in the UI
+
+Definition of done:
+
+- An agent can scaffold, inspect, and execute against the active Solana project without inventing a second runtime model.
+
+## Protocol Packs
 
 Status: planned
 
@@ -75,19 +131,20 @@ Priority packs:
 
 Approach:
 
-- Keep the core IDE lean.
+- Keep the core runtime lean.
 - Layer protocol support as explicit packs instead of pretending every skill is a native runtime integration.
 
-## Phase 5: MCP and Agent Flows
+## GitHub execution model
 
-Status: planned
+Use GitHub to track `v3` as slices, not as one giant milestone-free backlog.
 
-- Tighten alignment between installed MCPs, skills, and what the toolbox advertises.
-- Add setup guidance for Solana MCP, Helius MCP, Phantom MCP, and payment-oriented MCPs where they materially improve workflows.
-- Keep protocol skills and runtime integrations distinct in the UI and project scaffolds.
+- Every `v3` issue should map to exactly one primary pillar.
+- Epics should describe a user-facing loop, not an internal subsystem in isolation.
+- PRs should state which pillar they advance and how the shipped behavior moves DAEMON closer to the full Solana builder loop.
 
-## Immediate next slice
+## Immediate next slices
 
-1. Add Phantom and Wallet Standard starter/runtime helpers so the configured wallet path affects generated project output.
-2. Add execution UX for Jupiter and Jito so users can see which path a swap or transfer used.
-3. Add Solana environment diagnostics for AVM, Anchor, Solana CLI, Surfpool, and LiteSVM.
+1. Strengthen starter output so generated projects explicitly consume `daemon.solana-runtime.json` and boot with the configured wallet/provider path.
+2. Introduce a shared transaction activity record that wallet sends and swaps both write to.
+3. Add preflight checks and execution telemetry so every send path reports provider, mode, signature, and failure reason.
+4. Surface validator lifecycle events and runtime warnings into a single activity feed.

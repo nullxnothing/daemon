@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: v3 roadmap
+    url: https://github.com/nullxnothing/daemon/blob/master/docs/solana-ide-roadmap.md
+    about: Read the current Solana control-plane roadmap before opening a new v3 issue.
