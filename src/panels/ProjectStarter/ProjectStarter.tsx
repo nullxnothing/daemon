@@ -727,15 +727,8 @@ export function ProjectStarter() {
     setError(null)
 
     try {
-      // Create directory
-      const mkdirRes = await window.daemon.fs.createDir(projectPath)
-      if (!mkdirRes.ok) {
-        setError(mkdirRes.error ?? 'Failed to create directory')
-        setWizard((prev) => ({ ...prev, step: 'configure' }))
-        return
-      }
-
-      // Register project in DB
+      // Register the project before using sandboxed filesystem APIs so the
+      // target path is treated as a valid project root during scaffolding.
       const projRes = await window.daemon.projects.create({ name, path: projectPath })
       if (!projRes.ok || !projRes.data) {
         setError(projRes.error ?? 'Failed to register project')
@@ -744,6 +737,17 @@ export function ProjectStarter() {
       }
 
       const newProject = projRes.data as { id: string; name: string; path: string }
+      const cleanupProject = async () => {
+        await window.daemon.projects.delete(newProject.id)
+      }
+
+      const mkdirRes = await window.daemon.fs.createDir(projectPath)
+      if (!mkdirRes.ok) {
+        await cleanupProject()
+        setError(mkdirRes.error ?? 'Failed to create directory')
+        setWizard((prev) => ({ ...prev, step: 'configure' }))
+        return
+      }
 
       // Refresh project list and switch to new project
       const listRes = await window.daemon.projects.list()
@@ -759,6 +763,7 @@ export function ProjectStarter() {
           `${JSON.stringify(runtimePreset, null, 2)}\n`,
         )
         if (!runtimePresetRes.ok) {
+          await cleanupProject()
           setError(runtimePresetRes.error ?? 'Failed to write runtime preset')
           setWizard((prev) => ({ ...prev, step: 'configure' }))
           return
@@ -775,6 +780,7 @@ export function ProjectStarter() {
         if (targetDir) {
           const dirRes = await window.daemon.fs.createDir(targetDir)
           if (!dirRes.ok) {
+            await cleanupProject()
             setError(dirRes.error ?? `Failed to create ${targetDir}`)
             setWizard((prev) => ({ ...prev, step: 'configure' }))
             return
@@ -783,6 +789,7 @@ export function ProjectStarter() {
 
         const writeRes = await window.daemon.fs.writeFile(targetPath, `${file.content.trimEnd()}\n`)
         if (!writeRes.ok) {
+          await cleanupProject()
           setError(writeRes.error ?? `Failed to write ${file.path}`)
           setWizard((prev) => ({ ...prev, step: 'configure' }))
           return
@@ -819,6 +826,7 @@ export function ProjectStarter() {
         setCenterMode('canvas')
         closeDrawer()
       } else {
+        await cleanupProject()
         setError(termRes.error ?? 'Failed to start build agent')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
       }
