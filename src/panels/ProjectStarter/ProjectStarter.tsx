@@ -188,6 +188,11 @@ interface WizardState {
   savePath: string
 }
 
+interface ScaffoldBootstrapFile {
+  path: string
+  content: string
+}
+
 export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
   if (!settings) return ''
 
@@ -240,6 +245,100 @@ export function buildRuntimePreset(settings: WalletInfrastructureSettings | null
       provider: settings.swapProvider,
     },
   }
+}
+
+function buildRuntimeDocs(settings: WalletInfrastructureSettings): string {
+  const rpcSummary = settings.rpcProvider === 'quicknode'
+    ? `QuickNode RPC (${settings.quicknodeRpcUrl || 'expect QUICKNODE_RPC_URL from env'})`
+    : settings.rpcProvider === 'custom'
+      ? `Custom RPC (${settings.customRpcUrl || 'expect RPC_URL from env'})`
+      : settings.rpcProvider === 'public'
+        ? 'Public RPC'
+        : 'Helius RPC'
+
+  const walletSummary = settings.preferredWallet === 'phantom'
+    ? 'Phantom-first wallet path'
+    : 'Wallet Standard wallet path'
+
+  const executionSummary = settings.executionMode === 'jito'
+    ? `Jito execution (${settings.jitoBlockEngineUrl || 'expect JITO_BLOCK_ENGINE_URL from env'})`
+    : 'Standard RPC execution'
+
+  return [
+    '# DAEMON Solana Runtime',
+    '',
+    'This project was scaffolded by DAEMON with a runtime preset in `daemon.solana-runtime.json`.',
+    '',
+    'DAEMON expects generated project code to treat that file as the source of truth for Solana runtime defaults.',
+    '',
+    '## Current preset',
+    '',
+    `- Transport: ${rpcSummary}`,
+    `- Wallet path: ${walletSummary}`,
+    `- Swap provider: ${settings.swapProvider === 'jupiter' ? 'Jupiter' : settings.swapProvider}`,
+    `- Execution: ${executionSummary}`,
+    '',
+    '## Required integration rules',
+    '',
+    '- Do not delete `daemon.solana-runtime.json`.',
+    '- Keep README instructions aligned with the runtime preset instead of inventing a separate stack.',
+    '- Reuse the generated runtime loader in `scripts/read-daemon-runtime.mjs` or port its behavior into the scaffolded app code.',
+    '- If the project has a frontend/provider layer, expose one runtime module that the rest of the app imports instead of scattering provider and wallet assumptions.',
+    '',
+    '## Starter expectation',
+    '',
+    'The scaffold agent should keep these DAEMON-owned runtime files and wire generated project code around them.',
+    '',
+  ].join('\n')
+}
+
+function buildRuntimeLoaderSource() {
+  return [
+    "import { readFileSync } from 'node:fs'",
+    "import { dirname, join } from 'node:path'",
+    "import { fileURLToPath } from 'node:url'",
+    '',
+    'const runtimeFileName = \'daemon.solana-runtime.json\'',
+    'const currentDir = dirname(fileURLToPath(import.meta.url))',
+    'const projectRoot = join(currentDir, \'..\')',
+    'const runtimePresetPath = join(projectRoot, runtimeFileName)',
+    '',
+    'export function readDaemonSolanaRuntime() {',
+    '  const raw = readFileSync(runtimePresetPath, \'utf8\')',
+    '  return JSON.parse(raw)',
+    '}',
+    '',
+    'export function summarizeDaemonSolanaRuntime(runtime = readDaemonSolanaRuntime()) {',
+    '  return {',
+    '    transportProvider: runtime.transport?.provider ?? null,',
+    '    preferredWallet: runtime.wallet?.preferredWallet ?? null,',
+    '    executionMode: runtime.execution?.mode ?? null,',
+    '    swapProvider: runtime.swaps?.provider ?? null,',
+    '  }',
+    '}',
+    '',
+    'if (process.argv[1] && process.argv[1].endsWith(\'read-daemon-runtime.mjs\')) {',
+    '  console.log(JSON.stringify(summarizeDaemonSolanaRuntime(), null, 2))',
+    '}',
+    '',
+  ].join('\n')
+}
+
+export function buildRuntimeBootstrapFiles(
+  settings: WalletInfrastructureSettings | null,
+): ScaffoldBootstrapFile[] {
+  if (!settings) return []
+
+  return [
+    {
+      path: 'DAEMON_RUNTIME.md',
+      content: buildRuntimeDocs(settings),
+    },
+    {
+      path: 'scripts/read-daemon-runtime.mjs',
+      content: buildRuntimeLoaderSource(),
+    },
+  ]
 }
 
 function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
@@ -307,6 +406,28 @@ function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrast
   }
 
   return ''
+}
+
+function buildBootstrapPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
+  if (!settings) return ''
+
+  const keepRules = [
+    'DAEMON has already created `daemon.solana-runtime.json`, `DAEMON_RUNTIME.md`, and `scripts/read-daemon-runtime.mjs` in the project root.',
+    'Do not delete those files.',
+    'Update the generated project so those DAEMON-owned files stay relevant and connected to the scaffold.',
+    'Add a README section called `DAEMON runtime preset` that explains how the scaffold uses `daemon.solana-runtime.json`.',
+  ]
+
+  if (templateId === 'dapp-nextjs' || templateId === 'solana-foundation') {
+    keepRules.push('Create a runtime wrapper module such as `src/lib/solana/daemonRuntime.ts` or `lib/solana/daemonRuntime.ts` that centralizes transport, wallet, and execution defaults from the DAEMON runtime preset.')
+  } else {
+    keepRules.push('Reference `scripts/read-daemon-runtime.mjs` from project setup docs, scripts, or runtime configuration so the generated project has a concrete DAEMON-owned runtime entrypoint.')
+  }
+
+  return [
+    'DAEMON runtime integration contract:',
+    ...keepRules.map((rule) => `- ${rule}`),
+  ].join('\n')
 }
 
 export function ProjectStarter() {
@@ -421,9 +542,34 @@ export function ProjectStarter() {
         }
       }
 
+      const bootstrapFiles = buildRuntimeBootstrapFiles(walletInfrastructure)
+      for (const file of bootstrapFiles) {
+        const targetPath = `${projectPath}/${file.path}`
+        const targetDir = targetPath.includes('/')
+          ? targetPath.slice(0, targetPath.lastIndexOf('/'))
+          : null
+
+        if (targetDir) {
+          const dirRes = await window.daemon.fs.createDir(targetDir)
+          if (!dirRes.ok) {
+            setError(dirRes.error ?? `Failed to create ${targetDir}`)
+            setWizard((prev) => ({ ...prev, step: 'configure' }))
+            return
+          }
+        }
+
+        const writeRes = await window.daemon.fs.writeFile(targetPath, `${file.content.trimEnd()}\n`)
+        if (!writeRes.ok) {
+          setError(writeRes.error ?? `Failed to write ${file.path}`)
+          setWizard((prev) => ({ ...prev, step: 'configure' }))
+          return
+        }
+      }
+
       // Spawn a terminal with Claude agent to scaffold the project
       const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
       const templateSpecificPrompt = buildTemplateSpecificPrompt(wizard.template.id, walletInfrastructure)
+      const bootstrapPrompt = buildBootstrapPrompt(wizard.template.id, walletInfrastructure)
       const agentPrompt = [
         `You are scaffolding a new project called "${name}" in the current directory.`,
         `The directory is empty and ready for you to create files.`,
@@ -431,6 +577,7 @@ export function ProjectStarter() {
         wizard.template.prompt,
         runtimePrompt,
         templateSpecificPrompt,
+        bootstrapPrompt,
         ``,
         `Create or update project files so the app runtime matches \`daemon.solana-runtime.json\`.`,
         `IMPORTANT: Create all files directly. Do not ask questions. Just build it.`,
