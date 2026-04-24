@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process'
 import { BrowserWindow } from 'electron'
 import * as SolanaDetector from './SolanaDetector'
+import { appendSolanaActivity } from './SolanaActivityService'
 
 interface ValidatorState {
   type: 'surfpool' | 'test-validator' | null
@@ -90,7 +91,39 @@ export function getState(): ValidatorState {
 }
 
 export function setState(newState: Partial<ValidatorState>): void {
+  const previous = state
   state = { ...state, ...newState }
+
+  if (previous.status !== state.status || previous.type !== state.type || previous.port !== state.port) {
+    if (state.status === 'running' && state.type) {
+      appendSolanaActivity({
+        kind: 'validator-start',
+        status: 'confirmed',
+        title: 'Validator started',
+        detail: `${state.type} is running${state.port ? ` on localhost:${state.port}` : '.'}`,
+        fromAddress: state.type,
+        metadata: { validatorType: state.type, port: state.port },
+      })
+    } else if (previous.status === 'running' && state.status === 'stopped') {
+      appendSolanaActivity({
+        kind: 'validator-stop',
+        status: 'confirmed',
+        title: 'Validator stopped',
+        detail: `${previous.type ?? 'validator'} stopped.`,
+        fromAddress: previous.type ?? 'validator',
+        metadata: { validatorType: previous.type, port: previous.port },
+      })
+    } else if (state.status === 'error') {
+      appendSolanaActivity({
+        kind: 'validator-error',
+        status: 'failed',
+        title: 'Validator error',
+        detail: `${state.type ?? 'validator'} entered an error state.`,
+        fromAddress: state.type ?? 'validator',
+        metadata: { validatorType: state.type, port: state.port },
+      })
+    }
+  }
   // Notify renderer of state change
   try {
     const win = BrowserWindow.getAllWindows()[0]

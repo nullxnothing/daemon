@@ -10,7 +10,7 @@ import type {
 
 interface SolanaActivityRow {
   id: string
-  wallet_id: string
+  wallet_id: string | null
   kind: SolanaActivityKind
   status: SolanaActivityStatus
   provider: SolanaActivityProvider
@@ -34,8 +34,10 @@ interface SolanaActivityRow {
 }
 
 interface CreateSolanaActivityInput {
-  walletId: string
+  id?: string
+  walletId?: string | null
   kind: SolanaActivityKind
+  status?: SolanaActivityStatus
   title: string
   detail: string
   fromAddress: string
@@ -79,7 +81,7 @@ function mapRow(row: SolanaActivityRow): SolanaActivityEntry {
 export function createSolanaActivity(input: CreateSolanaActivityInput): string {
   const db = getDb()
   const now = Date.now()
-  const id = crypto.randomUUID()
+  const id = input.id ?? crypto.randomUUID()
   const settings = getWalletInfrastructureSettings()
 
   db.prepare(`
@@ -88,11 +90,30 @@ export function createSolanaActivity(input: CreateSolanaActivityInput): string {
       title, detail, from_address, to_address, input_mint, output_mint, input_symbol, output_symbol,
       input_amount, output_amount, error, metadata_json, created_at, updated_at
     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      wallet_id = excluded.wallet_id,
+      kind = excluded.kind,
+      status = excluded.status,
+      provider = excluded.provider,
+      execution_mode = excluded.execution_mode,
+      title = excluded.title,
+      detail = excluded.detail,
+      from_address = excluded.from_address,
+      to_address = excluded.to_address,
+      input_mint = excluded.input_mint,
+      output_mint = excluded.output_mint,
+      input_symbol = excluded.input_symbol,
+      output_symbol = excluded.output_symbol,
+      input_amount = excluded.input_amount,
+      output_amount = excluded.output_amount,
+      error = excluded.error,
+      metadata_json = excluded.metadata_json,
+      updated_at = excluded.updated_at
   `).run(
     id,
-    input.walletId,
+    input.walletId ?? null,
     input.kind,
-    'pending',
+    input.status ?? 'pending',
     settings.rpcProvider,
     settings.executionMode,
     null,
@@ -114,6 +135,10 @@ export function createSolanaActivity(input: CreateSolanaActivityInput): string {
   )
 
   return id
+}
+
+export function appendSolanaActivity(input: CreateSolanaActivityInput): string {
+  return createSolanaActivity(input)
 }
 
 export function markSolanaActivityConfirmed(

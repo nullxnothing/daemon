@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db/db'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as SolanaActivityService from '../services/SolanaActivityService'
+import type { SolanaActivityKind, SolanaActivityStatus } from '../shared/types'
 
 interface ActivityEntryInput {
   id: string
@@ -17,6 +18,24 @@ interface ActivityRow {
   message: string
   context: string | null
   created_at: number
+}
+
+interface SolanaActivityAppendInput {
+  id?: string
+  walletId?: string | null
+  kind: SolanaActivityKind
+  status?: SolanaActivityStatus
+  title: string
+  detail: string
+  fromAddress: string
+  toAddress?: string | null
+  inputMint?: string | null
+  outputMint?: string | null
+  inputSymbol?: string | null
+  outputSymbol?: string | null
+  inputAmount?: number | null
+  outputAmount?: number | null
+  metadata?: Record<string, unknown>
 }
 
 const VALID_KINDS = new Set(['info', 'success', 'warning', 'error'])
@@ -70,6 +89,10 @@ export function registerActivityHandlers() {
 
   ipcMain.handle('activity:solana-list', ipcHandler(async (_event, walletId?: string | null, limit?: number) => {
     return SolanaActivityService.listSolanaActivity(limit, walletId)
+  }))
+
+  ipcMain.handle('activity:solana-append', ipcHandler(async (_event, input: SolanaActivityAppendInput) => {
+    return SolanaActivityService.appendSolanaActivity(input)
   }))
 
   ipcMain.handle('activity:solana-clear', ipcHandler(async () => {

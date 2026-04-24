@@ -212,6 +212,8 @@ declare global {
   type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
   type SolanaTransactionPreview = import('../../electron/shared/types').SolanaTransactionPreview
   type SolanaActivityEntry = import('../../electron/shared/types').SolanaActivityEntry
+  type SolanaActivityKind = import('../../electron/shared/types').SolanaActivityKind
+  type SolanaActivityStatus = import('../../electron/shared/types').SolanaActivityStatus
 
   type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
 
@@ -937,6 +939,23 @@ declare global {
     list: (limit?: number) => Promise<IpcResponse<DaemonActivityEntry[]>>
     clear: () => Promise<IpcResponse<void>>
     listSolana: (walletId?: string | null, limit?: number) => Promise<IpcResponse<SolanaActivityEntry[]>>
+    appendSolana: (input: {
+      id?: string
+      walletId?: string | null
+      kind: SolanaActivityKind
+      status?: SolanaActivityStatus
+      title: string
+      detail: string
+      fromAddress: string
+      toAddress?: string | null
+      inputMint?: string | null
+      outputMint?: string | null
+      inputSymbol?: string | null
+      outputSymbol?: string | null
+      inputAmount?: number | null
+      outputAmount?: number | null
+      metadata?: Record<string, unknown>
+    }) => Promise<IpcResponse<string>>
     clearSolana: () => Promise<IpcResponse<void>>
   }
 

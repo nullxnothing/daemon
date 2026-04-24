@@ -582,3 +582,47 @@ CREATE INDEX IF NOT EXISTS idx_solana_activity_wallet_created ON solana_activity
 CREATE INDEX IF NOT EXISTS idx_solana_activity_status_created ON solana_activity(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_solana_activity_signature ON solana_activity(signature);
 `
+
+export const SCHEMA_V27 = `
+CREATE TABLE IF NOT EXISTS solana_activity_next (
+  id TEXT PRIMARY KEY,
+  wallet_id TEXT,
+  kind TEXT NOT NULL CHECK(kind IN ('send-sol','send-token','swap','validator-start','validator-stop','validator-error','runtime-warning','setup-action')),
+  status TEXT NOT NULL CHECK(status IN ('pending','confirmed','failed')),
+  provider TEXT NOT NULL CHECK(provider IN ('helius','public','quicknode','custom')),
+  execution_mode TEXT NOT NULL CHECK(execution_mode IN ('rpc','jito')),
+  transport TEXT CHECK(transport IN ('rpc','jito')),
+  signature TEXT,
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL,
+  from_address TEXT NOT NULL,
+  to_address TEXT,
+  input_mint TEXT,
+  output_mint TEXT,
+  input_symbol TEXT,
+  output_symbol TEXT,
+  input_amount REAL,
+  output_amount REAL,
+  error TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+INSERT INTO solana_activity_next (
+  id, wallet_id, kind, status, provider, execution_mode, transport, signature,
+  title, detail, from_address, to_address, input_mint, output_mint, input_symbol, output_symbol,
+  input_amount, output_amount, error, metadata_json, created_at, updated_at
+)
+SELECT
+  id, wallet_id, kind, status, provider, execution_mode, transport, signature,
+  title, detail, from_address, to_address, input_mint, output_mint, input_symbol, output_symbol,
+  input_amount, output_amount, error, metadata_json, created_at, updated_at
+FROM solana_activity;
+
+DROP TABLE solana_activity;
+ALTER TABLE solana_activity_next RENAME TO solana_activity;
+CREATE INDEX IF NOT EXISTS idx_solana_activity_wallet_created ON solana_activity(wallet_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_solana_activity_status_created ON solana_activity(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_solana_activity_signature ON solana_activity(signature);
+`

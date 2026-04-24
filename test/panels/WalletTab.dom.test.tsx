@@ -16,6 +16,7 @@ function installDaemonBridge() {
     value: {
       activity: {
         append: vi.fn().mockResolvedValue({ ok: true }),
+        appendSolana: vi.fn().mockResolvedValue({ ok: true, data: 'activity-1' }),
         listSolana: vi.fn().mockResolvedValue({ ok: true, data: [] }),
       },
       env: {

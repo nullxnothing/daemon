@@ -75,6 +75,10 @@ function shortSignature(value: string): string {
 }
 
 function formatActivityAmount(entry: SolanaActivityEntry): string {
+  if (entry.kind === 'validator-start' || entry.kind === 'validator-stop' || entry.kind === 'validator-error' || entry.kind === 'runtime-warning' || entry.kind === 'setup-action') {
+    return entry.kind.replace(/-/g, ' ')
+  }
+
   if (entry.kind === 'swap') {
     const input = entry.inputAmount != null ? `${entry.inputAmount} ${entry.inputSymbol ?? shortAddress(entry.inputMint ?? 'input')}` : entry.inputSymbol ?? 'Swap'
     const output = entry.outputAmount != null ? `${entry.outputAmount} ${entry.outputSymbol ?? shortAddress(entry.outputMint ?? 'output')}` : entry.outputSymbol ?? 'output'

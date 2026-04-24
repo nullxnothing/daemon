@@ -50,6 +50,19 @@ export function ToolchainSection({ toolchain, projectId, projectPath }: Toolchai
     addTerminal(projectId, terminalRes.data.id, label, terminalRes.data.agentId)
     focusTerminal()
     setActionMessage(`${label} opened in a project terminal.`)
+    void window.daemon.activity.appendSolana({
+      kind: 'setup-action',
+      status: 'confirmed',
+      title: label,
+      detail: `${label} opened in a project terminal.`,
+      fromAddress: 'solana-toolbox',
+      metadata: {
+        projectId,
+        projectPath,
+        command,
+        terminalId: terminalRes.data.id,
+      },
+    })
   }
 
   return (

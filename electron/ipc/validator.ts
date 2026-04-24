@@ -4,6 +4,7 @@ import * as pty from 'node-pty'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as ValidatorManager from '../services/ValidatorManager'
 import * as SolanaDetector from '../services/SolanaDetector'
+import { appendSolanaActivity } from '../services/SolanaActivityService'
 
 let validatorPty: pty.IPty | null = null
 let validatorTerminalId: string | null = null
@@ -18,9 +19,25 @@ export function registerValidatorHandlers() {
 
     const available = ValidatorManager.detectAvailable()
     if (type === 'surfpool' && !available.surfpool) {
+      appendSolanaActivity({
+        kind: 'validator-error',
+        status: 'failed',
+        title: 'Validator start blocked',
+        detail: 'surfpool is not installed. Install with: cargo install surfpool',
+        fromAddress: type,
+        metadata: { validatorType: type, reason: 'missing-binary' },
+      })
       throw new Error('surfpool is not installed. Install with: cargo install surfpool')
     }
     if (type === 'test-validator' && !available.testValidator) {
+      appendSolanaActivity({
+        kind: 'validator-error',
+        status: 'failed',
+        title: 'Validator start blocked',
+        detail: 'solana-test-validator is not installed. Install Solana CLI tools first.',
+        fromAddress: type,
+        metadata: { validatorType: type, reason: 'missing-binary' },
+      })
       throw new Error('solana-test-validator is not installed. Install Solana CLI tools first.')
     }
 
@@ -76,7 +93,44 @@ export function registerValidatorHandlers() {
   }))
 
   ipcMain.handle('validator:toolchain-status', ipcHandler(async (_event, projectPath?: string) => {
-    return ValidatorManager.detectToolchain(projectPath)
+    const toolchain = ValidatorManager.detectToolchain(projectPath)
+    const warnings: Array<{ id: string; title: string; detail: string }> = []
+
+    if (!toolchain.solanaCli.installed) {
+      warnings.push({
+        id: 'runtime-warning:missing-solana-cli',
+        title: 'Solana CLI missing',
+        detail: 'Local validator, keygen, and CLI-driven Solana flows are blocked until the Solana CLI is installed.',
+      })
+    }
+    if (!toolchain.surfpool.installed && !toolchain.testValidator.installed) {
+      warnings.push({
+        id: 'runtime-warning:missing-validator',
+        title: 'Local validator missing',
+        detail: 'Neither Surfpool nor solana-test-validator is installed, so DAEMON cannot run a local validator flow yet.',
+      })
+    }
+    if (!toolchain.avm.installed && toolchain.anchor.installed) {
+      warnings.push({
+        id: 'runtime-warning:missing-avm',
+        title: 'AVM missing',
+        detail: 'Anchor is installed directly, but AVM is missing so DAEMON cannot rely on pinned Anchor toolchains.',
+      })
+    }
+
+    for (const warning of warnings) {
+      appendSolanaActivity({
+        id: warning.id,
+        kind: 'runtime-warning',
+        status: 'failed',
+        title: warning.title,
+        detail: warning.detail,
+        fromAddress: 'daemon-runtime',
+        metadata: { projectPath: projectPath ?? null },
+      })
+    }
+
+    return toolchain
   }))
 
   ipcMain.handle('validator:detect-project', ipcHandler(async (_event, projectPath: string) => {

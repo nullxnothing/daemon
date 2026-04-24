@@ -57,6 +57,19 @@ export function ValidatorCard() {
     addTerminal(activeProjectId, terminalRes.data.id, label, terminalRes.data.agentId)
     focusTerminal()
     setActionMessage(`${label} opened in a project terminal.`)
+    void window.daemon.activity.appendSolana({
+      kind: 'setup-action',
+      status: 'confirmed',
+      title: label,
+      detail: `${label} opened in a project terminal.`,
+      fromAddress: 'validator-card',
+      metadata: {
+        projectId: activeProjectId,
+        projectPath: activeProjectPath,
+        command,
+        terminalId: terminalRes.data.id,
+      },
+    })
   }
 
   return (

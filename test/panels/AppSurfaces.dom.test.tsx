@@ -125,6 +125,9 @@ function installDaemonBridge() {
         }),
         projectMcpToggle: vi.fn().mockResolvedValue({ ok: true }),
       },
+      activity: {
+        appendSolana: vi.fn().mockResolvedValue({ ok: true, data: 'activity-1' }),
+      },
       env: {
         projectVars: vi.fn().mockResolvedValue({
           ok: true,

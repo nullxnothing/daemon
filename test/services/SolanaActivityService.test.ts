@@ -191,4 +191,47 @@ describe('SolanaActivityService', () => {
       'activity-2',
     )
   })
+
+  it('supports deterministic runtime warnings without a wallet id', () => {
+    const run = vi.fn()
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('INSERT INTO solana_activity')) return { run }
+      return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
+    })
+
+    const id = createSolanaActivity({
+      id: 'runtime-warning:missing-validator',
+      kind: 'runtime-warning',
+      status: 'failed',
+      title: 'Local validator missing',
+      detail: 'Neither Surfpool nor solana-test-validator is installed.',
+      fromAddress: 'daemon-runtime',
+    })
+
+    expect(id).toBe('runtime-warning:missing-validator')
+    expect(run).toHaveBeenCalledWith(
+      'runtime-warning:missing-validator',
+      null,
+      'runtime-warning',
+      'failed',
+      'helius',
+      'jito',
+      null,
+      null,
+      'Local validator missing',
+      'Neither Surfpool nor solana-test-validator is installed.',
+      'daemon-runtime',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      '{}',
+      expect.any(Number),
+      expect.any(Number),
+    )
+  })
 })

@@ -440,14 +440,22 @@ export interface SolanaTransactionPreview {
   acknowledgementLabel: string | null
 }
 
-export type SolanaActivityKind = 'send-sol' | 'send-token' | 'swap'
+export type SolanaActivityKind =
+  | 'send-sol'
+  | 'send-token'
+  | 'swap'
+  | 'validator-start'
+  | 'validator-stop'
+  | 'validator-error'
+  | 'runtime-warning'
+  | 'setup-action'
 export type SolanaActivityStatus = 'pending' | 'confirmed' | 'failed'
 export type SolanaActivityProvider = 'helius' | 'public' | 'quicknode' | 'custom'
 export type SolanaActivityExecutionMode = 'rpc' | 'jito'
 
 export interface SolanaActivityEntry {
   id: string
-  walletId: string
+  walletId: string | null
   kind: SolanaActivityKind
   status: SolanaActivityStatus
   provider: SolanaActivityProvider

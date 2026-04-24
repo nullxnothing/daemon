@@ -33,7 +33,7 @@ export function WalletPanel() {
   useEffect(() => {
     if (dashboard?.activeWallet) {
       void useWalletStore.getState().loadTransactions(dashboard.activeWallet.id ?? '')
-      void useSolanaActivityStore.getState().loadRecent(dashboard.activeWallet.id ?? '', 25)
+      void useSolanaActivityStore.getState().loadRecent(null, 25)
     }
   }, [dashboard?.activeWallet])
 
