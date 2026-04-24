@@ -320,6 +320,12 @@
   color: var(--t4);
 }
 
+.terminal-empty-error {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--amber);
+}
+
 .terminal-split {
   position: absolute;
   inset: 0;
