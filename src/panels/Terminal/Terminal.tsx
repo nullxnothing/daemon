@@ -38,7 +38,8 @@ export function TerminalPanel() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [launchError, setLaunchError] = useState<string | null>(null)
   const panelDragDepthRef = useRef(0)
-  const creatingRef = useRef(false)
+  const autoCreatingRef = useRef(false)
+  const userCreatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
 
   const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
@@ -63,12 +64,21 @@ export function TerminalPanel() {
     return { projectId: fallback.id, projectPath: fallback.path }
   }, [activeProjectId, activeProjectPath, projects, setActiveProject])
 
-  const handleNewTerminal = useCallback(async (label = 'Terminal', startupCommand?: string) => {
-    if (creatingRef.current) return null
-    creatingRef.current = true
+  const handleNewTerminal = useCallback(async (
+    label = 'Terminal',
+    startupCommand?: string,
+    origin: 'user' | 'auto' = 'user',
+  ) => {
+    if (origin === 'auto') {
+      if (autoCreatingRef.current || userCreatingRef.current) return null
+      autoCreatingRef.current = true
+    } else {
+      userCreatingRef.current = true
+    }
     const projectContext = resolveProjectContext()
     if (!projectContext) {
-      creatingRef.current = false
+      if (origin === 'auto') autoCreatingRef.current = false
+      else userCreatingRef.current = false
       return null
     }
     try {
@@ -81,7 +91,8 @@ export function TerminalPanel() {
       setLaunchError(res.error ?? 'Failed to open terminal.')
       return null
     } finally {
-      creatingRef.current = false
+      if (origin === 'auto') autoCreatingRef.current = false
+      else userCreatingRef.current = false
     }
   }, [resolveProjectContext, addTerminal])
 
@@ -191,8 +202,8 @@ export function TerminalPanel() {
   // start from explicit user actions, not from opening the bottom terminal.
   useEffect(() => {
     if (IS_SMOKE_TEST) return
-    if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
-    void handleNewTerminal('Terminal')
+    if (!activeProjectId || visibleTerminals.length !== 0 || autoCreatingRef.current || userCreatingRef.current) return
+    void handleNewTerminal('Terminal', undefined, 'auto')
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
 
   // Sync split layout when terminals change
