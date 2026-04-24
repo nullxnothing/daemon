@@ -15,7 +15,11 @@ vi.mock('../../src/panels/Terminal/TerminalInstance', () => ({
 const { TerminalPanel } = await import('../../src/panels/Terminal/Terminal')
 
 function installDaemonBridge(createTerminal = vi.fn()) {
-  const terminalCreate = createTerminal.mockResolvedValue({ ok: true, data: { id: 'term-1' } })
+  let terminalId = 0
+  const terminalCreate = createTerminal.mockImplementation(async () => {
+    terminalId += 1
+    return { ok: true, data: { id: `term-${terminalId}` } }
+  })
 
   Object.defineProperty(window, 'daemon', {
     configurable: true,
@@ -102,6 +106,20 @@ describe('TerminalPanel DOM behavior', () => {
     expect(screen.getByRole('button', { name: 'Claude Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solana Agent' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Surfpool' })).toBeInTheDocument()
+  })
+
+  it('opens a second active terminal from the launcher while one is already running', async () => {
+    const terminalCreate = installDaemonBridge()
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getAllByTitle('New tab options')[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Standard Terminal' }))
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(2))
+    expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1', 'term-2'])
+    expect(useUIStore.getState().activeTerminalIdByProject['project-1']).toBe('term-2')
+    expect(screen.getByTestId('terminal-instance-term-2')).toHaveAttribute('data-visible', 'true')
   })
 
   it('falls back to the most recent project when the user starts a terminal without an active project', async () => {
