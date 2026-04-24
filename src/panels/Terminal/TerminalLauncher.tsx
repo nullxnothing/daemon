@@ -3,6 +3,7 @@ import { type TerminalLaunchRecent } from './RecentsManager'
 
 interface TerminalLauncherProps {
   activeProjectId: string | null
+  canLaunchInProject: boolean
   launchRecents: TerminalLaunchRecent[]
   onStartShell: () => void
   onStartClaudeChat: () => void
@@ -13,6 +14,7 @@ interface TerminalLauncherProps {
 
 export function TerminalLauncher({
   activeProjectId,
+  canLaunchInProject,
   launchRecents,
   onStartShell,
   onStartClaudeChat,
@@ -118,7 +120,7 @@ export function TerminalLauncher({
           <button
             className="terminal-launcher-item"
             onClick={handleShell}
-            disabled={!activeProjectId}
+            disabled={!canLaunchInProject}
             aria-label="Standard Terminal"
           >
             <span className="terminal-launcher-item-title">Standard Terminal</span>
@@ -135,7 +137,7 @@ export function TerminalLauncher({
           <button
             className="terminal-launcher-item"
             onClick={handleSolana}
-            disabled={!activeProjectId}
+            disabled={!canLaunchInProject}
             aria-label="Solana Agent"
           >
             <span className="terminal-launcher-item-title">Solana Agent</span>
@@ -144,7 +146,7 @@ export function TerminalLauncher({
           <button
             className="terminal-launcher-item"
             onClick={() => handleCommand('surfpool', 'Surfpool')}
-            disabled={!activeProjectId}
+            disabled={!canLaunchInProject}
             aria-label="Surfpool"
           >
             <span className="terminal-launcher-item-title">Surfpool</span>
@@ -163,7 +165,7 @@ export function TerminalLauncher({
                   key={`recent-agent-${item.key}`}
                   className="terminal-launcher-item"
                   onClick={() => agent && handleAgent(agent)}
-                  disabled={!activeProjectId || !agent}
+                  disabled={!canLaunchInProject || !agent}
                   title={agent ? undefined : 'Agent no longer available'}
                 >
                   <span className="terminal-launcher-item-title">{item.label}</span>
@@ -182,7 +184,7 @@ export function TerminalLauncher({
                   key={`recent-command-${item.key}`}
                   className="terminal-launcher-item"
                   onClick={() => item.command && handleCommand(item.command, item.label)}
-                  disabled={!activeProjectId || !item.command}
+                  disabled={!canLaunchInProject || !item.command}
                 >
                   <span className="terminal-launcher-item-title">{item.label}</span>
                   <span className="terminal-launcher-item-desc">Recent command</span>

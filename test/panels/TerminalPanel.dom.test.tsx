@@ -50,6 +50,7 @@ function resetStores() {
   useUIStore.setState({
     activeProjectId: 'project-1',
     activeProjectPath: 'C:/work/daemon-app',
+    projects: [{ id: 'project-1', name: 'daemon-app', path: 'C:/work/daemon-app', last_active: 10 } as Project],
     terminals: [],
     activeTerminalIdByProject: {},
     centerMode: 'canvas',
@@ -101,5 +102,24 @@ describe('TerminalPanel DOM behavior', () => {
     expect(screen.getByRole('button', { name: 'Claude Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solana Agent' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Surfpool' })).toBeInTheDocument()
+  })
+
+  it('falls back to the most recent project when the user starts a terminal without an active project', async () => {
+    const terminalCreate = installDaemonBridge()
+    useUIStore.setState({
+      activeProjectId: null,
+      activeProjectPath: null,
+      projects: [{ id: 'project-2', name: 'docs', path: 'C:/Users/offic/Documents/test', last_active: 42 } as Project],
+      terminals: [],
+      activeTerminalIdByProject: {},
+    })
+
+    render(<TerminalPanel />)
+
+    await userEvent.click(screen.getByText('Click to start a terminal'))
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    expect(terminalCreate).toHaveBeenCalledWith({ cwd: 'C:/Users/offic/Documents/test', startupCommand: undefined })
+    expect(useUIStore.getState().activeProjectId).toBe('project-2')
   })
 })
