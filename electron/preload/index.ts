@@ -156,6 +156,7 @@ contextBridge.exposeInMainWorld('daemon', {
     }) =>
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
+    saveSummary: (targetId: string, summary: string) => ipcRenderer.invoke('activity:save-summary', { targetId, summary }),
     clear: () => ipcRenderer.invoke('activity:clear'),
   },
 

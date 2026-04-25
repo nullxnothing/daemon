@@ -28,6 +28,7 @@ export interface ActivityEntry {
   sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
   projectId?: string | null
   projectName?: string | null
+  sessionSummary?: string | null
 }
 
 interface NotificationsState {
@@ -50,6 +51,7 @@ interface NotificationsState {
   dismiss: (id: string) => void
   clearAll: () => void
   loadActivity: () => Promise<void>
+  saveActivitySummary: (targetId: string, summary: string) => Promise<void>
   clearActivity: () => Promise<void>
 }
 
@@ -93,6 +95,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       sessionStatus: sessionStatus ?? null,
       projectId: projectId ?? null,
       projectName: projectName ?? null,
+      sessionSummary: null,
     }
 
     set((state) => ({
@@ -149,6 +152,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   loadActivity: async () => {
     const res = await daemon.activity.list(500)
     if (res.ok && res.data) set({ activity: res.data })
+  },
+
+  saveActivitySummary: async (targetId, summary) => {
+    set((state) => ({
+      activity: state.activity.map((entry) => (
+        entry.sessionId === targetId || entry.id === targetId ? { ...entry, sessionSummary: summary } : entry
+      )),
+    }))
+    const res = await daemon.activity.saveSummary(targetId, summary)
+    if (!res.ok) throw new Error(res.error ?? 'Failed to save activity summary')
   },
 
   clearActivity: async () => {

@@ -102,8 +102,10 @@ function groupActivity(entries: ActivityEntry[]): ActivitySessionGroup[] {
 export function ActivityTimeline() {
   const activity = useNotificationsStore((s) => s.activity)
   const loadActivity = useNotificationsStore((s) => s.loadActivity)
+  const saveActivitySummary = useNotificationsStore((s) => s.saveActivitySummary)
   const clearActivity = useNotificationsStore((s) => s.clearActivity)
   const [filter, setFilter] = useState<ActivityFilter>('all')
+  const [busySummaryId, setBusySummaryId] = useState<string | null>(null)
 
   const filtered = useMemo(
     () => activity.filter((entry) => matchesFilter(entry, filter)),
@@ -127,6 +129,21 @@ export function ActivityTimeline() {
     }
     return next
   }, [activity])
+
+  const handleSummarize = async (group: ActivitySessionGroup) => {
+    const summary = buildSessionReport(group)
+    setBusySummaryId(group.id)
+    try {
+      await saveActivitySummary(group.id, summary)
+    } finally {
+      setBusySummaryId(null)
+    }
+  }
+
+  const handleCopy = async (group: ActivitySessionGroup) => {
+    const summary = group.entries.find((entry) => entry.sessionSummary)?.sessionSummary ?? buildSessionReport(group)
+    await navigator.clipboard?.writeText(summary)
+  }
 
   return (
     <div className="activity-timeline">
@@ -171,8 +188,23 @@ export function ActivityTimeline() {
                   <div className="activity-session-title">{group.projectName ?? 'DAEMON execution'}</div>
                   <div className="activity-session-subtitle">{group.title}</div>
                 </div>
-                <div className={`activity-session-status ${group.status}`}>{group.status}</div>
+                <div className="activity-session-controls">
+                  <div className={`activity-session-status ${group.status}`}>{group.status}</div>
+                  <button
+                    className="activity-mini-btn"
+                    onClick={() => void handleSummarize(group)}
+                    disabled={busySummaryId === group.id}
+                  >
+                    {group.entries.some((entry) => entry.sessionSummary) ? 'Refresh report' : 'Summarize'}
+                  </button>
+                  <button className="activity-mini-btn" onClick={() => void handleCopy(group)}>Copy</button>
+                </div>
               </header>
+              {group.entries.find((entry) => entry.sessionSummary)?.sessionSummary && (
+                <pre className="activity-session-report">
+                  {group.entries.find((entry) => entry.sessionSummary)?.sessionSummary}
+                </pre>
+              )}
               <div className="activity-session-events">
                 {group.entries.map((entry) => {
                   const category = classifyActivity(entry)
@@ -200,3 +232,46 @@ export function ActivityTimeline() {
 }
 
 export default ActivityTimeline
+
+function buildSessionReport(group: ActivitySessionGroup): string {
+  const ordered = [...group.entries].sort((a, b) => a.createdAt - b.createdAt)
+  const categories = new Set(ordered.map(classifyActivity))
+  const problems = ordered.filter((entry) => entry.kind === 'error' || entry.kind === 'warning')
+  const txEvents = ordered.filter((entry) => classifyActivity(entry) === 'wallet')
+  const runtimeEvents = ordered.filter((entry) => classifyActivity(entry) === 'runtime')
+  const terminalEvents = ordered.filter((entry) => classifyActivity(entry) === 'terminal')
+  const scaffoldEvents = ordered.filter((entry) => classifyActivity(entry) === 'scaffold')
+  const last = ordered[ordered.length - 1]
+
+  const lines = [
+    `DAEMON Session Report: ${group.projectName ?? 'workspace execution'}`,
+    `Status: ${group.status}`,
+    `Objective: ${group.title}`,
+    `Scope: ${[...categories].join(', ') || 'activity'}`,
+    '',
+    'What happened:',
+    ...ordered.slice(0, 6).map((entry) => `- ${entry.context ?? classifyActivity(entry)}: ${entry.message}`),
+  ]
+
+  if (ordered.length > 6) lines.push(`- ${ordered.length - 6} additional event${ordered.length - 6 === 1 ? '' : 's'} recorded.`)
+  if (scaffoldEvents.length > 0) lines.push('', `Scaffold: ${scaffoldEvents[scaffoldEvents.length - 1].message}`)
+  if (terminalEvents.length > 0) lines.push(`Terminal: ${terminalEvents.length} terminal event${terminalEvents.length === 1 ? '' : 's'} recorded.`)
+  if (runtimeEvents.length > 0) lines.push(`Runtime/deploy: ${runtimeEvents[runtimeEvents.length - 1].message}`)
+  if (txEvents.length > 0) lines.push(`Wallet/tx: ${txEvents[txEvents.length - 1].message}`)
+  if (problems.length > 0) {
+    lines.push('', 'Needs attention:')
+    lines.push(...problems.slice(-3).map((entry) => `- ${entry.message}`))
+  }
+  lines.push('', `Next action: ${deriveNextAction(group, problems, last)}`)
+
+  return lines.join('\n')
+}
+
+function deriveNextAction(group: ActivitySessionGroup, problems: ActivityEntry[], last?: ActivityEntry): string {
+  if (group.status === 'failed') return 'Open the failed event, fix the blocker, then rerun the session from the same project context.'
+  if (group.status === 'blocked' || problems.length > 0) return 'Resolve the warnings/errors above, then rerun preflight before executing wallet or deploy steps.'
+  if (group.status === 'running') return 'Continue monitoring the terminal/runtime output and mark the session complete once build/deploy verification passes.'
+  if (group.status === 'complete') return 'Share this report as the handoff artifact and archive the session.'
+  if (last && classifyActivity(last) === 'scaffold') return 'Open the generated project, run install/build checks, then attach terminal output to this session.'
+  return 'Continue from the latest recorded event and capture the next terminal, wallet, or deploy action in DAEMON.'
+}
