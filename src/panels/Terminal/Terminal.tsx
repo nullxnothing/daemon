@@ -49,7 +49,11 @@ export function TerminalPanel() {
 
   const resolveProjectContext = useCallback(() => {
     if (activeProjectId && activeProjectPath) {
-      return { projectId: activeProjectId, projectPath: activeProjectPath }
+      return {
+        projectId: activeProjectId,
+        projectPath: activeProjectPath,
+        projectName: projects.find((project) => project.id === activeProjectId)?.name ?? null,
+      }
     }
     if (projects.length === 0) {
       setLaunchError('Open or create a project first to start a terminal.')
@@ -62,7 +66,7 @@ export function TerminalPanel() {
     }
     setActiveProject(fallback.id, fallback.path)
     setLaunchError(null)
-    return { projectId: fallback.id, projectPath: fallback.path }
+    return { projectId: fallback.id, projectPath: fallback.path, projectName: fallback.name ?? null }
   }, [activeProjectId, activeProjectPath, projects, setActiveProject])
 
   const handleNewTerminal = useCallback(async (
@@ -83,6 +87,8 @@ export function TerminalPanel() {
           kind: 'success',
           context: 'Terminal',
           message: `Opened ${label} in ${projectContext.projectPath}`,
+          projectId: projectContext.projectId,
+          projectName: projectContext.projectName,
         })
         return res.data.id
       }
@@ -90,6 +96,8 @@ export function TerminalPanel() {
         kind: 'error',
         context: 'Terminal',
         message: res.error ?? `Failed to open ${label}`,
+        projectId: projectContext.projectId,
+        projectName: projectContext.projectName,
       })
       setLaunchError(res.error ?? 'Failed to open terminal.')
       return null
@@ -170,13 +178,15 @@ export function TerminalPanel() {
       kind: 'info',
       context: 'Terminal',
       message: `Closed terminal ${id}`,
+      projectId: activeProjectId,
+      projectName: projects.find((project) => project.id === activeProjectId)?.name ?? null,
     })
     setSplitLayoutsByProject((prev) => {
       const current = prev[activeProjectId]
       if (!current || current.secondaryId !== id) return prev
       return { ...prev, [activeProjectId]: undefined }
     })
-  }, [activeProjectId, removeTerminal])
+  }, [activeProjectId, projects, removeTerminal])
 
   const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
     if (splitCreatingRef.current) return
@@ -205,6 +215,8 @@ export function TerminalPanel() {
           kind: 'success',
           context: 'Terminal',
           message: `Opened split terminal ${secondaryId}`,
+          projectId,
+          projectName: projectContext.projectName,
         })
       } finally {
         splitCreatingRef.current = false
