@@ -29,6 +29,7 @@ export interface ActivityEntry {
 interface NotificationsState {
   toasts: Toast[]
   activity: ActivityEntry[]
+  addActivity: (input: { kind: ToastKind; message: string; context?: string; createdAt?: number }) => string
   pushToast: (input: { kind: ToastKind; message: string; context?: string; ttlMs?: number; action?: ToastAction }) => string
   pushError: (err: unknown, context?: string) => string
   pushSuccess: (message: string, context?: string) => string
@@ -62,6 +63,18 @@ function persistEntry(entry: ActivityEntry): void {
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   toasts: [],
   activity: [],
+
+  addActivity: ({ kind, message, context, createdAt }) => {
+    const id = crypto.randomUUID()
+    const entry: ActivityEntry = { id, kind, message, context: context ?? null, createdAt: createdAt ?? Date.now() }
+
+    set((state) => ({
+      activity: [entry, ...state.activity].slice(0, 500),
+    }))
+
+    persistEntry(entry)
+    return id
+  },
 
   pushToast: ({ kind, message, context, ttlMs, action }) => {
     const id = crypto.randomUUID()

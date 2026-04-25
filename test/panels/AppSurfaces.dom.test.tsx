@@ -114,6 +114,11 @@ function installDaemonBridge() {
   Object.defineProperty(window, 'daemon', {
     configurable: true,
     value: {
+      activity: {
+        append: vi.fn().mockResolvedValue({ ok: true }),
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        clear: vi.fn().mockResolvedValue({ ok: true }),
+      },
       claude: {
         projectMcpAll: vi.fn().mockResolvedValue({
           ok: true,
@@ -291,6 +296,7 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByText('Solana')).toBeInTheDocument()
     expect(screen.getByText('Integrations')).toBeInTheDocument()
     expect(screen.getByText('Project Readiness')).toBeInTheDocument()
+    expect(screen.getByText('Activity')).toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText('Search tools...'), 'solana')
     await userEvent.click(screen.getByText('Solana').closest('button')!)
