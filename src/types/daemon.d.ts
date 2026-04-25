@@ -920,6 +920,10 @@ declare global {
     message: string
     context: string | null
     createdAt: number
+    sessionId?: string | null
+    sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
+    projectId?: string | null
+    projectName?: string | null
   }
 
   interface DaemonActivity {

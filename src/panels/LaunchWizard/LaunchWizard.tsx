@@ -59,6 +59,9 @@ function phaseIndex(phase: string): number {
 export function LaunchWizard() {
   const closeLaunchWizard = useWorkflowShellStore((s) => s.closeLaunchWizard)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectName = useUIStore((s) => (
+    s.activeProjectId ? s.projects.find((project) => project.id === s.activeProjectId)?.name ?? null : null
+  ))
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const [step, setStep] = useState<Step>(1)
@@ -236,6 +239,8 @@ export function LaunchWizard() {
           kind: 'error',
           context: 'Runtime',
           message: res.error ?? `Token launch preflight failed for ${s1.symbol.trim().toUpperCase() || s1.name.trim()}`,
+          projectId: activeProjectId,
+          projectName: activeProjectName,
         })
       } else {
         setPreflight(res.data)
@@ -244,6 +249,8 @@ export function LaunchWizard() {
           kind: res.data.ready ? 'success' : 'warning',
           context: 'Runtime',
           message: `Token launch preflight ${res.data.ready ? 'passed' : 'needs attention'} for ${s1.symbol.trim().toUpperCase() || s1.name.trim()}`,
+          projectId: activeProjectId,
+          projectName: activeProjectName,
         })
       }
       setPreflightLoading(false)
@@ -268,6 +275,7 @@ export function LaunchWizard() {
     s1.telegram,
     s1.website,
     activeProjectId,
+    activeProjectName,
     s2BuySol,
     s2Priority,
   ])
