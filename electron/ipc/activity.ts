@@ -24,6 +24,7 @@ interface ActivityRow {
   session_status: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
   project_id: string | null
   project_name: string | null
+  session_summary: string | null
 }
 
 const VALID_KINDS = new Set(['info', 'success', 'warning', 'error'])
@@ -31,6 +32,7 @@ const VALID_SESSION_STATUSES = new Set(['created', 'running', 'blocked', 'failed
 const MAX_MESSAGE_LEN = 2000
 const MAX_CONTEXT_LEN = 200
 const MAX_METADATA_LEN = 200
+const MAX_SUMMARY_LEN = 5000
 const MAX_ROWS = 1000
 
 export function registerActivityHandlers() {
@@ -70,7 +72,7 @@ export function registerActivityHandlers() {
     const db = getDb()
     const safeLimit = Math.min(Math.max(1, limit ?? 500), MAX_ROWS)
     const rows = db.prepare(
-      `SELECT id, kind, message, context, created_at, session_id, session_status, project_id, project_name
+      `SELECT id, kind, message, context, created_at, session_id, session_status, project_id, project_name, session_summary
        FROM activity_log ORDER BY created_at DESC LIMIT ?`
     ).all(safeLimit) as ActivityRow[]
     return rows.map((r) => ({
@@ -83,7 +85,20 @@ export function registerActivityHandlers() {
       sessionStatus: r.session_status,
       projectId: r.project_id,
       projectName: r.project_name,
+      sessionSummary: r.session_summary,
     }))
+  }))
+
+  ipcMain.handle('activity:save-summary', ipcHandler(async (_event, input: { targetId: string; summary: string }) => {
+    if (!input?.targetId || !input.summary) {
+      throw new Error('Invalid activity summary')
+    }
+    const db = getDb()
+    const summary = input.summary.slice(0, MAX_SUMMARY_LEN)
+    const bySession = db.prepare('UPDATE activity_log SET session_summary = ? WHERE session_id = ?').run(summary, input.targetId)
+    if (bySession.changes === 0) {
+      db.prepare('UPDATE activity_log SET session_summary = ? WHERE id = ?').run(summary, input.targetId)
+    }
   }))
 
   ipcMain.handle('activity:clear', ipcHandler(async () => {

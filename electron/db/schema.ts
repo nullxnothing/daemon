@@ -561,3 +561,7 @@ ALTER TABLE activity_log ADD COLUMN project_name TEXT;
 CREATE INDEX IF NOT EXISTS idx_activity_log_session_id ON activity_log(session_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_log_project_id ON activity_log(project_id, created_at DESC);
 `
+
+export const SCHEMA_V27 = `
+ALTER TABLE activity_log ADD COLUMN session_summary TEXT;
+`
