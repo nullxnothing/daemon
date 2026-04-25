@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNotificationsStore } from '../../store/notifications'
 import './WalletPanel.css'
 import { TransactionPreviewCard } from './TransactionPreviewCard'
 
@@ -146,6 +147,12 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
     setSwapLoading(true)
     setSwapError(null)
     setSwapResult(null)
+    const activity = useNotificationsStore.getState()
+    activity.addActivity({
+      kind: 'info',
+      context: 'Wallet',
+      message: `Executing Jupiter swap for ${amount} from ${inputMint} to ${outputMint}`,
+    })
 
     try {
       const res = await window.daemon.wallet.swapExecute({
@@ -161,15 +168,30 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
       if (res.ok && res.data) {
         setSwapResult(res.data)
+        activity.addActivity({
+          kind: 'success',
+          context: 'Wallet',
+          message: `Swap confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+        })
         setQuote(null)
         setPendingSwap(null)
         setAmount('')
         await onRefresh()
       } else {
+        activity.addActivity({
+          kind: 'error',
+          context: 'Wallet',
+          message: res.error ?? 'Swap failed',
+        })
         setSwapError(res.error ?? 'Swap failed')
         setPendingSwap(null)
       }
     } catch (err) {
+      activity.addActivity({
+        kind: 'error',
+        context: 'Wallet',
+        message: err instanceof Error ? err.message : 'Swap execution failed',
+      })
       setSwapError(err instanceof Error ? err.message : 'Swap execution failed')
       setPendingSwap(null)
     } finally {

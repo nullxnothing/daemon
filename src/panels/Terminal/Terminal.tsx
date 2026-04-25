@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useNotificationsStore } from '../../store/notifications'
 import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
@@ -78,8 +79,18 @@ export function TerminalPanel() {
       const res = await window.daemon.terminal.create({ cwd: projectContext.projectPath, startupCommand })
       if (res.ok && res.data) {
         addTerminal(projectContext.projectId, res.data.id, label)
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Terminal',
+          message: `Opened ${label} in ${projectContext.projectPath}`,
+        })
         return res.data.id
       }
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Terminal',
+        message: res.error ?? `Failed to open ${label}`,
+      })
       setLaunchError(res.error ?? 'Failed to open terminal.')
       return null
     }
@@ -155,6 +166,11 @@ export function TerminalPanel() {
     if (!activeProjectId) return
     await window.daemon.terminal.kill(id)
     removeTerminal(activeProjectId, id)
+    useNotificationsStore.getState().addActivity({
+      kind: 'info',
+      context: 'Terminal',
+      message: `Closed terminal ${id}`,
+    })
     setSplitLayoutsByProject((prev) => {
       const current = prev[activeProjectId]
       if (!current || current.secondaryId !== id) return prev
@@ -185,6 +201,11 @@ export function TerminalPanel() {
         secondaryId = res.data.id
         addTerminal(projectId, secondaryId, 'Split')
         setActiveTerminal(projectId, currentActiveTerminalId)
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Terminal',
+          message: `Opened split terminal ${secondaryId}`,
+        })
       } finally {
         splitCreatingRef.current = false
       }

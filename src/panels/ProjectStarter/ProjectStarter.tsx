@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useNotificationsStore } from '../../store/notifications'
 import './ProjectStarter.css'
 
 // --- Template definitions ---
@@ -381,6 +382,11 @@ export function ProjectStarter() {
 
     setWizard((prev) => ({ ...prev, step: 'building' }))
     setError(null)
+    useNotificationsStore.getState().addActivity({
+      kind: 'info',
+      context: 'Scaffold',
+      message: `Started ${wizard.template.name} scaffold for ${name} at ${projectPath}`,
+    })
 
     try {
       // Register the project before using sandboxed filesystem APIs so the
@@ -419,6 +425,11 @@ export function ProjectStarter() {
           `${JSON.stringify(runtimePreset, null, 2)}\n`,
         )
         if (!runtimePresetRes.ok) {
+          useNotificationsStore.getState().addActivity({
+            kind: 'error',
+            context: 'Scaffold',
+            message: runtimePresetRes.error ?? `Failed to write runtime preset for ${name}`,
+          })
           await cleanupProject()
           setError(runtimePresetRes.error ?? 'Failed to write runtime preset')
           setWizard((prev) => ({ ...prev, step: 'configure' }))
@@ -452,14 +463,29 @@ export function ProjectStarter() {
 
       if (termRes.ok && termRes.data) {
         addTerminal(newProject.id, termRes.data.id, `Build: ${name}`, null)
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Scaffold',
+          message: `Build agent started for ${name}; runtime preset ${runtimePreset ? 'written' : 'not available'}.`,
+        })
         setCenterMode('canvas')
         closeDrawer()
       } else {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: termRes.error ?? `Failed to start build agent for ${name}`,
+        })
         await cleanupProject()
         setError(termRes.error ?? 'Failed to start build agent')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
       }
     } catch (err) {
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Scaffold',
+        message: err instanceof Error ? err.message : String(err),
+      })
       setError(String(err))
       setWizard((prev) => ({ ...prev, step: 'configure' }))
     }
