@@ -337,6 +337,12 @@ export function WalletTab({ onRefresh }: Props) {
   const handleExecuteSend = async () => {
     if (!pendingSend || sendLockRef.current) return
     sendLockRef.current = true
+    const activity = useNotificationsStore.getState()
+    activity.addActivity({
+      kind: 'info',
+      context: 'Wallet',
+      message: `Sending ${pendingSend.sendMax ? 'max' : pendingSend.amount} ${pendingSend.mode === 'sol' ? 'SOL' : 'token'} to ${pendingSend.dest}`,
+    })
     setSendLoading(true)
     setSendError(null)
     try {
@@ -345,9 +351,19 @@ export function WalletTab({ onRefresh }: Props) {
         setPendingSend(null)
         if (res.ok && res.data) {
           setSendResult(res.data)
+          activity.addActivity({
+            kind: 'success',
+            context: 'Wallet',
+            message: `SOL send confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+          })
           resetSendState()
           await onRefresh()
         } else {
+          activity.addActivity({
+            kind: 'error',
+            context: 'Wallet',
+            message: res.error ?? 'SOL send failed',
+          })
           setSendError(res.error ?? 'Send failed')
         }
       } else {
@@ -355,9 +371,19 @@ export function WalletTab({ onRefresh }: Props) {
         setPendingSend(null)
         if (res.ok && res.data) {
           setSendResult(res.data)
+          activity.addActivity({
+            kind: 'success',
+            context: 'Wallet',
+            message: `Token send confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+          })
           resetSendState()
           await onRefresh()
         } else {
+          activity.addActivity({
+            kind: 'error',
+            context: 'Wallet',
+            message: res.error ?? 'Token send failed',
+          })
           setSendError(res.error ?? 'Send failed')
         }
       }

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
+import { useNotificationsStore } from './notifications'
 import { SOLANA_MCP_CATALOG, type SolanaMcpCategory } from '../panels/SolanaToolbox/catalog'
 
 export interface SolanaMcpEntry {
@@ -104,15 +105,35 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
 
   startValidator: async (type) => {
     set({ validator: { type, status: 'starting', terminalId: null, port: null } })
+    useNotificationsStore.getState().addActivity({
+      kind: 'info',
+      context: 'Runtime',
+      message: `Starting ${type} validator`,
+    })
     try {
       const res = await daemon.validator.start(type)
       if (res.ok && res.data) {
         set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899 } })
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Runtime',
+          message: `${type} validator running on port ${res.data.port ?? 8899}`,
+        })
       } else {
         set({ validator: { type, status: 'error', terminalId: null, port: null } })
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Runtime',
+          message: res.error ?? `${type} validator failed to start`,
+        })
       }
-    } catch {
+    } catch (err) {
       set({ validator: { type, status: 'error', terminalId: null, port: null } })
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Runtime',
+        message: err instanceof Error ? err.message : `${type} validator failed to start`,
+      })
     }
   },
 
@@ -121,6 +142,11 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     if (validator.terminalId) {
       try {
         await daemon.validator.stop()
+        useNotificationsStore.getState().addActivity({
+          kind: 'info',
+          context: 'Runtime',
+          message: `Stopped ${validator.type ?? 'local'} validator`,
+        })
       } catch { /* ignore */ }
     }
     set({ validator: { type: null, status: 'stopped', terminalId: null, port: null } })
@@ -147,6 +173,13 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
       const res = await daemon.validator.detectProject(projectPath)
       if (res.ok && res.data) {
         set({ projectInfo: res.data as SolanaProjectInfo })
+        if (res.data.isSolanaProject) {
+          useNotificationsStore.getState().addActivity({
+            kind: 'success',
+            context: 'Runtime',
+            message: `Detected Solana project${res.data.framework ? ` (${res.data.framework})` : ''} at ${projectPath}`,
+          })
+        }
       } else {
         set({ projectInfo: null })
       }
@@ -160,6 +193,18 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
       const res = await daemon.validator.toolchainStatus(projectPath)
       if (res.ok && res.data) {
         set({ toolchain: res.data as SolanaToolchainStatus })
+        const missing = [
+          res.data.solanaCli.installed ? null : 'Solana CLI',
+          res.data.anchor.installed ? null : 'Anchor',
+          res.data.surfpool.installed ? null : 'Surfpool',
+        ].filter(Boolean)
+        useNotificationsStore.getState().addActivity({
+          kind: missing.length === 0 ? 'success' : 'warning',
+          context: 'Runtime',
+          message: missing.length === 0
+            ? 'Runtime toolchain check passed'
+            : `Runtime toolchain check found missing tools: ${missing.join(', ')}`,
+        })
       } else {
         set({ toolchain: null })
       }

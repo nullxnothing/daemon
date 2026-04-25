@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useNotificationsStore } from '../../store/notifications'
 import { useTokenLaunch } from './useTokenLaunch'
 import type { LaunchParams } from './useTokenLaunch'
 import './LaunchWizard.css'
@@ -231,9 +232,19 @@ export function LaunchWizard() {
       if (!res.ok || !res.data) {
         setPreflight(null)
         setPreflightError(res.error ?? 'Launch preflight failed')
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Runtime',
+          message: res.error ?? `Token launch preflight failed for ${s1.symbol.trim().toUpperCase() || s1.name.trim()}`,
+        })
       } else {
         setPreflight(res.data)
         setPreflightError(null)
+        useNotificationsStore.getState().addActivity({
+          kind: res.data.ready ? 'success' : 'warning',
+          context: 'Runtime',
+          message: `Token launch preflight ${res.data.ready ? 'passed' : 'needs attention'} for ${s1.symbol.trim().toUpperCase() || s1.name.trim()}`,
+        })
       }
       setPreflightLoading(false)
     }
