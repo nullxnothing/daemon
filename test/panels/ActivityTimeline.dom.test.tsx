@@ -21,19 +21,21 @@ function installDaemonBridge() {
           sessionStatus: null,
           projectId: null,
           projectName: null,
+          sessionSummary: null,
         },
     ],
   })
   const clear = vi.fn().mockResolvedValue({ ok: true })
+  const saveSummary = vi.fn().mockResolvedValue({ ok: true })
 
   Object.defineProperty(window, 'daemon', {
     configurable: true,
     value: {
-      activity: { append, list, clear },
+      activity: { append, list, saveSummary, clear },
     },
   })
 
-  return { append, clear, list }
+  return { append, clear, list, saveSummary }
 }
 
 describe('ActivityTimeline', () => {
@@ -52,6 +54,7 @@ describe('ActivityTimeline', () => {
           sessionStatus: null,
           projectId: null,
           projectName: null,
+          sessionSummary: null,
         },
         {
           id: 'terminal-1',
@@ -63,6 +66,7 @@ describe('ActivityTimeline', () => {
           sessionStatus: null,
           projectId: 'project-1',
           projectName: 'daemon-app',
+          sessionSummary: null,
         },
         {
           id: 'scaffold-1',
@@ -74,6 +78,7 @@ describe('ActivityTimeline', () => {
           sessionStatus: null,
           projectId: null,
           projectName: null,
+          sessionSummary: null,
         },
       ],
     })
@@ -112,6 +117,7 @@ describe('ActivityTimeline', () => {
       sessionStatus: 'running',
       projectId: 'project-demo',
       projectName: 'demo',
+      sessionSummary: null,
     })
 
     expect(useNotificationsStore.getState().toasts).toEqual([])
@@ -149,6 +155,7 @@ describe('ActivityTimeline', () => {
           sessionStatus: 'running',
           projectId: 'project-demo',
           projectName: 'demo',
+          sessionSummary: null,
         },
         {
           id: 'session-created',
@@ -160,6 +167,7 @@ describe('ActivityTimeline', () => {
           sessionStatus: 'created',
           projectId: 'project-demo',
           projectName: 'demo',
+          sessionSummary: null,
         },
         {
           id: 'legacy-terminal',
@@ -171,6 +179,7 @@ describe('ActivityTimeline', () => {
           sessionStatus: null,
           projectId: null,
           projectName: null,
+          sessionSummary: null,
         },
       ],
     })
@@ -183,5 +192,65 @@ describe('ActivityTimeline', () => {
     expect(screen.getByText('Build agent started for demo; runtime preset written.')).toBeInTheDocument()
     expect(screen.getAllByText('DAEMON execution').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Opened Terminal in C:/work/daemon-app').length).toBeGreaterThan(0)
+  })
+
+  it('generates, persists, and copies a session handoff report', async () => {
+    const { saveSummary } = installDaemonBridge()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    useNotificationsStore.setState({
+      toasts: [],
+      activity: [
+        {
+          id: 'session-wallet',
+          kind: 'success',
+          message: 'Swap confirmed via RPC with signature abc123',
+          context: 'Wallet',
+          createdAt: 1_700_000_000_300,
+          sessionId: 'scaffold-demo',
+          sessionStatus: 'running',
+          projectId: 'project-demo',
+          projectName: 'demo',
+          sessionSummary: null,
+        },
+        {
+          id: 'session-warning',
+          kind: 'warning',
+          message: 'Runtime toolchain check found missing tools: Anchor',
+          context: 'Runtime',
+          createdAt: 1_700_000_000_200,
+          sessionId: 'scaffold-demo',
+          sessionStatus: 'blocked',
+          projectId: 'project-demo',
+          projectName: 'demo',
+          sessionSummary: null,
+        },
+        {
+          id: 'session-created',
+          kind: 'info',
+          message: 'Started dApp scaffold for demo at C:/work/demo',
+          context: 'Scaffold',
+          createdAt: 1_700_000_000_100,
+          sessionId: 'scaffold-demo',
+          sessionStatus: 'created',
+          projectId: 'project-demo',
+          projectName: 'demo',
+          sessionSummary: null,
+        },
+      ],
+    })
+
+    render(<ActivityTimeline />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Summarize' }))
+    await waitFor(() => expect(saveSummary).toHaveBeenCalledWith('scaffold-demo', expect.stringContaining('DAEMON Session Report: demo')))
+    expect(screen.getByText(/Needs attention:/)).toBeInTheDocument()
+    expect(screen.getByText(/Wallet\/tx: Swap confirmed via RPC/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Copy' }))
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Next action: Resolve the warnings/errors above'))
   })
 })
