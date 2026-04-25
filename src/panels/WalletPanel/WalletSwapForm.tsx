@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNotificationsStore } from '../../store/notifications'
+import { useUIStore } from '../../store/ui'
 import './WalletPanel.css'
 import { TransactionPreviewCard } from './TransactionPreviewCard'
 
@@ -50,6 +51,10 @@ interface PendingSwap {
 }
 
 export function WalletSwapForm({ walletId, walletName, holdings, executionMode, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectName = useUIStore((s) => (
+    s.activeProjectId ? s.projects.find((project) => project.id === s.activeProjectId)?.name ?? null : null
+  ))
   const [inputMint, setInputMint] = useState(initialInputMint ?? SOL_MINT)
   const [outputMint, setOutputMint] = useState(initialOutputMint ?? USDC_MINT)
   const [amount, setAmount] = useState('')
@@ -152,6 +157,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
       kind: 'info',
       context: 'Wallet',
       message: `Executing Jupiter swap for ${amount} from ${inputMint} to ${outputMint}`,
+      projectId: activeProjectId,
+      projectName: activeProjectName,
     })
 
     try {
@@ -172,6 +179,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
           kind: 'success',
           context: 'Wallet',
           message: `Swap confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+          projectId: activeProjectId,
+          projectName: activeProjectName,
         })
         setQuote(null)
         setPendingSwap(null)
@@ -182,6 +191,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
           kind: 'error',
           context: 'Wallet',
           message: res.error ?? 'Swap failed',
+          projectId: activeProjectId,
+          projectName: activeProjectName,
         })
         setSwapError(res.error ?? 'Swap failed')
         setPendingSwap(null)
@@ -191,6 +202,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
         kind: 'error',
         context: 'Wallet',
         message: err instanceof Error ? err.message : 'Swap execution failed',
+        projectId: activeProjectId,
+        projectName: activeProjectName,
       })
       setSwapError(err instanceof Error ? err.message : 'Swap execution failed')
       setPendingSwap(null)
