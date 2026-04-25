@@ -143,7 +143,17 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   activity: {
-    append: (entry: { id: string; kind: string; message: string; context: string | null; createdAt: number }) =>
+    append: (entry: {
+      id: string
+      kind: string
+      message: string
+      context: string | null
+      createdAt: number
+      sessionId?: string | null
+      sessionStatus?: string | null
+      projectId?: string | null
+      projectName?: string | null
+    }) =>
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
     clear: () => ipcRenderer.invoke('activity:clear'),

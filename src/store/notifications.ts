@@ -24,12 +24,25 @@ export interface ActivityEntry {
   message: string
   context: string | null
   createdAt: number
+  sessionId?: string | null
+  sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
+  projectId?: string | null
+  projectName?: string | null
 }
 
 interface NotificationsState {
   toasts: Toast[]
   activity: ActivityEntry[]
-  addActivity: (input: { kind: ToastKind; message: string; context?: string; createdAt?: number }) => string
+  addActivity: (input: {
+    kind: ToastKind
+    message: string
+    context?: string
+    createdAt?: number
+    sessionId?: string | null
+    sessionStatus?: ActivityEntry['sessionStatus']
+    projectId?: string | null
+    projectName?: string | null
+  }) => string
   pushToast: (input: { kind: ToastKind; message: string; context?: string; ttlMs?: number; action?: ToastAction }) => string
   pushError: (err: unknown, context?: string) => string
   pushSuccess: (message: string, context?: string) => string
@@ -57,6 +70,10 @@ function persistEntry(entry: ActivityEntry): void {
     message: entry.message,
     context: entry.context,
     createdAt: entry.createdAt,
+    sessionId: entry.sessionId ?? null,
+    sessionStatus: entry.sessionStatus ?? null,
+    projectId: entry.projectId ?? null,
+    projectName: entry.projectName ?? null,
   }).catch(() => { /* non-fatal */ })
 }
 
@@ -64,9 +81,19 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   toasts: [],
   activity: [],
 
-  addActivity: ({ kind, message, context, createdAt }) => {
+  addActivity: ({ kind, message, context, createdAt, sessionId, sessionStatus, projectId, projectName }) => {
     const id = crypto.randomUUID()
-    const entry: ActivityEntry = { id, kind, message, context: context ?? null, createdAt: createdAt ?? Date.now() }
+    const entry: ActivityEntry = {
+      id,
+      kind,
+      message,
+      context: context ?? null,
+      createdAt: createdAt ?? Date.now(),
+      sessionId: sessionId ?? null,
+      sessionStatus: sessionStatus ?? null,
+      projectId: projectId ?? null,
+      projectName: projectName ?? null,
+    }
 
     set((state) => ({
       activity: [entry, ...state.activity].slice(0, 500),

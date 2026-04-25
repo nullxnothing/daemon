@@ -379,6 +379,7 @@ export function ProjectStarter() {
 
     const name = wizard.projectName.trim()
     const projectPath = `${wizard.savePath}/${name}`
+    const sessionId = `scaffold-${crypto.randomUUID()}`
 
     setWizard((prev) => ({ ...prev, step: 'building' }))
     setError(null)
@@ -386,6 +387,9 @@ export function ProjectStarter() {
       kind: 'info',
       context: 'Scaffold',
       message: `Started ${wizard.template.name} scaffold for ${name} at ${projectPath}`,
+      sessionId,
+      sessionStatus: 'created',
+      projectName: name,
     })
 
     try {
@@ -393,6 +397,14 @@ export function ProjectStarter() {
       // target path is treated as a valid project root during scaffolding.
       const projRes = await window.daemon.projects.create({ name, path: projectPath })
       if (!projRes.ok || !projRes.data) {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: projRes.error ?? `Failed to register project ${name}`,
+          sessionId,
+          sessionStatus: 'failed',
+          projectName: name,
+        })
         setError(projRes.error ?? 'Failed to register project')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
         return
@@ -405,6 +417,15 @@ export function ProjectStarter() {
 
       const mkdirRes = await window.daemon.fs.createDir(projectPath)
       if (!mkdirRes.ok) {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: mkdirRes.error ?? `Failed to create project directory for ${name}`,
+          sessionId,
+          sessionStatus: 'failed',
+          projectId: newProject.id,
+          projectName: name,
+        })
         await cleanupProject()
         setError(mkdirRes.error ?? 'Failed to create directory')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
@@ -429,6 +450,10 @@ export function ProjectStarter() {
             kind: 'error',
             context: 'Scaffold',
             message: runtimePresetRes.error ?? `Failed to write runtime preset for ${name}`,
+            sessionId,
+            sessionStatus: 'failed',
+            projectId: newProject.id,
+            projectName: name,
           })
           await cleanupProject()
           setError(runtimePresetRes.error ?? 'Failed to write runtime preset')
@@ -467,6 +492,10 @@ export function ProjectStarter() {
           kind: 'success',
           context: 'Scaffold',
           message: `Build agent started for ${name}; runtime preset ${runtimePreset ? 'written' : 'not available'}.`,
+          sessionId,
+          sessionStatus: 'running',
+          projectId: newProject.id,
+          projectName: name,
         })
         setCenterMode('canvas')
         closeDrawer()
@@ -475,6 +504,10 @@ export function ProjectStarter() {
           kind: 'error',
           context: 'Scaffold',
           message: termRes.error ?? `Failed to start build agent for ${name}`,
+          sessionId,
+          sessionStatus: 'failed',
+          projectId: newProject.id,
+          projectName: name,
         })
         await cleanupProject()
         setError(termRes.error ?? 'Failed to start build agent')
@@ -485,6 +518,9 @@ export function ProjectStarter() {
         kind: 'error',
         context: 'Scaffold',
         message: err instanceof Error ? err.message : String(err),
+        sessionId,
+        sessionStatus: 'failed',
+        projectName: name,
       })
       setError(String(err))
       setWizard((prev) => ({ ...prev, step: 'configure' }))
