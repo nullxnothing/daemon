@@ -27,6 +27,9 @@ function installDaemonBridge(createTerminal = vi.fn()) {
   Object.defineProperty(window, 'daemon', {
     configurable: true,
     value: {
+      activity: {
+        append: vi.fn().mockResolvedValue({ ok: true }),
+      },
       agents: {
         list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
       },

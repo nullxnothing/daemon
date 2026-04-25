@@ -336,6 +336,24 @@ function ProIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+function ActivityIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="activity-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#14f195" />
+          <stop offset="50%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#facc15" />
+        </linearGradient>
+      </defs>
+      <path d="M4 17.5h16" stroke="url(#activity-flow)" opacity="0.5" />
+      <path d="M6 15V8.5M12 15V5.5M18 15v-4" stroke="url(#activity-flow)" />
+      <circle cx="6" cy="8.5" r="2" stroke="url(#activity-flow)" />
+      <circle cx="12" cy="5.5" r="2" stroke="url(#activity-flow)" />
+      <circle cx="18" cy="11" r="2" stroke="url(#activity-flow)" />
+    </svg>
+  )
+}
 
 // Icon lookup for pinned sidebar tools
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
@@ -344,7 +362,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
   'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'project-readiness': ReadinessIcon,
-  dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon,
+  dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
 }
 
 // Tool name lookup
@@ -354,7 +372,7 @@ export const TOOL_NAMES: Record<string, string> = {
   ports: 'Ports', processes: 'Processes', settings: 'Settings',
   'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
   'token-launch': 'Token Launch', integrations: 'Integrations', 'project-readiness': 'Project Readiness',
-  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery', pro: 'Daemon Pro',
+  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery', pro: 'Daemon Pro', activity: 'Activity',
 }
 
 // Lazy-load all tool components
@@ -380,6 +398,7 @@ const loadHackathonPanel = () => import('../../panels/Colosseum/HackathonPanel')
 const loadPluginManager = () => import('../../panels/PluginManager/PluginManager')
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
 const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
+const loadActivityTimeline = () => import('../../panels/ActivityTimeline/ActivityTimeline')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -403,6 +422,7 @@ const HackathonPanel = lazyNamedWithReload('hackathon-panel', loadHackathonPanel
 const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (m) => m.PluginManager)
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
+const ActivityTimeline = lazyNamedWithReload('activity-timeline', loadActivityTimeline, (m) => m.ActivityTimeline)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -429,6 +449,7 @@ export const TOOL_COLORS: Record<string, string> = {
   plugins: '#cbd5e1',
   recovery: '#ec4899',
   pro: '#ffd700',
+  activity: '#14f195',
 }
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
@@ -454,6 +475,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
   { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'crypto' },
   { id: 'pro', name: 'Daemon Pro', description: 'Arena, Pro skills, MCP sync, and priority API', icon: ProIcon, component: ProPanel, preload: () => { void loadProPanel() }, category: 'crypto' },
+  { id: 'activity', name: 'Activity', description: 'Flight recorder for Solana development', icon: ActivityIcon, component: ActivityTimeline, preload: () => { void loadActivityTimeline() }, category: 'system' },
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
 ]
