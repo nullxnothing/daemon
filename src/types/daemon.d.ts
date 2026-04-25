@@ -924,11 +924,13 @@ declare global {
     sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
     projectId?: string | null
     projectName?: string | null
+    sessionSummary?: string | null
   }
 
   interface DaemonActivity {
     append: (entry: DaemonActivityEntry) => Promise<IpcResponse<void>>
     list: (limit?: number) => Promise<IpcResponse<DaemonActivityEntry[]>>
+    saveSummary: (targetId: string, summary: string) => Promise<IpcResponse<void>>
     clear: () => Promise<IpcResponse<void>>
   }
 

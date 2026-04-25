@@ -123,6 +123,14 @@
   padding: 2px 4px 8px;
 }
 
+.activity-session-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .activity-session-title {
   color: var(--text-primary);
   font-size: 13px;
@@ -175,6 +183,43 @@
 .activity-session-events {
   display: grid;
   gap: 8px;
+}
+
+.activity-mini-btn {
+  padding: 5px 9px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: rgba(2, 6, 23, 0.5);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.activity-mini-btn:hover:not(:disabled) {
+  color: #14f195;
+  border-color: rgba(20, 241, 149, 0.4);
+}
+
+.activity-mini-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.activity-session-report {
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid rgba(20, 241, 149, 0.16);
+  border-radius: 14px;
+  color: #d1fae5;
+  background:
+    linear-gradient(135deg, rgba(20, 241, 149, 0.07), rgba(56, 189, 248, 0.04)),
+    rgba(2, 6, 23, 0.58);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .activity-entry {
