@@ -91,7 +91,7 @@ export function ProPanel() {
 
       <nav className="pro-tabs">
         <button className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')} disabled={!isActive}>Arena</button>
+        <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
         <button className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
         <button className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
       </nav>
@@ -119,7 +119,7 @@ export function ProPanel() {
             accessSource={subscription.accessSource}
           />
         )}
-        {activeTab === 'arena' && isActive && <ArenaView />}
+        {activeTab === 'arena' && (isActive ? <ArenaView /> : <ArenaStatusLocked />)}
         {activeTab === 'skills' && isActive && <SkillsView />}
         {activeTab === 'sync' && isActive && <SyncView />}
       </div>
@@ -130,6 +130,35 @@ export function ProPanel() {
         </div>
       </footer>
     </section>
+  )
+}
+
+function ArenaStatusLocked() {
+  return (
+    <div className="pro-arena pro-arena-locked">
+      <section className="pro-arena-contest">
+        <div className="pro-arena-contest-copy">
+          <div className="pro-arena-kicker">Arena status</div>
+          <h2 className="pro-arena-contest-title">Arena submission is not active on this install.</h2>
+          <p className="pro-arena-contest-body">
+            The panel is reachable, but submission, voting, and the live leaderboard require Pro access or the local
+            development bypass.
+          </p>
+        </div>
+        <div className="pro-arena-prize-card">
+          <div className="pro-arena-prize-label">Local dev</div>
+          <div className="pro-arena-prize-value">DAEMON_PRO_DEV_BYPASS=1</div>
+          <div className="pro-arena-prize-note">Restart DAEMON with this env var to test Arena locally.</div>
+        </div>
+      </section>
+      <div className="pro-subscribe-box">
+        <div className="pro-subscribe-title">Current status</div>
+        <div className="pro-subscribe-empty">
+          Arena is locked because no active Pro entitlement was found. Use the Overview tab to subscribe or claim
+          holder access.
+        </div>
+      </div>
+    </div>
   )
 }
 
