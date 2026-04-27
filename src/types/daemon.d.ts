@@ -925,6 +925,14 @@ declare global {
     projectId?: string | null
     projectName?: string | null
     sessionSummary?: string | null
+    artifacts?: DaemonActivityArtifact[] | null
+  }
+
+  interface DaemonActivityArtifact {
+    type: 'transaction' | 'program' | 'explorer' | 'project' | 'deploy' | 'wallet' | 'other'
+    label: string
+    value: string
+    href?: string | null
   }
 
   interface DaemonActivity {
