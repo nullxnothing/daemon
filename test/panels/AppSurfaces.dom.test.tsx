@@ -14,6 +14,7 @@ import { SolanaToolbox } from '../../src/panels/SolanaToolbox/SolanaToolbox'
 import { TokenLaunchTool } from '../../src/panels/TokenLaunchTool/TokenLaunchTool'
 import { IntegrationCommandCenter } from '../../src/panels/IntegrationCommandCenter/IntegrationCommandCenter'
 import { ProjectReadiness } from '../../src/panels/ProjectReadiness/ProjectReadiness'
+import { ProjectStarter } from '../../src/panels/ProjectStarter/ProjectStarter'
 import DeployPanel from '../../src/panels/plugins/Deploy/Deploy'
 
 vi.mock('../../src/utils/lazyWithReload', () => ({
@@ -336,6 +337,20 @@ describe('App surface DOM coverage', () => {
 
     expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(useWorkflowShellStore.getState().drawerOpen).toBe(false)
+  })
+
+  it('keeps token launch out of New Project templates', async () => {
+    render(<ProjectStarter />)
+
+    expect(await screen.findByText('What do you want to build?')).toBeInTheDocument()
+    expect(screen.getByText('Anchor Program')).toBeInTheDocument()
+    expect(screen.getByText('Trading Bot')).toBeInTheDocument()
+    expect(screen.queryByText('Token Launch')).not.toBeInTheDocument()
+    expect(screen.queryByText('Pump.fun Token')).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByPlaceholderText('Filter templates...'), 'launch')
+
+    expect(screen.getByText('No templates match "launch"')).toBeInTheDocument()
   })
 
   it('renders Integration Command Center setup status and safe checks', async () => {
