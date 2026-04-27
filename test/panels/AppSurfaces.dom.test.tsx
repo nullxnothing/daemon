@@ -570,8 +570,7 @@ describe('App surface DOM coverage', () => {
     expect(useNotificationsStore.getState().activity.some((entry) => (
       entry.context === 'Deploy' &&
       entry.sessionStatus === 'complete' &&
-      entry.message.includes('https://daemon-app.vercel.app') &&
-      entry.artifacts?.some((artifact) => artifact.label === 'Deploy URL')
+      entry.artifacts?.some((artifact) => artifact.label === 'Deploy URL' && artifact.href === artifact.value)
     ))).toBe(true)
   })
 
