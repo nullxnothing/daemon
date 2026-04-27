@@ -100,12 +100,22 @@ const bonkDefinition: LaunchpadDefinition = {
   reason: 'Bonk is being treated as a LaunchLab platform variant until the exact official partner config is confirmed.',
 }
 
+const bagsDefinition: LaunchpadDefinition = {
+  id: 'bags',
+  name: 'Bags Launchpad',
+  description: 'Bags token launch workflow placeholder for launch prep and partner integration status.',
+  status: 'planned',
+  enabled: false,
+  reason: 'Bags Launchpad is visible for planning, but execution is disabled until the official integration path is wired.',
+}
+
 function getAdapters(settings: TokenLaunchSettings): Record<LaunchpadId, TokenLaunchAdapter | null> {
   return {
     pumpfun: pumpFunLaunchAdapter,
     raydium: createRaydiumLaunchLabAdapter({ settings: settings.raydium }),
     meteora: createMeteoraDbcLaunchAdapter({ settings: settings.meteora }),
     printr: createPrintrLaunchAdapter({ settings: settings.printr }),
+    bags: null,
     bonk: null,
   }
 }
@@ -117,6 +127,7 @@ export function listLaunchpads(): LaunchpadDefinition[] {
     adapters.raydium!.definition,
     adapters.meteora!.definition,
     adapters.printr!.definition,
+    bagsDefinition,
     bonkDefinition,
   ]
 }
@@ -260,7 +271,9 @@ export async function createLaunch(input: TokenLaunchInput): Promise<TokenLaunch
 
   const adapter = getAdapters(Settings.getTokenLaunchSettings())[input.launchpad]
   if (!adapter) {
-    const definition = input.launchpad === 'bonk' ? bonkDefinition : null
+    const definition = input.launchpad === 'bonk' ? bonkDefinition
+      : input.launchpad === 'bags' ? bagsDefinition
+        : null
     throw new Error(definition?.reason ?? `Unsupported launchpad: ${input.launchpad}`)
   }
   if (!adapter.definition.enabled) {

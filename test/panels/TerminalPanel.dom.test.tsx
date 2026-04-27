@@ -187,4 +187,22 @@ describe('TerminalPanel DOM behavior', () => {
     expect(terminalCreate).toHaveBeenCalledWith({ cwd: 'C:/Users/offic/Documents/test', startupCommand: undefined })
     expect(useUIStore.getState().activeProjectId).toBe('project-2')
   })
+
+  it('does not auto-create a terminal when no project exists', async () => {
+    const terminalCreate = installDaemonBridge()
+    useUIStore.setState({
+      activeProjectId: null,
+      activeProjectPath: null,
+      projects: [],
+      terminals: [],
+      activeTerminalIdByProject: {},
+    })
+
+    render(<TerminalPanel />)
+
+    expect(terminalCreate).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByText('Click to start a terminal'))
+    expect(terminalCreate).not.toHaveBeenCalled()
+    expect(screen.getByText('Open or create a project first to start a terminal.')).toBeInTheDocument()
+  })
 })

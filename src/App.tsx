@@ -93,6 +93,7 @@ function App() {
   })
 
   const shouldShowRightPanel = showRightPanel
+  const canShowTerminal = showTerminal && (Boolean(activeProjectId) || projects.length > 0)
 
   // Determine if the editor should be hidden because the terminal has been
   // dragged to fill the full center area height.
@@ -105,7 +106,7 @@ function App() {
     return () => ro.disconnect()
   }, [])
   // Collapse threshold: editor gets less than 30px of space
-  const isEditorCollapsed = centerHeight > 0 && showTerminal && !drawerOpen && centerMode === 'canvas'
+  const isEditorCollapsed = centerHeight > 0 && canShowTerminal && !drawerOpen && centerMode === 'canvas'
     && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
@@ -397,7 +398,7 @@ function App() {
               )}
             </div>
           )}
-          {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
+          {centerMode === 'canvas' && canShowTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
           {centerMode === 'canvas' && (
             <div
               id="terminal-area"
@@ -406,7 +407,7 @@ function App() {
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
                 flex: isEditorCollapsed ? 1 : undefined,
-                display: (!showTerminal || drawerOpen) ? 'none' : undefined,
+                display: (!canShowTerminal || drawerOpen) ? 'none' : undefined,
               }}
             >
               <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
