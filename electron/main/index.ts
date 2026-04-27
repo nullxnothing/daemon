@@ -111,8 +111,25 @@ if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
 let win: BrowserWindow | null = null
 let ipcRegistered = false
 let startupUiRecovery: UiRecoveryResult | null = null
+let shutdownStarted = false
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
+
+function cleanupRuntimeState() {
+  killAllSessions()
+  clearLoadedWallets()
+  closeDb()
+}
+
+function shutdownApp() {
+  if (shutdownStarted) return
+  shutdownStarted = true
+  cleanupRuntimeState()
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.destroy()
+  }
+  app.quit()
+}
 
 function registerAllIpc() {
   if (ipcRegistered) return
@@ -166,7 +183,7 @@ function registerAllIpc() {
       win?.maximize()
     }
   })
-  ipcMain.on('window:close', () => win?.close())
+  ipcMain.on('window:close', () => shutdownApp())
   ipcMain.on('window:reload', () => {
     if (!win) return
     if (VITE_DEV_SERVER_URL) {
@@ -383,12 +400,17 @@ app.whenReady().then(() => {
   }
 })
 
+app.on('before-quit', () => {
+  if (!shutdownStarted) {
+    shutdownStarted = true
+    cleanupRuntimeState()
+  }
+})
+
 app.on('window-all-closed', () => {
-  killAllSessions()
-  clearLoadedWallets()
-  closeDb()
+  if (!shutdownStarted) cleanupRuntimeState()
   win = null
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })
 
 app.on('second-instance', () => {
@@ -399,6 +421,7 @@ app.on('second-instance', () => {
 })
 
 app.on('activate', () => {
+  if (shutdownStarted) return
   const allWindows = BrowserWindow.getAllWindows()
   if (allWindows.length) {
     allWindows[0].focus()
@@ -406,3 +429,10 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    shutdownApp()
+    process.exit(0)
+  })
+}
