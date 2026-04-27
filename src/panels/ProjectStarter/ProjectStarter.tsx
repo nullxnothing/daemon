@@ -17,20 +17,6 @@ interface Template {
 
 const TEMPLATES: Template[] = [
   {
-    id: 'token-launch',
-    name: 'Token Launch',
-    description: 'SPL token with metadata, mint authority, and launch script',
-    tags: ['Token', 'SPL'],
-    icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
-    prompt: `Scaffold a Solana SPL token launch project. Include:
-- Anchor program with mint, metadata (Metaplex), and freeze authority setup
-- TypeScript client scripts: create-token, mint-supply, transfer, burn
-- Deployment scripts for devnet and mainnet
-- .env.example with RPC_URL, WALLET_PATH, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, INITIAL_SUPPLY
-- README with setup instructions
-Use Anchor 0.32+, AVM-managed toolchains, and @solana/kit (or @solana/web3-compat only when required by third-party SDKs). Initialize git repo.`,
-  },
-  {
     id: 'nft-collection',
     name: 'NFT Collection',
     description: 'Metaplex collection with minting, metadata, and candy machine',
@@ -102,24 +88,6 @@ Initialize git repo. Prefer @solana/client, @solana/react-hooks, and @solana/web
 - .env.example with RPC_URL, WALLET_PATH, PROGRAM_ID
 - README with build, test, and deploy instructions
 Use Anchor 0.32+ with AVM. Initialize git repo.`,
-  },
-  {
-    id: 'pump-token',
-    name: 'Pump.fun Token',
-    description: 'Token launch via Pump.fun with bonding curve and migration',
-    tags: ['PumpFun', 'Launch'],
-    icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-    prompt: `Scaffold a Pump.fun token launch project. Include:
-- Token creation script using Pump.fun API
-- Bonding curve buy/sell scripts
-- Migration monitoring (bonding curve → Raydium)
-- Metadata preparation (name, symbol, description, image URL)
-- Bundle buying strategy scripts (multi-wallet)
-- Jito bundle integration for MEV protection
-- Wallet generation and fund distribution utilities
-- .env.example with RPC_URL, MASTER_WALLET_PATH, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DESCRIPTION, IMAGE_URL
-- README with full workflow guide
-Use @solana/kit plus web3 compatibility only where Pump tooling requires it. Initialize git repo.`,
   },
   {
     id: 'telegram-bot',
@@ -286,7 +254,7 @@ function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrast
     ].join('\n')
   }
 
-  if (templateId === 'trading-bot' || templateId === 'pump-token' || templateId === 'telegram-bot') {
+  if (templateId === 'trading-bot' || templateId === 'telegram-bot') {
     return [
       'Execution architecture requirements:',
       providerFlow,
