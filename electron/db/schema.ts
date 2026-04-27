@@ -565,3 +565,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_log_project_id ON activity_log(project_i
 export const SCHEMA_V27 = `
 ALTER TABLE activity_log ADD COLUMN session_summary TEXT;
 `
+
+export const SCHEMA_V28 = `
+ALTER TABLE activity_log ADD COLUMN artifacts_json TEXT DEFAULT '[]';
+`
