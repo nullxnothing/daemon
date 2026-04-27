@@ -325,9 +325,10 @@ function extractArtifacts(entry: ActivityEntry): ActivityArtifact[] {
   }
 
   for (const url of urls.slice(0, 4)) {
+    const isExplorer = isSolanaExplorerUrl(url)
     artifacts.push({
-      type: url.includes('explorer.solana.com') || url.includes('solscan.io') ? 'explorer' : 'other',
-      label: url.includes('explorer.solana.com') || url.includes('solscan.io') ? 'Explorer' : 'Link',
+      type: isExplorer ? 'explorer' : 'other',
+      label: isExplorer ? 'Explorer' : 'Link',
       value: url,
       href: url,
     })
@@ -365,6 +366,15 @@ function extractArtifacts(entry: ActivityEntry): ActivityArtifact[] {
 function compactArtifactValue(value: string): string {
   if (value.length <= 34) return value
   return `${value.slice(0, 16)}...${value.slice(-10)}`
+}
+
+function isSolanaExplorerUrl(value: string): boolean {
+  try {
+    const host = new URL(value).hostname.toLowerCase()
+    return host === 'explorer.solana.com' || host === 'solscan.io' || host.endsWith('.solscan.io')
+  } catch {
+    return false
+  }
 }
 
 function deriveNextAction(group: ActivitySessionGroup, problems: ActivityEntry[], last?: ActivityEntry): string {
