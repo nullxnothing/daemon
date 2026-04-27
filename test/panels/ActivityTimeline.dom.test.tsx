@@ -22,6 +22,7 @@ function installDaemonBridge() {
           projectId: null,
           projectName: null,
           sessionSummary: null,
+          artifacts: null,
         },
     ],
   })
@@ -55,6 +56,7 @@ describe('ActivityTimeline', () => {
           projectId: null,
           projectName: null,
           sessionSummary: null,
+          artifacts: null,
         },
         {
           id: 'terminal-1',
@@ -67,6 +69,7 @@ describe('ActivityTimeline', () => {
           projectId: 'project-1',
           projectName: 'daemon-app',
           sessionSummary: null,
+          artifacts: null,
         },
         {
           id: 'scaffold-1',
@@ -79,6 +82,7 @@ describe('ActivityTimeline', () => {
           projectId: null,
           projectName: null,
           sessionSummary: null,
+          artifacts: null,
         },
       ],
     })
@@ -118,6 +122,13 @@ describe('ActivityTimeline', () => {
       projectId: 'project-demo',
       projectName: 'demo',
       sessionSummary: null,
+      artifacts: [
+        {
+          type: 'project',
+          label: 'Project path',
+          value: 'C:/work/demo',
+        },
+      ],
     })
 
     expect(useNotificationsStore.getState().toasts).toEqual([])
@@ -129,6 +140,13 @@ describe('ActivityTimeline', () => {
       sessionStatus: 'running',
       projectId: 'project-demo',
       projectName: 'demo',
+      artifacts: [
+        {
+          type: 'project',
+          label: 'Project path',
+          value: 'C:/work/demo',
+        },
+      ],
     }))
 
     render(<ActivityTimeline />)
@@ -156,6 +174,7 @@ describe('ActivityTimeline', () => {
           projectId: 'project-demo',
           projectName: 'demo',
           sessionSummary: null,
+          artifacts: null,
         },
         {
           id: 'session-created',
@@ -168,6 +187,7 @@ describe('ActivityTimeline', () => {
           projectId: 'project-demo',
           projectName: 'demo',
           sessionSummary: null,
+          artifacts: null,
         },
         {
           id: 'legacy-terminal',
@@ -180,6 +200,7 @@ describe('ActivityTimeline', () => {
           projectId: null,
           projectName: null,
           sessionSummary: null,
+          artifacts: null,
         },
       ],
     })
@@ -215,6 +236,14 @@ describe('ActivityTimeline', () => {
           projectId: 'project-demo',
           projectName: 'demo',
           sessionSummary: null,
+          artifacts: [
+            {
+              type: 'transaction',
+              label: 'Tx signature',
+              value: '5rR5jzJwP5xHhNTRNLpR8XUqz4fRqV7VQqLD3fkGRhY2N1Vy8uKFN6rDc4B7bEBZV1Jr3jbyKQnAorxyuQ9Z7Z6G',
+              href: 'https://solscan.io/tx/5rR5jzJwP5xHhNTRNLpR8XUqz4fRqV7VQqLD3fkGRhY2N1Vy8uKFN6rDc4B7bEBZV1Jr3jbyKQnAorxyuQ9Z7Z6G',
+            },
+          ],
         },
         {
           id: 'session-warning',
@@ -227,6 +256,7 @@ describe('ActivityTimeline', () => {
           projectId: 'project-demo',
           projectName: 'demo',
           sessionSummary: null,
+          artifacts: null,
         },
         {
           id: 'session-created',
@@ -239,6 +269,13 @@ describe('ActivityTimeline', () => {
           projectId: 'project-demo',
           projectName: 'demo',
           sessionSummary: null,
+          artifacts: [
+            {
+              type: 'project',
+              label: 'Project path',
+              value: 'C:/work/demo',
+            },
+          ],
         },
       ],
     })
@@ -249,6 +286,9 @@ describe('ActivityTimeline', () => {
     await waitFor(() => expect(saveSummary).toHaveBeenCalledWith('scaffold-demo', expect.stringContaining('DAEMON Session Report: demo')))
     expect(screen.getByText(/Needs attention:/)).toBeInTheDocument()
     expect(screen.getByText(/Wallet\/tx: Swap confirmed via RPC/)).toBeInTheDocument()
+    expect(screen.getByText('Tx signature')).toBeInTheDocument()
+    expect(screen.getByText('Project path')).toBeInTheDocument()
+    expect(screen.getByText(/Launch artifacts:/)).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Copy' }))
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Next action: Resolve the warnings/errors above'))
