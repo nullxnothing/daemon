@@ -76,9 +76,10 @@ describe('TokenLaunchService', () => {
 
   it('exposes one live launchpad and planned placeholders', () => {
     const launchpads = listLaunchpads()
-    expect(launchpads.map((entry) => entry.id)).toEqual(['pumpfun', 'raydium', 'meteora', 'printr', 'bonk'])
+    expect(launchpads.map((entry) => entry.id)).toEqual(['pumpfun', 'raydium', 'meteora', 'printr', 'bags', 'bonk'])
     expect(launchpads.find((entry) => entry.id === 'pumpfun')?.enabled).toBe(true)
-    expect(launchpads.filter((entry) => !entry.enabled)).toHaveLength(4)
+    expect(launchpads.find((entry) => entry.id === 'bags')?.name).toBe('Bags Launchpad')
+    expect(launchpads.filter((entry) => !entry.enabled)).toHaveLength(5)
   })
 
   it('enables configured launchpads from saved settings', () => {

@@ -698,7 +698,7 @@ declare global {
     created_at: number
   }
 
-  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bonk'
+  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
   type LaunchpadStatus = 'available' | 'planned'
 
   type PulseTokenCategory = 'newly-created' | 'almost-graduated' | 'graduated'

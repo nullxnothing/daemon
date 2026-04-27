@@ -1,4 +1,4 @@
-export type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bonk'
+export type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
 export type LaunchpadStatus = 'available' | 'planned'
 
 export interface RaydiumLaunchpadConfig {
