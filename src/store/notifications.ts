@@ -29,6 +29,14 @@ export interface ActivityEntry {
   projectId?: string | null
   projectName?: string | null
   sessionSummary?: string | null
+  artifacts?: ActivityArtifact[] | null
+}
+
+export interface ActivityArtifact {
+  type: 'transaction' | 'program' | 'explorer' | 'project' | 'deploy' | 'wallet' | 'other'
+  label: string
+  value: string
+  href?: string | null
 }
 
 interface NotificationsState {
@@ -43,6 +51,7 @@ interface NotificationsState {
     sessionStatus?: ActivityEntry['sessionStatus']
     projectId?: string | null
     projectName?: string | null
+    artifacts?: ActivityArtifact[] | null
   }) => string
   pushToast: (input: { kind: ToastKind; message: string; context?: string; ttlMs?: number; action?: ToastAction }) => string
   pushError: (err: unknown, context?: string) => string
@@ -76,6 +85,7 @@ function persistEntry(entry: ActivityEntry): void {
     sessionStatus: entry.sessionStatus ?? null,
     projectId: entry.projectId ?? null,
     projectName: entry.projectName ?? null,
+    artifacts: entry.artifacts ?? null,
   }).catch(() => { /* non-fatal */ })
 }
 
@@ -83,7 +93,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   toasts: [],
   activity: [],
 
-  addActivity: ({ kind, message, context, createdAt, sessionId, sessionStatus, projectId, projectName }) => {
+  addActivity: ({ kind, message, context, createdAt, sessionId, sessionStatus, projectId, projectName, artifacts }) => {
     const id = crypto.randomUUID()
     const entry: ActivityEntry = {
       id,
@@ -96,6 +106,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       projectId: projectId ?? null,
       projectName: projectName ?? null,
       sessionSummary: null,
+      artifacts: artifacts ?? null,
     }
 
     set((state) => ({
@@ -118,7 +129,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       ttlMs: ttlMs ?? DEFAULT_TTL[kind],
       action,
     }
-    const entry: ActivityEntry = { id, kind, message, context: context ?? null, createdAt }
+    const entry: ActivityEntry = { id, kind, message, context: context ?? null, createdAt, artifacts: null }
 
     set((state) => ({
       toasts: [...state.toasts, toast],

@@ -12,6 +12,14 @@ interface ActivityEntryInput {
   sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
   projectId?: string | null
   projectName?: string | null
+  artifacts?: ActivityArtifactInput[] | null
+}
+
+interface ActivityArtifactInput {
+  type: 'transaction' | 'program' | 'explorer' | 'project' | 'deploy' | 'wallet' | 'other'
+  label: string
+  value: string
+  href?: string | null
 }
 
 interface ActivityRow {
@@ -25,6 +33,7 @@ interface ActivityRow {
   project_id: string | null
   project_name: string | null
   session_summary: string | null
+  artifacts_json: string | null
 }
 
 const VALID_KINDS = new Set(['info', 'success', 'warning', 'error'])
@@ -33,7 +42,19 @@ const MAX_MESSAGE_LEN = 2000
 const MAX_CONTEXT_LEN = 200
 const MAX_METADATA_LEN = 200
 const MAX_SUMMARY_LEN = 5000
+const MAX_ARTIFACTS_LEN = 6000
 const MAX_ROWS = 1000
+
+function normalizeArtifacts(input: ActivityEntryInput['artifacts']): string {
+  if (!Array.isArray(input)) return '[]'
+  const artifacts = input.slice(0, 12).map((artifact) => ({
+    type: typeof artifact.type === 'string' ? artifact.type.slice(0, 40) : 'other',
+    label: typeof artifact.label === 'string' ? artifact.label.slice(0, 80) : 'Artifact',
+    value: typeof artifact.value === 'string' ? artifact.value.slice(0, 400) : '',
+    href: typeof artifact.href === 'string' ? artifact.href.slice(0, 600) : null,
+  })).filter((artifact) => artifact.value)
+  return JSON.stringify(artifacts).slice(0, MAX_ARTIFACTS_LEN)
+}
 
 export function registerActivityHandlers() {
   ipcMain.handle('activity:append', ipcHandler(async (_event, entry: ActivityEntryInput) => {
@@ -46,8 +67,8 @@ export function registerActivityHandlers() {
     const db = getDb()
     db.prepare(
       `INSERT OR IGNORE INTO activity_log (
-        id, kind, message, context, created_at, session_id, session_status, project_id, project_name
-      ) VALUES (?,?,?,?,?,?,?,?,?)`
+        id, kind, message, context, created_at, session_id, session_status, project_id, project_name, artifacts_json
+      ) VALUES (?,?,?,?,?,?,?,?,?,?)`
     ).run(
       entry.id,
       entry.kind,
@@ -58,6 +79,7 @@ export function registerActivityHandlers() {
       sessionStatus,
       entry.projectId ? entry.projectId.slice(0, MAX_METADATA_LEN) : null,
       entry.projectName ? entry.projectName.slice(0, MAX_METADATA_LEN) : null,
+      normalizeArtifacts(entry.artifacts),
     )
 
     // Trim oldest entries beyond MAX_ROWS to prevent unbounded growth
@@ -72,7 +94,7 @@ export function registerActivityHandlers() {
     const db = getDb()
     const safeLimit = Math.min(Math.max(1, limit ?? 500), MAX_ROWS)
     const rows = db.prepare(
-      `SELECT id, kind, message, context, created_at, session_id, session_status, project_id, project_name, session_summary
+      `SELECT id, kind, message, context, created_at, session_id, session_status, project_id, project_name, session_summary, artifacts_json
        FROM activity_log ORDER BY created_at DESC LIMIT ?`
     ).all(safeLimit) as ActivityRow[]
     return rows.map((r) => ({
@@ -86,6 +108,7 @@ export function registerActivityHandlers() {
       projectId: r.project_id,
       projectName: r.project_name,
       sessionSummary: r.session_summary,
+      artifacts: parseArtifacts(r.artifacts_json),
     }))
   }))
 
@@ -105,4 +128,14 @@ export function registerActivityHandlers() {
     const db = getDb()
     db.prepare('DELETE FROM activity_log').run()
   }))
+}
+
+function parseArtifacts(raw: string | null) {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 }

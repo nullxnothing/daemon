@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNotificationsStore, type ActivityEntry } from '../../store/notifications'
+import { useNotificationsStore, type ActivityArtifact, type ActivityEntry } from '../../store/notifications'
 import './ActivityTimeline.css'
 
 type ActivityFilter = 'all' | 'wallet' | 'runtime' | 'terminal' | 'scaffold' | 'errors'
@@ -44,6 +44,7 @@ type ActivitySessionGroup = {
   entries: ActivityEntry[]
   latestAt: number
   hasProblems: boolean
+  artifacts: ActivityArtifact[]
 }
 
 function deriveSessionStatus(entries: ActivityEntry[]): ActivitySessionGroup['status'] {
@@ -81,6 +82,7 @@ function groupActivity(entries: ActivityEntry[]): ActivitySessionGroup[] {
       entries: sorted,
       latestAt: sorted[0]?.createdAt ?? 0,
       hasProblems: sorted.some((entry) => entry.kind === 'error' || entry.kind === 'warning'),
+      artifacts: collectArtifacts(sorted),
     })
   }
 
@@ -93,6 +95,7 @@ function groupActivity(entries: ActivityEntry[]): ActivitySessionGroup[] {
       entries: [entry],
       latestAt: entry.createdAt,
       hasProblems: entry.kind === 'error' || entry.kind === 'warning',
+      artifacts: collectArtifacts([entry]),
     })
   }
 
@@ -205,6 +208,22 @@ export function ActivityTimeline() {
                   {group.entries.find((entry) => entry.sessionSummary)?.sessionSummary}
                 </pre>
               )}
+              {group.artifacts.length > 0 && (
+                <div className="activity-artifacts" aria-label="Session artifacts">
+                  {group.artifacts.map((artifact) => (
+                    <a
+                      key={`${artifact.type}-${artifact.value}`}
+                      className={`activity-artifact ${artifact.type}`}
+                      href={artifact.href ?? undefined}
+                      target={artifact.href ? '_blank' : undefined}
+                      rel={artifact.href ? 'noreferrer' : undefined}
+                    >
+                      <span>{artifact.label}</span>
+                      <strong>{compactArtifactValue(artifact.value)}</strong>
+                    </a>
+                  ))}
+                </div>
+              )}
               <div className="activity-session-events">
                 {group.entries.map((entry) => {
                   const category = classifyActivity(entry)
@@ -258,6 +277,10 @@ function buildSessionReport(group: ActivitySessionGroup): string {
   if (terminalEvents.length > 0) lines.push(`Terminal: ${terminalEvents.length} terminal event${terminalEvents.length === 1 ? '' : 's'} recorded.`)
   if (runtimeEvents.length > 0) lines.push(`Runtime/deploy: ${runtimeEvents[runtimeEvents.length - 1].message}`)
   if (txEvents.length > 0) lines.push(`Wallet/tx: ${txEvents[txEvents.length - 1].message}`)
+  if (group.artifacts.length > 0) {
+    lines.push('', 'Launch artifacts:')
+    lines.push(...group.artifacts.map((artifact) => `- ${artifact.label}: ${artifact.value}${artifact.href ? ` (${artifact.href})` : ''}`))
+  }
   if (problems.length > 0) {
     lines.push('', 'Needs attention:')
     lines.push(...problems.slice(-3).map((entry) => `- ${entry.message}`))
@@ -265,6 +288,93 @@ function buildSessionReport(group: ActivitySessionGroup): string {
   lines.push('', `Next action: ${deriveNextAction(group, problems, last)}`)
 
   return lines.join('\n')
+}
+
+function collectArtifacts(entries: ActivityEntry[]): ActivityArtifact[] {
+  const artifacts: ActivityArtifact[] = []
+  const seen = new Set<string>()
+
+  for (const entry of entries) {
+    for (const artifact of [...(entry.artifacts ?? []), ...extractArtifacts(entry)]) {
+      const key = `${artifact.type}:${artifact.value}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      artifacts.push(artifact)
+    }
+  }
+
+  return artifacts.slice(0, 12)
+}
+
+function extractArtifacts(entry: ActivityEntry): ActivityArtifact[] {
+  const haystack = `${entry.context ?? ''} ${entry.message}`
+  const artifacts: ActivityArtifact[] = []
+  const signatures = haystack.match(/\b[1-9A-HJ-NP-Za-km-z]{64,88}\b/g) ?? []
+  const urls = haystack.match(/https?:\/\/[^\s)]+/g) ?? []
+  const windowsPaths = haystack.match(/[A-Za-z]:[\\/][^\s,;]+/g) ?? []
+  const programIds = haystack.match(/program(?: id)?[:\s]+([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+  const wallet = haystack.match(/wallet[:\s]+([1-9A-HJ-NP-Za-km-z]{32,44})/i)
+
+  for (const signature of signatures.slice(0, 4)) {
+    artifacts.push({
+      type: 'transaction',
+      label: 'Tx signature',
+      value: signature,
+      href: `https://solscan.io/tx/${signature}`,
+    })
+  }
+
+  for (const url of urls.slice(0, 4)) {
+    const isExplorer = isSolanaExplorerUrl(url)
+    artifacts.push({
+      type: isExplorer ? 'explorer' : 'other',
+      label: isExplorer ? 'Explorer' : 'Link',
+      value: url,
+      href: url,
+    })
+  }
+
+  for (const path of windowsPaths.slice(0, 2)) {
+    artifacts.push({ type: 'project', label: 'Project path', value: path })
+  }
+
+  if (programIds?.[1]) {
+    artifacts.push({
+      type: 'program',
+      label: 'Program ID',
+      value: programIds[1],
+      href: `https://explorer.solana.com/address/${programIds[1]}`,
+    })
+  }
+
+  if (wallet?.[1]) {
+    artifacts.push({
+      type: 'wallet',
+      label: 'Wallet',
+      value: wallet[1],
+      href: `https://explorer.solana.com/address/${wallet[1]}`,
+    })
+  }
+
+  if (classifyActivity(entry) === 'runtime' && /deploy|launched|confirmed/i.test(entry.message)) {
+    artifacts.push({ type: 'deploy', label: 'Deploy event', value: entry.message })
+  }
+
+  return artifacts
+}
+
+function compactArtifactValue(value: string): string {
+  if (value.length <= 34) return value
+  return `${value.slice(0, 16)}...${value.slice(-10)}`
+}
+
+function isSolanaExplorerUrl(value: string): boolean {
+  try {
+    const host = new URL(value).hostname.toLowerCase()
+    return host === 'explorer.solana.com' || host === 'solscan.io' || host.endsWith('.solscan.io')
+  } catch {
+    return false
+  }
 }
 
 function deriveNextAction(group: ActivitySessionGroup, problems: ActivityEntry[], last?: ActivityEntry): string {
