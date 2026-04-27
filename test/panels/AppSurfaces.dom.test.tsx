@@ -8,11 +8,13 @@ import { usePluginStore } from '../../src/store/plugins'
 import { useSolanaToolboxStore } from '../../src/store/solanaToolbox'
 import { useWorkflowShellStore } from '../../src/store/workflowShell'
 import { useWorkspaceProfileStore } from '../../src/store/workspaceProfile'
+import { useNotificationsStore } from '../../src/store/notifications'
 import { WalletSendForm } from '../../src/panels/WalletPanel/WalletSendForm'
 import { SolanaToolbox } from '../../src/panels/SolanaToolbox/SolanaToolbox'
 import { TokenLaunchTool } from '../../src/panels/TokenLaunchTool/TokenLaunchTool'
 import { IntegrationCommandCenter } from '../../src/panels/IntegrationCommandCenter/IntegrationCommandCenter'
 import { ProjectReadiness } from '../../src/panels/ProjectReadiness/ProjectReadiness'
+import DeployPanel from '../../src/panels/plugins/Deploy/Deploy'
 
 vi.mock('../../src/utils/lazyWithReload', () => ({
   lazyWithReload: () => () => null,
@@ -50,6 +52,9 @@ function installDaemonBridge() {
   })
   const writeFile = vi.fn().mockResolvedValue({ ok: true })
   const createDir = vi.fn().mockResolvedValue({ ok: true })
+  const appendActivity = vi.fn().mockResolvedValue({ ok: true })
+  const redeploy = vi.fn().mockResolvedValue({ ok: true, data: { id: 'dep-123', url: 'https://daemon-app.vercel.app' } })
+  const linkDeploy = vi.fn().mockResolvedValue({ ok: true })
   const createTerminal = vi.fn().mockImplementation(async ({ startupCommand }: { startupCommand?: string }) => ({
     ok: true,
     data: {
@@ -114,11 +119,6 @@ function installDaemonBridge() {
   Object.defineProperty(window, 'daemon', {
     configurable: true,
     value: {
-      activity: {
-        append: vi.fn().mockResolvedValue({ ok: true }),
-        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-        clear: vi.fn().mockResolvedValue({ ok: true }),
-      },
       claude: {
         projectMcpAll: vi.fn().mockResolvedValue({
           ok: true,
@@ -149,6 +149,38 @@ function installDaemonBridge() {
         readFile,
         writeFile,
         createDir,
+      },
+      activity: {
+        append: appendActivity,
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        saveSummary: vi.fn().mockResolvedValue({ ok: true }),
+        clear: vi.fn().mockResolvedValue({ ok: true }),
+      },
+      deploy: {
+        authStatus: vi.fn().mockResolvedValue({
+          ok: true,
+          data: {
+            vercel: { authenticated: true, user: 'builder@daemon.test' },
+            railway: { authenticated: false, user: null },
+          },
+        }),
+        connectVercel: vi.fn().mockResolvedValue({ ok: true, data: { name: 'Builder', email: 'builder@daemon.test' } }),
+        connectRailway: vi.fn().mockResolvedValue({ ok: true, data: { name: 'Builder', email: 'builder@daemon.test' } }),
+        disconnect: vi.fn().mockResolvedValue({ ok: true }),
+        vercelProjects: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'vercel-project-1', name: 'daemon-app' }] }),
+        railwayProjects: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        link: linkDeploy,
+        unlink: vi.fn().mockResolvedValue({ ok: true }),
+        status: vi.fn()
+          .mockResolvedValueOnce({ ok: true, data: [] })
+          .mockResolvedValue({ ok: true, data: [{ platform: 'vercel', linked: true, projectName: 'daemon-app', productionUrl: 'https://daemon-app.vercel.app', latestStatus: null, latestUrl: null, latestBranch: null, latestCreatedAt: null }] }),
+        deployments: vi.fn().mockResolvedValue({
+          ok: true,
+          data: [{ id: 'dep-123', platform: 'vercel', status: 'READY', url: 'https://daemon-app.vercel.app', branch: 'main', commitSha: 'abcdef123', commitMessage: 'ship deploy', createdAt: Date.now() }],
+        }),
+        redeploy,
+        envVars: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        autoDetect: vi.fn().mockResolvedValue({ ok: true, data: {} }),
       },
       terminal: {
         create: createTerminal,
@@ -245,7 +277,7 @@ function installDaemonBridge() {
     },
   })
 
-  return { createDir, createTerminal, holdings, readFile, swapQuote, transactionPreview, writeFile }
+  return { appendActivity, createDir, createTerminal, holdings, linkDeploy, readFile, redeploy, swapQuote, transactionPreview, writeFile }
 }
 
 function resetStores() {
@@ -257,6 +289,7 @@ function resetStores() {
     launchWizardOpen: false,
   })
   useWorkspaceProfileStore.setState({ profileName: 'custom', toolVisibility: {}, loaded: true })
+  useNotificationsStore.setState({ toasts: [], activity: [] })
   useUIStore.setState({
     activeProjectId: 'project-1',
     activeProjectPath: 'C:/work/daemon-app',
@@ -507,6 +540,38 @@ describe('App surface DOM coverage', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))
     expect(screen.getByRole('tab', { name: /Debug/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('records deploy link and launch handoff activity', async () => {
+    const { linkDeploy, redeploy } = installDaemonBridge()
+
+    render(<DeployPanel />)
+
+    expect(await screen.findByRole('heading', { name: 'Deploy' })).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Link Project' }))
+    await userEvent.selectOptions(await screen.findByRole('combobox'), 'vercel-project-1')
+    await userEvent.click(screen.getByRole('button', { name: 'Link' }))
+
+    await waitFor(() => expect(linkDeploy).toHaveBeenCalledWith(
+      'project-1',
+      'vercel',
+      expect.objectContaining({ projectId: 'vercel-project-1', projectName: 'daemon-app' }),
+    ))
+    expect(useNotificationsStore.getState().activity.some((entry) => (
+      entry.context === 'Deploy' &&
+      entry.sessionId === 'deploy-project-1-vercel' &&
+      entry.message.includes('Vercel project linked') &&
+      entry.artifacts?.some((artifact) => artifact.label === 'Provider project ID')
+    ))).toBe(true)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Deploy' }))
+
+    await waitFor(() => expect(redeploy).toHaveBeenCalledWith('project-1', 'vercel'))
+    expect(useNotificationsStore.getState().activity.some((entry) => (
+      entry.context === 'Deploy' &&
+      entry.sessionStatus === 'complete' &&
+      entry.artifacts?.some((artifact) => artifact.label === 'Deploy URL' && artifact.href === artifact.value)
+    ))).toBe(true)
   })
 
   it('keeps Token Launch actions and config obvious', async () => {
