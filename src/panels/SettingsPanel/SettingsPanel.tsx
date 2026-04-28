@@ -5,6 +5,7 @@ import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
+import { isToolDisableable } from '../../constants/toolRegistry'
 import type { WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
@@ -741,7 +742,7 @@ function DisplaySection() {
       <div className="settings-section-label settings-tools-label">Tool Visibility</div>
       {BUILTIN_TOOLS.map((tool) => {
         const isVisible = toolVisibility[tool.id] ?? true
-        const isAlwaysOn = tool.id === 'settings'
+        const isAlwaysOn = !isToolDisableable(tool.id)
         return (
           <div key={tool.id} className="settings-display-row">
             <span className="settings-display-label">{TOOL_NAMES[tool.id] ?? tool.name}</span>

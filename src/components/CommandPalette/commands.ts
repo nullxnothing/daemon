@@ -6,6 +6,13 @@ export interface Command {
   action: () => void
 }
 
+interface ToolCommandDefinition {
+  commandId: string
+  label: string
+  toolId: string
+  shortcut?: string
+}
+
 type CenterModeSetter = (mode: string) => void
 type CenterModeGetter = () => string
 type VoidCallback = () => void
@@ -21,6 +28,7 @@ interface CommandDeps {
   closeDrawer: VoidCallback
   toggleBrowserTab?: VoidCallback
   toggleDashboardTab?: VoidCallback
+  isToolVisible?: (toolId: string) => boolean
 }
 
 export function buildCommands(deps: CommandDeps): Command[] {
@@ -35,7 +43,33 @@ export function buildCommands(deps: CommandDeps): Command[] {
     closeDrawer,
     toggleBrowserTab,
     toggleDashboardTab,
+    isToolVisible,
   } = deps
+
+  const toolCommands: ToolCommandDefinition[] = [
+    { commandId: 'nav:git', label: 'Open Git Panel', toolId: 'git' },
+    { commandId: 'nav:deploy', label: 'Open Deploy Panel', toolId: 'deploy' },
+    { commandId: 'nav:email', label: 'Open Email', toolId: 'email' },
+    { commandId: 'nav:env', label: 'Open Env Manager', toolId: 'env' },
+    { commandId: 'nav:wallet', label: 'Open Wallet Panel', toolId: 'wallet' },
+    { commandId: 'nav:project-readiness', label: 'Open Solana Project Readiness', toolId: 'project-readiness' },
+    { commandId: 'nav:starter', label: 'New Project from Template', toolId: 'starter' },
+    { commandId: 'nav:settings', label: 'Open Settings', toolId: 'settings', shortcut: 'Ctrl+,' },
+    { commandId: 'nav:ports', label: 'Open Ports', toolId: 'ports' },
+    { commandId: 'nav:process', label: 'Open Processes', toolId: 'processes' },
+    { commandId: 'nav:plugins', label: 'Open Plugins', toolId: 'plugins' },
+    { commandId: 'nav:recovery', label: 'Open Recovery', toolId: 'recovery' },
+  ]
+
+  const visibleToolCommands = toolCommands
+    .filter((command) => (isToolVisible ? isToolVisible(command.toolId) : true))
+    .map((command) => ({
+      id: command.commandId,
+      label: command.label,
+      shortcut: command.shortcut,
+      category: 'Navigation',
+      action: () => openWorkspaceTool(command.toolId),
+    }))
 
   return [
     // Navigation
@@ -52,79 +86,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
       category: 'Navigation',
       action: () => openAgentLauncher(),
     },
-    {
-      id: 'nav:git',
-      label: 'Open Git Panel',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('git'),
-    },
-    {
-      id: 'nav:deploy',
-      label: 'Open Deploy Panel',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('deploy'),
-    },
-    {
-      id: 'nav:email',
-      label: 'Open Email',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('email'),
-    },
-    {
-      id: 'nav:env',
-      label: 'Open Env Manager',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('env'),
-    },
-    {
-      id: 'nav:wallet',
-      label: 'Open Wallet Panel',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('wallet'),
-    },
-    {
-      id: 'nav:project-readiness',
-      label: 'Open Solana Project Readiness',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('project-readiness'),
-    },
-    {
-      id: 'nav:starter',
-      label: 'New Project from Template',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('starter'),
-    },
-    {
-      id: 'nav:settings',
-      label: 'Open Settings',
-      shortcut: 'Ctrl+,',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('settings'),
-    },
-    {
-      id: 'nav:ports',
-      label: 'Open Ports',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('ports'),
-    },
-    {
-      id: 'nav:process',
-      label: 'Open Processes',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('processes'),
-    },
-    {
-      id: 'nav:plugins',
-      label: 'Open Plugins',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('plugins'),
-    },
-    {
-      id: 'nav:recovery',
-      label: 'Open Recovery',
-      category: 'Navigation',
-      action: () => openWorkspaceTool('recovery'),
-    },
+    ...visibleToolCommands,
     {
       id: 'nav:main-view',
       label: 'Return to Editor',
@@ -139,12 +101,6 @@ export function buildCommands(deps: CommandDeps): Command[] {
       shortcut: 'Ctrl+B',
       category: 'View',
       action: () => toggleRightPanel(),
-    },
-    {
-      id: 'view:canvas-mode',
-      label: 'Switch to Canvas Mode',
-      category: 'View',
-      action: () => setCenterMode('canvas'),
     },
     {
       id: 'view:grind-mode',

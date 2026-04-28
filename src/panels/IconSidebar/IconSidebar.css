@@ -14,13 +14,13 @@
 }
 
 .sidebar-icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--t3);
-  border-radius: 10px;
+  border-radius: 8px;
   position: relative;
   border: 1px solid transparent;
   background: transparent;
@@ -36,11 +36,10 @@
   color: var(--t1);
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.05);
-  transform: translateY(-1px);
 }
 
 .sidebar-icon:hover svg {
-  transform: scale(1.04);
+  opacity: 0.92;
 }
 
 .sidebar-icon.active {
@@ -89,7 +88,7 @@
 .sidebar-drop-zone {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 8px;
   margin: 4px auto;
   transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
   border: 1px dashed var(--s5);
@@ -220,9 +219,9 @@
 .colosseum-icon-wrap {
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
-  width: 36px;
-  height: 36px;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,7 +236,6 @@
   color: #ffe270;
   border-color: rgba(255, 216, 77, 0.14);
   background: rgba(255, 216, 77, 0.05);
-  transform: translateY(-1px);
 }
 
 .colosseum-icon-wrap.active {

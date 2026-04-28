@@ -4,6 +4,7 @@ import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import { TOOL_DISPLAY_NAMES } from '../../constants/toolRegistry'
 import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
@@ -366,14 +367,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
 }
 
 // Tool name lookup
-export const TOOL_NAMES: Record<string, string> = {
-  git: 'Git', deploy: 'Deploy', env: 'Env',
-  wallet: 'Wallet', email: 'Email', browser: 'Browser',
-  ports: 'Ports', processes: 'Processes', settings: 'Settings',
-  'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
-  'token-launch': 'Token Launch', integrations: 'Integrations', 'project-readiness': 'Project Readiness',
-  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery', pro: 'Daemon Pro', activity: 'Activity',
-}
+export const TOOL_NAMES: Record<string, string> = { ...TOOL_DISPLAY_NAMES }
 
 // Lazy-load all tool components
 const loadGitPanel = () => import('../../panels/GitPanel/GitPanel')
