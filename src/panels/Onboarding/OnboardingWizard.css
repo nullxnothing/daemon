@@ -14,9 +14,23 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 32px;
+  padding: 28px;
   width: 440px;
   max-width: 90vw;
+}
+
+.wizard-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.wizard-brand-mark {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .wizard-title {
@@ -25,7 +39,7 @@
   text-transform: uppercase;
   color: var(--t1);
   text-align: center;
-  margin-bottom: 20px;
+  margin: 0;
 }
 
 /* Progress bar */
@@ -34,7 +48,7 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .wizard-progress-item {
@@ -93,7 +107,7 @@
   font-size: 12px;
   color: var(--t2);
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 /* Step content */
@@ -424,7 +438,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 14px;
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -432,6 +446,10 @@
   text-align: left;
   transition: border-color var(--transition-fast), background var(--transition-fast);
   width: 100%;
+}
+
+.step-profile-copy {
+  min-width: 0;
 }
 
 .step-profile-card:hover {

@@ -101,7 +101,7 @@ export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
 }
 
-const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'token-launch', 'solana-toolbox', 'pro']
+const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'solana-toolbox', 'pro']
 const PRO_PIN_MIGRATION_KEY = 'pinned_tools_pro_default_added'
 const UI_RECOVERY_KEYS = [
   'layout_center_mode',
