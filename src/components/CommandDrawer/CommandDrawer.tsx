@@ -357,6 +357,24 @@ function ActivityIcon({ size = 18 }: { size?: number }) {
 }
 
 // Icon lookup for pinned sidebar tools
+function AgentStationIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id="agent-station-grad" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#9945ff" />
+          <stop offset="100%" stopColor="#3ecf8e" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="16" height="12" rx="3" stroke="url(#agent-station-grad)" />
+      <circle cx="8.5" cy="10" r="1.5" fill="#9945ff" />
+      <circle cx="12" cy="10" r="1.5" fill="#7b5ea7" />
+      <circle cx="15.5" cy="10" r="1.5" fill="#3ecf8e" />
+      <path d="M9 16v4M15 16v4M7 20h10" stroke="url(#agent-station-grad)" />
+    </svg>
+  )
+}
+
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon,
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
@@ -364,6 +382,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
   'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'project-readiness': ReadinessIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
+  'agent-station': AgentStationIcon,
 }
 
 // Tool name lookup
@@ -393,6 +412,7 @@ const loadPluginManager = () => import('../../panels/PluginManager/PluginManager
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
 const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
 const loadActivityTimeline = () => import('../../panels/ActivityTimeline/ActivityTimeline')
+const loadAgentStation = () => import('../../panels/AgentStation/AgentStation')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -417,6 +437,7 @@ const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
 const ActivityTimeline = lazyNamedWithReload('activity-timeline', loadActivityTimeline, (m) => m.ActivityTimeline)
+const AgentStationPanel = lazyNamedWithReload('agent-station', loadAgentStation, (m) => m.AgentStation)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -444,6 +465,7 @@ export const TOOL_COLORS: Record<string, string> = {
   recovery: '#ec4899',
   pro: '#ffd700',
   activity: '#14f195',
+  'agent-station': '#9945ff',
 }
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
@@ -472,6 +494,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'activity', name: 'Activity', description: 'Flight recorder for Solana development', icon: ActivityIcon, component: ActivityTimeline, preload: () => { void loadActivityTimeline() }, category: 'system' },
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
+  { id: 'agent-station', name: 'Agent Station', description: 'Scaffold and run Solana AI agents powered by SAK', icon: AgentStationIcon, component: AgentStationPanel, preload: () => { void loadAgentStation() }, category: 'crypto' },
 ]
 
 const BUILTIN_TOOL_PRELOADERS = new Map(

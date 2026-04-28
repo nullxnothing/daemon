@@ -523,6 +523,20 @@ contextBridge.exposeInMainWorld('daemon', {
       return () => { ipcRenderer.off('validator:status-change', handler) }
     },
   },
+
+  agentStation: {
+    list: () => ipcRenderer.invoke('agent-station:list'),
+    get: (id: string) => ipcRenderer.invoke('agent-station:get', id),
+    create: (input: { name: string; description?: string; template: string; wallet_id?: string | null; plugins?: string[]; rpc_url?: string | null; model?: string }) =>
+      ipcRenderer.invoke('agent-station:create', input),
+    delete: (id: string) => ipcRenderer.invoke('agent-station:delete', id),
+    scaffold: (configId: string, outputDir: string) => ipcRenderer.invoke('agent-station:scaffold', configId, outputDir),
+    pickOutputDir: () => ipcRenderer.invoke('agent-station:pick-output-dir'),
+    storeKey: (configId: string, privateKey: string) => ipcRenderer.invoke('agent-station:store-key', configId, privateKey),
+    hasKey: (configId: string) => ipcRenderer.invoke('agent-station:has-key', configId),
+    deleteKey: (configId: string) => ipcRenderer.invoke('agent-station:delete-key', configId),
+    updateStatus: (id: string, status: 'idle' | 'running' | 'stopped') => ipcRenderer.invoke('agent-station:update-status', id, status),
+  },
 })
 
 // Loading screen
