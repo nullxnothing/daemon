@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { PublicKey } from '@solana/web3.js'
 
 vi.mock('electron', () => ({
@@ -42,6 +45,7 @@ import {
   fetchTransactionTrace,
   fetchProgramRecentTraces,
   buildClaudeContext,
+  createAgentHandoff,
   __resetCacheForTests,
 } from '../../electron/services/ReplayEngineService'
 
@@ -225,6 +229,19 @@ describe('ReplayEngineService', () => {
       expect(handoff.contextMarkdown).toContain('Anchor Error')
       expect(handoff.contextMarkdown).toContain('ConstraintSeeds')
       expect(handoff.promptHeadline).toContain('ConstraintSeeds')
+    })
+
+    it('writes a project-scoped agent handoff file and launch command', async () => {
+      mockGetParsedTransaction.mockResolvedValueOnce(makeParsedTx())
+      const trace = await fetchTransactionTrace(VALID_SIG)
+      const projectPath = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-replay-'))
+      const handoff = createAgentHandoff(projectPath, trace)
+
+      expect(handoff.contextPath).toContain(path.join('.daemon', 'replays'))
+      expect(fs.existsSync(handoff.contextPath)).toBe(true)
+      expect(fs.readFileSync(handoff.contextPath, 'utf8')).toContain(VALID_SIG)
+      expect(handoff.promptText).toContain(handoff.contextPath)
+      expect(handoff.startupCommand).toContain('claude --dangerously-skip-permissions -p')
     })
   })
 })

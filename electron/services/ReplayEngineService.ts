@@ -1,5 +1,8 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { Connection, type ParsedTransactionWithMeta, type ParsedInstruction, type PartiallyDecodedInstruction, PublicKey, type ConfirmedSignatureInfo } from '@solana/web3.js'
 import { getConnection, getRpcEndpoint } from './SolanaService'
+import { isPathWithinBase } from '../shared/pathValidation'
 import type {
   ReplayTrace,
   ReplayInstruction,
@@ -8,6 +11,7 @@ import type {
   ReplayAnchorError,
   ReplayProgramSummary,
   ReplayContextHandoff,
+  ReplayAgentHandoff,
 } from '../shared/types'
 
 const TRACE_TTL_MS = 5 * 60 * 1000
@@ -393,6 +397,42 @@ export function buildClaudeContext(trace: ReplayTrace): ReplayContextHandoff {
     contextMarkdown: lines.join('\n'),
     promptHeadline: headline,
     signature: trace.signature,
+  }
+}
+
+function safeReplayFileName(signature: string): string {
+  return `${signature.replace(/[^1-9A-HJ-NP-Za-km-z]/g, '').slice(0, 24)}.md`
+}
+
+function quoteForPowerShell(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+export function createAgentHandoff(projectPath: string, trace: ReplayTrace): ReplayAgentHandoff {
+  const resolvedProjectPath = path.resolve(projectPath)
+  const handoff = buildClaudeContext(trace)
+  const replayDir = path.join(resolvedProjectPath, '.daemon', 'replays')
+  const contextPath = path.join(replayDir, safeReplayFileName(trace.signature))
+
+  if (!isPathWithinBase(contextPath, resolvedProjectPath)) {
+    throw new Error('Replay handoff path escaped the project directory')
+  }
+
+  fs.mkdirSync(replayDir, { recursive: true })
+  fs.writeFileSync(contextPath, handoff.contextMarkdown, 'utf8')
+
+  const promptText = [
+    `Use the DAEMON replay context in ${contextPath}.`,
+    trace.success
+      ? 'Audit the transaction for unsafe behavior, missed checks, account-diff surprises, and compute optimizations. Open the relevant files in this repo before recommending changes.'
+      : 'Debug the failed Solana transaction. Identify the root cause, inspect the relevant program/client files, propose the smallest fix, and include the verification steps needed to prove it.',
+  ].join(' ')
+
+  return {
+    ...handoff,
+    contextPath,
+    promptText,
+    startupCommand: `claude --dangerously-skip-permissions -p ${quoteForPowerShell(promptText)}`,
   }
 }
 

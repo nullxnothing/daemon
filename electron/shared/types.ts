@@ -1203,3 +1203,9 @@ export interface ReplayContextHandoff {
   promptHeadline: string
   signature: string
 }
+
+export interface ReplayAgentHandoff extends ReplayContextHandoff {
+  contextPath: string
+  promptText: string
+  startupCommand: string
+}
