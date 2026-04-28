@@ -542,6 +542,7 @@ contextBridge.exposeInMainWorld('daemon', {
     fetchTrace: (signature: string, force?: boolean) => ipcRenderer.invoke('replay:fetch-trace', signature, force === true),
     fetchProgram: (programId: string, limit?: number) => ipcRenderer.invoke('replay:fetch-program', programId, limit),
     buildContext: (signature: string) => ipcRenderer.invoke('replay:build-context', signature),
+    createHandoff: (projectPath: string, signature: string) => ipcRenderer.invoke('replay:create-handoff', projectPath, signature),
     rpcLabel: () => ipcRenderer.invoke('replay:rpc-label'),
   },
 })

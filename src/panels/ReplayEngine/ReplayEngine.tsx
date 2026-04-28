@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReplayTrace, ReplayInstruction, ReplayProgramSummary } from '../../../electron/shared/types'
 import { Dot } from '../../components/Dot'
+import { useUIStore } from '../../store/ui'
 import './ReplayEngine.css'
 
 type Mode = 'signature' | 'program'
@@ -120,6 +121,9 @@ function AccountDiffRow({ diff }: { diff: ReplayTrace['accountDiffs'][number] })
 }
 
 export function ReplayEngine() {
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  const addTerminal = useUIStore((s) => s.addTerminal)
   const [mode, setMode] = useState<Mode>('signature')
   const [signatureInput, setSignatureInput] = useState('')
   const [programInput, setProgramInput] = useState('')
@@ -192,6 +196,32 @@ export function ReplayEngine() {
       setContextStatus(`Context export failed: ${(err as Error).message}`)
     }
   }, [trace])
+
+  const handleLaunchAgentHandoff = useCallback(async () => {
+    if (!trace) return
+    if (!activeProjectId || !activeProjectPath) {
+      setContextStatus('Open a project before launching an agent handoff.')
+      return
+    }
+    setContextStatus(null)
+    try {
+      const handoffRes = await window.daemon.replay.createHandoff(activeProjectPath, trace.signature)
+      if (!handoffRes.ok || !handoffRes.data) throw new Error(handoffRes.error ?? 'Failed to create handoff')
+
+      const terminalRes = await window.daemon.terminal.create({
+        cwd: activeProjectPath,
+        startupCommand: handoffRes.data.startupCommand,
+        isAgent: true,
+      })
+      if (!terminalRes.ok || !terminalRes.data) throw new Error(terminalRes.error ?? 'Failed to launch Claude')
+
+      addTerminal(activeProjectId, terminalRes.data.id, handoffRes.data.promptHeadline, null)
+      await navigator.clipboard.writeText(handoffRes.data.promptText)
+      setContextStatus(`Claude handoff launched. Context saved to ${handoffRes.data.contextPath}`)
+    } catch (err) {
+      setContextStatus(`Agent handoff failed: ${(err as Error).message}`)
+    }
+  }, [activeProjectId, activeProjectPath, addTerminal, trace])
 
   const handleSignatureSubmit = useCallback((event: React.FormEvent) => {
     event.preventDefault()
@@ -309,7 +339,16 @@ export function ReplayEngine() {
                 className="replay-button replay-button--accent"
                 onClick={() => void handleHandoff()}
               >
-                Send context to Claude
+                Copy agent context
+              </button>
+              <button
+                type="button"
+                className="replay-button replay-button--hot"
+                onClick={() => void handleLaunchAgentHandoff()}
+                disabled={!activeProjectId || !activeProjectPath}
+                title={!activeProjectId || !activeProjectPath ? 'Open a project first' : 'Save replay context and launch Claude'}
+              >
+                Launch Claude fix loop
               </button>
             </div>
             {contextStatus ? <div className="replay-status-msg">{contextStatus}</div> : null}

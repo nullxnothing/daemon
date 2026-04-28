@@ -82,6 +82,7 @@ import type {
   ReplayTrace,
   ReplayProgramSummary,
   ReplayContextHandoff,
+  ReplayAgentHandoff,
 } from '../../electron/shared/types'
 
 export type {
@@ -1018,6 +1019,7 @@ declare global {
     fetchTrace: (signature: string, force?: boolean) => Promise<IpcResponse<ReplayTrace>>
     fetchProgram: (programId: string, limit?: number) => Promise<IpcResponse<ReplayProgramSummary>>
     buildContext: (signature: string) => Promise<IpcResponse<ReplayContextHandoff>>
+    createHandoff: (projectPath: string, signature: string) => Promise<IpcResponse<ReplayAgentHandoff>>
     rpcLabel: () => Promise<IpcResponse<string>>
   }
 

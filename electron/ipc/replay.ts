@@ -4,8 +4,10 @@ import {
   fetchTransactionTrace,
   fetchProgramRecentTraces,
   buildClaudeContext,
+  createAgentHandoff,
   getCurrentRpcLabel,
 } from '../services/ReplayEngineService'
+import { validateCwd } from '../shared/pathValidation'
 
 export function registerReplayHandlers(): void {
   ipcMain.handle(
@@ -27,6 +29,15 @@ export function registerReplayHandlers(): void {
     ipcHandler(async (_event, signature: string) => {
       const trace = await fetchTransactionTrace(signature)
       return buildClaudeContext(trace)
+    }),
+  )
+
+  ipcMain.handle(
+    'replay:create-handoff',
+    ipcHandler(async (_event, projectPath: string, signature: string) => {
+      validateCwd(projectPath)
+      const trace = await fetchTransactionTrace(signature)
+      return createAgentHandoff(projectPath, trace)
     }),
   )
 

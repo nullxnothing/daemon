@@ -139,6 +139,19 @@
   border-color: var(--green);
 }
 
+.replay-button--hot {
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  color: var(--bg);
+  border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 12px 30px rgba(62, 207, 142, 0.12);
+}
+
+.replay-button--hot:disabled {
+  background: var(--s3);
+  color: var(--t3);
+  box-shadow: none;
+}
+
 .replay-error {
   margin: 0 20px 14px;
   padding: 10px 14px;
@@ -227,6 +240,7 @@
   font-size: 11px;
   color: var(--green);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
+  word-break: break-all;
 }
 
 .replay-anchor-card {
