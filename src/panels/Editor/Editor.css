@@ -26,6 +26,11 @@
   color: var(--t3);
 }
 
+.editor-empty-glow,
+.editor-empty-logo {
+  pointer-events: none;
+}
+
 .editor-tabs {
   display: flex;
   align-items: center;

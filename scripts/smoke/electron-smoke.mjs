@@ -208,7 +208,6 @@ async function verifyPinnedSidebarToolClicks(page) {
 
   await clickAndAssert('Git', '.git-center')
   await clickAndAssert('Wallet', '.wallet-panel')
-  await clickAndAssert('Token Launch', '.token-launch-tool')
   await clickAndAssert('Solana', '.solana-toolbox')
 }
 
@@ -259,7 +258,7 @@ async function run() {
   logStep('checking hackathon to browser transition')
   await openToolFromLauncher(page, 'Hackathon', '.hackathon-panel')
 
-  await page.getByRole('button', { name: 'Toggle Browser Tab' }).click()
+  await page.getByText('Get a token at arena.colosseum.org/copilot').click()
   await page.getByRole('button', { name: 'Browser tab', exact: true }).click()
   await page.waitForSelector('.browser-mode', { timeout: 30000 })
   await page.waitForFunction(() => !document.querySelector('.command-drawer'))

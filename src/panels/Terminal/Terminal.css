@@ -33,8 +33,7 @@
   padding: 0 4px;
   gap: 2px;
   flex-shrink: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
   scrollbar-width: none;
 }
 
@@ -168,7 +167,7 @@
 
 .terminal-launcher-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 6px);
   left: 0;
   min-width: 240px;
   max-width: 320px;

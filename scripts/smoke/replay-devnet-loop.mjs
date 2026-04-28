@@ -79,6 +79,16 @@ async function waitForAppReady(page) {
   await page.waitForSelector('.main-layout', { timeout: 30_000 })
 }
 
+async function openReplayPanel(page) {
+  const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
+  if (!drawerVisible) {
+    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.waitForSelector('.command-drawer', { timeout: 30_000 })
+  }
+  await page.locator('.drawer-tool-card', { hasText: 'Replay' }).first().click()
+  await page.waitForSelector('.replay-panel', { timeout: 30_000 })
+}
+
 async function findRecentDevnetSystemTransfer(connection) {
   logStep('devnet faucet unavailable; falling back to a recent confirmed System Program transaction')
   const signatures = await connection.getSignaturesForAddress(SystemProgram.programId, { limit: 50 }, 'confirmed')
@@ -192,6 +202,12 @@ async function waitForReplayTrace(page, signature) {
 }
 
 async function runReplayLoop(page, devnetTx) {
+  await openReplayPanel(page)
+  await page.getByPlaceholder('Paste a Solana transaction signature').fill(devnetTx.signature)
+  await page.getByRole('button', { name: 'Replay', exact: true }).click()
+  await page.waitForSelector('.replay-summary', { timeout: 45_000 })
+  await page.waitForSelector(`text=${devnetTx.signature}`, { timeout: 30_000 })
+
   const trace = await waitForReplayTrace(page, devnetTx.signature)
   logStep(`validating replay for ${devnetTx.source}`)
   assert.equal(trace.signature, devnetTx.signature)
@@ -200,15 +216,15 @@ async function runReplayLoop(page, devnetTx) {
   assert(trace.accountDiffs.some((diff) => diff.pubkey === devnetTx.payer && diff.lamportsDelta < 0), 'payer debit missing from account diffs')
   assert(trace.accountDiffs.some((diff) => diff.pubkey === devnetTx.recipient && diff.lamportsDelta > 0), 'recipient credit missing from account diffs')
 
+  await page.locator('.replay-verify-input').fill('echo verified replay fix')
+  await page.getByRole('button', { name: 'Run verification' }).click()
+  await page.waitForSelector('.replay-verify-card.is-passed', { timeout: 30_000 })
+  await page.waitForSelector('text=verified replay fix', { timeout: 30_000 })
+
   const result = await page.evaluate(async ({ repoRoot, signature }) => {
     const context = await window.daemon.replay.buildContext(signature)
     const handoff = await window.daemon.replay.createHandoff(repoRoot, signature)
     if (!handoff.ok || !handoff.data) return { context, handoff }
-    const verification = await window.daemon.replay.verifyFix(
-      repoRoot,
-      signature,
-      'echo verified replay fix',
-    )
     const terminal = await window.daemon.terminal.create({
       cwd: repoRoot,
       startupCommand: handoff.data.startupCommand,
@@ -217,7 +233,7 @@ async function runReplayLoop(page, devnetTx) {
     if (terminal.ok && terminal.data) {
       await window.daemon.terminal.kill(terminal.data.id)
     }
-    return { context, handoff, verification, terminal }
+    return { context, handoff, terminal }
   }, { repoRoot, signature: devnetTx.signature })
 
   assert(result.context.ok, result.context.error ?? 'buildContext failed')
@@ -226,16 +242,20 @@ async function runReplayLoop(page, devnetTx) {
   assert(result.handoff.data.contextPath.includes(path.join('.daemon', 'replays')), 'handoff path not project scoped')
   assert(existsSync(result.handoff.data.contextPath), 'handoff file was not written')
   assert(readFileSync(result.handoff.data.contextPath, 'utf8').includes(devnetTx.signature), 'handoff file missing signature')
-  assert(result.verification.ok, result.verification.error ?? 'verifyFix failed')
-  assert.equal(result.verification.data.status, 'passed')
-  assert(result.verification.data.stdout.includes('verified replay fix'), 'verification output missing marker')
-  assert(existsSync(result.verification.data.resultPath), 'verification result was not written')
   assert(result.terminal.ok, result.terminal.error ?? 'agent terminal launch failed')
+
+  const verificationPath = path.join(
+    repoRoot,
+    '.daemon',
+    'replays',
+    `${devnetTx.signature.replace(/[^1-9A-HJ-NP-Za-km-z]/g, '').slice(0, 24)}.verification.json`,
+  )
+  assert(existsSync(verificationPath), 'verification result was not written')
 
   return {
     signature: devnetTx.signature,
     contextPath: result.handoff.data.contextPath,
-    verificationPath: result.verification.data.resultPath,
+    verificationPath,
     terminalId: result.terminal.data.id,
   }
 }
