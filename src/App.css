@@ -261,7 +261,9 @@
 .terminal-area {
   min-height: 0;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  z-index: 20;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 12%);
   border-top: 1px solid rgba(255, 255, 255, 0.03);
 }
