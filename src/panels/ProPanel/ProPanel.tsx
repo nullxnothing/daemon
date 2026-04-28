@@ -5,7 +5,51 @@ import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../el
 import { ArenaView } from './ArenaView'
 import './ProPanel.css'
 
-type ProTab = 'overview' | 'arena' | 'skills' | 'sync'
+type ProTab = 'overview' | 'staking' | 'arena' | 'skills' | 'sync'
+
+interface StakingTier {
+  id: string
+  label: string
+  threshold: string
+  status: 'live' | 'planned'
+  unlocks: string[]
+}
+
+const STAKING_TIERS: StakingTier[] = [
+  {
+    id: 'signal',
+    label: 'Signal',
+    threshold: '25K staked',
+    status: 'planned',
+    unlocks: [
+      'Staker badge in DAEMON',
+      'Early feature notes and release windows',
+      'Priority waitlist for new Solana modules',
+    ],
+  },
+  {
+    id: 'builder',
+    label: 'Builder',
+    threshold: '100K staked',
+    status: 'planned',
+    unlocks: [
+      'Higher concurrent agent caps',
+      'Premium project scaffolds and workflow packs',
+      'Priority execution queue for hosted actions',
+    ],
+  },
+  {
+    id: 'operator',
+    label: 'Operator',
+    threshold: '250K staked',
+    status: 'planned',
+    unlocks: [
+      'Launch addon access across supported protocols',
+      'Higher MCP sync and priority API allowances',
+      'Expanded arena voting weight and beta surfaces',
+    ],
+  },
+]
 
 export function ProPanel() {
   const subscription = useProStore((state) => state.subscription)
@@ -91,6 +135,7 @@ export function ProPanel() {
 
       <nav className="pro-tabs">
         <button className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Staking</button>
         <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
         <button className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
         <button className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
@@ -119,6 +164,21 @@ export function ProPanel() {
             accessSource={subscription.accessSource}
           />
         )}
+        {activeTab === 'staking' && (
+          <StakingView
+            selectedWalletLabel={selectedWallet ? `${selectedWallet.name} (${selectedWallet.address.slice(0, 4)}…${selectedWallet.address.slice(-4)})` : null}
+            hasWallet={wallets.length > 0}
+            holderStatus={subscription.holderStatus}
+            accessSource={subscription.accessSource}
+            onRefreshSelectedWallet={() => {
+              if (!selectedWallet?.address) return
+              void refreshStatus(selectedWallet.address)
+            }}
+            onClaimHolderAccess={handleClaimHolderAccess}
+            selectedWalletId={selectedWalletId}
+            subscribing={subscribing}
+          />
+        )}
         {activeTab === 'arena' && (isActive ? <ArenaView /> : <ArenaStatusLocked />)}
         {activeTab === 'skills' && isActive && <SkillsView />}
         {activeTab === 'sync' && isActive && <SyncView />}
@@ -130,6 +190,99 @@ export function ProPanel() {
         </div>
       </footer>
     </section>
+  )
+}
+
+function StakingView({
+  selectedWalletLabel,
+  hasWallet,
+  holderStatus,
+  accessSource,
+  onRefreshSelectedWallet,
+  onClaimHolderAccess,
+  selectedWalletId,
+  subscribing,
+}: {
+  selectedWalletLabel: string | null
+  hasWallet: boolean
+  holderStatus: ProSubscriptionState['holderStatus']
+  accessSource: ProSubscriptionState['accessSource']
+  onRefreshSelectedWallet: () => void
+  onClaimHolderAccess: () => void
+  selectedWalletId: string
+  subscribing: boolean
+}) {
+  const currentAmount = holderStatus.currentAmount ?? 0
+  const minAmount = holderStatus.minAmount ?? 0
+  const eligible = holderStatus.enabled && holderStatus.eligible
+
+  return (
+    <div className="pro-staking">
+      <section className="pro-staking-hero">
+        <div>
+          <div className="pro-section-title">DAEMON staking utility</div>
+          <div className="pro-section-caption">
+            Current wallet-gated access is live now. Staking tiers below define how DAEMON can unlock more of the
+            workspace over time without turning the token into a detached vanity asset.
+          </div>
+        </div>
+        <div className="pro-staking-pill-group">
+          <span className={`pro-staking-pill ${eligible ? 'eligible' : ''}`}>
+            {eligible ? 'Holder access available' : 'Access not yet unlocked'}
+          </span>
+          {accessSource && <span className="pro-staking-pill pro-staking-pill-live">Live source: {accessSource === 'holder' ? 'holder' : 'payment'}</span>}
+        </div>
+      </section>
+
+      <section className="pro-staking-status-grid">
+        <StatCard label="Selected wallet" value={selectedWalletLabel ?? 'No wallet selected'} mono={Boolean(selectedWalletLabel)} />
+        <StatCard label="Current DAEMON" value={currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+        <StatCard label="Live access threshold" value={holderStatus.enabled ? minAmount.toLocaleString() : 'Not configured'} />
+        <StatCard label="Current path" value={accessSource === 'holder' ? 'Holder access active' : accessSource === 'payment' ? 'Paid access active' : 'No active access'} />
+      </section>
+
+      <section className="pro-staking-actions-card">
+        <div>
+          <div className="pro-subscribe-title">Current wallet check</div>
+          <div className="pro-section-caption">
+            Use this to refresh holder eligibility on the selected wallet. If live access is already unlocked, activate it on this device directly from here.
+          </div>
+        </div>
+        {!hasWallet ? (
+          <div className="pro-subscribe-empty">Create or import a wallet first so DAEMON can verify current access.</div>
+        ) : (
+          <div className="pro-staking-action-row">
+            <button className="pro-btn" onClick={onRefreshSelectedWallet} disabled={!selectedWalletId || subscribing}>
+              Refresh wallet status
+            </button>
+            <button className="pro-btn pro-btn-primary" onClick={onClaimHolderAccess} disabled={!eligible || !selectedWalletId || subscribing}>
+              {subscribing ? 'Activating…' : 'Activate holder access'}
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="pro-staking-tier-grid">
+        {STAKING_TIERS.map((tier) => (
+          <div key={tier.id} className="pro-staking-tier-card">
+            <div className="pro-staking-tier-head">
+              <div>
+                <div className="pro-feature-title">{tier.label}</div>
+                <div className="pro-section-caption">{tier.threshold}</div>
+              </div>
+              <span className={`pro-staking-pill ${tier.status === 'live' ? 'live' : 'planned'}`}>{tier.status}</span>
+            </div>
+            <div className="pro-staking-unlocks">
+              {tier.unlocks.map((unlock) => (
+                <div key={unlock} className="pro-active-feature">
+                  <span className="pro-active-check">+</span> {unlock}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
   )
 }
 
