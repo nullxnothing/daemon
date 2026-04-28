@@ -350,6 +350,7 @@ export interface WalletListEntry {
   name: string
   address: string
   is_default: number
+  wallet_type: string
   created_at: number
   assigned_project_ids: string[]
 }

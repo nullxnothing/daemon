@@ -170,6 +170,8 @@ declare global {
     name: string
     address: string
     isDefault: boolean
+    walletType: string
+    ecosystemRole: 'daemon-deployer' | null
     hasKeypair: boolean
     isAssignedToActiveProject: boolean
     assignedProjectIds: string[]
@@ -774,6 +776,7 @@ declare global {
   interface DaemonLaunch {
     listLaunchpads: () => Promise<IpcResponse<LaunchpadDefinition[]>>
     listWalletOptions: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption[]>>
+    ensureDaemonDeployerWallet: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption>>
     listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => Promise<IpcResponse<PulseTokenFeed>>
     pickImage: () => Promise<IpcResponse<string | null>>
     preflightToken: (input: {

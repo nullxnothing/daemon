@@ -387,6 +387,7 @@ contextBridge.exposeInMainWorld('daemon', {
   launch: {
     listLaunchpads: () => ipcRenderer.invoke('launch:list-launchpads'),
     listWalletOptions: (projectId?: string | null) => ipcRenderer.invoke('launch:list-wallet-options', projectId),
+    ensureDaemonDeployerWallet: (projectId?: string | null) => ipcRenderer.invoke('launch:ensure-daemon-deployer-wallet', projectId),
     listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => ipcRenderer.invoke('launch:list-pulse-tokens', input),
     pickImage: () => ipcRenderer.invoke('launch:pick-image'),
     preflightToken: (input: object) => ipcRenderer.invoke('launch:preflight-token', input),
