@@ -569,3 +569,21 @@ ALTER TABLE activity_log ADD COLUMN session_summary TEXT;
 export const SCHEMA_V28 = `
 ALTER TABLE activity_log ADD COLUMN artifacts_json TEXT DEFAULT '[]';
 `
+
+export const SCHEMA_V29 = `
+CREATE TABLE IF NOT EXISTS agent_station_configs (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  template TEXT NOT NULL DEFAULT 'basic',
+  wallet_id TEXT,
+  plugins TEXT NOT NULL DEFAULT '["token","defi","misc"]',
+  rpc_url TEXT,
+  model TEXT NOT NULL DEFAULT 'gpt-4o',
+  project_path TEXT,
+  status TEXT NOT NULL DEFAULT 'idle',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_agent_station_status ON agent_station_configs(status);
+`

@@ -1007,6 +1007,7 @@ declare global {
     pnl: DaemonPnl
     pro: DaemonPro
     feedback: DaemonFeedback
+    agentStation: DaemonAgentStation
   }
 
   interface DaemonFeedback {
@@ -1093,5 +1094,36 @@ declare global {
 
   interface Window {
     daemon: DaemonAPI
+  }
+
+  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter'
+  type AgentStationStatus = 'idle' | 'running' | 'stopped'
+
+  interface AgentStationConfig {
+    id: string
+    name: string
+    description: string | null
+    template: AgentTemplate
+    wallet_id: string | null
+    plugins: string
+    rpc_url: string | null
+    model: string
+    project_path: string | null
+    status: AgentStationStatus
+    created_at: number
+    updated_at: number
+  }
+
+  interface DaemonAgentStation {
+    list: () => Promise<IpcResponse<AgentStationConfig[]>>
+    get: (id: string) => Promise<IpcResponse<AgentStationConfig>>
+    create: (input: { name: string; description?: string; template: AgentTemplate; wallet_id?: string | null; plugins?: string[]; rpc_url?: string | null; model?: string }) => Promise<IpcResponse<AgentStationConfig>>
+    delete: (id: string) => Promise<IpcResponse>
+    scaffold: (configId: string, outputDir: string) => Promise<IpcResponse<{ projectPath: string; envPath: string }>>
+    pickOutputDir: () => Promise<IpcResponse<string | null>>
+    storeKey: (configId: string, privateKey: string) => Promise<IpcResponse>
+    hasKey: (configId: string) => Promise<IpcResponse<boolean>>
+    deleteKey: (configId: string) => Promise<IpcResponse>
+    updateStatus: (id: string, status: AgentStationStatus) => Promise<IpcResponse>
   }
 }
