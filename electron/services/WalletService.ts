@@ -267,7 +267,7 @@ export function createWallet(name: string, address: string) {
   db.prepare(
     'INSERT INTO wallets (id, name, address, is_default, created_at) VALUES (?,?,?,?,?)'
   ).run(id, trimmedName, trimmedAddress, existingDefault ? 0 : 1, Date.now())
-  return db.prepare('SELECT id, name, address, is_default, created_at FROM wallets WHERE id = ?').get(id)
+  return db.prepare('SELECT id, name, address, is_default, wallet_type, created_at FROM wallets WHERE id = ?').get(id)
 }
 
 export function ensureWatchWallet(name: string, address: string, walletType = 'user') {
@@ -279,7 +279,6 @@ export function ensureWatchWallet(name: string, address: string, walletType = 'u
   const db = getDb()
   const existing = db.prepare('SELECT id FROM wallets WHERE address = ? LIMIT 1').get(trimmedAddress) as { id: string } | undefined
   if (existing) {
-    db.prepare('UPDATE wallets SET wallet_type = ? WHERE id = ?').run(walletType, existing.id)
     const wallet = listWallets().find((entry) => entry.id === existing.id)
     if (!wallet) throw new Error('Could not resolve existing wallet')
     return wallet
