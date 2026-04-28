@@ -1,11 +1,12 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
-import os from 'node:os'
 import * as pty from 'node-pty'
 import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { LogService } from '../services/LogService'
+import { getEmbeddedProviderStartupCommand, type ProviderShellId } from '../shared/providerLaunch'
+import { validateCwd } from '../shared/pathValidation'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
 
 // Regex patterns to auto-detect "listening on port X" from terminal output
@@ -39,6 +40,8 @@ function createPtySession(
   cwd: string,
   agentId: string | null,
   contextFilePath: string | null,
+  providerId: string | null = null,
+  isAgentShell = false,
 ): TerminalSession {
   let shell: string
   let shellArgs: string[]
@@ -74,11 +77,26 @@ function createPtySession(
     },
   })
 
-  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath }
+  const session: TerminalSession = {
+    pty: ptyProcess,
+    agentId,
+    contextFilePath,
+    providerId,
+    isAgentShell,
+    dataBuffer: [],
+    rendererReady: false,
+  }
   sessions.set(id, session)
 
   ptyProcess.onData((data) => {
-    getWin()?.webContents.send('terminal:data', { id, data })
+    if (session.rendererReady) {
+      getWin()?.webContents.send('terminal:data', { id, data })
+    } else {
+      session.dataBuffer?.push(data)
+      if ((session.dataBuffer?.length ?? 0) > 200) {
+        session.dataBuffer = session.dataBuffer?.slice(-200)
+      }
+    }
 
     // Auto-detect port announcements and register them
     for (const pattern of PORT_PATTERNS) {
@@ -91,7 +109,7 @@ function createPtySession(
             const row = getDb().prepare('SELECT project_id FROM active_sessions WHERE id = ?').get(id) as ActiveSession | undefined
             if (row?.project_id) {
               registerPort(port, row.project_id, 'auto-detected')
-              getWin()?.webContents.send('ports:auto-registered', { port, projectId: row.project_id })
+              getWin()?.webContents.send('port:changed', { port, projectId: row.project_id, action: 'auto-registered' })
             }
           } catch (err) {
             LogService.warn('Terminal', `Failed to register auto-detected port ${port}`, { error: (err as Error).message })
@@ -117,14 +135,52 @@ function createPtySession(
 export function registerTerminalHandlers() {
   ipcMain.handle('terminal:create', ipcHandler(async (_event, opts: TerminalCreateInput) => {
     const id = crypto.randomUUID()
-    const cwd = opts?.cwd || os.homedir()
-    const session = createPtySession(id, '', [], cwd, null, null)
+    const cwd = opts?.cwd
+    if (!cwd) throw new Error('Terminal cwd is required')
+    validateCwd(cwd)
+    const session = createPtySession(id, '', [], cwd, null, null, null, opts?.isAgent ?? false)
 
     if (opts?.startupCommand?.trim()) {
       session.pty.write(`${opts.startupCommand.trim()}\r`)
     }
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
+    return response
+  }))
+
+  ipcMain.handle('terminal:spawnProvider', ipcHandler(async (_event, opts: {
+    providerId: ProviderShellId
+    projectId?: string
+    cwd?: string
+  }) => {
+    if (opts.providerId !== 'claude' && opts.providerId !== 'codex') {
+      throw new Error('Unsupported provider')
+    }
+
+    let cwd = opts.cwd
+    if (!cwd && opts.projectId) {
+      const project = getDb().prepare('SELECT path FROM projects WHERE id = ?').get(opts.projectId) as { path: string } | undefined
+      cwd = project?.path
+    }
+    if (!cwd) throw new Error('Project path is required to launch provider terminal')
+    validateCwd(cwd)
+
+    const id = crypto.randomUUID()
+    const session = createPtySession(id, '', [], cwd, null, null, opts.providerId, true)
+    session.pty.write(`${getEmbeddedProviderStartupCommand(opts.providerId)}\r`)
+
+    if (opts.projectId) {
+      getDb().prepare(
+        'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
+      ).run(id, opts.projectId, null, id, session.pty.pid, Date.now())
+    }
+
+    const response: TerminalCreateOutput = {
+      id,
+      pid: session.pty.pid,
+      agentId: null,
+      agentName: opts.providerId === 'claude' ? 'Claude' : 'Codex',
+    }
     return response
   }))
 
@@ -155,6 +211,17 @@ export function registerTerminalHandlers() {
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) => {
     try { sessions.get(id)?.pty.resize(cols, rows) } catch (err) {
       LogService.warn('Terminal', `Failed to resize terminal ${id}`, { error: (err as Error).message })
+    }
+  })
+
+  ipcMain.on('terminal:ready', (_event, id: string) => {
+    const session = sessions.get(id)
+    if (!session) return
+    session.rendererReady = true
+    const buffered = session.dataBuffer ?? []
+    session.dataBuffer = []
+    for (const data of buffered) {
+      getWin()?.webContents.send('terminal:data', { id, data })
     }
   })
 

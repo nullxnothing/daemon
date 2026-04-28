@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { PublicKey } from '@solana/web3.js'
 import { getDb } from '../db/db'
 import * as PumpFun from './PumpFunService'
 import * as Settings from './SettingsService'
@@ -154,6 +155,14 @@ export function listLaunchWallets(projectId?: string | null): LaunchWalletOption
 }
 
 export function ensureDaemonDeployerWallet(projectId?: string | null): LaunchWalletOption {
+  try {
+    // Validate here so the UI reports that the configured deployer address is invalid,
+    // instead of failing deeper in generic wallet creation.
+    new PublicKey(DAEMON_DEPLOYER_ADDRESS)
+  } catch {
+    throw new Error(`Configured DAEMON deployer address is not a valid Solana wallet: ${DAEMON_DEPLOYER_ADDRESS}`)
+  }
+
   const wallet = WalletService.ensureWatchWallet(
     DAEMON_DEPLOYER_NAME,
     DAEMON_DEPLOYER_ADDRESS,
