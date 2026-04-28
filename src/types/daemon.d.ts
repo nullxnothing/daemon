@@ -269,6 +269,7 @@ declare global {
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
   type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
   type PluginRow = import('../../electron/shared/types').PluginRow
+  type PluginCreateInput = import('../../electron/shared/types').PluginCreateInput
   type Tweet = import('../../electron/shared/types').Tweet
   type VoiceProfile = import('../../electron/shared/types').VoiceProfile
   type IpcResponse<T = unknown> = import('../../electron/shared/types').IpcResponse<T>
@@ -615,6 +616,7 @@ declare global {
 
   interface DaemonPlugins {
     list: () => Promise<IpcResponse<PluginRow[]>>
+    add: (input: PluginCreateInput) => Promise<IpcResponse<PluginRow>>
     setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<void>>
     setConfig: (id: string, config: string) => Promise<IpcResponse<void>>
     reorder: (orderedIds: string[]) => Promise<IpcResponse<void>>

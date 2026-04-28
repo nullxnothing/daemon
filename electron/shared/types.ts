@@ -502,6 +502,14 @@ export interface PluginRow {
   updated_at: number
 }
 
+export interface PluginCreateInput {
+  id: string
+  name: string
+  description?: string
+  entry?: string
+  command?: string
+}
+
 // --- Claude Connection ---
 
 export interface ClaudeConnection {

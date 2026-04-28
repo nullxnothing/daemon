@@ -305,6 +305,7 @@ contextBridge.exposeInMainWorld('daemon', {
 
   plugins: {
     list: () => ipcRenderer.invoke('plugins:list'),
+    add: (input: { id: string; name: string; description?: string; entry?: string; command?: string }) => ipcRenderer.invoke('plugins:add', input),
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('plugins:set-enabled', id, enabled),
     setConfig: (id: string, config: string) => ipcRenderer.invoke('plugins:set-config', id, config),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),

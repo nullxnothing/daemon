@@ -29,6 +29,7 @@ import type {
   WalletDashboard,
   TerminalCreateOutput,
   PluginRow,
+  PluginCreateInput,
   UiSettings,
   ProjectCreateInput,
   AgentCreateInput,
@@ -117,6 +118,10 @@ export interface ChannelMap {
 
   // --- Plugins ---
   'plugins:list': { input: void; output: PluginRow[] }
+  'plugins:add': { input: PluginCreateInput; output: PluginRow }
+  'plugins:set-enabled': { input: [string, boolean]; output: void }
+  'plugins:set-config': { input: [string, string]; output: void }
+  'plugins:reorder': { input: string[]; output: void }
 
   // --- Tools ---
   'tools:list': { input: void; output: ToolRow[] }
