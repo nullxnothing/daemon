@@ -79,6 +79,9 @@ import type {
   PnlSyncResult,
   TradeRecord,
   CostBasisEntry,
+  ReplayTrace,
+  ReplayProgramSummary,
+  ReplayContextHandoff,
 } from '../../electron/shared/types'
 
 export type {
@@ -1008,6 +1011,14 @@ declare global {
     pro: DaemonPro
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
+    replay: DaemonReplay
+  }
+
+  interface DaemonReplay {
+    fetchTrace: (signature: string, force?: boolean) => Promise<IpcResponse<ReplayTrace>>
+    fetchProgram: (programId: string, limit?: number) => Promise<IpcResponse<ReplayProgramSummary>>
+    buildContext: (signature: string) => Promise<IpcResponse<ReplayContextHandoff>>
+    rpcLabel: () => Promise<IpcResponse<string>>
   }
 
   interface DaemonFeedback {

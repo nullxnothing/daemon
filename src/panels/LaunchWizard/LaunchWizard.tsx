@@ -688,7 +688,7 @@ function StepConfig({
           <div>
             <div className="lw-daemon-deployer-title">DAEMON Deployer</div>
             <div className="lw-daemon-deployer-copy">
-              Use yk8R9ivCGdtQeyo71JYyB6CjfSsMnWcYthisPwT as the token deployer.
+              Use 8A4i2yk8R9ivCGdtQeyo71JYyB6CjfSsMnWcYthisPwT as the token deployer.
             </div>
             <div className="lw-daemon-deployer-status">
               {daemonDeployer

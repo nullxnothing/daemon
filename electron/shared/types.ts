@@ -1125,3 +1125,81 @@ export interface EngineContext {
   portMap: Array<{ port: number; serviceName: string; projectName: string }>
   userProfile: Record<string, string>
 }
+
+// --- Replay Engine ---
+
+export interface ReplayAccountRef {
+  pubkey: string
+  isSigner: boolean
+  isWritable: boolean
+  label?: string | null
+}
+
+export interface ReplayInstruction {
+  index: number
+  programId: string
+  programLabel: string | null
+  accounts: ReplayAccountRef[]
+  rawData: string
+  parsed: {
+    type: string | null
+    info: Record<string, unknown> | null
+  } | null
+  innerInstructions: ReplayInstruction[]
+  error: string | null
+}
+
+export interface ReplayAccountDiff {
+  pubkey: string
+  owner: string | null
+  preLamports: number
+  postLamports: number
+  lamportsDelta: number
+  preTokenAmount: string | null
+  postTokenAmount: string | null
+  tokenMint: string | null
+  isWritable: boolean
+}
+
+export interface ReplayAnchorError {
+  errorCode: string | null
+  errorNumber: number | null
+  errorMessage: string | null
+  account: string | null
+  programId: string | null
+  raw: string
+}
+
+export interface ReplayTrace {
+  signature: string
+  slot: number
+  blockTime: number | null
+  success: boolean
+  fee: number
+  computeUnitsConsumed: number | null
+  feePayer: string | null
+  programIds: string[]
+  instructions: ReplayInstruction[]
+  accountDiffs: ReplayAccountDiff[]
+  logs: string[]
+  errorRaw: unknown | null
+  anchorError: ReplayAnchorError | null
+  fetchedAt: number
+}
+
+export interface ReplayProgramSummary {
+  programId: string
+  recent: Array<{
+    signature: string
+    slot: number
+    blockTime: number | null
+    success: boolean
+    error: string | null
+  }>
+}
+
+export interface ReplayContextHandoff {
+  contextMarkdown: string
+  promptHeadline: string
+  signature: string
+}

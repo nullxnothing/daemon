@@ -41,6 +41,7 @@ import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
 import { registerAgentStationHandlers } from '../ipc/agentStation'
+import { registerReplayHandlers } from '../ipc/replay'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import pkg from 'electron-updater'
@@ -175,6 +176,7 @@ function registerAllIpc() {
   registerPnlHandlers()
   registerFeedbackHandlers()
   registerAgentStationHandlers()
+  registerReplayHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())

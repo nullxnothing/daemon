@@ -95,7 +95,7 @@ export interface TokenLaunchPreflight {
 }
 
 const DAEMON_DEPLOYER_NAME = 'DAEMON Deployer'
-const DAEMON_DEPLOYER_ADDRESS = 'yk8R9ivCGdtQeyo71JYyB6CjfSsMnWcYthisPwT'
+const DAEMON_DEPLOYER_ADDRESS = '8A4i2yk8R9ivCGdtQeyo71JYyB6CjfSsMnWcYthisPwT'
 const DAEMON_DEPLOYER_WALLET_TYPE = 'daemon-deployer'
 
 const bonkDefinition: LaunchpadDefinition = {
