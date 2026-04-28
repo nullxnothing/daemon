@@ -250,6 +250,105 @@
   padding: 14px 16px;
 }
 
+.replay-verify-card {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.06), rgba(62, 207, 142, 0.03));
+  border: 1px solid var(--s4);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.replay-verify-card.is-passed {
+  border-color: rgba(62, 207, 142, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(62, 207, 142, 0.08);
+}
+
+.replay-verify-card.is-failed {
+  border-color: rgba(239, 83, 80, 0.42);
+  background: rgba(239, 83, 80, 0.06);
+}
+
+.replay-verify-head,
+.replay-verify-row,
+.replay-verify-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.replay-verify-head {
+  justify-content: space-between;
+}
+
+.replay-verify-head h2 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--t1);
+}
+
+.replay-verify-head p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.replay-verify-state {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.1);
+  border-radius: 999px;
+  padding: 4px 9px;
+}
+
+.replay-verify-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--s1);
+  border: 1px solid var(--s4);
+  border-radius: 6px;
+  color: var(--t1);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.replay-verify-input:focus {
+  border-color: var(--blue);
+}
+
+.replay-verify-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.replay-verify-meta {
+  color: var(--t3);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  flex-wrap: wrap;
+}
+
+.replay-verify-output {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: 6px;
+  color: var(--t2);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
 .replay-anchor-head {
   display: flex;
   align-items: center;

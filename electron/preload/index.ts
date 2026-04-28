@@ -543,6 +543,7 @@ contextBridge.exposeInMainWorld('daemon', {
     fetchProgram: (programId: string, limit?: number) => ipcRenderer.invoke('replay:fetch-program', programId, limit),
     buildContext: (signature: string) => ipcRenderer.invoke('replay:build-context', signature),
     createHandoff: (projectPath: string, signature: string) => ipcRenderer.invoke('replay:create-handoff', projectPath, signature),
+    verifyFix: (projectPath: string, signature: string, command: string) => ipcRenderer.invoke('replay:verify-fix', projectPath, signature, command),
     rpcLabel: () => ipcRenderer.invoke('replay:rpc-label'),
   },
 })

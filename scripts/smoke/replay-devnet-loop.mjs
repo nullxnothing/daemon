@@ -204,6 +204,11 @@ async function runReplayLoop(page, devnetTx) {
     const context = await window.daemon.replay.buildContext(signature)
     const handoff = await window.daemon.replay.createHandoff(repoRoot, signature)
     if (!handoff.ok || !handoff.data) return { context, handoff }
+    const verification = await window.daemon.replay.verifyFix(
+      repoRoot,
+      signature,
+      'echo verified replay fix',
+    )
     const terminal = await window.daemon.terminal.create({
       cwd: repoRoot,
       startupCommand: handoff.data.startupCommand,
@@ -212,7 +217,7 @@ async function runReplayLoop(page, devnetTx) {
     if (terminal.ok && terminal.data) {
       await window.daemon.terminal.kill(terminal.data.id)
     }
-    return { context, handoff, terminal }
+    return { context, handoff, verification, terminal }
   }, { repoRoot, signature: devnetTx.signature })
 
   assert(result.context.ok, result.context.error ?? 'buildContext failed')
@@ -221,11 +226,16 @@ async function runReplayLoop(page, devnetTx) {
   assert(result.handoff.data.contextPath.includes(path.join('.daemon', 'replays')), 'handoff path not project scoped')
   assert(existsSync(result.handoff.data.contextPath), 'handoff file was not written')
   assert(readFileSync(result.handoff.data.contextPath, 'utf8').includes(devnetTx.signature), 'handoff file missing signature')
+  assert(result.verification.ok, result.verification.error ?? 'verifyFix failed')
+  assert.equal(result.verification.data.status, 'passed')
+  assert(result.verification.data.stdout.includes('verified replay fix'), 'verification output missing marker')
+  assert(existsSync(result.verification.data.resultPath), 'verification result was not written')
   assert(result.terminal.ok, result.terminal.error ?? 'agent terminal launch failed')
 
   return {
     signature: devnetTx.signature,
     contextPath: result.handoff.data.contextPath,
+    verificationPath: result.verification.data.resultPath,
     terminalId: result.terminal.data.id,
   }
 }
@@ -260,6 +270,7 @@ try {
   const result = await runReplayLoop(page, devnetTx)
   console.log(`Replay devnet loop passed: ${result.signature}`)
   console.log(`Replay context file: ${result.contextPath}`)
+  console.log(`Replay verification file: ${result.verificationPath}`)
 } finally {
   await browser?.close().catch(() => {})
   if (electronProcess && electronProcess.exitCode === null) {

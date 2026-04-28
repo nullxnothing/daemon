@@ -1,5 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { Connection, type ParsedTransactionWithMeta, type ParsedInstruction, type PartiallyDecodedInstruction, PublicKey, type ConfirmedSignatureInfo } from '@solana/web3.js'
 import { getConnection, getRpcEndpoint } from './SolanaService'
 import { isPathWithinBase } from '../shared/pathValidation'
@@ -12,11 +14,15 @@ import type {
   ReplayProgramSummary,
   ReplayContextHandoff,
   ReplayAgentHandoff,
+  ReplayVerificationResult,
 } from '../shared/types'
 
+const execFileAsync = promisify(execFile)
 const TRACE_TTL_MS = 5 * 60 * 1000
 const TRACE_CACHE_MAX = 64
 const traceCache = new Map<string, { value: ReplayTrace; expiresAt: number }>()
+const VERIFICATION_TIMEOUT_MS = 120_000
+const VERIFICATION_OUTPUT_MAX = 20_000
 
 const PROGRAM_LABELS: Record<string, string> = {
   '11111111111111111111111111111111': 'System Program',
@@ -404,6 +410,10 @@ function safeReplayFileName(signature: string): string {
   return `${signature.replace(/[^1-9A-HJ-NP-Za-km-z]/g, '').slice(0, 24)}.md`
 }
 
+function safeReplayStem(signature: string): string {
+  return signature.replace(/[^1-9A-HJ-NP-Za-km-z]/g, '').slice(0, 24)
+}
+
 function quoteForPowerShell(value: string): string {
   return `'${value.replace(/'/g, "''")}'`
 }
@@ -434,6 +444,77 @@ export function createAgentHandoff(projectPath: string, trace: ReplayTrace): Rep
     promptText,
     startupCommand: `claude --dangerously-skip-permissions -p ${quoteForPowerShell(promptText)}`,
   }
+}
+
+function trimVerificationOutput(value: string): string {
+  if (value.length <= VERIFICATION_OUTPUT_MAX) return value
+  return `${value.slice(0, VERIFICATION_OUTPUT_MAX)}\n\n[DAEMON truncated ${value.length - VERIFICATION_OUTPUT_MAX} chars]`
+}
+
+function shellForCommand(command: string): { file: string; args: string[] } {
+  if (process.platform === 'win32') {
+    return { file: 'cmd.exe', args: ['/d', '/s', '/c', command] }
+  }
+  return { file: '/bin/sh', args: ['-lc', command] }
+}
+
+export async function verifyReplayFix(
+  projectPath: string,
+  signature: string,
+  command: string,
+): Promise<ReplayVerificationResult> {
+  if (!isValidSignature(signature)) throw new Error('Invalid Solana transaction signature')
+  const safeCommand = command.trim()
+  if (!safeCommand) throw new Error('Verification command is required')
+  if (safeCommand.length > 500) throw new Error('Verification command is too long')
+
+  const resolvedProjectPath = path.resolve(projectPath)
+  const replayDir = path.join(resolvedProjectPath, '.daemon', 'replays')
+  const resultPath = path.join(replayDir, `${safeReplayStem(signature)}.verification.json`)
+  if (!isPathWithinBase(resultPath, resolvedProjectPath)) {
+    throw new Error('Replay verification path escaped the project directory')
+  }
+
+  fs.mkdirSync(replayDir, { recursive: true })
+  const startedAt = Date.now()
+  const { file, args } = shellForCommand(safeCommand)
+  let stdout = ''
+  let stderr = ''
+  let exitCode: number | null = 0
+
+  try {
+    const result = await execFileAsync(file, args, {
+      cwd: resolvedProjectPath,
+      encoding: 'utf8',
+      timeout: VERIFICATION_TIMEOUT_MS,
+      windowsHide: true,
+      maxBuffer: 1024 * 1024,
+    })
+    stdout = result.stdout ?? ''
+    stderr = result.stderr ?? ''
+  } catch (error) {
+    const err = error as Error & { stdout?: string; stderr?: string; code?: number | string | null; killed?: boolean }
+    stdout = err.stdout ?? ''
+    stderr = err.stderr ?? err.message
+    exitCode = typeof err.code === 'number' ? err.code : err.killed ? null : 1
+  }
+
+  const completedAt = Date.now()
+  const verification: ReplayVerificationResult = {
+    signature,
+    command: safeCommand,
+    cwd: resolvedProjectPath,
+    status: exitCode === 0 ? 'passed' : 'failed',
+    exitCode,
+    stdout: trimVerificationOutput(stdout),
+    stderr: trimVerificationOutput(stderr),
+    startedAt,
+    completedAt,
+    durationMs: completedAt - startedAt,
+    resultPath,
+  }
+  fs.writeFileSync(resultPath, JSON.stringify(verification, null, 2), 'utf8')
+  return verification
 }
 
 export function getCurrentRpcLabel(): string {

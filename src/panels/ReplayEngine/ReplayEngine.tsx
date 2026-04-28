@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReplayTrace, ReplayInstruction, ReplayProgramSummary } from '../../../electron/shared/types'
+import type { ReplayTrace, ReplayInstruction, ReplayProgramSummary, ReplayVerificationResult } from '../../../electron/shared/types'
 import { Dot } from '../../components/Dot'
 import { useUIStore } from '../../store/ui'
 import './ReplayEngine.css'
@@ -120,6 +120,10 @@ function AccountDiffRow({ diff }: { diff: ReplayTrace['accountDiffs'][number] })
   )
 }
 
+function defaultVerificationCommand(): string {
+  return 'pnpm run typecheck'
+}
+
 export function ReplayEngine() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -133,6 +137,9 @@ export function ReplayEngine() {
   const [error, setError] = useState<string | null>(null)
   const [rpcLabel, setRpcLabel] = useState<string>('')
   const [contextStatus, setContextStatus] = useState<string | null>(null)
+  const [verifyCommand, setVerifyCommand] = useState(defaultVerificationCommand)
+  const [verification, setVerification] = useState<ReplayVerificationResult | null>(null)
+  const [verifying, setVerifying] = useState(false)
   const sigRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -153,6 +160,7 @@ export function ReplayEngine() {
     setLoading(true)
     setError(null)
     setContextStatus(null)
+    setVerification(null)
     setProgram(null)
     try {
       const res = await window.daemon.replay.fetchTrace(sig.trim(), force)
@@ -171,6 +179,7 @@ export function ReplayEngine() {
     setLoading(true)
     setError(null)
     setContextStatus(null)
+    setVerification(null)
     setTrace(null)
     try {
       const res = await window.daemon.replay.fetchProgram(programId.trim(), 15)
@@ -222,6 +231,28 @@ export function ReplayEngine() {
       setContextStatus(`Agent handoff failed: ${(err as Error).message}`)
     }
   }, [activeProjectId, activeProjectPath, addTerminal, trace])
+
+  const handleVerifyFix = useCallback(async () => {
+    if (!trace) return
+    if (!activeProjectPath) {
+      setContextStatus('Open a project before running verification.')
+      return
+    }
+    setVerifying(true)
+    setContextStatus(null)
+    try {
+      const res = await window.daemon.replay.verifyFix(activeProjectPath, trace.signature, verifyCommand)
+      if (!res.ok || !res.data) throw new Error(res.error ?? 'Verification failed')
+      setVerification(res.data)
+      setContextStatus(res.data.status === 'passed'
+        ? `Verified fix passed in ${Math.round(res.data.durationMs / 100) / 10}s.`
+        : `Verification failed with exit code ${res.data.exitCode ?? 'n/a'}.`)
+    } catch (err) {
+      setContextStatus(`Verification failed: ${(err as Error).message}`)
+    } finally {
+      setVerifying(false)
+    }
+  }, [activeProjectPath, trace, verifyCommand])
 
   const handleSignatureSubmit = useCallback((event: React.FormEvent) => {
     event.preventDefault()
@@ -352,6 +383,50 @@ export function ReplayEngine() {
               </button>
             </div>
             {contextStatus ? <div className="replay-status-msg">{contextStatus}</div> : null}
+          </section>
+
+          <section className={`replay-verify-card ${verification?.status === 'passed' ? 'is-passed' : verification?.status === 'failed' ? 'is-failed' : ''}`}>
+            <div className="replay-verify-head">
+              <div>
+                <h2>Verified Fix</h2>
+                <p>Run the repo command that proves the agent patch actually works.</p>
+              </div>
+              <span className="replay-verify-state">
+                {verification ? (verification.status === 'passed' ? 'Verified' : 'Failed') : 'Not run'}
+              </span>
+            </div>
+            <div className="replay-verify-row">
+              <input
+                className="replay-verify-input"
+                value={verifyCommand}
+                onChange={(e) => setVerifyCommand(e.target.value)}
+                spellCheck={false}
+                disabled={verifying}
+                placeholder="pnpm run typecheck"
+              />
+              <button
+                type="button"
+                className="replay-button replay-button--hot"
+                onClick={() => void handleVerifyFix()}
+                disabled={verifying || !activeProjectPath || !verifyCommand.trim()}
+              >
+                {verifying ? 'Verifying…' : 'Run verification'}
+              </button>
+            </div>
+            {verification ? (
+              <div className="replay-verify-result">
+                <div className="replay-verify-meta">
+                  <span>exit {verification.exitCode ?? 'n/a'}</span>
+                  <span>{Math.round(verification.durationMs / 100) / 10}s</span>
+                  <span title={verification.resultPath}>{shortKey(verification.resultPath, 28, 18)}</span>
+                </div>
+                {(verification.stdout || verification.stderr) ? (
+                  <pre className="replay-verify-output">
+                    {[verification.stdout, verification.stderr].filter(Boolean).join('\n')}
+                  </pre>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           {trace.anchorError ? (
