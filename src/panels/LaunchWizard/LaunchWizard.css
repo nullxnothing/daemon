@@ -198,6 +198,51 @@
   line-height: 1.5;
 }
 
+.lw-daemon-deployer-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(62, 207, 142, 0.08), rgba(255, 216, 77, 0.04));
+  border: 1px solid rgba(62, 207, 142, 0.16);
+  border-radius: 8px;
+}
+
+.lw-daemon-deployer-card.active {
+  border-color: rgba(62, 207, 142, 0.42);
+  box-shadow: 0 0 0 1px rgba(62, 207, 142, 0.08) inset;
+}
+
+.lw-daemon-deployer-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t1);
+  margin-bottom: 3px;
+}
+
+.lw-daemon-deployer-copy {
+  font-size: 10px;
+  color: var(--t3);
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.lw-daemon-deployer-status {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.lw-daemon-deployer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* ── Image upload ── */
 .lw-image-row {
   display: flex;

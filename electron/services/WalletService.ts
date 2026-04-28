@@ -249,6 +249,7 @@ export function listWallets() {
     name: wallet.name,
     address: wallet.address,
     is_default: wallet.is_default,
+    wallet_type: wallet.wallet_type ?? 'user',
     created_at: wallet.created_at,
     assigned_project_ids: projectAssignments.get(wallet.id) ?? [],
   }))
@@ -267,6 +268,28 @@ export function createWallet(name: string, address: string) {
     'INSERT INTO wallets (id, name, address, is_default, created_at) VALUES (?,?,?,?,?)'
   ).run(id, trimmedName, trimmedAddress, existingDefault ? 0 : 1, Date.now())
   return db.prepare('SELECT id, name, address, is_default, created_at FROM wallets WHERE id = ?').get(id)
+}
+
+export function ensureWatchWallet(name: string, address: string, walletType = 'user') {
+  const trimmedName = name.trim()
+  const trimmedAddress = address.trim()
+  if (!trimmedName) throw new Error('Wallet name is required')
+  if (!isValidSolanaAddress(trimmedAddress)) throw new Error('Invalid Solana wallet address')
+
+  const db = getDb()
+  const existing = db.prepare('SELECT id FROM wallets WHERE address = ? LIMIT 1').get(trimmedAddress) as { id: string } | undefined
+  if (existing) {
+    db.prepare('UPDATE wallets SET wallet_type = ? WHERE id = ?').run(walletType, existing.id)
+    const wallet = listWallets().find((entry) => entry.id === existing.id)
+    if (!wallet) throw new Error('Could not resolve existing wallet')
+    return wallet
+  }
+
+  const created = createWallet(trimmedName, trimmedAddress) as { id: string }
+  db.prepare('UPDATE wallets SET wallet_type = ? WHERE id = ?').run(walletType, created.id)
+  const wallet = listWallets().find((entry) => entry.id === created.id)
+  if (!wallet) throw new Error('Could not resolve created wallet')
+  return wallet
 }
 
 export function deleteWallet(id: string) {
