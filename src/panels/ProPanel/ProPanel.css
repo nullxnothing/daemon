@@ -121,12 +121,87 @@
 }
 
 .pro-overview,
+.pro-staking,
 .pro-skills,
 .pro-sync,
 .pro-arena {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.pro-staking-hero,
+.pro-staking-actions-card,
+.pro-staking-tier-card {
+  padding: 16px;
+  background: var(--s1);
+  border: 1px solid var(--s4);
+  border-radius: 8px;
+}
+
+.pro-staking-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  background:
+    radial-gradient(circle at top right, rgba(62, 207, 142, 0.12), transparent 35%),
+    linear-gradient(145deg, rgba(15, 19, 17, 0.98), rgba(24, 30, 27, 0.92));
+}
+
+.pro-staking-pill-group,
+.pro-staking-action-row,
+.pro-staking-tier-head {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pro-staking-pill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--s4);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t3);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pro-staking-pill.eligible,
+.pro-staking-pill.live {
+  border-color: rgba(62, 207, 142, 0.42);
+  color: var(--green);
+}
+
+.pro-staking-pill.planned {
+  border-color: rgba(241, 207, 117, 0.32);
+  color: #f1cf75;
+}
+
+.pro-staking-pill-live {
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #8ab4ff;
+}
+
+.pro-staking-status-grid,
+.pro-staking-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pro-staking-tier-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pro-staking-unlocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .pro-hero {
@@ -398,8 +473,13 @@
 }
 
 @media (max-width: 900px) {
+  .pro-staking-hero,
   .pro-arena-contest,
   .pro-form-split {
     grid-template-columns: 1fr;
+  }
+
+  .pro-staking-hero {
+    flex-direction: column;
   }
 }
