@@ -46,6 +46,7 @@ import {
   fetchProgramRecentTraces,
   buildClaudeContext,
   createAgentHandoff,
+  verifyReplayFix,
   __resetCacheForTests,
 } from '../../electron/services/ReplayEngineService'
 
@@ -242,6 +243,27 @@ describe('ReplayEngineService', () => {
       expect(fs.readFileSync(handoff.contextPath, 'utf8')).toContain(VALID_SIG)
       expect(handoff.promptText).toContain(handoff.contextPath)
       expect(handoff.startupCommand).toContain('claude --dangerously-skip-permissions -p')
+    })
+
+    it('runs and records a passing verification command', async () => {
+      const projectPath = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-verify-'))
+      const command = 'echo verified'
+      const result = await verifyReplayFix(projectPath, VALID_SIG, command)
+
+      expect(result.status).toBe('passed')
+      expect(result.command).toBe(command)
+      expect(result.stdout).toContain('verified')
+      expect(fs.existsSync(result.resultPath)).toBe(true)
+      expect(JSON.parse(fs.readFileSync(result.resultPath, 'utf8')).status).toBe('passed')
+    })
+
+    it('records failing verification commands without throwing', async () => {
+      const projectPath = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-verify-fail-'))
+      const result = await verifyReplayFix(projectPath, VALID_SIG, 'exit 7')
+
+      expect(result.status).toBe('failed')
+      expect(result.exitCode).toBe(7)
+      expect(fs.existsSync(result.resultPath)).toBe(true)
     })
   })
 })

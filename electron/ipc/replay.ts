@@ -5,6 +5,7 @@ import {
   fetchProgramRecentTraces,
   buildClaudeContext,
   createAgentHandoff,
+  verifyReplayFix,
   getCurrentRpcLabel,
 } from '../services/ReplayEngineService'
 import { validateCwd } from '../shared/pathValidation'
@@ -38,6 +39,14 @@ export function registerReplayHandlers(): void {
       validateCwd(projectPath)
       const trace = await fetchTransactionTrace(signature)
       return createAgentHandoff(projectPath, trace)
+    }),
+  )
+
+  ipcMain.handle(
+    'replay:verify-fix',
+    ipcHandler(async (_event, projectPath: string, signature: string, command: string) => {
+      validateCwd(projectPath)
+      return verifyReplayFix(projectPath, signature, command)
     }),
   )
 

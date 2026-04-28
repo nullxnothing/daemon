@@ -1209,3 +1209,17 @@ export interface ReplayAgentHandoff extends ReplayContextHandoff {
   promptText: string
   startupCommand: string
 }
+
+export interface ReplayVerificationResult {
+  signature: string
+  command: string
+  cwd: string
+  status: 'passed' | 'failed'
+  exitCode: number | null
+  stdout: string
+  stderr: string
+  startedAt: number
+  completedAt: number
+  durationMs: number
+  resultPath: string
+}
