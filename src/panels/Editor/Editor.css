@@ -89,6 +89,15 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  min-height: 0;
+}
+
+.editor-tool-content {
+  overflow: auto;
+}
+
+.editor-tool-content > * {
+  min-height: 100%;
 }
 
 .editor-breadcrumbs {

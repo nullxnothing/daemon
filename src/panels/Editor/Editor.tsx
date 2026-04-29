@@ -497,7 +497,7 @@ export function EditorPanel() {
           dashboardTabActive={dashboardTabActive}
           onDashboardTabClick={handleDashboardTabClick}
         />
-        <div className="editor-content">
+        <div className="editor-content editor-tool-content">
           <Suspense fallback={<WorkspacePanelFallback />}>
             {activeWorkspaceTool ? (
               <PanelErrorBoundary fallbackLabel={`${activeWorkspaceTool.name} crashed — reopen the tab to reload`}>
@@ -540,7 +540,7 @@ export function EditorPanel() {
         onDashboardTabClick={handleDashboardTabClick}
       />
       {activeWorkspaceTool ? (
-        <div className="editor-content">
+        <div className="editor-content editor-tool-content">
           <Suspense fallback={<WorkspacePanelFallback />}>
             <PanelErrorBoundary fallbackLabel={`${activeWorkspaceTool.name} crashed — reopen the tab to reload`}>
               <activeWorkspaceTool.component />
