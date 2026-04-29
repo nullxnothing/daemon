@@ -14,6 +14,12 @@
   --t3:    #6a6a6a;  /* Tertiary/muted - 4.5:1 contrast (AA minimum) */
   --t4:    #4a4a4a;  /* Disabled/placeholder - decorative only */
 
+  /* Legacy semantic aliases used by older panels */
+  --text-primary:   var(--t1);
+  --text-secondary: var(--t2);
+  --text-tertiary:  var(--t3);
+  --text-muted:     var(--t4);
+
   /* Accent colors - cleaner, more vibrant */
   --green:       #3ecf8e;  /* Primary accent - modern teal-green */
   --green-dim:   #2a9d6a;  /* Hover/pressed state */
@@ -42,6 +48,7 @@
   --warning:     var(--amber);
   --error:       var(--red);
   --info:        var(--blue);
+  --accent:      var(--green);
 
   /* Interactive state overlays */
   --hover-overlay:  rgba(255, 255, 255, 0.04);
@@ -50,9 +57,48 @@
   --active-bg:      var(--active-overlay);
   --focus-ring:     0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
 
-  /* Typography */
+  /* Typography — families */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Typography — size scale (single source of truth, no panel may set font-size in px) */
+  --fs-9:    9px;
+  --fs-10:  10px;
+  --fs-11:  11px;
+  --fs-12:  12px;
+  --fs-13:  13px;   /* body baseline (matches base.css) */
+  --fs-14:  14px;
+  --fs-16:  16px;
+  --fs-18:  18px;
+  --fs-20:  20px;
+  --fs-24:  24px;
+  --fs-32:  32px;
+  --fs-display: 40px;
+
+  /* Legacy aliases — existing components reference these, keep them mapped */
+  --font-xs:   var(--fs-10);
+  --font-sm:   var(--fs-11);
+  --font-base: var(--fs-12);
+  --font-md:   var(--fs-13);
+  --font-lg:   var(--fs-16);
+
+  /* Typography — weight scale */
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* Typography — line height */
+  --lh-tight:   1.1;
+  --lh-snug:    1.3;
+  --lh-normal:  1.5;
+  --lh-relaxed: 1.7;
+
+  /* Typography — letter spacing */
+  --ls-tight:    -0.01em;
+  --ls-normal:   0;
+  --ls-eyebrow:  0.16em;   /* uppercase kicker / label */
+  --ls-caps:     0.08em;   /* small uppercase headings */
 
   /* Layout dimensions */
   --titlebar-h: 38px;
@@ -62,16 +108,55 @@
   --statusbar-h: 22px;
 
   /* Spacing scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
+  --space-2xs:  2px;
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
 
-  /* Border radius */
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  /* Panel layout (used by PanelHeader, panel bodies) */
+  --panel-pad-x:        var(--space-lg);
+  --panel-pad-y:        var(--space-md);
+  --panel-section-gap:  var(--space-lg);
+  --panel-content-max:  1280px;
+
+  /* Border radius — keep small set, alias card/pill semantics */
+  --radius-sm:   3px;
+  --radius-md:   4px;
+  --radius-lg:   6px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /* Control sizing */
+  --btn-h-sm: 24px;
+  --btn-h-md: 32px;
+  --btn-h-lg: 40px;
+  --input-h:  32px;
+
+  /* Elevation — a small shadow scale; no panel may inline rgba shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.32);
+  --shadow-lifted: var(--shadow-md);
+
+  /* Glow accents — referenced by existing Button.css */
+  --glow-green-soft:    0 0 0 1px var(--green-glow), 0 0 12px var(--green-glow);
+  --glow-amber-soft:    0 0 0 1px var(--amber-glow), 0 0 12px var(--amber-glow);
+  --glow-red-soft:      0 0 0 1px var(--red-glow),   0 0 12px var(--red-glow);
+  --glow-blue-soft:     0 0 0 1px var(--blue-glow),  0 0 12px var(--blue-glow);
+  --glow-green-ambient: 0 0 24px var(--green-glow);
+
+  /* Glass surfaces (popovers, command palette, dropdown menus) */
+  --glass-bg:     color-mix(in srgb, var(--s1) 88%, transparent);
+  --glass-blur:   blur(18px);
+  --border-glass: color-mix(in srgb, var(--border) 70%, rgba(255, 255, 255, 0.06));
+  --shadow-float: 0 16px 48px rgba(0, 0, 0, 0.36);
+
+  /* Shared surface gradients retained for compatibility while panels migrate. */
+  --surface-gradient-subtle: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent);
 
   /* Transitions */
   --transition-fast: 0.1s ease;

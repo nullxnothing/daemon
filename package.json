@@ -34,7 +34,8 @@
     "test:responsive": "pnpm run build && node scripts/smoke/app-responsive.mjs",
     "test:layout": "pnpm run build && node scripts/smoke/layout-cohesion.mjs",
     "test:visual": "pnpm run build && node scripts/smoke/visual-regression.mjs",
-    "test:visual:update": "pnpm run build && node scripts/smoke/visual-regression.mjs --update"
+    "test:visual:update": "pnpm run build && node scripts/smoke/visual-regression.mjs --update",
+    "lint:styles": "node scripts/style-debt-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

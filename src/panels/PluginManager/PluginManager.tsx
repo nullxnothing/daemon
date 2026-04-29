@@ -2,6 +2,8 @@ import { FormEvent, useMemo, useState } from 'react'
 import { usePluginStore } from '../../store/plugins'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { Toggle } from '../../components/Toggle'
+import { Button } from '../../components/Button'
+import { Card, PanelHeader, StatusDot, Toolbar } from '../../components/Panel'
 import type { PluginRow } from '../../types/daemon.d'
 import './PluginManager.css'
 
@@ -149,33 +151,30 @@ export function PluginManager() {
 
   return (
     <div className="plugin-manager">
-      <div className="panel-header">PLUGINS</div>
-
-      <div className="plugin-manager-body">
-        <section className="plugin-manager-hero">
-          <div>
-            <div className="plugin-manager-kicker">PLUGIN-FIRST IDE</div>
-            <h2>Keep DAEMON core lean. Let builders bring the tools.</h2>
-            <p>
-              Register Arena tools, npm packages, CLIs, MCPs, or local workflows here, then enable only the surfaces your project needs.
-            </p>
-          </div>
+      <PanelHeader
+        kicker="Plugin-first IDE"
+        title="Keep DAEMON core lean. Let builders bring the tools."
+        subtitle="Register Arena tools, npm packages, CLIs, MCPs, or local workflows here, then enable only the surfaces your project needs."
+        actions={(
           <div className="plugin-manager-hero-badges">
             <span>Core shell stays stable</span>
             <span>Add-ons stay optional</span>
             <span>Builders get visible credit</span>
           </div>
-        </section>
+        )}
+      />
 
-        <form className="plugin-add-card" onSubmit={handleAdd}>
+      <div className="plugin-manager-body">
+        <Card>
+          <form className="plugin-add-card" onSubmit={handleAdd}>
           <div className="plugin-add-header">
             <div>
               <div className="plugin-add-title">Add external plugin</div>
               <div className="plugin-add-subtitle">First step toward Arena/community plugin registration.</div>
             </div>
-            <button className="plugin-add-submit" type="submit" disabled={isAdding}>
+            <Button variant="primary" size="md" type="submit" disabled={isAdding}>
               {isAdding ? 'Adding...' : 'Add Plugin'}
-            </button>
+            </Button>
           </div>
 
           <div className="plugin-add-grid">
@@ -225,7 +224,8 @@ export function PluginManager() {
           </div>
 
           {addError && <div className="plugin-add-error">{addError}</div>}
-        </form>
+          </form>
+        </Card>
 
         <div className="plugin-manager-list">
           {sorted.map((plugin, i) => {
@@ -233,12 +233,9 @@ export function PluginManager() {
             const isEnabled = plugin.enabled === 1
 
             return (
-              <div key={plugin.id} className="plugin-card">
+              <Card key={plugin.id} className="plugin-card">
                 <div className="plugin-card-header">
-                  <div
-                    className="plugin-status-dot"
-                    style={{ background: isEnabled ? 'var(--green)' : 'var(--t3)' }}
-                  />
+                  <StatusDot tone={isEnabled ? 'success' : 'neutral'} className="plugin-status-dot" />
                   <div className="plugin-card-info">
                     <div className="plugin-card-name-row">
                       <span className="plugin-card-name">{display.name}</span>
@@ -254,8 +251,9 @@ export function PluginManager() {
                       </div>
                     )}
                   </div>
-                  <div className="plugin-card-actions">
-                    <button
+                  <Toolbar className="plugin-card-actions">
+                    <Button
+                      variant="ghost"
                       className="plugin-reorder-btn"
                       onClick={() => handleMoveUp(i)}
                       disabled={i === 0}
@@ -264,8 +262,9 @@ export function PluginManager() {
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M6 2v8M3 5l3-3 3 3" />
                       </svg>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
                       className="plugin-reorder-btn"
                       onClick={() => handleMoveDown(i)}
                       disabled={i >= sorted.length - 1}
@@ -274,14 +273,14 @@ export function PluginManager() {
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M6 10V2M3 7l3 3 3-3" />
                       </svg>
-                    </button>
+                    </Button>
                     <Toggle
                       checked={isEnabled}
                       onChange={(checked) => toggle(plugin.id, checked)}
                     />
-                  </div>
+                  </Toolbar>
                 </div>
-              </div>
+              </Card>
             )
           })}
 

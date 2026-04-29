@@ -1,0 +1,33 @@
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--s2);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.padded-sm { padding: var(--space-md); }
+.padded-lg { padding: var(--space-xl); }
+.flush     { padding: 0; }
+
+.success { border-color: color-mix(in srgb, var(--green) 28%, var(--border)); }
+.warn    { border-color: color-mix(in srgb, var(--amber) 30%, var(--border)); }
+.danger  { border-color: color-mix(in srgb, var(--red)   30%, var(--border)); }
+.info    { border-color: color-mix(in srgb, var(--blue)  30%, var(--border)); }
+
+.interactive {
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.interactive:hover {
+  border-color: var(--border-hover);
+  background: var(--s3);
+}
+
+.selected {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 6%, var(--s2));
+}
