@@ -60,6 +60,7 @@
   /* Typography — families */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --mono: var(--font-code);
 
   /* Typography — size scale (single source of truth, no panel may set font-size in px) */
   --fs-9:    9px;

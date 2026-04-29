@@ -7,9 +7,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  gap: 4px;
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  gap: var(--space-xs);
   position: relative;
 }
 
@@ -20,11 +20,11 @@
   align-items: center;
   justify-content: center;
   color: var(--t3);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   position: relative;
   border: 1px solid transparent;
   background: transparent;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.12s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
 .sidebar-icon svg {
@@ -34,8 +34,8 @@
 
 .sidebar-icon:hover {
   color: var(--t1);
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
 }
 
 .sidebar-icon:hover svg {
@@ -44,8 +44,8 @@
 
 .sidebar-icon.active {
   color: var(--t1);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: var(--active-bg);
+  border-color: var(--border-hover);
 }
 
 .sidebar-icon.active::before {
@@ -56,7 +56,7 @@
   bottom: 10px;
   width: 2px;
   background: var(--green);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .sidebar-icon.sidebar-toggle.active {
@@ -80,16 +80,16 @@
 
 .sidebar-icon--drop-target {
   background: var(--green-glow);
-  box-shadow: 0 0 0 1px var(--green);
+  box-shadow: var(--glow-green-soft);
 }
 
 /* Drop zone for adding new pinned tools — visible faint outline so users
-   discover that they can drag drawer tools here */
+  discover that they can drag drawer tools here */
 .sidebar-drop-zone {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  margin: 4px auto;
+  width: var(--btn-h-md);
+  height: var(--btn-h-md);
+  border-radius: var(--radius-lg);
+  margin: var(--space-xs) auto;
   transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
   border: 1px dashed var(--s5);
   opacity: 0.5;
@@ -97,7 +97,7 @@
   align-items: center;
   justify-content: center;
   color: var(--t4);
-  font-size: 14px;
+  font-size: var(--fs-14);
   background: transparent;
   cursor: pointer;
   position: relative;
@@ -117,7 +117,7 @@
   opacity: 0.9;
   border-color: var(--green);
   color: var(--green);
-  background: rgba(62, 207, 142, 0.08);
+  background: var(--green-glow);
 }
 
 .sidebar-drop-zone--active {
@@ -135,7 +135,7 @@
   width: 24px;
   height: 1px;
   background: var(--s4);
-  margin: 6px auto;
+  margin: var(--space-sm) auto;
   flex-shrink: 0;
 }
 
@@ -144,7 +144,7 @@
   width: 16px;
   height: 1px;
   background: var(--s3);
-  margin: 4px auto;
+  margin: var(--space-xs) auto;
   flex-shrink: 0;
 }
 
@@ -159,12 +159,12 @@
 
 .sidebar-submenu {
   position: absolute;
-  left: calc(100% + 8px);
+  left: calc(100% + var(--space-sm));
   top: 0;
   min-width: 180px;
-  padding: 8px;
+  padding: var(--space-sm);
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-float);
@@ -179,21 +179,21 @@
 }
 
 .sidebar-submenu-group {
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--t3);
-  padding: 2px 8px 6px;
+  padding: var(--space-2xs) var(--space-sm) 6px;
 }
 
 .sidebar-submenu-item {
   width: 100%;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
   background: transparent;
-  border-radius: 6px;
-  padding: 7px 8px;
+  border-radius: var(--radius-lg);
+  padding: 7px var(--space-sm);
 }
 
 .sidebar-submenu-item:hover {
@@ -204,12 +204,12 @@
 .sidebar-submenu-item--tool {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .sidebar-submenu-empty {
-  padding: 8px;
-  font-size: 12px;
+  padding: var(--space-sm);
+  font-size: var(--fs-12);
   color: var(--t3);
   line-height: 1.5;
 }
@@ -219,29 +219,29 @@
 .colosseum-icon-wrap {
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   width: 34px;
   height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #ffd84d;
+  color: var(--amber);
   border: 1px solid transparent;
   background: transparent;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.12s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .colosseum-icon-wrap:hover {
-  color: #ffe270;
-  border-color: rgba(255, 216, 77, 0.14);
-  background: rgba(255, 216, 77, 0.05);
+  color: var(--amber);
+  border-color: var(--amber-glow);
+  background: var(--amber-glow);
 }
 
 .colosseum-icon-wrap.active {
-  color: #ffe270;
-  border-color: rgba(255, 216, 77, 0.18);
-  background: rgba(255, 216, 77, 0.06);
+  color: var(--amber);
+  border-color: var(--amber-glow);
+  background: var(--amber-glow);
 }
 
 .colosseum-icon-wrap::after {
@@ -251,7 +251,7 @@
   left: -100%;
   width: 200%;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, transparent 40%, var(--green) 48%, rgba(62,207,142,0.6) 50%, var(--green) 52%, transparent 60%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, transparent 40%, var(--green) 48%, var(--green-glow) 50%, var(--green) 52%, transparent 60%, transparent 100%);
   animation: colosseum-pulse 3s linear infinite;
   opacity: 0.6;
 }

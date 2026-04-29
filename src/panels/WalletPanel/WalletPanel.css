@@ -622,6 +622,10 @@
   text-align: center;
 }
 
+.wallet-empty-message {
+  margin-bottom: var(--space-md);
+}
+
 /* ── Send Form ── */
 
 .wallet-form {
@@ -1863,10 +1867,7 @@
 /* ── UX polish overrides ── */
 
 .wallet-panel {
-  background:
-    radial-gradient(circle at top right, rgba(62, 207, 142, 0.05), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%),
-    var(--bg);
+  background: var(--bg);
 }
 
 .wallet-workspace-bar {
@@ -1875,7 +1876,7 @@
   z-index: 3;
   padding: var(--drawer-space-inline) var(--drawer-section-pad) 14px;
   backdrop-filter: blur(18px);
-  border-bottom-color: color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
+  border-bottom-color: var(--border);
 }
 
 .wallet-workspace-copy {
@@ -1892,22 +1893,16 @@
 
 .wallet-workspace-metric {
   border-radius: var(--drawer-card-radius);
-  border-color: color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
-  box-shadow:
-    0 14px 26px rgba(0, 0, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  border-color: var(--border);
+  background: var(--s2);
+  box-shadow: none;
 }
 
 .wallet-tabs {
   gap: 8px;
   padding: 10px var(--drawer-space-inline) var(--drawer-space-block);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
-    color-mix(in srgb, var(--s1) 94%, black 6%);
-  border-bottom-color: color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
+  background: var(--s1);
+  border-bottom-color: var(--border);
 }
 
 .wallet-tab {
@@ -1923,16 +1918,14 @@
 }
 
 .wallet-tab:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
 }
 
 .wallet-tab--active {
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.08), transparent),
-    rgba(255, 255, 255, 0.03);
+  background: var(--green-glow);
   border-color: color-mix(in srgb, var(--green) 36%, var(--border) 64%);
-  box-shadow: 0 10px 24px rgba(62, 207, 142, 0.08);
+  box-shadow: none;
 }
 
 .wallet-expand-btn {
@@ -1943,11 +1936,11 @@
 }
 
 .wallet-expand-btn:hover {
-  border-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-hover);
 }
 
 .wallet-tab-content {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.012), transparent 18%);
+  background: var(--bg);
 }
 
 .wallet-section {
@@ -1969,13 +1962,9 @@
 .wallet-runtime-summary-item,
 .wallet-row-card,
 .wallet-transaction-preview {
-  border-color: color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  border-color: var(--border);
+  background: var(--s2);
+  box-shadow: none;
 }
 
 .wallet-row-card:hover {
@@ -1988,6 +1977,6 @@
 .vault-input,
 .vault-select,
 .vault-textarea {
-  border-color: color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  background: color-mix(in srgb, var(--s2) 88%, black 12%);
+  border-color: var(--border);
+  background: var(--s2);
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { Button } from '../../components/Button'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
 import './WalletPanel.css'
@@ -53,17 +54,10 @@ export function WalletPanel() {
           <span className="wallet-panel-title">Wallet</span>
         </div>
         <div className="wallet-empty">
-          <div style={{ marginBottom: 12 }}>Wallet data couldn't load.</div>
-          <button
-            onClick={() => void load()}
-            style={{
-              padding: '6px 14px', fontSize: 12,
-              background: 'var(--s3)', color: 'var(--t1)',
-              border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
-            }}
-          >
+          <div className="wallet-empty-message">Wallet data couldn't load.</div>
+          <Button size="sm" onClick={() => void load()}>
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     )
