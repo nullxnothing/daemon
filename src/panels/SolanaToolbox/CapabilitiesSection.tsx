@@ -8,9 +8,10 @@ interface CapabilitiesSectionProps {
   onToggle: (projectPath: string, name: string, enabled: boolean) => void
   onScaffoldX402: () => void
   onScaffoldMpp: () => void
+  onScaffoldLight: () => void
 }
 
-export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp }: CapabilitiesSectionProps) {
+export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight }: CapabilitiesSectionProps) {
   const [copiedSkill, setCopiedSkill] = useState<string | null>(null)
   const [showAllSkills, setShowAllSkills] = useState(false)
 
@@ -64,6 +65,17 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-desc">Agent-to-agent payments</div>
             <div className="solana-integration-actions">
               <button className="sol-btn" onClick={onScaffoldMpp} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">Light Protocol</div>
+            <div className="solana-integration-desc">ZK Compression + compressed tokens</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldLight} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>

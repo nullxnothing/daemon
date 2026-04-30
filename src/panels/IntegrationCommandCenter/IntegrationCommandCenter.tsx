@@ -89,7 +89,7 @@ function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
   if (context.secureKeys.HELIUS_API_KEY || context.mcps.some((entry) => entry.name === 'helius' && entry.enabled)) suggestions.push('helius')
   if (context.secureKeys.JUPITER_API_KEY) suggestions.push('integrating-jupiter')
   if (context.packages.has('@metaplex-foundation/umi')) suggestions.push('metaplex')
-  if (context.packages.has('@lightprotocol/stateless.js')) suggestions.push('light-protocol')
+  if (context.packages.has('@lightprotocol/stateless.js') || context.packages.has('@lightprotocol/compressed-token')) suggestions.push('light-protocol')
   if (context.packages.has('@raydium-io/raydium-sdk-v2')) suggestions.push('raydium')
 
   return suggestions.length > 0 ? suggestions : ['solana-agent-kit', 'helius', 'integrating-jupiter']
@@ -126,14 +126,30 @@ function buildLightCompressionStarter(): string {
     throw new Error('Missing RPC_URL. Copy .env.example into .env and set a compression-capable RPC first.')
   }
 
-  const light = await import('@lightprotocol/stateless.js')
-  const exportedKeys = Object.keys(light).sort()
+  const stateless = await import('@lightprotocol/stateless.js')
+  const compressedToken = await import('@lightprotocol/compressed-token')
+  const createRpc = stateless.createRpc
+  const rpc = typeof createRpc === 'function' ? createRpc(rpcUrl, rpcUrl) : null
+  const statelessExports = Object.keys(stateless).sort()
+  const tokenExports = Object.keys(compressedToken).sort()
 
   console.log('Light Protocol starter is ready.')
   console.log(\`RPC: \${rpcUrl}\`)
-  console.log(\`Exports detected: \${exportedKeys.length}\`)
-  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
-  console.log('Next step: replace this import check with the compressed-state flow you want DAEMON to guide.')
+  console.log(\`Stateless exports detected: \${statelessExports.length}\`)
+  console.log(\`Compressed token exports detected: \${tokenExports.length}\`)
+
+  if (rpc && typeof rpc.getIndexerHealth === 'function') {
+    try {
+      const health = await rpc.getIndexerHealth()
+      console.log(\`Indexer health: \${JSON.stringify(health)}\`)
+    } catch (error) {
+      console.warn('Indexer health check was unavailable on this RPC endpoint.')
+      console.warn(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  console.log('Next step: add a read-only getCompressedTokenAccountsByOwner check for the wallet you want DAEMON to guide.')
+  console.log('Keep transaction builders behind explicit confirmation; compressed-account proof flows need compute budget and fee previews.')
 }
 
 main().catch((error) => {
@@ -815,6 +831,9 @@ export function IntegrationCommandCenter() {
   const envKeys = useMemo(() => new Set(
     envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
   ), [envFiles])
+  const lightStatelessReady = packageInfo.packages.has('@lightprotocol/stateless.js')
+  const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
+  const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
   const sendAiSetupPlan = useMemo(
     () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
     [packageInfo, lockfiles, envKeys],
@@ -1816,13 +1835,13 @@ export function IntegrationCommandCenter() {
               sectionTitle="Compression workflow"
               title="Scaffold the first Light compression starter"
               description="Light Protocol should begin with a concrete compression-capable project check, not a generic package status card."
-              status={Boolean(activeProjectPath) && packageInfo.packages.has('@lightprotocol/stateless.js') && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              status={Boolean(activeProjectPath) && lightPackagesReady && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
               result={actionResult}
-              nextLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !lightPackagesReady ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
               nextDetail={!activeProjectPath
                 ? 'Open or scaffold a project first so the compression starter can be written into source.'
-                : !packageInfo.packages.has('@lightprotocol/stateless.js')
-                  ? 'Install the Light SDK before DAEMON scaffolds the starter file.'
+                : !lightPackagesReady
+                  ? 'Install the Light SDK and compressed-token package before DAEMON scaffolds the starter file.'
                   : !envKeys.has('RPC_URL')
                     ? 'Add a compression-capable RPC first so the starter has a real target.'
                     : 'Write a runnable compression starter into the project and add the package script.'}
@@ -1832,15 +1851,16 @@ export function IntegrationCommandCenter() {
               ]}
               items={[
                 { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the Light starter.', ready: Boolean(activeProjectPath) },
-                { label: 'Light SDK', detail: packageInfo.packages.has('@lightprotocol/stateless.js') ? 'The Light SDK is already installed.' : 'Install the Light SDK package before scaffolding the starter.', ready: packageInfo.packages.has('@lightprotocol/stateless.js') },
+                { label: 'Light SDK', detail: lightStatelessReady ? 'The Light SDK is already installed.' : 'Install @lightprotocol/stateless.js before scaffolding the starter.', ready: lightStatelessReady },
+                { label: 'Compressed token SDK', detail: lightCompressedTokenReady ? 'The compressed token package is already installed.' : 'Install @lightprotocol/compressed-token before compressed-token flows.', ready: lightCompressedTokenReady },
                 { label: 'Compression-capable RPC', detail: envKeys.has('RPC_URL') ? 'RPC_URL is available for the starter check.' : 'Add RPC_URL so the compression starter has a real endpoint.', ready: envKeys.has('RPC_URL') },
               ]}
-              primaryLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
-              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating compression starter...'}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !lightPackagesReady ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !lightPackagesReady ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating compression starter...'}
               busy={runningGuidedFlow === 'Install Light SDK' || runningGuidedFlow === 'light-starter'}
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
-                : !packageInfo.packages.has('@lightprotocol/stateless.js')
+                : !lightPackagesReady
                   ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Light SDK')
                   : !envKeys.has('RPC_URL')
                     ? () => openWorkspaceTool('env')

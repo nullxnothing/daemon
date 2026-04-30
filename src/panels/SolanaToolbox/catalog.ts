@@ -273,6 +273,16 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     skill: '/metaplex',
   },
   {
+    id: 'light-protocol',
+    label: 'Light Protocol',
+    area: 'Protocols',
+    kind: 'Skill',
+    status: 'guided',
+    description: 'ZK Compression, compressed token accounts, and rent-efficient compressed PDAs for high-scale Solana apps.',
+    docsUrl: 'https://www.zkcompression.com',
+    skill: '/light-protocol',
+  },
+  {
     id: 'raydium',
     label: 'Raydium',
     area: 'Protocols',
@@ -402,6 +412,15 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     docsUrl: 'https://developers.metaplex.com/',
     kickoff: 'Use Metaplex for metadata, Core assets, Bubblegum, and mint workflows.',
     installHint: 'pnpm add @metaplex-foundation/umi',
+  },
+  {
+    id: 'light',
+    label: 'Light Protocol',
+    status: 'guided',
+    skill: '/light-protocol',
+    docsUrl: 'https://www.zkcompression.com',
+    kickoff: 'Start with RPC readiness, compressed-token account reads, and rent/cost estimates before enabling mint, compress, or transfer flows.',
+    installHint: 'pnpm add @lightprotocol/stateless.js @lightprotocol/compressed-token',
   },
   {
     id: 'raydium',

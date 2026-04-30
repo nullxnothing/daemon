@@ -61,6 +61,9 @@ export function detect(projectPath: string): SolanaProjectInfo {
         '@solana/wallet-adapter-react',
         '@phantom/browser-sdk',
         '@phantom/react-sdk',
+        '@lightprotocol/stateless.js',
+        '@lightprotocol/compressed-token',
+        '@lightprotocol/light-token',
         '@coral-xyz/anchor',
         '@project-serum/anchor',
       ]

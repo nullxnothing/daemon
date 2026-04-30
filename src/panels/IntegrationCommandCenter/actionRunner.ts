@@ -84,11 +84,16 @@ export async function runIntegrationAction(actionId: string, context: Integratio
   }
 
   if (actionId === 'check-light-package') {
-    const ready = context.packages.has('@lightprotocol/stateless.js')
+    const packages = ['@lightprotocol/stateless.js', '@lightprotocol/compressed-token']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
     return {
-      title: 'Light Protocol package',
-      status: ready ? 'success' : 'info',
-      detail: ready ? 'Light Protocol SDK is listed in package.json.' : 'Light Protocol SDK is not installed in this project yet.',
+      title: 'Light Protocol packages',
+      status: missing.length === 0 ? 'success' : installed.length > 0 ? 'info' : 'warning',
+      detail: missing.length === 0
+        ? 'Light Protocol SDK packages are listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install both packages before compressed-token flows.`,
+      items: missing.length === 0 ? installed : missing,
     }
   }
 

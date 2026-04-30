@@ -470,7 +470,7 @@ describe('App surface DOM coverage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Install Light SDK' }))
     expect(await screen.findByText('Install Light SDK opened')).toBeInTheDocument()
     expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
-      startupCommand: 'pnpm add @lightprotocol/stateless.js',
+      startupCommand: 'pnpm add @lightprotocol/stateless.js @lightprotocol/compressed-token',
     }))
 
     useUIStore.getState().setIntegrationCommandSelectionId('metaplex')
