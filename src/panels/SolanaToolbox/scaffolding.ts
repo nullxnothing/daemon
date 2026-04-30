@@ -57,3 +57,19 @@ export async function scaffoldLightProtocol(projectId: string): Promise<void> {
     'Light Protocol Scaffold',
   )
 }
+
+export async function scaffoldMagicBlock(projectId: string): Promise<void> {
+  await spawnAndShowAgent(
+    projectId,
+    [
+      'Add a MagicBlock Ephemeral Rollups starter to this project.',
+      'Check package.json first, then install @magicblock-labs/ephemeral-rollups-sdk if missing.',
+      'If this is an Anchor program, also inspect Cargo.toml and add guidance for the ephemeral-rollups-sdk Rust dependency without changing program instructions automatically.',
+      'Add env documentation for RPC_URL as the Solana base-layer RPC and MAGICBLOCK_ROUTER_URL for Magic Router, defaulting examples to https://devnet-router.magicblock.app.',
+      'Create a small read-only helper or script that imports the MagicBlock SDK, prints available router/delegation exports, and documents how base-layer and Ephemeral Rollup connections differ.',
+      'Keep this starter read-only by default: do not delegate, commit, undelegate, or send ER transactions unless the user explicitly asks for the next implementation step.',
+      'Document MagicBlock constraints: verify account delegation before ER sends, never mix base-layer and ER operations in one transaction, use skipPreflight only on the ER path, and confirm commits before base-layer reads.',
+    ].join(' '),
+    'MagicBlock Scaffold',
+  )
+}

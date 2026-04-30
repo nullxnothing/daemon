@@ -6,6 +6,7 @@ const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
   jupiter: 'jupiter',
   metaplex: 'metaplex',
   light: 'light-protocol',
+  magicblock: 'magicblock',
   raydium: 'token-launch-stack',
   meteora: 'token-launch-stack',
 }

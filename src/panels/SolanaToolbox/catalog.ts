@@ -83,7 +83,7 @@ export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
 
 export const SOLANA_AGENT_SKILL_GROUPS: Array<{ label: string; skills: string[] }> = [
   { label: 'Core', skills: ['/solana-architect', '/solana-wallet-tx-pipeline', '/solana-kit'] },
-  { label: 'Infra', skills: ['/helius', '/quicknode', '/pyth', '/switchboard', '/light-protocol'] },
+  { label: 'Infra', skills: ['/helius', '/quicknode', '/pyth', '/switchboard', '/light-protocol', '/magicblock'] },
   { label: 'Trading', skills: ['/integrating-jupiter', '/raydium', '/meteora', '/drift', '/orca'] },
   { label: 'Protocols', skills: ['/kamino', '/sanctum', '/metaplex', '/pumpfun', '/squads'] },
   { label: 'Security', skills: ['/helios-solana-forensics', '/vulnhunter'] },
@@ -216,6 +216,16 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     description: 'Swap, price, trigger, recurring, and token routing APIs for builders.',
     docsUrl: 'https://dev.jup.ag/get-started',
     skill: '/integrating-jupiter',
+  },
+  {
+    id: 'magicblock',
+    label: 'MagicBlock',
+    area: 'Execution',
+    kind: 'Skill',
+    status: 'guided',
+    description: 'Ephemeral Rollups, Magic Router, and gasless low-latency execution for real-time Solana apps.',
+    docsUrl: 'https://docs.magicblock.gg',
+    skill: '/magicblock',
   },
   {
     id: 'surfpool',
@@ -421,6 +431,15 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     docsUrl: 'https://www.zkcompression.com',
     kickoff: 'Start with RPC readiness, compressed-token account reads, and rent/cost estimates before enabling mint, compress, or transfer flows.',
     installHint: 'pnpm add @lightprotocol/stateless.js @lightprotocol/compressed-token',
+  },
+  {
+    id: 'magicblock',
+    label: 'MagicBlock',
+    status: 'guided',
+    skill: '/magicblock',
+    docsUrl: 'https://docs.magicblock.gg',
+    kickoff: 'Start with Magic Router SDK readiness, base RPC config, and an explicit account delegation map before enabling ER sends.',
+    installHint: 'pnpm add @magicblock-labs/ephemeral-rollups-sdk',
   },
   {
     id: 'raydium',

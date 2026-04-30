@@ -29,7 +29,7 @@ export function detect(projectPath: string): SolanaProjectInfo {
   if (fs.existsSync(cargoToml)) {
     try {
       const content = fs.readFileSync(cargoToml, 'utf8')
-      if (content.includes('solana-program') || content.includes('anchor-lang')) {
+      if (content.includes('solana-program') || content.includes('anchor-lang') || content.includes('ephemeral-rollups-sdk')) {
         indicators.push('Cargo.toml (solana deps)')
         if (!framework) framework = content.includes('anchor-lang') ? 'anchor' : 'native'
       }
@@ -64,6 +64,9 @@ export function detect(projectPath: string): SolanaProjectInfo {
         '@lightprotocol/stateless.js',
         '@lightprotocol/compressed-token',
         '@lightprotocol/light-token',
+        '@magicblock-labs/ephemeral-rollups-sdk',
+        '@magicblock-labs/ephemeral-rollups-kit',
+        '@magicblock-labs/vrf-sdk',
         '@coral-xyz/anchor',
         '@project-serum/anchor',
       ]

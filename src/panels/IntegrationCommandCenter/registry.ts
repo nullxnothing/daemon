@@ -186,6 +186,24 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'magicblock',
+    name: 'MagicBlock',
+    tagline: 'Ephemeral Rollups and Magic Router',
+    description: 'Use MagicBlock when a Solana app needs low-latency execution, gasless UX, delegated account flows, or real-time game and trading loops.',
+    category: 'infra',
+    docsUrl: 'https://docs.magicblock.gg',
+    installCommand: 'pnpm add @magicblock-labs/ephemeral-rollups-sdk',
+    recommendedFor: ['real-time apps', 'ephemeral rollups', 'gasless UX', 'delegated account flows'],
+    requirements: [
+      { type: 'package', key: '@magicblock-labs/ephemeral-rollups-sdk', label: 'Magic Router SDK' },
+      { type: 'env', key: 'RPC_URL', label: 'Base-layer RPC' },
+    ],
+    actions: [
+      { id: 'check-magicblock-package', label: 'Check package', description: 'Verify MagicBlock SDK setup.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-er-routing', label: 'Preview ER route', description: 'Planned: routing and delegated-account preview before any ER send.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
+  {
     id: 'protocol-skills',
     name: 'SendAI Skills',
     tagline: 'Protocol-specific agent knowledge',

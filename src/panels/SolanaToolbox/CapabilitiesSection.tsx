@@ -9,9 +9,10 @@ interface CapabilitiesSectionProps {
   onScaffoldX402: () => void
   onScaffoldMpp: () => void
   onScaffoldLight: () => void
+  onScaffoldMagicBlock: () => void
 }
 
-export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight }: CapabilitiesSectionProps) {
+export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight, onScaffoldMagicBlock }: CapabilitiesSectionProps) {
   const [copiedSkill, setCopiedSkill] = useState<string | null>(null)
   const [showAllSkills, setShowAllSkills] = useState(false)
 
@@ -76,6 +77,17 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-desc">ZK Compression + compressed tokens</div>
             <div className="solana-integration-actions">
               <button className="sol-btn" onClick={onScaffoldLight} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">MagicBlock</div>
+            <div className="solana-integration-desc">Ephemeral Rollups + Magic Router</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldMagicBlock} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>

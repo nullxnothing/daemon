@@ -43,6 +43,9 @@ const METAPLEX_DRAFT_SCRIPT = 'metaplex:draft-check'
 const LIGHT_STARTER_DIR = 'src/light'
 const LIGHT_STARTER_FILE = `${LIGHT_STARTER_DIR}/compression-check.mjs`
 const LIGHT_STARTER_SCRIPT = 'light:check'
+const MAGICBLOCK_STARTER_DIR = 'src/magicblock'
+const MAGICBLOCK_STARTER_FILE = `${MAGICBLOCK_STARTER_DIR}/er-readiness.mjs`
+const MAGICBLOCK_STARTER_SCRIPT = 'magicblock:check'
 const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'sendai-agent-kit',
   'sendai-solana-mcp',
@@ -51,6 +54,7 @@ const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'jupiter',
   'metaplex',
   'light-protocol',
+  'magicblock',
   'protocol-skills',
 ])
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
@@ -90,6 +94,7 @@ function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
   if (context.secureKeys.JUPITER_API_KEY) suggestions.push('integrating-jupiter')
   if (context.packages.has('@metaplex-foundation/umi')) suggestions.push('metaplex')
   if (context.packages.has('@lightprotocol/stateless.js') || context.packages.has('@lightprotocol/compressed-token')) suggestions.push('light-protocol')
+  if (context.packages.has('@magicblock-labs/ephemeral-rollups-sdk')) suggestions.push('magicblock')
   if (context.packages.has('@raydium-io/raydium-sdk-v2')) suggestions.push('raydium')
 
   return suggestions.length > 0 ? suggestions : ['solana-agent-kit', 'helius', 'integrating-jupiter']
@@ -154,6 +159,36 @@ function buildLightCompressionStarter(): string {
 
 main().catch((error) => {
   console.error('Light starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
+}
+
+function buildMagicBlockStarter(): string {
+  return `async function main() {
+  const baseRpcUrl = process.env.RPC_URL?.trim()
+  const routerUrl = process.env.MAGICBLOCK_ROUTER_URL?.trim() || 'https://devnet-router.magicblock.app'
+
+  if (!baseRpcUrl) {
+    throw new Error('Missing RPC_URL. Set the Solana base-layer RPC before adding MagicBlock routes.')
+  }
+
+  const magicblock = await import('@magicblock-labs/ephemeral-rollups-sdk')
+  const exportedKeys = Object.keys(magicblock).sort()
+
+  console.log('MagicBlock starter is ready.')
+  console.log(\`Base RPC: \${baseRpcUrl}\`)
+  console.log(\`Magic Router: \${routerUrl}\`)
+  console.log(\`SDK exports detected: \${exportedKeys.length}\`)
+  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
+  console.log('Next step: map which program accounts can be delegated before building any ER transaction path.')
+  console.log('Keep base-layer initialization, ER execution, commit, and undelegate flows as separate reviewed steps.')
+  console.log('Only use skipPreflight on the ER path after delegation status is verified.')
+}
+
+main().catch((error) => {
+  console.error('MagicBlock starter failed.')
   console.error(error instanceof Error ? error.message : String(error))
   process.exitCode = 1
 })
@@ -834,6 +869,7 @@ export function IntegrationCommandCenter() {
   const lightStatelessReady = packageInfo.packages.has('@lightprotocol/stateless.js')
   const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
   const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
+  const magicBlockPackageReady = packageInfo.packages.has('@magicblock-labs/ephemeral-rollups-sdk')
   const sendAiSetupPlan = useMemo(
     () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
     [packageInfo, lockfiles, envKeys],
@@ -1558,6 +1594,58 @@ export function IntegrationCommandCenter() {
     }
   }
 
+  async function handleCreateMagicBlockStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a MagicBlock starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('magicblock-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, MAGICBLOCK_STARTER_SCRIPT, `node ${MAGICBLOCK_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for MagicBlock starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, MAGICBLOCK_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, MAGICBLOCK_STARTER_FILE),
+        buildMagicBlockStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the MagicBlock starter')
+      }
+
+      setActionResult({
+        title: 'MagicBlock starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded an Ephemeral Rollups readiness script and added a package script without creating any delegation or send path.',
+        items: [MAGICBLOCK_STARTER_FILE, `pnpm run ${MAGICBLOCK_STARTER_SCRIPT}`],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'MagicBlock starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the MagicBlock starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
   function handleOpenMcpSetup() {
     openWorkspaceTool('solana-toolbox')
     setActionResult({
@@ -1868,6 +1956,47 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open env manager"
               onSecondary={() => openWorkspaceTool('env')}
               note="This is still safe. The starter only verifies imports and RPC configuration before you add real compression logic."
+            />
+          )}
+
+          {selectedIntegration.id === 'magicblock' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Ephemeral Rollup workflow"
+              title="Scaffold the first MagicBlock readiness check"
+              description="MagicBlock should start with package, base RPC, and delegation-shape checks before DAEMON exposes any ER transaction path."
+              status={Boolean(activeProjectPath) && magicBlockPackageReady && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !magicBlockPackageReady ? 'Install MagicBlock SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create ER readiness starter'}
+              nextDetail={!activeProjectPath
+                ? 'Open or scaffold a project first so the MagicBlock starter can be written into source.'
+                : !magicBlockPackageReady
+                  ? 'Install the MagicBlock Ephemeral Rollups SDK before DAEMON scaffolds the starter file.'
+                  : !envKeys.has('RPC_URL')
+                    ? 'Add RPC_URL so the starter has a base-layer Solana target.'
+                    : 'Write a runnable MagicBlock readiness starter into the project and add the package script.'}
+              cards={[
+                { label: 'Starter file', value: MAGICBLOCK_STARTER_FILE },
+                { label: 'Run command', value: `pnpm run ${MAGICBLOCK_STARTER_SCRIPT}` },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the MagicBlock starter.', ready: Boolean(activeProjectPath) },
+                { label: 'MagicBlock SDK', detail: magicBlockPackageReady ? 'The MagicBlock SDK is already installed.' : 'Install @magicblock-labs/ephemeral-rollups-sdk before scaffolding the starter.', ready: magicBlockPackageReady },
+                { label: 'Base-layer RPC', detail: envKeys.has('RPC_URL') ? 'RPC_URL is available for the base-layer connection.' : 'Add RPC_URL so DAEMON can separate base-layer and ER routing clearly.', ready: envKeys.has('RPC_URL') },
+                { label: 'Delegation map', detail: 'Identify which PDAs can be delegated before any ER transaction builder is enabled.', ready: false },
+              ]}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !magicBlockPackageReady ? 'Install MagicBlock SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create ER readiness starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !magicBlockPackageReady ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating ER readiness starter...'}
+              busy={runningGuidedFlow === 'Install MagicBlock SDK' || runningGuidedFlow === 'magicblock-starter'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !magicBlockPackageReady
+                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install MagicBlock SDK')
+                  : !envKeys.has('RPC_URL')
+                    ? () => openWorkspaceTool('env')
+                    : () => void handleCreateMagicBlockStarter()}
+              secondaryLabel="Open docs"
+              onSecondary={openDocs}
+              note="This starter is read-only. Delegation, commit, undelegate, and ER sends stay behind a separate explicit implementation step."
             />
           )}
 

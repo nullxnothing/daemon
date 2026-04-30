@@ -97,6 +97,20 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-magicblock-package') {
+    const packages = ['@magicblock-labs/ephemeral-rollups-sdk']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
+    return {
+      title: 'MagicBlock packages',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'MagicBlock Ephemeral Rollups SDK is listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install the SDK before Magic Router or ER delegation flows.`,
+      items: missing.length === 0 ? installed : missing,
+    }
+  }
+
   if (actionId === 'check-skills-source') {
     const hasProject = context.packages.size > 0 || context.envFiles.length > 0
     return {
