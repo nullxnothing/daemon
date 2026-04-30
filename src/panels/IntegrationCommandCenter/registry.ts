@@ -221,6 +221,24 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'squads',
+    name: 'Squads',
+    tagline: 'V4 multisig and smart accounts',
+    description: 'Use Squads when the app needs team treasury safety, multisig vault inspection, proposal workflows, or smart-account coordination before sensitive Solana actions.',
+    category: 'wallet',
+    docsUrl: 'https://docs.squads.so/main/development',
+    installCommand: 'pnpm add @sqds/multisig @solana/web3.js',
+    recommendedFor: ['team treasury', 'multisig vaults', 'proposal workflows', 'smart-account coordination'],
+    requirements: [
+      { type: 'package', key: '@sqds/multisig', label: 'Squads multisig SDK' },
+      { type: 'env', key: 'RPC_URL', label: 'Solana RPC' },
+    ],
+    actions: [
+      { id: 'check-squads-package', label: 'Check package', description: 'Verify Squads SDK setup.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-squads-vault', label: 'Preview vault', description: 'Planned: multisig and vault preview before proposal creation or execution.', kind: 'planned', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'protocol-skills',
     name: 'SendAI Skills',
     tagline: 'Protocol-specific agent knowledge',

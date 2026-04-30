@@ -238,6 +238,16 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     skill: '/debridge',
   },
   {
+    id: 'squads',
+    label: 'Squads',
+    area: 'Wallets',
+    kind: 'Skill',
+    status: 'guided',
+    description: 'V4 multisig, smart accounts, vault inspection, and treasury safety workflows for Solana teams.',
+    docsUrl: 'https://docs.squads.so/main/development',
+    skill: '/squads',
+  },
+  {
     id: 'surfpool',
     label: 'Surfpool',
     area: 'Testing',
@@ -459,6 +469,15 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     docsUrl: 'https://docs.debridge.com',
     kickoff: 'Start with DLN create-tx route previews and response parsing before enabling any cross-chain signing or submission.',
     installHint: 'pnpm add @debridge-finance/dln-client',
+  },
+  {
+    id: 'squads',
+    label: 'Squads',
+    status: 'guided',
+    skill: '/squads',
+    docsUrl: 'https://docs.squads.so/main/development',
+    kickoff: 'Start with read-only multisig and vault inspection before proposal creation, approval, execution, or treasury movement.',
+    installHint: 'pnpm add @sqds/multisig @solana/web3.js',
   },
   {
     id: 'raydium',

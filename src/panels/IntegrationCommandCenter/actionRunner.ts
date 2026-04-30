@@ -125,6 +125,20 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-squads-package') {
+    const packages = ['@sqds/multisig']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
+    return {
+      title: 'Squads packages',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'Squads multisig SDK is listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install the SDK before multisig or vault inspection flows.`,
+      items: missing.length === 0 ? installed : missing,
+    }
+  }
+
   if (actionId === 'check-skills-source') {
     const hasProject = context.packages.size > 0 || context.envFiles.length > 0
     return {

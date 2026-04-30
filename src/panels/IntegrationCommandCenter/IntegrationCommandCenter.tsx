@@ -49,6 +49,9 @@ const MAGICBLOCK_STARTER_SCRIPT = 'magicblock:check'
 const DEBRIDGE_STARTER_DIR = 'src/debridge'
 const DEBRIDGE_STARTER_FILE = `${DEBRIDGE_STARTER_DIR}/dln-route-preview.mjs`
 const DEBRIDGE_STARTER_SCRIPT = 'debridge:preview'
+const SQUADS_STARTER_DIR = 'src/squads'
+const SQUADS_STARTER_FILE = `${SQUADS_STARTER_DIR}/multisig-inspect.mjs`
+const SQUADS_STARTER_SCRIPT = 'squads:inspect'
 const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'sendai-agent-kit',
   'sendai-solana-mcp',
@@ -59,6 +62,7 @@ const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'light-protocol',
   'magicblock',
   'debridge',
+  'squads',
   'protocol-skills',
 ])
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
@@ -100,6 +104,7 @@ function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
   if (context.packages.has('@lightprotocol/stateless.js') || context.packages.has('@lightprotocol/compressed-token')) suggestions.push('light-protocol')
   if (context.packages.has('@magicblock-labs/ephemeral-rollups-sdk')) suggestions.push('magicblock')
   if (context.packages.has('@debridge-finance/dln-client')) suggestions.push('debridge')
+  if (context.packages.has('@sqds/multisig')) suggestions.push('squads')
   if (context.packages.has('@raydium-io/raydium-sdk-v2')) suggestions.push('raydium')
 
   return suggestions.length > 0 ? suggestions : ['solana-agent-kit', 'helius', 'integrating-jupiter']
@@ -262,6 +267,62 @@ function buildDebridgeStarter(): string {
 
 main().catch((error) => {
   console.error('deBridge starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
+}
+
+function buildSquadsStarter(): string {
+  return `async function main() {
+  const rpcUrl = process.env.RPC_URL?.trim()
+  const multisigAddress = process.env.SQUADS_MULTISIG_ADDRESS?.trim()
+  const requestedVaultIndex = process.env.SQUADS_VAULT_INDEX?.trim()
+  const vaultIndex = requestedVaultIndex ? Number(requestedVaultIndex) : 0
+
+  if (!rpcUrl) {
+    throw new Error('Missing RPC_URL. Set a Solana RPC before inspecting Squads accounts.')
+  }
+
+  if (!Number.isInteger(vaultIndex) || vaultIndex < 0) {
+    throw new Error('SQUADS_VAULT_INDEX must be a non-negative integer.')
+  }
+
+  const squads = await import('@sqds/multisig')
+  const web3 = await import('@solana/web3.js')
+  const exportedKeys = Object.keys(squads).sort()
+
+  console.log('Squads starter is ready.')
+  console.log(\`RPC: \${rpcUrl}\`)
+  console.log(\`SDK exports detected: \${exportedKeys.length}\`)
+  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
+
+  if (!multisigAddress) {
+    console.log('Multisig inspection skipped. Add SQUADS_MULTISIG_ADDRESS to inspect an existing V4 multisig.')
+    console.log('No proposal, vote, execute, or treasury movement was attempted.')
+    return
+  }
+
+  const connection = new web3.Connection(rpcUrl, 'confirmed')
+  const multisigPda = new web3.PublicKey(multisigAddress)
+  const account = await squads.accounts.Multisig.fromAccountAddress(connection, multisigPda)
+  const [vaultPda] = squads.getVaultPda({ multisigPda, index: vaultIndex })
+  const vaultLamports = await connection.getBalance(vaultPda)
+
+  console.log('Squads multisig inspection complete.')
+  console.log(JSON.stringify({
+    multisig: multisigPda.toBase58(),
+    threshold: account.threshold?.toString?.() ?? account.threshold ?? null,
+    transactionIndex: account.transactionIndex?.toString?.() ?? account.transactionIndex ?? null,
+    vaultIndex,
+    vault: vaultPda.toBase58(),
+    vaultLamports,
+  }, null, 2))
+  console.log('Do not create proposals, vote, execute, or move vault assets from this starter.')
+}
+
+main().catch((error) => {
+  console.error('Squads starter failed.')
   console.error(error instanceof Error ? error.message : String(error))
   process.exitCode = 1
 })
@@ -944,6 +1005,7 @@ export function IntegrationCommandCenter() {
   const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
   const magicBlockPackageReady = packageInfo.packages.has('@magicblock-labs/ephemeral-rollups-sdk')
   const debridgePackageReady = packageInfo.packages.has('@debridge-finance/dln-client')
+  const squadsPackageReady = packageInfo.packages.has('@sqds/multisig')
   const sendAiSetupPlan = useMemo(
     () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
     [packageInfo, lockfiles, envKeys],
@@ -1772,6 +1834,58 @@ export function IntegrationCommandCenter() {
     }
   }
 
+  async function handleCreateSquadsStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a Squads starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('squads-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, SQUADS_STARTER_SCRIPT, `node ${SQUADS_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for Squads starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, SQUADS_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, SQUADS_STARTER_FILE),
+        buildSquadsStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the Squads starter')
+      }
+
+      setActionResult({
+        title: 'Squads starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded a read-only multisig and vault inspection script and added a package script without enabling proposal or treasury movement.',
+        items: [SQUADS_STARTER_FILE, `pnpm run ${SQUADS_STARTER_SCRIPT}`],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Squads starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the Squads starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
   function handleOpenMcpSetup() {
     openWorkspaceTool('solana-toolbox')
     setActionResult({
@@ -2160,6 +2274,47 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open docs"
               onSecondary={openDocs}
               note="This starter can call create-tx for estimation, but it does not sign or submit any cross-chain transaction."
+            />
+          )}
+
+          {selectedIntegration.id === 'squads' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Smart account workflow"
+              title="Scaffold the first Squads multisig inspection"
+              description="Squads should start with read-only multisig and vault inspection before DAEMON exposes proposal creation, voting, execution, or treasury movement."
+              status={Boolean(activeProjectPath) && squadsPackageReady && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !squadsPackageReady ? 'Install Squads SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create multisig inspection starter'}
+              nextDetail={!activeProjectPath
+                ? 'Open or scaffold a project first so the Squads starter can be written into source.'
+                : !squadsPackageReady
+                  ? 'Install the Squads multisig SDK before DAEMON scaffolds the starter file.'
+                  : !envKeys.has('RPC_URL')
+                    ? 'Add RPC_URL so the starter can inspect existing multisig and vault accounts.'
+                    : 'Write a runnable multisig inspection starter into the project and add the package script.'}
+              cards={[
+                { label: 'Starter file', value: SQUADS_STARTER_FILE },
+                { label: 'Run command', value: `pnpm run ${SQUADS_STARTER_SCRIPT}` },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the Squads starter.', ready: Boolean(activeProjectPath) },
+                { label: 'Squads SDK', detail: squadsPackageReady ? 'The Squads multisig SDK is already installed.' : 'Install @sqds/multisig before scaffolding the starter.', ready: squadsPackageReady },
+                { label: 'Solana RPC', detail: envKeys.has('RPC_URL') ? 'RPC_URL is available for multisig account reads.' : 'Add RPC_URL so the starter can read Squads accounts.', ready: envKeys.has('RPC_URL') },
+                { label: 'Existing multisig', detail: 'Add SQUADS_MULTISIG_ADDRESS when you want the starter to inspect a real V4 multisig and vault PDA.', ready: false },
+              ]}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !squadsPackageReady ? 'Install Squads SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create multisig inspection starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !squadsPackageReady ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating multisig inspection starter...'}
+              busy={runningGuidedFlow === 'Install Squads SDK' || runningGuidedFlow === 'squads-starter'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !squadsPackageReady
+                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Squads SDK')
+                  : !envKeys.has('RPC_URL')
+                    ? () => openWorkspaceTool('env')
+                    : () => void handleCreateSquadsStarter()}
+              secondaryLabel="Open docs"
+              onSecondary={openDocs}
+              note="This starter is read-only. Proposal creation, voting, execution, and treasury movement stay behind a separate explicit implementation step."
             />
           )}
 

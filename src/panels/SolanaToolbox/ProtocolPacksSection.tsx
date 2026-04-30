@@ -8,6 +8,7 @@ const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
   light: 'light-protocol',
   magicblock: 'magicblock',
   debridge: 'debridge',
+  squads: 'squads',
   raydium: 'token-launch-stack',
   meteora: 'token-launch-stack',
 }

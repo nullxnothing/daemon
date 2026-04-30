@@ -89,3 +89,18 @@ export async function scaffoldDebridge(projectId: string): Promise<void> {
     'deBridge Scaffold',
   )
 }
+
+export async function scaffoldSquads(projectId: string): Promise<void> {
+  await spawnAndShowAgent(
+    projectId,
+    [
+      'Add a Squads V4 multisig inspection starter to this project.',
+      'Check package.json first, then install @sqds/multisig and @solana/web3.js if missing.',
+      'Add env documentation for RPC_URL, SQUADS_MULTISIG_ADDRESS, and optional SQUADS_VAULT_INDEX.',
+      'Create a small read-only helper or script that imports @sqds/multisig, fetches multisig configuration when SQUADS_MULTISIG_ADDRESS is present, derives the vault PDA, and prints vault balance.',
+      'Keep this starter read-only by default: do not create multisigs, create proposals, vote, execute, or move treasury assets unless the user explicitly confirms a follow-up task.',
+      'Document Squads constraints: funds belong in vault PDAs, proposal execution needs member permissions and threshold checks, and every treasury action needs explicit transaction preview.',
+    ].join(' '),
+    'Squads Scaffold',
+  )
+}
