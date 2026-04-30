@@ -111,6 +111,20 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-debridge-package') {
+    const packages = ['@debridge-finance/dln-client']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
+    return {
+      title: 'deBridge packages',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'deBridge DLN client is listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install the client before DLN route-preview flows.`,
+      items: missing.length === 0 ? installed : missing,
+    }
+  }
+
   if (actionId === 'check-skills-source') {
     const hasProject = context.packages.size > 0 || context.envFiles.length > 0
     return {

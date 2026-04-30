@@ -83,7 +83,7 @@ export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
 
 export const SOLANA_AGENT_SKILL_GROUPS: Array<{ label: string; skills: string[] }> = [
   { label: 'Core', skills: ['/solana-architect', '/solana-wallet-tx-pipeline', '/solana-kit'] },
-  { label: 'Infra', skills: ['/helius', '/quicknode', '/pyth', '/switchboard', '/light-protocol', '/magicblock'] },
+  { label: 'Infra', skills: ['/helius', '/quicknode', '/pyth', '/switchboard', '/light-protocol', '/magicblock', '/debridge'] },
   { label: 'Trading', skills: ['/integrating-jupiter', '/raydium', '/meteora', '/drift', '/orca'] },
   { label: 'Protocols', skills: ['/kamino', '/sanctum', '/metaplex', '/pumpfun', '/squads'] },
   { label: 'Security', skills: ['/helios-solana-forensics', '/vulnhunter'] },
@@ -226,6 +226,16 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     description: 'Ephemeral Rollups, Magic Router, and gasless low-latency execution for real-time Solana apps.',
     docsUrl: 'https://docs.magicblock.gg',
     skill: '/magicblock',
+  },
+  {
+    id: 'debridge',
+    label: 'deBridge',
+    area: 'Execution',
+    kind: 'Skill',
+    status: 'guided',
+    description: 'DLN cross-chain route previews, bridge transaction construction, and Solana-to-EVM execution handoffs.',
+    docsUrl: 'https://docs.debridge.com',
+    skill: '/debridge',
   },
   {
     id: 'surfpool',
@@ -440,6 +450,15 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     docsUrl: 'https://docs.magicblock.gg',
     kickoff: 'Start with Magic Router SDK readiness, base RPC config, and an explicit account delegation map before enabling ER sends.',
     installHint: 'pnpm add @magicblock-labs/ephemeral-rollups-sdk',
+  },
+  {
+    id: 'debridge',
+    label: 'deBridge',
+    status: 'guided',
+    skill: '/debridge',
+    docsUrl: 'https://docs.debridge.com',
+    kickoff: 'Start with DLN create-tx route previews and response parsing before enabling any cross-chain signing or submission.',
+    installHint: 'pnpm add @debridge-finance/dln-client',
   },
   {
     id: 'raydium',

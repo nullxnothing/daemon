@@ -7,6 +7,7 @@ const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
   metaplex: 'metaplex',
   light: 'light-protocol',
   magicblock: 'magicblock',
+  debridge: 'debridge',
   raydium: 'token-launch-stack',
   meteora: 'token-launch-stack',
 }

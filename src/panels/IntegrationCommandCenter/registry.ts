@@ -204,6 +204,23 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'debridge',
+    name: 'deBridge',
+    tagline: 'DLN cross-chain route previews',
+    description: 'Use deBridge when the app needs Solana-to-EVM routes, bridge order construction, or cross-chain execution previews before signing.',
+    category: 'defi',
+    docsUrl: 'https://docs.debridge.com',
+    installCommand: 'pnpm add @debridge-finance/dln-client',
+    recommendedFor: ['cross-chain swaps', 'bridge previews', 'Solana to EVM routes', 'DLN order construction'],
+    requirements: [
+      { type: 'package', key: '@debridge-finance/dln-client', label: 'deBridge DLN client' },
+    ],
+    actions: [
+      { id: 'check-debridge-package', label: 'Check package', description: 'Verify deBridge DLN client setup.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-dln-route', label: 'Preview DLN route', description: 'Planned: quote and route preview before bridge transaction signing.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
+  {
     id: 'protocol-skills',
     name: 'SendAI Skills',
     tagline: 'Protocol-specific agent knowledge',

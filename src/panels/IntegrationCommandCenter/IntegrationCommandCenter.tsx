@@ -46,6 +46,9 @@ const LIGHT_STARTER_SCRIPT = 'light:check'
 const MAGICBLOCK_STARTER_DIR = 'src/magicblock'
 const MAGICBLOCK_STARTER_FILE = `${MAGICBLOCK_STARTER_DIR}/er-readiness.mjs`
 const MAGICBLOCK_STARTER_SCRIPT = 'magicblock:check'
+const DEBRIDGE_STARTER_DIR = 'src/debridge'
+const DEBRIDGE_STARTER_FILE = `${DEBRIDGE_STARTER_DIR}/dln-route-preview.mjs`
+const DEBRIDGE_STARTER_SCRIPT = 'debridge:preview'
 const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'sendai-agent-kit',
   'sendai-solana-mcp',
@@ -55,6 +58,7 @@ const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'metaplex',
   'light-protocol',
   'magicblock',
+  'debridge',
   'protocol-skills',
 ])
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
@@ -95,6 +99,7 @@ function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
   if (context.packages.has('@metaplex-foundation/umi')) suggestions.push('metaplex')
   if (context.packages.has('@lightprotocol/stateless.js') || context.packages.has('@lightprotocol/compressed-token')) suggestions.push('light-protocol')
   if (context.packages.has('@magicblock-labs/ephemeral-rollups-sdk')) suggestions.push('magicblock')
+  if (context.packages.has('@debridge-finance/dln-client')) suggestions.push('debridge')
   if (context.packages.has('@raydium-io/raydium-sdk-v2')) suggestions.push('raydium')
 
   return suggestions.length > 0 ? suggestions : ['solana-agent-kit', 'helius', 'integrating-jupiter']
@@ -189,6 +194,74 @@ function buildMagicBlockStarter(): string {
 
 main().catch((error) => {
   console.error('MagicBlock starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
+}
+
+function buildDebridgeStarter(): string {
+  return `async function main() {
+  const apiBase = process.env.DEBRIDGE_API_URL?.trim() || 'https://dln.debridge.finance/v1.0'
+  const required = [
+    'DEBRIDGE_SRC_CHAIN_ID',
+    'DEBRIDGE_DST_CHAIN_ID',
+    'DEBRIDGE_SRC_TOKEN_IN',
+    'DEBRIDGE_DST_TOKEN_OUT',
+    'DEBRIDGE_AMOUNT_IN',
+    'DEBRIDGE_SRC_ADDRESS',
+    'DEBRIDGE_DST_ADDRESS',
+  ]
+  const missing = required.filter((key) => !process.env[key]?.trim())
+
+  const dlnClient = await import('@debridge-finance/dln-client')
+  const exportedKeys = Object.keys(dlnClient).sort()
+
+  console.log('deBridge DLN starter is ready.')
+  console.log(\`API: \${apiBase}\`)
+  console.log(\`DLN client exports detected: \${exportedKeys.length}\`)
+  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
+
+  if (missing.length > 0) {
+    console.log('Route preview skipped. Add these env vars to request a create-tx estimate:')
+    for (const key of missing) console.log(\`- \${key}\`)
+    console.log('No transaction was constructed or submitted.')
+    return
+  }
+
+  const params = new URLSearchParams({
+    srcChainId: process.env.DEBRIDGE_SRC_CHAIN_ID.trim(),
+    dstChainId: process.env.DEBRIDGE_DST_CHAIN_ID.trim(),
+    srcChainTokenIn: process.env.DEBRIDGE_SRC_TOKEN_IN.trim(),
+    dstChainTokenOut: process.env.DEBRIDGE_DST_TOKEN_OUT.trim(),
+    srcChainTokenInAmount: process.env.DEBRIDGE_AMOUNT_IN.trim(),
+    srcChainOrderAuthorityAddress: process.env.DEBRIDGE_SRC_ADDRESS.trim(),
+    dstChainTokenOutRecipient: process.env.DEBRIDGE_DST_ADDRESS.trim(),
+    dstChainOrderAuthorityAddress: process.env.DEBRIDGE_DST_ADDRESS.trim(),
+  })
+
+  const url = \`\${apiBase.replace(/\\/$/, '')}/dln/order/create-tx?\${params.toString()}\`
+  const response = await fetch(url, { headers: { accept: 'application/json' } })
+  const payload = await response.json()
+
+  if (!response.ok) {
+    console.error('deBridge create-tx preview failed.')
+    console.error(JSON.stringify(payload, null, 2))
+    process.exitCode = 1
+    return
+  }
+
+  console.log('deBridge create-tx preview returned a response.')
+  console.log(JSON.stringify({
+    orderId: payload.orderId ?? null,
+    estimation: payload.estimation ?? null,
+    txIncluded: Boolean(payload.tx),
+  }, null, 2))
+  console.log('Do not sign or submit tx payloads from this starter without a separate wallet confirmation flow.')
+}
+
+main().catch((error) => {
+  console.error('deBridge starter failed.')
   console.error(error instanceof Error ? error.message : String(error))
   process.exitCode = 1
 })
@@ -870,6 +943,7 @@ export function IntegrationCommandCenter() {
   const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
   const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
   const magicBlockPackageReady = packageInfo.packages.has('@magicblock-labs/ephemeral-rollups-sdk')
+  const debridgePackageReady = packageInfo.packages.has('@debridge-finance/dln-client')
   const sendAiSetupPlan = useMemo(
     () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
     [packageInfo, lockfiles, envKeys],
@@ -1646,6 +1720,58 @@ export function IntegrationCommandCenter() {
     }
   }
 
+  async function handleCreateDebridgeStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a deBridge starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('debridge-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, DEBRIDGE_STARTER_SCRIPT, `node ${DEBRIDGE_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for deBridge starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, DEBRIDGE_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, DEBRIDGE_STARTER_FILE),
+        buildDebridgeStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the deBridge starter')
+      }
+
+      setActionResult({
+        title: 'deBridge starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded a DLN route-preview script and added a package script without signing or submitting a bridge transaction.',
+        items: [DEBRIDGE_STARTER_FILE, `pnpm run ${DEBRIDGE_STARTER_SCRIPT}`],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'deBridge starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the deBridge starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
   function handleOpenMcpSetup() {
     openWorkspaceTool('solana-toolbox')
     setActionResult({
@@ -1997,6 +2123,43 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open docs"
               onSecondary={openDocs}
               note="This starter is read-only. Delegation, commit, undelegate, and ER sends stay behind a separate explicit implementation step."
+            />
+          )}
+
+          {selectedIntegration.id === 'debridge' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Cross-chain workflow"
+              title="Scaffold the first deBridge DLN route preview"
+              description="deBridge should start with route input collection and create-tx response parsing before DAEMON exposes any bridge signing path."
+              status={Boolean(activeProjectPath) && debridgePackageReady ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !debridgePackageReady ? 'Install deBridge client' : 'Create route preview starter'}
+              nextDetail={!activeProjectPath
+                ? 'Open or scaffold a project first so the deBridge starter can be written into source.'
+                : !debridgePackageReady
+                  ? 'Install the deBridge DLN client before DAEMON scaffolds the starter file.'
+                  : 'Write a runnable DLN route-preview starter into the project and add the package script.'}
+              cards={[
+                { label: 'Starter file', value: DEBRIDGE_STARTER_FILE },
+                { label: 'Run command', value: `pnpm run ${DEBRIDGE_STARTER_SCRIPT}` },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the deBridge starter.', ready: Boolean(activeProjectPath) },
+                { label: 'deBridge client', detail: debridgePackageReady ? 'The deBridge DLN client is already installed.' : 'Install @debridge-finance/dln-client before scaffolding the starter.', ready: debridgePackageReady },
+                { label: 'Route inputs', detail: 'Source chain, destination chain, tokens, amount, sender, and receiver stay in env until the route-preview UI exists.', ready: false },
+                { label: 'Signing boundary', detail: 'Treat create-tx responses as previews until a wallet confirmation flow reviews the serialized transaction or calldata.', ready: false },
+              ]}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !debridgePackageReady ? 'Install deBridge client' : 'Create route preview starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !debridgePackageReady ? 'Opening install terminal...' : 'Creating route preview starter...'}
+              busy={runningGuidedFlow === 'Install deBridge client' || runningGuidedFlow === 'debridge-starter'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !debridgePackageReady
+                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install deBridge client')
+                  : () => void handleCreateDebridgeStarter()}
+              secondaryLabel="Open docs"
+              onSecondary={openDocs}
+              note="This starter can call create-tx for estimation, but it does not sign or submit any cross-chain transaction."
             />
           )}
 

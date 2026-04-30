@@ -10,7 +10,7 @@ import { RuntimeStackSection } from './RuntimeStackSection'
 import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
-import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock } from './scaffolding'
+import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge } from './scaffolding'
 import './SolanaToolbox.css'
 
 const SOLANA_VIEWS = [
@@ -83,6 +83,10 @@ export function SolanaToolbox() {
     if (activeProjectId) void scaffoldMagicBlock(activeProjectId)
   }
 
+  const handleScaffoldDebridge = () => {
+    if (activeProjectId) void scaffoldDebridge(activeProjectId)
+  }
+
   return (
     <div className="solana-toolbox">
       <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} toolchain={toolchain} />
@@ -132,6 +136,7 @@ export function SolanaToolbox() {
                   onScaffoldMpp={handleScaffoldMpp}
                   onScaffoldLight={handleScaffoldLight}
                   onScaffoldMagicBlock={handleScaffoldMagicBlock}
+                  onScaffoldDebridge={handleScaffoldDebridge}
                 />
               </div>
             </>
@@ -166,6 +171,7 @@ export function SolanaToolbox() {
                   onScaffoldMpp={handleScaffoldMpp}
                   onScaffoldLight={handleScaffoldLight}
                   onScaffoldMagicBlock={handleScaffoldMagicBlock}
+                  onScaffoldDebridge={handleScaffoldDebridge}
                 />
               </div>
             </>

@@ -10,9 +10,10 @@ interface CapabilitiesSectionProps {
   onScaffoldMpp: () => void
   onScaffoldLight: () => void
   onScaffoldMagicBlock: () => void
+  onScaffoldDebridge: () => void
 }
 
-export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight, onScaffoldMagicBlock }: CapabilitiesSectionProps) {
+export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight, onScaffoldMagicBlock, onScaffoldDebridge }: CapabilitiesSectionProps) {
   const [copiedSkill, setCopiedSkill] = useState<string | null>(null)
   const [showAllSkills, setShowAllSkills] = useState(false)
 
@@ -88,6 +89,17 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-desc">Ephemeral Rollups + Magic Router</div>
             <div className="solana-integration-actions">
               <button className="sol-btn" onClick={onScaffoldMagicBlock} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">deBridge</div>
+            <div className="solana-integration-desc">Cross-chain DLN route previews</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldDebridge} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>

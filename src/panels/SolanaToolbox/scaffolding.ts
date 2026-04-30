@@ -73,3 +73,19 @@ export async function scaffoldMagicBlock(projectId: string): Promise<void> {
     'MagicBlock Scaffold',
   )
 }
+
+export async function scaffoldDebridge(projectId: string): Promise<void> {
+  await spawnAndShowAgent(
+    projectId,
+    [
+      'Add a deBridge DLN route-preview starter to this project.',
+      'Check package.json first, then install @debridge-finance/dln-client if missing.',
+      'Create a small read-only helper or script that prepares a deBridge create-tx request using environment variables and prints estimation fields without signing or submitting anything.',
+      'Document the required route inputs: source chain, destination chain, source token, destination token, input amount, source address, and destination receiver.',
+      'Use https://dln.debridge.finance/v1.0 as the default API base unless the project already has DEBRIDGE_API_URL configured.',
+      'Keep this starter read-only by default: do not sign serialized Solana transactions, broadcast EVM calldata, claim orders, or perform bridge submissions unless the user explicitly confirms a follow-up task.',
+      'Document cross-chain constraints: quote and transaction construction are paired in create-tx, routes can expire, destination receiver formats differ by chain, and every bridge flow needs explicit wallet review.',
+    ].join(' '),
+    'deBridge Scaffold',
+  )
+}

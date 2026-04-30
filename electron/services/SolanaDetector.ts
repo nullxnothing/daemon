@@ -29,7 +29,7 @@ export function detect(projectPath: string): SolanaProjectInfo {
   if (fs.existsSync(cargoToml)) {
     try {
       const content = fs.readFileSync(cargoToml, 'utf8')
-      if (content.includes('solana-program') || content.includes('anchor-lang') || content.includes('ephemeral-rollups-sdk')) {
+      if (content.includes('solana-program') || content.includes('anchor-lang') || content.includes('ephemeral-rollups-sdk') || content.includes('debridge-solana-sdk')) {
         indicators.push('Cargo.toml (solana deps)')
         if (!framework) framework = content.includes('anchor-lang') ? 'anchor' : 'native'
       }
@@ -67,6 +67,8 @@ export function detect(projectPath: string): SolanaProjectInfo {
         '@magicblock-labs/ephemeral-rollups-sdk',
         '@magicblock-labs/ephemeral-rollups-kit',
         '@magicblock-labs/vrf-sdk',
+        '@debridge-finance/dln-client',
+        '@debridge-finance/desdk',
         '@coral-xyz/anchor',
         '@project-serum/anchor',
       ]
