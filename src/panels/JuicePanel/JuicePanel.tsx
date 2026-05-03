@@ -79,6 +79,7 @@ type JuiceScoutingReport = {
 }
 
 type JuiceActionType = `juice:${string}`
+type ExecutionMode = 'buy' | 'sell-all' | 'edit-wallet'
 
 type WalletRow = {
   wallet: JuiceWallet
@@ -118,6 +119,12 @@ function shortAddress(value?: string | null) {
   return `${value.slice(0, 4)}…${value.slice(-4)}`
 }
 
+function parseOptionalNumber(value: string) {
+  if (!value.trim()) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
 async function runJuiceAction<T>(type: JuiceActionType, payload?: Record<string, unknown>): Promise<IpcResponse<T>> {
   const action = { type, payload } as EngineAction
   const response = await daemon.engine.run(action) as IpcResponse<EngineResult<T>>
@@ -144,6 +151,19 @@ export function JuicePanel() {
   const [scoutingReport, setScoutingReport] = useState<JuiceScoutingReport | null>(null)
   const [mintDetails, setMintDetails] = useState<Record<string, MintDetailRecord>>({})
   const [strategyPreview, setStrategyPreview] = useState<StrategyPreview | null>(null)
+  const [executionMode, setExecutionMode] = useState<ExecutionMode>('sell-all')
+  const [executionWalletId, setExecutionWalletId] = useState('')
+  const [executionSolAmount, setExecutionSolAmount] = useState(0.1)
+  const [executionOutputMint, setExecutionOutputMint] = useState<'SOL' | 'USDC'>('SOL')
+  const [executionMint, setExecutionMint] = useState('')
+  const [executionStopLoss, setExecutionStopLoss] = useState('')
+  const [executionTakeProfit, setExecutionTakeProfit] = useState('')
+  const [executionIsActive, setExecutionIsActive] = useState(true)
+  const [executionPlaceBuy, setExecutionPlaceBuy] = useState(false)
+  const [executionAck, setExecutionAck] = useState(false)
+  const [executionArmedAt, setExecutionArmedAt] = useState<number | null>(null)
+  const [executionLoading, setExecutionLoading] = useState(false)
+  const [executionMessage, setExecutionMessage] = useState<string | null>(null)
 
   const totals = useMemo(() => {
     const activeWallets = walletRows.filter((row) => row.wallet.isActive).length
@@ -154,6 +174,7 @@ export function JuicePanel() {
   }, [walletRows])
 
   const topScouts = useMemo(() => (scoutingReport?.tokens ?? []).slice(0, 8), [scoutingReport])
+  const selectedExecutionRow = useMemo(() => walletRows.find((row) => row.wallet.id === executionWalletId) ?? null, [executionWalletId, walletRows])
 
   const refreshKeyStatus = async () => {
     setCheckingKey(true)
@@ -175,6 +196,10 @@ export function JuicePanel() {
     void checkKey()
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    if (!executionWalletId && walletRows[0]) setExecutionWalletId(walletRows[0].wallet.id)
+  }, [executionWalletId, walletRows])
 
   const saveKey = async () => {
     const trimmed = apiKeyDraft.trim()
@@ -210,6 +235,8 @@ export function JuicePanel() {
       setScoutingReport(null)
       setMintDetails({})
       setStrategyPreview(null)
+      setExecutionWalletId('')
+      setExecutionArmedAt(null)
       setKeyMessage('Juice API key removed.')
       await refreshKeyStatus()
     } catch (err) {
@@ -288,6 +315,67 @@ export function JuicePanel() {
     }
   }
 
+  const armExecution = () => {
+    if (!executionWalletId) {
+      setExecutionMessage('Load wallets and select a Juice wallet first.')
+      return
+    }
+    if (!executionAck) {
+      setExecutionMessage('Acknowledge the transaction impact before arming execution.')
+      return
+    }
+    setExecutionArmedAt(Date.now())
+    setExecutionMessage('Action armed. Review the payload and execute within 60 seconds.')
+  }
+
+  const executeGuardedAction = async () => {
+    if (!executionArmedAt) {
+      setExecutionMessage('Arm the action first.')
+      return
+    }
+    if (Date.now() - executionArmedAt > 60_000) {
+      setExecutionArmedAt(null)
+      setExecutionMessage('Confirmation expired. Arm the action again.')
+      return
+    }
+
+    setExecutionLoading(true)
+    setExecutionMessage(null)
+    setError(null)
+    try {
+      const basePayload = {
+        walletId: executionWalletId,
+        confirmedAt: executionArmedAt,
+        acknowledgedImpact: true,
+      }
+      let res: IpcResponse<unknown>
+      if (executionMode === 'buy') {
+        res = await runJuiceAction('juice:buy', { ...basePayload, solAmount: executionSolAmount })
+      } else if (executionMode === 'sell-all') {
+        res = await runJuiceAction('juice:sell-all', { ...basePayload, outputMint: executionOutputMint })
+      } else {
+        res = await runJuiceAction('juice:edit-wallet', {
+          ...basePayload,
+          mint: executionMint.trim() || undefined,
+          stopLossPrice: parseOptionalNumber(executionStopLoss),
+          takeProfitPrice: parseOptionalNumber(executionTakeProfit),
+          isActive: executionIsActive,
+          placeBuy: executionPlaceBuy,
+        })
+      }
+
+      if (!res.ok) throw new Error(res.error ?? 'Juice guarded action failed')
+      setExecutionArmedAt(null)
+      setExecutionAck(false)
+      setExecutionMessage('Juice action completed. Refreshing dashboard state.')
+      await loadDashboard()
+    } catch (err) {
+      setExecutionMessage(err instanceof Error ? err.message : String(err))
+    } finally {
+      setExecutionLoading(false)
+    }
+  }
+
   return (
     <div className="juice-panel">
       <header className="juice-hero">
@@ -330,7 +418,7 @@ export function JuicePanel() {
         <button className="juice-primary-btn" onClick={loadDashboard} disabled={loading || !hasKey}>
           {loading ? 'Loading Juice…' : 'Load read-only dashboard'}
         </button>
-        <span className="juice-action-note">Buy, sell, and wallet creation are intentionally not enabled in this panel yet.</span>
+        <span className="juice-action-note">Buy, sell, and wallet creation are gated behind fresh confirmation and explicit acknowledgement.</span>
       </div>
 
       {error && (
@@ -414,6 +502,91 @@ export function JuicePanel() {
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="juice-section">
+        <div className="juice-section-header">
+          <h3>Guarded execution</h3>
+          <span>Fresh confirmation required</span>
+        </div>
+        <div className="juice-execution-card">
+          <div className="juice-execution-warning">
+            These actions can move funds through Juice and Jupiter. DAEMON requires explicit acknowledgement, then a fresh 60-second confirmation before the backend will run them.
+          </div>
+          <div className="juice-execution-controls">
+            <label>
+              Action
+              <select value={executionMode} onChange={(event) => { setExecutionMode(event.target.value as ExecutionMode); setExecutionArmedAt(null) }}>
+                <option value="sell-all">Sell all</option>
+                <option value="buy">Buy</option>
+                <option value="edit-wallet">Edit wallet</option>
+              </select>
+            </label>
+            <label>
+              Wallet
+              <select value={executionWalletId} onChange={(event) => { setExecutionWalletId(event.target.value); setExecutionArmedAt(null) }} disabled={walletRows.length === 0}>
+                <option value="">Select wallet</option>
+                {walletRows.map((row) => (
+                  <option value={row.wallet.id} key={row.wallet.id}>{row.wallet.symbol ?? shortAddress(row.wallet.publicKey)} · {shortAddress(row.wallet.publicKey)}</option>
+                ))}
+              </select>
+            </label>
+            {executionMode === 'buy' && (
+              <label>
+                SOL amount
+                <input type="number" min={0} step={0.01} value={executionSolAmount} onChange={(event) => { setExecutionSolAmount(Number(event.target.value)); setExecutionArmedAt(null) }} />
+              </label>
+            )}
+            {executionMode === 'sell-all' && (
+              <label>
+                Output
+                <select value={executionOutputMint} onChange={(event) => { setExecutionOutputMint(event.target.value as 'SOL' | 'USDC'); setExecutionArmedAt(null) }}>
+                  <option value="SOL">SOL</option>
+                  <option value="USDC">USDC</option>
+                </select>
+              </label>
+            )}
+          </div>
+          {executionMode === 'edit-wallet' && (
+            <div className="juice-execution-controls secondary">
+              <label>
+                Mint
+                <input value={executionMint} onChange={(event) => { setExecutionMint(event.target.value); setExecutionArmedAt(null) }} placeholder="Optional mint" />
+              </label>
+              <label>
+                Stop loss
+                <input value={executionStopLoss} onChange={(event) => { setExecutionStopLoss(event.target.value); setExecutionArmedAt(null) }} placeholder="Optional price" />
+              </label>
+              <label>
+                Take profit
+                <input value={executionTakeProfit} onChange={(event) => { setExecutionTakeProfit(event.target.value); setExecutionArmedAt(null) }} placeholder="Optional price" />
+              </label>
+              <label className="juice-checkbox-line">
+                <input type="checkbox" checked={executionIsActive} onChange={(event) => { setExecutionIsActive(event.target.checked); setExecutionArmedAt(null) }} />
+                Active
+              </label>
+              <label className="juice-checkbox-line">
+                <input type="checkbox" checked={executionPlaceBuy} onChange={(event) => { setExecutionPlaceBuy(event.target.checked); setExecutionArmedAt(null) }} />
+                Place buy with edit
+              </label>
+            </div>
+          )}
+          <div className="juice-execution-summary">
+            <strong>Selected wallet</strong>
+            <span>{selectedExecutionRow ? `${selectedExecutionRow.wallet.symbol ?? 'MM wallet'} · ${shortAddress(selectedExecutionRow.wallet.publicKey)} · SOL ${formatNumber(selectedExecutionRow.balances?.solBalance, 3)}` : 'No wallet selected'}</span>
+          </div>
+          <label className="juice-checkbox-line impact">
+            <input type="checkbox" checked={executionAck} onChange={(event) => { setExecutionAck(event.target.checked); setExecutionArmedAt(null) }} />
+            I understand this action may move funds, change market-making behavior, or execute a real on-chain transaction.
+          </label>
+          <div className="juice-execution-buttons">
+            <button className="juice-secondary-btn" onClick={armExecution} disabled={!hasKey || !executionWalletId || executionLoading}>Arm action</button>
+            <button className="juice-primary-btn" onClick={executeGuardedAction} disabled={!executionArmedAt || executionLoading}>
+              {executionLoading ? 'Executing…' : 'Execute guarded action'}
+            </button>
+          </div>
+          {executionMessage && <div className="juice-execution-message">{executionMessage}</div>}
         </div>
       </section>
 
