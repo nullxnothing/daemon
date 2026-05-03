@@ -255,7 +255,6 @@ export interface ArenaSubmission {
   demoUrl?: string
   xHandle?: string
   discordHandle?: string
-  contestSlug?: string
 }
 
 export interface ArenaSubmissionInput {
@@ -952,6 +951,14 @@ export type EngineActionType =
   | 'explain-error'
   | 'suggest-fix'
   | 'ask'
+  | 'juice:has-key'
+  | 'juice:store-key'
+  | 'juice:delete-key'
+  | 'juice:list-wallets'
+  | 'juice:get-balances'
+  | 'juice:get-pnl'
+  | 'juice:get-mint-details'
+  | 'juice:get-scouting-report'
 
 export interface EngineAction {
   type: EngineActionType
@@ -959,10 +966,11 @@ export interface EngineAction {
   payload?: Record<string, unknown>
 }
 
-export interface EngineResult {
+export interface EngineResult<TData = unknown> {
   ok: boolean
   action: EngineActionType
   output?: string
+  data?: TData
   artifacts?: Record<string, string>
   error?: string
 }
