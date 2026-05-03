@@ -218,6 +218,15 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     skill: '/integrating-jupiter',
   },
   {
+    id: 'juice-market-maker',
+    label: 'Juice',
+    area: 'Protocols',
+    kind: 'SDK',
+    status: 'guided',
+    description: 'Market-making API for MM wallets, PNL, scouting reports, overcrowding checks, and guarded buy/sell workflows.',
+    docsUrl: 'https://github.com/juice-solana/open-juice',
+  },
+  {
     id: 'surfpool',
     label: 'Surfpool',
     area: 'Testing',
@@ -393,6 +402,15 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     docsUrl: 'https://dev.jup.ag/get-started',
     kickoff: 'Start with quotes, swap execution, and price endpoints before adding trigger or recurring flows.',
     installHint: 'pnpm add @solana/kit',
+  },
+  {
+    id: 'juice',
+    label: 'Juice',
+    status: 'guided',
+    skill: '/integrating-jupiter',
+    docsUrl: 'https://github.com/juice-solana/open-juice',
+    kickoff: 'Start with read-only MM wallet status, PNL, scouting reports, and overcrowding checks before enabling guarded execution.',
+    installHint: 'Configure JUICE_API_KEY in secure keys; no package install is required for the HTTP API path.',
   },
   {
     id: 'metaplex',
