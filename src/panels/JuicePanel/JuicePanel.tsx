@@ -269,3 +269,5 @@ export function JuicePanel() {
     </div>
   )
 }
+
+export default JuicePanel
