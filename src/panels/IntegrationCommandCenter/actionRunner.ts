@@ -54,6 +54,17 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-juice-key') {
+    const ready = Boolean(context.secureKeys.JUICE_API_KEY)
+    return {
+      title: 'Juice key',
+      status: ready ? 'success' : 'warning',
+      detail: ready
+        ? 'DAEMON has a Juice API key stored for read-only market-making checks.'
+        : 'No Juice API key is stored yet. Add one before using Juice MM API workflows.',
+    }
+  }
+
   if (actionId === 'check-solana-mcp') {
     const mcp = context.mcps.find((entry) => entry.name === 'solana-mcp-server')
     return {
