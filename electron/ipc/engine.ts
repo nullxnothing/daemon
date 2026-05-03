@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as Engine from '../services/EngineService'
 import * as JuiceService from '../services/JuiceService'
+import * as JuiceStrategyPreviewService from '../services/JuiceStrategyPreviewService'
 import type { EngineAction } from '../shared/types'
 
 async function runJuiceEngineAction(action: EngineAction) {
@@ -39,6 +40,16 @@ async function runJuiceEngineAction(action: EngineAction) {
     }
     case 'juice:get-scouting-report':
       return { ok: true, action: type, data: await JuiceService.getScoutingReport() }
+    case 'juice:strategy-preview':
+      return {
+        ok: true,
+        action: type,
+        data: await JuiceStrategyPreviewService.buildStrategyPreview({
+          targetPnlUsd: Number(payload.targetPnlUsd ?? 25),
+          maxCrowdLevel: Number(payload.maxCrowdLevel ?? 3),
+          scoutLimit: Number(payload.scoutLimit ?? 5),
+        }),
+      }
     default:
       return null
   }
