@@ -5,7 +5,7 @@ import * as JuiceService from '../services/JuiceService'
 import type { EngineAction } from '../shared/types'
 
 async function runJuiceEngineAction(action: EngineAction) {
-  const type = String((action as { type: string }).type)
+  const { type } = action
   const payload = (action.payload ?? {}) as Record<string, unknown>
 
   switch (type) {
