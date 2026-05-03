@@ -50,9 +50,75 @@ async function runJuiceEngineAction(action: EngineAction) {
           scoutLimit: Number(payload.scoutLimit ?? 5),
         }),
       }
+    case 'juice:create-wallet':
+      return {
+        ok: true,
+        action: type,
+        data: await JuiceService.createWallet({
+          mint: optionalString(payload.mint),
+          strategyId: optionalString(payload.strategyId),
+          acknowledgedPrivateKey: Boolean(payload.acknowledgedPrivateKey),
+          acknowledgedImpact: Boolean(payload.acknowledgedImpact),
+          confirmedAt: Number(payload.confirmedAt),
+        }),
+      }
+    case 'juice:edit-wallet':
+      return {
+        ok: true,
+        action: type,
+        data: await JuiceService.editWallet({
+          walletId: String(payload.walletId ?? ''),
+          mint: optionalString(payload.mint),
+          isActive: optionalBoolean(payload.isActive),
+          stopLossPrice: optionalNumber(payload.stopLossPrice),
+          takeProfitPrice: optionalNumber(payload.takeProfitPrice),
+          tpOnly: optionalBoolean(payload.tpOnly),
+          accumulation: optionalBoolean(payload.accumulation),
+          lowSpeed: optionalBoolean(payload.lowSpeed),
+          strategyId: optionalString(payload.strategyId),
+          placeBuy: optionalBoolean(payload.placeBuy),
+          acknowledgedImpact: Boolean(payload.acknowledgedImpact),
+          confirmedAt: Number(payload.confirmedAt),
+        }),
+      }
+    case 'juice:buy':
+      return {
+        ok: true,
+        action: type,
+        data: await JuiceService.placeBuy({
+          walletId: String(payload.walletId ?? ''),
+          solAmount: Number(payload.solAmount),
+          acknowledgedImpact: Boolean(payload.acknowledgedImpact),
+          confirmedAt: Number(payload.confirmedAt),
+        }),
+      }
+    case 'juice:sell-all':
+      return {
+        ok: true,
+        action: type,
+        data: await JuiceService.sellAll({
+          walletId: String(payload.walletId ?? ''),
+          outputMint: payload.outputMint === 'USDC' ? 'USDC' : 'SOL',
+          acknowledgedImpact: Boolean(payload.acknowledgedImpact),
+          confirmedAt: Number(payload.confirmedAt),
+        }),
+      }
     default:
       return null
   }
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function optionalNumber(value: unknown): number | undefined {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
 }
 
 export function registerEngineHandlers() {
