@@ -38,6 +38,24 @@ type JuiceWalletPnl = {
   }
 }
 
+type JuiceMintDetails = {
+  mint: string
+  wallets: number
+  totalSolBalance: number
+  totalSolValueUsd: number
+  totalTokenBalance: number
+  totalTokenValueUsd: number
+  totalPositionUsd: number
+  tokenPrice: number
+  solPrice: number
+  liquidity: number
+  marketCap: number
+  volume24h: number
+  positionToLiquidity: number
+  walletMultiplier: number
+  overcrowdingLevel: number
+}
+
 type JuiceScoutToken = {
   mint: string
   symbol: string
@@ -67,6 +85,19 @@ type WalletRow = {
   balances: JuiceWalletBalances | null
   pnl: JuiceWalletPnl | null
   error: string | null
+}
+
+type MintDetailRecord = {
+  loading: boolean
+  data: JuiceMintDetails | null
+  error: string | null
+}
+
+type StrategyPreview = {
+  sellCandidates: Array<{ wallet: JuiceWallet; pnl: JuiceWalletPnl; reason: string }>
+  entryCandidates: Array<{ token: JuiceScoutToken; mintDetails: JuiceMintDetails; reason: string }>
+  skipped: Array<{ token: JuiceScoutToken; reason: string }>
+  generatedAt: number
 }
 
 function formatUsd(value?: number | null) {
@@ -102,9 +133,14 @@ export function JuicePanel() {
   const [keySaving, setKeySaving] = useState(false)
   const [keyMessage, setKeyMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [strategyLoading, setStrategyLoading] = useState(false)
+  const [targetPnlUsd, setTargetPnlUsd] = useState(25)
+  const [maxCrowdLevel, setMaxCrowdLevel] = useState(3)
   const [error, setError] = useState<string | null>(null)
   const [walletRows, setWalletRows] = useState<WalletRow[]>([])
   const [scoutingReport, setScoutingReport] = useState<JuiceScoutingReport | null>(null)
+  const [mintDetails, setMintDetails] = useState<Record<string, MintDetailRecord>>({})
+  const [strategyPreview, setStrategyPreview] = useState<StrategyPreview | null>(null)
 
   const totals = useMemo(() => {
     const activeWallets = walletRows.filter((row) => row.wallet.isActive).length
@@ -113,6 +149,8 @@ export function JuicePanel() {
     const totalPnlUsd = walletRows.reduce((sum, row) => sum + (row.pnl?.pnl.totalUsd ?? 0), 0)
     return { activeWallets, idleWallets, totalSol, totalPnlUsd }
   }, [walletRows])
+
+  const topScouts = useMemo(() => (scoutingReport?.tokens ?? []).slice(0, 8), [scoutingReport])
 
   const refreshKeyStatus = async () => {
     setCheckingKey(true)
@@ -167,6 +205,8 @@ export function JuicePanel() {
       if (!res.ok) throw new Error(res.error)
       setWalletRows([])
       setScoutingReport(null)
+      setMintDetails({})
+      setStrategyPreview(null)
       setKeyMessage('Juice API key removed.')
       await refreshKeyStatus()
     } catch (err) {
@@ -176,9 +216,22 @@ export function JuicePanel() {
     }
   }
 
+  const inspectMint = async (mint: string) => {
+    setMintDetails((current) => ({ ...current, [mint]: { loading: true, data: current[mint]?.data ?? null, error: null } }))
+    const res = await runJuiceAction<JuiceMintDetails>('juice:get-mint-details', { mint })
+    setMintDetails((current) => ({
+      ...current,
+      [mint]: res.ok && res.data
+        ? { loading: false, data: res.data, error: null }
+        : { loading: false, data: current[mint]?.data ?? null, error: res.error ?? 'Unable to inspect mint' },
+    }))
+    return res
+  }
+
   const loadDashboard = async () => {
     setLoading(true)
     setError(null)
+    setStrategyPreview(null)
     try {
       const walletsRes = await runJuiceAction<JuiceWallet[]>('juice:list-wallets')
       if (!walletsRes.ok || !walletsRes.data) throw new Error(walletsRes.error ?? 'Could not load Juice wallets')
@@ -207,13 +260,65 @@ export function JuicePanel() {
     }
   }
 
+  const buildStrategyPreview = async () => {
+    if (!scoutingReport?.tokens.length) {
+      setError('Load a scouting report before building a strategy preview.')
+      return
+    }
+
+    setStrategyLoading(true)
+    setError(null)
+    try {
+      const sellCandidates = walletRows
+        .filter((row) => row.wallet.isActive && row.pnl && row.pnl.pnl.totalUsd >= targetPnlUsd)
+        .map((row) => ({
+          wallet: row.wallet,
+          pnl: row.pnl as JuiceWalletPnl,
+          reason: `PNL is at or above ${formatUsd(targetPnlUsd)} target`,
+        }))
+
+      const tokensToInspect = scoutingReport.tokens.slice(0, 5)
+      const inspected = await Promise.all(tokensToInspect.map(async (token) => {
+        const existing = mintDetails[token.mint]?.data
+        if (existing) return { token, details: existing, error: null as string | null }
+        const res = await inspectMint(token.mint)
+        return { token, details: res.data ?? null, error: res.error ?? null }
+      }))
+
+      const entryCandidates: StrategyPreview['entryCandidates'] = []
+      const skipped: StrategyPreview['skipped'] = []
+
+      inspected.forEach(({ token, details, error }) => {
+        if (error || !details) {
+          skipped.push({ token, reason: error ?? 'Mint details unavailable' })
+          return
+        }
+        if (details.overcrowdingLevel > maxCrowdLevel) {
+          skipped.push({ token, reason: `Crowding level ${details.overcrowdingLevel} is above max ${maxCrowdLevel}` })
+          return
+        }
+        entryCandidates.push({
+          token,
+          mintDetails: details,
+          reason: `Grade ${token.grade}, score ${token.score}/${token.maxScore}, crowding ${details.overcrowdingLevel}/${maxCrowdLevel}`,
+        })
+      })
+
+      setStrategyPreview({ sellCandidates, entryCandidates, skipped, generatedAt: Date.now() })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setStrategyLoading(false)
+    }
+  }
+
   return (
     <div className="juice-panel">
       <header className="juice-hero">
         <div>
           <div className="juice-eyebrow">Juice Market Maker</div>
           <h2>MM wallet cockpit</h2>
-          <p>Read-only view for Juice wallets, balances, PNL, and scouting reports before DAEMON enables guarded execution.</p>
+          <p>Read-only view for Juice wallets, balances, PNL, scouting reports, mint crowding, and strategy previews before DAEMON enables guarded execution.</p>
         </div>
         <div className={`juice-key-pill ${hasKey ? 'ready' : 'missing'}`}>
           {checkingKey ? 'Checking key…' : hasKey ? 'JUICE_API_KEY ready' : 'JUICE_API_KEY missing'}
@@ -284,6 +389,60 @@ export function JuicePanel() {
 
       <section className="juice-section">
         <div className="juice-section-header">
+          <h3>Strategy preview</h3>
+          <span>Read-only next-action model</span>
+        </div>
+        <div className="juice-strategy-card">
+          <div className="juice-strategy-controls">
+            <label>
+              Target PNL
+              <input type="number" value={targetPnlUsd} min={0} step={5} onChange={(event) => setTargetPnlUsd(Number(event.target.value))} />
+            </label>
+            <label>
+              Max crowd
+              <input type="number" value={maxCrowdLevel} min={0} max={10} step={1} onChange={(event) => setMaxCrowdLevel(Number(event.target.value))} />
+            </label>
+            <button className="juice-secondary-btn" onClick={buildStrategyPreview} disabled={strategyLoading || !scoutingReport}>
+              {strategyLoading ? 'Building…' : 'Build preview'}
+            </button>
+          </div>
+          <p className="juice-strategy-note">This does not execute trades. It shows which wallets look ready to exit and which scouted mints pass the current crowding filter.</p>
+          {strategyPreview && (
+            <div className="juice-preview-grid">
+              <div>
+                <h4>Sell candidates</h4>
+                {strategyPreview.sellCandidates.length === 0 ? <span className="juice-muted">None at current target.</span> : strategyPreview.sellCandidates.map((candidate) => (
+                  <div className="juice-preview-row" key={candidate.wallet.id}>
+                    <strong>{candidate.wallet.symbol ?? shortAddress(candidate.wallet.publicKey)}</strong>
+                    <span>{formatUsd(candidate.pnl.pnl.totalUsd)} · {candidate.reason}</span>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <h4>Entry candidates</h4>
+                {strategyPreview.entryCandidates.length === 0 ? <span className="juice-muted">No candidates passed filters.</span> : strategyPreview.entryCandidates.map((candidate) => (
+                  <div className="juice-preview-row" key={candidate.token.mint}>
+                    <strong>{candidate.token.symbol}</strong>
+                    <span>{candidate.reason}</span>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <h4>Skipped</h4>
+                {strategyPreview.skipped.length === 0 ? <span className="juice-muted">Nothing skipped.</span> : strategyPreview.skipped.map((item) => (
+                  <div className="juice-preview-row" key={item.token.mint}>
+                    <strong>{item.token.symbol}</strong>
+                    <span>{item.reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="juice-section">
+        <div className="juice-section-header">
           <h3>MM wallets</h3>
           <span>{walletRows.length ? `${walletRows.length} loaded` : 'No wallet data loaded'}</span>
         </div>
@@ -318,25 +477,42 @@ export function JuicePanel() {
           <span>{scoutingReport ? `${scoutingReport.tokenCount} candidates` : 'No report loaded'}</span>
         </div>
         <div className="juice-scout-grid">
-          {(scoutingReport?.tokens ?? []).slice(0, 8).map((token) => (
-            <article className="juice-scout-card" key={token.mint}>
-              <div className="juice-scout-topline">
-                <div>
-                  <strong>{token.symbol}</strong>
-                  <span>{token.name}</span>
+          {topScouts.map((token) => {
+            const detail = mintDetails[token.mint]
+            return (
+              <article className="juice-scout-card" key={token.mint}>
+                <div className="juice-scout-topline">
+                  <div>
+                    <strong>{token.symbol}</strong>
+                    <span>{token.name}</span>
+                  </div>
+                  <b>{token.grade}</b>
                 </div>
-                <b>{token.grade}</b>
-              </div>
-              <div className="juice-scout-score">{token.score}/{token.maxScore}</div>
-              <div className="juice-scout-stats">
-                <span>MC {formatUsd(token.marketCap)}</span>
-                <span>Liq {formatUsd(token.liquidity)}</span>
-                <span>1h {formatNumber(token.priceChange1hPercent, 2)}%</span>
-                <span>24h {formatNumber(token.priceChange24hPercent, 2)}%</span>
-              </div>
-              <code>{shortAddress(token.mint)}</code>
-            </article>
-          ))}
+                <div className="juice-scout-score">{token.score}/{token.maxScore}</div>
+                <div className="juice-scout-stats">
+                  <span>MC {formatUsd(token.marketCap)}</span>
+                  <span>Liq {formatUsd(token.liquidity)}</span>
+                  <span>1h {formatNumber(token.priceChange1hPercent, 2)}%</span>
+                  <span>24h {formatNumber(token.priceChange24hPercent, 2)}%</span>
+                </div>
+                <div className="juice-scout-footer">
+                  <code>{shortAddress(token.mint)}</code>
+                  <button className="juice-mini-btn" onClick={() => void inspectMint(token.mint)} disabled={detail?.loading}>
+                    {detail?.loading ? 'Inspecting…' : 'Inspect mint'}
+                  </button>
+                </div>
+                {detail?.data && (
+                  <div className="juice-mint-details">
+                    <span>MM wallets <b>{detail.data.wallets}</b></span>
+                    <span>Crowd <b>{formatNumber(detail.data.overcrowdingLevel, 2)}</b></span>
+                    <span>Position {formatUsd(detail.data.totalPositionUsd)}</span>
+                    <span>Position/Liq {formatNumber(detail.data.positionToLiquidity, 3)}</span>
+                  </div>
+                )}
+                {detail?.error && <div className="juice-card-error">{detail.error}</div>}
+              </article>
+            )
+          })}
           {!scoutingReport && <div className="juice-empty">Scouting reports will appear here after the read-only dashboard loads.</div>}
         </div>
       </section>
