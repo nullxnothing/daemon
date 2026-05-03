@@ -78,7 +78,7 @@ type JuiceScoutingReport = {
   scannedAt: string
 }
 
-type JuiceActionType = Extract<EngineAction['type'], `juice:${string}`>
+type JuiceActionType = `juice:${string}`
 
 type WalletRow = {
   wallet: JuiceWallet
@@ -94,6 +94,9 @@ type MintDetailRecord = {
 }
 
 type StrategyPreview = {
+  targetPnlUsd?: number
+  maxCrowdLevel?: number
+  scoutLimit?: number
   sellCandidates: Array<{ wallet: JuiceWallet; pnl: JuiceWalletPnl; reason: string }>
   entryCandidates: Array<{ token: JuiceScoutToken; mintDetails: JuiceMintDetails; reason: string }>
   skipped: Array<{ token: JuiceScoutToken; reason: string }>
@@ -116,7 +119,7 @@ function shortAddress(value?: string | null) {
 }
 
 async function runJuiceAction<T>(type: JuiceActionType, payload?: Record<string, unknown>): Promise<IpcResponse<T>> {
-  const action: EngineAction = { type, payload }
+  const action = { type, payload } as EngineAction
   const response = await daemon.engine.run(action) as IpcResponse<EngineResult<T>>
   if (!response.ok) return { ok: false, error: response.error }
 
@@ -261,50 +264,23 @@ export function JuicePanel() {
   }
 
   const buildStrategyPreview = async () => {
-    if (!scoutingReport?.tokens.length) {
-      setError('Load a scouting report before building a strategy preview.')
-      return
-    }
-
     setStrategyLoading(true)
     setError(null)
     try {
-      const sellCandidates = walletRows
-        .filter((row) => row.wallet.isActive && row.pnl && row.pnl.pnl.totalUsd >= targetPnlUsd)
-        .map((row) => ({
-          wallet: row.wallet,
-          pnl: row.pnl as JuiceWalletPnl,
-          reason: `PNL is at or above ${formatUsd(targetPnlUsd)} target`,
-        }))
-
-      const tokensToInspect = scoutingReport.tokens.slice(0, 5)
-      const inspected = await Promise.all(tokensToInspect.map(async (token) => {
-        const existing = mintDetails[token.mint]?.data
-        if (existing) return { token, details: existing, error: null as string | null }
-        const res = await inspectMint(token.mint)
-        return { token, details: res.data ?? null, error: res.error ?? null }
-      }))
-
-      const entryCandidates: StrategyPreview['entryCandidates'] = []
-      const skipped: StrategyPreview['skipped'] = []
-
-      inspected.forEach(({ token, details, error }) => {
-        if (error || !details) {
-          skipped.push({ token, reason: error ?? 'Mint details unavailable' })
-          return
-        }
-        if (details.overcrowdingLevel > maxCrowdLevel) {
-          skipped.push({ token, reason: `Crowding level ${details.overcrowdingLevel} is above max ${maxCrowdLevel}` })
-          return
-        }
-        entryCandidates.push({
-          token,
-          mintDetails: details,
-          reason: `Grade ${token.grade}, score ${token.score}/${token.maxScore}, crowding ${details.overcrowdingLevel}/${maxCrowdLevel}`,
-        })
+      const previewRes = await runJuiceAction<StrategyPreview>('juice:strategy-preview', {
+        targetPnlUsd,
+        maxCrowdLevel,
+        scoutLimit: 5,
       })
+      if (!previewRes.ok || !previewRes.data) throw new Error(previewRes.error ?? 'Unable to build Juice strategy preview')
 
-      setStrategyPreview({ sellCandidates, entryCandidates, skipped, generatedAt: Date.now() })
+      const inspectedMints = previewRes.data.entryCandidates.reduce<Record<string, MintDetailRecord>>((acc, candidate) => {
+        acc[candidate.token.mint] = { loading: false, data: candidate.mintDetails, error: null }
+        return acc
+      }, {})
+
+      setMintDetails((current) => ({ ...current, ...inspectedMints }))
+      setStrategyPreview(previewRes.data)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -402,11 +378,11 @@ export function JuicePanel() {
               Max crowd
               <input type="number" value={maxCrowdLevel} min={0} max={10} step={1} onChange={(event) => setMaxCrowdLevel(Number(event.target.value))} />
             </label>
-            <button className="juice-secondary-btn" onClick={buildStrategyPreview} disabled={strategyLoading || !scoutingReport}>
+            <button className="juice-secondary-btn" onClick={buildStrategyPreview} disabled={strategyLoading || !hasKey}>
               {strategyLoading ? 'Building…' : 'Build preview'}
             </button>
           </div>
-          <p className="juice-strategy-note">This does not execute trades. It shows which wallets look ready to exit and which scouted mints pass the current crowding filter.</p>
+          <p className="juice-strategy-note">This does not execute trades. DAEMON asks the main process to model which wallets look ready to exit and which scouted mints pass the crowding filter.</p>
           {strategyPreview && (
             <div className="juice-preview-grid">
               <div>
