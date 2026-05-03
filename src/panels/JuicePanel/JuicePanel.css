@@ -64,7 +64,8 @@
 }
 
 .juice-key-card,
-.juice-strategy-card {
+.juice-strategy-card,
+.juice-execution-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 16px;
   background: rgba(15, 23, 42, 0.42);
@@ -99,7 +100,9 @@
 }
 
 .juice-key-controls input,
-.juice-strategy-controls input {
+.juice-strategy-controls input,
+.juice-execution-controls input,
+.juice-execution-controls select {
   width: 100%;
   min-width: 0;
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -111,7 +114,9 @@
 }
 
 .juice-key-controls input:focus,
-.juice-strategy-controls input:focus {
+.juice-strategy-controls input:focus,
+.juice-execution-controls input:focus,
+.juice-execution-controls select:focus {
   border-color: rgba(20, 241, 149, 0.38);
   box-shadow: 0 0 0 3px rgba(20, 241, 149, 0.08);
 }
@@ -255,18 +260,30 @@
   font-size: 12px;
 }
 
-.juice-strategy-card {
+.juice-strategy-card,
+.juice-execution-card {
   padding: 14px;
 }
 
-.juice-strategy-controls {
+.juice-strategy-controls,
+.juice-execution-controls {
   display: grid;
   grid-template-columns: minmax(120px, 0.4fr) minmax(120px, 0.4fr) auto;
   gap: 10px;
   align-items: end;
 }
 
-.juice-strategy-controls label {
+.juice-execution-controls {
+  grid-template-columns: minmax(140px, 0.5fr) minmax(220px, 1fr) minmax(120px, 0.35fr);
+  margin-top: 12px;
+}
+
+.juice-execution-controls.secondary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.juice-strategy-controls label,
+.juice-execution-controls label {
   display: grid;
   gap: 6px;
   color: rgba(226, 232, 240, 0.6);
@@ -308,6 +325,64 @@
   color: rgba(226, 232, 240, 0.58);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.juice-execution-warning {
+  padding: 10px 12px;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  border-radius: 12px;
+  background: rgba(113, 63, 18, 0.18);
+  color: #fde68a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.juice-execution-summary,
+.juice-execution-message {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.juice-execution-summary strong,
+.juice-execution-message strong {
+  font-size: 12px;
+}
+
+.juice-execution-summary span,
+.juice-execution-message {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 12px;
+}
+
+.juice-checkbox-line {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  color: rgba(226, 232, 240, 0.7) !important;
+  font-size: 12px;
+}
+
+.juice-checkbox-line input {
+  width: auto;
+}
+
+.juice-checkbox-line.impact {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(248, 113, 113, 0.22);
+  border-radius: 12px;
+  background: rgba(127, 29, 29, 0.12);
+}
+
+.juice-execution-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .juice-wallet-list {
@@ -462,7 +537,9 @@
 
   .juice-key-controls,
   .juice-strategy-controls,
-  .juice-preview-grid {
+  .juice-preview-grid,
+  .juice-execution-controls,
+  .juice-execution-controls.secondary {
     grid-template-columns: 1fr;
   }
 
@@ -476,5 +553,9 @@
 
   .juice-wallet-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .juice-execution-buttons {
+    flex-direction: column;
   }
 }
