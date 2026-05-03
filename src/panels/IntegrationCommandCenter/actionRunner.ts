@@ -8,6 +8,13 @@ export interface IntegrationActionResult {
   items?: string[]
 }
 
+async function hasSecureKey(context: IntegrationContext, keyName: string): Promise<boolean> {
+  if (context.secureKeys[keyName]) return true
+
+  const keys = await daemon.claude.listKeys().catch(() => null)
+  return Boolean(keys?.ok && keys.data?.some((entry) => entry.key_name === keyName))
+}
+
 export async function runIntegrationAction(actionId: string, context: IntegrationContext): Promise<IntegrationActionResult> {
   if (actionId === 'check-wallet-balance') {
     const wallet = context.defaultWallet
@@ -55,7 +62,7 @@ export async function runIntegrationAction(actionId: string, context: Integratio
   }
 
   if (actionId === 'check-juice-key') {
-    const ready = Boolean(context.secureKeys.JUICE_API_KEY)
+    const ready = await hasSecureKey(context, 'JUICE_API_KEY')
     return {
       title: 'Juice key',
       status: ready ? 'success' : 'warning',
