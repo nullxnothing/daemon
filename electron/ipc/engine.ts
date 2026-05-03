@@ -10,7 +10,7 @@ async function runJuiceEngineAction(action: EngineAction) {
 
   switch (type) {
     case 'juice:has-key':
-      return { ok: true, action: type, output: JSON.stringify(JuiceService.hasJuiceKey()) }
+      return { ok: true, action: type, data: JuiceService.hasJuiceKey() }
     case 'juice:list-wallets':
       return { ok: true, action: type, data: await JuiceService.listWallets() }
     case 'juice:get-balances': {
