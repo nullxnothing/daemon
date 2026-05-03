@@ -132,6 +132,25 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'juice',
+    name: 'Juice Market Maker',
+    tagline: 'Market-making wallets, PNL, scouts, and guarded execution',
+    description: 'Use Juice to manage market-making wallets, monitor balances and PNL, review token scouting reports, inspect pool overcrowding, and prepare guarded buy/sell actions after DAEMON confirmation.',
+    category: 'defi',
+    docsUrl: 'https://github.com/juice-solana/open-juice',
+    recommendedFor: ['market making', 'token creator operations', 'PNL monitoring', 'scouting reports', 'guarded trade execution'],
+    requirements: [
+      { type: 'secure-key', key: 'JUICE_API_KEY', label: 'Juice API key' },
+      { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet', optional: true },
+    ],
+    actions: [
+      { id: 'check-juice-key', label: 'Check key', description: 'Verify DAEMON has a Juice API key stored before using Juice MM API workflows.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-juice-wallets', label: 'Preview wallets', description: 'Planned: read Juice MM wallets, balances, active token, and status.', kind: 'planned', risk: 'read-only' },
+      { id: 'preview-juice-scouting-report', label: 'Preview scouts', description: 'Planned: show fresh Juice scouting reports without entering positions.', kind: 'planned', risk: 'read-only' },
+      { id: 'open-juice-console', label: 'Open console', description: 'Planned: open the guided Juice operator dashboard inside DAEMON.', kind: 'planned', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'metaplex',
     name: 'Metaplex',
     tagline: 'NFTs, metadata, Core, Bubblegum',
