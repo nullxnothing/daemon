@@ -63,6 +63,13 @@
   color: #fde68a;
 }
 
+.juice-key-card,
+.juice-strategy-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
 .juice-key-card {
   display: grid;
   grid-template-columns: minmax(220px, 0.85fr) minmax(280px, 1.15fr);
@@ -70,12 +77,10 @@
   align-items: start;
   margin-top: 14px;
   padding: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.42);
 }
 
-.juice-key-card h3 {
+.juice-key-card h3,
+.juice-strategy-card h4 {
   margin: 0 0 6px;
   font-size: 14px;
 }
@@ -93,7 +98,8 @@
   gap: 8px;
 }
 
-.juice-key-controls input {
+.juice-key-controls input,
+.juice-strategy-controls input {
   width: 100%;
   min-width: 0;
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -104,13 +110,15 @@
   outline: none;
 }
 
-.juice-key-controls input:focus {
+.juice-key-controls input:focus,
+.juice-strategy-controls input:focus {
   border-color: rgba(20, 241, 149, 0.38);
   box-shadow: 0 0 0 3px rgba(20, 241, 149, 0.08);
 }
 
 .juice-secondary-btn,
-.juice-ghost-btn {
+.juice-ghost-btn,
+.juice-mini-btn {
   border-radius: 12px;
   padding: 10px 12px;
   font-weight: 700;
@@ -123,14 +131,21 @@
   background: rgba(20, 241, 149, 0.1);
 }
 
-.juice-ghost-btn {
+.juice-ghost-btn,
+.juice-mini-btn {
   border: 1px solid rgba(148, 163, 184, 0.18);
   color: rgba(226, 232, 240, 0.72);
   background: rgba(15, 23, 42, 0.36);
 }
 
+.juice-mini-btn {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
 .juice-secondary-btn:disabled,
-.juice-ghost-btn:disabled {
+.juice-ghost-btn:disabled,
+.juice-mini-btn:disabled {
   opacity: 0.48;
   cursor: not-allowed;
 }
@@ -164,7 +179,9 @@
   cursor: not-allowed;
 }
 
-.juice-action-note {
+.juice-action-note,
+.juice-muted,
+.juice-strategy-note {
   color: rgba(226, 232, 240, 0.58);
   font-size: 12px;
 }
@@ -238,6 +255,61 @@
   font-size: 12px;
 }
 
+.juice-strategy-card {
+  padding: 14px;
+}
+
+.juice-strategy-controls {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.4fr) minmax(120px, 0.4fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.juice-strategy-controls label {
+  display: grid;
+  gap: 6px;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 12px;
+}
+
+.juice-strategy-note {
+  margin: 12px 0 0;
+  line-height: 1.5;
+}
+
+.juice-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.juice-preview-grid > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.juice-preview-row {
+  display: grid;
+  gap: 3px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.juice-preview-row strong {
+  font-size: 13px;
+}
+
+.juice-preview-row span {
+  color: rgba(226, 232, 240, 0.58);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .juice-wallet-list {
   display: grid;
   gap: 10px;
@@ -248,7 +320,8 @@
 }
 
 .juice-wallet-topline,
-.juice-scout-topline {
+.juice-scout-topline,
+.juice-scout-footer {
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -288,7 +361,8 @@
 }
 
 .juice-wallet-stats,
-.juice-scout-stats {
+.juice-scout-stats,
+.juice-mint-details {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
@@ -296,12 +370,14 @@
 }
 
 .juice-wallet-stats span,
-.juice-scout-stats span {
+.juice-scout-stats span,
+.juice-mint-details span {
   color: rgba(226, 232, 240, 0.55);
   font-size: 12px;
 }
 
-.juice-wallet-stats b {
+.juice-wallet-stats b,
+.juice-mint-details b {
   display: block;
   margin-top: 3px;
   color: rgba(248, 250, 252, 0.94);
@@ -346,15 +422,25 @@
   letter-spacing: -0.03em;
 }
 
-.juice-scout-stats {
+.juice-scout-stats,
+.juice-mint-details {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.juice-scout-footer {
+  align-items: center;
+  margin-top: 12px;
 }
 
 .juice-scout-card code {
   display: inline-block;
-  margin-top: 12px;
   color: rgba(125, 211, 252, 0.85);
   font-size: 11px;
+}
+
+.juice-mint-details {
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
 
 .juice-empty {
@@ -374,7 +460,9 @@
     display: flex;
   }
 
-  .juice-key-controls {
+  .juice-key-controls,
+  .juice-strategy-controls,
+  .juice-preview-grid {
     grid-template-columns: 1fr;
   }
 
