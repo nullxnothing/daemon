@@ -11,6 +11,15 @@ async function runJuiceEngineAction(action: EngineAction) {
   switch (type) {
     case 'juice:has-key':
       return { ok: true, action: type, data: JuiceService.hasJuiceKey() }
+    case 'juice:store-key': {
+      const apiKey = String(payload.apiKey ?? '')
+      if (!apiKey) return { ok: false, action: type, error: 'apiKey is required' }
+      await JuiceService.storeJuiceKey(apiKey)
+      return { ok: true, action: type, data: true }
+    }
+    case 'juice:delete-key':
+      JuiceService.deleteJuiceKey()
+      return { ok: true, action: type, data: true }
     case 'juice:list-wallets':
       return { ok: true, action: type, data: await JuiceService.listWallets() }
     case 'juice:get-balances': {
