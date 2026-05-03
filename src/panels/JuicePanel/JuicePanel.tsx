@@ -102,6 +102,9 @@ async function runJuiceAction<T>(type: string, payload?: Record<string, unknown>
 export function JuicePanel() {
   const [hasKey, setHasKey] = useState(false)
   const [checkingKey, setCheckingKey] = useState(true)
+  const [apiKeyDraft, setApiKeyDraft] = useState('')
+  const [keySaving, setKeySaving] = useState(false)
+  const [keyMessage, setKeyMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [walletRows, setWalletRows] = useState<WalletRow[]>([])
@@ -115,22 +118,67 @@ export function JuicePanel() {
     return { activeWallets, idleWallets, totalSol, totalPnlUsd }
   }, [walletRows])
 
+  const refreshKeyStatus = async () => {
+    setCheckingKey(true)
+    const keys = await daemon.claude.listKeys().catch(() => null)
+    const keyFromSecureStore = Boolean(keys?.ok && keys.data?.some((entry) => entry.key_name === 'JUICE_API_KEY'))
+    const engineKey = await runJuiceAction<boolean>('juice:has-key').catch(() => null)
+    const ready = keyFromSecureStore || Boolean(engineKey?.ok && engineKey.data)
+    setHasKey(ready)
+    setCheckingKey(false)
+    return ready
+  }
+
   useEffect(() => {
     let cancelled = false
     async function checkKey() {
-      setCheckingKey(true)
-      const keys = await daemon.claude.listKeys().catch(() => null)
-      const keyFromSecureStore = Boolean(keys?.ok && keys.data?.some((entry) => entry.key_name === 'JUICE_API_KEY'))
-      const engineKey = await runJuiceAction<boolean>('juice:has-key').catch(() => null)
-
-      if (!cancelled) {
-        setHasKey(keyFromSecureStore || Boolean(engineKey?.ok && engineKey.data))
-        setCheckingKey(false)
-      }
+      const ready = await refreshKeyStatus().catch(() => false)
+      if (!cancelled) setHasKey(ready)
     }
     void checkKey()
     return () => { cancelled = true }
   }, [])
+
+  const saveKey = async () => {
+    const trimmed = apiKeyDraft.trim()
+    if (!trimmed) {
+      setKeyMessage('Paste a Juice API key first.')
+      return
+    }
+
+    setKeySaving(true)
+    setKeyMessage(null)
+    setError(null)
+    try {
+      const res = await runJuiceAction<boolean>('juice:store-key', { apiKey: trimmed })
+      if (!res.ok) throw new Error(res.error)
+      setApiKeyDraft('')
+      setKeyMessage('Juice API key saved securely.')
+      await refreshKeyStatus()
+    } catch (err) {
+      setKeyMessage(err instanceof Error ? err.message : String(err))
+    } finally {
+      setKeySaving(false)
+    }
+  }
+
+  const deleteKey = async () => {
+    setKeySaving(true)
+    setKeyMessage(null)
+    setError(null)
+    try {
+      const res = await runJuiceAction<boolean>('juice:delete-key')
+      if (!res.ok) throw new Error(res.error)
+      setWalletRows([])
+      setScoutingReport(null)
+      setKeyMessage('Juice API key removed.')
+      await refreshKeyStatus()
+    } catch (err) {
+      setKeyMessage(err instanceof Error ? err.message : String(err))
+    } finally {
+      setKeySaving(false)
+    }
+  }
 
   const loadDashboard = async () => {
     setLoading(true)
@@ -175,6 +223,31 @@ export function JuicePanel() {
           {checkingKey ? 'Checking key…' : hasKey ? 'JUICE_API_KEY ready' : 'JUICE_API_KEY missing'}
         </div>
       </header>
+
+      <section className="juice-key-card">
+        <div>
+          <h3>API key</h3>
+          <p>Paste your Juice key once. DAEMON validates it with a read-only wallet call and stores it through the secure key service.</p>
+        </div>
+        <div className="juice-key-controls">
+          <input
+            value={apiKeyDraft}
+            onChange={(event) => setApiKeyDraft(event.target.value)}
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Paste JUICE_API_KEY"
+            disabled={keySaving}
+          />
+          <button className="juice-secondary-btn" onClick={saveKey} disabled={keySaving || !apiKeyDraft.trim()}>
+            {keySaving ? 'Saving…' : 'Save key'}
+          </button>
+          <button className="juice-ghost-btn" onClick={deleteKey} disabled={keySaving || !hasKey}>
+            Remove
+          </button>
+        </div>
+        {keyMessage && <div className="juice-key-message">{keyMessage}</div>}
+      </section>
 
       <div className="juice-actions">
         <button className="juice-primary-btn" onClick={loadDashboard} disabled={loading || !hasKey}>
