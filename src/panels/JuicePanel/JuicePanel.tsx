@@ -59,12 +59,12 @@ type JuiceScoutingReport = {
   scannedAt: string
 }
 
-type JuiceBridge = {
-  hasKey: () => Promise<IpcResponse<boolean>>
-  listWallets: () => Promise<IpcResponse<JuiceWallet[]>>
-  getBalances: (walletId: string) => Promise<IpcResponse<JuiceWalletBalances>>
-  getPnl: (walletId: string) => Promise<IpcResponse<JuiceWalletPnl>>
-  getScoutingReport: () => Promise<IpcResponse<JuiceScoutingReport>>
+type JuiceEngineResult<T> = {
+  ok: boolean
+  action: string
+  data?: T
+  output?: string
+  error?: string
 }
 
 type WalletRow = {
@@ -89,8 +89,14 @@ function shortAddress(value?: string | null) {
   return `${value.slice(0, 4)}…${value.slice(-4)}`
 }
 
-function getJuiceBridge(): JuiceBridge {
-  return (daemon as unknown as { juice: JuiceBridge }).juice
+async function runJuiceAction<T>(type: string, payload?: Record<string, unknown>): Promise<IpcResponse<T>> {
+  const response = await daemon.engine.run({ type, payload } as never) as IpcResponse<JuiceEngineResult<T>>
+  if (!response.ok) return { ok: false, error: response.error }
+
+  const result = response.data
+  if (!result?.ok) return { ok: false, error: result?.error ?? `Juice action failed: ${type}` }
+
+  return { ok: true, data: result.data as T }
 }
 
 export function JuicePanel() {
@@ -115,10 +121,10 @@ export function JuicePanel() {
       setCheckingKey(true)
       const keys = await daemon.claude.listKeys().catch(() => null)
       const keyFromSecureStore = Boolean(keys?.ok && keys.data?.some((entry) => entry.key_name === 'JUICE_API_KEY'))
+      const engineKey = await runJuiceAction<boolean>('juice:has-key').catch(() => null)
 
-      const bridgeKey = await getJuiceBridge().hasKey().catch(() => null)
       if (!cancelled) {
-        setHasKey(keyFromSecureStore || Boolean(bridgeKey?.ok && bridgeKey.data))
+        setHasKey(keyFromSecureStore || Boolean(engineKey?.ok && engineKey.data))
         setCheckingKey(false)
       }
     }
@@ -130,14 +136,13 @@ export function JuicePanel() {
     setLoading(true)
     setError(null)
     try {
-      const bridge = getJuiceBridge()
-      const walletsRes = await bridge.listWallets()
+      const walletsRes = await runJuiceAction<JuiceWallet[]>('juice:list-wallets')
       if (!walletsRes.ok || !walletsRes.data) throw new Error(walletsRes.error ?? 'Could not load Juice wallets')
 
       const rows = await Promise.all(walletsRes.data.map(async (wallet): Promise<WalletRow> => {
         const [balancesRes, pnlRes] = await Promise.all([
-          bridge.getBalances(wallet.id).catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) } as IpcResponse<JuiceWalletBalances>)),
-          bridge.getPnl(wallet.id).catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) } as IpcResponse<JuiceWalletPnl>)),
+          runJuiceAction<JuiceWalletBalances>('juice:get-balances', { walletId: wallet.id }).catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) } as IpcResponse<JuiceWalletBalances>)),
+          runJuiceAction<JuiceWalletPnl>('juice:get-pnl', { walletId: wallet.id }).catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) } as IpcResponse<JuiceWalletPnl>)),
         ])
         return {
           wallet,
@@ -147,7 +152,7 @@ export function JuicePanel() {
         }
       }))
 
-      const scoutRes = await bridge.getScoutingReport().catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) } as IpcResponse<JuiceScoutingReport>))
+      const scoutRes = await runJuiceAction<JuiceScoutingReport>('juice:get-scouting-report').catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) } as IpcResponse<JuiceScoutingReport>))
       setWalletRows(rows)
       setScoutingReport(scoutRes.ok ? scoutRes.data ?? null : null)
       if (!scoutRes.ok && rows.length === 0) setError(scoutRes.error ?? 'Juice scouting report is unavailable')
