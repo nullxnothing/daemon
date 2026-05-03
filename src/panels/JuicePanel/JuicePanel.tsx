@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { EngineAction, EngineResult, IpcResponse } from '../../../electron/shared/types'
 import { daemon } from '../../lib/daemonBridge'
 import './JuicePanel.css'
 
@@ -59,13 +60,7 @@ type JuiceScoutingReport = {
   scannedAt: string
 }
 
-type JuiceEngineResult<T> = {
-  ok: boolean
-  action: string
-  data?: T
-  output?: string
-  error?: string
-}
+type JuiceActionType = Extract<EngineAction['type'], `juice:${string}`>
 
 type WalletRow = {
   wallet: JuiceWallet
@@ -89,8 +84,9 @@ function shortAddress(value?: string | null) {
   return `${value.slice(0, 4)}…${value.slice(-4)}`
 }
 
-async function runJuiceAction<T>(type: string, payload?: Record<string, unknown>): Promise<IpcResponse<T>> {
-  const response = await daemon.engine.run({ type, payload } as never) as IpcResponse<JuiceEngineResult<T>>
+async function runJuiceAction<T>(type: JuiceActionType, payload?: Record<string, unknown>): Promise<IpcResponse<T>> {
+  const action: EngineAction = { type, payload }
+  const response = await daemon.engine.run(action) as IpcResponse<EngineResult<T>>
   if (!response.ok) return { ok: false, error: response.error }
 
   const result = response.data
