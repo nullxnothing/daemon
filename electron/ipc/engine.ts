@@ -6,7 +6,7 @@ import * as JuiceStrategyPreviewService from '../services/JuiceStrategyPreviewSe
 import type { EngineAction } from '../shared/types'
 
 async function runJuiceEngineAction(action: EngineAction) {
-  const { type } = action
+  const type = String(action.type)
   const payload = (action.payload ?? {}) as Record<string, unknown>
 
   switch (type) {
