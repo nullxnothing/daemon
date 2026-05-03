@@ -19,6 +19,7 @@ import { registerProcessHandlers } from '../ipc/processes'
 import { registerEnvHandlers } from '../ipc/env'
 import { registerPortHandlers } from '../ipc/ports'
 import { registerWalletHandlers } from '../ipc/wallet'
+import { registerJuiceHandlers } from '../ipc/juice'
 import { registerProHandlers } from '../ipc/pro'
 import { registerSettingsHandlers } from '../ipc/settings'
 import { registerPluginHandlers } from '../ipc/plugins'
@@ -152,6 +153,7 @@ function registerAllIpc() {
   registerEnvHandlers()
   registerPortHandlers()
   registerWalletHandlers()
+  registerJuiceHandlers()
   registerProHandlers()
   registerSettingsHandlers()
   registerPluginHandlers()
@@ -217,7 +219,7 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com https://api.juiceeverything.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
         }
       })
     })
