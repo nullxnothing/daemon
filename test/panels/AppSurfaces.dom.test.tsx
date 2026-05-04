@@ -342,13 +342,13 @@ describe('App surface DOM coverage', () => {
   it('keeps token launch out of New Project templates', async () => {
     render(<ProjectStarter />)
 
-    expect(await screen.findByText('What do you want to build?')).toBeInTheDocument()
+    expect(await screen.findByText('Project Templates')).toBeInTheDocument()
     expect(screen.getByText('Anchor Program')).toBeInTheDocument()
     expect(screen.getByText('Trading Bot')).toBeInTheDocument()
     expect(screen.queryByText('Token Launch')).not.toBeInTheDocument()
     expect(screen.queryByText('Pump.fun Token')).not.toBeInTheDocument()
 
-    await userEvent.type(screen.getByPlaceholderText('Filter templates...'), 'launch')
+    await userEvent.type(screen.getByPlaceholderText('Filter templates'), 'launch')
 
     expect(screen.getByText('No templates match "launch"')).toBeInTheDocument()
   })
@@ -481,13 +481,13 @@ describe('App surface DOM coverage', () => {
     render(<ProjectReadiness />)
 
     expect(await screen.findByText('Project Readiness')).toBeInTheDocument()
-    expect(screen.getByText('Start Solana development from one checklist')).toBeInTheDocument()
+    expect(screen.getByText('Solana project status')).toBeInTheDocument()
     await waitFor(() => {
       expect(screen.queryByText('Refreshing readiness...')).not.toBeInTheDocument()
     })
     expect(screen.getByLabelText('Solana readiness score')).toBeInTheDocument()
     expect(screen.getByText('Project open')).toBeInTheDocument()
-    expect(screen.getByText('Fix the obvious blockers here')).toBeInTheDocument()
+    expect(screen.getByText('Blocking checks')).toBeInTheDocument()
     expect(screen.getByText('Create dev wallet')).toBeInTheDocument()
     expect(screen.getByText('Link wallet to project')).toBeInTheDocument()
     expect(screen.getByText('Enable Solana MCP')).toBeInTheDocument()
@@ -496,7 +496,7 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByText('Provider path')).toBeInTheDocument()
     expect(screen.getByText('MCP tools')).toBeInTheDocument()
     expect(screen.getByText('SendAI first agent')).toBeInTheDocument()
-    expect(screen.getByText('Pick the workflow that proves the project works')).toBeInTheDocument()
+    expect(screen.getByText('First actions')).toBeInTheDocument()
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Assign wallet' })[0])
 
