@@ -110,6 +110,90 @@ export interface FileEntry {
   children?: FileEntry[]
 }
 
+// --- Language Server Protocol ---
+
+export type LspServerId = 'typescript' | 'python' | 'rust'
+
+export interface LspPosition {
+  line: number
+  character: number
+}
+
+export interface LspRange {
+  start: LspPosition
+  end: LspPosition
+}
+
+export interface LspDiagnostic {
+  range: LspRange
+  severity?: number
+  code?: string | number
+  source?: string
+  message: string
+}
+
+export interface LspDiagnosticEvent {
+  uri: string
+  filePath: string
+  diagnostics: LspDiagnostic[]
+}
+
+export interface LspServerStatus {
+  serverId: LspServerId
+  label: string
+  command: string
+  commandPath: string | null
+  available: boolean
+  active: boolean
+  pid: number | null
+  projectPath: string | null
+  languageIds: string[]
+  extensions: string[]
+  startedAt: number | null
+  error: string | null
+}
+
+export interface LspDocumentInput {
+  projectPath: string
+  filePath: string
+  languageId: string
+  text: string
+  version?: number
+}
+
+export interface LspDocumentSyncResult {
+  supported: boolean
+  serverId?: LspServerId
+  languageId: string
+  status?: LspServerStatus
+  error?: string
+}
+
+export interface LspHoverResult {
+  contents: string
+  range?: LspRange
+}
+
+export interface LspLocation {
+  uri: string
+  filePath: string
+  range: LspRange
+}
+
+export interface LspCompletionItem {
+  label: string
+  kind?: number
+  detail?: string
+  documentation?: string
+  insertText?: string
+  filterText?: string
+  sortText?: string
+}
+
+export interface LspCompletionResult {
+  items: LspCompletionItem[]
+}
+
 // --- Icon Theme ---
 
 export interface RuntimeIconTheme {
@@ -593,6 +677,8 @@ export interface TerminalSession {
   isAgentShell?: boolean
   /** Local session tracker ID — set when agent spawns via spawnAgent. */
   localSessionId?: string | null
+  /** Best-effort count of terminal output lines for session receipts. */
+  generatedLineCount?: number
   /** Buffers PTY data until renderer signals ready */
   dataBuffer?: string[]
   /** True once renderer has attached its xterm onData listener */
@@ -622,6 +708,7 @@ export interface TerminalCreateOutput {
   pid: number
   agentId: null | string
   agentName?: string
+  localSessionId?: string | null
 }
 
 // --- Agents ---
@@ -709,6 +796,75 @@ export interface AgentWalletEntry {
 export interface WalletBalanceResult {
   sol: number
   lamports: number
+}
+
+// --- Agent Work Escrow ---
+
+export type AgentWorkStatus =
+  | 'draft'
+  | 'funded'
+  | 'running'
+  | 'submitted'
+  | 'approved'
+  | 'rejected'
+  | 'settled'
+
+export interface AgentWorkTask {
+  id: string
+  title: string
+  prompt: string
+  acceptance: string
+  project_id: string | null
+  project_name: string | null
+  project_path: string | null
+  wallet_id: string | null
+  wallet_name: string | null
+  wallet_address: string | null
+  agent_id: string | null
+  agent_name: string | null
+  agent_wallet_id: string | null
+  agent_wallet_address: string | null
+  verifier_wallet: string | null
+  repo_hash: string
+  prompt_hash: string
+  acceptance_hash: string
+  bounty_lamports: number
+  bounty_sol: number
+  deadline_at: number | null
+  onchain_task_id: string | null
+  create_signature: string | null
+  start_signature: string | null
+  receipt_signature: string | null
+  review_signature: string | null
+  status: AgentWorkStatus
+  session_id: string | null
+  commit_hash: string | null
+  diff_hash: string | null
+  tests_hash: string | null
+  artifact_uri: string | null
+  submitted_at: number | null
+  approved_at: number | null
+  settled_signature: string | null
+  created_at: number
+  updated_at: number
+}
+
+export interface AgentWorkCreateInput {
+  title: string
+  prompt: string
+  acceptance: string
+  projectId?: string | null
+  walletId?: string | null
+  agentId?: string | null
+  agentWalletId?: string | null
+  verifierWallet?: string | null
+  bountySol: number
+  deadlineAt?: number | null
+}
+
+export interface AgentWorkSubmitInput {
+  artifactUri?: string | null
+  testsOutput?: string | null
 }
 
 // --- PnL Tracking ---

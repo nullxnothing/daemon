@@ -49,6 +49,9 @@ import type {
   TransferTokenInput,
   SolanaTransactionPreview,
   SolanaTransactionPreviewInput,
+  AgentWorkCreateInput,
+  AgentWorkSubmitInput,
+  AgentWorkTask,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -84,6 +87,14 @@ import type {
   ReplayContextHandoff,
   ReplayAgentHandoff,
   ReplayVerificationResult,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 } from '../../electron/shared/types'
 
 export type {
@@ -137,6 +148,9 @@ export type {
   TransferTokenInput,
   SolanaTransactionPreview,
   SolanaTransactionPreviewInput,
+  AgentWorkCreateInput,
+  AgentWorkSubmitInput,
+  AgentWorkTask,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -167,6 +181,14 @@ export type {
   PnlSyncResult,
   TradeRecord,
   CostBasisEntry,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 }
 
 declare global {
@@ -218,6 +240,9 @@ declare global {
 
   type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
   type SolanaTransactionPreview = import('../../electron/shared/types').SolanaTransactionPreview
+  type AgentWorkCreateInput = import('../../electron/shared/types').AgentWorkCreateInput
+  type AgentWorkSubmitInput = import('../../electron/shared/types').AgentWorkSubmitInput
+  type AgentWorkTask = import('../../electron/shared/types').AgentWorkTask
 
   type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
 
@@ -316,7 +341,7 @@ declare global {
 
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
-    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
     spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     ready: (id: string) => void
     write: (id: string, data: string) => void
@@ -396,6 +421,19 @@ declare global {
     reveal: (targetPath: string) => Promise<IpcResponse>
     copyPath: (targetPath: string) => Promise<IpcResponse>
     iconTheme: () => Promise<IpcResponse<RuntimeIconTheme | null>>
+  }
+
+  interface DaemonLsp {
+    status: (projectPath?: string) => Promise<IpcResponse<LspServerStatus[]>>
+    openDocument: (input: LspDocumentInput) => Promise<IpcResponse<LspDocumentSyncResult>>
+    changeDocument: (input: LspDocumentInput) => Promise<IpcResponse<LspDocumentSyncResult>>
+    closeDocument: (input: Pick<LspDocumentInput, 'projectPath' | 'filePath' | 'languageId'>) => Promise<IpcResponse<void>>
+    hover: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspHoverResult | null>>
+    definition: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspLocation[]>>
+    completion: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspCompletionResult>>
+    diagnostics: (filePath: string) => Promise<IpcResponse<LspDiagnosticEvent>>
+    shutdownProject: (projectPath: string) => Promise<IpcResponse<void>>
+    onDiagnostics: (callback: (payload: LspDiagnosticEvent) => void) => () => void
   }
 
   interface DaemonProjects {
@@ -869,6 +907,14 @@ declare global {
   interface DaemonRegistry {
     listSessions: (limit?: number) => Promise<IpcResponse<LocalAgentSession[]>>
     getProfile: () => Promise<IpcResponse<AgentSessionProfile>>
+    listAgentWork: (limit?: number) => Promise<IpcResponse<AgentWorkTask[]>>
+    createAgentWork: (input: AgentWorkCreateInput) => Promise<IpcResponse<AgentWorkTask>>
+    fundAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    startAgentWork: (taskId: string, sessionId?: string | null) => Promise<IpcResponse<AgentWorkTask>>
+    submitAgentWork: (taskId: string, input?: AgentWorkSubmitInput) => Promise<IpcResponse<AgentWorkTask>>
+    approveAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    rejectAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    settleAgentWork: (taskId: string, signature?: string | null) => Promise<IpcResponse<AgentWorkTask>>
     publishSession: (sessionId: string) => Promise<IpcResponse<{ startSignature: string; endSignature: string }>>
     publishAll: () => Promise<IpcResponse<{ published: number; failed: number }>>
     renameSession: (sessionId: string, name: string) => Promise<IpcResponse<null>>
@@ -987,6 +1033,7 @@ declare global {
     wallet: DaemonWallet
     settings: DaemonSettings
     fs: DaemonFs
+    lsp: DaemonLsp
     git: DaemonGit
     projects: DaemonProjects
     agents: DaemonAgents

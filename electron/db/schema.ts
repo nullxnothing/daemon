@@ -587,3 +587,46 @@ CREATE TABLE IF NOT EXISTS agent_station_configs (
 );
 CREATE INDEX IF NOT EXISTS idx_agent_station_status ON agent_station_configs(status);
 `
+
+export const SCHEMA_V30 = `
+CREATE TABLE IF NOT EXISTS agent_work_tasks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  acceptance TEXT NOT NULL,
+  project_id TEXT,
+  wallet_id TEXT,
+  agent_id TEXT,
+  verifier_wallet TEXT,
+  repo_hash TEXT NOT NULL,
+  prompt_hash TEXT NOT NULL,
+  acceptance_hash TEXT NOT NULL,
+  bounty_lamports INTEGER NOT NULL DEFAULT 0,
+  deadline_at INTEGER,
+  status TEXT NOT NULL DEFAULT 'funded',
+  session_id TEXT,
+  commit_hash TEXT,
+  diff_hash TEXT,
+  tests_hash TEXT,
+  artifact_uri TEXT,
+  submitted_at INTEGER,
+  approved_at INTEGER,
+  settled_signature TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_status ON agent_work_tasks(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_project ON agent_work_tasks(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_wallet ON agent_work_tasks(wallet_id, created_at DESC);
+`
+
+export const SCHEMA_V31 = `
+ALTER TABLE agent_work_tasks ADD COLUMN agent_wallet_id TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN agent_wallet_address TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN onchain_task_id TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN create_signature TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN start_signature TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN receipt_signature TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN review_signature TEXT;
+CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_onchain ON agent_work_tasks(onchain_task_id);
+`
