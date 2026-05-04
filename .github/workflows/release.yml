@@ -238,7 +238,7 @@ jobs:
           cat artifacts/linux/checksums-linux.txt 2>/dev/null >> changelog.md || true
           echo '```' >> changelog.md
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: changelog.md
           draft: false
