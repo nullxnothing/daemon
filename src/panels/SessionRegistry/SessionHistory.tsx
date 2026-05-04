@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
+import { EmptyState } from '../../components/EmptyState'
+import { Banner, PanelHeader, Stat } from '../../components/Panel'
 import './SessionHistory.css'
 
 function formatDuration(startedAt: number, endedAt: number | null): string {
@@ -172,7 +174,10 @@ export function SessionHistory() {
   const [publishAllBusy, setPublishAllBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { terminals, activeProjectId, setActiveTerminal, activeTerminalIdByProject, setCenterMode, centerMode } = useUIStore()
+  const terminals = useUIStore((s) => s.terminals)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
 
   const load = useCallback(() => {
     window.daemon.registry.listSessions(30).then((res) => {
@@ -283,57 +288,52 @@ export function SessionHistory() {
 
   return (
     <div className="session-history">
-      <div className="sr-workspace-bar">
-        <div className="sr-workspace-copy">
-          <span className="sr-workspace-kicker">Agent memory</span>
-          <h2 className="sr-workspace-title">Track what is still running and what is worth publishing</h2>
-          <p className="sr-workspace-subtitle">
-            Sessions should be easy to resume, relaunch, rename, and publish without scanning a terminal graveyard.
-          </p>
-        </div>
-      </div>
+      <PanelHeader
+        className="sr-panel-header"
+        kicker="Agent memory"
+        brandKicker
+        title="Track what is still running and what is worth publishing"
+        subtitle="Sessions should be easy to resume, relaunch, rename, and publish without scanning a terminal graveyard."
+      />
 
       {profile && (
         <div className="sr-stats">
-          <div className="sr-stat">
-            <span className="sr-stat-value">{activeCount}</span>
-            <span className="sr-stat-label">active now</span>
-          </div>
-          <div className="sr-stat">
-            <span className="sr-stat-value">{completedCount}</span>
-            <span className="sr-stat-label">completed</span>
-          </div>
-          <div className="sr-stat">
-            <span className="sr-stat-value">{profile.projectsCount}</span>
-            <span className="sr-stat-label">projects</span>
-          </div>
-          <div className="sr-stat">
-            <span className="sr-stat-value">{Math.round(profile.totalDuration / 60000)}m</span>
-            <span className="sr-stat-label">logged time</span>
-          </div>
+          <Stat className="sr-stat" label="active now" value={activeCount} />
+          <Stat className="sr-stat" label="completed" value={completedCount} />
+          <Stat className="sr-stat" label="projects" value={profile.projectsCount} />
+          <Stat className="sr-stat" label="logged time" value={`${Math.round(profile.totalDuration / 60000)}m`} />
         </div>
       )}
 
-      {error && <div className="sr-error">{error}</div>}
+      {error && <Banner className="sr-error" tone="danger">{error}</Banner>}
 
       {unpublishedCount > 0 && (
-        <div className="sr-publish-bar">
+        <Banner
+          className="sr-publish-bar"
+          tone="success"
+          actions={
+            <button
+              className="sr-publish-all-btn"
+              onClick={handlePublishAll}
+              disabled={publishAllBusy}
+            >
+              {publishAllBusy ? 'Publishing...' : 'Publish All'}
+            </button>
+          }
+        >
           <span className="sr-publish-bar-text">
             {unpublishedCount} unpublished {unpublishedCount === 1 ? 'session' : 'sessions'}
           </span>
-          <button
-            className="sr-publish-all-btn"
-            onClick={handlePublishAll}
-            disabled={publishAllBusy}
-          >
-            {publishAllBusy ? 'Publishing...' : 'Publish All'}
-          </button>
-        </div>
+        </Banner>
       )}
 
       <div className="sr-list">
         {sessions.length === 0 ? (
-          <div className="sr-empty">No sessions yet. Spawn an agent to start tracking.</div>
+          <EmptyState
+            className="sr-empty"
+            title="No sessions yet"
+            description="Spawn an agent to start tracking."
+          />
         ) : (
           sessions.map((s) => (
             <SessionRow

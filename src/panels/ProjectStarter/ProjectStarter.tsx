@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useNotificationsStore } from '../../store/notifications'
 import './ProjectStarter.css'
 
 // --- Template definitions ---
@@ -15,20 +16,6 @@ interface Template {
 }
 
 const TEMPLATES: Template[] = [
-  {
-    id: 'token-launch',
-    name: 'Token Launch',
-    description: 'SPL token with metadata, mint authority, and launch script',
-    tags: ['Token', 'SPL'],
-    icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
-    prompt: `Scaffold a Solana SPL token launch project. Include:
-- Anchor program with mint, metadata (Metaplex), and freeze authority setup
-- TypeScript client scripts: create-token, mint-supply, transfer, burn
-- Deployment scripts for devnet and mainnet
-- .env.example with RPC_URL, WALLET_PATH, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DECIMALS, INITIAL_SUPPLY
-- README with setup instructions
-Use Anchor 0.32+, AVM-managed toolchains, and @solana/kit (or @solana/web3-compat only when required by third-party SDKs). Initialize git repo.`,
-  },
   {
     id: 'nft-collection',
     name: 'NFT Collection',
@@ -101,24 +88,6 @@ Initialize git repo. Prefer @solana/client, @solana/react-hooks, and @solana/web
 - .env.example with RPC_URL, WALLET_PATH, PROGRAM_ID
 - README with build, test, and deploy instructions
 Use Anchor 0.32+ with AVM. Initialize git repo.`,
-  },
-  {
-    id: 'pump-token',
-    name: 'Pump.fun Token',
-    description: 'Token launch via Pump.fun with bonding curve and migration',
-    tags: ['PumpFun', 'Launch'],
-    icon: 'M13 10V3L4 14h7v7l9-11h-7z',
-    prompt: `Scaffold a Pump.fun token launch project. Include:
-- Token creation script using Pump.fun API
-- Bonding curve buy/sell scripts
-- Migration monitoring (bonding curve → Raydium)
-- Metadata preparation (name, symbol, description, image URL)
-- Bundle buying strategy scripts (multi-wallet)
-- Jito bundle integration for MEV protection
-- Wallet generation and fund distribution utilities
-- .env.example with RPC_URL, MASTER_WALLET_PATH, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_DESCRIPTION, IMAGE_URL
-- README with full workflow guide
-Use @solana/kit plus web3 compatibility only where Pump tooling requires it. Initialize git repo.`,
   },
   {
     id: 'telegram-bot',
@@ -285,7 +254,7 @@ function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrast
     ].join('\n')
   }
 
-  if (templateId === 'trading-bot' || templateId === 'pump-token' || templateId === 'telegram-bot') {
+  if (templateId === 'trading-bot' || templateId === 'telegram-bot') {
     return [
       'Execution architecture requirements:',
       providerFlow,
@@ -378,28 +347,58 @@ export function ProjectStarter() {
 
     const name = wizard.projectName.trim()
     const projectPath = `${wizard.savePath}/${name}`
+    const sessionId = `scaffold-${crypto.randomUUID()}`
 
     setWizard((prev) => ({ ...prev, step: 'building' }))
     setError(null)
+    useNotificationsStore.getState().addActivity({
+      kind: 'info',
+      context: 'Scaffold',
+      message: `Started ${wizard.template.name} scaffold for ${name} at ${projectPath}`,
+      sessionId,
+      sessionStatus: 'created',
+      projectName: name,
+    })
 
     try {
-      // Create directory
-      const mkdirRes = await window.daemon.fs.createDir(projectPath)
-      if (!mkdirRes.ok) {
-        setError(mkdirRes.error ?? 'Failed to create directory')
-        setWizard((prev) => ({ ...prev, step: 'configure' }))
-        return
-      }
-
-      // Register project in DB
+      // Register the project before using sandboxed filesystem APIs so the
+      // target path is treated as a valid project root during scaffolding.
       const projRes = await window.daemon.projects.create({ name, path: projectPath })
       if (!projRes.ok || !projRes.data) {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: projRes.error ?? `Failed to register project ${name}`,
+          sessionId,
+          sessionStatus: 'failed',
+          projectName: name,
+        })
         setError(projRes.error ?? 'Failed to register project')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
         return
       }
 
       const newProject = projRes.data as { id: string; name: string; path: string }
+      const cleanupProject = async () => {
+        await window.daemon.projects.delete(newProject.id)
+      }
+
+      const mkdirRes = await window.daemon.fs.createDir(projectPath)
+      if (!mkdirRes.ok) {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: mkdirRes.error ?? `Failed to create project directory for ${name}`,
+          sessionId,
+          sessionStatus: 'failed',
+          projectId: newProject.id,
+          projectName: name,
+        })
+        await cleanupProject()
+        setError(mkdirRes.error ?? 'Failed to create directory')
+        setWizard((prev) => ({ ...prev, step: 'configure' }))
+        return
+      }
 
       // Refresh project list and switch to new project
       const listRes = await window.daemon.projects.list()
@@ -415,11 +414,22 @@ export function ProjectStarter() {
           `${JSON.stringify(runtimePreset, null, 2)}\n`,
         )
         if (!runtimePresetRes.ok) {
+          useNotificationsStore.getState().addActivity({
+            kind: 'error',
+            context: 'Scaffold',
+            message: runtimePresetRes.error ?? `Failed to write runtime preset for ${name}`,
+            sessionId,
+            sessionStatus: 'failed',
+            projectId: newProject.id,
+            projectName: name,
+          })
+          await cleanupProject()
           setError(runtimePresetRes.error ?? 'Failed to write runtime preset')
           setWizard((prev) => ({ ...prev, step: 'configure' }))
           return
         }
       }
+
 
       // Spawn a terminal with Claude agent to scaffold the project
       const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
@@ -446,13 +456,40 @@ export function ProjectStarter() {
 
       if (termRes.ok && termRes.data) {
         addTerminal(newProject.id, termRes.data.id, `Build: ${name}`, null)
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Scaffold',
+          message: `Build agent started for ${name}; runtime preset ${runtimePreset ? 'written' : 'not available'}.`,
+          sessionId,
+          sessionStatus: 'running',
+          projectId: newProject.id,
+          projectName: name,
+        })
         setCenterMode('canvas')
         closeDrawer()
       } else {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: termRes.error ?? `Failed to start build agent for ${name}`,
+          sessionId,
+          sessionStatus: 'failed',
+          projectId: newProject.id,
+          projectName: name,
+        })
+        await cleanupProject()
         setError(termRes.error ?? 'Failed to start build agent')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
       }
     } catch (err) {
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Scaffold',
+        message: err instanceof Error ? err.message : String(err),
+        sessionId,
+        sessionStatus: 'failed',
+        projectName: name,
+      })
       setError(String(err))
       setWizard((prev) => ({ ...prev, step: 'configure' }))
     }
@@ -477,11 +514,10 @@ export function ProjectStarter() {
     return (
       <div className="starter-panel">
         <div className="starter-hero">
-          <h2 className="starter-title">What do you want to build?</h2>
-          <p className="starter-subtitle">Pick a template and we'll scaffold it with AI</p>
+          <h2 className="starter-title">Project Templates</h2>
           <input
             className="starter-filter"
-            placeholder="Filter templates..."
+            placeholder="Filter templates"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -603,8 +639,7 @@ export function ProjectStarter() {
         <div className="starter-spinner" />
         <h3 className="starter-building-title">Scaffolding {wizard.projectName}...</h3>
         <p className="starter-building-desc">
-          A Claude agent is building your {wizard.template?.name} project.
-          Check the terminal for progress.
+          Build agent running for {wizard.template?.name}.
         </p>
       </div>
     </div>

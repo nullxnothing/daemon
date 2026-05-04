@@ -1,0 +1,27 @@
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--t4);
+  flex: 0 0 auto;
+}
+
+.success { background: var(--green); color: var(--green); }
+.warn { background: var(--amber); color: var(--amber); }
+.danger { background: var(--red); color: var(--red); }
+.info { background: var(--blue); color: var(--blue); }
+.neutral { background: var(--t4); color: var(--t4); }
+
+.pulse {
+  animation: dotPulse 1.6s ease-out infinite;
+}
+
+@keyframes dotPulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 28%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
+}

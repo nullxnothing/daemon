@@ -7,6 +7,10 @@ export function registerPluginHandlers() {
     return Plugins.listPlugins()
   }))
 
+  ipcMain.handle('plugins:add', ipcHandler(async (_event, input) => {
+    return Plugins.addPlugin(input)
+  }))
+
   ipcMain.handle('plugins:set-enabled', ipcHandler(async (_event, id: string, enabled: boolean) => {
     Plugins.setPluginEnabled(id, enabled)
   }))

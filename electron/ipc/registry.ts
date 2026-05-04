@@ -2,8 +2,10 @@ import { ipcMain } from 'electron'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as SessionTracker from '../services/SessionTracker'
 import * as SessionRegistryService from '../services/SessionRegistryService'
+import * as AgentWorkService from '../services/AgentWorkService'
 import { loadKeypair } from '../services/SolanaService'
 import { getDb } from '../db/db'
+import type { AgentWorkCreateInput, AgentWorkSubmitInput } from '../shared/types'
 
 interface WalletRow {
   id: string
@@ -32,6 +34,44 @@ export function registerRegistryHandlers() {
 
   ipcMain.handle('registry:get-profile', ipcHandler(async () => {
     return SessionTracker.getProfileStats()
+  }))
+
+  ipcMain.handle('registry:list-agent-work', ipcHandler(async (_event, limit?: number) => {
+    return AgentWorkService.listTasks(limit ?? 50)
+  }))
+
+  ipcMain.handle('registry:create-agent-work', ipcHandler(async (_event, input: AgentWorkCreateInput) => {
+    return AgentWorkService.createTask(input)
+  }))
+
+  ipcMain.handle('registry:fund-agent-work', ipcHandler(async (_event, taskId: string) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.fundTask(taskId)
+  }))
+
+  ipcMain.handle('registry:start-agent-work', ipcHandler(async (_event, taskId: string, sessionId?: string | null) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.startTask(taskId, sessionId ?? null)
+  }))
+
+  ipcMain.handle('registry:submit-agent-work', ipcHandler(async (_event, taskId: string, input?: AgentWorkSubmitInput) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.submitReceipt(taskId, input ?? {})
+  }))
+
+  ipcMain.handle('registry:approve-agent-work', ipcHandler(async (_event, taskId: string) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.approveTask(taskId)
+  }))
+
+  ipcMain.handle('registry:reject-agent-work', ipcHandler(async (_event, taskId: string) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.rejectTask(taskId)
+  }))
+
+  ipcMain.handle('registry:settle-agent-work', ipcHandler(async (_event, taskId: string, signature?: string | null) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.settleTask(taskId, signature ?? null)
   }))
 
   ipcMain.handle('registry:publish-session', ipcHandler(async (_event, sessionId: string) => {

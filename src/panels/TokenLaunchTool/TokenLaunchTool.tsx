@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { Button } from '../../components/Button'
+import { Card, MetricCard, PanelHeader, Toolbar } from '../../components/Panel'
 import '../SolanaToolbox/SolanaToolbox.css'
 import './TokenLaunchTool.css'
 
@@ -29,40 +31,38 @@ export function TokenLaunchTool() {
 
   return (
     <div className="token-launch-tool">
-      <section className="token-launch-tool-hero">
-        <div className="token-launch-tool-header">
-          <div className="token-launch-tool-header-copy">
-            <div className="token-launch-tool-kicker">Launch Center</div>
-            <h1 className="token-launch-tool-title">Token Launch</h1>
-            <p className="token-launch-tool-copy">
-              Launch from one wallet-linked workflow, run preflight before send, and move straight into Browser mode for post-launch work.
-            </p>
-          </div>
-
-          <div className="token-launch-tool-actions">
-            <button className="sol-btn green" onClick={openLaunchWizard}>Launch Token</button>
-            <button
-              className="sol-btn"
+      <PanelHeader
+        kicker="Launch Center"
+        title="Token Launch"
+        subtitle="Launch from one wallet-linked workflow, run preflight before send, and move straight into Browser mode for post-launch work."
+        actions={(
+          <Toolbar>
+            <Button variant="primary" size="md" onClick={openLaunchWizard}>Launch Token</Button>
+            <Button
+              variant="default"
+              size="md"
               onClick={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)}
             >
               Refresh Data
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Toolbar>
+        )}
+      />
 
+      <div className="token-launch-tool-body">
         <div className="token-launch-tool-highlight-grid">
           {highlights.map((highlight) => (
-            <div key={highlight.label} className="token-launch-tool-highlight">
-              <div className="token-launch-tool-highlight-label">{highlight.label}</div>
-              <div className="token-launch-tool-highlight-value">{highlight.value}</div>
-              <div className="token-launch-tool-highlight-detail">{highlight.detail}</div>
-            </div>
+            <MetricCard
+              key={highlight.label}
+              label={highlight.label}
+              value={highlight.value}
+              detail={highlight.detail}
+              size="compact"
+            />
           ))}
         </div>
-      </section>
 
-      <div className="token-launch-tool-flow">
-        <section className="token-launch-tool-zone token-launch-tool-zone-main">
+        <Card className="token-launch-tool-zone">
           <div className="token-launch-tool-zone-head">
             <div>
               <div className="token-launch-tool-zone-kicker">Step 1</div>
@@ -77,9 +77,9 @@ export function TokenLaunchTool() {
             embedded
             onRefreshRequested={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)}
           />
-        </section>
+        </Card>
 
-        <section className="token-launch-tool-zone token-launch-tool-zone-side">
+        <Card className="token-launch-tool-zone">
           <div className="token-launch-tool-zone-head">
             <div>
               <div className="token-launch-tool-zone-kicker">Step 2</div>
@@ -93,16 +93,16 @@ export function TokenLaunchTool() {
             embedded
             onSettingsSaved={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)}
           />
-        </section>
+        </Card>
 
-        <div className="token-launch-tool-note">
+        <Card className="token-launch-tool-note" tone="info">
           <div className="token-launch-tool-note-title">Recommended flow</div>
           <ol className="token-launch-tool-note-list">
             <li>Pick the wallet you want to launch from.</li>
             <li>Confirm the launchpad is live and the config is saved.</li>
             <li>Launch once, then open the token in Browser Mode for post-launch work.</li>
           </ol>
-        </div>
+        </Card>
       </div>
     </div>
   )

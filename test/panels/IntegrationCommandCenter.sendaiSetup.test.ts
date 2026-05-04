@@ -4,6 +4,7 @@ import {
   createFirstAgentPlan,
   createSendAiSetupPlan,
   mergeEnvExample,
+  normalizeProjectInstallCommand,
   parsePackageInfo,
   upsertPackageJsonScript,
 } from '../../src/panels/IntegrationCommandCenter/sendaiSetup'
@@ -34,6 +35,44 @@ describe('SendAI Agent Kit setup planner', () => {
     expect(plan.installCommand).toContain('bs58')
     expect(plan.presentEnvKeys).toEqual(['RPC_URL'])
     expect(plan.missingEnvKeys).toContain('SOLANA_PRIVATE_KEY')
+  })
+
+  it('normalizes install commands for workspace roots and package managers', () => {
+    expect(normalizeProjectInstallCommand(
+      'pnpm add @lightprotocol/stateless.js @lightprotocol/compressed-token',
+      { packageManager: 'pnpm', pnpmWorkspaceRoot: true },
+    )).toBe('pnpm add -w @lightprotocol/stateless.js @lightprotocol/compressed-token')
+
+    expect(normalizeProjectInstallCommand(
+      'pnpm add -w @lightprotocol/stateless.js',
+      { packageManager: 'pnpm', pnpmWorkspaceRoot: true },
+    )).toBe('pnpm add -w @lightprotocol/stateless.js')
+
+    expect(normalizeProjectInstallCommand(
+      'pnpm add @lightprotocol/stateless.js',
+      { packageManager: 'npm', pnpmWorkspaceRoot: true },
+    )).toBe('npm install @lightprotocol/stateless.js')
+
+    expect(normalizeProjectInstallCommand(
+      'npx skills add sendaifun/skills',
+      { packageManager: 'pnpm', pnpmWorkspaceRoot: true },
+    )).toBe('npx skills add sendaifun/skills')
+  })
+
+  it('adds the pnpm workspace-root flag to generated setup installs', () => {
+    const packageInfo = parsePackageInfo(JSON.stringify({
+      packageManager: 'pnpm@9.15.3',
+      dependencies: {},
+    }))
+
+    const plan = createSendAiSetupPlan({
+      packageInfo,
+      lockfiles: { pnpm: true },
+      envKeys: new Set(),
+      pnpmWorkspaceRoot: true,
+    })
+
+    expect(plan.installCommand).toContain('pnpm add -w solana-agent-kit')
   })
 
   it('merges env example placeholders without duplicating existing keys', () => {

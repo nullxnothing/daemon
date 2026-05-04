@@ -20,6 +20,9 @@ type ManageCreateTab = 'import' | 'generate'
 
 export function WalletTab({ onRefresh }: Props) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectName = useUIStore((s) => (
+    s.activeProjectId ? s.projects.find((project) => project.id === s.activeProjectId)?.name ?? null : null
+  ))
   const dashboard = useWalletStore((s) => s.dashboard)!
   const showMarketTape = useWalletStore((s) => s.showMarketTape)
   const showTitlebarWallet = useWalletStore((s) => s.showTitlebarWallet)
@@ -337,6 +340,14 @@ export function WalletTab({ onRefresh }: Props) {
   const handleExecuteSend = async () => {
     if (!pendingSend || sendLockRef.current) return
     sendLockRef.current = true
+    const activity = useNotificationsStore.getState()
+    activity.addActivity({
+      kind: 'info',
+      context: 'Wallet',
+      message: `Sending ${pendingSend.sendMax ? 'max' : pendingSend.amount} ${pendingSend.mode === 'sol' ? 'SOL' : 'token'} to ${pendingSend.dest}`,
+      projectId: activeProjectId,
+      projectName: activeProjectName,
+    })
     setSendLoading(true)
     setSendError(null)
     try {
@@ -345,9 +356,23 @@ export function WalletTab({ onRefresh }: Props) {
         setPendingSend(null)
         if (res.ok && res.data) {
           setSendResult(res.data)
+          activity.addActivity({
+            kind: 'success',
+            context: 'Wallet',
+            message: `SOL send confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+            projectId: activeProjectId,
+            projectName: activeProjectName,
+          })
           resetSendState()
           await onRefresh()
         } else {
+          activity.addActivity({
+            kind: 'error',
+            context: 'Wallet',
+            message: res.error ?? 'SOL send failed',
+            projectId: activeProjectId,
+            projectName: activeProjectName,
+          })
           setSendError(res.error ?? 'Send failed')
         }
       } else {
@@ -355,9 +380,23 @@ export function WalletTab({ onRefresh }: Props) {
         setPendingSend(null)
         if (res.ok && res.data) {
           setSendResult(res.data)
+          activity.addActivity({
+            kind: 'success',
+            context: 'Wallet',
+            message: `Token send confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+            projectId: activeProjectId,
+            projectName: activeProjectName,
+          })
           resetSendState()
           await onRefresh()
         } else {
+          activity.addActivity({
+            kind: 'error',
+            context: 'Wallet',
+            message: res.error ?? 'Token send failed',
+            projectId: activeProjectId,
+            projectName: activeProjectName,
+          })
           setSendError(res.error ?? 'Send failed')
         }
       }

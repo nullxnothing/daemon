@@ -29,12 +29,21 @@ import type {
   WalletDashboard,
   TerminalCreateOutput,
   PluginRow,
+  PluginCreateInput,
   UiSettings,
   ProjectCreateInput,
   AgentCreateInput,
   McpAddInput,
   ToolRow,
   ToolCreateInput,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 } from './types'
 
 export interface ChannelMap {
@@ -61,6 +70,17 @@ export interface ChannelMap {
   'fs:reveal': { input: string; output: void }
   'fs:copyPath': { input: string; output: void }
   'fs:iconTheme': { input: void; output: RuntimeIconTheme | null }
+
+  // --- Language Server Protocol ---
+  'lsp:status': { input: string | undefined; output: LspServerStatus[] }
+  'lsp:open-document': { input: LspDocumentInput; output: LspDocumentSyncResult }
+  'lsp:change-document': { input: LspDocumentInput; output: LspDocumentSyncResult }
+  'lsp:close-document': { input: Pick<LspDocumentInput, 'projectPath' | 'filePath' | 'languageId'>; output: void }
+  'lsp:hover': { input: [projectPath: string, filePath: string, languageId: string, position: LspPosition]; output: LspHoverResult | null }
+  'lsp:definition': { input: [projectPath: string, filePath: string, languageId: string, position: LspPosition]; output: LspLocation[] }
+  'lsp:completion': { input: [projectPath: string, filePath: string, languageId: string, position: LspPosition]; output: LspCompletionResult }
+  'lsp:diagnostics': { input: string; output: LspDiagnosticEvent }
+  'lsp:shutdown-project': { input: string; output: void }
 
   // --- Agents ---
   'agents:list': { input: void; output: Agent[] }
@@ -117,6 +137,10 @@ export interface ChannelMap {
 
   // --- Plugins ---
   'plugins:list': { input: void; output: PluginRow[] }
+  'plugins:add': { input: PluginCreateInput; output: PluginRow }
+  'plugins:set-enabled': { input: [string, boolean]; output: void }
+  'plugins:set-config': { input: [string, string]; output: void }
+  'plugins:reorder': { input: string[]; output: void }
 
   // --- Tools ---
   'tools:list': { input: void; output: ToolRow[] }

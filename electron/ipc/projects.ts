@@ -1,7 +1,7 @@
 import { ipcMain, dialog } from 'electron'
 import { getDb } from '../db/db'
-import { ipcHandler } from '../services/IpcHandlerFactory'
 import { invalidatePathCache } from '../shared/pathValidation'
+import { ipcHandler } from '../services/IpcHandlerFactory'
 import type { ProjectCreateInput } from '../shared/types'
 
 export function registerProjectHandlers() {

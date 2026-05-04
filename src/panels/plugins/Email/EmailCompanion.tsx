@@ -6,15 +6,13 @@ import { SummaryCard } from './SummaryCard'
 import './EmailCompanion.css'
 
 export default function EmailCompanion() {
-  const {
-    messages,
-    companionMessageId,
-    extractions,
-    summaries,
-    extractCode,
-    summarize,
-    closeCompanion,
-  } = useEmailStore()
+  const messages = useEmailStore((s) => s.messages)
+  const companionMessageId = useEmailStore((s) => s.companionMessageId)
+  const extractions = useEmailStore((s) => s.extractions)
+  const summaries = useEmailStore((s) => s.summaries)
+  const extractCode = useEmailStore((s) => s.extractCode)
+  const summarize = useEmailStore((s) => s.summarize)
+  const closeCompanion = useEmailStore((s) => s.closeCompanion)
 
   const [extracting, setExtracting] = useState(false)
   const [summarizing, setSummarizing] = useState(false)

@@ -1,5 +1,10 @@
 export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
+export interface InstallCommandOptions {
+  packageManager?: PackageManager | null
+  pnpmWorkspaceRoot?: boolean
+}
+
 export interface PackageInfo {
   packages: Set<string>
   scripts: Set<string>
@@ -112,16 +117,51 @@ export function detectPackageManager(
   return 'npm'
 }
 
-export function buildInstallCommand(packageManager: PackageManager, packages: string[]): string | null {
+export function normalizeProjectInstallCommand(command: string | null, options: InstallCommandOptions = {}): string | null {
+  if (!command) return null
+
+  const match = /^(\s*)(pnpm|npm|yarn|bun)\s+(add|install|i)\b(.*)$/u.exec(command)
+  if (!match) return command
+
+  const [, leading, sourceManager, , rest] = match
+  const packageManager = options.packageManager ?? (sourceManager as PackageManager)
+  const restTokens = rest.trim().length > 0 ? rest.trim().split(/\s+/) : []
+  const installTokens = packageManager === 'pnpm'
+    ? restTokens
+    : restTokens.filter((token) => token !== '-w' && token !== '--workspace-root')
+  const hasWorkspaceRootFlag = installTokens.includes('-w') || installTokens.includes('--workspace-root')
+
+  const prefix = packageManager === 'npm'
+    ? 'npm install'
+    : packageManager === 'yarn'
+      ? 'yarn add'
+      : packageManager === 'bun'
+        ? 'bun add'
+        : options.pnpmWorkspaceRoot && !hasWorkspaceRootFlag
+          ? 'pnpm add -w'
+          : 'pnpm add'
+
+  return `${leading}${prefix}${installTokens.length > 0 ? ` ${installTokens.join(' ')}` : ''}`
+}
+
+export function buildInstallCommand(
+  packageManager: PackageManager,
+  packages: string[],
+  options: InstallCommandOptions = {},
+): string | null {
   if (packages.length === 0) return null
-  const prefix = packageManager === 'yarn' ? 'yarn add' : `${packageManager} add`
-  return `${prefix} ${packages.join(' ')}`
+  const prefix = packageManager === 'npm' ? 'npm install' : `${packageManager} add`
+  return normalizeProjectInstallCommand(`${prefix} ${packages.join(' ')}`, {
+    ...options,
+    packageManager,
+  })
 }
 
 export function createSendAiSetupPlan(input: {
   packageInfo: PackageInfo
   lockfiles: Partial<Record<PackageManager, boolean>>
   envKeys: Set<string>
+  pnpmWorkspaceRoot?: boolean
 }): SendAiSetupPlan {
   const packageManager = detectPackageManager(input.packageInfo, input.lockfiles)
   const missingPackages = SENDAI_AGENT_KIT_PACKAGES.filter((name) => !input.packageInfo.packages.has(name))
@@ -133,7 +173,9 @@ export function createSendAiSetupPlan(input: {
     packageManager,
     missingPackages,
     installedPackages,
-    installCommand: buildInstallCommand(packageManager, missingPackages),
+    installCommand: buildInstallCommand(packageManager, missingPackages, {
+      pnpmWorkspaceRoot: input.pnpmWorkspaceRoot,
+    }),
     envFileName: '.env.example',
     missingEnvKeys,
     presentEnvKeys,

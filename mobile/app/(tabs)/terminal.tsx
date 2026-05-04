@@ -7,29 +7,18 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusDot } from '@/components/StatusDot';
 import { colors, spacing, fontSize, fonts, radii } from '@/theme/tokens';
-
-const ARIA_SMALL = `  /\\
- /..\\
-/____\\`;
 
 interface TermLine {
   text: string;
   type: 'prompt' | 'output' | 'error' | 'info' | 'accent';
 }
 
-const INITIAL_OUTPUT: TermLine[] = [
-  { text: '', type: 'output' },
-  { text: '  DAEMON Terminal v0.2.0', type: 'info' },
-  { text: '  Session: bash | Permissions: plan mode', type: 'info' },
-  { text: '  Model: claude-opus-4-20250514', type: 'info' },
-  { text: '', type: 'output' },
-  { text: '$ node --version', type: 'prompt' },
-  { text: 'v22.12.0', type: 'output' },
-  { text: '', type: 'output' },
+const OUTPUT: TermLine[] = [
   { text: '$ pnpm run typecheck', type: 'prompt' },
   { text: '', type: 'output' },
   { text: '> daemon@0.2.0 typecheck', type: 'output' },
@@ -44,89 +33,98 @@ const INITIAL_OUTPUT: TermLine[] = [
   { text: 'On branch hackathon/frontier', type: 'output' },
   { text: 'nothing to commit, working tree clean', type: 'accent' },
   { text: '', type: 'output' },
+  { text: '$ pnpm run test', type: 'prompt' },
+  { text: '', type: 'output' },
+  { text: ' PASS  test/services/engine.test.ts', type: 'accent' },
+  { text: ' PASS  test/services/wallet.test.ts', type: 'accent' },
+  { text: ' PASS  test/shared/validation.test.ts', type: 'accent' },
+  { text: '', type: 'output' },
+  { text: 'Tests: 281 passed, 281 total', type: 'accent' },
+  { text: 'Time:  3.847s', type: 'output' },
+  { text: '', type: 'output' },
 ];
 
+const TERMINALS = [
+  { id: '1', label: 'bash', status: 'active' as const },
+  { id: '2', label: 'claude', status: 'active' as const },
+  { id: '3', label: 'dev', status: 'idle' as const },
+];
+
+function lineColor(type: string) {
+  switch (type) {
+    case 'prompt': return colors.green;
+    case 'accent': return colors.green;
+    case 'error': return colors.red;
+    case 'info': return colors.t4;
+    default: return colors.t2;
+  }
+}
+
 export default function TerminalScreen() {
-  const [lines, setLines] = useState<TermLine[]>(INITIAL_OUTPUT);
+  const [lines] = useState<TermLine[]>(OUTPUT);
   const [input, setInput] = useState('');
+  const [activeTerminal, setActiveTerminal] = useState('1');
   const scrollRef = useRef<ScrollView>(null);
 
   const handleSubmit = () => {
-    const cmd = input.trim();
-    if (!cmd) return;
-
-    const newLines: TermLine[] = [
-      { text: `$ ${cmd}`, type: 'prompt' },
-      { text: `Command sent: ${cmd}`, type: 'output' },
-      { text: '', type: 'output' },
-    ];
-
-    setLines((prev) => [...prev, ...newLines]);
+    if (!input.trim()) return;
     setInput('');
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <View style={styles.topBarLeft}>
-          <Text style={styles.brandText}>DAEMON</Text>
-          <View style={styles.tabPill}>
-            <Text style={styles.tabPillText}>Terminal</Text>
-          </View>
-        </View>
-        <View style={styles.topBarRight}>
-          <Text style={styles.sessionInfo}>bash</Text>
-          <StatusDot color="amber" size={5} />
-        </View>
-      </View>
-
-      {/* Info bar */}
-      <View style={styles.infoBar}>
-        <Text style={styles.infoText}>1 terminal</Text>
-        <Text style={styles.infoSep}>|</Text>
-        <Text style={styles.infoText}>plan mode</Text>
-        <Text style={styles.infoSep}>|</Text>
-        <Text style={styles.infoText}>node v22.12.0</Text>
-      </View>
-
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Terminal output */}
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Terminal</Text>
+          <StatusDot color="amber" size={6} />
+        </View>
+
+        {/* Terminal picker */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.termBar}
+          contentContainerStyle={styles.termBarInner}
+        >
+          {TERMINALS.map((t) => (
+            <Pressable
+              key={t.id}
+              onPress={() => setActiveTerminal(t.id)}
+              style={[styles.termChip, activeTerminal === t.id && styles.termChipActive]}
+            >
+              <StatusDot
+                color={t.status === 'active' ? colors.green : colors.amber}
+                size={4}
+              />
+              <Text style={[
+                styles.termChipText,
+                activeTerminal === t.id && styles.termChipTextActive,
+              ]}>
+                {t.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* Output */}
         <ScrollView
           ref={scrollRef}
-          style={styles.termBody}
-          contentContainerStyle={styles.termContent}
+          style={styles.output}
+          contentContainerStyle={styles.outputInner}
           showsVerticalScrollIndicator={false}
         >
-          {/* ARIA watermark */}
-          <View style={styles.ariaWatermark}>
-            <Text style={styles.ariaArt}>{ARIA_SMALL}</Text>
-          </View>
-
           {lines.map((line, i) => {
             if (!line.text) return <View key={i} style={styles.emptyLine} />;
             return (
-              <Text
-                key={i}
-                style={[
-                  styles.termLine,
-                  line.type === 'prompt' && styles.linePrompt,
-                  line.type === 'output' && styles.lineOutput,
-                  line.type === 'error' && styles.lineError,
-                  line.type === 'info' && styles.lineInfo,
-                  line.type === 'accent' && styles.lineAccent,
-                ]}
-              >
+              <Text key={i} style={[styles.line, { color: lineColor(line.type) }]}>
                 {line.text}
               </Text>
             );
           })}
-
-          {/* Cursor */}
           <View style={styles.cursorRow}>
             <Text style={styles.promptChar}>$</Text>
             <View style={styles.cursor} />
@@ -155,173 +153,56 @@ export default function TerminalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
+  safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
 
-  // Top bar
-  topBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    height: 48,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.s1,
-    height: 44,
   },
-  topBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  topBarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  brandText: {
-    color: colors.t1,
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    fontFamily: fonts.code,
-    letterSpacing: 2,
-  },
-  tabPill: {
-    backgroundColor: colors.s3,
-    borderRadius: radii.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  tabPillText: {
-    color: colors.amber,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.code,
-  },
-  sessionInfo: {
-    color: colors.t4,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.code,
-  },
+  title: { color: colors.t1, fontSize: fontSize.lg, fontWeight: '600' },
 
-  // Info bar
-  infoBar: {
+  termBar: { maxHeight: 44, backgroundColor: colors.s1, borderBottomWidth: 1, borderBottomColor: colors.border },
+  termBarInner: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm, alignItems: 'center' },
+  termChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.s2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.sm,
-  },
-  infoText: {
-    color: colors.t4,
-    fontSize: fontSize.xxs,
-    fontFamily: fonts.code,
-  },
-  infoSep: {
-    color: colors.t4,
-    fontSize: fontSize.xxs,
-    fontFamily: fonts.code,
-    opacity: 0.4,
-  },
-
-  // Terminal body
-  termBody: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  termContent: {
+    gap: 6,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingVertical: 4,
+    borderRadius: radii.md,
+    backgroundColor: colors.s2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+  termChipActive: { borderColor: colors.amber + '50', backgroundColor: colors.amberGlow },
+  termChipText: { color: colors.t3, fontSize: fontSize.xs, fontFamily: fonts.code },
+  termChipTextActive: { color: colors.t1 },
 
-  // ARIA watermark
-  ariaWatermark: {
-    position: 'absolute',
-    right: spacing.md,
-    top: spacing.sm,
-    opacity: 0.08,
-  },
-  ariaArt: {
-    fontFamily: fonts.code,
-    fontSize: fontSize.xs,
-    lineHeight: 14,
-    color: colors.t1,
-  },
+  output: { flex: 1, backgroundColor: colors.bg },
+  outputInner: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  line: { fontFamily: fonts.code, fontSize: fontSize.xs, lineHeight: 20 },
+  emptyLine: { height: 6 },
 
-  termLine: {
-    fontFamily: fonts.code,
-    fontSize: fontSize.xs,
-    lineHeight: 20,
-  },
-  linePrompt: {
-    color: colors.green,
-  },
-  lineOutput: {
-    color: colors.t2,
-  },
-  lineError: {
-    color: colors.red,
-  },
-  lineInfo: {
-    color: colors.t4,
-  },
-  lineAccent: {
-    color: colors.green,
-    opacity: 0.8,
-  },
-  emptyLine: {
-    height: 8,
-  },
+  cursorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  promptChar: { color: colors.green, fontFamily: fonts.code, fontSize: fontSize.xs, marginRight: 6 },
+  cursor: { width: 7, height: 14, backgroundColor: colors.green, opacity: 0.6 },
 
-  // Cursor
-  cursorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  promptChar: {
-    color: colors.green,
-    fontFamily: fonts.code,
-    fontSize: fontSize.xs,
-    marginRight: spacing.xs,
-  },
-  cursor: {
-    width: 7,
-    height: 14,
-    backgroundColor: colors.green,
-    opacity: 0.6,
-  },
-
-  // Input
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.s1,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    height: 44,
+    paddingHorizontal: spacing.lg,
+    height: 48,
+    gap: spacing.sm,
   },
-  inputPrompt: {
-    color: colors.green,
-    fontFamily: fonts.code,
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    marginRight: spacing.sm,
-  },
-  inputField: {
-    flex: 1,
-    color: colors.green,
-    fontFamily: fonts.code,
-    fontSize: fontSize.sm,
-    paddingVertical: spacing.sm,
-  },
+  inputPrompt: { color: colors.green, fontFamily: fonts.code, fontSize: fontSize.sm, fontWeight: '700' },
+  inputField: { flex: 1, color: colors.green, fontFamily: fonts.code, fontSize: fontSize.sm, paddingVertical: 8 },
 });

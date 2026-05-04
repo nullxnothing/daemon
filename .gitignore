@@ -49,6 +49,7 @@ programs/*/target/deploy/*-keypair.json
 /test-results/visual-regression/
 /playwright-report/
 /playwright/.cache/
+/mobile/.expo/
 /target/
 /programs/*/target/
 
@@ -66,6 +67,7 @@ features/
 
 # Internal dev artifacts
 PLUGIN_TODOS.md
+.daemon/replays/
 .planning/
 .playwright-mcp/
 Usersoffic.claudeplans/

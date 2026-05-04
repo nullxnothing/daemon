@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useUIStore } from '../../store/ui'
 import './FileExplorer.css'
+
+const ROOT_CONTEXT_MENU_HEIGHT = 72
+const FILE_CONTEXT_MENU_HEIGHT = 252
+const CONTEXT_MENU_WIDTH = 190
+const CONTEXT_MENU_VIEWPORT_GUTTER = 8
 
 interface ContextMenu {
   x: number
@@ -14,6 +20,7 @@ export function FileExplorer() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const openFile = useUIStore((s) => s.openFile)
   const addTerminal = useUIStore((s) => s.addTerminal)
+  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -21,7 +28,6 @@ export function FileExplorer() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [gitStatusByPath, setGitStatusByPath] = useState<Record<string, 'staged' | 'modified' | 'untracked'>>({})
-  const [collapseSignal, setCollapseSignal] = useState(0)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadDir = useCallback(async (dirPath: string) => {
@@ -89,7 +95,23 @@ export function FileExplorer() {
   const handleContextMenu = (e: React.MouseEvent, entry: FileEntry | null, parentPath: string) => {
     e.preventDefault()
     e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, entry, parentPath })
+    const menuHeight = entry ? FILE_CONTEXT_MENU_HEIGHT : ROOT_CONTEXT_MENU_HEIGHT
+    const x = Math.max(
+      CONTEXT_MENU_VIEWPORT_GUTTER,
+      Math.min(e.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_VIEWPORT_GUTTER),
+    )
+    const y = Math.max(
+      CONTEXT_MENU_VIEWPORT_GUTTER,
+      Math.min(e.clientY, window.innerHeight - menuHeight - CONTEXT_MENU_VIEWPORT_GUTTER),
+    )
+    setContextMenu({ x, y, entry, parentPath })
+  }
+
+  const handleToolbarCreate = (type: 'file' | 'dir') => {
+    if (!activeProjectPath) return
+    setContextMenu(null)
+    setSearchQuery('')
+    setCreating({ parentPath: activeProjectPath, type })
   }
 
   const handleNewFile = () => {
@@ -108,7 +130,6 @@ export function FileExplorer() {
 
   const handleDelete = async () => {
     if (!contextMenu?.entry) return
-    if (!window.confirm(`Delete ${contextMenu.entry.name}?`)) return
     await window.daemon.fs.delete(contextMenu.entry.path)
     setContextMenu(null)
     reload()
@@ -138,39 +159,20 @@ export function FileExplorer() {
     const res = await window.daemon.terminal.create({ cwd })
     if (res.ok && res.data) {
       addTerminal(activeProjectId, res.data.id, pathLabel(cwd))
+      setActivePanel('claude')
     }
     setContextMenu(null)
   }
 
   const handleOpenFromSearch = async (entry: FileEntry) => {
     if (!activeProjectId) return
-    const ext = entry.name.split('.').pop()?.toLowerCase() ?? ''
-    const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'].includes(ext)
-
-    if (isImage) {
-      openFile({ path: entry.path, name: entry.name, content: '', projectId: activeProjectId })
-    } else {
-      const res = await window.daemon.fs.readFile(entry.path)
-      if (res.ok && res.data) {
-        openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId: activeProjectId })
-      }
+    const res = await window.daemon.fs.readFile(entry.path)
+    if (res.ok && res.data) {
+      openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId: activeProjectId })
+      setActivePanel('claude')
+      setSearchQuery('')
+      searchInputRef.current?.blur()
     }
-    setSearchQuery('')
-    searchInputRef.current?.blur()
-  }
-
-  const handleHeaderNewFile = () => {
-    if (!activeProjectPath) return
-    setCreating({ parentPath: activeProjectPath, type: 'file' })
-  }
-
-  const handleHeaderNewFolder = () => {
-    if (!activeProjectPath) return
-    setCreating({ parentPath: activeProjectPath, type: 'dir' })
-  }
-
-  const handleCollapseAll = () => {
-    setCollapseSignal((v) => v + 1)
   }
 
   if (!activeProjectPath) {
@@ -180,55 +182,55 @@ export function FileExplorer() {
   const searchResults = searchQuery.trim().length > 0
     ? fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), searchQuery)
     : []
+  const rootCreateActive = creating
+    ? normalizePath(creating.parentPath) === normalizePath(activeProjectPath)
+    : false
 
   return (
     <div
       className="file-explorer"
       onContextMenu={(e) => handleContextMenu(e, null, activeProjectPath)}
     >
-      <div className="file-explorer-header">
-        <span className="file-explorer-header-label">FILES</span>
-        <div className="file-explorer-header-actions">
-          <button className="file-explorer-header-btn" onClick={handleHeaderNewFile} title="New File">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>
-          </button>
-          <button className="file-explorer-header-btn" onClick={handleHeaderNewFolder} title="New Folder">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-            </svg>
-          </button>
-          <button className="file-explorer-header-btn" onClick={handleCollapseAll} title="Collapse All">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
-            </svg>
-          </button>
-          <button className="file-explorer-header-btn" onClick={reload} title="Refresh">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
-            </svg>
-          </button>
+      <div className="file-explorer-toolbar">
+        <div className={`file-explorer-search ${isSearchFocused ? 'focused' : ''}`}>
+          <span className="file-explorer-search-icon" aria-hidden="true">⌕</span>
+          <input
+            ref={searchInputRef}
+            className="file-explorer-search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            placeholder="Search files (Ctrl+P)"
+          />
         </div>
+        <button
+          type="button"
+          className="file-explorer-action"
+          onClick={(event) => { event.stopPropagation(); handleToolbarCreate('file') }}
+          title="New file"
+          aria-label="New file"
+        >
+          <FilePlusIcon />
+        </button>
+        <button
+          type="button"
+          className="file-explorer-action"
+          onClick={(event) => { event.stopPropagation(); handleToolbarCreate('dir') }}
+          title="New folder"
+          aria-label="New folder"
+        >
+          <FolderPlusIcon />
+        </button>
       </div>
-      <div className={`file-explorer-search ${isSearchFocused ? 'focused' : ''}`}>
-        <span className="file-explorer-search-icon" aria-hidden="true">⌕</span>
-        <input
-          ref={searchInputRef}
-          className="file-explorer-search-input"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              setSearchQuery('')
-              searchInputRef.current?.blur()
-            }
-          }}
-          placeholder="Search files (Ctrl+P)"
+
+      {creating && rootCreateActive && !searchQuery.trim() && (
+        <CreateInput
+          parentPath={creating.parentPath}
+          type={creating.type}
+          onDone={() => { setCreating(null); reload() }}
         />
-      </div>
+      )}
 
       {searchQuery.trim().length > 0 ? (
         <div className="file-search-results">
@@ -259,19 +261,18 @@ export function FileExplorer() {
             setRenaming={setRenaming}
             reload={reload}
             gitStatusByPath={gitStatusByPath}
-            collapseSignal={collapseSignal}
           />
         ))
       )}
 
-      {creating && (
+      {creating && !rootCreateActive && !searchQuery.trim() && (
         <CreateInput
           parentPath={creating.parentPath}
           type={creating.type}
           onDone={() => { setCreating(null); reload() }}
         />
       )}
-      {contextMenu && (
+      {contextMenu && createPortal((
         <div className="context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <div className="context-menu-item" onClick={handleNewFile}>New File</div>
           <div className="context-menu-item" onClick={handleNewFolder}>New Folder</div>
@@ -286,12 +287,30 @@ export function FileExplorer() {
             </>
           )}
         </div>
-      )}
+      ), document.body)}
     </div>
   )
 }
 
-function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenaming, reload, gitStatusByPath, collapseSignal }: {
+function FilePlusIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4.25 1.75h4.6l3.4 3.4v8.6H4.25z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8.75 1.95V5.25h3.3M8.25 7.25v4M6.25 9.25h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function FolderPlusIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M1.75 4.75c0-.83.67-1.5 1.5-1.5h3.1l1.35 1.4h5.05c.83 0 1.5.67 1.5 1.5v5.6c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8 7.25v4M6 9.25h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenaming, reload, gitStatusByPath }: {
   entry: FileEntry
   projectId: string | null
   depth: number
@@ -300,15 +319,11 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
   setRenaming: (path: string | null) => void
   reload: () => void
   gitStatusByPath: Record<string, 'staged' | 'modified' | 'untracked'>
-  collapseSignal: number
 }) {
   const [isExpanded, setIsExpanded] = useState(false)
-
-  useEffect(() => {
-    if (collapseSignal > 0) setIsExpanded(false)
-  }, [collapseSignal])
   const [children, setChildren] = useState<FileEntry[] | null>(entry.children ?? null)
   const openFile = useUIStore((s) => s.openFile)
+  const setActivePanel = useUIStore((s) => s.setActivePanel)
   const renameRef = useRef<HTMLInputElement>(null)
   const gitStatus = !entry.isDirectory ? gitStatusByPath[normalizePath(entry.path)] : undefined
 
@@ -322,20 +337,11 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
       }
       setIsExpanded(!isExpanded)
     } else {
-      // Images don't need text content — open directly as a tab
-      const ext = entry.name.split('.').pop()?.toLowerCase() ?? ''
-      const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'].includes(ext)
-
-      if (isImage) {
+      const res = await window.daemon.fs.readFile(entry.path)
+      if (res.ok && res.data) {
         if (projectId) {
-          openFile({ path: entry.path, name: entry.name, content: '', projectId })
-        }
-      } else {
-        const res = await window.daemon.fs.readFile(entry.path)
-        if (res.ok && res.data) {
-          if (projectId) {
-            openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId })
-          }
+          openFile({ path: entry.path, name: entry.name, content: res.data.content, projectId })
+          setActivePanel('claude')
         }
       }
     }
@@ -359,8 +365,6 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
       <div
         className={`file-node ${entry.isDirectory ? 'directory' : 'file'}`}
         style={{ paddingLeft: 12 + depth * 14 }}
-        data-hidden={entry.name.startsWith('.') || undefined}
-        title={entry.path}
         onClick={isRenaming ? undefined : handleClick}
         onContextMenu={(e) => onContextMenu(e, entry, parentPath)}
         draggable={!isRenaming}
@@ -407,7 +411,6 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
           setRenaming={setRenaming}
           reload={reload}
           gitStatusByPath={gitStatusByPath}
-          collapseSignal={collapseSignal}
         />
       ))}
     </>

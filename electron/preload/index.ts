@@ -92,6 +92,29 @@ contextBridge.exposeInMainWorld('daemon', {
     iconTheme: () => ipcRenderer.invoke('fs:iconTheme'),
   },
 
+  lsp: {
+    status: (projectPath?: string) => ipcRenderer.invoke('lsp:status', projectPath),
+    openDocument: (input: { projectPath: string; filePath: string; languageId: string; text: string; version?: number }) =>
+      ipcRenderer.invoke('lsp:open-document', input),
+    changeDocument: (input: { projectPath: string; filePath: string; languageId: string; text: string; version?: number }) =>
+      ipcRenderer.invoke('lsp:change-document', input),
+    closeDocument: (input: { projectPath: string; filePath: string; languageId: string }) =>
+      ipcRenderer.invoke('lsp:close-document', input),
+    hover: (projectPath: string, filePath: string, languageId: string, position: { line: number; character: number }) =>
+      ipcRenderer.invoke('lsp:hover', projectPath, filePath, languageId, position),
+    definition: (projectPath: string, filePath: string, languageId: string, position: { line: number; character: number }) =>
+      ipcRenderer.invoke('lsp:definition', projectPath, filePath, languageId, position),
+    completion: (projectPath: string, filePath: string, languageId: string, position: { line: number; character: number }) =>
+      ipcRenderer.invoke('lsp:completion', projectPath, filePath, languageId, position),
+    diagnostics: (filePath: string) => ipcRenderer.invoke('lsp:diagnostics', filePath),
+    shutdownProject: (projectPath: string) => ipcRenderer.invoke('lsp:shutdown-project', projectPath),
+    onDiagnostics: (callback: (payload: { uri: string; filePath: string; diagnostics: Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; severity?: number; code?: string | number; source?: string; message: string }> }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { uri: string; filePath: string; diagnostics: Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; severity?: number; code?: string | number; source?: string; message: string }> }) => callback(payload)
+      ipcRenderer.on('lsp:diagnostics', handler)
+      return () => ipcRenderer.off('lsp:diagnostics', handler)
+    },
+  },
+
   claude: {
     projectMcpAll: (projectPath: string) => ipcRenderer.invoke('claude:project-mcp-all', projectPath),
     projectMcpToggle: (projectPath: string, name: string, enabled: boolean) => ipcRenderer.invoke('claude:project-mcp-toggle', projectPath, name, enabled),
@@ -143,9 +166,20 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   activity: {
-    append: (entry: { id: string; kind: string; message: string; context: string | null; createdAt: number }) =>
+    append: (entry: {
+      id: string
+      kind: string
+      message: string
+      context: string | null
+      createdAt: number
+      sessionId?: string | null
+      sessionStatus?: string | null
+      projectId?: string | null
+      projectName?: string | null
+    }) =>
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
+    saveSummary: (targetId: string, summary: string) => ipcRenderer.invoke('activity:save-summary', { targetId, summary }),
     clear: () => ipcRenderer.invoke('activity:clear'),
   },
 
@@ -294,6 +328,7 @@ contextBridge.exposeInMainWorld('daemon', {
 
   plugins: {
     list: () => ipcRenderer.invoke('plugins:list'),
+    add: (input: { id: string; name: string; description?: string; entry?: string; command?: string }) => ipcRenderer.invoke('plugins:add', input),
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('plugins:set-enabled', id, enabled),
     setConfig: (id: string, config: string) => ipcRenderer.invoke('plugins:set-config', id, config),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),
@@ -376,6 +411,8 @@ contextBridge.exposeInMainWorld('daemon', {
   launch: {
     listLaunchpads: () => ipcRenderer.invoke('launch:list-launchpads'),
     listWalletOptions: (projectId?: string | null) => ipcRenderer.invoke('launch:list-wallet-options', projectId),
+    ensureDaemonDeployerWallet: (projectId?: string | null) => ipcRenderer.invoke('launch:ensure-daemon-deployer-wallet', projectId),
+    listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => ipcRenderer.invoke('launch:list-pulse-tokens', input),
     pickImage: () => ipcRenderer.invoke('launch:pick-image'),
     preflightToken: (input: object) => ipcRenderer.invoke('launch:preflight-token', input),
     createToken: (input: object) => ipcRenderer.invoke('launch:create-token', input),
@@ -456,6 +493,14 @@ contextBridge.exposeInMainWorld('daemon', {
   registry: {
     listSessions: (limit?: number) => ipcRenderer.invoke('registry:list-sessions', limit),
     getProfile: () => ipcRenderer.invoke('registry:get-profile'),
+    listAgentWork: (limit?: number) => ipcRenderer.invoke('registry:list-agent-work', limit),
+    createAgentWork: (input: object) => ipcRenderer.invoke('registry:create-agent-work', input),
+    fundAgentWork: (taskId: string) => ipcRenderer.invoke('registry:fund-agent-work', taskId),
+    startAgentWork: (taskId: string, sessionId?: string | null) => ipcRenderer.invoke('registry:start-agent-work', taskId, sessionId ?? null),
+    submitAgentWork: (taskId: string, input?: object) => ipcRenderer.invoke('registry:submit-agent-work', taskId, input ?? {}),
+    approveAgentWork: (taskId: string) => ipcRenderer.invoke('registry:approve-agent-work', taskId),
+    rejectAgentWork: (taskId: string) => ipcRenderer.invoke('registry:reject-agent-work', taskId),
+    settleAgentWork: (taskId: string, signature?: string | null) => ipcRenderer.invoke('registry:settle-agent-work', taskId, signature ?? null),
     publishSession: (sessionId: string) => ipcRenderer.invoke('registry:publish-session', sessionId),
     publishAll: () => ipcRenderer.invoke('registry:publish-all'),
     renameSession: (sessionId: string, name: string) => ipcRenderer.invoke('registry:rename-session', sessionId, name),
@@ -509,6 +554,29 @@ contextBridge.exposeInMainWorld('daemon', {
       ipcRenderer.on('validator:status-change', handler)
       return () => { ipcRenderer.off('validator:status-change', handler) }
     },
+  },
+
+  agentStation: {
+    list: () => ipcRenderer.invoke('agent-station:list'),
+    get: (id: string) => ipcRenderer.invoke('agent-station:get', id),
+    create: (input: { name: string; description?: string; template: string; wallet_id?: string | null; plugins?: string[]; rpc_url?: string | null; model?: string }) =>
+      ipcRenderer.invoke('agent-station:create', input),
+    delete: (id: string) => ipcRenderer.invoke('agent-station:delete', id),
+    scaffold: (configId: string, outputDir: string) => ipcRenderer.invoke('agent-station:scaffold', configId, outputDir),
+    pickOutputDir: () => ipcRenderer.invoke('agent-station:pick-output-dir'),
+    storeKey: (configId: string, privateKey: string) => ipcRenderer.invoke('agent-station:store-key', configId, privateKey),
+    hasKey: (configId: string) => ipcRenderer.invoke('agent-station:has-key', configId),
+    deleteKey: (configId: string) => ipcRenderer.invoke('agent-station:delete-key', configId),
+    updateStatus: (id: string, status: 'idle' | 'running' | 'stopped') => ipcRenderer.invoke('agent-station:update-status', id, status),
+  },
+
+  replay: {
+    fetchTrace: (signature: string, force?: boolean) => ipcRenderer.invoke('replay:fetch-trace', signature, force === true),
+    fetchProgram: (programId: string, limit?: number) => ipcRenderer.invoke('replay:fetch-program', programId, limit),
+    buildContext: (signature: string) => ipcRenderer.invoke('replay:build-context', signature),
+    createHandoff: (projectPath: string, signature: string) => ipcRenderer.invoke('replay:create-handoff', projectPath, signature),
+    verifyFix: (projectPath: string, signature: string, command: string) => ipcRenderer.invoke('replay:verify-fix', projectPath, signature, command),
+    rpcLabel: () => ipcRenderer.invoke('replay:rpc-label'),
   },
 })
 

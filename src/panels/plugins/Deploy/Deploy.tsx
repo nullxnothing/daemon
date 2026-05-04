@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../../store/ui'
+import { useNotificationsStore, type ActivityArtifact } from '../../../store/notifications'
 import { DeployConnect } from './DeployConnect'
 import './Deploy.css'
 
@@ -38,9 +39,20 @@ function relativeTime(ts: number): string {
   return `${days}d ago`
 }
 
+function platformLabel(platform: DeployPlatform): string {
+  return platform === 'vercel' ? 'Vercel' : 'Railway'
+}
+
+function projectNameFromPath(projectPath: string | null): string | null {
+  if (!projectPath) return null
+  const clean = projectPath.replace(/[\\/]+$/, '')
+  return clean.split(/[\\/]/).pop() || clean
+}
+
 export default function DeployPanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  const addActivity = useNotificationsStore((s) => s.addActivity)
 
   const [authStatus, setAuthStatus] = useState<DeployAuthStatus>({
     vercel: { authenticated: false, user: null },
@@ -102,6 +114,29 @@ export default function DeployPanel() {
   const loadDeploymentsRef = useRef(loadDeployments)
   loadDeploymentsRef.current = loadDeployments
 
+  const recordDeployActivity = useCallback((
+    platform: DeployPlatform,
+    kind: 'info' | 'success' | 'warning' | 'error',
+    message: string,
+    sessionStatus: 'created' | 'running' | 'blocked' | 'failed' | 'complete',
+    artifacts: ActivityArtifact[] = [],
+  ) => {
+    if (!activeProjectId) return
+    addActivity({
+      kind,
+      context: 'Deploy',
+      message,
+      sessionId: `deploy-${activeProjectId}-${platform}`,
+      sessionStatus,
+      projectId: activeProjectId,
+      projectName: projectNameFromPath(activeProjectPath),
+      artifacts: [
+        { type: 'deploy', label: 'Platform', value: platformLabel(platform) },
+        ...artifacts,
+      ],
+    })
+  }, [activeProjectId, activeProjectPath, addActivity])
+
   useEffect(() => {
     hasActiveRef.current = deployments.some((d) => d.status === 'BUILDING' || d.status === 'QUEUED')
   }, [deployments])
@@ -118,11 +153,26 @@ export default function DeployPanel() {
     if (!activeProjectId) return
     setDeploying(true)
     setError(null)
+    recordDeployActivity(platform, 'info', `${platformLabel(platform)} deploy started for ${projectNameFromPath(activeProjectPath) ?? activeProjectId}.`, 'running')
     const res = await window.daemon.deploy.redeploy(activeProjectId, platform)
     if (res.ok) {
+      const data = res.data as { id?: string; url?: string | null } | boolean | undefined
+      const deployUrl = typeof data === 'object' && data?.url ? data.url : null
+      const deployId = typeof data === 'object' && data?.id ? data.id : null
+      recordDeployActivity(
+        platform,
+        'success',
+        `${platformLabel(platform)} deploy triggered${deployUrl ? `: ${deployUrl}` : '.'}`,
+        'complete',
+        [
+          ...(deployId ? [{ type: 'deploy' as const, label: 'Deployment ID', value: deployId }] : []),
+          ...(deployUrl ? [{ type: 'explorer' as const, label: 'Deploy URL', value: deployUrl, href: deployUrl }] : []),
+        ],
+      )
       await loadDeployments()
     } else {
       setError(res.error ?? 'Deploy failed')
+      recordDeployActivity(platform, 'error', `${platformLabel(platform)} deploy failed: ${res.error ?? 'Deploy failed'}`, 'failed')
     }
     setDeploying(false)
   }
@@ -137,6 +187,7 @@ export default function DeployPanel() {
   const handleDisconnect = async (platform: DeployPlatform) => {
     const res = await window.daemon.deploy.disconnect(platform)
     if (res.ok) {
+      recordDeployActivity(platform, 'warning', `${platformLabel(platform)} credentials disconnected.`, 'blocked')
       loadAuthStatus()
       loadStatuses()
     }
@@ -166,6 +217,16 @@ export default function DeployPanel() {
 
     const res = await window.daemon.deploy.link(activeProjectId, linkingPlatform, linkData)
     if (res.ok) {
+      recordDeployActivity(
+        linkingPlatform,
+        'success',
+        `${platformLabel(linkingPlatform)} project linked: ${selected.name}.`,
+        'created',
+        [
+          { type: 'project', label: 'Deploy project', value: selected.name },
+          { type: 'deploy', label: 'Provider project ID', value: selectedProjectId },
+        ],
+      )
       setLinkingPlatform(null)
       setSelectedProjectId('')
       setPlatformProjects([])
@@ -178,7 +239,10 @@ export default function DeployPanel() {
     const confirmed = window.confirm(`Unlink ${platform === 'vercel' ? 'Vercel' : 'Railway'} from this project?`)
     if (!confirmed) return
     const res = await window.daemon.deploy.unlink(activeProjectId, platform)
-    if (res.ok) { loadStatuses() }
+    if (res.ok) {
+      recordDeployActivity(platform, 'warning', `${platformLabel(platform)} project unlinked.`, 'blocked')
+      loadStatuses()
+    }
   }
 
   const handleOpenUrl = (url: string) => {

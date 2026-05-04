@@ -25,6 +25,7 @@ import { useEmailStore } from './store/email'
 import { useSolanaToolboxStore } from './store/solanaToolbox'
 import { useWorkflowShellStore } from './store/workflowShell'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
+import { Skeleton } from './components/Panel'
 import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
@@ -42,7 +43,7 @@ const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/Rig
 const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
 function PanelSkeleton({ className }: { className: string }) {
-  return <div className={className} />
+  return <Skeleton className={className} />
 }
 
 function App() {
@@ -72,6 +73,7 @@ function App() {
 
   const { loadProjects, addProject, removeProject } = useProjects()
   const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
+  const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
   const closeAgentLauncher = useCallback(() => setShowAgentLauncher(false), [])
 
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
@@ -93,6 +95,7 @@ function App() {
   })
 
   const shouldShowRightPanel = showRightPanel
+  const canShowTerminal = showTerminal && (Boolean(activeProjectId) || projects.length > 0)
 
   // Determine if the editor should be hidden because the terminal has been
   // dragged to fill the full center area height.
@@ -105,7 +108,7 @@ function App() {
     return () => ro.disconnect()
   }, [])
   // Collapse threshold: editor gets less than 30px of space
-  const isEditorCollapsed = centerHeight > 0 && showTerminal && !drawerOpen && centerMode === 'canvas'
+  const isEditorCollapsed = centerHeight > 0 && canShowTerminal && !drawerOpen && centerMode === 'canvas'
     && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
@@ -261,7 +264,7 @@ function App() {
   useEffect(() => {
     if (!appReady) return
     const pinnedTools = useUIStore.getState().pinnedTools
-    const likelyNext = ['wallet', 'git', 'token-launch']
+    const likelyNext = ['wallet', 'git', 'project-readiness']
     const warmSet = [...new Set([...pinnedTools, ...likelyNext])]
       .filter((toolId) => toolId !== 'browser')
       .slice(0, 6)
@@ -330,8 +333,9 @@ function App() {
         closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
         toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
+        isToolVisible,
       }),
-    [],
+    [isToolVisible],
   )
 
   return (
@@ -397,7 +401,7 @@ function App() {
               )}
             </div>
           )}
-          {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
+          {centerMode === 'canvas' && canShowTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
           {centerMode === 'canvas' && (
             <div
               id="terminal-area"
@@ -406,7 +410,7 @@ function App() {
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
                 flex: isEditorCollapsed ? 1 : undefined,
-                display: (!showTerminal || drawerOpen) ? 'none' : undefined,
+                display: (!canShowTerminal || drawerOpen) ? 'none' : undefined,
               }}
             >
               <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
