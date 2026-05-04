@@ -4,7 +4,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useShellLayout } from '../../hooks/useShellLayout'
 import { formatCompactUsd } from '../../utils/format'
 import { WalletQuickView } from '../../components/QuickView/WalletQuickView'
-import daemonIcon from '../../assets/daemon-mark.svg'
+import { DaemonMark } from '../../components/DaemonMark'
 import './Titlebar.css'
 
 interface TitlebarProps {
@@ -112,7 +112,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
 function TitlebarBrand({ showText }: { showText: boolean }) {
   return (
     <div className={`titlebar-left${showText ? '' : ' titlebar-left--icon-only'}`}>
-      <img src={daemonIcon} alt="" className="titlebar-icon" draggable={false} />
+      <DaemonMark size={18} className="titlebar-icon" />
       {showText && (
         <>
           <span className="titlebar-title">DAEMON</span>

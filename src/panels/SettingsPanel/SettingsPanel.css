@@ -45,10 +45,7 @@
 }
 
 .settings-tabs {
-  display: flex;
-  gap: 8px;
-  padding: var(--drawer-space-inline) calc(var(--drawer-space-inline) + 4px) var(--space-sm);
-  border-bottom: 1px solid var(--drawer-surface-divider);
+  padding: var(--space-sm) calc(var(--drawer-space-inline) + 4px) 0;
 }
 
 .settings-body {

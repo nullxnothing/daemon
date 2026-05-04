@@ -95,11 +95,14 @@
   text-transform: uppercase;
 }
 
-.wallet-panel .wallet-tabs,
-.settings-center .settings-tabs {
+.wallet-panel .wallet-tabs {
   gap: 8px;
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   border-bottom: 1px solid var(--drawer-surface-divider);
+  background: var(--s1);
+}
+
+.settings-center .settings-tabs {
   background: var(--s1);
 }
 

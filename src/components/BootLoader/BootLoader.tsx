@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import daemonIcon from '../../assets/daemon-mark.svg'
+import { DaemonMark } from '../DaemonMark'
 import './BootLoader.css'
 
 const LETTERS = ['D', 'A', 'E', 'M', 'O', 'N']
@@ -48,14 +48,7 @@ export function BootLoader({ ready, status }: BootLoaderProps) {
 
   return (
     <div className={`bootloader${ready ? ' bootloader--hidden' : ''}`} aria-hidden="true">
-      <img
-        className="bootloader__logo"
-        src={daemonIcon}
-        alt=""
-        width={48}
-        height={48}
-        draggable={false}
-      />
+      <DaemonMark size={48} className="bootloader__logo" />
 
       <div className="bootloader__ring-wrap">
         <div className="bootloader__ring" />
