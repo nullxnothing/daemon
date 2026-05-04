@@ -11,6 +11,8 @@ import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
 import { ProjectControlCenter } from './ProjectControlCenter'
+import { BuildDeployPanel } from './BuildDeployPanel'
+import { TransactionInspector } from './TransactionInspector'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -24,6 +26,16 @@ const SOLANA_VIEWS = [
     id: 'connect',
     label: 'Connect',
     summary: 'Providers, MCPs, and wallet paths',
+  },
+  {
+    id: 'build',
+    label: 'Build',
+    summary: 'Build, test, deploy, and IDL loops',
+  },
+  {
+    id: 'inspect',
+    label: 'Inspect',
+    summary: 'Transaction logs, signatures, and replay prep',
   },
   {
     id: 'transact',
@@ -156,6 +168,23 @@ export function SolanaToolbox() {
                 <RuntimeStackSection />
               </div>
             </>
+          )}
+
+          {activeView === 'build' && (
+            <BuildDeployPanel
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+              projectInfo={projectInfo}
+              toolchain={toolchain}
+              validator={validator}
+            />
+          )}
+
+          {activeView === 'inspect' && (
+            <TransactionInspector
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+            />
           )}
 
           {activeView === 'transact' && (
