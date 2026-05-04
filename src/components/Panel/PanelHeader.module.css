@@ -20,6 +20,10 @@
   font-weight: var(--fw-bold);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
+  color: var(--t3);
+}
+
+.kicker--brand {
   color: var(--green);
 }
 

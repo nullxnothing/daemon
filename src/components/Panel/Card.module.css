@@ -1,7 +1,8 @@
 .card {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--s2);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
@@ -20,11 +21,21 @@
 
 .interactive {
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 .interactive:hover {
   border-color: var(--border-hover);
-  background: var(--s3);
+  background: var(--surface-floating);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.interactive:active {
+  transform: translateY(0) scale(0.995);
+  box-shadow: var(--shadow-sm);
 }
 
 .selected {
