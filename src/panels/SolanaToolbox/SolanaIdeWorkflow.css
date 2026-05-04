@@ -1,0 +1,245 @@
+.solana-ide-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+
+.solana-ide-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(62, 207, 142, 0.14);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top right, rgba(62, 207, 142, 0.1), transparent 42%),
+    rgba(255, 255, 255, 0.02);
+  padding: 18px;
+  box-shadow: var(--shadow-lifted);
+}
+
+.solana-ide-hero-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.solana-ide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-ide-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.solana-ide-card,
+.solana-ide-panel {
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+  min-width: 0;
+}
+
+.solana-ide-card.emphasis {
+  border-color: rgba(62, 207, 142, 0.16);
+  background: rgba(62, 207, 142, 0.035);
+}
+
+.solana-ide-card.warning {
+  border-color: rgba(240, 180, 41, 0.18);
+  background: rgba(240, 180, 41, 0.035);
+}
+
+.solana-ide-card-title,
+.solana-ide-panel-title {
+  font-size: var(--font-md);
+  font-weight: 750;
+  color: var(--t1);
+}
+
+.solana-ide-card-copy,
+.solana-ide-panel-copy {
+  margin-top: 8px;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--t3);
+}
+
+.solana-ide-card-actions,
+.solana-ide-panel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.solana-ide-command {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--t2);
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.solana-ide-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.solana-ide-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.solana-ide-field.full {
+  grid-column: 1 / -1;
+}
+
+.solana-ide-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-ide-input,
+.solana-ide-textarea {
+  width: 100%;
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-sm);
+  background: var(--s2);
+  color: var(--t1);
+  font-family: var(--font-code);
+  font-size: 12px;
+  outline: none;
+}
+
+.solana-ide-input {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.solana-ide-textarea {
+  min-height: 132px;
+  padding: 10px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.solana-ide-input:focus-visible,
+.solana-ide-textarea:focus-visible {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.solana-ide-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.solana-ide-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-ide-check-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-top: 6px;
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(62, 207, 142, 0.3);
+  flex-shrink: 0;
+}
+
+.solana-ide-check.warning .solana-ide-check-dot {
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(240, 180, 41, 0.32);
+}
+
+.solana-ide-check-title {
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.solana-ide-check-detail {
+  margin-top: 4px;
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  color: var(--t3);
+}
+
+.solana-ide-analysis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.solana-ide-analysis-item {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+}
+
+.solana-ide-analysis-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-ide-analysis-value {
+  margin-top: 6px;
+  color: var(--t2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+  .solana-ide-hero,
+  .solana-ide-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .solana-ide-grid,
+  .solana-ide-grid.three,
+  .solana-ide-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .solana-ide-card-actions .sol-btn,
+  .solana-ide-panel-actions .sol-btn,
+  .solana-ide-hero-actions .sol-btn {
+    width: 100%;
+  }
+}

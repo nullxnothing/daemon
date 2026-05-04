@@ -10,6 +10,11 @@ import { RuntimeStackSection } from './RuntimeStackSection'
 import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
+import { ProjectControlCenter } from './ProjectControlCenter'
+import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
+import { ProgramMonitorPanel } from './ProgramMonitorPanel'
+import { BuildDeployPanel } from './BuildDeployPanel'
+import { TransactionInspector } from './TransactionInspector'
 import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge, scaffoldSquads } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -23,6 +28,26 @@ const SOLANA_VIEWS = [
     id: 'connect',
     label: 'Connect',
     summary: 'Providers, MCPs, and wallet paths',
+  },
+  {
+    id: 'diagnose',
+    label: 'Diagnose',
+    summary: 'Anchor.toml, IDL, keypair, and program drift',
+  },
+  {
+    id: 'build',
+    label: 'Build',
+    summary: 'Build, test, deploy, and IDL loops',
+  },
+  {
+    id: 'inspect',
+    label: 'Inspect',
+    summary: 'Transaction logs, signatures, and replay prep',
+  },
+  {
+    id: 'monitor',
+    label: 'Monitor',
+    summary: 'Program state and upgrade authority lookups',
   },
   {
     id: 'transact',
@@ -51,9 +76,11 @@ export function SolanaToolbox() {
   const validator = useSolanaToolboxStore((s) => s.validator)
   const loadMcps = useSolanaToolboxStore((s) => s.loadMcps)
   const toggleMcp = useSolanaToolboxStore((s) => s.toggleMcp)
+  const startValidator = useSolanaToolboxStore((s) => s.startValidator)
   const detectProject = useSolanaToolboxStore((s) => s.detectProject)
   const loadToolchain = useSolanaToolboxStore((s) => s.loadToolchain)
   const refreshValidatorStatus = useSolanaToolboxStore((s) => s.refreshValidatorStatus)
+
   useEffect(() => {
     if (activeProjectPath) {
       void loadMcps(activeProjectPath)
@@ -126,6 +153,19 @@ export function SolanaToolbox() {
           {activeView === 'start' && (
             <>
               <div className="solana-validator-zone">
+                <ProjectControlCenter
+                  projectPath={activeProjectPath}
+                  projectInfo={projectInfo}
+                  toolchain={toolchain}
+                  validator={validator}
+                  mcps={mcps}
+                  onStartValidator={(type) => { void startValidator(type) }}
+                  onOpenDebug={() => setActiveView('debug')}
+                  onOpenConnect={() => setActiveView('connect')}
+                  onOpenLaunch={() => setActiveView('launch')}
+                />
+              </div>
+              <div className="solana-validator-zone">
                 <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
               </div>
               <div className="solana-validator-zone">
@@ -160,6 +200,35 @@ export function SolanaToolbox() {
                 <RuntimeStackSection />
               </div>
             </>
+          )}
+
+          {activeView === 'diagnose' && (
+            <ProjectDiagnosticsPanel projectInfo={projectInfo} />
+          )}
+
+          {activeView === 'build' && (
+            <BuildDeployPanel
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+              projectInfo={projectInfo}
+              toolchain={toolchain}
+              validator={validator}
+            />
+          )}
+
+          {activeView === 'inspect' && (
+            <TransactionInspector
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+            />
+          )}
+
+          {activeView === 'monitor' && (
+            <ProgramMonitorPanel
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+              projectInfo={projectInfo}
+            />
           )}
 
           {activeView === 'transact' && (
