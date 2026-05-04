@@ -3,7 +3,6 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
-  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
@@ -13,9 +12,7 @@
   gap: 14px;
   padding: 18px 24px 16px;
   border-bottom: 1px solid var(--border);
-  background:
-    radial-gradient(circle at top right, rgba(62, 207, 142, 0.08), transparent 30%),
-    rgba(255, 255, 255, 0.01);
+  background: var(--s1);
 }
 
 .git-workflow-header {
@@ -61,8 +58,8 @@
 .git-workflow-metric {
   padding: 12px 14px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(62, 207, 142, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  background: var(--s2);
 }
 
 .git-workflow-metric-label {
@@ -106,7 +103,6 @@
   color: var(--success);
   font-family: var(--font-code);
   appearance: none;
-  box-shadow: var(--shadow-lifted);
 }
 
 .git-branch-selector {
@@ -286,7 +282,6 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--t1);
-  box-shadow: var(--shadow-lifted);
 }
 
 .git-commit-input::placeholder { color: var(--t3); }
@@ -299,7 +294,7 @@
   height: 32px;
   padding: 0 16px;
   font-size: 12px;
-  color: #0a0a0a;
+  color: var(--on-accent-dark);
   background: var(--success);
   border-radius: 6px;
   white-space: nowrap;

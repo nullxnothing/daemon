@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import type { ProcessInfo, OrphanProcess } from '../../../electron/shared/types'
+import { PanelHeader, Stat } from '../../components/Panel'
 import './ProcessManager.css'
 
 const MODEL_SHORT: Record<string, string> = {
@@ -64,26 +65,30 @@ export const ProcessManager = memo(function ProcessManager() {
 
   return (
     <div className="process-panel">
-      <div className="process-workspace-bar">
-        <div className="process-workspace-copy">
-          <span className="process-workspace-kicker">Runtime control</span>
-          <h2 className="process-workspace-title">Keep live sessions under control</h2>
-          <p className="process-workspace-subtitle">
-            Focus the exact terminal you need, spot heavy sessions quickly, and clean up orphans before they drift.
-          </p>
-        </div>
-        <div className="process-workspace-actions">
+      <PanelHeader
+        className="process-panel-header"
+        kicker="Runtime control"
+        brandKicker
+        title="Keep live sessions under control"
+        subtitle="Focus the exact terminal you need, spot heavy sessions quickly, and clean up orphans before they drift."
+        actions={
           <button className="process-btn" onClick={() => load()}>
             Refresh
           </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="process-body">
         <div className="process-summary-grid">
-          <StatCard label="Active sessions" value={processes.length} detail={`${agentCount} agents · ${shellCount} shells`} />
-          <StatCard label="Total memory" value={formatMB(totalMemory)} detail="across tracked sessions" />
-          <StatCard label="Orphans" value={String(orphans.length)} detail={orphans.length > 0 ? 'needs cleanup' : 'all clear'} warn={orphans.length > 0} />
+          <Stat className="process-stat-card" label="Active sessions" value={processes.length} detail={`${agentCount} agents · ${shellCount} shells`} />
+          <Stat className="process-stat-card" label="Total memory" value={formatMB(totalMemory)} detail="across tracked sessions" />
+          <Stat
+            className="process-stat-card"
+            label="Orphans"
+            value={orphans.length}
+            detail={orphans.length > 0 ? 'needs cleanup' : 'all clear'}
+            tone={orphans.length > 0 ? 'warn' : 'default'}
+          />
         </div>
 
         <section className="process-section">
@@ -170,16 +175,6 @@ export const ProcessManager = memo(function ProcessManager() {
     </div>
   )
 })
-
-function StatCard({ label, value, detail, warn = false }: { label: string; value: string | number; detail: string; warn?: boolean }) {
-  return (
-    <div className={`process-stat-card${warn ? ' warn' : ''}`}>
-      <span className="process-stat-label">{label}</span>
-      <strong className="process-stat-value">{value}</strong>
-      <span className="process-stat-detail">{detail}</span>
-    </div>
-  )
-}
 
 function MemoryBar({ memory }: { memory: number }) {
   const mb = memory / (1024 * 1024)

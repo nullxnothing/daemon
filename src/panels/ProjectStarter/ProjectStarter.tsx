@@ -514,11 +514,10 @@ export function ProjectStarter() {
     return (
       <div className="starter-panel">
         <div className="starter-hero">
-          <h2 className="starter-title">What do you want to build?</h2>
-          <p className="starter-subtitle">Pick a template and we'll scaffold it with AI</p>
+          <h2 className="starter-title">Project Templates</h2>
           <input
             className="starter-filter"
-            placeholder="Filter templates..."
+            placeholder="Filter templates"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -640,8 +639,7 @@ export function ProjectStarter() {
         <div className="starter-spinner" />
         <h3 className="starter-building-title">Scaffolding {wizard.projectName}...</h3>
         <p className="starter-building-desc">
-          A Claude agent is building your {wizard.template?.name} project.
-          Check the terminal for progress.
+          Build agent running for {wizard.template?.name}.
         </p>
       </div>
     </div>

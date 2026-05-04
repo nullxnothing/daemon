@@ -198,7 +198,7 @@
   padding: 0 6px;
   border-radius: 999px;
   background: rgba(72, 118, 195, 0.2);
-  color: #a8c4ff;
+  color: var(--blue);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -294,7 +294,7 @@
 .agent-form-cancel:hover { background: var(--active-bg); }
 
 .agent-form-save {
-  color: #fff;
+  color: var(--on-accent);
   background: var(--green);
 }
 

@@ -1,0 +1,59 @@
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.value {
+  font-size: var(--fs-24);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  color: var(--t1);
+}
+
+.value--display {
+  font-size: var(--fs-32);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight);
+}
+
+.value--compact {
+  font-size: var(--fs-18);
+}
+
+.unit {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+.detail {
+  font-size: var(--fs-12);
+  color: var(--t3);
+  line-height: var(--lh-normal);
+}
+
+.success { border-color: color-mix(in srgb, var(--green) 26%, var(--border)); }
+.warn    { border-color: color-mix(in srgb, var(--amber) 30%, var(--border)); }
+.danger  { border-color: color-mix(in srgb, var(--red)   30%, var(--border)); }
+.info    { border-color: color-mix(in srgb, var(--blue)  30%, var(--border)); }

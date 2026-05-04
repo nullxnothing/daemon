@@ -5,6 +5,10 @@ import { useUIStore } from '../../store/ui'
 const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
   jupiter: 'jupiter',
   metaplex: 'metaplex',
+  light: 'light-protocol',
+  magicblock: 'magicblock',
+  debridge: 'debridge',
+  squads: 'squads',
   raydium: 'token-launch-stack',
   meteora: 'token-launch-stack',
 }

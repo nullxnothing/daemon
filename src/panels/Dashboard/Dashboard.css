@@ -21,7 +21,7 @@
 
 .dash-btn-primary {
   background: var(--green);
-  color: #0a0a0a;
+  color: var(--on-accent-dark);
   border-color: var(--green);
 }
 .dash-btn-primary:hover { background: var(--green-dim); border-color: var(--green-dim); }

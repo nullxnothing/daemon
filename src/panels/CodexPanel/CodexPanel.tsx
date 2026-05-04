@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useAppActions } from '../../store/appActions'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { Toggle } from '../../components/Toggle'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
@@ -33,9 +34,10 @@ function StatusBar({ msg }: { msg: StatusMsg | null }) {
 }
 
 export function CodexPanel() {
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
 
-  if (!activeProjectPath) {
+  if (!activeProjectId || !activeProjectPath) {
     return (
       <div className="codex-panel">
         <div className="codex-panel-scroll">
@@ -48,7 +50,7 @@ export function CodexPanel() {
   return (
     <div className="codex-panel">
       <div className="codex-panel-scroll">
-        <ConnectionSection />
+        <ConnectionSection projectId={activeProjectId} projectPath={activeProjectPath} />
         <RestartButton />
         <CollapsibleSection title="Codex MCP Servers" defaultOpen={false}>
           <McpSection />
@@ -61,7 +63,10 @@ export function CodexPanel() {
 
 // --- Connection Section (status + account actions) ---
 
-function ConnectionSection() {
+function ConnectionSection({ projectId, projectPath }: { projectId: string; projectPath: string }) {
+  const addTerminal = useUIStore((s) => s.addTerminal)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
   const [connected, setConnected] = useState<boolean | null>(null)
   const [authMode, setAuthMode] = useState<string>('...')
   const [model, setModel] = useState<string>('...')
@@ -122,10 +127,15 @@ function ConnectionSection() {
     setBusy('login')
     try {
       const res = await window.daemon.terminal.create({
+        cwd: projectPath,
         startupCommand: 'codex login',
         userInitiated: true,
       })
       if (!res.ok) throw new Error(res.error)
+      if (!res.data) throw new Error('Codex login terminal did not return a session id')
+      setCenterMode('canvas')
+      addTerminal(projectId, res.data.id, 'Codex Login', res.data.agentId)
+      focusTerminal()
       flash({ kind: 'info', text: 'Opened terminal — complete `codex login`, then click Verify.' })
     } catch (err) {
       flash({ kind: 'error', text: `Could not launch codex login: ${(err as Error).message}` })

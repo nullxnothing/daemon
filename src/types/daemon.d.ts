@@ -49,6 +49,9 @@ import type {
   TransferTokenInput,
   SolanaTransactionPreview,
   SolanaTransactionPreviewInput,
+  AgentWorkCreateInput,
+  AgentWorkSubmitInput,
+  AgentWorkTask,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -79,6 +82,19 @@ import type {
   PnlSyncResult,
   TradeRecord,
   CostBasisEntry,
+  ReplayTrace,
+  ReplayProgramSummary,
+  ReplayContextHandoff,
+  ReplayAgentHandoff,
+  ReplayVerificationResult,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 } from '../../electron/shared/types'
 
 export type {
@@ -132,6 +148,9 @@ export type {
   TransferTokenInput,
   SolanaTransactionPreview,
   SolanaTransactionPreviewInput,
+  AgentWorkCreateInput,
+  AgentWorkSubmitInput,
+  AgentWorkTask,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -162,6 +181,14 @@ export type {
   PnlSyncResult,
   TradeRecord,
   CostBasisEntry,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 }
 
 declare global {
@@ -170,6 +197,8 @@ declare global {
     name: string
     address: string
     isDefault: boolean
+    walletType: string
+    ecosystemRole: 'daemon-deployer' | null
     hasKeypair: boolean
     isAssignedToActiveProject: boolean
     assignedProjectIds: string[]
@@ -211,6 +240,9 @@ declare global {
 
   type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
   type SolanaTransactionPreview = import('../../electron/shared/types').SolanaTransactionPreview
+  type AgentWorkCreateInput = import('../../electron/shared/types').AgentWorkCreateInput
+  type AgentWorkSubmitInput = import('../../electron/shared/types').AgentWorkSubmitInput
+  type AgentWorkTask = import('../../electron/shared/types').AgentWorkTask
 
   type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
 
@@ -262,6 +294,7 @@ declare global {
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
   type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
   type PluginRow = import('../../electron/shared/types').PluginRow
+  type PluginCreateInput = import('../../electron/shared/types').PluginCreateInput
   type Tweet = import('../../electron/shared/types').Tweet
   type VoiceProfile = import('../../electron/shared/types').VoiceProfile
   type IpcResponse<T = unknown> = import('../../electron/shared/types').IpcResponse<T>
@@ -308,7 +341,7 @@ declare global {
 
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
-    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
     spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     ready: (id: string) => void
     write: (id: string, data: string) => void
@@ -388,6 +421,19 @@ declare global {
     reveal: (targetPath: string) => Promise<IpcResponse>
     copyPath: (targetPath: string) => Promise<IpcResponse>
     iconTheme: () => Promise<IpcResponse<RuntimeIconTheme | null>>
+  }
+
+  interface DaemonLsp {
+    status: (projectPath?: string) => Promise<IpcResponse<LspServerStatus[]>>
+    openDocument: (input: LspDocumentInput) => Promise<IpcResponse<LspDocumentSyncResult>>
+    changeDocument: (input: LspDocumentInput) => Promise<IpcResponse<LspDocumentSyncResult>>
+    closeDocument: (input: Pick<LspDocumentInput, 'projectPath' | 'filePath' | 'languageId'>) => Promise<IpcResponse<void>>
+    hover: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspHoverResult | null>>
+    definition: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspLocation[]>>
+    completion: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspCompletionResult>>
+    diagnostics: (filePath: string) => Promise<IpcResponse<LspDiagnosticEvent>>
+    shutdownProject: (projectPath: string) => Promise<IpcResponse<void>>
+    onDiagnostics: (callback: (payload: LspDiagnosticEvent) => void) => () => void
   }
 
   interface DaemonProjects {
@@ -608,6 +654,7 @@ declare global {
 
   interface DaemonPlugins {
     list: () => Promise<IpcResponse<PluginRow[]>>
+    add: (input: PluginCreateInput) => Promise<IpcResponse<PluginRow>>
     setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<void>>
     setConfig: (id: string, config: string) => Promise<IpcResponse<void>>
     reorder: (orderedIds: string[]) => Promise<IpcResponse<void>>
@@ -774,6 +821,7 @@ declare global {
   interface DaemonLaunch {
     listLaunchpads: () => Promise<IpcResponse<LaunchpadDefinition[]>>
     listWalletOptions: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption[]>>
+    ensureDaemonDeployerWallet: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption>>
     listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => Promise<IpcResponse<PulseTokenFeed>>
     pickImage: () => Promise<IpcResponse<string | null>>
     preflightToken: (input: {
@@ -859,6 +907,14 @@ declare global {
   interface DaemonRegistry {
     listSessions: (limit?: number) => Promise<IpcResponse<LocalAgentSession[]>>
     getProfile: () => Promise<IpcResponse<AgentSessionProfile>>
+    listAgentWork: (limit?: number) => Promise<IpcResponse<AgentWorkTask[]>>
+    createAgentWork: (input: AgentWorkCreateInput) => Promise<IpcResponse<AgentWorkTask>>
+    fundAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    startAgentWork: (taskId: string, sessionId?: string | null) => Promise<IpcResponse<AgentWorkTask>>
+    submitAgentWork: (taskId: string, input?: AgentWorkSubmitInput) => Promise<IpcResponse<AgentWorkTask>>
+    approveAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    rejectAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    settleAgentWork: (taskId: string, signature?: string | null) => Promise<IpcResponse<AgentWorkTask>>
     publishSession: (sessionId: string) => Promise<IpcResponse<{ startSignature: string; endSignature: string }>>
     publishAll: () => Promise<IpcResponse<{ published: number; failed: number }>>
     renameSession: (sessionId: string, name: string) => Promise<IpcResponse<null>>
@@ -977,6 +1033,7 @@ declare global {
     wallet: DaemonWallet
     settings: DaemonSettings
     fs: DaemonFs
+    lsp: DaemonLsp
     git: DaemonGit
     projects: DaemonProjects
     agents: DaemonAgents
@@ -1004,6 +1061,17 @@ declare global {
     pnl: DaemonPnl
     pro: DaemonPro
     feedback: DaemonFeedback
+    agentStation: DaemonAgentStation
+    replay: DaemonReplay
+  }
+
+  interface DaemonReplay {
+    fetchTrace: (signature: string, force?: boolean) => Promise<IpcResponse<ReplayTrace>>
+    fetchProgram: (programId: string, limit?: number) => Promise<IpcResponse<ReplayProgramSummary>>
+    buildContext: (signature: string) => Promise<IpcResponse<ReplayContextHandoff>>
+    createHandoff: (projectPath: string, signature: string) => Promise<IpcResponse<ReplayAgentHandoff>>
+    verifyFix: (projectPath: string, signature: string, command: string) => Promise<IpcResponse<ReplayVerificationResult>>
+    rpcLabel: () => Promise<IpcResponse<string>>
   }
 
   interface DaemonFeedback {
@@ -1090,5 +1158,36 @@ declare global {
 
   interface Window {
     daemon: DaemonAPI
+  }
+
+  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter'
+  type AgentStationStatus = 'idle' | 'running' | 'stopped'
+
+  interface AgentStationConfig {
+    id: string
+    name: string
+    description: string | null
+    template: AgentTemplate
+    wallet_id: string | null
+    plugins: string
+    rpc_url: string | null
+    model: string
+    project_path: string | null
+    status: AgentStationStatus
+    created_at: number
+    updated_at: number
+  }
+
+  interface DaemonAgentStation {
+    list: () => Promise<IpcResponse<AgentStationConfig[]>>
+    get: (id: string) => Promise<IpcResponse<AgentStationConfig>>
+    create: (input: { name: string; description?: string; template: AgentTemplate; wallet_id?: string | null; plugins?: string[]; rpc_url?: string | null; model?: string }) => Promise<IpcResponse<AgentStationConfig>>
+    delete: (id: string) => Promise<IpcResponse>
+    scaffold: (configId: string, outputDir: string) => Promise<IpcResponse<{ projectPath: string; envPath: string }>>
+    pickOutputDir: () => Promise<IpcResponse<string | null>>
+    storeKey: (configId: string, privateKey: string) => Promise<IpcResponse>
+    hasKey: (configId: string) => Promise<IpcResponse<boolean>>
+    deleteKey: (configId: string) => Promise<IpcResponse>
+    updateStatus: (id: string, status: AgentStationStatus) => Promise<IpcResponse>
   }
 }

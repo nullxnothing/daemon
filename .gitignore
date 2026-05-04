@@ -67,6 +67,7 @@ features/
 
 # Internal dev artifacts
 PLUGIN_TODOS.md
+.daemon/replays/
 .planning/
 .playwright-mcp/
 Usersoffic.claudeplans/

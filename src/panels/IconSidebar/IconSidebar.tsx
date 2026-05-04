@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect, useMemo, useRef, useId, type DragEvent } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, useId, type CSSProperties, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useWorkflowShellStore } from '../../store/workflowShell'
-import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
+import { BUILTIN_TOOLS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
 
@@ -33,16 +33,18 @@ function ExplorerGlyph({ size = 18 }: { size?: number }) {
 function LauncherGlyph({ size = 18 }: { size?: number }) {
   const gradientId = useId()
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round">
       <defs>
-        <linearGradient id={gradientId} x1="7" y1="4" x2="17" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#6366f1" />
+        <linearGradient id={gradientId} x1="5" y1="4" x2="19" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#38bdf8" />
         </linearGradient>
       </defs>
-      <path d="M14.9 4.75c-3.1.6-5.85 2.96-6.85 6L7.2 13.9l2.9-.85a8.9 8.9 0 0 0 3.15 3.15l2.85-.85-.85-2.85c3.04-1 5.4-3.75 6-6.85-.97-.34-2.03-.51-3.1-.51-.76 0-1.52.09-2.25.26Z" stroke={`url(#${gradientId})`} />
-      <path d="M10.25 13.75 6.5 17.5M5.25 18.75l2.2-.48.48-2.2" stroke={`url(#${gradientId})`} />
-      <path d="M13.9 10.1a1.3 1.3 0 1 0 1.84-1.84 1.3 1.3 0 0 0-1.84 1.84Z" stroke={`url(#${gradientId})`} />
+      <rect x="6.25" y="7.25" width="11.5" height="8.5" rx="3" stroke={`url(#${gradientId})`} />
+      <path d="M12 4.5v2.75M8.5 18.75h7M12 15.75v3" stroke={`url(#${gradientId})`} />
+      <circle cx="9.8" cy="11.4" r="0.9" fill={`url(#${gradientId})`} />
+      <circle cx="14.2" cy="11.4" r="0.9" fill={`url(#${gradientId})`} />
+      <path d="M9.75 14h4.5" stroke={`url(#${gradientId})`} opacity="0.72" />
     </svg>
   )
 }
@@ -220,6 +222,9 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }, [])
 
   const visiblePinned = pinnedTools.filter((id) => isToolVisible(id))
+  const toolStyle = (toolId: string): CSSProperties => ({
+    '--tool-accent': TOOL_COLORS[toolId] ?? '#8f98a8',
+  } as CSSProperties)
 
   return (
     <aside className="icon-sidebar" data-tour="sidebar">
@@ -254,6 +259,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
           <button
             key={toolId}
             className={`sidebar-icon ${isActive ? 'active' : ''}${dragOverIdx === idx ? ' sidebar-icon--drop-target' : ''}`}
+            style={toolStyle(toolId)}
             onClick={() => handlePinnedToolClick(toolId)}
             onContextMenu={(e) => handleContextMenu(e, toolId)}
             draggable
@@ -294,6 +300,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
                   <button
                     key={tool.id}
                     className="sidebar-submenu-item sidebar-submenu-item--tool"
+                    style={toolStyle(tool.id)}
                     onClick={() => handleAddToolSelect(tool.id)}
                     onMouseEnter={() => preloadToolPanel(tool.id)}
                     onFocus={() => preloadToolPanel(tool.id)}

@@ -7,39 +7,11 @@
   overflow: hidden;
 }
 
-.env-workspace-bar {
+.env-panel-header {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   padding: 20px 24px 0;
-}
-
-.env-workspace-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.env-workspace-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--green);
-}
-
-.env-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--t1);
-  margin: 0;
-  line-height: 1.1;
-}
-
-.env-subtitle {
-  font-size: 12px;
-  color: var(--t3);
 }
 
 .env-secrets-toggle {
@@ -482,8 +454,8 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
   display: flex;
   justify-content: center;
   padding-top: 10vh;
@@ -694,7 +666,7 @@
 }
 
 @media (max-width: 900px) {
-  .env-workspace-bar {
+  .env-panel-header {
     flex-direction: column;
     align-items: flex-start;
   }

@@ -12,6 +12,10 @@ export function registerLaunchHandlers() {
     return TokenLaunch.listLaunchWallets(projectId)
   }))
 
+  ipcMain.handle('launch:ensure-daemon-deployer-wallet', ipcHandler(async (_event, projectId?: string | null) => {
+    return TokenLaunch.ensureDaemonDeployerWallet(projectId)
+  }))
+
   ipcMain.handle('launch:pick-image', ipcHandler(async () => {
     return TokenLaunch.pickImage()
   }))

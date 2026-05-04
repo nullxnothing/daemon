@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useUIStore, type CenterMode } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useShellLayout } from '../../hooks/useShellLayout'
@@ -18,8 +18,6 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
   const setActiveProject = useUIStore((s) => s.setActiveProject)
   const centerMode = useUIStore((s) => s.centerMode)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
-  const browserTabOpen = useUIStore((s) => s.browserTabOpen)
-  const toggleBrowserTab = useUIStore((s) => s.toggleBrowserTab)
   const { tier, isDesktop, isCompact, isTablet, isSmall } = useShellLayout()
 
   const activeProject = useMemo(
@@ -29,7 +27,6 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
 
   const showProjectTabs = isDesktop || isCompact
   const showPortfolioInline = isDesktop
-  const showBrowserInline = isDesktop || isCompact
   const showBrandText = !isTablet && !isSmall
   const showDevReloadInline = isDesktop
 
@@ -55,23 +52,19 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
         />
       )}
 
+      <div className="titlebar-drag-fill" aria-hidden="true" />
+
       <div className="titlebar-controls">
         {showPortfolioInline && <TitlebarPortfolioSummary />}
-        {showBrowserInline && (
-          <BrowserToggle browserTabOpen={browserTabOpen} toggleBrowserTab={toggleBrowserTab} />
-        )}
-        <ModeDropdown
+        <ModeToggle
           centerMode={centerMode}
           setCenterMode={setCenterMode}
           compactLabel={isSmall}
         />
         {!isDesktop && (
           <TitlebarOverflowMenu
-            browserTabOpen={browserTabOpen}
-            showBrowserAction={!showBrowserInline}
             showPortfolioAction={!showPortfolioInline}
             showReloadAction={!showDevReloadInline && import.meta.env.DEV}
-            onToggleBrowserTab={toggleBrowserTab}
           />
         )}
         {showDevReloadInline && import.meta.env.DEV && (
@@ -216,42 +209,12 @@ function ProjectSwitcher({
   )
 }
 
-function BrowserToggle({
-  browserTabOpen,
-  toggleBrowserTab,
-}: {
-  browserTabOpen: boolean
-  toggleBrowserTab: () => void
-}) {
-  return (
-    <button
-      className={`titlebar-btn titlebar-btn-browser${browserTabOpen ? ' active' : ''}`}
-      onClick={toggleBrowserTab}
-      title="Toggle Browser Tab (Ctrl+Shift+B)"
-      aria-label="Toggle Browser Tab"
-      aria-pressed={browserTabOpen}
-    >
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      </svg>
-    </button>
-  )
-}
-
 function TitlebarOverflowMenu({
-  browserTabOpen,
-  showBrowserAction,
   showPortfolioAction,
   showReloadAction,
-  onToggleBrowserTab,
 }: {
-  browserTabOpen: boolean
-  showBrowserAction: boolean
   showPortfolioAction: boolean
   showReloadAction: boolean
-  onToggleBrowserTab: () => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -262,7 +225,7 @@ function TitlebarOverflowMenu({
 
   const canShowPortfolio = showPortfolioAction && visible && dashboard && dashboard.portfolio.walletCount > 0
 
-  if (!showBrowserAction && !canShowPortfolio && !showReloadAction) return null
+  if (!canShowPortfolio && !showReloadAction) return null
 
   return (
     <div className="titlebar-overflow" ref={wrapRef}>
@@ -281,18 +244,6 @@ function TitlebarOverflowMenu({
       </button>
       {isOpen && (
         <div className="titlebar-overflow-menu" role="menu" aria-label="Titlebar actions">
-          {showBrowserAction && (
-            <button
-              className={`titlebar-overflow-item${browserTabOpen ? ' active' : ''}`}
-              role="menuitem"
-              onClick={() => {
-                onToggleBrowserTab()
-                setIsOpen(false)
-              }}
-            >
-              Browser
-            </button>
-          )}
           {canShowPortfolio && (
             <button
               className="titlebar-overflow-item"
@@ -323,31 +274,7 @@ function TitlebarOverflowMenu({
   )
 }
 
-const MODE_OPTIONS: Array<{ value: CenterMode; label: string; shortcut: string | null; icon: JSX.Element }> = [
-  {
-    value: 'canvas',
-    label: 'Canvas',
-    shortcut: null,
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/>
-      </svg>
-    ),
-  },
-  {
-    value: 'grind',
-    label: 'Agents',
-    shortcut: 'Ctrl+Shift+G',
-    icon: (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-      </svg>
-    ),
-  },
-]
-
-function ModeDropdown({
+function ModeToggle({
   centerMode,
   setCenterMode,
   compactLabel,
@@ -356,48 +283,26 @@ function ModeDropdown({
   setCenterMode: (m: CenterMode) => void
   compactLabel?: boolean
 }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-
-  useDismissOnOutsideClick(isOpen, wrapRef, () => setIsOpen(false))
-
-  const current = MODE_OPTIONS.find((option) => option.value === centerMode)!
+  const nextMode = centerMode === 'grind' ? 'canvas' : 'grind'
+  const label = centerMode === 'grind' ? 'Editor' : 'Agents'
 
   return (
-    <div className="titlebar-mode-wrap" ref={wrapRef}>
+    <div className="titlebar-mode-wrap">
       <button
         className={`titlebar-mode-toggle ${centerMode}${compactLabel ? ' titlebar-mode-toggle--icon-only' : ''}`}
-        onClick={() => setIsOpen((value) => !value)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        aria-label={`Mode: ${current.label}`}
+        onClick={() => setCenterMode(nextMode)}
+        aria-label={centerMode === 'grind' ? 'Return to editor' : 'Open agent grid'}
+        title={centerMode === 'grind' ? 'Return to editor' : 'Agent Grid (Ctrl+Shift+G)'}
       >
-        {current.icon}
-        {!compactLabel && <span>{current.label}</span>}
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="6 9 12 15 18 9" />
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          {centerMode === 'grind' ? (
+            <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h7M7 16h5"/></>
+          ) : (
+            <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>
+          )}
         </svg>
+        {!compactLabel && <span>{label}</span>}
       </button>
-      {isOpen && (
-        <div className="titlebar-mode-menu" role="listbox" aria-label="Center mode">
-          {MODE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              className={`titlebar-mode-option ${option.value === centerMode ? 'active' : ''}`}
-              role="option"
-              aria-selected={option.value === centerMode}
-              onClick={() => {
-                setCenterMode(option.value)
-                setIsOpen(false)
-              }}
-            >
-              {option.icon}
-              <span>{option.label}</span>
-              {option.shortcut && <span className="titlebar-mode-shortcut">{option.shortcut}</span>}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

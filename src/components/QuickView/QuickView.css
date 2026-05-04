@@ -24,15 +24,10 @@
 
 .quickview-card--wallet {
   max-height: 560px;
-  border-radius: 18px;
-  border-color: color-mix(in srgb, var(--border) 74%, rgba(62, 207, 142, 0.16) 26%);
-  background:
-    radial-gradient(circle at top right, rgba(62, 207, 142, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 60%),
-    color-mix(in srgb, var(--s1) 92%, black 8%);
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.34),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  background: var(--s1);
+  box-shadow: var(--shadow-md);
 }
 
 .quickview-card--enter {
@@ -174,17 +169,17 @@
   padding: 0 18px 14px;
 }
 
-.quickview-stat-card {
+.quickview-stat-grid .quickview-stat-card {
   min-width: 0;
+  gap: 0;
   padding: 10px 11px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--s2);
+  box-shadow: none;
 }
 
-.quickview-stat-label {
+.quickview-stat-card .quickview-stat-label {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -192,7 +187,7 @@
   color: var(--t4);
 }
 
-.quickview-stat-value {
+.quickview-stat-card .quickview-stat-value {
   margin-top: 6px;
   font-size: 14px;
   font-weight: 700;
@@ -200,7 +195,7 @@
   color: var(--t1);
 }
 
-.quickview-stat-value--sm {
+.quickview-stat-card .quickview-stat-value--sm {
   font-size: 11px;
   font-weight: 600;
   color: var(--t2);
@@ -222,21 +217,16 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 100%),
-    color-mix(in srgb, var(--s2) 88%, black 12%);
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  border-radius: 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .quickview-action-btn:hover {
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.06), transparent 100%),
-    color-mix(in srgb, var(--s2) 82%, black 18%);
-  border-color: color-mix(in srgb, var(--green) 26%, var(--border) 74%);
-  transform: translateY(-1px);
+  background: var(--s3);
+  border-color: var(--border-hover);
 }
 
 .quickview-action-btn:hover .quickview-action-icon,
@@ -294,20 +284,15 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, rgba(255, 255, 255, 0.05) 22%);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 100%),
-    color-mix(in srgb, var(--s2) 88%, black 12%);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--s2);
 }
 
 .quickview-token-row:hover {
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.05), transparent 100%),
-    color-mix(in srgb, var(--s2) 84%, black 16%);
-  border-color: color-mix(in srgb, var(--green) 18%, var(--border) 82%);
-  transform: translateY(-1px);
+  background: var(--s3);
+  border-color: var(--border-hover);
 }
 
 .quickview-token-icon {
@@ -329,7 +314,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, rgba(62, 207, 142, 0.18), rgba(62, 207, 142, 0.05));
+  background: var(--s3);
   color: var(--t2);
   font-size: 11px;
   font-weight: 600;
@@ -396,7 +381,7 @@
   gap: 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+  background: var(--s1);
 }
 
 .quickview-footer-copy {
@@ -580,7 +565,7 @@
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent);
+  background: var(--s1);
 }
 
 .qv-back-btn {
@@ -835,11 +820,9 @@
 }
 
 .qv-quote-box {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  border-radius: 14px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 12px;
   display: flex;
   flex-direction: column;

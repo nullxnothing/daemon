@@ -3,7 +3,6 @@ import { useBrowserStore } from '../../store/browser'
 import { INSPECTOR_INJECT_SCRIPT, INSPECTOR_REMOVE_SCRIPT } from './BrowserInspector'
 
 interface WebviewElement extends HTMLElement {
-  src: string
   goBack: () => void
   goForward: () => void
   reload: () => void
@@ -71,9 +70,6 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
         // Cache entry creation failed — capture will use fallback ID
       }
 
-      if (webviewRef.current) {
-        webviewRef.current.src = normalized
-      }
     },
     [normalizeUrl, setUrl, setLoadStatus]
   )

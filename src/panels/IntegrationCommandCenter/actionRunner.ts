@@ -84,11 +84,58 @@ export async function runIntegrationAction(actionId: string, context: Integratio
   }
 
   if (actionId === 'check-light-package') {
-    const ready = context.packages.has('@lightprotocol/stateless.js')
+    const packages = ['@lightprotocol/stateless.js', '@lightprotocol/compressed-token']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
     return {
-      title: 'Light Protocol package',
-      status: ready ? 'success' : 'info',
-      detail: ready ? 'Light Protocol SDK is listed in package.json.' : 'Light Protocol SDK is not installed in this project yet.',
+      title: 'Light Protocol packages',
+      status: missing.length === 0 ? 'success' : installed.length > 0 ? 'info' : 'warning',
+      detail: missing.length === 0
+        ? 'Light Protocol SDK packages are listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install both packages before compressed-token flows.`,
+      items: missing.length === 0 ? installed : missing,
+    }
+  }
+
+  if (actionId === 'check-magicblock-package') {
+    const packages = ['@magicblock-labs/ephemeral-rollups-sdk']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
+    return {
+      title: 'MagicBlock packages',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'MagicBlock Ephemeral Rollups SDK is listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install the SDK before Magic Router or ER delegation flows.`,
+      items: missing.length === 0 ? installed : missing,
+    }
+  }
+
+  if (actionId === 'check-debridge-package') {
+    const packages = ['@debridge-finance/dln-client']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
+    return {
+      title: 'deBridge packages',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'deBridge DLN client is listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install the client before DLN route-preview flows.`,
+      items: missing.length === 0 ? installed : missing,
+    }
+  }
+
+  if (actionId === 'check-squads-package') {
+    const packages = ['@sqds/multisig']
+    const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
+    return {
+      title: 'Squads packages',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'Squads multisig SDK is listed in package.json.'
+        : `Missing ${missing.join(', ')}. Install the SDK before multisig or vault inspection flows.`,
+      items: missing.length === 0 ? installed : missing,
     }
   }
 

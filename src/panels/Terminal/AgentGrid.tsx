@@ -78,11 +78,18 @@ export function AgentGrid() {
       return next
     })
 
-    const res = await window.daemon.terminal.spawnProvider({
-      providerId,
-      projectId: activeProjectId,
-      cwd: activeProjectPath ?? undefined,
-    })
+    let res: Awaited<ReturnType<typeof window.daemon.terminal.spawnProvider>>
+    try {
+      res = await window.daemon.terminal.spawnProvider({
+        providerId,
+        projectId: activeProjectId,
+        cwd: activeProjectPath ?? undefined,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to launch service'
+      setCellError((prev) => ({ ...prev, [index]: { code: 'IPC_ERROR', message } }))
+      return
+    }
 
     if (res.ok && res.data) {
       const termId = res.data.id

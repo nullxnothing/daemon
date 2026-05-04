@@ -2,34 +2,116 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.plugin-manager-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--panel-pad-y) var(--panel-pad-x) var(--space-xl);
+}
+
+.plugin-manager-hero-badges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-self: center;
+}
+
+.plugin-manager-hero-badges span,
+.plugin-badge {
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--t2);
+  background: var(--hover-bg);
+  font-size: var(--fs-10);
+  white-space: nowrap;
+}
+
+.plugin-add-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.plugin-add-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.plugin-add-title {
+  color: var(--t1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-bold);
+}
+
+.plugin-add-subtitle {
+  margin-top: var(--space-2xs);
+  color: var(--t3);
+  font-size: var(--fs-11);
+}
+
+.plugin-add-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.plugin-add-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  color: var(--t3);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+
+.plugin-add-grid input {
+  height: var(--input-h);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-sm);
+  color: var(--t1);
+  background: var(--s1);
+  font-size: var(--fs-12);
+  outline: none;
+}
+
+.plugin-add-grid input:focus {
+  border-color: var(--border-focus);
+}
+
+.plugin-add-wide {
+  grid-column: 1 / -1;
+}
+
+.plugin-add-error {
+  color: var(--red);
+  font-size: var(--fs-11);
 }
 
 .plugin-manager-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 12px;
-}
-
-.plugin-card {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.plugin-card:last-child {
-  border-bottom: none;
+  display: grid;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .plugin-card-header {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: var(--space-sm);
 }
 
 .plugin-status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
+  margin-top: 7px;
 }
 
 .plugin-card-info {
@@ -37,47 +119,82 @@
   min-width: 0;
 }
 
+.plugin-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
 .plugin-card-name {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-bold);
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.plugin-badge {
+  padding: var(--space-2xs) var(--space-sm);
+  flex-shrink: 0;
+}
+
+.plugin-badge.external {
+  border-color: color-mix(in srgb, var(--green) 28%, var(--border));
+  color: var(--green);
+  background: var(--green-glow);
+}
+
 .plugin-card-desc {
-  font-size: 10px;
+  font-size: var(--fs-11);
   color: var(--t3);
-  margin-top: 1px;
-  white-space: nowrap;
+  margin-top: var(--space-xs);
+  line-height: var(--lh-snug);
+}
+
+.plugin-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.plugin-card-meta span {
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--t3);
+  background: var(--s1);
+  font-family: var(--font-code);
+  font-size: var(--fs-10);
 }
 
 .plugin-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   flex-shrink: 0;
 }
 
 .plugin-reorder-btn {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24px;
+  padding: 0;
+}
+
+.plugin-empty-state {
+  padding: var(--space-xl) 0;
   color: var(--t3);
-  border-radius: 3px;
+  font-size: var(--fs-11);
 }
 
-.plugin-reorder-btn:hover {
-  background: var(--hover-bg);
-  color: var(--t1);
-}
+@media (max-width: 760px) {
+  .plugin-add-grid {
+    grid-template-columns: 1fr;
+  }
 
-.plugin-reorder-btn:disabled {
-  opacity: 0.3;
-  pointer-events: none;
+  .plugin-manager-hero-badges {
+    align-items: flex-start;
+  }
 }

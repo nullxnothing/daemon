@@ -30,7 +30,7 @@
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #f1cf75;
+  color: var(--amber);
 }
 
 .pro-panel-title {
@@ -85,9 +85,9 @@
   align-items: center;
   gap: 8px;
   background: rgba(255, 80, 80, 0.1);
-  border: 1px solid #ff5050;
+  border: 1px solid var(--red);
   border-radius: 4px;
-  color: #ff7070;
+  color: var(--red-dim);
   font-size: 12px;
 }
 
@@ -121,12 +121,85 @@
 }
 
 .pro-overview,
+.pro-staking,
 .pro-skills,
 .pro-sync,
 .pro-arena {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.pro-staking-hero,
+.pro-staking-actions-card,
+.pro-staking-tier-card {
+  padding: 16px;
+  background: var(--s1);
+  border: 1px solid var(--s4);
+  border-radius: 8px;
+}
+
+.pro-staking-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  background: var(--s1);
+}
+
+.pro-staking-pill-group,
+.pro-staking-action-row,
+.pro-staking-tier-head {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pro-staking-pill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--s4);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t3);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pro-staking-pill.eligible,
+.pro-staking-pill.live {
+  border-color: rgba(62, 207, 142, 0.42);
+  color: var(--green);
+}
+
+.pro-staking-pill.planned {
+  border-color: rgba(241, 207, 117, 0.32);
+  color: var(--amber);
+}
+
+.pro-staking-pill-live {
+  border-color: rgba(96, 165, 250, 0.35);
+  color: var(--blue);
+}
+
+.pro-staking-status-grid,
+.pro-staking-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pro-staking-tier-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pro-staking-unlocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .pro-hero {
@@ -197,7 +270,7 @@
 
 .pro-holder-banner {
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(27, 31, 28, 0.94), rgba(16, 19, 18, 0.98));
+  background: var(--s1);
   border: 1px solid rgba(62, 207, 142, 0.18);
   border-radius: 6px;
 }
@@ -220,7 +293,7 @@
 .pro-holder-banner-title,
 .pro-arena-kicker,
 .pro-arena-prize-label {
-  color: #f1cf75;
+  color: var(--amber);
 }
 
 .pro-stat-mono,
@@ -275,7 +348,7 @@
   padding: 20px;
   border: 1px solid rgba(255, 215, 0, 0.14);
   border-radius: 10px;
-  background: radial-gradient(circle at top left, rgba(255, 215, 0, 0.12), transparent 30%), linear-gradient(145deg, rgba(15, 19, 17, 0.98), rgba(24, 30, 27, 0.92));
+  background: var(--s1);
 }
 
 .pro-arena-contest-title {
@@ -376,7 +449,7 @@
 .pro-arena-status.pro-status-winner,
 .pro-arena-theme {
   border: 1px solid rgba(241, 207, 117, 0.5);
-  color: #f1cf75;
+  color: var(--amber);
 }
 
 .pro-arena-category {
@@ -398,8 +471,13 @@
 }
 
 @media (max-width: 900px) {
+  .pro-staking-hero,
   .pro-arena-contest,
   .pro-form-split {
     grid-template-columns: 1fr;
+  }
+
+  .pro-staking-hero {
+    flex-direction: column;
   }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
+import { PanelHeader, Stat } from '../../components/Panel'
 import './PortsPanel.css'
 
 interface RegisteredPort {
@@ -92,26 +93,30 @@ export const PortsPanel = memo(function PortsPanel() {
 
   return (
     <div className="ports-panel">
-      <div className="ports-workspace-bar">
-        <div className="ports-workspace-copy">
-          <span className="ports-workspace-kicker">Local routing</span>
-          <h2 className="ports-workspace-title">Know what is actually running</h2>
-          <p className="ports-workspace-subtitle">
-            Registered dev servers come first. Ghost listeners are separated so you can clean up noise without guessing.
-          </p>
-        </div>
-        <div className="ports-workspace-actions">
+      <PanelHeader
+        className="ports-panel-header"
+        kicker="Local routing"
+        brandKicker
+        title="Know what is actually running"
+        subtitle="Registered dev servers come first. Ghost listeners are separated so you can clean up noise without guessing."
+        actions={
           <button className="ports-btn" onClick={() => load()}>
             Refresh
           </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="ports-body">
         <div className="ports-summary-grid">
-          <StatCard label="Tracked ports" value={dedupedRegistered.length} detail={`${livePorts.length} responding`} />
-          <StatCard label="Active projects" value={attachedProjects} detail="with registered services" />
-          <StatCard label="Ghost listeners" value={safeGhosts.length} detail={safeGhosts.length > 0 ? 'reviewable' : 'all clear'} warn={safeGhosts.length > 0} />
+          <Stat className="ports-stat-card" label="Tracked ports" value={dedupedRegistered.length} detail={`${livePorts.length} responding`} />
+          <Stat className="ports-stat-card" label="Active projects" value={attachedProjects} detail="with registered services" />
+          <Stat
+            className="ports-stat-card"
+            label="Ghost listeners"
+            value={safeGhosts.length}
+            detail={safeGhosts.length > 0 ? 'reviewable' : 'all clear'}
+            tone={safeGhosts.length > 0 ? 'warn' : 'default'}
+          />
         </div>
 
         <section className="ports-section">
@@ -203,13 +208,3 @@ export const PortsPanel = memo(function PortsPanel() {
     </div>
   )
 })
-
-function StatCard({ label, value, detail, warn = false }: { label: string; value: number; detail: string; warn?: boolean }) {
-  return (
-    <div className={`ports-stat-card${warn ? ' warn' : ''}`}>
-      <span className="ports-stat-label">{label}</span>
-      <strong className="ports-stat-value">{value}</strong>
-      <span className="ports-stat-detail">{detail}</span>
-    </div>
-  )
-}

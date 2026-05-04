@@ -3,131 +3,102 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top right, rgba(96, 165, 250, 0.06), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 20%),
-    color-mix(in srgb, var(--s1) 92%, black 8%);
+  background: var(--s1);
 }
 
 .right-panel-header {
-  padding: var(--drawer-space-block) var(--drawer-space-inline-tight) var(--drawer-space-block-tight);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent),
-    color-mix(in srgb, var(--s1) 94%, black 6%);
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-md);
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
 }
 
 .right-panel-header-copy {
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
 }
 
 .right-panel-kicker {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--green) 70%, white 30%);
-}
-
-.right-panel-title {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--t1);
+  color: var(--green);
 }
 
 .right-panel-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: var(--drawer-space-block-tight) var(--drawer-space-inline-tight) var(--drawer-space-block);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
-    color-mix(in srgb, var(--s1) 94%, black 6%);
+  gap: 4px;
+  padding: 6px var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
 }
 
 .right-panel-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
   min-width: 0;
-  min-height: 42px;
-  padding: 8px 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  height: 30px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--border);
   border-radius: var(--drawer-control-radius);
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
-  min-width: 0;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .right-panel-tab:hover {
   color: var(--t1);
-  border-color: rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
 }
 
 .right-panel-tab.active {
-  border-color: color-mix(in srgb, var(--green) 28%, var(--border) 72%);
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.08), transparent 100%),
-    color-mix(in srgb, var(--s2) 84%, black 16%);
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.18),
-    0 0 0 1px rgba(62, 207, 142, 0.06) inset;
+  border-color: color-mix(in srgb, var(--green) 42%, var(--border));
+  background: var(--green-glow);
 }
 
 .right-panel-tab img {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   object-fit: contain;
 }
 
 .right-panel-tab-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--s5) 80%, rgba(255, 255, 255, 0.1) 20%);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.02);
+  background: var(--t4);
 }
 
 .right-panel-tab-dot.live {
   background: var(--green);
-  box-shadow: 0 0 0 4px rgba(62, 207, 142, 0.08);
-}
-
-.right-panel-tab-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
 }
 
 .right-panel-tab-label {
-  font-size: 11px;
-  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
-.right-panel-tab-status {
-  font-size: 9px;
-  color: var(--t4);
-}
-
 .right-panel-content {
-  flex: 1.15 1 0;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: var(--drawer-rail-shell-pad);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 12%);
+  padding: 6px var(--space-sm);
+  background: var(--s1);
 }

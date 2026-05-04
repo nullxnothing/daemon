@@ -5,6 +5,7 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { formatCompactUsd } from '../../utils/format'
 import { QuickView } from './QuickView'
 import { TransactionPreviewCard } from '../../panels/WalletPanel/TransactionPreviewCard'
+import { Stat } from '../Panel'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -733,18 +734,27 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
             </div>
 
             <div className="quickview-stat-grid">
-              <div className="quickview-stat-card">
-                <div className="quickview-stat-label">Tracked tokens</div>
-                <div className="quickview-stat-value">{holdings.length}</div>
-              </div>
-              <div className="quickview-stat-card">
-                <div className="quickview-stat-label">Wallets</div>
-                <div className="quickview-stat-value">{portfolio?.walletCount ?? 0}</div>
-              </div>
-              <div className="quickview-stat-card">
-                <div className="quickview-stat-label">Execution</div>
-                <div className="quickview-stat-value quickview-stat-value--sm">{executionLabel}</div>
-              </div>
+              <Stat
+                className="quickview-stat-card"
+                label="Tracked tokens"
+                labelClassName="quickview-stat-label"
+                value={holdings.length}
+                valueClassName="quickview-stat-value"
+              />
+              <Stat
+                className="quickview-stat-card"
+                label="Wallets"
+                labelClassName="quickview-stat-label"
+                value={portfolio?.walletCount ?? 0}
+                valueClassName="quickview-stat-value"
+              />
+              <Stat
+                className="quickview-stat-card"
+                label="Execution"
+                labelClassName="quickview-stat-label"
+                value={executionLabel}
+                valueClassName="quickview-stat-value quickview-stat-value--sm"
+              />
             </div>
 
             <div className="quickview-actions">

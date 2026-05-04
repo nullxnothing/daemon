@@ -8,9 +8,13 @@ interface CapabilitiesSectionProps {
   onToggle: (projectPath: string, name: string, enabled: boolean) => void
   onScaffoldX402: () => void
   onScaffoldMpp: () => void
+  onScaffoldLight: () => void
+  onScaffoldMagicBlock: () => void
+  onScaffoldDebridge: () => void
+  onScaffoldSquads: () => void
 }
 
-export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp }: CapabilitiesSectionProps) {
+export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight, onScaffoldMagicBlock, onScaffoldDebridge, onScaffoldSquads }: CapabilitiesSectionProps) {
   const [copiedSkill, setCopiedSkill] = useState<string | null>(null)
   const [showAllSkills, setShowAllSkills] = useState(false)
 
@@ -64,6 +68,50 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-desc">Agent-to-agent payments</div>
             <div className="solana-integration-actions">
               <button className="sol-btn" onClick={onScaffoldMpp} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">Light Protocol</div>
+            <div className="solana-integration-desc">ZK Compression + compressed tokens</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldLight} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">MagicBlock</div>
+            <div className="solana-integration-desc">Ephemeral Rollups + Magic Router</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldMagicBlock} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">deBridge</div>
+            <div className="solana-integration-desc">Cross-chain DLN route previews</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldDebridge} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">Squads</div>
+            <div className="solana-integration-desc">V4 multisig + vault inspection</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldSquads} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>

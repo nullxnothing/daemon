@@ -22,4 +22,25 @@ pub enum RegistryError {
 
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
+
+    #[msg("Invalid bounty: task escrow requires a funded bounty")]
+    InvalidBounty,
+
+    #[msg("Invalid deadline: deadline must be in the future")]
+    InvalidDeadline,
+
+    #[msg("Task is not open")]
+    TaskNotOpen,
+
+    #[msg("Task is not running")]
+    TaskNotRunning,
+
+    #[msg("Task has no submitted work receipt")]
+    TaskNotSubmitted,
+
+    #[msg("Task is not approved or rejected")]
+    TaskNotReviewed,
+
+    #[msg("Task is already settled")]
+    TaskAlreadySettled,
 }

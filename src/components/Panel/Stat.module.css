@@ -1,0 +1,52 @@
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.label {
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.value {
+  font-size: var(--fs-24);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+  transform-origin: left center;
+}
+
+.tick {
+  animation: numberTick 240ms var(--ease-out-quint);
+}
+
+.detail {
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--t3);
+}
+
+.success { border-color: color-mix(in srgb, var(--green) 28%, var(--border)); }
+.warn    { border-color: color-mix(in srgb, var(--amber) 32%, var(--border)); }
+.danger  { border-color: color-mix(in srgb, var(--red) 32%, var(--border)); }
+.info    { border-color: color-mix(in srgb, var(--blue) 32%, var(--border)); }
+
+@keyframes numberTick {
+  0% { transform: translateY(2px); color: var(--green); }
+  100% { transform: translateY(0); color: var(--t1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tick { animation: none; }
+}

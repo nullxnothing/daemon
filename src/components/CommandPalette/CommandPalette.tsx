@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { Command } from './commands'
 import { FocusTrap } from '../FocusTrap'
+import { KeyHint } from '../Panel'
 import './CommandPalette.css'
 
 interface FileItem {
@@ -166,7 +167,7 @@ export function CommandPalette({ mode, commands, files, projectRoot, onClose, on
                     >
                       <span className="palette-item-label">{command.label}</span>
                       {command.shortcut && (
-                        <span className="palette-item-shortcut">{command.shortcut}</span>
+                        <KeyHint className="palette-item-shortcut">{command.shortcut}</KeyHint>
                       )}
                     </div>
                   ))}

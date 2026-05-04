@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useUIStore } from '../../store/ui'
 import './FileExplorer.css'
+
+const ROOT_CONTEXT_MENU_HEIGHT = 72
+const FILE_CONTEXT_MENU_HEIGHT = 252
+const CONTEXT_MENU_WIDTH = 190
+const CONTEXT_MENU_VIEWPORT_GUTTER = 8
 
 interface ContextMenu {
   x: number
@@ -89,7 +95,23 @@ export function FileExplorer() {
   const handleContextMenu = (e: React.MouseEvent, entry: FileEntry | null, parentPath: string) => {
     e.preventDefault()
     e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, entry, parentPath })
+    const menuHeight = entry ? FILE_CONTEXT_MENU_HEIGHT : ROOT_CONTEXT_MENU_HEIGHT
+    const x = Math.max(
+      CONTEXT_MENU_VIEWPORT_GUTTER,
+      Math.min(e.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_VIEWPORT_GUTTER),
+    )
+    const y = Math.max(
+      CONTEXT_MENU_VIEWPORT_GUTTER,
+      Math.min(e.clientY, window.innerHeight - menuHeight - CONTEXT_MENU_VIEWPORT_GUTTER),
+    )
+    setContextMenu({ x, y, entry, parentPath })
+  }
+
+  const handleToolbarCreate = (type: 'file' | 'dir') => {
+    if (!activeProjectPath) return
+    setContextMenu(null)
+    setSearchQuery('')
+    setCreating({ parentPath: activeProjectPath, type })
   }
 
   const handleNewFile = () => {
@@ -160,24 +182,55 @@ export function FileExplorer() {
   const searchResults = searchQuery.trim().length > 0
     ? fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), searchQuery)
     : []
+  const rootCreateActive = creating
+    ? normalizePath(creating.parentPath) === normalizePath(activeProjectPath)
+    : false
 
   return (
     <div
       className="file-explorer"
       onContextMenu={(e) => handleContextMenu(e, null, activeProjectPath)}
     >
-      <div className={`file-explorer-search ${isSearchFocused ? 'focused' : ''}`}>
-        <span className="file-explorer-search-icon" aria-hidden="true">⌕</span>
-        <input
-          ref={searchInputRef}
-          className="file-explorer-search-input"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          placeholder="Search files (Ctrl+P)"
-        />
+      <div className="file-explorer-toolbar">
+        <div className={`file-explorer-search ${isSearchFocused ? 'focused' : ''}`}>
+          <span className="file-explorer-search-icon" aria-hidden="true">⌕</span>
+          <input
+            ref={searchInputRef}
+            className="file-explorer-search-input"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            placeholder="Search files (Ctrl+P)"
+          />
+        </div>
+        <button
+          type="button"
+          className="file-explorer-action"
+          onClick={(event) => { event.stopPropagation(); handleToolbarCreate('file') }}
+          title="New file"
+          aria-label="New file"
+        >
+          <FilePlusIcon />
+        </button>
+        <button
+          type="button"
+          className="file-explorer-action"
+          onClick={(event) => { event.stopPropagation(); handleToolbarCreate('dir') }}
+          title="New folder"
+          aria-label="New folder"
+        >
+          <FolderPlusIcon />
+        </button>
       </div>
+
+      {creating && rootCreateActive && !searchQuery.trim() && (
+        <CreateInput
+          parentPath={creating.parentPath}
+          type={creating.type}
+          onDone={() => { setCreating(null); reload() }}
+        />
+      )}
 
       {searchQuery.trim().length > 0 ? (
         <div className="file-search-results">
@@ -212,14 +265,14 @@ export function FileExplorer() {
         ))
       )}
 
-      {creating && (
+      {creating && !rootCreateActive && !searchQuery.trim() && (
         <CreateInput
           parentPath={creating.parentPath}
           type={creating.type}
           onDone={() => { setCreating(null); reload() }}
         />
       )}
-      {contextMenu && (
+      {contextMenu && createPortal((
         <div className="context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
           <div className="context-menu-item" onClick={handleNewFile}>New File</div>
           <div className="context-menu-item" onClick={handleNewFolder}>New Folder</div>
@@ -234,8 +287,26 @@ export function FileExplorer() {
             </>
           )}
         </div>
-      )}
+      ), document.body)}
     </div>
+  )
+}
+
+function FilePlusIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4.25 1.75h4.6l3.4 3.4v8.6H4.25z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8.75 1.95V5.25h3.3M8.25 7.25v4M6.25 9.25h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function FolderPlusIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M1.75 4.75c0-.83.67-1.5 1.5-1.5h3.1l1.35 1.4h5.05c.83 0 1.5.67 1.5 1.5v5.6c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8 7.25v4M6 9.25h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
   )
 }
 

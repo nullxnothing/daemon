@@ -4,35 +4,21 @@
   justify-content: center;
   gap: var(--space-xs);
   font-family: inherit;
-  font-weight: 500;
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
   cursor: pointer;
-  transition: all var(--transition-normal);
-}
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
+  border: 1px solid var(--border);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
-  filter: grayscale(100%);
 }
 
 /* Variants */
 .btn--default {
   background: var(--s2);
-  border: 1px solid var(--s5);
   color: var(--t2);
 }
 .btn--default:hover:not(:disabled) {
@@ -41,27 +27,26 @@
 }
 
 .btn--primary {
-  background: rgba(62, 207, 142, 0.1);
-  border: 1px solid var(--green-dim);
+  background: var(--green-glow);
+  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
   color: var(--green);
 }
 .btn--primary:hover:not(:disabled) {
-  background: rgba(62, 207, 142, 0.2);
-  box-shadow: var(--glow-green-soft);
+  background: color-mix(in srgb, var(--green) 16%, transparent);
 }
 
 .btn--danger {
-  background: rgba(239, 83, 80, 0.1);
-  border: 1px solid var(--red);
+  background: var(--red-glow);
+  border-color: color-mix(in srgb, var(--red) 36%, var(--border));
   color: var(--red);
 }
 .btn--danger:hover:not(:disabled) {
-  background: rgba(239, 83, 80, 0.2);
+  background: color-mix(in srgb, var(--red) 16%, transparent);
 }
 
 .btn--ghost {
   background: transparent;
-  border: 1px solid transparent;
+  border-color: transparent;
   color: var(--t3);
 }
 .btn--ghost:hover:not(:disabled) {
@@ -73,20 +58,20 @@
 .btn--sm {
   height: var(--btn-h-sm);
   padding: 0 var(--space-sm);
-  font-size: var(--font-sm);
-  border-radius: var(--radius-sm);
+  font-size: var(--fs-11);
+  border-radius: var(--radius-md);
 }
 
 .btn--md {
   height: var(--btn-h-md);
   padding: 0 var(--space-md);
-  font-size: var(--font-base);
+  font-size: var(--fs-12);
   border-radius: var(--radius-md);
 }
 
 .btn--lg {
   height: var(--btn-h-lg);
   padding: 0 var(--space-lg);
-  font-size: var(--font-md);
-  border-radius: var(--radius-md);
+  font-size: var(--fs-13);
+  border-radius: var(--radius-lg);
 }

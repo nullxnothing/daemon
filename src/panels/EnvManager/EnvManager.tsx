@@ -5,6 +5,7 @@ import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
 import { Dot } from '../../components/Dot'
 import { FocusTrap } from '../../components/FocusTrap'
+import { Banner, PanelHeader, Stat } from '../../components/Panel'
 import './EnvManager.css'
 
 interface UnifiedKey {
@@ -347,42 +348,33 @@ export function EnvManager() {
 
   return (
     <div className="env-center">
-      <div className="env-workspace-bar">
-        <div className="env-workspace-copy">
-          <span className="env-workspace-kicker">Environment workspace</span>
-          <h2 className="env-title">Keep local and production config aligned</h2>
-          <span className="env-subtitle">
-            {activeProject ? activeProject.name : 'No active project'} · {vercelLinked ? 'Vercel linked' : 'Local only'}
-          </span>
-        </div>
-        <div className="env-header-actions">
-          <button className="env-btn" onClick={loadLocal}>Refresh local</button>
-          {vercelLinked && (
-            <button className="env-btn" onClick={loadVercel} disabled={loadingVercel}>
-              {loadingVercel ? 'Refreshing prod…' : 'Refresh prod'}
-            </button>
-          )}
-          <label className="env-secrets-toggle">
-            <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
-            <span>Secrets only</span>
-          </label>
-          <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
-        </div>
-      </div>
+      <PanelHeader
+        className="env-panel-header"
+        kicker="Environment workspace"
+        brandKicker
+        title="Keep local and production config aligned"
+        subtitle={`${activeProject ? activeProject.name : 'No active project'} · ${vercelLinked ? 'Vercel linked' : 'Local only'}`}
+        actions={
+          <div className="env-header-actions">
+            <button className="env-btn" onClick={loadLocal}>Refresh local</button>
+            {vercelLinked && (
+              <button className="env-btn" onClick={loadVercel} disabled={loadingVercel}>
+                {loadingVercel ? 'Refreshing prod…' : 'Refresh prod'}
+              </button>
+            )}
+            <label className="env-secrets-toggle">
+              <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
+              <span>Secrets only</span>
+            </label>
+            <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
+          </div>
+        }
+      />
 
       <div className="env-stats-row">
-        <div className="env-stat-card">
-          <span className="env-stat-label">Local keys</span>
-          <strong className="env-stat-value">{stats.localCount}</strong>
-        </div>
-        <div className="env-stat-card">
-          <span className="env-stat-label">Production keys</span>
-          <strong className="env-stat-value">{stats.prodCount}</strong>
-        </div>
-        <div className="env-stat-card">
-          <span className="env-stat-label">Synced</span>
-          <strong className="env-stat-value">{stats.syncedCount}</strong>
-        </div>
+        <Stat className="env-stat-card" label="Local keys" value={stats.localCount} />
+        <Stat className="env-stat-card" label="Production keys" value={stats.prodCount} />
+        <Stat className="env-stat-card" label="Synced" value={stats.syncedCount} />
       </div>
 
       {/* Search */}
@@ -397,10 +389,10 @@ export function EnvManager() {
 
       {/* Vercel status banner */}
       {!vercelConnected && !loadingVercel && activeProjectId && vercelError && (
-        <div className="env-banner env-banner-warn">{vercelError}</div>
+        <Banner className="env-banner env-banner-warn" tone="warn">{vercelError}</Banner>
       )}
       {!vercelLinked && !loadingVercel && activeProjectId && (
-        <div className="env-banner env-banner-info">Link a Vercel project to see production vars</div>
+        <Banner className="env-banner env-banner-info" tone="info">Link a Vercel project to see production vars</Banner>
       )}
 
       {/* Table */}

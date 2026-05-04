@@ -32,6 +32,7 @@
   },
   "afterSign": "build/notarize.mjs",
   "win": {
+    "icon": "resources/icon.ico",
     "target": [
       {
         "target": "nsis",
@@ -49,6 +50,7 @@
     "createStartMenuShortcut": true
   },
   "linux": {
+    "icon": "resources/icon.png",
     "target": ["AppImage"],
     "category": "Development",
     "artifactName": "${productName}.${ext}"

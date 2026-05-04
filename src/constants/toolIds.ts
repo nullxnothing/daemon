@@ -1,9 +1,5 @@
-// Canonical list of all built-in drawer tool IDs.
-// Keep in sync with BUILTIN_TOOLS in CommandDrawer.tsx.
-// This list covers drawer-managed tools only. Browser mode is not a drawer tool.
-export const BUILTIN_TOOL_IDS: string[] = [
-  'starter', 'git', 'deploy', 'env', 'wallet', 'email',
-  'ports', 'processes', 'settings', 'image-editor',
-  'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'block-scanner', 'docs', 'dashboard',
-  'sessions', 'hackathon', 'pro', 'plugins', 'recovery',
-]
+import { DRAWER_TOOL_IDS } from './toolRegistry'
+
+// Canonical list of drawer-managed built-in tools.
+// Derived from the shared registry so visibility, profiles, and drawer behavior stay aligned.
+export const BUILTIN_TOOL_IDS: string[] = [...DRAWER_TOOL_IDS]

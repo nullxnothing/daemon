@@ -1,0 +1,24 @@
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  color: var(--t4);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  height: 1px;
+  min-width: var(--space-md);
+  flex: 1;
+  background: var(--border);
+}
+
+.label {
+  flex: 0 0 auto;
+}

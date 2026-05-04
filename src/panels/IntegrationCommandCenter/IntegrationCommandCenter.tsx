@@ -13,7 +13,9 @@ import {
   buildFirstSolanaAgentReadme,
   createFirstAgentPlan,
   createSendAiSetupPlan,
+  detectPackageManager,
   mergeEnvExample,
+  normalizeProjectInstallCommand,
   parsePackageInfo,
   upsertPackageJsonScript,
   SENDAI_FIRST_AGENT_ENTRY,
@@ -43,6 +45,15 @@ const METAPLEX_DRAFT_SCRIPT = 'metaplex:draft-check'
 const LIGHT_STARTER_DIR = 'src/light'
 const LIGHT_STARTER_FILE = `${LIGHT_STARTER_DIR}/compression-check.mjs`
 const LIGHT_STARTER_SCRIPT = 'light:check'
+const MAGICBLOCK_STARTER_DIR = 'src/magicblock'
+const MAGICBLOCK_STARTER_FILE = `${MAGICBLOCK_STARTER_DIR}/er-readiness.mjs`
+const MAGICBLOCK_STARTER_SCRIPT = 'magicblock:check'
+const DEBRIDGE_STARTER_DIR = 'src/debridge'
+const DEBRIDGE_STARTER_FILE = `${DEBRIDGE_STARTER_DIR}/dln-route-preview.mjs`
+const DEBRIDGE_STARTER_SCRIPT = 'debridge:preview'
+const SQUADS_STARTER_DIR = 'src/squads'
+const SQUADS_STARTER_FILE = `${SQUADS_STARTER_DIR}/multisig-inspect.mjs`
+const SQUADS_STARTER_SCRIPT = 'squads:inspect'
 const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'sendai-agent-kit',
   'sendai-solana-mcp',
@@ -51,6 +62,9 @@ const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'jupiter',
   'metaplex',
   'light-protocol',
+  'magicblock',
+  'debridge',
+  'squads',
   'protocol-skills',
 ])
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
@@ -89,7 +103,10 @@ function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
   if (context.secureKeys.HELIUS_API_KEY || context.mcps.some((entry) => entry.name === 'helius' && entry.enabled)) suggestions.push('helius')
   if (context.secureKeys.JUPITER_API_KEY) suggestions.push('integrating-jupiter')
   if (context.packages.has('@metaplex-foundation/umi')) suggestions.push('metaplex')
-  if (context.packages.has('@lightprotocol/stateless.js')) suggestions.push('light-protocol')
+  if (context.packages.has('@lightprotocol/stateless.js') || context.packages.has('@lightprotocol/compressed-token')) suggestions.push('light-protocol')
+  if (context.packages.has('@magicblock-labs/ephemeral-rollups-sdk')) suggestions.push('magicblock')
+  if (context.packages.has('@debridge-finance/dln-client')) suggestions.push('debridge')
+  if (context.packages.has('@sqds/multisig')) suggestions.push('squads')
   if (context.packages.has('@raydium-io/raydium-sdk-v2')) suggestions.push('raydium')
 
   return suggestions.length > 0 ? suggestions : ['solana-agent-kit', 'helius', 'integrating-jupiter']
@@ -126,18 +143,188 @@ function buildLightCompressionStarter(): string {
     throw new Error('Missing RPC_URL. Copy .env.example into .env and set a compression-capable RPC first.')
   }
 
-  const light = await import('@lightprotocol/stateless.js')
-  const exportedKeys = Object.keys(light).sort()
+  const stateless = await import('@lightprotocol/stateless.js')
+  const compressedToken = await import('@lightprotocol/compressed-token')
+  const createRpc = stateless.createRpc
+  const rpc = typeof createRpc === 'function' ? createRpc(rpcUrl, rpcUrl) : null
+  const statelessExports = Object.keys(stateless).sort()
+  const tokenExports = Object.keys(compressedToken).sort()
 
   console.log('Light Protocol starter is ready.')
   console.log(\`RPC: \${rpcUrl}\`)
-  console.log(\`Exports detected: \${exportedKeys.length}\`)
-  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
-  console.log('Next step: replace this import check with the compressed-state flow you want DAEMON to guide.')
+  console.log(\`Stateless exports detected: \${statelessExports.length}\`)
+  console.log(\`Compressed token exports detected: \${tokenExports.length}\`)
+
+  if (rpc && typeof rpc.getIndexerHealth === 'function') {
+    try {
+      const health = await rpc.getIndexerHealth()
+      console.log(\`Indexer health: \${JSON.stringify(health)}\`)
+    } catch (error) {
+      console.warn('Indexer health check was unavailable on this RPC endpoint.')
+      console.warn(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  console.log('Next step: add a read-only getCompressedTokenAccountsByOwner check for the wallet you want DAEMON to guide.')
+  console.log('Keep transaction builders behind explicit confirmation; compressed-account proof flows need compute budget and fee previews.')
 }
 
 main().catch((error) => {
   console.error('Light starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
+}
+
+function buildMagicBlockStarter(): string {
+  return `async function main() {
+  const baseRpcUrl = process.env.RPC_URL?.trim()
+  const routerUrl = process.env.MAGICBLOCK_ROUTER_URL?.trim() || 'https://devnet-router.magicblock.app'
+
+  if (!baseRpcUrl) {
+    throw new Error('Missing RPC_URL. Set the Solana base-layer RPC before adding MagicBlock routes.')
+  }
+
+  const magicblock = await import('@magicblock-labs/ephemeral-rollups-sdk')
+  const exportedKeys = Object.keys(magicblock).sort()
+
+  console.log('MagicBlock starter is ready.')
+  console.log(\`Base RPC: \${baseRpcUrl}\`)
+  console.log(\`Magic Router: \${routerUrl}\`)
+  console.log(\`SDK exports detected: \${exportedKeys.length}\`)
+  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
+  console.log('Next step: map which program accounts can be delegated before building any ER transaction path.')
+  console.log('Keep base-layer initialization, ER execution, commit, and undelegate flows as separate reviewed steps.')
+  console.log('Only use skipPreflight on the ER path after delegation status is verified.')
+}
+
+main().catch((error) => {
+  console.error('MagicBlock starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
+}
+
+function buildDebridgeStarter(): string {
+  return `async function main() {
+  const apiBase = process.env.DEBRIDGE_API_URL?.trim() || 'https://dln.debridge.finance/v1.0'
+  const required = [
+    'DEBRIDGE_SRC_CHAIN_ID',
+    'DEBRIDGE_DST_CHAIN_ID',
+    'DEBRIDGE_SRC_TOKEN_IN',
+    'DEBRIDGE_DST_TOKEN_OUT',
+    'DEBRIDGE_AMOUNT_IN',
+    'DEBRIDGE_SRC_ADDRESS',
+    'DEBRIDGE_DST_ADDRESS',
+  ]
+  const missing = required.filter((key) => !process.env[key]?.trim())
+
+  const dlnClient = await import('@debridge-finance/dln-client')
+  const exportedKeys = Object.keys(dlnClient).sort()
+
+  console.log('deBridge DLN starter is ready.')
+  console.log(\`API: \${apiBase}\`)
+  console.log(\`DLN client exports detected: \${exportedKeys.length}\`)
+  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
+
+  if (missing.length > 0) {
+    console.log('Route preview skipped. Add these env vars to request a create-tx estimate:')
+    for (const key of missing) console.log(\`- \${key}\`)
+    console.log('No transaction was constructed or submitted.')
+    return
+  }
+
+  const params = new URLSearchParams({
+    srcChainId: process.env.DEBRIDGE_SRC_CHAIN_ID.trim(),
+    dstChainId: process.env.DEBRIDGE_DST_CHAIN_ID.trim(),
+    srcChainTokenIn: process.env.DEBRIDGE_SRC_TOKEN_IN.trim(),
+    dstChainTokenOut: process.env.DEBRIDGE_DST_TOKEN_OUT.trim(),
+    srcChainTokenInAmount: process.env.DEBRIDGE_AMOUNT_IN.trim(),
+    srcChainOrderAuthorityAddress: process.env.DEBRIDGE_SRC_ADDRESS.trim(),
+    dstChainTokenOutRecipient: process.env.DEBRIDGE_DST_ADDRESS.trim(),
+    dstChainOrderAuthorityAddress: process.env.DEBRIDGE_DST_ADDRESS.trim(),
+  })
+
+  const url = \`\${apiBase.replace(/\\/$/, '')}/dln/order/create-tx?\${params.toString()}\`
+  const response = await fetch(url, { headers: { accept: 'application/json' } })
+  const payload = await response.json()
+
+  if (!response.ok) {
+    console.error('deBridge create-tx preview failed.')
+    console.error(JSON.stringify(payload, null, 2))
+    process.exitCode = 1
+    return
+  }
+
+  console.log('deBridge create-tx preview returned a response.')
+  console.log(JSON.stringify({
+    orderId: payload.orderId ?? null,
+    estimation: payload.estimation ?? null,
+    txIncluded: Boolean(payload.tx),
+  }, null, 2))
+  console.log('Do not sign or submit tx payloads from this starter without a separate wallet confirmation flow.')
+}
+
+main().catch((error) => {
+  console.error('deBridge starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
+}
+
+function buildSquadsStarter(): string {
+  return `async function main() {
+  const rpcUrl = process.env.RPC_URL?.trim()
+  const multisigAddress = process.env.SQUADS_MULTISIG_ADDRESS?.trim()
+  const requestedVaultIndex = process.env.SQUADS_VAULT_INDEX?.trim()
+  const vaultIndex = requestedVaultIndex ? Number(requestedVaultIndex) : 0
+
+  if (!rpcUrl) {
+    throw new Error('Missing RPC_URL. Set a Solana RPC before inspecting Squads accounts.')
+  }
+
+  if (!Number.isInteger(vaultIndex) || vaultIndex < 0) {
+    throw new Error('SQUADS_VAULT_INDEX must be a non-negative integer.')
+  }
+
+  const squads = await import('@sqds/multisig')
+  const web3 = await import('@solana/web3.js')
+  const exportedKeys = Object.keys(squads).sort()
+
+  console.log('Squads starter is ready.')
+  console.log(\`RPC: \${rpcUrl}\`)
+  console.log(\`SDK exports detected: \${exportedKeys.length}\`)
+  console.log(\`Sample exports: \${exportedKeys.slice(0, 12).join(', ')}\`)
+
+  if (!multisigAddress) {
+    console.log('Multisig inspection skipped. Add SQUADS_MULTISIG_ADDRESS to inspect an existing V4 multisig.')
+    console.log('No proposal, vote, execute, or treasury movement was attempted.')
+    return
+  }
+
+  const connection = new web3.Connection(rpcUrl, 'confirmed')
+  const multisigPda = new web3.PublicKey(multisigAddress)
+  const account = await squads.accounts.Multisig.fromAccountAddress(connection, multisigPda)
+  const [vaultPda] = squads.getVaultPda({ multisigPda, index: vaultIndex })
+  const vaultLamports = await connection.getBalance(vaultPda)
+
+  console.log('Squads multisig inspection complete.')
+  console.log(JSON.stringify({
+    multisig: multisigPda.toBase58(),
+    threshold: account.threshold?.toString?.() ?? account.threshold ?? null,
+    transactionIndex: account.transactionIndex?.toString?.() ?? account.transactionIndex ?? null,
+    vaultIndex,
+    vault: vaultPda.toBase58(),
+    vaultLamports,
+  }, null, 2))
+  console.log('Do not create proposals, vote, execute, or move vault assets from this starter.')
+}
+
+main().catch((error) => {
+  console.error('Squads starter failed.')
   console.error(error instanceof Error ? error.message : String(error))
   process.exitCode = 1
 })
@@ -688,6 +875,7 @@ export function IntegrationCommandCenter() {
   const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
   const [packageJsonContent, setPackageJsonContent] = useState<string | null>(null)
   const [lockfiles, setLockfiles] = useState<Partial<Record<PackageManager, boolean>>>({})
+  const [pnpmWorkspaceRoot, setPnpmWorkspaceRoot] = useState(false)
   const [hasStarterAgentFile, setHasStarterAgentFile] = useState(false)
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [walletSignerReady, setWalletSignerReady] = useState<Record<string, boolean>>({})
@@ -747,13 +935,25 @@ export function IntegrationCommandCenter() {
             loadToolchain(activeProjectPath),
           ])
 
-          const [envRes, packageRes, pnpmLockRes, npmLockRes, yarnLockRes, bunLockRes, starterFileRes] = await Promise.all([
+          const [
+            envRes,
+            packageRes,
+            pnpmLockRes,
+            npmLockRes,
+            yarnLockRes,
+            bunLockRes,
+            pnpmWorkspaceYamlRes,
+            pnpmWorkspaceYmlRes,
+            starterFileRes,
+          ] = await Promise.all([
             daemon.env.projectVars(activeProjectPath),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package.json')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-lock.yaml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package-lock.json')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'yarn.lock')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'bun.lockb')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yaml')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, SENDAI_FIRST_AGENT_ENTRY)),
           ])
 
@@ -768,12 +968,14 @@ export function IntegrationCommandCenter() {
             yarn: Boolean(yarnLockRes.ok),
             bun: Boolean(bunLockRes.ok),
           })
+          setPnpmWorkspaceRoot(Boolean(pnpmWorkspaceYamlRes.ok || pnpmWorkspaceYmlRes.ok))
           setHasStarterAgentFile(Boolean(starterFileRes.ok))
         } else {
           setEnvFiles([])
           setPackageInfo(EMPTY_PACKAGE_INFO)
           setPackageJsonContent(null)
           setLockfiles({})
+          setPnpmWorkspaceRoot(false)
           setHasStarterAgentFile(false)
           setSendAiSetupApplied(false)
           await loadToolchain(undefined)
@@ -815,9 +1017,23 @@ export function IntegrationCommandCenter() {
   const envKeys = useMemo(() => new Set(
     envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
   ), [envFiles])
+  const projectPackageManager = useMemo<PackageManager | null>(
+    () => (activeProjectPath ? detectPackageManager(packageInfo, lockfiles) : null),
+    [activeProjectPath, packageInfo, lockfiles],
+  )
+  const installCommandOptions = useMemo(
+    () => ({ packageManager: projectPackageManager, pnpmWorkspaceRoot }),
+    [projectPackageManager, pnpmWorkspaceRoot],
+  )
+  const lightStatelessReady = packageInfo.packages.has('@lightprotocol/stateless.js')
+  const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
+  const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
+  const magicBlockPackageReady = packageInfo.packages.has('@magicblock-labs/ephemeral-rollups-sdk')
+  const debridgePackageReady = packageInfo.packages.has('@debridge-finance/dln-client')
+  const squadsPackageReady = packageInfo.packages.has('@sqds/multisig')
   const sendAiSetupPlan = useMemo(
-    () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
-    [packageInfo, lockfiles, envKeys],
+    () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys, pnpmWorkspaceRoot }),
+    [packageInfo, lockfiles, envKeys, pnpmWorkspaceRoot],
   )
   const firstAgentPlan = useMemo(
     () => createFirstAgentPlan({
@@ -859,6 +1075,9 @@ export function IntegrationCommandCenter() {
 
   const selectedIntegration = visibleIntegrations.find((integration) => integration.id === selectedId) ?? visibleIntegrations[0] ?? INTEGRATION_REGISTRY[0]
   const selectedSummary = resolveIntegrationStatus(selectedIntegration, context)
+  const selectedInstallCommand = selectedIntegration.installCommand
+    ? normalizeProjectInstallCommand(selectedIntegration.installCommand, installCommandOptions)
+    : null
   const detailShortcut = useMemo<DetailShortcut | null>(() => {
     if (GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id)) {
       return null
@@ -948,10 +1167,11 @@ export function IntegrationCommandCenter() {
         changedFiles.push(plan.envFileName)
       }
 
-      if (plan.installCommand) {
+      const installCommand = normalizeProjectInstallCommand(plan.installCommand, installCommandOptions)
+      if (installCommand) {
         const terminalRes = await daemon.terminal.create({
           cwd: activeProjectPath,
-          startupCommand: plan.installCommand,
+          startupCommand: installCommand,
           userInitiated: true,
         })
         if (!terminalRes.ok || !terminalRes.data) {
@@ -959,13 +1179,13 @@ export function IntegrationCommandCenter() {
         }
         addTerminal(activeProjectId, terminalRes.data.id, 'Install SendAI', terminalRes.data.agentId)
         focusTerminal()
-        changedFiles.push(`terminal: ${plan.installCommand}`)
+        changedFiles.push(`terminal: ${installCommand}`)
       }
 
       setActionResult({
         title: 'SendAI setup started',
         status: 'success',
-        detail: plan.installCommand
+        detail: installCommand
           ? 'DAEMON updated the env template and opened a visible terminal for package installation.'
           : 'DAEMON updated the env template. Required SendAI packages were already present.',
         items: changedFiles.length > 0 ? changedFiles : ['No changes needed'],
@@ -1221,9 +1441,10 @@ export function IntegrationCommandCenter() {
     setActionResult(null)
 
     try {
+      const installCommand = normalizeProjectInstallCommand(command, installCommandOptions) ?? command
       const terminalRes = await daemon.terminal.create({
         cwd: activeProjectPath,
-        startupCommand: command,
+        startupCommand: installCommand,
         userInitiated: true,
       })
       if (!terminalRes.ok || !terminalRes.data) {
@@ -1236,7 +1457,7 @@ export function IntegrationCommandCenter() {
         title: 'Skills install opened',
         status: 'success',
         detail: 'DAEMON opened a terminal so you can install the SendAI skills pack without leaving this drawer.',
-        items: [command, `Suggested skills: ${sendAiSkillSuggestions.join(', ')}`],
+        items: [installCommand, `Suggested skills: ${sendAiSkillSuggestions.join(', ')}`],
       })
     } catch (error) {
       setActionResult({
@@ -1263,9 +1484,10 @@ export function IntegrationCommandCenter() {
     setActionResult(null)
 
     try {
+      const installCommand = normalizeProjectInstallCommand(command, installCommandOptions) ?? command
       const terminalRes = await daemon.terminal.create({
         cwd: activeProjectPath,
-        startupCommand: command,
+        startupCommand: installCommand,
         userInitiated: true,
       })
       if (!terminalRes.ok || !terminalRes.data) {
@@ -1278,7 +1500,7 @@ export function IntegrationCommandCenter() {
         title: `${label} opened`,
         status: 'success',
         detail: 'DAEMON opened a visible terminal so the install stays inside the current Solana workflow.',
-        items: [command],
+        items: [installCommand],
       })
     } catch (error) {
       setActionResult({
@@ -1539,6 +1761,162 @@ export function IntegrationCommandCenter() {
     }
   }
 
+  async function handleCreateMagicBlockStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a MagicBlock starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('magicblock-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, MAGICBLOCK_STARTER_SCRIPT, `node ${MAGICBLOCK_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for MagicBlock starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, MAGICBLOCK_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, MAGICBLOCK_STARTER_FILE),
+        buildMagicBlockStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the MagicBlock starter')
+      }
+
+      setActionResult({
+        title: 'MagicBlock starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded an Ephemeral Rollups readiness script and added a package script without creating any delegation or send path.',
+        items: [MAGICBLOCK_STARTER_FILE, `pnpm run ${MAGICBLOCK_STARTER_SCRIPT}`],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'MagicBlock starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the MagicBlock starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
+  async function handleCreateDebridgeStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a deBridge starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('debridge-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, DEBRIDGE_STARTER_SCRIPT, `node ${DEBRIDGE_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for deBridge starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, DEBRIDGE_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, DEBRIDGE_STARTER_FILE),
+        buildDebridgeStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the deBridge starter')
+      }
+
+      setActionResult({
+        title: 'deBridge starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded a DLN route-preview script and added a package script without signing or submitting a bridge transaction.',
+        items: [DEBRIDGE_STARTER_FILE, `pnpm run ${DEBRIDGE_STARTER_SCRIPT}`],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'deBridge starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the deBridge starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
+  async function handleCreateSquadsStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a Squads starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('squads-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, SQUADS_STARTER_SCRIPT, `node ${SQUADS_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for Squads starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, SQUADS_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, SQUADS_STARTER_FILE),
+        buildSquadsStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the Squads starter')
+      }
+
+      setActionResult({
+        title: 'Squads starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded a read-only multisig and vault inspection script and added a package script without enabling proposal or treasury movement.',
+        items: [SQUADS_STARTER_FILE, `pnpm run ${SQUADS_STARTER_SCRIPT}`],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Squads starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the Squads starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
   function handleOpenMcpSetup() {
     openWorkspaceTool('solana-toolbox')
     setActionResult({
@@ -1631,10 +2009,10 @@ export function IntegrationCommandCenter() {
             </div>
           </div>
 
-          {selectedIntegration.installCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
+          {selectedInstallCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className="icc-install">
               <span>Install</span>
-              <code>{selectedIntegration.installCommand}</code>
+              <code>{selectedInstallCommand}</code>
             </div>
           )}
 
@@ -1655,13 +2033,13 @@ export function IntegrationCommandCenter() {
             />
           )}
 
-          {selectedIntegration.id === 'protocol-skills' && selectedIntegration.installCommand && (
+          {selectedIntegration.id === 'protocol-skills' && selectedInstallCommand && (
             <SendAiSkillsWorkflow
-              installCommand={selectedIntegration.installCommand}
+              installCommand={selectedInstallCommand}
               suggestions={sendAiSkillSuggestions}
               result={actionResult}
               installing={installingSkills}
-              onInstall={() => void handleInstallSkills(selectedIntegration.installCommand!)}
+              onInstall={() => void handleInstallSkills(selectedInstallCommand)}
             />
           )}
 
@@ -1803,7 +2181,7 @@ export function IntegrationCommandCenter() {
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
                 : !packageInfo.packages.has('@metaplex-foundation/umi')
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Metaplex')
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Metaplex')
                   : () => void handleCreateMetaplexDraft()}
               secondaryLabel="Open New Project"
               onSecondary={() => openWorkspaceTool('starter')}
@@ -1816,13 +2194,13 @@ export function IntegrationCommandCenter() {
               sectionTitle="Compression workflow"
               title="Scaffold the first Light compression starter"
               description="Light Protocol should begin with a concrete compression-capable project check, not a generic package status card."
-              status={Boolean(activeProjectPath) && packageInfo.packages.has('@lightprotocol/stateless.js') && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              status={Boolean(activeProjectPath) && lightPackagesReady && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
               result={actionResult}
-              nextLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !lightPackagesReady ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
               nextDetail={!activeProjectPath
                 ? 'Open or scaffold a project first so the compression starter can be written into source.'
-                : !packageInfo.packages.has('@lightprotocol/stateless.js')
-                  ? 'Install the Light SDK before DAEMON scaffolds the starter file.'
+                : !lightPackagesReady
+                  ? 'Install the Light SDK and compressed-token package before DAEMON scaffolds the starter file.'
                   : !envKeys.has('RPC_URL')
                     ? 'Add a compression-capable RPC first so the starter has a real target.'
                     : 'Write a runnable compression starter into the project and add the package script.'}
@@ -1832,22 +2210,142 @@ export function IntegrationCommandCenter() {
               ]}
               items={[
                 { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the Light starter.', ready: Boolean(activeProjectPath) },
-                { label: 'Light SDK', detail: packageInfo.packages.has('@lightprotocol/stateless.js') ? 'The Light SDK is already installed.' : 'Install the Light SDK package before scaffolding the starter.', ready: packageInfo.packages.has('@lightprotocol/stateless.js') },
+                { label: 'Light SDK', detail: lightStatelessReady ? 'The Light SDK is already installed.' : 'Install @lightprotocol/stateless.js before scaffolding the starter.', ready: lightStatelessReady },
+                { label: 'Compressed token SDK', detail: lightCompressedTokenReady ? 'The compressed token package is already installed.' : 'Install @lightprotocol/compressed-token before compressed-token flows.', ready: lightCompressedTokenReady },
                 { label: 'Compression-capable RPC', detail: envKeys.has('RPC_URL') ? 'RPC_URL is available for the starter check.' : 'Add RPC_URL so the compression starter has a real endpoint.', ready: envKeys.has('RPC_URL') },
               ]}
-              primaryLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
-              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !packageInfo.packages.has('@lightprotocol/stateless.js') ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating compression starter...'}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !lightPackagesReady ? 'Install Light SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create compression starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !lightPackagesReady ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating compression starter...'}
               busy={runningGuidedFlow === 'Install Light SDK' || runningGuidedFlow === 'light-starter'}
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
-                : !packageInfo.packages.has('@lightprotocol/stateless.js')
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Light SDK')
+                : !lightPackagesReady
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Light SDK')
                   : !envKeys.has('RPC_URL')
                     ? () => openWorkspaceTool('env')
                     : () => void handleCreateLightStarter()}
               secondaryLabel="Open env manager"
               onSecondary={() => openWorkspaceTool('env')}
               note="This is still safe. The starter only verifies imports and RPC configuration before you add real compression logic."
+            />
+          )}
+
+          {selectedIntegration.id === 'magicblock' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Ephemeral Rollup workflow"
+              title="Scaffold the first MagicBlock readiness check"
+              description="MagicBlock should start with package, base RPC, and delegation-shape checks before DAEMON exposes any ER transaction path."
+              status={Boolean(activeProjectPath) && magicBlockPackageReady && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !magicBlockPackageReady ? 'Install MagicBlock SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create ER readiness starter'}
+              nextDetail={!activeProjectPath
+                ? 'Open or scaffold a project first so the MagicBlock starter can be written into source.'
+                : !magicBlockPackageReady
+                  ? 'Install the MagicBlock Ephemeral Rollups SDK before DAEMON scaffolds the starter file.'
+                  : !envKeys.has('RPC_URL')
+                    ? 'Add RPC_URL so the starter has a base-layer Solana target.'
+                    : 'Write a runnable MagicBlock readiness starter into the project and add the package script.'}
+              cards={[
+                { label: 'Starter file', value: MAGICBLOCK_STARTER_FILE },
+                { label: 'Run command', value: `pnpm run ${MAGICBLOCK_STARTER_SCRIPT}` },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the MagicBlock starter.', ready: Boolean(activeProjectPath) },
+                { label: 'MagicBlock SDK', detail: magicBlockPackageReady ? 'The MagicBlock SDK is already installed.' : 'Install @magicblock-labs/ephemeral-rollups-sdk before scaffolding the starter.', ready: magicBlockPackageReady },
+                { label: 'Base-layer RPC', detail: envKeys.has('RPC_URL') ? 'RPC_URL is available for the base-layer connection.' : 'Add RPC_URL so DAEMON can separate base-layer and ER routing clearly.', ready: envKeys.has('RPC_URL') },
+                { label: 'Delegation map', detail: 'Identify which PDAs can be delegated before any ER transaction builder is enabled.', ready: false },
+              ]}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !magicBlockPackageReady ? 'Install MagicBlock SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create ER readiness starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !magicBlockPackageReady ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating ER readiness starter...'}
+              busy={runningGuidedFlow === 'Install MagicBlock SDK' || runningGuidedFlow === 'magicblock-starter'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !magicBlockPackageReady
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install MagicBlock SDK')
+                  : !envKeys.has('RPC_URL')
+                    ? () => openWorkspaceTool('env')
+                    : () => void handleCreateMagicBlockStarter()}
+              secondaryLabel="Open docs"
+              onSecondary={openDocs}
+              note="This starter is read-only. Delegation, commit, undelegate, and ER sends stay behind a separate explicit implementation step."
+            />
+          )}
+
+          {selectedIntegration.id === 'debridge' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Cross-chain workflow"
+              title="Scaffold the first deBridge DLN route preview"
+              description="deBridge should start with route input collection and create-tx response parsing before DAEMON exposes any bridge signing path."
+              status={Boolean(activeProjectPath) && debridgePackageReady ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !debridgePackageReady ? 'Install deBridge client' : 'Create route preview starter'}
+              nextDetail={!activeProjectPath
+                ? 'Open or scaffold a project first so the deBridge starter can be written into source.'
+                : !debridgePackageReady
+                  ? 'Install the deBridge DLN client before DAEMON scaffolds the starter file.'
+                  : 'Write a runnable DLN route-preview starter into the project and add the package script.'}
+              cards={[
+                { label: 'Starter file', value: DEBRIDGE_STARTER_FILE },
+                { label: 'Run command', value: `pnpm run ${DEBRIDGE_STARTER_SCRIPT}` },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the deBridge starter.', ready: Boolean(activeProjectPath) },
+                { label: 'deBridge client', detail: debridgePackageReady ? 'The deBridge DLN client is already installed.' : 'Install @debridge-finance/dln-client before scaffolding the starter.', ready: debridgePackageReady },
+                { label: 'Route inputs', detail: 'Source chain, destination chain, tokens, amount, sender, and receiver stay in env until the route-preview UI exists.', ready: false },
+                { label: 'Signing boundary', detail: 'Treat create-tx responses as previews until a wallet confirmation flow reviews the serialized transaction or calldata.', ready: false },
+              ]}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !debridgePackageReady ? 'Install deBridge client' : 'Create route preview starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !debridgePackageReady ? 'Opening install terminal...' : 'Creating route preview starter...'}
+              busy={runningGuidedFlow === 'Install deBridge client' || runningGuidedFlow === 'debridge-starter'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !debridgePackageReady
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install deBridge client')
+                  : () => void handleCreateDebridgeStarter()}
+              secondaryLabel="Open docs"
+              onSecondary={openDocs}
+              note="This starter can call create-tx for estimation, but it does not sign or submit any cross-chain transaction."
+            />
+          )}
+
+          {selectedIntegration.id === 'squads' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Smart account workflow"
+              title="Scaffold the first Squads multisig inspection"
+              description="Squads should start with read-only multisig and vault inspection before DAEMON exposes proposal creation, voting, execution, or treasury movement."
+              status={Boolean(activeProjectPath) && squadsPackageReady && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !squadsPackageReady ? 'Install Squads SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create multisig inspection starter'}
+              nextDetail={!activeProjectPath
+                ? 'Open or scaffold a project first so the Squads starter can be written into source.'
+                : !squadsPackageReady
+                  ? 'Install the Squads multisig SDK before DAEMON scaffolds the starter file.'
+                  : !envKeys.has('RPC_URL')
+                    ? 'Add RPC_URL so the starter can inspect existing multisig and vault accounts.'
+                    : 'Write a runnable multisig inspection starter into the project and add the package script.'}
+              cards={[
+                { label: 'Starter file', value: SQUADS_STARTER_FILE },
+                { label: 'Run command', value: `pnpm run ${SQUADS_STARTER_SCRIPT}` },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold the Squads starter.', ready: Boolean(activeProjectPath) },
+                { label: 'Squads SDK', detail: squadsPackageReady ? 'The Squads multisig SDK is already installed.' : 'Install @sqds/multisig before scaffolding the starter.', ready: squadsPackageReady },
+                { label: 'Solana RPC', detail: envKeys.has('RPC_URL') ? 'RPC_URL is available for multisig account reads.' : 'Add RPC_URL so the starter can read Squads accounts.', ready: envKeys.has('RPC_URL') },
+                { label: 'Existing multisig', detail: 'Add SQUADS_MULTISIG_ADDRESS when you want the starter to inspect a real V4 multisig and vault PDA.', ready: false },
+              ]}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !squadsPackageReady ? 'Install Squads SDK' : !envKeys.has('RPC_URL') ? 'Open env manager' : 'Create multisig inspection starter'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !squadsPackageReady ? 'Opening install terminal...' : !envKeys.has('RPC_URL') ? 'Opening env manager...' : 'Creating multisig inspection starter...'}
+              busy={runningGuidedFlow === 'Install Squads SDK' || runningGuidedFlow === 'squads-starter'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !squadsPackageReady
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Squads SDK')
+                  : !envKeys.has('RPC_URL')
+                    ? () => openWorkspaceTool('env')
+                    : () => void handleCreateSquadsStarter()}
+              secondaryLabel="Open docs"
+              onSecondary={openDocs}
+              note="This starter is read-only. Proposal creation, voting, execution, and treasury movement stay behind a separate explicit implementation step."
             />
           )}
 

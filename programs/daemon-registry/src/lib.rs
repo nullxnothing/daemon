@@ -45,4 +45,54 @@ pub mod daemon_registry {
     pub fn close_session(ctx: Context<CloseSession>) -> Result<()> {
         instructions::close_session::handler(ctx)
     }
+
+    pub fn create_task(
+        ctx: Context<CreateTask>,
+        task_id: u64,
+        repo_hash: [u8; 32],
+        prompt_hash: [u8; 32],
+        acceptance_hash: [u8; 32],
+        bounty_lamports: u64,
+        deadline_ts: i64,
+        verifier: Pubkey,
+        agent: Pubkey,
+    ) -> Result<()> {
+        instructions::create_task::handler(
+            ctx,
+            task_id,
+            repo_hash,
+            prompt_hash,
+            acceptance_hash,
+            bounty_lamports,
+            deadline_ts,
+            verifier,
+            agent,
+        )
+    }
+
+    pub fn start_task_session(ctx: Context<StartTaskSession>) -> Result<()> {
+        instructions::start_task_session::handler(ctx)
+    }
+
+    pub fn submit_work_receipt(
+        ctx: Context<SubmitWorkReceipt>,
+        commit_hash: [u8; 32],
+        diff_hash: [u8; 32],
+        tests_hash: [u8; 32],
+        artifact_hash: [u8; 32],
+    ) -> Result<()> {
+        instructions::submit_work_receipt::handler(ctx, commit_hash, diff_hash, tests_hash, artifact_hash)
+    }
+
+    pub fn approve_work(ctx: Context<ApproveWork>) -> Result<()> {
+        instructions::approve_work::handler(ctx)
+    }
+
+    pub fn reject_work(ctx: Context<RejectWork>) -> Result<()> {
+        instructions::reject_work::handler(ctx)
+    }
+
+    pub fn settle_task(ctx: Context<SettleTask>) -> Result<()> {
+        instructions::settle_task::handler(ctx)
+    }
 }

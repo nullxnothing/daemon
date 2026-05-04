@@ -1,0 +1,18 @@
+.ring {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at center, var(--surface-raised) 58%, transparent 60%),
+    conic-gradient(var(--green) var(--progress-ring-value), var(--border) 0);
+}
+
+.inner {
+  color: var(--t2);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}

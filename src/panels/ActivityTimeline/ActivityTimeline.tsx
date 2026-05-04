@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNotificationsStore, type ActivityArtifact, type ActivityEntry } from '../../store/notifications'
+import { Button } from '../../components/Button'
+import { EmptyState } from '../../components/EmptyState'
+import { Card, PanelHeader, StatusDot, TabPill, Toolbar } from '../../components/Panel'
 import './ActivityTimeline.css'
 
 type ActivityFilter = 'all' | 'wallet' | 'runtime' | 'terminal' | 'scaffold' | 'errors'
@@ -150,58 +153,59 @@ export function ActivityTimeline() {
 
   return (
     <div className="activity-timeline">
-      <header className="activity-hero">
-        <div>
-          <div className="activity-kicker">DAEMON Flight Recorder</div>
-          <h2>Activity Timeline</h2>
-          <p>One durable trail for Solana scaffolds, terminal sessions, wallet execution, runtime checks, and failures.</p>
-        </div>
-        <div className="activity-hero-actions">
-          <button className="activity-btn" onClick={() => void loadActivity()}>Refresh</button>
-          <button className="activity-btn danger" onClick={() => void clearActivity()} disabled={activity.length === 0}>Clear</button>
-        </div>
-      </header>
+      <PanelHeader
+        kicker="DAEMON Flight Recorder"
+        title="Activity Timeline"
+        subtitle="One durable trail for Solana scaffolds, terminal sessions, wallet execution, runtime checks, and failures."
+        actions={(
+          <Toolbar>
+            <Button variant="default" onClick={() => void loadActivity()}>Refresh</Button>
+            <Button variant="danger" onClick={() => void clearActivity()} disabled={activity.length === 0}>Clear</Button>
+          </Toolbar>
+        )}
+      />
 
       <div className="activity-filter-row" role="tablist" aria-label="Activity filters">
         {FILTERS.map((item) => (
-          <button
+          <TabPill
             key={item.id}
             role="tab"
             aria-selected={filter === item.id}
-            className={`activity-filter ${filter === item.id ? 'active' : ''}`}
+            active={filter === item.id}
             onClick={() => setFilter(item.id)}
           >
             <span>{item.label}</span>
             <strong>{counts[item.id]}</strong>
-          </button>
+          </TabPill>
         ))}
       </div>
 
       <section className="activity-stream" aria-label="Activity stream">
         {grouped.length === 0 ? (
-          <div className="activity-empty">
-            <span className="activity-empty-title">No matching activity yet</span>
-            <span>Run a scaffold, terminal, wallet action, validator, or runtime check and DAEMON will record it here.</span>
-          </div>
+          <EmptyState
+            title="No matching activity yet"
+            description="Run a scaffold, terminal, wallet action, validator, or runtime check and DAEMON will record it here."
+          />
         ) : (
           grouped.map((group) => (
-            <article key={group.id} className={`activity-session ${group.hasProblems ? 'problem' : ''}`}>
+            <Card key={group.id} tone={group.hasProblems ? 'warn' : 'default'} className="activity-session">
               <header className="activity-session-header">
                 <div>
                   <div className="activity-session-title">{group.projectName ?? 'DAEMON execution'}</div>
                   <div className="activity-session-subtitle">{group.title}</div>
                 </div>
-                <div className="activity-session-controls">
+                <Toolbar className="activity-session-controls">
                   <div className={`activity-session-status ${group.status}`}>{group.status}</div>
-                  <button
+                  <Button
+                    variant="ghost"
                     className="activity-mini-btn"
                     onClick={() => void handleSummarize(group)}
                     disabled={busySummaryId === group.id}
                   >
                     {group.entries.some((entry) => entry.sessionSummary) ? 'Refresh report' : 'Summarize'}
-                  </button>
-                  <button className="activity-mini-btn" onClick={() => void handleCopy(group)}>Copy</button>
-                </div>
+                  </Button>
+                  <Button variant="ghost" className="activity-mini-btn" onClick={() => void handleCopy(group)}>Copy</Button>
+                </Toolbar>
               </header>
               {group.entries.find((entry) => entry.sessionSummary)?.sessionSummary && (
                 <pre className="activity-session-report">
@@ -229,7 +233,7 @@ export function ActivityTimeline() {
                   const category = classifyActivity(entry)
                   return (
                     <div key={entry.id} className={`activity-entry ${entry.kind}`}>
-                      <div className={`activity-dot ${entry.kind}`} />
+                      <StatusDot tone={entry.kind === 'success' ? 'success' : entry.kind === 'warning' ? 'warn' : entry.kind === 'error' ? 'danger' : 'info'} className="activity-dot" />
                       <div className="activity-entry-main">
                         <div className="activity-entry-top">
                           <span className="activity-entry-context">{entry.context ?? category}</span>
@@ -242,7 +246,7 @@ export function ActivityTimeline() {
                   )
                 })}
               </div>
-            </article>
+            </Card>
           ))
         )}
       </section>

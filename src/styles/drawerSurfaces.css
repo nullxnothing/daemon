@@ -1,22 +1,17 @@
 :root {
-  --drawer-surface-divider: color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.06) 24%);
-  --drawer-surface-bg:
-    radial-gradient(circle at top right, rgba(62, 207, 142, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 72%),
-    color-mix(in srgb, var(--s1) 92%, black 8%);
-  --drawer-surface-card:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
-  --drawer-space-inline: 16px;
-  --drawer-space-inline-tight: 12px;
-  --drawer-space-block: 12px;
-  --drawer-space-block-tight: 8px;
-  --drawer-section-pad: 20px;
-  --drawer-card-gap: 12px;
-  --drawer-card-radius: 14px;
-  --drawer-control-radius: 10px;
-  --drawer-rail-shell-pad: 6px;
-  --drawer-rail-card-gap: 8px;
+  --drawer-surface-divider: var(--border);
+  --drawer-surface-bg: var(--s1);
+  --drawer-surface-card: var(--s2);
+  --drawer-space-inline: var(--panel-pad-x);
+  --drawer-space-inline-tight: var(--space-md);
+  --drawer-space-block: var(--space-md);
+  --drawer-space-block-tight: var(--space-sm);
+  --drawer-section-pad: var(--space-lg);
+  --drawer-card-gap: var(--space-md);
+  --drawer-card-radius: var(--radius-card);
+  --drawer-control-radius: var(--radius-lg);
+  --drawer-rail-shell-pad: var(--space-sm);
+  --drawer-rail-card-gap: var(--space-sm);
 }
 
 .wallet-panel .wallet-workspace-bar,
@@ -24,22 +19,12 @@
 .ports-panel .ports-workspace-bar,
 .process-panel .process-workspace-bar,
 .session-history .sr-workspace-bar,
-.hackathon-panel .hackathon-workspace-bar,
 .solana-toolbox .solana-workflow-header,
 .git-center .git-workflow-hero,
 .pro-panel .pro-panel-header,
 .settings-center .settings-header {
   border-bottom: 1px solid var(--drawer-surface-divider);
   background: var(--drawer-surface-bg);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
-}
-
-.token-launch-tool .token-launch-tool-hero {
-  border-color: color-mix(in srgb, var(--border) 72%, rgba(62, 207, 142, 0.18) 28%);
-  background: var(--drawer-surface-bg);
-  box-shadow:
-    0 18px 34px rgba(0, 0, 0, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 .wallet-panel .wallet-workspace-kicker,
@@ -47,16 +32,14 @@
 .ports-panel .ports-workspace-kicker,
 .process-panel .process-workspace-kicker,
 .session-history .sr-workspace-kicker,
-.hackathon-panel .hackathon-workspace-kicker,
 .solana-toolbox .solana-token-launch-kicker,
 .git-center .git-workflow-kicker,
-.token-launch-tool .token-launch-tool-kicker,
 .pro-panel .pro-panel-kicker {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--green) 84%, white 16%);
+  color: var(--green);
 }
 
 .wallet-panel .wallet-workspace-title,
@@ -64,17 +47,15 @@
 .ports-panel .ports-workspace-title,
 .process-panel .process-workspace-title,
 .session-history .sr-workspace-title,
-.hackathon-panel .hackathon-workspace-title,
 .solana-toolbox .solana-workflow-title,
 .git-center .git-title,
-.token-launch-tool .token-launch-tool-title,
 .pro-panel .pro-panel-title {
   margin: 0;
-  font-size: clamp(24px, 2.3vw, 28px);
-  line-height: 1.08;
-  font-weight: 700;
+  font-size: var(--fs-24);
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--ls-tight);
 }
 
 .wallet-panel .wallet-workspace-subtitle,
@@ -82,13 +63,11 @@
 .ports-panel .ports-workspace-subtitle,
 .process-panel .process-workspace-subtitle,
 .session-history .sr-workspace-subtitle,
-.hackathon-panel .hackathon-workspace-subtitle,
 .solana-toolbox .solana-workflow-copy,
 .git-center .git-workflow-text,
-.token-launch-tool .token-launch-tool-copy,
 .pro-panel .pro-panel-subtitle {
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
   color: var(--t3);
 }
 
@@ -97,14 +76,10 @@
 .ports-panel .ports-stat-card,
 .process-panel .process-stat-card,
 .session-history .sr-stat,
-.git-center .git-workflow-metric,
-.token-launch-tool .token-launch-tool-highlight {
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+.git-center .git-workflow-metric {
+  border: 1px solid var(--border);
   background: var(--drawer-surface-card);
-  border-radius: 14px;
-  box-shadow:
-    0 14px 26px rgba(0, 0, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  border-radius: var(--radius-card);
 }
 
 .wallet-panel .wallet-workspace-metric-label,
@@ -112,12 +87,11 @@
 .ports-panel .ports-stat-label,
 .process-panel .process-stat-label,
 .session-history .sr-stat-label,
-.git-center .git-workflow-metric-label,
-.token-launch-tool .token-launch-tool-highlight-label {
+.git-center .git-workflow-metric-label {
   color: var(--t4);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
 
@@ -127,48 +101,43 @@
   gap: 8px;
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   border-bottom: 1px solid var(--drawer-surface-divider);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
-    color-mix(in srgb, var(--s1) 94%, black 6%);
+  background: var(--s1);
 }
 
 .wallet-panel .wallet-tab,
 .settings-center .settings-tab,
 .pro-panel .pro-tab {
-  min-height: 36px;
-  padding: 9px 14px;
+  min-height: var(--btn-h-md);
+  padding: 0 var(--space-md);
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--drawer-control-radius);
   border-bottom-width: 1px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
   color: var(--t3);
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .wallet-panel .wallet-tab:hover,
 .settings-center .settings-tab:hover,
 .pro-panel .pro-tab:hover {
   color: var(--t1);
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
 }
 
 .wallet-panel .wallet-tab--active,
 .settings-center .settings-tab.active,
 .pro-panel .pro-tab.active {
-  color: var(--t1);
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.08), transparent),
-    rgba(255, 255, 255, 0.03);
-  border-color: color-mix(in srgb, var(--green) 36%, var(--border) 64%);
-  box-shadow: 0 10px 24px rgba(62, 207, 142, 0.08);
+  color: var(--green);
+  background: var(--green-glow);
+  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
 }
 
 .wallet-panel .wallet-expand-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: var(--btn-h-md);
+  height: var(--btn-h-md);
+  border-radius: var(--radius-pill);
   margin-right: 0;
   color: var(--t3);
   border: 1px solid transparent;
@@ -176,33 +145,24 @@
 
 .wallet-panel .wallet-expand-btn:hover {
   color: var(--t1);
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
 }
 
 .solana-toolbox .solana-view-tab {
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   background: var(--drawer-surface-card);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
 }
 
 .solana-toolbox .solana-view-tab:hover {
-  border-color: color-mix(in srgb, var(--green) 24%, var(--border) 76%);
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.06), transparent 100%),
-    color-mix(in srgb, var(--s2) 88%, black 12%);
+  border-color: color-mix(in srgb, var(--green) 28%, var(--border));
+  background: var(--s3);
 }
 
 .solana-toolbox .solana-view-tab.active {
-  border-color: color-mix(in srgb, var(--green) 36%, var(--border) 64%);
-  background:
-    radial-gradient(circle at top right, rgba(62, 207, 142, 0.1), transparent 45%),
-    linear-gradient(180deg, rgba(62, 207, 142, 0.08), transparent 100%),
-    color-mix(in srgb, var(--s2) 86%, black 14%);
-  box-shadow:
-    0 16px 32px rgba(0, 0, 0, 0.18),
-    0 0 0 1px rgba(62, 207, 142, 0.08) inset;
+  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
+  background: var(--green-glow);
 }
 
 .wallet-panel .wallet-tab-content,
@@ -210,7 +170,7 @@
 .pro-panel .pro-panel-body,
 .solana-toolbox .solana-view-panel {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--s5) 78%, rgba(255, 255, 255, 0.08)) transparent;
+  scrollbar-color: var(--s5) transparent;
 }
 
 @media (max-width: 980px) {
@@ -219,12 +179,10 @@
   .ports-panel .ports-workspace-bar,
   .process-panel .process-workspace-bar,
   .session-history .sr-workspace-bar,
-  .hackathon-panel .hackathon-workspace-bar,
   .solana-toolbox .solana-workflow-header,
   .git-center .git-workflow-hero,
   .pro-panel .pro-panel-header,
-  .settings-center .settings-header,
-  .token-launch-tool .token-launch-tool-header {
+  .settings-center .settings-header {
     gap: 12px;
   }
 
@@ -238,12 +196,10 @@
   .ports-panel .ports-workspace-title,
   .process-panel .process-workspace-title,
   .session-history .sr-workspace-title,
-  .hackathon-panel .hackathon-workspace-title,
   .solana-toolbox .solana-workflow-title,
   .git-center .git-title,
-  .token-launch-tool .token-launch-tool-title,
   .pro-panel .pro-panel-title {
-    font-size: 22px;
+    font-size: var(--fs-20);
   }
 }
 
@@ -259,12 +215,10 @@
   .ports-panel .ports-workspace-bar,
   .process-panel .process-workspace-bar,
   .session-history .sr-workspace-bar,
-  .hackathon-panel .hackathon-workspace-bar,
   .solana-toolbox .solana-workflow-header,
   .git-center .git-workflow-hero,
   .pro-panel .pro-panel-header,
-  .settings-center .settings-header,
-  .token-launch-tool .token-launch-tool-header {
+  .settings-center .settings-header {
     gap: 8px;
   }
 
@@ -273,12 +227,10 @@
   .ports-panel .ports-workspace-title,
   .process-panel .process-workspace-title,
   .session-history .sr-workspace-title,
-  .hackathon-panel .hackathon-workspace-title,
   .solana-toolbox .solana-workflow-title,
   .git-center .git-title,
-  .token-launch-tool .token-launch-tool-title,
   .pro-panel .pro-panel-title {
-    font-size: 18px;
-    line-height: 1.16;
+    font-size: var(--fs-18);
+    line-height: var(--lh-snug);
   }
 }

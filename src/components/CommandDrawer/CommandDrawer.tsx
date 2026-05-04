@@ -4,6 +4,7 @@ import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import { TOOL_DISPLAY_NAMES } from '../../constants/toolRegistry'
 import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
 import './CommandDrawer.css'
 
@@ -18,241 +19,207 @@ interface DrawerTool {
   category: 'dev' | 'crypto' | 'create' | 'system'
 }
 
-// Built-in tool icons — exported for sidebar pinning
-export function GitIcon({ size = 18 }: { size?: number }) {
+// Built-in tool icons — exported for sidebar pinning.
+// These use one restrained line-icon language; color is applied by the card/rail.
+type IconProps = { size?: number }
+
+function ToolIconBase({ size = 18, children }: IconProps & { children: React.ReactNode }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-      <defs>
-        <linearGradient id="git-flow" x1="3" y1="4" x2="21" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="50%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#4ade80" />
-        </linearGradient>
-      </defs>
-      <path d="M8 6.5v8.5a3 3 0 1 0 1.5 2.6V11h5a3 3 0 1 0 0-1.5H9.5V6.5a3 3 0 1 0-1.5 0Z" stroke="url(#git-flow)" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="8" cy="5" r="1.75" fill="#a78bfa"/>
-      <circle cx="17" cy="10.25" r="1.75" fill="#8b5cf6"/>
-      <circle cx="8" cy="18" r="1.75" fill="#4ade80"/>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
     </svg>
   )
 }
-function EnvIcon({ size = 18 }: { size?: number }) {
+
+export function GitIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 3.5 18.5 6M12 12.5l5-5 2.5 2.5-5 5" stroke="#14b8a6" />
-      <path d="M11.25 12.75a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78Z" stroke="#f0b429" />
-      <circle cx="6.2" cy="17.8" r="1.1" fill="#f0b429" />
-    </svg>
+    <ToolIconBase size={size}>
+      <circle cx="7" cy="6" r="2.1" />
+      <circle cx="17" cy="12" r="2.1" />
+      <circle cx="7" cy="18" r="2.1" />
+      <path d="M7 8.1v7.8M9.1 6h2.4a4 4 0 0 1 4 4v0" />
+    </ToolIconBase>
   )
 }
-function DeployIcon({ size = 18 }: { size?: number }) {
+
+function EnvIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="deploy-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="100%" stopColor="#38bdf8" />
-        </linearGradient>
-      </defs>
-      <path d="M12 3.5v8.5m0-8.5-3 3m3-3 3 3" stroke="url(#deploy-flow)"/>
-      <path d="M5 13.5h14v4.25A2.25 2.25 0 0 1 16.75 20H7.25A2.25 2.25 0 0 1 5 17.75V13.5Z" stroke="url(#deploy-flow)"/>
-      <path d="M8 16.5h8" stroke="url(#deploy-flow)"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M6 8h12M6 16h12" />
+      <circle cx="9" cy="8" r="2.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="16" r="2.1" fill="currentColor" stroke="none" />
+    </ToolIconBase>
   )
 }
-function EmailIcon({ size = 18 }: { size?: number }) {
+
+function DeployIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="14" height="12" rx="2" stroke="#fb923c" />
-      <path d="M2.5 5 9 9.75 15.5 5" stroke="#f97316" />
-      <path d="M3 13.5 7 9.75M15 13.5l-4-3.75" stroke="#fdba74" opacity="0.8" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M8.2 18.5H7a4 4 0 0 1-.8-7.9 6 6 0 0 1 11.5-1.7A4.8 4.8 0 0 1 17 18.5h-1.2" />
+      <path d="M12 18.5v-8M9 13.5l3-3 3 3" />
+    </ToolIconBase>
   )
 }
-function WalletIcon({ size = 18 }: { size?: number }) {
+
+function EmailIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="wallet-flow" x1="4" y1="5" x2="21" y2="19" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#f472b6" />
-          <stop offset="100%" stopColor="#fb7185" />
-        </linearGradient>
-      </defs>
-      <path d="M4 8.25A2.25 2.25 0 0 1 6.25 6h10.5A2.25 2.25 0 0 1 19 8.25V9h1.5A1.5 1.5 0 0 1 22 10.5v4.75a1.75 1.75 0 0 1-1.75 1.75H19v.75A2.25 2.25 0 0 1 16.75 20H6.25A2.25 2.25 0 0 1 4 17.75v-9.5Z" stroke="url(#wallet-flow)"/>
-      <path d="M4 9.5h15" stroke="url(#wallet-flow)"/>
-      <circle cx="18" cy="13.25" r="1.2" fill="#fb7185"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <rect x="4" y="5.5" width="16" height="13" rx="2.3" />
+      <path d="m5 8 7 5 7-5" />
+    </ToolIconBase>
   )
 }
-function SettingsIcon({ size = 18 }: { size?: number }) {
+
+function WalletIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.75 14.1 4.4l1.9-1.2 1.8 1.8-1.2 1.9.65 2.1 2.1.95v2.55l-2.1.95-.65 2.1 1.2 1.9-1.8 1.8-1.9-1.2-2.1.65-.95 2.1H10.95L10 19.95l-2.1-.65-1.9 1.2-1.8-1.8 1.2-1.9-.65-2.1-2.1-.95V9.2l2.1-.95.65-2.1-1.2-1.9 1.8-1.8 1.9 1.2 2.1-.65.95-2.1h2.55L12 3.75Z" stroke="#94a3b8" />
-      <circle cx="12" cy="12" r="2.8" stroke="#e2e8f0" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M5 7.5h12.5A2.5 2.5 0 0 1 20 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-10A2.5 2.5 0 0 1 6.5 5H16" />
+      <path d="M16.5 12.5H21v4h-4.5a2 2 0 0 1 0-4Z" />
+      <path d="M17 14.5h.01" />
+    </ToolIconBase>
   )
 }
-function PortsIcon({ size = 18 }: { size?: number }) {
+
+function SettingsIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="8.75" stroke="#38bdf8" />
-      <circle cx="12" cy="12" r="2.75" stroke="#67e8f9" />
-      <path d="M12 3.25v5.5M12 15.25v5.5M20.75 12h-5.5M8.75 12h-5.5" stroke="#0ea5e9" opacity="0.8" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M12 3.8 14 4.4l1.7-1 1.9 1.9-1 1.7.6 2 1.8.9v2.8l-1.8.9-.6 2 1 1.7-1.9 1.9-1.7-1-2 .6-1 1.8H8.2l-1-1.8-2-.6-1.7 1-1.9-1.9 1-1.7-.6-2-1.8-.9V9.9L2 9l.6-2-1-1.7 1.9-1.9 1.7 1 2-.6 1-1.8H12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </ToolIconBase>
   )
 }
-function ProcessIcon({ size = 18 }: { size?: number }) {
+
+function PortsIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4.25" y="4.25" width="15.5" height="15.5" rx="2.5" stroke="#f87171" />
-      <path d="M4.75 9.75h14.5M9.75 4.75v14.5" stroke="#ef4444" opacity="0.9" />
-      <circle cx="14.75" cy="14.75" r="1.1" fill="#fca5a5" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M7 7h10v5H7zM12 12v5M8.5 17h7" />
+      <path d="M8 4v3M12 4v3M16 4v3" />
+    </ToolIconBase>
   )
 }
-function PaintIcon({ size = 18 }: { size?: number }) {
+
+function ProcessIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="#e879f9" />
-      <circle cx="8.25" cy="8.25" r="1.4" fill="#f0abfc" />
-      <path d="M7.5 14c1.4-2.9 3.05-4.35 4.95-4.35 1.5 0 2.88.82 4.05 2.45" stroke="#d946ef" />
-      <path d="M7 17.5h10" stroke="#c026d3" opacity="0.82" />
-    </svg>
+    <ToolIconBase size={size}>
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+      <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" />
+      <path d="M10 10h4v4h-4z" />
+    </ToolIconBase>
   )
 }
-function BrowserIcon({ size = 18 }: { size?: number }) {
+
+function PaintIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="browser-flow" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="50%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#818cf8" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="9" stroke="url(#browser-flow)" />
-      <path d="M3.5 9.5h17" stroke="url(#browser-flow)" />
-      <path d="M3.5 14.5h17" stroke="url(#browser-flow)" opacity="0.72" />
-      <path d="M12 3a13 13 0 0 1 3.5 9A13 13 0 0 1 12 21a13 13 0 0 1-3.5-9A13 13 0 0 1 12 3Z" stroke="url(#browser-flow)" />
-    </svg>
+    <ToolIconBase size={size}>
+      <rect x="4" y="5" width="16" height="14" rx="2" />
+      <circle cx="8.2" cy="9.2" r="1.2" fill="currentColor" stroke="none" />
+      <path d="m6.5 16 4-4 2.5 2.5 2-2 2.5 3.5" />
+    </ToolIconBase>
   )
 }
-function DocsIcon({ size = 18 }: { size?: number }) {
+
+function BrowserIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="docs-flow" x1="5" y1="2" x2="19" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#f97316" />
-        </linearGradient>
-      </defs>
-      <path d="M7 3.5h8.5L19 7v13.5H7A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5Z" stroke="url(#docs-flow)"/>
-      <path d="M15.5 3.5V7H19" stroke="url(#docs-flow)"/>
-      <path d="M8 10h7M8 13h7M8 16h5" stroke="url(#docs-flow)"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17M12 3.5a12 12 0 0 1 0 17M12 3.5a12 12 0 0 0 0 17" />
+    </ToolIconBase>
   )
 }
-function StarterIcon({ size = 18 }: { size?: number }) {
+
+function DocsIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="starter-flow" x1="4" y1="20" x2="20" y2="4" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#3ecf8e" />
-          <stop offset="100%" stopColor="#60a5fa" />
-        </linearGradient>
-      </defs>
-      <path d="M13.25 3.5 5 13h5l-.5 7.5L19 11h-5.25l-.5-7.5Z" stroke="url(#starter-flow)" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M7 3.5h7l4 4V20H7a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z" />
+      <path d="M14 3.5V8h4M8 12h8M8 15h8M8 18h5" />
+    </ToolIconBase>
   )
 }
-function ScannerIcon({ size = 18 }: { size?: number }) {
+
+function StarterIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="scanner-flow" x1="3" y1="4" x2="21" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#2563eb" />
-        </linearGradient>
-      </defs>
-      <path d="M5.5 6.5h13v11h-13z" rx="2" stroke="url(#scanner-flow)"/>
-      <path d="M8 4.5H5.5A1.5 1.5 0 0 0 4 6v2.5M20 8.5V6a1.5 1.5 0 0 0-1.5-1.5H16M8 19.5H5.5A1.5 1.5 0 0 1 4 18v-2.5M20 15.5V18a1.5 1.5 0 0 1-1.5 1.5H16" stroke="url(#scanner-flow)"/>
-      <path d="M8 12h8" stroke="url(#scanner-flow)"/>
-      <path d="M12 9v6" stroke="url(#scanner-flow)" opacity="0.72"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M7 3.5h7l4 4V20H7a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z" />
+      <path d="M14 3.5V8h4M11.5 11.5v5M9 14h5" />
+    </ToolIconBase>
   )
 }
-function DashboardIcon({ size = 18 }: { size?: number }) {
+
+function ReplayIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="dashboard-flow" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#22c55e" />
-          <stop offset="100%" stopColor="#14b8a6" />
-        </linearGradient>
-      </defs>
-      <rect x="4" y="4" width="6.5" height="7.5" rx="1.5" stroke="url(#dashboard-flow)"/>
-      <rect x="13.5" y="4" width="6.5" height="4.5" rx="1.5" stroke="url(#dashboard-flow)"/>
-      <rect x="13.5" y="11.5" width="6.5" height="8.5" rx="1.5" stroke="url(#dashboard-flow)"/>
-      <rect x="4" y="14.5" width="6.5" height="5.5" rx="1.5" stroke="url(#dashboard-flow)"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M4.5 11a7.5 7.5 0 1 1 2.2 5.3" />
+      <path d="M4.5 6.5V11H9" />
+      <path d="m11 9.5 4 2.5-4 2.5Z" fill="currentColor" stroke="none" />
+    </ToolIconBase>
   )
 }
-function SessionsIcon({ size = 18 }: { size?: number }) {
+
+function ScannerIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="sessions-flow" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#0ea5e9" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="8.5" stroke="url(#sessions-flow)"/>
-      <path d="M12 7.5v5l3 1.75" stroke="url(#sessions-flow)"/>
-      <path d="M8 4.75 6.5 3.5M16 4.75l1.5-1.25" stroke="url(#sessions-flow)" opacity="0.7"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M7 4H5.5A1.5 1.5 0 0 0 4 5.5V7M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17M17 20h1.5a1.5 1.5 0 0 0 1.5-1.5V17" />
+      <rect x="7" y="7" width="10" height="10" rx="1.8" />
+      <path d="M9.5 12h5" />
+    </ToolIconBase>
   )
 }
-function HackathonIcon({ size = 18 }: { size?: number }) {
+
+function DashboardIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="hackathon-flow" x1="3" y1="5" x2="21" y2="19" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#facc15" />
-          <stop offset="100%" stopColor="#f59e0b" />
-        </linearGradient>
-      </defs>
-      <path d="M4 18.5h16M6 18.5V11a6 6 0 0 1 12 0v7.5" stroke="url(#hackathon-flow)"/>
-      <path d="M9 10.5v8M12 8.5v10M15 10.5v8" stroke="url(#hackathon-flow)"/>
-      <path d="M4 14h16" stroke="url(#hackathon-flow)" opacity="0.72"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M5 19V9M12 19V5M19 19v-7" />
+      <path d="M4 19h16" />
+      <path d="m5 9 7-4 7 7" />
+    </ToolIconBase>
   )
 }
-function PluginsIcon({ size = 18 }: { size?: number }) {
+
+function SessionsIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="plugins-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#e2e8f0" />
-        </linearGradient>
-      </defs>
-      <path d="M8 5.5h8A2.5 2.5 0 0 1 18.5 8v8a2.5 2.5 0 0 1-2.5 2.5H8A2.5 2.5 0 0 1 5.5 16V8A2.5 2.5 0 0 1 8 5.5Z" stroke="url(#plugins-flow)"/>
-      <path d="M12 8v8M8 12h8" stroke="url(#plugins-flow)"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5v5l3 1.8" />
+      <path d="M8 4.6 6.6 3.4M16 4.6l1.4-1.2" />
+    </ToolIconBase>
   )
 }
-function RecoveryIcon({ size = 18 }: { size?: number }) {
+
+function HackathonIcon({ size = 18 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="recovery-flow" x1="3" y1="5" x2="19" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#f472b6" />
-          <stop offset="100%" stopColor="#ec4899" />
-        </linearGradient>
-      </defs>
-      <path d="M5 11a7 7 0 1 1 2 5" stroke="url(#recovery-flow)"/>
-      <path d="M5 6v5h5" stroke="url(#recovery-flow)"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" />
+      <path d="M8 6H5.5A2.5 2.5 0 0 0 8 10.2M16 6h2.5a2.5 2.5 0 0 1-2.5 4.2" />
+      <path d="M12 11v4M9 20h6M10 15h4v5h-4z" />
+    </ToolIconBase>
+  )
+}
+
+function PluginsIcon({ size = 18 }: IconProps) {
+  return (
+    <ToolIconBase size={size}>
+      <path d="M9 4a2 2 0 1 1 4 0v2h3a2 2 0 0 1 2 2v3h-2a2 2 0 1 0 0 4h2v3a2 2 0 0 1-2 2h-3v-2a2 2 0 1 0-4 0v2H6a2 2 0 0 1-2-2v-3h2a2 2 0 1 0 0-4H4V8a2 2 0 0 1 2-2h3V4Z" />
+    </ToolIconBase>
+  )
+}
+
+function RecoveryIcon({ size = 18 }: IconProps) {
+  return (
+    <ToolIconBase size={size}>
+      <path d="M5 12a7 7 0 1 0 2.1-5" />
+      <path d="M5 4v5h5" />
+      <path d="M12 8v5l3 1.5" />
+    </ToolIconBase>
   )
 }
 function SolanaIcon({ size = 18 }: { size?: number }) {
@@ -279,101 +246,87 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
 }
 function IntegrationsIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="integrations-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#14f195" />
-          <stop offset="55%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#a78bfa" />
-        </linearGradient>
-      </defs>
-      <path d="M7.5 7.5h9v9h-9z" stroke="url(#integrations-flow)" />
-      <path d="M4 12h3.5M16.5 12H20M12 4v3.5M12 16.5V20" stroke="url(#integrations-flow)" opacity="0.72" />
-      <circle cx="12" cy="12" r="1.75" fill="#14f195" />
-      <circle cx="4" cy="12" r="1.15" fill="#38bdf8" />
-      <circle cx="20" cy="12" r="1.15" fill="#a78bfa" />
-      <circle cx="12" cy="4" r="1.15" fill="#38bdf8" />
-      <circle cx="12" cy="20" r="1.15" fill="#a78bfa" />
-    </svg>
+    <ToolIconBase size={size}>
+      <circle cx="6" cy="12" r="2" />
+      <circle cx="12" cy="6" r="2" />
+      <circle cx="18" cy="12" r="2" />
+      <circle cx="12" cy="18" r="2" />
+      <path d="m7.5 10.5 3-3M13.5 7.5l3 3M16.5 13.5l-3 3M10.5 16.5l-3-3" />
+    </ToolIconBase>
   )
 }
 function ReadinessIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="readiness-flow" x1="4" y1="20" x2="20" y2="4" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#14f195" />
-          <stop offset="100%" stopColor="#38bdf8" />
-        </linearGradient>
-      </defs>
-      <circle cx="12" cy="12" r="8.5" stroke="url(#readiness-flow)" />
-      <path d="M8 12.4 10.8 15.1 16.3 8.8" stroke="url(#readiness-flow)" strokeWidth="1.8" />
-      <path d="M12 3.5v2M20.5 12h-2M12 20.5v-2M3.5 12h2" stroke="currentColor" opacity="0.58" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M9 11.5 11.2 14 16 8.5" />
+      <path d="M5 6.5h3M5 12h2M5 17.5h3" />
+      <path d="M10.5 6.5H19M10.5 17.5H19" />
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+    </ToolIconBase>
   )
 }
 function TokenLaunchIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="token-launch-flow" x1="4" y1="18" x2="20" y2="4" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#14f195" />
-          <stop offset="100%" stopColor="#2dd4bf" />
-        </linearGradient>
-      </defs>
-      <path d="M8 15c-1.8 1.5-2.6 4-2 6 2 .5 4.4-.3 5.9-2l6.5-7.25A3 3 0 0 0 14.2 7.6L8 15Z" stroke="url(#token-launch-flow)"/>
-      <path d="M9.5 8.5 5 4M5 8.5 9.5 4" stroke="url(#token-launch-flow)" opacity="0.72"/>
-      <path d="M15 4h5v5" stroke="url(#token-launch-flow)"/>
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M8 15.5c-1.3 1-2 2.7-1.8 4.3 1.6.2 3.3-.5 4.3-1.8l6.8-8A3 3 0 0 0 13 5.7l-8 6.8Z" />
+      <path d="m13 5.7 5.3 5.3M8.5 11.5l4 4" />
+      <path d="M18 4h2v2M4 18v2h2" />
+    </ToolIconBase>
   )
 }
 function ProIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.5 14.68 8.92l5.98.86-4.33 4.22 1.02 5.96L12 17.15 6.65 19.96l1.02-5.96-4.33-4.22 5.98-.86L12 3.5Z" stroke="#facc15" />
-      <path d="M12 8.2v5.1" stroke="#fde68a" />
-      <circle cx="12" cy="16" r="0.9" fill="#fde68a" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M12 3.5 19 6v5.3c0 4.2-2.7 7.2-7 9.2-4.3-2-7-5-7-9.2V6l7-2.5Z" />
+      <path d="m12 8.2 1.1 2.2 2.4.4-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.4L12 8.2Z" />
+    </ToolIconBase>
   )
 }
 function ActivityIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id="activity-flow" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#14f195" />
-          <stop offset="50%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#facc15" />
-        </linearGradient>
-      </defs>
-      <path d="M4 17.5h16" stroke="url(#activity-flow)" opacity="0.5" />
-      <path d="M6 15V8.5M12 15V5.5M18 15v-4" stroke="url(#activity-flow)" />
-      <circle cx="6" cy="8.5" r="2" stroke="url(#activity-flow)" />
-      <circle cx="12" cy="5.5" r="2" stroke="url(#activity-flow)" />
-      <circle cx="18" cy="11" r="2" stroke="url(#activity-flow)" />
-    </svg>
+    <ToolIconBase size={size}>
+      <path d="M4 13h4l2-6 4 12 2-6h4" />
+      <path d="M4 20h16" opacity="0.45" />
+    </ToolIconBase>
   )
 }
 
 // Icon lookup for pinned sidebar tools
+function AgentStationIcon({ size = 18 }: { size?: number }) {
+  return (
+    <ToolIconBase size={size}>
+      <rect x="5" y="6" width="14" height="10" rx="3" />
+      <path d="M12 3.5V6M9 19h6M12 16v3" />
+      <circle cx="9.2" cy="11" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14.8" cy="11" r="1" fill="currentColor" stroke="none" />
+    </ToolIconBase>
+  )
+}
+
+function AgentWorkIcon({ size = 18 }: { size?: number }) {
+  return (
+    <ToolIconBase size={size}>
+      <path d="M5 7.5h9.5L19 12v6.5A2.5 2.5 0 0 1 16.5 21h-9A2.5 2.5 0 0 1 5 18.5v-11Z" />
+      <path d="M14.5 7.5V12H19" />
+      <path d="M8.5 14h7M8.5 17h4.5" />
+      <path d="M7.5 3.5h5l1.5 2" />
+    </ToolIconBase>
+  )
+}
+
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon,
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
-  'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, docs: DocsIcon, starter: StarterIcon,
+  'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, 'replay-engine': ReplayIcon, docs: DocsIcon, starter: StarterIcon,
   'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'project-readiness': ReadinessIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
+  'agent-station': AgentStationIcon,
+  'agent-work': AgentWorkIcon,
 }
 
 // Tool name lookup
-export const TOOL_NAMES: Record<string, string> = {
-  git: 'Git', deploy: 'Deploy', env: 'Env',
-  wallet: 'Wallet', email: 'Email', browser: 'Browser',
-  ports: 'Ports', processes: 'Processes', settings: 'Settings',
-  'image-editor': 'Image Editor', 'solana-toolbox': 'Solana', 'block-scanner': 'Block Scanner', docs: 'Docs', starter: 'New Project',
-  'token-launch': 'Token Launch', integrations: 'Integrations', 'project-readiness': 'Project Readiness',
-  dashboard: 'Dashboard', sessions: 'Sessions', hackathon: 'Hackathon', plugins: 'Plugins', recovery: 'Recovery', pro: 'Daemon Pro', activity: 'Activity',
-}
+export const TOOL_NAMES: Record<string, string> = { ...TOOL_DISPLAY_NAMES }
 
 // Lazy-load all tool components
 const loadGitPanel = () => import('../../panels/GitPanel/GitPanel')
@@ -399,6 +352,9 @@ const loadPluginManager = () => import('../../panels/PluginManager/PluginManager
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
 const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
 const loadActivityTimeline = () => import('../../panels/ActivityTimeline/ActivityTimeline')
+const loadAgentStation = () => import('../../panels/AgentStation/AgentStation')
+const loadReplayEngine = () => import('../../panels/ReplayEngine/ReplayEngine')
+const loadAgentWork = () => import('../../panels/AgentWork/AgentWork')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -423,33 +379,39 @@ const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
 const ActivityTimeline = lazyNamedWithReload('activity-timeline', loadActivityTimeline, (m) => m.ActivityTimeline)
+const AgentStationPanel = lazyNamedWithReload('agent-station', loadAgentStation, (m) => m.AgentStation)
+const ReplayEngine = lazyNamedWithReload('replay-engine', loadReplayEngine, (m) => m.ReplayEngine)
+const AgentWork = lazyNamedWithReload('agent-work', loadAgentWork, (m) => m.AgentWork)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
-  starter: '#3ecf8e',
+  starter: '#7dd3fc',
   git: '#a78bfa',
   deploy: '#60a5fa',
-  env: '#f0b429',
-  wallet: '#f472b6',
+  env: '#f6c768',
+  wallet: '#f0abfc',
   email: '#fb923c',
   browser: '#60a5fa',
-  ports: '#38bdf8',
-  processes: '#ef5350',
-  settings: '#9ca3af',
-  'image-editor': '#e879f9',
+  ports: '#67e8f9',
+  processes: '#f87171',
+  settings: '#a3aab8',
+  'image-editor': '#d8b4fe',
   'solana-toolbox': '#14f195',
-  integrations: '#38bdf8',
-  'project-readiness': '#14f195',
-  'token-launch': '#38d39f',
+  integrations: '#5eead4',
+  'project-readiness': '#86efac',
+  'token-launch': '#34d399',
   'block-scanner': '#38bdf8',
-  docs: '#f59e0b',
+  'replay-engine': '#7dd3fc',
+  docs: '#fbbf24',
   dashboard: '#22c55e',
-  sessions: '#0ea5e9',
-  hackathon: '#f59e0b',
+  sessions: '#38bdf8',
+  hackathon: '#facc15',
   plugins: '#cbd5e1',
-  recovery: '#ec4899',
-  pro: '#ffd700',
-  activity: '#14f195',
+  recovery: '#fb7185',
+  pro: '#fde047',
+  activity: '#2dd4bf',
+  'agent-station': '#c4b5fd',
+  'agent-work': '#38bdf8',
 }
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
@@ -470,14 +432,17 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
   { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, preload: () => { void loadBlockScanner() }, category: 'crypto' },
+  { id: 'replay-engine', name: 'Replay', description: 'Replay any Solana transaction with on-chain context and AI handoff', icon: ReplayIcon, component: ReplayEngine, preload: () => { void loadReplayEngine() }, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, preload: () => { void loadDocsPanel() }, category: 'system' },
   { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, preload: () => { void loadDashboardCanvas() }, category: 'crypto' },
+  { id: 'agent-work', name: 'Agent Work', description: 'Wallet-funded agent jobs, receipts, verification, and settlement', icon: AgentWorkIcon, component: AgentWork, preload: () => { void loadAgentWork() }, category: 'crypto' },
   { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
   { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'crypto' },
   { id: 'pro', name: 'Daemon Pro', description: 'Arena, Pro skills, MCP sync, and priority API', icon: ProIcon, component: ProPanel, preload: () => { void loadProPanel() }, category: 'crypto' },
   { id: 'activity', name: 'Activity', description: 'Flight recorder for Solana development', icon: ActivityIcon, component: ActivityTimeline, preload: () => { void loadActivityTimeline() }, category: 'system' },
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
+  { id: 'agent-station', name: 'Agent Station', description: 'Scaffold and run Solana AI agents powered by SAK', icon: AgentStationIcon, component: AgentStationPanel, preload: () => { void loadAgentStation() }, category: 'crypto' },
 ]
 
 const BUILTIN_TOOL_PRELOADERS = new Map(

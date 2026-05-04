@@ -1,0 +1,17 @@
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-lg);
+  min-height: var(--space-lg);
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--t2);
+  font-family: var(--font-code);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--bg) 70%, transparent);
+}
