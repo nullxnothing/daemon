@@ -1,3 +1,4 @@
+import { useUIStore } from '../../store/ui'
 import type { SolanaProjectInfo, SolanaToolchainStatus, ValidatorState } from '../../store/solanaToolbox'
 import './SolanaIdeWorkflow.css'
 
@@ -92,22 +93,6 @@ function terminalLabel(command: WorkflowCommand): string {
   return 'Solana Workflow'
 }
 
-async function runCommand(projectId: string | null, projectPath: string | null, command: WorkflowCommand) {
-  if (!projectId || !projectPath) return
-  const res = await window.daemon.terminal.create({
-    cwd: projectPath,
-    startupCommand: command.command,
-    userInitiated: true,
-  })
-  if (res.ok && res.data) {
-    useUIStoreLazy().addTerminal(projectId, res.data.id, terminalLabel(command))
-  }
-}
-
-function useUIStoreLazy() {
-  return require('../../store/ui').useUIStore.getState() as typeof import('../../store/ui').useUIStore extends { getState: () => infer T } ? T : never
-}
-
 function safetyChecks(projectInfo: SolanaProjectInfo | null, toolchain: SolanaToolchainStatus | null, validator: ValidatorState) {
   const isProgram = projectInfo?.framework === 'anchor' || projectInfo?.framework === 'native'
   return [
@@ -145,10 +130,23 @@ function safetyChecks(projectInfo: SolanaProjectInfo | null, toolchain: SolanaTo
 }
 
 export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchain, validator }: BuildDeployPanelProps) {
+  const addTerminal = useUIStore((s) => s.addTerminal)
   const canRun = Boolean(projectId && projectPath)
   const visibleBuildCommands = BUILD_COMMANDS.filter((command) => isCommandPreferred(command, projectInfo))
   const visibleDeployCommands = DEPLOY_COMMANDS.filter((command) => isCommandPreferred(command, projectInfo))
   const checks = safetyChecks(projectInfo, toolchain, validator)
+
+  const runCommand = async (command: WorkflowCommand | undefined) => {
+    if (!projectId || !projectPath || !command) return
+    const res = await window.daemon.terminal.create({
+      cwd: projectPath,
+      startupCommand: command.command,
+      userInitiated: true,
+    })
+    if (res.ok && res.data) {
+      addTerminal(projectId, res.data.id, terminalLabel(command))
+    }
+  }
 
   return (
     <div className="solana-ide-surface">
@@ -161,7 +159,7 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
           </p>
         </div>
         <div className="solana-ide-hero-actions">
-          <button className="sol-btn green" disabled={!canRun} onClick={() => void runCommand(projectId, projectPath, visibleBuildCommands[0])}>
+          <button className="sol-btn green" disabled={!canRun || visibleBuildCommands.length === 0} onClick={() => void runCommand(visibleBuildCommands[0])}>
             Run First Build
           </button>
         </div>
@@ -178,7 +176,7 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
                 <div className="solana-ide-card-copy">{command.detail}</div>
                 <code className="solana-ide-command">{command.command}</code>
                 <div className="solana-ide-card-actions">
-                  <button className="sol-btn green" disabled={!canRun} onClick={() => void runCommand(projectId, projectPath, command)}>
+                  <button className="sol-btn green" disabled={!canRun} onClick={() => void runCommand(command)}>
                     Run
                   </button>
                 </div>
@@ -197,7 +195,7 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
                 <div className="solana-ide-card-copy">{command.detail}</div>
                 <code className="solana-ide-command">{command.command}</code>
                 <div className="solana-ide-card-actions">
-                  <button className="sol-btn" disabled={!canRun} onClick={() => void runCommand(projectId, projectPath, command)}>
+                  <button className="sol-btn" disabled={!canRun} onClick={() => void runCommand(command)}>
                     Open Terminal
                   </button>
                 </div>
