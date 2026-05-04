@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { Button } from '../../components/Button'
+import { PanelHeader, Stat, TabPill } from '../../components/Panel'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
 import './WalletPanel.css'
@@ -39,9 +40,13 @@ export function WalletPanel() {
   if (!dashboard && loading) {
     return (
       <div className="wallet-panel">
-        <div className="wallet-panel-header">
-          <span className="wallet-panel-title">Wallet</span>
-        </div>
+        <PanelHeader
+          className="wallet-panel-header"
+          kicker="Wallet workspace"
+          brandKicker
+          title="Wallet"
+          subtitle="Loading wallet data..."
+        />
         <div className="wallet-empty">Loading wallet data...</div>
       </div>
     )
@@ -50,9 +55,13 @@ export function WalletPanel() {
   if (!dashboard) {
     return (
       <div className="wallet-panel">
-        <div className="wallet-panel-header">
-          <span className="wallet-panel-title">Wallet</span>
-        </div>
+        <PanelHeader
+          className="wallet-panel-header"
+          kicker="Wallet workspace"
+          brandKicker
+          title="Wallet"
+          subtitle="Wallet data couldn't load."
+        />
         <div className="wallet-empty">
           <div className="wallet-empty-message">Wallet data couldn't load.</div>
           <Button size="sm" onClick={() => void load()}>
@@ -65,44 +74,55 @@ export function WalletPanel() {
 
   return (
     <div className="wallet-panel">
-      <div className="wallet-workspace-bar">
-        <div className="wallet-workspace-copy">
-          <span className="wallet-workspace-kicker">Wallet workspace</span>
-          <h2 className="wallet-workspace-title">Move funds, inspect holdings, and act from one place</h2>
-          <span className="wallet-workspace-subtitle">
-            {activeProject ? activeProject.name : 'No active project'} · {activeWalletName}
-          </span>
-        </div>
-        <div className="wallet-workspace-metrics">
-          <div className="wallet-workspace-metric">
-            <span className="wallet-workspace-metric-label">Tracked</span>
-            <strong>{walletCount}</strong>
+      <PanelHeader
+        className="wallet-panel-header"
+        kicker="Wallet workspace"
+        brandKicker
+        title="Move funds, inspect holdings, and act from one place"
+        subtitle={`${activeProject ? activeProject.name : 'No active project'} · ${activeWalletName}`}
+        actionsClassName="wallet-workspace-actions"
+        actions={
+          <div className="wallet-workspace-metrics">
+            <Stat
+              className="wallet-workspace-metric"
+              label="Tracked"
+              labelClassName="wallet-workspace-metric-label"
+              value={walletCount}
+              valueClassName="wallet-workspace-metric-value"
+            />
+            <Stat
+              className="wallet-workspace-metric"
+              label="Transport"
+              labelClassName="wallet-workspace-metric-label"
+              value={transportLabel}
+              valueClassName="wallet-workspace-metric-value"
+            />
+            <Stat
+              className="wallet-workspace-metric"
+              label="Tab"
+              labelClassName="wallet-workspace-metric-label"
+              value={activeTab === 'wallet' ? 'Wallet' : 'Agents'}
+              valueClassName="wallet-workspace-metric-value"
+            />
           </div>
-          <div className="wallet-workspace-metric">
-            <span className="wallet-workspace-metric-label">Transport</span>
-            <strong>{transportLabel}</strong>
-          </div>
-          <div className="wallet-workspace-metric">
-            <span className="wallet-workspace-metric-label">Tab</span>
-            <strong>{activeTab === 'wallet' ? 'Wallet' : 'Agents'}</strong>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Tab bar */}
       <div className="wallet-tabs">
-        <button
+        <TabPill
           className={`wallet-tab${activeTab === 'wallet' ? ' wallet-tab--active' : ''}`}
+          active={activeTab === 'wallet'}
           onClick={() => setActiveTab('wallet')}
         >
           Wallet
-        </button>
-        <button
+        </TabPill>
+        <TabPill
           className={`wallet-tab${activeTab === 'agents' ? ' wallet-tab--active' : ''}`}
+          active={activeTab === 'agents'}
           onClick={() => setActiveTab('agents')}
         >
           Agents
-        </button>
+        </TabPill>
         <button
           className="wallet-expand-btn"
           onClick={toggleDrawerFullscreen}

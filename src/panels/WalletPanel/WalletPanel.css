@@ -14,49 +14,26 @@
   container-name: wallet;
 }
 
-.wallet-workspace-bar {
+.wallet-panel-header {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   padding: var(--drawer-space-inline) var(--drawer-section-pad) var(--drawer-space-block);
   border-bottom: 1px solid var(--s4);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+  background: var(--s1);
 }
 
-.wallet-workspace-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.wallet-workspace-kicker {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--green);
-}
-
-.wallet-workspace-title {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.08;
-  color: var(--t1);
-}
-
-.wallet-workspace-subtitle {
-  font-size: 12px;
-  color: var(--t3);
+.wallet-workspace-actions {
+  align-self: flex-start;
 }
 
 .wallet-workspace-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(110px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, 110px);
+  gap: 12px;
 }
 
-.wallet-workspace-metric {
+.wallet-panel .wallet-workspace-metric {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -64,6 +41,8 @@
   border: 1px solid var(--s5);
   border-radius: var(--drawer-card-radius);
   background: var(--s1);
+  box-shadow: none;
+  min-width: 0;
 }
 
 .wallet-workspace-metric-label {
@@ -73,9 +52,18 @@
   letter-spacing: 0.08em;
 }
 
-.wallet-workspace-metric strong {
+.wallet-workspace-metric-value {
   font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
   color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+@container wallet (min-width: 1000px) {
+  .wallet-workspace-metrics {
+    grid-template-columns: repeat(3, 128px);
+  }
 }
 
 /* ── Tabs ── */
@@ -147,7 +135,7 @@
   }
 
   .wallet-total {
-    font-size: 36px;
+    font-size: 44px;
   }
 
   .wallet-quick-actions {
@@ -216,7 +204,7 @@
   }
 
   .wallet-total {
-    font-size: 40px;
+    font-size: 52px;
     letter-spacing: -1px;
   }
 
@@ -263,12 +251,12 @@
 /* ── Portfolio ── */
 
 .wallet-total {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: var(--fs-display);
+  font-weight: var(--fw-bold);
   color: var(--t1);
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  letter-spacing: -0.5px;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
 }
 
 .wallet-delta {
@@ -326,7 +314,7 @@
   padding: 12px;
   border: 1px solid var(--s4);
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  background: var(--s2);
 }
 
 .wallet-portfolio-label {
@@ -776,10 +764,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.015));
+  background: var(--s1);
   border: 1px solid var(--s4);
   border-radius: var(--drawer-card-radius);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
 }
 
 .wallet-settings-card--full {
@@ -787,9 +774,7 @@
 }
 
 .wallet-runtime-summary-card {
-  background:
-    radial-gradient(circle at top right, rgba(62, 207, 142, 0.08), transparent 42%),
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  background: var(--s1);
 }
 
 .wallet-settings-card-head {
@@ -991,12 +976,7 @@
   padding: 18px;
   border: 1px solid color-mix(in srgb, var(--green) 18%, var(--border) 82%);
   border-radius: var(--drawer-card-radius);
-  background:
-    radial-gradient(circle at top left, rgba(62, 207, 142, 0.12), transparent 42%),
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012));
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  background: var(--s1);
 }
 
 .wallet-readiness-hero strong {
@@ -1037,9 +1017,7 @@
   padding: 14px;
   border: 1px solid var(--s4);
   border-radius: var(--drawer-card-radius);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.01)),
-    color-mix(in srgb, var(--s2) 88%, black 12%);
+  background: var(--s2);
 }
 
 .wallet-readiness-item.ready {
@@ -1066,12 +1044,10 @@
   margin-top: 4px;
   border-radius: 999px;
   background: var(--t4);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.03);
 }
 
 .wallet-readiness-dot.ready {
   background: var(--green);
-  box-shadow: 0 0 0 4px rgba(62, 207, 142, 0.1);
 }
 
 .wallet-overview-card,
@@ -1082,7 +1058,7 @@
   padding: 16px;
   border: 1px solid var(--s4);
   border-radius: var(--drawer-card-radius);
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  background: var(--s1);
 }
 
 .wallet-overview-card strong,
@@ -1843,16 +1819,21 @@
 }
 
 @container wallet (max-width: 760px) {
-  .wallet-workspace-bar {
+  .wallet-panel-header {
     flex-direction: column;
-  }
-
-  .wallet-workspace-title {
-    font-size: 18px;
   }
 
   .wallet-workspace-metrics {
     grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .wallet-workspace-actions {
+    width: 100%;
+  }
+
+  .wallet-panel .wallet-workspace-metric {
+    width: 100%;
   }
 }
 
@@ -1870,32 +1851,13 @@
   background: var(--bg);
 }
 
-.wallet-workspace-bar {
+.wallet-panel-header {
   position: sticky;
   top: 0;
   z-index: 3;
   padding: var(--drawer-space-inline) var(--drawer-section-pad) 14px;
-  backdrop-filter: blur(18px);
+  backdrop-filter: var(--glass-blur);
   border-bottom-color: var(--border);
-}
-
-.wallet-workspace-copy {
-  max-width: 720px;
-}
-
-.wallet-workspace-subtitle {
-  line-height: 1.55;
-}
-
-.wallet-workspace-metrics {
-  gap: 12px;
-}
-
-.wallet-workspace-metric {
-  border-radius: var(--drawer-card-radius);
-  border-color: var(--border);
-  background: var(--s2);
-  box-shadow: none;
 }
 
 .wallet-tabs {

@@ -13,7 +13,9 @@ import {
   buildFirstSolanaAgentReadme,
   createFirstAgentPlan,
   createSendAiSetupPlan,
+  detectPackageManager,
   mergeEnvExample,
+  normalizeProjectInstallCommand,
   parsePackageInfo,
   upsertPackageJsonScript,
   SENDAI_FIRST_AGENT_ENTRY,
@@ -873,6 +875,7 @@ export function IntegrationCommandCenter() {
   const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
   const [packageJsonContent, setPackageJsonContent] = useState<string | null>(null)
   const [lockfiles, setLockfiles] = useState<Partial<Record<PackageManager, boolean>>>({})
+  const [pnpmWorkspaceRoot, setPnpmWorkspaceRoot] = useState(false)
   const [hasStarterAgentFile, setHasStarterAgentFile] = useState(false)
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [walletSignerReady, setWalletSignerReady] = useState<Record<string, boolean>>({})
@@ -932,13 +935,25 @@ export function IntegrationCommandCenter() {
             loadToolchain(activeProjectPath),
           ])
 
-          const [envRes, packageRes, pnpmLockRes, npmLockRes, yarnLockRes, bunLockRes, starterFileRes] = await Promise.all([
+          const [
+            envRes,
+            packageRes,
+            pnpmLockRes,
+            npmLockRes,
+            yarnLockRes,
+            bunLockRes,
+            pnpmWorkspaceYamlRes,
+            pnpmWorkspaceYmlRes,
+            starterFileRes,
+          ] = await Promise.all([
             daemon.env.projectVars(activeProjectPath),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package.json')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-lock.yaml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package-lock.json')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'yarn.lock')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'bun.lockb')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yaml')),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, SENDAI_FIRST_AGENT_ENTRY)),
           ])
 
@@ -953,12 +968,14 @@ export function IntegrationCommandCenter() {
             yarn: Boolean(yarnLockRes.ok),
             bun: Boolean(bunLockRes.ok),
           })
+          setPnpmWorkspaceRoot(Boolean(pnpmWorkspaceYamlRes.ok || pnpmWorkspaceYmlRes.ok))
           setHasStarterAgentFile(Boolean(starterFileRes.ok))
         } else {
           setEnvFiles([])
           setPackageInfo(EMPTY_PACKAGE_INFO)
           setPackageJsonContent(null)
           setLockfiles({})
+          setPnpmWorkspaceRoot(false)
           setHasStarterAgentFile(false)
           setSendAiSetupApplied(false)
           await loadToolchain(undefined)
@@ -1000,6 +1017,14 @@ export function IntegrationCommandCenter() {
   const envKeys = useMemo(() => new Set(
     envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
   ), [envFiles])
+  const projectPackageManager = useMemo<PackageManager | null>(
+    () => (activeProjectPath ? detectPackageManager(packageInfo, lockfiles) : null),
+    [activeProjectPath, packageInfo, lockfiles],
+  )
+  const installCommandOptions = useMemo(
+    () => ({ packageManager: projectPackageManager, pnpmWorkspaceRoot }),
+    [projectPackageManager, pnpmWorkspaceRoot],
+  )
   const lightStatelessReady = packageInfo.packages.has('@lightprotocol/stateless.js')
   const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
   const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
@@ -1007,8 +1032,8 @@ export function IntegrationCommandCenter() {
   const debridgePackageReady = packageInfo.packages.has('@debridge-finance/dln-client')
   const squadsPackageReady = packageInfo.packages.has('@sqds/multisig')
   const sendAiSetupPlan = useMemo(
-    () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys }),
-    [packageInfo, lockfiles, envKeys],
+    () => createSendAiSetupPlan({ packageInfo, lockfiles, envKeys, pnpmWorkspaceRoot }),
+    [packageInfo, lockfiles, envKeys, pnpmWorkspaceRoot],
   )
   const firstAgentPlan = useMemo(
     () => createFirstAgentPlan({
@@ -1050,6 +1075,9 @@ export function IntegrationCommandCenter() {
 
   const selectedIntegration = visibleIntegrations.find((integration) => integration.id === selectedId) ?? visibleIntegrations[0] ?? INTEGRATION_REGISTRY[0]
   const selectedSummary = resolveIntegrationStatus(selectedIntegration, context)
+  const selectedInstallCommand = selectedIntegration.installCommand
+    ? normalizeProjectInstallCommand(selectedIntegration.installCommand, installCommandOptions)
+    : null
   const detailShortcut = useMemo<DetailShortcut | null>(() => {
     if (GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id)) {
       return null
@@ -1139,10 +1167,11 @@ export function IntegrationCommandCenter() {
         changedFiles.push(plan.envFileName)
       }
 
-      if (plan.installCommand) {
+      const installCommand = normalizeProjectInstallCommand(plan.installCommand, installCommandOptions)
+      if (installCommand) {
         const terminalRes = await daemon.terminal.create({
           cwd: activeProjectPath,
-          startupCommand: plan.installCommand,
+          startupCommand: installCommand,
           userInitiated: true,
         })
         if (!terminalRes.ok || !terminalRes.data) {
@@ -1150,13 +1179,13 @@ export function IntegrationCommandCenter() {
         }
         addTerminal(activeProjectId, terminalRes.data.id, 'Install SendAI', terminalRes.data.agentId)
         focusTerminal()
-        changedFiles.push(`terminal: ${plan.installCommand}`)
+        changedFiles.push(`terminal: ${installCommand}`)
       }
 
       setActionResult({
         title: 'SendAI setup started',
         status: 'success',
-        detail: plan.installCommand
+        detail: installCommand
           ? 'DAEMON updated the env template and opened a visible terminal for package installation.'
           : 'DAEMON updated the env template. Required SendAI packages were already present.',
         items: changedFiles.length > 0 ? changedFiles : ['No changes needed'],
@@ -1412,9 +1441,10 @@ export function IntegrationCommandCenter() {
     setActionResult(null)
 
     try {
+      const installCommand = normalizeProjectInstallCommand(command, installCommandOptions) ?? command
       const terminalRes = await daemon.terminal.create({
         cwd: activeProjectPath,
-        startupCommand: command,
+        startupCommand: installCommand,
         userInitiated: true,
       })
       if (!terminalRes.ok || !terminalRes.data) {
@@ -1427,7 +1457,7 @@ export function IntegrationCommandCenter() {
         title: 'Skills install opened',
         status: 'success',
         detail: 'DAEMON opened a terminal so you can install the SendAI skills pack without leaving this drawer.',
-        items: [command, `Suggested skills: ${sendAiSkillSuggestions.join(', ')}`],
+        items: [installCommand, `Suggested skills: ${sendAiSkillSuggestions.join(', ')}`],
       })
     } catch (error) {
       setActionResult({
@@ -1454,9 +1484,10 @@ export function IntegrationCommandCenter() {
     setActionResult(null)
 
     try {
+      const installCommand = normalizeProjectInstallCommand(command, installCommandOptions) ?? command
       const terminalRes = await daemon.terminal.create({
         cwd: activeProjectPath,
-        startupCommand: command,
+        startupCommand: installCommand,
         userInitiated: true,
       })
       if (!terminalRes.ok || !terminalRes.data) {
@@ -1469,7 +1500,7 @@ export function IntegrationCommandCenter() {
         title: `${label} opened`,
         status: 'success',
         detail: 'DAEMON opened a visible terminal so the install stays inside the current Solana workflow.',
-        items: [command],
+        items: [installCommand],
       })
     } catch (error) {
       setActionResult({
@@ -1978,10 +2009,10 @@ export function IntegrationCommandCenter() {
             </div>
           </div>
 
-          {selectedIntegration.installCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
+          {selectedInstallCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className="icc-install">
               <span>Install</span>
-              <code>{selectedIntegration.installCommand}</code>
+              <code>{selectedInstallCommand}</code>
             </div>
           )}
 
@@ -2002,13 +2033,13 @@ export function IntegrationCommandCenter() {
             />
           )}
 
-          {selectedIntegration.id === 'protocol-skills' && selectedIntegration.installCommand && (
+          {selectedIntegration.id === 'protocol-skills' && selectedInstallCommand && (
             <SendAiSkillsWorkflow
-              installCommand={selectedIntegration.installCommand}
+              installCommand={selectedInstallCommand}
               suggestions={sendAiSkillSuggestions}
               result={actionResult}
               installing={installingSkills}
-              onInstall={() => void handleInstallSkills(selectedIntegration.installCommand!)}
+              onInstall={() => void handleInstallSkills(selectedInstallCommand)}
             />
           )}
 
@@ -2150,7 +2181,7 @@ export function IntegrationCommandCenter() {
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
                 : !packageInfo.packages.has('@metaplex-foundation/umi')
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Metaplex')
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Metaplex')
                   : () => void handleCreateMetaplexDraft()}
               secondaryLabel="Open New Project"
               onSecondary={() => openWorkspaceTool('starter')}
@@ -2189,7 +2220,7 @@ export function IntegrationCommandCenter() {
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
                 : !lightPackagesReady
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Light SDK')
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Light SDK')
                   : !envKeys.has('RPC_URL')
                     ? () => openWorkspaceTool('env')
                     : () => void handleCreateLightStarter()}
@@ -2230,7 +2261,7 @@ export function IntegrationCommandCenter() {
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
                 : !magicBlockPackageReady
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install MagicBlock SDK')
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install MagicBlock SDK')
                   : !envKeys.has('RPC_URL')
                     ? () => openWorkspaceTool('env')
                     : () => void handleCreateMagicBlockStarter()}
@@ -2269,7 +2300,7 @@ export function IntegrationCommandCenter() {
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
                 : !debridgePackageReady
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install deBridge client')
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install deBridge client')
                   : () => void handleCreateDebridgeStarter()}
               secondaryLabel="Open docs"
               onSecondary={openDocs}
@@ -2308,7 +2339,7 @@ export function IntegrationCommandCenter() {
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
                 : !squadsPackageReady
-                  ? () => void handleOpenProjectInstall(selectedIntegration.installCommand!, 'Install Squads SDK')
+                  ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Squads SDK')
                   : !envKeys.has('RPC_URL')
                     ? () => openWorkspaceTool('env')
                     : () => void handleCreateSquadsStarter()}

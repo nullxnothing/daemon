@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProStore } from '../../store/pro'
 import { useWalletStore } from '../../store/wallet'
 import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../electron/shared/types'
+import { Banner, Stat } from '../../components/Panel'
 import { ArenaView } from './ArenaView'
 import './ProPanel.css'
 
@@ -235,10 +236,10 @@ function StakingView({
       </section>
 
       <section className="pro-staking-status-grid">
-        <StatCard label="Selected wallet" value={selectedWalletLabel ?? 'No wallet selected'} mono={Boolean(selectedWalletLabel)} />
-        <StatCard label="Current DAEMON" value={currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
-        <StatCard label="Live access threshold" value={holderStatus.enabled ? minAmount.toLocaleString() : 'Not configured'} />
-        <StatCard label="Current path" value={accessSource === 'holder' ? 'Holder access active' : accessSource === 'payment' ? 'Paid access active' : 'No active access'} />
+        <ProStat label="Selected wallet" value={selectedWalletLabel ?? 'No wallet selected'} mono={Boolean(selectedWalletLabel)} />
+        <ProStat label="Current DAEMON" value={currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+        <ProStat label="Live access threshold" value={holderStatus.enabled ? minAmount.toLocaleString() : 'Not configured'} />
+        <ProStat label="Current path" value={accessSource === 'holder' ? 'Holder access active' : accessSource === 'payment' ? 'Paid access active' : 'No active access'} />
       </section>
 
       <section className="pro-staking-actions-card">
@@ -364,13 +365,13 @@ function OverviewSubscribe({
       </div>
 
       {holderStatus.enabled && (
-        <div className={`pro-holder-banner ${isHolderEligible ? 'eligible' : ''}`}>
+        <Banner className={`pro-holder-banner ${isHolderEligible ? 'eligible' : ''}`} tone={isHolderEligible ? 'success' : 'warn'}>
           <div className="pro-holder-banner-title">{isHolderEligible ? 'Holder access available' : 'DAEMON holder access'}</div>
           <div className="pro-holder-banner-copy">
             Hold {minAmount.toLocaleString()}+ DAEMON to unlock Pro. Current selected wallet: {currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} DAEMON.
             {accessSource === 'holder' ? ' Holder access is currently active on this device.' : ''}
           </div>
-        </div>
+        </Banner>
       )}
 
       <div className="pro-subscribe-box">
@@ -426,11 +427,11 @@ function OverviewActive({
   return (
     <div className="pro-overview">
       <div className="pro-active-grid">
-        <StatCard label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
-        <StatCard label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
-        <StatCard label="Features" value={`${features.length} unlocked`} />
-        <StatCard label="Access" value={accessSource === 'holder' ? 'Holder' : 'Paid'} />
-        <StatCard label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
+        <ProStat label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
+        <ProStat label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
+        <ProStat label="Features" value={`${features.length} unlocked`} />
+        <ProStat label="Access" value={accessSource === 'holder' ? 'Holder' : 'Paid'} />
+        <ProStat label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
       </div>
       <div className="pro-active-features">
         {features.map((feature) => (
@@ -443,12 +444,15 @@ function OverviewActive({
   )
 }
 
-function StatCard({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function ProStat({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="pro-stat-card">
-      <div className="pro-stat-label">{label}</div>
-      <div className={`pro-stat-value${mono ? ' pro-stat-mono' : ''}`}>{value}</div>
-    </div>
+    <Stat
+      className="pro-stat-card"
+      label={label}
+      labelClassName="pro-stat-label"
+      value={value}
+      valueClassName={`pro-stat-value${mono ? ' pro-stat-mono' : ''}`}
+    />
   )
 }
 

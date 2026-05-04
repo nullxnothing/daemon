@@ -7,15 +7,18 @@
 }
 
 .right-panel-header {
-  padding: var(--space-md);
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--border);
   background: var(--s1);
 }
 
 .right-panel-header-copy {
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+  align-items: center;
 }
 
 .right-panel-kicker {
@@ -26,18 +29,11 @@
   color: var(--green);
 }
 
-.right-panel-title {
-  font-size: var(--fs-14);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
-  color: var(--t1);
-}
-
 .right-panel-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md) var(--space-md);
+  gap: 4px;
+  padding: 6px var(--space-sm);
   border-bottom: 1px solid var(--border);
   background: var(--s1);
 }
@@ -45,13 +41,14 @@
 .right-panel-tab {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  justify-content: center;
+  gap: 6px;
   min-width: 0;
-  min-height: var(--btn-h-md);
-  padding: 0 var(--space-sm);
+  height: 30px;
+  padding: 0 8px;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--drawer-control-radius);
   cursor: pointer;
   transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
@@ -63,13 +60,13 @@
 }
 
 .right-panel-tab.active {
-  border-color: color-mix(in srgb, var(--green) 34%, var(--border));
+  border-color: color-mix(in srgb, var(--green) 42%, var(--border));
   background: var(--green-glow);
 }
 
 .right-panel-tab img {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   object-fit: contain;
 }
@@ -86,31 +83,22 @@
   background: var(--green);
 }
 
-.right-panel-tab-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-  text-align: left;
-}
-
 .right-panel-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--fs-11);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
-.right-panel-tab-status {
-  font-size: var(--fs-9);
-  color: var(--t4);
-}
-
 .right-panel-content {
-  flex: 1.15 1 0;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: var(--space-sm);
+  padding: 6px var(--space-sm);
   background: var(--s1);
 }

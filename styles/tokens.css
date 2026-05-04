@@ -37,6 +37,14 @@
   --blue-dim:    #4a8ad4;
   --blue-glow:   rgba(96, 165, 250, 0.15);
 
+  /* Solana brand purple — used by AgentStation/Solana-affinity panels only */
+  --solana:      #9945ff;
+  --solana-glow: rgba(153, 69, 255, 0.18);
+
+  /* Foreground on saturated accent fill (white text on amber/red CTA pills) */
+  --on-accent:   #ffffff;
+  --on-accent-dark: #090909;  /* black text on bright amber pills */
+
   /* Semantic tokens */
   --border:        #2a2a2a;  /* Default border */
   --border-hover:  #3a3a3a;  /* Border on hover */
@@ -50,12 +58,22 @@
   --info:        var(--blue);
   --accent:      var(--green);
 
-  /* Interactive state overlays */
-  --hover-overlay:  rgba(255, 255, 255, 0.04);
-  --active-overlay: rgba(255, 255, 255, 0.08);
-  --hover-bg:       var(--hover-overlay);
-  --active-bg:      var(--active-overlay);
-  --focus-ring:     0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
+  /* Interactive state overlays — three intensities + press */
+  --hover-overlay-subtle: rgba(255, 255, 255, 0.025);
+  --hover-overlay:        rgba(255, 255, 255, 0.045);
+  --hover-overlay-strong: rgba(255, 255, 255, 0.075);
+  --active-overlay:       rgba(255, 255, 255, 0.08);
+  --press-overlay:        rgba(0, 0, 0, 0.18);
+  --hover-bg:             var(--hover-overlay);
+  --active-bg:            var(--active-overlay);
+
+  /* Focus rings — green stays for inputs, neutral default for buttons,
+     accent variants for destructive/info actions */
+  --focus-ring:         0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
+  --focus-ring-neutral: 0 0 0 2px rgba(255, 255, 255, 0.10), 0 0 0 1px var(--t2);
+  --focus-ring-amber:   0 0 0 2px var(--amber-glow), 0 0 0 1px var(--amber);
+  --focus-ring-red:     0 0 0 2px var(--red-glow),   0 0 0 1px var(--red);
+  --focus-ring-blue:    0 0 0 2px var(--blue-glow),  0 0 0 1px var(--blue);
 
   /* Typography — families */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -96,7 +114,7 @@
   --lh-relaxed: 1.7;
 
   /* Typography — letter spacing */
-  --ls-tight:    -0.01em;
+  --ls-tight:    0;
   --ls-normal:   0;
   --ls-eyebrow:  0.16em;   /* uppercase kicker / label */
   --ls-caps:     0.08em;   /* small uppercase headings */
@@ -137,11 +155,43 @@
   --btn-h-lg: 40px;
   --input-h:  32px;
 
-  /* Elevation — a small shadow scale; no panel may inline rgba shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.32);
+  /* Edge highlights — bake into shadows for the lifted-card texture */
+  --edge-highlight:        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --edge-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --inset-well:            inset 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  /* Elevation — five-stop scale; bottom shadow + top edge highlight bundled */
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20), var(--edge-highlight);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24), var(--edge-highlight);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.32), var(--edge-highlight-strong);
+  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.42), var(--edge-highlight-strong);
   --shadow-lifted: var(--shadow-md);
+
+  /* Surface roles — semantic; prefer these over bare s1/s2/s3 in panel CSS */
+  --surface-flat:     var(--s1);
+  --surface-sunken:   var(--bg);
+  --surface-raised:   var(--s2);
+  --surface-floating: var(--s3);
+  --surface-overlay:  var(--glass-bg);
+
+  /* Hero gradients — for panel headers that earn weight (rare) */
+  --surface-hero:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 6%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1));
+  --surface-hero-amber:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--amber) 7%, transparent), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1));
+
+  /* Divider weights */
+  --divider-hairline: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  --divider-strong:   1px solid var(--border);
+  --divider-emphasis: 1px solid var(--border-hover);
+
+  /* Numeric/density — for tabular data rows */
+  --row-h-compact: 28px;
+  --row-h-default: 36px;
+  --row-h-comfy:   44px;
 
   /* Glow accents — referenced by existing Button.css */
   --glow-green-soft:    0 0 0 1px var(--green-glow), 0 0 12px var(--green-glow);
@@ -151,16 +201,30 @@
   --glow-green-ambient: 0 0 24px var(--green-glow);
 
   /* Glass surfaces (popovers, command palette, dropdown menus) */
-  --glass-bg:     color-mix(in srgb, var(--s1) 88%, transparent);
-  --glass-blur:   blur(18px);
-  --border-glass: color-mix(in srgb, var(--border) 70%, rgba(255, 255, 255, 0.06));
-  --shadow-float: 0 16px 48px rgba(0, 0, 0, 0.36);
+  --glass-bg:        color-mix(in srgb, var(--s1) 88%, transparent);
+  --glass-blur:      blur(18px);    /* default — popovers / dropdowns / sticky bars */
+  --glass-blur-soft: blur(8px);     /* inline tray, terminal session menus */
+  --glass-blur-scrim: blur(4px);    /* modal/lightbox scrims */
+  --scrim-bg:        rgba(0, 0, 0, 0.55);
+  --border-glass:    color-mix(in srgb, var(--border) 70%, rgba(255, 255, 255, 0.06));
+  --shadow-float:    0 16px 48px rgba(0, 0, 0, 0.36);
 
-  /* Shared surface gradients retained for compatibility while panels migrate. */
-  --surface-gradient-subtle: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent);
+  /* Shared surface layer retained for compatibility while panels migrate. */
+  --surface-gradient-subtle: none;
 
-  /* Transitions */
-  --transition-fast: 0.1s ease;
-  --transition-normal: 0.15s ease;
-  --transition-slow: 0.25s ease;
+  /* Motion — durations + easing curves (ease replaced with named curves) */
+  --dur-instant:    80ms;
+  --dur-base:      160ms;
+  --dur-emphasized: 280ms;
+  --dur-deliberate: 420ms;
+
+  --ease-standard:  cubic-bezier(0.2, 0, 0, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-quad:   cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Legacy transition aliases — now resolve to named curves */
+  --transition-fast:   var(--dur-instant)    var(--ease-standard);
+  --transition-normal: var(--dur-base)       var(--ease-out-quint);
+  --transition-slow:   var(--dur-emphasized) var(--ease-out-quint);
 }

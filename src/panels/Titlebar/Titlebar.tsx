@@ -52,6 +52,8 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
         />
       )}
 
+      <div className="titlebar-drag-fill" aria-hidden="true" />
+
       <div className="titlebar-controls">
         {showPortfolioInline && <TitlebarPortfolioSummary />}
         <ModeToggle

@@ -75,6 +75,10 @@
 .status-text {
   font-size: var(--fs-12);
   color: var(--t1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Restart Button */
@@ -217,11 +221,16 @@
 .usage-model-row {
   display: flex;
   justify-content: space-between;
+  gap: var(--space-sm);
   padding: 3px 0;
   margin-top: 4px;
 }
 
 .usage-model-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--fs-11);
   color: var(--t1);
   text-transform: capitalize;
@@ -378,7 +387,7 @@
   margin: 0 0 var(--drawer-rail-card-gap);
   padding: var(--space-lg) var(--space-md);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: var(--drawer-control-radius);
   background: var(--s2);
 }
 
@@ -386,13 +395,13 @@
 .claude-section {
   margin: 0 0 var(--drawer-rail-card-gap);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: var(--drawer-control-radius);
   background: var(--s2);
   box-shadow: none;
 }
 
 .status-badge {
-  padding: var(--space-md) var(--drawer-space-inline-tight);
+  padding: 9px var(--drawer-space-inline-tight);
   gap: var(--space-sm);
 }
 
@@ -402,7 +411,7 @@
 }
 
 .claude-section {
-  padding: var(--space-md) var(--drawer-space-inline-tight);
+  padding: 10px var(--drawer-space-inline-tight);
   border-bottom: none;
 }
 
@@ -454,7 +463,7 @@
 
 .usage-stat {
   padding: 8px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--drawer-control-radius);
   border-color: var(--border);
   background: var(--s1);
 }

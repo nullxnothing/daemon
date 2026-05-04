@@ -110,7 +110,7 @@
   min-height: var(--btn-h-md);
   padding: 0 var(--space-md);
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border-radius: var(--drawer-control-radius);
   border-bottom-width: 1px;
   font-size: var(--fs-12);
   font-weight: var(--fw-semibold);

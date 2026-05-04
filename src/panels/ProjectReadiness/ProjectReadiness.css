@@ -11,15 +11,15 @@
 
 .project-readiness-hero {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-lg);
-  padding: var(--space-lg) var(--panel-pad-x) var(--space-md);
+  gap: var(--space-md);
+  padding: var(--space-md) var(--panel-pad-x);
   border-bottom: 1px solid var(--border);
 }
 
 .project-readiness-hero-copy {
-  max-width: 780px;
+  max-width: 700px;
 }
 
 .project-readiness-kicker,
@@ -27,7 +27,7 @@
   display: inline-flex;
   font-size: var(--fs-10);
   font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-eyebrow);
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--green);
 }
@@ -40,17 +40,17 @@
 }
 
 .project-readiness h1 {
-  margin-top: var(--space-xs);
-  font-size: var(--fs-24);
+  margin-top: var(--space-2xs);
+  font-size: var(--fs-16);
   font-weight: var(--fw-semibold);
-  line-height: var(--lh-tight);
+  line-height: var(--lh-snug);
 }
 
 .project-readiness h2 {
-  margin-top: var(--space-xs);
-  font-size: var(--fs-20);
+  margin-top: var(--space-2xs);
+  font-size: var(--fs-14);
   font-weight: var(--fw-semibold);
-  line-height: var(--lh-tight);
+  line-height: var(--lh-snug);
 }
 
 .project-readiness p {
@@ -61,25 +61,26 @@
 }
 
 .project-readiness-score {
-  min-width: 150px;
-  border-radius: var(--radius-card);
-  border: 1px solid color-mix(in srgb, var(--green) 30%, var(--border));
-  background: var(--green-glow);
-  padding: var(--space-lg);
+  min-width: 104px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--s2);
+  padding: var(--space-sm) var(--space-md);
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: var(--space-xs);
 }
 
-.project-readiness-score span {
-  font-size: var(--fs-32);
+.project-readiness-score > span {
+  font-size: var(--fs-20);
   line-height: var(--lh-tight);
   font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .project-readiness-score small {
-  margin-top: var(--space-xs);
   color: var(--t3);
   font-size: var(--fs-11);
 }
@@ -88,9 +89,9 @@
 .project-readiness-loading,
 .project-readiness-action-message {
   margin: var(--space-md) var(--panel-pad-x) 0;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--red) 30%, var(--border));
-  background: var(--red-glow);
+  background: rgba(239, 83, 80, 0.08);
   color: var(--red);
   padding: var(--space-md);
   font-size: var(--fs-12);
@@ -98,19 +99,19 @@
 
 .project-readiness-loading {
   border-color: color-mix(in srgb, var(--green) 26%, var(--border));
-  background: var(--green-glow);
+  background: var(--s2);
   color: var(--t3);
 }
 
 .project-readiness-action-message.success {
   border-color: color-mix(in srgb, var(--green) 30%, var(--border));
-  background: var(--green-glow);
+  background: rgba(62, 207, 142, 0.08);
   color: var(--green);
 }
 
 .project-readiness-action-message.error {
   border-color: color-mix(in srgb, var(--red) 30%, var(--border));
-  background: var(--red-glow);
+  background: rgba(239, 83, 80, 0.08);
   color: var(--red);
 }
 
@@ -119,7 +120,7 @@
 .project-readiness-card,
 .project-readiness-action,
 .project-readiness-strip > div {
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--s2);
 }
@@ -128,15 +129,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-lg);
+  gap: var(--space-md);
   margin: var(--space-md) var(--panel-pad-x) 0;
-  padding: var(--space-lg);
+  padding: var(--space-md);
 }
 
 .project-readiness-next strong {
   display: block;
-  margin-top: var(--space-xs);
-  font-size: var(--fs-20);
+  margin-top: var(--space-2xs);
+  font-size: var(--fs-16);
   color: var(--t1);
 }
 
@@ -147,7 +148,7 @@
   min-height: var(--btn-h-sm);
   border: 1px solid color-mix(in srgb, var(--green) 32%, var(--border));
   border-radius: var(--radius-md);
-  background: var(--green-glow);
+  background: rgba(62, 207, 142, 0.08);
   color: var(--green);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
@@ -184,7 +185,7 @@
 }
 
 .project-readiness-quick {
-  padding-top: var(--space-lg);
+  padding-top: var(--space-md);
 }
 
 .project-readiness-quick-grid,
@@ -211,14 +212,14 @@
   align-items: center;
   gap: var(--space-md);
   min-width: 0;
-  padding: var(--space-md);
+  padding: var(--space-sm);
 }
 
 .project-readiness-quick-card.ready,
 .project-readiness-card.ready,
 .project-readiness-action.ready {
   border-color: color-mix(in srgb, var(--green) 30%, var(--border));
-  background: color-mix(in srgb, var(--green) 5%, var(--s2));
+  background: var(--s2);
 }
 
 .project-readiness-quick-card strong,
@@ -229,7 +230,7 @@
 }
 
 .project-readiness-grid {
-  padding: var(--space-lg) var(--panel-pad-x);
+  padding: var(--space-md) var(--panel-pad-x);
 }
 
 .project-readiness-card {
@@ -237,7 +238,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-md);
   min-width: 0;
-  padding: var(--space-md);
+  padding: var(--space-sm);
 }
 
 .project-readiness-dot {
@@ -253,15 +254,15 @@
 }
 
 .project-readiness-section {
-  padding: var(--space-2xs) var(--panel-pad-x) var(--space-lg);
+  padding: 0 var(--panel-pad-x) var(--space-md);
 }
 
 .project-readiness-section-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-md);
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .project-readiness-action {
@@ -270,7 +271,7 @@
   align-items: flex-start;
   gap: var(--space-xs);
   color: var(--t2);
-  padding: var(--space-md);
+  padding: var(--space-sm);
   text-align: left;
   cursor: pointer;
 }
@@ -295,11 +296,11 @@
 }
 
 .project-readiness-strip {
-  padding: 0 var(--panel-pad-x) var(--space-lg);
+  padding: 0 var(--panel-pad-x) var(--space-md);
 }
 
 .project-readiness-strip > div {
-  padding: var(--space-md);
+  padding: var(--space-sm);
 }
 
 .project-readiness-strip strong {
@@ -314,7 +315,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  padding: 0 var(--panel-pad-x) var(--space-xl);
+  padding: 0 var(--panel-pad-x) var(--space-lg);
 }
 
 .project-readiness-shortcuts button {

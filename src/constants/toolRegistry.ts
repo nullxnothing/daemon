@@ -27,6 +27,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'replay-engine', name: 'Replay', moduleClass: 'addon', surface: 'drawer' },
   { id: 'docs', name: 'Docs', moduleClass: 'addon', surface: 'drawer' },
   { id: 'dashboard', name: 'Dashboard', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'agent-work', name: 'Agent Work', moduleClass: 'addon', surface: 'drawer' },
   { id: 'sessions', name: 'Sessions', moduleClass: 'addon', surface: 'drawer' },
   { id: 'hackathon', name: 'Hackathon', moduleClass: 'addon', surface: 'drawer' },
   { id: 'pro', name: 'Daemon Pro', moduleClass: 'addon', surface: 'drawer' },

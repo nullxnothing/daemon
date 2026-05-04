@@ -52,6 +52,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
     { commandId: 'nav:email', label: 'Open Email', toolId: 'email' },
     { commandId: 'nav:env', label: 'Open Env Manager', toolId: 'env' },
     { commandId: 'nav:wallet', label: 'Open Wallet Panel', toolId: 'wallet' },
+    { commandId: 'nav:agent-work', label: 'Open Agent Work', toolId: 'agent-work' },
     { commandId: 'nav:project-readiness', label: 'Open Solana Project Readiness', toolId: 'project-readiness' },
     { commandId: 'nav:starter', label: 'New Project from Template', toolId: 'starter' },
     { commandId: 'nav:settings', label: 'Open Settings', toolId: 'settings', shortcut: 'Ctrl+,' },

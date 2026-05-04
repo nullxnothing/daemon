@@ -35,6 +35,13 @@
   color: var(--t2);
 }
 
+.codex-status-row span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .codex-status-dot {
   width: 5px;
   height: 5px;
@@ -232,9 +239,9 @@
 .codex-status-row,
 .codex-restart-row,
 .codex-statusbar,
-.codex-panel .collapsible-section {
+.codex-panel .claude-section {
   margin: 0 0 var(--drawer-rail-card-gap);
-  border-radius: var(--radius-card);
+  border-radius: var(--drawer-control-radius);
 }
 
 .codex-empty {
@@ -245,15 +252,19 @@
 
 .codex-status-row,
 .codex-restart-row,
-.codex-panel .collapsible-section {
+.codex-panel .claude-section {
   border: 1px solid var(--border);
   background: var(--s2);
   box-shadow: none;
 }
 
+.codex-panel .claude-section {
+  padding: 10px var(--drawer-space-inline-tight);
+}
+
 .codex-status-row,
 .codex-restart-row {
-  padding: var(--space-md) var(--drawer-space-inline-tight);
+  padding: 9px var(--drawer-space-inline-tight);
   border-bottom: none;
 }
 
@@ -274,7 +285,7 @@
   padding: 8px var(--drawer-space-inline-tight) 10px;
   border: 1px solid var(--border);
   border-top: none;
-  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  border-radius: 0 0 var(--drawer-control-radius) var(--drawer-control-radius);
   background: var(--s2);
 }
 
@@ -310,12 +321,12 @@
 
 .codex-statusbar {
   padding: 7px 9px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--drawer-control-radius);
 }
 
 .codex-agents-editor,
 .codex-agents-preview {
-  border-radius: var(--radius-lg);
+  border-radius: var(--drawer-control-radius);
   border-color: var(--border);
   background: var(--s1);
 }

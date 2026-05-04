@@ -14,28 +14,29 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 28px;
-  width: 440px;
+  padding: 22px;
+  width: 420px;
   max-width: 90vw;
 }
 
 .wizard-brand {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .wizard-brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 
 .wizard-title {
-  font-size: 14px;
-  letter-spacing: 6px;
+  font-size: 13px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t1);
   text-align: center;
@@ -48,7 +49,7 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .wizard-progress-item {
@@ -57,7 +58,7 @@
 }
 
 .wizard-progress-line {
-  width: 32px;
+  width: 24px;
   height: 1px;
   background: var(--s4);
   transition: background var(--transition-normal);
@@ -80,7 +81,6 @@
 .wizard-progress-dot.active {
   background: var(--success);
   border-color: var(--success);
-  box-shadow: 0 0 6px var(--success-dim);
 }
 
 .wizard-progress-dot.complete {
@@ -96,23 +96,23 @@
 /* Step label */
 .wizard-step-label {
   font-size: 10px;
-  letter-spacing: 3px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
   text-align: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .wizard-subtitle {
   font-size: 12px;
   color: var(--t2);
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 /* Step content */
 .wizard-step-content {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 /* Check list (shared across steps) */
@@ -393,8 +393,8 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 32px;
-  width: 340px;
+  padding: 20px;
+  width: 320px;
   text-align: center;
 }
 
@@ -438,7 +438,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: 6px;

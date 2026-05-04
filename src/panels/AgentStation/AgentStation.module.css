@@ -31,7 +31,7 @@
 .headerBadge {
   font-size: 10px;
   font-weight: 600;
-  color: #9945ff;
+  color: var(--solana);
   background: rgba(153, 69, 255, 0.12);
   border: 1px solid rgba(153, 69, 255, 0.25);
   border-radius: 4px;
@@ -45,8 +45,8 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: #9945ff;
-  color: #fff;
+  background: var(--solana);
+  color: var(--on-accent);
   border: none;
   border-radius: 6px;
   font-size: 12px;
@@ -154,7 +154,7 @@
 }
 
 .metaChipAccent {
-  color: #9945ff;
+  color: var(--solana);
   background: rgba(153, 69, 255, 0.08);
   border-color: rgba(153, 69, 255, 0.2);
 }
@@ -269,7 +269,7 @@
   box-sizing: border-box;
 }
 .input:focus, .select:focus, .textarea:focus {
-  border-color: #9945ff;
+  border-color: var(--solana);
 }
 
 .textarea {
@@ -299,7 +299,7 @@
 }
 .templateCard:hover { background: var(--s2); }
 .templateCardSelected {
-  border-color: #9945ff;
+  border-color: var(--solana);
   background: rgba(153, 69, 255, 0.08);
 }
 
@@ -338,7 +338,7 @@
 .pluginToggleActive {
   background: rgba(153, 69, 255, 0.1);
   border-color: rgba(153, 69, 255, 0.35);
-  color: #9945ff;
+  color: var(--solana);
 }
 
 .formActions {
@@ -351,8 +351,8 @@
 .submitBtn {
   flex: 1;
   padding: 8px;
-  background: #9945ff;
-  color: #fff;
+  background: var(--solana);
+  color: var(--on-accent);
   border: none;
   border-radius: 6px;
   font-size: 12px;

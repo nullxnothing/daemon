@@ -25,6 +25,7 @@ import { useEmailStore } from './store/email'
 import { useSolanaToolboxStore } from './store/solanaToolbox'
 import { useWorkflowShellStore } from './store/workflowShell'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
+import { Skeleton } from './components/Panel'
 import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
@@ -42,7 +43,7 @@ const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/Rig
 const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
 function PanelSkeleton({ className }: { className: string }) {
-  return <div className={className} />
+  return <Skeleton className={className} />
 }
 
 function App() {

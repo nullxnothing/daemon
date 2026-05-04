@@ -56,6 +56,16 @@ input, button, textarea {
   background: none;
 }
 
+button,
+input,
+textarea,
+select,
+a,
+[role='button'],
+[tabindex] {
+  transition: box-shadow var(--dur-instant) var(--ease-standard), border-color var(--dur-instant) var(--ease-standard);
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
@@ -66,6 +76,15 @@ a:focus-visible,
   outline: none;
   box-shadow: var(--focus-ring);
   border-color: var(--border-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 button {
