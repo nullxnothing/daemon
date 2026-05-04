@@ -17,8 +17,8 @@ importers:
         specifier: ^0.88.0
         version: 0.88.0(zod@3.25.76)
       '@google/genai':
-        specifier: ^1.48.0
-        version: 1.48.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+        specifier: ^1.51.0
+        version: 1.51.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@meteora-ag/dynamic-bonding-curve-sdk':
         specifier: 1.5.7
         version: 1.5.7(bufferutil@4.1.0)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -1438,8 +1438,8 @@ packages:
     resolution: {integrity: sha512-wC562eD3gS6vO2tWHToFhlFnmHKfKHgF1oyvojeSkLK/ZYop1bMU+7cOMiF9Sq70CzcsLy/EMRy/uRc76QmNRw==}
     hasBin: true
 
-  '@google/genai@1.48.0':
-    resolution: {integrity: sha512-plonYK4ML2PrxsRD9SeqmFt76eREWkQdPCglOA6aYDzL1AAbE+7PUnT54SvpWGfws13L0AZEqGSpL7+1IPnTxQ==}
+  '@google/genai@1.51.0':
+    resolution: {integrity: sha512-vTZZF3CSimN7cn2zsLpW2p5WF0eZa5Gz69ITMPCNHpPrDlAstOfGifSfi0p/s9Z9400f7xJRkgvkQNrcM7pJ6w==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
@@ -8317,7 +8317,7 @@ snapshots:
       chalk: 4.1.2
       js-yaml: 4.1.1
 
-  '@google/genai@1.48.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
+  '@google/genai@1.51.0(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       google-auth-library: 10.6.2
       p-retry: 4.6.2
@@ -9448,7 +9448,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
-      '@types/node': 24.12.2
+      '@types/node': 25.6.0
       '@types/responselike': 1.0.3
 
   '@types/connect@3.4.38':
@@ -9555,7 +9555,7 @@ snapshots:
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 24.12.2
+      '@types/node': 25.6.0
 
   '@types/retry@0.12.0': {}
 
