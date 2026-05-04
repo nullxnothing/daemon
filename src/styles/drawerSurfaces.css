@@ -95,18 +95,18 @@
   text-transform: uppercase;
 }
 
-.wallet-panel .wallet-tabs,
-.settings-center .settings-tabs,
-.pro-panel .pro-tabs {
+.wallet-panel .wallet-tabs {
   gap: 8px;
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   border-bottom: 1px solid var(--drawer-surface-divider);
   background: var(--s1);
 }
 
-.wallet-panel .wallet-tab,
-.settings-center .settings-tab,
-.pro-panel .pro-tab {
+.settings-center .settings-tabs {
+  background: var(--s1);
+}
+
+.wallet-panel .wallet-tab {
   min-height: var(--btn-h-md);
   padding: 0 var(--space-md);
   border: 1px solid transparent;
@@ -118,17 +118,13 @@
   transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.wallet-panel .wallet-tab:hover,
-.settings-center .settings-tab:hover,
-.pro-panel .pro-tab:hover {
+.wallet-panel .wallet-tab:hover {
   color: var(--t1);
   background: var(--hover-bg);
   border-color: var(--border-hover);
 }
 
-.wallet-panel .wallet-tab--active,
-.settings-center .settings-tab.active,
-.pro-panel .pro-tab.active {
+.wallet-panel .wallet-tab--active {
   color: var(--green);
   background: var(--green-glow);
   border-color: color-mix(in srgb, var(--green) 36%, var(--border));

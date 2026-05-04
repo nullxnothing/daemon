@@ -18,34 +18,16 @@ import { registerGitHandlers } from '../ipc/git'
 import { registerProcessHandlers } from '../ipc/processes'
 import { registerEnvHandlers } from '../ipc/env'
 import { registerPortHandlers } from '../ipc/ports'
-import { registerWalletHandlers } from '../ipc/wallet'
-import { registerProHandlers } from '../ipc/pro'
 import { registerSettingsHandlers } from '../ipc/settings'
 import { registerPluginHandlers } from '../ipc/plugins'
-import { registerTweetHandlers } from '../ipc/tweets'
 import { registerRecoveryHandlers } from '../ipc/recovery'
 import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
-import { registerPumpFunHandlers } from '../ipc/pumpfun'
-import { registerBrowserHandlers } from '../ipc/browser'
-import { registerDeployHandlers } from '../ipc/deploy'
-import { registerEmailHandlers } from '../ipc/email'
-import { registerImageHandlers } from '../ipc/images'
-import { registerAriaHandlers } from '../ipc/aria'
-import { registerLaunchHandlers } from '../ipc/launch'
-import { registerDashboardHandlers } from '../ipc/dashboard'
-import { registerRegistryHandlers } from '../ipc/registry'
-import { registerColosseumHandlers } from '../ipc/colosseum'
-import { registerVaultHandlers } from '../ipc/vault'
-import { registerValidatorHandlers } from '../ipc/validator'
-import { registerPnlHandlers } from '../ipc/pnl'
-import { registerFeedbackHandlers } from '../ipc/feedback'
-import { registerAgentStationHandlers } from '../ipc/agentStation'
-import { registerReplayHandlers } from '../ipc/replay'
-import { registerLspHandlers } from '../ipc/lsp'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import { shutdownAllLspSessions } from '../services/LspService'
+import { trackAppLaunchTelemetry } from '../services/TelemetryService'
+import { ipcHandler } from '../services/IpcHandlerFactory'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -84,7 +66,79 @@ protocol.registerSchemesAsPrivileged([{
   privileges: { standard: true, supportFetchAPI: true, allowServiceWorkers: false },
 }])
 
+// --- Lazy-loading IPC handler infrastructure ---
+// Phase 2A: Modules disabled by default (user enables on-demand for faster cold starts)
+
+type LazyModuleLoader = () => Promise<{ register: () => void }>
+
+const lazyModuleRegistry = new Map<string, LazyModuleLoader>([
+  ['wallet', () => import('../ipc/wallet').then(m => ({ register: m.registerWalletHandlers }))],
+  ['lsp', () => import('../ipc/lsp').then(m => ({ register: m.registerLspHandlers }))],
+  ['replay', () => import('../ipc/replay').then(m => ({ register: m.registerReplayHandlers }))],
+  ['pro', () => import('../ipc/pro').then(m => ({ register: m.registerProHandlers }))],
+  ['images', () => import('../ipc/images').then(m => ({ register: m.registerImageHandlers }))],
+  ['email', () => import('../ipc/email').then(m => ({ register: m.registerEmailHandlers }))],
+  ['tweets', () => import('../ipc/tweets').then(m => ({ register: m.registerTweetHandlers }))],
+  ['pumpfun', () => import('../ipc/pumpfun').then(m => ({ register: m.registerPumpFunHandlers }))],
+  ['browser', () => import('../ipc/browser').then(m => ({ register: m.registerBrowserHandlers }))],
+  ['deploy', () => import('../ipc/deploy').then(m => ({ register: m.registerDeployHandlers }))],
+  ['aria', () => import('../ipc/aria').then(m => ({ register: m.registerAriaHandlers }))],
+  ['launch', () => import('../ipc/launch').then(m => ({ register: m.registerLaunchHandlers }))],
+  ['dashboard', () => import('../ipc/dashboard').then(m => ({ register: m.registerDashboardHandlers }))],
+  ['registry', () => import('../ipc/registry').then(m => ({ register: m.registerRegistryHandlers }))],
+  ['colosseum', () => import('../ipc/colosseum').then(m => ({ register: m.registerColosseumHandlers }))],
+  ['vault', () => import('../ipc/vault').then(m => ({ register: m.registerVaultHandlers }))],
+  ['validator', () => import('../ipc/validator').then(m => ({ register: m.registerValidatorHandlers }))],
+  ['pnl', () => import('../ipc/pnl').then(m => ({ register: m.registerPnlHandlers }))],
+  ['feedback', () => import('../ipc/feedback').then(m => ({ register: m.registerFeedbackHandlers }))],
+  ['agentStation', () => import('../ipc/agentStation').then(m => ({ register: m.registerAgentStationHandlers }))],
+])
+
+const loadedModules = new Set<string>()
+
+async function loadModuleHandlers(moduleId: string): Promise<boolean> {
+  if (loadedModules.has(moduleId)) return true
+
+  const loader = lazyModuleRegistry.get(moduleId)
+  if (!loader) {
+    console.warn(`[LazyLoad] Unknown module: ${moduleId}`)
+    return false
+  }
+
+  try {
+    const { register } = await loader()
+    register()
+    loadedModules.add(moduleId)
+    console.log(`[LazyLoad] Loaded module: ${moduleId}`)
+    return true
+  } catch (err) {
+    console.error(`[LazyLoad] Failed to load ${moduleId}:`, err)
+    return false
+  }
+}
+
+async function loadEnabledModules() {
+  try {
+    const db = getDb()
+    const rows = db.prepare('SELECT id FROM workspace_tool_modules WHERE enabled = 1 AND is_core = 0').all() as { id: string }[]
+    
+    for (const row of rows) {
+      if (lazyModuleRegistry.has(row.id)) {
+        await loadModuleHandlers(row.id)
+      }
+    }
+  } catch (err) {
+    console.error('[LazyLoad] Failed to load enabled modules:', err)
+  }
+}
+
+
 if (process.platform === 'win32') app.setAppUserModelId('com.daemon.app')
+
+// Frameless window + heavy backdrop-filter surfaces cause DWM compositor stalls
+// during drag/resize on Windows. Disabling hardware acceleration trades GPU
+// compositing for CPU compositing, which stays responsive under memory pressure.
+if (process.platform === 'win32') app.disableHardwareAcceleration()
 
 // Crash capture — write unhandled errors to app_crashes table
 process.on('uncaughtException', (error) => {
@@ -145,7 +199,7 @@ function shutdownApp() {
   }
 }
 
-function registerAllIpc() {
+async function registerAllIpc() {
   if (ipcRegistered) return
   ipcRegistered = true
 
@@ -153,6 +207,7 @@ function registerAllIpc() {
   ProviderRegistry.register(ClaudeProvider)
   ProviderRegistry.register(CodexProvider)
 
+  // Core handlers - always loaded
   registerTerminalHandlers()
   registerFilesystemHandlers()
   registerProjectHandlers()
@@ -165,31 +220,43 @@ function registerAllIpc() {
   registerProcessHandlers()
   registerEnvHandlers()
   registerPortHandlers()
-  registerWalletHandlers()
-  registerProHandlers()
   registerSettingsHandlers()
   registerPluginHandlers()
-  registerTweetHandlers()
   registerRecoveryHandlers()
   registerEngineHandlers()
   registerToolHandlers()
-  registerPumpFunHandlers()
-  registerBrowserHandlers()
-  registerDeployHandlers()
-  registerEmailHandlers()
-  registerImageHandlers()
-  registerAriaHandlers()
-  registerLaunchHandlers()
-  registerDashboardHandlers()
-  registerRegistryHandlers()
-  registerColosseumHandlers()
-  registerVaultHandlers()
-  registerValidatorHandlers()
-  registerPnlHandlers()
-  registerFeedbackHandlers()
-  registerAgentStationHandlers()
-  registerReplayHandlers()
-  registerLspHandlers()
+
+  // Load enabled optional modules from DB
+  await loadEnabledModules()
+
+  // Module management IPC handlers — only expose modules whose handlers can
+  // actually be lazy-loaded plus core modules. This guards against legacy DB
+  // rows from earlier seeds that listed eagerly-registered handlers (their
+  // toggles would be silent no-ops).
+  ipcMain.handle('modules:list', ipcHandler(async () => {
+    const db = getDb()
+    const rows = db.prepare('SELECT * FROM workspace_tool_modules ORDER BY sort_order, name').all() as { id: string; is_core: number }[]
+    return rows.filter((row) => row.is_core === 1 || lazyModuleRegistry.has(row.id))
+  }))
+
+  ipcMain.handle('modules:enable', ipcHandler(async (_event, moduleId: string) => {
+    if (typeof moduleId !== 'string' || !lazyModuleRegistry.has(moduleId)) {
+      throw new Error(`Module '${moduleId}' is not lazy-loadable`)
+    }
+    const success = await loadModuleHandlers(moduleId)
+    if (!success) throw new Error('Failed to load module')
+    getDb().prepare('UPDATE workspace_tool_modules SET enabled = 1 WHERE id = ?').run(moduleId)
+    return { requiresRestart: false }
+  }))
+
+  ipcMain.handle('modules:disable', ipcHandler(async (_event, moduleId: string) => {
+    if (typeof moduleId !== 'string' || !lazyModuleRegistry.has(moduleId)) {
+      throw new Error(`Module '${moduleId}' is not lazy-loadable`)
+    }
+    getDb().prepare('UPDATE workspace_tool_modules SET enabled = 0 WHERE id = ?').run(moduleId)
+    // Handlers stay live until restart — DB persists the user intent.
+    return { requiresRestart: loadedModules.has(moduleId) }
+  }))
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -200,7 +267,12 @@ function registerAllIpc() {
       win?.maximize()
     }
   })
-  ipcMain.on('window:close', () => shutdownApp())
+  // Close the window immediately — actual cleanup runs in `before-quit` so the
+  // Windows message pump stays responsive while node-pty / LSP / SQLite shut down.
+  ipcMain.on('window:close', () => {
+    if (win && !win.isDestroyed()) win.close()
+    else app.quit()
+  })
   ipcMain.on('window:reload', () => {
     if (!win) return
     if (VITE_DEV_SERVER_URL) {
@@ -225,7 +297,10 @@ function registerAllIpc() {
 async function createWindow() {
   if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:start')
   getDb()
-  registerAllIpc()
+  await registerAllIpc()
+  trackAppLaunchTelemetry().catch((err) => {
+    if (!app.isPackaged) console.warn('[Telemetry] launch event skipped:', err.message)
+  })
 
   // CSP headers only in production — in dev, Vite serves /@react-refresh and
   // HMR websockets from localhost which a restrictive 'self' policy blocks

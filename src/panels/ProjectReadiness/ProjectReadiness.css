@@ -212,7 +212,13 @@
   align-items: center;
   gap: var(--space-md);
   min-width: 0;
-  padding: var(--space-sm);
+  padding: var(--space-md);
+  transition: all 0.2s ease;
+}
+
+.project-readiness-quick-card:hover {
+  border-color: var(--s5);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .project-readiness-quick-card.ready,
@@ -227,6 +233,15 @@
   display: block;
   color: var(--t1);
   font-size: var(--fs-13);
+  line-height: var(--lh-snug);
+}
+
+.project-readiness-quick-card p,
+.project-readiness-card p {
+  margin-top: var(--space-xs);
+  color: var(--t3);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
 }
 
 .project-readiness-grid {
@@ -238,7 +253,13 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-md);
   min-width: 0;
-  padding: var(--space-sm);
+  padding: var(--space-md);
+  transition: all 0.2s ease;
+}
+
+.project-readiness-card:hover {
+  border-color: var(--s5);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .project-readiness-dot {
@@ -258,11 +279,24 @@
 }
 
 .project-readiness-section-head {
+  all: unset;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-md);
   margin-bottom: var(--space-sm);
+  width: 100%;
+  cursor: pointer;
+  padding: var(--space-sm) 0;
+  transition: opacity 0.15s ease;
+}
+
+.project-readiness-section-head:hover {
+  opacity: 0.8;
+}
+
+.project-readiness-section-head h2 {
+  user-select: none;
 }
 
 .project-readiness-action {
@@ -271,9 +305,15 @@
   align-items: flex-start;
   gap: var(--space-xs);
   color: var(--t2);
-  padding: var(--space-sm);
+  padding: var(--space-md);
   text-align: left;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.project-readiness-action:hover {
+  border-color: var(--s5);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .project-readiness-action.partial {

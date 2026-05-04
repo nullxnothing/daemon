@@ -29,6 +29,7 @@ import type {
   EnvDiff,
   SkillEntry,
   UiSettings,
+  TelemetrySettings,
   MarketTickerEntry,
   PluginRow,
   Tweet,
@@ -76,6 +77,7 @@ import type {
   OnboardingStepStatus,
   WorkspaceProfile,
   WorkspaceProfileName,
+  WorkspaceToolModule,
   PnlPortfolio,
   PnlHolding,
   PnlTokenDetail,
@@ -128,6 +130,7 @@ export type {
   EnvDiff,
   SkillEntry,
   UiSettings,
+  TelemetrySettings,
   MarketTickerEntry,
   PluginRow,
   Tweet,
@@ -175,6 +178,7 @@ export type {
   OnboardingStepStatus,
   WorkspaceProfile,
   WorkspaceProfileName,
+  WorkspaceToolModule,
   PnlPortfolio,
   PnlHolding,
   PnlTokenDetail,
@@ -244,39 +248,13 @@ declare global {
   type AgentWorkSubmitInput = import('../../electron/shared/types').AgentWorkSubmitInput
   type AgentWorkTask = import('../../electron/shared/types').AgentWorkTask
 
-  type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
-
-  type SolanaExecutionCoverageItem = {
-    id: 'wallet-sends' | 'jupiter-swaps' | 'launch-adapters' | 'pumpfun' | 'recovery'
-    label: string
-    status: SolanaRuntimeStatusLevel
-    detail: string
-  }
-
-  type SolanaRuntimeStatusSummary = {
-    rpc: {
-      label: string
-      detail: string
-      status: SolanaRuntimeStatusLevel
-    }
-    walletPath: {
-      label: string
-      detail: string
-      status: SolanaRuntimeStatusLevel
-    }
-    swapEngine: {
-      label: string
-      detail: string
-      status: SolanaRuntimeStatusLevel
-    }
-    executionBackend: {
-      label: string
-      detail: string
-      status: SolanaRuntimeStatusLevel
-    }
-    executionCoverage: SolanaExecutionCoverageItem[]
-    troubleshooting: string[]
-  }
+  type SolanaRuntimeStatusLevel = import('../../electron/shared/solanaRuntime').SolanaRuntimeStatusLevel
+  type SolanaExecutionCoverageItem = import('../../electron/shared/solanaRuntime').SolanaExecutionCoverageItem
+  type SolanaRuntimeUseCase = import('../../electron/shared/solanaRuntime').SolanaRuntimeUseCase
+  type SolanaRuntimePreflightCheck = import('../../electron/shared/solanaRuntime').SolanaRuntimePreflightCheck
+  type SolanaRuntimePreflight = import('../../electron/shared/solanaRuntime').SolanaRuntimePreflight
+  type SolanaRuntimeExecutionPath = import('../../electron/shared/solanaRuntime').SolanaRuntimeExecutionPath
+  type SolanaRuntimeStatusSummary = import('../../electron/shared/solanaRuntime').SolanaRuntimeStatusSummary
 
   // Re-export shared types as global ambient types so existing code
   // that references them without explicit imports continues to work.
@@ -290,6 +268,7 @@ declare global {
   type SecureKeyEntry = import('../../electron/shared/types').SecureKeyEntry
   type WalletListEntry = import('../../electron/shared/types').WalletListEntry
   type WalletDashboard = import('../../electron/shared/types').WalletDashboard
+  type TelemetrySettings = import('../../electron/shared/types').TelemetrySettings
   type MarketTickerEntry = import('../../electron/shared/types').MarketTickerEntry
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
   type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
@@ -503,6 +482,8 @@ declare global {
 
   interface DaemonSettings {
     getUi: () => Promise<IpcResponse<UiSettings>>
+    getTelemetry: () => Promise<IpcResponse<TelemetrySettings>>
+    setTelemetryEnabled: (enabled: boolean) => Promise<IpcResponse<TelemetrySettings>>
     getAppMeta: () => Promise<IpcResponse<AppMeta>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
@@ -1063,6 +1044,13 @@ declare global {
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
     replay: DaemonReplay
+    modules: DaemonModules
+  }
+
+  interface DaemonModules {
+    list: () => Promise<IpcResponse<WorkspaceToolModule[]>>
+    enable: (moduleId: string) => Promise<IpcResponse<{ requiresRestart: boolean }>>
+    disable: (moduleId: string) => Promise<IpcResponse<{ requiresRestart: boolean }>>
   }
 
   interface DaemonReplay {
@@ -1101,9 +1089,28 @@ declare global {
   }
 
   interface DaemonValidator {
-    start: (type: string) => Promise<IpcResponse<{ terminalId: string; port: number }>>
+    start: (input: string | {
+      type: 'surfpool' | 'test-validator'
+      projectPath?: string
+      reset?: boolean
+    }) => Promise<IpcResponse<{
+      terminalId: string
+      port: number
+      projectPath?: string | null
+      command?: string | null
+      studioPort?: number | null
+    }>>
     stop: () => Promise<IpcResponse<{ stopped: boolean }>>
-    status: () => Promise<IpcResponse<{ type: string | null; status: string; terminalId: string | null; port: number | null }>>
+    status: () => Promise<IpcResponse<{
+      type: string | null
+      status: string
+      terminalId: string | null
+      port: number | null
+      projectPath?: string | null
+      command?: string | null
+      studioPort?: number | null
+      startedAt?: number | null
+    }>>
     detect: () => Promise<IpcResponse<{ surfpool: boolean; testValidator: boolean }>>
     toolchainStatus: (projectPath?: string) => Promise<IpcResponse<{
       solanaCli: { installed: boolean; version: string | null }
@@ -1113,7 +1120,30 @@ declare global {
       testValidator: { installed: boolean; version: string | null }
       litesvm: { installed: boolean; source: 'project' | 'none' }
     }>>
-    detectProject: (projectPath: string) => Promise<IpcResponse<{ isSolanaProject: boolean; framework: string | null; indicators: string[]; suggestedMcps: string[] }>>
+    detectProject: (projectPath: string) => Promise<IpcResponse<{
+      isSolanaProject: boolean
+      framework: string | null
+      indicators: string[]
+      suggestedMcps: string[]
+      runtime?: {
+        cluster: string | null
+        providerWallet: string | null
+        packageManager: 'pnpm' | 'npm' | 'yarn' | 'bun' | null
+        files: {
+          anchorToml: boolean
+          cargoToml: boolean
+          packageJson: boolean
+          programsDir: boolean
+          targetIdlDir: boolean
+          surfpoolToml: boolean
+          testsDir: boolean
+        }
+        programs: Array<{ name: string; cluster: string; address: string; source: 'Anchor.toml' | 'IDL' }>
+        idls: Array<{ name: string; path: string; address: string | null }>
+        scripts: Array<{ name: string; command: string; source: 'package.json' }>
+        tests: { litesvm: boolean; anchorTests: boolean }
+      }
+    }>>
     onStatusChange: (callback: (state: unknown) => void) => () => void
   }
 

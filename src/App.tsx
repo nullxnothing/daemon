@@ -127,6 +127,7 @@ function App() {
         ['restoring layout...', useUIStore.getState().loadPinnedState()],
         ['loading onboarding...', useOnboardingStore.getState().loadProgress()],
         ['loading activity...', useNotificationsStore.getState().loadActivity()],
+        ['loading wallet data...', import('./store/walletData').then(({ useWalletDataStore }) => useWalletDataStore.getState().fetch())],
       ]
 
       const tasksPromise = Promise.allSettled(startupTasks.map(([, task]) => task))

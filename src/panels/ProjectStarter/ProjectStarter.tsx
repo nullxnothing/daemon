@@ -157,7 +157,7 @@ interface WizardState {
   savePath: string
 }
 
-export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
+export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null, runtime?: SolanaRuntimeStatusSummary | null): string {
   if (!settings) return ''
 
   const rpcPreference = settings.rpcProvider === 'quicknode'
@@ -176,20 +176,30 @@ export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null
     ? `Add an optional Jito execution path and environment variable for the block engine URL (${settings.jitoBlockEngineUrl || 'JITO_BLOCK_ENGINE_URL'}).`
     : 'Use standard RPC submission as the default transaction execution path.'
 
+  const runtimeLines = runtime
+    ? [
+        `- Runtime execution path: ${runtime.executionPath?.label ?? runtime.executionBackend.label}. ${runtime.executionPath?.detail ?? runtime.executionBackend.detail}`,
+        runtime.preflight?.blockers.length
+          ? `- Current DAEMON setup blockers to document, not hide: ${runtime.preflight.blockers.join(' ')}`
+          : '- Current DAEMON runtime preflight is ready; generated setup docs should preserve these provider and execution choices.',
+      ]
+    : []
+
   return [
     'Runtime stack requirements from this DAEMON workspace:',
     `- ${rpcPreference}`,
     `- ${walletPreference}`,
     `- Use ${settings.swapProvider === 'jupiter' ? 'Jupiter' : settings.swapProvider} as the default swap and routing layer when swaps are part of the scaffold.`,
     `- ${executionPreference}`,
+    ...runtimeLines,
     '- Read the generated `daemon.solana-runtime.json` file and wire the scaffold around that runtime preset instead of inventing a different stack.',
   ].join('\n')
 }
 
-export function buildRuntimePreset(settings: WalletInfrastructureSettings | null) {
+export function buildRuntimePreset(settings: WalletInfrastructureSettings | null, runtime?: SolanaRuntimeStatusSummary | null) {
   if (!settings) return null
 
-  return {
+  const preset = {
     version: 1,
     generatedBy: 'DAEMON',
     generatedAt: new Date().toISOString(),
@@ -207,6 +217,24 @@ export function buildRuntimePreset(settings: WalletInfrastructureSettings | null
     },
     swaps: {
       provider: settings.swapProvider,
+    },
+  }
+
+  if (!runtime) return preset
+
+  return {
+    ...preset,
+    executionPath: runtime.executionPath ?? {
+      mode: settings.executionMode,
+      label: settings.executionMode === 'jito' ? 'Jito block-engine submission' : 'Standard RPC submission',
+      detail: runtime.executionBackend.detail,
+      submitter: settings.executionMode === 'jito' ? settings.jitoBlockEngineUrl : runtime.rpc.detail,
+      confirmation: 'DAEMON confirms signatures through the configured RPC connection.',
+    },
+    readiness: runtime.preflight ?? {
+      ready: runtime.troubleshooting.length === 0,
+      checks: [],
+      blockers: runtime.troubleshooting,
     },
   }
 }
@@ -296,6 +324,7 @@ export function ProjectStarter() {
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings | null>(null)
+  const [solanaRuntimeStatus, setSolanaRuntimeStatus] = useState<SolanaRuntimeStatusSummary | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
 
   // Focus name input when entering configure step
@@ -307,9 +336,13 @@ export function ProjectStarter() {
 
   useEffect(() => {
     let cancelled = false
-    void window.daemon.settings.getWalletInfrastructureSettings().then((res) => {
-      if (cancelled || !res.ok || !res.data) return
-      setWalletInfrastructure(res.data)
+    void Promise.all([
+      window.daemon.settings.getWalletInfrastructureSettings(),
+      window.daemon.settings.getSolanaRuntimeStatus(),
+    ]).then(([settingsRes, runtimeRes]) => {
+      if (cancelled) return
+      if (settingsRes.ok && settingsRes.data) setWalletInfrastructure(settingsRes.data)
+      if (runtimeRes.ok && runtimeRes.data) setSolanaRuntimeStatus(runtimeRes.data)
     }).catch(() => {})
 
     return () => {
@@ -407,7 +440,7 @@ export function ProjectStarter() {
       }
       setActiveProject(newProject.id, projectPath)
 
-      const runtimePreset = buildRuntimePreset(walletInfrastructure)
+      const runtimePreset = buildRuntimePreset(walletInfrastructure, solanaRuntimeStatus)
       if (runtimePreset) {
         const runtimePresetRes = await window.daemon.fs.writeFile(
           `${projectPath}/daemon.solana-runtime.json`,
@@ -432,7 +465,7 @@ export function ProjectStarter() {
 
 
       // Spawn a terminal with Claude agent to scaffold the project
-      const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
+      const runtimePrompt = buildRuntimePrompt(walletInfrastructure, solanaRuntimeStatus)
       const templateSpecificPrompt = buildTemplateSpecificPrompt(wizard.template.id, walletInfrastructure)
       const agentPrompt = [
         `You are scaffolding a new project called "${name}" in the current directory.`,
@@ -493,7 +526,7 @@ export function ProjectStarter() {
       setError(String(err))
       setWizard((prev) => ({ ...prev, step: 'configure' }))
     }
-  }, [wizard, addTerminal, setCenterMode, setActiveProject, setProjects, closeDrawer])
+  }, [wizard, walletInfrastructure, solanaRuntimeStatus, addTerminal, setCenterMode, setActiveProject, setProjects, closeDrawer])
 
   const handleNameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && wizard.projectName.trim() && wizard.savePath) {
@@ -560,6 +593,10 @@ export function ProjectStarter() {
       `${walletInfrastructure.swapProvider === 'jupiter' ? 'Jupiter' : walletInfrastructure.swapProvider} swaps`,
       walletInfrastructure.executionMode === 'jito' ? 'Jito execution' : 'RPC execution',
     ] : []
+    const runtimeBlockers = solanaRuntimeStatus?.preflight?.blockers ?? solanaRuntimeStatus?.troubleshooting ?? []
+    const executionPathLabel = solanaRuntimeStatus?.executionPath?.label ?? (
+      walletInfrastructure?.executionMode === 'jito' ? 'Jito block-engine submission' : 'Standard RPC submission'
+    )
 
     return (
       <div className="starter-panel">
@@ -610,11 +647,21 @@ export function ProjectStarter() {
               <div className="starter-runtime-copy">
                 This scaffold will follow the current DAEMON Solana runtime preferences and include a `daemon.solana-runtime.json` file that the generated app should read.
               </div>
+              <div className="starter-runtime-copy">
+                Execution path: {executionPathLabel}.
+              </div>
               <div className="starter-runtime-tags">
                 {runtimeSummary.map((item) => (
                   <span key={item} className="starter-tag">{item}</span>
                 ))}
               </div>
+              {runtimeBlockers.length > 0 && (
+                <div className="starter-runtime-warnings">
+                  {runtimeBlockers.slice(0, 3).map((item) => (
+                    <div key={item} className="starter-runtime-warning">{item}</div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

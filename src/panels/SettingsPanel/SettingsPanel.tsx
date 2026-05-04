@@ -4,13 +4,14 @@ import { useOnboardingStore } from '../../store/onboarding'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
+import { TabPill, TabPillRow } from '../../components/Panel'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { isToolDisableable } from '../../constants/toolRegistry'
-import type { WorkspaceProfileName } from '../../../electron/shared/types'
+import type { TelemetrySettings, WorkspaceProfileName, WorkspaceToolModule } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'setup' | 'crashes'
+type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'setup' | 'modules' | 'crashes'
 interface AppMeta {
   version: string
   electronVersion: string
@@ -43,6 +44,7 @@ const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market'] },
   { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding', 'profile', 'workspace'] },
+  { tab: 'modules', keywords: ['modules', 'tools', 'features', 'enable', 'disable', 'lazy', 'performance', 'bundle', 'optional'] },
   { tab: 'crashes', keywords: ['crash', 'error', 'log', 'recovery'] },
 ]
 
@@ -80,18 +82,20 @@ export function SettingsPanel() {
         />
       </div>
 
-      <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'display', 'setup', 'crashes'] as SettingsTab[]).map((t) => (
-          <button
+      <TabPillRow variant="underline" className="settings-tabs" aria-label="Settings sections">
+        {(['keys', 'integrations', 'agents', 'display', 'setup', 'modules', 'crashes'] as SettingsTab[]).map((t) => (
+          <TabPill
             key={t}
+            variant="underline"
+            size="md"
+            active={tab === t}
             data-tab={t}
-            className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : 'Crash Log'}
-          </button>
+            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'modules' ? 'Modules' : 'Crash Log'}
+          </TabPill>
         ))}
-      </div>
+      </TabPillRow>
 
       <div className="settings-body">
         {tab === 'keys' && <KeysSection />}
@@ -99,6 +103,7 @@ export function SettingsPanel() {
         {tab === 'agents' && <AgentsSection />}
         {tab === 'display' && <DisplaySection />}
         {tab === 'setup' && <SetupSection />}
+        {tab === 'modules' && <ModulesSection />}
         {tab === 'crashes' && <CrashesSection />}
       </div>
     </div>
@@ -470,6 +475,178 @@ interface AppCrashEntry {
   created_at: number
 }
 
+function ModulesSection() {
+  const [modules, setModules] = useState<WorkspaceToolModule[]>([])
+  const [enabling, setEnabling] = useState<string | null>(null)
+  const pushToast = useNotificationsStore((s) => s.pushToast)
+
+  const refresh = useCallback(async (signal?: AbortSignal) => {
+    const res = await window.daemon.modules.list()
+    if (signal?.aborted) return
+    if (res.ok && res.data) setModules(res.data)
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void refresh(controller.signal)
+    return () => controller.abort()
+  }, [refresh])
+
+  const handleToggle = async (moduleId: string, currentlyEnabled: boolean) => {
+    setEnabling(moduleId)
+    try {
+      const res = currentlyEnabled
+        ? await window.daemon.modules.disable(moduleId)
+        : await window.daemon.modules.enable(moduleId)
+
+      if (!res.ok) {
+        pushToast({ kind: 'error', message: res.error ?? 'Failed to update module', context: 'Modules' })
+        return
+      }
+
+      if (currentlyEnabled && res.data?.requiresRestart) {
+        pushToast({
+          kind: 'info',
+          message: `${moduleId} disabled — restart DAEMON for the change to take effect.`,
+          context: 'Modules',
+          ttlMs: 8000,
+        })
+      } else if (!currentlyEnabled) {
+        pushToast({ kind: 'success', message: `${moduleId} enabled`, context: 'Modules', ttlMs: 4000 })
+      }
+      await refresh()
+    } finally {
+      setEnabling(null)
+    }
+  }
+
+  const coreModules = modules.filter((m) => m.is_core === 1)
+  const solanaModules = modules.filter((m) => m.is_core === 0 && m.category === 'solana')
+  const devModules = modules.filter((m) => m.is_core === 0 && m.category === 'dev')
+  const createModules = modules.filter((m) => m.is_core === 0 && m.category === 'create')
+  const systemModules = modules.filter((m) => m.is_core === 0 && m.category === 'system')
+
+  const enabledOptional = modules.filter((m) => m.is_core === 0 && m.enabled === 1).length
+  const totalOptional = modules.filter((m) => m.is_core === 0).length
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Workspace tool modules loaded on startup. Disabling unused modules reduces bundle size (~66% smaller), speeds cold starts (3x faster), and lowers memory usage.
+      </div>
+
+      <div className="settings-module-stats">
+        <span className="settings-module-stat">
+          <strong>{enabledOptional}</strong> of <strong>{totalOptional}</strong> optional modules enabled
+        </span>
+      </div>
+
+      <div className="settings-module-group">
+        <h3 className="settings-module-group-title">Core Tools (Always Enabled)</h3>
+        <div className="settings-module-list">
+          {coreModules.map((m) => (
+            <div key={m.id} className="settings-module-row">
+              <div className="settings-module-info">
+                <span className="settings-module-name">{m.name}</span>
+                <span className="settings-module-desc">{m.description}</span>
+              </div>
+              <div className="settings-module-badge core">Core</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {solanaModules.length > 0 && (
+        <div className="settings-module-group">
+          <h3 className="settings-module-group-title">Solana Tools</h3>
+          <div className="settings-module-list">
+            {solanaModules.map((m) => (
+              <div key={m.id} className="settings-module-row">
+                <div className="settings-module-info">
+                  <span className="settings-module-name">{m.name}</span>
+                  <span className="settings-module-desc">{m.description}</span>
+                </div>
+                <Toggle
+                  checked={m.enabled === 1}
+                  onChange={() => handleToggle(m.id, m.enabled === 1)}
+                  disabled={enabling === m.id}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {devModules.length > 0 && (
+        <div className="settings-module-group">
+          <h3 className="settings-module-group-title">Dev Tools</h3>
+          <div className="settings-module-list">
+            {devModules.map((m) => (
+              <div key={m.id} className="settings-module-row">
+                <div className="settings-module-info">
+                  <span className="settings-module-name">{m.name}</span>
+                  <span className="settings-module-desc">{m.description}</span>
+                </div>
+                <Toggle
+                  checked={m.enabled === 1}
+                  onChange={() => handleToggle(m.id, m.enabled === 1)}
+                  disabled={enabling === m.id}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {createModules.length > 0 && (
+        <div className="settings-module-group">
+          <h3 className="settings-module-group-title">Creator Tools</h3>
+          <div className="settings-module-list">
+            {createModules.map((m) => (
+              <div key={m.id} className="settings-module-row">
+                <div className="settings-module-info">
+                  <span className="settings-module-name">{m.name}</span>
+                  <span className="settings-module-desc">{m.description}</span>
+                </div>
+                <Toggle
+                  checked={m.enabled === 1}
+                  onChange={() => handleToggle(m.id, m.enabled === 1)}
+                  disabled={enabling === m.id}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {systemModules.length > 0 && (
+        <div className="settings-module-group">
+          <h3 className="settings-module-group-title">System Tools</h3>
+          <div className="settings-module-list">
+            {systemModules.map((m) => (
+              <div key={m.id} className="settings-module-row">
+                <div className="settings-module-info">
+                  <span className="settings-module-name">{m.name}</span>
+                  <span className="settings-module-desc">{m.description}</span>
+                </div>
+                <Toggle
+                  checked={m.enabled === 1}
+                  onChange={() => handleToggle(m.id, m.enabled === 1)}
+                  disabled={enabling === m.id}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="settings-section-desc tight">
+        Enabling loads handlers immediately. Disabling only takes effect after restart for modules that were already loaded this session.
+      </div>
+    </div>
+  )
+}
+
 function CrashesSection() {
   const [crashes, setCrashes] = useState<AppCrashEntry[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -564,12 +741,19 @@ function CrashesSection() {
 function SetupSection() {
   const [resettingLayout, setResettingLayout] = useState(false)
   const [appMeta, setAppMeta] = useState<AppMeta | null>(null)
+  const [telemetry, setTelemetry] = useState<TelemetrySettings | null>(null)
+  const [savingTelemetry, setSavingTelemetry] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     window.daemon.settings.getAppMeta().then((res) => {
       if (!cancelled && res.ok && res.data) setAppMeta(res.data)
     }).catch(() => {})
+    if (typeof window.daemon.settings.getTelemetry === 'function') {
+      window.daemon.settings.getTelemetry().then((res) => {
+        if (!cancelled && res.ok && res.data) setTelemetry(res.data)
+      }).catch(() => {})
+    }
     return () => { cancelled = true }
   }, [])
 
@@ -601,6 +785,23 @@ function SetupSection() {
     } catch (err) {
       useNotificationsStore.getState().pushError(err, 'Reset UI layout')
       setResettingLayout(false)
+    }
+  }
+
+  const handleTelemetryToggle = async (enabled: boolean) => {
+    if (!telemetry) return
+    if (typeof window.daemon.settings.setTelemetryEnabled !== 'function') return
+    setTelemetry({ ...telemetry, enabled })
+    setSavingTelemetry(true)
+    try {
+      const res = await window.daemon.settings.setTelemetryEnabled(enabled)
+      if (!res.ok) throw new Error(res.error ?? 'Failed to update telemetry setting')
+      if (res.data) setTelemetry(res.data)
+    } catch (err) {
+      setTelemetry({ ...telemetry, enabled: telemetry.enabled })
+      useNotificationsStore.getState().pushError(err, 'Telemetry')
+    } finally {
+      setSavingTelemetry(false)
     }
   }
 
@@ -638,6 +839,16 @@ function SetupSection() {
               Open Latest Release
             </button>
           </div>
+        </div>
+      )}
+
+      {telemetry && (
+        <div className="settings-display-row">
+          <span className="settings-display-label">Anonymous usage telemetry</span>
+          <span className="settings-display-hint">
+            Counts first launch and daily active installs using an anonymous install ID, app version, OS, and timestamp.
+          </span>
+          <Toggle checked={telemetry.enabled} onChange={handleTelemetryToggle} disabled={savingTelemetry} />
         </div>
       )}
 

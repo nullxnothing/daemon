@@ -630,3 +630,16 @@ ALTER TABLE agent_work_tasks ADD COLUMN receipt_signature TEXT;
 ALTER TABLE agent_work_tasks ADD COLUMN review_signature TEXT;
 CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_onchain ON agent_work_tasks(onchain_task_id);
 `
+
+export const SCHEMA_V32 = `
+CREATE TABLE IF NOT EXISTS workspace_tool_modules (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  is_core INTEGER DEFAULT 0,
+  enabled INTEGER DEFAULT 0,
+  sort_order INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_workspace_tool_modules_enabled ON workspace_tool_modules(enabled, category);
+`

@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useAppActions } from '../../store/appActions'
-import daemonLogo from '../../assets/daemon-mark.svg'
+import { DaemonMark } from '../../components/DaemonMark'
 
 interface EditorWelcomeProps {
   activeProjectId: string | null
@@ -90,7 +90,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
       onDrop={handleEmptyDrop}
     >
       <div className="editor-empty-glow" />
-      <img src={daemonLogo} alt="" className="editor-empty-logo" draggable={false} />
+      <DaemonMark className="editor-empty-logo" />
       <span className="editor-empty-title">DAEMON</span>
 
       {isEmptyDragOver ? (

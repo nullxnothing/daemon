@@ -46,29 +46,7 @@
 }
 
 .pro-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--s4);
-}
-
-.pro-tab {
-  flex: 1;
-  padding: 10px 12px;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  color: var(--t3);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.pro-tab.active {
-  color: var(--t1);
-  border-bottom-color: var(--green);
-}
-
-.pro-tab:disabled {
-  color: var(--t4);
-  cursor: not-allowed;
+  padding: 0 var(--space-md);
 }
 
 .pro-panel-body {

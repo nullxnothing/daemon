@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import * as pty from 'node-pty'
-import { execFileSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
@@ -37,15 +37,14 @@ function getWin() {
 
 function killPtySession(id: string, session: TerminalSession) {
   if (process.platform === 'win32' && session.pty.pid) {
-    try {
-      execFileSync('taskkill.exe', ['/pid', String(session.pty.pid), '/t', '/f'], {
-        stdio: 'ignore',
-        windowsHide: true,
-        timeout: 5000,
-      })
-    } catch (err) {
+    const child = spawn('taskkill.exe', ['/pid', String(session.pty.pid), '/t', '/f'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    child.once('error', (err) => {
       LogService.warn('Terminal', `Failed to taskkill PTY process tree ${id}`, { error: (err as Error).message })
-    }
+    })
+    child.unref()
 
     try {
       ;(session.pty as unknown as { _close?: () => void })._close?.()
