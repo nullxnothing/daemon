@@ -82,10 +82,11 @@ export function SettingsPanel() {
         />
       </div>
 
-      <TabPillRow className="settings-tabs" aria-label="Settings sections">
+      <TabPillRow variant="underline" className="settings-tabs" aria-label="Settings sections">
         {(['keys', 'integrations', 'agents', 'display', 'setup', 'modules', 'crashes'] as SettingsTab[]).map((t) => (
           <TabPill
             key={t}
+            variant="underline"
             size="md"
             active={tab === t}
             data-tab={t}
