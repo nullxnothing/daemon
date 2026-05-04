@@ -11,9 +11,33 @@ const EMPTY_SETTINGS: TokenLaunchSettings = {
     quoteMint: '',
     baseSupply: '',
   },
+  printr: {
+    apiBaseUrl: '',
+    apiKey: '',
+    quotePath: '',
+    createPath: '',
+    chain: '',
+  },
 }
 
 type LaunchpadMap = Record<LaunchpadId, LaunchpadDefinition>
+
+function normalizeSettings(value: Partial<TokenLaunchSettings> | null | undefined): TokenLaunchSettings {
+  return {
+    raydium: {
+      ...EMPTY_SETTINGS.raydium,
+      ...(value?.raydium ?? {}),
+    },
+    meteora: {
+      ...EMPTY_SETTINGS.meteora,
+      ...(value?.meteora ?? {}),
+    },
+    printr: {
+      ...EMPTY_SETTINGS.printr,
+      ...(value?.printr ?? {}),
+    },
+  }
+}
 
 function toMap(definitions: LaunchpadDefinition[]): LaunchpadMap {
   return definitions.reduce((acc, definition) => {
@@ -54,7 +78,9 @@ export function LaunchpadSettingsSection({
         window.daemon.settings.getTokenLaunchSettings(),
         window.daemon.launch.listLaunchpads(),
       ])
-      const nextSettings = settingsRes.ok && settingsRes.data ? settingsRes.data : EMPTY_SETTINGS
+      const nextSettings = settingsRes.ok && settingsRes.data
+        ? normalizeSettings(settingsRes.data)
+        : EMPTY_SETTINGS
       setDraft(nextSettings)
       setSaved(nextSettings)
       if (launchpadsRes.ok && launchpadsRes.data) {
@@ -204,6 +230,69 @@ export function LaunchpadSettingsSection({
             </label>
           </div>
           {definitions.meteora?.reason && <div className="solana-launchpad-settings-note">{definitions.meteora.reason}</div>}
+        </div>
+
+        <div className="solana-launchpad-settings-card">
+          <div className="solana-launchpad-settings-top">
+            <div>
+              <h3 className="solana-launchpad-settings-name">Printr Beta</h3>
+              <p className="solana-launchpad-settings-desc">Printr launches are API-driven. Store partner API config here so DAEMON can preflight and submit launches without assuming a public Solana SDK.</p>
+            </div>
+            <LaunchpadStatusBadge definition={definitions.printr} />
+          </div>
+          <div className="solana-launchpad-settings-fields">
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">API Base URL</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.printr.apiBaseUrl}
+                onChange={(e) => setDraft((prev) => ({ ...prev, printr: { ...prev.printr, apiBaseUrl: e.target.value } }))}
+                placeholder="https://api-preview.printr.money"
+              />
+              <span className="solana-launchpad-field-hint">Required unless `PRINTR_API_BASE_URL` already exists in env.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">API Key</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.printr.apiKey}
+                onChange={(e) => setDraft((prev) => ({ ...prev, printr: { ...prev.printr, apiKey: e.target.value } }))}
+                placeholder="Partner API key"
+              />
+              <span className="solana-launchpad-field-hint">Required unless `PRINTR_API_KEY` already exists in env.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Quote Path</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.printr.quotePath}
+                onChange={(e) => setDraft((prev) => ({ ...prev, printr: { ...prev.printr, quotePath: e.target.value } }))}
+                placeholder="/quote"
+              />
+              <span className="solana-launchpad-field-hint">Optional. Use this if Printr exposes a dedicated quote endpoint for launch cost estimation.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Create Path</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.printr.createPath}
+                onChange={(e) => setDraft((prev) => ({ ...prev, printr: { ...prev.printr, createPath: e.target.value } }))}
+                placeholder="/create"
+              />
+              <span className="solana-launchpad-field-hint">Optional. Override only if Printr provides a different create endpoint path.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Chain ID</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.printr.chain}
+                onChange={(e) => setDraft((prev) => ({ ...prev, printr: { ...prev.printr, chain: e.target.value } }))}
+                placeholder="solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+              />
+              <span className="solana-launchpad-field-hint">Optional. Solana mainnet Printr chain id is used when empty.</span>
+            </label>
+          </div>
+          {definitions.printr?.reason && <div className="solana-launchpad-settings-note">{definitions.printr.reason}</div>}
         </div>
       </div>
 

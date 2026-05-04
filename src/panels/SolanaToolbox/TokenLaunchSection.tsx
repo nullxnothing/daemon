@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 
+const PULSE_CATEGORIES: Array<{ id: PulseTokenCategory; label: string }> = [
+  { id: 'newly-created', label: 'New' },
+  { id: 'almost-graduated', label: 'Almost Graduated' },
+  { id: 'graduated', label: 'Graduated' },
+]
+
 function truncateMiddle(value: string, head = 6, tail = 6) {
   if (value.length <= head + tail + 3) return value
   return `${value.slice(0, head)}...${value.slice(-tail)}`
@@ -17,6 +23,14 @@ function formatCreatedAt(createdAt: number) {
   })
 }
 
+function formatCompactNumber(value: number | null, digits = 1) {
+  if (value == null || !Number.isFinite(value)) return 'n/a'
+  return new Intl.NumberFormat([], {
+    notation: 'compact',
+    maximumFractionDigits: digits,
+  }).format(value)
+}
+
 export function TokenLaunchSection({
   refreshNonce = 0,
   embedded = false,
@@ -31,15 +45,22 @@ export function TokenLaunchSection({
 
   const [launchpads, setLaunchpads] = useState<LaunchpadDefinition[]>([])
   const [launches, setLaunches] = useState<LaunchedToken[]>([])
+  const [pulseCategory, setPulseCategory] = useState<PulseTokenCategory>('graduated')
+  const [pulseFeed, setPulseFeed] = useState<PulseTokenFeed | null>(null)
   const [walletNames, setWalletNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const [launchpadsRes, launchesRes] = await Promise.all([
+      const pulsePromise = typeof window.daemon.launch.listPulseTokens === 'function'
+        ? window.daemon.launch.listPulseTokens({ category: pulseCategory, pageSize: 6 })
+        : Promise.resolve<IpcResponse<PulseTokenFeed>>({ ok: false, error: 'Pulse feed unavailable' })
+
+      const [launchpadsRes, launchesRes, pulseRes] = await Promise.all([
         window.daemon.launch.listLaunchpads(),
         window.daemon.launch.listTokens(),
+        pulsePromise,
       ])
       const walletsRes = await window.daemon.wallet.list()
       if (launchpadsRes.ok && launchpadsRes.data) {
@@ -48,13 +69,18 @@ export function TokenLaunchSection({
       if (launchesRes.ok && launchesRes.data) {
         setLaunches(launchesRes.data.slice(0, 6))
       }
+      if (pulseRes.ok && pulseRes.data) {
+        setPulseFeed(pulseRes.data)
+      } else {
+        setPulseFeed(null)
+      }
       if (walletsRes.ok && walletsRes.data) {
         setWalletNames(Object.fromEntries(walletsRes.data.map((wallet) => [wallet.id, wallet.name])))
       }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [pulseCategory])
 
   useEffect(() => {
     void reload()
@@ -186,6 +212,59 @@ export function TokenLaunchSection({
                   ) : (
                     <button className="sol-btn" disabled>No Tx</button>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="solana-token-launch-card">
+          <div className="solana-token-launch-card-header">
+            <div className="solana-token-launch-card-title">Printr Pulse</div>
+            <div className="solana-pulse-tabs">
+              {PULSE_CATEGORIES.map((category) => (
+                <button
+                  key={category.id}
+                  className={`solana-pulse-tab ${pulseCategory === category.id ? 'active' : ''}`}
+                  onClick={() => setPulseCategory(category.id)}
+                  type="button"
+                >
+                  {category.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {loading ? (
+            <div className="solana-empty">Loading Pulse feed...</div>
+          ) : !pulseFeed || pulseFeed.tokens.length === 0 ? (
+            <div className="solana-empty">Pulse feed unavailable for this workspace.</div>
+          ) : (
+            <div className="solana-launch-history">
+              {pulseFeed.tokens.map((token) => (
+                <div key={token.id} className="solana-launch-history-row">
+                  <div className="solana-launch-history-main">
+                    <div className="solana-launch-history-title">
+                      <span>{token.symbol}</span>
+                      <span className="solana-launch-history-name">{token.name}</span>
+                      <span className="solana-launch-status active">{PULSE_CATEGORIES.find((item) => item.id === token.category)?.label ?? token.category}</span>
+                    </div>
+                    <div className="solana-launch-history-meta">
+                      <span>MC {formatCompactNumber(token.metrics.marketCapUsd)}</span>
+                      <span>Vol {formatCompactNumber(token.metrics.volume24Usd)}</span>
+                      <span>Holders {formatCompactNumber(token.metrics.holders, 0)}</span>
+                      <span>Progress {token.metrics.graduationProgress == null ? 'n/a' : `${Math.round(token.metrics.graduationProgress)}%`}</span>
+                      <span>{formatCreatedAt(token.createdAt ?? Number.NaN)}</span>
+                    </div>
+                    <div className="solana-launch-history-mint">{truncateMiddle(token.contractAddress)}</div>
+                  </div>
+                  <button
+                    className="sol-btn"
+                    onClick={() => {
+                      void window.daemon.shell.openExternal(`https://app.printr.money/v2/trade/${token.contractAddress}`)
+                    }}
+                  >
+                    Open Pulse
+                  </button>
                 </div>
               ))}
             </div>

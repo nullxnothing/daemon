@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { useEmailStore } from '../../../store/email'
 
 export function ComposeView() {
-  const { accounts, activeAccountId, setViewMode, sendEmail } = useEmailStore()
+  const accounts = useEmailStore((s) => s.accounts)
+  const activeAccountId = useEmailStore((s) => s.activeAccountId)
+  const setViewMode = useEmailStore((s) => s.setViewMode)
+  const sendEmail = useEmailStore((s) => s.sendEmail)
 
   const connectedAccounts = accounts.filter((a) => a.status === 'connected')
 

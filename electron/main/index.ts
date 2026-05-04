@@ -40,8 +40,12 @@ import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
+import { registerAgentStationHandlers } from '../ipc/agentStation'
+import { registerReplayHandlers } from '../ipc/replay'
+import { registerLspHandlers } from '../ipc/lsp'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
+import { shutdownAllLspSessions } from '../services/LspService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -80,7 +84,7 @@ protocol.registerSchemesAsPrivileged([{
   privileges: { standard: true, supportFetchAPI: true, allowServiceWorkers: false },
 }])
 
-if (process.platform === 'win32') app.setAppUserModelId('DAEMON')
+if (process.platform === 'win32') app.setAppUserModelId('com.daemon.app')
 
 // Crash capture — write unhandled errors to app_crashes table
 process.on('uncaughtException', (error) => {
@@ -111,8 +115,35 @@ if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
 let win: BrowserWindow | null = null
 let ipcRegistered = false
 let startupUiRecovery: UiRecoveryResult | null = null
+let shutdownStarted = false
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
+
+function cleanupRuntimeState() {
+  killAllSessions()
+  shutdownAllLspSessions()
+  clearLoadedWallets()
+  closeDb()
+}
+
+function beginShutdownCleanup() {
+  if (shutdownStarted) return false
+  shutdownStarted = true
+  cleanupRuntimeState()
+  return true
+}
+
+function shutdownApp() {
+  beginShutdownCleanup()
+  const windows = BrowserWindow.getAllWindows()
+  if (windows.length > 0) {
+    for (const window of windows) {
+      if (!window.isDestroyed()) window.close()
+    }
+  } else {
+    app.quit()
+  }
+}
 
 function registerAllIpc() {
   if (ipcRegistered) return
@@ -156,6 +187,9 @@ function registerAllIpc() {
   registerValidatorHandlers()
   registerPnlHandlers()
   registerFeedbackHandlers()
+  registerAgentStationHandlers()
+  registerReplayHandlers()
+  registerLspHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -166,7 +200,7 @@ function registerAllIpc() {
       win?.maximize()
     }
   })
-  ipcMain.on('window:close', () => win?.close())
+  ipcMain.on('window:close', () => shutdownApp())
   ipcMain.on('window:reload', () => {
     if (!win) return
     if (VITE_DEV_SERVER_URL) {
@@ -383,12 +417,14 @@ app.whenReady().then(() => {
   }
 })
 
+app.on('before-quit', () => {
+  beginShutdownCleanup()
+})
+
 app.on('window-all-closed', () => {
-  killAllSessions()
-  clearLoadedWallets()
-  closeDb()
+  beginShutdownCleanup()
   win = null
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })
 
 app.on('second-instance', () => {
@@ -399,6 +435,7 @@ app.on('second-instance', () => {
 })
 
 app.on('activate', () => {
+  if (shutdownStarted) return
   const allWindows = BrowserWindow.getAllWindows()
   if (allWindows.length) {
     allWindows[0].focus()
@@ -406,3 +443,10 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    shutdownApp()
+    process.exit(0)
+  })
+}

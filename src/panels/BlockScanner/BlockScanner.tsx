@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import './BlockScanner.css'
 
 interface WebviewElement extends HTMLElement {
-  src: string
   goBack: () => void
   goForward: () => void
   reload: () => void
@@ -36,16 +35,15 @@ function txUrl(cluster: Cluster, sig: string): string {
 export default function BlockScanner() {
   const [cluster, setCluster] = useState<Cluster>('mainnet')
   const [search, setSearch] = useState('')
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(() => clusterBase('mainnet'))
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const webviewRef = useRef<WebviewElement | null>(null)
 
   const navigate = useCallback((target: string) => {
+    setLoadError(null)
     setUrl(target)
-    if (webviewRef.current) {
-      webviewRef.current.src = target
-    }
   }, [])
 
   const handleSearch = () => {
@@ -75,30 +73,46 @@ export default function BlockScanner() {
     const wv = webviewRef.current
     if (!wv) return
 
-    const onNavigate = (event: any) => {
-      const newUrl = event.url || ''
-      if (newUrl) setUrl(newUrl)
+    const updateNavState = () => {
       try {
         setCanGoBack(wv.canGoBack())
         setCanGoForward(wv.canGoForward())
       } catch { /* not ready */ }
     }
 
+    const onStartLoading = () => {
+      setLoadError(null)
+    }
+
+    const onNavigate = (event: any) => {
+      const newUrl = event.url || ''
+      if (newUrl) setUrl(newUrl)
+      updateNavState()
+    }
+
+    const onFailLoad = (event: any) => {
+      const code = event.errorCode ?? -1
+      if (code === -3) return
+      const description = event.errorDescription || 'Could not load Orb.'
+      setLoadError(`${description} (${code})`)
+      updateNavState()
+    }
+
+    const onStopLoading = () => updateNavState()
+
+    wv.addEventListener('did-start-loading', onStartLoading)
     wv.addEventListener('did-navigate', onNavigate)
     wv.addEventListener('did-navigate-in-page', onNavigate)
+    wv.addEventListener('did-fail-load', onFailLoad)
+    wv.addEventListener('did-stop-loading', onStopLoading)
     return () => {
+      wv.removeEventListener('did-start-loading', onStartLoading)
       wv.removeEventListener('did-navigate', onNavigate)
       wv.removeEventListener('did-navigate-in-page', onNavigate)
+      wv.removeEventListener('did-fail-load', onFailLoad)
+      wv.removeEventListener('did-stop-loading', onStopLoading)
     }
   }, [])
-
-  // If no URL yet, start on cluster home
-  useEffect(() => {
-    if (!url) {
-      const initial = clusterBase(cluster)
-      setUrl(initial)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const webviewProps = {
     ref: webviewRef as React.Ref<HTMLElement>,
@@ -130,7 +144,10 @@ export default function BlockScanner() {
           </button>
           <button
             className="scanner-nav-btn"
-            onClick={() => webviewRef.current?.reload()}
+            onClick={() => {
+              setLoadError(null)
+              webviewRef.current?.reload()
+            }}
             title="Reload"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
@@ -165,6 +182,13 @@ export default function BlockScanner() {
 
       <div className="scanner-webview-area">
         <webview {...webviewProps} />
+        {loadError && (
+          <div className="scanner-load-error" role="status">
+            <span>Orb could not finish loading.</span>
+            <small>{loadError}</small>
+            <button type="button" onClick={() => navigate(url)}>Retry</button>
+          </div>
+        )}
       </div>
     </div>
   )
