@@ -1,0 +1,24 @@
+# Default to LF for all text — kills the win-side CRLF churn that pollutes diffs.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png   binary
+*.ico   binary
+*.icns  binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.svg   text eol=lf
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.7z    binary
+*.exe   binary
+*.dmg   binary
+*.AppImage binary
+
+# Lockfiles — keep LF, no merge driver fights.
+pnpm-lock.yaml -text -diff
+package-lock.json -text -diff
+yarn.lock -text -diff

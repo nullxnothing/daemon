@@ -40,8 +40,12 @@ import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
+import { registerAgentStationHandlers } from '../ipc/agentStation'
+import { registerReplayHandlers } from '../ipc/replay'
+import { registerLspHandlers } from '../ipc/lsp'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
+import { shutdownAllLspSessions } from '../services/LspService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -80,7 +84,7 @@ protocol.registerSchemesAsPrivileged([{
   privileges: { standard: true, supportFetchAPI: true, allowServiceWorkers: false },
 }])
 
-if (process.platform === 'win32') app.setAppUserModelId('DAEMON')
+if (process.platform === 'win32') app.setAppUserModelId('com.daemon.app')
 
 // Crash capture — write unhandled errors to app_crashes table
 process.on('uncaughtException', (error) => {
@@ -117,18 +121,28 @@ const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 function cleanupRuntimeState() {
   killAllSessions()
+  shutdownAllLspSessions()
   clearLoadedWallets()
   closeDb()
 }
 
-function shutdownApp() {
-  if (shutdownStarted) return
+function beginShutdownCleanup() {
+  if (shutdownStarted) return false
   shutdownStarted = true
   cleanupRuntimeState()
-  for (const window of BrowserWindow.getAllWindows()) {
-    if (!window.isDestroyed()) window.destroy()
+  return true
+}
+
+function shutdownApp() {
+  beginShutdownCleanup()
+  const windows = BrowserWindow.getAllWindows()
+  if (windows.length > 0) {
+    for (const window of windows) {
+      if (!window.isDestroyed()) window.close()
+    }
+  } else {
+    app.quit()
   }
-  app.quit()
 }
 
 function registerAllIpc() {
@@ -173,6 +187,9 @@ function registerAllIpc() {
   registerValidatorHandlers()
   registerPnlHandlers()
   registerFeedbackHandlers()
+  registerAgentStationHandlers()
+  registerReplayHandlers()
+  registerLspHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -401,14 +418,11 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
-  if (!shutdownStarted) {
-    shutdownStarted = true
-    cleanupRuntimeState()
-  }
+  beginShutdownCleanup()
 })
 
 app.on('window-all-closed', () => {
-  if (!shutdownStarted) cleanupRuntimeState()
+  beginShutdownCleanup()
   win = null
   app.quit()
 })

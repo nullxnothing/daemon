@@ -13,11 +13,13 @@ vi.mock('../../electron/db/db', () => ({
 }))
 
 import {
+  getDrawerToolOrder,
   getPinnedTools,
   getTokenLaunchSettings,
   getWorkspaceProfile,
   maybeRecoverUnstableUiState,
   recoverUiState,
+  setDrawerToolOrder,
   setTokenLaunchSettings,
 } from '../../electron/services/SettingsService'
 
@@ -97,6 +99,32 @@ describe('SettingsService token launch settings', () => {
       expect.any(Number),
     )
     expect(mockRun).toHaveBeenCalledWith('pinned_tools_pro_default_added', 'true', expect.any(Number))
+  })
+
+  it('allows an empty drawer tool order to preserve registry ordering', () => {
+    mockGet.mockReturnValue({
+      value: JSON.stringify([]),
+    })
+
+    expect(getDrawerToolOrder()).toEqual([])
+  })
+
+  it('sanitizes drawer tool order without falling back to pinned tools', () => {
+    mockGet.mockReturnValue({
+      value: JSON.stringify(['wallet', '', 'git', 'wallet', 42]),
+    })
+
+    expect(getDrawerToolOrder()).toEqual(['wallet', 'git'])
+  })
+
+  it('persists an explicitly empty drawer tool order', () => {
+    setDrawerToolOrder([])
+
+    expect(mockRun).toHaveBeenCalledWith(
+      'drawer_tool_order',
+      JSON.stringify([]),
+      expect.any(Number),
+    )
   })
 
   it('drops invalid workspace profiles from storage', () => {

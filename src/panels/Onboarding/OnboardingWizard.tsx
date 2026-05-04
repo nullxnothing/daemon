@@ -7,6 +7,7 @@ import { StepClaude } from './steps/StepClaude'
 import { StepGmail } from './steps/StepGmail'
 import { StepVercel } from './steps/StepVercel'
 import { StepRailway } from './steps/StepRailway'
+import daemonIcon from '../../assets/daemon-icon.png'
 import './OnboardingWizard.css'
 
 const STEP_LABELS: Record<OnboardingStepId, string> = {
@@ -76,7 +77,10 @@ export function OnboardingWizard() {
       onKeyDown={handleKeyDown}
     >
       <div className="wizard-card">
-        <div className="wizard-title">DAEMON</div>
+        <div className="wizard-brand">
+          <img src={daemonIcon} alt="" className="wizard-brand-mark" draggable={false} />
+          <div className="wizard-title">DAEMON</div>
+        </div>
 
         {/* Progress dots */}
         <div className="wizard-progress">

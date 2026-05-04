@@ -2,10 +2,55 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProStore } from '../../store/pro'
 import { useWalletStore } from '../../store/wallet'
 import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../electron/shared/types'
+import { Banner, Stat } from '../../components/Panel'
 import { ArenaView } from './ArenaView'
 import './ProPanel.css'
 
-type ProTab = 'overview' | 'arena' | 'skills' | 'sync'
+type ProTab = 'overview' | 'staking' | 'arena' | 'skills' | 'sync'
+
+interface StakingTier {
+  id: string
+  label: string
+  threshold: string
+  status: 'live' | 'planned'
+  unlocks: string[]
+}
+
+const STAKING_TIERS: StakingTier[] = [
+  {
+    id: 'signal',
+    label: 'Signal',
+    threshold: '25K staked',
+    status: 'planned',
+    unlocks: [
+      'Staker badge in DAEMON',
+      'Early feature notes and release windows',
+      'Priority waitlist for new Solana modules',
+    ],
+  },
+  {
+    id: 'builder',
+    label: 'Builder',
+    threshold: '100K staked',
+    status: 'planned',
+    unlocks: [
+      'Higher concurrent agent caps',
+      'Premium project scaffolds and workflow packs',
+      'Priority execution queue for hosted actions',
+    ],
+  },
+  {
+    id: 'operator',
+    label: 'Operator',
+    threshold: '250K staked',
+    status: 'planned',
+    unlocks: [
+      'Launch addon access across supported protocols',
+      'Higher MCP sync and priority API allowances',
+      'Expanded arena voting weight and beta surfaces',
+    ],
+  },
+]
 
 export function ProPanel() {
   const subscription = useProStore((state) => state.subscription)
@@ -91,6 +136,7 @@ export function ProPanel() {
 
       <nav className="pro-tabs">
         <button className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Staking</button>
         <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
         <button className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
         <button className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
@@ -119,6 +165,21 @@ export function ProPanel() {
             accessSource={subscription.accessSource}
           />
         )}
+        {activeTab === 'staking' && (
+          <StakingView
+            selectedWalletLabel={selectedWallet ? `${selectedWallet.name} (${selectedWallet.address.slice(0, 4)}…${selectedWallet.address.slice(-4)})` : null}
+            hasWallet={wallets.length > 0}
+            holderStatus={subscription.holderStatus}
+            accessSource={subscription.accessSource}
+            onRefreshSelectedWallet={() => {
+              if (!selectedWallet?.address) return
+              void refreshStatus(selectedWallet.address)
+            }}
+            onClaimHolderAccess={handleClaimHolderAccess}
+            selectedWalletId={selectedWalletId}
+            subscribing={subscribing}
+          />
+        )}
         {activeTab === 'arena' && (isActive ? <ArenaView /> : <ArenaStatusLocked />)}
         {activeTab === 'skills' && isActive && <SkillsView />}
         {activeTab === 'sync' && isActive && <SyncView />}
@@ -130,6 +191,99 @@ export function ProPanel() {
         </div>
       </footer>
     </section>
+  )
+}
+
+function StakingView({
+  selectedWalletLabel,
+  hasWallet,
+  holderStatus,
+  accessSource,
+  onRefreshSelectedWallet,
+  onClaimHolderAccess,
+  selectedWalletId,
+  subscribing,
+}: {
+  selectedWalletLabel: string | null
+  hasWallet: boolean
+  holderStatus: ProSubscriptionState['holderStatus']
+  accessSource: ProSubscriptionState['accessSource']
+  onRefreshSelectedWallet: () => void
+  onClaimHolderAccess: () => void
+  selectedWalletId: string
+  subscribing: boolean
+}) {
+  const currentAmount = holderStatus.currentAmount ?? 0
+  const minAmount = holderStatus.minAmount ?? 0
+  const eligible = holderStatus.enabled && holderStatus.eligible
+
+  return (
+    <div className="pro-staking">
+      <section className="pro-staking-hero">
+        <div>
+          <div className="pro-section-title">DAEMON staking utility</div>
+          <div className="pro-section-caption">
+            Current wallet-gated access is live now. Staking tiers below define how DAEMON can unlock more of the
+            workspace over time without turning the token into a detached vanity asset.
+          </div>
+        </div>
+        <div className="pro-staking-pill-group">
+          <span className={`pro-staking-pill ${eligible ? 'eligible' : ''}`}>
+            {eligible ? 'Holder access available' : 'Access not yet unlocked'}
+          </span>
+          {accessSource && <span className="pro-staking-pill pro-staking-pill-live">Live source: {accessSource === 'holder' ? 'holder' : 'payment'}</span>}
+        </div>
+      </section>
+
+      <section className="pro-staking-status-grid">
+        <ProStat label="Selected wallet" value={selectedWalletLabel ?? 'No wallet selected'} mono={Boolean(selectedWalletLabel)} />
+        <ProStat label="Current DAEMON" value={currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
+        <ProStat label="Live access threshold" value={holderStatus.enabled ? minAmount.toLocaleString() : 'Not configured'} />
+        <ProStat label="Current path" value={accessSource === 'holder' ? 'Holder access active' : accessSource === 'payment' ? 'Paid access active' : 'No active access'} />
+      </section>
+
+      <section className="pro-staking-actions-card">
+        <div>
+          <div className="pro-subscribe-title">Current wallet check</div>
+          <div className="pro-section-caption">
+            Use this to refresh holder eligibility on the selected wallet. If live access is already unlocked, activate it on this device directly from here.
+          </div>
+        </div>
+        {!hasWallet ? (
+          <div className="pro-subscribe-empty">Create or import a wallet first so DAEMON can verify current access.</div>
+        ) : (
+          <div className="pro-staking-action-row">
+            <button className="pro-btn" onClick={onRefreshSelectedWallet} disabled={!selectedWalletId || subscribing}>
+              Refresh wallet status
+            </button>
+            <button className="pro-btn pro-btn-primary" onClick={onClaimHolderAccess} disabled={!eligible || !selectedWalletId || subscribing}>
+              {subscribing ? 'Activating…' : 'Activate holder access'}
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="pro-staking-tier-grid">
+        {STAKING_TIERS.map((tier) => (
+          <div key={tier.id} className="pro-staking-tier-card">
+            <div className="pro-staking-tier-head">
+              <div>
+                <div className="pro-feature-title">{tier.label}</div>
+                <div className="pro-section-caption">{tier.threshold}</div>
+              </div>
+              <span className={`pro-staking-pill ${tier.status === 'live' ? 'live' : 'planned'}`}>{tier.status}</span>
+            </div>
+            <div className="pro-staking-unlocks">
+              {tier.unlocks.map((unlock) => (
+                <div key={unlock} className="pro-active-feature">
+                  <span className="pro-active-check">+</span> {unlock}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
   )
 }
 
@@ -211,13 +365,13 @@ function OverviewSubscribe({
       </div>
 
       {holderStatus.enabled && (
-        <div className={`pro-holder-banner ${isHolderEligible ? 'eligible' : ''}`}>
+        <Banner className={`pro-holder-banner ${isHolderEligible ? 'eligible' : ''}`} tone={isHolderEligible ? 'success' : 'warn'}>
           <div className="pro-holder-banner-title">{isHolderEligible ? 'Holder access available' : 'DAEMON holder access'}</div>
           <div className="pro-holder-banner-copy">
             Hold {minAmount.toLocaleString()}+ DAEMON to unlock Pro. Current selected wallet: {currentAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} DAEMON.
             {accessSource === 'holder' ? ' Holder access is currently active on this device.' : ''}
           </div>
-        </div>
+        </Banner>
       )}
 
       <div className="pro-subscribe-box">
@@ -273,11 +427,11 @@ function OverviewActive({
   return (
     <div className="pro-overview">
       <div className="pro-active-grid">
-        <StatCard label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
-        <StatCard label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
-        <StatCard label="Features" value={`${features.length} unlocked`} />
-        <StatCard label="Access" value={accessSource === 'holder' ? 'Holder' : 'Paid'} />
-        <StatCard label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
+        <ProStat label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
+        <ProStat label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
+        <ProStat label="Features" value={`${features.length} unlocked`} />
+        <ProStat label="Access" value={accessSource === 'holder' ? 'Holder' : 'Paid'} />
+        <ProStat label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
       </div>
       <div className="pro-active-features">
         {features.map((feature) => (
@@ -290,12 +444,15 @@ function OverviewActive({
   )
 }
 
-function StatCard({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function ProStat({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="pro-stat-card">
-      <div className="pro-stat-label">{label}</div>
-      <div className={`pro-stat-value${mono ? ' pro-stat-mono' : ''}`}>{value}</div>
-    </div>
+    <Stat
+      className="pro-stat-card"
+      label={label}
+      labelClassName="pro-stat-label"
+      value={value}
+      valueClassName={`pro-stat-value${mono ? ' pro-stat-mono' : ''}`}
+    />
   )
 }
 
