@@ -1,0 +1,45 @@
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  color: var(--t2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+}
+
+.content {
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 0 0 auto;
+}
+
+.info {
+  border-color: color-mix(in srgb, var(--blue) 24%, var(--border));
+  color: var(--t3);
+}
+
+.success {
+  border-color: color-mix(in srgb, var(--green) 28%, var(--border));
+  color: var(--green);
+}
+
+.warn {
+  border-color: color-mix(in srgb, var(--amber) 30%, var(--border));
+  color: var(--amber);
+}
+
+.danger {
+  border-color: color-mix(in srgb, var(--red) 30%, var(--border));
+  color: var(--red);
+}

@@ -13,9 +13,18 @@ export interface MeteoraLaunchpadSettings {
   baseSupply: string
 }
 
+export interface PrintrLaunchpadSettings {
+  apiBaseUrl: string
+  apiKey: string
+  quotePath: string
+  createPath: string
+  chain: string
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadSettings
   meteora: MeteoraLaunchpadSettings
+  printr: PrintrLaunchpadSettings
 }
 
 export interface WalletInfrastructureSettings {
@@ -92,7 +101,7 @@ export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
 }
 
-const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'token-launch', 'solana-toolbox', 'pro']
+const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'solana-toolbox', 'pro']
 const PRO_PIN_MIGRATION_KEY = 'pinned_tools_pro_default_added'
 const UI_RECOVERY_KEYS = [
   'layout_center_mode',
@@ -113,8 +122,14 @@ export interface UiRecoveryResult {
 
 function sanitizePinnedTools(value: unknown): string[] {
   if (!Array.isArray(value)) return DEFAULT_PINNED_TOOLS
+  const safe = sanitizeToolIds(value)
+  return safe.length > 0 ? safe : DEFAULT_PINNED_TOOLS
+}
+
+function sanitizeToolIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
   const seen = new Set<string>()
-  const safe = value
+  return value
     .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
     .map((entry) => entry.trim())
     .filter((entry) => {
@@ -123,7 +138,6 @@ function sanitizePinnedTools(value: unknown): string[] {
       return true
     })
     .slice(0, 50)
-  return safe.length > 0 ? safe : DEFAULT_PINNED_TOOLS
 }
 
 function sanitizeWorkspaceProfile(value: WorkspaceProfile | null): WorkspaceProfile | null {
@@ -161,11 +175,11 @@ export function setPinnedTools(tools: string[]): void {
 }
 
 export function getDrawerToolOrder(): string[] {
-  return sanitizePinnedTools(getJsonSetting<unknown>('drawer_tool_order', []))
+  return sanitizeToolIds(getJsonSetting<unknown>('drawer_tool_order', []))
 }
 
 export function setDrawerToolOrder(order: string[]): void {
-  setJsonSetting('drawer_tool_order', sanitizePinnedTools(order))
+  setJsonSetting('drawer_tool_order', sanitizeToolIds(order))
 }
 
 export function recoverUiState(): UiRecoveryResult {
@@ -203,6 +217,13 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
     configId: '',
     quoteMint: '',
     baseSupply: '',
+  },
+  printr: {
+    apiBaseUrl: '',
+    apiKey: '',
+    quotePath: '',
+    createPath: '',
+    chain: '',
   },
 }
 
@@ -268,6 +289,13 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
       quoteMint: normalizeText(value?.meteora?.quoteMint),
       baseSupply: normalizeText(value?.meteora?.baseSupply),
     },
+    printr: {
+      apiBaseUrl: normalizeText(value?.printr?.apiBaseUrl),
+      apiKey: normalizeText(value?.printr?.apiKey),
+      quotePath: normalizeText(value?.printr?.quotePath),
+      createPath: normalizeText(value?.printr?.createPath),
+      chain: normalizeText(value?.printr?.chain),
+    },
   }
 }
 
@@ -282,6 +310,13 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
       quoteMint: normalizeText(settings?.meteora?.quoteMint),
       baseSupply: normalizeText(settings?.meteora?.baseSupply),
     },
+    printr: {
+      apiBaseUrl: normalizeText(settings?.printr?.apiBaseUrl),
+      apiKey: normalizeText(settings?.printr?.apiKey),
+      quotePath: normalizeText(settings?.printr?.quotePath),
+      createPath: normalizeText(settings?.printr?.createPath),
+      chain: normalizeText(settings?.printr?.chain),
+    },
   }
 
   validateOptionalPublicKey(next.raydium.configId, 'Raydium config ID')
@@ -289,6 +324,13 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   validateOptionalPublicKey(next.meteora.configId, 'Meteora config ID')
   validateOptionalPublicKey(next.meteora.quoteMint, 'Meteora quote mint')
   validateOptionalPositiveInteger(next.meteora.baseSupply, 'Meteora base supply')
+  validateOptionalHttpUrl(next.printr.apiBaseUrl, 'Printr API base URL')
+  if (next.printr.quotePath && !next.printr.quotePath.startsWith('/')) {
+    throw new Error('Printr quote path must start with "/"')
+  }
+  if (next.printr.createPath && !next.printr.createPath.startsWith('/')) {
+    throw new Error('Printr create path must start with "/"')
+  }
 
   setJsonSetting('token_launch_settings', next)
 }

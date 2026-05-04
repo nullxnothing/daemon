@@ -1,44 +1,3 @@
-.file-explorer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 32px;
-  padding: 0 12px 0 12px;
-  flex-shrink: 0;
-}
-
-.file-explorer-header-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--t3);
-  letter-spacing: 0.5px;
-}
-
-.file-explorer-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.file-explorer-header-btn {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: var(--t3);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.file-explorer-header-btn:hover {
-  color: var(--t1);
-  background: var(--hover-bg);
-}
-
 .file-explorer {
   padding: 4px 0;
   overflow-y: auto;
@@ -46,14 +5,23 @@
   position: relative;
 }
 
-.file-explorer-search {
+.file-explorer-toolbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 6;
   display: flex;
   align-items: center;
   gap: 6px;
   margin: 0 8px 6px;
+  background: var(--s1);
+}
+
+.file-explorer-search {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 0 8px;
   height: 28px;
   border: 1px solid var(--border);
@@ -73,6 +41,7 @@
 
 .file-explorer-search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -82,6 +51,36 @@
 
 .file-explorer-search-input::placeholder {
   color: var(--t3);
+}
+
+.file-explorer-action {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t3);
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.file-explorer-action:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+.file-explorer-action:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.file-explorer-action svg {
+  display: block;
 }
 
 .file-search-results {
@@ -133,17 +132,13 @@
   align-items: center;
   gap: 4px;
   height: 26px;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--t2);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.file-node[data-hidden="true"] {
-  opacity: 0.5;
 }
 
 .file-node:hover {
@@ -365,14 +360,14 @@
 /* Context Menu */
 .context-menu {
   position: fixed;
-  z-index: 200;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-glass);
+  z-index: 10000;
+  min-width: 190px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--s1) 96%, black 4%);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px;
-  min-width: 140px;
-  box-shadow: var(--shadow-float);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.58);
 }
 
 .context-menu-item {
@@ -384,6 +379,7 @@
   color: var(--t2);
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .context-menu-item:hover {

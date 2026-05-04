@@ -12,22 +12,22 @@
 .lw-card {
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 28px;
-  width: min(680px, 94vw);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  width: min(640px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ── Header ── */
 .lw-title {
   font-size: 10px;
-  letter-spacing: 4px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 /* ── Progress ── */
@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .lw-progress-item {
@@ -44,7 +44,7 @@
 }
 
 .lw-progress-line {
-  width: 36px;
+  width: 28px;
   height: 1px;
   background: var(--s4);
   transition: background var(--transition-normal);
@@ -67,7 +67,6 @@
 .lw-progress-dot.active {
   background: var(--green);
   border-color: var(--green);
-  box-shadow: 0 0 6px var(--green-dim);
 }
 
 .lw-progress-dot.complete {
@@ -78,7 +77,7 @@
 /* ── Step label ── */
 .lw-step-label {
   font-size: 11px;
-  letter-spacing: 2px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
   text-align: center;
@@ -86,10 +85,10 @@
 }
 
 .lw-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--t2);
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   max-width: 54ch;
   margin-left: auto;
   margin-right: auto;
@@ -97,7 +96,7 @@
 
 /* ── Content area ── */
 .lw-content {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 /* ── Form fields ── */
@@ -108,7 +107,7 @@
 .lw-label {
   display: block;
   font-size: 10px;
-  letter-spacing: 1px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
   margin-bottom: 6px;
@@ -196,6 +195,51 @@
   font-size: 10px;
   color: var(--t3);
   line-height: 1.5;
+}
+
+.lw-daemon-deployer-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.lw-daemon-deployer-card.active {
+  border-color: rgba(62, 207, 142, 0.36);
+  background: rgba(62, 207, 142, 0.05);
+}
+
+.lw-daemon-deployer-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t1);
+  margin-bottom: 3px;
+}
+
+.lw-daemon-deployer-copy {
+  font-size: 10px;
+  color: var(--t3);
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.lw-daemon-deployer-status {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.lw-daemon-deployer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 /* ── Image upload ── */
@@ -367,7 +411,7 @@
   font-size: 10px;
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0;
   width: 88px;
   flex-shrink: 0;
 }
@@ -397,7 +441,7 @@
 
 .lw-cost-title {
   font-size: 10px;
-  letter-spacing: 1px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
   margin-bottom: 10px;
@@ -438,10 +482,10 @@
   justify-content: center;
   min-width: 44px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.8px;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -479,7 +523,7 @@
   font-size: 10px;
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0;
 }
 
 .lw-balance-amount {
@@ -548,13 +592,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 0;
-  gap: 20px;
+  padding: 16px 0;
+  gap: 14px;
 }
 
 .lw-spinner {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 1.5px solid transparent;
   border-top-color: var(--green);
@@ -683,7 +727,7 @@
 .lw-btn.primary {
   background: var(--green);
   border-color: var(--green);
-  color: #000;
+  color: var(--on-accent-dark);
 }
 
 .lw-btn.primary:hover { opacity: 0.88; }

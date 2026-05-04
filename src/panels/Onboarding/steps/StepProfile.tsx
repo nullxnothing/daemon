@@ -20,8 +20,10 @@ function ProfileCard({ name, label, description, icon, selected, onSelect }: Pro
       type="button"
     >
       <div className="step-profile-icon">{icon}</div>
-      <div className="step-profile-label">{label}</div>
-      <div className="step-profile-desc">{description}</div>
+      <div className="step-profile-copy">
+        <div className="step-profile-label">{label}</div>
+        <div className="step-profile-desc">{description}</div>
+      </div>
     </button>
   )
 }

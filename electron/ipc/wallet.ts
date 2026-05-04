@@ -1,4 +1,4 @@
-import { ipcMain, dialog, clipboard } from 'electron'
+import { clipboard, dialog, ipcMain } from 'electron'
 import { getDb } from '../db/db'
 import * as WalletService from '../services/WalletService'
 import { previewSolanaTransaction } from '../services/SolanaTransactionPreviewService'

@@ -18,6 +18,7 @@ interface TerminalTabsProps {
   visibleTerminals: TerminalTabEntry[]
   activeTerminalId: string | null
   activeProjectId: string | null
+  canLaunchInProject: boolean
   centerMode: CenterMode
   splitLayout: SplitLayout
   launchRecents: TerminalLaunchRecent[]
@@ -37,6 +38,7 @@ export function TerminalTabs({
   visibleTerminals,
   activeTerminalId,
   activeProjectId,
+  canLaunchInProject,
   centerMode,
   splitLayout,
   launchRecents,
@@ -77,6 +79,7 @@ export function TerminalTabs({
         ))}
         <TerminalLauncher
           activeProjectId={activeProjectId}
+          canLaunchInProject={canLaunchInProject}
           launchRecents={launchRecents}
           onStartShell={onStartShell}
           onStartClaudeChat={onStartClaudeChat}

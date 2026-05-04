@@ -29,6 +29,7 @@ export type CenterMode = 'canvas' | 'grind'
 export type RightPanelTab = 'claude' | 'codex'
 
 interface UIState {
+  activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings'
   activeProjectId: string | null
   activeProjectPath: string | null
   projects: Project[]
@@ -51,7 +52,13 @@ interface UIState {
   grindPageCount: number
   activeGrindPage: number
   grindPages: Record<string, GridCell[][]>
+  showOnboarding: boolean
+  drawerOpen: boolean
+  drawerTool: string | null
+  drawerFullscreen: boolean
+  launchWizardOpen: boolean
 
+  setActivePanel: (panel: UIState['activePanel']) => void
   setActiveProject: (id: string | null, path: string | null) => void
   setProjects: (projects: Project[]) => void
   openFile: (file: { path: string; name: string; content: string; projectId: string }) => void
@@ -89,6 +96,13 @@ interface UIState {
   addGrindCellToPage: (projectId: string, pageIndex: number) => void
   setGrindPageCells: (projectId: string, pageIndex: number, cells: GridCell[]) => void
   removeGrindPageCells: (projectId: string, pageIndex: number) => void
+  setShowOnboarding: (show: boolean) => void
+  setDrawerTool: (toolId: string | null) => void
+  closeDrawer: () => void
+  toggleDrawer: () => void
+  toggleDrawerFullscreen: () => void
+  openLaunchWizard: () => void
+  closeLaunchWizard: () => void
 
   // QuickView popouts
   walletQuickViewOpen: boolean
@@ -108,6 +122,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
+  activePanel: 'claude',
   activeProjectId: null,
   activeProjectPath: null,
   projects: [],
@@ -130,11 +145,17 @@ export const useUIStore = create<UIState>((set) => ({
   grindPageCount: 1,
   activeGrindPage: 0,
   grindPages: {},
+  showOnboarding: false,
+  drawerOpen: false,
+  drawerTool: null,
+  drawerFullscreen: false,
+  launchWizardOpen: false,
   walletQuickViewOpen: false,
   emailQuickViewOpen: false,
-  pinnedTools: ['git', 'browser', 'project-readiness', 'solana-toolbox', 'integrations', 'token-launch', 'pro'],
+  pinnedTools: ['git', 'browser', 'activity', 'agent-work', 'project-readiness', 'solana-toolbox', 'integrations', 'pro'],
   drawerToolOrder: [],
 
+  setActivePanel: (panel) => set({ activePanel: panel }),
   setActiveProject: (id, path) => set({ activeProjectId: id, activeProjectPath: path }),
 
   setProjects: (projects) => set({ projects }),
@@ -452,6 +473,27 @@ export const useUIStore = create<UIState>((set) => ({
       grindPages: { ...state.grindPages, [projectId]: updatedPages },
     }
   }),
+  setShowOnboarding: (show) => set({ showOnboarding: show }),
+  setDrawerTool: (toolId) => set({
+    drawerOpen: toolId !== null,
+    drawerTool: toolId,
+    drawerFullscreen: false,
+  }),
+  closeDrawer: () => set({
+    drawerOpen: false,
+    drawerTool: null,
+    drawerFullscreen: false,
+  }),
+  toggleDrawer: () => set((state) => ({
+    drawerOpen: !state.drawerOpen,
+    drawerTool: !state.drawerOpen ? state.drawerTool : null,
+    drawerFullscreen: false,
+  })),
+  toggleDrawerFullscreen: () => set((state) => ({
+    drawerFullscreen: !state.drawerFullscreen,
+  })),
+  openLaunchWizard: () => set({ launchWizardOpen: true }),
+  closeLaunchWizard: () => set({ launchWizardOpen: false }),
 
   toggleWalletQuickView: () => set((state) => ({
     walletQuickViewOpen: !state.walletQuickViewOpen,

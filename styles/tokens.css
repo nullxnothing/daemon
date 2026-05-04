@@ -1,18 +1,24 @@
 :root {
-  /* Background scale — elevation-based (deeper = further away) */
-  --bg:    #0a0a0a;  /* Workspace pit — deepest layer */
-  --s1:    #141414;  /* Sidebars, titlebar, cards — lifted surfaces */
-  --s2:    #1a1a1a;  /* Inputs, secondary surfaces */
-  --s3:    #222222;  /* Hover states */
-  --s4:    #2a2a2a;  /* Active / pressed */
-  --s5:    #333333;  /* Borders */
-  --s6:    #3a3a3a;  /* Strong borders / dividers */
+  /* Background scale (darkest to lightest) */
+  --bg:    #090909;
+  --s1:    #101010;
+  --s2:    #151515;
+  --s3:    #1a1a1a;
+  --s4:    #222222;
+  --s5:    #2a2a2a;
+  --s6:    #333333;
 
-  /* Text scale (brightest to dimmest) - WCAG AA compliant on --bg #0a0a0a */
+  /* Text scale (brightest to dimmest) - WCAG AA compliant */
   --t1:    #f0f0f0;  /* Primary text - 15.5:1 contrast */
   --t2:    #a0a0a0;  /* Secondary text - 7.5:1 contrast */
-  --t3:    #888888;  /* Tertiary/muted - 6.1:1 contrast (AA for small text on --s1/--s2) */
-  --t4:    #666666;  /* Disabled/placeholder - 4.6:1 contrast (AA on all surfaces) */
+  --t3:    #6a6a6a;  /* Tertiary/muted - 4.5:1 contrast (AA minimum) */
+  --t4:    #4a4a4a;  /* Disabled/placeholder - decorative only */
+
+  /* Legacy semantic aliases used by older panels */
+  --text-primary:   var(--t1);
+  --text-secondary: var(--t2);
+  --text-tertiary:  var(--t3);
+  --text-muted:     var(--t4);
 
   /* Accent colors - cleaner, more vibrant */
   --green:       #3ecf8e;  /* Primary accent - modern teal-green */
@@ -31,9 +37,17 @@
   --blue-dim:    #4a8ad4;
   --blue-glow:   rgba(96, 165, 250, 0.15);
 
+  /* Solana brand purple — used by AgentStation/Solana-affinity panels only */
+  --solana:      #9945ff;
+  --solana-glow: rgba(153, 69, 255, 0.18);
+
+  /* Foreground on saturated accent fill (white text on amber/red CTA pills) */
+  --on-accent:   #ffffff;
+  --on-accent-dark: #090909;  /* black text on bright amber pills */
+
   /* Semantic tokens */
-  --border:        #2a2a2a;  /* Default border — sits between s4 and s5 */
-  --border-hover:  #3a3a3a;  /* Border on hover — matches s6 */
+  --border:        #2a2a2a;  /* Default border */
+  --border-hover:  #3a3a3a;  /* Border on hover */
   --border-focus:  var(--green);  /* Border on focus */
   --focus:         var(--green);
   --focus-glow:    var(--green-glow);
@@ -42,17 +56,68 @@
   --warning:     var(--amber);
   --error:       var(--red);
   --info:        var(--blue);
+  --accent:      var(--green);
 
-  /* Interactive state overlays */
-  --hover-overlay:  rgba(255, 255, 255, 0.04);
-  --active-overlay: rgba(255, 255, 255, 0.08);
-  --hover-bg:       var(--hover-overlay);
-  --active-bg:      var(--active-overlay);
-  --focus-ring:     0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
+  /* Interactive state overlays — three intensities + press */
+  --hover-overlay-subtle: rgba(255, 255, 255, 0.025);
+  --hover-overlay:        rgba(255, 255, 255, 0.045);
+  --hover-overlay-strong: rgba(255, 255, 255, 0.075);
+  --active-overlay:       rgba(255, 255, 255, 0.08);
+  --press-overlay:        rgba(0, 0, 0, 0.18);
+  --hover-bg:             var(--hover-overlay);
+  --active-bg:            var(--active-overlay);
 
-  /* Typography */
+  /* Focus rings — green stays for inputs, neutral default for buttons,
+     accent variants for destructive/info actions */
+  --focus-ring:         0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
+  --focus-ring-neutral: 0 0 0 2px rgba(255, 255, 255, 0.10), 0 0 0 1px var(--t2);
+  --focus-ring-amber:   0 0 0 2px var(--amber-glow), 0 0 0 1px var(--amber);
+  --focus-ring-red:     0 0 0 2px var(--red-glow),   0 0 0 1px var(--red);
+  --focus-ring-blue:    0 0 0 2px var(--blue-glow),  0 0 0 1px var(--blue);
+
+  /* Typography — families */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --mono: var(--font-code);
+
+  /* Typography — size scale (single source of truth, no panel may set font-size in px) */
+  --fs-9:    9px;
+  --fs-10:  10px;
+  --fs-11:  11px;
+  --fs-12:  12px;
+  --fs-13:  13px;   /* body baseline (matches base.css) */
+  --fs-14:  14px;
+  --fs-16:  16px;
+  --fs-18:  18px;
+  --fs-20:  20px;
+  --fs-24:  24px;
+  --fs-32:  32px;
+  --fs-display: 40px;
+
+  /* Legacy aliases — existing components reference these, keep them mapped */
+  --font-xs:   var(--fs-10);
+  --font-sm:   var(--fs-11);
+  --font-base: var(--fs-12);
+  --font-md:   var(--fs-13);
+  --font-lg:   var(--fs-16);
+
+  /* Typography — weight scale */
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* Typography — line height */
+  --lh-tight:   1.1;
+  --lh-snug:    1.3;
+  --lh-normal:  1.5;
+  --lh-relaxed: 1.7;
+
+  /* Typography — letter spacing */
+  --ls-tight:    0;
+  --ls-normal:   0;
+  --ls-eyebrow:  0.16em;   /* uppercase kicker / label */
+  --ls-caps:     0.08em;   /* small uppercase headings */
 
   /* Layout dimensions */
   --titlebar-h: 38px;
@@ -62,53 +127,104 @@
   --statusbar-h: 22px;
 
   /* Spacing scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
+  --space-2xs:  2px;
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
 
-  /* Typography scale */
-  --font-xs: 9px;     /* Badges, chip labels */
-  --font-sm: 10px;    /* Section headers, captions */
-  --font-base: 11px;  /* Body text, inputs */
-  --font-md: 12px;    /* List items, labels */
-  --font-lg: 14px;    /* Panel sub-titles */
-  --font-xl: 16px;    /* Panel titles */
+  /* Panel layout (used by PanelHeader, panel bodies) */
+  --panel-pad-x:        var(--space-lg);
+  --panel-pad-y:        var(--space-md);
+  --panel-section-gap:  var(--space-lg);
+  --panel-content-max:  1280px;
 
-  /* Button heights */
+  /* Border radius — keep small set, alias card/pill semantics */
+  --radius-sm:   3px;
+  --radius-md:   4px;
+  --radius-lg:   6px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /* Control sizing */
   --btn-h-sm: 24px;
-  --btn-h-md: 28px;
-  --btn-h-lg: 32px;
+  --btn-h-md: 32px;
+  --btn-h-lg: 40px;
+  --input-h:  32px;
 
-  /* Border radius */
-  --radius-sm: 3px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
+  /* Edge highlights — bake into shadows for the lifted-card texture */
+  --edge-highlight:        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --edge-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --inset-well:            inset 0 1px 2px rgba(0, 0, 0, 0.35);
 
-  /* Transitions */
-  --transition-fast: 0.1s ease;
-  --transition-normal: 0.15s ease;
-  --transition-slow: 0.25s ease;
+  /* Elevation — five-stop scale; bottom shadow + top edge highlight bundled */
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20), var(--edge-highlight);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24), var(--edge-highlight);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.32), var(--edge-highlight-strong);
+  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.42), var(--edge-highlight-strong);
+  --shadow-lifted: var(--shadow-md);
 
-  /* ── Premium Enhancement Tokens ── */
+  /* Surface roles — semantic; prefer these over bare s1/s2/s3 in panel CSS */
+  --surface-flat:     var(--s1);
+  --surface-sunken:   var(--bg);
+  --surface-raised:   var(--s2);
+  --surface-floating: var(--s3);
+  --surface-overlay:  var(--glass-bg);
 
-  /* Surface gradients — felt, not seen */
-  --surface-gradient-subtle: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  /* Hero gradients — for panel headers that earn weight (rare) */
+  --surface-hero:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 6%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1));
+  --surface-hero-amber:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--amber) 7%, transparent), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1));
 
-  /* Luminous border tokens */
-  --border-glass: rgba(255, 255, 255, 0.04);
+  /* Divider weights */
+  --divider-hairline: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  --divider-strong:   1px solid var(--border);
+  --divider-emphasis: 1px solid var(--border-hover);
 
-  /* Micro-shadow tokens — depth without heaviness */
-  --shadow-lifted: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 1px rgba(255, 255, 255, 0.03);
-  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.04);
-  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  /* Numeric/density — for tabular data rows */
+  --row-h-compact: 28px;
+  --row-h-default: 36px;
+  --row-h-comfy:   44px;
 
-  /* Ambient glow tokens — soft emission, not neon */
-  --glow-green-ambient: 0 0 20px rgba(62, 207, 142, 0.04);
-  --glow-green-soft: 0 0 12px rgba(62, 207, 142, 0.06);
+  /* Glow accents — referenced by existing Button.css */
+  --glow-green-soft:    0 0 0 1px var(--green-glow), 0 0 12px var(--green-glow);
+  --glow-amber-soft:    0 0 0 1px var(--amber-glow), 0 0 12px var(--amber-glow);
+  --glow-red-soft:      0 0 0 1px var(--red-glow),   0 0 12px var(--red-glow);
+  --glow-blue-soft:     0 0 0 1px var(--blue-glow),  0 0 12px var(--blue-glow);
+  --glow-green-ambient: 0 0 24px var(--green-glow);
 
-  /* Frosted glass */
-  --glass-blur: blur(12px) saturate(130%);
-  --glass-bg: rgba(20, 20, 20, 0.85);
+  /* Glass surfaces (popovers, command palette, dropdown menus) */
+  --glass-bg:        color-mix(in srgb, var(--s1) 88%, transparent);
+  --glass-blur:      blur(18px);    /* default — popovers / dropdowns / sticky bars */
+  --glass-blur-soft: blur(8px);     /* inline tray, terminal session menus */
+  --glass-blur-scrim: blur(4px);    /* modal/lightbox scrims */
+  --scrim-bg:        rgba(0, 0, 0, 0.55);
+  --border-glass:    color-mix(in srgb, var(--border) 70%, rgba(255, 255, 255, 0.06));
+  --shadow-float:    0 16px 48px rgba(0, 0, 0, 0.36);
+
+  /* Shared surface layer retained for compatibility while panels migrate. */
+  --surface-gradient-subtle: none;
+
+  /* Motion — durations + easing curves (ease replaced with named curves) */
+  --dur-instant:    80ms;
+  --dur-base:      160ms;
+  --dur-emphasized: 280ms;
+  --dur-deliberate: 420ms;
+
+  --ease-standard:  cubic-bezier(0.2, 0, 0, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-quad:   cubic-bezier(0.55, 0.085, 0.68, 0.53);
+  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Legacy transition aliases — now resolve to named curves */
+  --transition-fast:   var(--dur-instant)    var(--ease-standard);
+  --transition-normal: var(--dur-base)       var(--ease-out-quint);
+  --transition-slow:   var(--dur-emphasized) var(--ease-out-quint);
 }
