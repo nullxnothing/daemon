@@ -20,11 +20,40 @@ export interface ValidatorState {
   port: number | null
 }
 
+export type SolanaDiagnosticStatus = 'ready' | 'warning' | 'missing'
+
+export interface SolanaDiagnosticCheck {
+  id: string
+  label: string
+  status: SolanaDiagnosticStatus
+  detail: string
+  evidence?: string
+  command?: string
+}
+
+export interface SolanaProgramDiagnostic {
+  name: string
+  anchorProgramId: string | null
+  declareId: string | null
+  idlAddress: string | null
+  keypairAddress: string | null
+  checks: SolanaDiagnosticCheck[]
+}
+
+export interface SolanaProjectDiagnostics {
+  status: SolanaDiagnosticStatus
+  issueCount: number
+  programCount: number
+  checks: SolanaDiagnosticCheck[]
+  programs: SolanaProgramDiagnostic[]
+}
+
 export interface SolanaProjectInfo {
   isSolanaProject: boolean
   framework: 'anchor' | 'native' | 'client-only' | null
   indicators: string[]
   suggestedMcps: string[]
+  diagnostics?: SolanaProjectDiagnostics
 }
 
 export interface SolanaToolchainStatus {
@@ -190,10 +219,13 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
       if (res.ok && res.data) {
         set({ projectInfo: res.data as SolanaProjectInfo })
         if (res.data.isSolanaProject) {
+          const diagnostics = (res.data as SolanaProjectInfo).diagnostics
           useNotificationsStore.getState().addActivity({
-            kind: 'success',
+            kind: diagnostics?.issueCount ? 'warning' : 'success',
             context: 'Runtime',
-            message: `Detected Solana project${res.data.framework ? ` (${res.data.framework})` : ''} at ${projectPath}`,
+            message: diagnostics?.issueCount
+              ? `Detected Solana project${res.data.framework ? ` (${res.data.framework})` : ''} with ${diagnostics.issueCount} diagnostics to review`
+              : `Detected Solana project${res.data.framework ? ` (${res.data.framework})` : ''} at ${projectPath}`,
             ...getActiveProjectActivityContext(),
           })
         }

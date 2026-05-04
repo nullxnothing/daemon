@@ -20,6 +20,18 @@ const STATUS_LABELS: Record<string, string> = {
   shipped: 'Shipped',
 }
 
+const DAEMON_TOKEN_MINT = '4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump'
+const ARENA_MARKET_CAP_TARGET = 100_000
+
+interface DexScreenerTokenResponse {
+  pairs?: Array<{
+    url?: string
+    marketCap?: number
+    fdv?: number
+    liquidity?: { usd?: number }
+  }>
+}
+
 export function ArenaView() {
   const submissions = useProStore((state) => state.arenaSubmissions)
   const loading = useProStore((state) => state.loadingArena)
@@ -41,10 +53,56 @@ export function ArenaView() {
   const [xHandle, setXHandle] = useState('')
   const [discordHandle, setDiscordHandle] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [marketCap, setMarketCap] = useState<number | null>(null)
+  const [marketCapLink, setMarketCapLink] = useState<string | null>(null)
+  const [marketCapLoading, setMarketCapLoading] = useState(true)
+  const [marketCapError, setMarketCapError] = useState<string | null>(null)
 
   useEffect(() => {
     void loadArena()
   }, [loadArena])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadMarketCap = async () => {
+      try {
+        setMarketCapError(null)
+        const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${DAEMON_TOKEN_MINT}`)
+        if (!response.ok) throw new Error(`DexScreener returned ${response.status}`)
+        const payload = await response.json() as DexScreenerTokenResponse
+        const pair = (payload.pairs ?? [])
+          .filter((candidate) => typeof candidate.marketCap === 'number' || typeof candidate.fdv === 'number')
+          .sort((left, right) => (right.liquidity?.usd ?? 0) - (left.liquidity?.usd ?? 0))[0]
+
+        if (!pair) throw new Error('No market cap data available yet')
+        if (cancelled) return
+
+        setMarketCap(pair.marketCap ?? pair.fdv ?? null)
+        setMarketCapLink(pair.url ?? null)
+      } catch (err) {
+        if (cancelled) return
+        setMarketCapError(err instanceof Error ? err.message : 'Failed to load market cap')
+      } finally {
+        if (!cancelled) setMarketCapLoading(false)
+      }
+    }
+
+    void loadMarketCap()
+    const intervalId = window.setInterval(() => {
+      void loadMarketCap()
+    }, 30_000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
+  const marketCapProgress = marketCap === null
+    ? 0
+    : Math.min((marketCap / ARENA_MARKET_CAP_TARGET) * 100, 100)
+  const submissionsFinalized = marketCap !== null && marketCap >= ARENA_MARKET_CAP_TARGET
 
   const filtered = useMemo(() => {
     const list = category === 'all'
@@ -106,28 +164,75 @@ export function ArenaView() {
     <div className="pro-arena">
       <section className="pro-arena-contest">
         <div className="pro-arena-contest-copy">
-          <div className="pro-arena-kicker">Build Week 01</div>
+          <div className="pro-arena-kicker">DAEMON Arena</div>
           <h2 className="pro-arena-contest-title">Ship something people want inside DAEMON.</h2>
           <p className="pro-arena-contest-body">
-            Three weeks. Build the best agent, tool, skill, or MCP workflow for DAEMON.
+            Build the best agent, tool, skill, or MCP workflow for DAEMON.
             Community votes shape the leaderboard, then the DAEMON team picks the final three winners.
           </p>
+          <div className="pro-arena-trigger-card">
+            <div className="pro-arena-trigger-head">
+              <div>
+                <div className="pro-arena-trigger-label">Submission Trigger</div>
+                <div className="pro-arena-trigger-value">
+                  {submissionsFinalized ? 'Submissions finalized' : 'Open until DAEMON hits $100k market cap'}
+                </div>
+              </div>
+              {marketCapLink && (
+                <button className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(marketCapLink)}>
+                  Track token →
+                </button>
+              )}
+            </div>
+            <div className="pro-arena-trigger-stats">
+              <div className="pro-arena-trigger-stat">
+                <span>Live market cap</span>
+                <strong>
+                  {marketCapLoading && marketCap === null
+                    ? 'Loading...'
+                    : marketCap === null
+                      ? 'Unavailable'
+                      : formatUsdCompact(marketCap)}
+                </strong>
+              </div>
+              <div className="pro-arena-trigger-stat">
+                <span>Finish line</span>
+                <strong>{formatUsdCompact(ARENA_MARKET_CAP_TARGET)}</strong>
+              </div>
+              <div className="pro-arena-trigger-stat">
+                <span>Mint</span>
+                <strong>{shortMint(DAEMON_TOKEN_MINT)}</strong>
+              </div>
+            </div>
+            <div className="pro-arena-progress">
+              <div className="pro-arena-progress-bar">
+                <div className="pro-arena-progress-fill" style={{ width: `${marketCapProgress}%` }} />
+              </div>
+              <div className="pro-arena-progress-caption">
+                {marketCapError
+                  ? `Live market cap unavailable: ${marketCapError}`
+                  : submissionsFinalized
+                    ? 'The $100k market cap trigger has been reached.'
+                    : `${marketCap === null ? '$0' : formatUsdCompact(Math.max(ARENA_MARKET_CAP_TARGET - marketCap, 0))} to go`}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="pro-arena-contest-prizes">
           <div className="pro-arena-prize-card">
             <div className="pro-arena-prize-label">1st</div>
-            <div className="pro-arena-prize-value">250 USDC</div>
-            <div className="pro-arena-prize-note">Lifetime Pro + Founding Builder Discord access</div>
+            <div className="pro-arena-prize-value">$5,000</div>
+            <div className="pro-arena-prize-note">Top placement + first winner payout from the $10k Arena pool.</div>
           </div>
           <div className="pro-arena-prize-card">
             <div className="pro-arena-prize-label">2nd</div>
-            <div className="pro-arena-prize-value">150 USDC</div>
-            <div className="pro-arena-prize-note">Lifetime Pro + Founding Builder Discord access</div>
+            <div className="pro-arena-prize-value">$3,000</div>
+            <div className="pro-arena-prize-note">Second-place payout once DAEMON reaches the $100k market cap milestone.</div>
           </div>
           <div className="pro-arena-prize-card">
             <div className="pro-arena-prize-label">3rd</div>
-            <div className="pro-arena-prize-value">100 USDC</div>
-            <div className="pro-arena-prize-note">Lifetime Pro + Founding Builder Discord access</div>
+            <div className="pro-arena-prize-value">$2,000</div>
+            <div className="pro-arena-prize-note">The remaining pool goes to third place for a full $10k total payout.</div>
           </div>
         </div>
       </section>
@@ -218,7 +323,7 @@ export function ArenaView() {
       {!loading && filtered.length === 0 && (
         <div className="pro-arena-empty">
           <div>No submissions{category !== 'all' ? ` in ${CATEGORY_LABELS[category]}` : ''} yet.</div>
-          <div className="pro-arena-empty-cta">Be the first team on the board for Build Week 01.</div>
+          <div className="pro-arena-empty-cta">Be the first team on the board for the DAEMON Arena.</div>
         </div>
       )}
 
@@ -281,4 +386,17 @@ function formatRelative(timestamp: number) {
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
   if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`
   return new Date(timestamp).toLocaleDateString()
+}
+
+function formatUsdCompact(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: value >= 100_000 ? 1 : 2,
+  }).format(value)
+}
+
+function shortMint(value: string) {
+  return `${value.slice(0, 6)}...${value.slice(-6)}`
 }
