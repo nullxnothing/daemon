@@ -8,6 +8,8 @@ import './ProjectControlCenter.css'
 
 type ReadinessStatus = 'ready' | 'warning' | 'missing'
 
+type ActionTone = 'primary' | 'default' | 'warning'
+
 interface ReadinessItem {
   id: string
   label: string
@@ -19,7 +21,7 @@ interface NextAction {
   id: string
   label: string
   detail: string
-  tone: 'primary' | 'default' | 'warning'
+  tone: ActionTone
   command?: string
   onClick?: () => void
 }
@@ -37,32 +39,23 @@ interface ProjectControlCenterProps {
 }
 
 const BUILD_LOOP = [
-  {
-    label: 'Detect',
-    detail: 'Classify the active repo and surface Solana indicators.',
-  },
-  {
-    label: 'Prepare',
-    detail: 'Verify CLI, Anchor, AVM, runtime, and project-level test harnesses.',
-  },
-  {
-    label: 'Run',
-    detail: 'Start localnet or forked runtime before tests and transaction work.',
-  },
-  {
-    label: 'Debug',
-    detail: 'Use failures, logs, and project context to guide the agent loop.',
-  },
-  {
-    label: 'Ship',
-    detail: 'Move toward safe deploy, IDL, upgrade authority, and monitoring flows.',
-  },
-]
+  ['Detect', 'Classify the active repo and surface Solana indicators.'],
+  ['Prepare', 'Verify CLI, Anchor, AVM, runtime, and project-level test harnesses.'],
+  ['Run', 'Start localnet or forked runtime before tests and transaction work.'],
+  ['Debug', 'Use failures, logs, and project context to guide the agent loop.'],
+  ['Ship', 'Move toward safe deploy, IDL, upgrade authority, and monitoring flows.'],
+] as const
 
 function statusLabel(status: ReadinessStatus): string {
   if (status === 'ready') return 'Ready'
   if (status === 'warning') return 'Needs Review'
   return 'Missing'
+}
+
+function statusClass(status: ReadinessStatus): 'live' | 'partial' | 'setup' {
+  if (status === 'ready') return 'live'
+  if (status === 'warning') return 'partial'
+  return 'setup'
 }
 
 function getProjectKind(projectInfo: SolanaProjectInfo | null): string {
@@ -76,7 +69,8 @@ function getProjectKind(projectInfo: SolanaProjectInfo | null): string {
 
 function getRuntimeLabel(validator: ValidatorState): string {
   if (validator.status === 'running' && validator.type) {
-    return `${validator.type === 'surfpool' ? 'Surfpool' : 'Test Validator'} :${validator.port ?? 8899}`
+    const runtime = validator.type === 'surfpool' ? 'Surfpool' : 'Test Validator'
+    return `${runtime} :${validator.port ?? 8899}`
   }
   if (validator.status === 'starting') return 'Starting runtime'
   if (validator.status === 'error') return 'Runtime error'
@@ -95,20 +89,15 @@ function getSuggestedMcpStatus(projectInfo: SolanaProjectInfo | null, mcps: Sola
   }
 
   const enabledCount = suggested.filter((name) => mcps.find((mcp) => mcp.name === name)?.enabled).length
-  if (enabledCount === suggested.length) {
-    return {
-      id: 'mcps',
-      label: 'Solana MCP context',
-      status: 'ready',
-      detail: `${enabledCount}/${suggested.length} suggested MCPs enabled for this workspace.`,
-    }
-  }
+  const allEnabled = enabledCount === suggested.length
 
   return {
     id: 'mcps',
     label: 'Solana MCP context',
-    status: enabledCount > 0 ? 'warning' : 'missing',
-    detail: `${enabledCount}/${suggested.length} suggested MCPs enabled. Enable the rest before deep agent/debug work.`,
+    status: allEnabled ? 'ready' : enabledCount > 0 ? 'warning' : 'missing',
+    detail: allEnabled
+      ? `${enabledCount}/${suggested.length} suggested MCPs enabled for this workspace.`
+      : `${enabledCount}/${suggested.length} suggested MCPs enabled. Enable the rest before deep agent/debug work.`,
   }
 }
 
@@ -193,20 +182,19 @@ function buildNextActions(
   projectInfo: SolanaProjectInfo | null,
   toolchain: SolanaToolchainStatus | null,
   validator: ValidatorState,
+  mcps: SolanaMcpEntry[],
   onStartValidator: (type: 'surfpool' | 'test-validator') => void,
   onOpenDebug: () => void,
   onOpenConnect: () => void,
   onOpenLaunch: () => void,
 ): NextAction[] {
   if (!projectPath) {
-    return [
-      {
-        id: 'open-project',
-        label: 'Open a Solana repo',
-        detail: 'DAEMON needs an active project before it can classify the stack or build a runtime loop.',
-        tone: 'primary',
-      },
-    ]
+    return [{
+      id: 'open-project',
+      label: 'Open a Solana repo',
+      detail: 'DAEMON needs an active project before it can classify the stack or build a runtime loop.',
+      tone: 'primary',
+    }]
   }
 
   if (!projectInfo?.isSolanaProject) {
@@ -326,12 +314,12 @@ export function ProjectControlCenter({
     projectInfo,
     toolchain,
     validator,
+    mcps,
     onStartValidator,
     onOpenDebug,
     onOpenConnect,
     onOpenLaunch,
   )
-
   const indicators = projectInfo?.indicators ?? []
 
   return (
@@ -381,7 +369,7 @@ export function ProjectControlCenter({
                 <div className="solana-project-readiness-main">
                   <div className="solana-project-readiness-title-row">
                     <span className="solana-project-readiness-title">{item.label}</span>
-                    <span className={`solana-runtime-status ${item.status === 'ready' ? 'live' : item.status === 'warning' ? 'partial' : 'setup'}`}>
+                    <span className={`solana-runtime-status ${statusClass(item.status)}`}>
                       {statusLabel(item.status)}
                     </span>
                   </div>
@@ -416,11 +404,11 @@ export function ProjectControlCenter({
       <section className="solana-project-loop">
         <div className="solana-project-panel-title">Solana IDE Loop</div>
         <div className="solana-project-loop-grid">
-          {BUILD_LOOP.map((step, index) => (
-            <div key={step.label} className="solana-project-loop-step">
+          {BUILD_LOOP.map(([label, detail], index) => (
+            <div key={label} className="solana-project-loop-step">
               <div className="solana-project-loop-index">{index + 1}</div>
-              <div className="solana-project-loop-label">{step.label}</div>
-              <div className="solana-project-loop-detail">{step.detail}</div>
+              <div className="solana-project-loop-label">{label}</div>
+              <div className="solana-project-loop-detail">{detail}</div>
             </div>
           ))}
         </div>
