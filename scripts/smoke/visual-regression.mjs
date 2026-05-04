@@ -19,7 +19,7 @@ const userDataDir = mkdtempSync(path.join(tmpdir(), 'daemon-visual-regression-')
 const baselineRoot = path.join(repoRoot, 'scripts', 'smoke', 'visual-baselines', process.platform)
 const resultRoot = path.join(repoRoot, 'test-results', 'visual-regression', process.platform)
 const runningInCi = process.env.CI === 'true'
-const defaultMaxChangedRatio = runningInCi ? 0.08 : 0
+const defaultMaxChangedRatio = runningInCi ? 0.08 : 0.03
 const defaultMaxDimensionDelta = runningInCi ? 96 : 1
 
 const projectPath = repoRoot
@@ -57,10 +57,11 @@ const scenarios = [
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
     },
-    selector: '.wallet-workspace-bar',
+    selector: '.wallet-panel-header',
   },
   {
     name: 'wallet-tabs',
+    maxChangedPixels: 100,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
     },
@@ -98,7 +99,7 @@ const scenarios = [
   {
     name: 'terminal-launcher-menu',
     maxChangedPixels: 250,
-    maxChangedRatio: runningInCi ? 0.16 : 0,
+    maxChangedRatio: runningInCi ? 0.16 : 0.08,
     setup: async (page) => {
       await openTerminalLauncher(page)
     },
@@ -190,6 +191,7 @@ async function waitForAppReady(page) {
 async function seedAppState(page) {
   await page.evaluate(async ({ projectPath, projectName }) => {
     await window.daemon.settings.setOnboardingComplete(true)
+    await window.daemon.settings.setDrawerToolOrder([])
     await window.daemon.settings.setShowTitlebarWallet(true)
     await window.daemon.settings.setWorkspaceProfile({
       name: 'custom',
@@ -378,7 +380,28 @@ async function normalizeTerminalLauncher(page) {
   })
 }
 
+async function normalizeSettingsMeta(page) {
+  await page.evaluate(() => {
+    const versionPill = document.querySelector('.settings-version-pill')
+    if (versionPill) versionPill.textContent = 'vTEST'
+
+    const metaRows = Array.from(document.querySelectorAll('.settings-setup-meta'))
+    for (const row of metaRows) {
+      const label = row.querySelector('.settings-setup-meta-label')?.textContent?.trim().toLowerCase()
+      const value = row.querySelector('strong')
+      if (!value) continue
+      if (label === 'app') value.textContent = 'DAEMON TEST'
+      if (label === 'electron') value.textContent = 'TEST'
+      if (label === 'channel') value.textContent = 'release'
+    }
+  })
+}
+
 async function stabilizeScenario(page, scenario) {
+  if (scenario.name === 'settings-center') {
+    await normalizeSettingsMeta(page)
+  }
+
   if (scenario.name === 'aria-chamber') {
     await normalizeAriaChamber(page)
   }

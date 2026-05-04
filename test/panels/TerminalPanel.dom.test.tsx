@@ -15,11 +15,21 @@ vi.mock('../../src/panels/Terminal/TerminalInstance', () => ({
 const { TerminalPanel } = await import('../../src/panels/Terminal/Terminal')
 
 function installDaemonBridge(createTerminal = vi.fn()) {
-  const terminalCreate = createTerminal.mockResolvedValue({ ok: true, data: { id: 'term-1' } })
+  let terminalId = 0
+  const terminalCreate = createTerminal
+  if (!terminalCreate.getMockImplementation()) {
+    terminalCreate.mockImplementation(async () => {
+      terminalId += 1
+      return { ok: true, data: { id: `term-${terminalId}` } }
+    })
+  }
 
   Object.defineProperty(window, 'daemon', {
     configurable: true,
     value: {
+      activity: {
+        append: vi.fn().mockResolvedValue({ ok: true }),
+      },
       agents: {
         list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
       },
@@ -46,10 +56,19 @@ function installDaemonBridge(createTerminal = vi.fn()) {
   return terminalCreate
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 function resetStores() {
   useUIStore.setState({
     activeProjectId: 'project-1',
     activeProjectPath: 'C:/work/daemon-app',
+    projects: [{ id: 'project-1', name: 'daemon-app', path: 'C:/work/daemon-app', last_active: 10 } as Project],
     terminals: [],
     activeTerminalIdByProject: {},
     centerMode: 'canvas',
@@ -101,5 +120,89 @@ describe('TerminalPanel DOM behavior', () => {
     expect(screen.getByRole('button', { name: 'Claude Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solana Agent' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Surfpool' })).toBeInTheDocument()
+  })
+
+  it('opens a second active terminal from the launcher while one is already running', async () => {
+    const terminalCreate = installDaemonBridge()
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getAllByTitle('New tab options')[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Standard Terminal' }))
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(2))
+    expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1', 'term-2'])
+    expect(useUIStore.getState().activeTerminalIdByProject['project-1']).toBe('term-2')
+    expect(screen.getByTestId('terminal-instance-term-2')).toHaveAttribute('data-visible', 'true')
+  })
+
+  it('does not duplicate the first terminal when the empty state is clicked while auto-create is pending', async () => {
+    const pendingTerminal = deferred<{ ok: true; data: { id: string } }>()
+    const terminalCreate = installDaemonBridge(vi.fn().mockReturnValueOnce(pendingTerminal.promise))
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getByText('Click to start a terminal'))
+    expect(terminalCreate).toHaveBeenCalledTimes(1)
+
+    pendingTerminal.resolve({ ok: true, data: { id: 'term-1' } })
+    await waitFor(() => expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1']))
+  })
+
+  it('does not create duplicate split terminals from rapid split clicks', async () => {
+    const pendingSplit = deferred<{ ok: true; data: { id: string } }>()
+    let createCount = 0
+    const terminalCreate = installDaemonBridge(vi.fn().mockImplementation(() => {
+      createCount += 1
+      if (createCount === 1) return Promise.resolve({ ok: true, data: { id: 'term-1' } })
+      if (createCount === 2) return pendingSplit.promise
+      return Promise.resolve({ ok: true, data: { id: `term-${createCount}` } })
+    }))
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getByTitle('Split vertical'))
+    await userEvent.click(screen.getByTitle('Split vertical'))
+    expect(terminalCreate).toHaveBeenCalledTimes(2)
+
+    pendingSplit.resolve({ ok: true, data: { id: 'term-2' } })
+    await waitFor(() => expect(useUIStore.getState().terminals.map((terminal) => terminal.id)).toEqual(['term-1', 'term-2']))
+  })
+
+  it('falls back to the most recent project when the user starts a terminal without an active project', async () => {
+    const terminalCreate = installDaemonBridge()
+    useUIStore.setState({
+      activeProjectId: null,
+      activeProjectPath: null,
+      projects: [{ id: 'project-2', name: 'docs', path: 'C:/Users/offic/Documents/test', last_active: 42 } as Project],
+      terminals: [],
+      activeTerminalIdByProject: {},
+    })
+
+    render(<TerminalPanel />)
+
+    await userEvent.click(screen.getByText('Click to start a terminal'))
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    expect(terminalCreate).toHaveBeenCalledWith({ cwd: 'C:/Users/offic/Documents/test', startupCommand: undefined })
+    expect(useUIStore.getState().activeProjectId).toBe('project-2')
+  })
+
+  it('does not auto-create a terminal when no project exists', async () => {
+    const terminalCreate = installDaemonBridge()
+    useUIStore.setState({
+      activeProjectId: null,
+      activeProjectPath: null,
+      projects: [],
+      terminals: [],
+      activeTerminalIdByProject: {},
+    })
+
+    render(<TerminalPanel />)
+
+    expect(terminalCreate).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByText('Click to start a terminal'))
+    expect(terminalCreate).not.toHaveBeenCalled()
+    expect(screen.getByText('Open or create a project first to start a terminal.')).toBeInTheDocument()
   })
 })

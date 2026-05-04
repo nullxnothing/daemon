@@ -129,7 +129,7 @@
   padding: 0 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #0a0a0a;
+  color: var(--on-accent-dark);
   background: var(--green);
   border-radius: 4px;
   cursor: pointer;
@@ -285,7 +285,7 @@
   padding: 0 20px;
   font-size: 12px;
   font-weight: 600;
-  color: #0a0a0a;
+  color: var(--on-accent-dark);
   background: var(--green);
   border-radius: 6px;
   cursor: pointer;

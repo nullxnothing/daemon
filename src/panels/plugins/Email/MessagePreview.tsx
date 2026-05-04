@@ -41,15 +41,13 @@ function parseSenderEmail(from: string): string {
 }
 
 export function MessagePreview() {
-  const {
-    messages,
-    selectedMessageId,
-    selectMessage,
-    extractCode,
-    summarize,
-    setAISidebar,
-    openCompanion,
-  } = useEmailStore()
+  const messages = useEmailStore((s) => s.messages)
+  const selectedMessageId = useEmailStore((s) => s.selectedMessageId)
+  const selectMessage = useEmailStore((s) => s.selectMessage)
+  const extractCode = useEmailStore((s) => s.extractCode)
+  const summarize = useEmailStore((s) => s.summarize)
+  const setAISidebar = useEmailStore((s) => s.setAISidebar)
+  const openCompanion = useEmailStore((s) => s.openCompanion)
 
   const [extracting, setExtracting] = useState(false)
   const [summarizing, setSummarizing] = useState(false)

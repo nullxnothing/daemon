@@ -7,6 +7,7 @@ import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
 import { INTEGRATION_REGISTRY } from '../IntegrationCommandCenter/registry'
 import { resolveIntegrationStatus, summarizeRegistry, type IntegrationContext } from '../IntegrationCommandCenter/status'
 import { parsePackageInfo, SENDAI_FIRST_AGENT_ENTRY, type PackageInfo } from '../IntegrationCommandCenter/sendaiSetup'
+import { Banner, ProgressRing } from '../../components/Panel'
 import './ProjectReadiness.css'
 
 const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), scripts: new Set(), packageManagerHint: null }
@@ -417,19 +418,26 @@ export function ProjectReadiness() {
       <section className="project-readiness-hero">
         <div className="project-readiness-hero-copy">
           <span className="project-readiness-kicker">Project Readiness</span>
-          <h1>Start Solana development from one checklist</h1>
+          <h1>Solana project status</h1>
           <p>
-            DAEMON checks the active project, wallet route, RPC path, MCPs, and first-action integrations so new Solana developers know exactly what to do next.
+            Active project, wallet route, RPC path, MCPs, and first-action integrations.
           </p>
         </div>
-        <div className="project-readiness-score" aria-label="Solana readiness score">
-          <span>{readinessPct}%</span>
+        <div className="project-readiness-score">
+          <ProgressRing value={readinessPct} label="Solana readiness score" />
           <small>{readyCount}/{items.length} ready</small>
         </div>
       </section>
 
-      {error ? <div className="project-readiness-error">{error}</div> : null}
-      {actionMessage ? <div className={`project-readiness-action-message ${actionMessage.type}`}>{actionMessage.text}</div> : null}
+      {error ? <Banner className="project-readiness-error" tone="danger">{error}</Banner> : null}
+      {actionMessage ? (
+        <Banner
+          className={`project-readiness-action-message ${actionMessage.type}`}
+          tone={actionMessage.type === 'success' ? 'success' : 'danger'}
+        >
+          {actionMessage.text}
+        </Banner>
+      ) : null}
 
       <section className="project-readiness-next">
         <div>
@@ -448,7 +456,7 @@ export function ProjectReadiness() {
         <div className="project-readiness-section-head">
           <div>
             <span className="project-readiness-mini">Quick setup</span>
-            <h2>Fix the obvious blockers here</h2>
+            <h2>Blocking checks</h2>
           </div>
           <button type="button" className="project-readiness-secondary" onClick={() => void loadReadiness()}>
             Refresh checks
@@ -496,7 +504,7 @@ export function ProjectReadiness() {
         <div className="project-readiness-section-head">
           <div>
             <span className="project-readiness-mini">First safe actions</span>
-            <h2>Pick the workflow that proves the project works</h2>
+            <h2>First actions</h2>
           </div>
           <button type="button" className="project-readiness-secondary" onClick={() => openWorkspaceTool('integrations')}>
             Open all integrations
@@ -541,7 +549,7 @@ export function ProjectReadiness() {
         <button type="button" onClick={() => openWorkspaceTool('token-launch')}>Token Launch</button>
       </section>
 
-      {loading ? <div className="project-readiness-loading">Refreshing readiness...</div> : null}
+      {loading ? <Banner className="project-readiness-loading" tone="info">Refreshing readiness...</Banner> : null}
     </div>
   )
 }

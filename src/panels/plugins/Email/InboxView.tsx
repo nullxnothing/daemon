@@ -19,16 +19,14 @@ function matchesFilter(message: { isRead: boolean; labels: string[]; subject: st
 
 export function InboxView() {
   const [query, setQuery] = useState('')
-  const {
-    messages,
-    loading,
-    error,
-    activeAccountId,
-    selectedMessageId,
-    selectMessage,
-    loadMessages,
-    filterMode,
-  } = useEmailStore()
+  const messages = useEmailStore((s) => s.messages)
+  const loading = useEmailStore((s) => s.loading)
+  const error = useEmailStore((s) => s.error)
+  const activeAccountId = useEmailStore((s) => s.activeAccountId)
+  const selectedMessageId = useEmailStore((s) => s.selectedMessageId)
+  const selectMessage = useEmailStore((s) => s.selectMessage)
+  const loadMessages = useEmailStore((s) => s.loadMessages)
+  const filterMode = useEmailStore((s) => s.filterMode)
 
   const isUnified = activeAccountId === 'all'
 

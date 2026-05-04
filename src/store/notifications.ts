@@ -24,11 +24,35 @@ export interface ActivityEntry {
   message: string
   context: string | null
   createdAt: number
+  sessionId?: string | null
+  sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
+  projectId?: string | null
+  projectName?: string | null
+  sessionSummary?: string | null
+  artifacts?: ActivityArtifact[] | null
+}
+
+export interface ActivityArtifact {
+  type: 'transaction' | 'program' | 'explorer' | 'project' | 'deploy' | 'wallet' | 'other'
+  label: string
+  value: string
+  href?: string | null
 }
 
 interface NotificationsState {
   toasts: Toast[]
   activity: ActivityEntry[]
+  addActivity: (input: {
+    kind: ToastKind
+    message: string
+    context?: string
+    createdAt?: number
+    sessionId?: string | null
+    sessionStatus?: ActivityEntry['sessionStatus']
+    projectId?: string | null
+    projectName?: string | null
+    artifacts?: ActivityArtifact[] | null
+  }) => string
   pushToast: (input: { kind: ToastKind; message: string; context?: string; ttlMs?: number; action?: ToastAction }) => string
   pushError: (err: unknown, context?: string) => string
   pushSuccess: (message: string, context?: string) => string
@@ -36,6 +60,7 @@ interface NotificationsState {
   dismiss: (id: string) => void
   clearAll: () => void
   loadActivity: () => Promise<void>
+  saveActivitySummary: (targetId: string, summary: string) => Promise<void>
   clearActivity: () => Promise<void>
 }
 
@@ -56,12 +81,41 @@ function persistEntry(entry: ActivityEntry): void {
     message: entry.message,
     context: entry.context,
     createdAt: entry.createdAt,
+    sessionId: entry.sessionId ?? null,
+    sessionStatus: entry.sessionStatus ?? null,
+    projectId: entry.projectId ?? null,
+    projectName: entry.projectName ?? null,
+    artifacts: entry.artifacts ?? null,
   }).catch(() => { /* non-fatal */ })
 }
 
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   toasts: [],
   activity: [],
+
+  addActivity: ({ kind, message, context, createdAt, sessionId, sessionStatus, projectId, projectName, artifacts }) => {
+    const id = crypto.randomUUID()
+    const entry: ActivityEntry = {
+      id,
+      kind,
+      message,
+      context: context ?? null,
+      createdAt: createdAt ?? Date.now(),
+      sessionId: sessionId ?? null,
+      sessionStatus: sessionStatus ?? null,
+      projectId: projectId ?? null,
+      projectName: projectName ?? null,
+      sessionSummary: null,
+      artifacts: artifacts ?? null,
+    }
+
+    set((state) => ({
+      activity: [entry, ...state.activity].slice(0, 500),
+    }))
+
+    persistEntry(entry)
+    return id
+  },
 
   pushToast: ({ kind, message, context, ttlMs, action }) => {
     const id = crypto.randomUUID()
@@ -75,7 +129,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       ttlMs: ttlMs ?? DEFAULT_TTL[kind],
       action,
     }
-    const entry: ActivityEntry = { id, kind, message, context: context ?? null, createdAt }
+    const entry: ActivityEntry = { id, kind, message, context: context ?? null, createdAt, artifacts: null }
 
     set((state) => ({
       toasts: [...state.toasts, toast],
@@ -109,6 +163,16 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
   loadActivity: async () => {
     const res = await daemon.activity.list(500)
     if (res.ok && res.data) set({ activity: res.data })
+  },
+
+  saveActivitySummary: async (targetId, summary) => {
+    set((state) => ({
+      activity: state.activity.map((entry) => (
+        entry.sessionId === targetId || entry.id === targetId ? { ...entry, sessionSummary: summary } : entry
+      )),
+    }))
+    const res = await daemon.activity.saveSummary(targetId, summary)
+    if (!res.ok) throw new Error(res.error ?? 'Failed to save activity summary')
   },
 
   clearActivity: async () => {

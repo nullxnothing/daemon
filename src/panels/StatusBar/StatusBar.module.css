@@ -7,7 +7,6 @@
   padding: 0 12px;
   background: var(--s1);
   border-top: 1px solid var(--border);
-  border-image: linear-gradient(90deg, var(--border) 0%, var(--border) 70%, rgba(62, 207, 142, 0.12) 100%) 1;
   flex-shrink: 0;
   min-width: 0;
   gap: 12px;

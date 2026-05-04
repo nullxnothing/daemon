@@ -1,3 +1,5 @@
+import { CORE_TOOL_IDS } from './toolRegistry'
+
 export type WorkspaceProfileName = 'web' | 'solana' | 'custom'
 
 export interface WorkspaceProfile {
@@ -8,11 +10,11 @@ export interface WorkspaceProfile {
 const WEB_TOOLS = [
   'starter', 'git', 'deploy', 'env', 'email', 'ports',
   'processes', 'settings', 'image-editor', 'docs',
-  'sessions', 'plugins', 'recovery',
+  'sessions', 'plugins', 'recovery', 'activity',
 ]
 
 const SOLANA_TOOLS = [
-  ...WEB_TOOLS, 'wallet', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'block-scanner',
+  ...WEB_TOOLS, 'wallet', 'agent-work', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'block-scanner',
   'dashboard', 'hackathon', 'pro',
 ]
 
@@ -34,6 +36,6 @@ export function getDefaultVisibility(
   }
 
   return Object.fromEntries(
-    allToolIds.map((id) => [id, allowedTools.includes(id)]),
+    allToolIds.map((id) => [id, CORE_TOOL_IDS.includes(id) || allowedTools.includes(id)]),
   )
 }

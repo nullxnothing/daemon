@@ -36,7 +36,7 @@
 }
 
 .plugin-dashboard-search::placeholder { color: var(--t3); }
-.plugin-dashboard-search:focus-visible {
+.plugin-dashboard-search:focus {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -52,27 +52,24 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 24px;
+  padding: 16px;
   background: var(--s1);
-  background-image: var(--surface-gradient-subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
   border-left: 3px solid transparent;
-  min-height: 140px;
+  min-height: 132px;
   cursor: default;
   transition: background 0.15s, border-color 0.15s;
-  box-shadow: var(--shadow-lifted);
 }
 
 .plugin-card-v2:not(.plugin-card-v2--disabled):hover {
   background: var(--s2);
-  border-color: var(--s6);
+  border-color: var(--t3);
   border-left-color: var(--t3);
 }
 
 .plugin-card-v2--active {
   border-left-color: var(--success);
-  box-shadow: var(--shadow-lifted), 0 0 8px rgba(62, 207, 142, 0.06);
 }
 
 .plugin-card-v2--active:hover {
@@ -148,20 +145,8 @@
 .plugin-card-v2-footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  margin-top: auto;
-  min-height: 28px;
-}
-
-.plugin-card-v2-toggle-label {
-  font-size: 10px;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.plugin-card-v2-footer .plugin-card-v2-btn--open {
-  margin-left: auto;
 }
 
 .plugin-card-v2-btn {
@@ -193,7 +178,7 @@
 .plugin-card-v2-btn--enable:hover {
   background: var(--hover-bg);
   color: var(--t1);
-  border-color: var(--s6);
+  border-color: var(--t3);
 }
 
 .plugin-card-v2-btn--active {
