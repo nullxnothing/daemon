@@ -1,18 +1,27 @@
 .file-explorer {
   padding: 4px 0;
   overflow-y: auto;
-  height: calc(100% - 32px);
+  height: 100%;
   position: relative;
 }
 
-.file-explorer-search {
+.file-explorer-toolbar {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 6;
   display: flex;
   align-items: center;
   gap: 6px;
   margin: 0 8px 6px;
+  background: var(--s1);
+}
+
+.file-explorer-search {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 0 8px;
   height: 28px;
   border: 1px solid var(--border);
@@ -32,6 +41,7 @@
 
 .file-explorer-search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -41,6 +51,36 @@
 
 .file-explorer-search-input::placeholder {
   color: var(--t3);
+}
+
+.file-explorer-action {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t3);
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.file-explorer-action:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+.file-explorer-action:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.file-explorer-action svg {
+  display: block;
 }
 
 .file-search-results {
@@ -320,13 +360,14 @@
 /* Context Menu */
 .context-menu {
   position: fixed;
-  z-index: 200;
-  background: var(--s1);
+  z-index: 10000;
+  min-width: 190px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--s1) 96%, black 4%);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px;
-  min-width: 140px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.58);
 }
 
 .context-menu-item {
@@ -338,6 +379,7 @@
   color: var(--t2);
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .context-menu-item:hover {

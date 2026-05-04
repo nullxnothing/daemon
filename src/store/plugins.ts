@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
-import type { PluginRow } from '../types/daemon.d'
+import type { PluginCreateInput, PluginRow } from '../../electron/shared/types'
 
 interface PluginState {
   plugins: PluginRow[]
@@ -8,6 +8,7 @@ interface PluginState {
   activePluginId: string | null
 
   load: () => Promise<void>
+  add: (input: PluginCreateInput) => Promise<boolean>
   toggle: (id: string, enabled: boolean) => Promise<void>
   reorder: (orderedIds: string[]) => Promise<void>
   setActivePlugin: (id: string | null) => void
@@ -22,6 +23,15 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   load: async () => {
     const res = await daemon.plugins.list()
     if (res.ok && res.data) set({ plugins: res.data, loaded: true })
+  },
+
+  add: async (input) => {
+    const res = await daemon.plugins.add(input)
+    if (res.ok && res.data) {
+      set((s) => ({ plugins: [...s.plugins, res.data!] }))
+      return true
+    }
+    return false
   },
 
   toggle: async (id, enabled) => {

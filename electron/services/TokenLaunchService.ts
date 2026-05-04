@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { PublicKey } from '@solana/web3.js'
 import { getDb } from '../db/db'
 import * as PumpFun from './PumpFunService'
 import * as Settings from './SettingsService'
@@ -25,6 +26,8 @@ export interface LaunchWalletOption {
   name: string
   address: string
   isDefault: boolean
+  walletType: string
+  ecosystemRole: 'daemon-deployer' | null
   hasKeypair: boolean
   isAssignedToActiveProject: boolean
   assignedProjectIds: string[]
@@ -91,6 +94,10 @@ export interface TokenLaunchPreflight {
   checks: TokenLaunchCheck[]
 }
 
+const DAEMON_DEPLOYER_NAME = 'DAEMON Deployer'
+const DAEMON_DEPLOYER_ADDRESS = '8A4i2yk8R9ivCGdtQeyo71JYyB6CjfSsMnWcYthisPwT'
+const DAEMON_DEPLOYER_WALLET_TYPE = 'daemon-deployer'
+
 const bonkDefinition: LaunchpadDefinition = {
   id: 'bonk',
   name: 'Bonk',
@@ -139,10 +146,31 @@ export function listLaunchWallets(projectId?: string | null): LaunchWalletOption
     name: wallet.name,
     address: wallet.address,
     isDefault: wallet.is_default === 1,
+    walletType: wallet.wallet_type ?? 'user',
+    ecosystemRole: wallet.address === DAEMON_DEPLOYER_ADDRESS ? 'daemon-deployer' : null,
     hasKeypair: WalletService.hasKeypair(wallet.id),
     isAssignedToActiveProject: wallet.id === projectWalletId,
     assignedProjectIds: wallet.assigned_project_ids ?? [],
   }))
+}
+
+export function ensureDaemonDeployerWallet(projectId?: string | null): LaunchWalletOption {
+  try {
+    // Validate here so the UI reports that the configured deployer address is invalid,
+    // instead of failing deeper in generic wallet creation.
+    new PublicKey(DAEMON_DEPLOYER_ADDRESS)
+  } catch {
+    throw new Error(`Configured DAEMON deployer address is not a valid Solana wallet: ${DAEMON_DEPLOYER_ADDRESS}`)
+  }
+
+  const wallet = WalletService.ensureWatchWallet(
+    DAEMON_DEPLOYER_NAME,
+    DAEMON_DEPLOYER_ADDRESS,
+    DAEMON_DEPLOYER_WALLET_TYPE,
+  )
+  const option = listLaunchWallets(projectId).find((entry) => entry.id === wallet.id)
+  if (!option) throw new Error('Could not resolve DAEMON deployer wallet')
+  return option
 }
 
 export async function pickImage(): Promise<string | null> {
@@ -179,14 +207,28 @@ export async function preflightLaunch(input: TokenLaunchInput): Promise<TokenLau
   }
 
   const hasKeypair = WalletService.hasKeypair(input.walletId)
+  const selectedWallet = listLaunchWallets(input.projectId ?? null).find((wallet) => wallet.id === input.walletId)
   checks.push({
     id: 'wallet-keypair',
     label: 'Signing Wallet',
     status: hasKeypair ? 'pass' : 'fail',
     detail: hasKeypair
-      ? 'Selected wallet has an imported keypair.'
+      ? selectedWallet?.ecosystemRole === 'daemon-deployer'
+        ? `DAEMON Deployer is selected. Launch creator/deployer will be ${DAEMON_DEPLOYER_ADDRESS}.`
+        : 'Selected wallet has an imported keypair.'
       : 'Selected wallet is watch-only. Import or generate a signing wallet first.',
   })
+
+  if (selectedWallet?.ecosystemRole === 'daemon-deployer') {
+    checks.push({
+      id: 'daemon-deployer',
+      label: 'DAEMON Deployer',
+      status: hasKeypair ? 'pass' : 'fail',
+      detail: hasKeypair
+        ? 'The matching DAEMON Deployer keypair is available locally for signing.'
+        : `Import the keypair for ${DAEMON_DEPLOYER_ADDRESS} before launching if you want this address to appear as deployer.`,
+    })
+  }
 
   const projectWalletId = WalletService.getProjectWalletId(input.projectId ?? null)
   if (projectWalletId && projectWalletId !== input.walletId) {

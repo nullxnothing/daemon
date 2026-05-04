@@ -25,7 +25,7 @@ const viewports = [
 ]
 
 const toolChecks = [
-  { name: 'New Project', readySelector: '.starter-panel', expectedText: 'What do you want to build?' },
+  { name: 'New Project', readySelector: '.starter-panel', expectedText: 'Project Templates' },
   { name: 'Git', readySelector: '.git-center', expectedText: 'Git workflow' },
   { name: 'Env', readySelector: '.env-center', expectedText: 'Environment' },
   { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Wallet workspace' },

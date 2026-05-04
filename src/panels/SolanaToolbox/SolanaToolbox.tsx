@@ -15,7 +15,7 @@ import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
 import { ProgramMonitorPanel } from './ProgramMonitorPanel'
 import { BuildDeployPanel } from './BuildDeployPanel'
 import { TransactionInspector } from './TransactionInspector'
-import { scaffoldX402, scaffoldMpp } from './scaffolding'
+import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge, scaffoldSquads } from './scaffolding'
 import './SolanaToolbox.css'
 
 const SOLANA_VIEWS = [
@@ -102,6 +102,22 @@ export function SolanaToolbox() {
     if (activeProjectId) void scaffoldMpp(activeProjectId)
   }
 
+  const handleScaffoldLight = () => {
+    if (activeProjectId) void scaffoldLightProtocol(activeProjectId)
+  }
+
+  const handleScaffoldMagicBlock = () => {
+    if (activeProjectId) void scaffoldMagicBlock(activeProjectId)
+  }
+
+  const handleScaffoldDebridge = () => {
+    if (activeProjectId) void scaffoldDebridge(activeProjectId)
+  }
+
+  const handleScaffoldSquads = () => {
+    if (activeProjectId) void scaffoldSquads(activeProjectId)
+  }
+
   return (
     <div className="solana-toolbox">
       <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} toolchain={toolchain} />
@@ -162,6 +178,10 @@ export function SolanaToolbox() {
                   onToggle={toggleMcp}
                   onScaffoldX402={handleScaffoldX402}
                   onScaffoldMpp={handleScaffoldMpp}
+                  onScaffoldLight={handleScaffoldLight}
+                  onScaffoldMagicBlock={handleScaffoldMagicBlock}
+                  onScaffoldDebridge={handleScaffoldDebridge}
+                  onScaffoldSquads={handleScaffoldSquads}
                 />
               </div>
             </>
@@ -223,6 +243,10 @@ export function SolanaToolbox() {
                   onToggle={toggleMcp}
                   onScaffoldX402={handleScaffoldX402}
                   onScaffoldMpp={handleScaffoldMpp}
+                  onScaffoldLight={handleScaffoldLight}
+                  onScaffoldMagicBlock={handleScaffoldMagicBlock}
+                  onScaffoldDebridge={handleScaffoldDebridge}
+                  onScaffoldSquads={handleScaffoldSquads}
                 />
               </div>
             </>

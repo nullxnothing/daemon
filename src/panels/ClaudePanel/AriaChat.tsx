@@ -15,10 +15,8 @@ function AriaChamber({ isChatFocused, onActivate }: { isChatFocused: boolean; on
           <AriaPresence isChatFocused={isChatFocused} isChatExpanded={false} size="large" />
         </button>
         <div className="aria-chamber-copy">
-          <div className="aria-chamber-title">ARIA is ready</div>
-          <div className="aria-chamber-text">
-            Ask for next steps, open the right tool, or get a quick read on the current project.
-          </div>
+          <div className="aria-chamber-title">ARIA</div>
+          <div className="aria-chamber-text">Ready</div>
         </div>
       </div>
       <span className="aria-chamber-label">aria</span>

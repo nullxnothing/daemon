@@ -199,6 +199,77 @@ export function LaunchWizard() {
     launch(params)
   }
 
+  const upsertWallet = (wallet: LaunchWalletOption) => {
+    setWallets((current) => {
+      const exists = current.some((entry) => entry.id === wallet.id)
+      return exists
+        ? current.map((entry) => entry.id === wallet.id ? wallet : entry)
+        : [wallet, ...current]
+    })
+  }
+
+  const handleUseDaemonDeployer = async () => {
+    const res = await window.daemon.launch.ensureDaemonDeployerWallet(activeProjectId)
+    if (!res.ok || !res.data) {
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Runtime',
+        message: res.error ?? 'Could not prepare DAEMON Deployer wallet',
+        projectId: activeProjectId,
+        projectName: activeProjectName,
+      })
+      return
+    }
+
+    upsertWallet(res.data)
+    setS2((prev) => ({ ...prev, walletId: res.data!.id }))
+    setPreflight(null)
+    setConfirmed(false)
+    useNotificationsStore.getState().addActivity({
+      kind: res.data.hasKeypair ? 'success' : 'warning',
+      context: 'Runtime',
+      message: res.data.hasKeypair
+        ? 'DAEMON Deployer selected for token launch'
+        : 'DAEMON Deployer selected. Import the matching keypair before launch.',
+      projectId: activeProjectId,
+      projectName: activeProjectName,
+    })
+  }
+
+  const handleImportSelectedWalletKeypair = async () => {
+    if (!s2.walletId) return
+    const res = await window.daemon.pumpfun.importKeypair(s2.walletId)
+    if (!res.ok) {
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Runtime',
+        message: res.error ?? 'Could not import wallet keypair',
+        projectId: activeProjectId,
+        projectName: activeProjectName,
+      })
+      return
+    }
+    if (!res.data) return
+
+    const walletsRes = await window.daemon.launch.listWalletOptions(activeProjectId)
+    if (walletsRes.ok && walletsRes.data) {
+      setWallets(walletsRes.data)
+    } else {
+      setWallets((current) => current.map((wallet) => (
+        wallet.id === s2.walletId ? { ...wallet, hasKeypair: true } : wallet
+      )))
+    }
+    setPreflight(null)
+    setConfirmed(false)
+    useNotificationsStore.getState().addActivity({
+      kind: 'success',
+      context: 'Runtime',
+      message: 'Wallet keypair imported for launch signing',
+      projectId: activeProjectId,
+      projectName: activeProjectName,
+    })
+  }
+
   const handleRetry = () => {
     reset()
     setStep(3)
@@ -315,7 +386,14 @@ export function LaunchWizard() {
             <StepDetails s1={s1} setS1={setS1} onPickImage={handlePickImage} showErrors={hasAttemptedNext} />
           )}
           {step === 2 && (
-            <StepConfig s2={s2} setS2={setS2} wallets={wallets} launchpads={launchpads} />
+            <StepConfig
+              s2={s2}
+              setS2={setS2}
+              wallets={wallets}
+              launchpads={launchpads}
+              onUseDaemonDeployer={handleUseDaemonDeployer}
+              onImportSelectedWalletKeypair={handleImportSelectedWalletKeypair}
+            />
           )}
           {step === 3 && (
             <StepPreview
@@ -548,13 +626,19 @@ function StepConfig({
   setS2,
   wallets,
   launchpads,
+  onUseDaemonDeployer,
+  onImportSelectedWalletKeypair,
 }: {
   s2: Step2State
   setS2: React.Dispatch<React.SetStateAction<Step2State>>
   wallets: LaunchWalletOption[]
   launchpads: LaunchpadDefinition[]
+  onUseDaemonDeployer: () => void
+  onImportSelectedWalletKeypair: () => void
 }) {
   const selectedWallet = wallets.find((wallet) => wallet.id === s2.walletId) ?? null
+  const daemonDeployer = wallets.find((wallet) => wallet.ecosystemRole === 'daemon-deployer') ?? null
+  const selectedDaemonDeployer = selectedWallet?.ecosystemRole === 'daemon-deployer'
 
   return (
     <div>
@@ -600,6 +684,31 @@ function StepConfig({
 
       <div className="lw-field">
         <label className="lw-label">Signing Wallet</label>
+        <div className={`lw-daemon-deployer-card ${selectedDaemonDeployer ? 'active' : ''}`}>
+          <div>
+            <div className="lw-daemon-deployer-title">DAEMON Deployer</div>
+            <div className="lw-daemon-deployer-copy">
+              Use 8A4i2yk8R9ivCGdtQeyo71JYyB6CjfSsMnWcYthisPwT as the token deployer.
+            </div>
+            <div className="lw-daemon-deployer-status">
+              {daemonDeployer
+                ? daemonDeployer.hasKeypair
+                  ? 'Signer ready'
+                  : 'Keypair required'
+                : 'Not added yet'}
+            </div>
+          </div>
+          <div className="lw-daemon-deployer-actions">
+            <button type="button" className="lw-btn secondary" onClick={onUseDaemonDeployer}>
+              {selectedDaemonDeployer ? 'Selected' : 'Use Deployer'}
+            </button>
+            {selectedDaemonDeployer && !selectedWallet?.hasKeypair && (
+              <button type="button" className="lw-btn secondary" onClick={onImportSelectedWalletKeypair}>
+                Import Keypair
+              </button>
+            )}
+          </div>
+        </div>
         <select
           className="lw-input"
           value={s2.walletId}
@@ -612,6 +721,7 @@ function StepConfig({
           {wallets.map((w) => (
             <option key={w.id} value={w.id}>
               {w.name}
+              {w.ecosystemRole === 'daemon-deployer' ? ' (DAEMON Deployer)' : ''}
               {w.isAssignedToActiveProject ? ' (Project)' : w.isDefault ? ' (Default)' : ''}
               {!w.hasKeypair ? ' (Watch-only)' : ''}
               {' — '}
@@ -621,7 +731,9 @@ function StepConfig({
         </select>
         {selectedWallet && (
           <div className="lw-help-text">
-            {selectedWallet.isAssignedToActiveProject
+            {selectedDaemonDeployer
+              ? 'This launch will use the DAEMON deployer address if the matching keypair is imported.'
+              : selectedWallet.isAssignedToActiveProject
               ? 'This wallet is assigned to the active project.'
               : selectedWallet.isDefault
                 ? 'This wallet is your default portfolio wallet.'
