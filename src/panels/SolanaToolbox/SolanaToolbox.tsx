@@ -11,6 +11,7 @@ import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
 import { ProjectControlCenter } from './ProjectControlCenter'
+import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
 import { BuildDeployPanel } from './BuildDeployPanel'
 import { TransactionInspector } from './TransactionInspector'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
@@ -26,6 +27,11 @@ const SOLANA_VIEWS = [
     id: 'connect',
     label: 'Connect',
     summary: 'Providers, MCPs, and wallet paths',
+  },
+  {
+    id: 'diagnose',
+    label: 'Diagnose',
+    summary: 'Anchor.toml, IDL, keypair, and program drift',
   },
   {
     id: 'build',
@@ -168,6 +174,10 @@ export function SolanaToolbox() {
                 <RuntimeStackSection />
               </div>
             </>
+          )}
+
+          {activeView === 'diagnose' && (
+            <ProjectDiagnosticsPanel projectInfo={projectInfo} />
           )}
 
           {activeView === 'build' && (
