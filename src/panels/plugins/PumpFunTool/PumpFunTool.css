@@ -6,26 +6,10 @@
 }
 
 .pf-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--s3);
   flex-shrink: 0;
+  border-bottom: 1px solid var(--s3);
+  padding: 0 var(--space-sm);
 }
-
-.pf-tab {
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--t3);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.pf-tab:hover { color: var(--t2); }
-.pf-tab.active { color: var(--t1); border-bottom-color: var(--green); }
 
 .pf-content {
   flex: 1;

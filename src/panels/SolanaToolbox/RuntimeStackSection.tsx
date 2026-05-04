@@ -27,6 +27,36 @@ const DEFAULT_RUNTIME: SolanaRuntimeStatusSummary = {
   },
   executionCoverage: [],
   troubleshooting: [],
+  preflight: {
+    ready: false,
+    checks: [
+      {
+        id: 'rpc-provider',
+        label: 'RPC provider',
+        status: 'setup',
+        detail: 'Helius is selected but the key is missing.',
+        requiredFor: ['reads', 'sends', 'swaps', 'launches', 'recovery', 'scaffolds'],
+      },
+      {
+        id: 'swap-api',
+        label: 'Jupiter API',
+        status: 'setup',
+        detail: 'Add a Jupiter API key before requesting quotes or executing swaps.',
+        requiredFor: ['swaps', 'scaffolds'],
+      },
+    ],
+    blockers: [
+      'Helius is selected but the key is missing.',
+      'Add a Jupiter API key before requesting quotes or executing swaps.',
+    ],
+  },
+  executionPath: {
+    mode: 'rpc',
+    label: 'Standard RPC submission',
+    detail: 'Helius handles reads, transaction construction, submission, and confirmation once configured.',
+    submitter: 'Helius key missing',
+    confirmation: 'DAEMON confirms signatures through the shared RPC connection.',
+  },
 }
 
 function statusTone(status: SolanaRuntimeStatusLevel) {
@@ -117,6 +147,28 @@ export function RuntimeStackSection() {
           <div className="solana-runtime-detail">{runtime.executionBackend.detail}</div>
         </section>
       </div>
+
+      {runtime.preflight && (
+        <div className="solana-runtime-coverage">
+          <div className="solana-runtime-title">Execution Preflight</div>
+          <div className="solana-runtime-coverage-list">
+            {runtime.preflight.checks.map((item) => (
+              <div key={item.id} className="solana-runtime-coverage-row">
+                <div className="solana-runtime-coverage-main">
+                  <div className="solana-runtime-coverage-label-row">
+                    <span className="solana-runtime-coverage-label">{item.label}</span>
+                    <span className={`solana-runtime-status ${item.status}`}>
+                      {item.status === 'live' ? 'Ready' : item.status === 'partial' ? 'Partial' : 'Needs Setup'}
+                    </span>
+                  </div>
+                  <div className="solana-runtime-coverage-detail">{item.detail}</div>
+                  <div className="solana-runtime-coverage-detail">Covers {item.requiredFor.join(', ')}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="solana-runtime-coverage">
         <div className="solana-runtime-title">Execution Coverage</div>

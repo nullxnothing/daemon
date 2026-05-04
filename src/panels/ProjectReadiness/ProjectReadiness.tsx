@@ -112,6 +112,19 @@ export function ProjectReadiness() {
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>(DEFAULT_WALLET_INFRASTRUCTURE)
   const [secureKeys, setSecureKeys] = useState<Record<string, boolean>>({})
   const [hasFirstAgent, setHasFirstAgent] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['quick-setup', 'blocking']))
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(sectionId)) {
+        next.delete(sectionId)
+      } else {
+        next.add(sectionId)
+      }
+      return next
+    })
+  }
 
   const loadReadiness = useCallback(async (isCancelled: () => boolean = () => false) => {
       setLoading(true)
@@ -453,15 +466,24 @@ export function ProjectReadiness() {
       </section>
 
       <section className="project-readiness-section project-readiness-quick">
-        <div className="project-readiness-section-head">
+        <button
+          type="button"
+          className="project-readiness-section-head"
+          onClick={() => toggleSection('quick-setup')}
+        >
           <div>
             <span className="project-readiness-mini">Quick setup</span>
-            <h2>Blocking checks</h2>
+            <h2>{expandedSections.has('quick-setup') ? '▼' : '▶'} Blocking checks</h2>
           </div>
-          <button type="button" className="project-readiness-secondary" onClick={() => void loadReadiness()}>
+          <button
+            type="button"
+            className="project-readiness-secondary"
+            onClick={(e) => { e.stopPropagation(); void loadReadiness(); }}
+          >
             Refresh checks
           </button>
-        </div>
+        </button>
+        {expandedSections.has('quick-setup') && (
         <div className="project-readiness-quick-grid">
           {quickActions.map((action) => (
             <article key={action.id} className={`project-readiness-quick-card${action.ready ? ' ready' : ''}`}>
@@ -481,9 +503,22 @@ export function ProjectReadiness() {
             </article>
           ))}
         </div>
+        )}
       </section>
 
-      <section className="project-readiness-grid" aria-label="Readiness checks">
+      <section className="project-readiness-section" aria-label="Readiness checks">
+        <button
+          type="button"
+          className="project-readiness-section-head"
+          onClick={() => toggleSection('blocking')}
+        >
+          <div>
+            <span className="project-readiness-mini">System readiness</span>
+            <h2>{expandedSections.has('blocking') ? '▼' : '▶'} All checks ({readyCount}/{items.length})</h2>
+          </div>
+        </button>
+        {expandedSections.has('blocking') && (
+        <div className="project-readiness-grid">
         {items.map((item) => (
           <article key={item.id} className={`project-readiness-card${item.ready ? ' ready' : ''}`}>
             <span className={`project-readiness-dot${item.ready ? ' ready' : ''}`} />
@@ -498,18 +533,29 @@ export function ProjectReadiness() {
             </div>
           </article>
         ))}
+        </div>
+        )}
       </section>
 
       <section className="project-readiness-section">
-        <div className="project-readiness-section-head">
+        <button
+          type="button"
+          className="project-readiness-section-head"
+          onClick={() => toggleSection('integrations')}
+        >
           <div>
             <span className="project-readiness-mini">First safe actions</span>
-            <h2>First actions</h2>
+            <h2>{expandedSections.has('integrations') ? '▼' : '▶'} Starter integrations</h2>
           </div>
-          <button type="button" className="project-readiness-secondary" onClick={() => openWorkspaceTool('integrations')}>
+          <button
+            type="button"
+            className="project-readiness-secondary"
+            onClick={(e) => { e.stopPropagation(); openWorkspaceTool('integrations'); }}
+          >
             Open all integrations
           </button>
-        </div>
+        </button>
+        {expandedSections.has('integrations') && (
         <div className="project-readiness-action-grid">
           {starterIntegrations.map(({ integration, summary }) => (
             <button
@@ -524,6 +570,7 @@ export function ProjectReadiness() {
             </button>
           ))}
         </div>
+        )}
       </section>
 
       <section className="project-readiness-strip">

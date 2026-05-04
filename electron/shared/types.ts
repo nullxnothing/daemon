@@ -101,6 +101,16 @@ export interface DispatchSession {
   depth: string
 }
 
+export interface WorkspaceToolModule {
+  id: string
+  name: string
+  description: string | null
+  category: string
+  is_core: number
+  enabled: number
+  sort_order: number
+}
+
 // --- File Explorer ---
 
 export interface FileEntry {
@@ -622,6 +632,12 @@ export interface ProviderConnectionInfo {
 export interface UiSettings {
   showMarketTape: boolean
   showTitlebarWallet: boolean
+}
+
+export interface TelemetrySettings {
+  enabled: boolean
+  installId: string
+  endpoint: string
 }
 
 // --- Recovery ---

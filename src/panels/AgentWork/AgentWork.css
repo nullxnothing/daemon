@@ -21,16 +21,93 @@
   flex-shrink: 0;
 }
 
-.agent-work-stats > * {
+.agent-work-stat-btn {
+  all: unset;
+  cursor: pointer;
   border: 1px solid var(--s4);
   border-radius: 8px;
   padding: 12px;
   background: color-mix(in srgb, var(--s2) 72%, transparent);
+  transition: all 0.15s ease;
+}
+
+.agent-work-stat-btn:hover {
+  border-color: var(--s5);
+  background: color-mix(in srgb, var(--s2) 85%, transparent);
+}
+
+.agent-work-stat-btn.active {
+  border-color: color-mix(in srgb, var(--green) 36%, transparent);
+  background: color-mix(in srgb, var(--green) 6%, transparent);
 }
 
 .agent-work-banner {
   margin: 12px 20px 0;
   flex-shrink: 0;
+}
+
+.agent-work-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(0, 1.15fr);
+  gap: 12px;
+  padding: 14px 20px 0;
+  flex-shrink: 0;
+}
+
+.agent-work-search {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--s4);
+  border-radius: 6px;
+  background: var(--s2);
+  color: var(--t1);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease;
+}
+
+.agent-work-search:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 10%, transparent);
+}
+
+.agent-work-search::placeholder {
+  color: var(--t3);
+}
+
+.agent-work-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.agent-work-filter {
+  flex: 0 0 auto;
+  border: 1px solid var(--s4);
+  border-radius: 6px;
+  background: var(--s2);
+  color: var(--t3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 10px;
+  transition: all 0.15s ease;
+}
+
+.agent-work-filter:hover {
+  border-color: var(--s5);
+  background: var(--s3);
+}
+
+.agent-work-filter.active {
+  border-color: color-mix(in srgb, var(--green) 36%, transparent);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  color: var(--t1);
 }
 
 .agent-work-body {
@@ -66,6 +143,10 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.agent-work-grid-essential {
+  grid-template-columns: 1fr 120px 1fr;
 }
 
 .agent-work label,
@@ -115,6 +196,27 @@
   margin-top: 10px;
 }
 
+.agent-work-toggle-advanced {
+  all: unset;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t3);
+  padding: 8px 0;
+  margin-top: 8px;
+  transition: color 0.15s ease;
+}
+
+.agent-work-toggle-advanced:hover {
+  color: var(--t1);
+}
+
+.agent-work-advanced {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--s4);
+}
+
 .agent-work-primary,
 .agent-work-actions button {
   border: 1px solid color-mix(in srgb, var(--green) 42%, var(--s4));
@@ -143,7 +245,13 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--s2) 78%, transparent);
   padding: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
+  transition: all 0.2s ease;
+}
+
+.agent-work-task:hover {
+  border-color: var(--s5);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--bg) 80%, transparent);
 }
 
 .agent-work-task-head {
@@ -229,6 +337,24 @@
   margin-top: 12px;
 }
 
+.agent-work-expand-btn {
+  background: transparent;
+  border: 1px solid var(--s4);
+  border-radius: 6px;
+  color: var(--t3);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.agent-work-expand-btn:hover {
+  border-color: var(--s5);
+  color: var(--t2);
+  background: var(--s2);
+}
+
 @media (max-width: 1100px) {
   .agent-work-body {
     grid-template-columns: 1fr;
@@ -238,6 +364,14 @@
   .agent-work-compose,
   .agent-work-list {
     overflow: visible;
+  }
+  
+  .agent-work-toolbar {
+    grid-template-columns: 1fr;
+  }
+  
+  .agent-work-grid-essential {
+    grid-template-columns: 1fr;
   }
 }
 

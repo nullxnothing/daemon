@@ -1,5 +1,7 @@
 import { PublicKey } from '@solana/web3.js'
 import type { SolanaTransactionPreview, SolanaTransactionPreviewInput } from '../shared/types'
+import { getSolanaRuntimeBlockers } from '../shared/solanaRuntime'
+import type { SolanaRuntimeUseCase } from '../shared/solanaRuntime'
 import { getSolanaRuntimeStatus } from './SolanaRuntimeStatusService'
 import { listWallets } from './WalletService'
 
@@ -31,10 +33,18 @@ function getWalletLabel(walletId: string | undefined): string {
   return wallet ? `${wallet.name} (${shortAddress(wallet.address)})` : `Unknown wallet (${shortAddress(walletId)})`
 }
 
+function getPreviewUseCase(kind: SolanaTransactionPreviewInput['kind']): SolanaRuntimeUseCase {
+  if (kind === 'swap') return 'swaps'
+  if (kind === 'launch') return 'launches'
+  return 'sends'
+}
+
 export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): SolanaTransactionPreview {
   const runtime = getSolanaRuntimeStatus()
   const signerLabel = getWalletLabel(input.walletId)
-  const warnings = [...runtime.troubleshooting]
+  const warnings = runtime.preflight
+    ? getSolanaRuntimeBlockers(runtime, getPreviewUseCase(input.kind))
+    : [...runtime.troubleshooting]
   const notes: string[] = [
     `Execution backend: ${runtime.executionBackend.label}.`,
     'Network fees are finalized when DAEMON builds and submits the transaction.',
@@ -83,7 +93,7 @@ export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): 
       amountLabel = `${formatAmount(input.inputAmount ?? input.amount)} ${inputSymbol} -> ${formatAmount(input.outputAmount)} ${outputSymbol}`
       notes.push(`Slippage: ${((input.slippageBps ?? 0) / 100).toFixed(2)}%.`)
       notes.push('Use the quote quickly; stale quotes should be refreshed before execution.')
-      if (runtime.swapEngine.status !== 'live') {
+      if (!runtime.preflight && runtime.swapEngine.status !== 'live') {
         warnings.push(runtime.swapEngine.detail)
       }
       if (Number.isFinite(impactPct) && impactPct >= 5) {

@@ -4,12 +4,24 @@ import * as pty from 'node-pty'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import * as ValidatorManager from '../services/ValidatorManager'
 import * as SolanaDetector from '../services/SolanaDetector'
+import { isProjectPathSafe } from '../shared/pathValidation'
 
 let validatorPty: pty.IPty | null = null
 let validatorTerminalId: string | null = null
 
+interface ValidatorStartInput {
+  type: 'surfpool' | 'test-validator'
+  projectPath?: string
+  reset?: boolean
+}
+
+function normalizeStartInput(input: 'surfpool' | 'test-validator' | ValidatorStartInput): ValidatorStartInput {
+  return typeof input === 'string' ? { type: input } : input
+}
+
 export function registerValidatorHandlers() {
-  ipcMain.handle('validator:start', ipcHandler(async (_event, type: 'surfpool' | 'test-validator') => {
+  ipcMain.handle('validator:start', ipcHandler(async (_event, input: 'surfpool' | 'test-validator' | ValidatorStartInput) => {
+    const { type, projectPath, reset } = normalizeStartInput(input)
     // Stop existing validator first
     if (validatorPty) {
       try { validatorPty.kill() } catch { /* ignore */ }
@@ -24,20 +36,25 @@ export function registerValidatorHandlers() {
       throw new Error('solana-test-validator is not installed. Install Solana CLI tools first.')
     }
 
-    const { command, args } = ValidatorManager.getValidatorCommand(type)
+    const cwd = projectPath
+      ? isProjectPathSafe(projectPath)
+        ? projectPath
+        : (() => { throw new Error('Validator project path is not registered in DAEMON.') })()
+      : os.homedir()
+    const { command, args } = ValidatorManager.getValidatorCommand(type, { reset })
     const id = crypto.randomUUID()
     const shell = process.platform === 'win32' ? 'cmd.exe' : (process.env.SHELL || '/bin/bash')
+    const fullCommand = args.length > 0 ? `${command} ${args.join(' ')}` : command
 
     validatorPty = pty.spawn(shell, [], {
       name: 'xterm-256color',
       cols: 120,
       rows: 30,
-      cwd: os.homedir(),
+      cwd,
       env: { ...process.env } as Record<string, string>,
     })
 
     // Write the command to start the validator
-    const fullCommand = args.length > 0 ? `${command} ${args.join(' ')}` : command
     validatorPty.write(`${fullCommand}\r`)
 
     validatorTerminalId = id
@@ -46,15 +63,19 @@ export function registerValidatorHandlers() {
       status: 'running',
       terminalId: id,
       port: 8899,
+      projectPath: projectPath ?? null,
+      command: fullCommand,
+      studioPort: type === 'surfpool' ? 18488 : null,
+      startedAt: Date.now(),
     })
 
     validatorPty.onExit(() => {
-      ValidatorManager.setState({ type: null, status: 'stopped', terminalId: null, port: null })
+      ValidatorManager.reset()
       validatorPty = null
       validatorTerminalId = null
     })
 
-    return { terminalId: id, port: 8899 }
+    return { terminalId: id, port: 8899, projectPath: projectPath ?? null, command: fullCommand, studioPort: type === 'surfpool' ? 18488 : null }
   }))
 
   ipcMain.handle('validator:stop', ipcHandler(async () => {

@@ -33,6 +33,37 @@ function installDaemonBridge() {
             jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
           },
         }),
+        getSolanaRuntimeStatus: vi.fn().mockResolvedValue({
+          ok: true,
+          data: {
+            rpc: { label: 'Helius', detail: 'Helius key connected', status: 'live' },
+            walletPath: { label: 'Phantom-first', detail: 'Phantom flow', status: 'live' },
+            swapEngine: { label: 'Jupiter', detail: 'Jupiter key missing', status: 'setup' },
+            executionBackend: { label: 'Shared RPC executor', detail: 'Shared executor', status: 'partial' },
+            executionCoverage: [],
+            troubleshooting: ['Jupiter key missing'],
+            preflight: {
+              ready: false,
+              checks: [
+                {
+                  id: 'swap-api',
+                  label: 'Jupiter API',
+                  status: 'setup',
+                  detail: 'Add a Jupiter API key before requesting quotes or executing swaps.',
+                  requiredFor: ['swaps', 'scaffolds'],
+                },
+              ],
+              blockers: ['Add a Jupiter API key before requesting quotes or executing swaps.'],
+            },
+            executionPath: {
+              mode: 'rpc',
+              label: 'Standard RPC submission',
+              detail: 'Helius handles reads, transaction construction, submission, and confirmation.',
+              submitter: 'Helius key connected',
+              confirmation: 'DAEMON confirms signatures through the shared RPC connection.',
+            },
+          },
+        }),
       },
       wallet: {
         hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),

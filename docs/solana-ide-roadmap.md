@@ -1,93 +1,50 @@
-# Solana IDE Roadmap
+# Solana IDE Stabilization Backlog
 
 ## Goal
 
 Make DAEMON a real Solana-first development environment with an accurate runtime stack, current scaffolding, wallet-aware execution, and protocol packs that map cleanly to what is actually shipped.
 
-## Current branch
+## Current Direction
 
-Branch: `feat/solana-ide-foundation`
+This is now a polish backlog, not a new phase roadmap.
 
-Delivered in this branch so far:
+- Do not expand the surface area just to complete numbered phases.
+- Perfect the Solana IDE work that already exists: starter output, runtime visibility, wallet execution, provider configuration, toolbox diagnostics, and protocol/plugin accuracy.
+- Treat planned features as candidates only when they remove friction from an existing shipped workflow.
+- Keep dormant plugin shells out of primary product claims until they are genuinely usable.
+
+## Delivered Foundation
 
 - Solana ecosystem catalog that separates `native` integrations from `guided` coverage.
-- Updated Solana starter prompts around `@solana/kit`, current wallet flows, Jupiter, Jito, AVM, LiteSVM, and provider abstraction.
+- Solana starter prompts around `@solana/kit`, current wallet flows, Jupiter, Jito, AVM, LiteSVM, and provider abstraction.
 - Broader Solana project detection for modern frontend/client stacks.
-- Wallet infrastructure settings for:
-  - Helius
-  - public RPC
-  - QuickNode RPC
-  - custom RPC
-  - Jupiter swap execution
-  - Phantom-first or Wallet Standard wallet path
-  - Jito block-engine submission mode
+- Wallet infrastructure settings for Helius, public RPC, QuickNode RPC, custom RPC, Jupiter execution, Phantom or Wallet Standard paths, and optional Jito block-engine submission.
 - Runtime stack visibility in the Solana toolbox so the UI reflects the live configuration.
+- Project Runtime Dashboard and Validator Workbench for project-level cluster, program, IDL, script, toolchain, Surfpool, and test-validator readiness.
+- Transaction Lab in the Transact view for wallet-backed preview, preflight blockers, execution path context, recent activity, and replay trace summaries.
 
-## Phase 1: Foundation
+## Polish Priorities
 
-Status: in progress
+1. Runtime accuracy
+   Keep Solana IDE claims accurate in the UI, docs, setup flows, and generated project output.
 
-- Keep Solana IDE claims accurate in the UI.
-- Prefer `@solana/kit` and current Solana frontend patterns over stale `web3.js`-only guidance.
-- Expose live runtime configuration for RPC, execution, and wallet path.
-- Preserve compatibility with the existing Helius-backed wallet flows.
+2. Wallet and execution quality
+   Make missing API keys, provider misconfiguration, Jupiter execution, Jito submission, and RPC fallback states visible before execution begins.
 
-## Phase 2: Wallet and Execution
+3. Starter and onboarding clarity
+   Ensure Phantom, Wallet Standard, Helius, QuickNode, custom RPC, Jupiter, and Jito choices affect generated starter output consistently.
 
-Status: partially delivered
+4. Local toolchain diagnostics
+   Surface Solana CLI, Anchor, AVM, Surfpool, LiteSVM, and validator readiness as diagnostics for existing workflows, not as a separate expansion track.
 
-- Add first-class Phantom and Wallet Standard starter flows.
-- Keep Jupiter as the default swap execution engine.
-- Add optional Jito low-latency submission for swaps and transfers.
-- Add provider selection that can target Helius, QuickNode, or custom RPC infrastructure.
+5. Protocol and plugin honesty
+   Keep protocol support explicit about what is native, guided, scaffolded, or dormant.
 
-Remaining work:
+6. MCP and agent alignment
+   Tighten alignment between installed MCPs, skills, and what the toolbox advertises.
 
-- Add clearer wallet-provider onboarding in the starter output and docs panel.
-- Add UX around missing API keys and provider misconfiguration before execution begins.
-- Add deeper transaction telemetry for Jito-vs-RPC execution outcomes.
+## Immediate Next Slice
 
-## Phase 3: Testing and Local Dev
-
-Status: planned
-
-- Surface AVM, LiteSVM, Mollusk, and Surfpool as first-class setup flows.
-- Add environment checks for Solana CLI, Anchor, AVM, and validator tooling.
-- Add starter presets for program, client, and full-stack Solana projects.
-
-## Phase 4: Protocol Packs
-
-Status: planned
-
-Priority packs:
-
-- Jupiter
-- Metaplex
-- Raydium
-- Meteora
-- Pump.fun
-- Drift
-- Orca
-- Kamino
-- Sanctum
-- Pyth
-- Switchboard
-
-Approach:
-
-- Keep the core IDE lean.
-- Layer protocol support as explicit packs instead of pretending every skill is a native runtime integration.
-
-## Phase 5: MCP and Agent Flows
-
-Status: planned
-
-- Tighten alignment between installed MCPs, skills, and what the toolbox advertises.
-- Add setup guidance for Solana MCP, Helius MCP, Phantom MCP, and payment-oriented MCPs where they materially improve workflows.
-- Keep protocol skills and runtime integrations distinct in the UI and project scaffolds.
-
-## Immediate next slice
-
-1. Add Phantom and Wallet Standard starter/runtime helpers so the configured wallet path affects generated project output.
-2. Add execution UX for Jupiter and Jito so users can see which path a swap or transfer used.
-3. Add Solana environment diagnostics for AVM, Anchor, Solana CLI, Surfpool, and LiteSVM.
+1. Let Transaction Lab hand successful previews directly into the existing Wallet and Launch execution flows with the preview context preserved.
+2. Add project-aware replay handoff from Transaction Lab so failed signatures can create a Claude context without switching tools first.
+3. Keep adding focused DOM and service tests around the Solana toolbox so runtime, wallet, validator, and replay polish does not regress.

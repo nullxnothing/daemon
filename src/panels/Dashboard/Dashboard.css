@@ -590,23 +590,6 @@
   margin-bottom: 10px;
 }
 
-.dash-import-tab {
-  padding: 4px 10px;
-  font-size: 11px;
-  font-family: var(--font-ui);
-  background: var(--s3);
-  color: var(--t3);
-  border: 1px solid var(--s5);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.dash-import-tab.active {
-  background: var(--s4);
-  color: var(--t1);
-  border-color: var(--s6);
-}
-.dash-import-tab:hover:not(.active) { background: var(--s4); color: var(--t2); }
-
 /* Manual import */
 .dash-import-manual,
 .dash-import-form {

@@ -1,7 +1,8 @@
 import { ipcMain } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
@@ -12,6 +13,12 @@ import { ipcHandler, withValidation } from '../services/IpcHandlerFactory'
 import { restartProviderInPty, restartAllProviderSessions } from '../shared/providerRestart'
 import type { McpAddInput } from '../shared/types'
 
+const execAsync = promisify(exec)
+
+// Cache git diff for 30 seconds to prevent repeated expensive shell calls
+const diffCache = new Map<string, { diff: string; timestamp: number }>()
+const DIFF_CACHE_TTL = 30_000
+
 /**
  * Gracefully exit Claude in a PTY and resume with `claude -c`.
  * Uses fixed delays — more reliable than prompt detection which can false-positive.
@@ -20,12 +27,27 @@ async function restartClaudeInPty(terminalId: string): Promise<void> {
   return restartProviderInPty(terminalId, 'claude -c')
 }
 
-function getClaudeMdContext(projectPath: string): { content: string; diff: string } {
+async function getClaudeMdContext(projectPath: string): Promise<{ content: string; diff: string }> {
   const mdPath = path.join(projectPath, 'CLAUDE.md')
   const content = fs.existsSync(mdPath) ? fs.readFileSync(mdPath, 'utf8') : ''
+  
+  // Check cache first
+  const cached = diffCache.get(projectPath)
+  if (cached && Date.now() - cached.timestamp < DIFF_CACHE_TTL) {
+    return { content, diff: cached.diff }
+  }
+  
+  // Async git diff with 5s timeout - prevents blocking main thread
   let diff = ''
   try {
-    diff = execSync('git diff HEAD~5', { cwd: projectPath, encoding: 'utf8', timeout: 10000 })
+    const { stdout } = await execAsync('git diff HEAD~5', {
+      cwd: projectPath,
+      encoding: 'utf8',
+      timeout: 5000,
+      maxBuffer: 1024 * 1024, // 1MB max
+    })
+    diff = stdout
+    diffCache.set(projectPath, { diff, timestamp: Date.now() })
   } catch {
     diff = '(no git history)'
   }
@@ -174,7 +196,7 @@ ${content}`,
     withValidation(
       (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
       async (_event, projectPath: string) => {
-        return getClaudeMdContext(projectPath)
+        return await getClaudeMdContext(projectPath)
       }
     )
   ))
@@ -183,7 +205,7 @@ ${content}`,
     withValidation(
       (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
       async (_event, projectPath: string) => {
-        const { content, diff } = getClaudeMdContext(projectPath)
+        const { content, diff } = await getClaudeMdContext(projectPath)
 
         return await ClaudeRouter.runPrompt({
           prompt: `Update this CLAUDE.md based on recent changes. Preserve structure and style. Return ONLY the updated markdown.\n\nCurrent CLAUDE.md:\n${content}\n\nRecent changes:\n${diff}`,

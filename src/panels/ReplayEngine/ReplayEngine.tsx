@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReplayTrace, ReplayInstruction, ReplayProgramSummary, ReplayVerificationResult } from '../../../electron/shared/types'
 import { Dot } from '../../components/Dot'
+import { TabPill, TabPillRow } from '../../components/Panel'
 import { useUIStore } from '../../store/ui'
 import './ReplayEngine.css'
 
@@ -282,22 +283,10 @@ export function ReplayEngine() {
         </div>
       </header>
 
-      <div className="replay-mode-tabs">
-        <button
-          type="button"
-          className={`replay-tab ${mode === 'signature' ? 'is-active' : ''}`}
-          onClick={() => setMode('signature')}
-        >
-          Transaction
-        </button>
-        <button
-          type="button"
-          className={`replay-tab ${mode === 'program' ? 'is-active' : ''}`}
-          onClick={() => setMode('program')}
-        >
-          Program
-        </button>
-      </div>
+      <TabPillRow className="replay-mode-tabs" aria-label="Replay mode">
+        <TabPill active={mode === 'signature'} onClick={() => setMode('signature')}>Transaction</TabPill>
+        <TabPill active={mode === 'program'} onClick={() => setMode('program')}>Program</TabPill>
+      </TabPillRow>
 
       {mode === 'signature' ? (
         <form className="replay-input-row" onSubmit={handleSignatureSubmit}>

@@ -13,6 +13,7 @@ import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
+import { Skeleton } from '../../components/Panel'
 import { EditorWelcome } from './EditorWelcome'
 import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
@@ -64,6 +65,26 @@ const LSP_LANGUAGE_MAP: Record<string, string> = {
 const LSP_MONACO_LANGUAGES = ['typescript', 'javascript', 'python', 'rust']
 type MonacoApi = Parameters<BeforeMount>[0]
 
+const MONACO_EDITOR_OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
+  automaticLayout: false,
+  fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+  fontSize: 13,
+  lineHeight: 20,
+  minimap: { enabled: false },
+  scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+  padding: { top: 8 },
+  renderLineHighlight: 'line',
+  smoothScrolling: false,
+  cursorBlinking: 'smooth',
+  cursorSmoothCaretAnimation: 'off',
+  disableLayerHinting: true,
+  experimentalGpuAcceleration: 'off',
+  bracketPairColorization: { enabled: true },
+  wordWrap: 'on',
+  tabSize: 2,
+  glyphMargin: true,
+}
+
 function getLanguage(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
   return LANGUAGE_MAP[ext] ?? 'plaintext'
@@ -81,7 +102,16 @@ let themeIsDefined = false
 let lspProvidersRegistered = false
 
 function WorkspacePanelFallback() {
-  return <div className="editor-content" />
+  return (
+    <div className="editor-content workspace-panel-loading">
+      <Skeleton height="1.75rem" style={{ maxWidth: 220, margin: '32px 32px 12px' }} />
+      <Skeleton height="0.875rem" style={{ maxWidth: 400, margin: '0 32px 8px' }} />
+      <Skeleton height="0.875rem" style={{ maxWidth: 300, margin: '0 32px 28px' }} />
+      <Skeleton height="5rem" style={{ maxWidth: 560, margin: '0 32px 16px' }} />
+      <Skeleton height="0.875rem" style={{ maxWidth: 360, margin: '0 32px 8px' }} />
+      <Skeleton height="0.875rem" style={{ maxWidth: 260, margin: '0 32px' }} />
+    </div>
+  )
 }
 
 function normalizeEditorPath(filePath: string): string {
@@ -277,6 +307,9 @@ export function EditorPanel() {
   const setDashboardTabActive = useUIStore((s) => s.setDashboardTabActive)
   const plugins = usePluginStore((s) => s.plugins)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+  const editorContentRef = useRef<HTMLDivElement | null>(null)
+  const editorLayoutTimerRef = useRef<number | null>(null)
+  const editorLayoutFrameRef = useRef<number | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
   const [savedFlash, setSavedFlash] = useState<string | null>(null)
@@ -362,6 +395,54 @@ export function EditorPanel() {
     })
   }, [])
 
+  const layoutEditor = useCallback(() => {
+    const editor = editorRef.current
+    const container = editorContentRef.current
+    if (!editor || !container || !container.isConnected) return
+
+    const width = container.clientWidth
+    const height = container.clientHeight
+    if (width <= 0 || height <= 0) return
+
+    try {
+      editor.layout({ width, height })
+    } catch {
+      editorRef.current = null
+    }
+  }, [])
+
+  const scheduleEditorLayout = useCallback(() => {
+    if (editorLayoutTimerRef.current !== null) {
+      window.clearTimeout(editorLayoutTimerRef.current)
+    }
+
+    editorLayoutTimerRef.current = window.setTimeout(() => {
+      editorLayoutTimerRef.current = null
+      if (editorLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(editorLayoutFrameRef.current)
+      }
+      editorLayoutFrameRef.current = window.requestAnimationFrame(() => {
+        editorLayoutFrameRef.current = null
+        layoutEditor()
+      })
+    }, 80)
+  }, [layoutEditor])
+
+  useEffect(() => {
+    const container = editorContentRef.current
+    if (!container || !activeFile || isImageFile(activeFile.path) || markdownTidyPreview) return
+
+    const resizeObserver = new ResizeObserver(scheduleEditorLayout)
+    resizeObserver.observe(container)
+    window.addEventListener('resize', scheduleEditorLayout)
+    scheduleEditorLayout()
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', scheduleEditorLayout)
+    }
+  }, [activeFile?.path, markdownTidyPreview, scheduleEditorLayout])
+
   useEffect(() => {
     if (!activeFile || !activeProjectPath || isImageFile(activeFile.path)) {
       setLspStatus(null)
@@ -384,24 +465,29 @@ export function EditorPanel() {
       text: activeFile.content,
     }
 
-    setLspStatus({ label: 'LSP', detail: 'Starting language server', active: true })
-    window.daemon.lsp.openDocument(input).then((res) => {
-      if (cancelled) return
-      if (res.ok && res.data?.supported && res.data.status) {
-        setLspStatus({ label: res.data.status.label, detail: 'Language server active', active: true })
-      } else {
-        setLspStatus({ label: 'LSP', detail: res.ok ? res.data?.error ?? 'Language server unavailable' : res.error ?? 'Language server unavailable', active: false })
-      }
-    }).catch((error) => {
-      if (!cancelled) setLspStatus({ label: 'LSP', detail: (error as Error).message, active: false })
-    })
+    // Debounce LSP initialization to show file content immediately
+    // LSP starts 200ms after file opens - prevents blocking perception
+    const lspInitTimer = window.setTimeout(() => {
+      setLspStatus({ label: 'LSP', detail: 'Starting language server', active: true })
+      window.daemon.lsp.openDocument(input).then((res) => {
+        if (cancelled) return
+        if (res.ok && res.data?.supported && res.data.status) {
+          setLspStatus({ label: res.data.status.label, detail: 'Language server active', active: true })
+        } else {
+          setLspStatus({ label: 'LSP', detail: res.ok ? res.data?.error ?? 'Language server unavailable' : res.error ?? 'Language server unavailable', active: false })
+        }
+      }).catch((error) => {
+        if (!cancelled) setLspStatus({ label: 'LSP', detail: (error as Error).message, active: false })
+      })
 
-    window.daemon.lsp.diagnostics(activeFile.path).then((res) => {
-      if (!cancelled && res.ok && res.data) applyLspDiagnostics(res.data)
-    }).catch(() => {})
+      window.daemon.lsp.diagnostics(activeFile.path).then((res) => {
+        if (!cancelled && res.ok && res.data) applyLspDiagnostics(res.data)
+      }).catch(() => {})
+    }, 200)
 
     return () => {
       cancelled = true
+      window.clearTimeout(lspInitTimer)
       if (lspChangeTimerRef.current !== null) {
         window.clearTimeout(lspChangeTimerRef.current)
         lspChangeTimerRef.current = null
@@ -476,6 +562,7 @@ export function EditorPanel() {
       }
 
       editor.focus()
+      scheduleEditorLayout()
     } catch {
       // Editor disposed mid-operation — clear stale ref so the next mount
       // (handleEditorMount) sets a fresh one.
@@ -484,7 +571,7 @@ export function EditorPanel() {
     }
 
     prevFilePathRef.current = activeFile.path
-  }, [activeFile?.path]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFile?.path, scheduleEditorLayout]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync external content changes into existing models.
   // Read content from getState() so this effect doesn't subscribe to content updates.
@@ -538,7 +625,16 @@ export function EditorPanel() {
   // into the next mount's useEffect callbacks.
   useEffect(() => {
     return () => {
+      if (editorLayoutTimerRef.current !== null) {
+        window.clearTimeout(editorLayoutTimerRef.current)
+        editorLayoutTimerRef.current = null
+      }
+      if (editorLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(editorLayoutFrameRef.current)
+        editorLayoutFrameRef.current = null
+      }
       editorRef.current = null
+      editorContentRef.current = null
     }
   }, [])
 
@@ -547,18 +643,24 @@ export function EditorPanel() {
 
     // Set initial model if we already have an active file
     if (activeFile) {
-      const uri = monaco.Uri.parse(`file://${activeFile.path}`)
-      let model = monaco.editor.getModel(uri)
-      if (!model) {
-        model = monaco.editor.createModel(
-          activeFile.content,
-          getLanguage(activeFile.path),
-          uri,
-        )
+      try {
+        const uri = monaco.Uri.parse(`file://${activeFile.path}`)
+        let model = monaco.editor.getModel(uri)
+        if (!model) {
+          model = monaco.editor.createModel(
+            activeFile.content,
+            getLanguage(activeFile.path),
+            uri,
+          )
+        }
+        editor.setModel(model)
+        prevFilePathRef.current = activeFile.path
+      } catch {
+        editorRef.current = null
+        return
       }
-      editor.setModel(model)
-      prevFilePathRef.current = activeFile.path
     }
+    scheduleEditorLayout()
 
     // Handle glyph margin clicks for "Ask Claude"
     editor.onMouseDown((e) => {
@@ -700,14 +802,56 @@ export function EditorPanel() {
     // Save view state before disposing so it persists if reopened
     const editor = editorRef.current
     if (editor && activeFilePath === path) {
-      const viewState = editor.saveViewState()
-      if (viewState) viewStateCache.set(path, viewState)
+      try {
+        const viewState = editor.saveViewState()
+        if (viewState) viewStateCache.set(path, viewState)
+      } catch {
+        editorRef.current = null
+      }
     }
 
-    // Dispose the Monaco model
+    // Detach the active model before disposing it. Monaco can still have a
+    // render/layout pass queued during window resize or tab close.
     const uri = monaco.Uri.parse(`file://${path}`)
     const model = monaco.editor.getModel(uri)
-    if (model) model.dispose()
+    const isClosingActiveFile = activeFilePath === path
+    if (editor && model && isClosingActiveFile && editorRef.current === editor) {
+      const state = useUIStore.getState()
+      const remainingForProject = state.openFiles
+        .filter((item) => item.projectId === projectId && item.path !== path)
+      const nextFile = remainingForProject[remainingForProject.length - 1]
+
+      try {
+        if (editor.getModel() === model) {
+          if (nextFile) {
+            const nextUri = monaco.Uri.parse(`file://${nextFile.path}`)
+            let nextModel = monaco.editor.getModel(nextUri)
+            if (!nextModel) {
+              nextModel = monaco.editor.createModel(
+                nextFile.content,
+                getLanguage(nextFile.path),
+                nextUri,
+              )
+            }
+            editor.setModel(nextModel)
+            prevFilePathRef.current = nextFile.path
+          } else {
+            editor.setModel(null)
+            prevFilePathRef.current = null
+          }
+        }
+      } catch {
+        editorRef.current = null
+      }
+    }
+
+    if (model) {
+      try {
+        if (editorRef.current?.getModel() !== model) model.dispose()
+      } catch {
+        try { model.dispose() } catch {}
+      }
+    }
 
     // Clear cached view state
     viewStateCache.delete(path)
@@ -836,7 +980,7 @@ export function EditorPanel() {
             lspStatus={lspStatus}
             onTidy={() => void handleTidyMarkdown()}
           />
-          <div className="editor-content">
+          <div className="editor-content" ref={editorContentRef}>
             {isImageFile(activeFile?.path) ? (
               <ImagePreview filePath={activeFile!.path} />
             ) : markdownTidyPreview && activeFile ? (
@@ -853,25 +997,11 @@ export function EditorPanel() {
               <PanelErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
                 <MonacoEditor
                   theme="daemon-dark"
+                  keepCurrentModel
                   beforeMount={handleBeforeMount}
                   onMount={handleEditorMount}
                   onChange={handleChange}
-                  options={{
-                    fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
-                    fontSize: 13,
-                    lineHeight: 20,
-                    minimap: { enabled: false },
-                    scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
-                    padding: { top: 8 },
-                    renderLineHighlight: 'line',
-                    smoothScrolling: true,
-                    cursorBlinking: 'smooth',
-                    cursorSmoothCaretAnimation: 'on',
-                    bracketPairColorization: { enabled: true },
-                    wordWrap: 'on',
-                    tabSize: 2,
-                    glyphMargin: true,
-                  }}
+                  options={MONACO_EDITOR_OPTIONS}
                 />
               </PanelErrorBoundary>
             ) : (

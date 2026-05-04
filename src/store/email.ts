@@ -182,6 +182,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   pollUnreadCounts: async () => {
+    // Skip polling when no accounts are configured — otherwise this fires a
+    // no-op IPC call once per minute, forever (and the email IPC module may
+    // not even be loaded if the user disabled it).
+    if (get().accounts.length === 0) return
     try {
       const res = await window.daemon.email.unreadCounts()
       if (res.ok && res.data) {

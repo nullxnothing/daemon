@@ -290,6 +290,8 @@ contextBridge.exposeInMainWorld('daemon', {
 
   settings: {
     getUi: () => ipcRenderer.invoke('settings:get-ui'),
+    getTelemetry: () => ipcRenderer.invoke('settings:get-telemetry'),
+    setTelemetryEnabled: (enabled: boolean) => ipcRenderer.invoke('settings:set-telemetry-enabled', enabled),
     getAppMeta: () => ipcRenderer.invoke('settings:get-app-meta'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
@@ -543,7 +545,7 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   validator: {
-    start: (type: string) => ipcRenderer.invoke('validator:start', type),
+    start: (input: string | object) => ipcRenderer.invoke('validator:start', input),
     stop: () => ipcRenderer.invoke('validator:stop'),
     status: () => ipcRenderer.invoke('validator:status'),
     detect: () => ipcRenderer.invoke('validator:detect'),
@@ -577,6 +579,12 @@ contextBridge.exposeInMainWorld('daemon', {
     createHandoff: (projectPath: string, signature: string) => ipcRenderer.invoke('replay:create-handoff', projectPath, signature),
     verifyFix: (projectPath: string, signature: string, command: string) => ipcRenderer.invoke('replay:verify-fix', projectPath, signature, command),
     rpcLabel: () => ipcRenderer.invoke('replay:rpc-label'),
+  },
+
+  modules: {
+    list: () => ipcRenderer.invoke('modules:list'),
+    enable: (moduleId: string) => ipcRenderer.invoke('modules:enable', moduleId),
+    disable: (moduleId: string) => ipcRenderer.invoke('modules:disable', moduleId),
   },
 })
 

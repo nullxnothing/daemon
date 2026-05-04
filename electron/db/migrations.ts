@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -354,6 +354,14 @@ export function runMigrations(db: Database.Database) {
         }
       }
       db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(31)
+    })()
+  }
+
+  if (currentVersion < 32) {
+    db.transaction(() => {
+      db.exec(SCHEMA_V32)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(32)
+      seedToolModules(db)
     })()
   }
 
@@ -821,3 +829,52 @@ function seedBuiltinTools(db: Database.Database) {
     '["solana","recovery","wallet"]',
   )
 }
+
+function seedToolModules(db: Database.Database) {
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO workspace_tool_modules (id, name, description, category, is_core, enabled, sort_order) VALUES (?,?,?,?,?,?,?)'
+  )
+
+  // Core modules - always enabled
+  const coreModules = [
+    { id: 'terminal', name: 'Terminal', desc: 'Terminal sessions', cat: 'core', order: 0 },
+    { id: 'filesystem', name: 'Filesystem', desc: 'File operations', cat: 'core', order: 1 },
+    { id: 'projects', name: 'Projects', desc: 'Project management', cat: 'core', order: 2 },
+    { id: 'settings', name: 'Settings', desc: 'App settings', cat: 'core', order: 3 },
+    { id: 'activity', name: 'Activity', desc: 'Activity timeline', cat: 'core', order: 4 },
+    { id: 'agents', name: 'Agents', desc: 'Agent management', cat: 'core', order: 5 },
+    { id: 'claude', name: 'Claude', desc: 'Claude integration', cat: 'core', order: 6 },
+    { id: 'codex', name: 'Codex', desc: 'Codex provider', cat: 'core', order: 7 },
+    { id: 'provider', name: 'Provider', desc: 'Provider registry', cat: 'core', order: 8 },
+  ]
+
+  // Lazy-loaded but enabled by default — disabling without restart would break
+  // panels that fire IPC on mount (wallet list, LSP open document, etc.).
+  const criticalOptional = [
+    { id: 'wallet', name: 'Wallet', desc: 'Solana wallet operations', cat: 'solana', order: 100 },
+    { id: 'lsp', name: 'LSP', desc: 'Language Server Protocol', cat: 'dev', order: 101 },
+    { id: 'replay', name: 'Replay Engine', desc: 'Transaction replay & forensics', cat: 'solana', order: 102 },
+    { id: 'pro', name: 'Daemon Pro', desc: 'Pro features & Arena', cat: 'solana', order: 103 },
+  ]
+
+  // Lazy-loaded and disabled by default — opt in costs ~50ms of import + IPC registration.
+  const optionalModules = [
+    { id: 'images', name: 'Image Editor', desc: 'Image editing tools', cat: 'create', order: 104 },
+    { id: 'email', name: 'Email', desc: 'Gmail & iCloud', cat: 'create', order: 105 },
+    { id: 'tweets', name: 'Tweets', desc: 'Tweet generator', cat: 'create', order: 106 },
+  ]
+
+  // NOTE: Only modules registered in lazyModuleRegistry (electron/main/index.ts)
+  // belong here. Listing handlers that are eagerly registered would surface UI
+  // toggles that silently no-op at runtime.
+  for (const m of coreModules) {
+    insert.run(m.id, m.name, m.desc, m.cat, 1, 1, m.order)
+  }
+  for (const m of criticalOptional) {
+    insert.run(m.id, m.name, m.desc, m.cat, 0, 1, m.order)
+  }
+  for (const m of optionalModules) {
+    insert.run(m.id, m.name, m.desc, m.cat, 0, 0, m.order)
+  }
+}
+

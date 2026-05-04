@@ -362,6 +362,15 @@
   background: var(--green-glow);
 }
 
+.titlebar-btn--active { 
+  color: var(--blue); 
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+.titlebar-btn--active:hover {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 18%, transparent);
+}
+
 /* Responsive tightening */
 .titlebar--compact .titlebar-left { padding: 0 var(--space-sm); }
 .titlebar--compact .project-tab {

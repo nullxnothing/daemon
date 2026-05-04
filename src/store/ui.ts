@@ -57,6 +57,7 @@ interface UIState {
   drawerTool: string | null
   drawerFullscreen: boolean
   launchWizardOpen: boolean
+  demoMode: boolean
 
   setActivePanel: (panel: UIState['activePanel']) => void
   setActiveProject: (id: string | null, path: string | null) => void
@@ -119,6 +120,7 @@ interface UIState {
   unpinTool: (toolId: string) => void
   setDrawerToolOrder: (order: string[]) => void
   loadPinnedState: () => Promise<void>
+  setDemoMode: (enabled: boolean) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -148,6 +150,7 @@ export const useUIStore = create<UIState>((set) => ({
   showOnboarding: false,
   drawerOpen: false,
   drawerTool: null,
+  demoMode: false,
   drawerFullscreen: false,
   launchWizardOpen: false,
   walletQuickViewOpen: false,
@@ -544,4 +547,5 @@ export const useUIStore = create<UIState>((set) => ({
       if (Object.keys(updates).length > 0) set(updates)
     } catch { /* first run — use defaults */ }
   },
+  setDemoMode: (enabled) => set({ demoMode: enabled }),
 }))

@@ -1,6 +1,7 @@
 import { ipcMain, app } from 'electron'
 import crypto from 'node:crypto'
 import * as Settings from '../services/SettingsService'
+import * as Telemetry from '../services/TelemetryService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { getDb } from '../db/db'
 import { getSolanaRuntimeStatus } from '../services/SolanaRuntimeStatusService'
@@ -8,6 +9,15 @@ import { getSolanaRuntimeStatus } from '../services/SolanaRuntimeStatusService'
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get-ui', ipcHandler(async () => {
     return Settings.getUiSettings()
+  }))
+
+  ipcMain.handle('settings:get-telemetry', ipcHandler(async () => {
+    return Telemetry.getTelemetrySettings()
+  }))
+
+  ipcMain.handle('settings:set-telemetry-enabled', ipcHandler(async (_event, enabled: boolean) => {
+    Telemetry.setTelemetryEnabled(enabled === true)
+    return Telemetry.getTelemetrySettings()
   }))
 
   ipcMain.handle('settings:get-app-meta', ipcHandler(async () => {
