@@ -1,39 +1,21 @@
 import { getWalletInfrastructureSettings } from './SettingsService'
 import { hasHeliusKey, hasJupiterKey } from './WalletService'
+import type {
+  SolanaRuntimeExecutionPath,
+  SolanaRuntimePreflightCheck,
+  SolanaRuntimeStatusLevel,
+  SolanaRuntimeStatusSummary,
+} from '../shared/solanaRuntime'
 
-export type RuntimeStatusLevel = 'live' | 'partial' | 'setup'
-
-export interface SolanaExecutionCoverageItem {
-  id: 'wallet-sends' | 'jupiter-swaps' | 'launch-adapters' | 'pumpfun' | 'recovery'
-  label: string
-  status: RuntimeStatusLevel
-  detail: string
-}
-
-export interface SolanaRuntimeStatusSummary {
-  rpc: {
-    label: string
-    detail: string
-    status: RuntimeStatusLevel
-  }
-  walletPath: {
-    label: string
-    detail: string
-    status: RuntimeStatusLevel
-  }
-  swapEngine: {
-    label: string
-    detail: string
-    status: RuntimeStatusLevel
-  }
-  executionBackend: {
-    label: string
-    detail: string
-    status: RuntimeStatusLevel
-  }
-  executionCoverage: SolanaExecutionCoverageItem[]
-  troubleshooting: string[]
-}
+export type {
+  SolanaExecutionCoverageItem,
+  SolanaRuntimeExecutionPath,
+  SolanaRuntimePreflight,
+  SolanaRuntimePreflightCheck,
+  SolanaRuntimeStatusLevel,
+  SolanaRuntimeStatusSummary,
+  SolanaRuntimeUseCase,
+} from '../shared/solanaRuntime'
 
 export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
   const settings = getWalletInfrastructureSettings()
@@ -48,12 +30,18 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
         ? 'Public RPC'
         : 'Helius'
 
-  const rpcStatus: RuntimeStatusLevel =
+  const quicknodeReady = settings.quicknodeRpcUrl.trim().length > 0
+  const customReady = settings.customRpcUrl.trim().length > 0
+  const jitoReady = settings.executionMode === 'rpc' || settings.jitoBlockEngineUrl.trim().length > 0
+
+  const rpcStatus: SolanaRuntimeStatusLevel =
     settings.rpcProvider === 'helius'
       ? heliusConfigured ? 'live' : 'setup'
       : settings.rpcProvider === 'public'
         ? 'partial'
-        : 'live'
+        : settings.rpcProvider === 'quicknode'
+          ? quicknodeReady ? 'live' : 'setup'
+          : customReady ? 'live' : 'setup'
 
   const rpcDetail = settings.rpcProvider === 'quicknode'
     ? settings.quicknodeRpcUrl || 'QuickNode endpoint not set'
@@ -65,10 +53,79 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
           ? 'Helius key connected'
           : 'Helius key missing'
 
-  const executionBackendStatus: RuntimeStatusLevel =
+  const executionBackendStatus: SolanaRuntimeStatusLevel =
     settings.executionMode === 'jito'
-      ? settings.rpcProvider === 'public' ? 'partial' : 'live'
-      : jupiterConfigured ? 'live' : 'partial'
+      ? !jitoReady ? 'setup' : settings.rpcProvider === 'public' ? 'partial' : 'live'
+      : rpcStatus
+
+  const executionBackendDetail = settings.executionMode === 'jito'
+    ? jitoReady
+      ? `DAEMON routes wallet sends, swaps, launches, and recovery flows through the Jito-backed executor. ${settings.jitoBlockEngineUrl}`
+      : 'Jito execution is selected, but the block-engine URL is blank.'
+    : rpcStatus === 'setup'
+      ? `${rpcLabel} is selected for submission, but the RPC provider is not configured.`
+      : 'DAEMON routes wallet sends, swaps, launches, Pump.fun actions, and recovery flows through one shared RPC executor with shared confirmation behavior.'
+
+  const executionPath: SolanaRuntimeExecutionPath = settings.executionMode === 'jito'
+    ? {
+        mode: 'jito',
+        label: 'Jito block-engine submission',
+        detail: jitoReady
+          ? `${rpcLabel} handles reads and transaction construction; signed transactions submit through ${settings.jitoBlockEngineUrl}.`
+          : `${rpcLabel} handles reads and transaction construction, but Jito submission needs a block-engine URL.`,
+        submitter: settings.jitoBlockEngineUrl || 'Jito block engine URL not configured',
+        confirmation: 'DAEMON still confirms signatures against the configured RPC connection after Jito submission.',
+      }
+    : {
+        mode: 'rpc',
+        label: 'Standard RPC submission',
+        detail: `${rpcLabel} handles reads, transaction construction, submission, and confirmation.`,
+        submitter: rpcDetail,
+        confirmation: 'DAEMON confirms signatures through the shared RPC connection.',
+      }
+
+  const preflightChecks: SolanaRuntimePreflightCheck[] = [
+    {
+      id: 'rpc-provider',
+      label: 'RPC provider',
+      status: rpcStatus,
+      detail: rpcStatus === 'live'
+        ? `${rpcLabel} is ready for reads, transaction construction, and confirmation.`
+        : rpcStatus === 'partial'
+          ? `${rpcLabel} can work for basic flows, but it is not the preferred production path.`
+          : `${rpcLabel} is selected but is missing the configuration DAEMON needs before using that provider.`,
+      requiredFor: ['reads', 'sends', 'swaps', 'launches', 'recovery', 'scaffolds'],
+    },
+    {
+      id: 'wallet-path',
+      label: 'Wallet signing path',
+      status: 'live',
+      detail: settings.preferredWallet === 'phantom'
+        ? 'Phantom-first signing is the preferred wallet UX for generated apps and wallet handoff.'
+        : 'Wallet Standard is the preferred signing abstraction for generated apps and wallet handoff.',
+      requiredFor: ['sends', 'swaps', 'launches', 'scaffolds'],
+    },
+    {
+      id: 'swap-api',
+      label: 'Jupiter API',
+      status: jupiterConfigured ? 'live' : 'setup',
+      detail: jupiterConfigured
+        ? 'Jupiter quote and swap execution credentials are available.'
+        : 'Add a Jupiter API key before requesting quotes or executing swaps.',
+      requiredFor: ['swaps', 'scaffolds'],
+    },
+    {
+      id: 'execution-backend',
+      label: 'Execution backend',
+      status: executionBackendStatus,
+      detail: executionBackendDetail,
+      requiredFor: ['sends', 'swaps', 'launches', 'recovery', 'scaffolds'],
+    },
+  ]
+
+  const blockers = preflightChecks
+    .filter((check) => check.status === 'setup')
+    .map((check) => check.detail)
 
   return {
     rpc: {
@@ -92,9 +149,7 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
     },
     executionBackend: {
       label: settings.executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor',
-      detail: settings.executionMode === 'jito'
-        ? `DAEMON routes wallet sends, swaps, launches, and recovery flows through the Jito-backed executor. ${settings.jitoBlockEngineUrl}`
-        : 'DAEMON routes wallet sends, swaps, launches, Pump.fun actions, and recovery flows through one shared RPC executor with shared confirmation behavior.',
+      detail: executionBackendDetail,
       status: executionBackendStatus,
     },
     executionCoverage: [
@@ -136,7 +191,14 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       settings.rpcProvider === 'quicknode' && !settings.quicknodeRpcUrl ? 'QuickNode is selected but the endpoint is blank. Add a QuickNode RPC URL before using this stack.' : null,
       settings.rpcProvider === 'custom' && !settings.customRpcUrl ? 'Custom RPC is selected but no RPC URL is configured.' : null,
       !jupiterConfigured ? 'Jupiter is the active swap engine but no Jupiter API key is stored, so quotes and swaps will fail until configured.' : null,
+      settings.executionMode === 'jito' && !jitoReady ? 'Jito execution is enabled but the block-engine URL is blank.' : null,
       settings.executionMode === 'jito' && settings.rpcProvider === 'public' ? 'Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.' : null,
     ].filter(Boolean) as string[],
+    preflight: {
+      ready: blockers.length === 0,
+      checks: preflightChecks,
+      blockers,
+    },
+    executionPath,
   }
 }

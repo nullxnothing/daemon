@@ -18,6 +18,8 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
   const setActiveProject = useUIStore((s) => s.setActiveProject)
   const centerMode = useUIStore((s) => s.centerMode)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
+  const demoMode = useUIStore((s) => s.demoMode)
+  const setDemoMode = useUIStore((s) => s.setDemoMode)
   const { tier, isDesktop, isCompact, isTablet, isSmall } = useShellLayout()
 
   const activeProject = useMemo(
@@ -68,10 +70,36 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
           />
         )}
         {showDevReloadInline && import.meta.env.DEV && (
-          <button className="titlebar-btn" onClick={() => window.daemon.window.reload()} title="Reload App (Ctrl+Shift+R)">
+          <>
+            <button 
+              className={`titlebar-btn ${demoMode ? 'titlebar-btn--active' : ''}`}
+              onClick={() => setDemoMode(!demoMode)} 
+              title={demoMode ? 'Demo Mode: ON (showing sample data)' : 'Demo Mode: OFF'}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </button>
+            <button className="titlebar-btn" onClick={() => window.daemon.window.reload()} title="Reload App (Ctrl+Shift+R)">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                <polyline points="21 3 21 9 15 9"/>
+              </svg>
+            </button>
+          </>
+        )}
+        {!showDevReloadInline && import.meta.env.DEV && (
+          <button 
+            className={`titlebar-btn ${demoMode ? 'titlebar-btn--active' : ''}`}
+            onClick={() => setDemoMode(!demoMode)} 
+            title={demoMode ? 'Demo Mode: ON (showing sample data)' : 'Demo Mode: OFF'}
+          >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
-              <polyline points="21 3 21 9 15 9"/>
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
           </button>
         )}

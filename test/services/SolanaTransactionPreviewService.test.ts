@@ -25,6 +25,18 @@ describe('SolanaTransactionPreviewService', () => {
       executionBackend: { label: 'Shared RPC executor', detail: 'Shared executor', status: 'live' },
       executionCoverage: [],
       troubleshooting: [],
+      preflight: {
+        ready: true,
+        checks: [],
+        blockers: [],
+      },
+      executionPath: {
+        mode: 'rpc',
+        label: 'Standard RPC submission',
+        detail: 'Helius handles reads, transaction construction, submission, and confirmation.',
+        submitter: 'Helius key connected',
+        confirmation: 'DAEMON confirms signatures through the shared RPC connection.',
+      },
     })
     mockListWallets.mockReturnValue([
       {
@@ -70,7 +82,7 @@ describe('SolanaTransactionPreviewService', () => {
     expect(preview.warnings).toContain('Very high price impact: 5.500%.')
   })
 
-  it('includes runtime troubleshooting in previews', () => {
+  it('uses structured runtime preflight blockers in previews', () => {
     mockGetSolanaRuntimeStatus.mockReturnValue({
       rpc: { label: 'Helius', detail: 'Helius key missing', status: 'setup' },
       walletPath: { label: 'Phantom-first', detail: 'Phantom flow', status: 'live' },
@@ -78,6 +90,19 @@ describe('SolanaTransactionPreviewService', () => {
       executionBackend: { label: 'Shared RPC executor', detail: 'Shared executor', status: 'partial' },
       executionCoverage: [],
       troubleshooting: ['Jupiter key missing'],
+      preflight: {
+        ready: false,
+        checks: [
+          {
+            id: 'swap-api',
+            label: 'Jupiter API',
+            status: 'setup',
+            detail: 'Add a Jupiter API key before requesting quotes or executing swaps.',
+            requiredFor: ['swaps', 'scaffolds'],
+          },
+        ],
+        blockers: ['Add a Jupiter API key before requesting quotes or executing swaps.'],
+      },
     })
 
     const preview = previewSolanaTransaction({
@@ -91,6 +116,6 @@ describe('SolanaTransactionPreviewService', () => {
       priceImpactPct: '0.1',
     })
 
-    expect(preview.warnings).toContain('Jupiter key missing')
+    expect(preview.warnings).toEqual(['Add a Jupiter API key before requesting quotes or executing swaps.'])
   })
 })

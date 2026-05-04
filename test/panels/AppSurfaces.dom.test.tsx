@@ -305,7 +305,7 @@ function resetStores() {
   })
   useSolanaToolboxStore.setState({
     mcps: [],
-    validator: { type: null, status: 'stopped', terminalId: null, port: null },
+    validator: { type: null, status: 'stopped', terminalId: null, port: null, projectPath: null, command: null, studioPort: null, startedAt: null },
     projectInfo: null,
     toolchain: null,
     loading: false,

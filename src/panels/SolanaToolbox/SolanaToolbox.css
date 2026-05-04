@@ -481,7 +481,27 @@
   padding: 18px 20px 20px;
 }
 
+.solana-project-runtime {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px 20px;
+}
+
+.solana-transaction-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+
 .solana-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-project-runtime-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
@@ -540,6 +560,448 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.solana-project-runtime-card {
+  border: 1px solid var(--s5);
+  background: var(--s1);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  min-height: 156px;
+  min-width: 0;
+}
+
+.solana-project-runtime-card.wide {
+  grid-column: span 2;
+}
+
+.solana-project-runtime-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.solana-project-runtime-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--s4);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--t3);
+  font-size: var(--font-xs);
+  font-family: var(--font-code);
+}
+
+.solana-project-program-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.solana-project-program-row,
+.solana-project-script-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  font-size: var(--font-sm);
+  color: var(--t2);
+}
+
+.solana-project-program-row span,
+.solana-project-script-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.solana-project-program-row code,
+.solana-project-script-row code {
+  min-width: 0;
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--green);
+  font-family: var(--font-code);
+  font-size: var(--font-xs);
+}
+
+.solana-project-runtime-lists {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.solana-project-runtime-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+}
+
+.solana-transaction-lab-actions,
+.solana-transaction-lab-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.solana-transaction-lab-pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.solana-transaction-lab-step {
+  min-width: 0;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-transaction-lab-step.ready {
+  border-color: rgba(62, 207, 142, 0.2);
+  background: rgba(62, 207, 142, 0.04);
+}
+
+.solana-transaction-lab-step.attention,
+.solana-transaction-lab-step.active {
+  border-color: rgba(240, 180, 41, 0.2);
+  background: rgba(240, 180, 41, 0.04);
+}
+
+.solana-transaction-lab-step.blocked {
+  border-color: rgba(239, 83, 80, 0.18);
+  background: rgba(239, 83, 80, 0.03);
+}
+
+.solana-transaction-lab-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.solana-transaction-lab-step-top span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--t2);
+}
+
+.solana-transaction-lab-step-top strong {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-transaction-lab-step.ready .solana-transaction-lab-step-top strong {
+  color: var(--green);
+}
+
+.solana-transaction-lab-step.attention .solana-transaction-lab-step-top strong,
+.solana-transaction-lab-step.active .solana-transaction-lab-step-top strong {
+  color: var(--amber);
+}
+
+.solana-transaction-lab-step.blocked .solana-transaction-lab-step-top strong {
+  color: var(--red);
+}
+
+.solana-transaction-lab-step-detail {
+  margin-top: 6px;
+  min-height: 32px;
+  font-size: var(--font-xs);
+  line-height: 1.35;
+  color: var(--t4);
+  overflow-wrap: anywhere;
+}
+
+.solana-transaction-lab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.solana-transaction-lab-card,
+.solana-transaction-lab-replay {
+  min-width: 0;
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-lg);
+  background: var(--s1);
+  padding: 14px;
+}
+
+.solana-transaction-lab-card-head,
+.solana-transaction-lab-trace-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.solana-transaction-lab-wallet {
+  margin-top: 8px;
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--t1);
+  word-break: break-word;
+}
+
+.solana-transaction-lab-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 14px;
+  padding: 3px;
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.solana-transaction-lab-mode {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--t4);
+  cursor: pointer;
+  font-size: var(--font-sm);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.solana-transaction-lab-mode:hover {
+  color: var(--t2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.solana-transaction-lab-mode.active {
+  color: var(--green);
+  border-color: rgba(62, 207, 142, 0.3);
+  background: var(--s2);
+}
+
+.solana-transaction-lab-fields {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.solana-transaction-lab-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.45fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.solana-transaction-lab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.solana-transaction-lab-field span,
+.solana-transaction-lab-check span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-transaction-lab-input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-sm);
+  background: var(--s2);
+  color: var(--t1);
+  font-size: var(--font-sm);
+  font-family: var(--font-code);
+  outline: none;
+}
+
+.solana-transaction-lab-input:focus-visible {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.solana-transaction-lab-input:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.solana-transaction-lab-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--s5);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-transaction-lab-check input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--green);
+}
+
+.solana-transaction-lab-warning-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.solana-transaction-lab-warning {
+  padding: 9px 10px;
+  border: 1px solid rgba(240, 180, 41, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(240, 180, 41, 0.04);
+  color: var(--t2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.solana-transaction-lab-footer {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.solana-transaction-lab-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.solana-transaction-lab-context-grid.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.solana-transaction-lab-context {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-transaction-lab-context span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-transaction-lab-context strong {
+  display: block;
+  margin-top: 6px;
+  min-width: 0;
+  color: var(--t2);
+  font-size: var(--font-sm);
+  font-family: var(--font-code);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.solana-transaction-lab-replay {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 12px;
+}
+
+.solana-transaction-lab-replay-main,
+.solana-transaction-lab-trace {
+  min-width: 0;
+}
+
+.solana-transaction-lab-replay-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.solana-transaction-lab-activity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.solana-transaction-lab-activity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.solana-transaction-lab-activity:hover {
+  color: var(--t1);
+  border-color: rgba(62, 207, 142, 0.2);
+}
+
+.solana-transaction-lab-activity span {
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.solana-transaction-lab-activity code,
+.solana-transaction-lab-trace-top code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--green);
+  font-family: var(--font-code);
+  font-size: var(--font-xs);
+}
+
+.solana-transaction-lab-trace {
+  padding: 12px;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .solana-protocol-card-head {
@@ -817,34 +1279,55 @@
   }
 
   .solana-token-launch-header,
+  .solana-ecosystem-header,
   .solana-launchpad-settings-header,
   .solana-launchpad-row,
-  .solana-launch-history-row {
+  .solana-launch-history-row,
+  .solana-transaction-lab-card-head {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .solana-token-launch-actions {
+  .solana-token-launch-actions,
+  .solana-transaction-lab-actions,
+  .solana-transaction-lab-footer {
     width: 100%;
     justify-content: flex-start;
   }
 
   .solana-token-launch-actions .sol-btn,
   .solana-launchpad-row .sol-btn,
-  .solana-launch-history-row .sol-btn {
+  .solana-launch-history-row .sol-btn,
+  .solana-transaction-lab-actions .sol-btn,
+  .solana-transaction-lab-footer .sol-btn,
+  .solana-transaction-lab-replay-form .sol-btn {
     width: 100%;
   }
 
   .solana-token-launch-grid,
   .solana-launchpad-settings-grid,
   .solana-daemon-runtime-grid,
+  .solana-project-runtime-grid,
+  .solana-project-runtime-lists,
   .solana-runtime-grid,
   .solana-runtime-coverage-list,
+  .solana-transaction-lab-context-grid,
+  .solana-transaction-lab-context-grid.compact,
+  .solana-transaction-lab-grid,
+  .solana-transaction-lab-inline,
+  .solana-transaction-lab-pipeline,
+  .solana-transaction-lab-replay,
+  .solana-transaction-lab-replay-form,
+  .solana-validator-workbench-grid,
   .solana-toolchain-grid,
   .solana-protocol-grid,
   .solana-ecosystem-grid,
   .solana-split {
     grid-template-columns: 1fr;
+  }
+
+  .solana-project-runtime-card.wide {
+    grid-column: span 1;
   }
 
   .solana-launchpad-settings-compact-head,
@@ -1101,6 +1584,14 @@
   letter-spacing: 0.3px;
 }
 
+.solana-validator-subtitle {
+  margin-top: 4px;
+  max-width: 76ch;
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  color: var(--t4);
+}
+
 .solana-validator-status-text {
   font-size: var(--font-sm);
   color: var(--t3);
@@ -1150,6 +1641,48 @@
   cursor: default;
 }
 
+.solana-validator-workbench-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.solana-validator-workbench-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.solana-validator-workbench-item span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.solana-validator-workbench-item code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--t2);
+  font-family: var(--font-code);
+  font-size: var(--font-xs);
+}
+
+.solana-validator-endpoint-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .solana-validator-endpoint {
   font-family: var(--font-code);
   font-size: var(--font-sm);
@@ -1159,6 +1692,23 @@
   border-radius: var(--radius-sm);
   border: 1px solid rgba(62, 207, 142, 0.1);
   margin-bottom: 4px;
+}
+
+.solana-validator-command {
+  font-family: var(--font-code);
+  font-size: var(--font-sm);
+  color: var(--t3);
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--s4);
+  margin-bottom: 4px;
+}
+
+.solana-validator-note {
+  margin-top: 4px;
+  font-size: var(--font-sm);
+  color: var(--green);
 }
 
 .solana-validator-actions {

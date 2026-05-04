@@ -38,6 +38,7 @@ export function WalletTab({ onRefresh }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [genSuccess, setGenSuccess] = useState<string | null>(null)
   const [jupiterConfigured, setJupiterConfigured] = useState(false)
+  const [solanaRuntimeStatus, setSolanaRuntimeStatus] = useState<SolanaRuntimeStatusSummary | null>(null)
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>({
     rpcProvider: 'helius',
     quicknodeRpcUrl: '',
@@ -81,17 +82,28 @@ export function WalletTab({ onRefresh }: Props) {
   const hasKeypair = activeWalletMeta ? keypairCache[activeWalletMeta.id] === true : false
   const trackedWallets = dashboard.wallets
   const holdingsPreview = activeWallet?.holdings.slice(0, 4) ?? []
-  const executionLabel = walletInfrastructure.executionMode === 'jito' ? 'Jito path' : 'Standard RPC'
+  const executionLabel = solanaRuntimeStatus?.executionPath?.mode === 'jito' || walletInfrastructure.executionMode === 'jito'
+    ? 'Jito path'
+    : 'Standard RPC'
 
   useEffect(() => {
     void Promise.all([
       window.daemon.wallet.hasJupiterKey(),
       window.daemon.settings.getWalletInfrastructureSettings(),
-    ]).then(([jupiterRes, infraRes]) => {
+      window.daemon.settings.getSolanaRuntimeStatus(),
+    ]).then(([jupiterRes, infraRes, runtimeRes]) => {
       if (jupiterRes.ok) setJupiterConfigured(jupiterRes.data === true)
       if (infraRes.ok && infraRes.data) setWalletInfrastructure(infraRes.data)
+      if (runtimeRes.ok && runtimeRes.data) setSolanaRuntimeStatus(runtimeRes.data)
     }).catch(() => {})
   }, [])
+
+  const refreshSolanaRuntimeStatus = async () => {
+    try {
+      const res = await window.daemon.settings.getSolanaRuntimeStatus()
+      if (res.ok && res.data) setSolanaRuntimeStatus(res.data)
+    } catch { /* ignore runtime refresh errors */ }
+  }
 
   useEffect(() => {
     if (!dashboard.wallets) return
@@ -171,12 +183,13 @@ export function WalletTab({ onRefresh }: Props) {
 
   const walletActionCards = useMemo(() => {
     if (!activeWallet) return []
+    const executionMeta = solanaRuntimeStatus?.executionPath?.label ?? (dashboard.heliusConfigured ? 'Helius connected' : 'Local mode')
     return [
       { label: 'Active wallet', value: activeWallet.name, meta: truncateAddress(activeWallet.address) },
-      { label: 'Execution', value: executionLabel, meta: dashboard.heliusConfigured ? 'Helius connected' : 'Local mode' },
+      { label: 'Execution', value: executionLabel, meta: executionMeta },
       { label: 'Can sign', value: hasKeypair ? 'Ready' : 'Watch-only', meta: hasKeypair ? 'Send, swap, export, receive' : 'Import or generate a signer to act' },
     ]
-  }, [activeWallet, dashboard.heliusConfigured, executionLabel, hasKeypair])
+  }, [activeWallet, dashboard.heliusConfigured, executionLabel, hasKeypair, solanaRuntimeStatus?.executionPath?.label])
 
   const resetSendState = () => {
     setSendDest('')
@@ -233,6 +246,7 @@ export function WalletTab({ onRefresh }: Props) {
     const res = await window.daemon.wallet.storeHeliusKey(key)
     if (res.ok) {
       await onRefresh()
+      await refreshSolanaRuntimeStatus()
       pushSuccess('Helius key saved', 'Wallet')
       return
     }
@@ -244,6 +258,7 @@ export function WalletTab({ onRefresh }: Props) {
     const res = await window.daemon.wallet.deleteHeliusKey()
     if (res.ok) {
       await onRefresh()
+      await refreshSolanaRuntimeStatus()
       pushSuccess('Helius key removed', 'Wallet')
       return
     }
@@ -255,6 +270,7 @@ export function WalletTab({ onRefresh }: Props) {
     const res = await window.daemon.wallet.storeJupiterKey(key)
     if (res.ok) {
       setJupiterConfigured(true)
+      await refreshSolanaRuntimeStatus()
       pushSuccess('Jupiter key saved', 'Wallet')
       return
     }
@@ -266,6 +282,7 @@ export function WalletTab({ onRefresh }: Props) {
     const res = await window.daemon.wallet.deleteJupiterKey()
     if (res.ok) {
       setJupiterConfigured(false)
+      await refreshSolanaRuntimeStatus()
       pushSuccess('Jupiter key removed', 'Wallet')
       return
     }
@@ -278,6 +295,7 @@ export function WalletTab({ onRefresh }: Props) {
     if (res.ok) {
       setWalletInfrastructure(settings)
       await onRefresh()
+      await refreshSolanaRuntimeStatus()
       pushSuccess('Wallet infrastructure updated', 'Wallet')
       return
     }
@@ -481,7 +499,7 @@ export function WalletTab({ onRefresh }: Props) {
         ? 'Custom RPC'
         : 'Public RPC'
   const rpcReady = walletInfrastructure.rpcProvider === 'helius'
-    ? dashboard.heliusConfigured
+    ? solanaRuntimeStatus ? solanaRuntimeStatus.rpc.status !== 'setup' : dashboard.heliusConfigured
     : walletInfrastructure.rpcProvider === 'quicknode'
       ? walletInfrastructure.quicknodeRpcUrl.trim().length > 0
       : walletInfrastructure.rpcProvider === 'custom'
@@ -534,6 +552,7 @@ export function WalletTab({ onRefresh }: Props) {
         walletName={activeWallet.name}
         holdings={activeWallet.holdings}
         executionMode={walletInfrastructure.executionMode}
+        runtimeStatus={solanaRuntimeStatus}
         initialInputMint={preferredSwapMint ?? undefined}
         initialOutputMint={preferredSwapMint ? 'So11111111111111111111111111111111111111112' : undefined}
         onBack={() => {
@@ -733,6 +752,7 @@ export function WalletTab({ onRefresh }: Props) {
                 tokenOptions={sendMode === 'token' ? (walletTokenOptions[activeWallet.id] ?? activeWallet.holdings.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL').map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))) : []}
                 walletBalanceSol={walletBalances[activeWallet.id] ?? null}
                 executionMode={walletInfrastructure.executionMode}
+                runtimeStatus={solanaRuntimeStatus}
                 sendLoading={sendLoading}
                 sendError={sendError}
                 sendResult={sendResult}

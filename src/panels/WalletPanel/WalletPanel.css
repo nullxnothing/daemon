@@ -1856,7 +1856,7 @@
   top: 0;
   z-index: 3;
   padding: var(--drawer-space-inline) var(--drawer-section-pad) 14px;
-  backdrop-filter: var(--glass-blur);
+  background: var(--bg);
   border-bottom-color: var(--border);
 }
 

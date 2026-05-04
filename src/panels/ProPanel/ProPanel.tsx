@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProStore } from '../../store/pro'
 import { useWalletStore } from '../../store/wallet'
 import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../electron/shared/types'
-import { Banner, Stat } from '../../components/Panel'
+import { Banner, Stat, TabPill, TabPillRow } from '../../components/Panel'
 import { ArenaView } from './ArenaView'
 import './ProPanel.css'
 
@@ -134,13 +134,13 @@ export function ProPanel() {
         </div>
       )}
 
-      <nav className="pro-tabs">
-        <button className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Staking</button>
-        <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
-        <button className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
-        <button className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
-      </nav>
+      <TabPillRow variant="underline" className="pro-tabs" aria-label="Pro panel views">
+        <TabPill variant="underline" size="md" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>Overview</TabPill>
+        <TabPill variant="underline" size="md" active={activeTab === 'staking'} onClick={() => setActiveTab('staking')}>Staking</TabPill>
+        <TabPill variant="underline" size="md" active={activeTab === 'arena'} onClick={() => setActiveTab('arena')}>Arena</TabPill>
+        <TabPill variant="underline" size="md" active={activeTab === 'skills'} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</TabPill>
+        <TabPill variant="underline" size="md" active={activeTab === 'sync'} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</TabPill>
+      </TabPillRow>
 
       <div className="pro-panel-body">
         {activeTab === 'overview' && !isActive && (

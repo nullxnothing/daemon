@@ -18,6 +18,48 @@ export interface ValidatorState {
   status: 'stopped' | 'starting' | 'running' | 'error'
   terminalId: string | null
   port: number | null
+  projectPath: string | null
+  command: string | null
+  studioPort: number | null
+  startedAt: number | null
+}
+
+export interface SolanaDetectedProgram {
+  name: string
+  cluster: string
+  address: string
+  source: 'Anchor.toml' | 'IDL'
+}
+
+export interface SolanaDetectedIdl {
+  name: string
+  path: string
+  address: string | null
+}
+
+export interface SolanaDetectedScript {
+  name: string
+  command: string
+  source: 'package.json'
+}
+
+export interface SolanaProjectRuntimeProfile {
+  cluster: string | null
+  providerWallet: string | null
+  packageManager: 'pnpm' | 'npm' | 'yarn' | 'bun' | null
+  files: {
+    anchorToml: boolean
+    cargoToml: boolean
+    packageJson: boolean
+    programsDir: boolean
+    targetIdlDir: boolean
+    surfpoolToml: boolean
+    testsDir: boolean
+  }
+  programs: SolanaDetectedProgram[]
+  idls: SolanaDetectedIdl[]
+  scripts: SolanaDetectedScript[]
+  tests: { litesvm: boolean; anchorTests: boolean }
 }
 
 export interface SolanaProjectInfo {
@@ -25,6 +67,7 @@ export interface SolanaProjectInfo {
   framework: 'anchor' | 'native' | 'client-only' | null
   indicators: string[]
   suggestedMcps: string[]
+  runtime?: SolanaProjectRuntimeProfile
 }
 
 export interface SolanaToolchainStatus {
@@ -47,7 +90,7 @@ interface SolanaToolboxState {
 
   loadMcps: (projectPath: string) => Promise<void>
   toggleMcp: (projectPath: string, name: string, enabled: boolean) => Promise<void>
-  startValidator: (type: 'surfpool' | 'test-validator') => Promise<void>
+  startValidator: (type: 'surfpool' | 'test-validator', options?: { reset?: boolean }) => Promise<void>
   stopValidator: () => Promise<void>
   detectProject: (projectPath: string) => Promise<void>
   loadToolchain: (projectPath?: string) => Promise<void>
@@ -68,7 +111,7 @@ function getActiveProjectActivityContext() {
 
 export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   mcps: [],
-  validator: { type: null, status: 'stopped', terminalId: null, port: null },
+  validator: { type: null, status: 'stopped', terminalId: null, port: null, projectPath: null, command: null, studioPort: null, startedAt: null },
   projectInfo: null,
   toolchain: null,
   loading: false,
@@ -112,19 +155,35 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     }
   },
 
-  startValidator: async (type) => {
-    set({ validator: { type, status: 'starting', terminalId: null, port: null } })
+  startValidator: async (type, options = {}) => {
+    const activeProjectPath = useUIStore.getState().activeProjectPath
+    set({ validator: { type, status: 'starting', terminalId: null, port: null, projectPath: activeProjectPath, command: null, studioPort: null, startedAt: null } })
     const projectContext = getActiveProjectActivityContext()
     useNotificationsStore.getState().addActivity({
       kind: 'info',
       context: 'Runtime',
-      message: `Starting ${type} validator`,
+      message: options.reset ? `Starting ${type} validator with reset` : `Starting ${type} validator`,
       ...projectContext,
     })
     try {
-      const res = await daemon.validator.start(type)
+      const res = await daemon.validator.start({
+        type,
+        projectPath: activeProjectPath ?? undefined,
+        reset: options.reset,
+      })
       if (res.ok && res.data) {
-        set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899 } })
+        set({
+          validator: {
+            type,
+            status: 'running',
+            terminalId: res.data.terminalId,
+            port: res.data.port ?? 8899,
+            projectPath: res.data.projectPath ?? activeProjectPath,
+            command: res.data.command ?? null,
+            studioPort: res.data.studioPort ?? null,
+            startedAt: Date.now(),
+          },
+        })
         useNotificationsStore.getState().addActivity({
           kind: 'success',
           context: 'Runtime',
@@ -132,7 +191,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
           ...projectContext,
         })
       } else {
-        set({ validator: { type, status: 'error', terminalId: null, port: null } })
+        set({ validator: { type, status: 'error', terminalId: null, port: null, projectPath: activeProjectPath, command: null, studioPort: null, startedAt: null } })
         useNotificationsStore.getState().addActivity({
           kind: 'error',
           context: 'Runtime',
@@ -141,7 +200,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
         })
       }
     } catch (err) {
-      set({ validator: { type, status: 'error', terminalId: null, port: null } })
+      set({ validator: { type, status: 'error', terminalId: null, port: null, projectPath: activeProjectPath, command: null, studioPort: null, startedAt: null } })
       useNotificationsStore.getState().addActivity({
         kind: 'error',
         context: 'Runtime',
@@ -165,7 +224,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
         })
       } catch { /* ignore */ }
     }
-    set({ validator: { type: null, status: 'stopped', terminalId: null, port: null } })
+    set({ validator: { type: null, status: 'stopped', terminalId: null, port: null, projectPath: null, command: null, studioPort: null, startedAt: null } })
   },
 
   refreshValidatorStatus: async () => {
@@ -178,6 +237,10 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
             status: res.data.status as ValidatorState['status'],
             terminalId: res.data.terminalId ?? null,
             port: res.data.port ?? null,
+            projectPath: res.data.projectPath ?? null,
+            command: res.data.command ?? null,
+            studioPort: res.data.studioPort ?? null,
+            startedAt: res.data.startedAt ?? null,
           },
         })
       }

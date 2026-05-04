@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { EnvironmentBar } from './EnvironmentBar'
 import { ValidatorCard } from './ValidatorCard'
+import { ProjectRuntimeDashboard } from './ProjectRuntimeDashboard'
 import { ConnectedServices } from './ConnectedServices'
 import { CapabilitiesSection } from './CapabilitiesSection'
 import { EcosystemSection } from './EcosystemSection'
@@ -10,6 +11,7 @@ import { RuntimeStackSection } from './RuntimeStackSection'
 import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
+import { TransactionLab } from './TransactionLab'
 import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge, scaffoldSquads } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -126,10 +128,19 @@ export function SolanaToolbox() {
           {activeView === 'start' && (
             <>
               <div className="solana-validator-zone">
+                <ProjectRuntimeDashboard
+                  projectPath={activeProjectPath}
+                  projectInfo={projectInfo}
+                  toolchain={toolchain}
+                  validator={validator}
+                  mcps={mcps}
+                />
+              </div>
+              <div className="solana-validator-zone">
                 <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
               </div>
               <div className="solana-validator-zone">
-                <ValidatorCard />
+                <ValidatorCard toolchain={toolchain} projectInfo={projectInfo} projectPath={activeProjectPath} />
               </div>
               <div className="solana-validator-zone">
                 <CapabilitiesSection
@@ -164,6 +175,9 @@ export function SolanaToolbox() {
 
           {activeView === 'transact' && (
             <>
+              <div className="solana-validator-zone">
+                <TransactionLab />
+              </div>
               <div className="solana-validator-zone">
                 <RuntimeStackSection />
               </div>
@@ -200,7 +214,7 @@ export function SolanaToolbox() {
                 <ToolchainSection toolchain={toolchain} />
               </div>
               <div className="solana-validator-zone">
-                <ValidatorCard />
+                <ValidatorCard toolchain={toolchain} projectInfo={projectInfo} projectPath={activeProjectPath} />
               </div>
             </>
           )}

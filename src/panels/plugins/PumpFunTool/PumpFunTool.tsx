@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { LaunchTab } from './LaunchTab'
 import { TradeTab } from './TradeTab'
 import { FeesTab } from './FeesTab'
+import { TabPill, TabPillRow } from '../../../components/Panel'
 import '../plugin.css'
 import './PumpFunTool.css'
 
@@ -66,11 +67,11 @@ export default function PumpFunTool() {
         )}
       </div>
 
-      <div className="pf-tabs">
-        <button className={`pf-tab ${tab === 'launch' ? 'active' : ''}`} onClick={() => setTab('launch')}>Launch</button>
-        <button className={`pf-tab ${tab === 'trade' ? 'active' : ''}`} onClick={() => setTab('trade')}>Trade</button>
-        <button className={`pf-tab ${tab === 'fees' ? 'active' : ''}`} onClick={() => setTab('fees')}>Fees</button>
-      </div>
+      <TabPillRow className="pf-tabs" aria-label="PumpFun views">
+        <TabPill active={tab === 'launch'} onClick={() => setTab('launch')}>Launch</TabPill>
+        <TabPill active={tab === 'trade'} onClick={() => setTab('trade')}>Trade</TabPill>
+        <TabPill active={tab === 'fees'} onClick={() => setTab('fees')}>Fees</TabPill>
+      </TabPillRow>
 
       <div className="pf-content">
         {!hasKeypair && walletId && (

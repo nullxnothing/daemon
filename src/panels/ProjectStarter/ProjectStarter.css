@@ -299,6 +299,22 @@
   margin-top: 10px;
 }
 
+.starter-runtime-warnings {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.starter-runtime-warning {
+  padding: 7px 9px;
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--radius-sm);
+  background: var(--amber-glow);
+  color: var(--amber);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .starter-build-btn {
   width: 100%;
   font-size: 13px;

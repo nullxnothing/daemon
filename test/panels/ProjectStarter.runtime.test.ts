@@ -44,4 +44,63 @@ describe('ProjectStarter runtime preset helpers', () => {
 
     vi.useRealTimers()
   })
+
+  it('embeds execution path and readiness when runtime status is available', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-10T12:00:00.000Z'))
+
+    const runtime = {
+      rpc: { label: 'Helius', detail: 'Helius key missing', status: 'setup' as const },
+      walletPath: { label: 'Phantom-first', detail: 'Phantom flow', status: 'live' as const },
+      swapEngine: { label: 'Jupiter', detail: 'Jupiter key missing', status: 'setup' as const },
+      executionBackend: { label: 'Shared RPC executor', detail: 'Shared executor', status: 'partial' as const },
+      executionCoverage: [],
+      troubleshooting: ['Jupiter key missing'],
+      preflight: {
+        ready: false,
+        checks: [
+          {
+            id: 'swap-api' as const,
+            label: 'Jupiter API',
+            status: 'setup' as const,
+            detail: 'Add a Jupiter API key before requesting quotes or executing swaps.',
+            requiredFor: ['swaps' as const, 'scaffolds' as const],
+          },
+        ],
+        blockers: ['Add a Jupiter API key before requesting quotes or executing swaps.'],
+      },
+      executionPath: {
+        mode: 'rpc' as const,
+        label: 'Standard RPC submission',
+        detail: 'Helius handles reads, transaction construction, submission, and confirmation.',
+        submitter: 'Helius key missing',
+        confirmation: 'DAEMON confirms signatures through the shared RPC connection.',
+      },
+    }
+
+    const settings = {
+      rpcProvider: 'helius' as const,
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter' as const,
+      preferredWallet: 'phantom' as const,
+      executionMode: 'rpc' as const,
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    }
+
+    const preset = buildRuntimePreset(settings, runtime)
+    const prompt = buildRuntimePrompt(settings, runtime)
+
+    expect(preset).toMatchObject({
+      executionPath: { label: 'Standard RPC submission' },
+      readiness: {
+        ready: false,
+        blockers: ['Add a Jupiter API key before requesting quotes or executing swaps.'],
+      },
+    })
+    expect(prompt).toContain('Runtime execution path: Standard RPC submission')
+    expect(prompt).toContain('Current DAEMON setup blockers to document')
+
+    vi.useRealTimers()
+  })
 })

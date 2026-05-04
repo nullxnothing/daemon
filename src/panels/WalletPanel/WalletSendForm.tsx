@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getSolanaRuntimeBlockers } from '../../../electron/shared/solanaRuntime'
 import './WalletPanel.css'
 import { TransactionPreviewCard } from './TransactionPreviewCard'
 
@@ -36,6 +37,7 @@ interface WalletSendFormProps {
   tokenOptions: SendTokenOption[]
   walletBalanceSol: number | null
   executionMode: WalletInfrastructureSettings['executionMode']
+  runtimeStatus?: SolanaRuntimeStatusSummary | null
   sendLoading: boolean
   sendError: string | null
   sendResult: WalletExecutionResult | null
@@ -64,6 +66,7 @@ export function WalletSendForm({
   tokenOptions,
   walletBalanceSol,
   executionMode,
+  runtimeStatus,
   sendLoading,
   sendError,
   sendResult,
@@ -79,7 +82,11 @@ export function WalletSendForm({
   onClose,
 }: WalletSendFormProps) {
   const selectedToken = tokenOptions.find((token) => token.mint === sendMint) ?? null
-  const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
+  const backendLabel = runtimeStatus?.executionBackend.label ?? (executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor')
+  const executionPathLabel = runtimeStatus?.executionPath?.label ?? (executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC')
+  const executionPathDetail = runtimeStatus?.executionPath?.detail
+  const sendPreflightBlockers = getSolanaRuntimeBlockers(runtimeStatus, 'sends')
+  const sendReady = sendPreflightBlockers.length === 0
   const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
 
   useEffect(() => {
@@ -113,7 +120,8 @@ export function WalletSendForm({
           <div>
             <div className="wallet-caption">{sendMode === 'sol' ? 'Send SOL' : 'Send Token'}</div>
             <div className="wallet-label">From {walletName}</div>
-            <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
+            <div className="wallet-caption">Execution path: {executionPathLabel}</div>
+            {executionPathDetail && <div className="wallet-caption">{executionPathDetail}</div>}
           </div>
           {sendMode === 'sol' && walletBalanceSol !== null && (
             <div className="wallet-send-balance">Available {walletBalanceSol.toFixed(4)} SOL</div>
@@ -189,10 +197,17 @@ export function WalletSendForm({
             {sendMode === 'token' && selectedToken && (
               <div className="wallet-caption">Available {formatAmount(selectedToken.amount)} {selectedToken.symbol}</div>
             )}
+            {sendPreflightBlockers.length > 0 && (
+              <div className="wallet-transaction-preview-warnings">
+                {sendPreflightBlockers.map((warning) => (
+                  <div key={warning} className="wallet-transaction-preview-warning">{warning}</div>
+                ))}
+              </div>
+            )}
             <div className="wallet-actions">
               <button
                 className="wallet-btn primary"
-                disabled={sendLoading}
+                disabled={sendLoading || !sendReady}
                 onClick={() => onConfirmSend(walletId)}
               >
                 Confirm Send
@@ -222,7 +237,7 @@ export function WalletSendForm({
               <button className="wallet-btn" onClick={onCancelSend}>Cancel</button>
               <button
                 className="wallet-btn primary"
-                disabled={sendLoading}
+                disabled={sendLoading || !sendReady}
                 onClick={onExecuteSend}
               >
                 {sendLoading ? 'Sending...' : 'Send Now'}

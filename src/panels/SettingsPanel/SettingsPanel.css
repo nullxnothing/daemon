@@ -47,36 +47,8 @@
 .settings-tabs {
   display: flex;
   gap: 8px;
-  padding: var(--drawer-space-inline) calc(var(--drawer-space-inline) + 4px) 0;
+  padding: var(--drawer-space-inline) calc(var(--drawer-space-inline) + 4px) var(--space-sm);
   border-bottom: 1px solid var(--drawer-surface-divider);
-}
-
-.settings-tab {
-  min-height: 36px;
-  padding: 9px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--t3);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--drawer-control-radius);
-  cursor: pointer;
-  transition: color var(--transition-normal), background var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
-}
-
-.settings-tab:hover {
-  color: var(--t1);
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
-}
-
-.settings-tab.active {
-  color: var(--t1);
-  background:
-    linear-gradient(180deg, rgba(62, 207, 142, 0.08), transparent),
-    rgba(255, 255, 255, 0.03);
-  border-color: color-mix(in srgb, var(--green) 36%, var(--border) 64%);
-  box-shadow: 0 10px 24px rgba(62, 207, 142, 0.08);
 }
 
 .settings-body {
@@ -549,6 +521,99 @@
   .settings-setup-meta-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Module management */
+.settings-module-stats {
+  padding: 12px;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--drawer-control-radius);
+  margin-bottom: 16px;
+}
+
+.settings-module-stat {
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.settings-module-stat strong {
+  color: var(--t1);
+  font-weight: 600;
+}
+
+.settings-module-group {
+  margin-bottom: 24px;
+}
+
+.settings-module-group:last-child {
+  margin-bottom: 0;
+}
+
+.settings-module-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t1);
+  margin: 0 0 12px;
+}
+
+.settings-module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: var(--s2);
+  border: 1px solid var(--s4);
+  border-radius: var(--drawer-control-radius);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.settings-module-row:hover {
+  background: var(--s3);
+  border-color: var(--s5);
+}
+
+.settings-module-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-module-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.settings-module-desc {
+  font-size: 11px;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-module-badge {
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-module-badge.core {
+  background: var(--s4);
+  color: var(--t3);
 }
 
 .settings-actions-row {

@@ -4,6 +4,7 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
+import { TabPill, TabPillRow } from '../../components/Panel'
 import './Dashboard.css'
 
 function formatPrice(price: number): string {
@@ -153,22 +154,22 @@ function ImportPanel({
         <button className="dash-import-close-btn" onClick={onClose}>x</button>
       </div>
 
-      <div className="dash-import-mode-tabs">
-        <button
-          className={`dash-import-tab ${mode === 'manual' ? 'active' : ''}`}
+      <TabPillRow className="dash-import-mode-tabs" aria-label="Import mode">
+        <TabPill
+          active={mode === 'manual'}
           onClick={() => setMode('manual')}
         >
           By Mint Address
-        </button>
+        </TabPill>
         {walletAddress && (
-          <button
-            className={`dash-import-tab ${mode === 'scan' ? 'active' : ''}`}
+          <TabPill
+            active={mode === 'scan'}
             onClick={() => { setMode('scan'); if (scanResults.length === 0 && scanStatus === 'idle') handleScan() }}
           >
             Scan Wallet
-          </button>
+          </TabPill>
         )}
-      </div>
+      </TabPillRow>
 
       {mode === 'manual' && (
         <div className="dash-import-manual">

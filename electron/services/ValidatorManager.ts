@@ -7,9 +7,24 @@ interface ValidatorState {
   status: 'stopped' | 'starting' | 'running' | 'error'
   terminalId: string | null
   port: number | null
+  projectPath: string | null
+  command: string | null
+  studioPort: number | null
+  startedAt: number | null
 }
 
-let state: ValidatorState = { type: null, status: 'stopped', terminalId: null, port: null }
+const STOPPED_VALIDATOR_STATE: ValidatorState = {
+  type: null,
+  status: 'stopped',
+  terminalId: null,
+  port: null,
+  projectPath: null,
+  command: null,
+  studioPort: null,
+  startedAt: null,
+}
+
+let state: ValidatorState = { ...STOPPED_VALIDATOR_STATE }
 
 /** Check if a binary is available on PATH */
 function hasBinary(name: string): boolean {
@@ -78,11 +93,11 @@ export function detectToolchain(projectPath?: string): SolanaToolchainStatus {
   }
 }
 
-export function getValidatorCommand(type: 'surfpool' | 'test-validator'): { command: string; args: string[] } {
+export function getValidatorCommand(type: 'surfpool' | 'test-validator', options: { reset?: boolean } = {}): { command: string; args: string[] } {
   if (type === 'surfpool') {
-    return { command: 'surfpool', args: [] }
+    return { command: 'surfpool', args: ['start', '--no-tui'] }
   }
-  return { command: 'solana-test-validator', args: [] }
+  return { command: 'solana-test-validator', args: options.reset ? ['--reset'] : [] }
 }
 
 export function getState(): ValidatorState {
@@ -101,5 +116,5 @@ export function setState(newState: Partial<ValidatorState>): void {
 }
 
 export function reset(): void {
-  state = { type: null, status: 'stopped', terminalId: null, port: null }
+  setState(STOPPED_VALIDATOR_STATE)
 }

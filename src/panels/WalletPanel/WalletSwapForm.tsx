@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { getSolanaRuntimeBlockers } from '../../../electron/shared/solanaRuntime'
 import { useNotificationsStore } from '../../store/notifications'
 import { useUIStore } from '../../store/ui'
 import './WalletPanel.css'
@@ -30,6 +31,7 @@ interface WalletSwapFormProps {
   walletName: string
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
   executionMode: WalletInfrastructureSettings['executionMode']
+  runtimeStatus?: SolanaRuntimeStatusSummary | null
   initialInputMint?: string
   initialOutputMint?: string
   onBack: () => void
@@ -50,7 +52,7 @@ interface PendingSwap {
   confirmedAt: number
 }
 
-export function WalletSwapForm({ walletId, walletName, holdings, executionMode, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
+export function WalletSwapForm({ walletId, walletName, holdings, executionMode, runtimeStatus, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectName = useUIStore((s) => (
     s.activeProjectId ? s.projects.find((project) => project.id === s.activeProjectId)?.name ?? null : null
@@ -81,7 +83,11 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
-  const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
+  const backendLabel = runtimeStatus?.executionBackend.label ?? (executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor')
+  const executionPathLabel = runtimeStatus?.executionPath?.label ?? (executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC')
+  const executionPathDetail = runtimeStatus?.executionPath?.detail
+  const swapPreflightBlockers = getSolanaRuntimeBlockers(runtimeStatus, 'swaps')
+  const swapReady = swapPreflightBlockers.length === 0
 
   useEffect(() => {
     if (initialInputMint) setInputMint(initialInputMint)
@@ -103,6 +109,11 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
     if (inputMint === outputMint) {
       setQuoteError('Input and output tokens must differ')
+      return
+    }
+
+    if (!swapReady) {
+      setQuoteError(swapPreflightBlockers[0] ?? 'Swap runtime is not ready')
       return
     }
 
@@ -278,7 +289,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
       <div className="wallet-swap-container">
         <div className="wallet-caption">{walletName}</div>
-        <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
+        <div className="wallet-caption">Execution path: {executionPathLabel}</div>
+        {executionPathDetail && <div className="wallet-caption">{executionPathDetail}</div>}
 
         {/* Input token */}
         <div className="wallet-swap-field">
@@ -374,13 +386,22 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
         {/* Get Quote button — only shown when no active quote */}
         {!quote && !pendingSwap && (
-          <button
-            className="wallet-btn primary wallet-btn-full"
-            disabled={quoteLoading}
-            onClick={handleGetQuote}
-          >
-            {quoteLoading ? 'Getting Quote...' : 'Get Quote'}
-          </button>
+          <>
+            {swapPreflightBlockers.length > 0 && (
+              <div className="wallet-transaction-preview-warnings">
+                {swapPreflightBlockers.map((warning) => (
+                  <div key={warning} className="wallet-transaction-preview-warning">{warning}</div>
+                ))}
+              </div>
+            )}
+            <button
+              className="wallet-btn primary wallet-btn-full"
+              disabled={quoteLoading || !swapReady}
+              onClick={handleGetQuote}
+            >
+              {quoteLoading ? 'Getting Quote...' : 'Get Quote'}
+            </button>
+          </>
         )}
 
         {/* Quote summary — shown after fetching, before confirmation */}

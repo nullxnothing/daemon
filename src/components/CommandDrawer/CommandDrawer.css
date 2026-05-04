@@ -169,9 +169,9 @@
 }
 
 .drawer-tool-card {
-  min-height: 124px;
+  min-height: 140px;
   display: grid;
-  grid-template-rows: 34px 30px 34px;
+  grid-template-rows: 34px 30px 1fr;
   justify-items: center;
   align-content: start;
   gap: 7px;
@@ -259,7 +259,7 @@
   color: var(--t3);
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
