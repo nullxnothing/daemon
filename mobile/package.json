@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "react-dom": "^19.2.5",
-    "react-native-web": "~0.19.13",
+    "react-native-web": "~0.21.2",
     "@expo/metro-runtime": "~55.0.10",
     "expo": "~55.0.20",
     "expo-router": "~4.0.0",
