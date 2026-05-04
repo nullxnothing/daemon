@@ -1,4 +1,5 @@
 import { getDb } from '../db/db'
+import { LogService } from './LogService'
 import * as PriceService from './PriceService'
 import * as TradeParser from './TradeParser'
 import type { PnlHolding, PnlPortfolio, PnlTokenDetail, CostBasisEntry, PnlSyncResult } from '../shared/types'
@@ -148,7 +149,7 @@ export async function syncAllWallets(): Promise<PnlSyncResult> {
       totalTradesFound += result.tradesFound
       totalNewTrades += result.newTrades
     } catch (err) {
-      console.warn(`[PnlService] Failed to sync wallet ${wallet.address}:`, (err as Error).message)
+      LogService.warn('PnlService', `Failed to sync wallet ${wallet.address}: ` + (err as Error).message)
     }
   }
 

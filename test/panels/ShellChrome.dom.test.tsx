@@ -43,6 +43,12 @@ function installDaemonBridge() {
   const setShowMarketTape = vi.fn().mockResolvedValue({ ok: true })
   const setShowTitlebarWallet = vi.fn().mockResolvedValue({ ok: true })
   const setLayout = vi.fn().mockResolvedValue({ ok: true })
+  const windowControls = {
+    close: vi.fn(),
+    maximize: vi.fn(),
+    minimize: vi.fn(),
+    reload: vi.fn(),
+  }
 
   Object.defineProperty(window, 'daemon', {
     configurable: true,
@@ -105,16 +111,11 @@ function installDaemonBridge() {
         setShowMarketTape,
         setShowTitlebarWallet,
       },
-      window: {
-        close: vi.fn(),
-        maximize: vi.fn(),
-        minimize: vi.fn(),
-        reload: vi.fn(),
-      },
+      window: windowControls,
     },
   })
 
-  return { setLayout, setShowMarketTape, setShowTitlebarWallet }
+  return { setLayout, setShowMarketTape, setShowTitlebarWallet, windowControls }
 }
 
 function resetStores() {
@@ -226,6 +227,26 @@ describe('Shell chrome DOM coverage', () => {
 
     expect(useUIStore.getState().walletQuickViewOpen).toBe(true)
     expect(screen.getByTestId('wallet-quickview')).toBeInTheDocument()
+  })
+
+  it('wires titlebar window controls to the daemon bridge', async () => {
+    const { windowControls } = installDaemonBridge()
+
+    render(
+      <Titlebar
+        projects={[{ id: 'project-1', name: 'Daemon', path: 'C:/work/daemon-app' } as Project]}
+        onAddProject={vi.fn()}
+        onRemoveProject={vi.fn()}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Minimize' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Maximize' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+    expect(windowControls.minimize).toHaveBeenCalledTimes(1)
+    expect(windowControls.maximize).toHaveBeenCalledTimes(1)
+    expect(windowControls.close).toHaveBeenCalledTimes(1)
   })
 
   it('routes settings search to display and persists display toggles', async () => {

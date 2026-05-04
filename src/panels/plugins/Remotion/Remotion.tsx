@@ -8,7 +8,6 @@ const DEFAULT_URL = 'http://localhost:3000'
 
 // Electron webview element type
 interface WebviewElement extends HTMLElement {
-  src: string
   goBack: () => void
   goForward: () => void
   reload: () => void
@@ -59,9 +58,6 @@ export default function Remotion() {
     setIsNavigated(true)
     persistUrl(normalized)
 
-    if (webviewRef.current) {
-      webviewRef.current.src = normalized
-    }
   }, [persistUrl])
 
   // Attach webview event listeners

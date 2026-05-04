@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { LogService } from './LogService'
 import type { SkillEntry } from '../shared/types'
 
 export type { SkillEntry }
@@ -22,7 +23,7 @@ export function getAllSkillsAndPlugins(): SkillEntry[] {
       }
     }
   } catch (err) {
-    console.warn('[SkillsConfig] failed to read skills directory:', (err as Error).message)
+    LogService.warn('SkillsConfig', 'failed to read skills directory: ' + (err as Error).message)
   }
 
   // Plugins from installed_plugins.json
@@ -37,7 +38,7 @@ export function getAllSkillsAndPlugins(): SkillEntry[] {
       result.push({ name, type: 'plugin', enabled: !isDisabled })
     }
   } catch (err) {
-    console.warn('[SkillsConfig] failed to read installed plugins:', (err as Error).message)
+    LogService.warn('SkillsConfig', 'failed to read installed plugins: ' + (err as Error).message)
   }
 
   return result
