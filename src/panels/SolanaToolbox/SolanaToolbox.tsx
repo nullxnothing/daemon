@@ -12,6 +12,7 @@ import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
 import { ProjectControlCenter } from './ProjectControlCenter'
 import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
+import { ProgramMonitorPanel } from './ProgramMonitorPanel'
 import { BuildDeployPanel } from './BuildDeployPanel'
 import { TransactionInspector } from './TransactionInspector'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
@@ -42,6 +43,11 @@ const SOLANA_VIEWS = [
     id: 'inspect',
     label: 'Inspect',
     summary: 'Transaction logs, signatures, and replay prep',
+  },
+  {
+    id: 'monitor',
+    label: 'Monitor',
+    summary: 'Program state and upgrade authority lookups',
   },
   {
     id: 'transact',
@@ -194,6 +200,14 @@ export function SolanaToolbox() {
             <TransactionInspector
               projectId={activeProjectId}
               projectPath={activeProjectPath}
+            />
+          )}
+
+          {activeView === 'monitor' && (
+            <ProgramMonitorPanel
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+              projectInfo={projectInfo}
             />
           )}
 
