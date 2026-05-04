@@ -1,10 +1,12 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import * as pty from 'node-pty'
+import { execFileSync } from 'node:child_process'
 import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { LogService } from '../services/LogService'
+import * as SessionTracker from '../services/SessionTracker'
 import { getEmbeddedProviderStartupCommand, type ProviderShellId } from '../shared/providerLaunch'
 import { validateCwd } from '../shared/pathValidation'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
@@ -31,6 +33,31 @@ export function getAllSessionIds(): string[] {
 
 function getWin() {
   return BrowserWindow.getAllWindows()[0]
+}
+
+function killPtySession(id: string, session: TerminalSession) {
+  if (process.platform === 'win32' && session.pty.pid) {
+    try {
+      execFileSync('taskkill.exe', ['/pid', String(session.pty.pid), '/t', '/f'], {
+        stdio: 'ignore',
+        windowsHide: true,
+        timeout: 5000,
+      })
+    } catch (err) {
+      LogService.warn('Terminal', `Failed to taskkill PTY process tree ${id}`, { error: (err as Error).message })
+    }
+
+    try {
+      ;(session.pty as unknown as { _close?: () => void })._close?.()
+    } catch (err) {
+      LogService.warn('Terminal', `Failed to mark PTY session ${id} as closed`, { error: (err as Error).message })
+    }
+    return
+  }
+
+  try { session.pty.kill() } catch (err) {
+    LogService.warn('Terminal', `Failed to kill PTY session ${id}`, { error: (err as Error).message })
+  }
 }
 
 function createPtySession(
@@ -85,10 +112,13 @@ function createPtySession(
     isAgentShell,
     dataBuffer: [],
     rendererReady: false,
+    generatedLineCount: 0,
   }
   sessions.set(id, session)
 
   ptyProcess.onData((data) => {
+    session.generatedLineCount = (session.generatedLineCount ?? 0) + (data.match(/\r\n|\r|\n/g)?.length ?? 0)
+
     if (session.rendererReady) {
       getWin()?.webContents.send('terminal:data', { id, data })
     } else {
@@ -122,6 +152,14 @@ function createPtySession(
 
   ptyProcess.onExit(({ exitCode }) => {
     if (contextFilePath) cleanupContextFile(contextFilePath)
+    if (session.localSessionId) {
+      SessionTracker.endSession({
+        sessionId: session.localSessionId,
+        linesGenerated: session.generatedLineCount ?? 0,
+        toolsUsed: providerId ? [providerId] : agentId ? ['agent-cli'] : [],
+        status: exitCode === 0 ? 'completed' : 'cancelled',
+      })
+    }
     sessions.delete(id)
     try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
       LogService.warn('Terminal', `Failed to clean up active_session ${id}`, { error: (err as Error).message })
@@ -195,12 +233,24 @@ export function registerTerminalHandlers() {
     const { command, args, contextFilePath } = buildCommand(agent, project)
     const id = crypto.randomUUID()
     const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
+    const localSessionId = SessionTracker.startSession({
+      projectId: opts.projectId,
+      agentId: opts.agentId,
+      agentName: agent.name,
+      model: agent.model,
+      terminalId: id,
+    })
+    session.localSessionId = localSessionId
+
+    if (opts.initialPrompt?.trim()) {
+      session.pty.write(`${opts.initialPrompt.trim()}\r`)
+    }
 
     db.prepare(
       'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
     ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
 
-    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
+    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name, localSessionId }
     return response
   }))
 
@@ -228,7 +278,7 @@ export function registerTerminalHandlers() {
   ipcMain.handle('terminal:kill', ipcHandler(async (_event, id: string) => {
     const session = sessions.get(id)
     if (session) {
-      session.pty.kill()
+      killPtySession(id, session)
       if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
       sessions.delete(id)
       try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
@@ -251,9 +301,7 @@ export function registerTerminalHandlers() {
 
 export function killAllSessions() {
   for (const [id, session] of sessions) {
-    try { session.pty.kill() } catch (err) {
-      LogService.warn('Terminal', `Failed to kill PTY session ${id}`, { error: (err as Error).message })
-    }
+    killPtySession(id, session)
     if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
     sessions.delete(id)
   }

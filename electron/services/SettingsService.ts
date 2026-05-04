@@ -122,8 +122,14 @@ export interface UiRecoveryResult {
 
 function sanitizePinnedTools(value: unknown): string[] {
   if (!Array.isArray(value)) return DEFAULT_PINNED_TOOLS
+  const safe = sanitizeToolIds(value)
+  return safe.length > 0 ? safe : DEFAULT_PINNED_TOOLS
+}
+
+function sanitizeToolIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
   const seen = new Set<string>()
-  const safe = value
+  return value
     .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
     .map((entry) => entry.trim())
     .filter((entry) => {
@@ -132,7 +138,6 @@ function sanitizePinnedTools(value: unknown): string[] {
       return true
     })
     .slice(0, 50)
-  return safe.length > 0 ? safe : DEFAULT_PINNED_TOOLS
 }
 
 function sanitizeWorkspaceProfile(value: WorkspaceProfile | null): WorkspaceProfile | null {
@@ -170,11 +175,11 @@ export function setPinnedTools(tools: string[]): void {
 }
 
 export function getDrawerToolOrder(): string[] {
-  return sanitizePinnedTools(getJsonSetting<unknown>('drawer_tool_order', []))
+  return sanitizeToolIds(getJsonSetting<unknown>('drawer_tool_order', []))
 }
 
 export function setDrawerToolOrder(order: string[]): void {
-  setJsonSetting('drawer_tool_order', sanitizePinnedTools(order))
+  setJsonSetting('drawer_tool_order', sanitizeToolIds(order))
 }
 
 export function recoverUiState(): UiRecoveryResult {
