@@ -10,6 +10,7 @@ import { RuntimeStackSection } from './RuntimeStackSection'
 import { DaemonRuntimeSection } from './DaemonRuntimeSection'
 import { ToolchainSection } from './ToolchainSection'
 import { ProtocolPacksSection } from './ProtocolPacksSection'
+import { ProjectControlCenter } from './ProjectControlCenter'
 import { scaffoldX402, scaffoldMpp } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -51,9 +52,11 @@ export function SolanaToolbox() {
   const validator = useSolanaToolboxStore((s) => s.validator)
   const loadMcps = useSolanaToolboxStore((s) => s.loadMcps)
   const toggleMcp = useSolanaToolboxStore((s) => s.toggleMcp)
+  const startValidator = useSolanaToolboxStore((s) => s.startValidator)
   const detectProject = useSolanaToolboxStore((s) => s.detectProject)
   const loadToolchain = useSolanaToolboxStore((s) => s.loadToolchain)
   const refreshValidatorStatus = useSolanaToolboxStore((s) => s.refreshValidatorStatus)
+
   useEffect(() => {
     if (activeProjectPath) {
       void loadMcps(activeProjectPath)
@@ -109,6 +112,19 @@ export function SolanaToolbox() {
         <div className="solana-view-panel">
           {activeView === 'start' && (
             <>
+              <div className="solana-validator-zone">
+                <ProjectControlCenter
+                  projectPath={activeProjectPath}
+                  projectInfo={projectInfo}
+                  toolchain={toolchain}
+                  validator={validator}
+                  mcps={mcps}
+                  onStartValidator={(type) => { void startValidator(type) }}
+                  onOpenDebug={() => setActiveView('debug')}
+                  onOpenConnect={() => setActiveView('connect')}
+                  onOpenLaunch={() => setActiveView('launch')}
+                />
+              </div>
               <div className="solana-validator-zone">
                 <DaemonRuntimeSection mcps={mcps} toolchain={toolchain} />
               </div>
