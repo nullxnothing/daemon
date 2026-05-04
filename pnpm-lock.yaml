@@ -32,8 +32,8 @@ importers:
         specifier: 0.2.39-alpha
         version: 0.2.39-alpha(bufferutil@4.1.0)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@6.0.6)
       '@solana/mpp':
-        specifier: ^0.2.0
-        version: 0.2.0(mppx@0.5.5(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(express@5.2.1)(hono@4.12.10)(typescript@5.9.3)(viem@2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)))
+        specifier: ^0.5.2
+        version: 0.5.2(mppx@0.5.5(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(express@5.2.1)(hono@4.12.10)(typescript@5.9.3)(viem@2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)))
       '@solana/spl-token':
         specifier: ^0.4.9
         version: 0.4.14(@solana/web3.js@1.98.4(bufferutil@4.1.0)(encoding@0.1.13)(typescript@5.9.3)(utf-8-validate@6.0.6))(bufferutil@4.1.0)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -2030,11 +2030,11 @@ packages:
       typescript:
         optional: true
 
-  '@solana/mpp@0.2.0':
-    resolution: {integrity: sha512-F2KsTTWL+8/ss2qDV8RtDEbnhi8O50dJ9f67Kpdkb/RQiXiKjk+Lvh97pz/Fov5i/9cs0Wip/aIc6eIUp/AFBw==}
+  '@solana/mpp@0.5.2':
+    resolution: {integrity: sha512-yCBcDZVJ8BIFGF7/ybPcF+cMJuTmBrCFdNEbgDPfKJau5MMoJ+eHUVatYN5f809xqFmQ4LQv7yZvcy9udCsx+Q==}
     peerDependencies:
       '@solana/kit': '>=6.5.0'
-      mppx: '>=0.3.15'
+      mppx: '>=0.5.5'
 
   '@solana/nominal-types@6.7.0':
     resolution: {integrity: sha512-XY+6gF9TzonHiI6VBjtcrEfxT/0KlmF3KRFGSKM5JLEfhs3w+E26op3TOqHuOX7H6llZBgxybaZmXKrvo2rt/w==}
@@ -9139,7 +9139,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  '@solana/mpp@0.2.0(mppx@0.5.5(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(express@5.2.1)(hono@4.12.10)(typescript@5.9.3)(viem@2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)))':
+  '@solana/mpp@0.5.2(mppx@0.5.5(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@3.25.76))(express@5.2.1)(hono@4.12.10)(typescript@5.9.3)(viem@2.47.10(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.25.76)))':
     dependencies:
       '@solana-program/compute-budget': 0.15.0
       '@solana-program/system': 0.12.0
