@@ -190,10 +190,10 @@ importers:
         version: 5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(terser@5.46.2)
       vite-plugin-electron:
         specifier: ^0.29.0
-        version: 0.29.1(vite-plugin-electron-renderer@0.14.6)
+        version: 0.29.1(vite-plugin-electron-renderer@0.14.7)
       vite-plugin-electron-renderer:
-        specifier: ^0.14.6
-        version: 0.14.6
+        specifier: ^0.14.7
+        version: 0.14.7
       vitest:
         specifier: ^2.1.5
         version: 2.1.9(@types/node@25.6.0)(happy-dom@20.8.9(bufferutil@4.1.0)(utf-8-validate@6.0.6))(lightningcss@1.32.0)(terser@5.46.2)
@@ -6730,8 +6730,8 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
-  vite-plugin-electron-renderer@0.14.6:
-    resolution: {integrity: sha512-oqkWFa7kQIkvHXG7+Mnl1RTroA4sP0yesKatmAy0gjZC4VwUqlvF9IvOpHd1fpLWsqYX/eZlVxlhULNtaQ78Jw==}
+  vite-plugin-electron-renderer@0.14.7:
+    resolution: {integrity: sha512-hHBMKuZ24MB2SIxG7U7ix+DDEnvxou7Bgy/TdhYxNz3S5N3Yh7Hjvj9blfMeGEJ0oaZJn7y5z0V/RyDmJ5OuCA==}
 
   vite-plugin-electron@0.29.1:
     resolution: {integrity: sha512-AejNed5BgHFnuw8h5puTa61C6vdP4ydbsbo/uVjH1fTdHAlCDz1+o6pDQ/scQj1udDrGvH01+vTbzQh/vMnR9w==}
@@ -14824,11 +14824,11 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-electron-renderer@0.14.6: {}
+  vite-plugin-electron-renderer@0.14.7: {}
 
-  vite-plugin-electron@0.29.1(vite-plugin-electron-renderer@0.14.6):
+  vite-plugin-electron@0.29.1(vite-plugin-electron-renderer@0.14.7):
     optionalDependencies:
-      vite-plugin-electron-renderer: 0.14.6
+      vite-plugin-electron-renderer: 0.14.7
 
   vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(terser@5.46.2):
     dependencies:
