@@ -62,7 +62,7 @@
     "pidusage": "^4.0.1",
     "ps-list": "^8.1.1",
     "pyright": "^1.1.409",
-    "simple-git": "^3.27.0",
+    "simple-git": "^3.36.0",
     "smol-toml": "^1.6.1",
     "tweetnacl": "^1.0.3",
     "typescript": "^5.9.3",
