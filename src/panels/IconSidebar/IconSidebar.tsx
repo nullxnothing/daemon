@@ -186,6 +186,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       currentPinned.splice(targetIdx, 0, toolId)
     } else {
       // Drop from drawer — pin at position
+      if (!useWorkspaceProfileStore.getState().isToolVisible(toolId)) return
       currentPinned.splice(targetIdx, 0, toolId)
     }
     store.setPinnedTools(currentPinned)
@@ -211,6 +212,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     if (!toolId) return
 
     const store = useUIStore.getState()
+    if (!useWorkspaceProfileStore.getState().isToolVisible(toolId)) return
     if (store.pinnedTools.includes(toolId)) return // already pinned, ignore
     store.pinTool(toolId)
   }, [])
@@ -324,9 +326,14 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       <div className="sidebar-divider" />
       <button
         className={`colosseum-icon-wrap${activeWorkspaceToolId === 'hackathon' ? ' active' : ''}`}
-        onClick={() => useUIStore.getState().openWorkspaceTool('hackathon')}
+        onClick={() => {
+          if (useWorkspaceProfileStore.getState().isToolVisible('hackathon')) {
+            useUIStore.getState().openWorkspaceTool('hackathon')
+          }
+        }}
         title="Hackathon (Colosseum)"
         aria-label="Hackathon"
+        disabled={!isToolVisible('hackathon')}
       >
         <HackathonGlyph />
       </button>

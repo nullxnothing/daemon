@@ -153,11 +153,6 @@ function App() {
     }
   }, [loadProjects, smokeMode])
 
-  // Load activity history once on mount so the activity log is populated
-  useEffect(() => {
-    useNotificationsStore.getState().loadActivity()
-  }, [])
-
   // Imperative app actions from nested components — replaces synthetic keyboard
   // events. Each requestId increments to retrigger.
   const filePaletteRequestId = useAppActions((s) => s.filePaletteRequestId)
@@ -258,8 +253,9 @@ function App() {
   }, [smokeMode])
 
   useEffect(() => {
+    if (!isToolVisible('wallet')) return
     void useWalletStore.getState().refresh(activeProjectId)
-  }, [activeProjectId])
+  }, [activeProjectId, isToolVisible])
 
   useEffect(() => {
     if (!appReady) return
@@ -267,6 +263,7 @@ function App() {
     const likelyNext = ['wallet', 'git', 'project-readiness']
     const warmSet = [...new Set([...pinnedTools, ...likelyNext])]
       .filter((toolId) => toolId !== 'browser')
+      .filter((toolId) => isToolVisible(toolId))
       .slice(0, 6)
 
     let cancelled = false
@@ -293,24 +290,37 @@ function App() {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [appReady])
+  }, [appReady, isToolVisible])
 
   // Detect Solana project when active project changes
   useEffect(() => {
+    const solanaToolsVisible = [
+      'agent-work',
+      'agent-station',
+      'project-readiness',
+      'solana-toolbox',
+      'integrations',
+      'token-launch',
+      'block-scanner',
+      'replay-engine',
+      'dashboard',
+    ].some((toolId) => isToolVisible(toolId))
+    if (!solanaToolsVisible) return
     if (activeProjectPath) {
       const store = useSolanaToolboxStore.getState()
       void store.detectProject(activeProjectPath)
       void store.loadMcps(activeProjectPath)
     }
-  }, [activeProjectPath])
+  }, [activeProjectPath, isToolVisible])
 
   // Poll unread email counts every 60 seconds
   useEffect(() => {
+    if (!isToolVisible('email')) return
     const poll = () => useEmailStore.getState().pollUnreadCounts()
     poll()
     const interval = setInterval(poll, 60_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [isToolVisible])
 
   // Build command list for the palette
   const paletteCommands = useMemo(

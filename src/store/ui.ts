@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
 import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
 import { useWorkflowShellStore } from './workflowShell'
+import { canActivateTool } from '../lib/toolVisibilityGuard'
 
 interface OpenFile {
   path: string
@@ -152,7 +153,7 @@ export const useUIStore = create<UIState>((set) => ({
   launchWizardOpen: false,
   walletQuickViewOpen: false,
   emailQuickViewOpen: false,
-  pinnedTools: ['git', 'browser', 'activity', 'agent-work', 'project-readiness', 'solana-toolbox', 'integrations', 'pro'],
+  pinnedTools: ['git', 'settings', 'activity'],
   drawerToolOrder: [],
 
   setActivePanel: (panel) => set({ activePanel: panel }),
@@ -250,6 +251,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   },
   toggleBrowserTab: () => set((state) => {
+    if (!canActivateTool('browser')) return {}
     const isOpen = !state.browserTabOpen
     if (!isOpen) return { browserTabOpen: false, browserTabActive: false }
     useWorkflowShellStore.getState().closeDrawer()
@@ -260,6 +262,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
   openBrowserTab: () => {
+    if (!canActivateTool('browser')) return
     useWorkflowShellStore.getState().closeDrawer()
     set({
       browserTabOpen: true,
@@ -270,6 +273,7 @@ export const useUIStore = create<UIState>((set) => ({
   },
   closeBrowserTab: () => set({ browserTabOpen: false, browserTabActive: false }),
   setBrowserTabActive: (active) => {
+    if (active && !canActivateTool('browser')) return
     if (active) useWorkflowShellStore.getState().closeDrawer()
     set(active
       ? {
@@ -280,6 +284,7 @@ export const useUIStore = create<UIState>((set) => ({
       : { browserTabActive: false })
   },
   openWorkspaceTool: (toolId) => {
+    if (!canActivateTool(toolId)) return
     if (toolId === 'browser') {
       useUIStore.getState().openBrowserTab()
       return
@@ -309,6 +314,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
   setActiveWorkspaceTool: (toolId) => {
+    if (toolId && !canActivateTool(toolId)) return
     if (toolId === 'browser') {
       useUIStore.getState().setBrowserTabActive(true)
       return
@@ -328,6 +334,7 @@ export const useUIStore = create<UIState>((set) => ({
   },
   setIntegrationCommandSelectionId: (integrationId) => set({ integrationCommandSelectionId: integrationId }),
   toggleWorkspaceTool: (toolId) => set((state) => {
+    if (!canActivateTool(toolId)) return {}
     if (toolId === 'browser') {
       if (state.browserTabActive) {
         useUIStore.getState().closeBrowserTab()
@@ -369,6 +376,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   },
   toggleDashboardTab: () => set((state) => {
+    if (!canActivateTool('dashboard')) return {}
     const isOpen = !state.dashboardTabOpen
     if (!isOpen) return { dashboardTabOpen: false, dashboardTabActive: false }
     useWorkflowShellStore.getState().closeDrawer()
@@ -379,6 +387,7 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
   openDashboardTab: () => {
+    if (!canActivateTool('dashboard')) return
     useWorkflowShellStore.getState().closeDrawer()
     set({
       dashboardTabOpen: true,
@@ -389,6 +398,7 @@ export const useUIStore = create<UIState>((set) => ({
   },
   closeDashboardTab: () => set({ dashboardTabOpen: false, dashboardTabActive: false }),
   setDashboardTabActive: (active) => {
+    if (active && !canActivateTool('dashboard')) return
     if (active) useWorkflowShellStore.getState().closeDrawer()
     set(active
       ? {
@@ -506,10 +516,12 @@ export const useUIStore = create<UIState>((set) => ({
   closeAllQuickViews: () => set({ walletQuickViewOpen: false, emailQuickViewOpen: false }),
 
   setPinnedTools: (tools) => {
-    set({ pinnedTools: tools })
-    daemon.settings.setPinnedTools(tools).catch(() => {})
+    const visibleTools = tools.filter(canActivateTool)
+    set({ pinnedTools: visibleTools })
+    daemon.settings.setPinnedTools(visibleTools).catch(() => {})
   },
   pinTool: (toolId) => set((state) => {
+    if (!canActivateTool(toolId)) return {}
     const next = state.pinnedTools.includes(toolId) ? state.pinnedTools : [...state.pinnedTools, toolId]
     daemon.settings.setPinnedTools(next).catch(() => {})
     return { pinnedTools: next }

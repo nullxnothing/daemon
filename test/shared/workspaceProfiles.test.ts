@@ -16,6 +16,7 @@ describe('getDefaultVisibility — web profile', () => {
   it('shows docs', () => expect(vis['docs']).toBe(true))
   it('shows plugins', () => expect(vis['plugins']).toBe(true))
   it('shows recovery', () => expect(vis['recovery']).toBe(true))
+  it('shows browser', () => expect(vis['browser']).toBe(true))
 
   it('hides wallet', () => expect(vis['wallet']).toBe(false))
   it('hides project-readiness', () => expect(vis['project-readiness']).toBe(false))
@@ -23,6 +24,7 @@ describe('getDefaultVisibility — web profile', () => {
   it('hides block-scanner', () => expect(vis['block-scanner']).toBe(false))
   it('hides dashboard', () => expect(vis['dashboard']).toBe(false))
   it('hides hackathon', () => expect(vis['hackathon']).toBe(false))
+  it('hides agent-station', () => expect(vis['agent-station']).toBe(false))
 })
 
 describe('getDefaultVisibility — solana profile', () => {
@@ -34,11 +36,13 @@ describe('getDefaultVisibility — solana profile', () => {
   it('shows block-scanner', () => expect(vis['block-scanner']).toBe(true))
   it('shows dashboard', () => expect(vis['dashboard']).toBe(true))
   it('shows hackathon', () => expect(vis['hackathon']).toBe(true))
+  it('shows agent-station', () => expect(vis['agent-station']).toBe(true))
   it('shows all web tools', () => {
     expect(vis['git']).toBe(true)
     expect(vis['env']).toBe(true)
     expect(vis['settings']).toBe(true)
     expect(vis['docs']).toBe(true)
+    expect(vis['browser']).toBe(true)
   })
 })
 
@@ -98,6 +102,7 @@ describe('PROFILE_PRESETS', () => {
     expect(PROFILE_PRESETS.web).toContain('git')
     expect(PROFILE_PRESETS.web).toContain('settings')
     expect(PROFILE_PRESETS.web).toContain('docs')
+    expect(PROFILE_PRESETS.web).toContain('browser')
   })
 
   it('web preset excludes solana-specific tools', () => {

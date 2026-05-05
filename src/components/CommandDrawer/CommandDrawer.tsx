@@ -455,7 +455,7 @@ export function preloadToolPanel(toolId: string) {
   BUILTIN_TOOL_PRELOADERS.get(toolId)?.()
 }
 
-function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
+function getDrawerTools(isToolVisible: (toolId: string) => boolean): DrawerTool[] {
   const tools = [...BUILTIN_TOOLS]
 
   // Add enabled plugins
@@ -477,11 +477,7 @@ function getDrawerTools(toolVisibility: Record<string, boolean>): DrawerTool[] {
   }
 
   // Filter by workspace profile visibility
-  return tools.filter((t) => {
-    if (t.id === 'settings') return true
-    if (!(t.id in toolVisibility)) return true
-    return toolVisibility[t.id]
-  })
+  return tools.filter((t) => isToolVisible(t.id))
 }
 
 // Shared MIME type for tool drag-and-drop (drawer <-> sidebar)
@@ -499,8 +495,8 @@ export function CommandDrawer() {
   const drawerRef = useRef<HTMLDivElement>(null)
 
   const plugins = usePluginStore((s) => s.plugins)
-  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
-  const rawTools = useMemo(() => getDrawerTools(toolVisibility), [plugins, toolVisibility]) // eslint-disable-line react-hooks/exhaustive-deps
+  const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
+  const rawTools = useMemo(() => getDrawerTools(isToolVisible), [plugins, isToolVisible])
 
   // Apply custom ordering if set
   const allTools = useMemo(() => {

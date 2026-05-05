@@ -111,15 +111,15 @@ function KeysSection() {
   const [newKeyValue, setNewKeyValue] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const load = useCallback((cancelled = false) => {
+  const load = useCallback((isCancelled: () => boolean = () => false) => {
     window.daemon.claude.listKeys().then((res) => {
-      if (!cancelled && res.ok && res.data) setKeys(res.data)
+      if (!isCancelled() && res.ok && res.data) setKeys(res.data)
     })
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    load(cancelled)
+    load(() => cancelled)
     return () => { cancelled = true }
   }, [load])
 
@@ -190,20 +190,20 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
   const [savingKey, setSavingKey] = useState(false)
   const [showApiInput, setShowApiInput] = useState(false)
 
-  const load = useCallback((cancelled = false) => {
+  const load = useCallback((isCancelled: () => boolean = () => false) => {
     if (projectPath) {
       window.daemon.claude.projectMcpAll(projectPath).then((res) => {
-        if (!cancelled && res.ok && res.data) setMcps(res.data)
+        if (!isCancelled() && res.ok && res.data) setMcps(res.data)
       })
     }
     window.daemon.claude.verifyConnection().then((res) => {
-      if (!cancelled && res.ok && res.data) setConnection(res.data)
+      if (!isCancelled() && res.ok && res.data) setConnection(res.data)
     })
   }, [projectPath])
 
   useEffect(() => {
     let cancelled = false
-    load(cancelled)
+    load(() => cancelled)
     return () => { cancelled = true }
   }, [load])
 
@@ -474,15 +474,15 @@ function CrashesSection() {
   const [crashes, setCrashes] = useState<AppCrashEntry[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const load = useCallback((cancelled = false) => {
+  const load = useCallback((isCancelled: () => boolean = () => false) => {
     window.daemon.settings.getCrashes().then((res) => {
-      if (!cancelled && res.ok && res.data) setCrashes(res.data)
+      if (!isCancelled() && res.ok && res.data) setCrashes(res.data)
     })
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    load(cancelled)
+    load(() => cancelled)
     return () => { cancelled = true }
   }, [load])
 
