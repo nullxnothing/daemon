@@ -6,6 +6,7 @@ import { isToolDisableable } from '../constants/toolRegistry'
 import { useUIStore } from './ui'
 import { useNotificationsStore } from './notifications'
 import { daemon } from '../lib/daemonBridge'
+import { setToolVisibilityGuard } from '../lib/toolVisibilityGuard'
 
 interface WorkspaceProfileState {
   profileName: WorkspaceProfileName
@@ -27,27 +28,34 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     try {
       const res = await daemon.settings.getWorkspaceProfile()
       if (res.ok && res.data) {
+        const toolVisibility = normalizeToolVisibility(res.data.name, res.data.toolVisibility)
         set({
           profileName: res.data.name,
-          toolVisibility: res.data.toolVisibility,
+          toolVisibility,
           loaded: true,
         })
+        setToolVisibilityGuard(toolVisibility)
       } else {
-        // No profile saved yet — default to custom (all visible)
+        const toolVisibility = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
+        // No profile saved yet — default to the focused web profile.
         set({
-          profileName: 'custom',
-          toolVisibility: getDefaultVisibility('custom', BUILTIN_TOOL_IDS),
+          profileName: 'web',
+          toolVisibility,
           loaded: true,
         })
+        setToolVisibilityGuard(toolVisibility)
       }
     } catch {
-      set({ loaded: true })
+      const toolVisibility = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
+      set({ profileName: 'web', toolVisibility, loaded: true })
+      setToolVisibilityGuard(toolVisibility)
     }
   },
 
   setProfile: async (name) => {
     const visibility = getDefaultVisibility(name, BUILTIN_TOOL_IDS)
     set({ profileName: name, toolVisibility: visibility })
+    setToolVisibilityGuard(visibility)
     const profile: WorkspaceProfile = { name, toolVisibility: visibility }
     await daemon.settings.setWorkspaceProfile(profile).catch(() => {})
 
@@ -56,6 +64,7 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     // filter via isToolVisible. Surface a toast so the user notices.
     const pinned = useUIStore.getState().pinnedTools
     const hidden = pinned.filter((id) => id !== 'settings' && visibility[id] === false)
+    closeHiddenWorkspaceTools(visibility)
     if (hidden.length > 0) {
       useNotificationsStore.getState().pushToast({
         kind: 'info',
@@ -71,6 +80,8 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     if (!isToolDisableable(toolId)) return
     const updated = { ...toolVisibility, [toolId]: visible }
     set({ toolVisibility: updated, profileName: 'custom' })
+    setToolVisibilityGuard(updated)
+    if (!visible) closeHiddenWorkspaceTools(updated)
     const profile: WorkspaceProfile = { name: 'custom', toolVisibility: updated }
     await daemon.settings.setWorkspaceProfile(profile).catch(() => {})
   },
@@ -84,6 +95,29 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     return toolVisibility[toolId] ?? true
   },
 }))
+
+useWorkspaceProfileStore.subscribe((state) => {
+  setToolVisibilityGuard(state.toolVisibility, state.loaded)
+})
+
+function normalizeToolVisibility(
+  profileName: WorkspaceProfileName,
+  savedVisibility: Record<string, boolean>,
+): Record<string, boolean> {
+  return {
+    ...getDefaultVisibility(profileName, BUILTIN_TOOL_IDS),
+    ...savedVisibility,
+  }
+}
+
+function closeHiddenWorkspaceTools(toolVisibility: Record<string, boolean>): void {
+  const ui = useUIStore.getState()
+  for (const toolId of ui.workspaceToolTabs) {
+    if (toolVisibility[toolId] === false) ui.closeWorkspaceTool(toolId)
+  }
+  if (toolVisibility.browser === false) ui.closeBrowserTab()
+  if (toolVisibility.dashboard === false) ui.closeDashboardTab()
+}
 
 // Derived selector for use in components
 export function selectToolVisible(toolId: string) {

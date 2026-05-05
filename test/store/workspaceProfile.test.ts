@@ -10,6 +10,7 @@ vi.stubGlobal('window', {
 })
 
 import { useWorkspaceProfileStore } from '../../src/store/workspaceProfile'
+import { useUIStore } from '../../src/store/ui'
 import { getDefaultVisibility } from '../../src/constants/workspaceProfiles'
 import { BUILTIN_TOOL_IDS } from '../../src/constants/toolIds'
 
@@ -28,6 +29,7 @@ describe('getDefaultVisibility — web profile', () => {
     expect(vis['env']).toBe(true)
     expect(vis['settings']).toBe(true)
     expect(vis['docs']).toBe(true)
+    expect(vis['browser']).toBe(true)
   })
 
   it('hides solana-specific tools', () => {
@@ -36,6 +38,7 @@ describe('getDefaultVisibility — web profile', () => {
     expect(vis['project-readiness']).toBe(false)
     expect(vis['solana-toolbox']).toBe(false)
     expect(vis['dashboard']).toBe(false)
+    expect(vis['agent-station']).toBe(false)
   })
 })
 
@@ -46,6 +49,7 @@ describe('getDefaultVisibility — solana profile', () => {
     expect(vis['project-readiness']).toBe(true)
     expect(vis['solana-toolbox']).toBe(true)
     expect(vis['dashboard']).toBe(true)
+    expect(vis['agent-station']).toBe(true)
   })
 
   it('shows all web tools as well', () => {
@@ -108,6 +112,25 @@ describe('useWorkspaceProfileStore — isToolVisible', () => {
     })
     expect(useWorkspaceProfileStore.getState().isToolVisible('wallet')).toBe(true)
   })
+
+  it('normalizes missing saved visibility entries from the active preset', async () => {
+    vi.mocked(window.daemon.settings.getWorkspaceProfile).mockResolvedValueOnce({
+      ok: true,
+      data: { name: 'web', toolVisibility: { git: true } },
+    })
+    await useWorkspaceProfileStore.getState().load()
+    const state = useWorkspaceProfileStore.getState()
+    expect(state.profileName).toBe('web')
+    expect(state.toolVisibility['agent-station']).toBe(false)
+  })
+
+  it('defaults first run to the web profile', async () => {
+    vi.mocked(window.daemon.settings.getWorkspaceProfile).mockResolvedValueOnce({ ok: false })
+    await useWorkspaceProfileStore.getState().load()
+    const state = useWorkspaceProfileStore.getState()
+    expect(state.profileName).toBe('web')
+    expect(state.toolVisibility['wallet']).toBe(false)
+  })
 })
 
 describe('useWorkspaceProfileStore — setToolVisible', () => {
@@ -163,6 +186,21 @@ describe('useWorkspaceProfileStore — setProfile', () => {
     // web profile hides wallet
     expect(state.toolVisibility['wallet']).toBe(false)
     expect(state.toolVisibility['git']).toBe(true)
+  })
+
+  it('closes tools hidden by a selected profile', async () => {
+    useUIStore.setState({
+      workspaceToolTabs: ['wallet', 'git'],
+      activeWorkspaceToolId: 'wallet',
+      dashboardTabOpen: true,
+      dashboardTabActive: true,
+    })
+
+    await useWorkspaceProfileStore.getState().setProfile('web')
+    const ui = useUIStore.getState()
+    expect(ui.workspaceToolTabs).toEqual(['git'])
+    expect(ui.activeWorkspaceToolId).toBe('git')
+    expect(ui.dashboardTabOpen).toBe(false)
   })
 
   it('sets all tools visible for custom profile', async () => {
