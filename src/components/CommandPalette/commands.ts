@@ -72,7 +72,7 @@ export function buildCommands(deps: CommandDeps): Command[] {
       action: () => openWorkspaceTool(command.toolId),
     }))
 
-  return [
+  const commands: Command[] = [
     // Navigation
     {
       id: 'nav:file-explorer',
@@ -113,20 +113,20 @@ export function buildCommands(deps: CommandDeps): Command[] {
         setCenterMode(current === 'grind' ? 'canvas' : 'grind')
       },
     },
-    {
+    ...(isToolVisible && !isToolVisible('browser') ? [] : [{
       id: 'view:browser-tab',
       label: 'Toggle Browser Tab',
       shortcut: 'Ctrl+Shift+B',
       category: 'View',
       action: () => toggleBrowserTab?.(),
-    },
-    {
+    }]),
+    ...(isToolVisible && !isToolVisible('dashboard') ? [] : [{
       id: 'view:dashboard-tab',
       label: 'Toggle Dashboard Tab',
       shortcut: 'Ctrl+Shift+D',
       category: 'View',
       action: () => toggleDashboardTab?.(),
-    },
+    }]),
     {
       id: 'view:reload-window',
       label: 'Reload Window',
@@ -144,4 +144,6 @@ export function buildCommands(deps: CommandDeps): Command[] {
       action: () => openAgentLauncher(),
     },
   ]
+
+  return commands
 }

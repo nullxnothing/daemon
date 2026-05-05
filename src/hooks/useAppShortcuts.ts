@@ -1,6 +1,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react'
 import { useUIStore } from '../store/ui'
 import { useWorkflowShellStore } from '../store/workflowShell'
+import { useWorkspaceProfileStore } from '../store/workspaceProfile'
 
 interface UseAppShortcutsOptions {
   setPaletteMode: Dispatch<SetStateAction<'commands' | 'files' | null>>
@@ -46,9 +47,11 @@ export function useAppShortcuts({
         useUIStore.getState().setCenterMode(current === 'grind' ? 'canvas' : 'grind')
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
         e.preventDefault()
+        if (!useWorkspaceProfileStore.getState().isToolVisible('browser')) return
         useUIStore.getState().toggleBrowserTab()
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
         e.preventDefault()
+        if (!useWorkspaceProfileStore.getState().isToolVisible('dashboard')) return
         useUIStore.getState().toggleDashboardTab()
       } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'e') {
         e.preventDefault()
