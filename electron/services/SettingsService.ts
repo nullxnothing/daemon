@@ -101,7 +101,7 @@ export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
 }
 
-const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'solana-toolbox', 'pro']
+const DEFAULT_PINNED_TOOLS = ['git', 'settings', 'activity']
 const PRO_PIN_MIGRATION_KEY = 'pinned_tools_pro_default_added'
 const UI_RECOVERY_KEYS = [
   'layout_center_mode',
@@ -164,10 +164,8 @@ export function getPinnedTools(): string[] {
   const pinnedTools = sanitizePinnedTools(getJsonSetting<unknown>('pinned_tools', DEFAULT_PINNED_TOOLS))
   if (getBooleanSetting(PRO_PIN_MIGRATION_KEY, false)) return pinnedTools
 
-  const migratedTools = pinnedTools.includes('pro') ? pinnedTools : [...pinnedTools, 'pro']
-  setJsonSetting('pinned_tools', migratedTools)
   setBooleanSetting(PRO_PIN_MIGRATION_KEY, true)
-  return migratedTools
+  return pinnedTools
 }
 
 export function setPinnedTools(tools: string[]): void {

@@ -87,17 +87,12 @@ describe('SettingsService token launch settings', () => {
     )
   })
 
-  it('sanitizes pinned tools from storage and runs the one-time Pro pin migration', () => {
+  it('sanitizes pinned tools from storage without adding hidden default tools', () => {
     mockGet.mockReturnValue({
       value: JSON.stringify(['git', '', 'browser', 'git', 42]),
     })
 
-    expect(getPinnedTools()).toEqual(['git', 'browser', 'pro'])
-    expect(mockRun).toHaveBeenCalledWith(
-      'pinned_tools',
-      JSON.stringify(['git', 'browser', 'pro']),
-      expect.any(Number),
-    )
+    expect(getPinnedTools()).toEqual(['git', 'browser'])
     expect(mockRun).toHaveBeenCalledWith('pinned_tools_pro_default_added', 'true', expect.any(Number))
   })
 
