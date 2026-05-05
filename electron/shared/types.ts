@@ -110,6 +110,90 @@ export interface FileEntry {
   children?: FileEntry[]
 }
 
+// --- Language Server Protocol ---
+
+export type LspServerId = 'typescript' | 'python' | 'rust'
+
+export interface LspPosition {
+  line: number
+  character: number
+}
+
+export interface LspRange {
+  start: LspPosition
+  end: LspPosition
+}
+
+export interface LspDiagnostic {
+  range: LspRange
+  severity?: number
+  code?: string | number
+  source?: string
+  message: string
+}
+
+export interface LspDiagnosticEvent {
+  uri: string
+  filePath: string
+  diagnostics: LspDiagnostic[]
+}
+
+export interface LspServerStatus {
+  serverId: LspServerId
+  label: string
+  command: string
+  commandPath: string | null
+  available: boolean
+  active: boolean
+  pid: number | null
+  projectPath: string | null
+  languageIds: string[]
+  extensions: string[]
+  startedAt: number | null
+  error: string | null
+}
+
+export interface LspDocumentInput {
+  projectPath: string
+  filePath: string
+  languageId: string
+  text: string
+  version?: number
+}
+
+export interface LspDocumentSyncResult {
+  supported: boolean
+  serverId?: LspServerId
+  languageId: string
+  status?: LspServerStatus
+  error?: string
+}
+
+export interface LspHoverResult {
+  contents: string
+  range?: LspRange
+}
+
+export interface LspLocation {
+  uri: string
+  filePath: string
+  range: LspRange
+}
+
+export interface LspCompletionItem {
+  label: string
+  kind?: number
+  detail?: string
+  documentation?: string
+  insertText?: string
+  filterText?: string
+  sortText?: string
+}
+
+export interface LspCompletionResult {
+  items: LspCompletionItem[]
+}
+
 // --- Icon Theme ---
 
 export interface RuntimeIconTheme {
@@ -201,11 +285,93 @@ export interface GhostPort {
   processName: string | null
 }
 
+// --- Daemon Pro ---
+
+export type ProFeature = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
+export type ProAccessSource = 'payment' | 'holder'
+
+export interface ProHolderStatus {
+  enabled: boolean
+  eligible: boolean
+  mint: string | null
+  minAmount: number | null
+  currentAmount: number | null
+  symbol: string
+}
+
+export interface ProSubscriptionState {
+  active: boolean
+  walletId: string | null
+  walletAddress: string | null
+  expiresAt: number | null
+  features: ProFeature[]
+  tier: 'pro' | null
+  accessSource: ProAccessSource | null
+  holderStatus: ProHolderStatus
+  priceUsdc: number | null
+  durationDays: number | null
+}
+
+export interface ProPriceInfo {
+  priceUsdc: number
+  durationDays: number
+  network: string
+  payTo: string
+  holderMint?: string
+  holderMinAmount?: number
+}
+
+export interface ArenaSubmission {
+  id: string
+  title: string
+  pitch: string
+  author: {
+    handle: string
+    wallet: string
+  }
+  description: string
+  category: 'tool' | 'agent' | 'skill' | 'mcp' | 'grind-recipe'
+  themeWeek: string | null
+  submittedAt: number
+  status: 'submitted' | 'featured' | 'winner' | 'shipped'
+  votes: number
+  githubUrl?: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+  contestSlug?: string
+}
+
+export interface ArenaSubmissionInput {
+  title: string
+  pitch: string
+  description: string
+  category: ArenaSubmission['category']
+  githubUrl: string
+  demoUrl?: string
+  xHandle?: string
+  discordHandle?: string
+}
+
+export interface ProSkillManifestEntry {
+  id: string
+  name: string
+  version: string
+  description: string
+  downloadUrl: string
+  sha256: string
+}
+
+export interface ProSkillManifest {
+  version: 1
+  skills: ProSkillManifestEntry[]
+}
+
 // --- MCP ---
 
 export interface McpEntry {
   name: string
-  config: { command?: string; args?: string[]; env?: Record<string, string>; type?: string }
+  config: { command?: string; args?: string[]; env?: Record<string, string>; type?: string; url?: string }
   source: string
   enabled: boolean
 }
@@ -268,6 +434,7 @@ export interface WalletListEntry {
   name: string
   address: string
   is_default: number
+  wallet_type: string
   created_at: number
   assigned_project_ids: string[]
 }
@@ -322,6 +489,40 @@ export interface WalletDashboard {
     type?: string
     description?: string
   }>
+}
+
+export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'
+
+export interface SolanaTransactionPreviewInput {
+  kind: SolanaTransactionPreviewKind
+  walletId?: string
+  destination?: string
+  amount?: number
+  sendMax?: boolean
+  mint?: string
+  tokenSymbol?: string
+  inputMint?: string
+  outputMint?: string
+  inputSymbol?: string
+  outputSymbol?: string
+  inputAmount?: string
+  outputAmount?: string
+  slippageBps?: number
+  priceImpactPct?: string
+  protocol?: string
+}
+
+export interface SolanaTransactionPreview {
+  title: string
+  backendLabel: string
+  signerLabel: string
+  targetLabel: string
+  amountLabel: string
+  feeLabel: string
+  notes: string[]
+  warnings: string[]
+  requiresAcknowledgement: boolean
+  acknowledgementLabel: string | null
 }
 
 // --- Env ---
@@ -383,6 +584,14 @@ export interface PluginRow {
   sort_order: number
   config: string
   updated_at: number
+}
+
+export interface PluginCreateInput {
+  id: string
+  name: string
+  description?: string
+  entry?: string
+  command?: string
 }
 
 // --- Claude Connection ---
@@ -468,6 +677,8 @@ export interface TerminalSession {
   isAgentShell?: boolean
   /** Local session tracker ID — set when agent spawns via spawnAgent. */
   localSessionId?: string | null
+  /** Best-effort count of terminal output lines for session receipts. */
+  generatedLineCount?: number
   /** Buffers PTY data until renderer signals ready */
   dataBuffer?: string[]
   /** True once renderer has attached its xterm onData listener */
@@ -497,6 +708,7 @@ export interface TerminalCreateOutput {
   pid: number
   agentId: null | string
   agentName?: string
+  localSessionId?: string | null
 }
 
 // --- Agents ---
@@ -584,6 +796,75 @@ export interface AgentWalletEntry {
 export interface WalletBalanceResult {
   sol: number
   lamports: number
+}
+
+// --- Agent Work Escrow ---
+
+export type AgentWorkStatus =
+  | 'draft'
+  | 'funded'
+  | 'running'
+  | 'submitted'
+  | 'approved'
+  | 'rejected'
+  | 'settled'
+
+export interface AgentWorkTask {
+  id: string
+  title: string
+  prompt: string
+  acceptance: string
+  project_id: string | null
+  project_name: string | null
+  project_path: string | null
+  wallet_id: string | null
+  wallet_name: string | null
+  wallet_address: string | null
+  agent_id: string | null
+  agent_name: string | null
+  agent_wallet_id: string | null
+  agent_wallet_address: string | null
+  verifier_wallet: string | null
+  repo_hash: string
+  prompt_hash: string
+  acceptance_hash: string
+  bounty_lamports: number
+  bounty_sol: number
+  deadline_at: number | null
+  onchain_task_id: string | null
+  create_signature: string | null
+  start_signature: string | null
+  receipt_signature: string | null
+  review_signature: string | null
+  status: AgentWorkStatus
+  session_id: string | null
+  commit_hash: string | null
+  diff_hash: string | null
+  tests_hash: string | null
+  artifact_uri: string | null
+  submitted_at: number | null
+  approved_at: number | null
+  settled_signature: string | null
+  created_at: number
+  updated_at: number
+}
+
+export interface AgentWorkCreateInput {
+  title: string
+  prompt: string
+  acceptance: string
+  projectId?: string | null
+  walletId?: string | null
+  agentId?: string | null
+  agentWalletId?: string | null
+  verifierWallet?: string | null
+  bountySol: number
+  deadlineAt?: number | null
+}
+
+export interface AgentWorkSubmitInput {
+  artifactUri?: string | null
+  testsOutput?: string | null
 }
 
 // --- PnL Tracking ---
@@ -1007,4 +1288,102 @@ export interface EngineContext {
   recentErrors: Array<{ operation: string; message: string; timestamp: number }>
   portMap: Array<{ port: number; serviceName: string; projectName: string }>
   userProfile: Record<string, string>
+}
+
+// --- Replay Engine ---
+
+export interface ReplayAccountRef {
+  pubkey: string
+  isSigner: boolean
+  isWritable: boolean
+  label?: string | null
+}
+
+export interface ReplayInstruction {
+  index: number
+  programId: string
+  programLabel: string | null
+  accounts: ReplayAccountRef[]
+  rawData: string
+  parsed: {
+    type: string | null
+    info: Record<string, unknown> | null
+  } | null
+  innerInstructions: ReplayInstruction[]
+  error: string | null
+}
+
+export interface ReplayAccountDiff {
+  pubkey: string
+  owner: string | null
+  preLamports: number
+  postLamports: number
+  lamportsDelta: number
+  preTokenAmount: string | null
+  postTokenAmount: string | null
+  tokenMint: string | null
+  isWritable: boolean
+}
+
+export interface ReplayAnchorError {
+  errorCode: string | null
+  errorNumber: number | null
+  errorMessage: string | null
+  account: string | null
+  programId: string | null
+  raw: string
+}
+
+export interface ReplayTrace {
+  signature: string
+  slot: number
+  blockTime: number | null
+  success: boolean
+  fee: number
+  computeUnitsConsumed: number | null
+  feePayer: string | null
+  programIds: string[]
+  instructions: ReplayInstruction[]
+  accountDiffs: ReplayAccountDiff[]
+  logs: string[]
+  errorRaw: unknown | null
+  anchorError: ReplayAnchorError | null
+  fetchedAt: number
+}
+
+export interface ReplayProgramSummary {
+  programId: string
+  recent: Array<{
+    signature: string
+    slot: number
+    blockTime: number | null
+    success: boolean
+    error: string | null
+  }>
+}
+
+export interface ReplayContextHandoff {
+  contextMarkdown: string
+  promptHeadline: string
+  signature: string
+}
+
+export interface ReplayAgentHandoff extends ReplayContextHandoff {
+  contextPath: string
+  promptText: string
+  startupCommand: string
+}
+
+export interface ReplayVerificationResult {
+  signature: string
+  command: string
+  cwd: string
+  status: 'passed' | 'failed'
+  exitCode: number | null
+  stdout: string
+  stderr: string
+  startedAt: number
+  completedAt: number
+  durationMs: number
+  resultPath: string
 }

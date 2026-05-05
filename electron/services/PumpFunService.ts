@@ -1,4 +1,4 @@
-import { Connection, Keypair, VersionedTransaction, TransactionMessage, PublicKey } from '@solana/web3.js'
+import { Keypair, PublicKey } from '@solana/web3.js'
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { dialog } from 'electron'
 import * as SecureKey from './SecureKeyService'
@@ -6,7 +6,7 @@ import { getDb } from '../db/db'
 import BN from 'bn.js'
 import bs58 from 'bs58'
 import fs from 'node:fs'
-import { getConnectionStrict, withKeypair, loadKeypair } from './SolanaService'
+import { executeInstructions, getConnectionStrict, withKeypair, loadKeypair } from './SolanaService'
 
 // Lazy-load the SDK to avoid startup cost
 // The package's ESM exports map points to index.js but the file is index.mjs — use CJS instead
@@ -17,22 +17,6 @@ let _sdk: typeof import('@nirholas/pump-sdk') | null = null
 function getSdk() {
   if (!_sdk) _sdk = require('@nirholas/pump-sdk') as typeof import('@nirholas/pump-sdk')
   return _sdk
-}
-
-async function sendAndConfirm(connection: Connection, keypairs: Keypair[], instructions: import('@solana/web3.js').TransactionInstruction[]): Promise<string> {
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
-  const messageV0 = new TransactionMessage({
-    payerKey: keypairs[0].publicKey,
-    recentBlockhash: blockhash,
-    instructions,
-  }).compileToV0Message()
-
-  const tx = new VersionedTransaction(messageV0)
-  tx.sign(keypairs)
-
-  const signature = await connection.sendTransaction(tx, { skipPreflight: false })
-  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-  return signature
 }
 
 export interface TokenCreateInput {
@@ -142,9 +126,20 @@ export async function createToken(input: TokenCreateInput): Promise<TokenCreateR
     formData.append('file', blob, `token.${ext}`)
   }
 
-  const metaRes = await fetch('https://pump.fun/api/ipfs', { method: 'POST', body: formData })
-  if (!metaRes.ok) throw new Error('Failed to upload token metadata')
-  const metaJson = await metaRes.json() as { metadataUri: string }
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30_000)
+  let metaJson: { metadataUri: string }
+  try {
+    const metaRes = await fetch('https://pump.fun/api/ipfs', { method: 'POST', body: formData, signal: controller.signal })
+    if (!metaRes.ok) throw new Error('Failed to upload token metadata')
+    metaJson = await metaRes.json() as { metadataUri: string }
+  } catch (e) {
+    throw e instanceof Error && e.name === 'AbortError'
+      ? new Error('Token metadata upload timed out after 30s')
+      : e
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   const mintKeypair = Keypair.generate()
   const bondingCurve = sdk.bondingCurvePda(mintKeypair.publicKey)
@@ -172,7 +167,9 @@ export async function createToken(input: TokenCreateInput): Promise<TokenCreateR
     mayhemMode: input.mayhemMode,
   })
 
-  const signature = await sendAndConfirm(connection, [keypair, mintKeypair], instructions)
+  const { signature } = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
+    payer: keypair.publicKey,
+  })
   return {
     signature,
     success: true,
@@ -199,7 +196,8 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
 
   if (curve.complete) throw new Error('Bonding curve graduated. Use AMM trading.')
 
-  const solLamports = new BN(Math.floor((input.amountSol ?? 0) * 1e9))
+  if (!input.amountSol || input.amountSol <= 0) throw new Error('Buy amount must be greater than 0')
+  const solLamports = new BN(Math.floor(input.amountSol * 1e9))
   const tokenAmount = sdk.getBuyTokenAmountFromSolAmount({
     global,
     feeConfig,
@@ -224,11 +222,13 @@ export async function buyToken(input: TradeInput): Promise<TxResult> {
     user: keypair.publicKey,
     amount: tokenAmount,
     solAmount: solLamports,
-    slippage: input.slippageBps / 100,
+    slippage: input.slippageBps / 10_000,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
-  const signature = await sendAndConfirm(connection, [keypair], instructions)
+  const { signature } = await executeInstructions(connection, instructions, [keypair], {
+    payer: keypair.publicKey,
+  })
   return { signature, success: true }
   })
 }
@@ -248,7 +248,8 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
 
   if (curve.complete) throw new Error('Bonding curve graduated. Use AMM trading.')
 
-  const tokenAmount = new BN(Math.floor((input.amountTokens ?? 0) * 1e6))
+  if (!input.amountTokens || input.amountTokens <= 0) throw new Error('Sell amount must be greater than 0')
+  const tokenAmount = new BN(Math.floor(input.amountTokens * 1e6))
   const solAmount = sdk.getSellSolAmountFromTokenAmount({
     global,
     feeConfig,
@@ -268,11 +269,13 @@ export async function sellToken(input: TradeInput): Promise<TxResult> {
     user: keypair.publicKey,
     amount: tokenAmount,
     solAmount,
-    slippage: input.slippageBps / 100,
+    slippage: input.slippageBps / 10_000,
     tokenProgram: TOKEN_PROGRAM_ID,
   })
 
-  const signature = await sendAndConfirm(connection, [keypair], instructions)
+  const { signature } = await executeInstructions(connection, instructions, [keypair], {
+    payer: keypair.publicKey,
+  })
   return { signature, success: true }
   })
 }
@@ -284,7 +287,9 @@ export async function collectCreatorFees(walletId: string): Promise<TxResult> {
   const pumpSdk = new sdk.PumpSdk()
 
   const ix = await pumpSdk.ammCollectCoinCreatorFeeInstruction({ creator: keypair.publicKey })
-  const signature = await sendAndConfirm(connection, [keypair], [ix])
+  const { signature } = await executeInstructions(connection, [ix], [keypair], {
+    payer: keypair.publicKey,
+  })
   return { signature, success: true }
   })
 }

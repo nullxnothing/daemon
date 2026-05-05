@@ -1,4 +1,5 @@
 import path from 'path';
+import { LogService } from './LogService';
 
 /**
  * ValidationService: Input validation at IPC boundaries
@@ -25,7 +26,8 @@ interface ValidationRule {
 
 class ValidationServiceImpl {
   private pathWhitelist: Set<string> = new Set();
-  private rateLimitMap: Map<string, number[]> = new Map();
+  private rateLimitStore: Map<string, number[]> = new Map();
+  private static readonly EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   /**
    * Validate string input
@@ -177,6 +179,48 @@ class ValidationServiceImpl {
     return { success: true, data: obj };
   }
 
+  validateEmailAddress(value: unknown): ValidationResult<string> {
+    const trimmedValue = typeof value === 'string' ? value.trim() : value;
+    const result = this.validateString(
+      trimmedValue,
+      3,
+      320,
+      ValidationServiceImpl.EMAIL_PATTERN,
+    );
+    if (!result.success) {
+      return { success: false, errors: ['Invalid email address'] };
+    }
+    return result;
+  }
+
+  validateEmailList(value: unknown): ValidationResult<string | undefined> {
+    if (value === undefined || value === null || value === '') {
+      return { success: true, data: undefined };
+    }
+
+    const raw = this.validateString(value, 3, 4000);
+    if (!raw.success || !raw.data) {
+      return { success: false, errors: ['Invalid email list'] };
+    }
+
+    const emails = raw.data
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (emails.length === 0) {
+      return { success: true, data: undefined };
+    }
+
+    for (const email of emails) {
+      if (!ValidationServiceImpl.EMAIL_PATTERN.test(email)) {
+        return { success: false, errors: [`Invalid email address: ${email}`] };
+      }
+    }
+
+    return { success: true, data: emails.join(', ') };
+  }
+
   /**
    * Validate file path for traversal attacks
    */
@@ -226,7 +270,7 @@ class ValidationServiceImpl {
   }
 
   /**
-   * Validate rate limit using in-memory sliding window
+   * Validate rate limit
    */
   checkRateLimit(
     identifier: string,
@@ -235,20 +279,17 @@ class ValidationServiceImpl {
   ): boolean {
     const key = `rl:${identifier}`;
     const now = Date.now();
-
-    const timestamps = this.rateLimitMap.get(key) ?? [];
-    const windowStart = now - windowMs;
-
-    // Prune entries older than the window
-    const recent = timestamps.filter((ts) => ts > windowStart);
+    const windowStart = now - Math.max(windowMs, 0);
+    const existing = this.rateLimitStore.get(key) ?? [];
+    const recent = existing.filter((timestamp) => timestamp > windowStart);
 
     if (recent.length >= maxRequests) {
-      this.rateLimitMap.set(key, recent);
+      this.rateLimitStore.set(key, recent);
       return false;
     }
 
     recent.push(now);
-    this.rateLimitMap.set(key, recent);
+    this.rateLimitStore.set(key, recent);
     return true;
   }
 

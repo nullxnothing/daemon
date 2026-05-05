@@ -13,26 +13,13 @@ import { CodexProvider } from '../services/providers/CodexProvider'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { broadcast } from '../services/EventBus'
-import { getSession, getAllSessionIds } from './terminal'
-
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+import { restartProviderInPty, restartAllProviderSessions } from '../shared/providerRestart'
 
 /**
  * Gracefully exit Codex in a PTY and resume with `codex resume --last`.
  */
 async function restartCodexInPty(terminalId: string): Promise<void> {
-  const session = getSession(terminalId)
-  if (!session) throw new Error('Session not found')
-  if (!session.agentId) return
-  if (session.providerId && session.providerId !== 'codex') return
-
-  session.pty.write('\x03')
-  await wait(2000)
-  session.pty.write('\x03')
-  await wait(1000)
-  session.pty.write('\r')
-  await wait(300)
-  session.pty.write('codex resume --last\r')
+  return restartProviderInPty(terminalId, 'codex resume --last', 'codex')
 }
 
 function validateProjectPath(projectPath: string): void {
@@ -91,15 +78,7 @@ export function registerCodexHandlers() {
   }))
 
   ipcMain.handle('codex:restart-all-sessions', ipcHandler(async () => {
-    const allIds = getAllSessionIds()
-    // Only restart sessions that were spawned by Codex
-    const codexIds = allIds.filter((id) => {
-      const session = getSession(id)
-      return session?.providerId === 'codex'
-    })
-    const results = await Promise.allSettled(codexIds.map(restartCodexInPty))
-    const succeeded = results.filter((r) => r.status === 'fulfilled').length
-    return { restarted: succeeded, total: codexIds.length }
+    return await restartAllProviderSessions('codex resume --last', 'codex')
   }))
 
   // --- Secure Keys ---

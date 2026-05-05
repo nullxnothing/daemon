@@ -23,7 +23,9 @@ import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
 import { useEmailStore } from './store/email'
 import { useSolanaToolboxStore } from './store/solanaToolbox'
+import { useWorkflowShellStore } from './store/workflowShell'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
+import { Skeleton } from './components/Panel'
 import { useSplitter } from './hooks/useSplitter'
 import { useProjects } from './hooks/useProjects'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
@@ -33,6 +35,7 @@ import { daemon } from './lib/daemonBridge'
 import { lazyNamedWithReload } from './utils/lazyWithReload'
 import { preloadToolPanel } from './components/CommandDrawer/CommandDrawer'
 import './App.css'
+import './styles/drawerSurfaces.css'
 
 const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
 const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
@@ -40,7 +43,7 @@ const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/Rig
 const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
 function PanelSkeleton({ className }: { className: string }) {
-  return <div className={className} />
+  return <Skeleton className={className} />
 }
 
 function App() {
@@ -56,8 +59,8 @@ function App() {
   const tourActive = useOnboardingStore((s) => s.tourActive)
   const showTourOffer = useOnboardingStore((s) => s.showTourOffer)
   const centerMode = useUIStore((s) => s.centerMode)
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const launchWizardOpen = useUIStore((s) => s.launchWizardOpen)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
+  const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -70,6 +73,7 @@ function App() {
 
   const { loadProjects, addProject, removeProject } = useProjects()
   const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
+  const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
   const closeAgentLauncher = useCallback(() => setShowAgentLauncher(false), [])
 
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
@@ -91,6 +95,7 @@ function App() {
   })
 
   const shouldShowRightPanel = showRightPanel
+  const canShowTerminal = showTerminal && (Boolean(activeProjectId) || projects.length > 0)
 
   // Determine if the editor should be hidden because the terminal has been
   // dragged to fill the full center area height.
@@ -103,7 +108,7 @@ function App() {
     return () => ro.disconnect()
   }, [])
   // Collapse threshold: editor gets less than 30px of space
-  const isEditorCollapsed = centerHeight > 0 && showTerminal && !drawerOpen && centerMode === 'canvas'
+  const isEditorCollapsed = centerHeight > 0 && canShowTerminal && !drawerOpen && centerMode === 'canvas'
     && terminalHeight >= centerHeight - 34
 
   useEffect(() => {
@@ -219,6 +224,21 @@ function App() {
   }, [])
 
   useEffect(() => {
+    return daemon.settings.onUiRecoveryApplied((result) => {
+      const cleared = result.clearedKeys.length
+      const sessionSuffix = result.clearedActiveSessions > 0
+        ? ` and ${result.clearedActiveSessions} stale session${result.clearedActiveSessions === 1 ? '' : 's'}`
+        : ''
+      useNotificationsStore.getState().pushToast({
+        kind: 'warning',
+        context: 'Workspace recovery',
+        ttlMs: 9000,
+        message: `DAEMON reset ${cleared} unstable UI setting${cleared === 1 ? '' : 's'}${sessionSuffix} so the workspace could boot cleanly.`,
+      })
+    })
+  }, [])
+
+  useEffect(() => {
     if (!smokeMode) return
     console.log('[smoke-renderer] app:state', JSON.stringify({
       appReady,
@@ -244,7 +264,7 @@ function App() {
   useEffect(() => {
     if (!appReady) return
     const pinnedTools = useUIStore.getState().pinnedTools
-    const likelyNext = ['wallet', 'git', 'token-launch']
+    const likelyNext = ['wallet', 'git', 'project-readiness']
     const warmSet = [...new Set([...pinnedTools, ...likelyNext])]
       .filter((toolId) => toolId !== 'browser')
       .slice(0, 6)
@@ -301,11 +321,21 @@ function App() {
         toggleRightPanel: () => setShowRightPanel((v) => !v),
         openAgentLauncher: () => setShowAgentLauncher(true),
         toggleExplorer: () => setShowExplorer((v) => !v),
-        setDrawerTool: (tool) => useUIStore.getState().setDrawerTool(tool),
+        returnToEditor: () => {
+          const ui = useUIStore.getState()
+          ui.setCenterMode('canvas')
+          ui.setBrowserTabActive(false)
+          ui.setDashboardTabActive(false)
+          ui.setActiveWorkspaceTool(null)
+          useWorkflowShellStore.getState().closeDrawer()
+        },
+        openWorkspaceTool: (tool) => useUIStore.getState().openWorkspaceTool(tool),
+        closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
         toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
+        isToolVisible,
       }),
-    [],
+    [isToolVisible],
   )
 
   return (
@@ -318,7 +348,7 @@ function App() {
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
           <button
             className="crash-warning-link"
-            onClick={() => { useUIStore.getState().setDrawerTool('settings'); setCrashWarningCount(null) }}
+            onClick={() => { useUIStore.getState().openWorkspaceTool('settings'); setCrashWarningCount(null) }}
           >
             View crash log
           </button>
@@ -371,7 +401,7 @@ function App() {
               )}
             </div>
           )}
-          {centerMode === 'canvas' && showTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
+          {centerMode === 'canvas' && canShowTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
           {centerMode === 'canvas' && (
             <div
               id="terminal-area"
@@ -380,7 +410,7 @@ function App() {
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
                 flex: isEditorCollapsed ? 1 : undefined,
-                display: (!showTerminal || drawerOpen) ? 'none' : undefined,
+                display: (!canShowTerminal || drawerOpen) ? 'none' : undefined,
               }}
             >
               <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>

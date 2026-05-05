@@ -1,22 +1,31 @@
 import { useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
+import { useWorkflowShellStore } from '../../store/workflowShell'
+import { Button } from '../../components/Button'
+import { PanelHeader, Stat, TabPill } from '../../components/Panel'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
 import './WalletPanel.css'
 
 export function WalletPanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const projects = useUIStore((s) => s.projects)
   const dashboard = useWalletStore((s) => s.dashboard)
   const loading = useWalletStore((s) => s.loading)
   const activeTab = useWalletStore((s) => s.activeTab)
   const setActiveTab = useWalletStore((s) => s.setActiveTab)
-  const drawerFullscreen = useUIStore((s) => s.drawerFullscreen)
-  const toggleDrawerFullscreen = useUIStore((s) => s.toggleDrawerFullscreen)
+  const drawerFullscreen = useWorkflowShellStore((s) => s.drawerFullscreen)
+  const toggleDrawerFullscreen = useWorkflowShellStore((s) => s.toggleDrawerFullscreen)
 
   const load = useCallback(async () => {
     await useWalletStore.getState().refresh(activeProjectId)
   }, [activeProjectId])
+
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? null
+  const activeWalletName = dashboard?.activeWallet?.name ?? 'No active wallet'
+  const walletCount = dashboard?.portfolio.walletCount ?? 0
+  const transportLabel = dashboard?.heliusConfigured ? 'Helius connected' : 'Local mode'
 
   useEffect(() => { void load() }, [load])
   useEffect(() => useWalletStore.getState().subscribeFastPoll(), [])
@@ -31,9 +40,13 @@ export function WalletPanel() {
   if (!dashboard && loading) {
     return (
       <div className="wallet-panel">
-        <div className="wallet-panel-header">
-          <span className="wallet-panel-title">Wallet</span>
-        </div>
+        <PanelHeader
+          className="wallet-panel-header"
+          kicker="Wallet workspace"
+          brandKicker
+          title="Wallet"
+          subtitle="Loading wallet data..."
+        />
         <div className="wallet-empty">Loading wallet data...</div>
       </div>
     )
@@ -42,21 +55,18 @@ export function WalletPanel() {
   if (!dashboard) {
     return (
       <div className="wallet-panel">
-        <div className="wallet-panel-header">
-          <span className="wallet-panel-title">Wallet</span>
-        </div>
+        <PanelHeader
+          className="wallet-panel-header"
+          kicker="Wallet workspace"
+          brandKicker
+          title="Wallet"
+          subtitle="Wallet data couldn't load."
+        />
         <div className="wallet-empty">
-          <div style={{ marginBottom: 12 }}>Wallet data couldn't load.</div>
-          <button
-            onClick={() => void load()}
-            style={{
-              padding: '6px 14px', fontSize: 12,
-              background: 'var(--s3)', color: 'var(--t1)',
-              border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
-            }}
-          >
+          <div className="wallet-empty-message">Wallet data couldn't load.</div>
+          <Button size="sm" onClick={() => void load()}>
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -64,20 +74,55 @@ export function WalletPanel() {
 
   return (
     <div className="wallet-panel">
-      {/* Tab bar */}
+      <PanelHeader
+        className="wallet-panel-header"
+        kicker="Wallet workspace"
+        brandKicker
+        title="Move funds, inspect holdings, and act from one place"
+        subtitle={`${activeProject ? activeProject.name : 'No active project'} · ${activeWalletName}`}
+        actionsClassName="wallet-workspace-actions"
+        actions={
+          <div className="wallet-workspace-metrics">
+            <Stat
+              className="wallet-workspace-metric"
+              label="Tracked"
+              labelClassName="wallet-workspace-metric-label"
+              value={walletCount}
+              valueClassName="wallet-workspace-metric-value"
+            />
+            <Stat
+              className="wallet-workspace-metric"
+              label="Transport"
+              labelClassName="wallet-workspace-metric-label"
+              value={transportLabel}
+              valueClassName="wallet-workspace-metric-value"
+            />
+            <Stat
+              className="wallet-workspace-metric"
+              label="Tab"
+              labelClassName="wallet-workspace-metric-label"
+              value={activeTab === 'wallet' ? 'Wallet' : 'Agents'}
+              valueClassName="wallet-workspace-metric-value"
+            />
+          </div>
+        }
+      />
+
       <div className="wallet-tabs">
-        <button
+        <TabPill
           className={`wallet-tab${activeTab === 'wallet' ? ' wallet-tab--active' : ''}`}
+          active={activeTab === 'wallet'}
           onClick={() => setActiveTab('wallet')}
         >
           Wallet
-        </button>
-        <button
+        </TabPill>
+        <TabPill
           className={`wallet-tab${activeTab === 'agents' ? ' wallet-tab--active' : ''}`}
+          active={activeTab === 'agents'}
           onClick={() => setActiveTab('agents')}
         >
           Agents
-        </button>
+        </TabPill>
         <button
           className="wallet-expand-btn"
           onClick={toggleDrawerFullscreen}

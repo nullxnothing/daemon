@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useUIStore } from '../src/store/ui'
+import { useWorkflowShellStore } from '../src/store/workflowShell'
 
 function resetStore() {
   useUIStore.setState({
@@ -13,11 +14,22 @@ function resetStore() {
     mcpDirty: false,
     mcpVersion: 0,
     centerMode: 'canvas',
+    browserTabOpen: false,
+    browserTabActive: false,
+    workspaceToolTabs: [],
+    activeWorkspaceToolId: null,
+    dashboardTabOpen: false,
+    dashboardTabActive: false,
     grindPageCount: 1,
     activeGrindPage: 0,
     grindPages: {},
+  })
+
+  useWorkflowShellStore.setState({
     drawerTool: null,
     drawerOpen: false,
+    drawerFullscreen: false,
+    launchWizardOpen: false,
   })
 }
 
@@ -33,7 +45,7 @@ describe('useUIStore — initial state', () => {
     expect(state.terminals).toEqual([])
     expect(state.mcpDirty).toBe(false)
     expect(state.centerMode).toBe('canvas')
-    expect(state.drawerTool).toBeNull()
+    expect(useWorkflowShellStore.getState().drawerTool).toBeNull()
   })
 })
 
@@ -116,12 +128,13 @@ describe('useUIStore — openFile / closeFile / setActiveFile', () => {
 
   it('openFile resets centerMode to canvas and closes drawer', () => {
     useUIStore.getState().setCenterMode('grind')
-    useUIStore.getState().setDrawerTool('git')
+    useWorkflowShellStore.getState().setDrawerTool('git')
     useUIStore.getState().openFile({ projectId: 'p1', path: '/a.ts', name: 'a.ts', content: 'a' })
     const state = useUIStore.getState()
+    const shellState = useWorkflowShellStore.getState()
     expect(state.centerMode).toBe('canvas')
-    expect(state.drawerTool).toBeNull()
-    expect(state.drawerOpen).toBe(false)
+    expect(shellState.drawerTool).toBeNull()
+    expect(shellState.drawerOpen).toBe(false)
   })
 })
 
@@ -165,20 +178,20 @@ describe('useUIStore — addTerminal / removeTerminal', () => {
   })
 })
 
-describe('useUIStore — setDrawerTool / setCenterMode', () => {
+describe('useUIStore / useWorkflowShellStore — drawer and center mode', () => {
   beforeEach(resetStore)
 
   it('changes drawer tool and opens drawer', () => {
-    useUIStore.getState().setDrawerTool('git')
-    const state = useUIStore.getState()
+    useWorkflowShellStore.getState().setDrawerTool('git')
+    const state = useWorkflowShellStore.getState()
     expect(state.drawerTool).toBe('git')
     expect(state.drawerOpen).toBe(true)
   })
 
   it('clears drawer tool when set to null', () => {
-    useUIStore.getState().setDrawerTool('git')
-    useUIStore.getState().setDrawerTool(null)
-    const state = useUIStore.getState()
+    useWorkflowShellStore.getState().setDrawerTool('git')
+    useWorkflowShellStore.getState().setDrawerTool(null)
+    const state = useWorkflowShellStore.getState()
     expect(state.drawerTool).toBeNull()
     expect(state.drawerOpen).toBe(false)
   })
@@ -191,43 +204,35 @@ describe('useUIStore — setDrawerTool / setCenterMode', () => {
   })
 
   it('activating browser closes the drawer and deactivates dashboard', () => {
-    useUIStore.setState({
-      drawerTool: 'hackathon',
-      drawerOpen: true,
-      drawerFullscreen: true,
-      dashboardTabOpen: true,
-      dashboardTabActive: true,
-    })
+    useWorkflowShellStore.setState({ drawerTool: 'hackathon', drawerOpen: true, drawerFullscreen: true })
+    useUIStore.setState({ dashboardTabOpen: true, dashboardTabActive: true })
 
     useUIStore.getState().openBrowserTab()
 
     const state = useUIStore.getState()
+    const shellState = useWorkflowShellStore.getState()
     expect(state.browserTabOpen).toBe(true)
     expect(state.browserTabActive).toBe(true)
     expect(state.dashboardTabActive).toBe(false)
-    expect(state.drawerTool).toBeNull()
-    expect(state.drawerOpen).toBe(false)
-    expect(state.drawerFullscreen).toBe(false)
+    expect(shellState.drawerTool).toBeNull()
+    expect(shellState.drawerOpen).toBe(false)
+    expect(shellState.drawerFullscreen).toBe(false)
   })
 
   it('activating dashboard closes the drawer and deactivates browser', () => {
-    useUIStore.setState({
-      drawerTool: 'hackathon',
-      drawerOpen: true,
-      drawerFullscreen: true,
-      browserTabOpen: true,
-      browserTabActive: true,
-    })
+    useWorkflowShellStore.setState({ drawerTool: 'hackathon', drawerOpen: true, drawerFullscreen: true })
+    useUIStore.setState({ browserTabOpen: true, browserTabActive: true })
 
     useUIStore.getState().openDashboardTab()
 
     const state = useUIStore.getState()
+    const shellState = useWorkflowShellStore.getState()
     expect(state.dashboardTabOpen).toBe(true)
     expect(state.dashboardTabActive).toBe(true)
     expect(state.browserTabActive).toBe(false)
-    expect(state.drawerTool).toBeNull()
-    expect(state.drawerOpen).toBe(false)
-    expect(state.drawerFullscreen).toBe(false)
+    expect(shellState.drawerTool).toBeNull()
+    expect(shellState.drawerOpen).toBe(false)
+    expect(shellState.drawerFullscreen).toBe(false)
   })
 })
 

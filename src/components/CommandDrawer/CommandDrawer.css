@@ -7,14 +7,14 @@
   height: 55%;
   min-height: 200px;
   max-height: 70%;
-  background: var(--s1);
+  background: var(--surface-flat);
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 20;
   isolation: isolate;
-  animation: drawerSlideUp 0.15s ease-out;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  animation: drawerSlideUp var(--dur-emphasized) var(--ease-out-quint);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3), var(--edge-highlight-strong);
 }
 
 .command-drawer--fullscreen {
@@ -28,8 +28,8 @@
 
 @keyframes drawerSlideUp {
   from {
-    transform: translateY(100%);
-    opacity: 0.8;
+    transform: translateY(8%);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
@@ -37,25 +37,31 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .command-drawer { animation: none; }
+}
+
 /* Header */
 .drawer-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: var(--drawer-space-block) var(--drawer-space-inline);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background-image: var(--surface-gradient-subtle);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent),
+    var(--drawer-surface-bg);
 }
 
 .drawer-search {
   flex: 1;
-  background: var(--s2);
-  border: 1px solid var(--s4);
-  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--s2) 88%, black 12%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: var(--drawer-control-radius);
   color: var(--t1);
   font-size: 12px;
-  padding: 6px 10px;
+  padding: 9px 12px;
   font-family: var(--font-ui);
   outline: none;
 }
@@ -132,15 +138,16 @@
 /* Tool Grid */
 .drawer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 8px;
-  padding: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 144px));
+  justify-content: start;
+  gap: 12px;
+  padding: var(--drawer-space-block) var(--drawer-space-inline) var(--drawer-space-inline);
 }
 
 .drawer-grid-categorized {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
 
 .drawer-category-section {
@@ -149,7 +156,7 @@
 }
 
 .drawer-category-section .drawer-grid {
-  padding: 4px 12px 12px;
+  padding: 8px var(--drawer-space-inline) var(--drawer-space-block);
 }
 
 .drawer-category-header {
@@ -157,28 +164,35 @@
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--t4);
-  padding: 12px 12px 0;
-  font-weight: 600;
+  padding: var(--drawer-space-block) var(--drawer-space-inline) 0;
+  font-weight: 700;
 }
 
 .drawer-tool-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 16px 8px 12px;
-  background: var(--s2);
-  border: 1px solid var(--s4);
-  border-radius: var(--radius-md);
+  min-height: 124px;
+  display: grid;
+  grid-template-rows: 34px 30px 34px;
+  justify-items: center;
+  align-content: start;
+  gap: 7px;
+  padding: 12px 10px 10px;
+  background: color-mix(in srgb, var(--drawer-surface-card) 92%, black 8%);
+  border: 1px solid color-mix(in srgb, var(--border) 84%, rgba(255, 255, 255, 0.06) 16%);
+  border-radius: var(--drawer-card-radius);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-normal);
+  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-normal), transform var(--transition-fast);
   text-align: center;
-  box-shadow: var(--shadow-lifted);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 .drawer-tool-card:hover {
-  background: var(--tool-glow, var(--s3));
-  border-color: var(--tool-color, var(--s5));
+  background: color-mix(in srgb, var(--drawer-surface-card) 88%, var(--tool-color, var(--green)) 12%);
+  border-color: color-mix(in srgb, var(--tool-color, var(--green)) 58%, var(--border) 42%);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.18),
+    0 0 0 1px color-mix(in srgb, var(--tool-color, var(--green)) 12%, transparent) inset;
 }
 
 .drawer-tool-card:active {
@@ -201,25 +215,53 @@
 }
 
 .drawer-tool-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--tool-color, var(--t2));
-  opacity: 0.6;
-  transition: opacity var(--transition-fast);
+  background: color-mix(in srgb, var(--tool-color, var(--green)) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tool-color, var(--green)) 28%, transparent);
+  border-radius: 9px;
+  opacity: 0.86;
+  transition: opacity var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.drawer-tool-icon svg {
+  display: block;
+  width: 19px;
+  height: 19px;
 }
 
 .drawer-tool-card:hover .drawer-tool-icon {
   opacity: 1;
+  background: color-mix(in srgb, var(--tool-color, var(--green)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--tool-color, var(--green)) 48%, transparent);
 }
 
 .drawer-tool-name {
+  max-width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
   font-weight: 600;
   color: var(--t1);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .drawer-tool-desc {
+  max-width: 100%;
   font-size: 10px;
   color: var(--t3);
-  line-height: 1.3;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Drag states */
@@ -244,7 +286,7 @@
 .drawer-empty {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 24px;
+  padding: 24px var(--drawer-space-inline);
   font-size: 11px;
   color: var(--t3);
 }

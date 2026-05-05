@@ -3,6 +3,7 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
 
 type ProviderId = 'claude' | 'codex'
@@ -77,11 +78,18 @@ export function AgentGrid() {
       return next
     })
 
-    const res = await window.daemon.terminal.spawnProvider({
-      providerId,
-      projectId: activeProjectId,
-      cwd: activeProjectPath ?? undefined,
-    })
+    let res: Awaited<ReturnType<typeof window.daemon.terminal.spawnProvider>>
+    try {
+      res = await window.daemon.terminal.spawnProvider({
+        providerId,
+        projectId: activeProjectId,
+        cwd: activeProjectPath ?? undefined,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to launch service'
+      setCellError((prev) => ({ ...prev, [index]: { code: 'IPC_ERROR', message } }))
+      return
+    }
 
     if (res.ok && res.data) {
       const termId = res.data.id
@@ -343,10 +351,10 @@ function CellErrorView({
 
   if (error.code === 'NO_PROVIDER_AUTH') {
     cta = 'Open Settings'
-    action = () => useUIStore.getState().setDrawerTool('settings')
+    action = () => useUIStore.getState().openWorkspaceTool('settings')
   } else if (error.code === 'NOT_AUTHENTICATED') {
     cta = 'Open Settings'
-    action = () => useUIStore.getState().setDrawerTool('settings')
+    action = () => useUIStore.getState().openWorkspaceTool('settings')
   } else if (error.code === 'CLI_NOT_INSTALLED') {
     cta = 'Install CLI'
     action = async () => {

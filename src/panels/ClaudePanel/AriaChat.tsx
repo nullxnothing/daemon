@@ -1,16 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useBrowserStore } from '../../store/browser'
 import { AriaPresence } from './AriaPresence'
 import type { AriaAction, AriaMessage } from '../../../electron/shared/types'
 import './AriaChat.css'
 
-function AriaChamber({ isChatFocused }: { isChatFocused: boolean }) {
+function AriaChamber({ isChatFocused, onActivate }: { isChatFocused: boolean; onActivate: () => void }) {
   return (
     <div className="aria-chamber">
-      <div className="aria-chamber-face">
-        <AriaPresence isChatFocused={isChatFocused} isChatExpanded={false} size="large" />
+      <div className="aria-chamber-core">
+        <button className="aria-chamber-orbit" onClick={onActivate} aria-label="Focus ARIA prompt">
+          <AriaPresence isChatFocused={isChatFocused} isChatExpanded={false} size="large" />
+        </button>
+        <div className="aria-chamber-copy">
+          <div className="aria-chamber-title">ARIA</div>
+          <div className="aria-chamber-text">Ready</div>
+        </div>
       </div>
       <span className="aria-chamber-label">aria</span>
     </div>
@@ -126,7 +133,7 @@ export function AriaChat() {
   const sendMessage = useAriaStore((s) => s.sendMessage)
   const clearMessages = useAriaStore((s) => s.clearMessages)
   const loadHistory = useAriaStore((s) => s.loadHistory)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const toggleDrawer = useWorkflowShellStore((s) => s.toggleDrawer)
 
   const [input, setInput] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -180,6 +187,12 @@ export function AriaChat() {
     el.style.height = Math.min(el.scrollHeight, 80) + 'px'
   }
 
+  const handleChamberActivate = useCallback(() => {
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus()
+    })
+  }, [])
+
   const handleFocus = () => {
     setIsChatFocused(true)
     if (messages.length > 0 || isLoading) {
@@ -193,9 +206,32 @@ export function AriaChat() {
 
   const handleAction = useCallback((action: AriaAction) => {
     switch (action.type) {
-      case 'switch_panel':
-        setDrawerTool(action.value === 'claude' ? null : action.value)
+      case 'switch_panel': {
+        const ui = useUIStore.getState()
+        const panel = action.value
+        if (panel === 'claude') {
+          ui.setRightPanelTab('claude')
+          break
+        }
+        if (panel === 'tools') {
+          toggleDrawer()
+          break
+        }
+        if (panel === 'terminal') {
+          ui.setCenterMode('canvas')
+          ui.setBrowserTabActive(false)
+          ui.setDashboardTabActive(false)
+          ui.setActiveWorkspaceTool(null)
+          break
+        }
+
+        const panelMap: Record<string, string> = {
+          process: 'processes',
+          images: 'image-editor',
+        }
+        ui.openWorkspaceTool(panelMap[panel] ?? panel)
         break
+      }
       case 'open_file': {
         const activeProjectId = useUIStore.getState().activeProjectId
         if (activeProjectId) {
@@ -232,7 +268,7 @@ export function AriaChat() {
         break
       }
     }
-  }, [setDrawerTool])
+  }, [toggleDrawer])
 
   const hasMessages = messages.length > 0 || isLoading
   const showChamber = !hasMessages
@@ -240,7 +276,7 @@ export function AriaChat() {
   return (
     <div className={`aria-dock ${isExpanded && hasMessages ? 'aria-dock-expanded' : ''} ${showChamber ? 'aria-dock-chamber' : ''}`}>
       {showChamber && (
-        <AriaChamber isChatFocused={isChatFocused} />
+        <AriaChamber isChatFocused={isChatFocused} onActivate={handleChamberActivate} />
       )}
       {isExpanded && hasMessages && (
         <div className="aria-toolbar">

@@ -18,6 +18,7 @@ interface TerminalTabsProps {
   visibleTerminals: TerminalTabEntry[]
   activeTerminalId: string | null
   activeProjectId: string | null
+  canLaunchInProject: boolean
   centerMode: CenterMode
   splitLayout: SplitLayout
   launchRecents: TerminalLaunchRecent[]
@@ -37,6 +38,7 @@ export function TerminalTabs({
   visibleTerminals,
   activeTerminalId,
   activeProjectId,
+  canLaunchInProject,
   centerMode,
   splitLayout,
   launchRecents,
@@ -53,31 +55,40 @@ export function TerminalTabs({
 }: TerminalTabsProps) {
   return (
     <div className="terminal-tabs">
-      {visibleTerminals.map((tab) => (
-        <button
-          key={tab.id}
-          className={`terminal-tab ${activeTerminalId === tab.id ? 'active' : ''}`}
-          onClick={() => onSelectTerminal(tab.id)}
-        >
-          <span className={`terminal-tab-dot ${tab.agentId ? 'agent' : ''}`} />
-          <span>{tab.label}</span>
-          <span
-            className="terminal-tab-close"
-            onClick={(e) => { e.stopPropagation(); onCloseTerminal(tab.id) }}
+      <div className="terminal-tabs-leading" aria-hidden="true">
+        <span className="terminal-tabs-kicker">Workspace</span>
+        <span className="terminal-tabs-title">Terminal</span>
+      </div>
+
+      <div className="terminal-tabs-scroll">
+        {visibleTerminals.map((tab) => (
+          <button
+            key={tab.id}
+            className={`terminal-tab ${activeTerminalId === tab.id ? 'active' : ''}`}
+            onClick={() => onSelectTerminal(tab.id)}
           >
-            &times;
-          </span>
-        </button>
-      ))}
-      <TerminalLauncher
-        activeProjectId={activeProjectId}
-        launchRecents={launchRecents}
-        onStartShell={onStartShell}
-        onStartClaudeChat={onStartClaudeChat}
-        onStartSolanaAgent={onStartSolanaAgent}
-        onLaunchAgent={onLaunchAgent}
-        onLaunchCommand={onLaunchCommand}
-      />
+            <span className={`terminal-tab-dot ${tab.agentId ? 'agent' : ''}`} />
+            <span className="terminal-tab-label">{tab.label}</span>
+            <span
+              className="terminal-tab-close"
+              onClick={(e) => { e.stopPropagation(); onCloseTerminal(tab.id) }}
+            >
+              &times;
+            </span>
+          </button>
+        ))}
+        <TerminalLauncher
+          activeProjectId={activeProjectId}
+          canLaunchInProject={canLaunchInProject}
+          launchRecents={launchRecents}
+          onStartShell={onStartShell}
+          onStartClaudeChat={onStartClaudeChat}
+          onStartSolanaAgent={onStartSolanaAgent}
+          onLaunchAgent={onLaunchAgent}
+          onLaunchCommand={onLaunchCommand}
+        />
+      </div>
+
       <div className="terminal-tools">
         <button
           className={`terminal-tool-btn ${centerMode === 'grind' ? 'active' : ''}`}

@@ -1,16 +1,14 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
-import os from 'node:os'
-import fs from 'node:fs'
 import * as pty from 'node-pty'
+import { execFileSync } from 'node:child_process'
 import { getDb } from '../db/db'
-import { cleanupContextFile, getClaudePath } from '../services/ClaudeRouter'
-import { ProviderRegistry } from '../services/providers'
-import type { ProviderInterface } from '../services/providers'
+import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
-import { isPathSafe } from '../shared/pathValidation'
-import { getEmbeddedProviderArgs } from '../shared/providerLaunch'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { LogService } from '../services/LogService'
 import * as SessionTracker from '../services/SessionTracker'
+import { getEmbeddedProviderStartupCommand, type ProviderShellId } from '../shared/providerLaunch'
+import { validateCwd } from '../shared/pathValidation'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
 
 // Regex patterns to auto-detect "listening on port X" from terminal output
@@ -37,6 +35,31 @@ function getWin() {
   return BrowserWindow.getAllWindows()[0]
 }
 
+function killPtySession(id: string, session: TerminalSession) {
+  if (process.platform === 'win32' && session.pty.pid) {
+    try {
+      execFileSync('taskkill.exe', ['/pid', String(session.pty.pid), '/t', '/f'], {
+        stdio: 'ignore',
+        windowsHide: true,
+        timeout: 5000,
+      })
+    } catch (err) {
+      LogService.warn('Terminal', `Failed to taskkill PTY process tree ${id}`, { error: (err as Error).message })
+    }
+
+    try {
+      ;(session.pty as unknown as { _close?: () => void })._close?.()
+    } catch (err) {
+      LogService.warn('Terminal', `Failed to mark PTY session ${id} as closed`, { error: (err as Error).message })
+    }
+    return
+  }
+
+  try { session.pty.kill() } catch (err) {
+    LogService.warn('Terminal', `Failed to kill PTY session ${id}`, { error: (err as Error).message })
+  }
+}
+
 function createPtySession(
   id: string,
   command: string,
@@ -44,9 +67,8 @@ function createPtySession(
   cwd: string,
   agentId: string | null,
   contextFilePath: string | null,
-  provider?: ProviderInterface | null,
-  initialCols?: number,
-  initialRows?: number,
+  providerId: string | null = null,
+  isAgentShell = false,
 ): TerminalSession {
   let shell: string
   let shellArgs: string[]
@@ -54,7 +76,7 @@ function createPtySession(
   if (!command) {
     // Default interactive shell
     shell = process.platform === 'win32' ? 'powershell.exe' : '/bin/bash'
-    shellArgs = process.platform === 'win32' ? ['-NoLogo', ...args] : args
+    shellArgs = args
   } else if (process.platform === 'win32' && command.endsWith('.cmd')) {
     // .cmd files must be spawned through cmd.exe on Windows
     shell = 'cmd.exe'
@@ -64,20 +86,17 @@ function createPtySession(
     shellArgs = args
   }
 
-  // Strip ALL provider API keys from agent terminal environment (defense-in-depth)
+  // Strip API key for agent terminals so Claude CLI uses subscription OAuth
   const baseEnv = { ...process.env } as Record<string, string>
   if (agentId) {
-    for (const p of ProviderRegistry.getAll()) {
-      for (const key of p.getStrippedEnvKeys()) {
-        delete baseEnv[key]
-      }
-    }
+    delete baseEnv.ANTHROPIC_API_KEY
+    delete baseEnv.ANTHROPIC_AUTH_TOKEN
   }
 
   const ptyProcess = pty.spawn(shell, shellArgs, {
     name: 'xterm-256color',
-    cols: initialCols && initialCols > 0 ? initialCols : 80,
-    rows: initialRows && initialRows > 0 ? initialRows : 24,
+    cols: 120,
+    rows: 30,
     cwd,
     env: {
       ...baseEnv,
@@ -85,16 +104,29 @@ function createPtySession(
     },
   })
 
-  const session: TerminalSession = { pty: ptyProcess, agentId, contextFilePath, providerId: provider?.id ?? null, isAgentShell: false, dataBuffer: [], rendererReady: false }
+  const session: TerminalSession = {
+    pty: ptyProcess,
+    agentId,
+    contextFilePath,
+    providerId,
+    isAgentShell,
+    dataBuffer: [],
+    rendererReady: false,
+    generatedLineCount: 0,
+  }
   sessions.set(id, session)
 
   ptyProcess.onData((data) => {
-    // Buffer data until the renderer signals it has attached the xterm listener
-    if (!session.rendererReady) {
-      session.dataBuffer!.push(data)
-      return
+    session.generatedLineCount = (session.generatedLineCount ?? 0) + (data.match(/\r\n|\r|\n/g)?.length ?? 0)
+
+    if (session.rendererReady) {
+      getWin()?.webContents.send('terminal:data', { id, data })
+    } else {
+      session.dataBuffer?.push(data)
+      if ((session.dataBuffer?.length ?? 0) > 200) {
+        session.dataBuffer = session.dataBuffer?.slice(-200)
+      }
     }
-    getWin()?.webContents.send('terminal:data', { id, data })
 
     // Auto-detect port announcements and register them
     for (const pattern of PORT_PATTERNS) {
@@ -107,10 +139,10 @@ function createPtySession(
             const row = getDb().prepare('SELECT project_id FROM active_sessions WHERE id = ?').get(id) as ActiveSession | undefined
             if (row?.project_id) {
               registerPort(port, row.project_id, 'auto-detected')
-              getWin()?.webContents.send('ports:auto-registered', { port, projectId: row.project_id })
+              getWin()?.webContents.send('port:changed', { port, projectId: row.project_id, action: 'auto-registered' })
             }
           } catch (err) {
-            console.warn('[Terminal] port auto-registration failed:', (err as Error).message)
+            LogService.warn('Terminal', `Failed to register auto-detected port ${port}`, { error: (err as Error).message })
           }
         }
         break
@@ -120,16 +152,17 @@ function createPtySession(
 
   ptyProcess.onExit(({ exitCode }) => {
     if (contextFilePath) cleanupContextFile(contextFilePath)
-    const exiting = sessions.get(id)
-    if (exiting?.localSessionId) {
+    if (session.localSessionId) {
       SessionTracker.endSession({
-        sessionId: exiting.localSessionId,
-        status: exitCode === 0 ? 'completed' : 'failed',
+        sessionId: session.localSessionId,
+        linesGenerated: session.generatedLineCount ?? 0,
+        toolsUsed: providerId ? [providerId] : agentId ? ['agent-cli'] : [],
+        status: exitCode === 0 ? 'completed' : 'cancelled',
       })
     }
     sessions.delete(id)
     try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
-      console.warn('[Terminal] failed to delete session on exit:', (err as Error).message)
+      LogService.warn('Terminal', `Failed to clean up active_session ${id}`, { error: (err as Error).message })
     }
     getWin()?.webContents.send('terminal:exit', { id, exitCode })
   })
@@ -140,40 +173,52 @@ function createPtySession(
 export function registerTerminalHandlers() {
   ipcMain.handle('terminal:create', ipcHandler(async (_event, opts: TerminalCreateInput) => {
     const id = crypto.randomUUID()
-    const homeDir = os.homedir()
-    const cwd = opts?.cwd || homeDir
-
-    if (opts?.cwd && opts.cwd !== homeDir) {
-      if (opts.userInitiated) {
-        // User explicitly dropped a folder — validate it exists and is a directory
-        try {
-          const stat = fs.statSync(opts.cwd)
-          if (!stat.isDirectory()) {
-            throw new Error('Dropped path is not a directory')
-          }
-        } catch (e) {
-          if ((e as Error).message === 'Dropped path is not a directory') throw e
-          throw new Error('Dropped path does not exist')
-        }
-      } else if (!isPathSafe(opts.cwd)) {
-        throw new Error('Invalid directory')
-      }
-    }
-
-    const session = createPtySession(id, '', [], cwd, null, null, null, opts?.cols, opts?.rows)
-    if (opts?.isAgent) {
-      session.isAgentShell = true
-    }
+    const cwd = opts?.cwd
+    if (!cwd) throw new Error('Terminal cwd is required')
+    validateCwd(cwd)
+    const session = createPtySession(id, '', [], cwd, null, null, null, opts?.isAgent ?? false)
 
     if (opts?.startupCommand?.trim()) {
-      const cmd = opts.startupCommand.trim()
-      if (!/^[a-zA-Z0-9 _\-\.\/\\:=@]+$/.test(cmd)) {
-        throw new Error('Startup command contains disallowed characters')
-      }
-      session.pty.write(`${cmd}\r`)
+      session.pty.write(`${opts.startupCommand.trim()}\r`)
     }
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
+    return response
+  }))
+
+  ipcMain.handle('terminal:spawnProvider', ipcHandler(async (_event, opts: {
+    providerId: ProviderShellId
+    projectId?: string
+    cwd?: string
+  }) => {
+    if (opts.providerId !== 'claude' && opts.providerId !== 'codex') {
+      throw new Error('Unsupported provider')
+    }
+
+    let cwd = opts.cwd
+    if (!cwd && opts.projectId) {
+      const project = getDb().prepare('SELECT path FROM projects WHERE id = ?').get(opts.projectId) as { path: string } | undefined
+      cwd = project?.path
+    }
+    if (!cwd) throw new Error('Project path is required to launch provider terminal')
+    validateCwd(cwd)
+
+    const id = crypto.randomUUID()
+    const session = createPtySession(id, '', [], cwd, null, null, opts.providerId, true)
+    session.pty.write(`${getEmbeddedProviderStartupCommand(opts.providerId)}\r`)
+
+    if (opts.projectId) {
+      getDb().prepare(
+        'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
+      ).run(id, opts.projectId, null, id, session.pty.pid, Date.now())
+    }
+
+    const response: TerminalCreateOutput = {
+      id,
+      pid: session.pty.pid,
+      agentId: null,
+      agentName: opts.providerId === 'claude' ? 'Claude' : 'Codex',
+    }
     return response
   }))
 
@@ -185,12 +230,9 @@ export function registerTerminalHandlers() {
     if (!agent) throw new Error('Agent not found')
     if (!project) throw new Error('Project not found')
 
-    const provider = await ProviderRegistry.resolveForAgent(agent)
-    const { command, args, contextFilePath } = await provider.buildCommand(agent, project)
+    const { command, args, contextFilePath } = buildCommand(agent, project)
     const id = crypto.randomUUID()
-    const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath, provider)
-
-    // Start a local session record — fire and forget, never blocks spawn
+    const session = createPtySession(id, command, args, project.path, opts.agentId, contextFilePath)
     const localSessionId = SessionTracker.startSession({
       projectId: opts.projectId,
       agentId: opts.agentId,
@@ -200,105 +242,47 @@ export function registerTerminalHandlers() {
     })
     session.localSessionId = localSessionId
 
+    if (opts.initialPrompt?.trim()) {
+      session.pty.write(`${opts.initialPrompt.trim()}\r`)
+    }
+
     db.prepare(
       'INSERT INTO active_sessions (id, project_id, agent_id, terminal_id, pid, started_at) VALUES (?,?,?,?,?,?)'
     ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
 
-    // If an initial prompt was provided, write it to the pty after a brief delay
-    // so the Claude CLI has time to initialize.
-    // Strip control characters to prevent injection via pty input.
-    if (opts.initialPrompt?.trim()) {
-      const prompt = opts.initialPrompt.trim().replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
-      setTimeout(() => {
-        try { session.pty.write(`${prompt}\r`) } catch { /* pty may have exited */ }
-      }, 3000)
-    }
-
-    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name }
+    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name, localSessionId }
     return response
   }))
-
-  ipcMain.handle('terminal:spawnProvider', ipcHandler(async (_event, opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => {
-    if (opts.providerId !== 'claude' && opts.providerId !== 'codex') {
-      throw new Error(`PROVIDER_UNKNOWN: Unknown provider '${opts.providerId}'`)
-    }
-    const provider = ProviderRegistry.get(opts.providerId)
-    const conn = await provider.verifyConnection()
-    if (!conn.isAuthenticated && conn.authMode === 'none') {
-      throw new Error(`NOT_AUTHENTICATED: Sign in to ${opts.providerId} first.`)
-    }
-    const cliPath = provider.resolvePath()
-    const isAbsolute = cliPath.includes('/') || cliPath.includes('\\')
-    if (isAbsolute && !fs.existsSync(cliPath)) {
-      throw new Error(`CLI_NOT_INSTALLED: ${opts.providerId} CLI not found at ${cliPath}`)
-    }
-
-    const id = crypto.randomUUID()
-    const cwd = opts.cwd || os.homedir()
-    const session = createPtySession(id, cliPath, getEmbeddedProviderArgs(opts.providerId), cwd, null, null, provider)
-    session.isAgentShell = true
-
-    const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
-    return response
-  }))
-
-  // Renderer signals that xterm onData listener is attached — flush buffered data
-  ipcMain.on('terminal:ready', (_event, id: string) => {
-    const session = sessions.get(id)
-    if (!session) return
-    session.rendererReady = true
-    const win = getWin()
-    if (win && session.dataBuffer) {
-      for (const chunk of session.dataBuffer) {
-        win.webContents.send('terminal:data', { id, data: chunk })
-      }
-    }
-    session.dataBuffer = undefined
-  })
 
   ipcMain.on('terminal:write', (_event, id: string, data: string) => {
-    const session = sessions.get(id)
-    if (!session) return
-    if (typeof data !== 'string' || data.length >= 65536) return
-    session.pty.write(data)
+    sessions.get(id)?.pty.write(data)
   })
 
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) => {
     try { sessions.get(id)?.pty.resize(cols, rows) } catch (err) {
-      console.warn('[Terminal] resize failed:', (err as Error).message)
+      LogService.warn('Terminal', `Failed to resize terminal ${id}`, { error: (err as Error).message })
     }
   })
 
-  ipcMain.handle('terminal:check-claude', ipcHandler(async () => {
-    const claudePath = getClaudePath()
-    const isAbsolute = claudePath.includes('/') || claudePath.includes('\\')
-    const installed = isAbsolute ? fs.existsSync(claudePath) : true
-    return { installed, claudePath }
-  }))
-
-  ipcMain.handle('terminal:check-codex', ipcHandler(async () => {
-    try {
-      const codexProvider = ProviderRegistry.get('codex')
-      const codexPath = codexProvider.resolvePath()
-      const isAbsolute = codexPath.includes('/') || codexPath.includes('\\')
-      const installed = isAbsolute ? fs.existsSync(codexPath) : true
-      return { installed, codexPath }
-    } catch {
-      return { installed: false, codexPath: null }
+  ipcMain.on('terminal:ready', (_event, id: string) => {
+    const session = sessions.get(id)
+    if (!session) return
+    session.rendererReady = true
+    const buffered = session.dataBuffer ?? []
+    session.dataBuffer = []
+    for (const data of buffered) {
+      getWin()?.webContents.send('terminal:data', { id, data })
     }
-  }))
+  })
 
   ipcMain.handle('terminal:kill', ipcHandler(async (_event, id: string) => {
     const session = sessions.get(id)
     if (session) {
-      if (session.localSessionId) {
-        SessionTracker.endSession({ sessionId: session.localSessionId, status: 'cancelled' })
-      }
-      session.pty.kill()
+      killPtySession(id, session)
       if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
       sessions.delete(id)
       try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
-        console.warn('[Terminal] failed to delete session on kill:', (err as Error).message)
+        LogService.warn('Terminal', `Failed to delete active_session on kill ${id}`, { error: (err as Error).message })
       }
     }
   }))
@@ -307,12 +291,8 @@ export function registerTerminalHandlers() {
     const session = sessions.get(id)
     if (!session) throw new Error('Terminal session not found')
 
-    const PASTE_MAX_BYTES = 1024 * 1024
-    let text = clipboard.readText()
+    const text = clipboard.readText()
     if (!text) return { pasted: false }
-    if (text.length > PASTE_MAX_BYTES) text = text.slice(0, PASTE_MAX_BYTES)
-    // Strip dangerous control characters (keep tab, newline, carriage return)
-    text = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
 
     session.pty.write(text)
     return { pasted: true }
@@ -321,9 +301,7 @@ export function registerTerminalHandlers() {
 
 export function killAllSessions() {
   for (const [id, session] of sessions) {
-    try { session.pty.kill() } catch (err) {
-      console.warn('[Terminal] failed to kill session:', (err as Error).message)
-    }
+    killPtySession(id, session)
     if (session.contextFilePath) cleanupContextFile(session.contextFilePath)
     sessions.delete(id)
   }

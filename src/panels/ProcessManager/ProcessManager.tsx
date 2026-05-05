@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { useUIStore } from '../../store/ui'
-import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import type { ProcessInfo, OrphanProcess } from '../../../electron/shared/types'
+import { PanelHeader, Stat } from '../../components/Panel'
 import './ProcessManager.css'
 
 const MODEL_SHORT: Record<string, string> = {
@@ -17,7 +17,6 @@ export const ProcessManager = memo(function ProcessManager() {
   const [orphans, setOrphans] = useState<OrphanProcess[]>([])
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   const load = useCallback(async () => {
     const [procRes, orphanRes] = await Promise.all([
@@ -58,46 +57,71 @@ export const ProcessManager = memo(function ProcessManager() {
       setActiveProject(proc.projectId, proc.projectPath)
       setActiveTerminal(proc.projectId, proc.id)
     }
-    setDrawerTool(null) // Close drawer to reveal main view
   }
 
   const totalMemory = processes.reduce((s, p) => s + p.memory, 0)
+  const agentCount = processes.filter((p) => p.kind === 'agent').length
+  const shellCount = processes.filter((p) => p.kind === 'shell').length
 
   return (
     <div className="process-panel">
-      <div className="panel-header">
-        Processes
-        <button
-          className="panel-header-action"
-          onClick={() => load()}
-          title="Refresh"
-          aria-label="Refresh processes"
-        >
-          ↻
-        </button>
-      </div>
+      <PanelHeader
+        className="process-panel-header"
+        kicker="Runtime control"
+        brandKicker
+        title="Keep live sessions under control"
+        subtitle="Focus the exact terminal you need, spot heavy sessions quickly, and clean up orphans before they drift."
+        actions={
+          <button className="process-btn" onClick={() => load()}>
+            Refresh
+          </button>
+        }
+      />
 
-      <CollapsibleSection title="Active Sessions" count={processes.length} defaultOpen>
+      <div className="process-body">
+        <div className="process-summary-grid">
+          <Stat className="process-stat-card" label="Active sessions" value={processes.length} detail={`${agentCount} agents · ${shellCount} shells`} />
+          <Stat className="process-stat-card" label="Total memory" value={formatMB(totalMemory)} detail="across tracked sessions" />
+          <Stat
+            className="process-stat-card"
+            label="Orphans"
+            value={orphans.length}
+            detail={orphans.length > 0 ? 'needs cleanup' : 'all clear'}
+            tone={orphans.length > 0 ? 'warn' : 'default'}
+          />
+        </div>
+
+        <section className="process-section">
+          <div className="process-section-head">
+            <div>
+              <div className="process-section-kicker">Active</div>
+              <h3 className="process-section-title">Live sessions</h3>
+            </div>
+            <span className="process-section-count">{processes.length}</span>
+          </div>
+
         {processes.length === 0 ? (
-          <div className="process-empty">No active sessions</div>
+          <div className="process-empty-card">No active sessions.</div>
         ) : (
-          <>
+          <div className="process-list">
             {processes.map((proc) => (
-              <div key={proc.id} className="process-row">
+              <article key={proc.id} className="process-row-card">
                 <div className="process-row-main">
-                  <span className={`process-dot ${memoryLevel(proc.memory)}`} />
-                  <span className="process-name">{proc.name}</span>
-                  <span className={`process-kind process-kind--${proc.kind}`}>{proc.kind}</span>
-                  {proc.model && (
-                    <span className="process-model">{MODEL_SHORT[proc.model] ?? '?'}</span>
-                  )}
-                  <span className="process-mem">{formatMB(proc.memory)}</span>
+                  <div className="process-row-titleline">
+                    <span className={`process-dot ${memoryLevel(proc.memory)}`} />
+                    <strong className="process-name">{proc.name}</strong>
+                    <span className={`process-kind process-kind--${proc.kind}`}>{proc.kind}</span>
+                    {proc.model && (
+                      <span className="process-model">{MODEL_SHORT[proc.model] ?? '?'}</span>
+                    )}
+                  </div>
+                  <div className="process-row-meta">
+                    {proc.projectName && <span>{proc.projectName}</span>}
+                    <span>{formatUptime(proc.startedAt)}</span>
+                    <span>{formatMB(proc.memory)}</span>
+                  </div>
+                  <MemoryBar memory={proc.memory} />
                 </div>
-                <div className="process-row-sub">
-                  {proc.projectName && <span>{proc.projectName}</span>}
-                  <span>{formatUptime(proc.startedAt)}</span>
-                </div>
-                <MemoryBar memory={proc.memory} />
                 <div className="process-actions">
                   <button className="process-btn" onClick={() => handleFocus(proc)} title="Focus terminal">
                     Focus
@@ -106,38 +130,48 @@ export const ProcessManager = memo(function ProcessManager() {
                     Kill
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
-            <div className="process-total">
-              Total: {formatMB(totalMemory)} across {processes.length} session{processes.length !== 1 ? 's' : ''}
-            </div>
-          </>
+          </div>
         )}
-      </CollapsibleSection>
+        </section>
 
-      <CollapsibleSection title="Orphaned" count={orphans.length} defaultOpen={orphans.length > 0}>
-        {orphans.length === 0 ? (
-          <div className="process-empty">No orphaned processes</div>
-        ) : (
-          orphans.map((proc) => (
-            <div key={proc.pid} className="process-row orphan">
-              <div className="process-row-main">
-                <span className="process-dot critical" />
-                <span className="process-name">{proc.name}</span>
-                <span className="process-mem">{formatMB(proc.memory)}</span>
-              </div>
-              <div className="process-row-sub">
-                <span>PID {proc.pid}</span>
-              </div>
-              <div className="process-actions">
-                <button className="process-btn danger" onClick={() => handleKill(proc.pid)}>
-                  Kill
-                </button>
-              </div>
+        <section className="process-section">
+          <div className="process-section-head">
+            <div>
+              <div className="process-section-kicker">Cleanup</div>
+              <h3 className="process-section-title">Orphaned processes</h3>
             </div>
-          ))
+            <span className="process-section-count">{orphans.length}</span>
+          </div>
+
+        {orphans.length === 0 ? (
+          <div className="process-empty-card">No orphaned processes.</div>
+        ) : (
+          <div className="process-list">
+            {orphans.map((proc) => (
+              <article key={proc.pid} className="process-row-card orphan">
+                <div className="process-row-main">
+                  <div className="process-row-titleline">
+                    <span className="process-dot critical" />
+                    <strong className="process-name">{proc.name}</strong>
+                  </div>
+                  <div className="process-row-meta">
+                    <span>PID {proc.pid}</span>
+                    <span>{formatMB(proc.memory)}</span>
+                  </div>
+                </div>
+                <div className="process-actions">
+                  <button className="process-btn danger" onClick={() => handleKill(proc.pid)}>
+                    Kill
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
         )}
-      </CollapsibleSection>
+        </section>
+      </div>
     </div>
   )
 })

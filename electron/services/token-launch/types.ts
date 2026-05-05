@@ -1,4 +1,4 @@
-export type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'bonk'
+export type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
 export type LaunchpadStatus = 'available' | 'planned'
 
 export interface RaydiumLaunchpadConfig {
@@ -12,9 +12,18 @@ export interface MeteoraLaunchpadConfig {
   baseSupply?: string
 }
 
+export interface PrintrLaunchpadConfig {
+  apiBaseUrl?: string
+  apiKey?: string
+  quotePath?: string
+  createPath?: string
+  chain?: string
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadConfig
   meteora: MeteoraLaunchpadConfig
+  printr: PrintrLaunchpadConfig
 }
 
 export interface TokenLaunchCheck {

@@ -3,21 +3,92 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
-  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
-.git-header {
+.git-workflow-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
+}
+
+.git-workflow-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.git-workflow-copy {
+  max-width: 72ch;
+}
+
+.git-workflow-kicker {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+
+.git-workflow-text {
+  margin: 8px 0 0;
+  color: var(--t3);
+  font-size: var(--font-md);
+  line-height: 1.5;
+}
+
+.git-workflow-topbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.git-workflow-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
+}
+
+.git-workflow-metric {
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--s2);
+}
+
+.git-workflow-metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.git-workflow-metric-value {
+  margin-top: 8px;
+  color: var(--t1);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.git-workflow-metric-value--mono {
+  font-family: var(--font-code);
+  font-size: 13px;
+  color: var(--t2);
+  word-break: break-word;
 }
 
 .git-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.08;
+  font-weight: 700;
   color: var(--t1);
   margin: 0;
 }
@@ -32,7 +103,6 @@
   color: var(--success);
   font-family: var(--font-code);
   appearance: none;
-  box-shadow: var(--shadow-lifted);
 }
 
 .git-branch-selector {
@@ -67,14 +137,13 @@
 }
 
 .git-push-btn {
-  height: 28px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 16px;
   font-size: 11px;
   color: var(--amber);
   background: var(--s2);
   border: 1px solid rgba(240, 180, 41, 0.25);
   border-radius: 4px;
-  margin-left: auto;
 }
 
 .git-push-btn:hover { background: rgba(240, 180, 41, 0.1); }
@@ -213,7 +282,6 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--t1);
-  box-shadow: var(--shadow-lifted);
 }
 
 .git-commit-input::placeholder { color: var(--t3); }
@@ -226,7 +294,7 @@
   height: 32px;
   padding: 0 16px;
   font-size: 12px;
-  color: #0a0a0a;
+  color: var(--on-accent-dark);
   background: var(--success);
   border-radius: 6px;
   white-space: nowrap;
@@ -526,3 +594,25 @@
 .git-diff-line--del .git-diff-text { color: var(--red); }
 .git-diff-line--hunk .git-diff-text { color: var(--blue); }
 .git-diff-line:not(.git-diff-line--add):not(.git-diff-line--del):not(.git-diff-line--hunk) .git-diff-text { color: var(--t3); }
+
+@media (max-width: 1100px) {
+  .git-workflow-header,
+  .git-workflow-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .git-workflow-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .git-workflow-hero {
+    padding: 16px;
+  }
+
+  .git-workflow-metrics {
+    grid-template-columns: 1fr;
+  }
+}

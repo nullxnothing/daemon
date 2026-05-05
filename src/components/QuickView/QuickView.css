@@ -10,7 +10,6 @@
 .quickview-card {
   position: fixed;
   z-index: 150;
-  width: 320px;
   max-height: 460px;
   min-height: 200px;
   background: var(--glass-bg);
@@ -21,6 +20,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.quickview-card--wallet {
+  max-height: 560px;
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  background: var(--s1);
+  box-shadow: var(--shadow-md);
 }
 
 .quickview-card--enter {
@@ -62,7 +69,62 @@
 /* ─── Header ─── */
 
 .quickview-header {
-  padding: 16px 16px 12px;
+  padding: 10px 18px 12px;
+}
+
+.quickview-wallet-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 0;
+}
+
+.quickview-wallet-meta-copy {
+  min-width: 0;
+}
+
+.quickview-wallet-eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--green) 80%, white 20%);
+}
+
+.quickview-wallet-name {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.quickview-wallet-address {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--t3);
+  word-break: break-word;
+}
+
+.quickview-top-link {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.08) 24%);
+  background: color-mix(in srgb, var(--s2) 86%, black 14%);
+  color: var(--t2);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.quickview-top-link:hover {
+  color: var(--t1);
+  border-color: color-mix(in srgb, var(--green) 26%, var(--border) 74%);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .quickview-balance {
@@ -100,17 +162,56 @@
   margin-left: 6px;
 }
 
+.quickview-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 18px 14px;
+}
+
+.quickview-stat-grid .quickview-stat-card {
+  min-width: 0;
+  gap: 0;
+  padding: 10px 11px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--s2);
+  box-shadow: none;
+}
+
+.quickview-stat-card .quickview-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.quickview-stat-card .quickview-stat-value {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--t1);
+}
+
+.quickview-stat-card .quickview-stat-value--sm {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
 /* ─── Action buttons ─── */
 
 .quickview-actions {
   display: flex;
-  gap: 8px;
-  padding: 0 16px 12px;
+  gap: 10px;
+  padding: 0 18px 14px;
 }
 
 .quickview-action-btn {
-  width: calc((100% - 16px) / 3);
-  height: 56px;
+  flex: 1;
+  height: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -138,13 +239,13 @@
 }
 
 .quickview-action-icon {
-  color: var(--t2);
+  color: color-mix(in srgb, var(--green) 62%, white 38%);
   transition: color var(--transition-fast);
 }
 
 .quickview-action-label {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--t2);
   font-family: var(--font-ui);
   transition: color var(--transition-fast);
@@ -162,7 +263,7 @@
 
 .quickview-list {
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 4px 10px 8px;
   flex: 1;
   min-height: 0;
 }
@@ -176,25 +277,31 @@
 }
 
 .quickview-token-row {
-  height: 48px;
-  padding: 0 16px;
+  min-height: 56px;
+  padding: 0 12px;
+  margin: 0 8px 8px;
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--s2);
 }
 
 .quickview-token-row:hover {
-  background: var(--hover-bg);
+  background: var(--s3);
+  border-color: var(--border-hover);
 }
 
 .quickview-token-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
   flex-shrink: 0;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .quickview-token-icon img {
@@ -207,9 +314,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--s4);
+  background: var(--s3);
   color: var(--t2);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   font-family: var(--font-ui);
 }
@@ -220,7 +327,7 @@
 }
 
 .quickview-token-symbol {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--t1);
   overflow: hidden;
@@ -229,7 +336,7 @@
 }
 
 .quickview-token-name {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--t3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -243,7 +350,7 @@
 
 .quickview-token-amount {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--t1);
   font-family: var(--font-code);
 }
@@ -258,36 +365,48 @@
 
 .quickview-empty {
   text-align: center;
-  padding: 24px 16px;
-  font-size: 11px;
+  padding: 28px 18px;
+  font-size: 12px;
   color: var(--t3);
 }
 
 /* ─── Footer ─── */
 
 .quickview-footer {
-  height: 32px;
-  padding: 0 16px;
+  min-height: 42px;
+  padding: 0 18px 14px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--s1);
+}
+
+.quickview-footer-copy {
+  font-size: 10px;
+  color: var(--t4);
 }
 
 .quickview-footer-link {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
   font-size: 10px;
+  font-weight: 600;
   color: var(--green);
   cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
+  background: rgba(62, 207, 142, 0.08);
+  border: 1px solid rgba(62, 207, 142, 0.18);
   font-family: var(--font-ui);
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .quickview-footer-link:hover {
   color: var(--green-dim);
-  text-decoration: underline;
+  background: rgba(62, 207, 142, 0.14);
+  border-color: rgba(62, 207, 142, 0.26);
 }
 
 /* ─── Email card ─── */
@@ -443,9 +562,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--s1);
 }
 
 .qv-back-btn {
@@ -481,7 +601,7 @@
 }
 
 .qv-subview-body {
-  padding: 12px 16px;
+  padding: 14px 18px 18px;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
@@ -702,11 +822,11 @@
 .qv-quote-box {
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 10px;
+  border-radius: var(--radius-lg);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .qv-quote-rate {
@@ -727,7 +847,7 @@
 .qv-receive-body {
   align-items: center;
   text-align: center;
-  padding-top: 24px;
+  padding-top: 28px;
 }
 
 .qv-receive-label {
@@ -744,9 +864,9 @@
   word-break: break-all;
   line-height: 1.5;
   padding: 10px 12px;
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--s2) 88%, black 12%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: 12px;
   width: 100%;
   user-select: all;
   margin-bottom: 8px;

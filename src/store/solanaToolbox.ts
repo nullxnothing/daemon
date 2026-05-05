@@ -1,11 +1,14 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
+import { useNotificationsStore } from './notifications'
+import { useUIStore } from './ui'
+import { SOLANA_MCP_CATALOG, type SolanaMcpCategory } from '../panels/SolanaToolbox/catalog'
 
 export interface SolanaMcpEntry {
   name: string
   label: string
   description: string
-  category: 'rpc' | 'payments' | 'defi'
+  category: SolanaMcpCategory
   enabled: boolean
   docsUrl?: string
 }
@@ -17,17 +20,56 @@ export interface ValidatorState {
   port: number | null
 }
 
+export type SolanaDiagnosticStatus = 'ready' | 'warning' | 'missing'
+
+export interface SolanaDiagnosticCheck {
+  id: string
+  label: string
+  status: SolanaDiagnosticStatus
+  detail: string
+  evidence?: string
+  command?: string
+}
+
+export interface SolanaProgramDiagnostic {
+  name: string
+  anchorProgramId: string | null
+  declareId: string | null
+  idlAddress: string | null
+  keypairAddress: string | null
+  checks: SolanaDiagnosticCheck[]
+}
+
+export interface SolanaProjectDiagnostics {
+  status: SolanaDiagnosticStatus
+  issueCount: number
+  programCount: number
+  checks: SolanaDiagnosticCheck[]
+  programs: SolanaProgramDiagnostic[]
+}
+
 export interface SolanaProjectInfo {
   isSolanaProject: boolean
   framework: 'anchor' | 'native' | 'client-only' | null
   indicators: string[]
   suggestedMcps: string[]
+  diagnostics?: SolanaProjectDiagnostics
+}
+
+export interface SolanaToolchainStatus {
+  solanaCli: { installed: boolean; version: string | null }
+  anchor: { installed: boolean; version: string | null }
+  avm: { installed: boolean; version: string | null }
+  surfpool: { installed: boolean; version: string | null }
+  testValidator: { installed: boolean; version: string | null }
+  litesvm: { installed: boolean; source: 'project' | 'none' }
 }
 
 interface SolanaToolboxState {
   mcps: SolanaMcpEntry[]
   validator: ValidatorState
   projectInfo: SolanaProjectInfo | null
+  toolchain: SolanaToolchainStatus | null
   loading: boolean
   dismissed: boolean
   collapsedSections: Record<string, boolean>
@@ -37,24 +79,27 @@ interface SolanaToolboxState {
   startValidator: (type: 'surfpool' | 'test-validator') => Promise<void>
   stopValidator: () => Promise<void>
   detectProject: (projectPath: string) => Promise<void>
+  loadToolchain: (projectPath?: string) => Promise<void>
   refreshValidatorStatus: () => Promise<void>
   dismiss: () => void
   toggleSection: (section: string) => void
 }
 
-const SOLANA_MCP_CATALOG: Record<string, { label: string; description: string; category: 'rpc' | 'payments' | 'defi'; docsUrl?: string }> = {
-  'helius': { label: 'Helius', description: 'Solana RPC, DAS API, webhooks, priority fees', category: 'rpc', docsUrl: 'https://docs.helius.dev' },
-  'solana-mcp-server': { label: 'Solana MCP', description: 'Program deployment, account inspection, docs', category: 'rpc' },
-  'payai-mcp-server': { label: 'PayAI', description: 'x402 payment protocol via PayAI facilitator', category: 'payments', docsUrl: 'https://docs.payai.network' },
-  'x402-mcp': { label: 'x402', description: 'HTTP 402 payment tools for paid APIs', category: 'payments', docsUrl: 'https://github.com/coinbase/x402' },
-}
-
 const SOLANA_MCP_NAMES = Object.keys(SOLANA_MCP_CATALOG)
+
+function getActiveProjectActivityContext() {
+  const { activeProjectId, projects } = useUIStore.getState()
+  return {
+    projectId: activeProjectId,
+    projectName: activeProjectId ? projects.find((project) => project.id === activeProjectId)?.name ?? null : null,
+  }
+}
 
 export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   mcps: [],
   validator: { type: null, status: 'stopped', terminalId: null, port: null },
   projectInfo: null,
+  toolchain: null,
   loading: false,
   dismissed: false,
   collapsedSections: { capabilities: true },
@@ -98,23 +143,55 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
 
   startValidator: async (type) => {
     set({ validator: { type, status: 'starting', terminalId: null, port: null } })
+    const projectContext = getActiveProjectActivityContext()
+    useNotificationsStore.getState().addActivity({
+      kind: 'info',
+      context: 'Runtime',
+      message: `Starting ${type} validator`,
+      ...projectContext,
+    })
     try {
       const res = await daemon.validator.start(type)
       if (res.ok && res.data) {
         set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899 } })
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Runtime',
+          message: `${type} validator running on port ${res.data.port ?? 8899}`,
+          ...projectContext,
+        })
       } else {
         set({ validator: { type, status: 'error', terminalId: null, port: null } })
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Runtime',
+          message: res.error ?? `${type} validator failed to start`,
+          ...projectContext,
+        })
       }
-    } catch {
+    } catch (err) {
       set({ validator: { type, status: 'error', terminalId: null, port: null } })
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Runtime',
+        message: err instanceof Error ? err.message : `${type} validator failed to start`,
+        ...projectContext,
+      })
     }
   },
 
   stopValidator: async () => {
     const { validator } = get()
+    const projectContext = getActiveProjectActivityContext()
     if (validator.terminalId) {
       try {
         await daemon.validator.stop()
+        useNotificationsStore.getState().addActivity({
+          kind: 'info',
+          context: 'Runtime',
+          message: `Stopped ${validator.type ?? 'local'} validator`,
+          ...projectContext,
+        })
       } catch { /* ignore */ }
     }
     set({ validator: { type: null, status: 'stopped', terminalId: null, port: null } })
@@ -141,11 +218,48 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
       const res = await daemon.validator.detectProject(projectPath)
       if (res.ok && res.data) {
         set({ projectInfo: res.data as SolanaProjectInfo })
+        if (res.data.isSolanaProject) {
+          const diagnostics = (res.data as SolanaProjectInfo).diagnostics
+          useNotificationsStore.getState().addActivity({
+            kind: diagnostics?.issueCount ? 'warning' : 'success',
+            context: 'Runtime',
+            message: diagnostics?.issueCount
+              ? `Detected Solana project${res.data.framework ? ` (${res.data.framework})` : ''} with ${diagnostics.issueCount} diagnostics to review`
+              : `Detected Solana project${res.data.framework ? ` (${res.data.framework})` : ''} at ${projectPath}`,
+            ...getActiveProjectActivityContext(),
+          })
+        }
       } else {
         set({ projectInfo: null })
       }
     } catch {
       set({ projectInfo: null })
+    }
+  },
+
+  loadToolchain: async (projectPath) => {
+    try {
+      const res = await daemon.validator.toolchainStatus(projectPath)
+      if (res.ok && res.data) {
+        set({ toolchain: res.data as SolanaToolchainStatus })
+        const missing = [
+          res.data.solanaCli.installed ? null : 'Solana CLI',
+          res.data.anchor.installed ? null : 'Anchor',
+          res.data.surfpool.installed ? null : 'Surfpool',
+        ].filter(Boolean)
+        useNotificationsStore.getState().addActivity({
+          kind: missing.length === 0 ? 'success' : 'warning',
+          context: 'Runtime',
+          message: missing.length === 0
+            ? 'Runtime toolchain check passed'
+            : `Runtime toolchain check found missing tools: ${missing.join(', ')}`,
+          ...getActiveProjectActivityContext(),
+        })
+      } else {
+        set({ toolchain: null })
+      }
+    } catch {
+      set({ toolchain: null })
     }
   },
 

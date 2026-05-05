@@ -1,0 +1,236 @@
+:root {
+  --drawer-surface-divider: var(--border);
+  --drawer-surface-bg: var(--s1);
+  --drawer-surface-card: var(--s2);
+  --drawer-space-inline: var(--panel-pad-x);
+  --drawer-space-inline-tight: var(--space-md);
+  --drawer-space-block: var(--space-md);
+  --drawer-space-block-tight: var(--space-sm);
+  --drawer-section-pad: var(--space-lg);
+  --drawer-card-gap: var(--space-md);
+  --drawer-card-radius: var(--radius-card);
+  --drawer-control-radius: var(--radius-lg);
+  --drawer-rail-shell-pad: var(--space-sm);
+  --drawer-rail-card-gap: var(--space-sm);
+}
+
+.wallet-panel .wallet-workspace-bar,
+.env-center .env-workspace-bar,
+.ports-panel .ports-workspace-bar,
+.process-panel .process-workspace-bar,
+.session-history .sr-workspace-bar,
+.solana-toolbox .solana-workflow-header,
+.git-center .git-workflow-hero,
+.pro-panel .pro-panel-header,
+.settings-center .settings-header {
+  border-bottom: 1px solid var(--drawer-surface-divider);
+  background: var(--drawer-surface-bg);
+}
+
+.wallet-panel .wallet-workspace-kicker,
+.env-center .env-workspace-kicker,
+.ports-panel .ports-workspace-kicker,
+.process-panel .process-workspace-kicker,
+.session-history .sr-workspace-kicker,
+.solana-toolbox .solana-token-launch-kicker,
+.git-center .git-workflow-kicker,
+.pro-panel .pro-panel-kicker {
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.wallet-panel .wallet-workspace-title,
+.env-center .env-title,
+.ports-panel .ports-workspace-title,
+.process-panel .process-workspace-title,
+.session-history .sr-workspace-title,
+.solana-toolbox .solana-workflow-title,
+.git-center .git-title,
+.pro-panel .pro-panel-title {
+  margin: 0;
+  font-size: var(--fs-24);
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+  letter-spacing: var(--ls-tight);
+}
+
+.wallet-panel .wallet-workspace-subtitle,
+.env-center .env-subtitle,
+.ports-panel .ports-workspace-subtitle,
+.process-panel .process-workspace-subtitle,
+.session-history .sr-workspace-subtitle,
+.solana-toolbox .solana-workflow-copy,
+.git-center .git-workflow-text,
+.pro-panel .pro-panel-subtitle {
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--t3);
+}
+
+.wallet-panel .wallet-workspace-metric,
+.env-center .env-stat-card,
+.ports-panel .ports-stat-card,
+.process-panel .process-stat-card,
+.session-history .sr-stat,
+.git-center .git-workflow-metric {
+  border: 1px solid var(--border);
+  background: var(--drawer-surface-card);
+  border-radius: var(--radius-card);
+}
+
+.wallet-panel .wallet-workspace-metric-label,
+.env-center .env-stat-label,
+.ports-panel .ports-stat-label,
+.process-panel .process-stat-label,
+.session-history .sr-stat-label,
+.git-center .git-workflow-metric-label {
+  color: var(--t4);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+
+.wallet-panel .wallet-tabs,
+.settings-center .settings-tabs,
+.pro-panel .pro-tabs {
+  gap: 8px;
+  padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
+  border-bottom: 1px solid var(--drawer-surface-divider);
+  background: var(--s1);
+}
+
+.wallet-panel .wallet-tab,
+.settings-center .settings-tab,
+.pro-panel .pro-tab {
+  min-height: var(--btn-h-md);
+  padding: 0 var(--space-md);
+  border: 1px solid transparent;
+  border-radius: var(--drawer-control-radius);
+  border-bottom-width: 1px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  color: var(--t3);
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.wallet-panel .wallet-tab:hover,
+.settings-center .settings-tab:hover,
+.pro-panel .pro-tab:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+.wallet-panel .wallet-tab--active,
+.settings-center .settings-tab.active,
+.pro-panel .pro-tab.active {
+  color: var(--green);
+  background: var(--green-glow);
+  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
+}
+
+.wallet-panel .wallet-expand-btn {
+  width: var(--btn-h-md);
+  height: var(--btn-h-md);
+  border-radius: var(--radius-pill);
+  margin-right: 0;
+  color: var(--t3);
+  border: 1px solid transparent;
+}
+
+.wallet-panel .wallet-expand-btn:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+.solana-toolbox .solana-view-tab {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--drawer-surface-card);
+}
+
+.solana-toolbox .solana-view-tab:hover {
+  border-color: color-mix(in srgb, var(--green) 28%, var(--border));
+  background: var(--s3);
+}
+
+.solana-toolbox .solana-view-tab.active {
+  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
+  background: var(--green-glow);
+}
+
+.wallet-panel .wallet-tab-content,
+.settings-center .settings-body,
+.pro-panel .pro-panel-body,
+.solana-toolbox .solana-view-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--s5) transparent;
+}
+
+@media (max-width: 980px) {
+  .wallet-panel .wallet-workspace-bar,
+  .env-center .env-workspace-bar,
+  .ports-panel .ports-workspace-bar,
+  .process-panel .process-workspace-bar,
+  .session-history .sr-workspace-bar,
+  .solana-toolbox .solana-workflow-header,
+  .git-center .git-workflow-hero,
+  .pro-panel .pro-panel-header,
+  .settings-center .settings-header {
+    gap: 12px;
+  }
+
+  :root {
+    --drawer-space-inline: 14px;
+    --drawer-section-pad: 18px;
+  }
+
+  .wallet-panel .wallet-workspace-title,
+  .env-center .env-title,
+  .ports-panel .ports-workspace-title,
+  .process-panel .process-workspace-title,
+  .session-history .sr-workspace-title,
+  .solana-toolbox .solana-workflow-title,
+  .git-center .git-title,
+  .pro-panel .pro-panel-title {
+    font-size: var(--fs-20);
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --drawer-space-inline: 12px;
+    --drawer-section-pad: 14px;
+    --drawer-space-block: 10px;
+  }
+
+  .wallet-panel .wallet-workspace-bar,
+  .env-center .env-workspace-bar,
+  .ports-panel .ports-workspace-bar,
+  .process-panel .process-workspace-bar,
+  .session-history .sr-workspace-bar,
+  .solana-toolbox .solana-workflow-header,
+  .git-center .git-workflow-hero,
+  .pro-panel .pro-panel-header,
+  .settings-center .settings-header {
+    gap: 8px;
+  }
+
+  .wallet-panel .wallet-workspace-title,
+  .env-center .env-title,
+  .ports-panel .ports-workspace-title,
+  .process-panel .process-workspace-title,
+  .session-history .sr-workspace-title,
+  .solana-toolbox .solana-workflow-title,
+  .git-center .git-title,
+  .pro-panel .pro-panel-title {
+    font-size: var(--fs-18);
+    line-height: var(--lh-snug);
+  }
+}

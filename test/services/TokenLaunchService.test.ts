@@ -63,6 +63,7 @@ describe('TokenLaunchService', () => {
     getTokenLaunchSettingsMock.mockReturnValue({
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
     })
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO launched_tokens')) return { run: mockRun }
@@ -75,15 +76,17 @@ describe('TokenLaunchService', () => {
 
   it('exposes one live launchpad and planned placeholders', () => {
     const launchpads = listLaunchpads()
-    expect(launchpads.map((entry) => entry.id)).toEqual(['pumpfun', 'raydium', 'meteora', 'bonk'])
+    expect(launchpads.map((entry) => entry.id)).toEqual(['pumpfun', 'raydium', 'meteora', 'printr', 'bags', 'bonk'])
     expect(launchpads.find((entry) => entry.id === 'pumpfun')?.enabled).toBe(true)
-    expect(launchpads.filter((entry) => !entry.enabled)).toHaveLength(3)
+    expect(launchpads.find((entry) => entry.id === 'bags')?.name).toBe('Bags Launchpad')
+    expect(launchpads.filter((entry) => !entry.enabled)).toHaveLength(5)
   })
 
   it('enables configured launchpads from saved settings', () => {
     getTokenLaunchSettingsMock.mockReturnValue({
       raydium: { configId: '11111111111111111111111111111111', quoteMint: '' },
       meteora: { configId: '11111111111111111111111111111111', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
     })
 
     const launchpads = listLaunchpads()

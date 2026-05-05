@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { WorkspaceProfileName, WorkspaceProfile } from '../../electron/shared/types'
 import { getDefaultVisibility, PROFILE_PRESETS } from '../constants/workspaceProfiles'
 import { BUILTIN_TOOL_IDS } from '../constants/toolIds'
+import { isToolDisableable } from '../constants/toolRegistry'
 import { useUIStore } from './ui'
 import { useNotificationsStore } from './notifications'
 import { daemon } from '../lib/daemonBridge'
@@ -67,8 +68,7 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
 
   setToolVisible: async (toolId, visible) => {
     const { toolVisibility, profileName } = get()
-    // Settings is always visible — cannot be hidden
-    if (toolId === 'settings') return
+    if (!isToolDisableable(toolId)) return
     const updated = { ...toolVisibility, [toolId]: visible }
     set({ toolVisibility: updated, profileName: 'custom' })
     const profile: WorkspaceProfile = { name: 'custom', toolVisibility: updated }
@@ -76,7 +76,7 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
   },
 
   isToolVisible: (toolId) => {
-    if (toolId === 'settings') return true
+    if (!isToolDisableable(toolId)) return true
     const { toolVisibility, loaded } = get()
     if (!loaded) return true
     // Unknown tools default to visible

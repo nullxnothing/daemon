@@ -2,16 +2,18 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { getDb } from '../db/db'
+import { LogService } from './LogService'
 import type { McpEntry } from '../shared/types'
 
 export type { McpEntry }
 export type McpListEntry = McpEntry
 
 interface McpServerConfig {
-  command: string
-  args: string[]
+  command?: string
+  args?: string[]
   env?: Record<string, string>
   type?: string
+  url?: string
 }
 
 const CLAUDE_JSON_PATH = path.join(os.homedir(), '.claude.json')
@@ -54,7 +56,7 @@ export function getGlobalMcps(): McpListEntry[] {
       }
     }
   } catch (err) {
-    console.warn('[McpConfig] failed to load registry MCPs:', (err as Error).message)
+    LogService.warn('McpConfig', 'failed to load registry MCPs: ' + (err as Error).message)
   }
 
   return result

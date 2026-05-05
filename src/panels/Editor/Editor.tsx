@@ -1,4 +1,4 @@
-import { Suspense, useRef, useCallback, useState, useEffect, useMemo } from 'react'
+import { Suspense, useRef, useCallback, useState, useEffect, useMemo, type ComponentType, type LazyExoticComponent } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
@@ -7,6 +7,8 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
+import { usePluginStore } from '../../store/plugins'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { AskClaudeWidget } from '../../components/AskClaudeWidget'
@@ -16,6 +18,9 @@ import { EditorTabs } from './EditorTabs'
 import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { lazyNamedWithReload } from '../../utils/lazyWithReload'
+import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
+import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import type { LspDiagnosticEvent, LspLocation, LspPosition } from '../../../electron/shared/types'
 import './Editor.css'
 
 const BrowserMode = lazyNamedWithReload('browser-mode', () => import('../BrowserMode/BrowserMode'), (module) => module.BrowserMode)
@@ -42,18 +47,201 @@ const LANGUAGE_MAP: Record<string, string> = {
   sql: 'sql', xml: 'xml', svg: 'xml', env: 'plaintext', txt: 'plaintext',
 }
 
+const LSP_LANGUAGE_MAP: Record<string, string> = {
+  ts: 'typescript',
+  tsx: 'typescriptreact',
+  mts: 'typescript',
+  cts: 'typescript',
+  js: 'javascript',
+  jsx: 'javascriptreact',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  py: 'python',
+  pyi: 'python',
+  rs: 'rust',
+}
+
+const LSP_MONACO_LANGUAGES = ['typescript', 'javascript', 'python', 'rust']
+type MonacoApi = Parameters<BeforeMount>[0]
+
 function getLanguage(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
   return LANGUAGE_MAP[ext] ?? 'plaintext'
+}
+
+function getLspLanguageId(filePath: string): string | null {
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
+  return LSP_LANGUAGE_MAP[ext] ?? null
 }
 
 // Persist view state (cursor, scroll, selections) per file path
 const viewStateCache = new Map<string, monaco.editor.ICodeEditorViewState>()
 
 let themeIsDefined = false
+let lspProvidersRegistered = false
 
 function WorkspacePanelFallback() {
   return <div className="editor-content" />
+}
+
+function normalizeEditorPath(filePath: string): string {
+  return filePath.replace(/^\/([A-Za-z]:)/, '$1').replace(/\\/g, '/').toLowerCase()
+}
+
+function sameEditorPath(left: string, right: string): boolean {
+  return normalizeEditorPath(left) === normalizeEditorPath(right)
+}
+
+function pathFromMonacoUri(uri: monaco.Uri): string {
+  const fsPath = uri.fsPath || decodeURIComponent(uri.path)
+  return fsPath.replace(/^\/([A-Za-z]:)/, '$1')
+}
+
+function modelForFilePath(filePath: string): monaco.editor.ITextModel | null {
+  return monaco.editor.getModels().find((model) => sameEditorPath(pathFromMonacoUri(model.uri), filePath)) ?? null
+}
+
+function uriForFilePath(filePath: string): monaco.Uri {
+  return modelForFilePath(filePath)?.uri ?? monaco.Uri.parse(`file://${filePath}`)
+}
+
+function lspPosition(position: monaco.Position): LspPosition {
+  return {
+    line: Math.max(0, position.lineNumber - 1),
+    character: Math.max(0, position.column - 1),
+  }
+}
+
+function monacoRange(range: LspLocation['range']): monaco.IRange {
+  return {
+    startLineNumber: range.start.line + 1,
+    startColumn: range.start.character + 1,
+    endLineNumber: range.end.line + 1,
+    endColumn: range.end.character + 1,
+  }
+}
+
+function lspSeverity(severity?: number): monaco.MarkerSeverity {
+  if (severity === 1) return monaco.MarkerSeverity.Error
+  if (severity === 2) return monaco.MarkerSeverity.Warning
+  if (severity === 3) return monaco.MarkerSeverity.Info
+  return monaco.MarkerSeverity.Hint
+}
+
+function applyLspDiagnostics(payload: LspDiagnosticEvent) {
+  const model = modelForFilePath(payload.filePath)
+  if (!model) return
+
+  monaco.editor.setModelMarkers(model, 'daemon-lsp', payload.diagnostics.map((diagnostic) => ({
+    ...monacoRange(diagnostic.range),
+    severity: lspSeverity(diagnostic.severity),
+    message: diagnostic.message,
+    source: diagnostic.source ?? 'LSP',
+    code: diagnostic.code === undefined ? undefined : String(diagnostic.code),
+  })))
+}
+
+function lspContextForModel(model: monaco.editor.ITextModel): { projectPath: string; filePath: string; languageId: string } | null {
+  const modelPath = pathFromMonacoUri(model.uri)
+  const state = useUIStore.getState()
+  const openFile = state.openFiles.find((file) => sameEditorPath(file.path, modelPath))
+  const project = openFile ? state.projects.find((item) => item.id === openFile.projectId) : null
+  const projectPath = project?.path ?? state.activeProjectPath
+  const filePath = openFile?.path ?? modelPath
+  const languageId = getLspLanguageId(filePath)
+
+  if (!projectPath || !languageId) return null
+  return { projectPath, filePath, languageId }
+}
+
+function completionKind(kind?: number): monaco.languages.CompletionItemKind {
+  const map: Record<number, monaco.languages.CompletionItemKind> = {
+    1: monaco.languages.CompletionItemKind.Text,
+    2: monaco.languages.CompletionItemKind.Method,
+    3: monaco.languages.CompletionItemKind.Function,
+    4: monaco.languages.CompletionItemKind.Constructor,
+    5: monaco.languages.CompletionItemKind.Field,
+    6: monaco.languages.CompletionItemKind.Variable,
+    7: monaco.languages.CompletionItemKind.Class,
+    8: monaco.languages.CompletionItemKind.Interface,
+    9: monaco.languages.CompletionItemKind.Module,
+    10: monaco.languages.CompletionItemKind.Property,
+    11: monaco.languages.CompletionItemKind.Unit,
+    12: monaco.languages.CompletionItemKind.Value,
+    13: monaco.languages.CompletionItemKind.Enum,
+    14: monaco.languages.CompletionItemKind.Keyword,
+    15: monaco.languages.CompletionItemKind.Snippet,
+    16: monaco.languages.CompletionItemKind.Color,
+    17: monaco.languages.CompletionItemKind.File,
+    18: monaco.languages.CompletionItemKind.Reference,
+    19: monaco.languages.CompletionItemKind.Folder,
+    20: monaco.languages.CompletionItemKind.EnumMember,
+    21: monaco.languages.CompletionItemKind.Constant,
+    22: monaco.languages.CompletionItemKind.Struct,
+    23: monaco.languages.CompletionItemKind.Event,
+    24: monaco.languages.CompletionItemKind.Operator,
+    25: monaco.languages.CompletionItemKind.TypeParameter,
+  }
+  return kind ? map[kind] ?? monaco.languages.CompletionItemKind.Text : monaco.languages.CompletionItemKind.Text
+}
+
+function registerLspProviders(monacoInstance: MonacoApi) {
+  if (lspProvidersRegistered) return
+  lspProvidersRegistered = true
+
+  for (const language of LSP_MONACO_LANGUAGES) {
+    monacoInstance.languages.registerHoverProvider(language, {
+      async provideHover(model, position) {
+        const context = lspContextForModel(model)
+        if (!context) return null
+        const res = await window.daemon.lsp.hover(context.projectPath, context.filePath, context.languageId, lspPosition(position))
+        if (!res.ok || !res.data?.contents) return null
+        return {
+          contents: [{ value: res.data.contents }],
+          range: res.data.range ? monacoRange(res.data.range) : undefined,
+        }
+      },
+    })
+
+    monacoInstance.languages.registerDefinitionProvider(language, {
+      async provideDefinition(model, position) {
+        const context = lspContextForModel(model)
+        if (!context) return []
+        const res = await window.daemon.lsp.definition(context.projectPath, context.filePath, context.languageId, lspPosition(position))
+        if (!res.ok || !res.data) return []
+        return res.data.map((location) => ({
+          uri: uriForFilePath(location.filePath),
+          range: monacoRange(location.range),
+        }))
+      },
+    })
+
+    monacoInstance.languages.registerCompletionItemProvider(language, {
+      triggerCharacters: ['.', '"', "'", '/', '<', ':'],
+      async provideCompletionItems(model, position) {
+        const context = lspContextForModel(model)
+        if (!context) return { suggestions: [] }
+        const res = await window.daemon.lsp.completion(context.projectPath, context.filePath, context.languageId, lspPosition(position))
+        if (!res.ok || !res.data?.items) return { suggestions: [] }
+
+        const word = model.getWordUntilPosition(position)
+        const range = new monacoInstance.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn)
+
+        return {
+          suggestions: res.data.items.slice(0, 200).map((item) => ({
+            label: item.label,
+            kind: completionKind(item.kind),
+            detail: item.detail,
+            documentation: item.documentation,
+            insertText: item.insertText ?? item.label,
+            filterText: item.filterText,
+            sortText: item.sortText,
+            range,
+          })),
+        }
+      },
+    })
+  }
 }
 
 export function EditorPanel() {
@@ -80,9 +268,14 @@ export function EditorPanel() {
   const browserTabOpen = useUIStore((s) => s.browserTabOpen)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
   const setBrowserTabActive = useUIStore((s) => s.setBrowserTabActive)
+  const workspaceToolTabs = useUIStore((s) => s.workspaceToolTabs)
+  const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
+  const setActiveWorkspaceTool = useUIStore((s) => s.setActiveWorkspaceTool)
+  const closeWorkspaceTool = useUIStore((s) => s.closeWorkspaceTool)
   const dashboardTabOpen = useUIStore((s) => s.dashboardTabOpen)
   const dashboardTabActive = useUIStore((s) => s.dashboardTabActive)
   const setDashboardTabActive = useUIStore((s) => s.setDashboardTabActive)
+  const plugins = usePluginStore((s) => s.plugins)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -113,14 +306,113 @@ export function EditorPanel() {
     [activeFile?.path, activeProjectPath]
   )
   const isActiveFileMarkdown = isMarkdownFile(activeFile?.path)
+  const workspaceToolRegistry = useMemo(() => {
+    const toolMap = new Map<string, { name: string; component: LazyExoticComponent<ComponentType>; Icon: ComponentType<{ size?: number }> }>()
+    for (const tool of BUILTIN_TOOLS) {
+      toolMap.set(tool.id, {
+        name: tool.name,
+        component: tool.component,
+        Icon: TOOL_ICONS[tool.id] ?? tool.icon,
+      })
+    }
+    for (const plugin of plugins) {
+      if (!plugin.enabled) continue
+      const manifest = PLUGIN_REGISTRY[plugin.id]
+      if (!manifest) continue
+      toolMap.set(plugin.id, {
+        name: manifest.name,
+        component: manifest.component,
+        Icon: manifest.icon,
+      })
+    }
+    return toolMap
+  }, [plugins])
+  const workspaceToolTabMeta = useMemo(
+    () => workspaceToolTabs
+      .map((id) => {
+        const tool = workspaceToolRegistry.get(id)
+        if (!tool) return null
+        return {
+          id,
+          name: TOOL_NAMES[id] ?? tool.name,
+          Icon: tool.Icon,
+        }
+      })
+      .filter((tool): tool is { id: string; name: string; Icon: ComponentType<{ size?: number }> } => tool !== null),
+    [workspaceToolRegistry, workspaceToolTabs]
+  )
+  const activeWorkspaceTool = activeWorkspaceToolId ? workspaceToolRegistry.get(activeWorkspaceToolId) ?? null : null
 
   // Keep ref in sync so the onChange callback always has current path
   activeFilePathRef.current = activeFilePath
+  const activeProjectPathRef = useRef<string | null>(null)
+  const lspChangeTimerRef = useRef<number | null>(null)
+  const [lspStatus, setLspStatus] = useState<{ label: string; detail: string; active: boolean } | null>(null)
+
+  activeProjectPathRef.current = activeProjectPath
 
   useEffect(() => {
     setMarkdownTidyPreview(null)
     setTidyError(null)
   }, [activeFile?.path])
+
+  useEffect(() => {
+    return window.daemon.lsp.onDiagnostics((payload) => {
+      applyLspDiagnostics(payload)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!activeFile || !activeProjectPath || isImageFile(activeFile.path)) {
+      setLspStatus(null)
+      return
+    }
+
+    const languageId = getLspLanguageId(activeFile.path)
+    if (!languageId) {
+      setLspStatus(null)
+      const model = modelForFilePath(activeFile.path)
+      if (model) monaco.editor.setModelMarkers(model, 'daemon-lsp', [])
+      return
+    }
+
+    let cancelled = false
+    const input = {
+      projectPath: activeProjectPath,
+      filePath: activeFile.path,
+      languageId,
+      text: activeFile.content,
+    }
+
+    setLspStatus({ label: 'LSP', detail: 'Starting language server', active: true })
+    window.daemon.lsp.openDocument(input).then((res) => {
+      if (cancelled) return
+      if (res.ok && res.data?.supported && res.data.status) {
+        setLspStatus({ label: res.data.status.label, detail: 'Language server active', active: true })
+      } else {
+        setLspStatus({ label: 'LSP', detail: res.ok ? res.data?.error ?? 'Language server unavailable' : res.error ?? 'Language server unavailable', active: false })
+      }
+    }).catch((error) => {
+      if (!cancelled) setLspStatus({ label: 'LSP', detail: (error as Error).message, active: false })
+    })
+
+    window.daemon.lsp.diagnostics(activeFile.path).then((res) => {
+      if (!cancelled && res.ok && res.data) applyLspDiagnostics(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (lspChangeTimerRef.current !== null) {
+        window.clearTimeout(lspChangeTimerRef.current)
+        lspChangeTimerRef.current = null
+      }
+      void window.daemon.lsp.closeDocument({
+        projectPath: activeProjectPath,
+        filePath: activeFile.path,
+        languageId,
+      })
+    }
+  }, [activeFile?.path, activeProjectPath]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Prune viewStateCache entries for files no longer open in any project.
   // Runs on project switch to prevent unbounded cache growth.
@@ -215,6 +507,7 @@ export function EditorPanel() {
   }, [cleanTabPaths]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBeforeMount: BeforeMount = (monacoInstance) => {
+    registerLspProviders(monacoInstance)
     if (themeIsDefined) return
     monacoInstance.editor.defineTheme('daemon-dark', {
       base: 'vs-dark',
@@ -313,6 +606,22 @@ export function EditorPanel() {
     const currentPath = activeFilePathRef.current
     if (currentPath && value !== undefined) {
       updateFileContent(currentPath, value)
+      const projectPath = activeProjectPathRef.current
+      const languageId = getLspLanguageId(currentPath)
+      if (projectPath && languageId) {
+        if (lspChangeTimerRef.current !== null) {
+          window.clearTimeout(lspChangeTimerRef.current)
+        }
+        lspChangeTimerRef.current = window.setTimeout(() => {
+          void window.daemon.lsp.changeDocument({
+            projectPath,
+            filePath: currentPath,
+            languageId,
+            text: value,
+          })
+          lspChangeTimerRef.current = null
+        }, 350)
+      }
     }
   }, [updateFileContent])
 
@@ -415,14 +724,16 @@ export function EditorPanel() {
   const handleBrowserTabClick = useCallback(() => {
     setBrowserTabActive(true)
     setDashboardTabActive(false)
+    setActiveWorkspaceTool(null)
   }, [setBrowserTabActive, setDashboardTabActive])
 
   const handleDashboardTabClick = useCallback(() => {
     setDashboardTabActive(true)
     setBrowserTabActive(false)
+    setActiveWorkspaceTool(null)
   }, [setDashboardTabActive, setBrowserTabActive])
 
-  const hasAnyPinnedTab = browserTabOpen || dashboardTabOpen
+  const hasAnyPinnedTab = browserTabOpen || dashboardTabOpen || workspaceToolTabs.length > 0
 
   // Show welcome when no project and no pinned tabs open
   if (!activeProjectId && !hasAnyPinnedTab) {
@@ -434,6 +745,10 @@ export function EditorPanel() {
     return (
       <div className="editor-panel">
         <EditorTabs
+          toolTabs={workspaceToolTabMeta}
+          activeToolId={activeWorkspaceToolId}
+          onSelectTool={setActiveWorkspaceTool}
+          onCloseTool={closeWorkspaceTool}
           files={[]}
           activeFilePath={null}
           savedFlash={null}
@@ -446,9 +761,13 @@ export function EditorPanel() {
           dashboardTabActive={dashboardTabActive}
           onDashboardTabClick={handleDashboardTabClick}
         />
-        <div className="editor-content">
+        <div className="editor-content editor-tool-content">
           <Suspense fallback={<WorkspacePanelFallback />}>
-            {dashboardTabActive ? (
+            {activeWorkspaceTool ? (
+              <PanelErrorBoundary fallbackLabel={`${activeWorkspaceTool.name} crashed — reopen the tab to reload`}>
+                <activeWorkspaceTool.component />
+              </PanelErrorBoundary>
+            ) : dashboardTabActive ? (
               <DashboardCanvas />
             ) : (
               <PanelErrorBoundary fallbackLabel="Browser crashed — press Ctrl+Shift+B to reload">
@@ -468,6 +787,10 @@ export function EditorPanel() {
   return (
     <div className="editor-panel">
       <EditorTabs
+        toolTabs={workspaceToolTabMeta}
+        activeToolId={activeWorkspaceToolId}
+        onSelectTool={setActiveWorkspaceTool}
+        onCloseTool={closeWorkspaceTool}
         files={projectOpenFiles}
         activeFilePath={activeFilePath}
         savedFlash={savedFlash}
@@ -480,7 +803,15 @@ export function EditorPanel() {
         dashboardTabActive={dashboardTabActive}
         onDashboardTabClick={handleDashboardTabClick}
       />
-      {dashboardTabActive ? (
+      {activeWorkspaceTool ? (
+        <div className="editor-content editor-tool-content">
+          <Suspense fallback={<WorkspacePanelFallback />}>
+            <PanelErrorBoundary fallbackLabel={`${activeWorkspaceTool.name} crashed — reopen the tab to reload`}>
+              <activeWorkspaceTool.component />
+            </PanelErrorBoundary>
+          </Suspense>
+        </div>
+      ) : dashboardTabActive ? (
         <div className="editor-content">
           <Suspense fallback={<WorkspacePanelFallback />}>
             <DashboardCanvas />
@@ -502,6 +833,7 @@ export function EditorPanel() {
             isTidying={isTidyingMarkdown}
             tidyError={tidyError}
             showTidyButton={!markdownTidyPreview && !!activeFile}
+            lspStatus={lspStatus}
             onTidy={() => void handleTidyMarkdown()}
           />
           <div className="editor-content">
@@ -609,7 +941,7 @@ function ImagePreview({ filePath }: { filePath: string }) {
         {fileSize > 0 && <span className="image-preview-size">{formatFileSize(fileSize)}</span>}
         <button
           className="image-preview-edit"
-          onClick={() => useUIStore.getState().setDrawerTool('image-editor')}
+          onClick={() => useUIStore.getState().openWorkspaceTool('image-editor')}
         >
           Edit in miniPaint
         </button>

@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect, useMemo, useRef, type DragEvent } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, useId, type CSSProperties, type DragEvent } from 'react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
-import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES, TOOL_COLORS, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
+import { useWorkflowShellStore } from '../../store/workflowShell'
+import { BUILTIN_TOOLS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import './IconSidebar.css'
 
@@ -13,10 +14,77 @@ interface IconSidebarProps {
   isAgentLauncherOpen: boolean
 }
 
+function ExplorerGlyph({ size = 18 }: { size?: number }) {
+  const gradientId = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id={gradientId} x1="4" y1="5" x2="20" y2="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#7bc4ff" />
+          <stop offset="100%" stopColor="#60a5fa" />
+        </linearGradient>
+      </defs>
+      <path d="M4 8a2.5 2.5 0 0 1 2.5-2.5h4.25l1.65 1.8h5.1A2.5 2.5 0 0 1 20 9.8v6.7A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5V8Z" stroke={`url(#${gradientId})`} />
+      <path d="M4.75 9.5h14.5" stroke={`url(#${gradientId})`} opacity="0.72" />
+    </svg>
+  )
+}
+
+function LauncherGlyph({ size = 18 }: { size?: number }) {
+  const gradientId = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id={gradientId} x1="5" y1="4" x2="19" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#38bdf8" />
+        </linearGradient>
+      </defs>
+      <rect x="6.25" y="7.25" width="11.5" height="8.5" rx="3" stroke={`url(#${gradientId})`} />
+      <path d="M12 4.5v2.75M8.5 18.75h7M12 15.75v3" stroke={`url(#${gradientId})`} />
+      <circle cx="9.8" cy="11.4" r="0.9" fill={`url(#${gradientId})`} />
+      <circle cx="14.2" cy="11.4" r="0.9" fill={`url(#${gradientId})`} />
+      <path d="M9.75 14h4.5" stroke={`url(#${gradientId})`} opacity="0.72" />
+    </svg>
+  )
+}
+
+function HackathonGlyph({ size = 16 }: { size?: number }) {
+  const gradientId = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id={gradientId} x1="2" y1="3" x2="14" y2="13" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffd84d" />
+          <stop offset="100%" stopColor="#f59e0b" />
+        </linearGradient>
+      </defs>
+      <path d="M3 12.5h10M4.25 12.5V7.75a3.75 3.75 0 0 1 7.5 0v4.75" stroke={`url(#${gradientId})`} />
+      <path d="M6.25 7.75v4.75M8 6.25v6.25M9.75 7.75v4.75" stroke={`url(#${gradientId})`} />
+    </svg>
+  )
+}
+
+function ToolsGlyph({ size = 18 }: { size?: number }) {
+  const gradientId = useId()
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <defs>
+        <linearGradient id={gradientId} x1="5" y1="5" x2="19" y2="19" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#14f195" />
+          <stop offset="100%" stopColor="#2dd4bf" />
+        </linearGradient>
+      </defs>
+      <path d="M6 6.25h5.25v4.5H6zM12.75 13.25H18v4.5h-5.25zM12.75 6.25H18v4.5h-5.25zM6 13.25h5.25v4.5H6z" stroke={`url(#${gradientId})`} />
+    </svg>
+  )
+}
+
 export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLauncher }: IconSidebarProps) {
-  const drawerOpen = useUIStore((s) => s.drawerOpen)
-  const drawerTool = useUIStore((s) => s.drawerTool)
+  const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
+  const drawerTool = useWorkflowShellStore((s) => s.drawerTool)
   const browserTabActive = useUIStore((s) => s.browserTabActive)
+  const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
   const plugins = usePluginStore((s) => s.plugins)
@@ -63,23 +131,13 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }, [toolMenuOpen])
 
   const handleExplorerClick = () => {
-    if (drawerOpen) useUIStore.getState().closeDrawer()
+    if (drawerOpen) useWorkflowShellStore.getState().closeDrawer()
     onToggleExplorer()
   }
 
   const handlePinnedToolClick = (toolId: string) => {
-    if (toolId === 'browser') {
-      if (useUIStore.getState().drawerOpen) useUIStore.getState().closeDrawer()
-      useUIStore.getState().toggleBrowserTab()
-      return
-    }
-    const state = useUIStore.getState()
-    if (state.drawerOpen && state.drawerTool === toolId) {
-      state.closeDrawer()
-    } else {
-      preloadToolPanel(toolId)
-      state.setDrawerTool(toolId)
-    }
+    preloadToolPanel(toolId)
+    useUIStore.getState().toggleWorkspaceTool(toolId)
   }
 
   const handleAddToolClick = () => setToolMenuOpen((open) => !open)
@@ -164,33 +222,30 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   }, [])
 
   const visiblePinned = pinnedTools.filter((id) => isToolVisible(id))
+  const toolStyle = (toolId: string): CSSProperties => ({
+    '--tool-accent': TOOL_COLORS[toolId] ?? '#8f98a8',
+  } as CSSProperties)
 
   return (
     <aside className="icon-sidebar" data-tour="sidebar">
       {/* Files */}
       <button
-        className={`sidebar-icon sidebar-toggle ${showExplorer ? 'active' : ''}`}
+        className={`sidebar-icon sidebar-toggle sidebar-icon--explorer ${showExplorer ? 'active' : ''}`}
         onClick={handleExplorerClick}
         title="Explorer (Ctrl+E)"
         aria-label="Explorer"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M3 7V17C3 18.1 3.9 19 5 19H19C20.1 19 21 18.1 21 17V9C21 7.9 20.1 7 19 7H13L11 5H5C3.9 5 3 5.9 3 7Z"/>
-        </svg>
+        <ExplorerGlyph />
       </button>
 
       {/* Agent Launcher */}
       <button
-        className="sidebar-icon sidebar-launcher"
+        className="sidebar-icon sidebar-launcher sidebar-icon--agents"
         onClick={onOpenAgentLauncher}
         title="Launch Agent (Ctrl+Shift+A)"
         aria-label="Launch Agent"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <circle cx="12" cy="12" r="9"/>
-          <line x1="12" y1="8" x2="12" y2="16"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
-        </svg>
+        <LauncherGlyph />
       </button>
 
       {/* Pinned tools — draggable + drop targets */}
@@ -199,13 +254,12 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
         const Icon = TOOL_ICONS[toolId] ?? PLUGIN_REGISTRY[toolId]?.icon
         const name = TOOL_NAMES[toolId] ?? PLUGIN_REGISTRY[toolId]?.name ?? toolId
         if (!Icon) return null
-        const isActive = toolId === 'browser' ? browserTabActive : (drawerOpen && drawerTool === toolId)
-        const color = TOOL_COLORS[toolId]
+        const isActive = toolId === 'browser' ? browserTabActive : activeWorkspaceToolId === toolId
         return (
           <button
             key={toolId}
             className={`sidebar-icon ${isActive ? 'active' : ''}${dragOverIdx === idx ? ' sidebar-icon--drop-target' : ''}`}
-            style={color ? { color } as React.CSSProperties : undefined}
+            style={toolStyle(toolId)}
             onClick={() => handlePinnedToolClick(toolId)}
             onContextMenu={(e) => handleContextMenu(e, toolId)}
             draggable
@@ -246,6 +300,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
                   <button
                     key={tool.id}
                     className="sidebar-submenu-item sidebar-submenu-item--tool"
+                    style={toolStyle(tool.id)}
                     onClick={() => handleAddToolSelect(tool.id)}
                     onMouseEnter={() => preloadToolPanel(tool.id)}
                     onFocus={() => preloadToolPanel(tool.id)}
@@ -268,40 +323,29 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       {/* Colosseum / Hackathon — opens in drawer */}
       <div className="sidebar-divider" />
       <button
-        className={`colosseum-icon-wrap${drawerTool === 'hackathon' ? ' active' : ''}`}
-        onClick={() => useUIStore.getState().setDrawerTool('hackathon')}
+        className={`colosseum-icon-wrap${activeWorkspaceToolId === 'hackathon' ? ' active' : ''}`}
+        onClick={() => useUIStore.getState().openWorkspaceTool('hackathon')}
         title="Hackathon (Colosseum)"
         aria-label="Hackathon"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
-          <path d="M2 12V6a6 6 0 0 1 12 0v6" strokeLinecap="round"/>
-          <line x1="2" y1="12" x2="14" y2="12" strokeLinecap="round"/>
-          <line x1="5" y1="12" x2="5" y2="7"/>
-          <line x1="8" y1="12" x2="8" y2="5"/>
-          <line x1="11" y1="12" x2="11" y2="7"/>
-        </svg>
+        <HackathonGlyph />
       </button>
 
       {/* Command Drawer Launcher */}
       <button
-        className={`sidebar-icon ${drawerOpen && !drawerTool ? 'active' : ''}`}
+        className={`sidebar-icon sidebar-icon--tools ${drawerOpen && !drawerTool ? 'active' : ''}`}
         onClick={() => {
-          const state = useUIStore.getState()
+          const state = useWorkflowShellStore.getState()
           if (state.drawerOpen && !state.drawerTool) {
             state.closeDrawer()
           } else {
-            useUIStore.setState({ drawerOpen: true, drawerTool: null })
+            state.toggleDrawer()
           }
         }}
         title="Tools (Ctrl+K)"
         aria-label="Tools"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-        </svg>
+        <ToolsGlyph />
       </button>
     </aside>
   )

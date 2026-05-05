@@ -92,6 +92,29 @@ contextBridge.exposeInMainWorld('daemon', {
     iconTheme: () => ipcRenderer.invoke('fs:iconTheme'),
   },
 
+  lsp: {
+    status: (projectPath?: string) => ipcRenderer.invoke('lsp:status', projectPath),
+    openDocument: (input: { projectPath: string; filePath: string; languageId: string; text: string; version?: number }) =>
+      ipcRenderer.invoke('lsp:open-document', input),
+    changeDocument: (input: { projectPath: string; filePath: string; languageId: string; text: string; version?: number }) =>
+      ipcRenderer.invoke('lsp:change-document', input),
+    closeDocument: (input: { projectPath: string; filePath: string; languageId: string }) =>
+      ipcRenderer.invoke('lsp:close-document', input),
+    hover: (projectPath: string, filePath: string, languageId: string, position: { line: number; character: number }) =>
+      ipcRenderer.invoke('lsp:hover', projectPath, filePath, languageId, position),
+    definition: (projectPath: string, filePath: string, languageId: string, position: { line: number; character: number }) =>
+      ipcRenderer.invoke('lsp:definition', projectPath, filePath, languageId, position),
+    completion: (projectPath: string, filePath: string, languageId: string, position: { line: number; character: number }) =>
+      ipcRenderer.invoke('lsp:completion', projectPath, filePath, languageId, position),
+    diagnostics: (filePath: string) => ipcRenderer.invoke('lsp:diagnostics', filePath),
+    shutdownProject: (projectPath: string) => ipcRenderer.invoke('lsp:shutdown-project', projectPath),
+    onDiagnostics: (callback: (payload: { uri: string; filePath: string; diagnostics: Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; severity?: number; code?: string | number; source?: string; message: string }> }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { uri: string; filePath: string; diagnostics: Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; severity?: number; code?: string | number; source?: string; message: string }> }) => callback(payload)
+      ipcRenderer.on('lsp:diagnostics', handler)
+      return () => ipcRenderer.off('lsp:diagnostics', handler)
+    },
+  },
+
   claude: {
     projectMcpAll: (projectPath: string) => ipcRenderer.invoke('claude:project-mcp-all', projectPath),
     projectMcpToggle: (projectPath: string, name: string, enabled: boolean) => ipcRenderer.invoke('claude:project-mcp-toggle', projectPath, name, enabled),
@@ -143,9 +166,20 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   activity: {
-    append: (entry: { id: string; kind: string; message: string; context: string | null; createdAt: number }) =>
+    append: (entry: {
+      id: string
+      kind: string
+      message: string
+      context: string | null
+      createdAt: number
+      sessionId?: string | null
+      sessionStatus?: string | null
+      projectId?: string | null
+      projectName?: string | null
+    }) =>
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
+    saveSummary: (targetId: string, summary: string) => ipcRenderer.invoke('activity:save-summary', { targetId, summary }),
     clear: () => ipcRenderer.invoke('activity:clear'),
   },
 
@@ -211,18 +245,40 @@ contextBridge.exposeInMainWorld('daemon', {
     storeHeliusKey: (value: string) => ipcRenderer.invoke('wallet:store-helius-key', value),
     deleteHeliusKey: () => ipcRenderer.invoke('wallet:delete-helius-key'),
     hasHeliusKey: () => ipcRenderer.invoke('wallet:has-helius-key'),
+    storeJupiterKey: (value: string) => ipcRenderer.invoke('wallet:store-jupiter-key', value),
+    deleteJupiterKey: () => ipcRenderer.invoke('wallet:delete-jupiter-key'),
+    hasJupiterKey: () => ipcRenderer.invoke('wallet:has-jupiter-key'),
     generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
     holdings: (walletId: string) => ipcRenderer.invoke('wallet:holdings', walletId),
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
+    transactionPreview: (input: object) => ipcRenderer.invoke('wallet:transaction-preview', input),
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => ipcRenderer.invoke('wallet:swap-execute', input),
     agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
     createAgentWallet: (agentId: string, agentName: string) => ipcRenderer.invoke('wallet:create-agent-wallet', agentId, agentName),
     hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
     transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
     exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
+  },
+
+  pro: {
+    status: () => ipcRenderer.invoke('pro:status'),
+    refreshStatus: (walletAddress: string) => ipcRenderer.invoke('pro:refresh-status', walletAddress),
+    fetchPrice: () => ipcRenderer.invoke('pro:fetch-price'),
+    subscribe: (walletId: string) => ipcRenderer.invoke('pro:subscribe', walletId),
+    claimHolderAccess: (walletId: string) => ipcRenderer.invoke('pro:claim-holder-access', walletId),
+    signOut: () => ipcRenderer.invoke('pro:sign-out'),
+    arenaList: () => ipcRenderer.invoke('pro:arena-list'),
+    arenaSubmit: (input: unknown) => ipcRenderer.invoke('pro:arena-submit', input),
+    arenaVote: (submissionId: string) => ipcRenderer.invoke('pro:arena-vote', submissionId),
+    skillsManifest: () => ipcRenderer.invoke('pro:skills-manifest'),
+    skillsSync: () => ipcRenderer.invoke('pro:skills-sync'),
+    skillsDownload: (skillId: string) => ipcRenderer.invoke('pro:skills-download', skillId),
+    quota: () => ipcRenderer.invoke('pro:quota'),
+    mcpPush: () => ipcRenderer.invoke('pro:mcp-push'),
+    mcpPull: () => ipcRenderer.invoke('pro:mcp-pull'),
   },
 
   pnl: {
@@ -234,6 +290,7 @@ contextBridge.exposeInMainWorld('daemon', {
 
   settings: {
     getUi: () => ipcRenderer.invoke('settings:get-ui'),
+    getAppMeta: () => ipcRenderer.invoke('settings:get-app-meta'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
     isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),
@@ -243,6 +300,7 @@ contextBridge.exposeInMainWorld('daemon', {
     reportCrash: (data: { type: string; message: string; stack: string }) => ipcRenderer.invoke('settings:report-crash', data),
     getCrashes: () => ipcRenderer.invoke('settings:get-crashes'),
     clearCrashes: () => ipcRenderer.invoke('settings:clear-crashes'),
+    recoverUiState: () => ipcRenderer.invoke('settings:recover-ui-state'),
     getPinnedTools: () => ipcRenderer.invoke('settings:get-pinned-tools'),
     setPinnedTools: (tools: string[]) => ipcRenderer.invoke('settings:set-pinned-tools', tools),
     getDrawerToolOrder: () => ipcRenderer.invoke('settings:get-drawer-tool-order'),
@@ -251,6 +309,9 @@ contextBridge.exposeInMainWorld('daemon', {
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
     getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
     setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
+    getWalletInfrastructureSettings: () => ipcRenderer.invoke('settings:get-wallet-infrastructure-settings'),
+    getSolanaRuntimeStatus: () => ipcRenderer.invoke('settings:get-solana-runtime-status'),
+    setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
     onCrashWarning: (callback: (count: number) => void) => {
@@ -258,10 +319,16 @@ contextBridge.exposeInMainWorld('daemon', {
       ipcRenderer.on('crash-warning', handler)
       return () => ipcRenderer.off('crash-warning', handler)
     },
+    onUiRecoveryApplied: (callback: (result: { clearedKeys: string[]; clearedActiveSessions: number; ranAt: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, result: { clearedKeys: string[]; clearedActiveSessions: number; ranAt: number }) => callback(result)
+      ipcRenderer.on('ui-recovery-applied', handler)
+      return () => ipcRenderer.off('ui-recovery-applied', handler)
+    },
   },
 
   plugins: {
     list: () => ipcRenderer.invoke('plugins:list'),
+    add: (input: { id: string; name: string; description?: string; entry?: string; command?: string }) => ipcRenderer.invoke('plugins:add', input),
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('plugins:set-enabled', id, enabled),
     setConfig: (id: string, config: string) => ipcRenderer.invoke('plugins:set-config', id, config),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),
@@ -344,6 +411,8 @@ contextBridge.exposeInMainWorld('daemon', {
   launch: {
     listLaunchpads: () => ipcRenderer.invoke('launch:list-launchpads'),
     listWalletOptions: (projectId?: string | null) => ipcRenderer.invoke('launch:list-wallet-options', projectId),
+    ensureDaemonDeployerWallet: (projectId?: string | null) => ipcRenderer.invoke('launch:ensure-daemon-deployer-wallet', projectId),
+    listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => ipcRenderer.invoke('launch:list-pulse-tokens', input),
     pickImage: () => ipcRenderer.invoke('launch:pick-image'),
     preflightToken: (input: object) => ipcRenderer.invoke('launch:preflight-token', input),
     createToken: (input: object) => ipcRenderer.invoke('launch:create-token', input),
@@ -424,6 +493,14 @@ contextBridge.exposeInMainWorld('daemon', {
   registry: {
     listSessions: (limit?: number) => ipcRenderer.invoke('registry:list-sessions', limit),
     getProfile: () => ipcRenderer.invoke('registry:get-profile'),
+    listAgentWork: (limit?: number) => ipcRenderer.invoke('registry:list-agent-work', limit),
+    createAgentWork: (input: object) => ipcRenderer.invoke('registry:create-agent-work', input),
+    fundAgentWork: (taskId: string) => ipcRenderer.invoke('registry:fund-agent-work', taskId),
+    startAgentWork: (taskId: string, sessionId?: string | null) => ipcRenderer.invoke('registry:start-agent-work', taskId, sessionId ?? null),
+    submitAgentWork: (taskId: string, input?: object) => ipcRenderer.invoke('registry:submit-agent-work', taskId, input ?? {}),
+    approveAgentWork: (taskId: string) => ipcRenderer.invoke('registry:approve-agent-work', taskId),
+    rejectAgentWork: (taskId: string) => ipcRenderer.invoke('registry:reject-agent-work', taskId),
+    settleAgentWork: (taskId: string, signature?: string | null) => ipcRenderer.invoke('registry:settle-agent-work', taskId, signature ?? null),
     publishSession: (sessionId: string) => ipcRenderer.invoke('registry:publish-session', sessionId),
     publishAll: () => ipcRenderer.invoke('registry:publish-all'),
     renameSession: (sessionId: string, name: string) => ipcRenderer.invoke('registry:rename-session', sessionId, name),
@@ -470,12 +547,36 @@ contextBridge.exposeInMainWorld('daemon', {
     stop: () => ipcRenderer.invoke('validator:stop'),
     status: () => ipcRenderer.invoke('validator:status'),
     detect: () => ipcRenderer.invoke('validator:detect'),
+    toolchainStatus: (projectPath?: string) => ipcRenderer.invoke('validator:toolchain-status', projectPath),
     detectProject: (projectPath: string) => ipcRenderer.invoke('validator:detect-project', projectPath),
     onStatusChange: (callback: (state: unknown) => void) => {
       const handler = (_event: unknown, state: unknown) => callback(state)
       ipcRenderer.on('validator:status-change', handler)
       return () => { ipcRenderer.off('validator:status-change', handler) }
     },
+  },
+
+  agentStation: {
+    list: () => ipcRenderer.invoke('agent-station:list'),
+    get: (id: string) => ipcRenderer.invoke('agent-station:get', id),
+    create: (input: { name: string; description?: string; template: string; wallet_id?: string | null; plugins?: string[]; rpc_url?: string | null; model?: string }) =>
+      ipcRenderer.invoke('agent-station:create', input),
+    delete: (id: string) => ipcRenderer.invoke('agent-station:delete', id),
+    scaffold: (configId: string, outputDir: string) => ipcRenderer.invoke('agent-station:scaffold', configId, outputDir),
+    pickOutputDir: () => ipcRenderer.invoke('agent-station:pick-output-dir'),
+    storeKey: (configId: string, privateKey: string) => ipcRenderer.invoke('agent-station:store-key', configId, privateKey),
+    hasKey: (configId: string) => ipcRenderer.invoke('agent-station:has-key', configId),
+    deleteKey: (configId: string) => ipcRenderer.invoke('agent-station:delete-key', configId),
+    updateStatus: (id: string, status: 'idle' | 'running' | 'stopped') => ipcRenderer.invoke('agent-station:update-status', id, status),
+  },
+
+  replay: {
+    fetchTrace: (signature: string, force?: boolean) => ipcRenderer.invoke('replay:fetch-trace', signature, force === true),
+    fetchProgram: (programId: string, limit?: number) => ipcRenderer.invoke('replay:fetch-program', programId, limit),
+    buildContext: (signature: string) => ipcRenderer.invoke('replay:build-context', signature),
+    createHandoff: (projectPath: string, signature: string) => ipcRenderer.invoke('replay:create-handoff', projectPath, signature),
+    verifyFix: (projectPath: string, signature: string, command: string) => ipcRenderer.invoke('replay:verify-fix', projectPath, signature, command),
+    rpcLabel: () => ipcRenderer.invoke('replay:rpc-label'),
   },
 })
 

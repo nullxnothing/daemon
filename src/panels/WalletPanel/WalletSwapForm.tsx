@@ -1,5 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNotificationsStore } from '../../store/notifications'
+import { useUIStore } from '../../store/ui'
 import './WalletPanel.css'
+import { TransactionPreviewCard } from './TransactionPreviewCard'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -26,6 +29,9 @@ interface WalletSwapFormProps {
   walletId: string
   walletName: string
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
+  executionMode: WalletInfrastructureSettings['executionMode']
+  initialInputMint?: string
+  initialOutputMint?: string
   onBack: () => void
   onRefresh: () => Promise<void>
 }
@@ -44,9 +50,13 @@ interface PendingSwap {
   confirmedAt: number
 }
 
-export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefresh }: WalletSwapFormProps) {
-  const [inputMint, setInputMint] = useState(SOL_MINT)
-  const [outputMint, setOutputMint] = useState(USDC_MINT)
+export function WalletSwapForm({ walletId, walletName, holdings, executionMode, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectName = useUIStore((s) => (
+    s.activeProjectId ? s.projects.find((project) => project.id === s.activeProjectId)?.name ?? null : null
+  ))
+  const [inputMint, setInputMint] = useState(initialInputMint ?? SOL_MINT)
+  const [outputMint, setOutputMint] = useState(initialOutputMint ?? USDC_MINT)
   const [amount, setAmount] = useState('')
   const [slippageBps, setSlippageBps] = useState('50')
 
@@ -59,8 +69,9 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
   const [highImpactAcknowledged, setHighImpactAcknowledged] = useState(false)
 
   const [swapLoading, setSwapLoading] = useState(false)
-  const [swapResult, setSwapResult] = useState<string | null>(null)
+  const [swapResult, setSwapResult] = useState<WalletExecutionResult | null>(null)
   const [swapError, setSwapError] = useState<string | null>(null)
+  const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
 
   // Ref-based mutex — prevents double-submit even if React state update is batched
   const swapLockRef = useRef(false)
@@ -70,6 +81,12 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
+  const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
+
+  useEffect(() => {
+    if (initialInputMint) setInputMint(initialInputMint)
+    if (initialOutputMint) setOutputMint(initialOutputMint)
+  }, [initialInputMint, initialOutputMint])
 
   const handleGetQuote = async () => {
     setQuoteError(null)
@@ -135,6 +152,14 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
     setSwapLoading(true)
     setSwapError(null)
     setSwapResult(null)
+    const activity = useNotificationsStore.getState()
+    activity.addActivity({
+      kind: 'info',
+      context: 'Wallet',
+      message: `Executing Jupiter swap for ${amount} from ${inputMint} to ${outputMint}`,
+      projectId: activeProjectId,
+      projectName: activeProjectName,
+    })
 
     try {
       const res = await window.daemon.wallet.swapExecute({
@@ -149,16 +174,37 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
       })
 
       if (res.ok && res.data) {
-        setSwapResult(res.data.signature)
+        setSwapResult(res.data)
+        activity.addActivity({
+          kind: 'success',
+          context: 'Wallet',
+          message: `Swap confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
+          projectId: activeProjectId,
+          projectName: activeProjectName,
+        })
         setQuote(null)
         setPendingSwap(null)
         setAmount('')
         await onRefresh()
       } else {
+        activity.addActivity({
+          kind: 'error',
+          context: 'Wallet',
+          message: res.error ?? 'Swap failed',
+          projectId: activeProjectId,
+          projectName: activeProjectName,
+        })
         setSwapError(res.error ?? 'Swap failed')
         setPendingSwap(null)
       }
     } catch (err) {
+      activity.addActivity({
+        kind: 'error',
+        context: 'Wallet',
+        message: err instanceof Error ? err.message : 'Swap execution failed',
+        projectId: activeProjectId,
+        projectName: activeProjectName,
+      })
       setSwapError(err instanceof Error ? err.message : 'Swap execution failed')
       setPendingSwap(null)
     } finally {
@@ -194,6 +240,34 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
   const isVeryHighImpact = impactPct >= 5
   const executeBlocked = isVeryHighImpact && !highImpactAcknowledged
 
+  useEffect(() => {
+    let cancelled = false
+    setPreview(null)
+
+    if (!pendingSwap) return
+
+    void window.daemon.wallet.transactionPreview({
+      kind: 'swap',
+      walletId,
+      inputMint,
+      outputMint,
+      inputSymbol: pendingSwap.inputSymbol,
+      outputSymbol: pendingSwap.outputSymbol,
+      inputAmount: pendingSwap.quote.inAmount,
+      outputAmount: pendingSwap.quote.outAmount,
+      amount: parseFloat(amount),
+      slippageBps: parseInt(slippageBps, 10),
+      priceImpactPct: pendingSwap.quote.priceImpactPct,
+    }).then((res) => {
+      if (cancelled || !res.ok || !res.data) return
+      setPreview(res.data)
+    }).catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [amount, inputMint, outputMint, pendingSwap, slippageBps, walletId])
+
   return (
     <section className="wallet-section">
       <div className="wallet-view-header">
@@ -204,6 +278,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
 
       <div className="wallet-swap-container">
         <div className="wallet-caption">{walletName}</div>
+        <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
 
         {/* Input token */}
         <div className="wallet-swap-field">
@@ -341,18 +416,20 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
         {/* Confirmation panel — shown after "Review Swap" is clicked */}
         {pendingSwap && (
           <div className="wallet-swap-quote">
-            <div className="wallet-label">Confirm Swap</div>
-            <div className="wallet-caption">
-              {formatLargeNumber(pendingSwap.quote.inAmount)} {pendingSwap.inputSymbol}
-              {' → '}
-              {formatLargeNumber(pendingSwap.quote.outAmount)} {pendingSwap.outputSymbol}
-            </div>
-            <div className="wallet-caption" style={{ color: pendingSwap.impactPct >= 5 ? 'var(--red)' : pendingSwap.impactPct >= 1 ? 'var(--amber)' : 'var(--t3)' }}>
-              Price impact: {pendingSwap.impactPct.toFixed(4)}%
-              {pendingSwap.impactPct >= 5 && ' — Very high price impact'}
-              {pendingSwap.impactPct < 5 && pendingSwap.impactPct >= 1 && ' — High price impact'}
-            </div>
-            <div className="wallet-caption">Slippage: {pendingSwap.slippagePct}%</div>
+            <TransactionPreviewCard
+              title={preview?.title ?? 'Review Swap'}
+              backendLabel={preview?.backendLabel ?? backendLabel}
+              signerLabel={preview?.signerLabel ?? walletName}
+              destinationLabel={preview?.targetLabel ?? `${pendingSwap.inputSymbol} → ${pendingSwap.outputSymbol}`}
+              amountLabel={preview?.amountLabel ?? `${formatLargeNumber(pendingSwap.quote.inAmount)} ${pendingSwap.inputSymbol} → ${formatLargeNumber(pendingSwap.quote.outAmount)} ${pendingSwap.outputSymbol}`}
+              feeLabel={preview?.feeLabel}
+              warnings={preview?.warnings}
+              notes={preview?.notes ?? [
+                `Slippage setting: ${pendingSwap.slippagePct}%`,
+                `Price impact: ${pendingSwap.impactPct.toFixed(4)}%${pendingSwap.impactPct >= 5 ? ' (very high)' : pendingSwap.impactPct >= 1 ? ' (high)' : ''}`,
+                'This quote confirmation expires after 60 seconds.',
+              ]}
+            />
 
             {pendingSwap.impactPct >= 5 && (
               <label className="wallet-swap-ack-row">
@@ -384,7 +461,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, onBack, onRefre
         {swapError && <div className="wallet-empty">{swapError}</div>}
         {swapResult && (
           <div className="wallet-success-msg">
-            Swap confirmed! Sig: {swapResult.slice(0, 8)}...{swapResult.slice(-8)}
+            Swap confirmed via {swapResult.transport === 'jito' ? 'Jito' : 'RPC'}! Sig: {swapResult.signature.slice(0, 8)}...{swapResult.signature.slice(-8)}
           </div>
         )}
       </div>

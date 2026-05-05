@@ -85,7 +85,7 @@
 }
 
 .recovery-select:focus,
-.recovery-input:focus-visible {
+.recovery-input:focus {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -147,7 +147,7 @@
 
 .recovery-btn.primary {
   background: var(--success);
-  color: #000;
+  color: var(--on-accent-dark);
   font-weight: 600;
   border-color: transparent;
 }
@@ -163,7 +163,7 @@
 
 .recovery-btn.danger {
   background: var(--error);
-  color: #000;
+  color: var(--on-accent-dark);
   font-weight: 600;
   border-color: transparent;
 }

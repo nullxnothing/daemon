@@ -213,8 +213,8 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
   display: flex;
   justify-content: center;
   padding-top: 10vh;

@@ -2,15 +2,13 @@ import { useState } from 'react'
 import { useEmailStore } from '../../../store/email'
 
 export function AISidebar() {
-  const {
-    aiSidebar,
-    aiSidebarData,
-    aiSidebarLoading,
-    closeAISidebar,
-    extractions,
-    messages,
-    selectedMessageId,
-  } = useEmailStore()
+  const aiSidebar = useEmailStore((s) => s.aiSidebar)
+  const aiSidebarData = useEmailStore((s) => s.aiSidebarData)
+  const aiSidebarLoading = useEmailStore((s) => s.aiSidebarLoading)
+  const closeAISidebar = useEmailStore((s) => s.closeAISidebar)
+  const extractions = useEmailStore((s) => s.extractions)
+  const messages = useEmailStore((s) => s.messages)
+  const selectedMessageId = useEmailStore((s) => s.selectedMessageId)
 
   if (!aiSidebar) return null
 

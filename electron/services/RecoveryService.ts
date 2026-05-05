@@ -12,7 +12,7 @@ import {
 import bs58 from 'bs58'
 import * as fs from 'node:fs'
 import * as SecureKey from './SecureKeyService'
-import { getHeliusApiKey } from './SolanaService'
+import { executeTransaction, getHeliusApiKey } from './SolanaService'
 import type { RecoveryWalletInfo, RecoveryProgressEvent, RecoveryStatus } from '../shared/types'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -72,10 +72,14 @@ async function sendAndConfirm(
   conn: Connection, tx: VersionedTransaction, timeout = 15_000,
 ): Promise<string | null> {
   try {
-    const sig = await conn.sendRawTransaction(tx.serialize(), { skipPreflight: true, maxRetries: 2 })
-    const result = await conn.confirmTransaction(sig, 'confirmed')
-    if (result.value.err) return null
-    return sig
+    const { signature } = await executeTransaction(conn, tx, [], {
+      timeoutMs: timeout,
+      sendOptions: {
+        skipPreflight: true,
+        maxRetries: 2,
+      },
+    })
+    return signature
   } catch {
     return null
   }
@@ -113,12 +117,15 @@ export function loadCsvFile(csvPath: string): { count: number; path: string } {
       if (line.includes(',')) {
         const hex = line.split(',')[1]?.trim()
         if (!hex) continue
-        kp = Keypair.fromSecretKey(Buffer.from(hex, 'hex'))
+        const keyBuffer = Buffer.from(hex, 'hex')
+        kp = Keypair.fromSecretKey(keyBuffer)
+        keyBuffer.fill(0)
       } else {
         const decoded = bs58.decode(line)
         kp = decoded.length === 64
           ? Keypair.fromSecretKey(decoded)
           : Keypair.fromSeed(decoded.slice(0, 32))
+        decoded.fill(0)
       }
       const pub = kp.publicKey.toBase58()
       if (!keypairs.has(pub)) keypairs.set(pub, kp)
@@ -217,6 +224,7 @@ export async function executeRecovery(
 
   const priorityFee = await getPriorityFee(conn)
 
+  try {
   // ─── Phase 1: Close empty token accounts ──────────────────────────────
   currentStatus.currentPhase = 1
   emit(win, { type: 'phase-start', phase: 1, message: 'Phase 1: Closing empty token accounts...' })
@@ -410,9 +418,12 @@ export async function executeRecovery(
   currentStatus.state = 'complete'
   emit(win, { type: 'complete', totalRecovered, message: `Recovery complete: ${totalRecovered.toFixed(6)} SOL` })
 
-  abortController = null
-  clearLoadedWallets()
   return { totalRecovered }
+  } finally {
+    abortController = null
+    clearLoadedWallets()
+    if (currentStatus.state !== 'complete') currentStatus.state = 'idle'
+  }
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────

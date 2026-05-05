@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
-    branches: [main, dev]
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,68 +15,85 @@ jobs:
     name: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
+      - name: Install Linux UI test dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck
       - run: pnpm run test
+      - name: Responsive UI smoke
+        run: xvfb-run -a pnpm run test:responsive
+      - name: Layout cohesion smoke
+        run: xvfb-run -a pnpm run test:layout
 
   build-windows:
     name: build-windows
     runs-on: windows-latest
     needs: lint-and-test
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
             ~\AppData\Local\electron\cache
             ~\AppData\Local\electron-builder\cache
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: pnpm run package
+      - run: pnpm run test:visual
+      - run: pnpm exec electron-builder --publish never
 
   build-macos:
     name: build-macos
     runs-on: macos-latest
     needs: lint-and-test
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: pnpm run package
+      - name: Pre-cache Electron binary
+        shell: bash
+        run: |
+          ELECTRON_VERSION="$(node -p "require('./package.json').devDependencies.electron.replace(/^[^0-9]*/, '')")"
+          ELECTRON_CACHE="$HOME/.cache/electron"
+          ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-darwin-arm64.zip"
+          mkdir -p "$ELECTRON_CACHE"
+          curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
+            --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
+            "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
+      - run: pnpm exec electron-builder --publish never

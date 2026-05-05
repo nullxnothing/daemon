@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useBrowserStore } from '../../store/browser'
+import { Button } from '../../components/Button'
+import { Card, MetricCard, PanelHeader, Toolbar } from '../../components/Panel'
 import './HackathonPanel.css'
 
 const DEADLINE_KEY = 'daemon:hackathon-deadline'
@@ -168,46 +170,51 @@ export function HackathonPanel() {
   if (!isConfigured) {
     return (
       <div className="hackathon-panel">
-        <div className="hackathon-header">
-          <span className="hackathon-dot disconnected" />
-          <span className="hackathon-header-label">COLOSSEUM</span>
-        </div>
+        <PanelHeader
+          kicker="Build week"
+          title="Turn hackathon prep into a real workspace"
+          subtitle="Connect Colosseum once, keep a submission checklist in-app, and jump straight into research when you need it."
+        />
 
         <div className="hackathon-connect">
-          <p className="hackathon-desc">
-            Connect to research 5,400+ hackathon projects and track your submission.
-          </p>
+          <Card>
+            <span className="hackathon-card-title">Connect Colosseum</span>
+            <p className="hackathon-desc">
+              Research 5,400+ projects, keep deadline pressure visible, and work from one place instead of bouncing to the Arena manually.
+            </p>
 
-          <div className="hackathon-input-row">
-            <input
-              type="password"
-              className="hackathon-input"
-              placeholder="Copilot PAT"
-              value={patInput}
-              onChange={(e) => setPatInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleConnect() }}
-            />
-            <button
-              className="hackathon-btn"
-              onClick={handleConnect}
-              disabled={connecting || !patInput.trim()}
+            <div className="hackathon-input-row">
+              <input
+                type="password"
+                className="hackathon-input"
+                placeholder="Copilot PAT"
+                value={patInput}
+                onChange={(e) => setPatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleConnect() }}
+              />
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleConnect}
+                disabled={connecting || !patInput.trim()}
+              >
+                {connecting ? 'Connecting...' : 'Connect'}
+              </Button>
+            </div>
+
+
+            <span
+              className="hackathon-link"
+              onClick={() => {
+                useBrowserStore.getState().setUrl('https://arena.colosseum.org/copilot')
+                useUIStore.getState().openBrowserTab()
+              }}
             >
-              {connecting ? 'Connecting...' : 'Connect'}
-            </button>
-          </div>
+              Get a token at arena.colosseum.org/copilot
+            </span>
 
-
-          <span
-            className="hackathon-link"
-            onClick={() => {
-              useBrowserStore.getState().setUrl('https://arena.colosseum.org/copilot')
-              useUIStore.getState().openBrowserTab()
-            }}
-          >
-            Get a token at arena.colosseum.org/copilot
-          </span>
-
-          {error && <div className="hackathon-error">{error}</div>}
+            {error && <div className="hackathon-error">{error}</div>}
+          </Card>
         </div>
       </div>
     )
@@ -218,65 +225,70 @@ export function HackathonPanel() {
 
   return (
     <div className="hackathon-panel">
-      <div className="hackathon-header">
-        <span className="hackathon-dot connected" />
-        <span className="hackathon-header-label">COLOSSEUM</span>
-        <span className="hackathon-header-status">Connected</span>
-      </div>
+      <PanelHeader
+        kicker="Build week"
+        title="Keep hackathon momentum visible"
+        subtitle="Track deadline pressure, research comparable projects, and jump from planning to Arena without leaving DAEMON."
+      />
 
-      {/* Active hackathon card */}
-      <div className="hackathon-card">
-        <span className="hackathon-card-title">Frontier</span>
-        {countdown && (
-          <span className={`hackathon-countdown ${countdown.urgency}`}>
-            {countdown.text}
-          </span>
-        )}
-      </div>
-
-      {/* Submission checklist */}
-      <span className="hackathon-section-title">Submission Checklist ({completedCount}/{CHECKLIST_ITEMS.length})</span>
-      <div className="hackathon-checklist">
-        {CHECKLIST_ITEMS.map((item) => (
-          <label
-            key={item}
-            className={`hackathon-check-item${checklist[item] ? ' done' : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={!!checklist[item]}
-              onChange={() => handleCheckToggle(item)}
-            />
-            {item}
-          </label>
-        ))}
-      </div>
-
-      {/* Research search */}
-      <span className="hackathon-section-title">Research</span>
-      <form className="hackathon-search-form" onSubmit={handleSearch}>
-        <input
-          ref={searchInputRef}
-          className="hackathon-input"
-          placeholder="Search 5,400+ projects..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+      <div className="hackathon-summary-grid">
+        <MetricCard label="Arena status" value="Connected" detail="Colosseum research is available" tone="success" />
+        <MetricCard label="Active hackathon" value="Frontier" detail="Current working target" />
+        <MetricCard
+          label="Deadline"
+          value={countdown?.text ?? 'No deadline'}
+          detail={`${completedCount}/${CHECKLIST_ITEMS.length} checklist items done`}
+          tone={countdown?.urgency === 'urgent' ? 'danger' : countdown?.urgency === 'warning' ? 'warn' : 'default'}
+          size="compact"
         />
-        <button
-          className="hackathon-btn"
-          type="submit"
-          disabled={searching || !query.trim()}
-        >
-          {searching ? 'Searching...' : 'Search'}
-        </button>
-      </form>
+      </div>
+
+      <Card className="hackathon-section-card">
+        <span className="hackathon-section-title">Submission Checklist ({completedCount}/{CHECKLIST_ITEMS.length})</span>
+        <div className="hackathon-checklist">
+          {CHECKLIST_ITEMS.map((item) => (
+            <label
+              key={item}
+              className={`hackathon-check-item${checklist[item] ? ' done' : ''}`}
+            >
+              <input
+                type="checkbox"
+                checked={!!checklist[item]}
+                onChange={() => handleCheckToggle(item)}
+              />
+              {item}
+            </label>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="hackathon-section-card">
+        <span className="hackathon-section-title">Research</span>
+        <form className="hackathon-search-form" onSubmit={handleSearch}>
+          <input
+            ref={searchInputRef}
+            className="hackathon-input"
+            placeholder="Search 5,400+ projects..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <Button
+            variant="primary"
+            size="md"
+            type="submit"
+            disabled={searching || !query.trim()}
+          >
+            {searching ? 'Searching...' : 'Search'}
+          </Button>
+        </form>
+      </Card>
 
       {error && <div className="hackathon-error">{error}</div>}
 
       {results.length > 0 && (
         <div className="hackathon-results">
           {results.map((project) => (
-            <div
+            <Card
               key={project.slug}
               className="hackathon-result-card"
               onClick={() => {
@@ -296,21 +308,22 @@ export function HackathonPanel() {
                   </span>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
-      {/* Quick actions */}
-      <span className="hackathon-section-title">Quick Actions</span>
-      <div className="hackathon-actions">
-        <button className="hackathon-btn-secondary" onClick={handleResearchAgent}>
+      <Card className="hackathon-section-card">
+        <span className="hackathon-section-title">Quick Actions</span>
+        <Toolbar align="start" className="hackathon-actions">
+        <Button variant="primary" size="md" onClick={handleResearchAgent}>
           Research Competition
-        </button>
-        <button className="hackathon-btn-secondary" onClick={handleOpenArena}>
+        </Button>
+        <Button variant="default" size="md" onClick={handleOpenArena}>
           Open Arena
-        </button>
-      </div>
+        </Button>
+        </Toolbar>
+      </Card>
     </div>
   )
 }

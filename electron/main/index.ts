@@ -19,6 +19,7 @@ import { registerProcessHandlers } from '../ipc/processes'
 import { registerEnvHandlers } from '../ipc/env'
 import { registerPortHandlers } from '../ipc/ports'
 import { registerWalletHandlers } from '../ipc/wallet'
+import { registerProHandlers } from '../ipc/pro'
 import { registerSettingsHandlers } from '../ipc/settings'
 import { registerPluginHandlers } from '../ipc/plugins'
 import { registerTweetHandlers } from '../ipc/tweets'
@@ -39,7 +40,12 @@ import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
+import { registerAgentStationHandlers } from '../ipc/agentStation'
+import { registerReplayHandlers } from '../ipc/replay'
+import { registerLspHandlers } from '../ipc/lsp'
 import { clearLoadedWallets } from '../services/RecoveryService'
+import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
+import { shutdownAllLspSessions } from '../services/LspService'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -78,7 +84,7 @@ protocol.registerSchemesAsPrivileged([{
   privileges: { standard: true, supportFetchAPI: true, allowServiceWorkers: false },
 }])
 
-if (process.platform === 'win32') app.setAppUserModelId('DAEMON')
+if (process.platform === 'win32') app.setAppUserModelId('com.daemon.app')
 
 // Crash capture — write unhandled errors to app_crashes table
 process.on('uncaughtException', (error) => {
@@ -108,8 +114,36 @@ if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let ipcRegistered = false
+let startupUiRecovery: UiRecoveryResult | null = null
+let shutdownStarted = false
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
+
+function cleanupRuntimeState() {
+  killAllSessions()
+  shutdownAllLspSessions()
+  clearLoadedWallets()
+  closeDb()
+}
+
+function beginShutdownCleanup() {
+  if (shutdownStarted) return false
+  shutdownStarted = true
+  cleanupRuntimeState()
+  return true
+}
+
+function shutdownApp() {
+  beginShutdownCleanup()
+  const windows = BrowserWindow.getAllWindows()
+  if (windows.length > 0) {
+    for (const window of windows) {
+      if (!window.isDestroyed()) window.close()
+    }
+  } else {
+    app.quit()
+  }
+}
 
 function registerAllIpc() {
   if (ipcRegistered) return
@@ -132,6 +166,7 @@ function registerAllIpc() {
   registerEnvHandlers()
   registerPortHandlers()
   registerWalletHandlers()
+  registerProHandlers()
   registerSettingsHandlers()
   registerPluginHandlers()
   registerTweetHandlers()
@@ -152,6 +187,9 @@ function registerAllIpc() {
   registerValidatorHandlers()
   registerPnlHandlers()
   registerFeedbackHandlers()
+  registerAgentStationHandlers()
+  registerReplayHandlers()
+  registerLspHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -162,7 +200,7 @@ function registerAllIpc() {
       win?.maximize()
     }
   })
-  ipcMain.on('window:close', () => win?.close())
+  ipcMain.on('window:close', () => shutdownApp())
   ipcMain.on('window:reload', () => {
     if (!win) return
     if (VITE_DEV_SERVER_URL) {
@@ -196,7 +234,7 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint:; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
         }
       })
     })
@@ -344,10 +382,16 @@ async function createWindow() {
     const recentCrashes = db.prepare(
       'SELECT COUNT(*) as count FROM app_crashes WHERE created_at > ?'
     ).get(Date.now() - 3600_000) as { count: number }
+    startupUiRecovery = maybeRecoverUnstableUiState(recentCrashes.count)
 
     if (recentCrashes.count > 3) {
       win.webContents.on('did-finish-load', () => {
         win?.webContents.send('crash-warning', recentCrashes.count)
+      })
+    }
+    if (startupUiRecovery) {
+      win.webContents.on('did-finish-load', () => {
+        win?.webContents.send('ui-recovery-applied', startupUiRecovery)
       })
     }
   } catch { /* table may not exist yet on first run */ }
@@ -373,12 +417,14 @@ app.whenReady().then(() => {
   }
 })
 
+app.on('before-quit', () => {
+  beginShutdownCleanup()
+})
+
 app.on('window-all-closed', () => {
-  killAllSessions()
-  clearLoadedWallets()
-  closeDb()
+  beginShutdownCleanup()
   win = null
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })
 
 app.on('second-instance', () => {
@@ -389,6 +435,7 @@ app.on('second-instance', () => {
 })
 
 app.on('activate', () => {
+  if (shutdownStarted) return
   const allWindows = BrowserWindow.getAllWindows()
   if (allWindows.length) {
     allWindows[0].focus()
@@ -396,3 +443,10 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    shutdownApp()
+    process.exit(0)
+  })
+}

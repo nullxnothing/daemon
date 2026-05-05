@@ -10,6 +10,7 @@ interface EditorBreadcrumbsProps {
   isTidying: boolean
   tidyError: string | null
   showTidyButton: boolean
+  lspStatus?: { label: string; detail: string; active: boolean } | null
   onTidy: () => void
 }
 
@@ -19,6 +20,7 @@ export function EditorBreadcrumbs({
   isTidying,
   tidyError,
   showTidyButton,
+  lspStatus,
   onTidy,
 }: EditorBreadcrumbsProps) {
   return (
@@ -39,20 +41,30 @@ export function EditorBreadcrumbs({
           <span className="editor-breadcrumb-empty">No active file</span>
         )}
       </div>
-      {isMarkdown && showTidyButton && (
+      {(lspStatus || (isMarkdown && showTidyButton)) && (
         <div className="editor-breadcrumbs-actions">
+          {lspStatus && (
+            <span
+              className={`editor-lsp-status ${lspStatus.active ? 'active' : 'inactive'}`}
+              title={lspStatus.detail}
+            >
+              {lspStatus.label}
+            </span>
+          )}
           {tidyError && <span className="editor-tidy-error">{tidyError}</span>}
-          <button
-            className="editor-tidy-btn"
-            onClick={onTidy}
-            disabled={isTidying}
-            title="Tidy this Markdown with Claude"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3v4m0 14v-4m9-5h-4M3 12h4m12.36-5.36l-2.83 2.83M7.46 16.54l-2.83 2.83m14.73 0l-2.83-2.83M7.46 7.46L4.64 4.64"/>
-            </svg>
-            {isTidying ? 'Tidying...' : 'Tidy'}
-          </button>
+          {isMarkdown && showTidyButton && (
+            <button
+              className="editor-tidy-btn"
+              onClick={onTidy}
+              disabled={isTidying}
+              title="Tidy this Markdown with Claude"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v4m0 14v-4m9-5h-4M3 12h4m12.36-5.36l-2.83 2.83M7.46 16.54l-2.83 2.83m14.73 0l-2.83-2.83M7.46 7.46L4.64 4.64"/>
+              </svg>
+              {isTidying ? 'Tidying...' : 'Tidy'}
+            </button>
+          )}
         </div>
       )}
     </div>

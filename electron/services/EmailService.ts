@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { safeStorage, shell } from 'electron'
 import { getDb } from '../db/db'
+import { LogService } from './LogService'
 import { GOOGLE_OAUTH } from '../config/constants'
 import { pluginPrompt, orchestratedPrompt } from './PluginPrompt'
 import type { EmailProvider, SendEmailInput } from './email/EmailProvider'
@@ -162,16 +163,18 @@ export async function removeAccount(accountId: string): Promise<void> {
   const db = getDb()
   const row = getAccountRow(accountId)
 
-  // Clean up secure keys for Gmail
-  if (row.client_id_ref) {
-    db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_id_ref)
-  }
-  if (row.client_secret_ref) {
-    db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_secret_ref)
-  }
+  db.transaction(() => {
+    // Clean up secure keys for Gmail
+    if (row.client_id_ref) {
+      db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_id_ref)
+    }
+    if (row.client_secret_ref) {
+      db.prepare('DELETE FROM secure_keys WHERE key_name = ?').run(row.client_secret_ref)
+    }
 
-  db.prepare('DELETE FROM email_message_cache WHERE account_id = ?').run(accountId)
-  db.prepare('DELETE FROM email_accounts WHERE id = ?').run(accountId)
+    db.prepare('DELETE FROM email_message_cache WHERE account_id = ?').run(accountId)
+    db.prepare('DELETE FROM email_accounts WHERE id = ?').run(accountId)
+  })()
 }
 
 export async function getMessages(accountId: string, query?: string, max?: number): Promise<EmailMessage[]> {
@@ -283,7 +286,7 @@ export async function extractCode(accountId: string, messageId: string): Promise
         const parsed = JSON.parse(match[0])
         items = parsed.items ?? []
       } catch (err) {
-        console.warn('[EmailService] JSON extraction fallback failed:', (err as Error).message)
+        LogService.warn('EmailService', 'JSON extraction fallback failed: ' + (err as Error).message)
       }
     }
   }

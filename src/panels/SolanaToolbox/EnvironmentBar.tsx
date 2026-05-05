@@ -1,4 +1,4 @@
-import type { SolanaProjectInfo, ValidatorState, SolanaMcpEntry } from '../../store/solanaToolbox'
+import type { SolanaProjectInfo, ValidatorState, SolanaMcpEntry, SolanaToolchainStatus } from '../../store/solanaToolbox'
 
 const FRAMEWORK_LABELS: Record<string, string> = {
   anchor: 'ANCHOR',
@@ -18,15 +18,19 @@ interface EnvironmentBarProps {
   info: SolanaProjectInfo | null
   validator: ValidatorState
   mcps: SolanaMcpEntry[]
+  toolchain: SolanaToolchainStatus | null
 }
 
-export function EnvironmentBar({ info, validator, mcps }: EnvironmentBarProps) {
+export function EnvironmentBar({ info, validator, mcps, toolchain }: EnvironmentBarProps) {
   if (!info || !info.isSolanaProject) {
     return <div className="solana-env-none">No Solana project detected</div>
   }
 
   const label = FRAMEWORK_LABELS[info.framework ?? ''] ?? 'SOLANA'
   const fileCount = info.indicators.length
+  const readyCount = toolchain
+    ? [toolchain.solanaCli, toolchain.anchor, toolchain.avm, toolchain.surfpool, toolchain.testValidator, toolchain.litesvm].filter((entry) => entry.installed).length
+    : 0
 
   return (
     <div className="solana-env-bar">
@@ -35,7 +39,7 @@ export function EnvironmentBar({ info, validator, mcps }: EnvironmentBarProps) {
         {label}
       </div>
       <span className="solana-env-indicators">
-        {fileCount} file{fileCount !== 1 ? 's' : ''} detected
+        {fileCount} file{fileCount !== 1 ? 's' : ''} detected{toolchain ? ` • ${readyCount}/6 tools ready` : ''}
       </span>
       <span className={`solana-env-health ${getHealthColor(validator, mcps)}`} />
     </div>

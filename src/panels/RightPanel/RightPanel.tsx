@@ -62,6 +62,12 @@ export function RightPanel() {
 
   return (
     <div className="right-panel-wrap">
+      <div className="right-panel-header" aria-hidden="true">
+        <div className="right-panel-header-copy">
+          <span className="right-panel-kicker">Assistants</span>
+        </div>
+      </div>
+
       <div className="right-panel-tabs" role="tablist">
         <button
           className={`right-panel-tab${rightPanelTab === 'claude' ? ' active' : ''}`}
@@ -73,6 +79,7 @@ export function RightPanel() {
         >
           <span className={`right-panel-tab-dot${claudeStatus === 'live' ? ' live' : ''}`} />
           <img src="./claude-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
+          <span className="right-panel-tab-label">Claude</span>
         </button>
         <button
           className={`right-panel-tab${rightPanelTab === 'codex' ? ' active' : ''}`}
@@ -84,6 +91,7 @@ export function RightPanel() {
         >
           <span className={`right-panel-tab-dot${codexStatus === 'live' ? ' live' : ''}`} />
           <img src="./codex-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
+          <span className="right-panel-tab-label">Codex</span>
         </button>
       </div>
 

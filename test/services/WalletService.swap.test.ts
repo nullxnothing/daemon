@@ -74,6 +74,10 @@ vi.mock('../../electron/services/SolanaService', () => {
       getParsedAccountInfo: mockGetParsedAccountInfo,
       sendRawTransaction: vi.fn().mockResolvedValue('sig'),
     })),
+    confirmSignature: vi.fn().mockResolvedValue({ err: null }),
+    executeTransaction: vi.fn().mockResolvedValue({ signature: 'sig', transport: 'rpc' }),
+    getTransactionSubmissionSettings: vi.fn(() => ({ mode: 'rpc' })),
+    submitRawTransaction: vi.fn().mockResolvedValue('sig'),
     loadKeypair: vi.fn(() => fakeKeypair),
     withKeypair: mockWithKeypair,
   }
@@ -103,16 +107,20 @@ vi.mock('@solana/spl-token', () => ({
   getAccount: mockGetAccount,
 }))
 
-import { transferSOL, transferToken } from '../../electron/services/WalletService'
+import { getDashboard, transferSOL, transferToken } from '../../electron/services/WalletService'
 
-function makeWalletDbChain(overrides: { walletRow?: object | null } = {}) {
+function makeWalletDbChain(overrides: { walletRow?: object | null; dailySpendTotal?: number } = {}) {
   const walletRow = overrides.walletRow !== undefined
     ? overrides.walletRow
     : { id: 'w1', name: 'Test', address: 'So11111111111111111111111111111111111111112', is_default: 1, wallet_type: 'user', keypair_path: null }
+  const dailySpendTotal = overrides.dailySpendTotal ?? 0
 
   return (sql: string) => {
     if (sql.includes('FROM wallets WHERE id') || sql.includes('wallet_type FROM wallets')) {
       return { get: vi.fn().mockReturnValue(walletRow) }
+    }
+    if (sql.includes('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history')) {
+      return { get: vi.fn().mockReturnValue({ total: dailySpendTotal }) }
     }
     if (sql.includes('INSERT INTO transaction_history') || sql.includes('UPDATE transaction_history')) {
       return { run: vi.fn() }
@@ -151,6 +159,97 @@ describe('transferSOL — validation', () => {
   })
 })
 
+describe('getDashboard — fallback active wallet', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns the default wallet as active even when Helius is not configured', async () => {
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            {
+              id: 'wallet-1',
+              name: 'Primary Wallet',
+              address: 'So11111111111111111111111111111111111111112',
+              is_default: 1,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 123,
+            },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT id, wallet_id FROM projects WHERE wallet_id IS NOT NULL')) {
+        return { all: vi.fn().mockReturnValue([]) }
+      }
+      if (sql.includes('SELECT wallet_id FROM projects WHERE id = ?')) {
+        return { get: vi.fn().mockReturnValue(undefined) }
+      }
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined), run: vi.fn() }
+    })
+
+    const dashboard = await getDashboard(null)
+
+    expect(dashboard.portfolio.walletCount).toBe(1)
+    expect(dashboard.activeWallet).toEqual({
+      id: 'wallet-1',
+      name: 'Primary Wallet',
+      address: 'So11111111111111111111111111111111111111112',
+      holdings: [],
+    })
+    expect(dashboard.recentActivity).toEqual([])
+  })
+
+  it('prefers the project-assigned wallet in the non-Helius fallback', async () => {
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            {
+              id: 'wallet-default',
+              name: 'Default Wallet',
+              address: 'Default111111111111111111111111111111111111',
+              is_default: 1,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 1,
+            },
+            {
+              id: 'wallet-project',
+              name: 'Project Wallet',
+              address: 'Project111111111111111111111111111111111111',
+              is_default: 0,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 2,
+            },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT id, wallet_id FROM projects WHERE wallet_id IS NOT NULL')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            { id: 'project-1', wallet_id: 'wallet-project' },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT wallet_id FROM projects WHERE id = ?')) {
+        return { get: vi.fn().mockReturnValue({ wallet_id: 'wallet-project' }) }
+      }
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined), run: vi.fn() }
+    })
+
+    const dashboard = await getDashboard('project-1')
+
+    expect(dashboard.activeWallet).toEqual({
+      id: 'wallet-project',
+      name: 'Project Wallet',
+      address: 'Project111111111111111111111111111111111111',
+      holdings: [],
+    })
+  })
+})
+
 describe('transferSOL — insufficient balance', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -169,6 +268,30 @@ describe('transferSOL — insufficient balance', () => {
     await expect(
       transferSOL('w1', 'So11111111111111111111111111111111111111112', 1)
     ).rejects.toThrow(/insufficient/i)
+  })
+})
+
+describe('transferSOL — agent spend limit', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('counts pending transfers toward the daily spend limit', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain({
+      walletRow: { wallet_type: 'agent' },
+      dailySpendTotal: 1.75,
+    }))
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockGetBalance.mockResolvedValue(5_000_000_000)
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await expect(
+      transferSOL('w1', 'So11111111111111111111111111111111111111112', 0.3)
+    ).rejects.toThrow(/daily spend limit/i)
   })
 })
 

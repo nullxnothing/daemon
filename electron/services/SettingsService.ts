@@ -13,9 +13,28 @@ export interface MeteoraLaunchpadSettings {
   baseSupply: string
 }
 
+export interface PrintrLaunchpadSettings {
+  apiBaseUrl: string
+  apiKey: string
+  quotePath: string
+  createPath: string
+  chain: string
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadSettings
   meteora: MeteoraLaunchpadSettings
+  printr: PrintrLaunchpadSettings
+}
+
+export interface WalletInfrastructureSettings {
+  rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
+  quicknodeRpcUrl: string
+  customRpcUrl: string
+  swapProvider: 'jupiter'
+  preferredWallet: 'phantom' | 'wallet-standard'
+  executionMode: 'rpc' | 'jito'
+  jitoBlockEngineUrl: string
 }
 
 export function getBooleanSetting(key: string, fallback: boolean): boolean {
@@ -82,30 +101,111 @@ export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
 }
 
+const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'solana-toolbox', 'pro']
+const PRO_PIN_MIGRATION_KEY = 'pinned_tools_pro_default_added'
+const UI_RECOVERY_KEYS = [
+  'layout_center_mode',
+  'layout_right_panel_tab',
+  'workspace_profile',
+  'pinned_tools',
+  'drawer_tool_order',
+] as const
+const UI_RECOVERY_THRESHOLD = 3
+const UI_RECOVERY_COOLDOWN_MS = 60 * 60 * 1000
+const UI_RECOVERY_MARKER_KEY = 'ui_recovery_last_run_at'
+
+export interface UiRecoveryResult {
+  clearedKeys: string[]
+  clearedActiveSessions: number
+  ranAt: number
+}
+
+function sanitizePinnedTools(value: unknown): string[] {
+  if (!Array.isArray(value)) return DEFAULT_PINNED_TOOLS
+  const safe = sanitizeToolIds(value)
+  return safe.length > 0 ? safe : DEFAULT_PINNED_TOOLS
+}
+
+function sanitizeToolIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  return value
+    .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    .map((entry) => entry.trim())
+    .filter((entry) => {
+      if (seen.has(entry)) return false
+      seen.add(entry)
+      return true
+    })
+    .slice(0, 50)
+}
+
+function sanitizeWorkspaceProfile(value: WorkspaceProfile | null): WorkspaceProfile | null {
+  if (!value || typeof value !== 'object') return null
+  if (value.name !== 'web' && value.name !== 'solana' && value.name !== 'custom') return null
+  if (!value.toolVisibility || typeof value.toolVisibility !== 'object') return null
+  const toolVisibility = Object.fromEntries(
+    Object.entries(value.toolVisibility).filter(([, visible]) => typeof visible === 'boolean')
+  ) as Record<string, boolean>
+  return { name: value.name, toolVisibility }
+}
+
 export function getWorkspaceProfile(): WorkspaceProfile | null {
-  return getJsonSetting<WorkspaceProfile | null>('workspace_profile', null)
+  return sanitizeWorkspaceProfile(getJsonSetting<WorkspaceProfile | null>('workspace_profile', null))
 }
 
 export function setWorkspaceProfile(profile: WorkspaceProfile): void {
-  setJsonSetting('workspace_profile', profile)
+  const safe = sanitizeWorkspaceProfile(profile)
+  if (!safe) throw new Error('Invalid workspace profile')
+  setJsonSetting('workspace_profile', safe)
 }
 
-const DEFAULT_PINNED_TOOLS = ['git', 'browser', 'token-launch', 'solana-toolbox']
-
 export function getPinnedTools(): string[] {
-  return getJsonSetting<string[]>('pinned_tools', DEFAULT_PINNED_TOOLS)
+  const pinnedTools = sanitizePinnedTools(getJsonSetting<unknown>('pinned_tools', DEFAULT_PINNED_TOOLS))
+  if (getBooleanSetting(PRO_PIN_MIGRATION_KEY, false)) return pinnedTools
+
+  const migratedTools = pinnedTools.includes('pro') ? pinnedTools : [...pinnedTools, 'pro']
+  setJsonSetting('pinned_tools', migratedTools)
+  setBooleanSetting(PRO_PIN_MIGRATION_KEY, true)
+  return migratedTools
 }
 
 export function setPinnedTools(tools: string[]): void {
-  setJsonSetting('pinned_tools', tools)
+  setJsonSetting('pinned_tools', sanitizePinnedTools(tools))
 }
 
 export function getDrawerToolOrder(): string[] {
-  return getJsonSetting<string[]>('drawer_tool_order', [])
+  return sanitizeToolIds(getJsonSetting<unknown>('drawer_tool_order', []))
 }
 
 export function setDrawerToolOrder(order: string[]): void {
-  setJsonSetting('drawer_tool_order', order)
+  setJsonSetting('drawer_tool_order', sanitizeToolIds(order))
+}
+
+export function recoverUiState(): UiRecoveryResult {
+  const db = getDb()
+  const now = Date.now()
+  const deleteSetting = db.prepare('DELETE FROM app_settings WHERE key = ?')
+  for (const key of UI_RECOVERY_KEYS) {
+    deleteSetting.run(key)
+  }
+  const clearedActiveSessions = db.prepare('DELETE FROM active_sessions').run().changes
+  setJsonSetting(UI_RECOVERY_MARKER_KEY, now)
+  return {
+    clearedKeys: [...UI_RECOVERY_KEYS],
+    clearedActiveSessions,
+    ranAt: now,
+  }
+}
+
+export function maybeRecoverUnstableUiState(recentCrashCount: number): UiRecoveryResult | null {
+  if (recentCrashCount <= UI_RECOVERY_THRESHOLD) return null
+  const lastRanAt = getJsonSetting<number>(UI_RECOVERY_MARKER_KEY, 0)
+  const now = Date.now()
+  if (typeof lastRanAt === 'number' && now - lastRanAt < UI_RECOVERY_COOLDOWN_MS) {
+    return null
+  }
+  return recoverUiState()
 }
 
 const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
@@ -118,6 +218,23 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
     quoteMint: '',
     baseSupply: '',
   },
+  printr: {
+    apiBaseUrl: '',
+    apiKey: '',
+    quotePath: '',
+    createPath: '',
+    chain: '',
+  },
+}
+
+const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
+  rpcProvider: 'helius',
+  quicknodeRpcUrl: '',
+  customRpcUrl: '',
+  swapProvider: 'jupiter',
+  preferredWallet: 'phantom',
+  executionMode: 'rpc',
+  jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
 }
 
 function normalizeText(value: unknown): string {
@@ -147,6 +264,19 @@ function validateOptionalPositiveInteger(value: string, fieldName: string): void
   }
 }
 
+function validateOptionalHttpUrl(value: string, fieldName: string): void {
+  if (!value) return
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error(`${fieldName} must be a valid URL`)
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(`${fieldName} must use http or https`)
+  }
+}
+
 export function getTokenLaunchSettings(): TokenLaunchSettings {
   const value = getJsonSetting<TokenLaunchSettings>('token_launch_settings', DEFAULT_TOKEN_LAUNCH_SETTINGS)
   return {
@@ -158,6 +288,13 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
       configId: normalizeText(value?.meteora?.configId),
       quoteMint: normalizeText(value?.meteora?.quoteMint),
       baseSupply: normalizeText(value?.meteora?.baseSupply),
+    },
+    printr: {
+      apiBaseUrl: normalizeText(value?.printr?.apiBaseUrl),
+      apiKey: normalizeText(value?.printr?.apiKey),
+      quotePath: normalizeText(value?.printr?.quotePath),
+      createPath: normalizeText(value?.printr?.createPath),
+      chain: normalizeText(value?.printr?.chain),
     },
   }
 }
@@ -173,6 +310,13 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
       quoteMint: normalizeText(settings?.meteora?.quoteMint),
       baseSupply: normalizeText(settings?.meteora?.baseSupply),
     },
+    printr: {
+      apiBaseUrl: normalizeText(settings?.printr?.apiBaseUrl),
+      apiKey: normalizeText(settings?.printr?.apiKey),
+      quotePath: normalizeText(settings?.printr?.quotePath),
+      createPath: normalizeText(settings?.printr?.createPath),
+      chain: normalizeText(settings?.printr?.chain),
+    },
   }
 
   validateOptionalPublicKey(next.raydium.configId, 'Raydium config ID')
@@ -180,6 +324,65 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   validateOptionalPublicKey(next.meteora.configId, 'Meteora config ID')
   validateOptionalPublicKey(next.meteora.quoteMint, 'Meteora quote mint')
   validateOptionalPositiveInteger(next.meteora.baseSupply, 'Meteora base supply')
+  validateOptionalHttpUrl(next.printr.apiBaseUrl, 'Printr API base URL')
+  if (next.printr.quotePath && !next.printr.quotePath.startsWith('/')) {
+    throw new Error('Printr quote path must start with "/"')
+  }
+  if (next.printr.createPath && !next.printr.createPath.startsWith('/')) {
+    throw new Error('Printr create path must start with "/"')
+  }
 
   setJsonSetting('token_launch_settings', next)
+}
+
+export function getWalletInfrastructureSettings(): WalletInfrastructureSettings {
+  const value = getJsonSetting<WalletInfrastructureSettings>(
+    'wallet_infrastructure_settings',
+    DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS,
+  )
+
+  return {
+    rpcProvider: value?.rpcProvider === 'public' || value?.rpcProvider === 'quicknode' || value?.rpcProvider === 'custom'
+      ? value.rpcProvider
+      : 'helius',
+    quicknodeRpcUrl: normalizeText(value?.quicknodeRpcUrl),
+    customRpcUrl: normalizeText(value?.customRpcUrl),
+    swapProvider: 'jupiter',
+    preferredWallet: value?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    executionMode: value?.executionMode === 'jito' ? 'jito' : 'rpc',
+    jitoBlockEngineUrl: normalizeText(value?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
+  }
+}
+
+export function setWalletInfrastructureSettings(settings: WalletInfrastructureSettings): void {
+  const next: WalletInfrastructureSettings = {
+    rpcProvider: settings?.rpcProvider === 'public' || settings?.rpcProvider === 'quicknode' || settings?.rpcProvider === 'custom'
+      ? settings.rpcProvider
+      : 'helius',
+    quicknodeRpcUrl: normalizeText(settings?.quicknodeRpcUrl),
+    customRpcUrl: normalizeText(settings?.customRpcUrl),
+    swapProvider: 'jupiter',
+    preferredWallet: settings?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    executionMode: settings?.executionMode === 'jito' ? 'jito' : 'rpc',
+    jitoBlockEngineUrl: normalizeText(settings?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
+  }
+
+  if (next.rpcProvider === 'quicknode') {
+    if (!next.quicknodeRpcUrl) throw new Error('QuickNode RPC URL is required when using QuickNode')
+    validateOptionalHttpUrl(next.quicknodeRpcUrl, 'QuickNode RPC URL')
+    next.customRpcUrl = ''
+  } else if (next.rpcProvider === 'custom') {
+    if (!next.customRpcUrl) throw new Error('Custom RPC URL is required when using a custom RPC provider')
+    validateOptionalHttpUrl(next.customRpcUrl, 'Custom RPC URL')
+    next.quicknodeRpcUrl = ''
+  } else {
+    next.quicknodeRpcUrl = ''
+    next.customRpcUrl = ''
+  }
+
+  if (next.executionMode === 'jito') {
+    validateOptionalHttpUrl(next.jitoBlockEngineUrl, 'Jito block engine URL')
+  }
+
+  setJsonSetting('wallet_infrastructure_settings', next)
 }

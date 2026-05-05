@@ -1,0 +1,11 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.start { justify-content: flex-start; }
+.end { justify-content: flex-end; }
+.between { justify-content: space-between; }

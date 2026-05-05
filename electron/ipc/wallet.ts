@@ -1,9 +1,10 @@
-import { ipcMain, dialog, clipboard } from 'electron'
+import { clipboard, dialog, ipcMain } from 'electron'
 import { getDb } from '../db/db'
 import * as WalletService from '../services/WalletService'
+import { previewSolanaTransaction } from '../services/SolanaTransactionPreviewService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
-import type { WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
+import type { SolanaTransactionPreviewInput, WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
 
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', ipcHandler(async (_event, projectId?: string | null) => {
@@ -49,6 +50,18 @@ export function registerWalletHandlers() {
     return WalletService.hasHeliusKey()
   }))
 
+  ipcMain.handle('wallet:store-jupiter-key', ipcHandler(async (_event, value: string) => {
+    await WalletService.storeJupiterKey(value)
+  }))
+
+  ipcMain.handle('wallet:delete-jupiter-key', ipcHandler(async () => {
+    WalletService.deleteJupiterKey()
+  }))
+
+  ipcMain.handle('wallet:has-jupiter-key', ipcHandler(async () => {
+    return WalletService.hasJupiterKey()
+  }))
+
   ipcMain.handle('wallet:generate', ipcHandler(async (_event, input: WalletGenerateInput) => {
     return WalletService.generateWallet(input.name, input.walletType, input.agentId)
   }))
@@ -63,6 +76,10 @@ export function registerWalletHandlers() {
 
   ipcMain.handle('wallet:swap-quote', ipcHandler(async (_event, input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {
     return await WalletService.getSwapQuote(input.inputMint, input.outputMint, input.amount, input.slippageBps)
+  }))
+
+  ipcMain.handle('wallet:transaction-preview', ipcHandler(async (_event, input: SolanaTransactionPreviewInput) => {
+    return previewSolanaTransaction(input)
   }))
 
   ipcMain.handle('wallet:swap-execute', ipcHandler(async (_event, input: {
@@ -152,6 +169,6 @@ export function registerWalletHandlers() {
     setTimeout(() => {
       if (clipboard.readText() === keyString) clipboard.writeText('')
     }, 30000)
-    return keyString
+    return true
   }))
 }

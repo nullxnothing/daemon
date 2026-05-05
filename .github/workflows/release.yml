@@ -16,11 +16,11 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -33,25 +33,25 @@ jobs:
     needs: validate
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
             ~\AppData\Local\electron\cache
             ~\AppData\Local\electron-builder\cache
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
@@ -69,15 +69,17 @@ jobs:
       - name: Generate checksums
         shell: pwsh
         run: |
-          Get-ChildItem -Path release -Recurse -Include *.exe | ForEach-Object {
+          Get-ChildItem -Path release -Recurse -File -Include DAEMON-setup.exe | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             "$hash  $($_.Name)" | Out-File -Append -FilePath release/checksums-windows.txt
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-release
           path: |
-            release/**/*.exe
+            release/*/DAEMON-setup.exe
+            release/*/latest.yml
+            release/*/DAEMON-setup.exe.blockmap
             release/checksums-windows.txt
           retention-days: 1
 
@@ -86,27 +88,39 @@ jobs:
     needs: validate
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - name: Pre-cache Electron binaries
+        shell: bash
+        run: |
+          ELECTRON_VERSION="$(node -p "require('./package.json').devDependencies.electron.replace(/^[^0-9]*/, '')")"
+          ELECTRON_CACHE="$HOME/.cache/electron"
+          mkdir -p "$ELECTRON_CACHE"
+          for arch in arm64 x64; do
+            ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-darwin-${arch}.zip"
+            curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
+              --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
+              "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
+          done
       - name: Package
         run: |
           if [ -n "${{ secrets.CSC_LINK }}" ]; then
@@ -135,12 +149,14 @@ jobs:
           find . -name "*.dmg" -o -name "*.zip" | while read f; do
             shasum -a 256 "$f" >> checksums-macos.txt
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-release
           path: |
-            release/**/*.dmg
-            release/**/*.zip
+            release/*/DAEMON-*.dmg
+            release/*/DAEMON-*.zip
+            release/*/latest-mac.yml
+            release/*/DAEMON-*.blockmap
             release/checksums-macos.txt
           retention-days: 1
 
@@ -149,23 +165,23 @@ jobs:
     needs: validate
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.15.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
       - name: Cache electron
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
@@ -177,11 +193,12 @@ jobs:
           find . -name "*.AppImage" | while read f; do
             sha256sum "$f" >> checksums-linux.txt
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-release
           path: |
-            release/**/*.AppImage
+            release/*/DAEMON.AppImage
+            release/*/latest-linux.yml
             release/checksums-linux.txt
           retention-days: 1
 
@@ -190,18 +207,18 @@ jobs:
     needs: [release-windows, release-macos, release-linux]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: windows-release
           path: artifacts/windows
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: macos-release
           path: artifacts/macos
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: linux-release
           path: artifacts/linux
@@ -221,16 +238,21 @@ jobs:
           cat artifacts/linux/checksums-linux.txt 2>/dev/null >> changelog.md || true
           echo '```' >> changelog.md
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: changelog.md
           draft: false
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
           files: |
-            artifacts/windows/**/*.exe
-            artifacts/macos/**/*.dmg
-            artifacts/macos/**/*.zip
-            artifacts/linux/**/*.AppImage
+            artifacts/windows/*/DAEMON-setup.exe
+            artifacts/windows/*/latest.yml
+            artifacts/windows/*/DAEMON-setup.exe.blockmap
+            artifacts/macos/*/DAEMON-*.dmg
+            artifacts/macos/*/DAEMON-*.zip
+            artifacts/macos/*/latest-mac.yml
+            artifacts/macos/*/DAEMON-*.blockmap
+            artifacts/linux/*/DAEMON.AppImage
+            artifacts/linux/*/latest-linux.yml
             artifacts/windows/checksums-windows.txt
             artifacts/macos/checksums-macos.txt
             artifacts/linux/checksums-linux.txt

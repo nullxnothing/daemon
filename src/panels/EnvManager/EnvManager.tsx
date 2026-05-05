@@ -5,6 +5,7 @@ import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
 import { Dot } from '../../components/Dot'
 import { FocusTrap } from '../../components/FocusTrap'
+import { Banner, PanelHeader, Stat } from '../../components/Panel'
 import './EnvManager.css'
 
 interface UnifiedKey {
@@ -153,7 +154,6 @@ export function EnvManager() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const projects = useUIStore((s) => s.projects)
   const openFile = useUIStore((s) => s.openFile)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
 
   const [localKeys, setLocalKeys] = useState<UnifiedKey[]>([])
   const [vercelVars, setVercelVars] = useState<VercelEnvVar[]>([])
@@ -222,6 +222,10 @@ export function EnvManager() {
   useEffect(() => { loadVercel() }, [loadVercel])
 
   const merged = useMemo(() => mergeVars(localKeys, vercelVars), [localKeys, vercelVars])
+  const activeProject = useMemo(
+    () => projects.find((project) => project.id === activeProjectId) ?? null,
+    [activeProjectId, projects]
+  )
 
   const filtered = merged.filter((m) => {
     if (filter && !m.key.toLowerCase().includes(filter.toLowerCase())) return false
@@ -249,7 +253,6 @@ export function EnvManager() {
     const res = await window.daemon.fs.readFile(filePath)
     if (res.ok && res.data && activeProjectId) {
       openFile({ path: res.data.path, name: filePath.split(/[\\/]/).pop() ?? '.env', content: res.data.content, projectId: activeProjectId })
-      setDrawerTool(null)
     }
   }
 
@@ -345,21 +348,33 @@ export function EnvManager() {
 
   return (
     <div className="env-center">
-      {/* Header */}
-      <div className="env-header">
-        <div className="env-header-left">
-          <h2 className="env-title">Environment Variables</h2>
-          <span className="env-subtitle">
-            {stats.localCount} local / {stats.prodCount} production / {stats.syncedCount} synced
-          </span>
-        </div>
-        <div className="env-header-actions">
-          <label className="env-secrets-toggle">
-            <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
-            <span>Secrets only</span>
-          </label>
-          <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
-        </div>
+      <PanelHeader
+        className="env-panel-header"
+        kicker="Environment workspace"
+        brandKicker
+        title="Keep local and production config aligned"
+        subtitle={`${activeProject ? activeProject.name : 'No active project'} · ${vercelLinked ? 'Vercel linked' : 'Local only'}`}
+        actions={
+          <div className="env-header-actions">
+            <button className="env-btn" onClick={loadLocal}>Refresh local</button>
+            {vercelLinked && (
+              <button className="env-btn" onClick={loadVercel} disabled={loadingVercel}>
+                {loadingVercel ? 'Refreshing prod…' : 'Refresh prod'}
+              </button>
+            )}
+            <label className="env-secrets-toggle">
+              <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
+              <span>Secrets only</span>
+            </label>
+            <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
+          </div>
+        }
+      />
+
+      <div className="env-stats-row">
+        <Stat className="env-stat-card" label="Local keys" value={stats.localCount} />
+        <Stat className="env-stat-card" label="Production keys" value={stats.prodCount} />
+        <Stat className="env-stat-card" label="Synced" value={stats.syncedCount} />
       </div>
 
       {/* Search */}
@@ -374,10 +389,10 @@ export function EnvManager() {
 
       {/* Vercel status banner */}
       {!vercelConnected && !loadingVercel && activeProjectId && vercelError && (
-        <div className="env-banner env-banner-warn">{vercelError}</div>
+        <Banner className="env-banner env-banner-warn" tone="warn">{vercelError}</Banner>
       )}
       {!vercelLinked && !loadingVercel && activeProjectId && (
-        <div className="env-banner env-banner-info">Link a Vercel project to see production vars</div>
+        <Banner className="env-banner env-banner-info" tone="info">Link a Vercel project to see production vars</Banner>
       )}
 
       {/* Table */}

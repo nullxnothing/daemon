@@ -47,6 +47,11 @@ import type {
   WalletGenerateInput,
   TransferSOLInput,
   TransferTokenInput,
+  SolanaTransactionPreview,
+  SolanaTransactionPreviewInput,
+  AgentWorkCreateInput,
+  AgentWorkSubmitInput,
+  AgentWorkTask,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -77,6 +82,19 @@ import type {
   PnlSyncResult,
   TradeRecord,
   CostBasisEntry,
+  ReplayTrace,
+  ReplayProgramSummary,
+  ReplayContextHandoff,
+  ReplayAgentHandoff,
+  ReplayVerificationResult,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 } from '../../electron/shared/types'
 
 export type {
@@ -128,6 +146,11 @@ export type {
   WalletGenerateInput,
   TransferSOLInput,
   TransferTokenInput,
+  SolanaTransactionPreview,
+  SolanaTransactionPreviewInput,
+  AgentWorkCreateInput,
+  AgentWorkSubmitInput,
+  AgentWorkTask,
   McpAddInput,
   DeployPlatform,
   DeployAuthStatus,
@@ -158,6 +181,14 @@ export type {
   PnlSyncResult,
   TradeRecord,
   CostBasisEntry,
+  LspCompletionResult,
+  LspDiagnosticEvent,
+  LspDocumentInput,
+  LspDocumentSyncResult,
+  LspHoverResult,
+  LspLocation,
+  LspPosition,
+  LspServerStatus,
 }
 
 declare global {
@@ -166,6 +197,8 @@ declare global {
     name: string
     address: string
     isDefault: boolean
+    walletType: string
+    ecosystemRole: 'daemon-deployer' | null
     hasKeypair: boolean
     isAssignedToActiveProject: boolean
     assignedProjectIds: string[]
@@ -181,6 +214,68 @@ declare global {
       quoteMint: string
       baseSupply: string
     }
+    printr: {
+      apiBaseUrl: string
+      apiKey: string
+      quotePath: string
+      createPath: string
+      chain: string
+    }
+  }
+
+  type WalletInfrastructureSettings = {
+    rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
+    quicknodeRpcUrl: string
+    customRpcUrl: string
+    swapProvider: 'jupiter'
+    preferredWallet: 'phantom' | 'wallet-standard'
+    executionMode: 'rpc' | 'jito'
+    jitoBlockEngineUrl: string
+  }
+
+  type WalletExecutionResult = {
+    signature: string
+    transport: 'rpc' | 'jito'
+  }
+
+  type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
+  type SolanaTransactionPreview = import('../../electron/shared/types').SolanaTransactionPreview
+  type AgentWorkCreateInput = import('../../electron/shared/types').AgentWorkCreateInput
+  type AgentWorkSubmitInput = import('../../electron/shared/types').AgentWorkSubmitInput
+  type AgentWorkTask = import('../../electron/shared/types').AgentWorkTask
+
+  type SolanaRuntimeStatusLevel = 'live' | 'partial' | 'setup'
+
+  type SolanaExecutionCoverageItem = {
+    id: 'wallet-sends' | 'jupiter-swaps' | 'launch-adapters' | 'pumpfun' | 'recovery'
+    label: string
+    status: SolanaRuntimeStatusLevel
+    detail: string
+  }
+
+  type SolanaRuntimeStatusSummary = {
+    rpc: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    walletPath: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    swapEngine: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    executionBackend: {
+      label: string
+      detail: string
+      status: SolanaRuntimeStatusLevel
+    }
+    executionCoverage: SolanaExecutionCoverageItem[]
+    troubleshooting: string[]
   }
 
   // Re-export shared types as global ambient types so existing code
@@ -199,6 +294,7 @@ declare global {
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
   type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
   type PluginRow = import('../../electron/shared/types').PluginRow
+  type PluginCreateInput = import('../../electron/shared/types').PluginCreateInput
   type Tweet = import('../../electron/shared/types').Tweet
   type VoiceProfile = import('../../electron/shared/types').VoiceProfile
   type IpcResponse<T = unknown> = import('../../electron/shared/types').IpcResponse<T>
@@ -228,6 +324,11 @@ declare global {
   type OnboardingStepStatus = import('../../electron/shared/types').OnboardingStepStatus
   type WorkspaceProfile = import('../../electron/shared/types').WorkspaceProfile
   type WorkspaceProfileName = import('../../electron/shared/types').WorkspaceProfileName
+  type ProSubscriptionState = import('../../electron/shared/types').ProSubscriptionState
+  type ProPriceInfo = import('../../electron/shared/types').ProPriceInfo
+  type ArenaSubmission = import('../../electron/shared/types').ArenaSubmission
+  type ArenaSubmissionInput = import('../../electron/shared/types').ArenaSubmissionInput
+  type ProSkillManifest = import('../../electron/shared/types').ProSkillManifest
 
   interface DaemonWindow {
     minimize: () => void
@@ -240,7 +341,7 @@ declare global {
 
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
-    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string }>>
+    spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
     spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     ready: (id: string) => void
     write: (id: string, data: string) => void
@@ -322,6 +423,19 @@ declare global {
     iconTheme: () => Promise<IpcResponse<RuntimeIconTheme | null>>
   }
 
+  interface DaemonLsp {
+    status: (projectPath?: string) => Promise<IpcResponse<LspServerStatus[]>>
+    openDocument: (input: LspDocumentInput) => Promise<IpcResponse<LspDocumentSyncResult>>
+    changeDocument: (input: LspDocumentInput) => Promise<IpcResponse<LspDocumentSyncResult>>
+    closeDocument: (input: Pick<LspDocumentInput, 'projectPath' | 'filePath' | 'languageId'>) => Promise<IpcResponse<void>>
+    hover: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspHoverResult | null>>
+    definition: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspLocation[]>>
+    completion: (projectPath: string, filePath: string, languageId: string, position: LspPosition) => Promise<IpcResponse<LspCompletionResult>>
+    diagnostics: (filePath: string) => Promise<IpcResponse<LspDiagnosticEvent>>
+    shutdownProject: (projectPath: string) => Promise<IpcResponse<void>>
+    onDiagnostics: (callback: (payload: LspDiagnosticEvent) => void) => () => void
+  }
+
   interface DaemonProjects {
     list: () => Promise<IpcResponse<Project[]>>
     create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
@@ -340,18 +454,22 @@ declare global {
     storeHeliusKey: (value: string) => Promise<IpcResponse>
     deleteHeliusKey: () => Promise<IpcResponse>
     hasHeliusKey: () => Promise<IpcResponse<boolean>>
+    storeJupiterKey: (value: string) => Promise<IpcResponse>
+    deleteJupiterKey: () => Promise<IpcResponse>
+    hasJupiterKey: () => Promise<IpcResponse<boolean>>
     generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
-    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
-    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<{ signature: string }>>
+    sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
+    sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
     swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
-    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<{ signature: string }>>
+    transactionPreview: (input: SolanaTransactionPreviewInput) => Promise<IpcResponse<SolanaTransactionPreview>>
+    swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
     transactionHistory: (walletId: string, limit?: number) => Promise<IpcResponse<Array<{ id: string; wallet_id: string; type: string; signature: string | null; from_address: string; to_address: string; amount: number; mint: string | null; symbol: string | null; status: string; error: string | null; created_at: number }>>>
-    exportPrivateKey: (walletId: string) => Promise<IpcResponse<string>>
+    exportPrivateKey: (walletId: string) => Promise<IpcResponse<boolean>>
   }
 
   interface DaemonPnl {
@@ -369,8 +487,23 @@ declare global {
     created_at: number
   }
 
+  interface UiRecoveryResult {
+    clearedKeys: string[]
+    clearedActiveSessions: number
+    ranAt: number
+  }
+
+  interface AppMeta {
+    version: string
+    electronVersion: string
+    platform: string
+    updateChannel: string
+    releaseUrl: string
+  }
+
   interface DaemonSettings {
     getUi: () => Promise<IpcResponse<UiSettings>>
+    getAppMeta: () => Promise<IpcResponse<AppMeta>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
     isOnboardingComplete: () => Promise<IpcResponse<boolean>>
@@ -380,6 +513,7 @@ declare global {
     reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
     getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
     clearCrashes: () => Promise<IpcResponse>
+    recoverUiState: () => Promise<IpcResponse<UiRecoveryResult>>
     getPinnedTools: () => Promise<IpcResponse<string[]>>
     setPinnedTools: (tools: string[]) => Promise<IpcResponse>
     getDrawerToolOrder: () => Promise<IpcResponse<string[]>>
@@ -388,9 +522,13 @@ declare global {
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
     getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
     setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
+    getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>
+    getSolanaRuntimeStatus: () => Promise<IpcResponse<SolanaRuntimeStatusSummary>>
+    setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
+    onUiRecoveryApplied: (callback: (result: UiRecoveryResult) => void) => () => void
   }
 
   interface DaemonAgents {
@@ -516,6 +654,7 @@ declare global {
 
   interface DaemonPlugins {
     list: () => Promise<IpcResponse<PluginRow[]>>
+    add: (input: PluginCreateInput) => Promise<IpcResponse<PluginRow>>
     setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<void>>
     setConfig: (id: string, config: string) => Promise<IpcResponse<void>>
     reorder: (orderedIds: string[]) => Promise<IpcResponse<void>>
@@ -606,8 +745,46 @@ declare global {
     created_at: number
   }
 
-  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'bonk'
+  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
   type LaunchpadStatus = 'available' | 'planned'
+
+  type PulseTokenCategory = 'newly-created' | 'almost-graduated' | 'graduated'
+
+  interface PulseTokenMetrics {
+    trend: number | null
+    graduationProgress: number | null
+    marketCapUsd: number | null
+    volume24Usd: number | null
+    holders: number | null
+    txnCount24: number | null
+    buyCount24: number | null
+    sellCount24: number | null
+  }
+
+  interface PulseToken {
+    id: string
+    category: PulseTokenCategory
+    name: string
+    symbol: string
+    imageUrl: string | null
+    creator: string | null
+    createdAt: number | null
+    deployments: number | null
+    contractAddress: string
+    contractAddressByChain: Record<string, string>
+    graduatedChains: string[]
+    externalUrlX: string | null
+    externalUrlWebsite: string | null
+    metrics: PulseTokenMetrics
+  }
+
+  interface PulseTokenFeed {
+    category: PulseTokenCategory
+    pageNumber: number
+    pageSize: number
+    fetchedAt: number
+    tokens: PulseToken[]
+  }
 
   interface LaunchpadDefinition {
     id: LaunchpadId
@@ -644,6 +821,8 @@ declare global {
   interface DaemonLaunch {
     listLaunchpads: () => Promise<IpcResponse<LaunchpadDefinition[]>>
     listWalletOptions: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption[]>>
+    ensureDaemonDeployerWallet: (projectId?: string | null) => Promise<IpcResponse<LaunchWalletOption>>
+    listPulseTokens: (input?: { category?: PulseTokenCategory; pageNumber?: number; pageSize?: number }) => Promise<IpcResponse<PulseTokenFeed>>
     pickImage: () => Promise<IpcResponse<string | null>>
     preflightToken: (input: {
       launchpad: LaunchpadId
@@ -728,6 +907,14 @@ declare global {
   interface DaemonRegistry {
     listSessions: (limit?: number) => Promise<IpcResponse<LocalAgentSession[]>>
     getProfile: () => Promise<IpcResponse<AgentSessionProfile>>
+    listAgentWork: (limit?: number) => Promise<IpcResponse<AgentWorkTask[]>>
+    createAgentWork: (input: AgentWorkCreateInput) => Promise<IpcResponse<AgentWorkTask>>
+    fundAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    startAgentWork: (taskId: string, sessionId?: string | null) => Promise<IpcResponse<AgentWorkTask>>
+    submitAgentWork: (taskId: string, input?: AgentWorkSubmitInput) => Promise<IpcResponse<AgentWorkTask>>
+    approveAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    rejectAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
+    settleAgentWork: (taskId: string, signature?: string | null) => Promise<IpcResponse<AgentWorkTask>>
     publishSession: (sessionId: string) => Promise<IpcResponse<{ startSignature: string; endSignature: string }>>
     publishAll: () => Promise<IpcResponse<{ published: number; failed: number }>>
     renameSession: (sessionId: string, name: string) => Promise<IpcResponse<null>>
@@ -789,11 +976,25 @@ declare global {
     message: string
     context: string | null
     createdAt: number
+    sessionId?: string | null
+    sessionStatus?: 'created' | 'running' | 'blocked' | 'failed' | 'complete' | null
+    projectId?: string | null
+    projectName?: string | null
+    sessionSummary?: string | null
+    artifacts?: DaemonActivityArtifact[] | null
+  }
+
+  interface DaemonActivityArtifact {
+    type: 'transaction' | 'program' | 'explorer' | 'project' | 'deploy' | 'wallet' | 'other'
+    label: string
+    value: string
+    href?: string | null
   }
 
   interface DaemonActivity {
     append: (entry: DaemonActivityEntry) => Promise<IpcResponse<void>>
     list: (limit?: number) => Promise<IpcResponse<DaemonActivityEntry[]>>
+    saveSummary: (targetId: string, summary: string) => Promise<IpcResponse<void>>
     clear: () => Promise<IpcResponse<void>>
   }
 
@@ -801,6 +1002,24 @@ declare global {
 
   interface DaemonEvents {
     on: (channel: DaemonEventChannel, callback: (payload: unknown) => void) => () => void
+  }
+
+  interface DaemonPro {
+    status: () => Promise<IpcResponse<ProSubscriptionState>>
+    refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
+    fetchPrice: () => Promise<IpcResponse<ProPriceInfo>>
+    subscribe: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState; price: ProPriceInfo }>>
+    claimHolderAccess: (walletId: string) => Promise<IpcResponse<{ state: ProSubscriptionState }>>
+    signOut: () => Promise<IpcResponse<void>>
+    arenaList: () => Promise<IpcResponse<ArenaSubmission[]>>
+    arenaSubmit: (input: ArenaSubmissionInput) => Promise<IpcResponse<{ id: string }>>
+    arenaVote: (submissionId: string) => Promise<IpcResponse<void>>
+    skillsManifest: () => Promise<IpcResponse<ProSkillManifest>>
+    skillsSync: () => Promise<IpcResponse<{ installed: string[]; skipped: string[] }>>
+    skillsDownload: (skillId: string) => Promise<IpcResponse<{ fileCount: number; path: string }>>
+    quota: () => Promise<IpcResponse<{ quota: number; used: number; remaining: number }>>
+    mcpPush: () => Promise<IpcResponse<{ count: number }>>
+    mcpPull: () => Promise<IpcResponse<{ count: number }>>
   }
 
   interface DaemonAPI {
@@ -814,6 +1033,7 @@ declare global {
     wallet: DaemonWallet
     settings: DaemonSettings
     fs: DaemonFs
+    lsp: DaemonLsp
     git: DaemonGit
     projects: DaemonProjects
     agents: DaemonAgents
@@ -839,7 +1059,19 @@ declare global {
     vault: DaemonVault
     validator: DaemonValidator
     pnl: DaemonPnl
+    pro: DaemonPro
     feedback: DaemonFeedback
+    agentStation: DaemonAgentStation
+    replay: DaemonReplay
+  }
+
+  interface DaemonReplay {
+    fetchTrace: (signature: string, force?: boolean) => Promise<IpcResponse<ReplayTrace>>
+    fetchProgram: (programId: string, limit?: number) => Promise<IpcResponse<ReplayProgramSummary>>
+    buildContext: (signature: string) => Promise<IpcResponse<ReplayContextHandoff>>
+    createHandoff: (projectPath: string, signature: string) => Promise<IpcResponse<ReplayAgentHandoff>>
+    verifyFix: (projectPath: string, signature: string, command: string) => Promise<IpcResponse<ReplayVerificationResult>>
+    rpcLabel: () => Promise<IpcResponse<string>>
   }
 
   interface DaemonFeedback {
@@ -873,6 +1105,14 @@ declare global {
     stop: () => Promise<IpcResponse<{ stopped: boolean }>>
     status: () => Promise<IpcResponse<{ type: string | null; status: string; terminalId: string | null; port: number | null }>>
     detect: () => Promise<IpcResponse<{ surfpool: boolean; testValidator: boolean }>>
+    toolchainStatus: (projectPath?: string) => Promise<IpcResponse<{
+      solanaCli: { installed: boolean; version: string | null }
+      anchor: { installed: boolean; version: string | null }
+      avm: { installed: boolean; version: string | null }
+      surfpool: { installed: boolean; version: string | null }
+      testValidator: { installed: boolean; version: string | null }
+      litesvm: { installed: boolean; source: 'project' | 'none' }
+    }>>
     detectProject: (projectPath: string) => Promise<IpcResponse<{ isSolanaProject: boolean; framework: string | null; indicators: string[]; suggestedMcps: string[] }>>
     onStatusChange: (callback: (state: unknown) => void) => () => void
   }
@@ -918,5 +1158,36 @@ declare global {
 
   interface Window {
     daemon: DaemonAPI
+  }
+
+  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter'
+  type AgentStationStatus = 'idle' | 'running' | 'stopped'
+
+  interface AgentStationConfig {
+    id: string
+    name: string
+    description: string | null
+    template: AgentTemplate
+    wallet_id: string | null
+    plugins: string
+    rpc_url: string | null
+    model: string
+    project_path: string | null
+    status: AgentStationStatus
+    created_at: number
+    updated_at: number
+  }
+
+  interface DaemonAgentStation {
+    list: () => Promise<IpcResponse<AgentStationConfig[]>>
+    get: (id: string) => Promise<IpcResponse<AgentStationConfig>>
+    create: (input: { name: string; description?: string; template: AgentTemplate; wallet_id?: string | null; plugins?: string[]; rpc_url?: string | null; model?: string }) => Promise<IpcResponse<AgentStationConfig>>
+    delete: (id: string) => Promise<IpcResponse>
+    scaffold: (configId: string, outputDir: string) => Promise<IpcResponse<{ projectPath: string; envPath: string }>>
+    pickOutputDir: () => Promise<IpcResponse<string | null>>
+    storeKey: (configId: string, privateKey: string) => Promise<IpcResponse>
+    hasKey: (configId: string) => Promise<IpcResponse<boolean>>
+    deleteKey: (configId: string) => Promise<IpcResponse>
+    updateStatus: (id: string, status: AgentStationStatus) => Promise<IpcResponse>
   }
 }

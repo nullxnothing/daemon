@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useImageStore } from '../../store/images'
 import './ImagePanel.css'
 
@@ -45,11 +46,22 @@ function formatDate(ts: number): string {
 
 export function ImagePanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const {
-    images, loading, generating, error, selectedId, hasApiKey, watcherRunning,
-    sessionCount, sessionCost,
-    loadImages, generate, deleteImage, select, checkApiKey, toggleWatcher, checkWatcher,
-  } = useImageStore()
+  const images = useImageStore((s) => s.images)
+  const loading = useImageStore((s) => s.loading)
+  const generating = useImageStore((s) => s.generating)
+  const error = useImageStore((s) => s.error)
+  const selectedId = useImageStore((s) => s.selectedId)
+  const hasApiKey = useImageStore((s) => s.hasApiKey)
+  const watcherRunning = useImageStore((s) => s.watcherRunning)
+  const sessionCount = useImageStore((s) => s.sessionCount)
+  const sessionCost = useImageStore((s) => s.sessionCost)
+  const loadImages = useImageStore((s) => s.loadImages)
+  const generate = useImageStore((s) => s.generate)
+  const deleteImage = useImageStore((s) => s.deleteImage)
+  const select = useImageStore((s) => s.select)
+  const checkApiKey = useImageStore((s) => s.checkApiKey)
+  const toggleWatcher = useImageStore((s) => s.toggleWatcher)
+  const checkWatcher = useImageStore((s) => s.checkWatcher)
 
   const [prompt, setPrompt] = useState('')
   const [model, setModel] = useState('standard')
@@ -153,7 +165,7 @@ export function ImagePanel() {
   }
 
   const handleGoToSettings = () => {
-    useUIStore.getState().setDrawerTool('settings')
+    useUIStore.getState().openWorkspaceTool('settings')
   }
 
   const handleSaveKey = async () => {

@@ -1,12 +1,23 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import crypto from 'node:crypto'
 import * as Settings from '../services/SettingsService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { getDb } from '../db/db'
+import { getSolanaRuntimeStatus } from '../services/SolanaRuntimeStatusService'
 
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get-ui', ipcHandler(async () => {
     return Settings.getUiSettings()
+  }))
+
+  ipcMain.handle('settings:get-app-meta', ipcHandler(async () => {
+    return {
+      version: app.getVersion(),
+      electronVersion: process.versions.electron,
+      platform: process.platform,
+      updateChannel: 'release',
+      releaseUrl: 'https://github.com/nullxnothing/daemon/releases/latest',
+    }
   }))
 
   ipcMain.handle('settings:set-show-market-tape', ipcHandler(async (_event, enabled: boolean) => {
@@ -62,6 +73,10 @@ export function registerSettingsHandlers() {
     db.prepare('DELETE FROM app_crashes').run()
   }))
 
+  ipcMain.handle('settings:recover-ui-state', ipcHandler(async () => {
+    return Settings.recoverUiState()
+  }))
+
   ipcMain.handle('settings:get-pinned-tools', ipcHandler(async () => {
     return Settings.getPinnedTools()
   }))
@@ -101,6 +116,19 @@ export function registerSettingsHandlers() {
   ipcMain.handle('settings:set-token-launch-settings', ipcHandler(async (_event, settings: Settings.TokenLaunchSettings) => {
     if (!settings || typeof settings !== 'object') throw new Error('Invalid token launch settings')
     Settings.setTokenLaunchSettings(settings)
+  }))
+
+  ipcMain.handle('settings:get-wallet-infrastructure-settings', ipcHandler(async () => {
+    return Settings.getWalletInfrastructureSettings()
+  }))
+
+  ipcMain.handle('settings:get-solana-runtime-status', ipcHandler(async () => {
+    return getSolanaRuntimeStatus()
+  }))
+
+  ipcMain.handle('settings:set-wallet-infrastructure-settings', ipcHandler(async (_event, settings: Settings.WalletInfrastructureSettings) => {
+    if (!settings || typeof settings !== 'object') throw new Error('Invalid wallet infrastructure settings')
+    Settings.setWalletInfrastructureSettings(settings)
   }))
 
   // --- Generic layout state KV (centerMode, rightPanelTab, etc.) ---

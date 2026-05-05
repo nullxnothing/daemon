@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
-import { getEmbeddedProviderStartupCommand } from '../../../electron/shared/providerLaunch'
+import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useNotificationsStore } from '../../store/notifications'
 import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
@@ -19,11 +20,13 @@ export function TerminalPanel() {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const removeTerminal = useUIStore((s) => s.removeTerminal)
   const setActiveTerminal = useUIStore((s) => s.setActiveTerminal)
-  const setDrawerTool = useUIStore((s) => s.setDrawerTool)
+  const setActiveProject = useUIStore((s) => s.setActiveProject)
+  const setDrawerTool = useWorkflowShellStore((s) => s.setDrawerTool)
   const centerMode = useUIStore((s) => s.centerMode)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
+  const projects = useUIStore((s) => s.projects)
   const activeTerminalId = useUIStore((s) =>
     s.activeProjectId ? s.activeTerminalIdByProject[s.activeProjectId] ?? null : null,
   )
@@ -34,25 +37,78 @@ export function TerminalPanel() {
   const [splitLayoutsByProject, setSplitLayoutsByProject] = useState<Record<string, SplitLayout | undefined>>({})
   const [launchRecents, setLaunchRecents] = useState<TerminalLaunchRecent[]>(() => readTerminalLaunchRecents())
   const [isDragOver, setIsDragOver] = useState(false)
-  const [claudeInstallStatus, setClaudeInstallStatus] = useState<'idle' | 'installing' | 'failed'>('idle')
-  const [installTerminalId, setInstallTerminalId] = useState<string | null>(null)
+  const [launchError, setLaunchError] = useState<string | null>(null)
   const panelDragDepthRef = useRef(0)
-  const creatingRef = useRef(false)
+  const terminalCreateInFlightRef = useRef<Promise<string | null> | null>(null)
+  const splitCreatingRef = useRef(false)
   const splitLayout = activeProjectId ? splitLayoutsByProject[activeProjectId] : undefined
 
   const addLaunchRecent = useCallback((recent: Omit<TerminalLaunchRecent, 'timestamp'>) => {
     setLaunchRecents((prev) => addToRecents(prev, recent))
   }, [])
 
-  const handleNewTerminal = useCallback(async (label = 'Terminal', startupCommand?: string) => {
-    if (!activeProjectId) return null
-    const res = await window.daemon.terminal.create({ cwd: activeProjectPath ?? undefined, startupCommand })
-    if (res.ok && res.data) {
-      addTerminal(activeProjectId, res.data.id, label)
-      return res.data.id
+  const resolveProjectContext = useCallback(() => {
+    if (activeProjectId && activeProjectPath) {
+      return {
+        projectId: activeProjectId,
+        projectPath: activeProjectPath,
+        projectName: projects.find((project) => project.id === activeProjectId)?.name ?? null,
+      }
     }
-    return null
-  }, [activeProjectId, activeProjectPath, addTerminal])
+    if (projects.length === 0) {
+      setLaunchError('Open or create a project first to start a terminal.')
+      return null
+    }
+    const fallback = [...projects].sort((a, b) => (b.last_active ?? 0) - (a.last_active ?? 0))[0]
+    if (!fallback) {
+      setLaunchError('Open or create a project first to start a terminal.')
+      return null
+    }
+    setActiveProject(fallback.id, fallback.path)
+    setLaunchError(null)
+    return { projectId: fallback.id, projectPath: fallback.path, projectName: fallback.name ?? null }
+  }, [activeProjectId, activeProjectPath, projects, setActiveProject])
+
+  const handleNewTerminal = useCallback(async (
+    label = 'Terminal',
+    startupCommand?: string,
+  ) => {
+    if (terminalCreateInFlightRef.current) return terminalCreateInFlightRef.current
+
+    const projectContext = resolveProjectContext()
+    if (!projectContext) return null
+
+    const createTerminal = async () => {
+      setLaunchError(null)
+      const res = await window.daemon.terminal.create({ cwd: projectContext.projectPath, startupCommand })
+      if (res.ok && res.data) {
+        addTerminal(projectContext.projectId, res.data.id, label)
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Terminal',
+          message: `Opened ${label} in ${projectContext.projectPath}`,
+          projectId: projectContext.projectId,
+          projectName: projectContext.projectName,
+        })
+        return res.data.id
+      }
+      useNotificationsStore.getState().addActivity({
+        kind: 'error',
+        context: 'Terminal',
+        message: res.error ?? `Failed to open ${label}`,
+        projectId: projectContext.projectId,
+        projectName: projectContext.projectName,
+      })
+      setLaunchError(res.error ?? 'Failed to open terminal.')
+      return null
+    }
+
+    const createPromise = createTerminal().finally(() => {
+      if (terminalCreateInFlightRef.current === createPromise) terminalCreateInFlightRef.current = null
+    })
+    terminalCreateInFlightRef.current = createPromise
+    return createPromise
+  }, [resolveProjectContext, addTerminal])
 
   const handleFolderDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
@@ -85,106 +141,104 @@ export function TerminalPanel() {
   }, [addLaunchRecent, handleNewTerminal])
 
   const handleStartClaudeChat = useCallback(() => {
+    setLaunchError(null)
     setDrawerTool(null)
   }, [setDrawerTool])
 
   const handleStartSolanaAgent = useCallback(async () => {
-    if (!activeProjectId) return
-    const res = await window.daemon.terminal.spawnAgent({ agentId: SOLANA_AGENT_DB_ID, projectId: activeProjectId })
+    const projectContext = resolveProjectContext()
+    if (!projectContext) return
+    setLaunchError(null)
+    const res = await window.daemon.terminal.spawnAgent({ agentId: SOLANA_AGENT_DB_ID, projectId: projectContext.projectId })
     if (res.ok && res.data) {
-      addTerminal(activeProjectId, res.data.id, res.data.agentName ?? 'Solana Agent', res.data.agentId)
+      addTerminal(projectContext.projectId, res.data.id, res.data.agentName ?? 'Solana Agent', res.data.agentId)
+      return
     }
-  }, [activeProjectId, addTerminal])
+    setLaunchError(res.error ?? 'Failed to start Solana agent.')
+  }, [resolveProjectContext, addTerminal])
 
   const handleLaunchAgent = useCallback(async (agent: Agent) => {
-    if (!activeProjectId) return
-    const res = await window.daemon.terminal.spawnAgent({ agentId: agent.id, projectId: activeProjectId })
+    const projectContext = resolveProjectContext()
+    if (!projectContext) return
+    setLaunchError(null)
+    const res = await window.daemon.terminal.spawnAgent({ agentId: agent.id, projectId: projectContext.projectId })
     if (res.ok && res.data) {
-      addTerminal(activeProjectId, res.data.id, res.data.agentName ?? agent.name, res.data.agentId)
+      addTerminal(projectContext.projectId, res.data.id, res.data.agentName ?? agent.name, res.data.agentId)
       addLaunchRecent({ kind: 'agent', key: agent.id, label: agent.name })
+      return
     }
-  }, [activeProjectId, addLaunchRecent, addTerminal])
+    setLaunchError(res.error ?? `Failed to start ${agent.name}.`)
+  }, [resolveProjectContext, addLaunchRecent, addTerminal])
 
   const handleCloseTerminal = useCallback(async (id: string) => {
     if (!activeProjectId) return
     await window.daemon.terminal.kill(id)
     removeTerminal(activeProjectId, id)
+    useNotificationsStore.getState().addActivity({
+      kind: 'info',
+      context: 'Terminal',
+      message: `Closed terminal ${id}`,
+      projectId: activeProjectId,
+      projectName: projects.find((project) => project.id === activeProjectId)?.name ?? null,
+    })
     setSplitLayoutsByProject((prev) => {
       const current = prev[activeProjectId]
       if (!current || current.secondaryId !== id) return prev
       return { ...prev, [activeProjectId]: undefined }
     })
-  }, [activeProjectId, removeTerminal])
+  }, [activeProjectId, projects, removeTerminal])
 
   const handleSplit = useCallback(async (direction: 'horizontal' | 'vertical') => {
-    if (!activeProjectId || !activeTerminalId) return
-    let secondaryId = splitLayoutsByProject[activeProjectId]?.secondaryId
+    if (splitCreatingRef.current) return
+    const projectContext = resolveProjectContext()
+    if (!projectContext) return
+    const projectId = projectContext.projectId
+    let currentActiveTerminalId = activeTerminalId
+    if (!currentActiveTerminalId) {
+      currentActiveTerminalId = await handleNewTerminal('Terminal')
+      if (!currentActiveTerminalId) return
+    }
+    let secondaryId = splitLayoutsByProject[projectId]?.secondaryId
     const hasExistingSecondary = Boolean(secondaryId && visibleTerminals.some((tab) => tab.id === secondaryId))
     if (!hasExistingSecondary) {
-      const res = await window.daemon.terminal.create({ cwd: activeProjectPath ?? undefined })
-      if (!res.ok || !res.data) return
-      secondaryId = res.data.id
-      addTerminal(activeProjectId, secondaryId, 'Split')
-      setActiveTerminal(activeProjectId, activeTerminalId)
+      splitCreatingRef.current = true
+      try {
+        const res = await window.daemon.terminal.create({ cwd: projectContext.projectPath })
+        if (!res.ok || !res.data) {
+          setLaunchError(res.error ?? 'Failed to open split terminal.')
+          return
+        }
+        secondaryId = res.data.id
+        addTerminal(projectId, secondaryId, 'Split')
+        setActiveTerminal(projectId, currentActiveTerminalId)
+        useNotificationsStore.getState().addActivity({
+          kind: 'success',
+          context: 'Terminal',
+          message: `Opened split terminal ${secondaryId}`,
+          projectId,
+          projectName: projectContext.projectName,
+        })
+      } finally {
+        splitCreatingRef.current = false
+      }
     }
     if (!secondaryId) return
-    setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: { direction, secondaryId } }))
-  }, [activeProjectId, activeProjectPath, activeTerminalId, addTerminal, setActiveTerminal, splitLayoutsByProject, visibleTerminals])
+    setLaunchError(null)
+    setSplitLayoutsByProject((prev) => ({ ...prev, [projectId]: { direction, secondaryId } }))
+  }, [resolveProjectContext, activeTerminalId, handleNewTerminal, splitLayoutsByProject, visibleTerminals, addTerminal, setActiveTerminal])
 
   const handleUnsplit = useCallback(() => {
     if (!activeProjectId) return
     setSplitLayoutsByProject((prev) => ({ ...prev, [activeProjectId]: undefined }))
   }, [activeProjectId])
 
-  // Auto-create first terminal for project — starts in Claude mode if CLI is available
+  // Auto-create the first terminal as a neutral shell. Agent sessions should only
+  // start from explicit user actions, not from opening the bottom terminal.
   useEffect(() => {
     if (IS_SMOKE_TEST) return
-    if (!activeProjectId || visibleTerminals.length !== 0 || creatingRef.current) return
-    creatingRef.current = true
-
-    window.daemon.terminal.checkClaude().then((res): Promise<void> => {
-      if (!res.ok || !res.data) {
-        // Fallback to plain shell if the check itself fails
-        return handleNewTerminal('Terminal').then(() => {})
-      }
-
-      const { installed } = res.data
-
-      if (installed) {
-        return handleNewTerminal('Claude', getEmbeddedProviderStartupCommand('claude')).then(() => {})
-      }
-
-      // Claude CLI not found — open terminal and run the install command
-      setClaudeInstallStatus('installing')
-      return handleNewTerminal('Installing Claude').then((terminalId) => {
-        if (!terminalId) {
-          setClaudeInstallStatus('failed')
-          return
-        }
-        setInstallTerminalId(terminalId)
-        window.daemon.terminal.write(terminalId, 'npm install -g @anthropic-ai/claude-code\r')
-      })
-    }).finally(() => {
-      creatingRef.current = false
-    })
+    if (!activeProjectId || visibleTerminals.length !== 0 || terminalCreateInFlightRef.current) return
+    void handleNewTerminal('Terminal')
   }, [activeProjectId, visibleTerminals.length, handleNewTerminal])
-
-  // Auto-dismiss the Claude install banner when the install terminal exits.
-  // The install runs `npm install -g @anthropic-ai/claude-code` interactively in
-  // a real shell, so we treat any clean exit as success.
-  useEffect(() => {
-    if (!installTerminalId) return
-    const cleanup = window.daemon.terminal.onExit((payload) => {
-      if (payload.id !== installTerminalId) return
-      if (payload.exitCode === 0) {
-        setClaudeInstallStatus('idle')
-      } else {
-        setClaudeInstallStatus('failed')
-      }
-      setInstallTerminalId(null)
-    })
-    return cleanup
-  }, [installTerminalId])
 
   // Sync split layout when terminals change
   useEffect(() => {
@@ -226,7 +280,7 @@ export function TerminalPanel() {
 
   return (
     <div
-      className={`terminal-panel ${isDragOver ? 'drag-over' : ''} ${claudeInstallStatus !== 'idle' ? 'has-install-banner' : ''}`}
+      className={`terminal-panel ${isDragOver ? 'drag-over' : ''}`}
       onDragEnter={(e) => {
         if (!e.dataTransfer.types.includes('Files')) return
         e.preventDefault()
@@ -244,23 +298,11 @@ export function TerminalPanel() {
       }}
       onDrop={handleFolderDrop}
     >
-      {claudeInstallStatus === 'installing' && (
-        <div className="claude-install-banner">
-          <span className="claude-install-spinner" aria-hidden="true" />
-          Installing Claude CLI via npm... auto-dismisses when complete.
-          <button className="claude-install-dismiss" onClick={() => { setClaudeInstallStatus('idle'); setInstallTerminalId(null) }}>Dismiss</button>
-        </div>
-      )}
-      {claudeInstallStatus === 'failed' && (
-        <div className="claude-install-banner claude-install-banner--error">
-          Failed to create install terminal. Open a new terminal and run: npm install -g @anthropic-ai/claude-code
-          <button className="claude-install-dismiss" onClick={() => setClaudeInstallStatus('idle')}>Dismiss</button>
-        </div>
-      )}
       <TerminalTabs
         visibleTerminals={visibleTerminals}
         activeTerminalId={activeTerminalId}
         activeProjectId={activeProjectId}
+        canLaunchInProject={Boolean(activeProjectId) || projects.length > 0}
         centerMode={centerMode}
         splitLayout={splitLayout}
         launchRecents={launchRecents}
@@ -281,6 +323,7 @@ export function TerminalPanel() {
             <span className="terminal-empty-icon">&gt;_</span>
             <span className="terminal-empty-label">Click to start a terminal</span>
             <span className="terminal-empty-hint">or press Ctrl+`</span>
+            {launchError && <span className="terminal-empty-error">{launchError}</span>}
           </div>
         ) : paneIds.length <= 1 ? (
           /* Render ALL terminal instances to avoid unmount/remount on tab switch.

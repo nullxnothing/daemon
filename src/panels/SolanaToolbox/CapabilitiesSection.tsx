@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { SolanaMcpEntry } from '../../store/solanaToolbox'
+import { SOLANA_AGENT_SKILL_GROUPS } from './catalog'
 
 interface CapabilitiesSectionProps {
   mcps: SolanaMcpEntry[]
@@ -7,16 +8,13 @@ interface CapabilitiesSectionProps {
   onToggle: (projectPath: string, name: string, enabled: boolean) => void
   onScaffoldX402: () => void
   onScaffoldMpp: () => void
+  onScaffoldLight: () => void
+  onScaffoldMagicBlock: () => void
+  onScaffoldDebridge: () => void
+  onScaffoldSquads: () => void
 }
 
-const SKILL_GROUPS: { label: string; skills: string[] }[] = [
-  { label: 'Core', skills: ['/solana-dev', '/solana-kit', '/solana-agent-kit'] },
-  { label: 'Infra', skills: ['/helius', '/pyth', '/switchboard', '/light-protocol'] },
-  { label: 'DeFi', skills: ['/raydium', '/meteora', '/jupiter-lend', '/drift', '/orca', '/kamino', '/sanctum', '/metaplex', '/pumpfun'] },
-  { label: 'Security', skills: ['/vulnhunter', '/payai-x402'] },
-]
-
-export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp }: CapabilitiesSectionProps) {
+export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight, onScaffoldMagicBlock, onScaffoldDebridge, onScaffoldSquads }: CapabilitiesSectionProps) {
   const [copiedSkill, setCopiedSkill] = useState<string | null>(null)
   const [showAllSkills, setShowAllSkills] = useState(false)
 
@@ -30,8 +28,8 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
     setTimeout(() => setCopiedSkill(null), 1500)
   }, [])
 
-  const totalSkills = SKILL_GROUPS.reduce((sum, g) => sum + g.skills.length, 0)
-  const visibleGroups = showAllSkills ? SKILL_GROUPS : SKILL_GROUPS.slice(0, 2)
+  const totalSkills = SOLANA_AGENT_SKILL_GROUPS.reduce((sum, g) => sum + g.skills.length, 0)
+  const visibleGroups = showAllSkills ? SOLANA_AGENT_SKILL_GROUPS : SOLANA_AGENT_SKILL_GROUPS.slice(0, 3)
 
   return (
     <div className="solana-split-panel">
@@ -74,6 +72,50 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
           </div>
         </div>
 
+        <div className="solana-integration-row">
+          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">Light Protocol</div>
+            <div className="solana-integration-desc">ZK Compression + compressed tokens</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldLight} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">MagicBlock</div>
+            <div className="solana-integration-desc">Ephemeral Rollups + Magic Router</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldMagicBlock} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">deBridge</div>
+            <div className="solana-integration-desc">Cross-chain DLN route previews</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldDebridge} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="solana-integration-row">
+          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <div className="solana-integration-info">
+            <div className="solana-integration-name">Squads</div>
+            <div className="solana-integration-desc">V4 multisig + vault inspection</div>
+            <div className="solana-integration-actions">
+              <button className="sol-btn" onClick={onScaffoldSquads} disabled={!projectPath}>Scaffold</button>
+            </div>
+          </div>
+        </div>
+
         {/* Skills by group */}
         <div className="solana-services-label">Agent Skills</div>
         {visibleGroups.map((group) => (
@@ -94,7 +136,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
           </div>
         ))}
 
-        {!showAllSkills && SKILL_GROUPS.length > 2 && (
+        {!showAllSkills && SOLANA_AGENT_SKILL_GROUPS.length > 3 && (
           <button className="solana-skills-expand" onClick={() => setShowAllSkills(true)}>
             Show all {totalSkills} skills
           </button>

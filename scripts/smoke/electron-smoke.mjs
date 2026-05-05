@@ -18,6 +18,7 @@ const userDataDir = mkdtempSync(path.join(tmpdir(), 'daemon-smoke-'))
 const projectPath = repoRoot
 const projectName = 'DAEMON Smoke'
 const smokeEcho = `DAEMON_SMOKE_${Date.now()}`
+const smokeImagePath = path.join(repoRoot, 'src', 'assets', 'daemon-icon.png')
 
 let electronProcess
 let browser
@@ -110,7 +111,7 @@ async function waitForAppReady(page) {
   await page.waitForSelector('.main-layout', { timeout: 30000 })
 }
 
-async function openToolFromLauncher(page, toolName) {
+async function openToolFromLauncher(page, toolName, readySelector = null) {
   const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
   if (!drawerVisible) {
     await page.getByRole('button', { name: 'Tools', exact: true }).click()
@@ -122,6 +123,10 @@ async function openToolFromLauncher(page, toolName) {
   }
   const drawer = page.locator('.command-drawer')
   await drawer.locator('.drawer-tool-card', { hasText: toolName }).first().click()
+  if (readySelector) {
+    await page.waitForSelector(readySelector, { timeout: 30000 })
+    return
+  }
   await page.waitForFunction((expected) => {
     const title = document.querySelector('.drawer-title')?.textContent?.trim()
     return title?.toLowerCase() === String(expected).toLowerCase()
@@ -129,6 +134,16 @@ async function openToolFromLauncher(page, toolName) {
 }
 
 async function closeDrawerToGrid(page) {
+  const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
+  if (!drawerVisible) {
+    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.waitForSelector('.drawer-search', { timeout: 30000 })
+    return
+  }
+
+  const drawerSearchVisible = await page.locator('.drawer-search').isVisible().catch(() => false)
+  if (drawerSearchVisible) return
+
   await page.keyboard.press('Escape')
   await page.waitForFunction(() => {
     return document.querySelector('.drawer-search') !== null
@@ -137,16 +152,35 @@ async function closeDrawerToGrid(page) {
 }
 
 async function cycleDrawerTools(page, toolNames, rounds = 1) {
+  const readySelectors = {
+    Git: '.git-center',
+    Wallet: '.wallet-panel',
+    'Token Launch': '.token-launch-tool',
+    Settings: '.settings-center',
+  }
   for (let round = 0; round < rounds; round += 1) {
     for (const toolName of toolNames) {
-      await openToolFromLauncher(page, toolName)
-      if (toolName === 'Git') await page.waitForSelector('.git-center', { timeout: 30000 })
-      if (toolName === 'Wallet') await page.waitForSelector('.wallet-panel', { timeout: 30000 })
-      if (toolName === 'Token Launch') await page.waitForSelector('.token-launch-tool', { timeout: 30000 })
-      if (toolName === 'Settings') await page.waitForSelector('.settings-center', { timeout: 30000 })
+      await openToolFromLauncher(page, toolName, readySelectors[toolName] ?? null)
       await closeDrawerToGrid(page)
     }
   }
+}
+
+async function verifyImageEditor(page) {
+  const explorerSearch = page.locator('.file-explorer-search-input')
+  await explorerSearch.fill(path.basename(smokeImagePath))
+  await page.locator('.file-search-result', { hasText: path.basename(smokeImagePath) }).first().click()
+  await openToolFromLauncher(page, 'Image Editor', '.image-editor')
+  await page.waitForSelector('.image-editor', { timeout: 30000 })
+  await page.waitForFunction((expectedName) => {
+    return document.querySelector('.ie-filepath')?.textContent?.trim() === expectedName
+  }, path.basename(smokeImagePath), { timeout: 30000 })
+  await page.waitForFunction(() => {
+    const loading = document.querySelector('.ie-status--dim')
+    const saveButton = Array.from(document.querySelectorAll('.ie-btn')).find((button) => button.textContent?.trim() === 'Save')
+    return !loading && saveButton instanceof HTMLButtonElement && !saveButton.disabled
+  }, { timeout: 30000 })
+  await closeDrawerToGrid(page)
 }
 
 async function verifySidebarAddToolFlyout(page) {
@@ -167,16 +201,14 @@ async function verifySidebarAddToolFlyout(page) {
 }
 
 async function verifyPinnedSidebarToolClicks(page) {
-  const clickAndAssert = async (label, selector, readySelector) => {
+  const clickAndAssert = async (label, readySelector) => {
     await page.getByRole('button', { name: label, exact: true }).click()
-    await page.waitForSelector(selector, { timeout: 30000 })
     await page.waitForSelector(readySelector, { timeout: 30000 })
   }
 
-  await clickAndAssert('Git', '.command-drawer', '.git-center')
-  await clickAndAssert('Wallet', '.command-drawer', '.wallet-panel')
-  await clickAndAssert('Token Launch', '.command-drawer', '.token-launch-tool')
-  await clickAndAssert('Solana', '.command-drawer', '.solana-toolbox')
+  await clickAndAssert('Git', '.git-center')
+  await clickAndAssert('Wallet', '.wallet-panel')
+  await clickAndAssert('Solana', '.solana-toolbox')
 }
 
 async function run() {
@@ -224,16 +256,16 @@ async function run() {
   await page.waitForSelector(`text=${smokeEcho}`, { timeout: 30000 })
 
   logStep('checking hackathon to browser transition')
-  await page.getByRole('button', { name: 'Hackathon' }).click()
-  await page.waitForSelector('.command-drawer', { timeout: 30000 })
-  await page.waitForFunction(() => document.querySelector('.drawer-title')?.textContent?.includes('Hackathon') ?? false)
+  await openToolFromLauncher(page, 'Hackathon', '.hackathon-panel')
 
-  await page.getByRole('button', { name: 'Toggle Browser Tab' }).click()
+  await page.getByText('Get a token at arena.colosseum.org/copilot').click()
+  await page.getByRole('button', { name: 'Browser tab', exact: true }).click()
   await page.waitForSelector('.browser-mode', { timeout: 30000 })
   await page.waitForFunction(() => !document.querySelector('.command-drawer'))
 
   logStep('checking dashboard transition')
   await page.keyboard.press('Control+Shift+D')
+  await page.getByRole('button', { name: 'Dashboard tab', exact: true }).click()
   await page.waitForSelector('.dash-canvas', { timeout: 30000 })
   await page.waitForFunction(() => !document.querySelector('.command-drawer'))
 
@@ -248,6 +280,9 @@ async function run() {
 
   logStep('checking tool launcher transitions')
   await cycleDrawerTools(page, ['Git', 'Wallet', 'Token Launch', 'Settings'], 2)
+
+  logStep('checking image editor readiness flow')
+  await verifyImageEditor(page)
 
   assert.equal(rendererFailures.length, 0, `renderer failures detected:\n${rendererFailures.join('\n')}`)
 }

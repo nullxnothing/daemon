@@ -32,14 +32,14 @@
   },
   "afterSign": "build/notarize.mjs",
   "win": {
+    "icon": "resources/icon.ico",
     "target": [
       {
         "target": "nsis",
         "arch": ["x64"]
       }
     ],
-    "artifactName": "${productName}-setup.${ext}",
-    "signingHashAlgorithms": ["sha256"]
+    "artifactName": "${productName}-setup.${ext}"
   },
   "nsis": {
     "oneClick": false,
@@ -50,6 +50,7 @@
     "createStartMenuShortcut": true
   },
   "linux": {
+    "icon": "resources/icon.png",
     "target": ["AppImage"],
     "category": "Development",
     "artifactName": "${productName}.${ext}"
