@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center">DAEMON</h1>
-  <p align="center">An open-source IDE built for AI-native development.</p>
+  <p align="center">An open-source Solana-native workbench for verifiable AI agent development.</p>
 </p>
 
 <p align="center">
@@ -8,13 +8,14 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-281%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-407%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">
   <a href="https://daemon-landing.vercel.app">Website</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#features">Features</a> &middot;
+  <a href="FRONTIER_SUBMISSION.md">Frontier</a> &middot;
   <a href="#architecture">Architecture</a> &middot;
   <a href="#development">Development</a> &middot;
   <a href="CONTRIBUTING.md">Contributing</a>
@@ -29,12 +30,12 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON IDE — full window with editor, terminal, and sidebar" width="800">
+  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON agent workbench with editor, terminal, and sidebar" width="800">
 </p>
 
-**[Watch the demo video](https://daemon-landing.vercel.app/daemon-demo.mp4)** — 60-second walkthrough of the IDE in action.
+**[Frontier demo runbook](FRONTIER_SUBMISSION.md#2-minute-demo-runbook)** — 2-minute submission flow from project open to devnet settlement.
 
-DAEMON is a standalone Electron IDE designed around AI agent workflows. It ships a Monaco editor, integrated PTY terminals, Claude Code agent spawning, MCP server management, a Git panel, a Solana wallet, and a plugin system — all purpose-built from scratch. Not a VS Code fork.
+DAEMON is a standalone Electron agent workbench for Solana developers who use autonomous coding agents. It combines an offline editor, real PTY terminals, Claude/Codex agent spawning, MCP server management, wallet/RPC readiness, and an Anchor-backed registry for publishing verifiable agent work receipts on devnet. Not a VS Code fork.
 
 ## Install
 

@@ -69,7 +69,7 @@ export function ProgramMonitorPanel({ projectId, projectPath, projectInfo }: Pro
           </p>
         </div>
         <div className="solana-ide-hero-actions">
-          <button className="sol-btn" disabled={!canRun} onClick={() => void runCommand('solana config get', 'Solana Config')}>
+          <button type="button" className="sol-btn" disabled={!canRun} onClick={() => void runCommand('solana config get', 'Solana Config')}>
             Show Cluster Config
           </button>
         </div>

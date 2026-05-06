@@ -184,11 +184,12 @@ export function BrowserMode() {
             canGoForward={canGoForward}
           />
           <div className="browser-local-strip">
-            <button className="browser-local-refresh" onClick={() => void loadRegisteredTargets()} title="Refresh tracked local apps">
+            <button type="button" className="browser-local-refresh" onClick={() => void loadRegisteredTargets()} title="Refresh tracked local apps">
               {registeredLoading ? 'Refreshing...' : 'Tracked apps'}
             </button>
             {registeredTargets.map((target) => (
               <button
+                type="button"
                 key={target.url}
                 className={`browser-local-target${currentLocation === normalizeUrl(target.url) ? ' active' : ''}`}
                 onClick={() => handleNavigate(target.url)}
@@ -197,7 +198,7 @@ export function BrowserMode() {
                 {target.label}
               </button>
             ))}
-            <button className="browser-local-refresh" onClick={() => void loadDiscoveredTargets()} title="Scan for likely local dev servers">
+            <button type="button" className="browser-local-refresh" onClick={() => void loadDiscoveredTargets()} title="Scan for likely local dev servers">
               {discoveryLoading ? 'Scanning...' : 'Scan suggestions'}
             </button>
           </div>
@@ -205,6 +206,7 @@ export function BrowserMode() {
             <div className="browser-local-strip browser-local-strip--secondary">
               {discoveredTargets.map((target) => (
                 <button
+                  type="button"
                   key={target.url}
                   className={`browser-local-target browser-local-target--suggested${currentLocation === normalizeUrl(target.url) ? ' active' : ''}`}
                   onClick={() => handleNavigate(target.url)}

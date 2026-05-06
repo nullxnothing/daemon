@@ -71,11 +71,11 @@ function ExtractionCard({ item }: ExtractionCardProps) {
         <div className="email__extraction-context">{item.context}</div>
       )}
       <div className="email__extraction-actions">
-        <button className="email__extraction-btn" onClick={handleCopy}>
+        <button type="button" className="email__extraction-btn" onClick={handleCopy}>
           {copied ? 'Copied' : 'Copy'}
         </button>
         {(item.type === 'code' || item.type === 'config') && (
-          <button className="email__extraction-btn" onClick={handleOpenInEditor}>
+          <button type="button" className="email__extraction-btn" onClick={handleOpenInEditor}>
             Open in Editor
           </button>
         )}

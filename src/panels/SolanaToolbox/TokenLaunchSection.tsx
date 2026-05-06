@@ -104,7 +104,7 @@ export function TokenLaunchSection({
             </p>
           </div>
           <div className="solana-token-launch-actions">
-            <button className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
+            <button type="button" className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
             <button
               className="sol-btn"
               onClick={() => {
@@ -210,7 +210,7 @@ export function TokenLaunchSection({
                       View Tx
                     </button>
                   ) : (
-                    <button className="sol-btn" disabled>No Tx</button>
+                    <button type="button" className="sol-btn" disabled>No Tx</button>
                   )}
                 </div>
               ))}

@@ -1004,6 +1004,33 @@ declare global {
     on: (channel: DaemonEventChannel, callback: (payload: unknown) => void) => () => void
   }
 
+  interface TelemetrySessionInfo {
+    sessionId: string | null
+  }
+
+  interface TelemetrySessionStats {
+    eventsCount: number
+    sessionDuration: number
+  }
+
+  interface TelemetryEventRecord {
+    eventId: string
+    eventName: string
+    userId: string | null
+    sessionId: string
+    timestamp: number
+    properties: Record<string, unknown>
+    version: string
+  }
+
+  interface DaemonTelemetry {
+    track: (eventName: string, properties?: Record<string, unknown>) => Promise<IpcResponse<{ ok: boolean }>>
+    timing: (eventName: string, durationMs: number, properties?: Record<string, unknown>) => Promise<IpcResponse<{ ok: boolean }>>
+    session: () => Promise<IpcResponse<TelemetrySessionInfo>>
+    stats: () => Promise<IpcResponse<TelemetrySessionStats>>
+    recent: (limit?: number) => Promise<IpcResponse<TelemetryEventRecord[]>>
+  }
+
   interface DaemonPro {
     status: () => Promise<IpcResponse<ProSubscriptionState>>
     refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
@@ -1042,6 +1069,7 @@ declare global {
     provider: DaemonProvider
     activity: DaemonActivity
     events: DaemonEvents
+    telemetry: DaemonTelemetry
     tweets: DaemonTweets
     plugins: DaemonPlugins
     browser: DaemonBrowser

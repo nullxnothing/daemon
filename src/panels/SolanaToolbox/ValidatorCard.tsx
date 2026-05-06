@@ -57,10 +57,10 @@ export function ValidatorCard() {
 
       {validator.status === 'running' && (
         <div className="solana-validator-actions">
-          <button className="sol-btn" onClick={() => { stopValidator().then(() => startValidator(validator.type!)) }}>
+          <button type="button" className="sol-btn" onClick={() => { stopValidator().then(() => startValidator(validator.type!)) }}>
             Restart
           </button>
-          <button className="sol-btn red" onClick={() => stopValidator()}>
+          <button type="button" className="sol-btn red" onClick={() => stopValidator()}>
             Stop
           </button>
         </div>
@@ -68,7 +68,7 @@ export function ValidatorCard() {
 
       {validator.status === 'stopped' && (
         <div className="solana-validator-actions">
-          <button className="sol-btn green" onClick={() => startValidator('surfpool')}>
+          <button type="button" className="sol-btn green" onClick={() => startValidator('surfpool')}>
             Start
           </button>
         </div>

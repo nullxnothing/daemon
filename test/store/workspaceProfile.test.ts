@@ -124,12 +124,13 @@ describe('useWorkspaceProfileStore — isToolVisible', () => {
     expect(state.toolVisibility['agent-station']).toBe(false)
   })
 
-  it('defaults first run to the web profile', async () => {
+  it('defaults first run to the full custom profile', async () => {
     vi.mocked(window.daemon.settings.getWorkspaceProfile).mockResolvedValueOnce({ ok: false })
     await useWorkspaceProfileStore.getState().load()
     const state = useWorkspaceProfileStore.getState()
-    expect(state.profileName).toBe('web')
-    expect(state.toolVisibility['wallet']).toBe(false)
+    expect(state.profileName).toBe('custom')
+    expect(state.toolVisibility['wallet']).toBe(true)
+    expect(state.toolVisibility['agent-work']).toBe(true)
   })
 })
 

@@ -98,6 +98,8 @@ function attachPageDiagnostics(page) {
 async function seedAppState(page) {
   await page.evaluate(async ({ projectPath, projectName }) => {
     await window.daemon.settings.setOnboardingComplete(true)
+    await window.daemon.settings.setWorkspaceProfile({ name: 'custom', toolVisibility: {} })
+    await window.daemon.settings.setPinnedTools(['git', 'solana-toolbox', 'settings', 'activity'])
     const list = await window.daemon.projects.list()
     const exists = list.ok && list.data?.some((project) => project.path === projectPath)
     if (!exists) {
@@ -107,14 +109,16 @@ async function seedAppState(page) {
 }
 
 async function waitForAppReady(page) {
+  await page.waitForFunction(() => !!window.daemon, { timeout: 30000 })
   await page.waitForSelector('.titlebar', { timeout: 30000 })
   await page.waitForSelector('.main-layout', { timeout: 30000 })
+  await page.waitForSelector('.app[data-app-ready="true"]', { timeout: 30000 })
 }
 
 async function openToolFromLauncher(page, toolName, readySelector = null) {
   const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
   if (!drawerVisible) {
-    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.locator('.sidebar-icon--tools').click()
     await page.waitForSelector('.command-drawer', { timeout: 30000 })
   }
   const drawerSearchVisible = await page.locator('.drawer-search').isVisible().catch(() => false)
@@ -136,7 +140,7 @@ async function openToolFromLauncher(page, toolName, readySelector = null) {
 async function closeDrawerToGrid(page) {
   const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
   if (!drawerVisible) {
-    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.locator('.sidebar-icon--tools').click()
     await page.waitForSelector('.drawer-search', { timeout: 30000 })
     return
   }

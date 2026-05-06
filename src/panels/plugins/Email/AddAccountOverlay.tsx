@@ -86,7 +86,7 @@ export function AddAccountOverlay({ onClose, onAccountAdded }: AddAccountOverlay
       <div className="email__overlay-card" onClick={(e) => e.stopPropagation()}>
         <div className="email__overlay-header">
           <span className="email__overlay-title">Add Email Account</span>
-          <button className="email__overlay-close" onClick={onClose}>x</button>
+          <button type="button" className="email__overlay-close" onClick={onClose}>x</button>
         </div>
 
         <div className="email__provider-pills">
@@ -116,7 +116,7 @@ export function AddAccountOverlay({ onClose, onAccountAdded }: AddAccountOverlay
             ) : hasGmailCreds && !showCredsForm ? (
               /* One-click connect — credentials already stored */
               <>
-                <button className="email__auth-btn email__auth-btn--primary" onClick={handleGmailQuickConnect}>
+                <button type="button" className="email__auth-btn email__auth-btn--primary" onClick={handleGmailQuickConnect}>
                   Connect with Google
                 </button>
                 <button

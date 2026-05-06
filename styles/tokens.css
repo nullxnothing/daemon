@@ -1,18 +1,18 @@
 :root {
   /* Background scale (darkest to lightest) */
-  --bg:    #090909;
-  --s1:    #101010;
-  --s2:    #151515;
-  --s3:    #1a1a1a;
-  --s4:    #222222;
-  --s5:    #2a2a2a;
-  --s6:    #333333;
+  --bg:    #08090a;
+  --s1:    #0d0f11;
+  --s2:    #121519;
+  --s3:    #181c21;
+  --s4:    #22272e;
+  --s5:    #2d343d;
+  --s6:    #39424c;
 
   /* Text scale (brightest to dimmest) - WCAG AA compliant */
-  --t1:    #f0f0f0;  /* Primary text - 15.5:1 contrast */
-  --t2:    #a0a0a0;  /* Secondary text - 7.5:1 contrast */
-  --t3:    #6a6a6a;  /* Tertiary/muted - 4.5:1 contrast (AA minimum) */
-  --t4:    #4a4a4a;  /* Disabled/placeholder - decorative only */
+  --t1:    #f4f7f8;  /* Primary text */
+  --t2:    #a8b0b8;  /* Secondary text */
+  --t3:    #737d88;  /* Tertiary/muted */
+  --t4:    #515a64;  /* Disabled/placeholder */
 
   /* Legacy semantic aliases used by older panels */
   --text-primary:   var(--t1);
@@ -21,9 +21,9 @@
   --text-muted:     var(--t4);
 
   /* Accent colors - cleaner, more vibrant */
-  --green:       #3ecf8e;  /* Primary accent - modern teal-green */
-  --green-dim:   #2a9d6a;  /* Hover/pressed state */
-  --green-glow:  rgba(62, 207, 142, 0.15);  /* Glow/highlight bg */
+  --green:       #37d59a;  /* Primary accent */
+  --green-dim:   #2bab78;  /* Hover/pressed state */
+  --green-glow:  rgba(55, 213, 154, 0.12);  /* Highlight bg */
   
   --amber:       #f0b429;  /* Warning - golden amber */
   --amber-dim:   #c99a22;
@@ -46,8 +46,8 @@
   --on-accent-dark: #090909;  /* black text on bright amber pills */
 
   /* Semantic tokens */
-  --border:        #2a2a2a;  /* Default border */
-  --border-hover:  #3a3a3a;  /* Border on hover */
+  --border:        #20262d;  /* Default border */
+  --border-hover:  #313a44;  /* Border on hover */
   --border-focus:  var(--green);  /* Border on focus */
   --focus:         var(--green);
   --focus-glow:    var(--green-glow);
@@ -120,11 +120,11 @@
   --ls-caps:     0.08em;   /* small uppercase headings */
 
   /* Layout dimensions */
-  --titlebar-h: 38px;
+  --titlebar-h: 40px;
   --sidebar-w: 48px;
   --left-panel-w: 210px;
-  --right-panel-w: 262px;
-  --statusbar-h: 22px;
+  --right-panel-w: 284px;
+  --statusbar-h: 24px;
 
   /* Spacing scale */
   --space-2xs:  2px;
@@ -144,9 +144,9 @@
 
   /* Border radius — keep small set, alias card/pill semantics */
   --radius-sm:   3px;
-  --radius-md:   4px;
-  --radius-lg:   6px;
-  --radius-card: 12px;
+  --radius-md:   5px;
+  --radius-lg:   8px;
+  --radius-card: 8px;
   --radius-pill: 999px;
 
   /* Control sizing */
@@ -161,18 +161,18 @@
   --inset-well:            inset 0 1px 2px rgba(0, 0, 0, 0.35);
 
   /* Elevation — five-stop scale; bottom shadow + top edge highlight bundled */
-  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.30);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20), var(--edge-highlight);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.24), var(--edge-highlight);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.32), var(--edge-highlight-strong);
-  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.42), var(--edge-highlight-strong);
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.24);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18), var(--edge-highlight);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.22), var(--edge-highlight);
+  --shadow-lg: 0 16px 34px rgba(0, 0, 0, 0.30), var(--edge-highlight-strong);
+  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.38), var(--edge-highlight-strong);
   --shadow-lifted: var(--shadow-md);
 
   /* Surface roles — semantic; prefer these over bare s1/s2/s3 in panel CSS */
-  --surface-flat:     var(--s1);
-  --surface-sunken:   var(--bg);
-  --surface-raised:   var(--s2);
-  --surface-floating: var(--s3);
+  --surface-flat:     #0d1013;
+  --surface-sunken:   #070809;
+  --surface-raised:   #13171b;
+  --surface-floating: #181e24;
   --surface-overlay:  var(--glass-bg);
 
   /* Hero gradients — for panel headers that earn weight (rare) */

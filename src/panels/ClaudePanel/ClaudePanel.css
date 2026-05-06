@@ -133,7 +133,7 @@
   color: var(--t3);
   margin-left: 6px;
   padding: 0 var(--space-xs);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: var(--radius-sm);
   vertical-align: middle;
 }
@@ -195,7 +195,7 @@
 
 .usage-stat {
   padding: 6px var(--space-sm);
-  background: var(--s2);
+  background: color-mix(in srgb, var(--surface-raised) 74%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -254,7 +254,7 @@
   padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   background: var(--s2);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: var(--radius-md);
   color: var(--t1);
   width: 100%;
@@ -288,7 +288,7 @@
   min-height: var(--btn-h-sm);
   font-size: var(--fs-11);
   color: var(--t2);
-  background: var(--s2);
+  background: color-mix(in srgb, var(--surface-raised) 76%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -411,7 +411,7 @@
 }
 
 .claude-section {
-  padding: 10px var(--drawer-space-inline-tight);
+  padding: 9px var(--drawer-space-inline-tight);
   border-bottom: none;
 }
 
@@ -425,15 +425,15 @@
 .claudemd-btn {
   min-height: var(--btn-h-md);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--s3);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
 }
 
 .restart-btn:hover,
 .claudemd-btn:hover {
-  background: var(--s4);
+  background: var(--surface-floating);
 }
 
 .mcp-row {
@@ -465,5 +465,5 @@
   padding: 8px;
   border-radius: var(--drawer-control-radius);
   border-color: var(--border);
-  background: var(--s1);
+  background: var(--surface-sunken);
 }

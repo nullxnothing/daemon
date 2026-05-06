@@ -1,0 +1,87 @@
+.keyboard-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-lg);
+  max-width: 900px;
+}
+
+.keyboard-shortcuts-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.keyboard-shortcuts-title {
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+  margin: 0;
+}
+
+.keyboard-shortcuts-desc {
+  font-size: var(--fs-13);
+  color: var(--t3);
+  margin: 0;
+}
+
+.keyboard-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-xl);
+}
+
+.keyboard-shortcuts-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.keyboard-shortcuts-group-title {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-caps);
+  margin: 0;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border);
+}
+
+.keyboard-shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.keyboard-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-xs) 0;
+}
+
+.keyboard-shortcut-desc {
+  font-size: var(--fs-13);
+  color: var(--t2);
+  flex: 1;
+}
+
+.keyboard-shortcut-keys {
+  flex-shrink: 0;
+}
+
+.keyboard-shortcuts-footer {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
+.keyboard-shortcuts-note {
+  font-size: var(--fs-11);
+  color: var(--t3);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}

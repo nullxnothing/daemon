@@ -10,7 +10,14 @@ export function CollapsibleSection({ title, defaultOpen = true, count, children 
 
   return (
     <div className="claude-section">
-      <div className="claude-section-header" onClick={() => setIsOpen(!isOpen)}>
+      <div
+        className="claude-section-header"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(!isOpen) } }}
+      >
         <span className="claude-section-arrow">{isOpen ? '▾' : '▸'}</span>
         <span className="claude-section-title">{title}</span>
         {count !== undefined && <span className="claude-section-count">{count}</span>}

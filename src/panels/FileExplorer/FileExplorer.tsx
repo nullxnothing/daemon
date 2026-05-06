@@ -201,7 +201,7 @@ export function FileExplorer() {
             onChange={(event) => setSearchQuery(event.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
-            placeholder="Search files (Ctrl+P)"
+            placeholder="Search files"
           />
         </div>
         <button
@@ -273,17 +273,17 @@ export function FileExplorer() {
         />
       )}
       {contextMenu && createPortal((
-        <div className="context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
-          <div className="context-menu-item" onClick={handleNewFile}>New File</div>
-          <div className="context-menu-item" onClick={handleNewFolder}>New Folder</div>
+        <div className="context-menu" role="menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
+          <button type="button" className="context-menu-item" role="menuitem" onClick={handleNewFile}>New File</button>
+          <button type="button" className="context-menu-item" role="menuitem" onClick={handleNewFolder}>New Folder</button>
           {contextMenu.entry && (
             <>
-              <div className="context-menu-sep" />
-              <div className="context-menu-item" onClick={handleOpenTerminalHere}>Open in Terminal</div>
-              <div className="context-menu-item" onClick={handleCopyPath}>Copy Path</div>
-              <div className="context-menu-item" onClick={handleReveal}>Reveal in Explorer</div>
-              <div className="context-menu-item" onClick={handleRename}>Rename</div>
-              <div className="context-menu-item danger" onClick={handleDelete}>Delete</div>
+              <div className="context-menu-sep" role="separator" />
+              <button type="button" className="context-menu-item" role="menuitem" onClick={handleOpenTerminalHere}>Open in Terminal</button>
+              <button type="button" className="context-menu-item" role="menuitem" onClick={handleCopyPath}>Copy Path</button>
+              <button type="button" className="context-menu-item" role="menuitem" onClick={handleReveal}>Reveal in Explorer</button>
+              <button type="button" className="context-menu-item" role="menuitem" onClick={handleRename}>Rename</button>
+              <button type="button" className="context-menu-item danger" role="menuitem" onClick={handleDelete}>Delete</button>
             </>
           )}
         </div>

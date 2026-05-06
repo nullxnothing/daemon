@@ -107,24 +107,24 @@ export function StepRailway() {
       {error && <div className="wizard-error">{error}</div>}
 
       {state === 'connected' ? (
-        <button className="wizard-btn primary" onClick={handleContinue}>
+        <button type="button" className="wizard-btn primary" onClick={handleContinue}>
           Continue
         </button>
       ) : state === 'idle' ? (
         <>
-          <button className="wizard-btn primary" onClick={handleOpenRailway}>
+          <button type="button" className="wizard-btn primary" onClick={handleOpenRailway}>
             Open Railway
           </button>
-          <button className="wizard-skip-step" onClick={handleSkip}>
+          <button type="button" className="wizard-skip-step" onClick={handleSkip}>
             Skip this step
           </button>
         </>
       ) : state === 'checking' ? (
-        <button className="wizard-btn secondary" disabled>
+        <button type="button" className="wizard-btn secondary" disabled>
           Verifying...
         </button>
       ) : (
-        <button className="wizard-skip-step" onClick={handleSkip}>
+        <button type="button" className="wizard-skip-step" onClick={handleSkip}>
           Skip this step
         </button>
       )}

@@ -61,12 +61,12 @@ export function TourTooltip({ title, body, placement, stepIndex, totalSteps, tar
       <p className="tour-tooltip-body">{body}</p>
       <div className="tour-tooltip-actions">
         {!isFirst && (
-          <button className="tour-tooltip-btn secondary" onClick={handleRetreat}>Back</button>
+          <button type="button" className="tour-tooltip-btn secondary" onClick={handleRetreat}>Back</button>
         )}
-        <button className="tour-tooltip-btn primary" onClick={isLast ? handleEnd : handleAdvance}>
+        <button type="button" className="tour-tooltip-btn primary" onClick={isLast ? handleEnd : handleAdvance}>
           {isLast ? 'Done' : 'Next'}
         </button>
-        <button className="tour-tooltip-btn skip" onClick={handleEnd}>Skip</button>
+        <button type="button" className="tour-tooltip-btn skip" onClick={handleEnd}>Skip</button>
       </div>
     </div>
   )

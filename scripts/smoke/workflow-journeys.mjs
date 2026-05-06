@@ -85,11 +85,13 @@ async function waitForAppReady(page) {
   await page.waitForFunction(() => !!window.daemon, { timeout: 30000 })
   await page.waitForSelector('.titlebar', { timeout: 30000 })
   await page.waitForSelector('.main-layout', { timeout: 30000 })
+  await page.waitForSelector('.app[data-app-ready="true"]', { timeout: 30000 })
 }
 
 async function seedWorkflowState(page) {
   await page.evaluate(async ({ projectPath, projectName, validConfig }) => {
     await window.daemon.settings.setOnboardingComplete(true)
+    await window.daemon.settings.setWorkspaceProfile({ name: 'custom', toolVisibility: {} })
     await window.daemon.settings.setTokenLaunchSettings({
       raydium: { configId: validConfig, quoteMint: validConfig },
       meteora: { configId: validConfig, quoteMint: validConfig, baseSupply: '1000000000' },
@@ -118,7 +120,7 @@ async function seedWorkflowState(page) {
 async function openToolFromLauncher(page, toolName, readySelector = null) {
   const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
   if (!drawerVisible) {
-    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.locator('.sidebar-icon--tools').click()
     await page.waitForSelector('.command-drawer', { timeout: 30000 })
   }
 
@@ -179,25 +181,16 @@ async function verifyWalletJourney(page) {
 async function verifySolanaWorkflowTabs(page) {
   await openToolFromLauncher(page, 'Solana', '.solana-toolbox')
   const tabs = [
-    { name: 'Overview', check: () => page.locator('.solana-workflow-title').waitFor({ timeout: 30000 }) },
+    { name: 'Start', check: () => page.locator('.solana-workflow-title').waitFor({ timeout: 30000 }) },
     { name: 'Connect', check: () => page.locator('.solana-service-row, .solana-split-title').first().waitFor({ timeout: 30000 }) },
-    { name: 'Build', check: () => page.locator('.solana-integration-row, .solana-skill-group').first().waitFor({ timeout: 30000 }) },
-    { name: 'Integrate', check: () => page.locator('.solana-protocol-card').first().waitFor({ timeout: 30000 }) },
-    { name: 'Diagnose', check: () => page.locator('.solana-toolchain-card').first().waitFor({ timeout: 30000 }) },
+    { name: 'Diagnose', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
+    { name: 'Build', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
+    { name: 'Launch', check: () => page.locator('.solana-protocol-card').first().waitFor({ timeout: 30000 }) },
+    { name: 'Debug', check: () => page.locator('.solana-toolchain-card').first().waitFor({ timeout: 30000 }) },
   ]
 
   for (const tab of tabs) {
-    await page.locator('.solana-view-tab').evaluateAll((nodes, expected) => {
-      for (const node of nodes) {
-        const text = node.querySelector('.solana-view-tab-label')?.textContent?.trim()
-        if (text === expected) {
-          node.scrollIntoView({ block: 'center' })
-          node.click()
-          return true
-        }
-      }
-      return false
-    }, tab.name)
+    await page.getByRole('tab', { name: new RegExp(`^${tab.name}\\b`) }).click()
     await page.waitForFunction((expectedTab) => {
       const activeTab = document.querySelector('.solana-view-tab.active')
       const activeLabel = activeTab?.querySelector('.solana-view-tab-label')?.textContent?.trim()

@@ -13,7 +13,13 @@ interface ServiceRowProps {
 
 export function ServiceRow({ name, status = 'off', tag, description, action, onClick }: ServiceRowProps) {
   return (
-    <div className={`service-row ${onClick ? 'clickable' : ''}`} onClick={onClick}>
+    <div
+      className={`service-row ${onClick ? 'clickable' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
+    >
       <Dot color={status} />
       <div className="service-row-info">
         <div className="service-row-main">

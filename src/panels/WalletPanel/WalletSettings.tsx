@@ -185,7 +185,7 @@ export function WalletSettings({
             />
           )}
           <div className="wallet-actions wallet-actions-wrap">
-            <button className="wallet-btn primary" onClick={() => onSaveInfrastructure(draftInfra)}>Save RPC Settings</button>
+            <button type="button" className="wallet-btn primary" onClick={() => onSaveInfrastructure(draftInfra)}>Save RPC Settings</button>
           </div>
         </div>
 
@@ -209,9 +209,9 @@ export function WalletSettings({
             placeholder={heliusConfigured ? 'Replace Helius API key' : 'HELIUS_API_KEY'}
           />
           <div className="wallet-actions wallet-actions-wrap">
-            <button className="wallet-btn primary" onClick={handleSaveHelius}>Save Key</button>
+            <button type="button" className="wallet-btn primary" onClick={handleSaveHelius}>Save Key</button>
             {heliusConfigured && (
-              <button className="wallet-btn danger" onClick={onDeleteHelius}>Delete Key</button>
+              <button type="button" className="wallet-btn danger" onClick={onDeleteHelius}>Delete Key</button>
             )}
           </div>
         </div>
@@ -267,10 +267,10 @@ export function WalletSettings({
             placeholder={jupiterConfigured ? 'Replace JUPITER_API_KEY' : 'JUPITER_API_KEY'}
           />
           <div className="wallet-actions wallet-actions-wrap">
-            <button className="wallet-btn primary" onClick={handleSaveJupiter}>Save Jupiter Key</button>
-            <button className="wallet-btn primary-soft" onClick={() => onSaveInfrastructure(draftInfra)}>Save Execution Settings</button>
+            <button type="button" className="wallet-btn primary" onClick={handleSaveJupiter}>Save Jupiter Key</button>
+            <button type="button" className="wallet-btn primary-soft" onClick={() => onSaveInfrastructure(draftInfra)}>Save Execution Settings</button>
             {jupiterConfigured && (
-              <button className="wallet-btn danger" onClick={onDeleteJupiter}>Delete Key</button>
+              <button type="button" className="wallet-btn danger" onClick={onDeleteJupiter}>Delete Key</button>
             )}
           </div>
         </div>

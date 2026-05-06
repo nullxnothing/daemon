@@ -75,6 +75,7 @@ export function BugReportModal({ open, onClose, activePanel }: BugReportModalPro
       <div
         className={styles.modal}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="bug-report-title"
         onClick={(e) => e.stopPropagation()}
       >

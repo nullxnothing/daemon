@@ -117,7 +117,7 @@ export function OnboardingWizard() {
           >
             ← Back
           </button>
-          <button className="wizard-skip-link" onClick={handleSkipWithConfirm}>
+          <button type="button" className="wizard-skip-link" onClick={handleSkipWithConfirm}>
             Skip setup, explore first
           </button>
           <span className="wizard-step-counter">

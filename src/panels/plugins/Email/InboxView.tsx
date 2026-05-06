@@ -56,7 +56,7 @@ export function InboxView() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleSearch}
         />
-        <button className="email__refresh-btn" onClick={handleRefresh} title="Refresh">
+        <button type="button" className="email__refresh-btn" onClick={handleRefresh} title="Refresh">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M14 2v4h-4" />
             <path d="M2 14v-4h4" />

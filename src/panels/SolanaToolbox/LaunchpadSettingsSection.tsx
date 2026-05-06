@@ -130,8 +130,8 @@ export function LaunchpadSettingsSection({
             </p>
           </div>
           <div className="solana-token-launch-actions">
-            <button className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-            <button className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+            <button type="button" className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
+            <button type="button" className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
@@ -147,8 +147,8 @@ export function LaunchpadSettingsSection({
             </div>
           </div>
           <div className="solana-token-launch-actions">
-            <button className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-            <button className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+            <button type="button" className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
+            <button type="button" className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>

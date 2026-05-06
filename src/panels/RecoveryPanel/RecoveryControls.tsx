@@ -83,7 +83,7 @@ export function RecoveryControls() {
 
   return (
     <div className="recovery-controls">
-      <button className="recovery-btn" onClick={handleImportCsv} disabled={!isIdle}>
+      <button type="button" className="recovery-btn" onClick={handleImportCsv} disabled={!isIdle}>
         {csvLoaded ? csvPath : 'Import CSV'}
       </button>
 
@@ -105,7 +105,7 @@ export function RecoveryControls() {
         </datalist>
       )}
 
-      <button className="recovery-btn" onClick={handleScan} disabled={!isIdle || !csvLoaded}>
+      <button type="button" className="recovery-btn" onClick={handleScan} disabled={!isIdle || !csvLoaded}>
         {isScanning ? 'Scanning...' : 'Scan'}
       </button>
 
@@ -118,7 +118,7 @@ export function RecoveryControls() {
       </button>
 
       {(isScanning || isExecuting) && (
-        <button className="recovery-btn danger" onClick={handleStop}>
+        <button type="button" className="recovery-btn danger" onClick={handleStop}>
           Stop
         </button>
       )}

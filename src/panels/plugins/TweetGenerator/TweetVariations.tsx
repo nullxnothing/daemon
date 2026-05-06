@@ -166,11 +166,11 @@ export function TweetVariations({
 
                   <div className="tweet-gen__card-actions">
                     {v.isEditing ? (
-                      <button className="tweet-gen__card-btn" onClick={() => onSaveEdit(idx)}>
+                      <button type="button" className="tweet-gen__card-btn" onClick={() => onSaveEdit(idx)}>
                         Save
                       </button>
                     ) : (
-                      <button className="tweet-gen__card-btn" onClick={() => onToggleEdit(idx)}>
+                      <button type="button" className="tweet-gen__card-btn" onClick={() => onToggleEdit(idx)}>
                         Edit
                       </button>
                     )}

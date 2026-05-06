@@ -89,7 +89,7 @@ export function TradeTab({ walletId }: Props) {
         <label className="pf-label">Token Mint Address</label>
         <div style={{ display: 'flex', gap: 6 }}>
           <input className="pf-input" placeholder="Paste mint address..." value={mint} onChange={(e) => setMint(e.target.value)} style={{ flex: 1 }} />
-          <button className="pf-btn pf-btn-secondary" onClick={handleLoad} disabled={loading || !mint.trim()}>
+          <button type="button" className="pf-btn pf-btn-secondary" onClick={handleLoad} disabled={loading || !mint.trim()}>
             {loading ? '...' : 'Load'}
           </button>
         </div>
@@ -126,8 +126,8 @@ export function TradeTab({ walletId }: Props) {
       {curve && !curve.isGraduated && (
         <>
           <div className="pf-action-toggle">
-            <button className={action === 'buy' ? 'active-buy' : ''} onClick={() => setAction('buy')}>Buy</button>
-            <button className={action === 'sell' ? 'active-sell' : ''} onClick={() => setAction('sell')}>Sell</button>
+            <button type="button" className={action === 'buy' ? 'active-buy' : ''} onClick={() => setAction('buy')}>Buy</button>
+            <button type="button" className={action === 'sell' ? 'active-sell' : ''} onClick={() => setAction('sell')}>Sell</button>
           </div>
 
           <div className="pf-field">
@@ -139,7 +139,7 @@ export function TradeTab({ walletId }: Props) {
             <label className="pf-label">Slippage</label>
             <div className="pf-slippage">
               {SLIPPAGE_OPTIONS.map((bps) => (
-                <button key={bps} className={`pf-slippage-btn ${slippage === bps ? 'active' : ''}`} onClick={() => setSlippage(bps)}>
+                <button type="button" key={bps} className={`pf-slippage-btn ${slippage === bps ? 'active' : ''}`} onClick={() => setSlippage(bps)}>
                   {(bps / 100).toFixed(1)}%
                 </button>
               ))}

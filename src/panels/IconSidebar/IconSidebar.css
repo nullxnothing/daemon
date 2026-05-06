@@ -1,15 +1,16 @@
 /* Icon Sidebar */
 .icon-sidebar {
   width: var(--sidebar-w);
-  background: var(--bg);
-  border-right: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-flat) 92%, white 2%), var(--surface-flat));
+  border-right: 1px solid color-mix(in srgb, var(--border) 86%, black 14%);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: var(--space-sm);
   padding-bottom: var(--space-sm);
-  gap: var(--space-xs);
+  gap: 6px;
   position: relative;
   z-index: 80;
 }
@@ -21,8 +22,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, var(--tool-accent) 78%, var(--t2) 22%);
-  border-radius: var(--radius-lg);
+  color: color-mix(in srgb, var(--tool-accent) 62%, var(--t2) 38%);
+  border-radius: var(--radius-md);
   position: relative;
   border: 1px solid transparent;
   background: transparent;
@@ -47,13 +48,14 @@
   width: 19px;
   height: 19px;
   margin: auto;
+  opacity: 0.86;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .sidebar-icon:hover {
-  color: color-mix(in srgb, var(--tool-accent) 88%, white 12%);
-  background: color-mix(in srgb, var(--tool-accent) 13%, transparent);
-  border-color: color-mix(in srgb, var(--tool-accent) 36%, transparent);
+  color: color-mix(in srgb, var(--tool-accent) 76%, white 10%);
+  background: color-mix(in srgb, var(--tool-accent) 10%, var(--surface-raised));
+  border-color: color-mix(in srgb, var(--tool-accent) 28%, var(--border));
 }
 
 .sidebar-icon:hover svg {
@@ -61,9 +63,9 @@
 }
 
 .sidebar-icon.active {
-  color: color-mix(in srgb, var(--tool-accent) 90%, white 10%);
-  background: color-mix(in srgb, var(--tool-accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--tool-accent) 44%, transparent);
+  color: color-mix(in srgb, var(--tool-accent) 82%, white 8%);
+  background: color-mix(in srgb, var(--tool-accent) 14%, var(--surface-raised));
+  border-color: color-mix(in srgb, var(--tool-accent) 42%, var(--border));
 }
 
 .sidebar-icon.active::before {
@@ -72,8 +74,8 @@
   left: -1px;
   top: 10px;
   bottom: 10px;
-  width: 2px;
-  background: var(--tool-accent);
+  width: 1px;
+  background: color-mix(in srgb, var(--tool-accent) 78%, var(--border) 22%);
   border-radius: var(--radius-pill);
 }
 
@@ -150,9 +152,9 @@
 
 /* ─── Zone Dividers ─── */
 .sidebar-divider {
-  width: 24px;
+  width: 22px;
   height: 1px;
-  background: var(--s4);
+  background: color-mix(in srgb, var(--border) 72%, transparent);
   margin: var(--space-sm) auto;
   flex-shrink: 0;
 }

@@ -125,7 +125,7 @@ async function seedAppState(page) {
 async function openDrawerGrid(page) {
   const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
   if (!drawerVisible) {
-    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.locator('.sidebar-icon--tools').click()
     await page.waitForSelector('.command-drawer', { timeout: 30000 })
   }
 

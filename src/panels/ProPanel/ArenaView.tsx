@@ -179,7 +179,7 @@ export function ArenaView() {
                 </div>
               </div>
               {marketCapLink && (
-                <button className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(marketCapLink)}>
+                <button type="button" className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(marketCapLink)}>
                   Track token →
                 </button>
               )}
@@ -242,7 +242,7 @@ export function ArenaView() {
           <div className="pro-section-title">Arena</div>
           <div className="pro-section-caption">Submit a polished build, link the repo, and make the case for why it should ship next.</div>
         </div>
-        <button className="pro-btn pro-btn-primary" onClick={() => setShowForm((current) => !current)}>
+        <button type="button" className="pro-btn pro-btn-primary" onClick={() => setShowForm((current) => !current)}>
           {showForm ? 'Close submission form' : 'Submit project'}
         </button>
       </div>
@@ -250,7 +250,7 @@ export function ArenaView() {
       {error && (
         <div className="pro-error">
           {error}
-          <button className="pro-error-dismiss" onClick={clearError}>×</button>
+          <button type="button" className="pro-error-dismiss" onClick={clearError}>×</button>
         </div>
       )}
 
@@ -298,24 +298,25 @@ export function ArenaView() {
           </div>
           <div className="pro-form-actions">
             <button
+              type="button"
               className="pro-btn pro-btn-primary"
               disabled={submitting || !title.trim() || !pitch.trim() || !description.trim() || !githubUrl.trim()}
               onClick={() => { void handleSubmit() }}
             >
               {submitting ? 'Submitting…' : 'Submit'}
             </button>
-            <button className="pro-btn" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="button" className="pro-btn" onClick={() => setShowForm(false)}>Cancel</button>
           </div>
         </div>
       )}
 
       <div className="pro-arena-filters">
         {(Object.keys(CATEGORY_LABELS) as Category[]).map((value) => (
-          <button key={value} className={`pro-arena-filter ${category === value ? 'active' : ''}`} onClick={() => setCategory(value)}>
+          <button type="button" key={value} className={`pro-arena-filter ${category === value ? 'active' : ''}`} onClick={() => setCategory(value)}>
             {CATEGORY_LABELS[value]}
           </button>
         ))}
-        <button className="pro-arena-refresh" onClick={() => void loadArena()} disabled={loading}>
+        <button type="button" className="pro-arena-refresh" onClick={() => void loadArena()} disabled={loading}>
           {loading ? '…' : 'Refresh'}
         </button>
       </div>
@@ -348,12 +349,12 @@ export function ArenaView() {
               <div className="pro-arena-card-description">{submission.description}</div>
               <div className="pro-arena-card-links">
                 {submission.demoUrl && (
-                  <button className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(submission.demoUrl!)}>
+                  <button type="button" className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(submission.demoUrl!)}>
                     Demo
                   </button>
                 )}
                 {submission.xHandle && (
-                  <button className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(`https://x.com/${submission.xHandle}`)}>
+                  <button type="button" className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(`https://x.com/${submission.xHandle}`)}>
                     @{submission.xHandle}
                   </button>
                 )}
@@ -363,11 +364,11 @@ export function ArenaView() {
               </div>
               <div className="pro-arena-card-footer">
                 {submission.githubUrl && (
-                  <button className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(submission.githubUrl!)}>
+                  <button type="button" className="pro-arena-link" onClick={() => void window.daemon.shell.openExternal(submission.githubUrl!)}>
                     GitHub →
                   </button>
                 )}
-                <button className={`pro-arena-vote ${hasVoted ? 'voted' : ''}`} disabled={hasVoted} onClick={() => { void handleVote(submission.id) }}>
+                <button type="button" className={`pro-arena-vote ${hasVoted ? 'voted' : ''}`} disabled={hasVoted} onClick={() => { void handleVote(submission.id) }}>
                   ▲ {submission.votes}
                 </button>
               </div>

@@ -46,21 +46,21 @@ export function BrowserToolbar({
   return (
     <div className="browser-toolbar">
       {/* Back */}
-      <button className="browser-nav-btn" onClick={onBack} title="Back" disabled={!canGoBack}>
+      <button type="button" className="browser-nav-btn" onClick={onBack} title="Back" disabled={!canGoBack}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {/* Forward */}
-      <button className="browser-nav-btn" onClick={onForward} title="Forward" disabled={!canGoForward}>
+      <button type="button" className="browser-nav-btn" onClick={onForward} title="Forward" disabled={!canGoForward}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {/* Reload */}
-      <button className="browser-nav-btn" onClick={onReload} title="Reload">
+      <button type="button" className="browser-nav-btn" onClick={onReload} title="Reload">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M13.5 8a5.5 5.5 0 11-1.6-3.9M13.5 2v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

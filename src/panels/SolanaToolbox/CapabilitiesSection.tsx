@@ -56,7 +56,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
                   Activate
                 </button>
               )}
-              <button className="sol-btn" onClick={onScaffoldX402} disabled={!projectPath}>Scaffold</button>
+              <button type="button" className="sol-btn" onClick={onScaffoldX402} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-name">MPP</div>
             <div className="solana-integration-desc">Agent-to-agent payments</div>
             <div className="solana-integration-actions">
-              <button className="sol-btn" onClick={onScaffoldMpp} disabled={!projectPath}>Scaffold</button>
+              <button type="button" className="sol-btn" onClick={onScaffoldMpp} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-name">Light Protocol</div>
             <div className="solana-integration-desc">ZK Compression + compressed tokens</div>
             <div className="solana-integration-actions">
-              <button className="sol-btn" onClick={onScaffoldLight} disabled={!projectPath}>Scaffold</button>
+              <button type="button" className="sol-btn" onClick={onScaffoldLight} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-name">MagicBlock</div>
             <div className="solana-integration-desc">Ephemeral Rollups + Magic Router</div>
             <div className="solana-integration-actions">
-              <button className="sol-btn" onClick={onScaffoldMagicBlock} disabled={!projectPath}>Scaffold</button>
+              <button type="button" className="sol-btn" onClick={onScaffoldMagicBlock} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>
@@ -100,7 +100,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-name">deBridge</div>
             <div className="solana-integration-desc">Cross-chain DLN route previews</div>
             <div className="solana-integration-actions">
-              <button className="sol-btn" onClick={onScaffoldDebridge} disabled={!projectPath}>Scaffold</button>
+              <button type="button" className="sol-btn" onClick={onScaffoldDebridge} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-integration-name">Squads</div>
             <div className="solana-integration-desc">V4 multisig + vault inspection</div>
             <div className="solana-integration-actions">
-              <button className="sol-btn" onClick={onScaffoldSquads} disabled={!projectPath}>Scaffold</button>
+              <button type="button" className="sol-btn" onClick={onScaffoldSquads} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
         </div>
@@ -137,7 +137,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
         ))}
 
         {!showAllSkills && SOLANA_AGENT_SKILL_GROUPS.length > 3 && (
-          <button className="solana-skills-expand" onClick={() => setShowAllSkills(true)}>
+          <button type="button" className="solana-skills-expand" onClick={() => setShowAllSkills(true)}>
             Show all {totalSkills} skills
           </button>
         )}

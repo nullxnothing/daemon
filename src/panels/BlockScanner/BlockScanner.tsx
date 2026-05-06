@@ -174,7 +174,7 @@ export default function BlockScanner() {
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <button className="scanner-go" onClick={handleSearch}>
+          <button type="button" className="scanner-go" onClick={handleSearch}>
             {search.trim() ? 'Search' : 'Home'}
           </button>
         </div>

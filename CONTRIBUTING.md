@@ -1,6 +1,6 @@
 # Contributing to DAEMON
 
-Thanks for your interest in contributing. DAEMON is an open-source Electron IDE built for AI-native development.
+Thanks for your interest in contributing. DAEMON is an open-source Electron agent workbench built for verifiable AI development on Solana.
 
 ## Getting Started
 

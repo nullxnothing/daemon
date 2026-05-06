@@ -85,7 +85,7 @@ export function MessagePreview() {
     <div className="email__preview">
       <div className="email__preview-header">
         <div className="email__preview-header-left">
-          <button className="email__preview-back" onClick={() => selectMessage(null)}>
+          <button type="button" className="email__preview-back" onClick={() => selectMessage(null)}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M10 12L6 8l4-4" />
             </svg>
@@ -93,13 +93,13 @@ export function MessagePreview() {
           </button>
         </div>
         <div className="email__preview-actions">
-          <button className="email__action-btn" onClick={handleExtract} disabled={extracting}>
+          <button type="button" className="email__action-btn" onClick={handleExtract} disabled={extracting}>
             {extracting ? 'Extracting...' : 'Extract Code'}
           </button>
-          <button className="email__action-btn" onClick={handleSummarize} disabled={summarizing}>
+          <button type="button" className="email__action-btn" onClick={handleSummarize} disabled={summarizing}>
             {summarizing ? 'Summarizing...' : 'Summarize'}
           </button>
-          <button className="email__action-btn email__action-btn--open" onClick={handleOpenFull}>
+          <button type="button" className="email__action-btn email__action-btn--open" onClick={handleOpenFull}>
             Open Full
           </button>
         </div>

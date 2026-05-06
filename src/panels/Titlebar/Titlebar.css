@@ -3,8 +3,9 @@
   height: var(--titlebar-h);
   display: flex;
   align-items: center;
-  background: var(--s1);
-  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--surface-flat));
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 84%, black 16%);
   -webkit-app-region: no-drag;
   user-select: none;
   flex-shrink: 0;
@@ -15,7 +16,8 @@
 .titlebar-left {
   display: flex;
   align-items: center;
-  padding: 0 var(--space-md);
+  height: 100%;
+  padding: 0 var(--space-lg) 0 var(--space-md);
   flex-shrink: 0;
   min-width: 0;
   -webkit-app-region: drag;
@@ -26,15 +28,23 @@
 }
 
 .titlebar-icon {
-  width: 18px;
-  height: 18px;
+  display: block;
+  width: 16px;
+  height: 16px;
   margin-right: var(--space-xs);
-  opacity: 0.7;
+  color: color-mix(in srgb, var(--green) 72%, var(--t1) 28%);
+  opacity: 0.92;
   pointer-events: none;
+  flex: 0 0 16px;
+  transform: translateY(0.5px);
+}
+
+.titlebar-left--icon-only .titlebar-icon {
+  margin-right: 0;
 }
 
 .titlebar-title {
-  font-size: var(--fs-10);
+  font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
   color: var(--green);
   letter-spacing: var(--ls-eyebrow);
@@ -46,11 +56,11 @@
   font-weight: var(--fw-bold);
   color: var(--bg);
   background: var(--amber);
-  padding: 1px var(--space-xs);
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
   letter-spacing: var(--ls-caps);
   margin-left: var(--space-xs);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 /* Project tabs stay fully interactive for native mouse hit testing. */
@@ -58,8 +68,8 @@
   flex: 0 1 auto;
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: 0 var(--space-sm);
+  gap: 6px;
+  padding: 0 var(--space-md);
   overflow-x: auto;
   min-width: 0;
   max-width: min(52vw, 720px);
@@ -72,12 +82,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  height: 26px;
+  height: 28px;
   padding: 0 var(--space-md);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   color: var(--t2);
-  background: transparent;
+  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   white-space: nowrap;
@@ -88,12 +98,12 @@
 }
 
 .project-tab:hover {
-  background: var(--hover-bg);
+  background: var(--surface-floating);
   color: var(--t1);
 }
 
 .project-tab.active {
-  background: var(--s2);
+  background: color-mix(in srgb, var(--green-glow) 32%, var(--surface-raised) 68%);
   color: var(--t1);
   border-color: var(--border);
 }
@@ -129,8 +139,8 @@
 }
 
 .project-tab-add {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -175,13 +185,13 @@
 .titlebar-portfolio,
 .titlebar-mode-toggle,
 .titlebar-switcher-toggle {
-  height: 26px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-md);
   border-radius: var(--radius-md);
-  background: var(--s2);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
   color: var(--t2);
   font-size: var(--fs-11);
@@ -338,7 +348,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--t2);
+  color: var(--t3);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -347,7 +357,7 @@
 }
 
 .titlebar-btn:hover {
-  background: var(--hover-bg);
+  background: var(--surface-floating);
   color: var(--t1);
 }
 

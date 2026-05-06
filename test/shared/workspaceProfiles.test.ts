@@ -34,6 +34,7 @@ describe('getDefaultVisibility — solana profile', () => {
   it('shows project-readiness', () => expect(vis['project-readiness']).toBe(true))
   it('shows solana-toolbox', () => expect(vis['solana-toolbox']).toBe(true))
   it('shows block-scanner', () => expect(vis['block-scanner']).toBe(true))
+  it('shows replay-engine', () => expect(vis['replay-engine']).toBe(true))
   it('shows dashboard', () => expect(vis['dashboard']).toBe(true))
   it('shows hackathon', () => expect(vis['hackathon']).toBe(true))
   it('shows agent-station', () => expect(vis['agent-station']).toBe(true))

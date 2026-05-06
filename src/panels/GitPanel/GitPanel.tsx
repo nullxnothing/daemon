@@ -521,7 +521,7 @@ export function GitPanel() {
                 </div>
               )}
             </div>
-            <button className="git-push-btn" onClick={handlePush} disabled={pushing}>
+            <button type="button" className="git-push-btn" onClick={handlePush} disabled={pushing}>
               {pushing ? 'Pushing...' : 'Push'}
             </button>
           </div>
@@ -573,10 +573,10 @@ export function GitPanel() {
           onChange={(e) => setCommitMsg(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
         />
-        <button className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0} title="Generate AI commit message" aria-label="Generate AI commit message">
+        <button type="button" className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0} title="Generate AI commit message" aria-label="Generate AI commit message">
           {generatingCommitMsg ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>}
         </button>
-        <button className="git-commit-btn" onClick={handleCommit} disabled={staged.length === 0 || !commitMsg.trim() || committing}>
+        <button type="button" className="git-commit-btn" onClick={handleCommit} disabled={staged.length === 0 || !commitMsg.trim() || committing}>
           {committing ? 'Committing…' : 'Commit'}
         </button>
       </div>
@@ -593,7 +593,7 @@ export function GitPanel() {
               <div key={f.path} className={`git-file-row staged${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
                 <span className="git-file-status">S</span>
                 <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
-                <button className="git-file-btn" onClick={() => handleUnstage(f.path)}>Unstage</button>
+                <button type="button" className="git-file-btn" onClick={() => handleUnstage(f.path)}>Unstage</button>
               </div>
             ))}
           </div>
@@ -603,7 +603,7 @@ export function GitPanel() {
           <div className="git-file-section">
             <div className="git-file-section-header">
               <span>Changes ({unstaged.length})</span>
-              <button className="git-file-btn" onClick={handleStageAll}>Stage All</button>
+              <button type="button" className="git-file-btn" onClick={handleStageAll}>Stage All</button>
             </div>
             <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {(() => {
@@ -619,7 +619,7 @@ export function GitPanel() {
                   {folders.size > 1 && (
                     <div className="git-folder-header">
                       <span className="git-folder-name">{folder === '.' ? 'root' : folder}/</span>
-                      <button className="git-file-btn" onClick={() => handleStageFolder(folder === '.' ? '' : folder)}>
+                      <button type="button" className="git-file-btn" onClick={() => handleStageFolder(folder === '.' ? '' : folder)}>
                         Stage {folderFiles.length}
                       </button>
                     </div>
@@ -631,12 +631,12 @@ export function GitPanel() {
                       </span>
                       <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
                       {!f.untracked && (
-                        <button className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Discard</button>
+                        <button type="button" className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Discard</button>
                       )}
                       {f.untracked && (
-                        <button className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Delete</button>
+                        <button type="button" className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Delete</button>
                       )}
-                      <button className="git-file-btn" onClick={() => handleStage(f.path)}>Stage</button>
+                      <button type="button" className="git-file-btn" onClick={() => handleStage(f.path)}>Stage</button>
                     </div>
                   ))}
                 </div>
@@ -655,7 +655,7 @@ export function GitPanel() {
         <div className="git-diff-viewer">
           <div className="git-diff-header">
             <span className="git-diff-filename">{selectedDiffFile}</span>
-            <button className="git-diff-close" onClick={() => { setSelectedDiffFile(null); setDiffContent(null) }}>x</button>
+            <button type="button" className="git-diff-close" onClick={() => { setSelectedDiffFile(null); setDiffContent(null) }}>x</button>
           </div>
           {loadingDiff && <div className="git-diff-loading">Loading diff...</div>}
           {!loadingDiff && diffContent && (

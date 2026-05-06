@@ -56,7 +56,7 @@ export function ComposeView() {
       <div className="email__compose-header">
         <span className="email__compose-title">New Message</span>
         <div className="email__compose-header-actions">
-          <button className="email__toolbar-btn-sm" onClick={handleDiscard}>Discard</button>
+          <button type="button" className="email__toolbar-btn-sm" onClick={handleDiscard}>Discard</button>
           <button
             className="email__toolbar-btn email__toolbar-btn--primary"
             onClick={handleSend}

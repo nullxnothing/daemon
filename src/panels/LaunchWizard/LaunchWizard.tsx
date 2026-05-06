@@ -425,13 +425,14 @@ export function LaunchWizard() {
         {/* Footer */}
         {step < 4 && (
           <div className="lw-footer">
-            <button className="lw-footer-close" onClick={closeLaunchWizard}>
+            <button type="button" className="lw-footer-close" onClick={closeLaunchWizard}>
               Cancel
             </button>
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {step > 1 && (
                 <button
+                  type="button"
                   className="lw-btn secondary"
                   onClick={() => setStep((s) => (s - 1) as Step)}
                 >
@@ -441,6 +442,7 @@ export function LaunchWizard() {
 
               {step < 3 && (
                 <button
+                  type="button"
                   className="lw-btn primary"
                   disabled={step === 2 && !canProceedStep2}
                   onClick={() => {
@@ -460,6 +462,7 @@ export function LaunchWizard() {
 
               {step === 3 && (
                 <button
+                  type="button"
                   className="lw-btn primary"
                   disabled={!confirmed || !launchChecksPassing || preflightLoading || isBalanceLow || selectedWalletMissingKeypair}
                   onClick={handleLaunch}
@@ -567,7 +570,7 @@ function StepDetails({
             )}
           </div>
           <div className="lw-image-actions">
-            <button className="lw-btn secondary" onClick={onPickImage}>
+            <button type="button" className="lw-btn secondary" onClick={onPickImage}>
               {s1.imagePath ? 'Change Image' : 'Select Image'}
             </button>
             {s1.imagePath && (
@@ -960,6 +963,7 @@ function StepExecuting({
           </div>
         )}
         <button
+          type="button"
           className="lw-success-link"
           onClick={() => {
             if (result.signature) {
@@ -969,7 +973,7 @@ function StepExecuting({
         >
           View on Solscan
         </button>
-        <button className="lw-btn primary" style={{ marginTop: 4 }} onClick={onClose}>
+        <button type="button" className="lw-btn primary" style={{ marginTop: 4 }} onClick={onClose}>
           Done
         </button>
       </div>
@@ -983,8 +987,8 @@ function StepExecuting({
           {error ?? 'An unknown error occurred.'}
         </div>
         <div className="lw-btn-row">
-          <button className="lw-btn secondary" onClick={onClose}>Dismiss</button>
-          <button className="lw-btn danger" onClick={onRetry}>Try Again</button>
+          <button type="button" className="lw-btn secondary" onClick={onClose}>Dismiss</button>
+          <button type="button" className="lw-btn danger" onClick={onRetry}>Try Again</button>
         </div>
       </div>
     )

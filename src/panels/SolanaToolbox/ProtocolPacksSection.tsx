@@ -65,13 +65,13 @@ export function ProtocolPacksSection() {
             </div>
             <div className="solana-protocol-footer">
               <div className="solana-protocol-actions">
-                <button className="sol-btn green" onClick={() => openPackFlow(pack.id)}>
+                <button type="button" className="sol-btn green" onClick={() => openPackFlow(pack.id)}>
                   {pack.status === 'native' ? 'Open Flow' : 'Open Integration'}
                 </button>
-                <button className="sol-btn" onClick={() => copyText(pack.skill)}>
+                <button type="button" className="sol-btn" onClick={() => copyText(pack.skill)}>
                   {copied === pack.skill ? 'Copied Skill' : 'Copy Skill'}
                 </button>
-                <button className="sol-btn" onClick={() => copyText(pack.installHint)}>
+                <button type="button" className="sol-btn" onClick={() => copyText(pack.installHint)}>
                   {copied === pack.installHint ? 'Copied Install' : 'Copy Install'}
                 </button>
               </div>

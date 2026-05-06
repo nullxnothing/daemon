@@ -1,0 +1,115 @@
+.nav-guide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-lg);
+  max-width: 900px;
+}
+
+.nav-guide-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.nav-guide-title {
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+  margin: 0;
+}
+
+.nav-guide-desc {
+  font-size: var(--fs-13);
+  color: var(--t3);
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+.nav-guide-methods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.nav-guide-method {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--s2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.nav-guide-method-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--s3);
+  color: var(--green);
+}
+
+.nav-guide-method-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.nav-guide-method-title {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.nav-guide-method-title code {
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-regular);
+  color: var(--t3);
+  background: var(--s4);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.nav-guide-method-desc {
+  font-size: var(--fs-13);
+  color: var(--t2);
+  margin: 0;
+  line-height: var(--lh-snug);
+}
+
+.nav-guide-method-desc strong {
+  color: var(--t1);
+  font-weight: var(--fw-medium);
+}
+
+.nav-guide-method-usage {
+  font-size: var(--fs-12);
+  color: var(--t3);
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+.nav-guide-tip {
+  padding: var(--space-md);
+  background: var(--green-glow);
+  border-left: 3px solid var(--green);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-13);
+  color: var(--t2);
+  line-height: var(--lh-normal);
+}
+
+.nav-guide-tip strong {
+  color: var(--green);
+  font-weight: var(--fw-semibold);
+}

@@ -77,7 +77,7 @@ export function LaunchTab({ walletId }: Props) {
       <div className="pf-field">
         <label className="pf-label">Image</label>
         <div className="pf-image-picker">
-          <button className="pf-btn pf-btn-secondary" onClick={handlePickImage}>
+          <button type="button" className="pf-btn pf-btn-secondary" onClick={handlePickImage}>
             {imagePath ? 'Change' : 'Select Image'}
           </button>
           {imagePath && <span style={{ fontSize: 10, color: 'var(--t3)' }}>{imagePath.split(/[\\/]/).pop()}</span>}

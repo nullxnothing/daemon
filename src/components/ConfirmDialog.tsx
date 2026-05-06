@@ -71,7 +71,7 @@ export function ConfirmDialog() {
         )}
 
         <div className="confirm-actions">
-          <button className="confirm-btn-cancel" onClick={() => resolve(false)}>
+          <button type="button" className="confirm-btn-cancel" onClick={() => resolve(false)}>
             {cancelLabel}
           </button>
           <button

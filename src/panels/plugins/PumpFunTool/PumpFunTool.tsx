@@ -62,14 +62,14 @@ export default function PumpFunTool() {
           ))}
         </select>
         {!hasKeypair && walletId && (
-          <button className="pf-import-btn" onClick={handleImportKeypair}>Import Key</button>
+          <button type="button" className="pf-import-btn" onClick={handleImportKeypair}>Import Key</button>
         )}
       </div>
 
       <div className="pf-tabs">
-        <button className={`pf-tab ${tab === 'launch' ? 'active' : ''}`} onClick={() => setTab('launch')}>Launch</button>
-        <button className={`pf-tab ${tab === 'trade' ? 'active' : ''}`} onClick={() => setTab('trade')}>Trade</button>
-        <button className={`pf-tab ${tab === 'fees' ? 'active' : ''}`} onClick={() => setTab('fees')}>Fees</button>
+        <button type="button" className={`pf-tab ${tab === 'launch' ? 'active' : ''}`} onClick={() => setTab('launch')}>Launch</button>
+        <button type="button" className={`pf-tab ${tab === 'trade' ? 'active' : ''}`} onClick={() => setTab('trade')}>Trade</button>
+        <button type="button" className={`pf-tab ${tab === 'fees' ? 'active' : ''}`} onClick={() => setTab('fees')}>Fees</button>
       </div>
 
       <div className="pf-content">

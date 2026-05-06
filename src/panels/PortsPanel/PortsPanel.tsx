@@ -100,7 +100,7 @@ export const PortsPanel = memo(function PortsPanel() {
         title="Know what is actually running"
         subtitle="Registered dev servers come first. Ghost listeners are separated so you can clean up noise without guessing."
         actions={
-          <button className="ports-btn" onClick={() => load()}>
+          <button type="button" className="ports-btn" onClick={() => load()}>
             Refresh
           </button>
         }
@@ -150,7 +150,7 @@ export const PortsPanel = memo(function PortsPanel() {
                   </div>
                   <div className="ports-row-actions">
                     {port.isListening && (
-                      <button className="ports-btn danger" onClick={() => handleKill(port.port)}>
+                      <button type="button" className="ports-btn danger" onClick={() => handleKill(port.port)}>
                         Kill
                       </button>
                     )}
@@ -192,7 +192,7 @@ export const PortsPanel = memo(function PortsPanel() {
                   </div>
                   <div className="ports-row-actions">
                     {canKill ? (
-                      <button className="ports-btn danger" onClick={() => handleKill(ghost.port)}>
+                      <button type="button" className="ports-btn danger" onClick={() => handleKill(ghost.port)}>
                         Kill
                       </button>
                     ) : (

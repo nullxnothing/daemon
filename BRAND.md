@@ -1,6 +1,6 @@
 # DAEMON — Brand Guidelines
 
-Official brand identity reference for the DAEMON IDE. Follow these rules across all marketing, UI, documentation, and community touchpoints.
+Official brand identity reference for the DAEMON agent workbench. Follow these rules across all marketing, UI, documentation, and community touchpoints.
 
 ---
 

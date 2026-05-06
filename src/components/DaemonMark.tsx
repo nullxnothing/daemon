@@ -1,0 +1,16 @@
+import type { SVGProps } from 'react'
+
+export function DaemonMark(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="132 116 504 504" fill="none" aria-hidden="true" focusable="false" {...props}>
+      <path
+        d="M160 128H470C522.21 128 564.53 170.32 564.53 222.53V364H254.53C202.32 364 160 321.68 160 269.47V128Z"
+        fill="currentColor"
+      />
+      <path
+        d="M311 405H608V514.47C608 566.68 565.68 609 513.47 609H311V405Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}

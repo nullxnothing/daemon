@@ -159,7 +159,7 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
           </p>
         </div>
         <div className="solana-ide-hero-actions">
-          <button className="sol-btn green" disabled={!canRun || visibleBuildCommands.length === 0} onClick={() => void runCommand(visibleBuildCommands[0])}>
+          <button type="button" className="sol-btn green" disabled={!canRun || visibleBuildCommands.length === 0} onClick={() => void runCommand(visibleBuildCommands[0])}>
             Run First Build
           </button>
         </div>
@@ -176,7 +176,7 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
                 <div className="solana-ide-card-copy">{command.detail}</div>
                 <code className="solana-ide-command">{command.command}</code>
                 <div className="solana-ide-card-actions">
-                  <button className="sol-btn green" disabled={!canRun} onClick={() => void runCommand(command)}>
+                  <button type="button" className="sol-btn green" disabled={!canRun} onClick={() => void runCommand(command)}>
                     Run
                   </button>
                 </div>
@@ -195,7 +195,7 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
                 <div className="solana-ide-card-copy">{command.detail}</div>
                 <code className="solana-ide-command">{command.command}</code>
                 <div className="solana-ide-card-actions">
-                  <button className="sol-btn" disabled={!canRun} onClick={() => void runCommand(command)}>
+                  <button type="button" className="sol-btn" disabled={!canRun} onClick={() => void runCommand(command)}>
                     Open Terminal
                   </button>
                 </div>

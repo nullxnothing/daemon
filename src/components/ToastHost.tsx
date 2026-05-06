@@ -30,11 +30,11 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
         <div className="toast-message">{toast.message}</div>
       </div>
       {toast.action && (
-        <button className="toast-action" onClick={handleAction}>
+        <button type="button" className="toast-action" onClick={handleAction}>
           {toast.action.label}
         </button>
       )}
-      <button className="toast-close" onClick={onDismiss} aria-label="Dismiss">
+      <button type="button" className="toast-close" onClick={onDismiss} aria-label="Dismiss">
         ×
       </button>
     </div>

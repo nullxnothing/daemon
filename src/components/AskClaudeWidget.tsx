@@ -68,7 +68,7 @@ export function AskClaudeWidget({
         <span className="ask-claude-icon">C</span>
         <span className="ask-claude-title">Ask Claude</span>
         <span className="ask-claude-line">Line {lineNumber}</span>
-        <button className="ask-claude-close" onClick={onClose}>&times;</button>
+        <button type="button" className="ask-claude-close" onClick={onClose}>&times;</button>
       </div>
 
       <div className="ask-claude-context">

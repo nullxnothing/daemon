@@ -129,7 +129,7 @@ export function TransactionInspector({ projectId, projectPath }: TransactionInsp
           >
             Inspect Signature
           </button>
-          <button className="sol-btn" disabled={!canAskAgent || input.trim().length === 0} onClick={() => void askAgent()}>
+          <button type="button" className="sol-btn" disabled={!canAskAgent || input.trim().length === 0} onClick={() => void askAgent()}>
             Ask Solana Agent
           </button>
         </div>
@@ -151,7 +151,7 @@ export function TransactionInspector({ projectId, projectPath }: TransactionInsp
             </label>
           </div>
           <div className="solana-ide-panel-actions">
-            <button className="sol-btn" onClick={() => setInput('')}>Clear</button>
+            <button type="button" className="sol-btn" onClick={() => setInput('')}>Clear</button>
             <button
               className="sol-btn"
               disabled={!canRunTerminal}

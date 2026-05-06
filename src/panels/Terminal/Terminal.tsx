@@ -319,7 +319,13 @@ export function TerminalPanel() {
       />
       <div className="terminal-views">
         {visibleTerminals.length === 0 ? (
-          <div className="terminal-empty-state" onClick={handleStartShell}>
+          <div
+            className="terminal-empty-state"
+            role="button"
+            tabIndex={0}
+            onClick={handleStartShell}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleStartShell() } }}
+          >
             <span className="terminal-empty-icon">&gt;_</span>
             <span className="terminal-empty-label">Click to start a terminal</span>
             <span className="terminal-empty-hint">or press Ctrl+`</span>
@@ -345,7 +351,7 @@ export function TerminalPanel() {
                     {terminalById.get(id)?.label ?? 'Terminal'}
                   </button>
                   {splitLayout?.secondaryId === id && (
-                    <button className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">&times;</button>
+                    <button type="button" className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">&times;</button>
                   )}
                 </div>
                 <div className="terminal-pane-body">

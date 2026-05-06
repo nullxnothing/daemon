@@ -320,11 +320,11 @@ export function ImagePanel() {
         <div className="image-error">
           <span>{parseError(error)}</span>
           {isKeyError && (
-            <button className="image-error-key-btn" onClick={() => setShowKeyInput(true)}>
+            <button type="button" className="image-error-key-btn" onClick={() => setShowKeyInput(true)}>
               Update Key
             </button>
           )}
-          <button className="image-error-dismiss" onClick={() => useImageStore.setState({ error: null })} aria-label="Dismiss error">
+          <button type="button" className="image-error-dismiss" onClick={() => useImageStore.setState({ error: null })} aria-label="Dismiss error">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -360,7 +360,7 @@ export function ImagePanel() {
             </div>
             {images.length >= (useImageStore.getState().filter.limit ?? 50) && (
               <div className="image-load-more">
-                <button className="image-load-more-btn" onClick={handleLoadMore}>
+                <button type="button" className="image-load-more-btn" onClick={handleLoadMore}>
                   Load more
                 </button>
               </div>

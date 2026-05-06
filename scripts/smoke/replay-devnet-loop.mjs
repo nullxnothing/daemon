@@ -82,7 +82,7 @@ async function waitForAppReady(page) {
 async function openReplayPanel(page) {
   const drawerVisible = await page.locator('.command-drawer').isVisible().catch(() => false)
   if (!drawerVisible) {
-    await page.getByRole('button', { name: 'Tools', exact: true }).click()
+    await page.locator('.sidebar-icon--tools').click()
     await page.waitForSelector('.command-drawer', { timeout: 30_000 })
   }
   await page.locator('.drawer-tool-card', { hasText: 'Replay' }).first().click()

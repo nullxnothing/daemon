@@ -199,7 +199,7 @@ export default function ImageEditor() {
   return (
     <div className="image-editor">
       <div className="image-editor-toolbar">
-        <button className="ie-btn" onClick={handleOpenFile}>Open Image</button>
+        <button type="button" className="ie-btn" onClick={handleOpenFile}>Open Image</button>
         <button
           className="ie-btn ie-btn-primary"
           onClick={handleSave}

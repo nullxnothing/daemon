@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useAppActions } from '../../store/appActions'
-import daemonLogo from '../../assets/daemon-mark.svg'
+import { DaemonMark } from '../../components/DaemonMark'
 
 interface EditorWelcomeProps {
   activeProjectId: string | null
@@ -90,7 +90,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
       onDrop={handleEmptyDrop}
     >
       <div className="editor-empty-glow" />
-      <img src={daemonLogo} alt="" className="editor-empty-logo" draggable={false} />
+      <DaemonMark className="editor-empty-logo" />
       <span className="editor-empty-title">DAEMON</span>
 
       {isEmptyDragOver ? (
@@ -104,14 +104,14 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
           </span>
 
           <div className="editor-empty-actions">
-            <button className="editor-empty-btn" onClick={handleOpenFileExplorer}>
+            <button type="button" className="editor-empty-btn" onClick={handleOpenFileExplorer}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
                 <polyline points="13 2 13 9 20 9"/>
               </svg>
               Open File
             </button>
-            <button className="editor-empty-btn editor-empty-btn--primary" onClick={handleLaunchAgent}>
+            <button type="button" className="editor-empty-btn editor-empty-btn--primary" onClick={handleLaunchAgent}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="9"/>
                 <line x1="12" y1="8" x2="12" y2="16"/>
@@ -120,14 +120,14 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
               Launch Agent
             </button>
             {terminalCount > 0 ? (
-              <button className="editor-empty-btn" onClick={handleOpenTerminal}>
+              <button type="button" className="editor-empty-btn" onClick={handleOpenTerminal}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
                 </svg>
                 {terminalCount} Terminal{terminalCount !== 1 ? 's' : ''}
               </button>
             ) : (
-              <button className="editor-empty-btn" onClick={() => useUIStore.getState().openWorkspaceTool('settings')}>
+              <button type="button" className="editor-empty-btn" onClick={() => useUIStore.getState().openWorkspaceTool('settings')}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="3"/>
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -142,6 +142,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
             <div className="editor-empty-templates">
               {QUICK_TEMPLATES.map((t) => (
                 <button
+                  type="button"
                   key={t.id}
                   className="editor-empty-template"
                   style={{ '--tmpl-color': t.color, '--tmpl-glow': `${t.color}15` } as React.CSSProperties}
@@ -162,7 +163,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
                   {t.name}
                 </button>
               ))}
-              <button className="editor-empty-template editor-empty-template--more" onClick={handleNewProject}>
+              <button type="button" className="editor-empty-template editor-empty-template--more" onClick={handleNewProject}>
                 More...
               </button>
             </div>

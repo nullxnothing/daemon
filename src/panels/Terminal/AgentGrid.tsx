@@ -224,11 +224,11 @@ export function AgentGrid() {
               )}
             </button>
           ))}
-          <button className="agent-grid-page-add" onClick={addGrindPage} title="Add page">
+          <button type="button" className="agent-grid-page-add" onClick={addGrindPage} title="Add page">
             +
           </button>
         </div>
-        <button className="agent-grid-add-cell" onClick={handleAddCell} title="Add agent cell">
+        <button type="button" className="agent-grid-add-cell" onClick={handleAddCell} title="Add agent cell">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>

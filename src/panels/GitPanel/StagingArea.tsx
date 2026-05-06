@@ -28,7 +28,7 @@ export function StagingArea({ files, onStage, onUnstage, onStageAll, onStageFold
             <div key={f.path} className="git-file-row staged">
               <span className="git-file-status">S</span>
               <span className="git-file-path">{f.path}</span>
-              <button className="git-file-btn" onClick={() => onUnstage(f.path)}>Unstage</button>
+              <button type="button" className="git-file-btn" onClick={() => onUnstage(f.path)}>Unstage</button>
             </div>
           ))}
         </div>
@@ -38,7 +38,7 @@ export function StagingArea({ files, onStage, onUnstage, onStageAll, onStageFold
         <div className="git-file-section">
           <div className="git-file-section-header">
             <span>Changes ({unstaged.length})</span>
-            <button className="git-file-btn" onClick={onStageAll}>Stage All</button>
+            <button type="button" className="git-file-btn" onClick={onStageAll}>Stage All</button>
           </div>
           <div className="git-file-section-subtext">Select files to stage for this commit.</div>
           {renderFolderGroups(unstaged, onStage, onStageFolder)}
@@ -66,7 +66,7 @@ function renderFolderGroups(
       {folders.size > 1 && (
         <div className="git-folder-header">
           <span className="git-folder-name">{folder === '.' ? 'root' : folder}/</span>
-          <button className="git-file-btn" onClick={() => onStageFolder(folder === '.' ? '' : folder)}>
+          <button type="button" className="git-file-btn" onClick={() => onStageFolder(folder === '.' ? '' : folder)}>
             Stage {folderFiles.length}
           </button>
         </div>
@@ -77,7 +77,7 @@ function renderFolderGroups(
             {f.untracked ? 'U' : 'M'}
           </span>
           <span className="git-file-path">{f.path}</span>
-          <button className="git-file-btn" onClick={() => onStage(f.path)}>Stage</button>
+          <button type="button" className="git-file-btn" onClick={() => onStage(f.path)}>Stage</button>
         </div>
       ))}
     </div>

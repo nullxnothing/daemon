@@ -72,7 +72,7 @@ export const ProcessManager = memo(function ProcessManager() {
         title="Keep live sessions under control"
         subtitle="Focus the exact terminal you need, spot heavy sessions quickly, and clean up orphans before they drift."
         actions={
-          <button className="process-btn" onClick={() => load()}>
+          <button type="button" className="process-btn" onClick={() => load()}>
             Refresh
           </button>
         }
@@ -123,10 +123,10 @@ export const ProcessManager = memo(function ProcessManager() {
                   <MemoryBar memory={proc.memory} />
                 </div>
                 <div className="process-actions">
-                  <button className="process-btn" onClick={() => handleFocus(proc)} title="Focus terminal">
+                  <button type="button" className="process-btn" onClick={() => handleFocus(proc)} title="Focus terminal">
                     Focus
                   </button>
-                  <button className="process-btn danger" onClick={() => handleKill(proc.pid)} title="Kill process">
+                  <button type="button" className="process-btn danger" onClick={() => handleKill(proc.pid)} title="Kill process">
                     Kill
                   </button>
                 </div>
@@ -162,7 +162,7 @@ export const ProcessManager = memo(function ProcessManager() {
                   </div>
                 </div>
                 <div className="process-actions">
-                  <button className="process-btn danger" onClick={() => handleKill(proc.pid)}>
+                  <button type="button" className="process-btn danger" onClick={() => handleKill(proc.pid)}>
                     Kill
                   </button>
                 </div>

@@ -81,7 +81,7 @@ export function DeployConnect({ platform, onConnected }: DeployConnectProps) {
       </div>
       {error && <div className="deploy-error">{error}</div>}
       <div className="deploy-connect-hint">
-        <button className="deploy-connect-hint-link" onClick={handleOpenTokenPage}>
+        <button type="button" className="deploy-connect-hint-link" onClick={handleOpenTokenPage}>
           {info.tokenHint}
         </button>
       </div>

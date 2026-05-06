@@ -3,7 +3,8 @@ import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { Button } from '../../components/Button'
-import { PanelHeader, Stat, TabPill } from '../../components/Panel'
+import { PanelHeader, Stat, TabPill, Skeleton } from '../../components/Panel'
+import { EmptyState } from '../../components/EmptyState'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
 import './WalletPanel.css'
@@ -47,7 +48,7 @@ export function WalletPanel() {
           title="Wallet"
           subtitle="Loading wallet data..."
         />
-        <div className="wallet-empty">Loading wallet data...</div>
+        <Skeleton className="wallet-skeleton" />
       </div>
     )
   }
@@ -62,12 +63,15 @@ export function WalletPanel() {
           title="Wallet"
           subtitle="Wallet data couldn't load."
         />
-        <div className="wallet-empty">
-          <div className="wallet-empty-message">Wallet data couldn't load.</div>
-          <Button size="sm" onClick={() => void load()}>
-            Retry
-          </Button>
-        </div>
+        <EmptyState
+          title="Failed to load wallet data"
+          description="Check your network connection and Helius configuration."
+          action={
+            <Button size="sm" onClick={() => void load()}>
+              Retry
+            </Button>
+          }
+        />
       </div>
     )
   }

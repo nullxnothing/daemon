@@ -272,7 +272,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   return (
     <section className="wallet-section">
       <div className="wallet-view-header">
-        <button className="wallet-btn" onClick={onBack}>Back</button>
+        <button type="button" className="wallet-btn" onClick={onBack}>Back</button>
         <div className="wallet-section-title" style={{ margin: 0 }}>Swap</div>
         <div style={{ width: 40 }} />
       </div>
@@ -308,7 +308,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
         {/* Flip button */}
         <div className="wallet-swap-flip">
-          <button className="wallet-btn" onClick={handleFlipTokens} title="Swap direction">
+          <button type="button" className="wallet-btn" onClick={handleFlipTokens} title="Swap direction">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <polyline points="17 1 21 5 17 9" />
               <path d="M3 11V9a4 4 0 0 1 4-4h14" />
@@ -409,7 +409,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
               >
                 Review Swap
               </button>
-              <button className="wallet-btn" onClick={handleCancelQuote}>Cancel</button>
+              <button type="button" className="wallet-btn" onClick={handleCancelQuote}>Cancel</button>
             </div>
           </div>
         )}
@@ -453,7 +453,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
               >
                 {swapLoading ? 'Swapping...' : 'Confirm Swap'}
               </button>
-              <button className="wallet-btn" onClick={handleCancelConfirm} disabled={swapLoading}>Cancel</button>
+              <button type="button" className="wallet-btn" onClick={handleCancelConfirm} disabled={swapLoading}>Cancel</button>
             </div>
           </div>
         )}

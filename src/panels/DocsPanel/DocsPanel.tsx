@@ -48,7 +48,7 @@ export function DocsPanel() {
         {/* Prev / Next pagination */}
         <div className={styles.pagination}>
           {prev ? (
-            <button className={styles.paginationBtn} onClick={() => navigate(prev.slug)}>
+            <button type="button" className={styles.paginationBtn} onClick={() => navigate(prev.slug)}>
               <span className={styles.paginationLabel}>Previous</span>
               <span className={styles.paginationTitle}>{prev.title}</span>
             </button>
@@ -57,6 +57,7 @@ export function DocsPanel() {
           )}
           {next ? (
             <button
+              type="button"
               className={`${styles.paginationBtn} ${styles.paginationBtnNext}`}
               onClick={() => navigate(next.slug)}
             >

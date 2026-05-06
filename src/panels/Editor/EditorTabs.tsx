@@ -181,10 +181,25 @@ export function EditorTabs({
             className={`editor-tab ${!browserTabActive && !dashboardTabActive && !activeToolId && activeFilePath === file.path ? 'active' : ''} ${savedFlash === file.path ? 'saved' : ''}`}
             onClick={() => onSelectFile(file.projectId, file.path)}
             onContextMenu={(e) => handleTabContextMenu(e, file.projectId, file.path)}
+            aria-label={`${file.name}${file.isDirty ? ' (unsaved)' : ''}`}
+            aria-current={!browserTabActive && !dashboardTabActive && !activeToolId && activeFilePath === file.path ? 'true' : undefined}
           >
             <span className="editor-tab-name">{file.name}</span>
             {file.isDirty ? (
-              <span className="editor-tab-dirty" title="Unsaved changes" />
+              <span
+                className="editor-tab-dirty"
+                title="Unsaved changes — click to close"
+                role="button"
+                tabIndex={0}
+                aria-label={`Close ${file.name} (unsaved)`}
+                onClick={(e) => { e.stopPropagation(); onCloseFile(file.projectId, file.path) }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation()
+                    onCloseFile(file.projectId, file.path)
+                  }
+                }}
+              />
             ) : (
               <span
                 className="editor-tab-close"
@@ -214,11 +229,11 @@ export function EditorTabs({
           style={{ top: tabContextMenu.y, left: tabContextMenu.x }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <button className="tab-context-item" onClick={() => { onCloseFile(tabContextMenu.projectId, tabContextMenu.path); setTabContextMenu(null) }}>Close</button>
-          <button className="tab-context-item" onClick={() => handleCloseOtherTabs(tabContextMenu.projectId, tabContextMenu.path)}>Close Others</button>
-          <button className="tab-context-item" onClick={() => handleCloseTabsToRight(tabContextMenu.projectId, tabContextMenu.path)}>Close to Right</button>
+          <button type="button" className="tab-context-item" onClick={() => { onCloseFile(tabContextMenu.projectId, tabContextMenu.path); setTabContextMenu(null) }}>Close</button>
+          <button type="button" className="tab-context-item" onClick={() => handleCloseOtherTabs(tabContextMenu.projectId, tabContextMenu.path)}>Close Others</button>
+          <button type="button" className="tab-context-item" onClick={() => handleCloseTabsToRight(tabContextMenu.projectId, tabContextMenu.path)}>Close to Right</button>
           <div className="tab-context-sep" />
-          <button className="tab-context-item" onClick={() => handleCloseAllTabs(tabContextMenu.projectId)}>Close All</button>
+          <button type="button" className="tab-context-item" onClick={() => handleCloseAllTabs(tabContextMenu.projectId)}>Close All</button>
         </div>
       )}
     </>

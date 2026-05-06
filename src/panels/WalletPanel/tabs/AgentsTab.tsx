@@ -210,16 +210,16 @@ export function AgentsTab() {
                   </div>
                   {/* Action buttons */}
                   <div className="wallet-agent-actions">
-                    <button className={`wallet-agent-action-btn${isActive && activeAction === 'fund' ? ' active' : ''}`} onClick={() => isActive && activeAction === 'fund' ? clearAction() : startAction(aw.id, 'fund')} title="Fund">
+                    <button type="button" className={`wallet-agent-action-btn${isActive && activeAction === 'fund' ? ' active' : ''}`} onClick={() => isActive && activeAction === 'fund' ? clearAction() : startAction(aw.id, 'fund')} title="Fund">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                     </button>
-                    <button className={`wallet-agent-action-btn${isActive && activeAction === 'rename' ? ' active' : ''}`} onClick={() => isActive && activeAction === 'rename' ? clearAction() : startAction(aw.id, 'rename', aw)} title="Rename">
+                    <button type="button" className={`wallet-agent-action-btn${isActive && activeAction === 'rename' ? ' active' : ''}`} onClick={() => isActive && activeAction === 'rename' ? clearAction() : startAction(aw.id, 'rename', aw)} title="Rename">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button className={`wallet-agent-action-btn${isActive && activeAction === 'export' ? ' active' : ''}`} onClick={() => isActive && activeAction === 'export' ? clearAction() : startAction(aw.id, 'export')} title="Export Key">
+                    <button type="button" className={`wallet-agent-action-btn${isActive && activeAction === 'export' ? ' active' : ''}`} onClick={() => isActive && activeAction === 'export' ? clearAction() : startAction(aw.id, 'export')} title="Export Key">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </button>
-                    <button className="wallet-agent-action-btn wallet-agent-action-btn--danger" onClick={() => handleDelete(aw.id)} title="Delete">
+                    <button type="button" className="wallet-agent-action-btn wallet-agent-action-btn--danger" onClick={() => handleDelete(aw.id)} title="Delete">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   </div>
@@ -230,8 +230,8 @@ export function AgentsTab() {
                       <div className="wallet-caption">From default wallet to {shortAddr(aw.address)}</div>
                       <input className="wallet-input" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} placeholder="Amount (SOL)" type="number" step="any" min="0" autoFocus />
                       <div className="wallet-actions">
-                        <button className="wallet-btn primary" disabled={fundLoading} onClick={handleFund}>{fundLoading ? 'Sending...' : 'Send SOL'}</button>
-                        <button className="wallet-btn" onClick={clearAction}>Cancel</button>
+                        <button type="button" className="wallet-btn primary" disabled={fundLoading} onClick={handleFund}>{fundLoading ? 'Sending...' : 'Send SOL'}</button>
+                        <button type="button" className="wallet-btn" onClick={clearAction}>Cancel</button>
                       </div>
                     </div>
                   )}
@@ -240,8 +240,8 @@ export function AgentsTab() {
                     <div className="wallet-agent-inline-form">
                       <input className="wallet-input" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} placeholder="New name" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') handleRename() }} />
                       <div className="wallet-actions">
-                        <button className="wallet-btn primary" onClick={handleRename}>Save</button>
-                        <button className="wallet-btn" onClick={clearAction}>Cancel</button>
+                        <button type="button" className="wallet-btn primary" onClick={handleRename}>Save</button>
+                        <button type="button" className="wallet-btn" onClick={clearAction}>Cancel</button>
                       </div>
                     </div>
                   )}
@@ -251,8 +251,8 @@ export function AgentsTab() {
                       <div className="wallet-caption" style={{ color: 'var(--red)' }}>Type EXPORT to reveal the private key</div>
                       <input className="wallet-input" value={exportConfirmText} onChange={(e) => setExportConfirmText(e.target.value)} placeholder='Type "EXPORT"' autoFocus onKeyDown={(e) => { if (e.key === 'Enter') handleExportConfirm() }} />
                       <div className="wallet-actions">
-                        <button className="wallet-btn primary" disabled={exportConfirmText !== 'EXPORT'} onClick={handleExportConfirm}>Reveal</button>
-                        <button className="wallet-btn" onClick={clearAction}>Cancel</button>
+                        <button type="button" className="wallet-btn primary" disabled={exportConfirmText !== 'EXPORT'} onClick={handleExportConfirm}>Reveal</button>
+                        <button type="button" className="wallet-btn" onClick={clearAction}>Cancel</button>
                       </div>
                     </div>
                   )}
@@ -277,7 +277,7 @@ export function AgentsTab() {
 
       {/* Create */}
       {!showCreate ? (
-        <button className="wallet-btn wallet-create-agent-btn" onClick={openCreate}>+ Create Agent Wallet</button>
+        <button type="button" className="wallet-btn wallet-create-agent-btn" onClick={openCreate}>+ Create Agent Wallet</button>
       ) : (
         <section className="wallet-section">
           <div className="wallet-section-title">Create Agent Wallet</div>
@@ -288,8 +288,8 @@ export function AgentsTab() {
           <input className="wallet-input" value={agentWalletName} onChange={(e) => setAgentWalletName(e.target.value)} placeholder="Wallet name" style={{ marginTop: 6 }} />
           {error && !activeWalletId && <div className="wallet-error-msg">{error}</div>}
           <div className="wallet-actions" style={{ marginTop: 8 }}>
-            <button className="wallet-btn primary" onClick={handleCreate}>Create</button>
-            <button className="wallet-btn" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button type="button" className="wallet-btn primary" onClick={handleCreate}>Create</button>
+            <button type="button" className="wallet-btn" onClick={() => setShowCreate(false)}>Cancel</button>
           </div>
         </section>
       )}

@@ -123,9 +123,22 @@ export function MessageItem({ message, isSelected, isUnified, onClick }: Message
   }
 
   return (
-    <div className={classList} onClick={onClick}>
+    <div
+      className={classList}
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
+    >
       {selectMode && (
-        <div className="email__msg-checkbox" onClick={handleCheckbox}>
+        <div
+          className="email__msg-checkbox"
+          role="checkbox"
+          aria-checked={isChecked}
+          tabIndex={0}
+          onClick={handleCheckbox}
+          onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); handleCheckbox(e as unknown as React.MouseEvent) } }}
+        >
           <div className={`email__checkbox ${isChecked ? 'email__checkbox--checked' : ''}`}>
             {isChecked && (
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">

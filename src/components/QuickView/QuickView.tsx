@@ -108,6 +108,7 @@ export function QuickView({ isOpen, onClose, triggerRef, anchor, variant, childr
           '--enter-dir': enterDir,
         } as React.CSSProperties}
         role="dialog"
+        aria-modal="true"
         aria-label={variant === 'wallet' ? 'Wallet summary' : 'Recent emails'}
         onAnimationEnd={handleAnimationEnd}
       >

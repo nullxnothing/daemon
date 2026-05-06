@@ -71,7 +71,16 @@ export function TerminalTabs({
             <span className="terminal-tab-label">{tab.label}</span>
             <span
               className="terminal-tab-close"
+              role="button"
+              tabIndex={0}
+              aria-label={`Close ${tab.label}`}
               onClick={(e) => { e.stopPropagation(); onCloseTerminal(tab.id) }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation()
+                  onCloseTerminal(tab.id)
+                }
+              }}
             >
               &times;
             </span>
@@ -94,20 +103,22 @@ export function TerminalTabs({
           className={`terminal-tool-btn ${centerMode === 'grind' ? 'active' : ''}`}
           onClick={onToggleGrindMode}
           title="Agent Grid (2x2 Claude sessions)"
+          aria-label="Toggle Agent Grid"
+          aria-pressed={centerMode === 'grind'}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2">
             <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
             <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
           </svg>
         </button>
-        <button className="terminal-tool-btn" onClick={() => void onSplit('vertical')} title="Split vertical">
+        <button type="button" className="terminal-tool-btn" onClick={() => void onSplit('vertical')} title="Split vertical" aria-label="Split vertical">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
         </button>
-        <button className="terminal-tool-btn" onClick={() => void onSplit('horizontal')} title="Split horizontal">
+        <button type="button" className="terminal-tool-btn" onClick={() => void onSplit('horizontal')} title="Split horizontal" aria-label="Split horizontal">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
         </button>
         {splitLayout && (
-          <button className="terminal-tool-btn" onClick={onUnsplit} title="Unsplit">
+          <button type="button" className="terminal-tool-btn" onClick={onUnsplit} title="Unsplit" aria-label="Unsplit terminal">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         )}
