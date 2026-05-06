@@ -11,7 +11,7 @@ const DEFAULT_SOL_MINT = 'So11111111111111111111111111111111111111112'
 interface RaydiumDeps {
   env?: NodeJS.ProcessEnv
   settings?: RaydiumLaunchpadConfig
-  loadSdk?: () => unknown
+  loadSdk?: () => unknown | Promise<unknown>
   uploadMetadata?: typeof uploadTokenMetadata
 }
 
@@ -48,8 +48,32 @@ function resolveConfig(env: NodeJS.ProcessEnv, settings?: RaydiumLaunchpadConfig
   }
 }
 
-function defaultLoadSdk() {
-  return require('@raydium-io/raydium-sdk-v2') as Record<string, unknown>
+async function importOptionalSdk(packageName: string): Promise<unknown> {
+  const dynamicImport = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<unknown>
+  return dynamicImport(packageName)
+}
+
+async function defaultLoadSdk() {
+  try {
+    return require('@raydium-io/raydium-sdk-v2') as Record<string, unknown>
+  } catch (requireError) {
+    try {
+      return await importOptionalSdk('@raydium-io/raydium-sdk-v2') as Record<string, unknown>
+    } catch (importError) {
+      const requireMessage = requireError instanceof Error ? requireError.message : String(requireError)
+      const importMessage = importError instanceof Error ? importError.message : String(importError)
+      throw new Error(`Unable to load Raydium SDK. require() failed: ${requireMessage}. dynamic import failed: ${importMessage}`)
+    }
+  }
+}
+
+async function assertOnChainAccount(
+  connection: ReturnType<typeof getConnectionStrict>,
+  key: PublicKey,
+  label: string,
+): Promise<void> {
+  const accountInfo = await connection.getAccountInfo(key)
+  if (!accountInfo) throw new Error(`${label} ${key.toBase58()} was not found on-chain`)
 }
 
 export function createRaydiumLaunchLabAdapter(deps: RaydiumDeps = {}): TokenLaunchAdapter {
@@ -144,11 +168,16 @@ export function createRaydiumLaunchLabAdapter(deps: RaydiumDeps = {}): TokenLaun
 
       return withKeypair(input.walletId, async (keypair) => {
         const connection = getConnectionStrict()
-        const metadata = await uploadMetadata(input)
-        const sdk = loadSdk() as Record<string, any>
         const mintKeypair = Keypair.generate()
         const quoteMint = new PublicKey(config.quoteMint)
         const configId = new PublicKey(config.configId)
+        await Promise.all([
+          assertOnChainAccount(connection, configId, 'Raydium LaunchLab config'),
+          assertOnChainAccount(connection, quoteMint, 'Raydium quote mint'),
+        ])
+
+        const metadata = await uploadMetadata(input)
+        const sdk = await loadSdk() as Record<string, any>
 
         const raydium = sdk.Raydium?.load
           ? await sdk.Raydium.load({

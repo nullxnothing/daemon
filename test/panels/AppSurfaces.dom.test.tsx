@@ -450,6 +450,7 @@ describe('App surface DOM coverage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Preview Jupiter quote' }))
     expect(await screen.findByText('Jupiter quote ready')).toBeInTheDocument()
     expect(window.daemon.wallet.swapQuote).toHaveBeenCalledWith({
+      walletId: 'wallet-1',
       inputMint: 'So11111111111111111111111111111111111111112',
       outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
       amount: 0.1,

@@ -162,4 +162,41 @@ describe('RaydiumLaunchLabAdapter', () => {
     expect(result.signature).toBe('raydium-sig-123')
     expect(result.poolAddress).toContain('raydium-pool')
   })
+
+  it('blocks direct launch when the configured LaunchLab config is not on-chain', async () => {
+    const getAccountInfo = vi.fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ lamports: 1 })
+    getConnectionStrictMock.mockReturnValue({
+      getLatestBlockhash: vi.fn(),
+      sendTransaction: vi.fn(),
+      confirmTransaction: vi.fn(),
+      getAccountInfo,
+    })
+    const uploadMetadata = vi.fn(async () => ({ metadataUri: 'https://meta.example/raydium.json' }))
+    const loadSdk = vi.fn(() => ({}))
+
+    const adapter = createRaydiumLaunchLabAdapter({
+      env: {
+        RAYDIUM_LAUNCHLAB_CONFIG: '11111111111111111111111111111111',
+      } as NodeJS.ProcessEnv,
+      loadSdk,
+      uploadMetadata,
+    })
+
+    await expect(adapter.createLaunch({
+      launchpad: 'raydium',
+      walletId: 'wallet-1',
+      name: 'Ray Token',
+      symbol: 'RAYX',
+      description: 'LaunchLab token',
+      imagePath: null,
+      initialBuySol: 0.25,
+      slippageBps: 800,
+      priorityFeeSol: 0.005,
+    })).rejects.toThrow(/LaunchLab config .*not found on-chain/i)
+
+    expect(uploadMetadata).not.toHaveBeenCalled()
+    expect(loadSdk).not.toHaveBeenCalled()
+  })
 })
