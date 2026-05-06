@@ -13,6 +13,12 @@ import { executeInstructions, getConnectionStrict, withKeypair, loadKeypair } fr
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 
+const PUMPFUN_METADATA_ENDPOINT = 'https://pump.fun/api/ipfs'
+const METADATA_UPLOAD_TIMEOUT_MS = 30_000
+const METADATA_UPLOAD_MAX_ATTEMPTS = 3
+const METADATA_UPLOAD_RETRY_BASE_MS = 250
+const PUMPFUN_CREATE_BUY_COMPUTE_UNITS = 500_000
+
 let _sdk: typeof import('@nirholas/pump-sdk') | null = null
 function getSdk() {
   if (!_sdk) _sdk = require('@nirholas/pump-sdk') as typeof import('@nirholas/pump-sdk')
@@ -60,6 +66,72 @@ export interface TokenCreateResult extends TxResult {
   metadataUri: string
   bondingCurveAddress: string
   associatedBondingCurveAddress: string | null
+}
+
+function buildMetadataFormData(input: TokenCreateInput): FormData {
+  const formData = new FormData()
+  formData.append('name', input.name)
+  formData.append('symbol', input.symbol)
+  formData.append('description', input.description)
+  formData.append('showName', 'true')
+
+  if (input.imagePath) {
+    const imageBuffer = fs.readFileSync(input.imagePath)
+    const ext = input.imagePath.split('.').pop()?.toLowerCase() ?? 'png'
+    const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'gif' ? 'image/gif' : 'image/png'
+    const blob = new Blob([imageBuffer], { type: mimeType })
+    formData.append('file', blob, `token.${ext}`)
+  }
+
+  return formData
+}
+
+function isRetryableMetadataStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function uploadPumpFunMetadata(input: TokenCreateInput): Promise<{ metadataUri: string }> {
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= METADATA_UPLOAD_MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), METADATA_UPLOAD_TIMEOUT_MS)
+    try {
+      const metaRes = await fetch(PUMPFUN_METADATA_ENDPOINT, {
+        method: 'POST',
+        body: buildMetadataFormData(input),
+        signal: controller.signal,
+      })
+      if (metaRes.ok) {
+        const json = await metaRes.json() as { metadataUri?: string }
+        if (!json.metadataUri) throw new Error('Token metadata upload did not return a metadataUri')
+        return { metadataUri: json.metadataUri }
+      }
+
+      const body = await metaRes.text().catch(() => '')
+      const message = `Failed to upload token metadata (${metaRes.status})${body ? `: ${body}` : ''}`
+      lastError = new Error(message)
+      if (!isRetryableMetadataStatus(metaRes.status) || attempt === METADATA_UPLOAD_MAX_ATTEMPTS) {
+        throw lastError
+      }
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        throw new Error('Token metadata upload timed out after 30s')
+      }
+      lastError = e
+      if (attempt === METADATA_UPLOAD_MAX_ATTEMPTS) throw e
+    } finally {
+      clearTimeout(timeoutId)
+    }
+
+    await sleep(METADATA_UPLOAD_RETRY_BASE_MS * Math.pow(2, attempt - 1))
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Failed to upload token metadata')
 }
 
 export async function getBondingCurveState(mint: string): Promise<BondingCurveInfo> {
@@ -111,35 +183,7 @@ export async function createToken(input: TokenCreateInput): Promise<TokenCreateR
   const onlineSdk = new sdk.OnlinePumpSdk(connection)
   const pumpSdk = new sdk.PumpSdk()
 
-  // Upload metadata to IPFS via pump.fun API
-  const formData = new FormData()
-  formData.append('name', input.name)
-  formData.append('symbol', input.symbol)
-  formData.append('description', input.description)
-  formData.append('showName', 'true')
-
-  if (input.imagePath) {
-    const imageBuffer = fs.readFileSync(input.imagePath)
-    const ext = input.imagePath.split('.').pop()?.toLowerCase() ?? 'png'
-    const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'gif' ? 'image/gif' : 'image/png'
-    const blob = new Blob([imageBuffer], { type: mimeType })
-    formData.append('file', blob, `token.${ext}`)
-  }
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 30_000)
-  let metaJson: { metadataUri: string }
-  try {
-    const metaRes = await fetch('https://pump.fun/api/ipfs', { method: 'POST', body: formData, signal: controller.signal })
-    if (!metaRes.ok) throw new Error('Failed to upload token metadata')
-    metaJson = await metaRes.json() as { metadataUri: string }
-  } catch (e) {
-    throw e instanceof Error && e.name === 'AbortError'
-      ? new Error('Token metadata upload timed out after 30s')
-      : e
-  } finally {
-    clearTimeout(timeoutId)
-  }
+  const metaJson = await uploadPumpFunMetadata(input)
 
   const mintKeypair = Keypair.generate()
   const bondingCurve = sdk.bondingCurvePda(mintKeypair.publicKey)
@@ -167,9 +211,21 @@ export async function createToken(input: TokenCreateInput): Promise<TokenCreateR
     mayhemMode: input.mayhemMode,
   })
 
-  const { signature } = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
-    payer: keypair.publicKey,
-  })
+  let signature: string
+  try {
+    const result = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
+      payer: keypair.publicKey,
+      computeUnitLimit: PUMPFUN_CREATE_BUY_COMPUTE_UNITS,
+    })
+    signature = result.signature
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `Pump.fun create+buy failed for mint ${mintKeypair.publicKey.toBase58()}: ${reason}. ` +
+      'The create and initial buy are submitted together; if this failed after broadcast or confirmation timed out, verify the mint on-chain before retrying.'
+    )
+  }
+
   return {
     signature,
     success: true,

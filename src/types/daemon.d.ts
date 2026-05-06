@@ -235,7 +235,7 @@ declare global {
 
   type WalletExecutionResult = {
     signature: string
-    transport: 'rpc' | 'jito'
+    transport: 'rpc' | 'jito' | 'jupiter'
   }
 
   type SolanaTransactionPreviewInput = import('../../electron/shared/types').SolanaTransactionPreviewInput
@@ -462,7 +462,7 @@ declare global {
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
-    swapQuote: (input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
     transactionPreview: (input: SolanaTransactionPreviewInput) => Promise<IpcResponse<SolanaTransactionPreview>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>

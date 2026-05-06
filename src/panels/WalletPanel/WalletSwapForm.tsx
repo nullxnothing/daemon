@@ -109,6 +109,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
     setQuoteLoading(true)
     try {
       const res = await window.daemon.wallet.swapQuote({
+        walletId,
         inputMint,
         outputMint,
         amount: parsedAmount,
@@ -461,7 +462,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
         {swapError && <div className="wallet-empty">{swapError}</div>}
         {swapResult && (
           <div className="wallet-success-msg">
-            Swap confirmed via {swapResult.transport === 'jito' ? 'Jito' : 'RPC'}! Sig: {swapResult.signature.slice(0, 8)}...{swapResult.signature.slice(-8)}
+            Swap confirmed via {swapResult.transport === 'jupiter' ? 'Jupiter' : swapResult.transport === 'jito' ? 'Jito' : 'RPC'}! Sig: {swapResult.signature.slice(0, 8)}...{swapResult.signature.slice(-8)}
           </div>
         )}
       </div>

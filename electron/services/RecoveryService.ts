@@ -51,14 +51,14 @@ function isAborted(): boolean {
   return abortController?.signal.aborted ?? false
 }
 
-async function getPriorityFee(conn: Connection): Promise<number> {
+async function getPriorityFee(conn: Connection, accountKeys: PublicKey[] = [TOKEN_PROGRAM_ID]): Promise<number> {
   try {
     const res = await fetch(conn.rpcEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0', id: 1, method: 'getPriorityFeeEstimate',
-        params: [{ accountKeys: [TOKEN_PROGRAM_ID.toBase58()], options: { priorityLevel: 'High' } }],
+        params: [{ accountKeys: accountKeys.map((key) => key.toBase58()), options: { priorityLevel: 'High' } }],
       }),
     })
     const data = await res.json() as { result?: { priorityFeeEstimate: number } }
@@ -222,7 +222,7 @@ export async function executeRecovery(
     walletCount: loadedPubkeys.length, completed: 0, failed: 0,
   }
 
-  const priorityFee = await getPriorityFee(conn)
+  const tokenPriorityFee = await getPriorityFee(conn, [TOKEN_PROGRAM_ID, TOKEN_2022_ID])
 
   try {
   // ─── Phase 1: Close empty token accounts ──────────────────────────────
@@ -295,7 +295,7 @@ export async function executeRecovery(
             recentBlockhash: blockhash,
             instructions: [
               ComputeBudgetProgram.setComputeUnitLimit({ units: 80_000 }),
-              ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFee }),
+              ComputeBudgetProgram.setComputeUnitPrice({ microLamports: tokenPriorityFee }),
               burnIx, closeIx,
             ],
           }).compileToV0Message()
@@ -333,7 +333,7 @@ export async function executeRecovery(
             recentBlockhash: blockhash,
             instructions: [
               ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 * batch.length }),
-              ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFee }),
+              ComputeBudgetProgram.setComputeUnitPrice({ microLamports: tokenPriorityFee }),
               ...closeIxs,
             ],
           }).compileToV0Message()
@@ -378,13 +378,14 @@ export async function executeRecovery(
 
       emit(win, { type: 'wallet-start', walletIndex: wi, pubkey: pub })
 
+      const solPriorityFee = await getPriorityFee(conn, [kp.publicKey])
       const { blockhash } = await conn.getLatestBlockhash('finalized')
       const msg = new TransactionMessage({
         payerKey: masterPubkey,
         recentBlockhash: blockhash,
         instructions: [
           ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }),
-          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFee }),
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: solPriorityFee }),
           SystemProgram.transfer({
             fromPubkey: kp.publicKey,
             toPubkey: masterPubkey,

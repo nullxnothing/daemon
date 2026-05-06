@@ -312,6 +312,7 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
     setQuoteLoading(true)
     try {
       const res = await window.daemon.wallet.swapQuote({
+        walletId,
         inputMint,
         outputMint,
         amount: parsedAmount,
