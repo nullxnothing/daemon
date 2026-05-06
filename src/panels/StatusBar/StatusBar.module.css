@@ -5,8 +5,8 @@
   display: flex;
   align-items: center;
   padding: 0 12px;
-  background: var(--s1);
-  border-top: 1px solid var(--border);
+  background: var(--surface-flat);
+  border-top: 1px solid color-mix(in srgb, var(--border) 88%, black 12%);
   flex-shrink: 0;
   min-width: 0;
   gap: 12px;
@@ -53,11 +53,11 @@
 }
 
 .statusGroup + .statusGroup {
-  border-left: 1px solid var(--border);
+  border-left: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
 }
 
 .item {
-  font-size: 11px;
+  font-size: var(--fs-10);
   color: var(--t3);
   white-space: nowrap;
 }
@@ -146,7 +146,7 @@
 
 .marketTapeItem + .marketTapeItem {
   padding-left: 14px;
-  border-left: 1px solid var(--s5);
+  border-left: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .marketSymbol {
@@ -249,7 +249,7 @@
 
 .panelToggle:hover {
   color: var(--t1);
-  background: var(--s3);
+  background: var(--surface-raised);
 }
 
 .compact .center,

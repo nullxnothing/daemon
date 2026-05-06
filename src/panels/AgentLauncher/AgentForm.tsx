@@ -107,8 +107,8 @@ export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
         <input value={shortcut} onChange={(e) => setShortcut(e.target.value)} placeholder="e.g. cmd+6" />
       </div>
       <div className="agent-form-actions">
-        <button className="agent-form-cancel" onClick={onCancel}>Cancel</button>
-        <button className="agent-form-save" onClick={handleSubmit}>Save</button>
+        <button type="button" className="agent-form-cancel" onClick={onCancel}>Cancel</button>
+        <button type="button" className="agent-form-save" onClick={handleSubmit}>Save</button>
       </div>
     </div>
   )

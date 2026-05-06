@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Banner, PanelHeader, Stat } from '../../components/Panel'
 import { EmptyState } from '../../components/EmptyState'
 import { useUIStore } from '../../store/ui'
+import { useNotificationsStore } from '../../store/notifications'
 import './AgentWork.css'
 
 const DEFAULT_ACCEPTANCE = 'Verifier can reproduce the change, required tests pass, and the diff matches the task prompt.'
@@ -68,7 +69,6 @@ export function AgentWork() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [draft, setDraft] = useState({
     title: 'Fix failing test and ship receipt',
     prompt: 'Find the failing test, make the smallest correct code change, and leave the repo ready for review.',
@@ -148,7 +148,6 @@ export function AgentWork() {
 
   const handleCreate = async () => {
     setError(null)
-    setNotice(null)
     setBusy('create')
     try {
       const res = await window.daemon.registry.createAgentWork({
@@ -163,8 +162,15 @@ export function AgentWork() {
         verifierWallet: draft.verifierWallet || null,
       })
 
-      if (!res.ok) throw new Error(res.error ?? 'Failed to create task')
-      setNotice('Task spec created. Fund it on-chain to open the escrow.')
+      if (!res.ok) {
+        const contextualError = res.error || 'Failed to create task'
+        const hint = !draft.projectId ? ' Select a project to associate this task with.'
+          : !draft.walletId ? ' Choose a funding wallet.'
+          : !draft.agentId ? ' Select an agent to run this task.'
+          : ''
+        throw new Error(contextualError + hint)
+      }
+      useNotificationsStore.getState().pushSuccess('Task spec created. Fund it on-chain to open the escrow.', 'Agent Work')
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -175,14 +181,13 @@ export function AgentWork() {
 
   const handleFund = async (task: AgentWorkTask) => {
     const ok = await runTaskAction(`fund:${task.id}`, () => window.daemon.registry.fundAgentWork(task.id))
-    if (ok) setNotice('Escrow funded on-chain. The task is ready for the agent wallet.')
+    if (ok) useNotificationsStore.getState().pushSuccess('Escrow funded on-chain. Task is ready for the agent wallet.', 'Agent Work')
   }
 
   const handleStart = async (task: AgentWorkTask) => {
     setError(null)
-    setNotice(null)
     if (!task.project_id || !task.agent_id) {
-      setError('Task needs a project and an agent before it can start.')
+      setError('Cannot start task: ' + (!task.project_id ? 'No project assigned.' : 'No agent assigned.') + ' Edit the task to add missing configuration.')
       return
     }
 
@@ -193,14 +198,14 @@ export function AgentWork() {
         projectId: task.project_id,
         initialPrompt: buildAgentPrompt(task),
       })
-      if (!res.ok || !res.data) throw new Error(res.error ?? 'Failed to start agent')
+      if (!res.ok || !res.data) throw new Error(res.error || 'Failed to start agent session. Check that the agent ID is valid and the project exists.')
 
       addTerminal(task.project_id, res.data.id, res.data.agentName ?? task.agent_name ?? 'Agent', res.data.agentId)
       setCenterMode('canvas')
 
       const startRes = await window.daemon.registry.startAgentWork(task.id, res.data.localSessionId ?? res.data.id)
-      if (!startRes.ok) throw new Error(startRes.error ?? 'Failed to mark task running')
-      setNotice('Agent session started and task start was written to the registry.')
+      if (!startRes.ok) throw new Error(startRes.error || 'Failed to mark task as running in the registry. The agent session started but the on-chain state was not updated.')
+      useNotificationsStore.getState().pushSuccess('Agent session started and task start was written to the registry.', 'Agent Work')
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -211,11 +216,10 @@ export function AgentWork() {
 
   const runTaskAction = async (key: string, action: () => Promise<IpcResponse<AgentWorkTask>>): Promise<boolean> => {
     setError(null)
-    setNotice(null)
     setBusy(key)
     try {
       const res = await action()
-      if (!res.ok) throw new Error(res.error ?? 'Task update failed')
+      if (!res.ok) throw new Error(res.error || 'Task update failed. The on-chain transaction may have been rejected or the registry may be unavailable.')
       await load()
       return true
     } catch (err) {
@@ -233,8 +237,12 @@ export function AgentWork() {
         kicker="Solana work layer"
         brandKicker
         title="Wallet-funded agent work"
-        subtitle="Create a scoped coding job, fund the devnet escrow, run an agent, verify the receipt, and settle the bounty."
+        subtitle="Create tasks, fund escrows, run agents, and settle bounties on Solana."
       />
+
+      <Banner className="agent-work-banner" tone="info">
+        How it works: Create a task spec → Fund the escrow on-chain → Start an agent session → Submit work receipt → Verify and settle.
+      </Banner>
 
       <div className="agent-work-stats">
         <Stat label="open" value={stats.open} />
@@ -244,7 +252,6 @@ export function AgentWork() {
       </div>
 
       {error && <Banner className="agent-work-banner" tone="danger">{error}</Banner>}
-      {notice && <Banner className="agent-work-banner" tone="success">{notice}</Banner>}
 
       <div className="agent-work-body">
         <section className="agent-work-compose">
@@ -306,7 +313,7 @@ export function AgentWork() {
             <span>Acceptance</span>
             <textarea value={draft.acceptance} onChange={(event) => setDraft({ ...draft, acceptance: event.target.value })} rows={3} />
           </label>
-          <button className="agent-work-primary" onClick={handleCreate} disabled={busy === 'create'}>
+          <button type="button" className="agent-work-primary" onClick={handleCreate} disabled={busy === 'create'}>
             {busy === 'create' ? 'Creating...' : 'Create Task Spec'}
           </button>
         </section>
@@ -343,37 +350,37 @@ export function AgentWork() {
 
                 <div className="agent-work-actions">
                   {task.status === 'draft' && (
-                    <button onClick={() => handleFund(task)} disabled={busy === `fund:${task.id}`}>
+                    <button type="button" onClick={() => handleFund(task)} disabled={busy === `fund:${task.id}`}>
                       {busy === `fund:${task.id}` ? 'Funding...' : 'Fund On-Chain'}
                     </button>
                   )}
                   {task.status === 'funded' && (
-                    <button onClick={() => handleStart(task)} disabled={busy === `start:${task.id}`}>
+                    <button type="button" onClick={() => handleStart(task)} disabled={busy === `start:${task.id}`}>
                       {busy === `start:${task.id}` ? 'Starting...' : 'Start Agent'}
                     </button>
                   )}
                   {task.status === 'running' && (
-                    <button onClick={() => runTaskAction(`submit:${task.id}`, () => window.daemon.registry.submitAgentWork(task.id))} disabled={busy === `submit:${task.id}`}>
+                    <button type="button" onClick={() => runTaskAction(`submit:${task.id}`, () => window.daemon.registry.submitAgentWork(task.id))} disabled={busy === `submit:${task.id}`}>
                       {busy === `submit:${task.id}` ? 'Submitting...' : 'Submit Receipt'}
                     </button>
                   )}
                   {task.status === 'submitted' && (
                     <>
-                      <button onClick={() => runTaskAction(`approve:${task.id}`, () => window.daemon.registry.approveAgentWork(task.id))} disabled={busy === `approve:${task.id}`}>
+                      <button type="button" onClick={() => runTaskAction(`approve:${task.id}`, () => window.daemon.registry.approveAgentWork(task.id))} disabled={busy === `approve:${task.id}`}>
                         {busy === `approve:${task.id}` ? 'Approving...' : 'Approve'}
                       </button>
-                      <button onClick={() => runTaskAction(`reject:${task.id}`, () => window.daemon.registry.rejectAgentWork(task.id))} disabled={busy === `reject:${task.id}`}>
+                      <button type="button" onClick={() => runTaskAction(`reject:${task.id}`, () => window.daemon.registry.rejectAgentWork(task.id))} disabled={busy === `reject:${task.id}`}>
                         {busy === `reject:${task.id}` ? 'Rejecting...' : 'Reject'}
                       </button>
                     </>
                   )}
                   {(task.status === 'approved' || task.status === 'rejected') && (
-                    <button onClick={() => runTaskAction(`settle:${task.id}`, () => window.daemon.registry.settleAgentWork(task.id))} disabled={busy === `settle:${task.id}`}>
+                    <button type="button" onClick={() => runTaskAction(`settle:${task.id}`, () => window.daemon.registry.settleAgentWork(task.id))} disabled={busy === `settle:${task.id}`}>
                       {busy === `settle:${task.id}` ? 'Settling...' : 'Settle'}
                     </button>
                   )}
                   {latestRegistrySignature(task) && (
-                    <button onClick={() => window.daemon.shell.openExternal(`https://solscan.io/tx/${latestRegistrySignature(task)}?cluster=devnet`)}>
+                    <button type="button" onClick={() => window.daemon.shell.openExternal(`https://solscan.io/tx/${latestRegistrySignature(task)}?cluster=devnet`)}>
                       Open Tx
                     </button>
                   )}

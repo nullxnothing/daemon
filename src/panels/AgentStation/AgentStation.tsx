@@ -252,11 +252,11 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
 
       <div className={css.cardActions}>
         {config.status !== 'running' ? (
-          <button className={`${css.actionBtn} ${css.runBtn}`} onClick={handleRun} disabled={running}>
+          <button type="button" className={`${css.actionBtn} ${css.runBtn}`} onClick={handleRun} disabled={running}>
             {running ? 'Opening...' : 'Run'}
           </button>
         ) : (
-          <button className={`${css.actionBtn} ${css.stopBtn}`} onClick={handleStop}>
+          <button type="button" className={`${css.actionBtn} ${css.stopBtn}`} onClick={handleStop}>
             Stop
           </button>
         )}

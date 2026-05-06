@@ -57,7 +57,7 @@ export function AccountSettings({ accounts, onClose, onAddClick, onAccountRemove
       <div className="email__overlay-card" onClick={(e) => e.stopPropagation()}>
         <div className="email__overlay-header">
           <span className="email__overlay-title">Email Settings</span>
-          <button className="email__overlay-close" onClick={onClose}>x</button>
+          <button type="button" className="email__overlay-close" onClick={onClose}>x</button>
         </div>
 
         {/* Agent Access Toggle */}
@@ -98,7 +98,7 @@ export function AccountSettings({ accounts, onClose, onAddClick, onAccountRemove
           </div>
         ))}
 
-        <button className="email__auth-btn" onClick={onAddClick}>
+        <button type="button" className="email__auth-btn" onClick={onAddClick}>
           + Add Account
         </button>
       </div>

@@ -569,15 +569,15 @@ export function WalletTab({ onRefresh }: Props) {
         </div>
 
         <div className="wallet-quick-actions">
-          <button className={`wallet-action-btn${activeView === 'overview' ? ' active' : ''}`} onClick={() => setActiveView('overview')}>Overview</button>
-          <button className={`wallet-action-btn${activeView === 'holdings' ? ' active' : ''}`} onClick={() => setActiveView('holdings')}>Holdings</button>
-          <button className={`wallet-action-btn${activeView === 'move' ? ' active' : ''}`} onClick={() => {
+          <button type="button" className={`wallet-action-btn${activeView === 'overview' ? ' active' : ''}`} onClick={() => setActiveView('overview')}>Overview</button>
+          <button type="button" className={`wallet-action-btn${activeView === 'holdings' ? ' active' : ''}`} onClick={() => setActiveView('holdings')}>Holdings</button>
+          <button type="button" className={`wallet-action-btn${activeView === 'move' ? ' active' : ''}`} onClick={() => {
             if (activeWallet && hasKeypair) openSend(activeWallet.id, sendMode ?? 'sol')
             else setActiveView('move')
           }}>Move</button>
-          <button className={`wallet-action-btn${activeView === 'manage' ? ' active' : ''}`} onClick={() => setActiveView('manage')}>Manage</button>
-          <button className={`wallet-action-btn${activeView === 'history' ? ' active' : ''}`} onClick={() => setActiveView('history')}>History</button>
-          <button className={`wallet-action-btn${showInfrastructure ? ' active' : ''}`} onClick={() => setShowInfrastructure((v) => !v)}>Infra</button>
+          <button type="button" className={`wallet-action-btn${activeView === 'manage' ? ' active' : ''}`} onClick={() => setActiveView('manage')}>Manage</button>
+          <button type="button" className={`wallet-action-btn${activeView === 'history' ? ' active' : ''}`} onClick={() => setActiveView('history')}>History</button>
+          <button type="button" className={`wallet-action-btn${showInfrastructure ? ' active' : ''}`} onClick={() => setShowInfrastructure((v) => !v)}>Infra</button>
         </div>
       </section>
 
@@ -608,9 +608,9 @@ export function WalletTab({ onRefresh }: Props) {
                 <div className="wallet-caption">{activeWallet.name} · {truncateAddress(activeWallet.address)}</div>
               </div>
               <div className="wallet-actions wallet-actions-wrap">
-                <button className="wallet-btn" onClick={() => void handleCopyWalletAddress(activeWallet.address, activeWallet.name)}>Copy address</button>
-                <button className="wallet-btn" onClick={() => setActiveView('receive')}>Receive</button>
-                {hasKeypair && <button className="wallet-btn primary-soft" onClick={() => handleExportKeyStart(activeWallet.id)}>Export key</button>}
+                <button type="button" className="wallet-btn" onClick={() => void handleCopyWalletAddress(activeWallet.address, activeWallet.name)}>Copy address</button>
+                <button type="button" className="wallet-btn" onClick={() => setActiveView('receive')}>Receive</button>
+                {hasKeypair && <button type="button" className="wallet-btn primary-soft" onClick={() => handleExportKeyStart(activeWallet.id)}>Export key</button>}
               </div>
             </div>
             <div className="wallet-readiness-shell">
@@ -624,9 +624,9 @@ export function WalletTab({ onRefresh }: Props) {
                 </div>
                 <div className="wallet-actions wallet-actions-wrap">
                   {walletPrimaryAction ? (
-                    <button className="wallet-btn primary" onClick={walletPrimaryAction.onClick}>{walletPrimaryAction.label}</button>
+                    <button type="button" className="wallet-btn primary" onClick={walletPrimaryAction.onClick}>{walletPrimaryAction.label}</button>
                   ) : null}
-                  <button className="wallet-btn" onClick={walletSecondaryAction.onClick}>{walletSecondaryAction.label}</button>
+                  <button type="button" className="wallet-btn" onClick={walletSecondaryAction.onClick}>{walletSecondaryAction.label}</button>
                 </div>
               </div>
               <div className="wallet-readiness-grid">
@@ -661,7 +661,7 @@ export function WalletTab({ onRefresh }: Props) {
             <section className="wallet-section">
               <div className="wallet-section-header">
                 <div className="wallet-section-title">Holdings preview</div>
-                <button className="wallet-icon-btn" onClick={() => setActiveView('holdings')}>See all</button>
+                <button type="button" className="wallet-icon-btn" onClick={() => setActiveView('holdings')}>See all</button>
               </div>
               <div className="wallet-holdings">
                 {holdingsPreview.map((holding) => (
@@ -672,9 +672,9 @@ export function WalletTab({ onRefresh }: Props) {
                     </div>
                     <div className="wallet-actions wallet-actions-wrap">
                       {hasKeypair && holding.symbol !== 'SOL' && (
-                        <button className="wallet-inline-link" onClick={() => handleSwapHolding(holding.mint)}>Sell</button>
+                        <button type="button" className="wallet-inline-link" onClick={() => handleSwapHolding(holding.mint)}>Sell</button>
                       )}
-                      <button className="wallet-inline-link" onClick={() => void handleCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
+                      <button type="button" className="wallet-inline-link" onClick={() => void handleCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
                     </div>
                   </div>
                 ))}
@@ -701,9 +701,9 @@ export function WalletTab({ onRefresh }: Props) {
               <div className="wallet-caption">Transfer between your wallets, send out, or jump into swap mode without leaving this workspace.</div>
             </div>
             <div className="wallet-actions wallet-actions-wrap">
-              <button className={`wallet-btn ${sendMode === 'sol' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'sol')}>Send SOL</button>
-              <button className={`wallet-btn ${sendMode === 'token' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'token')}>Send token</button>
-              <button className="wallet-btn" onClick={() => setActiveView('swap')} disabled={!hasKeypair}>Swap</button>
+              <button type="button" className={`wallet-btn ${sendMode === 'sol' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'sol')}>Send SOL</button>
+              <button type="button" className={`wallet-btn ${sendMode === 'token' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'token')}>Send token</button>
+              <button type="button" className="wallet-btn" onClick={() => setActiveView('swap')} disabled={!hasKeypair}>Swap</button>
             </div>
           </div>
           <div className="wallet-move-grid">
@@ -764,20 +764,20 @@ export function WalletTab({ onRefresh }: Props) {
               </div>
             </div>
             <div className="wallet-tab-group wallet-create-tabs">
-              <button className={`wallet-tab ${createTab === 'import' ? 'active' : ''}`} onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Import</button>
-              <button className={`wallet-tab ${createTab === 'generate' ? 'active' : ''}`} onClick={() => { setCreateTab('generate'); setGenSuccess(null) }}>Generate</button>
+              <button type="button" className={`wallet-tab ${createTab === 'import' ? 'active' : ''}`} onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Import</button>
+              <button type="button" className={`wallet-tab ${createTab === 'generate' ? 'active' : ''}`} onClick={() => { setCreateTab('generate'); setGenSuccess(null) }}>Generate</button>
             </div>
             {createTab === 'import' && (
               <div className="wallet-form wallet-create-grid">
                 <input className="wallet-input" value={walletName} onChange={(e) => setWalletName(e.target.value)} placeholder="Wallet name" />
                 <input className="wallet-input" value={walletAddress} onChange={(e) => setWalletAddress(e.target.value)} placeholder="Solana address" />
-                <button className="wallet-btn primary wallet-btn-wide" onClick={() => void handleAddWallet(walletName.trim(), walletAddress.trim())}>Add Wallet</button>
+                <button type="button" className="wallet-btn primary wallet-btn-wide" onClick={() => void handleAddWallet(walletName.trim(), walletAddress.trim())}>Add Wallet</button>
               </div>
             )}
             {createTab === 'generate' && (
               <div className="wallet-form wallet-create-grid">
                 <input className="wallet-input" value={genName} onChange={(e) => setGenName(e.target.value)} placeholder="Wallet name" />
-                <button className="wallet-btn primary wallet-btn-wide" onClick={() => void handleGenerate(genName.trim())}>Generate Wallet</button>
+                <button type="button" className="wallet-btn primary wallet-btn-wide" onClick={() => void handleGenerate(genName.trim())}>Generate Wallet</button>
                 {genSuccess && <div className="wallet-success-msg">Generated: {truncateAddress(genSuccess)}</div>}
               </div>
             )}
@@ -807,14 +807,14 @@ export function WalletTab({ onRefresh }: Props) {
                   </div>
                   <div className="wallet-actions-card">
                     <div className="wallet-actions wallet-actions-wrap wallet-actions-card-main">
-                      {!wallet.isDefault && <button className="wallet-btn" onClick={() => void handleSetDefault(wallet.id)}>Make main wallet</button>}
-                      {activeProjectId && <button className="wallet-btn primary-soft" onClick={() => void handleAssignProject(wallet.id)}>Use for project</button>}
-                      <button className="wallet-btn" onClick={() => void handleCopyWalletAddress(wallet.address, wallet.name)}>Copy address</button>
-                      {keypairCache[wallet.id] && <button className="wallet-btn primary" onClick={() => openSend(wallet.id, 'sol')}>Move funds</button>}
+                      {!wallet.isDefault && <button type="button" className="wallet-btn" onClick={() => void handleSetDefault(wallet.id)}>Make main wallet</button>}
+                      {activeProjectId && <button type="button" className="wallet-btn primary-soft" onClick={() => void handleAssignProject(wallet.id)}>Use for project</button>}
+                      <button type="button" className="wallet-btn" onClick={() => void handleCopyWalletAddress(wallet.address, wallet.name)}>Copy address</button>
+                      {keypairCache[wallet.id] && <button type="button" className="wallet-btn primary" onClick={() => openSend(wallet.id, 'sol')}>Move funds</button>}
                     </div>
                     <div className="wallet-actions wallet-actions-wrap wallet-actions-card-utility">
-                      {keypairCache[wallet.id] && <button className="wallet-btn subtle" onClick={() => handleExportKeyStart(wallet.id)}>Export key</button>}
-                      <button className="wallet-btn danger" onClick={() => void handleDeleteWallet(wallet.id)}>Remove</button>
+                      {keypairCache[wallet.id] && <button type="button" className="wallet-btn subtle" onClick={() => handleExportKeyStart(wallet.id)}>Export key</button>}
+                      <button type="button" className="wallet-btn danger" onClick={() => void handleDeleteWallet(wallet.id)}>Remove</button>
                     </div>
                   </div>
                   {renderWalletInline(wallet.id)}

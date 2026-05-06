@@ -146,10 +146,10 @@ function PnlRow({ holding, onSwapHolding, onCopyMint }: {
         <div className="wallet-caption">{holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
         <div className="wallet-holding-actions">
           {onSwapHolding && (
-            <button className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
+            <button type="button" className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
           )}
           {onCopyMint && (
-            <button className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
+            <button type="button" className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
           )}
         </div>
       </div>
@@ -182,10 +182,10 @@ function FallbackRow({ holding, onSwapHolding, onCopyMint }: {
         <div className="wallet-caption">{holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
         <div className="wallet-holding-actions">
           {onSwapHolding && (
-            <button className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
+            <button type="button" className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
           )}
           {onCopyMint && (
-            <button className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
+            <button type="button" className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
           )}
         </div>
       </div>

@@ -1,5 +1,5 @@
 .file-explorer {
-  padding: 4px 0;
+  padding: 8px 0;
   overflow-y: auto;
   height: 100%;
   position: relative;
@@ -12,8 +12,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0 8px 6px;
-  background: var(--s1);
+  margin: 0 8px 8px;
+  background: var(--surface-flat);
 }
 
 .file-explorer-search {
@@ -21,12 +21,12 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-  height: 28px;
+  gap: 5px;
+  padding: 0 7px;
+  height: 30px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--s1);
+  background: var(--surface-sunken);
 }
 
 .file-explorer-search.focused {
@@ -54,14 +54,14 @@
 }
 
 .file-explorer-action {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   flex: 0 0 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--t3);
-  background: var(--s1);
+  background: var(--surface-raised);
   border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
@@ -131,8 +131,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 26px;
-  font-size: 13px;
+  height: 27px;
+  font-size: var(--fs-12);
   color: var(--t2);
   cursor: pointer;
   user-select: none;
@@ -142,7 +142,7 @@
 }
 
 .file-node:hover {
-  background: var(--hover-bg);
+  background: var(--surface-raised);
   color: var(--t1);
 }
 
@@ -155,7 +155,7 @@
 }
 
 .file-node-icon {
-  width: 16px;
+  width: 15px;
   height: 16px;
   display: inline-flex;
   align-items: center;
@@ -197,7 +197,7 @@
 }
 
 .file-node.directory .file-node-name {
-  color: var(--t1);
+  color: color-mix(in srgb, var(--t1) 90%, var(--t2) 10%);
   font-weight: 500;
 }
 
@@ -380,6 +380,12 @@
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
+  /* button resets */
+  width: 100%;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  font-family: inherit;
 }
 
 .context-menu-item:hover {

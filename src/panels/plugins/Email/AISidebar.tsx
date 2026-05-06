@@ -20,7 +20,7 @@ export function AISidebar() {
           {aiSidebar === 'extraction' && 'Extractions'}
           {aiSidebar === 'cleanup' && 'Inbox Cleanup'}
         </span>
-        <button className="email__ai-sidebar-close" onClick={closeAISidebar}>
+        <button type="button" className="email__ai-sidebar-close" onClick={closeAISidebar}>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M2 2l8 8M10 2l-8 8" />
           </svg>
@@ -116,7 +116,7 @@ function ExtractionBlock({ item }: { item: { type: string; content: string; lang
     <div className="email__ai-code-block">
       <div className="email__ai-code-header">
         <span className="email__ai-code-lang">{item.language ?? item.type}</span>
-        <button className="email__ai-code-copy" onClick={handleCopy}>
+        <button type="button" className="email__ai-code-copy" onClick={handleCopy}>
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>

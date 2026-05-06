@@ -524,7 +524,7 @@ export function ProjectStarter() {
         </div>
         <div className="starter-grid">
           {filteredTemplates.map((t) => (
-            <button key={t.id} className="starter-card" onClick={() => selectTemplate(t)}>
+            <button type="button" key={t.id} className="starter-card" onClick={() => selectTemplate(t)}>
               <div className="starter-card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d={t.icon} />
@@ -563,7 +563,7 @@ export function ProjectStarter() {
 
     return (
       <div className="starter-panel">
-        <button className="starter-back" onClick={goBack}>
+        <button type="button" className="starter-back" onClick={goBack}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
@@ -600,7 +600,7 @@ export function ProjectStarter() {
             <label className="starter-label">Save Location</label>
             <div className="starter-path-row">
               <div className="starter-path-display">{displayPath}</div>
-              <button className="starter-browse-btn" onClick={pickFolder}>Browse</button>
+              <button type="button" className="starter-browse-btn" onClick={pickFolder}>Browse</button>
             </div>
           </div>
 

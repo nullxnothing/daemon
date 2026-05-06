@@ -45,7 +45,7 @@ export function WalletExportKey({
             >
               Reveal Key
             </button>
-            <button className="wallet-btn" onClick={onCancel}>Cancel</button>
+            <button type="button" className="wallet-btn" onClick={onCancel}>Cancel</button>
           </div>
         </div>
       )}

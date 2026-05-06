@@ -3,16 +3,16 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--s1);
+  background: var(--surface-flat);
 }
 
 .right-panel-header {
-  min-height: 34px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   padding: 0 var(--space-md);
   border-bottom: 1px solid var(--border);
-  background: var(--s1);
+  background: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
 }
 
 .right-panel-header-copy {
@@ -32,10 +32,10 @@
 .right-panel-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  padding: 6px var(--space-sm);
+  gap: 6px;
+  padding: 8px var(--space-sm);
   border-bottom: 1px solid var(--border);
-  background: var(--s1);
+  background: var(--surface-flat);
 }
 
 .right-panel-tab {
@@ -44,7 +44,7 @@
   justify-content: center;
   gap: 6px;
   min-width: 0;
-  height: 30px;
+  height: 32px;
   padding: 0 8px;
   background: transparent;
   border: 1px solid var(--border);
@@ -61,7 +61,7 @@
 
 .right-panel-tab.active {
   border-color: color-mix(in srgb, var(--green) 42%, var(--border));
-  background: var(--green-glow);
+  background: color-mix(in srgb, var(--green-glow) 76%, var(--surface-raised) 24%);
 }
 
 .right-panel-tab img {
@@ -99,6 +99,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 6px var(--space-sm);
-  background: var(--s1);
+  padding: 8px var(--space-sm);
+  background: var(--surface-flat);
 }

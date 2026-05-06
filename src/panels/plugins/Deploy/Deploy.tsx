@@ -265,7 +265,7 @@ export default function DeployPanel() {
       <div className="deploy-header">
         <h2 className="deploy-title">Deploy</h2>
         <div className="deploy-header-spacer" />
-        <button className="deploy-btn" onClick={handleRefresh}>Refresh</button>
+        <button type="button" className="deploy-btn" onClick={handleRefresh}>Refresh</button>
         {hasLinked && (
           <button
             className="deploy-btn primary"
@@ -365,7 +365,7 @@ export default function DeployPanel() {
                   </div>
                 ) : (
                   <>
-                    <button className="deploy-btn" onClick={() => handleStartLink(platform)}>
+                    <button type="button" className="deploy-btn" onClick={() => handleStartLink(platform)}>
                       Link Project
                     </button>
                     <button
@@ -407,7 +407,7 @@ export default function DeployPanel() {
               </span>
               <span className="deploy-time">{relativeTime(d.createdAt)}</span>
               {d.url && (
-                <button className="deploy-link" onClick={() => handleOpenUrl(d.url!)}>
+                <button type="button" className="deploy-link" onClick={() => handleOpenUrl(d.url!)}>
                   Open
                 </button>
               )}

@@ -118,7 +118,6 @@ function App() {
     setBootStatus('initializing workspace...')
 
     const bootSequence = async () => {
-      const minimumDisplay = new Promise((resolve) => setTimeout(resolve, 700))
       setBootStatus('loading workspace data...')
       const startupTasks: Array<[string, Promise<unknown>]> = [
         ['loading projects...', loadProjects(guard)],
@@ -130,7 +129,7 @@ function App() {
       ]
 
       const tasksPromise = Promise.allSettled(startupTasks.map(([, task]) => task))
-      const [results] = await Promise.all([tasksPromise, minimumDisplay])
+      const results = await tasksPromise
 
       if (guard.cancelled) return
       if (smokeMode) {
@@ -260,11 +259,10 @@ function App() {
   useEffect(() => {
     if (!appReady) return
     const pinnedTools = useUIStore.getState().pinnedTools
-    const likelyNext = ['wallet', 'git', 'project-readiness']
-    const warmSet = [...new Set([...pinnedTools, ...likelyNext])]
+    const warmSet = [...new Set(pinnedTools)]
       .filter((toolId) => toolId !== 'browser')
       .filter((toolId) => isToolVisible(toolId))
-      .slice(0, 6)
+      .slice(0, 4)
 
     let cancelled = false
     const warmPanels = () => {
@@ -278,14 +276,14 @@ function App() {
     }).requestIdleCallback
 
     if (typeof idleCallback === 'function') {
-      const idleId = idleCallback(warmPanels, { timeout: 1500 })
+      const idleId = idleCallback(warmPanels, { timeout: 3000 })
       return () => {
         cancelled = true
         window.cancelIdleCallback?.(idleId)
       }
     }
 
-    const timeoutId = window.setTimeout(warmPanels, 250)
+    const timeoutId = window.setTimeout(warmPanels, 1500)
     return () => {
       cancelled = true
       window.clearTimeout(timeoutId)
@@ -349,7 +347,7 @@ function App() {
   )
 
   return (
-    <div className={`app app--${tier}`}>
+    <div className={`app app--${tier}`} data-app-ready={appReady ? 'true' : 'false'}>
       <a href="#editor-area" className="skip-link">Skip to editor</a>
       <a href="#terminal-area" className="skip-link">Skip to terminal</a>
       <BootLoader ready={appReady} status={bootStatus} />
@@ -357,12 +355,13 @@ function App() {
         <div className="crash-warning-banner">
           <span>DAEMON recovered from {crashWarningCount} errors in the last hour.</span>
           <button
+            type="button"
             className="crash-warning-link"
             onClick={() => { useUIStore.getState().openWorkspaceTool('settings'); setCrashWarningCount(null) }}
           >
             View crash log
           </button>
-          <button className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)}>
+          <button type="button" className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -462,12 +461,14 @@ function App() {
         <div className="resume-banner">
           <span className="resume-banner-text">Continue setting up DAEMON?</span>
           <button
+            type="button"
             className="resume-banner-btn primary"
             onClick={() => useOnboardingStore.getState().openWizard()}
           >
             Resume
           </button>
           <button
+            type="button"
             className="resume-banner-btn secondary"
             onClick={() => useOnboardingStore.getState().dismissBanner()}
           >
@@ -486,10 +487,10 @@ function App() {
               Take a quick tour to learn where everything is?
             </div>
             <div className="tour-offer-actions">
-              <button className="wizard-btn primary" onClick={() => useOnboardingStore.getState().startTour()}>
+              <button type="button" className="wizard-btn primary" onClick={() => useOnboardingStore.getState().startTour()}>
                 Start Tour
               </button>
-              <button className="wizard-btn secondary" onClick={() => useOnboardingStore.getState().dismissTourOffer()}>
+              <button type="button" className="wizard-btn secondary" onClick={() => useOnboardingStore.getState().dismissTourOffer()}>
                 Skip
               </button>
             </div>

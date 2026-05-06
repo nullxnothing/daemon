@@ -51,7 +51,7 @@ export default function EmailCompanion() {
   return (
     <div className="email-companion">
       <div className="email-companion__header">
-        <button className="email__view-back" onClick={closeCompanion}>
+        <button type="button" className="email__view-back" onClick={closeCompanion}>
           Back
         </button>
         <span className="email-companion__breadcrumb">
@@ -71,7 +71,7 @@ export default function EmailCompanion() {
 
           <div style={{ marginTop: 12 }}>
             {!summary && !summarizing && (
-              <button className="email__action-btn" onClick={handleSummarize}>
+              <button type="button" className="email__action-btn" onClick={handleSummarize}>
                 Summarize
               </button>
             )}

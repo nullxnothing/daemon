@@ -64,7 +64,7 @@ export function VoiceProfileEditor({
                 >
                   Cancel
                 </button>
-                <button className="tweet-gen__card-btn" onClick={onSave}>
+                <button type="button" className="tweet-gen__card-btn" onClick={onSave}>
                   Save
                 </button>
               </>
@@ -106,7 +106,7 @@ export function VoiceProfileEditor({
                   onChange={(e) => setNewExample(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addExample()}
                 />
-                <button className="tweet-gen__card-btn" onClick={addExample}>
+                <button type="button" className="tweet-gen__card-btn" onClick={addExample}>
                   Add
                 </button>
               </div>

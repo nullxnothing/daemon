@@ -223,7 +223,7 @@ export function WalletSendForm({
               >
                 Confirm Send
               </button>
-              <button className="wallet-btn" onClick={onClose}>Cancel</button>
+              <button type="button" className="wallet-btn" onClick={onClose}>Cancel</button>
             </div>
           </>
         )}
@@ -245,7 +245,7 @@ export function WalletSendForm({
               ]}
             />
             <div className="wallet-actions">
-              <button className="wallet-btn" onClick={onCancelSend}>Cancel</button>
+              <button type="button" className="wallet-btn" onClick={onCancelSend}>Cancel</button>
               <button
                 className="wallet-btn primary"
                 disabled={sendLoading}

@@ -203,6 +203,16 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  telemetry: {
+    track: (eventName: string, properties?: Record<string, unknown>) =>
+      ipcRenderer.invoke('telemetry:track', eventName, properties),
+    timing: (eventName: string, durationMs: number, properties?: Record<string, unknown>) =>
+      ipcRenderer.invoke('telemetry:timing', eventName, durationMs, properties),
+    session: () => ipcRenderer.invoke('telemetry:session'),
+    stats: () => ipcRenderer.invoke('telemetry:stats'),
+    recent: (limit?: number) => ipcRenderer.invoke('telemetry:recent', limit),
+  },
+
   git: {
     branch: (cwd: string) => ipcRenderer.invoke('git:branch', cwd),
     branches: (cwd: string) => ipcRenderer.invoke('git:branches', cwd),

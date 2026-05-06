@@ -95,7 +95,7 @@ export function AgentWalletSection({
               </div>
               <div className="wallet-caption">{shortAddress(aw.address)}</div>
             </div>
-            <button className="wallet-btn" onClick={() => onFundAgent(aw.address)}>Fund</button>
+            <button type="button" className="wallet-btn" onClick={() => onFundAgent(aw.address)}>Fund</button>
           </div>
         ))
       ) : (
@@ -126,7 +126,7 @@ export function AgentWalletSection({
                   >
                     Confirm Send
                   </button>
-                  <button className="wallet-btn" onClick={onCloseSend}>Cancel</button>
+                  <button type="button" className="wallet-btn" onClick={onCloseSend}>Cancel</button>
                 </div>
               </>
             )}
@@ -136,7 +136,7 @@ export function AgentWalletSection({
                   Send {pendingSend.amount} SOL to {shortAddress(pendingSend.dest)}?
                 </div>
                 <div className="wallet-actions">
-                  <button className="wallet-btn" onClick={onCancelSend}>Cancel</button>
+                  <button type="button" className="wallet-btn" onClick={onCancelSend}>Cancel</button>
                   <button
                     className="wallet-btn primary"
                     disabled={sendLoading}
@@ -158,7 +158,7 @@ export function AgentWalletSection({
       )}
 
       {!showCreateAgent && (
-        <button className="wallet-btn primary" style={{ marginTop: 8 }} onClick={openCreateAgent}>
+        <button type="button" className="wallet-btn primary" style={{ marginTop: 8 }} onClick={openCreateAgent}>
           Create Agent Wallet
         </button>
       )}
@@ -188,8 +188,8 @@ export function AgentWalletSection({
               placeholder="Wallet name"
             />
             <div className="wallet-actions">
-              <button className="wallet-btn primary" onClick={handleCreate}>Create</button>
-              <button className="wallet-btn" onClick={() => setShowCreateAgent(false)}>Cancel</button>
+              <button type="button" className="wallet-btn primary" onClick={handleCreate}>Create</button>
+              <button type="button" className="wallet-btn" onClick={() => setShowCreateAgent(false)}>Cancel</button>
             </div>
           </div>
         </div>

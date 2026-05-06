@@ -108,13 +108,13 @@ export function ActionToolbar() {
           </button>
           {showAIMenu && (
             <div className="email__ai-menu">
-              <button className="email__ai-menu-item" onClick={handleCleanup}>
+              <button type="button" className="email__ai-menu-item" onClick={handleCleanup}>
                 Clean up inbox
               </button>
-              <button className="email__ai-menu-item" onClick={handleSummarizeUnread}>
+              <button type="button" className="email__ai-menu-item" onClick={handleSummarizeUnread}>
                 Summarize unread
               </button>
-              <button className="email__ai-menu-item" onClick={handleExtractAll}>
+              <button type="button" className="email__ai-menu-item" onClick={handleExtractAll}>
                 Extract all code
               </button>
             </div>
@@ -138,8 +138,8 @@ export function ActionToolbar() {
         {selectMode && (
           <>
             <span className="email__select-count">{selectedIds.size} selected</span>
-            <button className="email__toolbar-btn-sm" onClick={selectAll}>All</button>
-            <button className="email__toolbar-btn-sm" onClick={clearSelection}>None</button>
+            <button type="button" className="email__toolbar-btn-sm" onClick={selectAll}>All</button>
+            <button type="button" className="email__toolbar-btn-sm" onClick={clearSelection}>None</button>
           </>
         )}
         <button

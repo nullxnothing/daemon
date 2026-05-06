@@ -175,19 +175,19 @@ function ConnectionSection({ projectId, projectPath }: { projectId: string; proj
         <span className="codex-info-value" title={effort}>{effort}</span>
       </div>
       <div className="codex-actions-row">
-        <button className="codex-btn" onClick={handleVerify} disabled={busy !== null}>
+        <button type="button" className="codex-btn" onClick={handleVerify} disabled={busy !== null}>
           {busy === 'verify' ? 'Verifying…' : 'Verify'}
         </button>
         {connected ? (
-          <button className="codex-btn" onClick={handleLogout} disabled={busy !== null}>
+          <button type="button" className="codex-btn" onClick={handleLogout} disabled={busy !== null}>
             {busy === 'logout' ? 'Signing out…' : 'Sign out / switch'}
           </button>
         ) : (
           <>
-            <button className="codex-btn codex-btn-primary" onClick={handleLogin} disabled={busy !== null}>
+            <button type="button" className="codex-btn codex-btn-primary" onClick={handleLogin} disabled={busy !== null}>
               {busy === 'login' ? 'Opening…' : 'Sign in'}
             </button>
-            <button className="codex-btn" onClick={handleInstall} disabled={busy !== null}>
+            <button type="button" className="codex-btn" onClick={handleInstall} disabled={busy !== null}>
               {busy === 'install' ? 'Installing…' : 'Install CLI'}
             </button>
           </>
@@ -342,10 +342,10 @@ function AgentsMdSection({ projectPath }: { projectPath: string }) {
               spellCheck={false}
             />
             <div className="codex-actions-row">
-              <button className="codex-btn codex-btn-primary" onClick={save} disabled={saving}>
+              <button type="button" className="codex-btn codex-btn-primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : 'Save'}
               </button>
-              <button className="codex-btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
+              <button type="button" className="codex-btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
             </div>
           </>
         ) : (
@@ -358,7 +358,7 @@ function AgentsMdSection({ projectPath }: { projectPath: string }) {
               <div className="codex-mcp-desc">No AGENTS.md in this project.</div>
             )}
             <div className="codex-actions-row">
-              <button className="codex-btn" onClick={startEdit}>
+              <button type="button" className="codex-btn" onClick={startEdit}>
                 {content ? 'Edit' : 'Create AGENTS.md'}
               </button>
             </div>

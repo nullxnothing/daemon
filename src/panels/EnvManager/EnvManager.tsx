@@ -356,9 +356,9 @@ export function EnvManager() {
         subtitle={`${activeProject ? activeProject.name : 'No active project'} · ${vercelLinked ? 'Vercel linked' : 'Local only'}`}
         actions={
           <div className="env-header-actions">
-            <button className="env-btn" onClick={loadLocal}>Refresh local</button>
+            <button type="button" className="env-btn" onClick={loadLocal}>Refresh local</button>
             {vercelLinked && (
-              <button className="env-btn" onClick={loadVercel} disabled={loadingVercel}>
+              <button type="button" className="env-btn" onClick={loadVercel} disabled={loadingVercel}>
                 {loadingVercel ? 'Refreshing prod…' : 'Refresh prod'}
               </button>
             )}
@@ -366,7 +366,7 @@ export function EnvManager() {
               <Toggle checked={secretsOnly} onChange={setSecretsOnly} />
               <span>Secrets only</span>
             </label>
-            <button className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
+            <button type="button" className="env-btn env-add-btn" onClick={() => setAddingNew(true)}>+ Add</button>
           </div>
         }
       />
@@ -436,8 +436,8 @@ export function EnvManager() {
             </span>
             <span className="env-col-prod"></span>
             <span className="env-col-actions">
-              <button className="env-btn" onClick={() => { setAddingNew(false); setNewKey(''); setNewValue('') }}>Cancel</button>
-              <button className="env-btn env-btn-green" onClick={handleAddNew} disabled={!newKey.trim()}>Add</button>
+              <button type="button" className="env-btn" onClick={() => { setAddingNew(false); setNewKey(''); setNewValue('') }}>Cancel</button>
+              <button type="button" className="env-btn env-btn-green" onClick={handleAddNew} disabled={!newKey.trim()}>Add</button>
             </span>
           </div>
         )}
@@ -571,7 +571,14 @@ function EnvRow({
 
   return (
     <div className={`env-row-group ${isExpanded ? 'expanded' : ''}`}>
-      <div className="env-row" onClick={onToggleExpand}>
+      <div
+        className="env-row"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        onClick={onToggleExpand}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand() } }}
+      >
         {/* Status dot */}
         <span className="env-col-status">
           <Dot color={STATUS_DOT[m.status]} />
@@ -669,9 +676,10 @@ function EnvRow({
 
         {/* Actions */}
         <span className="env-col-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="env-btn" onClick={() => onCopy(m)} title="Copy value">Copy</button>
+          <button type="button" className="env-btn" onClick={() => onCopy(m)} title="Copy value">Copy</button>
           {canPush && (
             <button
+              type="button"
               className="env-btn env-btn-push"
               onClick={() => onPush(m)}
               disabled={isPushing}
@@ -682,6 +690,7 @@ function EnvRow({
           )}
           {canPull && (
             <button
+              type="button"
               className="env-btn env-btn-pull"
               onClick={() => onPull(m)}
               disabled={isPulling}
@@ -691,7 +700,7 @@ function EnvRow({
             </button>
           )}
           {m.devProjects.length > 1 && (
-            <button className="env-btn env-btn-green" onClick={() => onPropagate(m.key)}>Propagate</button>
+            <button type="button" className="env-btn env-btn-green" onClick={() => onPropagate(m.key)}>Propagate</button>
           )}
         </span>
       </div>
@@ -708,8 +717,8 @@ function EnvRow({
                   <span className="env-expanded-file">{p.filePath.split(/[\\/]/).pop()}</span>
                   <span className="env-expanded-value">{p.value || '(empty)'}</span>
                   <div className="env-expanded-actions">
-                    <button className="env-btn-sm" onClick={() => onCopyValue(p.value)}>Copy</button>
-                    <button className="env-btn-sm" onClick={() => onOpenFile(p.filePath)}>Open</button>
+                    <button type="button" className="env-btn-sm" onClick={() => onCopyValue(p.value)}>Copy</button>
+                    <button type="button" className="env-btn-sm" onClick={() => onOpenFile(p.filePath)}>Open</button>
                   </div>
                 </div>
               ))}
@@ -728,7 +737,7 @@ function EnvRow({
                       <span key={t} className="env-target-badge">{t.slice(0, 3)}</span>
                     ))}
                   </span>
-                  <button className="env-btn-sm" onClick={() => onCopyValue(m.prodValue!)}>Copy</button>
+                  <button type="button" className="env-btn-sm" onClick={() => onCopyValue(m.prodValue!)}>Copy</button>
                 </div>
               </div>
             </div>
@@ -775,7 +784,7 @@ function PropagateModal({ envKey, onClose, onDone }: {
       <div className="env-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Propagate environment variable">
         <div className="env-modal-header">
           <h3>Propagate <code>{envKey.key}</code></h3>
-          <span className="env-modal-close" onClick={onClose}>&times;</span>
+          <span className="env-modal-close" role="button" tabIndex={0} onClick={onClose} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose() } }} aria-label="Close">&times;</span>
         </div>
 
         <div className="env-modal-body">
@@ -788,7 +797,7 @@ function PropagateModal({ envKey, onClose, onDone }: {
                 onChange={(e) => setNewValue(e.target.value)}
                 className="env-modal-input"
               />
-              <button className="env-btn" onClick={() => setShowValue(!showValue)}>
+              <button type="button" className="env-btn" onClick={() => setShowValue(!showValue)}>
                 {showValue ? 'Hide' : 'Show'}
               </button>
             </div>
@@ -818,8 +827,9 @@ function PropagateModal({ envKey, onClose, onDone }: {
         </div>
 
         <div className="env-modal-footer">
-          <button className="env-btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="env-btn" onClick={onClose}>Cancel</button>
           <button
+            type="button"
             className="env-btn env-btn-green"
             onClick={handlePropagate}
             disabled={updating || selected.size === 0}

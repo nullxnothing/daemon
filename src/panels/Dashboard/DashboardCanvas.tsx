@@ -150,11 +150,12 @@ function ImportPanel({
     <div className="dash-import-panel">
       <div className="dash-import-panel-header">
         <span className="dash-import-panel-title">Import Token</span>
-        <button className="dash-import-close-btn" onClick={onClose}>x</button>
+        <button type="button" className="dash-import-close-btn" onClick={onClose}>x</button>
       </div>
 
       <div className="dash-import-mode-tabs">
         <button
+          type="button"
           className={`dash-import-tab ${mode === 'manual' ? 'active' : ''}`}
           onClick={() => setMode('manual')}
         >
@@ -162,6 +163,7 @@ function ImportPanel({
         </button>
         {walletAddress && (
           <button
+            type="button"
             className={`dash-import-tab ${mode === 'scan' ? 'active' : ''}`}
             onClick={() => { setMode('scan'); if (scanResults.length === 0 && scanStatus === 'idle') handleScan() }}
           >
@@ -181,6 +183,7 @@ function ImportPanel({
             disabled={manualStatus === 'loading'}
           />
           <button
+            type="button"
             className="dash-btn dash-btn-primary"
             onClick={handleManualImport}
             disabled={manualStatus === 'loading' || !mintInput.trim()}
@@ -204,7 +207,7 @@ function ImportPanel({
           {scanStatus !== 'loading' && scanResults.length === 0 && scanStatus !== 'error' && (
             <div className="dash-import-scanning">
               No tokens found where this wallet has authority.
-              <button className="dash-btn dash-btn-muted" onClick={handleScan} style={{ marginTop: 8 }}>
+              <button type="button" className="dash-btn dash-btn-muted" onClick={handleScan} style={{ marginTop: 8 }}>
                 Re-scan
               </button>
             </div>
@@ -229,13 +232,14 @@ function ImportPanel({
               </div>
               <div className="dash-scan-actions">
                 <button
+                  type="button"
                   className="dash-btn dash-btn-primary"
                   onClick={handleImportSelected}
                   disabled={scanStatus === 'importing' || !scanResults.some((r) => r.selected)}
                 >
                   {scanStatus === 'importing' ? 'Importing...' : `Import ${scanResults.filter((r) => r.selected).length} Selected`}
                 </button>
-                <button className="dash-btn dash-btn-muted" onClick={handleScan} disabled={scanStatus === 'importing'}>
+                <button type="button" className="dash-btn dash-btn-muted" onClick={handleScan} disabled={scanStatus === 'importing'}>
                   Re-scan
                 </button>
               </div>
@@ -297,11 +301,11 @@ export function DashboardCanvas() {
         <div className="dash-canvas-empty">
           <span className="dash-canvas-empty-title">No tokens launched</span>
           <span className="dash-canvas-empty-sub">Launch your first token to see live data here</span>
-          <button className="dash-btn dash-btn-primary dash-btn-lg" onClick={openTokenLaunch}>
+          <button className="dash-btn dash-btn-primary dash-btn-lg" type="button" onClick={openTokenLaunch}>
             Open Token Launch
           </button>
           {activeWalletId && (
-            <button className="dash-btn dash-btn-outline-full" onClick={() => setShowImport(true)}>
+            <button type="button" className="dash-btn dash-btn-outline-full" onClick={() => setShowImport(true)}>
               Import Existing Token
             </button>
           )}
@@ -337,13 +341,14 @@ export function DashboardCanvas() {
         <div className="dash-canvas-header-right">
           {activeWalletId && (
             <button
+              type="button"
               className="dash-btn dash-btn-muted"
               onClick={() => setShowImport((v) => !v)}
             >
               {showImport ? 'Cancel' : 'Import Token'}
             </button>
           )}
-          <button className="dash-btn dash-btn-primary" onClick={openTokenLaunch}>
+          <button type="button" className="dash-btn dash-btn-primary" onClick={openTokenLaunch}>
             Open Token Launch
           </button>
         </div>
@@ -412,7 +417,7 @@ export function DashboardCanvas() {
             <div className="dash-holders-table">
               <div className="dash-section-title">
                 Top Holders
-                <button className="dash-refresh-btn" onClick={refetchHolders} title="Refresh holders">
+                <button type="button" className="dash-refresh-btn" onClick={refetchHolders} title="Refresh holders">
                   Refresh
                 </button>
               </div>
@@ -445,13 +450,13 @@ export function DashboardCanvas() {
             <div className="dash-actions-panel">
               <div className="dash-section-title">Actions</div>
               <div className="dash-actions-group">
-                <button className="dash-btn dash-btn-green dash-btn-block" onClick={handleBuy}>
+                <button type="button" className="dash-btn dash-btn-green dash-btn-block" onClick={handleBuy}>
                   Buy on Pump.fun
                 </button>
-                <button className="dash-btn dash-btn-red dash-btn-block" onClick={handleSell}>
+                <button type="button" className="dash-btn dash-btn-red dash-btn-block" onClick={handleSell}>
                   Sell on Pump.fun
                 </button>
-                <button className="dash-btn dash-btn-muted dash-btn-block" onClick={handleClaimFees}>
+                <button type="button" className="dash-btn dash-btn-muted dash-btn-block" onClick={handleClaimFees}>
                   Claim Creator Fees
                 </button>
               </div>

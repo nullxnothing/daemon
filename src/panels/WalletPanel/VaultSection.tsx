@@ -129,7 +129,7 @@ export function VaultSection({ onBack }: { onBack: () => void }) {
   return (
     <div className="vault-section">
       <div className="vault-header">
-        <button className="vault-back-btn" onClick={onBack}>
+        <button type="button" className="vault-back-btn" onClick={onBack}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <polyline points="15 18 9 12 15 6" />
           </svg>
@@ -145,8 +145,8 @@ export function VaultSection({ onBack }: { onBack: () => void }) {
       {error && <div className="vault-error">{error}</div>}
 
       <div className="vault-actions">
-        <button className="vault-btn primary" onClick={handleImportFile}>Import File</button>
-        <button className="vault-btn" onClick={() => setAddMode(!addMode)}>
+        <button type="button" className="vault-btn primary" onClick={handleImportFile}>Import File</button>
+        <button type="button" className="vault-btn" onClick={() => setAddMode(!addMode)}>
           {addMode ? 'Cancel' : 'Paste Secret'}
         </button>
       </div>
@@ -206,17 +206,17 @@ export function VaultSection({ onBack }: { onBack: () => void }) {
               </button>
               {deleteConfirm === file.id ? (
                 <>
-                  <button className="vault-btn-sm danger" onClick={() => handleDelete(file.id)}>Confirm</button>
-                  <button className="vault-btn-sm" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+                  <button type="button" className="vault-btn-sm danger" onClick={() => handleDelete(file.id)}>Confirm</button>
+                  <button type="button" className="vault-btn-sm" onClick={() => setDeleteConfirm(null)}>Cancel</button>
                 </>
               ) : (
-                <button className="vault-btn-sm" onClick={() => setDeleteConfirm(file.id)}>Delete</button>
+                <button type="button" className="vault-btn-sm" onClick={() => setDeleteConfirm(file.id)}>Delete</button>
               )}
             </div>
             {revealId === file.id && revealedData && (
               <div className="vault-reveal">
                 <pre className="vault-reveal-content">{revealedData}</pre>
-                <button className="vault-btn-sm" onClick={handleCopy}>
+                <button type="button" className="vault-btn-sm" onClick={handleCopy}>
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>

@@ -238,7 +238,7 @@ export function StepClaude() {
             Claude Code CLI is required. It can be installed automatically.
           </div>
           {installError && <div className="wizard-error">{installError}</div>}
-          <button className="wizard-btn primary" onClick={handleInstallCli}>
+          <button type="button" className="wizard-btn primary" onClick={handleInstallCli}>
             Install Claude Code
           </button>
           {installError && (
@@ -269,6 +269,7 @@ export function StepClaude() {
           </div>
 
           <button
+            type="button"
             className="wizard-btn primary"
             onClick={handleSignIn}
             disabled={authLoading}
@@ -283,6 +284,7 @@ export function StepClaude() {
 
           {!showApiInput ? (
             <button
+              type="button"
               className="wizard-btn secondary"
               onClick={() => setShowApiInput(true)}
             >
@@ -304,6 +306,7 @@ export function StepClaude() {
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
                 />
                 <button
+                  type="button"
                   className="wizard-btn secondary small"
                   onClick={handleSaveApiKey}
                   disabled={savingKey || !apiKeyInput.trim()}
@@ -312,6 +315,7 @@ export function StepClaude() {
                 </button>
               </div>
               <button
+                type="button"
                 className="wizard-skip-step"
                 onClick={handleOpenConsole}
                 style={{ padding: 0, textAlign: 'left' }}
@@ -336,10 +340,10 @@ export function StepClaude() {
                   : 'Connected via API key.'}
             </div>
           </div>
-          <button className="wizard-btn primary" onClick={handleContinue}>
+          <button type="button" className="wizard-btn primary" onClick={handleContinue}>
             Continue
           </button>
-          <button className="wizard-skip-step" onClick={handleDisconnect}>
+          <button type="button" className="wizard-skip-step" onClick={handleDisconnect}>
             {disconnecting ? 'Disconnecting...' : 'Disconnect / switch account'}
           </button>
         </>
@@ -347,7 +351,7 @@ export function StepClaude() {
 
       {/* Skip option — always available when not connected */}
       {phase !== 'connected' && (
-        <button className="wizard-skip-step" onClick={handleSkip}>
+        <button type="button" className="wizard-skip-step" onClick={handleSkip}>
           Skip for now
         </button>
       )}

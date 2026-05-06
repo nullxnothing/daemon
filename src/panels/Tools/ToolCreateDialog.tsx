@@ -53,7 +53,7 @@ export function ToolCreateDialog({ onClose, onCreated }: ToolCreateDialogProps) 
       <div className="tool-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="tool-dialog-header">
           <h3>New Tool</h3>
-          <button className="tool-dialog-close" onClick={onClose}>&times;</button>
+          <button type="button" className="tool-dialog-close" onClick={onClose}>&times;</button>
         </div>
 
         <div className="tool-dialog-body">
@@ -111,7 +111,7 @@ export function ToolCreateDialog({ onClose, onCreated }: ToolCreateDialogProps) 
         </div>
 
         <div className="tool-dialog-footer">
-          <button className="tool-btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="tool-btn" onClick={onClose}>Cancel</button>
           <button
             className="tool-btn primary"
             onClick={handleCreate}

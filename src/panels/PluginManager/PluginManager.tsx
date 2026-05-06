@@ -152,7 +152,7 @@ export function PluginManager() {
   return (
     <div className="plugin-manager">
       <PanelHeader
-        kicker="Plugin-first IDE"
+        kicker="Plugin-first workbench"
         title="Keep DAEMON core lean. Let builders bring the tools."
         subtitle="Register Arena tools, npm packages, CLIs, MCPs, or local workflows here, then enable only the surfaces your project needs."
         actions={(
