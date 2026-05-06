@@ -74,8 +74,8 @@ export function registerWalletHandlers() {
     return await WalletService.transferToken(input.fromWalletId, input.toAddress, input.mint, input.amount, input.sendMax === true)
   }))
 
-  ipcMain.handle('wallet:swap-quote', ipcHandler(async (_event, input: { inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {
-    return await WalletService.getSwapQuote(input.inputMint, input.outputMint, input.amount, input.slippageBps)
+  ipcMain.handle('wallet:swap-quote', ipcHandler(async (_event, input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {
+    return await WalletService.getSwapQuote(input.walletId, input.inputMint, input.outputMint, input.amount, input.slippageBps)
   }))
 
   ipcMain.handle('wallet:transaction-preview', ipcHandler(async (_event, input: SolanaTransactionPreviewInput) => {
@@ -106,7 +106,9 @@ export function registerWalletHandlers() {
     // H1: if the quote has high price impact, acknowledgedImpact must be true
     if (input.rawQuoteResponse != null) {
       const quote = input.rawQuoteResponse as Record<string, unknown>
-      const impactPct = parseFloat(String(quote.priceImpactPct ?? '0'))
+      const impactPct = typeof quote.priceImpact === 'number'
+        ? Math.abs(quote.priceImpact) * 100
+        : parseFloat(String(quote.priceImpactPct ?? '0'))
       if (impactPct >= 5 && input.acknowledgedImpact !== true) {
         throw new Error('High price impact must be explicitly acknowledged before executing')
       }
