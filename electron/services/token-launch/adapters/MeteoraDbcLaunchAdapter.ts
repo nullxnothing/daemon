@@ -12,7 +12,7 @@ const DEFAULT_BASE_SUPPLY = '1000000000000000'
 interface MeteoraDeps {
   env?: NodeJS.ProcessEnv
   settings?: MeteoraLaunchpadConfig
-  loadSdk?: () => unknown
+  loadSdk?: () => unknown | Promise<unknown>
   uploadMetadata?: typeof uploadTokenMetadata
 }
 
@@ -50,8 +50,32 @@ function resolveConfig(env: NodeJS.ProcessEnv, settings?: MeteoraLaunchpadConfig
   }
 }
 
-function defaultLoadSdk() {
-  return require('@meteora-ag/dynamic-bonding-curve-sdk') as Record<string, unknown>
+async function importOptionalSdk(packageName: string): Promise<unknown> {
+  const dynamicImport = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<unknown>
+  return dynamicImport(packageName)
+}
+
+async function defaultLoadSdk() {
+  try {
+    return require('@meteora-ag/dynamic-bonding-curve-sdk') as Record<string, unknown>
+  } catch (requireError) {
+    try {
+      return await importOptionalSdk('@meteora-ag/dynamic-bonding-curve-sdk') as Record<string, unknown>
+    } catch (importError) {
+      const requireMessage = requireError instanceof Error ? requireError.message : String(requireError)
+      const importMessage = importError instanceof Error ? importError.message : String(importError)
+      throw new Error(`Unable to load Meteora DBC SDK. require() failed: ${requireMessage}. dynamic import failed: ${importMessage}`)
+    }
+  }
+}
+
+async function assertOnChainAccount(
+  connection: ReturnType<typeof getConnectionStrict>,
+  key: PublicKey,
+  label: string,
+): Promise<void> {
+  const accountInfo = await connection.getAccountInfo(key)
+  if (!accountInfo) throw new Error(`${label} ${key.toBase58()} was not found on-chain`)
 }
 
 export function createMeteoraDbcLaunchAdapter(deps: MeteoraDeps = {}): TokenLaunchAdapter {
@@ -159,18 +183,23 @@ export function createMeteoraDbcLaunchAdapter(deps: MeteoraDeps = {}): TokenLaun
 
       return withKeypair(input.walletId, async (keypair) => {
         const connection = getConnectionStrict()
+        const mintKeypair = Keypair.generate()
+        const quoteMint = new PublicKey(config.quoteMint)
+        const configKey = new PublicKey(config.configId)
+        const baseAmount = new BN(config.baseSupply)
+        await Promise.all([
+          assertOnChainAccount(connection, configKey, 'Meteora DBC config'),
+          assertOnChainAccount(connection, quoteMint, 'Meteora quote mint'),
+        ])
+
         const metadata = await uploadMetadata(input)
-        const sdk = loadSdk() as Record<string, any>
+        const sdk = await loadSdk() as Record<string, any>
         const DynamicBondingCurve = sdk.DynamicBondingCurve ?? sdk.default?.DynamicBondingCurve
         if (!DynamicBondingCurve) {
           throw new Error('Installed Meteora DBC SDK does not expose DynamicBondingCurve')
         }
 
         const dbc = new DynamicBondingCurve(connection, 'confirmed')
-        const mintKeypair = Keypair.generate()
-        const quoteMint = new PublicKey(config.quoteMint)
-        const configKey = new PublicKey(config.configId)
-        const baseAmount = new BN(config.baseSupply)
 
         const createResult = await dbc.createPool({
           creator: keypair.publicKey,

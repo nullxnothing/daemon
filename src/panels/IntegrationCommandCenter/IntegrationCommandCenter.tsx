@@ -1621,6 +1621,7 @@ export function IntegrationCommandCenter() {
 
     try {
       const quoteRes = await daemon.wallet.swapQuote({
+        walletId: defaultWallet.id,
         inputMint: SOL_MINT,
         outputMint: USDC_MINT,
         amount: 0.1,
