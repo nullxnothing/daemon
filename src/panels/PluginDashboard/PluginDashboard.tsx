@@ -34,7 +34,7 @@ function PluginCard({ manifest, isEnabled, isActive, onToggle, onOpen }: PluginC
         <span className="plugin-card-v2-toggle-label">Active</span>
         <Toggle checked={isEnabled} onChange={onToggle} size="sm" />
         {isEnabled && !isActive && (
-          <button className="plugin-card-v2-btn plugin-card-v2-btn--open" onClick={onOpen}>
+          <button type="button" className="plugin-card-v2-btn plugin-card-v2-btn--open" onClick={onOpen}>
             Open
           </button>
         )}

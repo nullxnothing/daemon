@@ -154,22 +154,22 @@ export function BranchSelector({
         </button>
         {showAddMenu && (
           <div className="git-add-menu" role="menu">
-            <button className="git-add-option" onClick={() => setShowCreateBranch((prev) => !prev)}>
+            <button type="button" className="git-add-option" onClick={() => setShowCreateBranch((prev) => !prev)}>
               <span className="git-add-option-title">Branch</span>
               <span className="git-add-option-subtext">Best for a new idea or feature. Keeps work isolated.</span>
             </button>
 
-            <button className="git-add-option" onClick={() => setShowCreateTag((prev) => !prev)}>
+            <button type="button" className="git-add-option" onClick={() => setShowCreateTag((prev) => !prev)}>
               <span className="git-add-option-title">Tag</span>
               <span className="git-add-option-subtext">Best for marking a release point like v1.0.0.</span>
             </button>
 
-            <button className="git-add-option" onClick={() => void handleFetch()} disabled={syncing}>
+            <button type="button" className="git-add-option" onClick={() => void handleFetch()} disabled={syncing}>
               <span className="git-add-option-title">Fetch</span>
               <span className="git-add-option-subtext">Check cloud updates without changing your files.</span>
             </button>
 
-            <button className="git-add-option" onClick={() => void handlePull()} disabled={syncing}>
+            <button type="button" className="git-add-option" onClick={() => void handlePull()} disabled={syncing}>
               <span className="git-add-option-title">Pull</span>
               <span className="git-add-option-subtext">Bring cloud changes into this branch.</span>
             </button>

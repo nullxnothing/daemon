@@ -42,14 +42,14 @@ export function SolanaOnboardingBanner() {
       </div>
       <div className="solana-onboarding-actions">
         {projectInfo.suggestedMcps.length > 0 && (
-          <button className="solana-onboarding-btn" onClick={handleEnableSuggested}>
+          <button type="button" className="solana-onboarding-btn" onClick={handleEnableSuggested}>
             Enable Suggested MCPs
           </button>
         )}
-        <button className="solana-onboarding-btn" onClick={() => { useUIStore.getState().openWorkspaceTool('project-readiness'); dismiss() }}>
+        <button type="button" className="solana-onboarding-btn" onClick={() => { useUIStore.getState().openWorkspaceTool('project-readiness'); dismiss() }}>
           Open Readiness
         </button>
-        <button className="solana-onboarding-btn dismiss" onClick={dismiss}>
+        <button type="button" className="solana-onboarding-btn dismiss" onClick={dismiss}>
           Dismiss
         </button>
       </div>

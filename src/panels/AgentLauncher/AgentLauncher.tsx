@@ -308,7 +308,7 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
                 </div>
               )}
             </div>
-            <button className="agent-create-btn" onClick={() => setShowForm(true)}>
+            <button type="button" className="agent-create-btn" onClick={() => setShowForm(true)}>
               + New Agent
             </button>
           </>

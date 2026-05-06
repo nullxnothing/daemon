@@ -532,6 +532,19 @@
   color: var(--green);
 }
 
+.settings-tool-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  border-radius: var(--drawer-card-radius);
+  background: color-mix(in srgb, var(--s2) 86%, black 14%);
+  color: var(--t2);
+  font-size: 11px;
+}
+
 @media (max-width: 900px) {
   .settings-header {
     flex-direction: column;

@@ -43,6 +43,7 @@ import { registerFeedbackHandlers } from '../ipc/feedback'
 import { registerAgentStationHandlers } from '../ipc/agentStation'
 import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
+import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import { shutdownAllLspSessions } from '../services/LspService'
@@ -153,6 +154,7 @@ function registerAllIpc() {
   ProviderRegistry.register(ClaudeProvider)
   ProviderRegistry.register(CodexProvider)
 
+  registerTelemetryHandlers()
   registerTerminalHandlers()
   registerFilesystemHandlers()
   registerProjectHandlers()
@@ -398,6 +400,7 @@ async function createWindow() {
 }
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
+  initTelemetry(app.getVersion() || '3.0.8')
   createWindow().catch((err) => {
     console.error('[smoke] createWindow:error', err)
   })

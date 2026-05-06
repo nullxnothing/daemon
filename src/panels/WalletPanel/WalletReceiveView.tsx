@@ -27,7 +27,7 @@ export function WalletReceiveView({ address, walletName, onBack }: WalletReceive
   return (
     <section className="wallet-section">
       <div className="wallet-view-header">
-        <button className="wallet-btn" onClick={onBack}>Back</button>
+        <button type="button" className="wallet-btn" onClick={onBack}>Back</button>
         <div className="wallet-section-title" style={{ margin: 0 }}>Receive</div>
         <div style={{ width: 40 }} />
       </div>

@@ -22,6 +22,7 @@ html, body, #root {
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
@@ -39,12 +40,12 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--s4);
+  background: color-mix(in srgb, var(--s5) 72%, transparent);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--s5);
+  background: var(--s6);
 }
 
 input, button, textarea {
@@ -89,6 +90,10 @@ a:focus-visible,
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }
 
 code, pre {

@@ -97,24 +97,24 @@ export function StepGmail() {
       {error && <div className="wizard-error">{error}</div>}
 
       {state === 'connected' ? (
-        <button className="wizard-btn primary" onClick={handleContinue}>
+        <button type="button" className="wizard-btn primary" onClick={handleContinue}>
           Continue
         </button>
       ) : state === 'waiting' ? (
         <div className="wizard-btn-row">
-          <button className="wizard-btn secondary" onClick={handleConnect}>
+          <button type="button" className="wizard-btn secondary" onClick={handleConnect}>
             Retry
           </button>
-          <button className="wizard-btn secondary" onClick={handleSkip}>
+          <button type="button" className="wizard-btn secondary" onClick={handleSkip}>
             Skip
           </button>
         </div>
       ) : (
         <>
-          <button className="wizard-btn primary" onClick={handleConnect}>
+          <button type="button" className="wizard-btn primary" onClick={handleConnect}>
             Connect Gmail
           </button>
-          <button className="wizard-skip-step" onClick={handleSkip}>
+          <button type="button" className="wizard-skip-step" onClick={handleSkip}>
             Skip this step
           </button>
         </>

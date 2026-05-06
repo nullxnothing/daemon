@@ -4,7 +4,8 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: var(--bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 96%, white 4%), var(--bg) 180px);
   color: var(--t1);
   overflow: hidden;
   isolation: isolate;
@@ -106,7 +107,7 @@
   width: var(--left-panel-w);
   min-width: 140px;
   max-width: 350px;
-  background: var(--s1);
+  background: var(--surface-flat);
   border-right: 1px solid var(--border);
   flex-shrink: 0;
   display: flex;
@@ -125,7 +126,7 @@
 }
 
 .panel-header {
-  height: 32px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -138,7 +139,7 @@
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: var(--s1);
+  background: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
 }
 
 .panel-header-action {
@@ -170,7 +171,11 @@
   overflow: hidden;
   min-width: 200px;
   position: relative;
-  background: var(--bg);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--border) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--border) 9%, transparent) 1px, transparent 1px),
+    var(--surface-sunken);
+  background-size: 128px 128px;
 }
 
 .center-area--compact {
@@ -190,8 +195,8 @@
 }
 
 .splitter {
-  height: 4px;
-  background: var(--border);
+  height: 5px;
+  background: color-mix(in srgb, var(--surface-flat) 78%, var(--border) 22%);
   cursor: row-resize;
   flex-shrink: 0;
   transition: background 0.2s;
@@ -201,13 +206,13 @@
 .splitter::after {
   content: '';
   position: absolute;
-  top: 1px;
+  top: 2px;
   left: 50%;
   width: 64px;
   height: 2px;
   border-radius: 999px;
   transform: translateX(-50%);
-  background: var(--s5);
+  background: color-mix(in srgb, var(--t4) 58%, transparent);
 }
 
 .splitter:hover {
@@ -224,7 +229,7 @@
   overflow: visible;
   position: relative;
   z-index: 20;
-  background: var(--bg);
+  background: var(--surface-sunken);
   border-top: 1px solid var(--border);
 }
 
@@ -233,7 +238,7 @@
   width: var(--right-panel-w);
   min-width: 200px;
   max-width: 400px;
-  background: var(--s1);
+  background: var(--surface-flat);
   border-left: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;

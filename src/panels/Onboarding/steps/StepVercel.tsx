@@ -107,24 +107,24 @@ export function StepVercel() {
       {error && <div className="wizard-error">{error}</div>}
 
       {state === 'connected' ? (
-        <button className="wizard-btn primary" onClick={handleContinue}>
+        <button type="button" className="wizard-btn primary" onClick={handleContinue}>
           Continue
         </button>
       ) : state === 'idle' ? (
         <>
-          <button className="wizard-btn primary" onClick={handleOpenVercel}>
+          <button type="button" className="wizard-btn primary" onClick={handleOpenVercel}>
             Open Vercel
           </button>
-          <button className="wizard-skip-step" onClick={handleSkip}>
+          <button type="button" className="wizard-skip-step" onClick={handleSkip}>
             Skip this step
           </button>
         </>
       ) : state === 'checking' ? (
-        <button className="wizard-btn secondary" disabled>
+        <button type="button" className="wizard-btn secondary" disabled>
           Verifying...
         </button>
       ) : (
-        <button className="wizard-skip-step" onClick={handleSkip}>
+        <button type="button" className="wizard-skip-step" onClick={handleSkip}>
           Skip this step
         </button>
       )}

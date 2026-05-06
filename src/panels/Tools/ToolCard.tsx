@@ -52,14 +52,14 @@ export function ToolCard({ tool, isRunning, onRun, onEdit, onOpenFolder, onDelet
       </div>
 
       <div className="tool-card-actions">
-        <button className="tool-btn primary" onClick={onRun} disabled={isRunning}>
+        <button type="button" className="tool-btn primary" onClick={onRun} disabled={isRunning}>
           {isBuiltin(tool) ? 'Open' : isRunning ? 'Running...' : 'Run'}
         </button>
         {!isBuiltin(tool) && (
           <>
-            <button className="tool-btn" onClick={onEdit}>Edit</button>
-            <button className="tool-btn" onClick={onOpenFolder}>Folder</button>
-            <button className="tool-btn danger" onClick={onDelete}>Delete</button>
+            <button type="button" className="tool-btn" onClick={onEdit}>Edit</button>
+            <button type="button" className="tool-btn" onClick={onOpenFolder}>Folder</button>
+            <button type="button" className="tool-btn danger" onClick={onDelete}>Delete</button>
           </>
         )}
       </div>

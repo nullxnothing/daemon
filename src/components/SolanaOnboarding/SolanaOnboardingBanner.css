@@ -3,9 +3,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 14px;
-  background: rgba(62, 207, 142, 0.06);
-  border-bottom: 1px solid rgba(62, 207, 142, 0.15);
+  padding: 7px 14px;
+  background: color-mix(in srgb, var(--green-glow) 40%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 10%, var(--border));
   font-size: 11px;
   color: var(--t2);
   flex-shrink: 0;
@@ -41,14 +41,14 @@
   padding: 0 8px;
   border-radius: 3px;
   font-size: 10px;
-  border: 1px solid rgba(62, 207, 142, 0.2);
-  background: rgba(62, 207, 142, 0.08);
+  border: 1px solid color-mix(in srgb, var(--green) 18%, var(--border));
+  background: color-mix(in srgb, var(--green-glow) 42%, transparent);
   color: var(--green);
   cursor: pointer;
 }
 
 .solana-onboarding-btn:hover {
-  background: rgba(62, 207, 142, 0.16);
+  background: color-mix(in srgb, var(--green-glow) 64%, transparent);
 }
 
 .solana-onboarding-btn.dismiss {

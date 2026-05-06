@@ -105,6 +105,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
 
     return [...BUILTIN_TOOLS.map((tool) => ({ id: tool.id, name: tool.name })), ...pluginTools]
       .filter((tool) => tool.id !== 'browser')
+      .filter((tool) => tool.id !== 'settings')
       .filter((tool) => !pinnedTools.includes(tool.id))
       .filter((tool) => isToolVisible(tool.id))
   }, [isToolVisible, pinnedTools, plugins])
@@ -223,7 +224,8 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     useUIStore.getState().unpinTool(toolId)
   }, [])
 
-  const visiblePinned = pinnedTools.filter((id) => isToolVisible(id))
+  const visiblePinned = pinnedTools.filter((id) => id !== 'settings' && isToolVisible(id))
+  const SettingsIcon = TOOL_ICONS.settings
   const toolStyle = (toolId: string): CSSProperties => ({
     '--tool-accent': TOOL_COLORS[toolId] ?? '#8f98a8',
   } as CSSProperties)
@@ -322,8 +324,20 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
 
       <div className="sidebar-spacer" />
 
-      {/* Colosseum / Hackathon — opens in drawer */}
       <div className="sidebar-divider" />
+      <button
+        className={`sidebar-icon sidebar-icon--settings ${activeWorkspaceToolId === 'settings' ? 'active' : ''}`}
+        style={toolStyle('settings')}
+        onClick={() => handlePinnedToolClick('settings')}
+        onMouseEnter={() => preloadToolPanel('settings')}
+        onFocus={() => preloadToolPanel('settings')}
+        title="Settings"
+        aria-label="Settings"
+      >
+        {SettingsIcon ? <SettingsIcon size={18} /> : null}
+      </button>
+
+      {/* Colosseum / Hackathon — opens in drawer */}
       <button
         className={`colosseum-icon-wrap${activeWorkspaceToolId === 'hackathon' ? ' active' : ''}`}
         onClick={() => {

@@ -123,7 +123,7 @@ export function EmailQuickView({ triggerRef }: EmailQuickViewProps) {
       </div>
 
       <div className="quickview-footer">
-        <button className="quickview-footer-link" onClick={navigateToEmail}>
+        <button type="button" className="quickview-footer-link" onClick={navigateToEmail}>
           Open Inbox
         </button>
       </div>

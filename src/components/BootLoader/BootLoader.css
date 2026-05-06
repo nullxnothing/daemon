@@ -22,7 +22,7 @@
 .bootloader__logo {
   width: 48px;
   height: 48px;
-  object-fit: contain;
+  color: var(--t1);
   opacity: 0;
   transform: translateY(6px);
   animation: boot-fade-in 0.5s ease 0.1s forwards;

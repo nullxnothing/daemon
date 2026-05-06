@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg);
+  background: transparent;
 }
 
 .editor-empty {
@@ -12,12 +12,13 @@
   align-content: center;
   justify-items: center;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-height: 0;
   padding: clamp(18px, 5vh, 48px) clamp(18px, 5vw, 64px);
   overflow: auto;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg) 96%, black 4%), var(--bg));
+    radial-gradient(600px 360px at 50% 28%, color-mix(in srgb, var(--green) 5%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-sunken) 92%, var(--surface-raised) 8%), var(--surface-sunken));
 }
 
 .editor-empty.drag-over {
@@ -31,11 +32,11 @@
 }
 
 .editor-empty-title {
-  margin-top: 2px;
-  font-size: clamp(18px, 2.2vw, 26px);
+  margin-top: 4px;
+  font-size: clamp(18px, 1.8vw, 24px);
   font-weight: 650;
   color: color-mix(in srgb, var(--t1) 86%, var(--t3) 14%);
-  letter-spacing: 3px;
+  letter-spacing: 0.14em;
   line-height: 1.1;
 }
 
@@ -48,25 +49,20 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.025) 50%, transparent 100%),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent 79px,
-      rgba(255, 255, 255, 0.018) 80px
-    );
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.018) 50%, transparent 100%);
   mask-image: linear-gradient(180deg, transparent 0%, black 18%, black 82%, transparent 100%);
 }
 
 .editor-empty-logo {
+  display: block;
+  width: 56px;
+  height: 56px;
+  max-width: 56px;
+  max-height: 56px;
+  color: var(--t1);
+  opacity: 0.78;
   pointer-events: none;
-}
-
-.editor-empty-logo {
-  width: clamp(52px, 8vw, 92px);
-  height: auto;
-  opacity: 0.9;
+  flex: 0 0 auto;
 }
 
 .editor-empty-tagline,
@@ -110,8 +106,8 @@
   justify-content: center;
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--s1) 92%, white 8%);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
   color: var(--t2);
   transition: border-color 120ms ease, background 120ms ease, color 120ms ease, transform 120ms ease;
 }
@@ -132,7 +128,7 @@
 .editor-empty-btn:hover,
 .editor-empty-template:hover {
   border-color: var(--border-hover);
-  background: var(--s2);
+  background: var(--surface-floating);
   color: var(--t1);
   transform: translateY(-1px);
 }
@@ -203,7 +199,8 @@
   }
 
   .editor-empty-logo {
-    width: 48px;
+    width: 34px;
+    height: 34px;
   }
 
   .editor-empty-title {
@@ -266,13 +263,54 @@
 }
 
 .editor-tab-close {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
   color: var(--t3);
   line-height: 1;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .editor-tab-close:hover {
   color: var(--t1);
+  background: var(--s4);
+}
+
+/* Dirty indicator: amber dot at rest, morphs to × on tab hover */
+.editor-tab-dirty {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.12s, height 0.12s, border-radius 0.12s;
+}
+
+.editor-tab:hover .editor-tab-dirty {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--t3);
+  font-size: 14px;
+}
+
+.editor-tab:hover .editor-tab-dirty::before {
+  content: '×';
+  line-height: 1;
+}
+
+.editor-tab:hover .editor-tab-dirty:hover {
+  color: var(--t1);
+  background: var(--s4);
 }
 
 .editor-content {

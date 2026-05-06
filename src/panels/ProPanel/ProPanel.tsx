@@ -124,22 +124,22 @@ export function ProPanel() {
             <div className="pro-panel-subtitle">{daysRemaining} day{daysRemaining === 1 ? '' : 's'} remaining</div>
           )}
         </div>
-        {isActive && <button className="pro-btn" onClick={() => { void signOut() }}>Sign out</button>}
+        {isActive && <button type="button" className="pro-btn" onClick={() => { void signOut() }}>Sign out</button>}
       </header>
 
       {error && (
         <div className="pro-error">
           {error}
-          <button className="pro-error-dismiss" onClick={clearError}>×</button>
+          <button type="button" className="pro-error-dismiss" onClick={clearError}>×</button>
         </div>
       )}
 
       <nav className="pro-tabs">
-        <button className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Staking</button>
-        <button className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
-        <button className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
-        <button className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
+        <button type="button" className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button type="button" className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Staking</button>
+        <button type="button" className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
+        <button type="button" className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
+        <button type="button" className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
       </nav>
 
       <div className="pro-panel-body">
@@ -253,10 +253,10 @@ function StakingView({
           <div className="pro-subscribe-empty">Create or import a wallet first so DAEMON can verify current access.</div>
         ) : (
           <div className="pro-staking-action-row">
-            <button className="pro-btn" onClick={onRefreshSelectedWallet} disabled={!selectedWalletId || subscribing}>
+            <button type="button" className="pro-btn" onClick={onRefreshSelectedWallet} disabled={!selectedWalletId || subscribing}>
               Refresh wallet status
             </button>
-            <button className="pro-btn pro-btn-primary" onClick={onClaimHolderAccess} disabled={!eligible || !selectedWalletId || subscribing}>
+            <button type="button" className="pro-btn pro-btn-primary" onClick={onClaimHolderAccess} disabled={!eligible || !selectedWalletId || subscribing}>
               {subscribing ? 'Activating…' : 'Activate holder access'}
             </button>
           </div>
@@ -390,7 +390,7 @@ function OverviewSubscribe({
                 ))}
               </select>
             </div>
-            <button className="pro-btn pro-btn-primary pro-btn-full" disabled={subscribing || !selectedWalletId || !price} onClick={isHolderEligible ? onClaimHolderAccess : onSubscribe}>
+            <button type="button" className="pro-btn pro-btn-primary pro-btn-full" disabled={subscribing || !selectedWalletId || !price} onClick={isHolderEligible ? onClaimHolderAccess : onSubscribe}>
               {subscribing
                 ? (isHolderEligible ? 'Verifying holder wallet…' : 'Signing payment…')
                 : (isHolderEligible ? 'Activate holder access' : `Subscribe for $${price?.priceUsdc ?? '—'} USDC`)}
@@ -485,7 +485,7 @@ function SkillsView() {
     <div className="pro-skills">
       <div className="pro-section-title">Pro skill pack</div>
       <div className="pro-section-caption">Curated agents, audit pipelines, and templates. Sync downloads the latest pack into your local skill directory.</div>
-      <button className="pro-btn pro-btn-primary" disabled={syncingSkills} onClick={() => { void handleSync() }}>
+      <button type="button" className="pro-btn pro-btn-primary" disabled={syncingSkills} onClick={() => { void handleSync() }}>
         {syncingSkills ? 'Syncing…' : 'Sync skill pack'}
       </button>
       {lastResult && (
@@ -525,10 +525,10 @@ function SyncView() {
       <div className="pro-section-title">MCP sync</div>
       <div className="pro-section-caption">Push your current MCP config to the server, then pull it on another machine. Server state is last-write-wins.</div>
       <div className="pro-sync-actions">
-        <button className="pro-btn pro-btn-primary" disabled={syncingMcp} onClick={() => { void handlePush() }}>
+        <button type="button" className="pro-btn pro-btn-primary" disabled={syncingMcp} onClick={() => { void handlePush() }}>
           {syncingMcp ? 'Pushing…' : 'Push local → server'}
         </button>
-        <button className="pro-btn" disabled={syncingMcp} onClick={() => { void handlePull() }}>
+        <button type="button" className="pro-btn" disabled={syncingMcp} onClick={() => { void handlePull() }}>
           {syncingMcp ? 'Pulling…' : 'Pull server → local'}
         </button>
       </div>

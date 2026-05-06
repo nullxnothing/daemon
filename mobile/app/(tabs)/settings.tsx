@@ -111,7 +111,7 @@ export default function SettingsScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerBrand}>DAEMON</Text>
-          <Text style={styles.footerSub}>AI-native development environment</Text>
+          <Text style={styles.footerSub}>Verifiable AI development workbench</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

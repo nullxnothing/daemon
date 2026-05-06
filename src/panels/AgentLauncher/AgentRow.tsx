@@ -55,8 +55,12 @@ export const DaemonAgentRow = memo(function DaemonAgentRow({
   return (
     <div
       className={`agent-launcher-item ${selected ? 'selected' : ''}`}
+      role="button"
+      tabIndex={0}
       onClick={handleSpawn}
       onMouseEnter={handleHover}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSpawn() } }}
+      aria-label={`Launch ${agent.name}`}
     >
       <div className="agent-launcher-item-main">
         <span className="agent-launcher-name">
@@ -65,8 +69,8 @@ export const DaemonAgentRow = memo(function DaemonAgentRow({
         </span>
         <div className="agent-launcher-item-actions">
           <span className={`agent-launcher-model ${modelBadgeClass(agent.model)}`}>{MODEL_LABELS[agent.model] ?? agent.model}</span>
-          <button className="agent-edit-btn" onClick={handleEdit} title="Edit"><EditIcon /></button>
-          <button className="agent-delete-btn" onClick={handleDelete} title="Delete"><DeleteIcon /></button>
+          <button type="button" className="agent-edit-btn" onClick={handleEdit} title="Edit" aria-label={`Edit ${agent.name}`}><EditIcon /></button>
+          <button type="button" className="agent-delete-btn" onClick={handleDelete} title="Delete" aria-label={`Delete ${agent.name}`}><DeleteIcon /></button>
         </div>
       </div>
       <div className="agent-launcher-item-sub">
@@ -111,8 +115,12 @@ export const ClaudeAgentRow = memo(function ClaudeAgentRow({
   return (
     <div
       className={`agent-launcher-item agent-launcher-item-claude ${selected ? 'selected' : ''} launchable`}
+      role="button"
+      tabIndex={0}
       onClick={handleSpawn}
       onMouseEnter={handleHover}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSpawn() } }}
+      aria-label={`Launch ${agent.name}`}
     >
       <div className="agent-launcher-item-main">
         <span className="agent-launcher-name">
@@ -124,22 +132,22 @@ export const ClaudeAgentRow = memo(function ClaudeAgentRow({
           <span className={`agent-launcher-model ${modelBadgeClass(agent.model)}`}>{MODEL_LABELS[agent.model] ?? agent.model}</span>
           {imported ? (
             <>
-              <button className="agent-import-btn" onClick={handleSync}>
+              <button type="button" className="agent-import-btn" onClick={handleSync}>
                 Sync
               </button>
               {importedAgent && (
-                <button className="agent-edit-btn always-visible" onClick={handleEdit} title="Edit Imported Copy">
+                <button type="button" className="agent-edit-btn always-visible" onClick={handleEdit} title="Edit Imported Copy" aria-label={`Edit ${agent.name}`}>
                   <EditIcon />
                 </button>
               )}
               {importedAgent && (
-                <button className="agent-delete-btn always-visible" onClick={handleDelete} title="Delete Imported Copy">
+                <button type="button" className="agent-delete-btn always-visible" onClick={handleDelete} title="Delete Imported Copy" aria-label={`Delete ${agent.name}`}>
                   <DeleteIcon />
                 </button>
               )}
             </>
           ) : (
-            <button className="agent-import-btn" onClick={handleImport}>
+            <button type="button" className="agent-import-btn" onClick={handleImport}>
               Import
             </button>
           )}

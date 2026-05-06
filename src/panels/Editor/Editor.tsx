@@ -384,24 +384,29 @@ export function EditorPanel() {
       text: activeFile.content,
     }
 
-    setLspStatus({ label: 'LSP', detail: 'Starting language server', active: true })
-    window.daemon.lsp.openDocument(input).then((res) => {
+    setLspStatus({ label: 'LSP', detail: 'Queued language server', active: true })
+    const openTimer = window.setTimeout(() => {
       if (cancelled) return
-      if (res.ok && res.data?.supported && res.data.status) {
-        setLspStatus({ label: res.data.status.label, detail: 'Language server active', active: true })
-      } else {
-        setLspStatus({ label: 'LSP', detail: res.ok ? res.data?.error ?? 'Language server unavailable' : res.error ?? 'Language server unavailable', active: false })
-      }
-    }).catch((error) => {
-      if (!cancelled) setLspStatus({ label: 'LSP', detail: (error as Error).message, active: false })
-    })
+      setLspStatus({ label: 'LSP', detail: 'Starting language server', active: true })
+      window.daemon.lsp.openDocument(input).then((res) => {
+        if (cancelled) return
+        if (res.ok && res.data?.supported && res.data.status) {
+          setLspStatus({ label: res.data.status.label, detail: 'Language server active', active: true })
+        } else {
+          setLspStatus({ label: 'LSP', detail: res.ok ? res.data?.error ?? 'Language server unavailable' : res.error ?? 'Language server unavailable', active: false })
+        }
+      }).catch((error) => {
+        if (!cancelled) setLspStatus({ label: 'LSP', detail: (error as Error).message, active: false })
+      })
 
-    window.daemon.lsp.diagnostics(activeFile.path).then((res) => {
-      if (!cancelled && res.ok && res.data) applyLspDiagnostics(res.data)
-    }).catch(() => {})
+      window.daemon.lsp.diagnostics(activeFile.path).then((res) => {
+        if (!cancelled && res.ok && res.data) applyLspDiagnostics(res.data)
+      }).catch(() => {})
+    }, 200)
 
     return () => {
       cancelled = true
+      window.clearTimeout(openTimer)
       if (lspChangeTimerRef.current !== null) {
         window.clearTimeout(lspChangeTimerRef.current)
         lspChangeTimerRef.current = null

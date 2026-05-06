@@ -5,12 +5,14 @@ import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
+import { KeyboardShortcuts } from '../../components/KeyboardShortcuts'
+import { NavigationGuide } from '../../components/NavigationGuide'
 import { isToolDisableable } from '../../constants/toolRegistry'
 import type { WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'display' | 'setup' | 'crashes'
+type SettingsTab = 'keys' | 'integrations' | 'agents' | 'tools' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
 interface AppMeta {
   version: string
   electronVersion: string
@@ -41,8 +43,11 @@ const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'keys', keywords: ['key', 'api', 'token', 'secret', 'helius', 'openai', 'anthropic', 'birdeye', 'gemini'] },
   { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
+  { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
   { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market'] },
-  { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding', 'profile', 'workspace'] },
+  { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding'] },
+  { tab: 'shortcuts', keywords: ['shortcut', 'keyboard', 'hotkey', 'keybind', 'ctrl', 'cmd', 'key binding'] },
+  { tab: 'help', keywords: ['help', 'guide', 'navigation', 'how to', 'sidebar', 'drawer', 'palette'] },
   { tab: 'crashes', keywords: ['crash', 'error', 'log', 'recovery'] },
 ]
 
@@ -81,14 +86,14 @@ export function SettingsPanel() {
       </div>
 
       <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'display', 'setup', 'crashes'] as SettingsTab[]).map((t) => (
+        {(['keys', 'integrations', 'agents', 'tools', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
             data-tab={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : 'Crash Log'}
+            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
           </button>
         ))}
       </div>
@@ -97,8 +102,11 @@ export function SettingsPanel() {
         {tab === 'keys' && <KeysSection />}
         {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
         {tab === 'agents' && <AgentsSection />}
+        {tab === 'tools' && <ToolVisibilitySection />}
         {tab === 'display' && <DisplaySection />}
         {tab === 'setup' && <SetupSection />}
+        {tab === 'shortcuts' && <KeyboardShortcuts />}
+        {tab === 'help' && <NavigationGuide />}
         {tab === 'crashes' && <CrashesSection />}
       </div>
     </div>
@@ -149,7 +157,7 @@ function KeysSection() {
           <div key={k.key_name} className="settings-key-row">
             <code className="settings-key-name">{k.key_name}</code>
             <span className="settings-key-hint">{k.hint}</span>
-            <button className="settings-btn danger" onClick={() => handleDelete(k.key_name)}>Remove</button>
+            <button type="button" className="settings-btn danger" onClick={() => handleDelete(k.key_name)}>Remove</button>
           </div>
         ))}
         {keys.length === 0 && <div className="settings-empty">No keys stored</div>}
@@ -170,7 +178,7 @@ function KeysSection() {
           onChange={(e) => setNewKeyValue(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSave()}
         />
-        <button className="settings-btn primary" onClick={handleSave} disabled={saving || !newKeyName.trim() || !newKeyValue.trim()}>
+        <button type="button" className="settings-btn primary" onClick={handleSave} disabled={saving || !newKeyName.trim() || !newKeyValue.trim()}>
           {saving ? 'Saving...' : 'Add Key'}
         </button>
       </div>
@@ -291,15 +299,15 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
       <div className="settings-actions-row">
         {isConnected ? (
-          <button className="settings-btn danger" onClick={handleDisconnect} disabled={disconnecting}>
+          <button type="button" className="settings-btn danger" onClick={handleDisconnect} disabled={disconnecting}>
             {disconnecting ? 'Disconnecting...' : 'Disconnect'}
           </button>
         ) : (
           <>
-            <button className="settings-btn primary" onClick={handleSignIn} disabled={signingIn}>
+            <button type="button" className="settings-btn primary" onClick={handleSignIn} disabled={signingIn}>
               {signingIn ? 'Waiting...' : 'Sign in with Claude'}
             </button>
-            <button className="settings-btn" onClick={() => setShowApiInput(!showApiInput)}>
+            <button type="button" className="settings-btn" onClick={() => setShowApiInput(!showApiInput)}>
               {showApiInput ? 'Cancel' : 'Use API Key'}
             </button>
           </>
@@ -316,7 +324,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
             onChange={(e) => setApiKeyInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
           />
-          <button className="settings-btn primary" onClick={handleSaveApiKey} disabled={savingKey || !apiKeyInput.trim()}>
+          <button type="button" className="settings-btn primary" onClick={handleSaveApiKey} disabled={savingKey || !apiKeyInput.trim()}>
             {savingKey ? '...' : 'Save'}
           </button>
         </div>
@@ -510,7 +518,7 @@ function CrashesSection() {
           <span className="settings-crash-stat-value">{count7d}</span>
           <span className="settings-crash-stat-label">Last 7 days</span>
         </div>
-        <button className="settings-btn danger" onClick={handleClear} disabled={crashes.length === 0}>
+        <button type="button" className="settings-btn danger" onClick={handleClear} disabled={crashes.length === 0}>
           Clear History
         </button>
       </div>
@@ -547,6 +555,7 @@ function CrashesSection() {
                   {crash.stack && <pre className="settings-crash-stack">{crash.stack}</pre>}
                   <button
                     onClick={() => navigator.clipboard.writeText([crash.type, crash.message, crash.stack].filter(Boolean).join('\n\n'))}
+                    type="button"
                     className="settings-copy-stack-btn"
                   >
                     Copy stack
@@ -634,7 +643,7 @@ function SetupSection() {
           </div>
 
           <div className="settings-meta-actions">
-            <button className="settings-btn" onClick={() => window.daemon.feedback.openUrl(appMeta.releaseUrl)}>
+            <button type="button" className="settings-btn" onClick={() => window.daemon.feedback.openUrl(appMeta.releaseUrl)}>
               Open Latest Release
             </button>
           </div>
@@ -645,13 +654,13 @@ function SetupSection() {
         Re-run the setup wizard or take the app tour again.
       </div>
       <div className="settings-actions-row">
-        <button className="settings-btn primary" onClick={handleRerunWizard}>
+        <button type="button" className="settings-btn primary" onClick={handleRerunWizard}>
           Re-run Setup Wizard
         </button>
-          <button className="settings-btn" onClick={handleStartTour}>
+          <button type="button" className="settings-btn" onClick={handleStartTour}>
             Take App Tour
           </button>
-        <button className="settings-btn danger" onClick={handleResetLayout} disabled={resettingLayout}>
+        <button type="button" className="settings-btn danger" onClick={handleResetLayout} disabled={resettingLayout}>
           {resettingLayout ? 'Resetting...' : 'Reset UI Layout'}
         </button>
       </div>
@@ -675,11 +684,6 @@ const PROFILE_OPTIONS: { name: WorkspaceProfileName; label: string }[] = [
 function DisplaySection() {
   const [showMarketTape, setShowMarketTape] = useState(true)
   const [showTitlebarWallet, setShowTitlebarWallet] = useState(true)
-
-  const profileName = useWorkspaceProfileStore((s) => s.profileName)
-  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
-  const setProfile = useWorkspaceProfileStore((s) => s.setProfile)
-  const setToolVisible = useWorkspaceProfileStore((s) => s.setToolVisible)
 
   useEffect(() => {
     let cancelled = false
@@ -719,6 +723,23 @@ function DisplaySection() {
         <span className="settings-display-hint">Show portfolio value in the titlebar</span>
         <Toggle checked={showTitlebarWallet} onChange={handleToggleTitlebarWallet} />
       </div>
+    </div>
+  )
+}
+
+function ToolVisibilitySection() {
+  const profileName = useWorkspaceProfileStore((s) => s.profileName)
+  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
+  const setProfile = useWorkspaceProfileStore((s) => s.setProfile)
+  const setToolVisible = useWorkspaceProfileStore((s) => s.setToolVisible)
+  const disableableTools = BUILTIN_TOOLS.filter((tool) => isToolDisableable(tool.id))
+  const visibleCount = disableableTools.filter((tool) => toolVisibility[tool.id] ?? true).length
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Disable extra tools from the sidebar and command drawer. Core navigation and Settings stay available.
+      </div>
 
       <div className="settings-divider" />
 
@@ -739,17 +760,23 @@ function DisplaySection() {
         ))}
       </div>
 
-      <div className="settings-section-label settings-tools-label">Tool Visibility</div>
-      {BUILTIN_TOOLS.map((tool) => {
+      <div className="settings-tool-summary">
+        <span>{visibleCount} of {disableableTools.length} extra tools visible</span>
+        <button type="button" className="settings-btn" onClick={() => setProfile('custom')}>
+          Show All Tools
+        </button>
+      </div>
+
+      <div className="settings-section-label settings-tools-label">Extra Tool Visibility</div>
+      {disableableTools.map((tool) => {
         const isVisible = toolVisibility[tool.id] ?? true
-        const isAlwaysOn = !isToolDisableable(tool.id)
         return (
           <div key={tool.id} className="settings-display-row">
             <span className="settings-display-label">{TOOL_NAMES[tool.id] ?? tool.name}</span>
             <span className="settings-display-hint">{tool.description}</span>
             <Toggle
-              checked={isAlwaysOn ? true : isVisible}
-              onChange={(v) => !isAlwaysOn && setToolVisible(tool.id, v)}
+              checked={isVisible}
+              onChange={(v) => setToolVisible(tool.id, v)}
             />
           </div>
         )

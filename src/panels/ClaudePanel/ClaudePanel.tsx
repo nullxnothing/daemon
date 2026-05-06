@@ -114,7 +114,7 @@ function RestartButton() {
 
   return (
     <div className="claude-section">
-      <button className={`restart-btn ${mcpDirty ? 'dirty' : ''}`} onClick={handleRestart}>
+      <button type="button" className={`restart-btn ${mcpDirty ? 'dirty' : ''}`} onClick={handleRestart}>
         {mcpDirty ? 'Restart to apply MCP changes' : 'Restart session'}
       </button>
     </div>
@@ -376,10 +376,10 @@ function ClaudeMdSection({ projectPath }: { projectPath: string }) {
     <div className="claude-section">
       <div className="claude-section-title">CLAUDE.md</div>
       <div style={{ display: 'flex', gap: 4 }}>
-        <button className="claudemd-btn" style={{ flex: 1 }} onClick={handleOpen}>
+        <button type="button" className="claudemd-btn" style={{ flex: 1 }} onClick={handleOpen}>
           Open
         </button>
-        <button className="claudemd-btn" style={{ flex: 1 }} onClick={handleGenerate} disabled={isLoading}>
+        <button type="button" className="claudemd-btn" style={{ flex: 1 }} onClick={handleGenerate} disabled={isLoading}>
           {isLoading ? 'Generating...' : 'AI Update'}
         </button>
       </div>
@@ -412,8 +412,8 @@ function ClaudeMdDiffModal({ original, modified, onAccept, onReject }: {
         <div className="diff-modal-header">
           <span className="diff-modal-title">CLAUDE.md Update Preview</span>
           <div className="diff-modal-actions">
-            <button className="diff-reject-btn" onClick={onReject}>Discard</button>
-            <button className="diff-accept-btn" onClick={() => {
+            <button type="button" className="diff-reject-btn" onClick={onReject}>Discard</button>
+            <button type="button" className="diff-accept-btn" onClick={() => {
               if (editorRef.current) {
                 onAccept(editorRef.current.getModifiedEditor().getValue())
               }

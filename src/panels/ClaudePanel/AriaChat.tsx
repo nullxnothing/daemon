@@ -11,7 +11,7 @@ function AriaChamber({ isChatFocused, onActivate }: { isChatFocused: boolean; on
   return (
     <div className="aria-chamber">
       <div className="aria-chamber-core">
-        <button className="aria-chamber-orbit" onClick={onActivate} aria-label="Focus ARIA prompt">
+        <button type="button" className="aria-chamber-orbit" onClick={onActivate} aria-label="Focus ARIA prompt">
           <AriaPresence isChatFocused={isChatFocused} isChatExpanded={false} size="large" />
         </button>
         <div className="aria-chamber-copy">
@@ -78,7 +78,7 @@ function renderContent(text: string) {
 
 function ActionChip({ action, onExecute }: { action: AriaAction; onExecute: (a: AriaAction) => void }) {
   return (
-    <button className="aria-action-chip" onClick={() => onExecute(action)}>
+    <button type="button" className="aria-action-chip" onClick={() => onExecute(action)}>
       <span className="aria-action-prefix">/</span>{action.label}
     </button>
   )
@@ -285,10 +285,10 @@ export function AriaChat() {
             <span className="aria-toolbar-label">ARIA</span>
           </div>
           <div className="aria-toolbar-actions">
-            <button className="aria-toolbar-btn" onClick={clearMessages} title="Clear history">
+            <button type="button" className="aria-toolbar-btn" onClick={clearMessages} title="Clear history">
               clear
             </button>
-            <button className="aria-toolbar-btn" onClick={() => setIsExpanded(false)} title="Collapse">
+            <button type="button" className="aria-toolbar-btn" onClick={() => setIsExpanded(false)} title="Collapse">
               &#x2013;
             </button>
           </div>

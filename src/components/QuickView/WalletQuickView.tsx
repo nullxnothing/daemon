@@ -33,7 +33,7 @@ function shortAddr(addr: string): string {
 function SubviewHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div className="qv-subview-header">
-      <button className="qv-back-btn" onClick={onBack} aria-label="Back">
+      <button type="button" className="qv-back-btn" onClick={onBack} aria-label="Back">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="15 18 9 12 15 6" />
         </svg>
@@ -184,7 +184,7 @@ function SendView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
             step="any"
             min="0"
           />
-          <button className="qv-max-btn" onClick={handleMax}>MAX</button>
+          <button type="button" className="qv-max-btn" onClick={handleMax}>MAX</button>
         </div>
 
         <label className="qv-field-label">Recipient</label>
@@ -426,7 +426,7 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
         </div>
 
         <div className="qv-flip-row">
-          <button className="qv-flip-btn" onClick={handleFlip} title="Swap direction">
+          <button type="button" className="qv-flip-btn" onClick={handleFlip} title="Swap direction">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <polyline points="17 1 21 5 17 9" />
               <path d="M3 11V9a4 4 0 0 1 4-4h14" />
@@ -581,7 +581,7 @@ function ReceiveView({ address, onBack }: {
         <div className="qv-receive-address" title={address}>
           {address}
         </div>
-        <button className="qv-primary-btn" onClick={handleCopy}>
+        <button type="button" className="qv-primary-btn" onClick={handleCopy}>
           {copied ? 'Copied' : 'Copy Address'}
         </button>
       </div>
@@ -714,7 +714,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
                   {walletAddress ? shortAddr(walletAddress) : 'No wallet selected'} · {executionLabel}
                 </div>
               </div>
-              <button className="quickview-top-link" onClick={navigateToWallet}>
+              <button type="button" className="quickview-top-link" onClick={navigateToWallet}>
                 Open drawer
               </button>
             </div>
@@ -833,7 +833,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
 
             <div className="quickview-footer">
               <div className="quickview-footer-copy">Need the full wallet workflow?</div>
-              <button className="quickview-footer-link" onClick={navigateToWallet}>
+              <button type="button" className="quickview-footer-link" onClick={navigateToWallet}>
                 Manage Wallets
               </button>
             </div>

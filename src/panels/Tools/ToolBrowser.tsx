@@ -85,8 +85,8 @@ export function ToolBrowser() {
       <div className="tool-browser-header">
         <h2 className="tool-browser-title">Tools</h2>
         <div className="tool-browser-actions">
-          <button className="tool-btn" onClick={handleImport}>Import</button>
-          <button className="tool-btn primary" onClick={() => setShowCreate(true)}>New Tool</button>
+          <button type="button" className="tool-btn" onClick={handleImport}>Import</button>
+          <button type="button" className="tool-btn primary" onClick={() => setShowCreate(true)}>New Tool</button>
         </div>
       </div>
 
@@ -119,8 +119,8 @@ export function ToolBrowser() {
               <div className="tool-browser-empty-title">No tools yet</div>
               <div className="tool-browser-empty-desc">Create a custom tool or import an existing folder.</div>
               <div className="tool-browser-empty-actions">
-                <button className="tool-btn" onClick={handleImport}>Import Folder</button>
-                <button className="tool-btn primary" onClick={() => setShowCreate(true)}>Create Tool</button>
+                <button type="button" className="tool-btn" onClick={handleImport}>Import Folder</button>
+                <button type="button" className="tool-btn primary" onClick={() => setShowCreate(true)}>Create Tool</button>
               </div>
             </>
           ) : (

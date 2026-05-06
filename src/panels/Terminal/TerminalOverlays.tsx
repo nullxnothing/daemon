@@ -75,17 +75,17 @@ export function TerminalSearchOverlay({
           spellCheck={false}
         />
         <span className="terminal-search-count">{countLabel}</span>
-        <button className="terminal-search-nav" onClick={onPrev} title="Previous (Shift+Enter)" disabled={matchCount === 0}>
+        <button type="button" className="terminal-search-nav" onClick={onPrev} title="Previous (Shift+Enter)" disabled={matchCount === 0}>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M2 6.5L5 3.5L8 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <button className="terminal-search-nav" onClick={onNext} title="Next (Enter)" disabled={matchCount === 0}>
+        <button type="button" className="terminal-search-nav" onClick={onNext} title="Next (Enter)" disabled={matchCount === 0}>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <button className="terminal-overlay-dismiss" onClick={onClose}>&times;</button>
+        <button type="button" className="terminal-overlay-dismiss" onClick={onClose}>&times;</button>
       </div>
     </div>
   )
@@ -108,10 +108,10 @@ export function HintsOverlay({ hints, onAcceptHint, onDismiss }: HintsOverlayPro
           <AriaOwlMini />
           <span className="aria-bubble-label">aria</span>
         </div>
-        <button className="terminal-overlay-dismiss" onClick={onDismiss}>&times;</button>
+        <button type="button" className="terminal-overlay-dismiss" onClick={onDismiss}>&times;</button>
       </div>
       {hints.slice(0, 5).map((hint) => (
-        <button key={hint} className="terminal-overlay-item" onClick={() => onAcceptHint(hint)}>
+        <button type="button" key={hint} className="terminal-overlay-item" onClick={() => onAcceptHint(hint)}>
           {hint}
         </button>
       ))}

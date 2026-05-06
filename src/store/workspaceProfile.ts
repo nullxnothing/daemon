@@ -36,18 +36,18 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
         })
         setToolVisibilityGuard(toolVisibility)
       } else {
-        const toolVisibility = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
-        // No profile saved yet — default to the focused web profile.
+        const toolVisibility = getDefaultVisibility('custom', BUILTIN_TOOL_IDS)
+        // No profile saved yet — default to the full DAEMON surface.
         set({
-          profileName: 'web',
+          profileName: 'custom',
           toolVisibility,
           loaded: true,
         })
         setToolVisibilityGuard(toolVisibility)
       }
     } catch {
-      const toolVisibility = getDefaultVisibility('web', BUILTIN_TOOL_IDS)
-      set({ profileName: 'web', toolVisibility, loaded: true })
+      const toolVisibility = getDefaultVisibility('custom', BUILTIN_TOOL_IDS)
+      set({ profileName: 'custom', toolVisibility, loaded: true })
       setToolVisibilityGuard(toolVisibility)
     }
   },
