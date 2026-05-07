@@ -41,16 +41,18 @@ export function useSeekerWallet() {
           identity: APP_IDENTITY,
         } as any)
       })
+      const address = getFirstAccountAddress(authResult)
+      const authorizationToken = (authResult as any)?.auth_token ?? null
 
       setWallet((current) => ({
         ...current,
-        address: getFirstAccountAddress(authResult),
-        authorizationToken: (authResult as any)?.auth_token ?? null,
+        address,
+        authorizationToken,
         connecting: false,
         error: null,
       }))
 
-      return { ok: true, authResult }
+      return { ok: true, authResult, address, authorizationToken }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Wallet connection failed'
       setWallet((current) => ({ ...current, connecting: false, error: message }))
