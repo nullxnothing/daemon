@@ -3,26 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "description": "Daemon Seeker mobile command center for Solana builders",
-  "main": "expo/AppEntry",
+  "main": "./index.js",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
     "android": "expo run:android",
-    "android:dev": "expo start --android",
+    "android:dev": "expo start --android --dev-client",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
     "@solana-mobile/mobile-wallet-adapter-protocol": "latest",
     "@solana-mobile/mobile-wallet-adapter-protocol-web3js": "latest",
+    "@wallet-ui/react-native-web3js": "latest",
     "buffer": "^6.0.3",
     "expo": "^54.0.0",
     "expo-constants": "~18.0.0",
+    "expo-dev-client": "~6.0.0",
     "expo-linking": "~8.0.0",
     "expo-notifications": "~0.32.0",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
     "react-native": "0.81.4",
-    "react-native-get-random-values": "^1.11.0"
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-quick-crypto": "^0.7.17"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
