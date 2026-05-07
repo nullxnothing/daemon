@@ -48,7 +48,7 @@ export function WalletTab({ onRefresh }: Props) {
     jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
   })
 
-  const [createTab, setCreateTab] = useState<ManageCreateTab>('import')
+  const [createTab, setCreateTab] = useState<ManageCreateTab>('generate')
   const [walletName, setWalletName] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [genName, setGenName] = useState('')
@@ -82,6 +82,13 @@ export function WalletTab({ onRefresh }: Props) {
   const trackedWallets = dashboard.wallets
   const holdingsPreview = activeWallet?.holdings.slice(0, 4) ?? []
   const executionLabel = walletInfrastructure.executionMode === 'jito' ? 'Jito path' : 'Standard RPC'
+
+  useEffect(() => {
+    if (trackedWallets.length === 0 && activeView === 'overview') {
+      setActiveView('manage')
+      setCreateTab('generate')
+    }
+  }, [activeView, setActiveView, trackedWallets.length])
 
   useEffect(() => {
     void Promise.all([
@@ -575,7 +582,7 @@ export function WalletTab({ onRefresh }: Props) {
             if (activeWallet && hasKeypair) openSend(activeWallet.id, sendMode ?? 'sol')
             else setActiveView('move')
           }}>Move</button>
-          <button type="button" className={`wallet-action-btn${activeView === 'manage' ? ' active' : ''}`} onClick={() => setActiveView('manage')}>Manage</button>
+          <button type="button" className={`wallet-action-btn${activeView === 'manage' ? ' active' : ''}`} onClick={() => setActiveView('manage')}>{trackedWallets.length === 0 ? 'Create' : 'Wallets'}</button>
           <button type="button" className={`wallet-action-btn${activeView === 'history' ? ' active' : ''}`} onClick={() => setActiveView('history')}>History</button>
           <button type="button" className={`wallet-action-btn${showInfrastructure ? ' active' : ''}`} onClick={() => setShowInfrastructure((v) => !v)}>Infra</button>
         </div>
@@ -597,6 +604,20 @@ export function WalletTab({ onRefresh }: Props) {
           onDeleteJupiter={handleDeleteJupiter}
           onSaveInfrastructure={handleSaveInfrastructure}
         />
+      )}
+
+      {activeView === 'overview' && !activeWallet && (
+        <section className="wallet-section wallet-empty-route">
+          <div>
+            <div className="wallet-section-title">First wallet</div>
+            <div className="wallet-first-run-title">Create a signing wallet to start</div>
+            <p className="wallet-first-run-copy">Generate a wallet if DAEMON should sign sends, swaps, launches, and transaction previews. Track an address only for read-only portfolio monitoring.</p>
+          </div>
+          <div className="wallet-actions wallet-actions-wrap">
+            <button type="button" className="wallet-btn primary" onClick={() => { setCreateTab('generate'); setActiveView('manage') }}>Generate signing wallet</button>
+            <button type="button" className="wallet-btn" onClick={() => { setCreateTab('import'); setActiveView('manage') }}>Track existing address</button>
+          </div>
+        </section>
       )}
 
       {activeView === 'overview' && activeWallet && (
@@ -756,28 +777,45 @@ export function WalletTab({ onRefresh }: Props) {
 
       {activeView === 'manage' && (
         <>
+          {trackedWallets.length === 0 && (
+            <section className="wallet-section wallet-first-run">
+              <div>
+                <div className="wallet-section-title">First wallet</div>
+                <div className="wallet-first-run-title">Create a signing wallet to start</div>
+                <p className="wallet-first-run-copy">Generate a wallet if DAEMON should sign sends, swaps, launches, and transaction previews. Track an address only for read-only portfolio monitoring.</p>
+              </div>
+              <div className="wallet-first-run-actions">
+                <button type="button" className="wallet-btn primary" onClick={() => { setCreateTab('generate'); setGenSuccess(null) }}>Generate signing wallet</button>
+                <button type="button" className="wallet-btn" onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Track existing address</button>
+              </div>
+            </section>
+          )}
+
           <section className="wallet-section">
             <div className="wallet-section-header">
               <div>
-                <div className="wallet-section-title">Create or import</div>
-                <div className="wallet-caption">Bring in tracked wallets, create fresh signers, and choose which wallet should act by default.</div>
+                <div className="wallet-section-title">{trackedWallets.length === 0 ? 'Create your first wallet' : 'Create or track wallet'}</div>
+                <div className="wallet-caption">Generate a signing wallet for transactions. Track an existing address for read-only monitoring.</div>
               </div>
             </div>
             <div className="wallet-tab-group wallet-create-tabs">
-              <button type="button" className={`wallet-tab ${createTab === 'import' ? 'active' : ''}`} onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Import</button>
               <button type="button" className={`wallet-tab ${createTab === 'generate' ? 'active' : ''}`} onClick={() => { setCreateTab('generate'); setGenSuccess(null) }}>Generate</button>
+              <button type="button" className={`wallet-tab ${createTab === 'import' ? 'active' : ''}`} onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Track address</button>
             </div>
+            {error && <div className="wallet-error-msg">{error}</div>}
             {createTab === 'import' && (
               <div className="wallet-form wallet-create-grid">
-                <input className="wallet-input" value={walletName} onChange={(e) => setWalletName(e.target.value)} placeholder="Wallet name" />
-                <input className="wallet-input" value={walletAddress} onChange={(e) => setWalletAddress(e.target.value)} placeholder="Solana address" />
-                <button type="button" className="wallet-btn primary wallet-btn-wide" onClick={() => void handleAddWallet(walletName.trim(), walletAddress.trim())}>Add Wallet</button>
+                <div className="wallet-create-note">Watch-only. DAEMON will not be able to sign from this address.</div>
+                <input className="wallet-input" value={walletName} onChange={(e) => setWalletName(e.target.value)} placeholder="Wallet name (Treasury watch)" />
+                <input className="wallet-input" value={walletAddress} onChange={(e) => setWalletAddress(e.target.value)} placeholder="Solana address to track" />
+                <button type="button" className="wallet-btn primary wallet-btn-wide" onClick={() => void handleAddWallet(walletName.trim(), walletAddress.trim())}>Track address</button>
               </div>
             )}
             {createTab === 'generate' && (
               <div className="wallet-form wallet-create-grid">
-                <input className="wallet-input" value={genName} onChange={(e) => setGenName(e.target.value)} placeholder="Wallet name" />
-                <button type="button" className="wallet-btn primary wallet-btn-wide" onClick={() => void handleGenerate(genName.trim())}>Generate Wallet</button>
+                <div className="wallet-create-note">Creates a local keypair DAEMON can use for signing.</div>
+                <input className="wallet-input" value={genName} onChange={(e) => setGenName(e.target.value)} placeholder="Wallet name (Main wallet)" />
+                <button type="button" className="wallet-btn primary wallet-btn-wide" onClick={() => void handleGenerate(genName.trim())}>Generate signing wallet</button>
                 {genSuccess && <div className="wallet-success-msg">Generated: {truncateAddress(genSuccess)}</div>}
               </div>
             )}
@@ -820,7 +858,7 @@ export function WalletTab({ onRefresh }: Props) {
                   {renderWalletInline(wallet.id)}
                 </div>
               ))}
-              {trackedWallets.length === 0 && <div className="wallet-empty">No wallets configured</div>}
+              {trackedWallets.length === 0 && <div className="wallet-empty">No wallets yet. Generate a signing wallet or track an address above.</div>}
             </div>
           </section>
         </>

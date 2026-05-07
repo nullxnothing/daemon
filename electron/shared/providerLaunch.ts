@@ -3,7 +3,7 @@ export type ProviderShellId = 'claude' | 'codex'
 export function getEmbeddedProviderArgs(providerId: ProviderShellId): string[] {
   switch (providerId) {
     case 'claude':
-      return ['-c']
+      return []
     case 'codex':
       return ['--no-alt-screen']
     default:
@@ -14,7 +14,7 @@ export function getEmbeddedProviderArgs(providerId: ProviderShellId): string[] {
 export function getEmbeddedProviderStartupCommand(providerId: ProviderShellId): string {
   switch (providerId) {
     case 'claude':
-      return 'claude -c'
+      return 'claude'
     case 'codex':
       return 'codex --no-alt-screen'
     default:

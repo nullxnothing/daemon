@@ -8,6 +8,7 @@ import {
   getRegistryConnection,
   publishApproveWork,
   publishCreateTask,
+  publishExpireTask,
   publishRejectWork,
   publishSettleTask,
   publishStartTaskSession,
@@ -153,6 +154,16 @@ function getOnchainTaskId(task: AgentWorkTask): bigint {
   return task.onchain_task_id ? BigInt(task.onchain_task_id) : agentWorkTaskIdToU64(task.id)
 }
 
+function isPastDeadline(deadlineAt: number | null | undefined, now = Date.now()): boolean {
+  return typeof deadlineAt === 'number' && deadlineAt <= now
+}
+
+function assertTaskDeadlineOpen(task: AgentWorkTask, action: string): void {
+  if (isPastDeadline(task.deadline_at)) {
+    throw new Error(`Cannot ${action}: task deadline has passed. Expire the task to refund the bounty.`)
+  }
+}
+
 async function withLoadedKeypair<T>(walletIds: Array<string | null | undefined>, fn: (keypair: Keypair, walletId: string) => Promise<T>): Promise<T> {
   let lastError: Error | null = null
   for (const walletId of walletIds) {
@@ -268,6 +279,7 @@ export function createTask(input: AgentWorkCreateInput): AgentWorkTask {
   const bountyLamports = Math.round(bountySol * LAMPORTS_PER_SOL)
   const now = Date.now()
   const deadlineAt = input.deadlineAt ?? now + DEFAULT_DEADLINE_MS
+  if (deadlineAt <= now) throw new Error('Task deadline must be in the future')
   const verifierWallet = input.verifierWallet?.trim() || wallet.address
   assertPublicKey(verifierWallet, 'Verifier wallet')
   const repoMaterial = project
@@ -318,6 +330,7 @@ export async function fundTask(taskId: string): Promise<AgentWorkTask> {
   if (!task.agent_wallet_address) throw new Error('Task needs an agent wallet before on-chain funding')
   if (!task.deadline_at) throw new Error('Task needs a deadline before on-chain funding')
   if (task.bounty_lamports <= 0) throw new Error('On-chain agent work requires a bounty greater than zero')
+  assertTaskDeadlineOpen(task, 'fund task')
   const deadlineAt = task.deadline_at
 
   assertPublicKey(task.wallet_address, 'Funding wallet')
@@ -369,6 +382,7 @@ export async function startTask(taskId: string, sessionId: string | null): Promi
   if (task.status !== 'draft' && task.status !== 'funded') {
     throw new Error('Only draft or funded tasks can be started')
   }
+  assertTaskDeadlineOpen(task, 'start task')
 
   let startSignature = task.start_signature
   if (task.create_signature && !startSignature) {
@@ -402,6 +416,7 @@ export async function submitReceipt(taskId: string, input: AgentWorkSubmitInput 
   if (task.status !== 'running') {
     throw new Error('Only running tasks can receive work receipts')
   }
+  assertTaskDeadlineOpen(task, 'submit work receipt')
 
   let head = ''
   let diff = ''
@@ -542,6 +557,44 @@ export async function settleTask(taskId: string, signature?: string | null): Pro
 
   if (!settlementProof) {
     settlementProof = `local:${hashHex(`${taskId}:${now}`).slice(0, 32)}`
+  }
+
+  getDb().prepare(`
+    UPDATE agent_work_tasks
+    SET status = 'settled', settled_signature = ?, updated_at = ?
+    WHERE id = ?
+  `).run(settlementProof, now, taskId)
+
+  return getTaskOrThrow(taskId)
+}
+
+export async function expireTask(taskId: string): Promise<AgentWorkTask> {
+  const task = getTaskOrThrow(taskId)
+  if (task.status !== 'funded' && task.status !== 'running') {
+    throw new Error('Only funded or running tasks can be expired')
+  }
+  if (!isPastDeadline(task.deadline_at)) {
+    throw new Error('Task deadline has not passed yet')
+  }
+
+  const now = Date.now()
+  let settlementProof = ''
+
+  if (task.create_signature) {
+    if (!task.wallet_address || !task.wallet_id) throw new Error('Task owner wallet is missing')
+
+    const verifierWallet = getWalletByAddress(task.verifier_wallet)
+    settlementProof = await withLoadedKeypair([verifierWallet?.id, task.wallet_id], async (authorityKeypair) => {
+      return publishExpireTask({
+        authorityKeypair,
+        owner: task.wallet_address!,
+        taskId: getOnchainTaskId(task),
+      })
+    })
+  }
+
+  if (!settlementProof) {
+    settlementProof = `local:expired:${hashHex(`${taskId}:${now}`).slice(0, 32)}`
   }
 
   getDb().prepare(`

@@ -1,4 +1,5 @@
 import { IpcMainInvokeEvent } from 'electron'
+import { sanitizeErrorMessage } from '../security/PrivacyGuard'
 
 export type IpcResponse<T = unknown> = 
   | { ok: true; data?: T }
@@ -31,9 +32,11 @@ export function ipcHandler<R = unknown>(
       const result = await handler(event, ...args)
       return { ok: true, data: result }
     } catch (err) {
-      const message = onError 
-        ? (onError(err) ?? (err as Error).message ?? String(err))
-        : (err as Error).message ?? String(err)
+      const message = sanitizeErrorMessage(
+        onError
+          ? (onError(err) ?? (err as Error).message ?? String(err))
+          : (err as Error).message ?? String(err)
+      )
       return { ok: false, error: message }
     }
   }

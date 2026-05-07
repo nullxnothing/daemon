@@ -7,6 +7,8 @@ const PULSE_CATEGORIES: Array<{ id: PulseTokenCategory; label: string }> = [
   { id: 'graduated', label: 'Graduated' },
 ]
 
+const STREAMLOCK_URL = 'https://app.streamlock.fun/'
+
 function truncateMiddle(value: string, head = 6, tail = 6) {
   if (value.length <= head + tail + 3) return value
   return `${value.slice(0, head)}...${value.slice(-tail)}`
@@ -42,6 +44,9 @@ export function TokenLaunchSection({
 }) {
   const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
   const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
+  const openStreamlock = useCallback(() => {
+    void window.daemon.shell.openExternal(STREAMLOCK_URL)
+  }, [])
 
   const [launchpads, setLaunchpads] = useState<LaunchpadDefinition[]>([])
   const [launches, setLaunches] = useState<LaunchedToken[]>([])
@@ -92,19 +97,21 @@ export function TokenLaunchSection({
     }
   }, [launchWizardOpen, reload])
 
+  const liveLaunchpads = launchpads.filter((launchpad) => launchpad.enabled)
+
   return (
     <section className={`solana-token-launch ${embedded ? 'embedded' : ''}`}>
       {!embedded && (
         <div className="solana-token-launch-header">
           <div>
             <div className="solana-token-launch-kicker">Token Launch</div>
-            <h2 className="solana-token-launch-title">One launch surface for Solana token launches</h2>
+            <h2 className="solana-token-launch-title">Launch with Streamlock or a live Solana adapter</h2>
             <p className="solana-token-launch-copy">
-              Launch from one Solana workflow, monitor protocol readiness, and keep wallet-linked launch history in one place.
+              Use Streamlock for the current hosted launch path, or keep using DAEMON's live in-app adapters where configured.
             </p>
           </div>
           <div className="solana-token-launch-actions">
-            <button type="button" className="sol-btn green" onClick={openLaunchWizard}>Open Launcher</button>
+            <button type="button" className="sol-btn green" onClick={openStreamlock}>Open Streamlock</button>
             <button
               className="sol-btn"
               onClick={() => {
@@ -125,7 +132,7 @@ export function TokenLaunchSection({
               <div className="solana-token-launch-card-title">Launchpads</div>
               {embedded && (
                 <div className="solana-token-launch-card-copy">
-                  Live protocol availability stays here so the main tool CTA always has context.
+                  Streamlock is the current external launch path. Disabled or pending launchpads are hidden from this surface.
                 </div>
               )}
             </div>
@@ -142,23 +149,36 @@ export function TokenLaunchSection({
             )}
           </div>
           <div className="solana-launchpad-list">
-            {launchpads.map((launchpad) => (
+            <div className="solana-launchpad-row enabled">
+              <div className="solana-launchpad-row-main">
+                <div className="solana-launchpad-row-title">
+                  <span>Streamlock</span>
+                  <span className="solana-launchpad-badge enabled">Live</span>
+                </div>
+                <div className="solana-launchpad-row-desc">
+                  External Streamlock launch flow. Opens the hosted Streamlock app while the in-app integration is prepared.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="sol-btn green"
+                onClick={openStreamlock}
+              >
+                Open
+              </button>
+            </div>
+
+            {liveLaunchpads.map((launchpad) => (
               <div key={launchpad.id} className={`solana-launchpad-row ${launchpad.enabled ? 'enabled' : 'planned'}`}>
                 <div className="solana-launchpad-row-main">
                   <div className="solana-launchpad-row-title">
                     <span>{launchpad.name}</span>
-                    <span className={`solana-launchpad-badge ${launchpad.enabled ? 'enabled' : 'planned'}`}>
-                      {launchpad.enabled ? 'Live' : 'Planned'}
-                    </span>
+                    <span className="solana-launchpad-badge enabled">Live</span>
                   </div>
                   <div className="solana-launchpad-row-desc">{launchpad.description}</div>
-                  {launchpad.reason && (
-                    <div className="solana-launchpad-row-note">{launchpad.reason}</div>
-                  )}
                 </div>
                 <button
                   className="sol-btn"
-                  disabled={!launchpad.enabled}
                   onClick={openLaunchWizard}
                 >
                   Launch

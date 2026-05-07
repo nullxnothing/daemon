@@ -915,6 +915,7 @@ declare global {
     approveAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
     rejectAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
     settleAgentWork: (taskId: string, signature?: string | null) => Promise<IpcResponse<AgentWorkTask>>
+    expireAgentWork: (taskId: string) => Promise<IpcResponse<AgentWorkTask>>
     publishSession: (sessionId: string) => Promise<IpcResponse<{ startSignature: string; endSignature: string }>>
     publishAll: () => Promise<IpcResponse<{ published: number; failed: number }>>
     renameSession: (sessionId: string, name: string) => Promise<IpcResponse<null>>

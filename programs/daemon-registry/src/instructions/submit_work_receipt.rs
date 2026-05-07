@@ -36,6 +36,7 @@ pub fn handler(
     let task = &mut ctx.accounts.task;
     require!(task.status == TASK_STATUS_RUNNING, RegistryError::TaskNotRunning);
     require!(task.agent == ctx.accounts.agent.key(), RegistryError::Unauthorized);
+    require!(Clock::get()?.unix_timestamp <= task.deadline_ts, RegistryError::InvalidDeadline);
 
     let receipt = &mut ctx.accounts.receipt;
     receipt.task = task.key();

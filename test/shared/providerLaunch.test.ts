@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { getEmbeddedProviderArgs, getEmbeddedProviderStartupCommand } from '../../electron/shared/providerLaunch'
 
 describe('providerLaunch', () => {
-  it('launches Claude in continue mode for embedded terminals', () => {
-    expect(getEmbeddedProviderArgs('claude')).toEqual(['-c'])
-    expect(getEmbeddedProviderStartupCommand('claude')).toBe('claude -c')
+  it('launches Claude in fresh mode for embedded terminals', () => {
+    expect(getEmbeddedProviderArgs('claude')).toEqual([])
+    expect(getEmbeddedProviderStartupCommand('claude')).toBe('claude')
   })
 
   it('launches Codex without alt-screen for embedded terminals', () => {

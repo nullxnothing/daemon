@@ -683,6 +683,8 @@ export interface TerminalSession {
   dataBuffer?: string[]
   /** True once renderer has attached its xterm onData listener */
   rendererReady?: boolean
+  /** Command to run once the renderer has attached and resized the PTY. */
+  pendingStartupCommand?: string | null
 }
 
 export interface TerminalCreateInput {
@@ -1116,6 +1118,7 @@ export type EngineActionType =
   | 'health-check'
   | 'explain-error'
   | 'suggest-fix'
+  | 'safety-scan'
   | 'ask'
 
 export interface EngineAction {

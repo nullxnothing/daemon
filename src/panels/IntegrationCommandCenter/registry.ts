@@ -43,40 +43,47 @@ export const INTEGRATION_CATEGORIES: Array<{ id: IntegrationCategory | 'all'; la
 
 export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
   {
+    id: 'streamlock',
+    name: 'Streamlock',
+    tagline: 'Operator API for locked assets',
+    description: 'Build operator apps on Streamlock locked streams, entitlement ledgers, zero-sum sessions, and settlement helpers using the HTTP Operator API.',
+    category: 'infra',
+    docsUrl: 'https://streamlock.gitbook.io/streamlock-docs/developers/operator-guide',
+    recommendedFor: ['locked assets', 'operator API', 'game sessions', 'entitlement ledgers', 'settlement helpers', 'OpenAPI clients'],
+    requirements: [
+      { type: 'env', key: 'STREAMLOCK_OPERATOR_KEY', label: 'Streamlock operator API key' },
+      { type: 'env', key: 'STREAMLOCK_CHAIN', label: 'Streamlock chain', optional: true },
+      { type: 'env', key: 'STREAMLOCK_API_BASE_URL', label: 'Streamlock API base URL', optional: true },
+      { type: 'env', key: 'SOLANA_RPC_URL', label: 'Solana RPC URL for writes', optional: true },
+      { type: 'env', key: 'STREAMLOCK_TOKEN_MINT', label: 'Streamlock token mint', optional: true },
+    ],
+    actions: [
+      { id: 'check-streamlock-config', label: 'Check config', description: 'Verify the project has the Streamlock operator API placeholders it needs.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-streamlock-operator', label: 'Preview operator path', description: 'Review the locked-asset operator flow before enabling any signing or settlement action.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
+  {
     id: 'sendai-agent-kit',
     name: 'SendAI Agent Kit',
-    tagline: 'AI actions for Solana protocols',
-    description: 'Use SendAI action plugins for token, NFT, DeFi, Blink, price, staking, and bridge workflows once DAEMON has previewed the risk.',
+    tagline: 'AI actions and Solana tools through MCP',
+    description: 'Use SendAI action plugins alongside the Solana MCP tool boundary for token, NFT, DeFi, Blink, price, staking, bridge, account, and docs workflows.',
     category: 'agent',
     docsUrl: 'https://github.com/sendaifun/solana-agent-kit',
     installCommand: 'pnpm add solana-agent-kit @solana-agent-kit/plugin-token @solana-agent-kit/plugin-defi @solana-agent-kit/plugin-nft @solana-agent-kit/plugin-misc @solana-agent-kit/plugin-blinks @solana/web3.js bs58',
-    recommendedFor: ['agent workflows', 'guided Solana actions', 'protocol automation'],
+    recommendedFor: ['agent workflows', 'guided Solana actions', 'protocol automation', 'MCP tools', 'agent-readable Solana actions'],
     requirements: [
       { type: 'package', key: 'solana-agent-kit', label: 'solana-agent-kit package' },
+      { type: 'mcp', key: 'solana-mcp-server', label: 'Solana MCP enabled' },
       { type: 'env', key: 'RPC_URL', label: 'RPC_URL' },
       { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet' },
     ],
     actions: [
       { id: 'check-agent-kit-package', label: 'Check package', description: 'Verify the current project has Solana Agent Kit installed.', kind: 'safe-check', risk: 'read-only' },
-      { id: 'preview-agent-actions', label: 'Preview actions', description: 'Show which SendAI actions DAEMON can safely expose first.', kind: 'planned', risk: 'read-only' },
-    ],
-  },
-  {
-    id: 'sendai-solana-mcp',
-    name: 'SendAI Solana MCP',
-    tagline: 'Solana tools through MCP',
-    description: 'Expose wallet, balance, asset, token, trade, NFT, and devnet funding tools to Claude/Codex through a standard MCP boundary.',
-    category: 'agent',
-    docsUrl: 'https://github.com/sendaifun/solana-mcp',
-    installCommand: 'npx solana-mcp',
-    recommendedFor: ['Claude/Codex tools', 'MCP workflows', 'agent-readable Solana actions'],
-    requirements: [
-      { type: 'mcp', key: 'solana-mcp-server', label: 'Solana MCP enabled' },
-      { type: 'env', key: 'RPC_URL', label: 'RPC_URL' },
-    ],
-    actions: [
       { id: 'check-solana-mcp', label: 'Check MCP', description: 'Verify the project has the Solana MCP enabled.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'check-skills-source', label: 'Check skills', description: 'Verify DAEMON has enough project/tool context to recommend protocol skills.', kind: 'safe-check', risk: 'read-only' },
       { id: 'open-mcp-setup', label: 'Open setup', description: 'Jump to DAEMON MCP setup tools.', kind: 'setup', risk: 'read-only' },
+      { id: 'preview-agent-actions', label: 'Preview actions', description: 'Show which SendAI actions DAEMON can safely expose first.', kind: 'planned', risk: 'read-only' },
+      { id: 'preview-skill-install', label: 'Preview skills', description: 'Show suggested protocol skills without modifying agent config.', kind: 'planned', risk: 'read-only' },
     ],
   },
   {
@@ -100,7 +107,7 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     id: 'phantom',
     name: 'Phantom',
     tagline: 'Wallet connection and signing UX',
-    description: 'Use Phantom as the front-end wallet path for user signing, mobile wallet UX, token-gated flows, and safe transaction review.',
+    description: 'Use Phantom as the clear front-end path for user signing, mobile wallet UX, token-gated flows, and safe transaction review.',
     category: 'wallet',
     docsUrl: 'https://docs.phantom.com/',
     recommendedFor: ['wallet connect', 'user signing', 'transaction UX'],
@@ -109,8 +116,8 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
       { type: 'mcp', key: 'phantom-docs', label: 'Phantom docs MCP enabled', optional: true },
     ],
     actions: [
-      { id: 'check-wallet-balance', label: 'Check balance', description: 'Read the default wallet SOL balance.', kind: 'safe-check', risk: 'read-only' },
-      { id: 'open-wallet', label: 'Open wallet', description: 'Open DAEMON wallet management.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-wallet', label: 'Create/import wallet', description: 'Open the DAEMON wallet workspace to create or import the route Phantom-first signing will use.', kind: 'setup', risk: 'read-only' },
+      { id: 'check-wallet-balance', label: 'Check route balance', description: 'Read the default wallet SOL balance once a route exists.', kind: 'safe-check', risk: 'read-only' },
     ],
   },
   {
@@ -147,23 +154,6 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     actions: [
       { id: 'check-nft-packages', label: 'Check packages', description: 'Verify common Metaplex packages in this project.', kind: 'safe-check', risk: 'read-only' },
       { id: 'preview-nft-mint', label: 'Preview mint', description: 'Planned: metadata and fee preview before minting.', kind: 'planned', risk: 'transaction' },
-    ],
-  },
-  {
-    id: 'token-launch-stack',
-    name: 'Token Launch Stack',
-    tagline: 'Pump.fun, Raydium, Meteora launch paths',
-    description: 'Use DAEMON launch adapters to keep token launch setup, preflight, wallet selection, and transaction results in one workflow.',
-    category: 'launch',
-    docsUrl: 'https://github.com/nullxnothing/daemon',
-    recommendedFor: ['token launch', 'launchpad setup', 'preflight review'],
-    requirements: [
-      { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet' },
-      { type: 'secure-key', key: 'HELIUS_API_KEY', label: 'Helius API key', optional: true },
-    ],
-    actions: [
-      { id: 'open-token-launch', label: 'Open launch', description: 'Open DAEMON Token Launch workflow.', kind: 'setup', risk: 'read-only' },
-      { id: 'preview-token-launch', label: 'Preview launch', description: 'Planned: launch config and transaction preflight.', kind: 'planned', risk: 'transaction' },
     ],
   },
   {
@@ -236,23 +226,6 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     actions: [
       { id: 'check-squads-package', label: 'Check package', description: 'Verify Squads SDK setup.', kind: 'safe-check', risk: 'read-only' },
       { id: 'preview-squads-vault', label: 'Preview vault', description: 'Planned: multisig and vault preview before proposal creation or execution.', kind: 'planned', risk: 'read-only' },
-    ],
-  },
-  {
-    id: 'protocol-skills',
-    name: 'SendAI Skills',
-    tagline: 'Protocol-specific agent knowledge',
-    description: 'Use the SendAI skills marketplace as the curated knowledge layer for Drift, Meteora, Raydium, Orca, Kamino, Jupiter, Helius, and more.',
-    category: 'agent',
-    docsUrl: 'https://github.com/sendaifun/skills',
-    installCommand: 'npx skills add sendaifun/skills',
-    recommendedFor: ['protocol docs', 'agent context', 'integration recipes'],
-    requirements: [
-      { type: 'toolchain', key: 'node', label: 'Node/pnpm available' },
-    ],
-    actions: [
-      { id: 'check-skills-source', label: 'Check readiness', description: 'Verify DAEMON has enough project/tool context to recommend skills.', kind: 'safe-check', risk: 'read-only' },
-      { id: 'preview-skill-install', label: 'Preview skills', description: 'Planned: show install commands without modifying agent config.', kind: 'planned', risk: 'read-only' },
     ],
   },
 ]

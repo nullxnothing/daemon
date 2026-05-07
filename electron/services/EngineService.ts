@@ -21,6 +21,7 @@ async function execCmd(cmd: string, args: string[], options: { cwd?: string; tim
 }
 import { getRegisteredPorts } from './PortService'
 import * as ClaudeRouter from './ClaudeRouter'
+import { scanProjectSafety } from './ProjectSafetyService'
 import { TIMEOUTS } from '../config/constants'
 import { LogService } from './LogService'
 import type {
@@ -408,6 +409,38 @@ async function handleHealthCheck(ctx: EngineContext): Promise<EngineResult> {
   return { ok: true, action: 'health-check', output }
 }
 
+async function handleSafetyScan(action: EngineAction, ctx: EngineContext): Promise<EngineResult> {
+  const project = ctx.projects.find((p) => p.id === action.projectId)
+  if (!project) return { ok: false, action: action.type, error: 'Project not found' }
+
+  const report = scanProjectSafety(project.path)
+  const criticalOrHigh = report.findings.filter((finding) => finding.severity === 'critical' || finding.severity === 'high')
+  const lines = [
+    `# Safety Scan: ${project.name}`,
+    '',
+    `Scanned ${report.scannedFiles} files.`,
+    `Findings: ${report.findings.length} total (${report.summary.critical} critical, ${report.summary.high} high, ${report.summary.medium} medium).`,
+  ]
+
+  if (criticalOrHigh.length > 0) {
+    lines.push('', '## Critical / High')
+    for (const finding of criticalOrHigh.slice(0, 20)) {
+      lines.push(`- **${finding.title}** (${finding.severity}) at \`${finding.filePath}:${finding.line}\`: ${finding.recommendation}`)
+    }
+  } else {
+    lines.push('', 'No critical or high privacy/security findings detected by the local scanner.')
+  }
+
+  return {
+    ok: true,
+    action: action.type,
+    output: lines.join('\n'),
+    artifacts: {
+      'daemon-safety-report.json': JSON.stringify(report, null, 2),
+    },
+  }
+}
+
 async function handleExplainError(action: EngineAction, ctx: EngineContext): Promise<EngineResult> {
   const errorText = action.payload?.error as string
   if (!errorText) return { ok: false, action: action.type, error: 'No error text provided' }
@@ -494,6 +527,8 @@ export async function runAction(action: EngineAction): Promise<EngineResult> {
       return handleDebugSetup(action, ctx)
     case 'health-check':
       return handleHealthCheck(ctx)
+    case 'safety-scan':
+      return handleSafetyScan(action, ctx)
     case 'explain-error':
       return handleExplainError(action, ctx)
     case 'suggest-fix':

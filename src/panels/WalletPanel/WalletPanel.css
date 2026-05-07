@@ -900,6 +900,12 @@
   margin-bottom: 0;
 }
 
+.wallet-create-tabs .wallet-tab.active {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 36%, var(--border) 64%);
+  background: var(--green-glow);
+}
+
 .wallet-create-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
@@ -907,8 +913,53 @@
   align-items: center;
 }
 
+.wallet-create-note {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--t3);
+}
+
+.wallet-create-grid .wallet-success-msg {
+  grid-column: 1 / -1;
+}
+
 .wallet-btn-wide {
   min-width: 132px;
+}
+
+.wallet-first-run,
+.wallet-empty-route {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-color: color-mix(in srgb, var(--green) 18%, var(--border) 82%);
+  background: linear-gradient(135deg, rgba(62, 207, 142, 0.1), rgba(255, 255, 255, 0.02));
+}
+
+.wallet-first-run-title {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--t1);
+}
+
+.wallet-first-run-copy {
+  max-width: 720px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--t3);
+}
+
+.wallet-first-run-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .wallet-list-cards {
@@ -1162,6 +1213,16 @@
 
   .wallet-create-grid {
     grid-template-columns: 1fr;
+  }
+
+  .wallet-first-run,
+  .wallet-empty-route {
+    flex-direction: column;
+  }
+
+  .wallet-first-run-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .wallet-btn-wide {

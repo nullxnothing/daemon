@@ -74,6 +74,11 @@ export function registerRegistryHandlers() {
     return AgentWorkService.settleTask(taskId, signature ?? null)
   }))
 
+  ipcMain.handle('registry:expire-agent-work', ipcHandler(async (_event, taskId: string) => {
+    if (typeof taskId !== 'string' || !taskId) throw new Error('Invalid task ID')
+    return AgentWorkService.expireTask(taskId)
+  }))
+
   ipcMain.handle('registry:publish-session', ipcHandler(async (_event, sessionId: string) => {
     const sessions = SessionTracker.listSessions({ limit: 1000 })
     const session = sessions.find((s) => s.id === sessionId)

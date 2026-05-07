@@ -28,6 +28,8 @@ const DISC_SUBMIT_WORK_RECEIPT = buildDiscriminator('submit_work_receipt')
 const DISC_APPROVE_WORK = buildDiscriminator('approve_work')
 const DISC_REJECT_WORK = buildDiscriminator('reject_work')
 const DISC_SETTLE_TASK = buildDiscriminator('settle_task')
+const DISC_EXPIRE_TASK = buildDiscriminator('expire_task')
+const MAX_AGENTS_PER_SESSION = 4
 
 function deriveProfilePda(authority: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
@@ -122,6 +124,9 @@ export async function publishStartSession(params: {
   modelsUsed: number[]
 }): Promise<string> {
   const { walletKeypair, sessionId, projectName, agentCount, modelsUsed } = params
+  if (!Number.isInteger(agentCount) || agentCount < 1 || agentCount > MAX_AGENTS_PER_SESSION) {
+    throw new Error(`Agent count must be between 1 and ${MAX_AGENTS_PER_SESSION}`)
+  }
   const connection = getRegistryConnection()
 
   await ensureProfileExists(walletKeypair)
@@ -374,6 +379,29 @@ export async function publishSettleTask(params: {
       { pubkey: params.authorityKeypair.publicKey, isSigner: true, isWritable: false },
     ],
     data: DISC_SETTLE_TASK,
+  })
+
+  const tx = new Transaction().add(ix)
+  return sendAndConfirmTransaction(connection, tx, [params.authorityKeypair])
+}
+
+export async function publishExpireTask(params: {
+  authorityKeypair: Keypair
+  owner: string | PublicKey
+  taskId: bigint
+}): Promise<string> {
+  const connection = getRegistryConnection()
+  const owner = new PublicKey(params.owner)
+  const [taskPda] = deriveTaskPda(owner, params.taskId)
+
+  const ix = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: taskPda, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: false, isWritable: true },
+      { pubkey: params.authorityKeypair.publicKey, isSigner: true, isWritable: false },
+    ],
+    data: DISC_EXPIRE_TASK,
   })
 
   const tx = new Transaction().add(ix)
