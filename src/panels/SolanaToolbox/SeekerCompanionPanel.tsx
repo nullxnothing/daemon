@@ -135,7 +135,7 @@ export function SeekerCompanionPanel({
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [relayError, setRelayError] = useState<string | null>(null)
   const [copied, setCopied] = useState<'code' | 'link' | 'relay' | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const [, setTick] = useState(Date.now())
 
   const enabledMcps = useMemo(() => (mcps ?? []).filter((mcp) => Boolean(mcp.enabled)).length, [mcps])
   const validatorRunning = isValidatorRunning(validator)
@@ -162,7 +162,7 @@ export function SeekerCompanionPanel({
   const expiresIn = secondsLeft(session?.session.expiresAt)
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    const timer = window.setInterval(() => setTick(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
 
@@ -226,24 +226,15 @@ export function SeekerCompanionPanel({
     if (!session?.session.pairingCode) return
     setRelayError(null)
     try {
-      const next = await postRelay<SeekerSessionSnapshot>(`/api/seeker/sessions`, {
-        projectId,
-        projectPath,
-        projectName: session.session.projectName,
-        project: session.project,
-        seedDemoApprovals: false,
-      })
-      setSession({
-        ...next,
-        approvals: [
-          { ...approval, id: `${approval.id}-reset-${Date.now()}`, status: 'pending', createdAt: Date.now() },
-          ...session.approvals.filter((item) => item.id !== approval.id),
-        ],
-      })
+      const next = await postRelay<SeekerSessionSnapshot>(
+        `/api/seeker/session/${encodeURIComponent(session.session.pairingCode)}/approvals/${encodeURIComponent(approval.id)}`,
+        { status: 'pending' },
+      )
+      setSession(next)
     } catch (error) {
       setRelayError(error instanceof Error ? error.message : 'Could not reset approval')
     }
-  }, [projectId, projectPath, session])
+  }, [session?.session.pairingCode])
 
   const copyText = useCallback(async (kind: 'code' | 'link' | 'relay', value?: string) => {
     if (!value) return
