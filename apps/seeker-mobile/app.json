@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Daemon Seeker",
+    "slug": "daemon-seeker",
+    "scheme": "daemonseeker",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "tech.daemonide.seeker"
+    },
+    "android": {
+      "package": "tech.daemonide.seeker",
+      "adaptiveIcon": {
+        "backgroundColor": "#050706"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "daemonseeker"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  }
+}

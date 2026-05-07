@@ -38,6 +38,7 @@ import { registerRegistryHandlers } from '../ipc/registry'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
+import { registerSeekerHandlers } from '../ipc/seeker'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
 import { registerAgentStationHandlers } from '../ipc/agentStation'
@@ -187,6 +188,7 @@ function registerAllIpc() {
   registerColosseumHandlers()
   registerVaultHandlers()
   registerValidatorHandlers()
+  registerSeekerHandlers()
   registerPnlHandlers()
   registerFeedbackHandlers()
   registerAgentStationHandlers()
