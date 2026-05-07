@@ -9,6 +9,7 @@ pub mod submit_work_receipt;
 pub mod approve_work;
 pub mod reject_work;
 pub mod settle_task;
+pub mod expire_task;
 
 pub use initialize_profile::*;
 pub use start_session::*;
@@ -21,3 +22,4 @@ pub use submit_work_receipt::*;
 pub use approve_work::*;
 pub use reject_work::*;
 pub use settle_task::*;
+pub use expire_task::*;

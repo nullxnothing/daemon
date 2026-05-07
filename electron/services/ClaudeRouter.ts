@@ -4,6 +4,7 @@ import os from 'node:os'
 import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../db/db'
 import * as SecureKey from './SecureKeyService'
+import { sanitizeAiPrompt } from '../security/PrivacyGuard'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from './McpConfig'
 import { getRegisteredPorts } from './PortService'
 import type { ClaudeConnection } from '../shared/types'
@@ -210,12 +211,21 @@ export async function runPrompt(opts: RunPromptOpts): Promise<string> {
     timeoutMs,
     allowApiFallback = false,
   } = opts
+  const sanitized = sanitizeAiPrompt({
+    prompt,
+    systemPrompt,
+    context: {
+      capability: 'claude_router.run_prompt',
+      dataClasses: ['project_code', 'personal_data', 'env_secret', 'wallet_secret'],
+      destination: 'ai_provider',
+    },
+  })
   const conn = getConnection() ?? await verifyConnection()
 
   // Prefer CLI when authenticated — DAEMON's primary integrated path
   if (conn.isAuthenticated || conn.authMode === 'cli' || conn.authMode === 'both') {
     try {
-      return await runPromptViaCli(prompt, systemPrompt, model, effort, cwd, timeoutMs)
+      return await runPromptViaCli(sanitized.prompt, sanitized.systemPrompt, model, effort, cwd, timeoutMs)
     } catch (err) {
       // Fall through to API fallback when CLI execution fails and API is available
       if (!conn.hasApiKey || !allowApiFallback || process.env.DAEMON_ENABLE_ANTHROPIC_FALLBACK !== '1') {
@@ -226,7 +236,7 @@ export async function runPrompt(opts: RunPromptOpts): Promise<string> {
 
   // API fallback (optional)
   if (conn.hasApiKey && allowApiFallback && process.env.DAEMON_ENABLE_ANTHROPIC_FALLBACK === '1') {
-    return await runPromptViaApi(prompt, systemPrompt, model, maxTokens)
+    return await runPromptViaApi(sanitized.prompt, sanitized.systemPrompt, model, maxTokens)
   }
 
   throw new Error('No Claude CLI authentication available. Sign in to Claude CLI to continue.')

@@ -19,6 +19,7 @@ import {
   parsePackageInfo,
   upsertPackageJsonScript,
   SENDAI_FIRST_AGENT_ENTRY,
+  type EnvTemplateEntry,
   type PackageInfo,
   type PackageManager,
   type FirstAgentPlan,
@@ -39,6 +40,36 @@ function statusLabel(summary: IntegrationStatusSummary): string {
 const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), scripts: new Set(), packageManagerHint: null }
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const STREAMLOCK_STARTER_DIR = 'src/streamlock'
+const STREAMLOCK_STARTER_FILE = `${STREAMLOCK_STARTER_DIR}/operator-readiness.mjs`
+const STREAMLOCK_STARTER_SCRIPT = 'streamlock:operator-check'
+const STREAMLOCK_ENV_TEMPLATE: EnvTemplateEntry[] = [
+  {
+    key: 'STREAMLOCK_OPERATOR_KEY',
+    value: 'sk_replace_with_operator_key',
+    comment: 'Server-side Streamlock Operator API key. Never expose this to browser code.',
+  },
+  {
+    key: 'STREAMLOCK_CHAIN',
+    value: 'soldev',
+    comment: 'Streamlock chain target. Use soldev for devnet and mainnet for production.',
+  },
+  {
+    key: 'STREAMLOCK_API_BASE_URL',
+    value: 'https://streamlock.fun',
+    comment: 'Hosted Streamlock Operator API base URL. Override only for local Streamlock dev servers.',
+  },
+  {
+    key: 'SOLANA_RPC_URL',
+    value: 'https://api.devnet.solana.com',
+    comment: 'RPC used by Streamlock write flows for broadcast and confirmation.',
+  },
+  {
+    key: 'STREAMLOCK_TOKEN_MINT',
+    value: 'replace_with_streamlock_token_mint',
+    comment: 'Optional token mint used by the read-only starter to list eligible locked streams.',
+  },
+]
 const METAPLEX_DRAFT_DIR = 'assets/metaplex'
 const METAPLEX_DRAFT_FILE = `${METAPLEX_DRAFT_DIR}/metadata.example.json`
 const METAPLEX_DRAFT_SCRIPT = 'metaplex:draft-check'
@@ -54,9 +85,10 @@ const DEBRIDGE_STARTER_SCRIPT = 'debridge:preview'
 const SQUADS_STARTER_DIR = 'src/squads'
 const SQUADS_STARTER_FILE = `${SQUADS_STARTER_DIR}/multisig-inspect.mjs`
 const SQUADS_STARTER_SCRIPT = 'squads:inspect'
+const SENDAI_SKILLS_INSTALL_COMMAND = 'npx skills add sendaifun/skills'
 const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
+  'streamlock',
   'sendai-agent-kit',
-  'sendai-solana-mcp',
   'helius',
   'phantom',
   'jupiter',
@@ -65,7 +97,9 @@ const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'magicblock',
   'debridge',
   'squads',
-  'protocol-skills',
+])
+const INTEGRATION_SELECTION_ALIASES = new Map<string, string>([
+  ['sendai-solana-mcp', 'sendai-agent-kit'],
 ])
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
   rpcProvider: 'helius',
@@ -80,6 +114,12 @@ const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
 interface DetailShortcut {
   label: string
   onClick: () => void
+}
+
+interface PhantomRpcSetupInput {
+  rpcProvider: WalletInfrastructureSettings['rpcProvider']
+  heliusKey: string
+  rpcUrl: string
 }
 
 function getWalletRpcLabel(settings: WalletInfrastructureSettings): string {
@@ -110,6 +150,70 @@ function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
   if (context.packages.has('@raydium-io/raydium-sdk-v2')) suggestions.push('raydium')
 
   return suggestions.length > 0 ? suggestions : ['solana-agent-kit', 'helius', 'integrating-jupiter']
+}
+
+function buildStreamlockOperatorStarter(): string {
+  return `const apiKey = process.env.STREAMLOCK_OPERATOR_KEY?.trim()
+const chain = process.env.STREAMLOCK_CHAIN?.trim() || 'devnet'
+const baseUrl = (process.env.STREAMLOCK_API_BASE_URL?.trim() || 'https://streamlock.fun').replace(/\\/$/, '')
+const tokenMint = process.env.STREAMLOCK_TOKEN_MINT?.trim()
+
+if (!apiKey || apiKey === 'sk_replace_with_operator_key') {
+  throw new Error('Missing STREAMLOCK_OPERATOR_KEY. Add the server-side operator key before running this check.')
+}
+
+async function streamlock(path, init = {}) {
+  const response = await fetch(\`\${baseUrl}\${path}\`, {
+    ...init,
+    headers: {
+      Authorization: \`Bearer \${apiKey}\`,
+      'Content-Type': 'application/json',
+      'X-Streamlock-Chain': chain,
+      ...(init.headers ?? {}),
+    },
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || payload?.error) {
+    const error = payload?.error ?? { code: response.status, message: response.statusText }
+    const requestId = payload?.meta?.requestId ?? null
+    throw new Error(\`Streamlock API failed: \${error.code} \${error.message}\${requestId ? \` (requestId \${requestId})\` : ''}\`)
+  }
+  return payload
+}
+
+console.log('Streamlock Operator API is configured.')
+console.log(JSON.stringify({ baseUrl, chain, apiKey: \`\${apiKey.slice(0, 11)}...\` }, null, 2))
+
+if (!tokenMint || tokenMint === 'replace_with_streamlock_token_mint') {
+  console.log('STREAMLOCK_TOKEN_MINT is not set. Skipping stream discovery.')
+  console.log('Next step: set a locked token mint, then read streams before adding session or delta writes.')
+  process.exit(0)
+}
+
+try {
+  const result = await streamlock(\`/v1/operator/tokens/\${tokenMint}/streams\`)
+  const streams = Array.isArray(result?.data?.streams) ? result.data.streams : []
+  console.log('Streamlock stream discovery complete.')
+  console.log(JSON.stringify({
+    tokenMint,
+    responseChain: result?.meta?.chain ?? null,
+    requestId: result?.meta?.requestId ?? null,
+    streams: streams.length,
+    firstStreamId: streams[0]?.streamId ?? null,
+  }, null, 2))
+  console.log('No session was created, no delta was submitted, and no transaction was signed.')
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+}
+`
+}
+
+function buildScriptRunCommand(packageManager: PackageManager | null, scriptName: string): string {
+  if (packageManager === 'npm') return `npm run ${scriptName}`
+  if (packageManager === 'yarn') return `yarn ${scriptName}`
+  if (packageManager === 'bun') return `bun run ${scriptName}`
+  return `pnpm run ${scriptName}`
 }
 
 function buildMetaplexDraftFile(): string {
@@ -354,6 +458,40 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
   )
 }
 
+function AiSetupCallout({
+  title,
+  detail,
+  providerLabel,
+  actionLabel,
+  busyLabel,
+  busy,
+  disabled,
+  onSetup,
+}: {
+  title?: string
+  detail: string
+  providerLabel?: string
+  actionLabel?: string
+  busyLabel?: string
+  busy?: boolean
+  disabled?: boolean
+  onSetup: () => void
+}) {
+  return (
+    <div className="icc-ai-setup">
+      <div className="icc-ai-setup-copy">
+        <span className="icc-mini-title">AI setup</span>
+        <strong>{title ?? 'Let DAEMON set this up'}</strong>
+        <p>{detail}</p>
+        {providerLabel ? <small>Uses {providerLabel}</small> : null}
+      </div>
+      <button type="button" className="icc-ai-setup-button" onClick={onSetup} disabled={busy || disabled}>
+        {busy ? (busyLabel ?? 'Setting up...') : (actionLabel ?? 'Set up with AI')}
+      </button>
+    </div>
+  )
+}
+
 function SendAiAgentLaunchpad({
   projectReady,
   setupPlan,
@@ -367,6 +505,9 @@ function SendAiAgentLaunchpad({
   onApplySetup,
   onScaffold,
   onRun,
+  aiProviderLabel,
+  aiBusy,
+  onAiSetup,
 }: {
   projectReady: boolean
   setupPlan: SendAiSetupPlan
@@ -380,6 +521,9 @@ function SendAiAgentLaunchpad({
   onApplySetup: () => void
   onScaffold: () => void
   onRun: () => void
+  aiProviderLabel: string
+  aiBusy: boolean
+  onAiSetup: () => void
 }) {
   const setupNeedsAction = projectReady && !setupApplied && (Boolean(setupPlan.installCommand) || setupPlan.missingEnvKeys.length > 0)
   const setupDone = !setupNeedsAction
@@ -434,6 +578,15 @@ function SendAiAgentLaunchpad({
         <strong>{nextAction.label.replace(/\.\.\.$/, '')}</strong>
         <p>{nextAction.detail}</p>
       </div>
+
+      <AiSetupCallout
+        detail={`${aiProviderLabel} will inspect the project and handle the safest setup work for this integration.`}
+        providerLabel={aiProviderLabel}
+        busy={aiBusy}
+        busyLabel={`Launching ${aiProviderLabel}...`}
+        disabled={nextAction.disabled}
+        onSetup={onAiSetup}
+      />
 
       <div className="icc-step-list">
         <div className={`icc-step ${projectReady ? 'ready' : 'active'}`}>
@@ -512,7 +665,7 @@ function SendAiAgentLaunchpad({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-primary" onClick={nextAction.action} disabled={nextAction.disabled}>
+        <button type="button" className="icc-secondary" onClick={nextAction.action} disabled={nextAction.disabled}>
           {nextAction.label}
         </button>
       </div>
@@ -526,12 +679,18 @@ function SendAiSkillsWorkflow({
   result,
   installing,
   onInstall,
+  aiProviderLabel,
+  aiBusy,
+  onAiSetup,
 }: {
   installCommand: string
   suggestions: string[]
   result?: IntegrationActionResult | null
   installing: boolean
   onInstall: () => void
+  aiProviderLabel: string
+  aiBusy: boolean
+  onAiSetup: () => void
 }) {
   return (
     <div className="icc-setup-workflow icc-setup-workflow--secondary">
@@ -576,6 +735,14 @@ function SendAiSkillsWorkflow({
         This opens a visible terminal and runs the skills install command in the current project. It does not execute any on-chain action.
       </div>
 
+      <AiSetupCallout
+        detail={`${aiProviderLabel} will inspect the project and decide whether the skills pack should be installed.`}
+        providerLabel={aiProviderLabel}
+        busy={aiBusy}
+        busyLabel={`Launching ${aiProviderLabel}...`}
+        onSetup={onAiSetup}
+      />
+
       {result ? (
         <div className={`icc-result ${result.status}`}>
           <span className="icc-result-title">{result.title}</span>
@@ -589,7 +756,7 @@ function SendAiSkillsWorkflow({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-primary" onClick={onInstall} disabled={installing}>
+        <button type="button" className="icc-secondary" onClick={onInstall} disabled={installing}>
           {installing ? 'Opening install terminal...' : 'Install skills in terminal'}
         </button>
       </div>
@@ -614,6 +781,9 @@ function IntegrationFirstWinWorkflow({
   secondaryLabel,
   onSecondary,
   note,
+  aiProviderLabel,
+  aiBusy,
+  onAiSetup,
 }: {
   sectionTitle: string
   title: string
@@ -631,6 +801,9 @@ function IntegrationFirstWinWorkflow({
   secondaryLabel?: string
   onSecondary?: () => void
   note?: string
+  aiProviderLabel: string
+  aiBusy: boolean
+  onAiSetup: () => void
 }) {
   return (
     <div className="icc-setup-workflow">
@@ -648,6 +821,14 @@ function IntegrationFirstWinWorkflow({
         <strong>{nextLabel}</strong>
         <p>{nextDetail}</p>
       </div>
+
+      <AiSetupCallout
+        detail={`${aiProviderLabel} will inspect the project and handle the safest setup work for this integration.`}
+        providerLabel={aiProviderLabel}
+        busy={aiBusy}
+        busyLabel={`Launching ${aiProviderLabel}...`}
+        onSetup={onAiSetup}
+      />
 
       <div className="icc-plan-grid">
         {cards.map((card) => (
@@ -686,7 +867,7 @@ function IntegrationFirstWinWorkflow({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-primary" onClick={onPrimary} disabled={busy}>
+        <button type="button" className="icc-secondary" onClick={onPrimary} disabled={busy}>
           {busy ? primaryBusyLabel : primaryLabel}
         </button>
         {secondaryLabel && onSecondary ? (
@@ -709,13 +890,20 @@ function PhantomWalletWorkflow({
   executionMode,
   rpcLabel,
   rpcReady,
+  infrastructure,
+  heliusConfigured,
   result,
   busy,
   onOpenWallet,
+  onCreateSigningWallet,
+  onSaveRpcSetup,
   onSetMainWallet,
   onAssignProject,
   onPreferPhantom,
   onPreviewTransaction,
+  aiProviderLabel,
+  aiBusy,
+  onAiSetup,
 }: {
   wallet: WalletListEntry | null
   isMainWallet: boolean
@@ -726,14 +914,41 @@ function PhantomWalletWorkflow({
   executionMode: WalletInfrastructureSettings['executionMode']
   rpcLabel: string
   rpcReady: boolean
+  infrastructure: WalletInfrastructureSettings
+  heliusConfigured: boolean
   result?: IntegrationActionResult | null
   busy: boolean
   onOpenWallet: () => void
+  onCreateSigningWallet: (name: string) => void
+  onSaveRpcSetup: (input: PhantomRpcSetupInput) => void
   onSetMainWallet: () => void
   onAssignProject: () => void
   onPreferPhantom: () => void
   onPreviewTransaction: () => void
+  aiProviderLabel: string
+  aiBusy: boolean
+  onAiSetup: () => void
 }) {
+  const [quickWalletName, setQuickWalletName] = useState('DAEMON Phantom Wallet')
+  const [rpcProvider, setRpcProvider] = useState<WalletInfrastructureSettings['rpcProvider']>(infrastructure.rpcProvider)
+  const [rpcUrl, setRpcUrl] = useState(
+    infrastructure.rpcProvider === 'quicknode'
+      ? infrastructure.quicknodeRpcUrl
+      : infrastructure.rpcProvider === 'custom'
+        ? infrastructure.customRpcUrl
+        : '',
+  )
+  const [heliusKey, setHeliusKey] = useState('')
+  useEffect(() => {
+    setRpcProvider(infrastructure.rpcProvider)
+    setRpcUrl(
+      infrastructure.rpcProvider === 'quicknode'
+        ? infrastructure.quicknodeRpcUrl
+        : infrastructure.rpcProvider === 'custom'
+          ? infrastructure.customRpcUrl
+          : '',
+    )
+  }, [infrastructure])
   const readiness = buildSolanaRouteReadiness({
     walletPresent: Boolean(wallet),
     walletName: wallet?.name,
@@ -748,7 +963,15 @@ function PhantomWalletWorkflow({
     rpcReady,
     requirePreferredWallet: true,
   })
-  const nextAction = readiness.nextAction.id === 'set-main-wallet'
+  const runQuickCreate = () => onCreateSigningWallet(quickWalletName.trim() || 'DAEMON Phantom Wallet')
+  const runRpcSetup = () => onSaveRpcSetup({
+    rpcProvider,
+    heliusKey: heliusKey.trim(),
+    rpcUrl: rpcUrl.trim(),
+  })
+  const nextAction = readiness.nextAction.id === 'open-wallet'
+    ? runQuickCreate
+    : readiness.nextAction.id === 'set-main-wallet'
     ? onSetMainWallet
     : readiness.nextAction.id === 'assign-project'
       ? onAssignProject
@@ -756,18 +979,53 @@ function PhantomWalletWorkflow({
         ? onPreferPhantom
         : readiness.nextAction.id === 'preview-transaction'
           ? onPreviewTransaction
+          : readiness.nextAction.id === 'open-infrastructure'
+            ? runRpcSetup
           : onOpenWallet
+  const ready = readiness.readyCount === readiness.totalCount
+  const stepActions = readiness.items.map((item) => {
+    if (item.key === 'main-wallet') {
+      return {
+        key: item.key,
+        label: !wallet ? 'Create signer' : isMainWallet ? 'Done' : 'Make main',
+        onClick: !wallet ? runQuickCreate : isMainWallet ? undefined : onSetMainWallet,
+        disabled: isMainWallet,
+      }
+    }
+    if (item.key === 'signer') {
+      return {
+        key: item.key,
+        label: signerReady ? 'Done' : 'Create signer',
+        onClick: signerReady ? undefined : runQuickCreate,
+        disabled: signerReady,
+      }
+    }
+    if (item.key === 'project') {
+      return {
+        key: item.key,
+        label: !hasActiveProject ? 'Optional' : projectAssigned ? 'Done' : 'Use here',
+        onClick: !hasActiveProject || projectAssigned ? undefined : onAssignProject,
+        disabled: !hasActiveProject || projectAssigned,
+      }
+    }
+    return {
+      key: item.key,
+      label: !rpcReady ? 'Save RPC' : preferredWallet !== 'phantom' ? 'Set Phantom' : 'Preview',
+      onClick: !rpcReady ? runRpcSetup : preferredWallet !== 'phantom' ? onPreferPhantom : onPreviewTransaction,
+      disabled: false,
+    }
+  })
 
   return (
     <div className="icc-setup-workflow icc-setup-workflow--wallet">
       <div className="icc-setup-head">
         <div>
           <span className="icc-section-title">Wallet workflow</span>
-          <h3>Get the wallet route ready for Phantom-first signing</h3>
-          <p>New Solana developers should be able to see one wallet path, one signer path, and one project route without leaving this drawer.</p>
+          <h3>{ready ? 'Phantom route ready' : 'Set up the Phantom route'}</h3>
+          <p>One wallet route, one signer path, and one project assignment before DAEMON asks Phantom-facing users to sign anything.</p>
         </div>
-        <span className={`icc-status-badge ${readiness.readyCount === readiness.totalCount ? 'ready' : 'partial'}`}>
-          {readiness.readyCount === readiness.totalCount ? 'ready' : 'guided'}
+        <span className={`icc-status-badge ${ready ? 'ready' : 'partial'}`}>
+          {ready ? 'ready' : 'guided'}
         </span>
       </div>
 
@@ -776,6 +1034,80 @@ function PhantomWalletWorkflow({
         <strong>{readiness.nextAction.label}</strong>
         <p>{readiness.nextAction.detail}</p>
       </div>
+
+      <AiSetupCallout
+        detail={`${aiProviderLabel} will inspect the project and handle the safest Phantom setup work.`}
+        providerLabel={aiProviderLabel}
+        busy={aiBusy}
+        busyLabel={`Launching ${aiProviderLabel}...`}
+        onSetup={onAiSetup}
+      />
+
+      {!signerReady ? (
+        <div className="icc-quick-wallet">
+          <div className="icc-quick-wallet-copy">
+            <span className="icc-mini-title">Fast setup</span>
+            <strong>Create the signing wallet here</strong>
+            <p>This creates a local DAEMON wallet, makes it the default route, links it to this project when possible, and keeps Phantom as the preferred user-facing path.</p>
+          </div>
+          <div className="icc-quick-wallet-form">
+            <input
+              className="icc-quick-wallet-input"
+              value={quickWalletName}
+              onChange={(event) => setQuickWalletName(event.target.value)}
+              placeholder="Wallet name"
+            />
+            <button type="button" className="icc-primary" onClick={runQuickCreate} disabled={busy}>
+              {busy ? 'Creating...' : 'Create signing wallet'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {!rpcReady ? (
+        <div className="icc-quick-wallet icc-quick-rpc">
+          <div className="icc-quick-wallet-copy">
+            <span className="icc-mini-title">RPC setup</span>
+            <strong>Configure the RPC path here</strong>
+            <p>Pick the provider DAEMON should use for wallet reads, transaction previews, and generated Solana project defaults.</p>
+          </div>
+          <div className="icc-quick-rpc-form">
+            <select
+              className="icc-quick-wallet-input"
+              value={rpcProvider}
+              onChange={(event) => {
+                const provider = event.target.value as WalletInfrastructureSettings['rpcProvider']
+                setRpcProvider(provider)
+                setRpcUrl(provider === 'quicknode' ? infrastructure.quicknodeRpcUrl : provider === 'custom' ? infrastructure.customRpcUrl : '')
+              }}
+            >
+              <option value="helius">Helius</option>
+              <option value="public">Public RPC</option>
+              <option value="quicknode">QuickNode</option>
+              <option value="custom">Custom RPC</option>
+            </select>
+            {rpcProvider === 'helius' && !heliusConfigured ? (
+              <input
+                className="icc-quick-wallet-input"
+                value={heliusKey}
+                onChange={(event) => setHeliusKey(event.target.value)}
+                placeholder="HELIUS_API_KEY"
+              />
+            ) : null}
+            {(rpcProvider === 'quicknode' || rpcProvider === 'custom') ? (
+              <input
+                className="icc-quick-wallet-input"
+                value={rpcUrl}
+                onChange={(event) => setRpcUrl(event.target.value)}
+                placeholder={rpcProvider === 'quicknode' ? 'https://your-quicknode-endpoint.quiknode.pro/...' : 'https://your-rpc-provider.example'}
+              />
+            ) : null}
+            <button type="button" className="icc-primary" onClick={runRpcSetup} disabled={busy}>
+              {busy ? 'Saving...' : 'Save RPC path'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="icc-plan-grid">
         <div className="icc-plan-card">
@@ -788,17 +1120,35 @@ function PhantomWalletWorkflow({
         </div>
       </div>
 
+      <div className="icc-guided-next icc-guided-next--quiet">
+        <span className="icc-mini-title">What happens next</span>
+        <p>DAEMON will use this wallet as the default route for sends, swaps, launches, and transaction previews. Phantom remains the preferred user-facing signing path.</p>
+      </div>
+
       <div className="icc-step-list">
-        {readiness.items.map((item, index) => (
+        {readiness.items.map((item, index) => {
+          const action = stepActions[index]
+          return (
           <div key={item.label} className={`icc-step ${item.ready ? 'ready' : 'active'}`}>
             <span className="icc-step-index">{index + 1}</span>
             <div className="icc-step-main">
               <strong>{item.label}</strong>
               <p>{item.detail}</p>
             </div>
-            <span className={`icc-status-badge ${item.ready ? 'ready' : 'partial'}`}>{item.ready ? 'done' : 'next'}</span>
+            <div className="icc-step-side">
+              <span className={`icc-status-badge ${item.ready ? 'ready' : 'partial'}`}>{item.ready ? 'done' : 'next'}</span>
+              <button
+                type="button"
+                className="icc-step-action"
+                onClick={action.onClick}
+                disabled={busy || action.disabled}
+              >
+                {action.label}
+              </button>
+            </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {result ? (
@@ -814,11 +1164,11 @@ function PhantomWalletWorkflow({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-primary" onClick={nextAction} disabled={busy}>
-          {busy ? 'Applying wallet setup...' : readiness.nextAction.label}
+        <button type="button" className="icc-secondary" onClick={nextAction} disabled={busy}>
+          {busy ? 'Running wallet setup...' : readiness.nextAction.label}
         </button>
         <button type="button" className="icc-secondary" onClick={onOpenWallet}>
-          Open wallet workspace
+          Advanced wallet workspace
         </button>
       </div>
     </div>
@@ -836,10 +1186,13 @@ function IntegrationCard({
   summary: IntegrationStatusSummary
   onSelect: () => void
 }) {
+  const brandClass = getBrandedIntegrationClass(integration.id)
+  const brandedCardClass = brandClass ? `icc-card--${brandClass}` : ''
+
   return (
     <button
       type="button"
-      className={`icc-card ${selected ? 'selected' : ''}`}
+      className={`icc-card ${brandedCardClass} ${selected ? 'selected' : ''}`}
       onClick={onSelect}
     >
       <span className={`icc-status-dot ${summary.status}`} />
@@ -853,6 +1206,20 @@ function IntegrationCard({
       </div>
     </button>
   )
+}
+
+function getBrandedIntegrationClass(integrationId: string): string {
+  if (integrationId === 'streamlock') return 'streamlock'
+  if (integrationId === 'helius') return 'helius'
+  if (integrationId === 'sendai-agent-kit') return 'sendai'
+  if (integrationId === 'phantom') return 'phantom'
+  if (integrationId === 'jupiter') return 'jupiter'
+  if (integrationId === 'metaplex') return 'metaplex'
+  if (integrationId === 'light-protocol') return 'light'
+  if (integrationId === 'magicblock') return 'magicblock'
+  if (integrationId === 'debridge') return 'debridge'
+  if (integrationId === 'squads') return 'squads'
+  return ''
 }
 
 export function IntegrationCommandCenter() {
@@ -870,13 +1237,14 @@ export function IntegrationCommandCenter() {
 
   const [category, setCategory] = useState<IntegrationCategory | 'all'>('all')
   const [search, setSearch] = useState('')
-  const [selectedId, setSelectedId] = useState(INTEGRATION_REGISTRY[0]?.id ?? '')
+  const [selectedId, setSelectedId] = useState('sendai-agent-kit')
   const [envFiles, setEnvFiles] = useState<EnvFile[]>([])
   const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
   const [packageJsonContent, setPackageJsonContent] = useState<string | null>(null)
   const [lockfiles, setLockfiles] = useState<Partial<Record<PackageManager, boolean>>>({})
   const [pnpmWorkspaceRoot, setPnpmWorkspaceRoot] = useState(false)
   const [hasStarterAgentFile, setHasStarterAgentFile] = useState(false)
+  const [hasStreamlockStarterFile, setHasStreamlockStarterFile] = useState(false)
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [walletSignerReady, setWalletSignerReady] = useState<Record<string, boolean>>({})
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>(DEFAULT_WALLET_INFRASTRUCTURE)
@@ -891,6 +1259,21 @@ export function IntegrationCommandCenter() {
   const [runningGuidedFlow, setRunningGuidedFlow] = useState<string | null>(null)
   const [actionResult, setActionResult] = useState<IntegrationActionResult | null>(null)
   const [runningActionId, setRunningActionId] = useState<string | null>(null)
+  const [defaultAiProvider, setDefaultAiProvider] = useState<'claude' | 'codex'>('claude')
+  const [launchingAiSetup, setLaunchingAiSetup] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void daemon.provider.getDefault().then((result) => {
+      if (cancelled) return
+      if (result.ok && (result.data === 'claude' || result.data === 'codex')) {
+        setDefaultAiProvider(result.data)
+      }
+    }).catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -945,6 +1328,7 @@ export function IntegrationCommandCenter() {
             pnpmWorkspaceYamlRes,
             pnpmWorkspaceYmlRes,
             starterFileRes,
+            streamlockStarterFileRes,
           ] = await Promise.all([
             daemon.env.projectVars(activeProjectPath),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package.json')),
@@ -955,6 +1339,7 @@ export function IntegrationCommandCenter() {
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yaml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, SENDAI_FIRST_AGENT_ENTRY)),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, STREAMLOCK_STARTER_FILE)),
           ])
 
           if (cancelled) return
@@ -970,6 +1355,7 @@ export function IntegrationCommandCenter() {
           })
           setPnpmWorkspaceRoot(Boolean(pnpmWorkspaceYamlRes.ok || pnpmWorkspaceYmlRes.ok))
           setHasStarterAgentFile(Boolean(starterFileRes.ok))
+          setHasStreamlockStarterFile(Boolean(streamlockStarterFileRes.ok))
         } else {
           setEnvFiles([])
           setPackageInfo(EMPTY_PACKAGE_INFO)
@@ -977,6 +1363,7 @@ export function IntegrationCommandCenter() {
           setLockfiles({})
           setPnpmWorkspaceRoot(false)
           setHasStarterAgentFile(false)
+          setHasStreamlockStarterFile(false)
           setSendAiSetupApplied(false)
           await loadToolchain(undefined)
         }
@@ -1025,6 +1412,7 @@ export function IntegrationCommandCenter() {
     () => ({ packageManager: projectPackageManager, pnpmWorkspaceRoot }),
     [projectPackageManager, pnpmWorkspaceRoot],
   )
+  const streamlockConfigReady = envKeys.has('STREAMLOCK_OPERATOR_KEY')
   const lightStatelessReady = packageInfo.packages.has('@lightprotocol/stateless.js')
   const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
   const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
@@ -1063,11 +1451,12 @@ export function IntegrationCommandCenter() {
 
   useEffect(() => {
     if (!integrationCommandSelectionId) return
-    const target = INTEGRATION_REGISTRY.find((integration) => integration.id === integrationCommandSelectionId)
+    const targetId = INTEGRATION_SELECTION_ALIASES.get(integrationCommandSelectionId) ?? integrationCommandSelectionId
+    const target = INTEGRATION_REGISTRY.find((integration) => integration.id === targetId)
     if (target) {
       setCategory('all')
       setSearch('')
-      setSelectedId(integrationCommandSelectionId)
+      setSelectedId(targetId)
       setActionResult(null)
     }
     setIntegrationCommandSelectionId(null)
@@ -1075,19 +1464,29 @@ export function IntegrationCommandCenter() {
 
   const selectedIntegration = visibleIntegrations.find((integration) => integration.id === selectedId) ?? visibleIntegrations[0] ?? INTEGRATION_REGISTRY[0]
   const selectedSummary = resolveIntegrationStatus(selectedIntegration, context)
+  const selectedBrandClass = getBrandedIntegrationClass(selectedIntegration.id)
+  const streamlockRunCommand = buildScriptRunCommand(projectPackageManager, STREAMLOCK_STARTER_SCRIPT)
+  const streamlockNextLabel = !activeProjectPath
+    ? 'Open New Project'
+    : !hasStreamlockStarterFile
+      ? 'Create operator starter'
+      : !streamlockConfigReady
+        ? 'Open env manager'
+        : 'Run operator check'
+  const streamlockNextDetail = !activeProjectPath
+    ? 'Open or scaffold a project first so the Streamlock starter has a server-side home.'
+    : !hasStreamlockStarterFile
+      ? 'Write a read-only Operator API check, add env placeholders, and register a package script.'
+      : !streamlockConfigReady
+        ? 'Add STREAMLOCK_OPERATOR_KEY to a real .env file so the starter can call Streamlock.'
+        : 'Run the read-only stream discovery check in a terminal.'
   const selectedInstallCommand = selectedIntegration.installCommand
     ? normalizeProjectInstallCommand(selectedIntegration.installCommand, installCommandOptions)
     : null
+  const defaultAiProviderLabel = defaultAiProvider === 'claude' ? 'Claude' : 'Codex'
   const detailShortcut = useMemo<DetailShortcut | null>(() => {
     if (GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id)) {
       return null
-    }
-
-    if (selectedIntegration.id === 'token-launch-stack') {
-      return {
-        label: 'Open Token Launch',
-        onClick: () => openWorkspaceTool('token-launch'),
-      }
     }
 
     const nextRequirement = selectedSummary.requirements.find((requirement) => !requirement.optional && !requirement.ready)
@@ -1305,6 +1704,137 @@ export function IntegrationCommandCenter() {
         title: 'Wallet preference failed',
         status: 'error',
         detail: error instanceof Error ? error.message : 'DAEMON could not update the preferred wallet path.',
+      })
+    } finally {
+      setUpdatingWalletFlow(false)
+    }
+  }
+
+  async function handleSavePhantomRpcSetup(input: PhantomRpcSetupInput) {
+    setUpdatingWalletFlow(true)
+    setActionResult(null)
+
+    try {
+      const provider = input.rpcProvider
+      const rpcUrl = input.rpcUrl.trim()
+      const heliusKey = input.heliusKey.trim()
+      const completed: string[] = []
+
+      if (provider === 'helius' && !secureKeys.HELIUS_API_KEY) {
+        if (!heliusKey) {
+          throw new Error('Paste a Helius API key, or switch the provider to Public RPC, QuickNode, or Custom RPC.')
+        }
+        const keyResult = await daemon.wallet.storeHeliusKey(heliusKey)
+        if (!keyResult.ok) {
+          throw new Error(keyResult.error ?? 'Could not save the Helius API key')
+        }
+        setSecureKeys((current) => ({ ...current, HELIUS_API_KEY: true }))
+        completed.push('Helius API key saved')
+      }
+
+      if ((provider === 'quicknode' || provider === 'custom') && !rpcUrl) {
+        throw new Error(provider === 'quicknode' ? 'Paste a QuickNode RPC URL before saving.' : 'Paste a custom Solana RPC URL before saving.')
+      }
+
+      const nextSettings: WalletInfrastructureSettings = {
+        ...walletInfrastructure,
+        rpcProvider: provider,
+        preferredWallet: 'phantom',
+        quicknodeRpcUrl: provider === 'quicknode' ? rpcUrl : walletInfrastructure.quicknodeRpcUrl,
+        customRpcUrl: provider === 'custom' ? rpcUrl : walletInfrastructure.customRpcUrl,
+      }
+      const settingsResult = await daemon.settings.setWalletInfrastructureSettings(nextSettings)
+      if (!settingsResult.ok) {
+        throw new Error(settingsResult.error ?? 'Could not save the RPC path')
+      }
+
+      setWalletInfrastructure(nextSettings)
+      completed.push(`${getWalletRpcLabel(nextSettings)} selected`)
+      if (nextSettings.preferredWallet === 'phantom') completed.push('Phantom-first path set')
+
+      setActionResult({
+        title: 'RPC path configured',
+        status: 'success',
+        detail: `${getWalletRpcLabel(nextSettings)} is now the Phantom integration route for wallet reads and transaction previews.`,
+        items: completed,
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'RPC setup failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not save the RPC path.',
+      })
+    } finally {
+      setUpdatingWalletFlow(false)
+    }
+  }
+
+  async function handleCreatePhantomSigningWallet(name: string) {
+    const walletName = name.trim() || 'DAEMON Phantom Wallet'
+    setUpdatingWalletFlow(true)
+    setActionResult(null)
+
+    try {
+      const createResult = await daemon.wallet.generate({ name: walletName })
+      if (!createResult.ok || !createResult.data) {
+        throw new Error(createResult.error ?? 'Could not create a signing wallet')
+      }
+
+      const createdWallet = createResult.data
+      const defaultResult = await daemon.wallet.setDefault(createdWallet.id)
+      if (!defaultResult.ok) {
+        throw new Error(defaultResult.error ?? 'Wallet was created, but DAEMON could not make it the default route')
+      }
+
+      const assignedProjectIds = new Set(createdWallet.assigned_project_ids)
+      const completed: string[] = ['Signing wallet created', 'Default wallet route set']
+
+      if (activeProjectId) {
+        const assignResult = await daemon.wallet.assignProject(activeProjectId, createdWallet.id)
+        if (!assignResult.ok) {
+          throw new Error(assignResult.error ?? 'Wallet was created, but DAEMON could not link it to the active project')
+        }
+        assignedProjectIds.add(activeProjectId)
+        completed.push('Active project linked')
+      }
+
+      let nextInfrastructure = walletInfrastructure
+      if (walletInfrastructure.preferredWallet !== 'phantom') {
+        nextInfrastructure = {
+          ...walletInfrastructure,
+          preferredWallet: 'phantom',
+        }
+        const preferenceResult = await daemon.settings.setWalletInfrastructureSettings(nextInfrastructure)
+        if (!preferenceResult.ok) {
+          throw new Error(preferenceResult.error ?? 'Wallet was created, but DAEMON could not set Phantom as preferred')
+        }
+        setWalletInfrastructure(nextInfrastructure)
+        completed.push('Phantom-first path set')
+      }
+
+      const nextWallet: WalletListEntry = {
+        ...createdWallet,
+        is_default: 1,
+        assigned_project_ids: Array.from(assignedProjectIds),
+      }
+      setWallets((current) => [
+        nextWallet,
+        ...current
+          .filter((wallet) => wallet.id !== nextWallet.id)
+          .map((wallet) => ({ ...wallet, is_default: 0 })),
+      ])
+      setWalletSignerReady((current) => ({ ...current, [nextWallet.id]: true }))
+      setActionResult({
+        title: 'Phantom route created',
+        status: 'success',
+        detail: `${nextWallet.name} is ready as DAEMON's default signing route.`,
+        items: [nextWallet.address, ...completed],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Quick wallet setup failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not create the Phantom signing route.',
       })
     } finally {
       setUpdatingWalletFlow(false)
@@ -1669,6 +2199,121 @@ export function IntegrationCommandCenter() {
     }
   }
 
+  async function handleCreateStreamlockStarter() {
+    if (!activeProjectPath) {
+      setActionResult({
+        title: 'Create a Node project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a Streamlock operator starter.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('streamlock-starter')
+    setActionResult(null)
+
+    try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const packageRes = await daemon.fs.readFile(packageJsonPath)
+      if (!packageRes.ok || !packageRes.data) {
+        throw new Error('Could not read package.json in the active project. Open or create a Node project before scaffolding Streamlock.')
+      }
+      const currentPackageJson = packageRes.data.content
+      const envPath = joinProjectPath(activeProjectPath, '.env.example')
+      const envRes = await daemon.fs.readFile(envPath)
+      const currentEnv = envRes.ok && envRes.data ? envRes.data.content : ''
+      const nextEnv = mergeEnvExample(currentEnv, STREAMLOCK_ENV_TEMPLATE, 'Streamlock Operator API')
+      if (nextEnv !== currentEnv) {
+        const envWriteRes = await daemon.fs.writeFile(envPath, nextEnv)
+        if (!envWriteRes.ok) {
+          throw new Error(envWriteRes.error ?? 'Could not update .env.example for Streamlock')
+        }
+      }
+
+      const nextPackageJson = upsertPackageJsonScript(currentPackageJson, STREAMLOCK_STARTER_SCRIPT, `node ${STREAMLOCK_STARTER_FILE}`)
+      if (nextPackageJson !== currentPackageJson) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for Streamlock starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, STREAMLOCK_STARTER_DIR))
+      const writeRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, STREAMLOCK_STARTER_FILE),
+        buildStreamlockOperatorStarter(),
+      )
+      if (!writeRes.ok) {
+        throw new Error(writeRes.error ?? 'Could not write the Streamlock operator starter')
+      }
+      const verifyRes = await daemon.fs.readFile(joinProjectPath(activeProjectPath, STREAMLOCK_STARTER_FILE))
+      if (!verifyRes.ok || !verifyRes.data?.content.includes('Streamlock Operator API is configured')) {
+        throw new Error('Streamlock starter write could not be verified in the active project.')
+      }
+      setHasStreamlockStarterFile(true)
+
+      setActionResult({
+        title: 'Streamlock starter created',
+        status: 'success',
+        detail: 'DAEMON scaffolded a read-only Operator API check and package script for building on locked assets.',
+        items: [joinProjectPath(activeProjectPath, STREAMLOCK_STARTER_FILE), streamlockRunCommand, '.env.example'],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Streamlock starter failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the Streamlock starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
+  async function handleRunStreamlockStarter() {
+    if (!activeProjectPath || !activeProjectId) {
+      setActionResult({
+        title: 'Open a project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project before it can run the Streamlock operator check.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('streamlock-run')
+    setActionResult(null)
+
+    try {
+      const terminalRes = await daemon.terminal.create({
+        cwd: activeProjectPath,
+        startupCommand: streamlockRunCommand,
+        userInitiated: true,
+      })
+      if (!terminalRes.ok || !terminalRes.data) {
+        throw new Error(terminalRes.error ?? 'Could not open the Streamlock check terminal')
+      }
+
+      addTerminal(activeProjectId, terminalRes.data.id, 'Streamlock Operator Check', terminalRes.data.agentId)
+      focusTerminal()
+      setActionResult({
+        title: 'Streamlock check opened',
+        status: 'success',
+        detail: 'DAEMON opened a terminal for the read-only Streamlock Operator API check.',
+        items: [streamlockRunCommand],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Streamlock check failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not run the Streamlock operator check.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
   async function handleCreateMetaplexDraft() {
     if (!activeProjectPath) {
       setActionResult({
@@ -1927,6 +2572,92 @@ export function IntegrationCommandCenter() {
     })
   }
 
+  function buildAiSetupPrompt(): string {
+    const missingRequirements = selectedSummary.requirements
+      .filter((requirement) => !requirement.ready)
+      .map((requirement) => `- ${requirement.label}: ${requirement.detail}`)
+      .join('\n') || '- No blocking requirements detected.'
+    const actionList = selectedIntegration.actions
+      .map((action) => `- ${action.label}: ${action.description} (${action.risk})`)
+      .join('\n') || '- No registered actions.'
+    const installLine = selectedInstallCommand ? `Install command: ${selectedInstallCommand}` : 'Install command: none detected.'
+
+    return `Set up the ${selectedIntegration.name} integration in this DAEMON project.
+
+Goal:
+- Make the integration usable with the simplest safe first path.
+- Prefer small, reviewable project changes.
+- Do not submit transactions or expose secrets.
+- If env values or API keys are missing, add placeholders/templates and tell me exactly what I need to fill in.
+
+Current project:
+- Path: ${activeProjectPath ?? 'No active project path'}
+- Package manager: ${projectPackageManager ?? 'unknown'}
+
+Integration:
+- Category: ${selectedIntegration.category}
+- Description: ${selectedIntegration.description}
+- Docs: ${selectedIntegration.docsUrl}
+
+Missing or partial setup:
+${missingRequirements}
+
+Registered DAEMON actions:
+${actionList}
+
+${installLine}
+
+Please inspect the project, apply the safe setup work you can complete, and summarize changed files plus anything still required.`
+  }
+
+  async function handleSelectedAiSetup() {
+    if (!activeProjectPath || !activeProjectId) {
+      setActionResult({
+        title: 'Open a project first',
+        status: 'warning',
+        detail: `AI setup uses the configured ${defaultAiProviderLabel} terminal inside an active project. Open or create a project first.`,
+      })
+      return
+    }
+
+    setLaunchingAiSetup(true)
+    setActionResult(null)
+
+    try {
+      const terminalRes = await daemon.terminal.spawnProvider({
+        providerId: defaultAiProvider,
+        projectId: activeProjectId,
+        cwd: activeProjectPath,
+      })
+      if (!terminalRes.ok || !terminalRes.data) {
+        throw new Error(terminalRes.error ?? `Could not launch ${defaultAiProviderLabel}`)
+      }
+
+      addTerminal(activeProjectId, terminalRes.data.id, `${defaultAiProviderLabel} Integration Setup`, terminalRes.data.agentId)
+      focusTerminal()
+
+      const prompt = buildAiSetupPrompt()
+      window.setTimeout(() => {
+        daemon.terminal.write(terminalRes.data!.id, `\x1b[200~${prompt}\x1b[201~\r`)
+      }, 2600)
+
+      setActionResult({
+        title: `${defaultAiProviderLabel} setup launched`,
+        status: 'success',
+        detail: `${defaultAiProviderLabel} is running in Terminal with a focused ${selectedIntegration.name} setup prompt.`,
+        items: [activeProjectPath, selectedIntegration.name],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'AI setup failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : `DAEMON could not launch ${defaultAiProviderLabel} for integration setup.`,
+      })
+    } finally {
+      setLaunchingAiSetup(false)
+    }
+  }
+
   function openDocs() {
     void daemon.shell.openExternal(selectedIntegration.docsUrl)
   }
@@ -1988,7 +2719,7 @@ export function IntegrationCommandCenter() {
           )}
         </section>
 
-        <aside className="icc-detail" aria-label={`${selectedIntegration.name} details`}>
+        <aside className={`icc-detail ${selectedBrandClass ? `icc-detail--brand icc-detail--${selectedBrandClass}` : ''}`} aria-label={`${selectedIntegration.name} details`}>
           <div className="icc-detail-head">
             <div>
               <span className="icc-detail-kicker">{selectedIntegration.category}</span>
@@ -2022,7 +2753,7 @@ export function IntegrationCommandCenter() {
               projectReady={Boolean(activeProjectPath && packageJsonContent)}
               setupPlan={sendAiSetupPlan}
               agentPlan={firstAgentPlan}
-              result={actionResult}
+              result={actionResult?.title === 'Open MCP setup' ? null : actionResult}
               setupApplied={sendAiSetupApplied}
               applying={applyingSetup}
               scaffolding={scaffoldingFirstAgent}
@@ -2031,16 +2762,62 @@ export function IntegrationCommandCenter() {
               onApplySetup={() => void handleApplySendAiSetup(sendAiSetupPlan)}
               onScaffold={() => void handleCreateFirstAgent(firstAgentPlan)}
               onRun={() => void handleRunFirstAgent(firstAgentPlan)}
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
-          {selectedIntegration.id === 'protocol-skills' && selectedInstallCommand && (
+          {selectedIntegration.id === 'sendai-agent-kit' && (
             <SendAiSkillsWorkflow
-              installCommand={selectedInstallCommand}
+              installCommand={SENDAI_SKILLS_INSTALL_COMMAND}
               suggestions={sendAiSkillSuggestions}
-              result={actionResult}
+              result={actionResult?.title.includes('Skills') ? actionResult : null}
               installing={installingSkills}
-              onInstall={() => void handleInstallSkills(selectedInstallCommand)}
+              onInstall={() => void handleInstallSkills(SENDAI_SKILLS_INSTALL_COMMAND)}
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
+            />
+          )}
+
+          {selectedIntegration.id === 'streamlock' && (
+            <IntegrationFirstWinWorkflow
+              sectionTitle="Primitive Layer workflow"
+              title="Scaffold the first Streamlock Operator API check"
+              description="Streamlock should start as a server-side HTTP integration for locked streams, entitlement ledgers, and zero-sum operator sessions."
+              status={Boolean(activeProjectPath) && hasStreamlockStarterFile && streamlockConfigReady ? 'ready' : 'partial'}
+              result={actionResult}
+              nextLabel={streamlockNextLabel}
+              nextDetail={streamlockNextDetail}
+              cards={[
+                { label: 'Starter file', value: STREAMLOCK_STARTER_FILE },
+                { label: 'Run command', value: streamlockRunCommand },
+              ]}
+              items={[
+                { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for source scaffolding.' : 'Open or create a project before DAEMON can scaffold Streamlock.', ready: Boolean(activeProjectPath) },
+                { label: 'Starter file', detail: hasStreamlockStarterFile ? `${STREAMLOCK_STARTER_FILE} exists in the active project.` : 'Create the starter before configuring real Streamlock credentials.', ready: hasStreamlockStarterFile },
+                { label: 'Operator API', detail: 'Uses Streamlock HTTP routes directly until the Operator SDK is published to npm.', ready: true },
+                { label: 'Operator API key', detail: streamlockConfigReady ? 'STREAMLOCK_OPERATOR_KEY is present in project env.' : 'The starter writes a placeholder only; keep the real key server-side.', ready: streamlockConfigReady },
+                { label: 'RPC and mint inputs', detail: envKeys.has('SOLANA_RPC_URL') ? 'SOLANA_RPC_URL is available for write-flow broadcast helpers.' : 'Add SOLANA_RPC_URL before enabling writes or broadcast helpers.', ready: envKeys.has('SOLANA_RPC_URL') },
+                { label: 'Signing boundary', detail: 'Session, delta, settle, and claim transactions remain behind explicit wallet or operator-signing review.', ready: false },
+              ]}
+              primaryLabel={streamlockNextLabel}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !hasStreamlockStarterFile ? 'Creating operator starter...' : !streamlockConfigReady ? 'Opening env manager...' : 'Opening operator check...'}
+              busy={runningGuidedFlow === 'streamlock-starter' || runningGuidedFlow === 'streamlock-run'}
+              onPrimary={!activeProjectPath
+                ? () => openWorkspaceTool('starter')
+                : !hasStreamlockStarterFile
+                  ? () => void handleCreateStreamlockStarter()
+                  : !streamlockConfigReady
+                    ? () => openWorkspaceTool('env')
+                    : () => void handleRunStreamlockStarter()}
+              secondaryLabel="Open operator docs"
+              onSecondary={openDocs}
+              note="This starter is read-only. It verifies API configuration and stream discovery before any operator session, ledger delta, or settlement path is enabled."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2055,25 +2832,32 @@ export function IntegrationCommandCenter() {
               executionMode={walletInfrastructure.executionMode}
               rpcLabel={walletRpcLabel}
               rpcReady={walletRpcReady}
+              infrastructure={walletInfrastructure}
+              heliusConfigured={Boolean(secureKeys.HELIUS_API_KEY)}
               result={actionResult}
-              busy={updatingWalletFlow}
+              busy={updatingWalletFlow || runningGuidedFlow === 'phantom-preview'}
               onOpenWallet={() => openWorkspaceTool('wallet')}
+              onCreateSigningWallet={(name) => void handleCreatePhantomSigningWallet(name)}
+              onSaveRpcSetup={(input) => void handleSavePhantomRpcSetup(input)}
               onSetMainWallet={() => void handleSetMainWallet()}
               onAssignProject={() => void handleAssignWalletToProject()}
               onPreferPhantom={() => void handleSetPhantomPreferred()}
               onPreviewTransaction={() => void handlePreviewPhantomTransaction()}
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
-          {selectedIntegration.id === 'sendai-solana-mcp' && (
+          {selectedIntegration.id === 'sendai-agent-kit' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="MCP workflow"
               title="Route one Solana MCP path inside DAEMON"
               description="The MCP setup should not be a dead end. DAEMON should guide the developer straight into the server path that exposes read-only Solana tools to agents."
-              status={selectedSummary.status === 'ready' ? 'ready' : 'partial'}
-              result={actionResult}
-              nextLabel={selectedSummary.status === 'ready' ? 'Check MCP server state' : 'Open MCP setup'}
-              nextDetail={selectedSummary.status === 'ready'
+              status={mcps.some((entry) => entry.name === 'solana-mcp-server' && entry.enabled) && envKeys.has('RPC_URL') ? 'ready' : 'partial'}
+              result={actionResult?.title === 'Open MCP setup' ? actionResult : null}
+              nextLabel={mcps.some((entry) => entry.name === 'solana-mcp-server' && entry.enabled) && envKeys.has('RPC_URL') ? 'Check MCP server state' : 'Open MCP setup'}
+              nextDetail={mcps.some((entry) => entry.name === 'solana-mcp-server' && entry.enabled) && envKeys.has('RPC_URL')
                 ? 'The MCP server looks configured. Move into toolbox setup to verify which tools are exposed.'
                 : 'The server is not fully configured yet. Open the MCP setup path directly from here.'}
               cards={[
@@ -2091,6 +2875,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open Solana toolbox"
               onSecondary={() => openWorkspaceTool('solana-toolbox')}
               note="This keeps the MCP handoff inside DAEMON instead of leaving the user with a generic setup card."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2121,6 +2908,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open wallet workspace"
               onSecondary={() => openWorkspaceTool('wallet')}
               note="This is read-only. It validates the provider route without sending a transaction."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2151,6 +2941,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open wallet workspace"
               onSecondary={() => openWorkspaceTool('wallet')}
               note="DAEMON uses a quote plus transaction preview here so new Solana devs see the full swap path before any signing step."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2187,6 +2980,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open New Project"
               onSecondary={() => openWorkspaceTool('starter')}
               note="This stays deliberately metadata-first so the user gets a concrete asset draft before any mint transaction path."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2228,6 +3024,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open env manager"
               onSecondary={() => openWorkspaceTool('env')}
               note="This is still safe. The starter only verifies imports and RPC configuration before you add real compression logic."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2269,6 +3068,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open docs"
               onSecondary={openDocs}
               note="This starter is read-only. Delegation, commit, undelegate, and ER sends stay behind a separate explicit implementation step."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2306,6 +3108,9 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open docs"
               onSecondary={openDocs}
               note="This starter can call create-tx for estimation, but it does not sign or submit any cross-chain transaction."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
@@ -2347,12 +3152,22 @@ export function IntegrationCommandCenter() {
               secondaryLabel="Open docs"
               onSecondary={openDocs}
               note="This starter is read-only. Proposal creation, voting, execution, and treasury movement stay behind a separate explicit implementation step."
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
             />
           )}
 
           {!GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className="icc-detail-section">
               <div className="icc-section-title">Actions</div>
+              <AiSetupCallout
+                detail={`${defaultAiProviderLabel} will inspect the project and handle the safest setup work for this integration.`}
+                providerLabel={defaultAiProviderLabel}
+                busy={launchingAiSetup}
+                busyLabel={`Launching ${defaultAiProviderLabel}...`}
+                onSetup={() => void handleSelectedAiSetup()}
+              />
               <div className="icc-actions">
                 {selectedIntegration.actions.map((action) => (
                   <button

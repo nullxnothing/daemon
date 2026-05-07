@@ -192,7 +192,11 @@ export function createSendAiSetupPlan(input: {
   }
 }
 
-export function mergeEnvExample(currentContent: string, entries: EnvTemplateEntry[] = SENDAI_ENV_TEMPLATE): string {
+export function mergeEnvExample(
+  currentContent: string,
+  entries: EnvTemplateEntry[] = SENDAI_ENV_TEMPLATE,
+  heading = 'SendAI Solana Agent Kit',
+): string {
   const normalized = currentContent.replace(/\r\n/g, '\n')
   const existingKeys = new Set<string>()
 
@@ -209,7 +213,7 @@ export function mergeEnvExample(currentContent: string, entries: EnvTemplateEntr
 
   const lines = normalized.length > 0 ? normalized.replace(/\n*$/, '\n').split('\n') : []
   if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('')
-  lines.push('# SendAI Solana Agent Kit')
+  lines.push(`# ${heading}`)
   for (const entry of missing) {
     lines.push(`# ${entry.comment}`)
     lines.push(`${entry.key}=${entry.value}`)

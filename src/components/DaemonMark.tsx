@@ -2,13 +2,13 @@ import type { SVGProps } from 'react'
 
 export function DaemonMark(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="132 116 504 504" fill="none" aria-hidden="true" focusable="false" {...props}>
+    <svg viewBox="0 0 1000 1000" fill="none" aria-hidden="true" focusable="false" {...props}>
       <path
-        d="M160 128H470C522.21 128 564.53 170.32 564.53 222.53V364H254.53C202.32 364 160 321.68 160 269.47V128Z"
+        d="M208 87H598C705.14 87 792 173.86 792 281V472H389C289.04 472 208 390.96 208 291V87Z"
         fill="currentColor"
       />
       <path
-        d="M311 405H608V514.47C608 566.68 565.68 609 513.47 609H311V405Z"
+        d="M792 529V722C792 828.04 706.04 914 600 914H405V725C405 616.75 492.75 529 601 529H792Z"
         fill="currentColor"
       />
     </svg>

@@ -1,31 +1,34 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
-import { useWorkflowShellStore } from '../../store/workflowShell'
 import { Button } from '../../components/Button'
 import { Card, MetricCard, PanelHeader, Toolbar } from '../../components/Panel'
 import '../SolanaToolbox/SolanaToolbox.css'
 import './TokenLaunchTool.css'
 
+const STREAMLOCK_URL = 'https://app.streamlock.fun/'
+
 export function TokenLaunchTool() {
   const [launchpadRefreshNonce, setLaunchpadRefreshNonce] = useState(0)
-  const openLaunchWizard = useWorkflowShellStore((s) => s.openLaunchWizard)
+  const openStreamlock = useCallback(() => {
+    void window.daemon.shell.openExternal(STREAMLOCK_URL)
+  }, [])
 
   const highlights = useMemo(() => ([
     {
-      label: 'One flow',
-      value: 'Launch once',
-      detail: 'Wallet pick, preflight, launch, browser handoff.',
+      label: 'Primary path',
+      value: 'Streamlock',
+      detail: 'Hosted launch flow opens externally for now.',
     },
     {
       label: 'Post-launch',
       value: 'Stay in DAEMON',
-      detail: 'Open Pump tokens in Browser mode immediately after success.',
+      detail: 'Keep tracking launch history and token feeds here.',
     },
     {
       label: 'Launchpads',
-      value: 'Pump live now',
-      detail: 'Raydium and Meteora stay in the same surface as they come online.',
+      value: 'Live only',
+      detail: 'Pending launchpad rows are hidden from the launch surface.',
     },
   ]), [])
 
@@ -34,10 +37,10 @@ export function TokenLaunchTool() {
       <PanelHeader
         kicker="Launch Center"
         title="Token Launch"
-        subtitle="Launch from one wallet-linked workflow, run preflight before send, and move straight into Browser mode for post-launch work."
+        subtitle="Open Streamlock for the current hosted launch flow, with DAEMON keeping live adapters, launch history, and token feeds nearby."
         actions={(
           <Toolbar>
-            <Button variant="primary" size="md" onClick={openLaunchWizard}>Launch Token</Button>
+            <Button variant="primary" size="md" onClick={openStreamlock}>Open Streamlock</Button>
             <Button
               variant="default"
               size="md"
@@ -66,9 +69,9 @@ export function TokenLaunchTool() {
           <div className="token-launch-tool-zone-head">
             <div>
               <div className="token-launch-tool-zone-kicker">Step 1</div>
-              <div className="token-launch-tool-zone-title">Check readiness and recent launches</div>
+              <div className="token-launch-tool-zone-title">Choose the launch path</div>
               <p className="token-launch-tool-zone-copy">
-                Keep launchpad status, launch history, and the main launch CTA together so the workflow always has one obvious next action.
+                Streamlock is the primary action for now. Existing live DAEMON adapters remain available without showing pending launchpads.
               </p>
             </div>
           </div>
@@ -98,9 +101,9 @@ export function TokenLaunchTool() {
         <Card className="token-launch-tool-note" tone="info">
           <div className="token-launch-tool-note-title">Recommended flow</div>
           <ol className="token-launch-tool-note-list">
-            <li>Pick the wallet you want to launch from.</li>
-            <li>Confirm the launchpad is live and the config is saved.</li>
-            <li>Launch once, then open the token in Browser Mode for post-launch work.</li>
+            <li>Open Streamlock for the launch flow.</li>
+            <li>Return to DAEMON for wallet, token, and post-launch work.</li>
+            <li>Use in-app launch adapters only when they are marked live.</li>
           </ol>
         </Card>
       </div>

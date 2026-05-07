@@ -40,19 +40,19 @@ interface BuildSolanaRouteReadinessInput {
 export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput): SolanaRouteReadinessModel {
   const preferredWalletReady = input.requirePreferredWallet ? input.preferredWallet === 'phantom' : true
   const preferredWalletDetail = input.preferredWallet === 'phantom'
-    ? 'Phantom-first wallet UX is active for transaction review and signing.'
-    : 'Wallet Standard is active. Phantom-specific flows are still available, but not preferred.'
+    ? 'Phantom-first is the user-facing signing path.'
+    : 'Wallet Standard is active. Switch preference here if this project should lead with Phantom.'
 
   const items: SolanaRouteReadinessItem[] = [
     {
       key: 'main-wallet',
-      label: 'Main wallet route',
+      label: 'Default wallet route',
       ready: input.walletPresent && input.isMainWallet,
       detail: input.walletPresent
         ? input.isMainWallet
-          ? `${input.walletName ?? 'Wallet'} is the default route for wallet-backed Solana actions.`
-          : `${input.walletName ?? 'Wallet'} is available, but another wallet is still marked as main.`
-        : 'No wallet is configured yet.',
+          ? `${input.walletName ?? 'Wallet'} is the default route for sends, swaps, launches, and previews.`
+          : `${input.walletName ?? 'Wallet'} exists, but it is not the default route yet.`
+        : 'Create or import one DAEMON wallet before configuring Phantom-first signing.',
     },
     {
       key: 'signer',
@@ -60,9 +60,9 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
       ready: input.walletPresent && input.signerReady,
       detail: input.walletPresent
         ? input.signerReady
-          ? 'This wallet can sign sends, swaps, previews, and launch flows.'
-          : 'This wallet is watch-only until a signer is imported or generated.'
-        : 'A wallet must exist before signer readiness matters.',
+          ? 'This wallet has a local signer for follow-up sends, swaps, launches, and transaction previews.'
+          : 'This wallet is watch-only. Import or generate the signer before expecting wallet-backed actions to work.'
+        : 'Create a wallet first; signer readiness is checked after the wallet route exists.',
     },
     {
       key: 'project',
@@ -70,13 +70,13 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
       ready: input.hasActiveProject ? input.projectAssigned : true,
       detail: input.hasActiveProject
         ? input.projectAssigned
-          ? 'The active project already routes through this wallet.'
-          : 'The active project is not assigned to this wallet yet.'
-        : 'No active project selected, so assignment is optional.',
+          ? 'The active project uses this wallet route by default.'
+          : 'Bind this wallet to the active project so DAEMON does not guess during Solana actions.'
+        : 'No active project is selected, so project assignment is optional.',
     },
     {
       key: 'provider',
-      label: 'Execution path',
+      label: 'RPC and Phantom path',
       ready: input.rpcReady && preferredWalletReady,
       detail: `${input.rpcLabel} • ${input.executionMode === 'jito' ? 'Jito relay' : 'Standard RPC'} • ${preferredWalletDetail}`,
     },
@@ -85,20 +85,20 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
   const nextAction: SolanaRouteNextAction = !input.walletPresent
     ? {
       id: 'open-wallet',
-      label: 'Open wallet manager',
-      detail: 'Create or import a wallet first so DAEMON has one Solana route to work from.',
+      label: 'Create or import wallet',
+      detail: 'Start with one DAEMON wallet so this Phantom integration has a concrete route to configure.',
     }
     : !input.isMainWallet
       ? {
         id: 'set-main-wallet',
         label: 'Make this the main wallet',
-        detail: 'Use one default wallet route so sends, swaps, and previews do not guess which wallet to use.',
+        detail: 'Promote the available wallet so sends, swaps, launches, and previews use one obvious route.',
       }
       : !input.signerReady
         ? {
           id: 'open-wallet',
-          label: 'Open wallet manager',
-          detail: 'Import or generate a signer before expecting wallet-backed actions to work.',
+          label: 'Add wallet signer',
+          detail: 'Import or generate the signer so the wallet can move beyond read-only checks.',
         }
         : input.hasActiveProject && !input.projectAssigned
           ? {
@@ -109,27 +109,27 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
           : !input.rpcReady
             ? {
               id: 'open-infrastructure',
-              label: 'Open infrastructure',
-              detail: 'Finish the RPC path before using wallet-backed Solana execution.',
+              label: 'Configure RPC path',
+              detail: 'Finish the RPC provider setup before using wallet-backed Solana execution.',
             }
             : input.requirePreferredWallet && input.preferredWallet !== 'phantom'
               ? {
                 id: 'set-preferred-wallet',
-                label: 'Set Phantom as preferred wallet',
-                detail: 'Switch DAEMON to a Phantom-first wallet path so signing UX stays consistent.',
+                label: 'Set Phantom-first',
+                detail: 'Make Phantom the preferred user-facing wallet path for this project.',
               }
               : {
                 id: input.requirePreferredWallet ? 'preview-transaction' : 'transact',
-                label: input.requirePreferredWallet ? 'Preview first transaction' : 'Move funds',
+                label: input.requirePreferredWallet ? 'Preview signing flow' : 'Move funds',
                 detail: input.requirePreferredWallet
-                  ? 'Preview one safe Solana transaction so the signing flow is visible before anything is sent.'
+                  ? 'Generate a safe transaction preview so the signing path is visible before anything is sent.'
                   : 'The wallet route is ready. Move into sends, swaps, or holdings next.',
               }
 
   const headline = nextAction.id === 'open-wallet'
     ? input.walletPresent
       ? 'Add a signer before this wallet can act'
-      : 'Create a wallet route first'
+      : 'Create or import a wallet first'
     : nextAction.id === 'set-main-wallet'
       ? 'Promote this wallet to the main route'
       : nextAction.id === 'assign-project'
@@ -139,7 +139,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
           : nextAction.id === 'set-preferred-wallet'
             ? 'Switch to a Phantom-first signing path'
             : nextAction.id === 'preview-transaction'
-              ? 'Wallet route is ready for a safe first preview'
+              ? 'Phantom route is ready for a safe first preview'
               : 'Wallet route is ready for Solana actions'
 
   const description = nextAction.detail
@@ -148,8 +148,8 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
     ? `${input.walletName ?? 'Wallet'} • ${input.walletAddress ?? 'address pending'}`
     : 'No wallet configured'
   const signingPathLabel = input.preferredWallet === 'phantom'
-    ? 'Phantom-first wallet UX'
-    : 'Wallet-standard wallet UX'
+    ? 'Phantom-first'
+    : 'Wallet Standard'
 
   return {
     headline,

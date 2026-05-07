@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
+import { useAppActions } from '../../store/appActions'
 import './ProjectStarter.css'
 
 // --- Template definitions ---
@@ -283,9 +284,11 @@ export function ProjectStarter() {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
+  const setActiveWorkspaceTool = useUIStore((s) => s.setActiveWorkspaceTool)
   const setProjects = useUIStore((s) => s.setProjects)
   const projects = useUIStore((s) => s.projects)
   const closeDrawer = useWorkflowShellStore((s) => s.closeDrawer)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
 
   const [wizard, setWizard] = useState<WizardState>({
     step: 'templates',
@@ -466,6 +469,8 @@ export function ProjectStarter() {
           projectName: name,
         })
         setCenterMode('canvas')
+        setActiveWorkspaceTool(null)
+        focusTerminal()
         closeDrawer()
       } else {
         useNotificationsStore.getState().addActivity({
@@ -493,7 +498,7 @@ export function ProjectStarter() {
       setError(String(err))
       setWizard((prev) => ({ ...prev, step: 'configure' }))
     }
-  }, [wizard, addTerminal, setCenterMode, setActiveProject, setProjects, closeDrawer])
+  }, [wizard, addTerminal, setCenterMode, setActiveProject, setActiveWorkspaceTool, setProjects, closeDrawer, focusTerminal])
 
   const handleNameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && wizard.projectName.trim() && wizard.savePath) {

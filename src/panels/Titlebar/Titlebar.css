@@ -32,7 +32,7 @@
   width: 16px;
   height: 16px;
   margin-right: var(--space-xs);
-  color: color-mix(in srgb, var(--green) 72%, var(--t1) 28%);
+  color: var(--t1);
   opacity: 0.92;
   pointer-events: none;
   flex: 0 0 16px;
@@ -55,7 +55,7 @@
   font-size: var(--fs-9);
   font-weight: var(--fw-bold);
   color: var(--bg);
-  background: var(--amber);
+  background: var(--t1);
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   letter-spacing: var(--ls-caps);
