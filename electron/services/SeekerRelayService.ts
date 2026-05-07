@@ -68,6 +68,7 @@ const MAX_BODY_BYTES = 512 * 1024
 
 let server: http.Server | null = null
 let boundPort = DEFAULT_PORT
+let autoStartAttempted = false
 const sessions = new Map<string, SeekerSession>()
 
 function json(res: ServerResponse, statusCode: number, payload: unknown) {
@@ -97,11 +98,7 @@ function readBody(req: IncomingMessage): Promise<unknown> {
     })
     req.on('end', () => {
       if (!body.trim()) return resolve({})
-      try {
-        resolve(JSON.parse(body))
-      } catch {
-        reject(new Error('Invalid JSON'))
-      }
+      try { resolve(JSON.parse(body)) } catch { reject(new Error('Invalid JSON')) }
     })
     req.on('error', reject)
   })
@@ -132,11 +129,7 @@ function makePairingCode() {
 }
 
 function makeDeepLink(pairingCode: string, relayUrl: string, projectName: string) {
-  const params = new URLSearchParams({
-    code: pairingCode,
-    relay: relayUrl,
-    project: projectName,
-  })
+  const params = new URLSearchParams({ code: pairingCode, relay: relayUrl, project: projectName })
   return `daemonseeker://pair?${params.toString()}`
 }
 
@@ -210,10 +203,7 @@ function snapshotForMobile(session: SeekerSession) {
   const pending = session.approvals.filter((approval) => approval.status === 'pending').length
   return {
     session: publicSession(session),
-    project: {
-      ...session.project,
-      pendingApprovals: pending,
-    },
+    project: { ...session.project, pendingApprovals: pending },
     approvals: session.approvals,
     events: session.events.slice(-20),
   }
@@ -246,19 +236,15 @@ function recordMobileEvent(event: SeekerRelayEvent) {
   if (event.type === 'pair') {
     session.status = 'paired'
     session.pairedAt = Date.now()
-    session.pairedDevice = typeof event.payload?.device === 'string'
-      ? event.payload.device
-      : 'Seeker mobile'
+    session.pairedDevice = typeof event.payload?.device === 'string' ? event.payload.device : 'Seeker mobile'
   }
 
   if (event.type === 'approval.approve' || event.type === 'approval.reject') {
     const approvalId = event.payload?.approvalId
     if (typeof approvalId === 'string') {
-      session.approvals = session.approvals.map((approval) => (
-        approval.id === approvalId
-          ? { ...approval, status: event.type === 'approval.approve' ? 'approved' : 'rejected' }
-          : approval
-      ))
+      session.approvals = session.approvals.map((approval) => approval.id === approvalId
+        ? { ...approval, status: event.type === 'approval.approve' ? 'approved' : 'rejected' }
+        : approval)
     }
   }
 
@@ -273,14 +259,25 @@ function recordMobileEvent(event: SeekerRelayEvent) {
 }
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
-  if (req.method === 'OPTIONS') {
-    return json(res, 204, {})
-  }
-
+  if (req.method === 'OPTIONS') return json(res, 204, {})
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`)
 
-  if (req.method === 'GET' && url.pathname === '/api/seeker/ping') {
+  if (req.method === 'GET' && (url.pathname === '/api/seeker/ping' || url.pathname === '/api/seeker/status')) {
     return json(res, 200, { ok: true, data: getRelayStatus() })
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/seeker/sessions') {
+    return json(res, 200, { ok: true, data: listSessions() })
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/seeker/sessions') {
+    try {
+      const body = await readBody(req) as Parameters<typeof createPairingSession>[0]
+      const session = await createPairingSession(body ?? {})
+      return json(res, 200, { ok: true, data: session })
+    } catch (error) {
+      return json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Could not create pairing session' })
+    }
   }
 
   const sessionMatch = url.pathname.match(/^\/api\/seeker\/session\/([^/]+)$/)
@@ -294,9 +291,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   if (req.method === 'POST' && url.pathname === '/api/seeker/events') {
     try {
       const body = await readBody(req) as Partial<SeekerRelayEvent>
-      if (!body.type || !body.sessionCode) {
-        return json(res, 400, { ok: false, error: 'Missing event type or sessionCode' })
-      }
+      if (!body.type || !body.sessionCode) return json(res, 400, { ok: false, error: 'Missing event type or sessionCode' })
       const session = recordMobileEvent(body as SeekerRelayEvent)
       if (!session) return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
       return json(res, 200, { ok: true, data: snapshotForMobile(session) })
@@ -317,7 +312,6 @@ export async function startRelayServer(port = DEFAULT_PORT): Promise<SeekerRelay
         json(res, 500, { ok: false, error: error instanceof Error ? error.message : 'Relay error' })
       })
     })
-
     nextServer.once('error', reject)
     nextServer.listen(port, '0.0.0.0', () => {
       server = nextServer
@@ -327,6 +321,16 @@ export async function startRelayServer(port = DEFAULT_PORT): Promise<SeekerRelay
   })
 
   return getRelayStatus()
+}
+
+export async function ensureRelayServer(): Promise<SeekerRelayStatus> {
+  if (server?.listening) return getRelayStatus()
+  try {
+    return await startRelayServer()
+  } catch (error) {
+    console.warn('[seeker-relay] failed to auto-start:', error instanceof Error ? error.message : String(error))
+    return getRelayStatus()
+  }
 }
 
 export async function stopRelayServer() {
@@ -374,23 +378,17 @@ export async function createPairingSession(input: {
     updatedAt: now,
     pairedAt: null,
     pairedDevice: null,
-    project: {
-      ...defaultProjectSnapshot(projectName),
-      ...(input.project ?? {}),
-      name: projectName,
-    },
+    project: { ...defaultProjectSnapshot(projectName), ...(input.project ?? {}), name: projectName },
     approvals: input.seedDemoApprovals === false ? [] : demoApprovals(),
     events: [],
   }
-
   sessions.set(pairingCode, session)
   return snapshotForMobile(session)
 }
 
 export function getSessionSnapshot(pairingCode: string) {
   const session = getSessionOrNull(pairingCode)
-  if (!session) return null
-  return snapshotForMobile(session)
+  return session ? snapshotForMobile(session) : null
 }
 
 export function listSessions() {
@@ -423,4 +421,9 @@ export function addApproval(pairingCode: string, approval: Omit<SeekerApprovalRe
 export function clearSession(pairingCode: string) {
   sessions.delete(pairingCode)
   return { cleared: true }
+}
+
+if (!autoStartAttempted) {
+  autoStartAttempted = true
+  void ensureRelayServer()
 }
