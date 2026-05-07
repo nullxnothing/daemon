@@ -5,7 +5,8 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  container-type: inline-size;
+  container-type: size;
+  container-name: icc;
   background: var(--bg);
   color: var(--t1);
 }
@@ -129,6 +130,7 @@
 }
 
 .icc-layout {
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: minmax(250px, 0.92fr) minmax(0, 1.08fr);
   gap: 12px;
@@ -153,10 +155,12 @@
 }
 
 .icc-card {
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   width: 100%;
+  min-height: 0;
   border: 1px solid var(--s5);
   border-radius: var(--radius-lg);
   background: var(--s2);
@@ -164,6 +168,7 @@
   cursor: pointer;
   padding: 10px;
   text-align: left;
+  overflow: hidden;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
@@ -171,6 +176,487 @@
 .icc-card.selected {
   border-color: rgba(20, 241, 149, 0.25);
   background: rgba(20, 241, 149, 0.045);
+}
+
+.icc-card--streamlock {
+  min-height: 136px;
+  align-items: end;
+  border-color: rgba(255, 255, 255, 0.13);
+  background: #090a0b;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.icc-card--streamlock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 6, 7, 0.96) 0%, rgba(5, 6, 7, 0.72) 45%, rgba(5, 6, 7, 0.34) 100%),
+    linear-gradient(0deg, rgba(5, 6, 7, 0.88) 0%, rgba(5, 6, 7, 0.12) 58%, rgba(5, 6, 7, 0.62) 100%),
+    url('/streamlock.png');
+  background-position: center right;
+  background-size: cover;
+  opacity: 0.96;
+}
+
+.icc-card--streamlock:hover,
+.icc-card--streamlock.selected {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: #090a0b;
+}
+
+.icc-card--streamlock .icc-status-dot,
+.icc-card--streamlock .icc-card-main {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-card--streamlock .icc-status-dot {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.icc-card--streamlock .icc-card-name {
+  color: #fff;
+}
+
+.icc-card--streamlock .icc-card-tagline {
+  max-width: 260px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.icc-card--streamlock .icc-card-desc {
+  max-width: 310px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.icc-card--streamlock .icc-status-badge {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.icc-card--helius {
+  min-height: 136px;
+  align-items: end;
+  border-color: rgba(255, 126, 31, 0.24);
+  background: #05070a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.icc-card--helius::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(3, 5, 8, 0.96) 0%, rgba(3, 5, 8, 0.74) 45%, rgba(3, 5, 8, 0.32) 100%),
+    linear-gradient(0deg, rgba(3, 5, 8, 0.9) 0%, rgba(3, 5, 8, 0.16) 58%, rgba(3, 5, 8, 0.66) 100%),
+    url('/helius.png');
+  background-position: right 38%;
+  background-size: auto 122%;
+  opacity: 0.96;
+}
+
+.icc-card--helius:hover,
+.icc-card--helius.selected {
+  border-color: rgba(255, 126, 31, 0.42);
+  background: #05070a;
+}
+
+.icc-card--helius .icc-status-dot,
+.icc-card--helius .icc-card-main {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-card--helius .icc-status-dot {
+  background: #ff7e1f;
+  box-shadow: 0 0 0 3px rgba(255, 126, 31, 0.14), 0 0 18px rgba(255, 126, 31, 0.22);
+}
+
+.icc-card--helius .icc-card-name {
+  color: #fff;
+}
+
+.icc-card--helius .icc-card-tagline {
+  max-width: 260px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.icc-card--helius .icc-card-desc {
+  max-width: 310px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.icc-card--helius .icc-status-badge {
+  border-color: rgba(255, 126, 31, 0.38);
+  background: rgba(255, 126, 31, 0.1);
+  color: rgba(255, 222, 198, 0.9);
+}
+
+.icc-card--sendai {
+  min-height: 136px;
+  align-items: end;
+  border-color: rgba(37, 99, 235, 0.28);
+  background: #050812;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.icc-card--sendai::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(3, 7, 18, 0.96) 0%, rgba(3, 7, 18, 0.74) 45%, rgba(3, 7, 18, 0.34) 100%),
+    linear-gradient(0deg, rgba(3, 7, 18, 0.9) 0%, rgba(3, 7, 18, 0.18) 58%, rgba(3, 7, 18, 0.66) 100%),
+    url('/sendai.png');
+  background-position: center right;
+  background-size: cover;
+  opacity: 0.96;
+}
+
+.icc-card--sendai:hover,
+.icc-card--sendai.selected {
+  border-color: rgba(37, 99, 235, 0.5);
+  background: #050812;
+}
+
+.icc-card--sendai .icc-status-dot,
+.icc-card--sendai .icc-card-main {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-card--sendai .icc-status-dot {
+  background: #2f81ff;
+  box-shadow: 0 0 0 3px rgba(47, 129, 255, 0.14), 0 0 18px rgba(47, 129, 255, 0.2);
+}
+
+.icc-card--sendai .icc-card-name {
+  color: #fff;
+}
+
+.icc-card--sendai .icc-card-tagline {
+  max-width: 260px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.icc-card--sendai .icc-card-desc {
+  max-width: 310px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.icc-card--sendai .icc-status-badge {
+  border-color: rgba(47, 129, 255, 0.38);
+  background: rgba(47, 129, 255, 0.1);
+  color: rgba(205, 225, 255, 0.9);
+}
+
+.icc-card--phantom {
+  min-height: 136px;
+  align-items: end;
+  border-color: rgba(167, 139, 250, 0.32);
+  background: #130d24;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.icc-card--phantom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(18, 13, 36, 0.9) 0%, rgba(18, 13, 36, 0.66) 45%, rgba(18, 13, 36, 0.28) 100%),
+    linear-gradient(0deg, rgba(18, 13, 36, 0.78) 0%, rgba(18, 13, 36, 0.2) 58%, rgba(18, 13, 36, 0.42) 100%),
+    url('/phantom.png');
+  background-position: center right;
+  background-size: cover;
+  opacity: 0.98;
+}
+
+.icc-card--phantom:hover,
+.icc-card--phantom.selected {
+  border-color: rgba(167, 139, 250, 0.56);
+  background: #130d24;
+}
+
+.icc-card--phantom .icc-status-dot,
+.icc-card--phantom .icc-card-main {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-card--phantom .icc-status-dot {
+  background: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.16), 0 0 18px rgba(167, 139, 250, 0.22);
+}
+
+.icc-card--phantom .icc-card-name {
+  color: #fff;
+}
+
+.icc-card--phantom .icc-card-tagline {
+  max-width: 260px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.icc-card--phantom .icc-card-desc {
+  max-width: 310px;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.icc-card--phantom .icc-status-badge {
+  border-color: rgba(167, 139, 250, 0.42);
+  background: rgba(167, 139, 250, 0.12);
+  color: rgba(244, 239, 255, 0.92);
+}
+
+.icc-card--jupiter,
+.icc-card--metaplex,
+.icc-card--light,
+.icc-card--magicblock,
+.icc-card--debridge,
+.icc-card--squads {
+  min-height: 136px;
+  align-items: end;
+  background: #050812;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.icc-card--jupiter::before,
+.icc-card--metaplex::before,
+.icc-card--light::before,
+.icc-card--magicblock::before,
+.icc-card--debridge::before,
+.icc-card--squads::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.96;
+}
+
+.icc-card--jupiter .icc-status-dot,
+.icc-card--jupiter .icc-card-main,
+.icc-card--metaplex .icc-status-dot,
+.icc-card--metaplex .icc-card-main,
+.icc-card--light .icc-status-dot,
+.icc-card--light .icc-card-main,
+.icc-card--magicblock .icc-status-dot,
+.icc-card--magicblock .icc-card-main,
+.icc-card--debridge .icc-status-dot,
+.icc-card--debridge .icc-card-main,
+.icc-card--squads .icc-status-dot,
+.icc-card--squads .icc-card-main {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-card--jupiter .icc-card-name,
+.icc-card--metaplex .icc-card-name,
+.icc-card--light .icc-card-name,
+.icc-card--magicblock .icc-card-name,
+.icc-card--debridge .icc-card-name,
+.icc-card--squads .icc-card-name {
+  color: #fff;
+}
+
+.icc-card--jupiter .icc-card-tagline,
+.icc-card--metaplex .icc-card-tagline,
+.icc-card--light .icc-card-tagline,
+.icc-card--magicblock .icc-card-tagline,
+.icc-card--debridge .icc-card-tagline,
+.icc-card--squads .icc-card-tagline {
+  max-width: 260px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.icc-card--jupiter .icc-card-desc,
+.icc-card--metaplex .icc-card-desc,
+.icc-card--light .icc-card-desc,
+.icc-card--magicblock .icc-card-desc,
+.icc-card--debridge .icc-card-desc,
+.icc-card--squads .icc-card-desc {
+  max-width: 310px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.icc-card--jupiter {
+  border-color: rgba(20, 241, 149, 0.28);
+}
+
+.icc-card--jupiter::before {
+  background:
+    linear-gradient(90deg, rgba(3, 10, 16, 0.96) 0%, rgba(3, 10, 16, 0.72) 45%, rgba(3, 10, 16, 0.28) 100%),
+    linear-gradient(0deg, rgba(3, 10, 16, 0.88) 0%, rgba(3, 10, 16, 0.14) 58%, rgba(3, 10, 16, 0.62) 100%),
+    url('/jupiter.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-card--jupiter:hover,
+.icc-card--jupiter.selected {
+  border-color: rgba(20, 241, 149, 0.5);
+  background: #04100d;
+}
+
+.icc-card--jupiter .icc-status-dot {
+  background: #14f195;
+  box-shadow: 0 0 0 3px rgba(20, 241, 149, 0.14), 0 0 18px rgba(20, 241, 149, 0.2);
+}
+
+.icc-card--jupiter .icc-status-badge {
+  border-color: rgba(20, 241, 149, 0.38);
+  background: rgba(20, 241, 149, 0.1);
+  color: rgba(211, 255, 236, 0.9);
+}
+
+.icc-card--metaplex {
+  border-color: rgba(34, 197, 94, 0.26);
+}
+
+.icc-card--metaplex::before {
+  background:
+    linear-gradient(90deg, rgba(3, 8, 12, 0.96) 0%, rgba(3, 8, 12, 0.74) 45%, rgba(3, 8, 12, 0.28) 100%),
+    linear-gradient(0deg, rgba(3, 8, 12, 0.9) 0%, rgba(3, 8, 12, 0.18) 58%, rgba(3, 8, 12, 0.64) 100%),
+    url('/metaplex.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-card--metaplex:hover,
+.icc-card--metaplex.selected {
+  border-color: rgba(34, 197, 94, 0.48);
+  background: #04100d;
+}
+
+.icc-card--metaplex .icc-status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14), 0 0 18px rgba(34, 197, 94, 0.2);
+}
+
+.icc-card--metaplex .icc-status-badge {
+  border-color: rgba(34, 197, 94, 0.38);
+  background: rgba(34, 197, 94, 0.1);
+  color: rgba(220, 255, 232, 0.9);
+}
+
+.icc-card--light {
+  border-color: rgba(45, 212, 191, 0.28);
+}
+
+.icc-card--light::before {
+  background:
+    linear-gradient(90deg, rgba(2, 8, 12, 0.96) 0%, rgba(2, 8, 12, 0.72) 45%, rgba(2, 8, 12, 0.28) 100%),
+    linear-gradient(0deg, rgba(2, 8, 12, 0.88) 0%, rgba(2, 8, 12, 0.16) 58%, rgba(2, 8, 12, 0.62) 100%),
+    url('/lightprotocol.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-card--light:hover,
+.icc-card--light.selected {
+  border-color: rgba(45, 212, 191, 0.5);
+  background: #04100f;
+}
+
+.icc-card--light .icc-status-dot {
+  background: #2dd4bf;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.14), 0 0 18px rgba(45, 212, 191, 0.2);
+}
+
+.icc-card--light .icc-status-badge {
+  border-color: rgba(45, 212, 191, 0.38);
+  background: rgba(45, 212, 191, 0.1);
+  color: rgba(211, 255, 250, 0.9);
+}
+
+.icc-card--magicblock {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.icc-card--magicblock::before {
+  background:
+    linear-gradient(90deg, rgba(4, 7, 18, 0.96) 0%, rgba(4, 7, 18, 0.7) 45%, rgba(4, 7, 18, 0.18) 100%),
+    linear-gradient(0deg, rgba(4, 7, 18, 0.9) 0%, rgba(4, 7, 18, 0.18) 58%, rgba(4, 7, 18, 0.62) 100%),
+    url('/majicblock.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-card--magicblock:hover,
+.icc-card--magicblock.selected {
+  border-color: rgba(59, 130, 246, 0.54);
+  background: #040812;
+}
+
+.icc-card--magicblock .icc-status-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14), 0 0 18px rgba(59, 130, 246, 0.22);
+}
+
+.icc-card--magicblock .icc-status-badge {
+  border-color: rgba(59, 130, 246, 0.42);
+  background: rgba(59, 130, 246, 0.11);
+  color: rgba(216, 231, 255, 0.9);
+}
+
+.icc-card--debridge {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.icc-card--debridge::before {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 6, 0.96) 0%, rgba(5, 5, 6, 0.74) 45%, rgba(5, 5, 6, 0.26) 100%),
+    linear-gradient(0deg, rgba(5, 5, 6, 0.9) 0%, rgba(5, 5, 6, 0.16) 58%, rgba(5, 5, 6, 0.64) 100%),
+    url('/debrige.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-card--debridge:hover,
+.icc-card--debridge.selected {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: #060606;
+}
+
+.icc-card--debridge .icc-status-dot {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 18px rgba(255, 255, 255, 0.14);
+}
+
+.icc-card--debridge .icc-status-badge {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.icc-card--squads {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.icc-card--squads::before {
+  background:
+    linear-gradient(90deg, rgba(4, 4, 5, 0.96) 0%, rgba(4, 4, 5, 0.74) 45%, rgba(4, 4, 5, 0.24) 100%),
+    linear-gradient(0deg, rgba(4, 4, 5, 0.9) 0%, rgba(4, 4, 5, 0.14) 58%, rgba(4, 4, 5, 0.64) 100%),
+    url('/squads.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-card--squads:hover,
+.icc-card--squads.selected {
+  border-color: rgba(255, 255, 255, 0.36);
+  background: #050505;
+}
+
+.icc-card--squads .icc-status-dot {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 18px rgba(255, 255, 255, 0.14);
+}
+
+.icc-card--squads .icc-status-badge {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .icc-status-dot {
@@ -190,6 +676,7 @@
   flex-direction: column;
   gap: 5px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .icc-card-top,
@@ -210,12 +697,19 @@
 .icc-card-tagline {
   font-size: 11px;
   color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .icc-card-desc {
   font-size: 11px;
   line-height: 1.45;
   color: var(--t4);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .icc-status-badge {
@@ -249,6 +743,136 @@
   border-radius: var(--radius-lg);
   background: var(--s2);
   padding: 12px;
+}
+
+.icc-detail--brand .icc-detail-head {
+  position: relative;
+  min-height: 176px;
+  overflow: hidden;
+  align-items: flex-end;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  background: var(--s1);
+}
+
+.icc-detail--brand .icc-detail-head::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.98;
+}
+
+.icc-detail--brand .icc-detail-head > * {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-detail--brand .icc-detail-kicker,
+.icc-detail--brand .icc-detail h2,
+.icc-detail--brand .icc-detail-head h2 {
+  color: #fff;
+}
+
+.icc-detail--brand .icc-detail-head p {
+  max-width: 720px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.icc-detail--brand .icc-detail-head .icc-status-badge {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.icc-detail--streamlock .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(5, 6, 7, 0.94) 0%, rgba(5, 6, 7, 0.7) 42%, rgba(5, 6, 7, 0.22) 100%),
+    linear-gradient(0deg, rgba(5, 6, 7, 0.86) 0%, rgba(5, 6, 7, 0.16) 58%, rgba(5, 6, 7, 0.58) 100%),
+    url('/streamlock.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--helius .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(3, 5, 8, 0.94) 0%, rgba(3, 5, 8, 0.7) 42%, rgba(3, 5, 8, 0.22) 100%),
+    linear-gradient(0deg, rgba(3, 5, 8, 0.88) 0%, rgba(3, 5, 8, 0.18) 58%, rgba(3, 5, 8, 0.62) 100%),
+    url('/helius.png');
+  background-position: right 36%;
+  background-size: auto 124%;
+}
+
+.icc-detail--sendai .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(3, 7, 18, 0.94) 0%, rgba(3, 7, 18, 0.68) 42%, rgba(3, 7, 18, 0.24) 100%),
+    linear-gradient(0deg, rgba(3, 7, 18, 0.88) 0%, rgba(3, 7, 18, 0.18) 58%, rgba(3, 7, 18, 0.62) 100%),
+    url('/sendai.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--phantom .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(18, 13, 36, 0.82) 0%, rgba(18, 13, 36, 0.58) 42%, rgba(18, 13, 36, 0.2) 100%),
+    linear-gradient(0deg, rgba(18, 13, 36, 0.7) 0%, rgba(18, 13, 36, 0.14) 58%, rgba(18, 13, 36, 0.34) 100%),
+    url('/phantom.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--jupiter .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(3, 10, 16, 0.94) 0%, rgba(3, 10, 16, 0.68) 42%, rgba(3, 10, 16, 0.2) 100%),
+    linear-gradient(0deg, rgba(3, 10, 16, 0.86) 0%, rgba(3, 10, 16, 0.16) 58%, rgba(3, 10, 16, 0.6) 100%),
+    url('/jupiter.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--metaplex .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(3, 8, 12, 0.94) 0%, rgba(3, 8, 12, 0.68) 42%, rgba(3, 8, 12, 0.2) 100%),
+    linear-gradient(0deg, rgba(3, 8, 12, 0.88) 0%, rgba(3, 8, 12, 0.16) 58%, rgba(3, 8, 12, 0.62) 100%),
+    url('/metaplex.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--light .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(2, 8, 12, 0.94) 0%, rgba(2, 8, 12, 0.68) 42%, rgba(2, 8, 12, 0.2) 100%),
+    linear-gradient(0deg, rgba(2, 8, 12, 0.86) 0%, rgba(2, 8, 12, 0.16) 58%, rgba(2, 8, 12, 0.6) 100%),
+    url('/lightprotocol.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--magicblock .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(4, 7, 18, 0.94) 0%, rgba(4, 7, 18, 0.68) 42%, rgba(4, 7, 18, 0.18) 100%),
+    linear-gradient(0deg, rgba(4, 7, 18, 0.88) 0%, rgba(4, 7, 18, 0.16) 58%, rgba(4, 7, 18, 0.62) 100%),
+    url('/majicblock.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--debridge .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 6, 0.94) 0%, rgba(5, 5, 6, 0.68) 42%, rgba(5, 5, 6, 0.2) 100%),
+    linear-gradient(0deg, rgba(5, 5, 6, 0.88) 0%, rgba(5, 5, 6, 0.14) 58%, rgba(5, 5, 6, 0.62) 100%),
+    url('/debrige.png');
+  background-position: center right;
+  background-size: cover;
+}
+
+.icc-detail--squads .icc-detail-head::before {
+  background:
+    linear-gradient(90deg, rgba(4, 4, 5, 0.94) 0%, rgba(4, 4, 5, 0.68) 42%, rgba(4, 4, 5, 0.2) 100%),
+    linear-gradient(0deg, rgba(4, 4, 5, 0.88) 0%, rgba(4, 4, 5, 0.14) 58%, rgba(4, 4, 5, 0.62) 100%),
+    url('/squads.png');
+  background-position: center right;
+  background-size: cover;
 }
 
 .icc-detail-kicker,
@@ -418,6 +1042,10 @@
   background: var(--s1);
 }
 
+.icc-guided-next--quiet {
+  background: rgba(255, 255, 255, 0.025);
+}
+
 .icc-guided-next strong {
   color: var(--t1);
   font-size: 14px;
@@ -430,6 +1058,131 @@
   color: var(--t3);
   font-size: 11px;
   line-height: 1.45;
+}
+
+.icc-ai-setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid rgba(20, 241, 149, 0.3);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(20, 241, 149, 0.12), rgba(255, 255, 255, 0.03));
+}
+
+.icc-ai-setup-copy {
+  min-width: 0;
+}
+
+.icc-ai-setup-copy strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--t1);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.icc-ai-setup-copy p {
+  margin: 5px 0 0;
+  color: var(--t3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.icc-ai-setup-copy small {
+  display: block;
+  margin-top: 6px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.icc-ai-setup-button {
+  min-height: 40px;
+  border: 1px solid rgba(20, 241, 149, 0.45);
+  border-radius: var(--drawer-control-radius);
+  background: var(--green);
+  color: var(--bg);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.icc-ai-setup-button:hover:not(:disabled) {
+  background: var(--green-dim);
+  border-color: var(--green-dim);
+}
+
+.icc-ai-setup-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.icc-quick-wallet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(167, 139, 250, 0.08);
+}
+
+.icc-quick-wallet-copy {
+  min-width: 0;
+}
+
+.icc-quick-wallet-copy strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--t1);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.icc-quick-wallet-copy p {
+  margin: 5px 0 0;
+  color: var(--t3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.icc-quick-wallet-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.icc-quick-rpc-form {
+  display: grid;
+  grid-template-columns: minmax(118px, 0.5fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.icc-quick-wallet-input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--drawer-control-radius);
+  background: var(--s2);
+  color: var(--t1);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+  padding: 0 10px;
+}
+
+.icc-quick-wallet-input:focus {
+  border-color: rgba(167, 139, 250, 0.5);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.12);
 }
 
 .icc-step-list {
@@ -500,6 +1253,40 @@
 .icc-step-main code {
   color: var(--t2);
   font-size: 11px;
+}
+
+.icc-step-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.icc-step-action {
+  flex: 0 0 auto;
+  border: 1px solid rgba(20, 241, 149, 0.24);
+  border-radius: var(--drawer-control-radius);
+  background: rgba(20, 241, 149, 0.075);
+  color: var(--t1);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
+  padding: 7px 8px;
+  white-space: nowrap;
+}
+
+.icc-step-action:hover:not(:disabled) {
+  border-color: rgba(20, 241, 149, 0.42);
+  background: rgba(20, 241, 149, 0.12);
+}
+
+.icc-step-action:disabled {
+  border-color: var(--s5);
+  background: var(--s2);
+  color: var(--t4);
+  cursor: default;
 }
 
 .icc-plan-grid {
@@ -729,18 +1516,46 @@
 }
 
 @container (max-width: 1080px) {
-  .icc-toolbar,
-  .icc-layout {
+  .icc-toolbar {
     grid-template-columns: 1fr;
   }
 
   .icc-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .icc-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(230px, 280px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 8px;
+    scrollbar-gutter: auto;
+  }
+
+  .icc-detail {
     overflow-y: auto;
   }
 
-  .icc-list,
-  .icc-detail {
-    overflow: visible;
+  .icc-card,
+  .icc-card--streamlock,
+  .icc-card--helius,
+  .icc-card--sendai,
+  .icc-card--phantom,
+  .icc-card--jupiter,
+  .icc-card--metaplex,
+  .icc-card--light,
+  .icc-card--magicblock,
+  .icc-card--debridge,
+  .icc-card--squads {
+    min-height: 112px;
+  }
+
+  .icc-card-desc {
+    -webkit-line-clamp: 2;
   }
 }
 
@@ -760,7 +1575,11 @@
   }
 
   .icc-plan-grid,
-  .icc-plan-columns {
+  .icc-plan-columns,
+  .icc-ai-setup,
+  .icc-quick-wallet,
+  .icc-quick-wallet-form,
+  .icc-quick-rpc-form {
     grid-template-columns: 1fr;
   }
 
@@ -771,6 +1590,14 @@
 
   .icc-step {
     display: flex;
+  }
+
+  .icc-step-side {
+    justify-content: space-between;
+  }
+
+  .icc-step-action {
+    width: auto;
   }
 
   .icc-primary,
@@ -800,5 +1627,278 @@
 
   .icc-header-subtitle {
     font-size: 11px;
+  }
+}
+
+@container icc (max-height: 620px) {
+  .icc-header {
+    gap: 4px;
+    padding-top: 6px;
+    padding-bottom: 8px;
+  }
+
+  .icc-header-title {
+    font-size: 15px;
+  }
+
+  .icc-header-subtitle {
+    display: none;
+  }
+
+  .icc-metrics {
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+
+  .icc-metric {
+    padding: 7px 9px;
+  }
+
+  .icc-metric span {
+    font-size: 14px;
+  }
+
+  .icc-metric small {
+    font-size: 9px;
+  }
+
+  .icc-toolbar {
+    grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.3fr);
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .icc-search {
+    height: 34px;
+    padding: 0 10px;
+  }
+
+  .icc-filter {
+    padding: 7px 9px;
+  }
+
+  .icc-layout {
+    gap: 8px;
+  }
+
+  .icc-list {
+    grid-auto-columns: minmax(210px, 240px);
+    gap: 8px;
+    padding-bottom: 6px;
+  }
+
+  .icc-card,
+  .icc-card--streamlock,
+  .icc-card--helius,
+  .icc-card--sendai,
+  .icc-card--phantom,
+  .icc-card--jupiter,
+  .icc-card--metaplex,
+  .icc-card--light,
+  .icc-card--magicblock,
+  .icc-card--debridge,
+  .icc-card--squads {
+    min-height: 88px;
+    padding: 8px;
+  }
+
+  .icc-card-main {
+    gap: 4px;
+  }
+
+  .icc-card-desc {
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
+  }
+
+  .icc-detail {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .icc-detail--brand .icc-detail-head {
+    min-height: 112px;
+    padding: 12px;
+  }
+}
+
+@container icc (max-height: 500px) {
+  .icc-metrics {
+    display: none;
+  }
+
+  .icc-header {
+    padding-top: 5px;
+    padding-bottom: 7px;
+  }
+
+  .icc-header-title {
+    font-size: 14px;
+  }
+
+  .icc-toolbar {
+    padding-bottom: 7px;
+  }
+
+  .icc-search {
+    height: 32px;
+  }
+
+  .icc-filter {
+    padding: 6px 8px;
+  }
+
+  .icc-layout {
+    padding-bottom: 8px;
+  }
+
+  .icc-list {
+    grid-auto-columns: minmax(190px, 220px);
+  }
+
+  .icc-detail--brand .icc-detail-head {
+    min-height: 96px;
+  }
+
+  .icc-card,
+  .icc-card--streamlock,
+  .icc-card--helius,
+  .icc-card--sendai,
+  .icc-card--phantom,
+  .icc-card--jupiter,
+  .icc-card--metaplex,
+  .icc-card--light,
+  .icc-card--magicblock,
+  .icc-card--debridge,
+  .icc-card--squads {
+    min-height: 70px;
+  }
+
+  .icc-card-tagline {
+    display: none;
+  }
+
+  .icc-card-desc {
+    -webkit-line-clamp: 1;
+  }
+}
+
+@container icc (max-height: 420px) {
+  .icc-header {
+    grid-template-columns: 1fr;
+    padding-bottom: 6px;
+  }
+
+  .icc-header-kicker {
+    display: none;
+  }
+
+  .icc-toolbar {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .icc-filter {
+    min-height: 28px;
+  }
+
+  .icc-layout {
+    gap: 6px;
+  }
+
+  .icc-list {
+    grid-auto-columns: minmax(178px, 204px);
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .icc-card,
+  .icc-card--streamlock,
+  .icc-card--helius,
+  .icc-card--sendai,
+  .icc-card--phantom,
+  .icc-card--jupiter,
+  .icc-card--metaplex,
+  .icc-card--light,
+  .icc-card--magicblock,
+  .icc-card--debridge,
+  .icc-card--squads {
+    min-height: 62px;
+    padding: 7px;
+  }
+
+  .icc-card-desc {
+    display: none;
+  }
+
+  .icc-detail {
+    padding: 8px;
+  }
+
+  .icc-detail--brand .icc-detail-head {
+    min-height: 82px;
+  }
+}
+
+@media (max-height: 780px) {
+  .icc-header {
+    gap: 4px;
+    padding-top: 6px;
+    padding-bottom: 8px;
+  }
+
+  .icc-header-title {
+    font-size: 15px;
+  }
+
+  .icc-header-subtitle {
+    display: none;
+  }
+
+  .icc-metrics {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .icc-metric {
+    padding: 8px 10px;
+  }
+
+  .icc-toolbar {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .icc-filter {
+    padding: 7px 9px;
+  }
+
+  .icc-card,
+  .icc-card--streamlock,
+  .icc-card--helius,
+  .icc-card--sendai,
+  .icc-card--phantom,
+  .icc-card--jupiter,
+  .icc-card--metaplex,
+  .icc-card--light,
+  .icc-card--magicblock,
+  .icc-card--debridge,
+  .icc-card--squads {
+    min-height: 100px;
+  }
+
+  .icc-detail {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .icc-detail--brand .icc-detail-head {
+    min-height: 124px;
+    padding: 12px;
+  }
+
+  .icc-setup-workflow {
+    gap: 9px;
+    padding: 9px;
   }
 }

@@ -95,4 +95,8 @@ pub mod daemon_registry {
     pub fn settle_task(ctx: Context<SettleTask>) -> Result<()> {
         instructions::settle_task::handler(ctx)
     }
+
+    pub fn expire_task(ctx: Context<ExpireTask>) -> Result<()> {
+        instructions::expire_task::handler(ctx)
+    }
 }

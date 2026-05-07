@@ -29,13 +29,13 @@ const toolChecks = [
   { name: 'Git', readySelector: '.git-center', expectedText: 'Git workflow' },
   { name: 'Env', readySelector: '.env-center', expectedText: 'Environment' },
   { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Wallet workspace' },
-  { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Launch Token' },
-  { name: 'Project Readiness', readySelector: '.project-readiness', expectedText: 'Project Readiness' },
+  { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Launch Center' },
+  { name: 'Project Readiness', readySelector: '.project-readiness', expectedText: 'Solana project status' },
   { name: 'Solana', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
   { name: 'Settings', readySelector: '.settings-center', expectedText: 'Settings' },
-  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Dashboard' },
+  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'No tokens launched' },
   { name: 'Sessions', readySelector: '.session-history', expectedText: 'Sessions' },
-  { name: 'Recovery', readySelector: '.recovery-panel', expectedText: 'Recovery' },
+  { name: 'Recovery', readySelector: '.recovery-panel', expectedText: 'Wallets' },
 ]
 
 let electronProcess
@@ -136,7 +136,8 @@ async function openDrawerGrid(page) {
   }
 }
 
-async function openTool(page, tool) {
+async function openTool(page, tool, viewportName) {
+  console.log(`[responsive-smoke] ${viewportName}: opening ${tool.name}`)
   await openDrawerGrid(page)
   const clicked = await page.locator('.drawer-tool-card').evaluateAll((nodes, expectedName) => {
     for (const node of nodes) {
@@ -151,11 +152,38 @@ async function openTool(page, tool) {
   }, tool.name)
   assert.equal(clicked, true, `could not find drawer tool ${tool.name}`)
 
-  await page.waitForSelector(tool.readySelector, { timeout: 30000 })
+  await page.waitForSelector(tool.readySelector, { state: 'visible', timeout: 30000 })
   if (tool.expectedText) {
-    await page.waitForFunction((expected) => {
-      return (document.body.textContent ?? '').includes(expected)
-    }, tool.expectedText, { timeout: 30000 })
+    try {
+      await page.waitForFunction(({ selector, expected }) => {
+        return Array.from(document.querySelectorAll(selector)).some((node) => {
+          if (!(node instanceof HTMLElement)) return false
+          const visible = !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length)
+          return visible && (node.textContent ?? '').includes(expected)
+        })
+      }, { selector: tool.readySelector, expected: tool.expectedText }, { timeout: 30000 })
+    } catch (error) {
+      const snapshot = await page.evaluate(({ selector }) => {
+        const activeTool = window.__uiStore?.getState?.().activeWorkspaceToolId ?? null
+        const surfaces = Array.from(document.querySelectorAll(selector)).map((node) => {
+          if (!(node instanceof HTMLElement)) return null
+          const rect = node.getBoundingClientRect()
+          return {
+            visible: !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            text: (node.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 800),
+          }
+        }).filter(Boolean)
+
+        return {
+          activeTool,
+          bodyText: (document.body.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 800),
+          surfaces,
+        }
+      }, { selector: tool.readySelector })
+      throw new Error(`Timed out opening ${tool.name} at ${viewportName}; expected "${tool.expectedText}". Snapshot: ${JSON.stringify(snapshot, null, 2)}\n${error.message}`)
+    }
   }
 }
 
@@ -290,7 +318,7 @@ async function run() {
     await assertNoHorizontalOverflow(page, viewport.name, 'tool grid')
 
     for (const tool of toolChecks) {
-      await openTool(page, tool)
+      await openTool(page, tool, viewport.name)
       if (tool.name === 'Solana') await verifySolanaTabs(page)
       await assertNoHorizontalOverflow(page, viewport.name, tool.name)
     }

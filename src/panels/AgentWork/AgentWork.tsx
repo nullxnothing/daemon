@@ -61,6 +61,10 @@ function latestRegistrySignature(task: AgentWorkTask): string | null {
   ].find((signature) => signature && !signature.startsWith('local:')) ?? null
 }
 
+function isTaskPastDeadline(task: AgentWorkTask): boolean {
+  return typeof task.deadline_at === 'number' && task.deadline_at <= Date.now()
+}
+
 export function AgentWork() {
   const [tasks, setTasks] = useState<AgentWorkTask[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -323,7 +327,9 @@ export function AgentWork() {
           {tasks.length === 0 ? (
             <EmptyState title="No agent work yet" description="Create a funded task to start the verifiable work loop." />
           ) : (
-            tasks.map((task) => (
+            tasks.map((task) => {
+              const overdue = isTaskPastDeadline(task)
+              return (
               <article key={task.id} className="agent-work-task">
                 <div className="agent-work-task-head">
                   <div>
@@ -354,14 +360,19 @@ export function AgentWork() {
                       {busy === `fund:${task.id}` ? 'Funding...' : 'Fund On-Chain'}
                     </button>
                   )}
-                  {task.status === 'funded' && (
+                  {task.status === 'funded' && !overdue && (
                     <button type="button" onClick={() => handleStart(task)} disabled={busy === `start:${task.id}`}>
                       {busy === `start:${task.id}` ? 'Starting...' : 'Start Agent'}
                     </button>
                   )}
-                  {task.status === 'running' && (
+                  {task.status === 'running' && !overdue && (
                     <button type="button" onClick={() => runTaskAction(`submit:${task.id}`, () => window.daemon.registry.submitAgentWork(task.id))} disabled={busy === `submit:${task.id}`}>
                       {busy === `submit:${task.id}` ? 'Submitting...' : 'Submit Receipt'}
+                    </button>
+                  )}
+                  {(task.status === 'funded' || task.status === 'running') && overdue && (
+                    <button type="button" onClick={() => runTaskAction(`expire:${task.id}`, () => window.daemon.registry.expireAgentWork(task.id))} disabled={busy === `expire:${task.id}`}>
+                      {busy === `expire:${task.id}` ? 'Refunding...' : 'Expire / Refund'}
                     </button>
                   )}
                   {task.status === 'submitted' && (
@@ -386,7 +397,8 @@ export function AgentWork() {
                   )}
                 </div>
               </article>
-            ))
+              )
+            })
           )}
         </section>
       </div>

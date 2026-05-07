@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { getDb } from '../db/db'
+import { sanitizeTelemetryProperties } from '../security/PrivacyGuard'
 
 export interface TelemetryEvent {
   eventId: string
@@ -66,7 +67,7 @@ export function trackEvent(
     userId,
     sessionId: currentSession.sessionId,
     timestamp: Date.now(),
-    properties,
+    properties: sanitizeTelemetryProperties(properties),
     version: currentSession.version,
   }
 

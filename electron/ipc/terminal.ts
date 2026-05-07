@@ -205,7 +205,7 @@ export function registerTerminalHandlers() {
 
     const id = crypto.randomUUID()
     const session = createPtySession(id, '', [], cwd, null, null, opts.providerId, true)
-    session.pty.write(`${getEmbeddedProviderStartupCommand(opts.providerId)}\r`)
+    session.pendingStartupCommand = getEmbeddedProviderStartupCommand(opts.providerId)
 
     if (opts.projectId) {
       getDb().prepare(
@@ -272,6 +272,10 @@ export function registerTerminalHandlers() {
     session.dataBuffer = []
     for (const data of buffered) {
       getWin()?.webContents.send('terminal:data', { id, data })
+    }
+    if (session.pendingStartupCommand) {
+      session.pty.write(`${session.pendingStartupCommand}\r`)
+      session.pendingStartupCommand = null
     }
   })
 

@@ -15,6 +15,7 @@ import {
 } from '../services/BrowserService'
 import * as SecureKey from '../services/SecureKeyService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { buildUntrustedContext, sanitizeAiPrompt } from '../security/PrivacyGuard'
 
 const BROWSER_AGENT_SYSTEM = `You are a browser agent in a developer IDE. You navigate pages and debug web content.
 
@@ -161,10 +162,19 @@ export function registerBrowserHandlers() {
     // Build user message with browser context
     let fullMessage = userMessage
     if (browserContext) {
-      fullMessage = `[Browser Context]\n${browserContext}\n\n${userMessage}`
+      fullMessage = `[Browser Context]\n${buildUntrustedContext('browser_content', browserContext)}\n\n${userMessage}`
     }
+    const sanitized = sanitizeAiPrompt({
+      prompt: fullMessage,
+      systemPrompt: BROWSER_AGENT_SYSTEM,
+      context: {
+        capability: 'browser.chat',
+        dataClasses: ['browser_content', 'personal_data'],
+        destination: 'ai_provider',
+      },
+    })
 
-    history.push({ role: 'user', content: fullMessage })
+    history.push({ role: 'user', content: sanitized.prompt })
 
     // Trim to system message + last 10 when history grows beyond 20
     if (history.length > 20) {
@@ -178,7 +188,7 @@ export function registerBrowserHandlers() {
         response = await client.messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 1024,
-          system: BROWSER_AGENT_SYSTEM,
+          system: sanitized.systemPrompt ?? BROWSER_AGENT_SYSTEM,
           messages: history,
         })
         break

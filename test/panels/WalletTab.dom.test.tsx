@@ -131,7 +131,7 @@ describe('WalletTab readiness UX', () => {
 
     expect(await screen.findByText('Wallet readiness')).toBeInTheDocument()
     expect(screen.getByText('Route this wallet into the current project')).toBeInTheDocument()
-    expect(screen.getByText('The active project is not assigned to this wallet yet.')).toBeInTheDocument()
+    expect(screen.getByText('Bind this wallet to the active project so DAEMON does not guess during Solana actions.')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Use for current project' }))
 

@@ -83,6 +83,22 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-streamlock-config') {
+    const envKeys = new Set(
+      context.envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment && envVar.value.trim().length > 0).map((envVar) => envVar.key)),
+    )
+    const required = ['STREAMLOCK_OPERATOR_KEY']
+    const missing = required.filter((name) => !envKeys.has(name))
+    return {
+      title: 'Streamlock config',
+      status: missing.length === 0 ? 'success' : 'warning',
+      detail: missing.length === 0
+        ? 'Streamlock operator API config is present in project env.'
+        : `Missing ${missing.join(', ')}. Add the operator API key before calling Streamlock routes.`,
+      items: missing.length === 0 ? ['STREAMLOCK_OPERATOR_KEY'] : missing,
+    }
+  }
+
   if (actionId === 'check-light-package') {
     const packages = ['@lightprotocol/stateless.js', '@lightprotocol/compressed-token']
     const installed = packages.filter((name) => context.packages.has(name))

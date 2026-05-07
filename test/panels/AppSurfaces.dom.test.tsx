@@ -9,6 +9,7 @@ import { useSolanaToolboxStore } from '../../src/store/solanaToolbox'
 import { useWorkflowShellStore } from '../../src/store/workflowShell'
 import { useWorkspaceProfileStore } from '../../src/store/workspaceProfile'
 import { useNotificationsStore } from '../../src/store/notifications'
+import { useAppActions } from '../../src/store/appActions'
 import { WalletSendForm } from '../../src/panels/WalletPanel/WalletSendForm'
 import { SolanaToolbox } from '../../src/panels/SolanaToolbox/SolanaToolbox'
 import { TokenLaunchTool } from '../../src/panels/TokenLaunchTool/TokenLaunchTool'
@@ -24,23 +25,35 @@ vi.mock('../../src/utils/lazyWithReload', () => ({
 
 const { CommandDrawer } = await import('../../src/components/CommandDrawer/CommandDrawer')
 
-function installDaemonBridge() {
+function installDaemonBridge(options: {
+  packageJson?: Record<string, unknown>
+  envVars?: Array<{ key: string; value: string; isSecret?: boolean }>
+} = {}) {
+  const writtenFiles = new Map<string, string>()
+  const packageJson = options.packageJson ?? {
+    packageManager: 'pnpm@9.15.3',
+    dependencies: {
+      'solana-agent-kit': '^2.0.0',
+      '@metaplex-foundation/umi': '^1.0.0',
+    },
+    scripts: {
+      dev: 'vite',
+    },
+  }
+  const envVars = options.envVars ?? [
+    { key: 'RPC_URL', value: 'https://example-rpc.test' },
+  ]
   const readFile = vi.fn().mockImplementation(async (filePath: string) => {
+    if (writtenFiles.has(filePath)) {
+      return { ok: true, data: { path: filePath, content: writtenFiles.get(filePath)! } }
+    }
+
     if (filePath.endsWith('package.json')) {
       return {
         ok: true,
         data: {
           path: filePath,
-          content: JSON.stringify({
-            packageManager: 'pnpm@9.15.3',
-            dependencies: {
-              'solana-agent-kit': '^2.0.0',
-              '@metaplex-foundation/umi': '^1.0.0',
-            },
-            scripts: {
-              dev: 'vite',
-            },
-          }),
+          content: JSON.stringify(packageJson),
         },
       }
     }
@@ -51,15 +64,31 @@ function installDaemonBridge() {
 
     return { ok: false, error: 'File not found' }
   })
-  const writeFile = vi.fn().mockResolvedValue({ ok: true })
+  const writeFile = vi.fn().mockImplementation(async (filePath: string, content: string) => {
+    writtenFiles.set(filePath, content)
+    return { ok: true }
+  })
   const createDir = vi.fn().mockResolvedValue({ ok: true })
   const appendActivity = vi.fn().mockResolvedValue({ ok: true })
   const redeploy = vi.fn().mockResolvedValue({ ok: true, data: { id: 'dep-123', url: 'https://daemon-app.vercel.app' } })
   const linkDeploy = vi.fn().mockResolvedValue({ ok: true })
+  const createProject = vi.fn().mockResolvedValue({
+    ok: true,
+    data: { id: 'project-new', name: 'MyFirstBot', path: 'C:/work/MyFirstBot' },
+  })
+  const listProjects = vi.fn().mockResolvedValue({
+    ok: true,
+    data: [
+      { id: 'project-new', name: 'MyFirstBot', path: 'C:/work/MyFirstBot' },
+      { id: 'project-1', name: 'daemon-app', path: 'C:/work/daemon-app' },
+    ],
+  })
   const createTerminal = vi.fn().mockImplementation(async ({ startupCommand }: { startupCommand?: string }) => ({
     ok: true,
     data: {
-      id: startupCommand?.includes('agent:first-solana')
+      id: startupCommand?.includes('MyFirstBot')
+        ? 'terminal-project-build'
+        : startupCommand?.includes('agent:first-solana')
         ? 'terminal-sendai-run'
         : startupCommand?.includes('npx skills add')
           ? 'terminal-sendai-skills'
@@ -138,9 +167,15 @@ function installDaemonBridge() {
             {
               filePath: 'C:/work/daemon-app/.env',
               fileName: '.env',
-              vars: [
-                { key: 'RPC_URL', value: 'https://example-rpc.test', isComment: false, isSecret: false, secretLabel: null, lineIndex: 0, raw: 'RPC_URL=https://example-rpc.test' },
-              ],
+              vars: envVars.map((entry, lineIndex) => ({
+                key: entry.key,
+                value: entry.value,
+                isComment: false,
+                isSecret: Boolean(entry.isSecret),
+                secretLabel: entry.isSecret ? `${entry.key.slice(0, 4)}...` : null,
+                lineIndex,
+                raw: `${entry.key}=${entry.value}`,
+              })),
             },
           ],
         }),
@@ -185,6 +220,12 @@ function installDaemonBridge() {
       },
       terminal: {
         create: createTerminal,
+      },
+      projects: {
+        list: listProjects,
+        create: createProject,
+        delete: vi.fn().mockResolvedValue({ ok: true }),
+        openDialog: vi.fn().mockResolvedValue({ ok: true, data: 'C:/work' }),
       },
       launch: {
         listLaunchpads: vi.fn().mockResolvedValue({
@@ -278,7 +319,7 @@ function installDaemonBridge() {
     },
   })
 
-  return { appendActivity, createDir, createTerminal, holdings, linkDeploy, readFile, redeploy, swapQuote, transactionPreview, writeFile }
+  return { appendActivity, createDir, createProject, createTerminal, holdings, linkDeploy, listProjects, readFile, redeploy, swapQuote, transactionPreview, writeFile, writtenFiles }
 }
 
 function resetStores() {
@@ -291,6 +332,7 @@ function resetStores() {
   })
   useWorkspaceProfileStore.setState({ profileName: 'custom', toolVisibility: {}, loaded: true })
   useNotificationsStore.setState({ toasts: [], activity: [] })
+  useAppActions.setState({ filePaletteRequestId: 0, agentLauncherRequestId: 0, terminalFocusRequestId: 0 })
   useUIStore.setState({
     activeProjectId: 'project-1',
     activeProjectPath: 'C:/work/daemon-app',
@@ -312,6 +354,12 @@ function resetStores() {
     dismissed: false,
     collapsedSections: { capabilities: true },
   })
+}
+
+async function selectIntegrationCard(name: string) {
+  const target = screen.getAllByText(name).find((element) => element.closest('.icc-card'))
+  expect(target).toBeTruthy()
+  await userEvent.click(target!.closest('button')!)
 }
 
 describe('App surface DOM coverage', () => {
@@ -353,6 +401,32 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByText('No templates match "launch"')).toBeInTheDocument()
   })
 
+  it('hands off New Project scaffolds to the terminal instead of leaving the starter active', async () => {
+    render(<ProjectStarter />)
+    useUIStore.setState({
+      workspaceToolTabs: ['starter'],
+      activeWorkspaceToolId: 'starter',
+    })
+
+    await userEvent.click(await screen.findByText('Trading Bot'))
+    await userEvent.type(screen.getByPlaceholderText('my-solana-project'), 'MyFirstBot')
+    await userEvent.click(screen.getByRole('button', { name: 'Browse' }))
+    await screen.findByText('C:/work/MyFirstBot')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Build Project' }))
+
+    await waitFor(() => {
+      expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
+        cwd: 'C:/work/MyFirstBot',
+        startupCommand: expect.stringContaining('MyFirstBot'),
+      }))
+    })
+    expect(useUIStore.getState().activeProjectId).toBe('project-new')
+    expect(useUIStore.getState().activeWorkspaceToolId).toBeNull()
+    expect(useUIStore.getState().activeTerminalIdByProject['project-new']).toBe('terminal-project-build')
+    expect(useAppActions.getState().terminalFocusRequestId).toBe(1)
+  })
+
   it('renders Integration Command Center setup status and safe checks', async () => {
     render(<IntegrationCommandCenter />)
 
@@ -361,7 +435,7 @@ describe('App surface DOM coverage', () => {
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
     expect(screen.getByText('safe checks')).toBeInTheDocument()
     expect(screen.getByText('Get this project to a first working SendAI agent')).toBeInTheDocument()
-    expect(screen.getByText('Next step')).toBeInTheDocument()
+    expect(screen.getAllByText('Next step').length).toBeGreaterThan(0)
     expect(await screen.findByText(/pnpm add @solana-agent-kit\/plugin-token/)).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Apply project setup' }))
@@ -397,12 +471,11 @@ describe('App surface DOM coverage', () => {
     )
     expect(screen.getByRole('button', { name: 'Run starter check' })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByText('SendAI Skills'))
     expect(screen.getByText('Bring protocol knowledge into this project')).toBeInTheDocument()
     expect(screen.getByText(/solana-agent-kit, helius, metaplex/)).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Install skills in terminal' }))
-    expect(await screen.findByText('Skills install opened')).toBeInTheDocument()
+    expect((await screen.findAllByText('Skills install opened')).length).toBeGreaterThan(0)
     expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
       cwd: 'C:/work/daemon-app',
       startupCommand: 'npx skills add sendaifun/skills',
@@ -413,23 +486,22 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
-    await userEvent.click(screen.getByText('Token Launch Stack'))
-    expect(screen.getByRole('button', { name: 'Open Token Launch' })).toBeInTheDocument()
+    expect(screen.queryByText('Token Launch Stack')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByText('Phantom'))
-    expect(screen.getByText('Get the wallet route ready for Phantom-first signing')).toBeInTheDocument()
+    expect(screen.getByText('Set up the Phantom route')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Use wallet for current project' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Use wallet for current project' }))
     expect(await screen.findByText('Project wallet linked')).toBeInTheDocument()
     expect(window.daemon.wallet.assignProject).toHaveBeenCalledWith('project-1', 'wallet-1')
-    expect(screen.getByRole('button', { name: 'Set Phantom as preferred wallet' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Set Phantom as preferred wallet' }))
+    expect(screen.getByRole('button', { name: 'Set Phantom-first' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Set Phantom-first' }))
     expect(await screen.findByText('Preferred wallet updated')).toBeInTheDocument()
     expect(window.daemon.settings.setWalletInfrastructureSettings).toHaveBeenCalledWith(expect.objectContaining({
       preferredWallet: 'phantom',
     }))
-    expect(screen.getByRole('button', { name: 'Preview first transaction' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Preview first transaction' }))
+    expect(screen.getByRole('button', { name: 'Preview signing flow' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Preview signing flow' }))
 
     expect(await screen.findByText('Phantom signing preview ready')).toBeInTheDocument()
     expect(window.daemon.wallet.transactionPreview).toHaveBeenCalledWith(expect.objectContaining({
@@ -474,8 +546,118 @@ describe('App surface DOM coverage', () => {
       startupCommand: 'pnpm add @lightprotocol/stateless.js @lightprotocol/compressed-token',
     }))
 
+    await userEvent.click(screen.getByText('Streamlock'))
+    expect(screen.getByText('Scaffold the first Streamlock Operator API check')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Create operator starter' }))
+    expect(await screen.findByText('Streamlock starter created')).toBeInTheDocument()
+    expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/src/streamlock/operator-readiness.mjs',
+      expect.stringContaining('Streamlock Operator API is configured'),
+    )
+    expect(screen.getByRole('button', { name: 'Open env manager' })).toBeInTheDocument()
+
     useUIStore.getState().setIntegrationCommandSelectionId('metaplex')
     expect(await screen.findByRole('heading', { name: 'Metaplex' })).toBeInTheDocument()
+  })
+
+  it('scaffolds integration starters into the active project directories', async () => {
+    const fullPackageJson = {
+      packageManager: 'pnpm@9.15.3',
+      dependencies: {
+        'solana-agent-kit': '^2.0.0',
+        '@metaplex-foundation/umi': '^1.0.0',
+        '@lightprotocol/stateless.js': '^0.21.0',
+        '@lightprotocol/compressed-token': '^0.21.0',
+        '@magicblock-labs/ephemeral-rollups-sdk': '^0.2.0',
+        '@debridge-finance/dln-client': '^3.0.0',
+        '@sqds/multisig': '^2.1.0',
+        '@solana/web3.js': '^1.98.0',
+      },
+      scripts: {
+        dev: 'vite',
+      },
+    }
+    const { createDir, createTerminal, writeFile, writtenFiles } = installDaemonBridge({
+      packageJson: fullPackageJson,
+      envVars: [
+        { key: 'RPC_URL', value: 'https://example-rpc.test' },
+        { key: 'STREAMLOCK_OPERATOR_KEY', value: 'sk_test_operator', isSecret: true },
+      ],
+    })
+
+    render(<IntegrationCommandCenter />)
+    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+
+    await selectIntegrationCard('Streamlock')
+    await userEvent.click(screen.getByRole('button', { name: 'Create operator starter' }))
+    expect(await screen.findByText('Streamlock starter created')).toBeInTheDocument()
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src')
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/streamlock')
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/.env.example',
+      expect.stringContaining('STREAMLOCK_OPERATOR_KEY=sk_replace_with_operator_key'),
+    )
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/src/streamlock/operator-readiness.mjs',
+      expect.stringContaining('Streamlock Operator API is configured'),
+    )
+    expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"streamlock:operator-check"')
+    await userEvent.click(screen.getByRole('button', { name: 'Run operator check' }))
+    expect(await screen.findByText('Streamlock check opened')).toBeInTheDocument()
+    expect(createTerminal).toHaveBeenCalledWith(expect.objectContaining({
+      cwd: 'C:/work/daemon-app',
+      startupCommand: 'pnpm run streamlock:operator-check',
+    }))
+
+    await selectIntegrationCard('Metaplex')
+    await userEvent.click(screen.getByRole('button', { name: 'Create metadata draft' }))
+    expect(await screen.findByText('Metaplex draft created')).toBeInTheDocument()
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/assets')
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/assets/metaplex')
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/assets/metaplex/metadata.example.json',
+      expect.stringContaining('"name": "DAEMON Collection Example"'),
+    )
+
+    await selectIntegrationCard('Light Protocol')
+    await userEvent.click(screen.getByRole('button', { name: 'Create compression starter' }))
+    expect(await screen.findByText('Light starter created')).toBeInTheDocument()
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/light')
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/src/light/compression-check.mjs',
+      expect.stringContaining('@lightprotocol/stateless.js'),
+    )
+    expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"light:check"')
+
+    await selectIntegrationCard('MagicBlock')
+    await userEvent.click(screen.getByRole('button', { name: 'Create ER readiness starter' }))
+    expect(await screen.findByText('MagicBlock starter created')).toBeInTheDocument()
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/magicblock')
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/src/magicblock/er-readiness.mjs',
+      expect.stringContaining('@magicblock-labs/ephemeral-rollups-sdk'),
+    )
+    expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"magicblock:check"')
+
+    await selectIntegrationCard('deBridge')
+    await userEvent.click(screen.getByRole('button', { name: 'Create route preview starter' }))
+    expect(await screen.findByText('deBridge starter created')).toBeInTheDocument()
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/debridge')
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/src/debridge/dln-route-preview.mjs',
+      expect.stringContaining('@debridge-finance/dln-client'),
+    )
+    expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"debridge:preview"')
+
+    await selectIntegrationCard('Squads')
+    await userEvent.click(screen.getByRole('button', { name: 'Create multisig inspection starter' }))
+    expect(await screen.findByText('Squads starter created')).toBeInTheDocument()
+    expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/squads')
+    expect(writeFile).toHaveBeenCalledWith(
+      'C:/work/daemon-app/src/squads/multisig-inspect.mjs',
+      expect.stringContaining('@sqds/multisig'),
+    )
+    expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"squads:inspect"')
   })
 
   it('renders Project Readiness as the Solana entry point and routes into first actions', async () => {
@@ -521,7 +703,7 @@ describe('App surface DOM coverage', () => {
     useUIStore.getState().setIntegrationCommandSelectionId('sendai-solana-mcp')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'SendAI Solana MCP' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'SendAI Agent Kit' })).toBeInTheDocument()
     })
     expect(screen.getByDisplayValue('')).toBeInTheDocument()
   })
@@ -531,12 +713,12 @@ describe('App surface DOM coverage', () => {
 
     expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
 
-    await userEvent.click(screen.getAllByText('SendAI Solana MCP')[0].closest('button')!)
+    await userEvent.click(screen.getAllByText('SendAI Agent Kit')[0].closest('button')!)
     await userEvent.click(screen.getByRole('button', { name: 'Open MCP setup' }))
 
     expect(useUIStore.getState().integrationCommandSelectionId).toBeNull()
     expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
-    expect(await screen.findByText('Open MCP setup', { selector: '.icc-result-title' })).toBeInTheDocument()
+    expect((await screen.findAllByText('Open MCP setup', { selector: '.icc-result-title' })).length).toBeGreaterThan(0)
   })
 
   it('renders Solana toolbox workflow tabs and switches views', async () => {
@@ -595,14 +777,15 @@ describe('App surface DOM coverage', () => {
 
     expect(screen.getByRole('heading', { name: 'Token Launch' })).toBeInTheDocument()
     expect(await screen.findByText('Launchpad config')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Launch Token' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open Streamlock' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh Data' })).toBeInTheDocument()
     expect(screen.getAllByText('Raydium LaunchLab').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Meteora DBC').length).toBeGreaterThan(0)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Launch Token' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Open Streamlock' }))
 
-    expect(useWorkflowShellStore.getState().launchWizardOpen).toBe(true)
+    expect(window.daemon.shell.openExternal).toHaveBeenCalledWith('https://app.streamlock.fun/')
+    expect(useWorkflowShellStore.getState().launchWizardOpen).toBe(false)
   })
 
   it('renders wallet transaction previews before sending', async () => {

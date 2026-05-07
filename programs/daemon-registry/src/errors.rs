@@ -43,4 +43,10 @@ pub enum RegistryError {
 
     #[msg("Task is already settled")]
     TaskAlreadySettled,
+
+    #[msg("Task cannot be expired in its current state")]
+    TaskNotExpirable,
+
+    #[msg("Invalid agent count: must be between 1 and the session model capacity")]
+    InvalidAgentCount,
 }

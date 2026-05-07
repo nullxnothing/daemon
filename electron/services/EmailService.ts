@@ -4,6 +4,7 @@ import { getDb } from '../db/db'
 import { LogService } from './LogService'
 import { GOOGLE_OAUTH } from '../config/constants'
 import { pluginPrompt, orchestratedPrompt } from './PluginPrompt'
+import { buildUntrustedContext } from '../security/PrivacyGuard'
 import type { EmailProvider, SendEmailInput } from './email/EmailProvider'
 import { gmailProvider, performGmailOAuth } from './email/GmailProvider'
 import { icloudProvider } from './email/ICloudProvider'
@@ -266,7 +267,7 @@ export async function extractCode(accountId: string, messageId: string): Promise
           const res = await pluginPrompt({
             pluginId: PLUGIN_ID,
             templateId: 'extract',
-            vars: { emailBody: message.body },
+            vars: { emailBody: buildUntrustedContext('email_body', message.body) },
           })
           return res.text
         },
@@ -300,7 +301,7 @@ export async function summarizeMessage(accountId: string, messageId: string): Pr
   const res = await pluginPrompt({
     pluginId: PLUGIN_ID,
     templateId: 'summarize',
-    vars: { emailBody: message.body },
+    vars: { emailBody: buildUntrustedContext('email_body', message.body) },
   })
 
   return res.text

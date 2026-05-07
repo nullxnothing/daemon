@@ -35,6 +35,11 @@ pub fn handler(
     agent_count: u8,
     models_used: [u8; 4],
 ) -> Result<()> {
+    require!(
+        agent_count > 0 && (agent_count as usize) <= MAX_AGENTS_PER_SESSION,
+        RegistryError::InvalidAgentCount
+    );
+
     let session = &mut ctx.accounts.session;
     session.authority = ctx.accounts.authority.key();
     session.session_id = session_id;

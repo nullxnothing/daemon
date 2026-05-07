@@ -511,6 +511,7 @@ contextBridge.exposeInMainWorld('daemon', {
     approveAgentWork: (taskId: string) => ipcRenderer.invoke('registry:approve-agent-work', taskId),
     rejectAgentWork: (taskId: string) => ipcRenderer.invoke('registry:reject-agent-work', taskId),
     settleAgentWork: (taskId: string, signature?: string | null) => ipcRenderer.invoke('registry:settle-agent-work', taskId, signature ?? null),
+    expireAgentWork: (taskId: string) => ipcRenderer.invoke('registry:expire-agent-work', taskId),
     publishSession: (sessionId: string) => ipcRenderer.invoke('registry:publish-session', sessionId),
     publishAll: () => ipcRenderer.invoke('registry:publish-all'),
     renameSession: (sessionId: string, name: string) => ipcRenderer.invoke('registry:rename-session', sessionId, name),
