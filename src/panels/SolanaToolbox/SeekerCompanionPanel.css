@@ -43,9 +43,9 @@
 .seeker-title {
   margin: 0;
   max-width: 780px;
-  font-size: clamp(30px, 5vw, 56px);
-  line-height: 0.96;
-  letter-spacing: -0.055em;
+  font-size: clamp(26px, 3.2vw, 40px);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   color: var(--t1);
 }
 
@@ -144,6 +144,10 @@
 
 .seeker-grid-wide {
   align-items: start;
+}
+
+.seeker-grid-wide > .seeker-card {
+  align-self: start;
 }
 
 .seeker-card {
@@ -438,8 +442,7 @@
   font-size: var(--font-md);
 }
 
-.seeker-approval-main p,
-.seeker-roadmap-grid p {
+.seeker-approval-main p {
   margin: 6px 0 0;
   color: var(--t4);
   font-size: var(--font-sm);
@@ -514,29 +517,9 @@
   margin-bottom: 4px;
 }
 
-.seeker-roadmap-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.seeker-roadmap-grid div {
-  min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.065);
-  border-radius: 14px;
-  padding: 13px;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.seeker-roadmap-grid strong {
-  color: var(--t1);
-  font-size: var(--font-md);
-}
-
 @media (max-width: 1180px) {
   .seeker-hero-card,
-  .seeker-grid,
-  .seeker-roadmap-grid {
+  .seeker-grid {
     grid-template-columns: 1fr;
   }
 
@@ -561,11 +544,13 @@
   }
 
   .seeker-card-head,
-  .seeker-approval-row,
-  .seeker-pair-layout {
-    grid-template-columns: 1fr;
+  .seeker-approval-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .seeker-pair-layout {
+    grid-template-columns: 1fr;
   }
 
   .seeker-pair-visual {

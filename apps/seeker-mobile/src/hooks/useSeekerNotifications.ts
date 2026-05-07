@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Platform } from 'react-native'
+import Constants from 'expo-constants'
 import * as Notifications from 'expo-notifications'
 
 Notifications.setNotificationHandler({
@@ -38,11 +39,18 @@ export function useSeekerNotifications() {
         })
       }
 
-      try {
-        const token = await Notifications.getExpoPushTokenAsync()
-        setExpoPushToken(token.data)
-      } catch {
-        // Expo push tokens require project credentials in some local builds. Local notifications still work.
+      const projectId =
+        Constants.expoConfig?.extra?.eas?.projectId ??
+        (Constants as any).easConfig?.projectId ??
+        null
+
+      if (projectId && projectId !== 'daemon-seeker-local') {
+        try {
+          const token = await Notifications.getExpoPushTokenAsync({ projectId })
+          setExpoPushToken(token.data)
+        } catch {
+          // Push tokens require an EAS project ID. Local notifications still work without one.
+        }
       }
 
       setLastNotificationError(null)
