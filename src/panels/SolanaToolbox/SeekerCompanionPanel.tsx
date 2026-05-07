@@ -1,48 +1,16 @@
 import { useMemo, useState } from 'react'
+import type { SolanaMcpEntry, SolanaProjectInfo, SolanaToolchainStatus, ValidatorState } from '../../store/solanaToolbox'
 import './SeekerCompanionPanel.css'
 
 type StatusTone = 'live' | 'pending' | 'warning' | 'locked'
 
-type ProjectInfoLike = {
-  isSolana?: boolean | null
-  framework?: string | null
-  hasAnchor?: boolean | null
-  hasPackageJson?: boolean | null
-  hasEnv?: boolean | null
-  hasTests?: boolean | null
-  programId?: string | null
-}
-
-type ToolStatusLike = {
-  installed?: boolean | null
-  ok?: boolean | null
-  version?: string | null
-  status?: string | null
-}
-
-type ToolchainLike = Record<string, ToolStatusLike | string | boolean | null | undefined>
-
-type ValidatorLike = {
-  running?: boolean | null
-  mode?: string | null
-  status?: string | null
-  endpoint?: string | null
-}
-
-type McpLike = {
-  id?: string | null
-  name?: string | null
-  enabled?: boolean | null
-  status?: string | null
-}
-
 interface SeekerCompanionPanelProps {
   projectId?: string | null
   projectPath?: string | null
-  projectInfo?: ProjectInfoLike | null
-  toolchain?: ToolchainLike | null
-  validator?: ValidatorLike | null
-  mcps?: McpLike[] | null
+  projectInfo?: SolanaProjectInfo | null
+  toolchain?: SolanaToolchainStatus | null
+  validator?: ValidatorState | null
+  mcps?: SolanaMcpEntry[] | null
 }
 
 interface ApprovalItem {
@@ -96,10 +64,25 @@ function formatPath(path?: string | null) {
   return parts.at(-1) ?? path
 }
 
-function isToolReady(tool?: ToolStatusLike | string | boolean | null) {
-  if (typeof tool === 'boolean') return tool
-  if (typeof tool === 'string') return tool.length > 0
-  return Boolean(tool?.installed ?? tool?.ok ?? tool?.version ?? tool?.status === 'ok')
+function formatFramework(framework?: SolanaProjectInfo['framework']) {
+  if (!framework) return 'Unknown'
+  if (framework === 'client-only') return 'Client only'
+  return framework[0].toUpperCase() + framework.slice(1)
+}
+
+function formatValidator(validator?: ValidatorState | null) {
+  if (!validator || validator.status !== 'running') return 'Offline'
+  if (validator.type === 'test-validator') return 'Test validator'
+  if (validator.type === 'surfpool') return 'Surfpool'
+  return 'Local'
+}
+
+function hasProgram(projectInfo?: SolanaProjectInfo | null) {
+  return Boolean(projectInfo?.diagnostics?.programCount)
+}
+
+function isValidatorRunning(validator?: ValidatorState | null) {
+  return validator?.status === 'running'
 }
 
 export function SeekerCompanionPanel({
@@ -115,20 +98,21 @@ export function SeekerCompanionPanel({
   const [copied, setCopied] = useState(false)
 
   const enabledMcps = useMemo(() => (mcps ?? []).filter((mcp) => Boolean(mcp.enabled)).length, [mcps])
+  const validatorRunning = isValidatorRunning(validator)
   const readiness = useMemo(() => {
     const checks = [
       Boolean(projectId || projectPath),
-      Boolean(projectInfo?.isSolana || projectInfo?.hasAnchor || projectInfo?.programId),
-      Boolean(projectInfo?.hasPackageJson),
-      Boolean(projectInfo?.hasEnv),
-      Boolean(projectInfo?.hasTests),
-      Boolean(validator?.running),
-      isToolReady(toolchain?.node),
-      isToolReady(toolchain?.solana),
+      Boolean(projectInfo?.isSolanaProject),
+      Boolean(projectInfo?.framework),
+      Boolean(projectInfo?.diagnostics && projectInfo.diagnostics.status !== 'missing'),
+      Boolean(toolchain?.solanaCli.installed),
+      Boolean(toolchain?.anchor.installed || projectInfo?.framework !== 'anchor'),
+      Boolean(toolchain?.surfpool.installed || toolchain?.testValidator.installed),
+      validatorRunning,
       enabledMcps > 0,
     ]
     return Math.round((checks.filter(Boolean).length / checks.length) * 100)
-  }, [enabledMcps, projectId, projectInfo, projectPath, toolchain, validator])
+  }, [enabledMcps, projectId, projectInfo, projectPath, toolchain, validatorRunning])
 
   const pendingApprovals = approvals.filter((item) => item.status === 'pending').length
   const pairingCode = useMemo(() => {
@@ -180,7 +164,7 @@ export function SeekerCompanionPanel({
           <div className="seeker-phone-stack">
             <span>{pendingApprovals} approvals waiting</span>
             <span>{enabledMcps} integrations enabled</span>
-            <span>{validator?.running ? 'Validator online' : 'Validator offline'}</span>
+            <span>{validatorRunning ? 'Validator online' : 'Validator offline'}</span>
           </div>
         </div>
       </section>
@@ -201,15 +185,15 @@ export function SeekerCompanionPanel({
             </div>
             <div>
               <span>Framework</span>
-              <strong>{projectInfo?.framework ?? (projectInfo?.hasAnchor ? 'Anchor' : 'Unknown')}</strong>
+              <strong>{formatFramework(projectInfo?.framework)}</strong>
             </div>
             <div>
               <span>Program</span>
-              <strong>{projectInfo?.programId ? 'Detected' : 'Not set'}</strong>
+              <strong>{hasProgram(projectInfo) ? 'Detected' : 'Not set'}</strong>
             </div>
             <div>
               <span>Validator</span>
-              <strong>{validator?.running ? validator.mode ?? 'Local' : 'Offline'}</strong>
+              <strong>{formatValidator(validator)}</strong>
             </div>
           </div>
         </article>
