@@ -7,7 +7,7 @@ import { useDesktopRelay } from './src/hooks/useDesktopRelay'
 import { usePairingSession } from './src/hooks/usePairingSession'
 import { useSeekerNotifications } from './src/hooks/useSeekerNotifications'
 import { useSeekerWallet } from './src/hooks/useSeekerWallet'
-import type { ApprovalRequest, ApprovalRisk } from './src/types'
+import type { ApprovalRequest, ApprovalRisk, PairingSession } from './src/types'
 
 type TabId = 'home' | 'approvals' | 'wallet' | 'pair'
 
@@ -28,6 +28,35 @@ function shortAddress(address: string | null) {
   if (!address) return 'Not connected'
   if (address.length <= 12) return address
   return `${address.slice(0, 4)}...${address.slice(-4)}`
+}
+
+function relayBaseUrl(relayUrl: string) {
+  return relayUrl.trim().replace(/\/$/, '')
+}
+
+async function sendPairEvent(nextSession: PairingSession) {
+  const base = relayBaseUrl(nextSession.relayUrl)
+  if (!base) return { ok: false, error: 'Missing relay URL' }
+
+  try {
+    const res = await fetch(`${base}/api/seeker/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        type: 'pair',
+        sessionCode: nextSession.pairingCode,
+        payload: {
+          platform: 'seeker-mobile',
+          project: nextSession.projectName,
+          device: 'Daemon Seeker app',
+        },
+      }),
+    })
+    if (!res.ok) return { ok: false, error: `Relay returned ${res.status}` }
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Pair event failed' }
+  }
 }
 
 function StatusPill({ label, tone = 'green' }: { label: string; tone?: 'green' | 'blue' | 'yellow' | 'red' | 'gray' }) {
@@ -110,6 +139,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('home')
   const [relayInput, setRelayInput] = useState('')
   const [codeInput, setCodeInput] = useState('')
+  const [pairingMessage, setPairingMessage] = useState<string | null>(null)
   const { session, deepLink, pairManually, resetPairing } = usePairingSession()
   const relay = useDesktopRelay(session.relayUrl, session.pairingCode)
   const approvals = useApprovalQueue(relay.sendRelayEvent)
@@ -126,12 +156,26 @@ export default function App() {
     if (relay.snapshot?.approvals) approvals.loadFromDesktop(relay.snapshot.approvals)
   }, [approvals, relay.snapshot?.approvals])
 
-  const handlePair = () => {
-    pairManually(codeInput || session.pairingCode, relayInput || session.relayUrl)
-    void relay.sendRelayEvent({
-      type: 'pair',
-      payload: { platform: 'seeker-mobile', project: session.projectName },
-    })
+  useEffect(() => {
+    if (session.status !== 'paired') return
+    const timer = setInterval(() => {
+      void relay.syncRelaySnapshot().then((result) => {
+        if (result.ok && result.data?.approvals) approvals.loadFromDesktop(result.data.approvals)
+      })
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [approvals, relay, session.status])
+
+  const handlePair = async () => {
+    const nextSession = pairManually(codeInput || session.pairingCode, relayInput || session.relayUrl)
+    setPairingMessage('Pairing with Daemon desktop...')
+    const result = await sendPairEvent(nextSession)
+    if (!result.ok) {
+      setPairingMessage(result.error ?? 'Could not reach desktop relay')
+      return
+    }
+    setPairingMessage('Paired with Daemon desktop')
+    await relay.syncRelaySnapshot()
   }
 
   const handleSync = async () => {
@@ -141,8 +185,8 @@ export default function App() {
 
   const handleConnectWallet = async () => {
     const result = await wallet.connectWallet()
-    if (result.ok && wallet.wallet.address) {
-      await relay.sendRelayEvent({ type: 'wallet.connected', payload: { address: wallet.wallet.address } })
+    if (result.ok && result.address) {
+      await relay.sendRelayEvent({ type: 'wallet.connected', payload: { address: result.address } })
     }
   }
 
@@ -277,6 +321,7 @@ export default function App() {
           autoCorrect={false}
           style={styles.input}
         />
+        {pairingMessage ? <Text style={pairingMessage.includes('Could') ? styles.errorText : styles.successText}>{pairingMessage}</Text> : null}
         <View style={styles.rowButtons}>
           <TouchableOpacity style={[styles.button, styles.buttonPrimary]} onPress={handlePair}>
             <Text style={styles.buttonPrimaryText}>Pair</Text>
@@ -587,6 +632,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     marginBottom: 10,
+  },
+  successText: {
+    color: '#14f195',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 10,
   },
   tabBar: {
     position: 'absolute',
