@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SolanaMcpEntry, SolanaProjectInfo, SolanaToolchainStatus, ValidatorState } from '../../store/solanaToolbox'
 import './SeekerCompanionPanel.css'
 
 type StatusTone = 'live' | 'pending' | 'warning' | 'locked'
+type ApprovalStatus = 'pending' | 'approved' | 'rejected'
 
 interface SeekerCompanionPanelProps {
   projectId?: string | null
@@ -13,37 +14,45 @@ interface SeekerCompanionPanelProps {
   mcps?: SolanaMcpEntry[] | null
 }
 
-interface ApprovalItem {
+interface SeekerApprovalRequest {
   id: string
-  label: string
-  detail: string
+  title: string
+  description: string
   risk: 'low' | 'medium' | 'high'
-  status: 'pending' | 'approved' | 'rejected'
+  status: ApprovalStatus
+  source: 'agent' | 'deploy' | 'wallet' | 'system'
+  command?: string
+  diffSummary?: string
+  createdAt: number
 }
 
-const DEFAULT_APPROVALS: ApprovalItem[] = [
-  {
-    id: 'agent-diff',
-    label: 'Agent file diff',
-    detail: 'Review 4 generated changes before the desktop agent writes to disk.',
-    risk: 'medium',
-    status: 'pending',
-  },
-  {
-    id: 'devnet-deploy',
-    label: 'Devnet deploy',
-    detail: 'Approve the build command and hand off the deploy signature to Seeker.',
-    risk: 'high',
-    status: 'pending',
-  },
-  {
-    id: 'x402-test',
-    label: 'x402 payment test',
-    detail: 'Send a USDC test payment through the mobile wallet approval flow.',
-    risk: 'low',
-    status: 'pending',
-  },
-]
+interface SeekerSessionSnapshot {
+  session: {
+    id: string
+    pairingCode: string
+    relayUrl: string
+    deepLink: string
+    projectName: string
+    status: 'pairing' | 'paired' | 'expired'
+    expiresAt: number
+    pairedAt: number | null
+    pairedDevice: string | null
+  }
+  project: {
+    name: string
+    readiness: number
+    framework?: string
+    validatorOnline?: boolean
+    enabledIntegrations?: number
+    pendingApprovals?: number
+    walletBalance?: string
+    lastDeploy?: string
+  }
+  approvals: SeekerApprovalRequest[]
+  events: Array<{ type: string; payload?: Record<string, unknown>; receivedAt?: number }>
+}
+
+const RELAY_BASE_URL = 'http://127.0.0.1:7778'
 
 const TOOLBOX_ITEMS = [
   'Wallet lookup',
@@ -85,6 +94,35 @@ function isValidatorRunning(validator?: ValidatorState | null) {
   return validator?.status === 'running'
 }
 
+async function postRelay<T>(path: string, payload: unknown): Promise<T> {
+  const res = await fetch(`${RELAY_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const body = await res.json()
+  if (!res.ok || body?.ok === false) throw new Error(body?.error ?? `Relay returned ${res.status}`)
+  return (body?.data ?? body) as T
+}
+
+async function getRelay<T>(path: string): Promise<T> {
+  const res = await fetch(`${RELAY_BASE_URL}${path}`)
+  const body = await res.json()
+  if (!res.ok || body?.ok === false) throw new Error(body?.error ?? `Relay returned ${res.status}`)
+  return (body?.data ?? body) as T
+}
+
+function secondsLeft(expiresAt?: number) {
+  if (!expiresAt) return 0
+  return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+}
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
 export function SeekerCompanionPanel({
   projectId,
   projectPath,
@@ -93,13 +131,15 @@ export function SeekerCompanionPanel({
   validator,
   mcps,
 }: SeekerCompanionPanelProps) {
-  const [paired, setPaired] = useState(false)
-  const [approvals, setApprovals] = useState<ApprovalItem[]>(DEFAULT_APPROVALS)
-  const [copied, setCopied] = useState(false)
+  const [session, setSession] = useState<SeekerSessionSnapshot | null>(null)
+  const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [relayError, setRelayError] = useState<string | null>(null)
+  const [copied, setCopied] = useState<'code' | 'link' | 'relay' | null>(null)
+  const [now, setNow] = useState(Date.now())
 
   const enabledMcps = useMemo(() => (mcps ?? []).filter((mcp) => Boolean(mcp.enabled)).length, [mcps])
   const validatorRunning = isValidatorRunning(validator)
-  const readiness = useMemo(() => {
+  const localReadiness = useMemo(() => {
     const checks = [
       Boolean(projectId || projectPath),
       Boolean(projectInfo?.isSolanaProject),
@@ -114,27 +154,112 @@ export function SeekerCompanionPanel({
     return Math.round((checks.filter(Boolean).length / checks.length) * 100)
   }, [enabledMcps, projectId, projectInfo, projectPath, toolchain, validatorRunning])
 
+  const readiness = session?.project.readiness ?? localReadiness
+  const approvals = session?.approvals ?? []
   const pendingApprovals = approvals.filter((item) => item.status === 'pending').length
-  const pairingCode = useMemo(() => {
-    const seed = `${projectId ?? projectPath ?? 'daemon-seeker'}-mobile`
-    let hash = 0
-    for (let i = 0; i < seed.length; i += 1) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0
-    return `DMN-${Math.abs(hash).toString(36).slice(0, 4).toUpperCase()}-${readiness}`
-  }, [projectId, projectPath, readiness])
+  const pairStatus = session?.session.status ?? 'pairing'
+  const isPaired = pairStatus === 'paired'
+  const expiresIn = secondsLeft(session?.session.expiresAt)
 
-  const updateApproval = (id: string, status: ApprovalItem['status']) => {
-    setApprovals((items) => items.map((item) => (item.id === id ? { ...item, status } : item)))
-  }
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
-  const copyPairingCode = async () => {
+  useEffect(() => {
+    if (!session?.session.pairingCode) return
+    const code = session.session.pairingCode
+    const timer = window.setInterval(() => {
+      void getRelay<SeekerSessionSnapshot>(`/api/seeker/session/${encodeURIComponent(code)}`)
+        .then((snapshot) => {
+          setSession(snapshot)
+          setRelayError(null)
+        })
+        .catch((error) => setRelayError(error instanceof Error ? error.message : 'Could not sync Seeker session'))
+    }, 2200)
+    return () => window.clearInterval(timer)
+  }, [session?.session.pairingCode])
+
+  const createSession = useCallback(async () => {
+    setIsCreatingSession(true)
+    setRelayError(null)
     try {
-      await navigator.clipboard?.writeText(pairingCode)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1400)
-    } catch {
-      setCopied(false)
+      const snapshot = await postRelay<SeekerSessionSnapshot>('/api/seeker/sessions', {
+        projectId,
+        projectPath,
+        projectName: formatPath(projectPath),
+        project: {
+          name: formatPath(projectPath),
+          readiness: localReadiness,
+          framework: formatFramework(projectInfo?.framework),
+          validatorOnline: validatorRunning,
+          enabledIntegrations: enabledMcps,
+          pendingApprovals,
+          lastDeploy: hasProgram(projectInfo) ? 'Program detected' : 'No deploy yet',
+          walletBalance: 'Seeker wallet ready',
+        },
+      })
+      setSession(snapshot)
+    } catch (error) {
+      setRelayError(error instanceof Error ? error.message : 'Could not create Seeker session')
+    } finally {
+      setIsCreatingSession(false)
     }
-  }
+  }, [enabledMcps, localReadiness, pendingApprovals, projectId, projectInfo, projectPath, validatorRunning])
+
+  const sendApprovalEvent = useCallback(async (approvalId: string, status: ApprovalStatus) => {
+    if (!session?.session.pairingCode) return
+    setRelayError(null)
+    try {
+      const next = await postRelay<SeekerSessionSnapshot>('/api/seeker/events', {
+        type: status === 'approved' ? 'approval.approve' : 'approval.reject',
+        sessionCode: session.session.pairingCode,
+        payload: { approvalId, status },
+      })
+      setSession(next)
+    } catch (error) {
+      setRelayError(error instanceof Error ? error.message : 'Could not update approval')
+    }
+  }, [session?.session.pairingCode])
+
+  const resetApproval = useCallback(async (approval: SeekerApprovalRequest) => {
+    if (!session?.session.pairingCode) return
+    setRelayError(null)
+    try {
+      const next = await postRelay<SeekerSessionSnapshot>(`/api/seeker/sessions`, {
+        projectId,
+        projectPath,
+        projectName: session.session.projectName,
+        project: session.project,
+        seedDemoApprovals: false,
+      })
+      setSession({
+        ...next,
+        approvals: [
+          { ...approval, id: `${approval.id}-reset-${Date.now()}`, status: 'pending', createdAt: Date.now() },
+          ...session.approvals.filter((item) => item.id !== approval.id),
+        ],
+      })
+    } catch (error) {
+      setRelayError(error instanceof Error ? error.message : 'Could not reset approval')
+    }
+  }, [projectId, projectPath, session])
+
+  const copyText = useCallback(async (kind: 'code' | 'link' | 'relay', value?: string) => {
+    if (!value) return
+    try {
+      await navigator.clipboard?.writeText(value)
+      setCopied(kind)
+      window.setTimeout(() => setCopied(null), 1400)
+    } catch {
+      setCopied(null)
+    }
+  }, [])
+
+  const openDeepLink = useCallback(() => {
+    if (!session?.session.deepLink) return
+    window.location.href = session.session.deepLink
+  }, [session?.session.deepLink])
 
   return (
     <div className="seeker-companion">
@@ -143,26 +268,27 @@ export function SeekerCompanionPanel({
           <div className="solana-token-launch-kicker">Daemon for Seeker</div>
           <h2 className="seeker-title">Mobile command center for Solana builders</h2>
           <p className="seeker-copy">
-            Pair a Seeker device to review agent work, approve risky commands, sign wallet actions, and monitor launches without turning the phone into a cramped IDE.
+            Create a live pairing session, send approval cards to Seeker, and use the phone as the safe approval/signing device for Daemon workflows.
           </p>
           <div className="seeker-hero-actions">
-            <button type="button" className="sol-btn primary" onClick={() => setPaired((value) => !value)}>
-              {paired ? 'Seeker paired' : 'Pair Seeker'}
+            <button type="button" className="sol-btn primary" onClick={createSession} disabled={isCreatingSession}>
+              {isCreatingSession ? 'Creating session...' : session ? 'Create new pairing session' : 'Start Seeker pairing'}
             </button>
-            <button type="button" className="sol-btn secondary" onClick={copyPairingCode}>
-              {copied ? 'Copied' : 'Copy pairing code'}
+            <button type="button" className="sol-btn secondary" onClick={() => copyText('link', session?.session.deepLink)} disabled={!session?.session.deepLink}>
+              {copied === 'link' ? 'Copied' : 'Copy deep link'}
             </button>
           </div>
+          {relayError ? <p className="seeker-error">{relayError}</p> : null}
         </div>
         <div className="seeker-phone-shell" aria-label="Seeker mobile preview">
           <div className="seeker-phone-topbar">
             <span>Daemon</span>
-            <StatusPill tone={paired ? 'live' : 'pending'}>{paired ? 'Paired' : 'Ready'}</StatusPill>
+            <StatusPill tone={isPaired ? 'live' : session ? 'pending' : 'locked'}>{isPaired ? 'Paired' : session ? 'Pairing' : 'Ready'}</StatusPill>
           </div>
           <div className="seeker-phone-score">{readiness}</div>
           <div className="seeker-phone-label">Launch Score</div>
           <div className="seeker-phone-stack">
-            <span>{pendingApprovals} approvals waiting</span>
+            <span>{pendingApprovals || 0} approvals waiting</span>
             <span>{enabledMcps} integrations enabled</span>
             <span>{validatorRunning ? 'Validator online' : 'Validator offline'}</span>
           </div>
@@ -198,18 +324,50 @@ export function SeekerCompanionPanel({
           </div>
         </article>
 
-        <article className="seeker-card">
+        <article className="seeker-card seeker-pairing-card">
           <div className="seeker-card-head">
             <div>
-              <div className="seeker-card-label">Device pairing</div>
-              <h3>Secure mobile approval layer</h3>
+              <div className="seeker-card-label">Live device pairing</div>
+              <h3>Connect Seeker to this desktop</h3>
             </div>
-            <StatusPill tone={paired ? 'live' : 'pending'}>{paired ? 'Active' : 'Prototype'}</StatusPill>
+            <StatusPill tone={isPaired ? 'live' : session ? 'pending' : 'locked'}>{isPaired ? 'Active' : session ? `${formatCountdown(secondsLeft(session.session.expiresAt))}` : 'Start'}</StatusPill>
           </div>
-          <div className="seeker-pairing-code">{pairingCode}</div>
-          <p className="seeker-muted">
-            This code is the front-end placeholder for the future Seeker deep link / QR handoff. The backend should exchange it for an encrypted desktop session.
-          </p>
+
+          {session ? (
+            <>
+              <div className="seeker-pair-layout">
+                <div className="seeker-pair-visual" aria-label="Pairing code visual">
+                  <span>{session.session.pairingCode.split('-')[0]}</span>
+                  <strong>{session.session.pairingCode.split('-')[1]}</strong>
+                  <small>{session.session.pairingCode.split('-')[2]}</small>
+                </div>
+                <div className="seeker-pair-details">
+                  <div className="seeker-pairing-code">{session.session.pairingCode}</div>
+                  <button type="button" className="sol-btn secondary" onClick={() => copyText('code', session.session.pairingCode)}>
+                    {copied === 'code' ? 'Copied' : 'Copy code'}
+                  </button>
+                  <button type="button" className="sol-btn primary" onClick={openDeepLink}>
+                    Open mobile link
+                  </button>
+                </div>
+              </div>
+              <div className="seeker-link-box">
+                <span>Relay URL</span>
+                <button type="button" onClick={() => copyText('relay', session.session.relayUrl)}>{copied === 'relay' ? 'Copied' : session.session.relayUrl}</button>
+              </div>
+              <div className="seeker-link-box">
+                <span>Deep link</span>
+                <button type="button" onClick={() => copyText('link', session.session.deepLink)}>{copied === 'link' ? 'Copied' : session.session.deepLink}</button>
+              </div>
+              <p className="seeker-muted">
+                Open the Seeker app, paste the pairing code and relay URL, or use the deep link on the device. This session expires in {formatCountdown(expiresIn)}.
+              </p>
+            </>
+          ) : (
+            <p className="seeker-muted">
+              Start a pairing session to generate a temporary code, local relay URL, and Daemon Seeker deep link for the mobile app.
+            </p>
+          )}
         </article>
       </section>
 
@@ -217,33 +375,37 @@ export function SeekerCompanionPanel({
         <article className="seeker-card">
           <div className="seeker-card-head">
             <div>
-              <div className="seeker-card-label">Agent approval queue</div>
+              <div className="seeker-card-label">Live approval queue</div>
               <h3>Review before Daemon executes</h3>
             </div>
-            <StatusPill tone={pendingApprovals > 0 ? 'warning' : 'live'}>{pendingApprovals} pending</StatusPill>
+            <StatusPill tone={pendingApprovals > 0 ? 'warning' : session ? 'live' : 'locked'}>{session ? `${pendingApprovals} pending` : 'No session'}</StatusPill>
           </div>
           <div className="seeker-approval-list">
-            {approvals.map((approval) => (
+            {session ? approvals.map((approval) => (
               <div key={approval.id} className={`seeker-approval-row ${approval.status}`}>
                 <div className="seeker-approval-main">
                   <div className="seeker-approval-title-row">
-                    <strong>{approval.label}</strong>
+                    <strong>{approval.title}</strong>
                     <span className={`seeker-risk ${approval.risk}`}>{approval.risk} risk</span>
                   </div>
-                  <p>{approval.detail}</p>
+                  <p>{approval.description}</p>
+                  {approval.command ? <code className="seeker-command-preview">{approval.command}</code> : null}
+                  {approval.diffSummary ? <code className="seeker-command-preview">{approval.diffSummary}</code> : null}
                 </div>
                 <div className="seeker-approval-actions">
                   {approval.status === 'pending' ? (
                     <>
-                      <button type="button" className="sol-btn secondary" onClick={() => updateApproval(approval.id, 'rejected')}>Reject</button>
-                      <button type="button" className="sol-btn primary" onClick={() => updateApproval(approval.id, 'approved')}>Approve</button>
+                      <button type="button" className="sol-btn secondary" onClick={() => { void sendApprovalEvent(approval.id, 'rejected') }}>Reject</button>
+                      <button type="button" className="sol-btn primary" onClick={() => { void sendApprovalEvent(approval.id, 'approved') }}>Approve</button>
                     </>
                   ) : (
-                    <button type="button" className="sol-btn secondary" onClick={() => updateApproval(approval.id, 'pending')}>Reset</button>
+                    <button type="button" className="sol-btn secondary" onClick={() => { void resetApproval(approval) }}>Reset demo</button>
                   )}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="seeker-empty-state">Create a pairing session to seed live approval cards for Seeker.</div>
+            )}
           </div>
         </article>
 
@@ -253,7 +415,7 @@ export function SeekerCompanionPanel({
               <div className="seeker-card-label">Pocket toolbox</div>
               <h3>Seeker-first Solana utilities</h3>
             </div>
-            <StatusPill tone="pending">MVP</StatusPill>
+            <StatusPill tone="pending">Next</StatusPill>
           </div>
           <div className="seeker-toolbox-list">
             {TOOLBOX_ITEMS.map((item) => (
@@ -269,29 +431,23 @@ export function SeekerCompanionPanel({
       <section className="seeker-card seeker-roadmap-card">
         <div className="seeker-card-head">
           <div>
-            <div className="seeker-card-label">Implementation path</div>
-            <h3>What needs backend wiring next</h3>
+            <div className="seeker-card-label">Relay events</div>
+            <h3>What the phone has sent back</h3>
           </div>
-          <StatusPill tone="locked">Next</StatusPill>
+          <StatusPill tone={session?.events.length ? 'live' : 'locked'}>{session?.events.length ?? 0} events</StatusPill>
         </div>
-        <div className="seeker-roadmap-grid">
-          <div>
-            <strong>1. Session relay</strong>
-            <p>Encrypted desktop-to-Seeker channel for approval cards, diffs, and agent run state.</p>
+        {session?.events.length ? (
+          <div className="seeker-event-list">
+            {session.events.slice(0, 6).map((event, index) => (
+              <div key={`${event.type}-${event.receivedAt ?? index}`}>
+                <strong>{event.type}</strong>
+                <span>{event.receivedAt ? new Date(event.receivedAt).toLocaleTimeString() : 'pending'}</span>
+              </div>
+            ))}
           </div>
-          <div>
-            <strong>2. Wallet handoff</strong>
-            <p>Mobile Wallet Adapter signing flow for deploys, payments, staking, and ownership checks.</p>
-          </div>
-          <div>
-            <strong>3. Push alerts</strong>
-            <p>Notifications for failed builds, completed deploys, pending approvals, and received payments.</p>
-          </div>
-          <div>
-            <strong>4. Seeker packaging</strong>
-            <p>Dedicated Android shell that opens directly into this companion command-center experience.</p>
-          </div>
-        </div>
+        ) : (
+          <p className="seeker-muted">Pair the mobile app or approve/reject an action from Seeker to see relay events here.</p>
+        )}
       </section>
     </div>
   )
