@@ -1,0 +1,81 @@
+# Solana dApp Store publishing config
+# Docs: https://docs.solanamobile.com/dapp-publishing/intro
+#
+# Fill every TODO before running `npx dapp-store validate`.
+# Run from this directory: cd apps/seeker-mobile/dapp-store
+
+publisher:
+  name: nullxnothing
+  address: ''            # populated after `npx dapp-store create publisher`
+  website: https://www.daemonide.tech
+  email: hello@daemon.computer
+  media:
+    - purpose: icon
+      uri: ./assets/publisher-icon-512.png        # 512x512 PNG, square, no rounded corners
+      mime: image/png
+
+app:
+  name: Daemon Seeker
+  address: ''            # populated after `npx dapp-store create app`
+  android_package: tech.daemonide.seeker
+  urls:
+    license_url: https://www.daemonide.tech/license
+    copyright_url: https://www.daemonide.tech/license
+    privacy_policy_url: https://www.daemonide.tech/privacy   # TODO: must exist + be reachable
+    website: https://www.daemonide.tech
+  media:
+    - purpose: icon
+      uri: ./assets/app-icon-512.png
+      mime: image/png
+
+release:
+  address: ''            # populated after `npx dapp-store create release`
+  media:
+    - purpose: banner
+      uri: ./assets/banner-1920x1080.png
+      mime: image/png
+    - purpose: featureGraphic
+      uri: ./assets/feature-1024x500.png
+      mime: image/png
+    - purpose: icon
+      uri: ./assets/app-icon-512.png
+      mime: image/png
+    - purpose: screenshot
+      uri: ./assets/screenshots/01-home.png
+      mime: image/png
+    - purpose: screenshot
+      uri: ./assets/screenshots/02-approvals.png
+      mime: image/png
+    - purpose: screenshot
+      uri: ./assets/screenshots/03-wallet.png
+      mime: image/png
+    - purpose: screenshot
+      uri: ./assets/screenshots/04-pair.png
+      mime: image/png
+  files:
+    - purpose: install
+      uri: ./build/daemon-seeker-release.apk      # download from EAS after `eas build`
+      mime: application/octet-stream
+  catalog:
+    'en-US':
+      name: Daemon Seeker
+      short_description: Mobile command center for Solana builders.
+      long_description: >
+        Daemon Seeker is the mobile companion to the Daemon desktop IDE for Solana builders.
+        Pair your phone, review every AI agent action before it touches files, deploys, or
+        wallets, and use Mobile Wallet Adapter to sign messages and transactions on the go.
+        Built for Seeker holders who want a secure approval surface without leaving the
+        Solana stack.
+      new_in_version: First public release.
+      saga_features_localized: Mobile Wallet Adapter signing, Seed Vault compatible.
+      google_store_package: tech.daemonide.seeker
+
+solana_mobile_dapp_publisher_portal:
+  google_store_package: tech.daemonide.seeker
+  testing_instructions: >
+    1. Open the app, go to Pair tab.
+    2. Tap Pair to generate a session code.
+    3. On Wallet tab, tap Connect Seeker wallet to authorize via Mobile Wallet Adapter.
+    4. Sign the pairing message to verify the wallet flow.
+    5. Open the Approvals tab to view demo agent action cards. The desktop relay is not
+       required for store review; demo data is bundled.

@@ -15,6 +15,7 @@ import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
 import { ProgramMonitorPanel } from './ProgramMonitorPanel'
 import { BuildDeployPanel } from './BuildDeployPanel'
 import { TransactionInspector } from './TransactionInspector'
+import { SeekerCompanionPanel } from './SeekerCompanionPanel'
 import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge, scaffoldSquads } from './scaffolding'
 import './SolanaToolbox.css'
 
@@ -23,6 +24,11 @@ const SOLANA_VIEWS = [
     id: 'start',
     label: 'Start',
     summary: 'Readiness, runtime, and first moves',
+  },
+  {
+    id: 'seeker',
+    label: 'Seeker',
+    summary: 'Mobile command center and approval queue',
   },
   {
     id: 'connect',
@@ -185,6 +191,17 @@ export function SolanaToolbox() {
                 />
               </div>
             </>
+          )}
+
+          {activeView === 'seeker' && (
+            <SeekerCompanionPanel
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+              projectInfo={projectInfo}
+              toolchain={toolchain}
+              validator={validator}
+              mcps={mcps}
+            />
           )}
 
           {activeView === 'connect' && (
