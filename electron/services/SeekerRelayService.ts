@@ -75,7 +75,7 @@ function json(res: ServerResponse, statusCode: number, payload: unknown) {
   res.writeHead(statusCode, {
     'content-type': 'application/json; charset=utf-8',
     'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET,POST,OPTIONS',
+    'access-control-allow-methods': 'GET,POST,PATCH,OPTIONS',
     'access-control-allow-headers': 'content-type',
     'cache-control': 'no-store',
   })
@@ -224,6 +224,10 @@ function getSessionOrNull(pairingCode: string) {
   return sessions.get(pairingCode) ?? null
 }
 
+function isApprovalStatus(value: unknown): value is SeekerApprovalStatus {
+  return value === 'pending' || value === 'approved' || value === 'rejected'
+}
+
 function recordMobileEvent(event: SeekerRelayEvent) {
   const session = getSessionOrNull(event.sessionCode)
   if (!session) return null
@@ -242,9 +246,7 @@ function recordMobileEvent(event: SeekerRelayEvent) {
   if (event.type === 'approval.approve' || event.type === 'approval.reject') {
     const approvalId = event.payload?.approvalId
     if (typeof approvalId === 'string') {
-      session.approvals = session.approvals.map((approval) => approval.id === approvalId
-        ? { ...approval, status: event.type === 'approval.approve' ? 'approved' : 'rejected' }
-        : approval)
+      updateApprovalStatus(event.sessionCode, approvalId, event.type === 'approval.approve' ? 'approved' : 'rejected')
     }
   }
 
@@ -286,6 +288,30 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     const session = getSessionOrNull(pairingCode)
     if (!session) return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
     return json(res, 200, snapshotForMobile(session))
+  }
+
+  const approvalAddMatch = url.pathname.match(/^\/api\/seeker\/session\/([^/]+)\/approvals$/)
+  if (req.method === 'POST' && approvalAddMatch) {
+    try {
+      const pairingCode = decodeURIComponent(approvalAddMatch[1])
+      const body = await readBody(req) as Omit<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'> & Partial<Pick<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'>>
+      return json(res, 200, { ok: true, data: addApproval(pairingCode, body) })
+    } catch (error) {
+      return json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Could not add approval' })
+    }
+  }
+
+  const approvalStatusMatch = url.pathname.match(/^\/api\/seeker\/session\/([^/]+)\/approvals\/([^/]+)$/)
+  if ((req.method === 'POST' || req.method === 'PATCH') && approvalStatusMatch) {
+    try {
+      const pairingCode = decodeURIComponent(approvalStatusMatch[1])
+      const approvalId = decodeURIComponent(approvalStatusMatch[2])
+      const body = await readBody(req) as { status?: unknown }
+      if (!isApprovalStatus(body.status)) return json(res, 400, { ok: false, error: 'Invalid approval status' })
+      return json(res, 200, { ok: true, data: updateApprovalStatus(pairingCode, approvalId, body.status) })
+    } catch (error) {
+      return json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Could not update approval' })
+    }
   }
 
   if (req.method === 'POST' && url.pathname === '/api/seeker/events') {
@@ -414,6 +440,14 @@ export function addApproval(pairingCode: string, approval: Omit<SeekerApprovalRe
     createdAt: approval.createdAt ?? Date.now(),
   }
   session.approvals.unshift(nextApproval)
+  session.updatedAt = Date.now()
+  return snapshotForMobile(session)
+}
+
+export function updateApprovalStatus(pairingCode: string, approvalId: string, status: SeekerApprovalStatus) {
+  const session = getSessionOrNull(pairingCode)
+  if (!session) throw new Error('Pairing session not found or expired')
+  session.approvals = session.approvals.map((approval) => approval.id === approvalId ? { ...approval, status } : approval)
   session.updatedAt = Date.now()
   return snapshotForMobile(session)
 }
