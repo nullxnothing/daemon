@@ -45,26 +45,35 @@ export function usePairingSession(initialRelayUrl = '') {
   }))
 
   const updateSession = useCallback((patch: Partial<PairingSession>) => {
+    let nextSession: PairingSession | null = null
     setSession((current) => {
       const nextStatus = patch.status ?? current.status
-      setStatus(nextStatus)
-      return {
+      nextSession = {
         ...current,
         ...patch,
         status: nextStatus,
         updatedAt: Date.now(),
       }
+      setStatus(nextStatus)
+      return nextSession
     })
+    return nextSession
   }, [])
 
   const pairManually = useCallback((pairingCode: string, relayUrl: string) => {
-    updateSession({
-      status: 'paired',
+    const next = {
+      status: 'paired' as const,
       pairingCode: pairingCode.trim() || createPairingCode(),
       relayUrl: relayUrl.trim(),
       desktopId: 'manual-desktop',
-    })
-  }, [updateSession])
+    }
+    updateSession(next)
+    return {
+      ...session,
+      ...next,
+      updatedAt: Date.now(),
+    }
+  }, [session, updateSession])
 
   const pairFromUrl = useCallback((url: string | null) => {
     const parsed = parsePairingUrl(url)
