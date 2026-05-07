@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { Buffer } from 'buffer'
 import { transact, type Web3MobileWallet } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js'
 import type { WalletState } from '../types'
 
@@ -11,6 +12,10 @@ const APP_IDENTITY = {
 function getFirstAccountAddress(authResult: any) {
   const account = authResult?.accounts?.[0]
   return account?.display_address ?? account?.address ?? null
+}
+
+function getChain(cluster: WalletState['cluster']) {
+  return cluster === 'devnet' ? 'solana:devnet' : 'solana:mainnet-beta'
 }
 
 export function useSeekerWallet() {
@@ -31,9 +36,8 @@ export function useSeekerWallet() {
 
     try {
       const authResult = await transact(async (mobileWallet: Web3MobileWallet) => {
-        const chain = wallet.cluster === 'devnet' ? 'solana:devnet' : 'solana:mainnet'
         return mobileWallet.authorize({
-          chain,
+          chain: getChain(wallet.cluster),
           identity: APP_IDENTITY,
         } as any)
       })
@@ -62,7 +66,7 @@ export function useSeekerWallet() {
     try {
       const result = await transact(async (mobileWallet: Web3MobileWallet) => {
         const authResult = await mobileWallet.authorize({
-          chain: wallet.cluster === 'devnet' ? 'solana:devnet' : 'solana:mainnet',
+          chain: getChain(wallet.cluster),
           identity: APP_IDENTITY,
           auth_token: wallet.authorizationToken ?? undefined,
         } as any)
@@ -70,10 +74,9 @@ export function useSeekerWallet() {
         const address = (authResult as any)?.accounts?.[0]?.address
         if (!address) throw new Error('No authorized wallet address returned')
 
-        const encoded = new TextEncoder().encode(message)
         return mobileWallet.signMessages({
           addresses: [address],
-          payloads: [encoded],
+          payloads: [Buffer.from(message, 'utf8')],
         } as any)
       })
 
