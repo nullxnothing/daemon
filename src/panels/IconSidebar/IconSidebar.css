@@ -172,6 +172,23 @@
   flex: 1;
 }
 
+/* Social link icons (X, Discord) */
+.sidebar-icon--social {
+  --tool-accent: var(--t3);
+  color: var(--t3);
+}
+
+.sidebar-icon--social:hover {
+  color: var(--t1);
+  background: var(--s2);
+  border-color: transparent;
+}
+
+.sidebar-icon--discord:hover {
+  color: #5865f2;
+  background: color-mix(in srgb, #5865f2 12%, transparent);
+}
+
 /* Submenu (kept for agent launcher flyout) */
 .sidebar-submenu-wrap {
   position: relative;

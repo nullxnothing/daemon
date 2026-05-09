@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "3.0.11",
+  "version": "3.0.12",
   "main": "dist-electron/main/index.js",
   "description": "Solana-native agent workbench for verifiable AI development",
   "author": "nullxnothing",
@@ -32,6 +32,7 @@
     "test": "vitest run",
     "test:all": "pnpm run typecheck && pnpm test && pnpm run test:smoke && pnpm run test:journeys && pnpm run test:responsive && pnpm run test:layout && pnpm run test:visual",
     "test:smoke": "pnpm run build && node scripts/smoke/electron-smoke.mjs",
+    "test:scaffold-smoke": "pnpm run build && node scripts/smoke/project-scaffold.mjs",
     "test:replay-devnet": "pnpm run build && node scripts/smoke/replay-devnet-loop.mjs",
     "test:journeys": "pnpm run build && node scripts/smoke/workflow-journeys.mjs",
     "test:responsive": "pnpm run build && node scripts/smoke/app-responsive.mjs",
