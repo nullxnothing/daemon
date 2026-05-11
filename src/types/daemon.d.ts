@@ -1092,6 +1092,37 @@ declare global {
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
     replay: DaemonReplay
+    spawnAgents: DaemonSpawnAgents
+  }
+
+  type SpawnAgentDna = import('../../electron/services/SpawnAgentsService').SpawnAgentDna
+  type SpawnAgentRecord = import('../../electron/services/SpawnAgentsService').SpawnAgentRecord
+  type SpawnDepositInstruction = import('../../electron/services/SpawnAgentsService').SpawnDepositInstruction
+  type SpawnStatusResult = import('../../electron/services/SpawnAgentsService').SpawnStatusResult
+  type SpawnTrade = import('../../electron/services/SpawnAgentsService').SpawnTrade
+  type SpawnAgentPositions = import('../../electron/services/SpawnAgentsService').SpawnAgentPositions
+  type SpawnEvent = import('../../electron/services/SpawnAgentsService').SpawnEvent
+  type SpawnEventsResult = import('../../electron/services/SpawnAgentsService').SpawnEventsResult
+  type SpawnInput = import('../../electron/services/SpawnAgentsService').SpawnInput
+  type SpawnChildInput = import('../../electron/services/SpawnAgentsService').SpawnChildInput
+  type SpawnAndFundResult = import('../../electron/services/SpawnAgentsService').SpawnAndFundResult
+  type WithdrawResult = import('../../electron/services/SpawnAgentsService').WithdrawResult
+  type KillResult = import('../../electron/services/SpawnAgentsService').KillResult
+
+  interface DaemonSpawnAgents {
+    list: (ownerPubkey: string) => Promise<IpcResponse<SpawnAgentRecord[]>>
+    get: (agentId: string) => Promise<IpcResponse<SpawnAgentRecord>>
+    trades: (agentId: string, limit?: number, offset?: number) => Promise<IpcResponse<{ trades: SpawnTrade[]; limit: number; offset: number }>>
+    positions: (agentId: string) => Promise<IpcResponse<SpawnAgentPositions>>
+    events: (since: number, agentId?: string, limit?: number) => Promise<IpcResponse<SpawnEventsResult>>
+    spawnStatus: (ref: string) => Promise<IpcResponse<SpawnStatusResult>>
+    initiateSpawn: (input: SpawnInput) => Promise<IpcResponse<SpawnDepositInstruction>>
+    initiateSpawnChild: (parentAgentId: string, walletId: string, input: SpawnChildInput) => Promise<IpcResponse<SpawnDepositInstruction>>
+    spawnAndFund: (walletId: string, input: SpawnInput) => Promise<IpcResponse<SpawnAndFundResult>>
+    spawnChildAndFund: (parentAgentId: string, walletId: string, input: SpawnChildInput) => Promise<IpcResponse<SpawnAndFundResult>>
+    withdraw: (agentId: string, walletId: string, amountSol: number) => Promise<IpcResponse<WithdrawResult>>
+    kill: (agentId: string, walletId: string) => Promise<IpcResponse<KillResult>>
+    onEvent: (callback: (ev: SpawnEvent) => void) => () => void
   }
 
   interface DaemonReplay {

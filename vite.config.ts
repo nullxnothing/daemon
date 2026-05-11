@@ -5,6 +5,25 @@ import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import pkg from './package.json'
 
+function rendererManualChunks(id: string) {
+  if (!id.includes('node_modules')) return undefined
+
+  if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
+    if (id.includes('/language/typescript/') || id.includes('\\language\\typescript\\')) return 'monaco-typescript'
+    if (id.includes('/language/json/') || id.includes('\\language\\json\\')) return 'monaco-json'
+    if (id.includes('/language/css/') || id.includes('\\language\\css\\')) return 'monaco-css'
+    if (id.includes('/language/html/') || id.includes('\\language\\html\\')) return 'monaco-html'
+    if (id.includes('/basic-languages/') || id.includes('\\basic-languages\\')) return 'monaco-basic-languages'
+    return 'monaco-core'
+  }
+
+  if (id.includes('@xterm')) return 'xterm'
+  if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+  if (id.includes('zustand')) return 'state-vendor'
+
+  return 'vendor'
+}
+
 export default defineConfig(({ command }) => {
   rmSync('dist-electron', { recursive: true, force: true })
 
@@ -74,6 +93,16 @@ export default defineConfig(({ command }) => {
     },
     worker: {
       format: 'es' as const,
+    },
+    build: {
+      // DAEMON ships Monaco inside Electron, so Vite's 500 kB browser-page
+      // default produces noise for the intentionally local editor bundle.
+      chunkSizeWarningLimit: 4096,
+      rollupOptions: {
+        output: {
+          manualChunks: rendererManualChunks,
+        },
+      },
     },
   }
 })
