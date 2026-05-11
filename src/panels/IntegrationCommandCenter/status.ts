@@ -67,6 +67,10 @@ function getRequirementState(requirement: IntegrationRequirement, context: Integ
     return { ...requirement, ready: nodeReady, detail: 'DAEMON runtime available' }
   }
 
+  if (requirement.type === 'external-url') {
+    return { ...requirement, ready: true, detail: `Opens ${requirement.key}` }
+  }
+
   return { ...requirement, ready: false, detail: 'Unknown requirement' }
 }
 

@@ -1,19 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useGitStore, useGitProject } from '../../store/git'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useOnboardingStore } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
-import type { GitFile, GitCommit, DeployStatus } from '../../../electron/shared/types'
+import type { DeployStatus } from '../../../electron/shared/types'
 import './GitPanel.css'
 
 export function GitPanel() {
   const projectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const [branch, setBranch] = useState<string | null>(null)
-  const [branches, setBranches] = useState<string[]>([])
-  const [files, setFiles] = useState<GitFile[]>([])
-  const [commits, setCommits] = useState<GitCommit[]>([])
+  const gitState = useGitProject(projectPath)
+  const { branch, branches, files, commits, stashCount, latestStashMessage, error: storeError } = gitState
   const [commitMsg, setCommitMsg] = useState('')
   const [pushing, setPushing] = useState(false)
   const [committing, setCommitting] = useState(false)
@@ -33,10 +32,9 @@ export function GitPanel() {
   const [savingStash, setSavingStash] = useState(false)
   const [poppingStash, setPoppingStash] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [stashCount, setStashCount] = useState(0)
-  const [latestStashMessage, setLatestStashMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
   const [deployStatus, setDeployStatus] = useState<DeployStatus | null>(null)
+  const error = localError ?? storeError
 
   const loadDeployStatus = useCallback(async () => {
     if (!activeProjectId) return
@@ -64,32 +62,23 @@ export function GitPanel() {
 
   const load = useCallback(async () => {
     if (!projectPath) return
-    setError(null)
-
-    const [brRes, statusRes, logRes, stashRes] = await Promise.all([
-      window.daemon.git.branches(projectPath),
-      window.daemon.git.status(projectPath),
-      window.daemon.git.log(projectPath),
-      window.daemon.git.stashList(projectPath),
-    ])
-
-    if (brRes.ok && brRes.data) {
-      setBranch(brRes.data.current)
-      setBranches(brRes.data.branches)
-    }
-    if (statusRes.ok && statusRes.data) setFiles(statusRes.data)
-    else {
-      maybeShowGitHubOnboarding(statusRes.error)
-      setError(parseGitError(statusRes.error))
-    }
-    if (logRes.ok && logRes.data) setCommits(logRes.data)
-    if (stashRes.ok && stashRes.data) {
-      setStashCount(stashRes.data.length)
-      setLatestStashMessage(stashRes.data[0]?.message ?? null)
-    }
+    setLocalError(null)
+    await useGitStore.getState().refresh(projectPath)
+    const next = useGitStore.getState().byProject[projectPath]
+    if (next?.error) maybeShowGitHubOnboarding(next.error)
   }, [projectPath])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!projectPath) return
+    void useGitStore.getState().refreshIfStale(projectPath)
+  }, [projectPath])
+
+  useEffect(() => {
+    if (!projectPath) return
+    const onFocus = () => { void useGitStore.getState().refresh(projectPath) }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [projectPath])
 
   const handleStage = async (filePath: string) => {
     if (!projectPath) return
@@ -125,12 +114,12 @@ export function GitPanel() {
     if (!hasStagedFiles) return
 
     setCommitting(true)
-    setError(null)
+    setLocalError(null)
 
     const commitRes = await window.daemon.git.commit(projectPath, commitMsg.trim())
     if (!commitRes.ok) {
       maybeShowGitHubOnboarding(commitRes.error)
-      setError(parseGitError(commitRes.error) ?? 'Commit failed')
+      setLocalError(parseGitError(commitRes.error) ?? 'Commit failed')
       setCommitting(false)
       return
     }
@@ -143,25 +132,25 @@ export function GitPanel() {
   const handleGenerateCommitMsg = async () => {
     if (!projectPath) return
     setGeneratingCommitMsg(true)
-    setError(null)
+    setLocalError(null)
 
     const diffRes = await window.daemon.git.diffStaged(projectPath)
     if (!diffRes.ok) {
       maybeShowGitHubOnboarding(diffRes.error)
-      setError(parseGitError(diffRes.error))
+      setLocalError(parseGitError(diffRes.error))
       setGeneratingCommitMsg(false)
       return
     }
 
     if (!diffRes.data?.trim()) {
-      setError('Stage files first, then generate a smart commit message.')
+      setLocalError('Stage files first, then generate a smart commit message.')
       setGeneratingCommitMsg(false)
       return
     }
 
     const suggestionRes = await window.daemon.claude.suggestCommitMessage(diffRes.data)
     if (!suggestionRes.ok || !suggestionRes.data) {
-      setError(suggestionRes.error ?? 'Failed to generate commit message')
+      setLocalError(suggestionRes.error ?? 'Failed to generate commit message')
       setGeneratingCommitMsg(false)
       return
     }
@@ -184,13 +173,13 @@ export function GitPanel() {
       if (!ok) return
     }
     setPushing(true)
-    setError(null)
+    setLocalError(null)
     const res = await window.daemon.git.push(projectPath)
     setPushing(false)
     if (!res.ok) {
       maybeShowGitHubOnboarding(res.error)
       const msg = parseGitError(res.error) ?? 'Push failed'
-      setError(msg)
+      setLocalError(msg)
       useNotificationsStore.getState().pushError(msg, 'Git push')
     } else {
       useNotificationsStore.getState().pushSuccess(`Pushed ${branch ?? 'branch'}`, 'Git')
@@ -203,18 +192,18 @@ export function GitPanel() {
     if (!projectPath) return
     const res = await window.daemon.git.checkout(projectPath, br)
     if (res.ok) load()
-    else setError(res.error ?? 'Checkout failed')
+    else setLocalError(res.error ?? 'Checkout failed')
   }
 
   const handleCreateBranch = async () => {
     if (!projectPath || !newBranchName.trim()) return
 
     setCreatingBranch(true)
-    setError(null)
+    setLocalError(null)
 
     const res = await window.daemon.git.createBranch(projectPath, newBranchName.trim())
     if (!res.ok) {
-      setError(parseGitError(res.error) ?? 'Failed to create branch')
+      setLocalError(parseGitError(res.error) ?? 'Failed to create branch')
       setCreatingBranch(false)
       return
     }
@@ -230,11 +219,11 @@ export function GitPanel() {
     if (!projectPath || !newTagName.trim()) return
 
     setCreatingTag(true)
-    setError(null)
+    setLocalError(null)
 
     const res = await window.daemon.git.createTag(projectPath, newTagName.trim())
     if (!res.ok) {
-      setError(parseGitError(res.error) ?? 'Failed to create tag')
+      setLocalError(parseGitError(res.error) ?? 'Failed to create tag')
       setCreatingTag(false)
       return
     }
@@ -249,12 +238,12 @@ export function GitPanel() {
   const handleFetch = async () => {
     if (!projectPath) return
     setSyncing(true)
-    setError(null)
+    setLocalError(null)
     const res = await window.daemon.git.fetch(projectPath)
     setSyncing(false)
     if (!res.ok) {
       maybeShowGitHubOnboarding(res.error)
-      setError(parseGitError(res.error) ?? 'Fetch failed')
+      setLocalError(parseGitError(res.error) ?? 'Fetch failed')
       return
     }
     load()
@@ -263,12 +252,12 @@ export function GitPanel() {
   const handlePull = async () => {
     if (!projectPath) return
     setSyncing(true)
-    setError(null)
+    setLocalError(null)
     const res = await window.daemon.git.pull(projectPath)
     setSyncing(false)
     if (!res.ok) {
       maybeShowGitHubOnboarding(res.error)
-      setError(parseGitError(res.error) ?? 'Pull failed')
+      setLocalError(parseGitError(res.error) ?? 'Pull failed')
       return
     }
     load()
@@ -277,11 +266,11 @@ export function GitPanel() {
   const handleStashSave = async () => {
     if (!projectPath) return
     setSavingStash(true)
-    setError(null)
+    setLocalError(null)
     const res = await window.daemon.git.stashSave(projectPath, stashMessage)
     setSavingStash(false)
     if (!res.ok) {
-      setError(parseGitError(res.error) ?? 'Failed to save stash')
+      setLocalError(parseGitError(res.error) ?? 'Failed to save stash')
       return
     }
 
@@ -294,11 +283,11 @@ export function GitPanel() {
   const handleStashPop = async () => {
     if (!projectPath) return
     setPoppingStash(true)
-    setError(null)
+    setLocalError(null)
     const res = await window.daemon.git.stashPop(projectPath)
     setPoppingStash(false)
     if (!res.ok) {
-      setError(parseGitError(res.error) ?? 'Failed to restore stash')
+      setLocalError(parseGitError(res.error) ?? 'Failed to restore stash')
       return
     }
 
@@ -331,11 +320,11 @@ export function GitPanel() {
       confirmLabel: 'Discard',
     })
     if (!ok) return
-    setError(null)
+    setLocalError(null)
     const res = await window.daemon.git.discard(projectPath, filePath)
     if (!res.ok) {
       const msg = res.error ?? 'Discard failed'
-      setError(msg)
+      setLocalError(msg)
       useNotificationsStore.getState().pushError(msg, 'Git discard')
       return
     }

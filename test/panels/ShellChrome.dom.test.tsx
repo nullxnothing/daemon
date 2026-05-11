@@ -249,6 +249,26 @@ describe('Shell chrome DOM coverage', () => {
     expect(windowControls.close).toHaveBeenCalledTimes(1)
   })
 
+  it('asks whether the project plus should open a codebase or scaffold a project', async () => {
+    const onAddProject = vi.fn()
+
+    render(
+      <Titlebar
+        projects={[{ id: 'project-1', name: 'Daemon', path: 'C:/work/daemon-app' } as Project]}
+        onAddProject={onAddProject}
+        onRemoveProject={vi.fn()}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add project' }))
+    expect(screen.getByRole('menuitem', { name: 'Open Codebase' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Scaffold Project' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Scaffold Project' }))
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('starter')
+    expect(onAddProject).not.toHaveBeenCalled()
+  })
+
   it('routes settings search to display and persists display toggles', async () => {
     const { setShowMarketTape, setShowTitlebarWallet } = installDaemonBridge()
 

@@ -7,7 +7,7 @@ import './ProjectStarter.css'
 
 // --- Template definitions ---
 
-interface Template {
+export interface Template {
   id: string
   name: string
   description: string
@@ -16,7 +16,7 @@ interface Template {
   prompt: string
 }
 
-const TEMPLATES: Template[] = [
+export const TEMPLATES: Template[] = [
   {
     id: 'nft-collection',
     name: 'NFT Collection',
@@ -143,6 +143,88 @@ Use TypeScript. Initialize git repo.`,
 - Example balance, token list, and send transaction flows
 - .env.example with RPC_URL, HELIUS_API_KEY, NEXT_PUBLIC_CLUSTER
 - README explaining how @solana/kit, @solana/client, and @solana/web3-compat fit together
+Initialize git repo.`,
+  },
+  {
+    id: 'perps-trading-bot',
+    name: 'Perps Trading Bot',
+    description: 'Automated perps trader on Drift, Jupiter Perps, or Ranger (multi-venue)',
+    tags: ['Perps', 'Bot', 'DeFi'],
+    icon: 'M3 3v18h18M7 14l4-4 4 4 6-6',
+    prompt: `Scaffold a Solana perps trading bot. Include:
+- Venue abstraction layer that can target Drift (@drift-labs/sdk), Jupiter Perps API, or Ranger SDK
+- Default to Ranger SDK for multi-venue smart-order routing; allow swap to direct Drift via env flag
+- Position management: open, close, adjust leverage, set TP/SL
+- Funding rate monitor across venues with arbitrage hooks
+- Pyth or Switchboard price feed integration for mark price + liquidation guard
+- Risk module: max position size, max drawdown circuit breaker, kill switch
+- Helius RPC + Sender for tx submission with priority fee estimation
+- Optional Jito bundle path for atomic open+hedge
+- Strategy interface so users can drop in their own signal logic
+- .env.example with RPC_URL, HELIUS_API_KEY, WALLET_PATH, VENUE, MARKET_INDEX, MAX_POSITION_USD
+- TypeScript strict mode, structured logging, graceful shutdown
+- README with setup, devnet test path, and mainnet deploy guide
+Initialize git repo. Use @solana/kit for transaction construction.`,
+  },
+  {
+    id: 'perps-vault',
+    name: 'Perps Vault Strategy',
+    description: 'Delegated vault running a perps strategy (basis, funding farm, market making)',
+    tags: ['Perps', 'Vault', 'DeFi'],
+    icon: 'M12 2l9 4.9V17L12 22 3 17V6.9L12 2zM12 22V12M3 6.9L12 12l9-5.1',
+    prompt: `Scaffold a Solana perps vault strategy. Include:
+- Drift Vaults SDK integration (@drift-labs/vaults-sdk) as the primary path; GLAM as alternate
+- Vault initialization, deposit, withdraw, and management instructions
+- Strategy template: delta-neutral funding farm (long spot + short perp) with periodic rebalance
+- Performance accounting: NAV, share price, high-water-mark, management/perf fees
+- Depositor flow: subscription, redemption queue, lock-up handling
+- Risk guardrails: max leverage, max concentration, oracle deviation halt
+- Pyth Lazer for sub-second price + Helius LaserStream for fill events
+- Manager UI stub (Next.js) showing vault stats, position, depositor list
+- .env.example with RPC_URL, HELIUS_API_KEY, WALLET_PATH, VAULT_NAME, MAX_LEVERAGE
+- TypeScript strict, Vitest unit tests for accounting math
+- README covering Surfpool fork test, devnet deploy, mainnet checklist
+Initialize git repo.`,
+  },
+  {
+    id: 'perps-frontend',
+    name: 'Perps Frontend (dApp)',
+    description: 'Next.js trading interface on top of Drift, Jupiter Perps, or Adrena',
+    tags: ['Perps', 'Frontend', 'Next.js'],
+    icon: 'M4 6h16M4 12h16M4 18h10',
+    prompt: `Scaffold a Solana perps trading frontend. Include:
+- Next.js 15 App Router with TypeScript and Tailwind
+- Venue selection at build time: Drift / Jupiter Perps / Adrena (default Jupiter Perps for breadth of markets)
+- Phantom Connect SDK + Wallet Standard fallback
+- Trading UI: market selector, orderbook or quote panel, leverage slider, size input, TP/SL
+- Position list with live PnL via Pyth + WebSocket subscriptions
+- Funding rate display, mark vs index basis, liquidation price
+- Helius RPC proxy route to keep API key server-side
+- Sender endpoint for tx submission with priority fee estimation
+- Skeletons, optimistic updates, error toasts, mobile-responsive layout
+- .env.example with NEXT_PUBLIC_RPC_URL, HELIUS_API_KEY, NEXT_PUBLIC_VENUE
+- Vercel deploy preset
+- README with screenshots placeholder and venue switch guide
+Initialize git repo.`,
+  },
+  {
+    id: 'perps-liquidator',
+    name: 'Perps Liquidator Bot',
+    description: 'Liquidation keeper for Drift, Adrena, or Flash perps with profit guard',
+    tags: ['Perps', 'Bot', 'MEV'],
+    icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+    prompt: `Scaffold a Solana perps liquidator bot. Include:
+- Helius LaserStream subscription for account-state deltas on perps markets (Drift primary)
+- Health-factor scanner that ranks accounts by margin ratio in real time
+- Liquidation tx builder using Drift SDK with proper IX ordering and account loading
+- Pyth price refresh ix bundling so oracle is fresh at liquidation slot
+- Jito bundle submission with tip strategy and bundle revert protection
+- Profit guard: simulate before send, abort if estimated payout < threshold
+- Account watchlist persistence (sqlite) and resume after restart
+- Metrics: liquidations attempted, won, lost, gross PnL, tip burn
+- .env.example with RPC_URL, HELIUS_API_KEY, LASERSTREAM_URL, JITO_BLOCK_ENGINE_URL, WALLET_PATH, MIN_PROFIT_USD
+- TypeScript strict, structured logging, panic-handler for hot loops
+- README with mainnet caveats and devnet simulation path
 Initialize git repo.`,
   },
 ]
@@ -276,7 +358,311 @@ function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrast
     ].join('\n')
   }
 
+  if (PERPS_TEMPLATE_IDS.includes(templateId)) {
+    return buildPerpsPromptAddon(templateId, settings)
+  }
+
   return ''
+}
+
+export const PERPS_TEMPLATE_IDS: string[] = [
+  'perps-trading-bot',
+  'perps-vault',
+  'perps-frontend',
+  'perps-liquidator',
+]
+
+export function buildPerpsPromptAddon(
+  templateId: string,
+  settings: WalletInfrastructureSettings | null,
+): string {
+  if (!settings) return ''
+
+  const senderHint = settings.executionMode === 'jito'
+    ? `- Wire Helius Sender as the default tx submission path with Jito fallback at ${settings.jitoBlockEngineUrl || 'JITO_BLOCK_ENGINE_URL'}.`
+    : '- Wire Helius Sender as the default tx submission path so the user can flip on Jito later without refactoring.'
+
+  const rpcHint = settings.rpcProvider === 'helius'
+    ? '- Default to Helius RPC; read HELIUS_API_KEY from env. Use LaserStream for sub-second account/price subscriptions.'
+    : settings.rpcProvider === 'quicknode'
+      ? '- Default to QuickNode RPC via QUICKNODE_RPC_URL; document Helius LaserStream as the streaming option for liquidations and fill events.'
+      : '- Read RPC_URL from env; document Helius LaserStream as the recommended streaming option for liquidations and fill events.'
+
+  const walletHint = settings.preferredWallet === 'phantom'
+    ? '- Use Phantom Connect SDK as the primary signer for any frontend surface.'
+    : '- Use Wallet Standard as the primary signer abstraction; keep Phantom/Backpack/Solflare adapters wired.'
+
+  const common = [
+    'Perps architecture requirements:',
+    rpcHint,
+    senderHint,
+    '- Keep venue selection behind a single VENUE env flag so the same bundle can target Drift, Jupiter Perps, Ranger, or Adrena.',
+    '- Treat Pyth (or Pyth Lazer) as the canonical price source; never use mark price from the venue alone for risk decisions.',
+    '- Never hardcode market indices or program IDs; load from a config module that can be swapped per cluster.',
+    '- Add a Surfpool fork script (`pnpm dev:surfpool`) that clones mainnet state for the chosen venue programs.',
+  ]
+
+  if (templateId === 'perps-trading-bot') {
+    return [
+      ...common,
+      walletHint,
+      '- Strategy interface must be a single file the user can edit without touching venue plumbing.',
+      '- Include a kill-switch CLI command and a max-drawdown circuit breaker that halts new entries.',
+      '- Default routing layer: Ranger SDK; add an env flag VENUE=drift|jupiter|ranger to switch.',
+    ].join('\n')
+  }
+
+  if (templateId === 'perps-vault') {
+    return [
+      ...common,
+      '- Use Drift Vaults SDK by default; expose a manager CLI with init/deposit/withdraw/rebalance commands.',
+      '- Accounting math (NAV, share price, HWM, perf fee) must live in a pure module with Vitest coverage.',
+      '- Document the strategy invariant clearly in README so depositors understand the risk profile.',
+    ].join('\n')
+  }
+
+  if (templateId === 'perps-frontend') {
+    return [
+      ...common,
+      walletHint,
+      '- Proxy all signed-RPC calls through a Next.js route handler so HELIUS_API_KEY never reaches the browser.',
+      '- Stream prices and fills via WebSocket/LaserStream; never poll on a tight interval from the client.',
+      '- Default venue: Jupiter Perps (broadest market coverage). Make venue switch a build-time env.',
+    ].join('\n')
+  }
+
+  if (templateId === 'perps-liquidator') {
+    return [
+      ...common,
+      '- Use Helius LaserStream for account deltas; do not poll getProgramAccounts in a hot loop.',
+      '- Always bundle a Pyth price refresh ix in front of the liquidate ix; abort if oracle is stale.',
+      '- Profit guard must simulate the bundle and compare estimated payout to MIN_PROFIT_USD before send.',
+      '- Default submission path: Jito bundles via Helius Sender with tip estimation.',
+    ].join('\n')
+  }
+
+  return common.join('\n')
+}
+
+interface ScaffoldFile {
+  path: string
+  content: string
+}
+
+interface DeterministicScaffold {
+  dirs: string[]
+  files: ScaffoldFile[]
+}
+
+function packageName(projectName: string): string {
+  return projectName.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'daemon-project'
+}
+
+function quotedJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`
+}
+
+function envForTemplate(templateId: string): string {
+  const common = [
+    'RPC_URL=https://api.devnet.solana.com',
+    'HELIUS_API_KEY=',
+    'WALLET_PATH=~/.config/solana/id.json',
+  ]
+
+  const byTemplate: Record<string, string[]> = {
+    'nft-collection': ['COLLECTION_NAME=Daemon Collection', 'COLLECTION_SIZE=1000'],
+    'trading-bot': ['TOKEN_MINT_A=So11111111111111111111111111111111111111112', 'TOKEN_MINT_B=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'SLIPPAGE_BPS=50', 'CHECK_INTERVAL_MS=10000'],
+    'telegram-bot': ['TELEGRAM_BOT_TOKEN=', 'MASTER_WALLET_PATH=~/.config/solana/id.json'],
+    'mcp-server': [],
+    'solana-foundation': ['NEXT_PUBLIC_CLUSTER=devnet'],
+    'dapp-nextjs': ['NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com', 'NEXT_PUBLIC_HELIUS_API_KEY='],
+    'perps-trading-bot': ['VENUE=drift', 'MARKET_INDEX=0', 'MAX_POSITION_USD=100'],
+    'perps-vault': ['VAULT_NAME=daemon-vault', 'MAX_LEVERAGE=2'],
+    'perps-frontend': ['NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com', 'NEXT_PUBLIC_VENUE=jupiter', 'HELIUS_API_KEY='],
+    'perps-liquidator': ['LASERSTREAM_URL=', 'JITO_BLOCK_ENGINE_URL=https://mainnet.block-engine.jito.wtf/api/v1/transactions', 'MIN_PROFIT_USD=5'],
+  }
+
+  return [...common, ...(byTemplate[templateId] ?? [])].join('\n') + '\n'
+}
+
+function buildPackageJson(template: Template, projectName: string) {
+  const isNext = ['dapp-nextjs', 'solana-foundation', 'perps-frontend'].includes(template.id)
+  const isAnchor = template.id === 'anchor-program'
+  const dependencies: Record<string, string> = isNext
+    ? {
+        '@solana/kit': '^2.3.0',
+        next: '^15.5.0',
+        react: '^19.0.0',
+        'react-dom': '^19.0.0',
+        zod: '^3.25.0',
+      }
+    : {
+        '@solana/kit': '^2.3.0',
+        dotenv: '^16.4.7',
+        pino: '^9.7.0',
+        zod: '^3.25.0',
+      }
+
+  if (template.id === 'mcp-server') dependencies['@modelcontextprotocol/sdk'] = '^1.17.0'
+  if (template.id === 'telegram-bot') dependencies.grammy = '^1.37.0'
+  if (template.id.startsWith('perps-')) dependencies['@pythnetwork/price-service-client'] = '^1.9.0'
+  if (template.id === 'trading-bot') dependencies['@jup-ag/api'] = '^6.0.42'
+  if (template.id === 'nft-collection') dependencies['@metaplex-foundation/umi'] = '^1.2.0'
+
+  return {
+    name: packageName(projectName),
+    version: '0.1.0',
+    private: true,
+    type: 'module',
+    scripts: isNext
+      ? {
+          dev: 'next dev',
+          build: 'next build',
+          start: 'next start',
+          typecheck: 'tsc --noEmit',
+        }
+      : isAnchor
+        ? {
+            build: 'anchor build',
+            test: 'anchor test',
+            typecheck: 'tsc --noEmit',
+          }
+        : {
+            dev: 'tsx src/index.ts',
+            build: 'tsc',
+            start: 'node dist/index.js',
+            typecheck: 'tsc --noEmit',
+          },
+    dependencies,
+    devDependencies: isNext
+      ? {
+          '@types/node': '^22.10.0',
+          '@types/react': '^19.0.0',
+          '@types/react-dom': '^19.0.0',
+          typescript: '^5.9.0',
+        }
+      : {
+          '@types/node': '^22.10.0',
+          tsx: '^4.20.0',
+          typescript: '^5.9.0',
+          vitest: '^2.1.0',
+        },
+  }
+}
+
+function readmeForTemplate(template: Template, projectName: string): string {
+  return `# ${projectName}
+
+Deterministic DAEMON scaffold for **${template.name}**.
+
+## Setup
+
+\`\`\`bash
+pnpm install
+cp .env.example .env
+pnpm dev
+\`\`\`
+
+## Runtime
+
+DAEMON writes \`daemon.solana-runtime.json\` at project creation time. Keep RPC, wallet, execution, and venue settings configurable from that file and environment variables.
+
+## Template Scope
+
+${template.prompt.replace(/^/gm, '> ')}
+
+## Next Steps
+
+- Fill in \`.env\`.
+- Run \`pnpm typecheck\`.
+- Add protocol-specific credentials and program IDs in \`src/config.ts\`.
+- Ask Claude or Codex only when you want custom strategy logic, audits, or feature work beyond this base scaffold.
+`
+}
+
+function nextAppFiles(template: Template, projectName: string): ScaffoldFile[] {
+  return [
+    {
+      path: 'src/config.ts',
+      content: `export const runtimeConfig = {\n  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL ?? process.env.RPC_URL ?? 'https://api.devnet.solana.com',\n  venue: process.env.NEXT_PUBLIC_VENUE ?? process.env.VENUE ?? 'jupiter',\n  cluster: process.env.NEXT_PUBLIC_CLUSTER ?? 'devnet',\n}\n`,
+    },
+    {
+      path: 'app/layout.tsx',
+      content: `import type { ReactNode } from 'react'\nimport './globals.css'\n\nexport const metadata = { title: '${projectName}', description: '${template.description}' }\n\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return <html lang="en"><body>{children}</body></html>\n}\n`,
+    },
+    {
+      path: 'app/page.tsx',
+      content: `import { runtimeConfig } from '../src/config'\n\nexport default function Home() {\n  return (\n    <main className="page-shell">\n      <section className="workspace-header">\n        <p className="eyebrow">DAEMON Scaffold</p>\n        <h1>${projectName}</h1>\n        <p>${template.description}</p>\n      </section>\n      <section className="panel-grid">\n        <div><span>RPC</span><strong>{runtimeConfig.rpcUrl}</strong></div>\n        <div><span>Venue</span><strong>{runtimeConfig.venue}</strong></div>\n        <div><span>Cluster</span><strong>{runtimeConfig.cluster}</strong></div>\n      </section>\n    </main>\n  )\n}\n`,
+    },
+    {
+      path: 'app/globals.css',
+      content: `:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #080b0f; color: #f5f7fb; }\nbody { margin: 0; }\n.page-shell { min-height: 100vh; padding: 48px; background: #080b0f; }\n.workspace-header { max-width: 760px; }\n.eyebrow { color: #14f195; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }\nh1 { font-size: 44px; margin: 8px 0; }\np { color: #a8b3c7; line-height: 1.6; }\n.panel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 32px; max-width: 960px; }\n.panel-grid div { border: 1px solid #263040; border-radius: 8px; padding: 16px; background: #101620; }\n.panel-grid span { display: block; color: #7d8aa3; font-size: 12px; margin-bottom: 8px; }\n.panel-grid strong { font-size: 14px; overflow-wrap: anywhere; }\n@media (max-width: 720px) { .page-shell { padding: 28px; } .panel-grid { grid-template-columns: 1fr; } h1 { font-size: 34px; } }\n`,
+    },
+    { path: 'next.config.mjs', content: `const nextConfig = {}\nexport default nextConfig\n` },
+  ]
+}
+
+function anchorFiles(projectName: string): ScaffoldFile[] {
+  const crateName = packageName(projectName).replace(/-/g, '_')
+  return [
+    { path: 'Anchor.toml', content: `[features]\nseeds = false\nskip-lint = false\n\n[programs.localnet]\n${crateName} = "11111111111111111111111111111111"\n\n[provider]\ncluster = "localnet"\nwallet = "~/.config/solana/id.json"\n\n[scripts]\ntest = "pnpm vitest run"\n` },
+    { path: 'programs/' + crateName + '/Cargo.toml', content: `[package]\nname = "${crateName}"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\ncrate-type = ["cdylib", "lib"]\nname = "${crateName}"\n\n[dependencies]\nanchor-lang = "0.32.0"\n` },
+    { path: 'programs/' + crateName + '/src/lib.rs', content: `use anchor_lang::prelude::*;\n\ndeclare_id!("11111111111111111111111111111111");\n\n#[program]\npub mod ${crateName} {\n    use super::*;\n\n    pub fn initialize(ctx: Context<Initialize>, value: u64) -> Result<()> {\n        ctx.accounts.state.authority = ctx.accounts.authority.key();\n        ctx.accounts.state.value = value;\n        Ok(())\n    }\n\n    pub fn update(ctx: Context<Update>, value: u64) -> Result<()> {\n        ctx.accounts.state.value = value;\n        Ok(())\n    }\n}\n\n#[derive(Accounts)]\npub struct Initialize<'info> {\n    #[account(init, payer = authority, space = 8 + State::INIT_SPACE)]\n    pub state: Account<'info, State>,\n    #[account(mut)]\n    pub authority: Signer<'info>,\n    pub system_program: Program<'info, System>,\n}\n\n#[derive(Accounts)]\npub struct Update<'info> {\n    #[account(mut, has_one = authority)]\n    pub state: Account<'info, State>,\n    pub authority: Signer<'info>,\n}\n\n#[account]\n#[derive(InitSpace)]\npub struct State {\n    pub authority: Pubkey,\n    pub value: u64,\n}\n` },
+    { path: 'tests/' + crateName + '.test.ts', content: `import { describe, expect, it } from 'vitest'\n\ndescribe('${crateName}', () => {\n  it('has a placeholder client test', () => {\n    expect('${crateName}').toContain('${crateName}')\n  })\n})\n` },
+  ]
+}
+
+function nodeAppFiles(template: Template): ScaffoldFile[] {
+  const title = template.name
+  return [
+    {
+      path: 'src/config.ts',
+      content: `import 'dotenv/config'\n\nexport const config = {\n  rpcUrl: process.env.RPC_URL ?? 'https://api.devnet.solana.com',\n  heliusApiKey: process.env.HELIUS_API_KEY ?? '',\n  walletPath: process.env.WALLET_PATH ?? '~/.config/solana/id.json',\n  venue: process.env.VENUE ?? 'drift',\n  marketIndex: Number(process.env.MARKET_INDEX ?? '0'),\n}\n`,
+    },
+    {
+      path: 'src/logger.ts',
+      content: `import pino from 'pino'\n\nexport const logger = pino({\n  level: process.env.LOG_LEVEL ?? 'info',\n})\n`,
+    },
+    {
+      path: 'src/index.ts',
+      content: `import { config } from './config'\nimport { logger } from './logger'\n\nlet shuttingDown = false\n\nasync function main() {\n  logger.info({ template: '${title}', rpcUrl: config.rpcUrl, venue: config.venue }, 'starting DAEMON scaffold')\n  logger.info('replace src/strategy.ts with your project-specific logic')\n}\n\nprocess.on('SIGINT', () => { shuttingDown = true; logger.warn({ shuttingDown }, 'shutdown requested'); process.exit(0) })\nprocess.on('SIGTERM', () => { shuttingDown = true; logger.warn({ shuttingDown }, 'shutdown requested'); process.exit(0) })\n\nmain().catch((err) => {\n  logger.error({ err }, 'fatal startup error')\n  process.exit(1)\n})\n`,
+    },
+    {
+      path: 'src/strategy.ts',
+      content: `export interface StrategySignal {\n  action: 'hold' | 'buy' | 'sell' | 'open-long' | 'open-short' | 'close'\n  reason: string\n}\n\nexport async function evaluateStrategy(): Promise<StrategySignal> {\n  return { action: 'hold', reason: 'starter scaffold: implement your signal logic here' }\n}\n`,
+    },
+  ]
+}
+
+function commonFiles(template: Template, projectName: string): ScaffoldFile[] {
+  return [
+    { path: 'package.json', content: quotedJson(buildPackageJson(template, projectName)) },
+    { path: '.gitignore', content: `node_modules\ndist\n.next\n.env\n.DS_Store\ntarget\n.anchor\n` },
+    { path: '.env.example', content: envForTemplate(template.id) },
+    { path: 'README.md', content: readmeForTemplate(template, projectName) },
+    { path: 'tsconfig.json', content: quotedJson({ compilerOptions: { target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', strict: true, esModuleInterop: true, skipLibCheck: true, outDir: 'dist' }, include: ['src', 'app', 'tests'] }) },
+  ]
+}
+
+export function buildDeterministicScaffold(template: Template, projectName: string): DeterministicScaffold {
+  const isNext = ['dapp-nextjs', 'solana-foundation', 'perps-frontend'].includes(template.id)
+  const files = [
+    ...commonFiles(template, projectName),
+    ...(template.id === 'anchor-program' ? anchorFiles(projectName) : isNext ? nextAppFiles(template, projectName) : nodeAppFiles(template)),
+  ]
+
+  const dirs = new Set<string>(['src'])
+  for (const file of files) {
+    const parts = file.path.split('/').slice(0, -1)
+    for (let i = 1; i <= parts.length; i += 1) {
+      dirs.add(parts.slice(0, i).join('/'))
+    }
+  }
+
+  return {
+    dirs: [...dirs].filter(Boolean),
+    files,
+  }
 }
 
 export function ProjectStarter() {
@@ -434,35 +820,48 @@ export function ProjectStarter() {
       }
 
 
-      // Spawn a terminal with Claude agent to scaffold the project
-      const runtimePrompt = buildRuntimePrompt(walletInfrastructure)
-      const templateSpecificPrompt = buildTemplateSpecificPrompt(wizard.template.id, walletInfrastructure)
-      const agentPrompt = [
-        `You are scaffolding a new project called "${name}" in the current directory.`,
-        `The directory is empty and ready for you to create files.`,
-        ``,
-        wizard.template.prompt,
-        runtimePrompt,
-        templateSpecificPrompt,
-        ``,
-        `Create or update project files so the app runtime matches \`daemon.solana-runtime.json\`.`,
-        `IMPORTANT: Create all files directly. Do not ask questions. Just build it.`,
-        `After scaffolding, run any install commands (npm install / cargo build) as needed.`,
-        `Keep output concise. When done, print "Project scaffolding complete."`,
-      ].filter(Boolean).join('\n')
+      const scaffold = buildDeterministicScaffold(wizard.template, name)
+      try {
+        for (const dir of scaffold.dirs) {
+          const dirRes = await window.daemon.fs.createDir(`${projectPath}/${dir}`)
+          if (!dirRes.ok) {
+            throw new Error(dirRes.error ?? `Failed to create ${dir}`)
+          }
+        }
+
+        for (const file of scaffold.files) {
+          const fileRes = await window.daemon.fs.writeFile(`${projectPath}/${file.path}`, file.content)
+          if (!fileRes.ok) {
+            throw new Error(fileRes.error ?? `Failed to write ${file.path}`)
+          }
+        }
+      } catch (scaffoldErr) {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Scaffold',
+          message: scaffoldErr instanceof Error ? scaffoldErr.message : String(scaffoldErr),
+          sessionId,
+          sessionStatus: 'failed',
+          projectId: newProject.id,
+          projectName: name,
+        })
+        await cleanupProject()
+        setError(scaffoldErr instanceof Error ? scaffoldErr.message : String(scaffoldErr))
+        setWizard((prev) => ({ ...prev, step: 'configure' }))
+        return
+      }
 
       const termRes = await window.daemon.terminal.create({
         cwd: projectPath,
-        startupCommand: `claude --model claude-sonnet-4-20250514 --dangerously-skip-permissions -p "${agentPrompt.replace(/"/g, '\\"')}"`,
         userInitiated: true,
       })
 
       if (termRes.ok && termRes.data) {
-        addTerminal(newProject.id, termRes.data.id, `Build: ${name}`, null)
+        addTerminal(newProject.id, termRes.data.id, `Terminal: ${name}`, null)
         useNotificationsStore.getState().addActivity({
           kind: 'success',
           context: 'Scaffold',
-          message: `Build agent started for ${name}; runtime preset ${runtimePreset ? 'written' : 'not available'}.`,
+          message: `Project scaffold written for ${name}. Open terminal is idle; run pnpm install when ready.`,
           sessionId,
           sessionStatus: 'running',
           projectId: newProject.id,
@@ -476,14 +875,13 @@ export function ProjectStarter() {
         useNotificationsStore.getState().addActivity({
           kind: 'error',
           context: 'Scaffold',
-          message: termRes.error ?? `Failed to start build agent for ${name}`,
+          message: termRes.error ?? `Scaffold written, but setup terminal failed for ${name}`,
           sessionId,
           sessionStatus: 'failed',
           projectId: newProject.id,
           projectName: name,
         })
-        await cleanupProject()
-        setError(termRes.error ?? 'Failed to start build agent')
+        setError(termRes.error ?? 'Scaffold written, but setup terminal failed')
         setWizard((prev) => ({ ...prev, step: 'configure' }))
       }
     } catch (err) {
@@ -644,7 +1042,7 @@ export function ProjectStarter() {
         <div className="starter-spinner" />
         <h3 className="starter-building-title">Scaffolding {wizard.projectName}...</h3>
         <p className="starter-building-desc">
-          Build agent running for {wizard.template?.name}.
+          Writing {wizard.template?.name} starter files.
         </p>
       </div>
     </div>
