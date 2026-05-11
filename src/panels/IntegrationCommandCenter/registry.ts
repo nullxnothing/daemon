@@ -11,7 +11,7 @@ export interface IntegrationAction {
 }
 
 export interface IntegrationRequirement {
-  type: 'env' | 'secure-key' | 'mcp' | 'package' | 'wallet' | 'toolchain'
+  type: 'env' | 'secure-key' | 'mcp' | 'package' | 'wallet' | 'toolchain' | 'external-url'
   key: string
   label: string
   optional?: boolean
@@ -84,6 +84,22 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
       { id: 'open-mcp-setup', label: 'Open setup', description: 'Jump to DAEMON MCP setup tools.', kind: 'setup', risk: 'read-only' },
       { id: 'preview-agent-actions', label: 'Preview actions', description: 'Show which SendAI actions DAEMON can safely expose first.', kind: 'planned', risk: 'read-only' },
       { id: 'preview-skill-install', label: 'Preview skills', description: 'Show suggested protocol skills without modifying agent config.', kind: 'planned', risk: 'read-only' },
+    ],
+  },
+  {
+    id: 'spawnagents',
+    name: 'SpawnAgents',
+    tagline: 'Autonomous Solana trading agents with live DNA',
+    description: 'Spawn agents with custom DNA to trade memecoins and prediction markets autonomously. Each agent gets its own wallet. Monitor PnL, positions, and lineage — kill, withdraw, or breed children — all from inside DAEMON.',
+    category: 'agent',
+    docsUrl: 'https://spawnagents.fun/how',
+    recommendedFor: ['agent launches', 'autonomous trading', 'agent DNA', 'live agent monitoring', 'Solana agent experiments', 'memecoin trading bots', 'prediction markets'],
+    requirements: [
+      { type: 'wallet', key: 'default-wallet', label: 'DAEMON wallet with keypair (for signing agent actions)' },
+    ],
+    actions: [
+      { id: 'open-spawnagents-panel', label: 'Open SpawnAgents', description: 'Open the DAEMON SpawnAgents panel to manage and spawn agents.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-spawnagents-live', label: 'Browse live agents', description: 'Open the live agent directory and leaderboard on spawnagents.fun.', kind: 'setup', risk: 'read-only' },
     ],
   },
   {

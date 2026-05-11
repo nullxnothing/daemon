@@ -35,6 +35,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'recovery', name: 'Recovery', moduleClass: 'addon', surface: 'drawer' },
   { id: 'activity', name: 'Activity', moduleClass: 'addon', surface: 'drawer' },
   { id: 'agent-station', name: 'Agent Station', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'spawnagents', name: 'SpawnAgents', moduleClass: 'addon', surface: 'drawer' },
   { id: 'browser', name: 'Browser', moduleClass: 'addon', surface: 'tab' },
 ] as const
 

@@ -1212,6 +1212,7 @@ function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'streamlock') return 'streamlock'
   if (integrationId === 'helius') return 'helius'
   if (integrationId === 'sendai-agent-kit') return 'sendai'
+  if (integrationId === 'spawnagents') return 'spawnagents'
   if (integrationId === 'phantom') return 'phantom'
   if (integrationId === 'jupiter') return 'jupiter'
   if (integrationId === 'metaplex') return 'metaplex'
@@ -1524,6 +1525,7 @@ export function IntegrationCommandCenter() {
       if (action.id === 'open-env') openWorkspaceTool('env')
       else if (action.id === 'open-wallet') openWorkspaceTool('wallet')
       else if (action.id === 'open-token-launch') openWorkspaceTool('token-launch')
+      else if (action.id === 'open-spawnagents-panel') openWorkspaceTool('spawnagents')
       else openWorkspaceTool('solana-toolbox')
       return
     }

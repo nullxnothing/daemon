@@ -53,4 +53,20 @@ describe('Integration Command Center registry', () => {
     expect(resolveIntegrationStatus(sendAi!, context).status).toBe('ready')
     expect(resolveIntegrationStatus(helius!, context).status).toBe('ready')
   })
+
+  it('has SpawnAgents as a native DAEMON integration with wallet requirement and panel action', () => {
+    const spawnAgents = INTEGRATION_REGISTRY.find((integration) => integration.id === 'spawnagents')
+
+    expect(spawnAgents).toBeDefined()
+    expect(spawnAgents!.docsUrl).toBe('https://spawnagents.fun/how')
+    expect(spawnAgents!.requirements).toContainEqual({
+      type: 'wallet',
+      key: 'default-wallet',
+      label: 'DAEMON wallet with keypair (for signing agent actions)',
+    })
+    expect(spawnAgents!.actions.map((action) => action.id)).toEqual([
+      'open-spawnagents-panel',
+      'open-spawnagents-live',
+    ])
+  })
 })

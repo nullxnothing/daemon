@@ -70,7 +70,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 var(--space-md);
-  overflow-x: auto;
+  overflow: visible;
   min-width: 0;
   max-width: min(52vw, 720px);
   -webkit-app-region: no-drag;
@@ -157,6 +157,50 @@
   background: var(--hover-bg);
   color: var(--t1);
   border-color: var(--border);
+}
+
+.project-tab-add.active {
+  background: var(--green-glow);
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 30%, var(--border));
+}
+
+.project-add-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.project-add-menu {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 0;
+  min-width: 168px;
+  padding: var(--space-xs);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-float);
+  z-index: 70;
+  -webkit-app-region: no-drag;
+}
+
+.project-add-menu-item {
+  width: 100%;
+  height: var(--btn-h-md);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  color: var(--t2);
+  background: transparent;
+}
+
+.project-add-menu-item:hover {
+  background: var(--hover-bg);
+  color: var(--t1);
 }
 
 .titlebar-controls {
@@ -331,6 +375,12 @@
 .titlebar-switcher-remove:hover {
   color: var(--t1);
   background: var(--hover-bg);
+}
+
+.titlebar-switcher-actions {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
 }
 
 .titlebar-overflow { position: relative; margin-right: var(--space-2xs); }

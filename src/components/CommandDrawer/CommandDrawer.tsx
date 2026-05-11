@@ -314,6 +314,18 @@ function AgentWorkIcon({ size = 18 }: { size?: number }) {
   )
 }
 
+function SpawnAgentsIcon({ size = 18 }: { size?: number }) {
+  return (
+    <ToolIconBase size={size}>
+      <circle cx="12" cy="8" r="3" />
+      <path d="M12 11v3" />
+      <circle cx="7" cy="18" r="2.2" />
+      <circle cx="17" cy="18" r="2.2" />
+      <path d="M9 17.2 12 14l3 3.2" />
+    </ToolIconBase>
+  )
+}
+
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon,
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
@@ -323,6 +335,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
   'agent-station': AgentStationIcon,
   'agent-work': AgentWorkIcon,
+  'spawnagents': SpawnAgentsIcon,
 }
 
 // Tool name lookup
@@ -355,6 +368,7 @@ const loadActivityTimeline = () => import('../../panels/ActivityTimeline/Activit
 const loadAgentStation = () => import('../../panels/AgentStation/AgentStation')
 const loadReplayEngine = () => import('../../panels/ReplayEngine/ReplayEngine')
 const loadAgentWork = () => import('../../panels/AgentWork/AgentWork')
+const loadSpawnAgents = () => import('../../panels/SpawnAgents/SpawnAgentsPanel')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -382,6 +396,7 @@ const ActivityTimeline = lazyNamedWithReload('activity-timeline', loadActivityTi
 const AgentStationPanel = lazyNamedWithReload('agent-station', loadAgentStation, (m) => m.AgentStation)
 const ReplayEngine = lazyNamedWithReload('replay-engine', loadReplayEngine, (m) => m.ReplayEngine)
 const AgentWork = lazyNamedWithReload('agent-work', loadAgentWork, (m) => m.AgentWork)
+const SpawnAgentsPanel = lazyNamedWithReload('spawnagents', loadSpawnAgents, (m) => m.SpawnAgentsPanel)
 
 // Per-tool accent colors for the drawer grid and sidebar
 export const TOOL_COLORS: Record<string, string> = {
@@ -412,12 +427,13 @@ export const TOOL_COLORS: Record<string, string> = {
   activity: '#2dd4bf',
   'agent-station': '#c4b5fd',
   'agent-work': '#38bdf8',
+  'spawnagents': '#c41e3a',
 }
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
 // Note: 'browser' is intentionally excluded — it opens as a pinned editor tab (Ctrl+Shift+B), not a drawer panel
 export const BUILTIN_TOOLS: DrawerTool[] = [
-  { id: 'starter', name: 'New Project', description: 'Scaffold a Solana project with AI', icon: StarterIcon, component: ProjectStarter, preload: () => { void loadProjectStarter() }, category: 'dev' },
+  { id: 'starter', name: 'New Project', description: 'Scaffold a Solana project template', icon: StarterIcon, component: ProjectStarter, preload: () => { void loadProjectStarter() }, category: 'dev' },
   { id: 'git', name: 'Git', description: 'Source control', icon: GitIcon, component: GitPanel, preload: () => { void loadGitPanel() }, category: 'dev' },
   { id: 'deploy', name: 'Deploy', description: 'Vercel & Railway', icon: DeployIcon, component: DeployPanel, preload: () => { void loadDeployPanel() }, category: 'dev' },
   { id: 'env', name: 'Env', description: 'Environment variables', icon: EnvIcon, component: EnvManager, preload: () => { void loadEnvManager() }, category: 'dev' },
@@ -443,6 +459,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
   { id: 'agent-station', name: 'Agent Station', description: 'Scaffold and run Solana AI agents powered by SAK', icon: AgentStationIcon, component: AgentStationPanel, preload: () => { void loadAgentStation() }, category: 'crypto' },
+  { id: 'spawnagents', name: 'SpawnAgents', description: 'Spawn autonomous Solana trading agents with custom DNA', icon: SpawnAgentsIcon, component: SpawnAgentsPanel, preload: () => { void loadSpawnAgents() }, category: 'crypto' },
 ]
 
 const BUILTIN_TOOL_PRELOADERS = new Map(

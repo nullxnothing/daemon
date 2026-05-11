@@ -27,6 +27,8 @@ import { registerRecoveryHandlers } from '../ipc/recovery'
 import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
+import { registerSpawnAgentsHandlers } from '../ipc/spawnagents'
+import { startEventStream as startSpawnAgentsEventStream, stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
 import { registerEmailHandlers } from '../ipc/email'
@@ -45,6 +47,7 @@ import { registerAgentStationHandlers } from '../ipc/agentStation'
 import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
 import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
+import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import { shutdownAllLspSessions } from '../services/LspService'
@@ -124,6 +127,7 @@ const indexHtml = path.join(RENDERER_DIST, 'index.html')
 function cleanupRuntimeState() {
   killAllSessions()
   shutdownAllLspSessions()
+  stopSpawnAgentsEventStream()
   clearLoadedWallets()
   closeDb()
 }
@@ -177,6 +181,8 @@ function registerAllIpc() {
   registerEngineHandlers()
   registerToolHandlers()
   registerPumpFunHandlers()
+  registerSpawnAgentsHandlers()
+  startSpawnAgentsEventStream()
   registerBrowserHandlers()
   registerDeployHandlers()
   registerEmailHandlers()
@@ -403,6 +409,9 @@ async function createWindow() {
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
   initTelemetry(app.getVersion() || '3.0.8')
+  flushRemoteTelemetry().catch((err) => {
+    console.warn('[telemetry] Remote telemetry startup failed:', err instanceof Error ? err.message : String(err))
+  })
   createWindow().catch((err) => {
     console.error('[smoke] createWindow:error', err)
   })

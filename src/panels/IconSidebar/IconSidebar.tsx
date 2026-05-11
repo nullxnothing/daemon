@@ -81,17 +81,20 @@ function HackathonGlyph({ size = 16 }: { size?: number }) {
   )
 }
 
-function ToolsGlyph({ size = 18 }: { size?: number }) {
+function ToolsGlyph({ size = 20 }: { size?: number }) {
   const gradientId = useId()
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <defs>
         <linearGradient id={gradientId} x1="5" y1="5" x2="19" y2="19" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#14f195" />
           <stop offset="100%" stopColor="#2dd4bf" />
         </linearGradient>
       </defs>
-      <path d="M6 6.25h5.25v4.5H6zM12.75 13.25H18v4.5h-5.25zM12.75 6.25H18v4.5h-5.25zM6 13.25h5.25v4.5H6z" stroke={`url(#${gradientId})`} />
+      <rect x="3" y="3" width="8" height="8" rx="1.5" stroke={`url(#${gradientId})`} />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" stroke={`url(#${gradientId})`} />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" stroke={`url(#${gradientId})`} />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" stroke={`url(#${gradientId})`} />
     </svg>
   )
 }
@@ -351,21 +354,6 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
         aria-label="Settings"
       >
         {SettingsIcon ? <SettingsIcon size={18} /> : null}
-      </button>
-
-      {/* Colosseum / Hackathon — opens in drawer */}
-      <button
-        className={`colosseum-icon-wrap${activeWorkspaceToolId === 'hackathon' ? ' active' : ''}`}
-        onClick={() => {
-          if (useWorkspaceProfileStore.getState().isToolVisible('hackathon')) {
-            useUIStore.getState().openWorkspaceTool('hackathon')
-          }
-        }}
-        title="Hackathon (Colosseum)"
-        aria-label="Hackathon"
-        disabled={!isToolVisible('hackathon')}
-      >
-        <HackathonGlyph />
       </button>
 
       {/* Social Links */}

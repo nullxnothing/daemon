@@ -25,6 +25,10 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
     [activeProjectId, projects],
   )
 
+  const openProjectStarter = () => {
+    useUIStore.getState().openWorkspaceTool('starter')
+  }
+
   const showProjectTabs = isDesktop || isCompact
   const showPortfolioInline = isDesktop
   const showBrandText = !isTablet && !isSmall
@@ -39,6 +43,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
           projects={projects}
           activeProjectId={activeProjectId}
           onAddProject={onAddProject}
+          onScaffoldProject={openProjectStarter}
           onRemoveProject={onRemoveProject}
           onSelectProject={setActiveProject}
         />
@@ -47,6 +52,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
           activeProject={activeProject}
           projects={projects}
           onAddProject={onAddProject}
+          onScaffoldProject={openProjectStarter}
           onRemoveProject={onRemoveProject}
           onSelectProject={setActiveProject}
         />
@@ -99,15 +105,21 @@ function ProjectTabs({
   projects,
   activeProjectId,
   onAddProject,
+  onScaffoldProject,
   onRemoveProject,
   onSelectProject,
 }: {
   projects: Project[]
   activeProjectId: string | null
   onAddProject: () => void
+  onScaffoldProject: () => void
   onRemoveProject: (projectId: string) => void
   onSelectProject: (id: string | null, path: string | null) => void
 }) {
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const addRef = useRef<HTMLDivElement>(null)
+  useDismissOnOutsideClick(isAddOpen, addRef, () => setIsAddOpen(false))
+
   return (
     <div className="project-tabs">
       {projects.map((project) => (
@@ -133,7 +145,14 @@ function ProjectTabs({
           </span>
         </button>
       ))}
-      <button type="button" className="project-tab-add" onClick={onAddProject} aria-label="Add project">+</button>
+      <ProjectAddMenu
+        isOpen={isAddOpen}
+        setIsOpen={setIsAddOpen}
+        onAddProject={onAddProject}
+        onScaffoldProject={onScaffoldProject}
+        refEl={addRef}
+        buttonClassName="project-tab-add"
+      />
     </div>
   )
 }
@@ -142,12 +161,14 @@ function ProjectSwitcher({
   activeProject,
   projects,
   onAddProject,
+  onScaffoldProject,
   onRemoveProject,
   onSelectProject,
 }: {
   activeProject: Project | null
   projects: Project[]
   onAddProject: () => void
+  onScaffoldProject: () => void
   onRemoveProject: (projectId: string) => void
   onSelectProject: (id: string | null, path: string | null) => void
 }) {
@@ -195,14 +216,80 @@ function ProjectSwitcher({
               </button>
             </div>
           ))}
+          <div className="titlebar-switcher-actions">
+            <button
+              className="titlebar-switcher-add"
+              onClick={() => {
+                onAddProject()
+                setIsOpen(false)
+              }}
+            >
+              Open Codebase
+            </button>
+            <button
+              className="titlebar-switcher-add"
+              onClick={() => {
+                onScaffoldProject()
+                setIsOpen(false)
+              }}
+            >
+              Scaffold Project
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProjectAddMenu({
+  isOpen,
+  setIsOpen,
+  onAddProject,
+  onScaffoldProject,
+  refEl,
+  buttonClassName,
+}: {
+  isOpen: boolean
+  setIsOpen: (value: boolean) => void
+  onAddProject: () => void
+  onScaffoldProject: () => void
+  refEl: RefObject<HTMLDivElement | null>
+  buttonClassName: string
+}) {
+  return (
+    <div className="project-add-wrap" ref={refEl}>
+      <button
+        type="button"
+        className={`${buttonClassName}${isOpen ? ' active' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Add project"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
+        +
+      </button>
+      {isOpen && (
+        <div className="project-add-menu" role="menu" aria-label="Add project">
           <button
-            className="titlebar-switcher-add"
+            className="project-add-menu-item"
+            role="menuitem"
             onClick={() => {
               onAddProject()
               setIsOpen(false)
             }}
           >
-            Add project
+            Open Codebase
+          </button>
+          <button
+            className="project-add-menu-item"
+            role="menuitem"
+            onClick={() => {
+              onScaffoldProject()
+              setIsOpen(false)
+            }}
+          >
+            Scaffold Project
           </button>
         </div>
       )}
