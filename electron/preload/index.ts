@@ -418,6 +418,26 @@ contextBridge.exposeInMainWorld('daemon', {
     importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
   },
 
+  spawnAgents: {
+    list: (ownerPubkey: string) => ipcRenderer.invoke('spawnagents:list', ownerPubkey),
+    get: (agentId: string) => ipcRenderer.invoke('spawnagents:get', agentId),
+    trades: (agentId: string, limit?: number, offset?: number) => ipcRenderer.invoke('spawnagents:trades', agentId, limit, offset),
+    positions: (agentId: string) => ipcRenderer.invoke('spawnagents:positions', agentId),
+    events: (since: number, agentId?: string, limit?: number) => ipcRenderer.invoke('spawnagents:events', since, agentId, limit),
+    spawnStatus: (ref: string) => ipcRenderer.invoke('spawnagents:spawn-status', ref),
+    initiateSpawn: (input: import('../services/SpawnAgentsService').SpawnInput) => ipcRenderer.invoke('spawnagents:initiate-spawn', input),
+    initiateSpawnChild: (parentAgentId: string, walletId: string, input: import('../services/SpawnAgentsService').SpawnChildInput) => ipcRenderer.invoke('spawnagents:initiate-spawn-child', parentAgentId, walletId, input),
+    spawnAndFund: (walletId: string, input: import('../services/SpawnAgentsService').SpawnInput) => ipcRenderer.invoke('spawnagents:spawn-and-fund', walletId, input),
+    spawnChildAndFund: (parentAgentId: string, walletId: string, input: import('../services/SpawnAgentsService').SpawnChildInput) => ipcRenderer.invoke('spawnagents:spawn-child-and-fund', parentAgentId, walletId, input),
+    withdraw: (agentId: string, walletId: string, amountSol: number) => ipcRenderer.invoke('spawnagents:withdraw', agentId, walletId, amountSol),
+    kill: (agentId: string, walletId: string) => ipcRenderer.invoke('spawnagents:kill', agentId, walletId),
+    onEvent: (callback: (ev: import('../services/SpawnAgentsService').SpawnEvent) => void) => {
+      const handler = (_e: unknown, ev: import('../services/SpawnAgentsService').SpawnEvent) => callback(ev)
+      ipcRenderer.on('spawnagents:event', handler)
+      return () => { ipcRenderer.off('spawnagents:event', handler) }
+    },
+  },
+
   launch: {
     listLaunchpads: () => ipcRenderer.invoke('launch:list-launchpads'),
     listWalletOptions: (projectId?: string | null) => ipcRenderer.invoke('launch:list-wallet-options', projectId),

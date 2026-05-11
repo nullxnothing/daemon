@@ -26,6 +26,10 @@ export function registerProjectHandlers() {
   }))
 
   ipcMain.handle('projects:openDialog', ipcHandler(async () => {
+    if (process.env.DAEMON_SMOKE_TEST === '1' && process.env.DAEMON_SMOKE_PROJECT_DIALOG_PATH) {
+      return process.env.DAEMON_SMOKE_PROJECT_DIALOG_PATH
+    }
+
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       title: 'Select Project Folder',

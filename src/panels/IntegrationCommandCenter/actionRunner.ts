@@ -166,6 +166,23 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'open-spawnagents-panel') {
+    return {
+      title: 'SpawnAgents',
+      status: 'info',
+      detail: 'Open the SpawnAgents panel from the sidebar to spawn and manage your autonomous trading agents.',
+    }
+  }
+
+  if (actionId === 'open-spawnagents-live') {
+    void daemon.shell.openExternal('https://spawnagents.fun/genesis.html')
+    return {
+      title: 'Opening live agents',
+      status: 'success',
+      detail: 'Launched the SpawnAgents live agent directory in your browser.',
+    }
+  }
+
   return {
     title: 'Preview only',
     status: 'info',

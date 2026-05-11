@@ -53,4 +53,22 @@ describe('Integration Command Center registry', () => {
     expect(resolveIntegrationStatus(sendAi!, context).status).toBe('ready')
     expect(resolveIntegrationStatus(helius!, context).status).toBe('ready')
   })
+
+  it('keeps SpawnAgents as an external hosted-lab handoff until API endpoints are live', () => {
+    const spawnAgents = INTEGRATION_REGISTRY.find((integration) => integration.id === 'spawnagents')
+
+    expect(spawnAgents).toBeDefined()
+    expect(spawnAgents!.docsUrl).toBe('https://spawnagents.fun/')
+    expect(spawnAgents!.requirements).toContainEqual({
+      type: 'external-url',
+      key: 'https://spawnagents.fun/lab/',
+      label: 'Hosted SpawnAgents lab',
+    })
+    expect(spawnAgents!.actions.map((action) => action.id)).toEqual([
+      'open-spawnagents-lab',
+      'open-spawnagents-dashboard',
+      'open-spawnagents-live',
+      'preview-spawnagents-api',
+    ])
+  })
 })

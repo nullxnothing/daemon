@@ -83,10 +83,10 @@ function installDaemonBridge(options: {
       { id: 'project-1', name: 'daemon-app', path: 'C:/work/daemon-app' },
     ],
   })
-  const createTerminal = vi.fn().mockImplementation(async ({ startupCommand }: { startupCommand?: string }) => ({
+  const createTerminal = vi.fn().mockImplementation(async ({ cwd, startupCommand }: { cwd?: string; startupCommand?: string }) => ({
     ok: true,
     data: {
-      id: startupCommand?.includes('MyFirstBot')
+      id: cwd?.endsWith('/MyFirstBot') || cwd?.endsWith('\\MyFirstBot')
         ? 'terminal-project-build'
         : startupCommand?.includes('agent:first-solana')
         ? 'terminal-sendai-run'
@@ -95,6 +95,16 @@ function installDaemonBridge(options: {
           : 'terminal-sendai',
       pid: 123,
       agentId: null,
+    },
+  }))
+  const spawnAgent = vi.fn().mockImplementation(async ({ initialPrompt }: { initialPrompt?: string }) => ({
+    ok: true,
+    data: {
+      id: initialPrompt?.includes('MyFirstBot') ? 'terminal-project-build' : 'terminal-agent',
+      pid: 123,
+      agentId: 'solana-agent',
+      agentName: 'Solana Agent',
+      localSessionId: 'local-session-1',
     },
   }))
   const transactionPreview = vi.fn().mockResolvedValue({
@@ -220,6 +230,7 @@ function installDaemonBridge(options: {
       },
       terminal: {
         create: createTerminal,
+        spawnAgent,
       },
       projects: {
         list: listProjects,
@@ -418,9 +429,16 @@ describe('App surface DOM coverage', () => {
     await waitFor(() => {
       expect(window.daemon.terminal.create).toHaveBeenCalledWith(expect.objectContaining({
         cwd: 'C:/work/MyFirstBot',
-        startupCommand: expect.stringContaining('MyFirstBot'),
       }))
+      expect(window.daemon.terminal.create).not.toHaveBeenCalledWith(expect.objectContaining({
+        startupCommand: expect.any(String),
+      }))
+      expect(window.daemon.terminal.spawnAgent).not.toHaveBeenCalled()
     })
+    expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
+      'C:/work/MyFirstBot/package.json',
+      expect.stringContaining('"name": "myfirstbot"'),
+    )
     expect(useUIStore.getState().activeProjectId).toBe('project-new')
     expect(useUIStore.getState().activeWorkspaceToolId).toBeNull()
     expect(useUIStore.getState().activeTerminalIdByProject['project-new']).toBe('terminal-project-build')

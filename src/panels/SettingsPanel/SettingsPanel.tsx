@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useOnboardingStore } from '../../store/onboarding'
+import { useWalletStore } from '../../store/wallet'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
@@ -682,29 +683,13 @@ const PROFILE_OPTIONS: { name: WorkspaceProfileName; label: string }[] = [
 ]
 
 function DisplaySection() {
-  const [showMarketTape, setShowMarketTape] = useState(true)
-  const [showTitlebarWallet, setShowTitlebarWallet] = useState(true)
+  const showMarketTape = useWalletStore((s) => s.showMarketTape)
+  const showTitlebarWallet = useWalletStore((s) => s.showTitlebarWallet)
+  const setShowMarketTape = useWalletStore((s) => s.setShowMarketTape)
+  const setShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
 
-  useEffect(() => {
-    let cancelled = false
-    window.daemon.settings.getUi().then((res) => {
-      if (!cancelled && res.ok && res.data) {
-        setShowMarketTape(res.data.showMarketTape)
-        setShowTitlebarWallet(res.data.showTitlebarWallet)
-      }
-    })
-    return () => { cancelled = true }
-  }, [])
-
-  const handleToggleMarketTape = async (enabled: boolean) => {
-    setShowMarketTape(enabled)
-    await window.daemon.settings.setShowMarketTape(enabled)
-  }
-
-  const handleToggleTitlebarWallet = async (enabled: boolean) => {
-    setShowTitlebarWallet(enabled)
-    await window.daemon.settings.setShowTitlebarWallet(enabled)
-  }
+  const handleToggleMarketTape = (enabled: boolean) => { void setShowMarketTape(enabled) }
+  const handleToggleTitlebarWallet = (enabled: boolean) => { void setShowTitlebarWallet(enabled) }
 
   return (
     <div className="settings-section">
