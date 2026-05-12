@@ -93,7 +93,9 @@ const scenarios = [
   },
   {
     name: 'terminal-tabs',
-    setup: async () => {},
+    setup: async (page) => {
+      await openTerminalPanel(page)
+    },
     selector: '.terminal-tabs',
   },
   {
@@ -279,14 +281,19 @@ async function normalizeWalletQuickView(page) {
 }
 
 async function openTerminalLauncher(page) {
+  await openTerminalPanel(page)
+  await page.getByRole('button', { name: 'New tab options' }).click()
+  await page.waitForSelector('.terminal-launcher-menu', { timeout: 30000 })
+}
+
+async function openTerminalPanel(page) {
   await closeTransientUi(page)
   const terminalVisible = await page.locator('.terminal-panel').isVisible().catch(() => false)
   if (!terminalVisible) {
     await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
     await page.waitForSelector('.terminal-panel', { timeout: 30000 })
   }
-  await page.getByRole('button', { name: 'New tab options' }).click()
-  await page.waitForSelector('.terminal-launcher-menu', { timeout: 30000 })
+  await page.waitForSelector('.terminal-tabs', { timeout: 30000 })
 }
 
 async function closeTransientUi(page) {

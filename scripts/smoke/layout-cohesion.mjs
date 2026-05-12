@@ -324,6 +324,7 @@ async function run() {
   await openTool(page, 'Settings', '.settings-center')
   const settingsSnapshot = await readLayoutSnapshot(page)
   await openTool(page, 'Wallet', '.wallet-panel')
+  await page.waitForSelector('.wallet-tab', { timeout: 30000 })
   const walletSnapshot = await readLayoutSnapshot(page)
   await openTool(page, 'Solana', '.solana-toolbox')
   const solanaSnapshot = await readLayoutSnapshot(page)
