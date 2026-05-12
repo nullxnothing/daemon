@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import {
   getDaemonAICloudRuntimeReadiness,
+  resolveDaemonAICloudJwtSecret,
   SqliteDaemonAIUsageMeter,
   verifyDaemonAiJwt,
   type DaemonAiCloudEntitlement,
@@ -52,6 +53,13 @@ describe('DAEMON AI Cloud production helpers', () => {
       missing: [],
       providers: ['openai'],
     })
+  })
+
+  it('falls back to the DAEMON AI JWT secret when the Pro secret is blank', () => {
+    expect(resolveDaemonAICloudJwtSecret({
+      DAEMON_PRO_JWT_SECRET: '   ',
+      DAEMON_AI_JWT_SECRET: 'fallback-secret',
+    } as NodeJS.ProcessEnv)).toBe('fallback-secret')
   })
 
   it('verifies DAEMON Pro JWT claims into a hosted AI entitlement', () => {

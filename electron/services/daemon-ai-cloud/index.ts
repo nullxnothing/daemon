@@ -10,6 +10,7 @@ export {
 export {
   createProductionDaemonAICloudGateway,
   getDaemonAICloudRuntimeReadiness,
+  resolveDaemonAICloudJwtSecret,
 } from './productionGateway'
 export { DaemonAiCreditsError, SqliteDaemonAIUsageMeter } from './SqliteUsageMeter'
 export { creditsForTokens, estimateRequestCredits, estimateTokens } from './creditMath'

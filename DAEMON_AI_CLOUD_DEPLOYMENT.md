@@ -26,6 +26,20 @@ At least one model provider key is required. `DAEMON_AI_JWT_SECRET` can be used 
 pnpm run start:daemon-ai-cloud
 ```
 
+## Container
+
+```powershell
+docker build -f Dockerfile.cloud -t daemon-ai-cloud:v4 .
+docker run --rm -p 4021:4021 `
+  -e DAEMON_PRO_JWT_SECRET="replace-me" `
+  -e OPENAI_API_KEY="replace-me" `
+  -e DAEMON_AI_CLOUD_DB_PATH="/data/daemon-ai-cloud.db" `
+  -v daemon-ai-cloud-data:/data `
+  daemon-ai-cloud:v4
+```
+
+The container healthcheck calls `/health/ready`, so missing JWT/provider env keeps the deployment unhealthy.
+
 The server exposes:
 
 ```text
@@ -38,6 +52,14 @@ POST /v1/ai/chat
 ```
 
 ## Live Smoke
+
+Before deploying, run the local hosted smoke. It builds the cloud bundle, starts the compiled server, routes provider calls to a deterministic local OpenAI-compatible stub, signs a short-lived JWT, and verifies the same HTTP contract as the live smoke.
+
+```powershell
+pnpm run test:daemon-ai:cloud-local
+```
+
+This smoke rebuilds `better-sqlite3` for the local Node runtime because the desktop app rebuilds native modules for Electron. Run `pnpm run rebuild` before returning to Electron smoke tests or desktop packaging.
 
 ```powershell
 $env:DAEMON_AI_API_BASE="https://your-staging-api"
