@@ -1,9 +1,16 @@
 import crypto from 'node:crypto'
 import { getDb } from '../db/db'
-import * as SecureKey from './SecureKeyService'
 import * as ProviderRegistry from './providers/ProviderRegistry'
 import { collectAiContext } from './ContextService'
 import { getLocalSubscriptionState } from './ProService'
+import {
+  fetchHostedFeatures,
+  fetchHostedModels,
+  fetchHostedUsage,
+  getDaemonAICloudToken,
+  isDaemonAICloudConfigured,
+  runHostedChat,
+} from './DaemonAICloudClient'
 import {
   canUseHostedModelLane,
   getHostedLaneRequiredPlan,
@@ -22,7 +29,6 @@ import type {
   DaemonAiUsageSnapshot,
 } from '../shared/types'
 
-const PRO_JWT_KEY = 'daemon_pro_jwt'
 const MAX_MESSAGE_CHARS = 24_000
 
 const MODELS: DaemonAiModelInfo[] = [
@@ -33,29 +39,9 @@ const MODELS: DaemonAiModelInfo[] = [
   { lane: 'premium', label: 'Premium', description: 'Highest-quality model lane for hard builds and audits.', hosted: true, byok: false, requiresPlan: 'ultra' },
 ]
 
-type HostedUsageReport = {
-  inputTokens?: number
-  outputTokens?: number
-  cachedInputTokens?: number
-  providerCostUsd?: number
-  daemonCreditsCharged?: number
-  creditsCharged?: number
-}
-
-type HostedChatResult = {
-  text: string
-  provider?: DaemonAiUsageEvent['provider']
-  model?: string
-  usage?: HostedUsageReport
-}
-
 const VALID_ACCESS_MODES = new Set<DaemonAiAccessMode>(['hosted', 'byok'])
 const VALID_CHAT_MODES = new Set<DaemonAiChatMode>(['ask', 'plan'])
 const VALID_MODEL_LANES = new Set<DaemonAiModelLane>(['auto', 'fast', 'standard', 'reasoning', 'premium'])
-
-function getApiBase(): string {
-  return (process.env.DAEMON_AI_API_BASE ?? '').replace(/\/+$/, '')
-}
 
 function monthBounds(now = Date.now()): { start: number; resetAt: number } {
   const date = new Date(now)
@@ -208,11 +194,18 @@ export function recordLocalAiUsage(input: {
   })
 }
 
-export function getModels(): DaemonAiModelInfo[] {
+export async function getModels(): Promise<DaemonAiModelInfo[]> {
+  if (isDaemonAICloudConfigured() && getDaemonAICloudToken()) {
+    try {
+      return await fetchHostedModels()
+    } catch {
+      return MODELS
+    }
+  }
   return MODELS
 }
 
-export function getUsage(): DaemonAiUsageSnapshot {
+export function getLocalUsageSnapshot(): DaemonAiUsageSnapshot {
   const state = getLocalSubscriptionState()
   const { start, resetAt } = monthBounds()
   const row = getDb().prepare(`
@@ -232,6 +225,17 @@ export function getUsage(): DaemonAiUsageSnapshot {
   }
 }
 
+export async function getUsage(): Promise<DaemonAiUsageSnapshot> {
+  if (isDaemonAICloudConfigured() && getDaemonAICloudToken()) {
+    try {
+      return await fetchHostedUsage()
+    } catch {
+      return getLocalUsageSnapshot()
+    }
+  }
+  return getLocalUsageSnapshot()
+}
+
 export async function getFeatures(): Promise<DaemonAiFeatureState> {
   const state = getLocalSubscriptionState()
   const connections = ProviderRegistry.getAllConnections()
@@ -239,81 +243,39 @@ export async function getFeatures(): Promise<DaemonAiFeatureState> {
     connections.claude?.authMode !== 'none' && connections.claude ||
     connections.codex?.authMode !== 'none' && connections.codex,
   )
+  const localHostedAvailable = hasFeature(state, 'daemon-ai')
+  const backendConfigured = isDaemonAICloudConfigured()
+  let hostedAvailable = localHostedAvailable
+  let plan = state.plan
+  let accessSource = state.accessSource
+  let features = state.features
+
+  if (backendConfigured && getDaemonAICloudToken() && localHostedAvailable) {
+    try {
+      const cloud = await fetchHostedFeatures()
+      hostedAvailable = cloud.hostedAvailable
+      plan = cloud.plan
+      accessSource = cloud.accessSource
+      features = cloud.features
+    } catch {
+      hostedAvailable = false
+    }
+  }
+
   return {
-    hostedAvailable: hasFeature(state, 'daemon-ai'),
+    hostedAvailable,
     byokAvailable,
-    plan: state.plan,
-    accessSource: state.accessSource,
-    features: state.features,
-    upgradeRequired: !hasFeature(state, 'daemon-ai'),
-    backendConfigured: Boolean(getApiBase()),
+    plan,
+    accessSource,
+    features,
+    upgradeRequired: !localHostedAvailable,
+    backendConfigured,
   }
 }
 
 function toNumber(input: unknown): number | undefined {
   const value = Number(input)
   return Number.isFinite(value) && value >= 0 ? value : undefined
-}
-
-function normalizeProvider(input: unknown): DaemonAiUsageEvent['provider'] | undefined {
-  switch (input) {
-    case 'openai':
-    case 'anthropic':
-    case 'google':
-    case 'local':
-    case 'daemon-cloud':
-    case 'other':
-      return input
-    default:
-      return undefined
-  }
-}
-
-async function runHostedChat(input: DaemonAiChatRequest, prompt: string, lane: DaemonAiModelLane, usedContext: string[]): Promise<HostedChatResult> {
-  const jwt = SecureKey.getKey(PRO_JWT_KEY)
-  const apiBase = getApiBase()
-  if (!apiBase) {
-    throw new Error('DAEMON AI Cloud is not configured. Set DAEMON_AI_API_BASE or use BYOK mode.')
-  }
-  if (!jwt) throw new Error('DAEMON AI hosted mode requires active Pro or holder access.')
-
-  const response = await fetch(`${apiBase}/v1/ai/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${jwt}`,
-      'X-DAEMON-Client': 'desktop-v4',
-    },
-    body: JSON.stringify({
-      conversationId: input.conversationId,
-      mode: input.mode,
-      message: input.message,
-      context: input.context,
-      usedContext,
-      modelPreference: lane,
-      requestId: crypto.randomUUID(),
-      prompt,
-    }),
-  })
-  const body = await response.json().catch(() => null) as {
-    ok?: boolean
-    data?: {
-      text?: string
-      provider?: unknown
-      model?: unknown
-      usage?: HostedUsageReport
-    }
-    error?: string
-  } | null
-  if (!response.ok || body?.ok === false) throw new Error(body?.error ?? `DAEMON AI Cloud returned HTTP ${response.status}`)
-  const text = body?.data?.text
-  if (!text) throw new Error('DAEMON AI Cloud returned an empty response')
-  return {
-    text,
-    provider: normalizeProvider(body?.data?.provider),
-    model: typeof body?.data?.model === 'string' && body.data.model.trim() ? body.data.model : undefined,
-    usage: body?.data?.usage,
-  }
 }
 
 async function runByokChat(prompt: string, lane: DaemonAiModelLane, projectPath?: string | null): Promise<string> {
@@ -353,7 +315,7 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
   ].filter(Boolean).join('\n\n')
 
   if (accessMode === 'hosted') {
-    const usage = getUsage()
+    const usage = getLocalUsageSnapshot()
     const estimatedInputCredits = creditsFor(estimateTokens(fullPrompt), 0, lane)
     if (usage.remainingCredits < estimatedInputCredits) {
       throw new Error('DAEMON AI credits are exhausted for this billing period. Use BYOK mode or upgrade your plan.')
@@ -364,7 +326,16 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
   insertMessage(conversationId, 'user', request.message, { context: context.usedContext })
 
   const hostedResult = accessMode === 'hosted'
-    ? await runHostedChat(request, fullPrompt, lane, context.usedContext)
+    ? await runHostedChat({
+      conversationId: request.conversationId,
+      mode: request.mode,
+      message: request.message,
+      context: request.context,
+      usedContext: context.usedContext,
+      modelPreference: lane,
+      requestId: crypto.randomUUID(),
+      prompt: fullPrompt,
+    })
     : null
   const text = hostedResult?.text ?? await runByokChat(fullPrompt, lane, request.projectPath)
 
@@ -399,7 +370,7 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
     accessMode,
     modelLane: lane,
     usedContext: context.usedContext,
-    usage: getUsage(),
+    usage: accessMode === 'hosted' ? await getUsage() : getLocalUsageSnapshot(),
   }
 }
 
