@@ -51,7 +51,7 @@
     "@solana/mpp": "^0.5.2",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.4",
-    "@x402/core": "^2.9.0",
+    "@x402/core": "^2.11.0",
     "@x402/express": "^2.11.0",
     "@x402/svm": "^2.9.0",
     "better-sqlite3": "^12.8.0",
