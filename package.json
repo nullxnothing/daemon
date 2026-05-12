@@ -96,7 +96,7 @@
     "happy-dom": "^20.8.9",
     "monaco-editor": "^0.55.1",
     "patch-package": "^8.0.1",
-    "pixelmatch": "^7.1.0",
+    "pixelmatch": "^7.2.0",
     "playwright": "^1.59.0",
     "pngjs": "^7.0.0",
     "react": "^19.2.5",
