@@ -10,17 +10,41 @@ import type { FileEntry } from '../shared/types'
 const IGNORED = new Set([
   'node_modules', '.git', 'dist', 'dist-electron', '.next',
   '__pycache__', '.DS_Store', 'release', '.pnpm-store',
+  'coverage', 'target', '.anchor', '.cache', '.turbo', '.vite',
+  '.vercel', '.wrangler',
 ])
+const MAX_READ_DIR_DEPTH = 6
+const MAX_READ_DIR_ENTRIES = 2500
+
+interface ReadDirState {
+  remaining: number
+}
 
 function validatePath(p: string): void {
   if (!isPathSafe(p)) throw new Error('Path outside project boundaries')
 }
 
+async function readImageBase64(filePath: string) {
+  const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp', '.avif'])
+  const ext = path.extname(filePath).toLowerCase()
+  if (!ALLOWED.has(ext)) throw new Error('Not an image file')
+  const stats = fsSync.statSync(filePath)
+  if (stats.size > 50 * 1024 * 1024) throw new Error('Image too large (>50MB)')
+  const buffer = await fs.readFile(filePath)
+  const mimeMap: Record<string, string> = {
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+    '.ico': 'image/x-icon', '.bmp': 'image/bmp', '.avif': 'image/avif',
+  }
+  const mime = mimeMap[ext] ?? 'application/octet-stream'
+  return { dataUrl: `data:${mime};base64,${buffer.toString('base64')}`, size: stats.size }
+}
+
 export function registerFilesystemHandlers() {
   ipcMain.handle('fs:readDir', ipcHandler(async (_event, dirPath: string, depth = 1) => {
     validatePath(dirPath)
-    const safeDepth = Math.min(depth ?? 3, 10)
-    return readDirRecursive(dirPath, safeDepth)
+    const safeDepth = Math.max(1, Math.min(depth ?? 1, MAX_READ_DIR_DEPTH))
+    return readDirRecursive(dirPath, safeDepth, { remaining: MAX_READ_DIR_ENTRIES })
   }))
 
   ipcMain.handle('fs:readFile', ipcHandler(async (_event, filePath: string) => {
@@ -35,19 +59,11 @@ export function registerFilesystemHandlers() {
 
   ipcMain.handle('fs:readImageBase64', ipcHandler(async (_event, filePath: string) => {
     validatePath(filePath)
-    const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp', '.avif'])
-    const ext = path.extname(filePath).toLowerCase()
-    if (!ALLOWED.has(ext)) throw new Error('Not an image file')
-    const stats = fsSync.statSync(filePath)
-    if (stats.size > 50 * 1024 * 1024) throw new Error('Image too large (>50MB)')
-    const buffer = await fs.readFile(filePath)
-    const mimeMap: Record<string, string> = {
-      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-      '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
-      '.ico': 'image/x-icon', '.bmp': 'image/bmp', '.avif': 'image/avif',
-    }
-    const mime = mimeMap[ext] ?? 'application/octet-stream'
-    return { dataUrl: `data:${mime};base64,${buffer.toString('base64')}`, size: stats.size }
+    return readImageBase64(filePath)
+  }))
+
+  ipcMain.handle('fs:readPickedImageBase64', ipcHandler(async (_event, filePath: string) => {
+    return readImageBase64(filePath)
   }))
 
   ipcMain.handle('fs:writeImageFromBase64', ipcHandler(async (_event, filePath: string, base64: string) => {
@@ -117,15 +133,20 @@ export function registerFilesystemHandlers() {
   }))
 }
 
-async function readDirRecursive(dirPath: string, depth: number): Promise<FileEntry[]> {
-  if (depth <= 0) return []
+async function readDirRecursive(dirPath: string, depth: number, state: ReadDirState): Promise<FileEntry[]> {
+  if (depth <= 0 || state.remaining <= 0) return []
 
   try {
     const items = await fs.readdir(dirPath, { withFileTypes: true })
     const entries: FileEntry[] = []
+    items.sort((a, b) => {
+      if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1
+      return a.name.localeCompare(b.name)
+    })
 
     for (const item of items) {
       if (IGNORED.has(item.name)) continue
+      if (state.remaining <= 0) break
 
       const fullPath = path.join(dirPath, item.name)
       const entry: FileEntry = {
@@ -133,19 +154,14 @@ async function readDirRecursive(dirPath: string, depth: number): Promise<FileEnt
         path: fullPath,
         isDirectory: item.isDirectory(),
       }
+      state.remaining -= 1
 
-      if (item.isDirectory() && depth > 1) {
-        entry.children = await readDirRecursive(fullPath, depth - 1)
+      if (item.isDirectory() && depth > 1 && state.remaining > 0) {
+        entry.children = await readDirRecursive(fullPath, depth - 1, state)
       }
 
       entries.push(entry)
     }
-
-    // Directories first, then files, both alphabetical
-    entries.sort((a, b) => {
-      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
-      return a.name.localeCompare(b.name)
-    })
 
     return entries
   } catch {

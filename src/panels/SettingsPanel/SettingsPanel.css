@@ -318,6 +318,52 @@
   color: var(--t3);
 }
 
+.settings-side-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-side-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--s5);
+  border-radius: var(--drawer-card-radius);
+  overflow: hidden;
+  background: var(--s1);
+  box-shadow: var(--shadow-lifted);
+}
+
+.settings-side-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--s5);
+}
+
+.settings-side-row:last-child {
+  border-bottom: none;
+}
+
+.settings-side-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-side-meta {
+  color: var(--t4);
+  font-family: var(--font-code);
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-setup-card {
   display: flex;
   flex-direction: column;

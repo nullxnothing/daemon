@@ -28,7 +28,7 @@ import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
 import { registerSpawnAgentsHandlers } from '../ipc/spawnagents'
-import { startEventStream as startSpawnAgentsEventStream, stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
+import { stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
 import { registerEmailHandlers } from '../ipc/email'
@@ -61,6 +61,7 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 export const VITE_DEV_SERVER_URL = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL
 const SMOKE_TEST_MODE = process.env.DAEMON_SMOKE_TEST === '1'
+const WINDOWS_COMPOSITOR_DISABLED_FEATURES = ['EnableTransparentHwndEnlargement'] as const
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
@@ -68,6 +69,23 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 
 if (process.env.DAEMON_USER_DATA_DIR) {
   app.setPath('userData', process.env.DAEMON_USER_DATA_DIR)
+}
+
+function appendChromiumDisabledFeatures(features: readonly string[]) {
+  const existing = app.commandLine.hasSwitch('disable-features')
+    ? app.commandLine.getSwitchValue('disable-features').split(',')
+    : []
+  const disabled = new Set([
+    ...existing.map((feature) => feature.trim()).filter(Boolean),
+    ...features,
+  ])
+
+  app.commandLine.appendSwitch('disable-features', [...disabled].join(','))
+}
+
+if (process.platform === 'win32') {
+  // Keep DAEMON's frameless custom chrome off Electron 41's transparent HWND path.
+  appendChromiumDisabledFeatures(WINDOWS_COMPOSITOR_DISABLED_FEATURES)
 }
 
 if (SMOKE_TEST_MODE) {
@@ -91,25 +109,44 @@ protocol.registerSchemesAsPrivileged([{
 
 if (process.platform === 'win32') app.setAppUserModelId('com.daemon.app')
 
-// Crash capture — write unhandled errors to app_crashes table
-process.on('uncaughtException', (error) => {
+function recordAppCrash(type: string, message: string, stack = '') {
   try {
     const db = getDb()
     db.prepare('INSERT INTO app_crashes (id, type, message, stack, created_at) VALUES (?,?,?,?,?)').run(
-      crypto.randomUUID(), 'uncaughtException', error.message, error.stack ?? '', Date.now()
+      crypto.randomUUID(), type, message, stack, Date.now()
     )
   } catch { /* DB may not be ready */ }
+}
+
+function stringifyDiagnostic(value: unknown) {
+  if (value instanceof Error) return value.stack ?? value.message
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+function recordNativeDiagnostic(type: string, details: unknown) {
+  const message = stringifyDiagnostic(details)
+  console.warn(`[${type}] ${message}`)
+  recordAppCrash(type, message)
+}
+
+// Crash capture - write unhandled errors to app_crashes table
+process.on('uncaughtException', (error) => {
+  recordAppCrash('uncaughtException', error.message, error.stack ?? '')
 })
 
 process.on('unhandledRejection', (reason) => {
-  try {
-    const db = getDb()
-    const message = reason instanceof Error ? reason.message : String(reason)
-    const stack = reason instanceof Error ? reason.stack ?? '' : ''
-    db.prepare('INSERT INTO app_crashes (id, type, message, stack, created_at) VALUES (?,?,?,?,?)').run(
-      crypto.randomUUID(), 'unhandledRejection', message, stack, Date.now()
-    )
-  } catch { /* DB may not be ready */ }
+  const message = reason instanceof Error ? reason.message : String(reason)
+  const stack = reason instanceof Error ? reason.stack ?? '' : ''
+  recordAppCrash('unhandledRejection', message, stack)
+})
+
+app.on('child-process-gone', (_event, details) => {
+  recordNativeDiagnostic('child-process-gone', details)
 })
 
 if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
@@ -121,6 +158,7 @@ let win: BrowserWindow | null = null
 let ipcRegistered = false
 let startupUiRecovery: UiRecoveryResult | null = null
 let shutdownStarted = false
+let mainWindowShown = false
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
@@ -182,7 +220,6 @@ function registerAllIpc() {
   registerToolHandlers()
   registerPumpFunHandlers()
   registerSpawnAgentsHandlers()
-  startSpawnAgentsEventStream()
   registerBrowserHandlers()
   registerDeployHandlers()
   registerEmailHandlers()
@@ -311,16 +348,21 @@ async function createWindow() {
     return net.fetch(pathToFileURL(filePath).toString())
   })
 
+  mainWindowShown = false
+
   win = new BrowserWindow({
     title: 'DAEMON',
     width: 1440,
     height: 900,
     minWidth: 640,
     minHeight: 600,
+    show: false,
+    paintWhenInitiallyHidden: true,
     frame: false,
-    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hidden' as const } : {}),
+    ...(process.platform === 'win32' ? { roundedCorners: false } : {}),
     backgroundColor: '#0a0a0a',
-    icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    icon: path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'),
     webPreferences: {
       preload,
       contextIsolation: true,
@@ -330,6 +372,22 @@ async function createWindow() {
     },
   })
   if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:browser-window-created')
+
+  const showMainWindow = (reason: string) => {
+    const target = win
+    if (!target || target.isDestroyed() || mainWindowShown) return
+    mainWindowShown = true
+    if (SMOKE_TEST_MODE) console.log(`[smoke] createWindow:show:${reason}`)
+    target.show()
+    if (!SMOKE_TEST_MODE) target.focus()
+    target.webContents.invalidate()
+    setTimeout(() => {
+      if (!target.isDestroyed()) target.webContents.invalidate()
+    }, 100)
+  }
+
+  win.once('ready-to-show', () => showMainWindow('ready-to-show'))
+
   if (VITE_DEV_SERVER_URL) {
     const url = new URL(VITE_DEV_SERVER_URL)
     if (SMOKE_TEST_MODE) {
@@ -369,16 +427,23 @@ async function createWindow() {
 
   win.on('maximize', () => win?.webContents.send('window:maximized'))
   win.on('unmaximize', () => win?.webContents.send('window:unmaximized'))
+  win.webContents.on('render-process-gone', (_event, details) => {
+    recordNativeDiagnostic('render-process-gone', details)
+  })
+  win.webContents.on('unresponsive', () => {
+    recordNativeDiagnostic('renderer-unresponsive', { url: win?.webContents.getURL() })
+  })
+  win.webContents.on('responsive', () => {
+    console.warn('[renderer-responsive]')
+  })
   win.webContents.on('did-finish-load', () => {
     if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:did-finish-load')
+    setTimeout(() => showMainWindow('did-finish-load-fallback'), 1500)
   })
   if (SMOKE_TEST_MODE) {
     win.webContents.on('did-start-loading', () => console.log('[smoke] createWindow:did-start-loading'))
     win.webContents.on('dom-ready', () => console.log('[smoke] createWindow:dom-ready'))
     win.webContents.on('did-stop-loading', () => console.log('[smoke] createWindow:did-stop-loading'))
-    win.webContents.on('render-process-gone', (_event, details) => {
-      console.log('[smoke] createWindow:render-process-gone', JSON.stringify(details))
-    })
     win.webContents.on('unresponsive', () => console.log('[smoke] createWindow:unresponsive'))
     win.webContents.on('responsive', () => console.log('[smoke] createWindow:responsive'))
     win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
@@ -408,6 +473,13 @@ async function createWindow() {
 }
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'))
+    } catch (err) {
+      console.warn('[dock] setIcon failed:', err instanceof Error ? err.message : String(err))
+    }
+  }
   initTelemetry(app.getVersion() || '3.0.8')
   flushRemoteTelemetry().catch((err) => {
     console.warn('[telemetry] Remote telemetry startup failed:', err instanceof Error ? err.message : String(err))

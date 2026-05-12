@@ -4,6 +4,8 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
+import { dialog } from 'electron'
+import fs from 'node:fs'
 import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getPriorityFeeLamports, withKeypair, type TransactionExecutionResult } from './SolanaService'
 
 async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
@@ -159,32 +161,55 @@ export async function getDashboard(projectId?: string | null) {
   const market = await getMarketTape()
 
   if (!heliusConfigured || wallets.length === 0) {
-    return {
-      heliusConfigured,
-      market,
-      portfolio: {
-        totalUsd: 0,
-        delta24hUsd: 0,
-        delta24hPct: 0,
-        walletCount: wallets.length,
+    const fallbackResults = await runWithConcurrency(
+      wallets,
+      5,
+      async (wallet) => {
+        const solHolding = await getNativeSolHolding(wallet.address)
+        const holdings = solHolding ? [solHolding] : []
+        const walletTotal = holdings.reduce((sum, holding) => sum + holding.valueUsd, 0)
+        return { wallet, holdings, walletTotal }
       },
-      wallets: wallets.map((wallet) => ({
+    )
+
+    const fallbackSummaries: WalletSummary[] = []
+    let fallbackTotalUsd = 0
+    let fallbackActiveWallet: { id: string; name: string; address: string; holdings: HoldingSummary[] } | null = null
+
+    for (const result of fallbackResults) {
+      if (result.status !== 'fulfilled') continue
+      const { wallet, holdings, walletTotal } = result.value
+      fallbackTotalUsd += walletTotal
+      fallbackSummaries.push({
         id: wallet.id,
         name: wallet.name,
         address: wallet.address,
         isDefault: wallet.is_default === 1,
-        totalUsd: 0,
-        tokenCount: 0,
+        totalUsd: walletTotal,
+        tokenCount: holdings.length,
         assignedProjectIds: projectAssignments.get(wallet.id) ?? [],
-      })),
-      activeWallet: activeWalletRow
-        ? {
-            id: activeWalletRow.id,
-            name: activeWalletRow.name,
-            address: activeWalletRow.address,
-            holdings: [],
-          }
-        : null,
+      })
+      if (activeWalletRow && wallet.id === activeWalletRow.id) {
+        fallbackActiveWallet = {
+          id: wallet.id,
+          name: wallet.name,
+          address: wallet.address,
+          holdings,
+        }
+      }
+    }
+
+    return {
+      heliusConfigured,
+      market,
+      portfolio: {
+        totalUsd: fallbackTotalUsd,
+        delta24hUsd: 0,
+        delta24hPct: 0,
+        walletCount: wallets.length,
+      },
+      wallets: fallbackSummaries.sort((a, b) => b.totalUsd - a.totalUsd),
+      activeWallet: fallbackActiveWallet,
       feed: [] as PortfolioFeedEntry[],
       recentActivity: [] as HeliusHistoryEvent[],
     }
@@ -198,8 +223,14 @@ export async function getDashboard(projectId?: string | null) {
     wallets,
     WALLET_CONCURRENCY,
     async (wallet) => {
-      const balances = await getWalletBalances(wallet.address, apiKey)
-      const holdings = normalizeHoldings(balances.balances)
+      let holdings: HoldingSummary[]
+      try {
+        const balances = await getWalletBalances(wallet.address, apiKey)
+        holdings = normalizeHoldings(balances.balances)
+      } catch {
+        const solHolding = await getNativeSolHolding(wallet.address)
+        holdings = solHolding ? [solHolding] : []
+      }
       const walletTotal = holdings.reduce((sum, holding) => sum + holding.valueUsd, 0)
       await maybeSnapshotWallet(wallet.id, holdings)
 
@@ -592,6 +623,26 @@ function normalizeHoldings(balances: HeliusBalance[]): HoldingSummary[] {
     .sort((a, b) => b.valueUsd - a.valueUsd)
 }
 
+async function getNativeSolHolding(address: string): Promise<HoldingSummary | null> {
+  try {
+    const lamports = await getConnection().getBalance(new PublicKey(address))
+    if (!Number.isFinite(lamports) || lamports <= 0) return null
+    const amount = lamports / LAMPORTS_PER_SOL
+    const priceUsd = lastSolPrice
+    return {
+      mint: SOL_MINT,
+      symbol: 'SOL',
+      name: 'Solana',
+      amount,
+      priceUsd,
+      valueUsd: priceUsd > 0 ? amount * priceUsd : 0,
+      logoUri: null,
+    }
+  } catch {
+    return null
+  }
+}
+
 function listWalletsRaw(): WalletRow[] {
   const db = getDb()
   return db.prepare('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets ORDER BY is_default DESC, created_at ASC').all() as WalletRow[]
@@ -750,6 +801,133 @@ export function generateWallet(name: string, walletType: 'user' | 'agent' = 'use
   ).run(id, trimmedName, address, existingDefault ? 0 : 1, walletType, agentId ?? null, Date.now())
 
   return db.prepare('SELECT id, name, address, is_default, wallet_type, agent_id, created_at FROM wallets WHERE id = ?').get(id)
+}
+
+function keypairFromBytes(bytes: Uint8Array | number[]): Keypair {
+  if (Array.isArray(bytes) && bytes.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
+    throw new Error('Private key byte values must be between 0 and 255')
+  }
+  const secret = Uint8Array.from(bytes)
+  if (secret.length === 64) return Keypair.fromSecretKey(secret)
+  if (secret.length === 32) return Keypair.fromSeed(secret)
+  throw new Error('Private key must decode to a 32-byte seed or 64-byte Solana secret key')
+}
+
+function cleanPrivateKeyInput(raw: string): string {
+  let value = raw.trim()
+  const assignment = value.match(/^(?:SOLANA_PRIVATE_KEY|PRIVATE_KEY|SECRET_KEY)\s*=\s*(.+)$/is)
+  if (assignment) value = assignment[1].trim()
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1).trim()
+  }
+  return value
+}
+
+function parsePrivateKeyText(raw: string): Keypair {
+  const value = cleanPrivateKeyInput(raw)
+  if (!value) throw new Error('Private key is required')
+
+  const uint8ArrayMatch = value.match(/^Uint8Array\s*\(([\s\S]+)\)$/i)
+  const candidate = uint8ArrayMatch ? uint8ArrayMatch[1].trim() : value
+
+  try {
+    const parsed = JSON.parse(candidate)
+    if (Array.isArray(parsed)) return keypairFromBytes(parsed)
+    if (typeof parsed === 'string') return parsePrivateKeyText(parsed)
+    const nested = parsed?._keypair?.secretKey ?? parsed?.secretKey ?? parsed?.privateKey ?? parsed?.secret_key ?? parsed?.seed
+    if (Array.isArray(nested)) return keypairFromBytes(nested)
+    if (typeof nested === 'string') return parsePrivateKeyText(nested)
+  } catch {
+    // Fall through to plain text formats.
+  }
+
+  const commaBytes = candidate.replace(/^\[/, '').replace(/\]$/, '').trim()
+  if (/^\d{1,3}(?:\s*,\s*\d{1,3})+$/.test(commaBytes)) {
+    return keypairFromBytes(commaBytes.split(',').map((part) => Number(part.trim())))
+  }
+
+  try {
+    return keypairFromBytes(bs58.decode(candidate))
+  } catch {
+    // Continue checking other encodings.
+  }
+
+  const hex = candidate.startsWith('0x') ? candidate.slice(2) : candidate
+  if (/^[0-9a-fA-F]+$/.test(hex) && (hex.length === 64 || hex.length === 128)) {
+    return keypairFromBytes(Buffer.from(hex, 'hex'))
+  }
+
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(candidate)) {
+    const bytes = Buffer.from(candidate, 'base64')
+    if (bytes.length === 32 || bytes.length === 64) return keypairFromBytes(bytes)
+  }
+
+  throw new Error('Unsupported private key format')
+}
+
+function parseKeypairFile(raw: string): Keypair {
+  return parsePrivateKeyText(raw)
+}
+
+async function pickKeypair(): Promise<{ keypair: Keypair; filePath: string } | null> {
+  const result = await dialog.showOpenDialog({
+    title: 'Import Solana Wallet Keypair',
+    filters: [{ name: 'Keypair JSON', extensions: ['json'] }],
+    properties: ['openFile'],
+  })
+
+  if (result.canceled || !result.filePaths[0]) return null
+  const filePath = result.filePaths[0]
+  const raw = fs.readFileSync(filePath, 'utf8')
+  return { keypair: parseKeypairFile(raw), filePath }
+}
+
+export async function importSigningWallet(name: string, privateKey?: string) {
+  const picked = privateKey?.trim() ? { keypair: parsePrivateKeyText(privateKey), filePath: null } : await pickKeypair()
+  if (!picked) return null
+
+  const { keypair } = picked
+  try {
+    const address = keypair.publicKey.toBase58()
+    const trimmedName = name.trim() || `Imported ${address.slice(0, 4)}…${address.slice(-4)}`
+    const db = getDb()
+    const existing = db.prepare('SELECT id FROM wallets WHERE address = ? LIMIT 1').get(address) as { id: string } | undefined
+    const existingDefault = db.prepare('SELECT id FROM wallets WHERE is_default = 1').get() as { id: string } | undefined
+    const id = existing?.id ?? crypto.randomUUID()
+
+    if (existing) {
+      if (name.trim()) db.prepare('UPDATE wallets SET name = ? WHERE id = ?').run(trimmedName, id)
+    } else {
+      db.prepare(
+        'INSERT INTO wallets (id, name, address, is_default, wallet_type, created_at) VALUES (?,?,?,?,?,?)'
+      ).run(id, trimmedName, address, existingDefault ? 0 : 1, 'user', Date.now())
+    }
+
+    SecureKey.storeKey(`WALLET_KEYPAIR_${id}`, bs58.encode(keypair.secretKey))
+    return db.prepare('SELECT id, name, address, is_default, wallet_type, created_at FROM wallets WHERE id = ?').get(id)
+  } finally {
+    keypair.secretKey.fill(0)
+  }
+}
+
+export async function importKeypair(walletId: string, privateKey?: string): Promise<boolean> {
+  const picked = privateKey?.trim() ? { keypair: parsePrivateKeyText(privateKey), filePath: null } : await pickKeypair()
+  if (!picked) return false
+
+  const { keypair } = picked
+  try {
+    const db = getDb()
+    const row = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
+    if (!row) throw new Error('Wallet not found')
+    if (keypair.publicKey.toBase58() !== row.address) {
+      throw new Error(`Keypair address ${keypair.publicKey.toBase58()} does not match wallet ${row.address}`)
+    }
+
+    SecureKey.storeKey(`WALLET_KEYPAIR_${walletId}`, bs58.encode(keypair.secretKey))
+    return true
+  } finally {
+    keypair.secretKey.fill(0)
+  }
 }
 
 export async function transferSOL(

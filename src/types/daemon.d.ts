@@ -343,7 +343,7 @@ declare global {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
     spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
-    ready: (id: string) => void
+    ready: (id: string, cols?: number, rows?: number) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
     kill: (id: string) => Promise<IpcResponse>
@@ -411,6 +411,7 @@ declare global {
     readDir: (dirPath: string, depth?: number) => Promise<IpcResponse<FileEntry[]>>
     readFile: (filePath: string) => Promise<IpcResponse<{ content: string; path: string }>>
     readImageBase64: (filePath: string) => Promise<IpcResponse<{ dataUrl: string; size: number }>>
+    readPickedImageBase64: (filePath: string) => Promise<IpcResponse<{ dataUrl: string; size: number }>>
     writeImageFromBase64: (filePath: string, base64: string) => Promise<IpcResponse>
     pickImage: () => Promise<IpcResponse<string | null>>
     writeFile: (filePath: string, content: string) => Promise<IpcResponse>
@@ -458,6 +459,8 @@ declare global {
     deleteJupiterKey: () => Promise<IpcResponse>
     hasJupiterKey: () => Promise<IpcResponse<boolean>>
     generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
+    importSigningWallet: (input: { name: string; privateKey?: string }) => Promise<IpcResponse<WalletListEntry | null>>
+    importKeypair: (walletId: string, privateKey?: string) => Promise<IpcResponse<boolean>>
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
@@ -1101,6 +1104,8 @@ declare global {
   type SpawnStatusResult = import('../../electron/services/SpawnAgentsService').SpawnStatusResult
   type SpawnTrade = import('../../electron/services/SpawnAgentsService').SpawnTrade
   type SpawnAgentPositions = import('../../electron/services/SpawnAgentsService').SpawnAgentPositions
+  type SpawnAgentPublicProfile = import('../../electron/services/SpawnAgentsService').SpawnAgentPublicProfile
+  type SpawnAgentPublicPortfolio = import('../../electron/services/SpawnAgentsService').SpawnAgentPublicPortfolio
   type SpawnEvent = import('../../electron/services/SpawnAgentsService').SpawnEvent
   type SpawnEventsResult = import('../../electron/services/SpawnAgentsService').SpawnEventsResult
   type SpawnInput = import('../../electron/services/SpawnAgentsService').SpawnInput
@@ -1114,6 +1119,8 @@ declare global {
     get: (agentId: string) => Promise<IpcResponse<SpawnAgentRecord>>
     trades: (agentId: string, limit?: number, offset?: number) => Promise<IpcResponse<{ trades: SpawnTrade[]; limit: number; offset: number }>>
     positions: (agentId: string) => Promise<IpcResponse<SpawnAgentPositions>>
+    publicProfile: (agentId: string) => Promise<IpcResponse<SpawnAgentPublicProfile>>
+    publicPortfolio: (agentId: string) => Promise<IpcResponse<SpawnAgentPublicPortfolio>>
     events: (since: number, agentId?: string, limit?: number) => Promise<IpcResponse<SpawnEventsResult>>
     spawnStatus: (ref: string) => Promise<IpcResponse<SpawnStatusResult>>
     initiateSpawn: (input: SpawnInput) => Promise<IpcResponse<SpawnDepositInstruction>>

@@ -12,6 +12,19 @@ type ProviderId = 'claude' | 'codex'
 // avoiding a useSyncExternalStore infinite re-render loop.
 const EMPTY_PAGES: import('../../store/ui').GridCell[][] = []
 
+function measuredGridTerminalSize(term: XTerm, width: number, height: number): { cols: number; rows: number } | null {
+  const screen = term.element?.querySelector('.xterm-screen')
+  if (!(screen instanceof HTMLElement)) return null
+  const screenRect = screen.getBoundingClientRect()
+  const cellWidth = screenRect.width / Math.max(1, term.cols)
+  const cellHeight = screenRect.height / Math.max(1, term.rows)
+  if (!Number.isFinite(cellWidth) || !Number.isFinite(cellHeight) || cellWidth <= 0 || cellHeight <= 0) return null
+  return {
+    cols: Math.max(2, Math.floor(width / cellWidth)),
+    rows: Math.max(1, Math.floor(height / cellHeight)),
+  }
+}
+
 export function AgentGrid() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
@@ -467,21 +480,35 @@ function AgentGridTerminal({ id }: { id: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+  const disposedRef = useRef(false)
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const doFit = useCallback(() => {
+    if (disposedRef.current) return
     const fit = fitRef.current
     const term = xtermRef.current
     if (!fit || !term || !containerRef.current) return
     const { clientWidth, clientHeight } = containerRef.current
     if (clientWidth === 0 || clientHeight === 0) return
+    let canUseFitAddon = true
     try {
-      fit.fit()
-      window.daemon.terminal.resize(id, term.cols, term.rows)
-    } catch {}
+      canUseFitAddon = Boolean((term as any)._core?._renderService?.dimensions)
+    } catch {
+      canUseFitAddon = false
+    }
+    if (canUseFitAddon) {
+      try { fit.fit() } catch {}
+    }
+    const measured = measuredGridTerminalSize(term, clientWidth, clientHeight)
+    if (measured && (measured.cols !== term.cols || measured.rows !== term.rows)) {
+      try { term.resize(measured.cols, measured.rows) } catch {}
+    }
+    window.daemon.terminal.resize(id, term.cols, term.rows)
   }, [id])
 
   useEffect(() => {
     if (!containerRef.current) return
+    disposedRef.current = false
 
     const term = new XTerm({
       fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
@@ -524,20 +551,28 @@ function AgentGridTerminal({ id }: { id: string }) {
       if (payload.id === id) term.write('\r\n[Process exited]\r\n')
     })
 
-    // Tell main process the renderer is attached so it flushes buffered pty output
-    window.daemon.terminal.ready(id)
-
     const resizeObserver = new ResizeObserver(() => {
-      setTimeout(doFit, 60)
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      resizeTimerRef.current = setTimeout(doFit, 60)
     })
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current)
     }
 
+    const readyTimer = setTimeout(() => {
+      try { doFit() } catch {}
+      window.daemon.terminal.ready(id, term.cols, term.rows)
+    }, 160)
+
     return () => {
+      disposedRef.current = true
+      clearTimeout(readyTimer)
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
+      xtermRef.current = null
+      fitRef.current = null
       try { term.dispose() } catch {}
     }
   }, [id, doFit])

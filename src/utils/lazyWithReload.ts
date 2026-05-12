@@ -15,16 +15,20 @@ export function lazyWithReload<T extends ComponentType<any>>(
   loader: () => Promise<{ default: T }>,
 ): LazyExoticComponent<T> {
   return lazy(async () => {
+    const retryKey = `daemon:lazy-reload:${cacheKey}`
     try {
-      return await loader()
+      const module = await loader()
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(retryKey)
+      }
+      return module
     } catch (error) {
-      const retryKey = `daemon:lazy-reload:${cacheKey}`
       const hasRetried = typeof window !== 'undefined' && window.sessionStorage.getItem(retryKey) === '1'
 
       if (!hasRetried && isStaleChunkError(error)) {
         window.sessionStorage.setItem(retryKey, '1')
-        window.location.reload()
-        return new Promise(() => undefined)
+        window.setTimeout(() => window.location.reload(), 0)
+        throw error
       }
 
       if (typeof window !== 'undefined') {

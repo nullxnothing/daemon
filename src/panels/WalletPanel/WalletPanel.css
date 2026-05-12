@@ -409,6 +409,22 @@
   color: var(--t4);
 }
 
+.wallet-private-key-input {
+  min-height: 104px;
+  height: auto;
+  padding: 10px 12px;
+  line-height: 1.45;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.wallet-signer-import {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--s4);
+}
+
 .wallet-btn {
   height: 32px;
   padding: 0 14px;

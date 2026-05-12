@@ -7,8 +7,8 @@ describe('providerLaunch', () => {
     expect(getEmbeddedProviderStartupCommand('claude')).toBe('claude')
   })
 
-  it('launches Codex without alt-screen for embedded terminals', () => {
-    expect(getEmbeddedProviderArgs('codex')).toEqual(['--no-alt-screen'])
-    expect(getEmbeddedProviderStartupCommand('codex')).toBe('codex --no-alt-screen')
+  it('launches Codex with its default TUI for embedded terminals', () => {
+    expect(getEmbeddedProviderArgs('codex')).toEqual([])
+    expect(getEmbeddedProviderStartupCommand('codex')).toBe('codex')
   })
 })
