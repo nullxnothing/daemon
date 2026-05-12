@@ -31,7 +31,7 @@ export function FileExplorer() {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadDir = useCallback(async (dirPath: string) => {
-    const res = await window.daemon.fs.readDir(dirPath, 6)
+    const res = await window.daemon.fs.readDir(dirPath, 1)
     if (res.ok && res.data) setEntries(res.data)
   }, [])
 

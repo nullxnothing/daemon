@@ -22,7 +22,6 @@ import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
 import { useEmailStore } from './store/email'
-import { useSolanaToolboxStore } from './store/solanaToolbox'
 import { useWorkflowShellStore } from './store/workflowShell'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
 import { Skeleton } from './components/Panel'
@@ -36,6 +35,22 @@ import { lazyNamedWithReload } from './utils/lazyWithReload'
 import { preloadToolPanel } from './components/CommandDrawer/CommandDrawer'
 import './App.css'
 import './styles/drawerSurfaces.css'
+
+const STARTUP_PRELOAD_LIMIT = 2
+const STARTUP_PRELOAD_SKIP = new Set([
+  'browser',
+  'dashboard',
+  'image-editor',
+  'integrations',
+  'solana-toolbox',
+  'token-launch',
+  'block-scanner',
+  'replay-engine',
+  'wallet',
+  'spawnagents',
+  'agent-station',
+  'agent-work',
+])
 
 const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
 const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
@@ -68,7 +83,7 @@ function App() {
   const [appReady, setAppReady] = useState(false)
   const [bootStatus, setBootStatus] = useState('initializing workspace...')
 
-  const [showTerminal, setShowTerminal] = useState(true)
+  const [showTerminal, setShowTerminal] = useState(false)
   const { tier, isCompact, isTablet, isSmall } = useShellLayout()
 
   const { loadProjects, addProject, removeProject } = useProjects()
@@ -252,17 +267,16 @@ function App() {
   }, [smokeMode])
 
   useEffect(() => {
-    if (!isToolVisible('wallet')) return
-    void useWalletStore.getState().refresh(activeProjectId)
-  }, [activeProjectId, isToolVisible])
+    void useWalletStore.getState().loadUiSettings()
+  }, [])
 
   useEffect(() => {
     if (!appReady) return
     const pinnedTools = useUIStore.getState().pinnedTools
     const warmSet = [...new Set(pinnedTools)]
-      .filter((toolId) => toolId !== 'browser')
+      .filter((toolId) => !STARTUP_PRELOAD_SKIP.has(toolId))
       .filter((toolId) => isToolVisible(toolId))
-      .slice(0, 4)
+      .slice(0, STARTUP_PRELOAD_LIMIT)
 
     let cancelled = false
     const warmPanels = () => {
@@ -289,27 +303,6 @@ function App() {
       window.clearTimeout(timeoutId)
     }
   }, [appReady, isToolVisible])
-
-  // Detect Solana project when active project changes
-  useEffect(() => {
-    const solanaToolsVisible = [
-      'agent-work',
-      'agent-station',
-      'project-readiness',
-      'solana-toolbox',
-      'integrations',
-      'token-launch',
-      'block-scanner',
-      'replay-engine',
-      'dashboard',
-    ].some((toolId) => isToolVisible(toolId))
-    if (!solanaToolsVisible) return
-    if (activeProjectPath) {
-      const store = useSolanaToolboxStore.getState()
-      void store.detectProject(activeProjectPath)
-      void store.loadMcps(activeProjectPath)
-    }
-  }, [activeProjectPath, isToolVisible])
 
   // Poll unread email counts every 60 seconds
   useEffect(() => {
@@ -411,7 +404,7 @@ function App() {
             </div>
           )}
           {centerMode === 'canvas' && canShowTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
-          {centerMode === 'canvas' && (
+          {centerMode === 'canvas' && canShowTerminal && !drawerOpen && (
             <div
               id="terminal-area"
               className="terminal-area"
@@ -419,7 +412,6 @@ function App() {
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
                 flex: isEditorCollapsed ? 1 : undefined,
-                display: (!canShowTerminal || drawerOpen) ? 'none' : undefined,
               }}
             >
               <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>

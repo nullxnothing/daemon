@@ -16,7 +16,8 @@ interface Props {
   onRefresh: () => Promise<void>
 }
 
-type ManageCreateTab = 'import' | 'generate'
+type ManageCreateTab = 'import' | 'generate' | 'keypair'
+const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
 export function WalletTab({ onRefresh }: Props) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -31,6 +32,8 @@ export function WalletTab({ onRefresh }: Props) {
   const setStoreShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
   const activeView = useWalletStore((s) => s.activeView)
   const setActiveView = useWalletStore((s) => s.setActiveView)
+  const preferredSwap = useWalletStore((s) => s.preferredSwap)
+  const setPreferredSwap = useWalletStore((s) => s.setPreferredSwap)
   const pushSuccess = useNotificationsStore((s) => s.pushSuccess)
   const pushError = useNotificationsStore((s) => s.pushError)
 
@@ -52,6 +55,10 @@ export function WalletTab({ onRefresh }: Props) {
   const [walletName, setWalletName] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [genName, setGenName] = useState('')
+  const [importKeyName, setImportKeyName] = useState('')
+  const [importPrivateKey, setImportPrivateKey] = useState('')
+  const [attachSignerWalletId, setAttachSignerWalletId] = useState<string | null>(null)
+  const [attachSignerPrivateKey, setAttachSignerPrivateKey] = useState('')
 
   const [sendWalletId, setSendWalletId] = useState<string | null>(null)
   const [sendMode, setSendMode] = useState<'sol' | 'token' | null>(null)
@@ -70,7 +77,6 @@ export function WalletTab({ onRefresh }: Props) {
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
   const [exportConfirmId, setExportConfirmId] = useState<string | null>(null)
   const [exportConfirmText, setExportConfirmText] = useState('')
-  const [preferredSwapMint, setPreferredSwapMint] = useState<string | null>(null)
   const sendLockRef = useRef(false)
   const [pendingSend, setPendingSend] = useState<{
     walletId: string; mode: 'sol' | 'token'; dest: string; amount?: number; sendMax?: boolean; mint?: string
@@ -233,6 +239,39 @@ export function WalletTab({ onRefresh }: Props) {
       return
     }
     setError(res.error ?? 'Failed to generate wallet')
+  }
+
+  const handleImportSigningWallet = async (name: string, privateKey?: string) => {
+    setError(null)
+    setGenSuccess(null)
+    const res = await window.daemon.wallet.importSigningWallet({ name, privateKey })
+    if (res.ok) {
+      if (res.data) {
+        setGenSuccess(res.data.address)
+        setImportKeyName('')
+        setImportPrivateKey('')
+        pushSuccess('Signing wallet imported', 'Wallet')
+        await onRefresh()
+      }
+      return
+    }
+    setError(res.error ?? 'Failed to import signing wallet')
+  }
+
+  const handleImportKeypairForWallet = async (walletId: string, privateKey?: string) => {
+    setError(null)
+    const res = await window.daemon.wallet.importKeypair(walletId, privateKey)
+    if (res.ok) {
+      if (res.data) {
+        pushSuccess('Signer added to wallet', 'Wallet')
+        setKeypairCache((prev) => ({ ...prev, [walletId]: true }))
+        setAttachSignerWalletId(null)
+        setAttachSignerPrivateKey('')
+        await onRefresh()
+      }
+      return
+    }
+    setError(res.error ?? 'Failed to import keypair')
   }
 
   const handleSaveHelius = async (key: string) => {
@@ -463,7 +502,7 @@ export function WalletTab({ onRefresh }: Props) {
   }
 
   const handleSwapHolding = (mint: string) => {
-    setPreferredSwapMint(mint)
+    setPreferredSwap({ inputMint: mint, outputMint: SOL_MINT })
     setActiveView('swap')
   }
 
@@ -541,10 +580,10 @@ export function WalletTab({ onRefresh }: Props) {
         walletName={activeWallet.name}
         holdings={activeWallet.holdings}
         executionMode={walletInfrastructure.executionMode}
-        initialInputMint={preferredSwapMint ?? undefined}
-        initialOutputMint={preferredSwapMint ? 'So11111111111111111111111111111111111111112' : undefined}
+        initialInputMint={preferredSwap?.inputMint}
+        initialOutputMint={preferredSwap?.outputMint}
         onBack={() => {
-          setPreferredSwapMint(null)
+          setPreferredSwap(null)
           setActiveView('overview')
         }}
         onRefresh={onRefresh}
@@ -615,6 +654,7 @@ export function WalletTab({ onRefresh }: Props) {
           </div>
           <div className="wallet-actions wallet-actions-wrap">
             <button type="button" className="wallet-btn primary" onClick={() => { setCreateTab('generate'); setActiveView('manage') }}>Generate signing wallet</button>
+            <button type="button" className="wallet-btn" onClick={() => { setCreateTab('keypair'); setActiveView('manage') }}>Import signing wallet</button>
             <button type="button" className="wallet-btn" onClick={() => { setCreateTab('import'); setActiveView('manage') }}>Track existing address</button>
           </div>
         </section>
@@ -786,6 +826,7 @@ export function WalletTab({ onRefresh }: Props) {
               </div>
               <div className="wallet-first-run-actions">
                 <button type="button" className="wallet-btn primary" onClick={() => { setCreateTab('generate'); setGenSuccess(null) }}>Generate signing wallet</button>
+                <button type="button" className="wallet-btn" onClick={() => { setCreateTab('keypair'); setGenSuccess(null) }}>Import signing wallet</button>
                 <button type="button" className="wallet-btn" onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Track existing address</button>
               </div>
             </section>
@@ -794,15 +835,34 @@ export function WalletTab({ onRefresh }: Props) {
           <section className="wallet-section">
             <div className="wallet-section-header">
               <div>
-                <div className="wallet-section-title">{trackedWallets.length === 0 ? 'Create your first wallet' : 'Create or track wallet'}</div>
-                <div className="wallet-caption">Generate a signing wallet for transactions. Track an existing address for read-only monitoring.</div>
+                <div className="wallet-section-title">{trackedWallets.length === 0 ? 'Create your first wallet' : 'Create, import, or track wallet'}</div>
+                <div className="wallet-caption">Import a Solana keypair or generate a signing wallet for transactions. Track an address only for read-only monitoring.</div>
               </div>
             </div>
             <div className="wallet-tab-group wallet-create-tabs">
               <button type="button" className={`wallet-tab ${createTab === 'generate' ? 'active' : ''}`} onClick={() => { setCreateTab('generate'); setGenSuccess(null) }}>Generate</button>
+              <button type="button" className={`wallet-tab ${createTab === 'keypair' ? 'active' : ''}`} onClick={() => { setCreateTab('keypair'); setGenSuccess(null) }}>Import keypair</button>
               <button type="button" className={`wallet-tab ${createTab === 'import' ? 'active' : ''}`} onClick={() => { setCreateTab('import'); setGenSuccess(null) }}>Track address</button>
             </div>
             {error && <div className="wallet-error-msg">{error}</div>}
+            {createTab === 'keypair' && (
+              <div className="wallet-form wallet-create-grid">
+                <div className="wallet-create-note">Paste a private key or Solana keypair JSON. DAEMON stores the signer encrypted for transactions.</div>
+                <input className="wallet-input" value={importKeyName} onChange={(e) => setImportKeyName(e.target.value)} placeholder="Wallet name (optional)" />
+                <textarea
+                  className="wallet-input wallet-private-key-input"
+                  value={importPrivateKey}
+                  onChange={(e) => setImportPrivateKey(e.target.value)}
+                  placeholder="Private key, seed, JSON array, base58, base64, or hex"
+                  spellCheck={false}
+                />
+                <div className="wallet-actions wallet-actions-wrap">
+                  <button type="button" className="wallet-btn primary" onClick={() => void handleImportSigningWallet(importKeyName.trim(), importPrivateKey.trim())}>Import signing wallet</button>
+                  <button type="button" className="wallet-btn" onClick={() => void handleImportSigningWallet(importKeyName.trim())}>Choose keypair JSON</button>
+                </div>
+                {genSuccess && <div className="wallet-success-msg">Imported: {truncateAddress(genSuccess)}</div>}
+              </div>
+            )}
             {createTab === 'import' && (
               <div className="wallet-form wallet-create-grid">
                 <div className="wallet-create-note">Watch-only. DAEMON will not be able to sign from this address.</div>
@@ -849,12 +909,28 @@ export function WalletTab({ onRefresh }: Props) {
                       {activeProjectId && <button type="button" className="wallet-btn primary-soft" onClick={() => void handleAssignProject(wallet.id)}>Use for project</button>}
                       <button type="button" className="wallet-btn" onClick={() => void handleCopyWalletAddress(wallet.address, wallet.name)}>Copy address</button>
                       {keypairCache[wallet.id] && <button type="button" className="wallet-btn primary" onClick={() => openSend(wallet.id, 'sol')}>Move funds</button>}
+                      {!keypairCache[wallet.id] && <button type="button" className="wallet-btn primary" onClick={() => { setAttachSignerWalletId(wallet.id); setAttachSignerPrivateKey('') }}>Add signer</button>}
                     </div>
                     <div className="wallet-actions wallet-actions-wrap wallet-actions-card-utility">
                       {keypairCache[wallet.id] && <button type="button" className="wallet-btn subtle" onClick={() => handleExportKeyStart(wallet.id)}>Export key</button>}
                       <button type="button" className="wallet-btn danger" onClick={() => void handleDeleteWallet(wallet.id)}>Remove</button>
                     </div>
                   </div>
+                  {attachSignerWalletId === wallet.id && (
+                    <div className="wallet-form wallet-create-grid wallet-signer-import">
+                      <textarea
+                        className="wallet-input wallet-private-key-input"
+                        value={attachSignerPrivateKey}
+                        onChange={(e) => setAttachSignerPrivateKey(e.target.value)}
+                        placeholder="Private key for this address"
+                        spellCheck={false}
+                      />
+                      <div className="wallet-actions wallet-actions-wrap">
+                        <button type="button" className="wallet-btn primary" onClick={() => void handleImportKeypairForWallet(wallet.id, attachSignerPrivateKey.trim())}>Import signer</button>
+                        <button type="button" className="wallet-btn" onClick={() => { setAttachSignerWalletId(null); setAttachSignerPrivateKey('') }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                   {renderWalletInline(wallet.id)}
                 </div>
               ))}

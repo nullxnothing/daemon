@@ -77,7 +77,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const swapLockRef = useRef(false)
 
   // Merge wallet holdings with common tokens for the dropdown
-  const allTokens = mergeTokenLists(holdings)
+  const allTokens = mergeTokenLists(holdings, [initialInputMint, initialOutputMint])
 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
@@ -478,7 +478,8 @@ interface TokenOption {
 }
 
 function mergeTokenLists(
-  holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
+  holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>,
+  extraMints: Array<string | undefined> = [],
 ): TokenOption[] {
   const seen = new Set<string>()
   const result: TokenOption[] = []
@@ -497,6 +498,12 @@ function mergeTokenLists(
       seen.add(t.mint)
       result.push({ mint: t.mint, symbol: t.symbol, decimals: t.decimals })
     }
+  }
+
+  for (const mint of extraMints) {
+    if (!mint || seen.has(mint)) continue
+    seen.add(mint)
+    result.push({ mint, symbol: shortMint(mint) })
   }
 
   return result

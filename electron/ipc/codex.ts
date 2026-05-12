@@ -43,9 +43,7 @@ export function registerCodexHandlers() {
   // --- Connection ---
 
   ipcMain.handle('codex:verify-connection', ipcHandler(async () => {
-    const conn = await CodexProvider.verifyConnection()
-    broadcast('auth:changed', { providerId: 'codex' })
-    return conn
+    return await CodexProvider.verifyConnection()
   }))
 
   ipcMain.handle('codex:get-connection', ipcHandler(async () => {

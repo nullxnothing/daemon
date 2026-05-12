@@ -51,12 +51,28 @@ const EMPTY_SEARCH: TerminalSearchState = {
   currentIndex: 0,
 }
 
+function measuredTerminalSize(term: XTerm, width: number, height: number): { cols: number; rows: number } | null {
+  const screen = term.element?.querySelector('.xterm-screen')
+  if (!(screen instanceof HTMLElement)) return null
+
+  const screenRect = screen.getBoundingClientRect()
+  const cellWidth = screenRect.width / Math.max(1, term.cols)
+  const cellHeight = screenRect.height / Math.max(1, term.rows)
+  if (!Number.isFinite(cellWidth) || !Number.isFinite(cellHeight) || cellWidth <= 0 || cellHeight <= 0) return null
+
+  return {
+    cols: Math.max(2, Math.floor(width / cellWidth)),
+    rows: Math.max(1, Math.floor(height / cellHeight)),
+  }
+}
+
 interface TerminalInstanceProps {
   id: string
   isVisible: boolean
 }
 
 export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }: TerminalInstanceProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -91,16 +107,23 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     if (!term.element?.parentElement) return
     const { clientWidth, clientHeight } = containerRef.current
     if (clientWidth === 0 || clientHeight === 0) return
-    // Guard: xterm's internal _renderService must have dimensions initialized
-    // before fit() triggers syncScrollArea — otherwise we hit a TypeError
+    let canUseFitAddon = true
     try {
-      const rs = (term as any)._core?._renderService
-      if (rs && !rs.dimensions) return
-    } catch {}
-    try {
-      fit.fit()
-      window.daemon.terminal.resize(id, term.cols, term.rows)
-    } catch {}
+      canUseFitAddon = Boolean((term as any)._core?._renderService?.dimensions)
+    } catch {
+      canUseFitAddon = false
+    }
+
+    if (canUseFitAddon) {
+      try { fit.fit() } catch {}
+    }
+
+    const measured = measuredTerminalSize(term, clientWidth, clientHeight)
+    if (measured && (measured.cols !== term.cols || measured.rows !== term.rows)) {
+      try { term.resize(measured.cols, measured.rows) } catch {}
+    }
+
+    window.daemon.terminal.resize(id, term.cols, term.rows)
   }, [id])
 
   const handleContextMenu = useCallback(async (event: React.MouseEvent<HTMLDivElement>) => {
@@ -240,6 +263,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
   useEffect(() => {
     if (!containerRef.current) return
+    disposedRef.current = false
 
     const term = new XTerm({
       fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
@@ -384,8 +408,10 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     // Signal ready after a short delay to let the RAF fit land first,
     // but guarantee it always fires so data is never stuck in the buffer.
     const readyTimer = setTimeout(() => {
-      window.daemon.terminal.ready(id)
-    }, 80)
+      try { doFit() } catch {}
+      const term = xtermRef.current
+      window.daemon.terminal.ready(id, term?.cols, term?.rows)
+    }, 160)
 
     const cleanupExit = window.daemon.terminal.onExit((payload) => {
       if (payload.id === id && xtermRef.current) {
@@ -395,6 +421,10 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
     const resizeObserver = new ResizeObserver(debouncedFit)
     resizeObserver.observe(containerRef.current)
+    window.addEventListener('resize', debouncedFit)
+    document.fonts?.ready.then(() => {
+      if (!disposedRef.current) debouncedFit()
+    }).catch(() => {})
 
     return () => {
       // Mark disposed immediately so pending doFit / observer callbacks bail out
@@ -402,6 +432,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       clearTimeout(readyTimer)
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
       resizeObserver.disconnect()
+      window.removeEventListener('resize', debouncedFit)
       cleanupData()
       cleanupExit()
       // Null refs BEFORE dispose to prevent doFit/debouncedFit from accessing
@@ -446,7 +477,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   }, [isVisible, doFit])
 
   const setDragActive = (active: boolean) => {
-    containerRef.current?.classList.toggle('drag-active', active)
+    wrapperRef.current?.classList.toggle('drag-active', active)
   }
 
   const quotePath = (value: string) => `"${value.replace(/"/g, '\\"')}"`
@@ -479,7 +510,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   return (
     <div className="terminal-view-wrap">
       <div
-        ref={containerRef}
+        ref={wrapperRef}
         className="terminal-view"
         style={{ visibility: isVisible ? 'visible' : 'hidden' }}
         onClick={() => xtermRef.current?.focus()}
@@ -489,14 +520,14 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
           e.preventDefault()
           e.dataTransfer.dropEffect = 'copy'
           if (e.dataTransfer.types.includes('application/x-daemon-command')) {
-            containerRef.current?.classList.add('command-drag-active')
+            wrapperRef.current?.classList.add('command-drag-active')
           }
         }}
         onDragLeave={() => {
           dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
           if (dragDepthRef.current === 0) {
             setDragActive(false)
-            containerRef.current?.classList.remove('command-drag-active')
+            wrapperRef.current?.classList.remove('command-drag-active')
           }
         }}
         onDrop={(e) => {
@@ -504,15 +535,15 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
           if (command) {
             e.preventDefault()
             dragDepthRef.current = 0
-            containerRef.current?.classList.remove('drag-active')
-            containerRef.current?.classList.remove('command-drag-active')
+            wrapperRef.current?.classList.remove('drag-active')
+            wrapperRef.current?.classList.remove('command-drag-active')
             window.daemon.terminal.write(id, command)
             xtermRef.current?.focus()
             return
           }
           dragDepthRef.current = 0
           setDragActive(false)
-          containerRef.current?.classList.remove('command-drag-active')
+          wrapperRef.current?.classList.remove('command-drag-active')
           const files = Array.from(e.dataTransfer.files)
           const hasFolder = files.some((f) => f.size === 0 && !f.type)
           if (hasFolder) return
@@ -520,6 +551,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
           writeDroppedPaths(extractDroppedPaths(e))
         }}
       >
+        <div ref={containerRef} className="terminal-mount" />
         {/* Right-click pastes directly (no context menu) */}
       </div>
 

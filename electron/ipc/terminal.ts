@@ -179,7 +179,7 @@ export function registerTerminalHandlers() {
     const session = createPtySession(id, '', [], cwd, null, null, null, opts?.isAgent ?? false)
 
     if (opts?.startupCommand?.trim()) {
-      session.pty.write(`${opts.startupCommand.trim()}\r`)
+      session.pendingStartupCommand = opts.startupCommand.trim()
     }
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
@@ -264,9 +264,14 @@ export function registerTerminalHandlers() {
     }
   })
 
-  ipcMain.on('terminal:ready', (_event, id: string) => {
+  ipcMain.on('terminal:ready', (_event, id: string, cols?: number, rows?: number) => {
     const session = sessions.get(id)
     if (!session) return
+    if (Number.isFinite(cols) && Number.isFinite(rows) && cols! > 1 && rows! > 0) {
+      try { session.pty.resize(Math.floor(cols!), Math.floor(rows!)) } catch (err) {
+        LogService.warn('Terminal', `Failed to resize terminal ${id} during ready`, { error: (err as Error).message })
+      }
+    }
     session.rendererReady = true
     const buffered = session.dataBuffer ?? []
     session.dataBuffer = []

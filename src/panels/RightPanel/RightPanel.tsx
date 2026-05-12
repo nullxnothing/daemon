@@ -4,6 +4,7 @@ import { useUIStore } from '../../store/ui'
 import { ClaudePanel } from '../ClaudePanel/ClaudePanel'
 import { CodexPanel } from '../CodexPanel/CodexPanel'
 import { AriaChat } from '../ClaudePanel/AriaChat'
+import { RightSidebarWidgets } from './RightSidebarWidgets'
 import './RightPanel.css'
 
 function useClaudeStatus(): 'live' | 'unknown' {
@@ -57,8 +58,18 @@ function useCodexStatus(): 'live' | 'unknown' {
 export function RightPanel() {
   const rightPanelTab = useUIStore((s) => s.rightPanelTab)
   const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
+  const [assistantOpen, setAssistantOpen] = useState(true)
   const claudeStatus = useClaudeStatus()
   const codexStatus = useCodexStatus()
+
+  const toggleAssistant = (tab: 'claude' | 'codex') => {
+    if (rightPanelTab === tab) {
+      setAssistantOpen((open) => !open)
+      return
+    }
+    setRightPanelTab(tab)
+    setAssistantOpen(true)
+  }
 
   return (
     <div className="right-panel-wrap">
@@ -70,24 +81,24 @@ export function RightPanel() {
 
       <div className="right-panel-tabs" role="tablist">
         <button
-          className={`right-panel-tab${rightPanelTab === 'claude' ? ' active' : ''}`}
+          className={`right-panel-tab${rightPanelTab === 'claude' && assistantOpen ? ' active' : ''}`}
           role="tab"
-          aria-selected={rightPanelTab === 'claude'}
-          onClick={() => setRightPanelTab('claude')}
+          aria-selected={rightPanelTab === 'claude' && assistantOpen}
+          onClick={() => toggleAssistant('claude')}
           aria-label="Claude"
-          title="Claude"
+          title={rightPanelTab === 'claude' && assistantOpen ? 'Close Claude' : 'Open Claude'}
         >
           <span className={`right-panel-tab-dot${claudeStatus === 'live' ? ' live' : ''}`} />
           <img src="./claude-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
           <span className="right-panel-tab-label">Claude</span>
         </button>
         <button
-          className={`right-panel-tab${rightPanelTab === 'codex' ? ' active' : ''}`}
+          className={`right-panel-tab${rightPanelTab === 'codex' && assistantOpen ? ' active' : ''}`}
           role="tab"
-          aria-selected={rightPanelTab === 'codex'}
-          onClick={() => setRightPanelTab('codex')}
+          aria-selected={rightPanelTab === 'codex' && assistantOpen}
+          onClick={() => toggleAssistant('codex')}
           aria-label="Codex"
-          title="Codex"
+          title={rightPanelTab === 'codex' && assistantOpen ? 'Close Codex' : 'Open Codex'}
         >
           <span className={`right-panel-tab-dot${codexStatus === 'live' ? ' live' : ''}`} />
           <img src="./codex-logo.png" alt="" width={14} height={14} style={{ display: 'block' }} />
@@ -95,8 +106,10 @@ export function RightPanel() {
         </button>
       </div>
 
-      <div className="right-panel-content">
-        {rightPanelTab === 'codex' ? <CodexPanel /> : <ClaudePanel />}
+      <RightSidebarWidgets />
+
+      <div className={`right-panel-content${assistantOpen ? '' : ' right-panel-content--closed'}`} aria-hidden={!assistantOpen}>
+        {assistantOpen && (rightPanelTab === 'codex' ? <CodexPanel /> : <ClaudePanel />)}
       </div>
 
       <AriaChat />

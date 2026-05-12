@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('daemon', {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
     spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
-    ready: (id: string) => ipcRenderer.send('terminal:ready', id),
+    ready: (id: string, cols?: number, rows?: number) => ipcRenderer.send('terminal:ready', id, cols, rows),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
@@ -80,6 +80,7 @@ contextBridge.exposeInMainWorld('daemon', {
     readDir: (dirPath: string, depth?: number) => ipcRenderer.invoke('fs:readDir', dirPath, depth),
     readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
     readImageBase64: (filePath: string) => ipcRenderer.invoke('fs:readImageBase64', filePath),
+    readPickedImageBase64: (filePath: string) => ipcRenderer.invoke('fs:readPickedImageBase64', filePath),
     writeImageFromBase64: (filePath: string, base64: string) => ipcRenderer.invoke('fs:writeImageFromBase64', filePath, base64),
     pickImage: () => ipcRenderer.invoke('fs:pickImage'),
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
@@ -259,6 +260,8 @@ contextBridge.exposeInMainWorld('daemon', {
     deleteJupiterKey: () => ipcRenderer.invoke('wallet:delete-jupiter-key'),
     hasJupiterKey: () => ipcRenderer.invoke('wallet:has-jupiter-key'),
     generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
+    importSigningWallet: (input: { name: string; privateKey?: string }) => ipcRenderer.invoke('wallet:import-signing-wallet', input),
+    importKeypair: (walletId: string, privateKey?: string) => ipcRenderer.invoke('wallet:import-keypair', walletId, privateKey),
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
@@ -423,6 +426,8 @@ contextBridge.exposeInMainWorld('daemon', {
     get: (agentId: string) => ipcRenderer.invoke('spawnagents:get', agentId),
     trades: (agentId: string, limit?: number, offset?: number) => ipcRenderer.invoke('spawnagents:trades', agentId, limit, offset),
     positions: (agentId: string) => ipcRenderer.invoke('spawnagents:positions', agentId),
+    publicProfile: (agentId: string) => ipcRenderer.invoke('spawnagents:public-profile', agentId),
+    publicPortfolio: (agentId: string) => ipcRenderer.invoke('spawnagents:public-portfolio', agentId),
     events: (since: number, agentId?: string, limit?: number) => ipcRenderer.invoke('spawnagents:events', since, agentId, limit),
     spawnStatus: (ref: string) => ipcRenderer.invoke('spawnagents:spawn-status', ref),
     initiateSpawn: (input: import('../services/SpawnAgentsService').SpawnInput) => ipcRenderer.invoke('spawnagents:initiate-spawn', input),
@@ -432,9 +437,19 @@ contextBridge.exposeInMainWorld('daemon', {
     withdraw: (agentId: string, walletId: string, amountSol: number) => ipcRenderer.invoke('spawnagents:withdraw', agentId, walletId, amountSol),
     kill: (agentId: string, walletId: string) => ipcRenderer.invoke('spawnagents:kill', agentId, walletId),
     onEvent: (callback: (ev: import('../services/SpawnAgentsService').SpawnEvent) => void) => {
+      let disposed = false
       const handler = (_e: unknown, ev: import('../services/SpawnAgentsService').SpawnEvent) => callback(ev)
       ipcRenderer.on('spawnagents:event', handler)
-      return () => { ipcRenderer.off('spawnagents:event', handler) }
+      void ipcRenderer.invoke('spawnagents:event-stream:start').then(() => {
+        if (disposed) void ipcRenderer.invoke('spawnagents:event-stream:stop')
+      }).catch(() => {
+        // Event streaming is best-effort; direct reads still work.
+      })
+      return () => {
+        disposed = true
+        ipcRenderer.off('spawnagents:event', handler)
+        void ipcRenderer.invoke('spawnagents:event-stream:stop').catch(() => {})
+      }
     },
   },
 

@@ -66,6 +66,14 @@ export function registerWalletHandlers() {
     return WalletService.generateWallet(input.name, input.walletType, input.agentId)
   }))
 
+  ipcMain.handle('wallet:import-signing-wallet', ipcHandler(async (_event, input: { name: string; privateKey?: string }) => {
+    return WalletService.importSigningWallet(input.name, input.privateKey)
+  }))
+
+  ipcMain.handle('wallet:import-keypair', ipcHandler(async (_event, walletId: string, privateKey?: string) => {
+    return WalletService.importKeypair(walletId, privateKey)
+  }))
+
   ipcMain.handle('wallet:send-sol', ipcHandler(async (_event, input: TransferSOLInput) => {
     return await WalletService.transferSOL(input.fromWalletId, input.toAddress, input.amountSol, input.sendMax === true)
   }))

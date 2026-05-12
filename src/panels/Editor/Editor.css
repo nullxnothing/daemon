@@ -328,6 +328,14 @@
   min-height: 100%;
 }
 
+.workspace-panel-loading {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--t3);
+  font-size: 12px;
+}
+
 .editor-breadcrumbs {
   height: 28px;
   display: flex;

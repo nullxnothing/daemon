@@ -54,6 +54,11 @@ interface WalletTransaction {
 type WalletActiveView = 'overview' | 'holdings' | 'move' | 'manage' | 'history' | 'swap' | 'receive' | 'vault'
 type WalletTab = 'wallet' | 'agents'
 
+interface PreferredSwapRoute {
+  inputMint: string
+  outputMint: string
+}
+
 interface WalletStoreState {
   dashboard: WalletDashboard | null
   showMarketTape: boolean
@@ -64,8 +69,11 @@ interface WalletStoreState {
   transactions: WalletTransaction[] | null
   activeView: WalletActiveView
   activeTab: WalletTab
+  preferredSwap: PreferredSwapRoute | null
   setActiveView: (view: WalletActiveView) => void
   setActiveTab: (tab: WalletTab) => void
+  setPreferredSwap: (route: PreferredSwapRoute | null) => void
+  loadUiSettings: () => Promise<void>
   refresh: (projectId?: string | null) => Promise<void>
   setShowMarketTape: (enabled: boolean) => Promise<boolean>
   setShowTitlebarWallet: (enabled: boolean) => Promise<boolean>
@@ -87,8 +95,24 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   transactions: null,
   activeView: 'overview',
   activeTab: 'wallet',
+  preferredSwap: null,
   setActiveView: (view) => set({ activeView: view }),
   setActiveTab: (tab) => set({ activeTab: tab }),
+  setPreferredSwap: (route) => set({ preferredSwap: route }),
+
+  loadUiSettings: async () => {
+    try {
+      const res = await daemon.settings.getUi()
+      if (res.ok && res.data) {
+        set({
+          showMarketTape: res.data.showMarketTape,
+          showTitlebarWallet: res.data.showTitlebarWallet,
+        })
+      }
+    } catch {
+      // Keep defaults when settings are unavailable during early boot.
+    }
+  },
 
   refresh: async (projectId) => {
     set({ loading: true, error: null })

@@ -9,11 +9,19 @@ import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/Comman
 import { KeyboardShortcuts } from '../../components/KeyboardShortcuts'
 import { NavigationGuide } from '../../components/NavigationGuide'
 import { isToolDisableable } from '../../constants/toolRegistry'
+import {
+  readRightSidebarWidgetConfig,
+  RIGHT_SIDEBAR_WIDGET_EVENT,
+  RIGHT_SIDEBAR_WIDGETS,
+  setRightSidebarWidgetEnabled,
+  writeRightSidebarWidgetConfig,
+  type RightSidebarWidgetConfig,
+} from '../RightPanel/sidebarAgentWidgetConfig'
 import type { WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'tools' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
+type SettingsTab = 'keys' | 'integrations' | 'agents' | 'tools' | 'sidePanels' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
 interface AppMeta {
   version: string
   electronVersion: string
@@ -45,6 +53,7 @@ const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
+  { tab: 'sidePanels', keywords: ['side panel', 'side panels', 'right panel', 'right sidebar', 'widget', 'widgets', 'spawn agent', 'wallet snapshot'] },
   { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market'] },
   { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding'] },
   { tab: 'shortcuts', keywords: ['shortcut', 'keyboard', 'hotkey', 'keybind', 'ctrl', 'cmd', 'key binding'] },
@@ -87,14 +96,14 @@ export function SettingsPanel() {
       </div>
 
       <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'tools', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
+        {(['keys', 'integrations', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
             data-tab={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
+            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'sidePanels' ? 'Side Panels' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
           </button>
         ))}
       </div>
@@ -104,6 +113,7 @@ export function SettingsPanel() {
         {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
         {tab === 'agents' && <AgentsSection />}
         {tab === 'tools' && <ToolVisibilitySection />}
+        {tab === 'sidePanels' && <SidePanelsSection />}
         {tab === 'display' && <DisplaySection />}
         {tab === 'setup' && <SetupSection />}
         {tab === 'shortcuts' && <KeyboardShortcuts />}
@@ -681,6 +691,91 @@ const PROFILE_OPTIONS: { name: WorkspaceProfileName; label: string }[] = [
   { name: 'solana', label: 'Solana' },
   { name: 'custom', label: 'Custom' },
 ]
+
+function SidePanelsSection() {
+  const [config, setConfig] = useState<RightSidebarWidgetConfig>(readRightSidebarWidgetConfig)
+
+  useEffect(() => {
+    const refresh = () => setConfig(readRightSidebarWidgetConfig())
+    window.addEventListener(RIGHT_SIDEBAR_WIDGET_EVENT, refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener(RIGHT_SIDEBAR_WIDGET_EVENT, refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
+  const toggleWidget = (widgetId: keyof RightSidebarWidgetConfig['enabled'], enabled: boolean) => {
+    setRightSidebarWidgetEnabled(widgetId, enabled)
+    setConfig(readRightSidebarWidgetConfig())
+  }
+
+  const enableSuggested = () => {
+    writeRightSidebarWidgetConfig({
+      ...config,
+      enabled: {
+        ...config.enabled,
+        'project-status': true,
+        'wallet-snapshot': true,
+        'solana-readiness': true,
+        'token-watch': true,
+        'ai-status': true,
+      },
+    })
+    setConfig(readRightSidebarWidgetConfig())
+  }
+
+  const disableAll = () => {
+    writeRightSidebarWidgetConfig({
+      ...config,
+      enabled: {
+        'project-status': false,
+        'wallet-snapshot': false,
+        'solana-readiness': false,
+        'token-watch': false,
+        'ai-status': false,
+        'spawn-agent': false,
+      },
+    })
+    setConfig(readRightSidebarWidgetConfig())
+  }
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Configure the widget stack that appears between the Claude/Codex toggles and ARIA in the right sidebar.
+      </div>
+
+      <div className="settings-side-actions">
+        <button type="button" className="settings-btn primary" onClick={enableSuggested}>
+          Enable Suggested
+        </button>
+        <button type="button" className="settings-btn" onClick={disableAll}>
+          Clear Sidebar
+        </button>
+      </div>
+
+      <div className="settings-side-list">
+        {RIGHT_SIDEBAR_WIDGETS.map((widget) => (
+          <div key={widget.id} className="settings-side-row">
+            <div className="settings-side-copy">
+              <span className="settings-display-label">{widget.name}</span>
+              <span className="settings-display-hint">{widget.description}</span>
+              {widget.id === 'spawn-agent' && config.spawnAgentId && (
+                <span className="settings-side-meta">Pinned agent: {config.spawnAgentId}</span>
+              )}
+            </div>
+            <Toggle checked={config.enabled[widget.id]} onChange={(v) => toggleWidget(widget.id, v)} />
+          </div>
+        ))}
+      </div>
+
+      <div className="settings-section-desc tight">
+        The Spawn Agent widget can be pinned from a SpawnAgents detail page. If enabled without a pinned agent, it shows the first owned agent it can load.
+      </div>
+    </div>
+  )
+}
 
 function DisplaySection() {
   const showMarketTape = useWalletStore((s) => s.showMarketTape)

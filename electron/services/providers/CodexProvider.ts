@@ -14,6 +14,31 @@ import type { ProviderInterface, ProviderConnection, ProviderBuildResult, Provid
 let cachedConnection: ProviderConnection | null = null
 let cachedCodexPath: string | null = null
 
+function hasCodexCliAuth(auth: unknown): boolean {
+  if (!auth || typeof auth !== 'object') return false
+
+  const data = auth as {
+    OPENAI_API_KEY?: unknown
+    auth_mode?: unknown
+    tokens?: {
+      access_token?: unknown
+      refresh_token?: unknown
+      id_token?: unknown
+    }
+  }
+
+  if (typeof data.OPENAI_API_KEY === 'string' && data.OPENAI_API_KEY.trim()) return true
+  if (data.auth_mode === 'apikey') return true
+
+  const hasOAuthToken = !!(
+    typeof data.tokens?.access_token === 'string' && data.tokens.access_token.trim() ||
+    typeof data.tokens?.refresh_token === 'string' && data.tokens.refresh_token.trim() ||
+    typeof data.tokens?.id_token === 'string' && data.tokens.id_token.trim()
+  )
+
+  return data.auth_mode === 'chatgpt' && hasOAuthToken
+}
+
 // --- Codex Provider ---
 
 export const CodexProvider: ProviderInterface = {
@@ -67,12 +92,12 @@ export const CodexProvider: ProviderInterface = {
 
     let isAuthenticated = false
 
-    // Check auth.json for stored API key
+    // Check auth.json for stored API key or ChatGPT OAuth login.
     try {
       const authPath = path.join(os.homedir(), '.codex', 'auth.json')
       if (fs.existsSync(authPath)) {
         const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'))
-        if (auth.OPENAI_API_KEY || auth.auth_mode === 'apikey') {
+        if (hasCodexCliAuth(auth)) {
           isAuthenticated = true
         }
       }

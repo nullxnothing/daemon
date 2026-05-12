@@ -6,6 +6,9 @@ import { executeInstructions, getConnection, withKeypair } from './SolanaService
 import { getDb } from '../db/db'
 
 const BASE = 'https://spawnagents.fun/v1'
+const PUBLIC_BASE = 'https://spawnagents.fun/api'
+const API_TIMEOUT_MS = 15_000
+const EVENT_POLL_TIMEOUT_MS = 8_000
 const EVENT_POLL_INTERVAL_MS = 5000
 const SPAWN_STATUS_POLL_INTERVAL_MS = 3500
 const SPAWN_STATUS_TIMEOUT_MS = 5 * 60 * 1000
@@ -142,6 +145,58 @@ export interface SpawnAgentPositions {
   prediction: SpawnPmPosition[]
 }
 
+export interface SpawnAgentPublicProfile {
+  agent: SpawnAgentRecord & {
+    meta?: { avatar?: string; bio?: string }
+    total_pnl?: number
+    total_royalties_paid?: number
+    total_royalties_received?: number
+    fitness_score?: number
+    last_trade_at?: string | null
+    agent_type?: string | null
+    metaplex_token_mint?: string | null
+    lifetime_pnl?: number
+    dna_visible?: boolean
+  }
+  trades: SpawnTrade[]
+  children: SpawnAgentRecord[]
+  parent: SpawnAgentRecord | null
+  winRate: number
+  currentPnl: number
+  totalVolumeSol: number
+  totalVolumeUsd: number
+  pnlHistory: Array<{ t: number; v: number }>
+  evolveEvents: Array<Record<string, unknown>>
+  predictionOpen: SpawnPmPosition[]
+  predictionClosed: SpawnPmPosition[]
+}
+
+export interface SpawnAgentPortfolioToken {
+  mint?: string
+  symbol?: string
+  name?: string
+  amount?: number
+  balance?: number
+  value_sol?: number
+  value_usd?: number
+  pnl_sol?: number
+  pnl_usd?: number
+}
+
+export interface SpawnAgentPublicPortfolio {
+  wallet: string
+  sol_balance: number
+  native_sol: number
+  wsol_balance: number
+  sol_price: number
+  sol_value_usd: number
+  tokens: SpawnAgentPortfolioToken[]
+  pm_open_value_usd: number
+  pm_positions: SpawnPmPosition[]
+  total_value_usd: number
+  total_pnl_usd: number
+}
+
 export interface SpawnEvent {
   id: number
   type: string
@@ -183,14 +238,45 @@ export interface KillResult {
 
 // ----------------------------------------------------------------- helpers ---
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
-  })
-  const body = await res.json() as T & { error?: string }
-  if (!res.ok) throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
-  return body
+async function apiFetch<T>(path: string, init?: RequestInit, timeoutMs = API_TIMEOUT_MS): Promise<T> {
+  return fetchJson<T>(`${BASE}${path}`, init, timeoutMs)
+}
+
+async function publicApiFetch<T>(path: string, init?: RequestInit, timeoutMs = API_TIMEOUT_MS): Promise<T> {
+  return fetchJson<T>(`${PUBLIC_BASE}${path}`, init, timeoutMs)
+}
+
+async function fetchJson<T>(url: string, init?: RequestInit, timeoutMs = API_TIMEOUT_MS): Promise<T> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+    })
+    const rawBody = await res.text()
+    let body: (T & { error?: string }) | Record<string, never> = {}
+
+    if (rawBody.trim()) {
+      try {
+        body = JSON.parse(rawBody) as T & { error?: string }
+      } catch {
+        throw new Error(`Invalid JSON response from SpawnAgents API (${res.status})`)
+      }
+    }
+
+    if (!res.ok) throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    return body as T
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`SpawnAgents API timed out after ${timeoutMs}ms`)
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function nonce(): string {
@@ -229,10 +315,18 @@ export async function getPositions(agentId: string): Promise<SpawnAgentPositions
   return apiFetch(`/agents/${agentId}/positions`)
 }
 
+export async function getPublicProfile(agentId: string): Promise<SpawnAgentPublicProfile> {
+  return publicApiFetch(`/agent-profile?id=${encodeURIComponent(agentId)}`)
+}
+
+export async function getPublicPortfolio(agentId: string): Promise<SpawnAgentPublicPortfolio> {
+  return publicApiFetch(`/agent-portfolio?agent_id=${encodeURIComponent(agentId)}`)
+}
+
 export async function getEvents(since: number, agentId?: string, limit = 200): Promise<SpawnEventsResult> {
   const params = new URLSearchParams({ since: String(since), limit: String(limit) })
   if (agentId) params.set('agent_id', agentId)
-  return apiFetch(`/events?${params}`)
+  return apiFetch(`/events?${params}`, undefined, EVENT_POLL_TIMEOUT_MS)
 }
 
 export async function pollSpawnStatus(ref: string): Promise<SpawnStatusResult> {
@@ -348,8 +442,11 @@ export async function spawnChildAndFund(
 
 let eventTimer: ReturnType<typeof setInterval> | null = null
 let eventCursor = Date.now()
+let eventPollInFlight = false
 
 async function tickEvents(): Promise<void> {
+  if (eventPollInFlight) return
+  eventPollInFlight = true
   try {
     const res = await getEvents(eventCursor, undefined, 200)
     if (res.events.length > 0) {
@@ -361,6 +458,8 @@ async function tickEvents(): Promise<void> {
     }
   } catch (err) {
     LogService.warn('spawnagents', `event poll failed: ${err instanceof Error ? err.message : String(err)}`)
+  } finally {
+    eventPollInFlight = false
   }
 }
 
@@ -368,6 +467,7 @@ export function startEventStream(): void {
   if (eventTimer) return
   eventCursor = Date.now()
   eventTimer = setInterval(() => { void tickEvents() }, EVENT_POLL_INTERVAL_MS)
+  void tickEvents()
 }
 
 export function stopEventStream(): void {

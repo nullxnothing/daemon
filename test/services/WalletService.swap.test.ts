@@ -165,6 +165,7 @@ describe('transferSOL — validation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSecureGetKey.mockReturnValue(null)
+    mockGetBalance.mockResolvedValue(0)
     mockFetch.mockResolvedValue({ ok: false, status: 503, json: async () => ({}), text: async () => 'unavailable' })
     mockExecuteTransaction.mockResolvedValue({ signature: 'sig', transport: 'rpc' })
     mockGetPriorityFeeLamports.mockResolvedValue(7_000)
@@ -222,6 +223,7 @@ describe('getDashboard — fallback active wallet', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSecureGetKey.mockReturnValue(null)
+    mockGetBalance.mockResolvedValue(0)
     mockFetch.mockResolvedValue({ ok: false, status: 503, json: async () => ({}), text: async () => 'unavailable' })
     mockExecuteTransaction.mockResolvedValue({ signature: 'sig', transport: 'rpc' })
     mockGetPriorityFeeLamports.mockResolvedValue(7_000)
@@ -311,6 +313,55 @@ describe('getDashboard — fallback active wallet', () => {
       name: 'Project Wallet',
       address: 'Project111111111111111111111111111111111111',
       holdings: [],
+    })
+  })
+
+  it('reads native SOL value without Helius configured', async () => {
+    mockGetBalance.mockResolvedValue(300_000_000)
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        solana: { usd: 150, usd_24h_change: 1.5 },
+        bitcoin: { usd: 60000 },
+        ethereum: { usd: 3000 },
+      }),
+    })
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            {
+              id: 'wallet-funded',
+              name: 'Funded Wallet',
+              address: 'A2q13vL8XxkimbQmqhLde44auyregK7kkUwrdM1D1imP',
+              is_default: 1,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 123,
+            },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT id, wallet_id FROM projects WHERE wallet_id IS NOT NULL')) {
+        return { all: vi.fn().mockReturnValue([]) }
+      }
+      if (sql.includes('SELECT wallet_id FROM projects WHERE id = ?')) {
+        return { get: vi.fn().mockReturnValue(undefined) }
+      }
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined), run: vi.fn() }
+    })
+
+    const dashboard = await getDashboard(null)
+
+    expect(dashboard.wallets[0]).toMatchObject({
+      id: 'wallet-funded',
+      totalUsd: 45,
+      tokenCount: 1,
+    })
+    expect(dashboard.activeWallet?.holdings[0]).toMatchObject({
+      symbol: 'SOL',
+      amount: 0.3,
+      valueUsd: 45,
     })
   })
 

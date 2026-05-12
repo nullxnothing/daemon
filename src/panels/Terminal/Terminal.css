@@ -400,7 +400,14 @@
   inset: 0;
   min-width: 0;
   overflow: hidden;
-  padding: 4px;
+  padding: 0;
+}
+
+.terminal-mount {
+  position: absolute;
+  inset: 8px 10px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .terminal-view.drag-active {
@@ -447,13 +454,12 @@
 }
 
 .terminal-view .xterm-screen {
-  height: 100%;
-  max-width: 100%;
+  max-width: none;
   overflow: hidden;
 }
 
 .terminal-view .xterm-rows {
-  max-width: 100%;
+  max-width: none;
   overflow: hidden;
 }
 
