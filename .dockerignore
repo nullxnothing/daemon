@@ -15,6 +15,14 @@ logs
 .github
 .idea
 .vscode
+.claude
+.planning
+.wrangler
+apps
+docs
+mobile
+programs
+target
 test-results
 playwright-report
 playwright/.cache
