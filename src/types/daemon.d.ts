@@ -98,7 +98,17 @@ import type {
   DaemonAiChatRequest,
   DaemonAiChatResponse,
   DaemonAiFeatureState,
+  DaemonAiAgentRun,
+  DaemonAiAgentRunInput,
   DaemonAiModelInfo,
+  DaemonAiPatchApplyInput,
+  DaemonAiPatchApplyResult,
+  DaemonAiPatchDecisionInput,
+  DaemonAiPatchProposal,
+  DaemonAiPatchProposalInput,
+  DaemonAiToolApprovalDecisionInput,
+  DaemonAiToolApprovalRequest,
+  DaemonAiToolCallInput,
   DaemonAiUsageSnapshot,
 } from '../../electron/shared/types'
 
@@ -197,7 +207,17 @@ export type {
   DaemonAiChatRequest,
   DaemonAiChatResponse,
   DaemonAiFeatureState,
+  DaemonAiAgentRun,
+  DaemonAiAgentRunInput,
   DaemonAiModelInfo,
+  DaemonAiPatchApplyInput,
+  DaemonAiPatchApplyResult,
+  DaemonAiPatchDecisionInput,
+  DaemonAiPatchProposal,
+  DaemonAiPatchProposalInput,
+  DaemonAiToolApprovalDecisionInput,
+  DaemonAiToolApprovalRequest,
+  DaemonAiToolCallInput,
   DaemonAiUsageSnapshot,
 }
 
@@ -342,7 +362,17 @@ declare global {
   type DaemonAiChatRequest = import('../../electron/shared/types').DaemonAiChatRequest
   type DaemonAiChatResponse = import('../../electron/shared/types').DaemonAiChatResponse
   type DaemonAiFeatureState = import('../../electron/shared/types').DaemonAiFeatureState
+  type DaemonAiAgentRun = import('../../electron/shared/types').DaemonAiAgentRun
+  type DaemonAiAgentRunInput = import('../../electron/shared/types').DaemonAiAgentRunInput
   type DaemonAiModelInfo = import('../../electron/shared/types').DaemonAiModelInfo
+  type DaemonAiPatchApplyInput = import('../../electron/shared/types').DaemonAiPatchApplyInput
+  type DaemonAiPatchApplyResult = import('../../electron/shared/types').DaemonAiPatchApplyResult
+  type DaemonAiPatchDecisionInput = import('../../electron/shared/types').DaemonAiPatchDecisionInput
+  type DaemonAiPatchProposal = import('../../electron/shared/types').DaemonAiPatchProposal
+  type DaemonAiPatchProposalInput = import('../../electron/shared/types').DaemonAiPatchProposalInput
+  type DaemonAiToolApprovalDecisionInput = import('../../electron/shared/types').DaemonAiToolApprovalDecisionInput
+  type DaemonAiToolApprovalRequest = import('../../electron/shared/types').DaemonAiToolApprovalRequest
+  type DaemonAiToolCallInput = import('../../electron/shared/types').DaemonAiToolCallInput
   type DaemonAiUsageSnapshot = import('../../electron/shared/types').DaemonAiUsageSnapshot
 
   interface DaemonWindow {
@@ -1075,6 +1105,18 @@ declare global {
     getModels: () => Promise<IpcResponse<DaemonAiModelInfo[]>>
     getFeatures: () => Promise<IpcResponse<DaemonAiFeatureState>>
     summarizeContext: (input: DaemonAiChatRequest) => Promise<IpcResponse<{ usedContext: string[]; preview: string }>>
+    createAgentRun: (input: DaemonAiAgentRunInput) => Promise<IpcResponse<DaemonAiAgentRun>>
+    getAgentRun: (runId: string) => Promise<IpcResponse<DaemonAiAgentRun>>
+    listAgentRuns: (limit?: number) => Promise<IpcResponse<DaemonAiAgentRun[]>>
+    cancelAgentRun: (runId: string) => Promise<IpcResponse<DaemonAiAgentRun>>
+    requestToolApproval: (input: DaemonAiToolCallInput) => Promise<IpcResponse<DaemonAiToolApprovalRequest>>
+    approveToolCall: (input: DaemonAiToolApprovalDecisionInput) => Promise<IpcResponse<DaemonAiToolApprovalRequest>>
+    listToolApprovals: (runId: string) => Promise<IpcResponse<DaemonAiToolApprovalRequest[]>>
+    createPatchProposal: (input: DaemonAiPatchProposalInput) => Promise<IpcResponse<DaemonAiPatchProposal>>
+    getPatchProposal: (proposalId: string) => Promise<IpcResponse<DaemonAiPatchProposal>>
+    listPatchProposals: (runId: string) => Promise<IpcResponse<DaemonAiPatchProposal[]>>
+    decidePatchProposal: (input: DaemonAiPatchDecisionInput) => Promise<IpcResponse<DaemonAiPatchProposal>>
+    applyPatchProposal: (input: DaemonAiPatchApplyInput) => Promise<IpcResponse<DaemonAiPatchApplyResult>>
   }
 
   interface DaemonAPI {
