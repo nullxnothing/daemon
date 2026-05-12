@@ -64,7 +64,7 @@
     "node-pty": "1.1.0",
     "nodemailer": "^8.0.4",
     "pidusage": "^4.0.1",
-    "ps-list": "^8.1.1",
+    "ps-list": "^9.0.0",
     "pyright": "^1.1.409",
     "simple-git": "^3.36.0",
     "smol-toml": "^1.6.1",
