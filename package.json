@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "3.0.14",
+  "version": "3.0.15",
   "main": "dist-electron/main/index.js",
   "description": "Solana-native agent workbench for verifiable AI development",
   "author": "nullxnothing",
