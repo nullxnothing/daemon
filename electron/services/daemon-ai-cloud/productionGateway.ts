@@ -27,6 +27,12 @@ export function getDaemonAICloudRuntimeReadiness(env: NodeJS.ProcessEnv = proces
   }
 }
 
+export function resolveDaemonAICloudJwtSecret(env: NodeJS.ProcessEnv = process.env): string {
+  const proSecret = env.DAEMON_PRO_JWT_SECRET?.trim()
+  if (proSecret) return proSecret
+  return env.DAEMON_AI_JWT_SECRET?.trim() ?? ''
+}
+
 export function createProductionDaemonAICloudGateway(
   db: Database.Database,
   env: NodeJS.ProcessEnv = process.env,
@@ -34,7 +40,7 @@ export function createProductionDaemonAICloudGateway(
 ) {
   const providers = overrides.providers ?? createConfiguredDaemonAiProviders(env)
   return createDaemonAICloudGateway({
-    auth: overrides.auth ?? new Hs256DaemonAiJwtAuthVerifier(env.DAEMON_PRO_JWT_SECRET ?? env.DAEMON_AI_JWT_SECRET ?? ''),
+    auth: overrides.auth ?? new Hs256DaemonAiJwtAuthVerifier(resolveDaemonAICloudJwtSecret(env)),
     usage: overrides.usage ?? new SqliteDaemonAIUsageMeter(db),
     providers,
   })

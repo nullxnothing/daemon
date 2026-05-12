@@ -40,6 +40,7 @@
     "test:layout": "pnpm run build && node scripts/smoke/layout-cohesion.mjs",
     "test:visual": "pnpm run build && node scripts/smoke/visual-regression.mjs",
     "test:visual:update": "pnpm run build && node scripts/smoke/visual-regression.mjs --update",
+    "test:daemon-ai:cloud-local": "pnpm run build:daemon-ai-cloud && pnpm rebuild better-sqlite3 && node scripts/smoke/daemon-ai-cloud-local.mjs",
     "test:daemon-ai:live": "node scripts/smoke/daemon-ai-live.mjs",
     "start:daemon-ai-cloud": "node dist-cloud/daemon-ai-cloud-server.mjs",
     "lint:styles": "node scripts/style-debt-check.mjs"
