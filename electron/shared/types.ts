@@ -382,6 +382,17 @@ export interface ProSkillManifest {
 export type DaemonAiAccessMode = 'hosted' | 'byok'
 export type DaemonAiChatMode = 'ask' | 'plan'
 export type DaemonAiModelLane = 'auto' | 'fast' | 'standard' | 'reasoning' | 'premium'
+export type DaemonAiAgentMode = 'patch' | 'agent' | 'background'
+export type DaemonAiAgentRunStatus = 'queued' | 'planning' | 'awaiting_approval' | 'running' | 'completed' | 'failed' | 'cancelled'
+export type DaemonAiToolRiskLevel = 'low' | 'medium' | 'high' | 'blocked'
+export type DaemonAiToolApprovalStatus = 'pending' | 'approved' | 'rejected' | 'blocked'
+export type DaemonAiToolApprovalDecision = 'approve' | 'reject'
+export type DaemonAiPatchProposalStatus = 'proposed' | 'accepted' | 'rejected' | 'superseded' | 'applied'
+export type DaemonAiPatchRiskLevel = 'low' | 'medium' | 'high' | 'blocked'
+export type DaemonAiApprovalPolicy =
+  | 'require_for_write_and_terminal'
+  | 'require_for_all_tools'
+  | 'read_only'
 
 export interface DaemonAiContextOptions {
   activeFile?: boolean
@@ -460,6 +471,109 @@ export interface DaemonAiFeatureState {
   features: ProFeature[]
   upgradeRequired: boolean
   backendConfigured: boolean
+}
+
+export interface DaemonAiAgentRunInput extends DaemonAiContextInput {
+  task: string
+  mode?: DaemonAiAgentMode
+  accessMode?: DaemonAiAccessMode
+  modelPreference?: DaemonAiModelLane
+  allowedTools?: string[]
+  approvalPolicy?: DaemonAiApprovalPolicy
+}
+
+export interface DaemonAiAgentRun {
+  id: string
+  task: string
+  projectId: string | null
+  projectPath: string | null
+  mode: DaemonAiAgentMode
+  accessMode: DaemonAiAccessMode
+  modelLane: DaemonAiModelLane
+  status: DaemonAiAgentRunStatus
+  allowedTools: string[]
+  approvalPolicy: DaemonAiApprovalPolicy
+  createdAt: number
+  updatedAt: number
+  cancelledAt: number | null
+  result: Record<string, unknown> | null
+  error: string | null
+}
+
+export interface DaemonAiToolCallInput {
+  runId: string
+  toolCallId?: string | null
+  toolName: string
+  summary?: string | null
+  arguments?: unknown
+}
+
+export interface DaemonAiToolApprovalRequest {
+  id: string
+  runId: string
+  toolCallId: string
+  toolName: string
+  riskLevel: DaemonAiToolRiskLevel
+  summary: string
+  argumentsPreview: unknown
+  status: DaemonAiToolApprovalStatus
+  requiresApproval: boolean
+  createdAt: number
+  decidedAt: number | null
+  decisionReason: string | null
+}
+
+export interface DaemonAiToolApprovalDecisionInput {
+  runId: string
+  toolCallId: string
+  decision: DaemonAiToolApprovalDecision
+  reason?: string | null
+}
+
+export interface DaemonAiPatchProposalInput {
+  runId: string
+  title?: string | null
+  summary?: string | null
+  unifiedDiff: string
+}
+
+export interface DaemonAiPatchSafetyFinding {
+  severity: DaemonAiPatchRiskLevel
+  code: string
+  message: string
+  filePath?: string
+}
+
+export interface DaemonAiPatchProposal {
+  id: string
+  runId: string
+  title: string
+  summary: string | null
+  unifiedDiff: string
+  files: string[]
+  status: DaemonAiPatchProposalStatus
+  riskLevel: DaemonAiPatchRiskLevel
+  safetyFindings: DaemonAiPatchSafetyFinding[]
+  createdAt: number
+  decidedAt: number | null
+  decisionReason: string | null
+}
+
+export interface DaemonAiPatchDecisionInput {
+  proposalId: string
+  decision: 'accept' | 'reject'
+  reason?: string | null
+}
+
+export interface DaemonAiPatchApplyInput {
+  proposalId: string
+  reason?: string | null
+}
+
+export interface DaemonAiPatchApplyResult {
+  proposal: DaemonAiPatchProposal
+  files: string[]
+  appliedAt: number
 }
 
 // --- MCP ---

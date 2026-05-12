@@ -301,6 +301,18 @@ contextBridge.exposeInMainWorld('daemon', {
     getModels: () => ipcRenderer.invoke('daemon-ai:models'),
     getFeatures: () => ipcRenderer.invoke('daemon-ai:features'),
     summarizeContext: (input: object) => ipcRenderer.invoke('daemon-ai:summarize-context', input),
+    createAgentRun: (input: object) => ipcRenderer.invoke('daemon-ai:create-agent-run', input),
+    getAgentRun: (runId: string) => ipcRenderer.invoke('daemon-ai:get-agent-run', runId),
+    listAgentRuns: (limit?: number) => ipcRenderer.invoke('daemon-ai:list-agent-runs', limit),
+    cancelAgentRun: (runId: string) => ipcRenderer.invoke('daemon-ai:cancel-agent-run', runId),
+    requestToolApproval: (input: object) => ipcRenderer.invoke('daemon-ai:request-tool-approval', input),
+    approveToolCall: (input: object) => ipcRenderer.invoke('daemon-ai:approve-tool-call', input),
+    listToolApprovals: (runId: string) => ipcRenderer.invoke('daemon-ai:list-tool-approvals', runId),
+    createPatchProposal: (input: object) => ipcRenderer.invoke('daemon-ai:create-patch-proposal', input),
+    getPatchProposal: (proposalId: string) => ipcRenderer.invoke('daemon-ai:get-patch-proposal', proposalId),
+    listPatchProposals: (runId: string) => ipcRenderer.invoke('daemon-ai:list-patch-proposals', runId),
+    decidePatchProposal: (input: object) => ipcRenderer.invoke('daemon-ai:decide-patch-proposal', input),
+    applyPatchProposal: (input: object) => ipcRenderer.invoke('daemon-ai:apply-patch-proposal', input),
   },
 
   pnl: {

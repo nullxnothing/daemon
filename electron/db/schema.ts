@@ -683,3 +683,64 @@ CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation ON ai_local_messages(con
 CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_ledger(created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_plan ON ai_usage_ledger(plan, created_at);
 `
+
+export const SCHEMA_V33 = `
+CREATE TABLE IF NOT EXISTS ai_agent_runs (
+  id TEXT PRIMARY KEY,
+  task TEXT NOT NULL,
+  project_id TEXT,
+  project_path TEXT,
+  mode TEXT NOT NULL,
+  access_mode TEXT NOT NULL,
+  model_lane TEXT NOT NULL,
+  status TEXT NOT NULL,
+  allowed_tools_json TEXT NOT NULL DEFAULT '[]',
+  approval_policy TEXT NOT NULL,
+  result_json TEXT,
+  error TEXT,
+  cancelled_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_tool_approval_events (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  tool_call_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  risk_level TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  arguments_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL,
+  decision_reason TEXT,
+  created_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  FOREIGN KEY(run_id) REFERENCES ai_agent_runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_agent_runs_status ON ai_agent_runs(status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_runs_project ON ai_agent_runs(project_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_ai_tool_approvals_run ON ai_tool_approval_events(run_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_tool_approvals_call ON ai_tool_approval_events(run_id, tool_call_id);
+`
+
+export const SCHEMA_V34 = `
+CREATE TABLE IF NOT EXISTS ai_patch_proposals (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT,
+  unified_diff TEXT NOT NULL,
+  files_json TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL,
+  risk_level TEXT NOT NULL,
+  safety_findings_json TEXT NOT NULL DEFAULT '[]',
+  decision_reason TEXT,
+  created_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  FOREIGN KEY(run_id) REFERENCES ai_agent_runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_patch_proposals_run ON ai_patch_proposals(run_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_patch_proposals_status ON ai_patch_proposals(status, created_at);
+`

@@ -171,14 +171,25 @@ async function cycleDrawerTools(page, toolNames, rounds = 1) {
 }
 
 async function verifyImageEditor(page) {
-  const explorerSearch = page.locator('.file-explorer-search-input')
-  await explorerSearch.fill(path.basename(smokeImagePath))
-  await page.locator('.file-search-result', { hasText: path.basename(smokeImagePath) }).first().click()
+  const imageName = path.basename(smokeImagePath)
+  const assetsNode = page.locator('.file-node.directory', { hasText: 'assets' }).first()
+  if (!(await assetsNode.isVisible().catch(() => false))) {
+    await page.locator('.file-node.directory', { hasText: 'src' }).first().click()
+    await assetsNode.waitFor({ state: 'visible', timeout: 30000 })
+  }
+
+  const imageNode = page.locator('.file-node.file', { hasText: imageName }).first()
+  if (!(await imageNode.isVisible().catch(() => false))) {
+    await assetsNode.click()
+    await imageNode.waitFor({ state: 'visible', timeout: 30000 })
+  }
+
+  await imageNode.click()
   await openToolFromLauncher(page, 'Image Editor', '.image-editor')
   await page.waitForSelector('.image-editor', { timeout: 30000 })
   await page.waitForFunction((expectedName) => {
     return document.querySelector('.ie-filepath')?.textContent?.trim() === expectedName
-  }, path.basename(smokeImagePath), { timeout: 30000 })
+  }, imageName, { timeout: 30000 })
   await page.waitForFunction(() => {
     const loading = document.querySelector('.ie-status--dim')
     const saveButton = Array.from(document.querySelectorAll('.ie-btn')).find((button) => button.textContent?.trim() === 'Save')
@@ -249,6 +260,8 @@ async function run() {
   await page.waitForSelector('.project-tab.active', { timeout: 30000 })
 
   logStep('creating terminal')
+  await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+  await page.waitForSelector('.terminal-panel', { timeout: 30000 })
   await page.getByTitle('New tab options').click()
   await page.getByRole('button', { name: 'Standard Terminal' }).click()
   await page.waitForSelector('.terminal-tab.active', { timeout: 30000 })
@@ -262,7 +275,12 @@ async function run() {
   logStep('checking hackathon to browser transition')
   await openToolFromLauncher(page, 'Hackathon', '.hackathon-panel')
 
-  await page.getByText('Get a token at arena.colosseum.org/copilot').click()
+  const tokenLink = page.getByText('Get a token at arena.colosseum.org/copilot')
+  if (await tokenLink.isVisible().catch(() => false)) {
+    await tokenLink.click()
+  } else {
+    await page.getByRole('button', { name: 'Open Arena', exact: true }).click()
+  }
   await page.getByRole('button', { name: 'Browser tab', exact: true }).click()
   await page.waitForSelector('.browser-mode', { timeout: 30000 })
   await page.waitForFunction(() => !document.querySelector('.command-drawer'))
