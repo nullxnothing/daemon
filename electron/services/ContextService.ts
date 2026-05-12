@@ -8,6 +8,7 @@ import type { DaemonAiChatRequest } from '../shared/types'
 
 const execFile = promisify(execFileCb)
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'dist-electron', 'build', 'target', 'test-results'])
+const MAX_CONTEXT_CHARS = 80_000
 
 export interface AiContextBundle {
   sections: string[]
@@ -59,18 +60,25 @@ export async function collectAiContext(input: DaemonAiChatRequest): Promise<AiCo
   const sections: string[] = []
   const usedContext: string[] = []
   const projectPath = input.projectPath ? path.resolve(input.projectPath) : null
+  let remainingContextChars = MAX_CONTEXT_CHARS
+
+  function pushSection(section: string): boolean {
+    if (remainingContextChars <= 0) return false
+    const clipped = section.slice(0, remainingContextChars)
+    sections.push(clipped)
+    remainingContextChars -= clipped.length
+    return clipped.length === section.length
+  }
 
   if (projectPath && isPathSafe(projectPath)) {
-    sections.push(`<project path="${projectPath}">`)
-    sections.push(`Project path: ${projectPath}`)
-    sections.push('</project>')
+    pushSection(`<project path="${projectPath}">\nProject path: ${projectPath}\n</project>`)
     usedContext.push('project:path')
   }
 
   if (context.projectTree !== false && projectPath && isPathSafe(projectPath)) {
     const tree = listProjectTree(projectPath)
     if (tree) {
-      sections.push(buildUntrustedContext('project_code', `Project tree:\n${tree}`))
+      pushSection(buildUntrustedContext('project_code', `Project tree:\n${tree}`))
       usedContext.push('project:tree')
     }
   }
@@ -79,12 +87,9 @@ export async function collectAiContext(input: DaemonAiChatRequest): Promise<AiCo
     const activeFilePath = path.resolve(input.activeFilePath)
     const withinProject = projectPath ? isPathWithinBase(activeFilePath, projectPath) : isPathSafe(activeFilePath)
     if (withinProject) {
-      const basename = path.basename(activeFilePath)
       const rawContent = input.activeFileContent ?? (fs.existsSync(activeFilePath) ? fs.readFileSync(activeFilePath, 'utf8') : '')
-      const content = basename.startsWith('.env')
-        ? redactText(rawContent).value
-        : rawContent
-      sections.push(buildUntrustedContext('project_code', `Active file: ${activeFilePath}\n\n${content.slice(0, 30_000)}`))
+      const content = redactText(rawContent).value
+      pushSection(buildUntrustedContext('project_code', `Active file: ${activeFilePath}\n\n${content.slice(0, 30_000)}`))
       usedContext.push(`file:${path.basename(activeFilePath)}`)
     }
   }
@@ -92,18 +97,18 @@ export async function collectAiContext(input: DaemonAiChatRequest): Promise<AiCo
   if (context.gitDiff && projectPath && isPathSafe(projectPath)) {
     const diff = await getGitDiff(projectPath)
     if (diff) {
-      sections.push(buildUntrustedContext('project_code', `Git diff:\n${diff}`))
+      pushSection(buildUntrustedContext('project_code', `Git diff:\n${redactText(diff).value}`))
       usedContext.push('git:diff')
     }
   }
 
   if (context.terminalLogs) {
-    sections.push('Terminal logs were requested, but v4 MVP does not collect terminal output automatically. Paste the relevant log into the chat instead.')
+    pushSection('Terminal logs were requested, but v4 MVP does not collect terminal output automatically. Paste the relevant log into the chat instead.')
     usedContext.push('terminal:manual-required')
   }
 
   if (context.walletContext) {
-    sections.push('Wallet context was requested, but v4 MVP only allows explicit public wallet data in follow-up Solana workflows.')
+    pushSection('Wallet context was requested, but v4 MVP only allows explicit public wallet data in follow-up Solana workflows.')
     usedContext.push('wallet:blocked-by-default')
   }
 
