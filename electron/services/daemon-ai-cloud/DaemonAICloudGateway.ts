@@ -96,17 +96,20 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
     })
   })
 
-  app.get('/v1/ai/usage', (req: AuthenticatedRequest, res) => {
+  app.get('/v1/ai/usage', async (req: AuthenticatedRequest, res) => {
     const entitlement = req.daemonAuth!.entitlement
+    const usage = await options.usage.getUsage?.(entitlement)
+    const monthlyCredits = usage?.monthlyCredits ?? entitlement.monthlyCredits
+    const usedCredits = usage?.usedCredits ?? entitlement.usedCredits
     res.json({
       ok: true,
       data: {
         plan: entitlement.plan,
         accessSource: entitlement.accessSource,
-        monthlyCredits: entitlement.monthlyCredits,
-        usedCredits: entitlement.usedCredits,
-        remainingCredits: Math.max(entitlement.monthlyCredits - entitlement.usedCredits, 0),
-        resetAt: monthResetAt(),
+        monthlyCredits,
+        usedCredits,
+        remainingCredits: Math.max(monthlyCredits - usedCredits, 0),
+        resetAt: usage?.resetAt ?? monthResetAt(),
       },
     })
   })

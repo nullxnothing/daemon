@@ -39,6 +39,7 @@
     "test:layout": "pnpm run build && node scripts/smoke/layout-cohesion.mjs",
     "test:visual": "pnpm run build && node scripts/smoke/visual-regression.mjs",
     "test:visual:update": "pnpm run build && node scripts/smoke/visual-regression.mjs --update",
+    "test:daemon-ai:live": "node scripts/smoke/daemon-ai-live.mjs",
     "lint:styles": "node scripts/style-debt-check.mjs"
   },
   "dependencies": {

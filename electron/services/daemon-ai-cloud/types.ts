@@ -56,6 +56,11 @@ export interface DaemonAiCloudAuthVerifier {
 }
 
 export interface DaemonAiCloudUsageMeter {
+  getUsage?(entitlement: DaemonAiCloudEntitlement): Promise<{
+    usedCredits: number
+    monthlyCredits?: number
+    resetAt?: number
+  }>
   assertCredits(entitlement: DaemonAiCloudEntitlement, estimatedCredits: number): Promise<void>
   record(event: {
     entitlement: DaemonAiCloudEntitlement

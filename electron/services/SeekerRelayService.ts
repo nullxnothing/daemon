@@ -69,6 +69,7 @@ const MAX_BODY_BYTES = 512 * 1024
 let server: http.Server | null = null
 let boundPort = DEFAULT_PORT
 let autoStartAttempted = false
+let externalRelayStatus: SeekerRelayStatus | null = null
 const sessions = new Map<string, SeekerSession>()
 
 function json(res: ServerResponse, statusCode: number, payload: unknown) {
@@ -120,6 +121,27 @@ function getRelayUrls(port = boundPort) {
     relayUrl: `http://127.0.0.1:${port}`,
     lanUrl: `http://${lanHost}:${port}`,
   }
+}
+
+function isAddressInUse(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'EADDRINUSE')
+}
+
+async function probeExistingRelay(port: number): Promise<SeekerRelayStatus | null> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 600)
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/seeker/status`, { signal: controller.signal })
+    const body = await res.json().catch(() => null) as { ok?: boolean; data?: SeekerRelayStatus } | null
+    if (res.ok && body?.ok && body.data?.relayUrl) {
+      return { ...body.data, running: true, port }
+    }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timeout)
+  }
+  return null
 }
 
 function makePairingCode() {
@@ -331,20 +353,33 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 export async function startRelayServer(port = DEFAULT_PORT): Promise<SeekerRelayStatus> {
   if (server?.listening) return getRelayStatus()
+  externalRelayStatus = null
 
-  await new Promise<void>((resolve, reject) => {
-    const nextServer = http.createServer((req, res) => {
-      void handleRequest(req, res).catch((error) => {
-        json(res, 500, { ok: false, error: error instanceof Error ? error.message : 'Relay error' })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const nextServer = http.createServer((req, res) => {
+        void handleRequest(req, res).catch((error) => {
+          json(res, 500, { ok: false, error: error instanceof Error ? error.message : 'Relay error' })
+        })
+      })
+      nextServer.once('error', reject)
+      nextServer.listen(port, '0.0.0.0', () => {
+        server = nextServer
+        boundPort = port
+        resolve()
       })
     })
-    nextServer.once('error', reject)
-    nextServer.listen(port, '0.0.0.0', () => {
-      server = nextServer
-      boundPort = port
-      resolve()
-    })
-  })
+  } catch (error) {
+    if (isAddressInUse(error)) {
+      const existing = await probeExistingRelay(port)
+      if (existing) {
+        boundPort = port
+        externalRelayStatus = existing
+        return getRelayStatus()
+      }
+    }
+    throw error
+  }
 
   return getRelayStatus()
 }
@@ -360,6 +395,7 @@ export async function ensureRelayServer(): Promise<SeekerRelayStatus> {
 }
 
 export async function stopRelayServer() {
+  externalRelayStatus = null
   if (!server) return { stopped: true }
   const current = server
   server = null
@@ -368,6 +404,9 @@ export async function stopRelayServer() {
 }
 
 export function getRelayStatus(): SeekerRelayStatus {
+  if (!server?.listening && externalRelayStatus) {
+    return externalRelayStatus
+  }
   const urls = getRelayUrls(boundPort)
   return {
     running: Boolean(server?.listening),
