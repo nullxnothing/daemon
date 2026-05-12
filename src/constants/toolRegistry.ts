@@ -30,6 +30,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'agent-work', name: 'Agent Work', moduleClass: 'addon', surface: 'drawer' },
   { id: 'sessions', name: 'Sessions', moduleClass: 'addon', surface: 'drawer' },
   { id: 'hackathon', name: 'Hackathon', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'daemon-ai', name: 'DAEMON AI', moduleClass: 'addon', surface: 'drawer' },
   { id: 'pro', name: 'Daemon Pro', moduleClass: 'addon', surface: 'drawer' },
   { id: 'plugins', name: 'Plugins', moduleClass: 'addon', surface: 'drawer' },
   { id: 'recovery', name: 'Recovery', moduleClass: 'addon', surface: 'drawer' },

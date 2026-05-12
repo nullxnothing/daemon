@@ -282,6 +282,15 @@ function ProIcon({ size = 18 }: { size?: number }) {
     </ToolIconBase>
   )
 }
+function DaemonAIIcon({ size = 18 }: { size?: number }) {
+  return (
+    <ToolIconBase size={size}>
+      <path d="M9 4.5h6a4 4 0 0 1 4 4v5.8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8.5a4 4 0 0 1 4-4Z" />
+      <path d="M12 2.5v2M8.8 10.2h.01M15.2 10.2h.01M9 14c1.8 1.2 4.2 1.2 6 0" />
+      <path d="M4 11H2.5M21.5 11H20" />
+    </ToolIconBase>
+  )
+}
 function ActivityIcon({ size = 18 }: { size?: number }) {
   return (
     <ToolIconBase size={size}>
@@ -333,6 +342,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, 'replay-engine': ReplayIcon, docs: DocsIcon, starter: StarterIcon,
   'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'project-readiness': ReadinessIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
+  'daemon-ai': DaemonAIIcon,
   'agent-station': AgentStationIcon,
   'agent-work': AgentWorkIcon,
   'spawnagents': SpawnAgentsIcon,
@@ -361,6 +371,7 @@ const loadProjectStarter = () => import('../../panels/ProjectStarter/ProjectStar
 const loadDashboardCanvas = () => import('../../panels/Dashboard/DashboardCanvas')
 const loadSessionHistory = () => import('../../panels/SessionRegistry/SessionHistory')
 const loadHackathonPanel = () => import('../../panels/Colosseum/HackathonPanel')
+const loadDaemonAIPanel = () => import('../../panels/DaemonAI/DaemonAIPanel')
 const loadPluginManager = () => import('../../panels/PluginManager/PluginManager')
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
 const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
@@ -389,6 +400,7 @@ const ProjectStarter = lazyWithReload('project-starter', loadProjectStarter)
 const DashboardCanvas = lazyNamedWithReload('dashboard-canvas', loadDashboardCanvas, (m) => m.DashboardCanvas)
 const SessionHistory = lazyNamedWithReload('session-history', loadSessionHistory, (m) => m.SessionHistory)
 const HackathonPanel = lazyNamedWithReload('hackathon-panel', loadHackathonPanel, (m) => m.HackathonPanel)
+const DaemonAIPanel = lazyNamedWithReload('daemon-ai-panel', loadDaemonAIPanel, (m) => m.DaemonAIPanel)
 const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (m) => m.PluginManager)
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
@@ -421,6 +433,7 @@ export const TOOL_COLORS: Record<string, string> = {
   dashboard: '#22c55e',
   sessions: '#38bdf8',
   hackathon: '#facc15',
+  'daemon-ai': '#3ecf8e',
   plugins: '#cbd5e1',
   recovery: '#fb7185',
   pro: '#fde047',
@@ -454,6 +467,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'agent-work', name: 'Agent Work', description: 'Wallet-funded agent jobs, receipts, verification, and settlement', icon: AgentWorkIcon, component: AgentWork, preload: () => { void loadAgentWork() }, category: 'crypto' },
   { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
   { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'crypto' },
+  { id: 'daemon-ai', name: 'DAEMON AI', description: 'Project-aware AI chat, BYOK mode, and hosted Pro gateway', icon: DaemonAIIcon, component: DaemonAIPanel, preload: () => { void loadDaemonAIPanel() }, category: 'dev' },
   { id: 'pro', name: 'Daemon Pro', description: 'Arena, Pro skills, MCP sync, and priority API', icon: ProIcon, component: ProPanel, preload: () => { void loadProPanel() }, category: 'crypto' },
   { id: 'activity', name: 'Activity', description: 'Flight recorder for Solana development', icon: ActivityIcon, component: ActivityTimeline, preload: () => { void loadActivityTimeline() }, category: 'system' },
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },

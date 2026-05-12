@@ -630,3 +630,56 @@ ALTER TABLE agent_work_tasks ADD COLUMN receipt_signature TEXT;
 ALTER TABLE agent_work_tasks ADD COLUMN review_signature TEXT;
 CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_onchain ON agent_work_tasks(onchain_task_id);
 `
+
+export const SCHEMA_V32 = `
+CREATE TABLE IF NOT EXISTS ai_local_conversations (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  project_id TEXT,
+  access_mode TEXT NOT NULL DEFAULT 'byok',
+  model_lane TEXT NOT NULL DEFAULT 'auto',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+
+CREATE TABLE IF NOT EXISTS ai_local_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+  content TEXT NOT NULL,
+  metadata_json TEXT DEFAULT '{}',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  FOREIGN KEY(conversation_id) REFERENCES ai_local_conversations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ai_usage_ledger (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  wallet_address TEXT,
+  plan TEXT NOT NULL,
+  access_source TEXT,
+  feature TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cached_input_tokens INTEGER,
+  provider_cost_usd REAL NOT NULL DEFAULT 0,
+  daemon_credits_charged INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_context_preferences (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  active_file INTEGER NOT NULL DEFAULT 1,
+  project_tree INTEGER NOT NULL DEFAULT 1,
+  git_diff INTEGER NOT NULL DEFAULT 0,
+  terminal_logs INTEGER NOT NULL DEFAULT 0,
+  wallet_context INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation ON ai_local_messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_ledger(created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_plan ON ai_usage_ledger(plan, created_at);
+`

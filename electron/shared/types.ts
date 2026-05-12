@@ -285,10 +285,20 @@ export interface GhostPort {
   processName: string | null
 }
 
-// --- Daemon Pro ---
+// --- Daemon Pro / DAEMON AI ---
 
-export type ProFeature = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
-export type ProAccessSource = 'payment' | 'holder'
+export type DaemonPlanId = 'light' | 'pro' | 'operator' | 'ultra' | 'team' | 'enterprise'
+export type ProFeature =
+  | 'daemon-ai'
+  | 'arena'
+  | 'pro-skills'
+  | 'mcp-sync'
+  | 'priority-api'
+  | 'app-factory'
+  | 'shipline'
+  | 'cloud-agents'
+  | 'team-admin'
+export type ProAccessSource = 'free' | 'payment' | 'holder' | 'admin' | 'trial' | 'dev_bypass'
 
 export interface ProHolderStatus {
   enabled: boolean
@@ -301,15 +311,17 @@ export interface ProHolderStatus {
 
 export interface ProSubscriptionState {
   active: boolean
+  plan: DaemonPlanId
   walletId: string | null
   walletAddress: string | null
   expiresAt: number | null
   features: ProFeature[]
-  tier: 'pro' | null
+  tier: Exclude<DaemonPlanId, 'light'> | null
   accessSource: ProAccessSource | null
   holderStatus: ProHolderStatus
   priceUsdc: number | null
   durationDays: number | null
+  offlineGraceUntil?: number | null
 }
 
 export interface ProPriceInfo {
@@ -365,6 +377,89 @@ export interface ProSkillManifestEntry {
 export interface ProSkillManifest {
   version: 1
   skills: ProSkillManifestEntry[]
+}
+
+export type DaemonAiAccessMode = 'hosted' | 'byok'
+export type DaemonAiChatMode = 'ask' | 'plan'
+export type DaemonAiModelLane = 'auto' | 'fast' | 'standard' | 'reasoning' | 'premium'
+
+export interface DaemonAiContextOptions {
+  activeFile?: boolean
+  projectTree?: boolean
+  gitDiff?: boolean
+  terminalLogs?: boolean
+  walletContext?: boolean
+}
+
+export interface DaemonAiContextInput {
+  projectId?: string | null
+  projectPath?: string | null
+  activeFilePath?: string | null
+  activeFileContent?: string | null
+  context?: DaemonAiContextOptions
+}
+
+export interface DaemonAiChatRequest extends DaemonAiContextInput {
+  conversationId?: string | null
+  message: string
+  mode?: DaemonAiChatMode
+  accessMode?: DaemonAiAccessMode
+  modelPreference?: DaemonAiModelLane
+}
+
+export interface DaemonAiUsageSnapshot {
+  plan: DaemonPlanId
+  accessSource: ProAccessSource | null
+  monthlyCredits: number
+  usedCredits: number
+  remainingCredits: number
+  resetAt: number
+}
+
+export interface DaemonAiChatResponse {
+  messageId: string
+  conversationId: string
+  text: string
+  accessMode: DaemonAiAccessMode
+  modelLane: DaemonAiModelLane
+  usedContext: string[]
+  usage: DaemonAiUsageSnapshot
+}
+
+export interface DaemonAiUsageEvent {
+  id: string
+  userId: string | null
+  walletAddress?: string | null
+  plan: DaemonPlanId
+  accessSource: ProAccessSource | null
+  feature: string
+  provider: 'openai' | 'anthropic' | 'google' | 'local' | 'daemon-cloud' | 'other'
+  model: string
+  inputTokens: number
+  outputTokens: number
+  cachedInputTokens?: number
+  providerCostUsd: number
+  daemonCreditsCharged: number
+  createdAt: number
+}
+
+export interface DaemonAiModelInfo {
+  lane: DaemonAiModelLane
+  label: string
+  description: string
+  hosted: boolean
+  byok: boolean
+  requiresPlan: DaemonPlanId | null
+}
+
+export interface DaemonAiFeatureState {
+  hostedAvailable: boolean
+  byokAvailable: boolean
+  plan: DaemonPlanId
+  accessSource: ProAccessSource | null
+  features: ProFeature[]
+  upgradeRequired: boolean
+  backendConfigured: boolean
 }
 
 // --- MCP ---

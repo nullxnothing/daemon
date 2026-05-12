@@ -18,36 +18,36 @@ interface StakingTier {
 
 const STAKING_TIERS: StakingTier[] = [
   {
-    id: 'signal',
-    label: 'Signal',
-    threshold: '25K staked',
-    status: 'planned',
+    id: 'holder-pro',
+    label: 'Holder Pro',
+    threshold: '1M DAEMON',
+    status: 'live',
     unlocks: [
-      'Staker badge in DAEMON',
-      'Early feature notes and release windows',
-      'Priority waitlist for new Solana modules',
+      'Claim DAEMON Pro',
+      'Included monthly DAEMON AI credits',
+      'Pro Skills, Arena, MCP sync, and priority API',
     ],
   },
   {
-    id: 'builder',
-    label: 'Builder',
-    threshold: '100K staked',
+    id: 'holder-operator',
+    label: 'Holder Operator',
+    threshold: '5M DAEMON',
     status: 'planned',
     unlocks: [
-      'Higher concurrent agent caps',
-      'Premium project scaffolds and workflow packs',
-      'Priority execution queue for hosted actions',
+      'Higher AI credit allowance',
+      'Operator discount path',
+      'Expanded holder badge and beta access',
     ],
   },
   {
-    id: 'operator',
-    label: 'Operator',
-    threshold: '250K staked',
+    id: 'holder-ultra',
+    label: 'Holder Ultra',
+    threshold: '10M DAEMON',
     status: 'planned',
     unlocks: [
-      'Launch addon access across supported protocols',
-      'Higher MCP sync and priority API allowances',
-      'Expanded arena voting weight and beta surfaces',
+      'Ultra discount path',
+      'Highest holder priority',
+      'Private beta and advanced workflow access',
     ],
   },
 ]
@@ -119,7 +119,7 @@ export function ProPanel() {
       <header className="pro-panel-header">
         <div className="pro-panel-title-group">
           <div className="pro-panel-kicker">DAEMON PRO</div>
-          <div className="pro-panel-title">{isActive ? 'Subscription active' : 'Unlock the full IDE'}</div>
+          <div className="pro-panel-title">{isActive ? 'Plan active' : 'Unlock DAEMON Pro'}</div>
           {isActive && daysRemaining !== null && (
             <div className="pro-panel-subtitle">{daysRemaining} day{daysRemaining === 1 ? '' : 's'} remaining</div>
           )}
@@ -136,7 +136,7 @@ export function ProPanel() {
 
       <nav className="pro-tabs">
         <button type="button" className={`pro-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-        <button type="button" className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Staking</button>
+        <button type="button" className={`pro-tab ${activeTab === 'staking' ? 'active' : ''}`} onClick={() => setActiveTab('staking')}>Holder</button>
         <button type="button" className={`pro-tab ${activeTab === 'arena' ? 'active' : ''}`} onClick={() => setActiveTab('arena')}>Arena</button>
         <button type="button" className={`pro-tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')} disabled={!isActive}>Skills</button>
         <button type="button" className={`pro-tab ${activeTab === 'sync' ? 'active' : ''}`} onClick={() => setActiveTab('sync')} disabled={!isActive}>MCP Sync</button>
@@ -187,7 +187,7 @@ export function ProPanel() {
 
       <footer className="pro-panel-footer">
         <div className="pro-disclaimer">
-          DAEMON stays open source. Pro adds curated content, hosted sync, and priority endpoints on top of the IDE.
+          DAEMON Light stays free. Pro adds hosted DAEMON AI, credits, curated skills, Arena, and cloud-backed workflow services.
         </div>
       </footer>
     </section>
@@ -221,17 +221,17 @@ function StakingView({
     <div className="pro-staking">
       <section className="pro-staking-hero">
         <div>
-          <div className="pro-section-title">DAEMON staking utility</div>
+          <div className="pro-section-title">DAEMON holder access</div>
           <div className="pro-section-caption">
-            Current wallet-gated access is live now. Staking tiers below define how DAEMON can unlock more of the
-            workspace over time without turning the token into a detached vanity asset.
+            Current wallet-gated access is live now. Hold 1,000,000 DAEMON to claim Pro with included monthly AI usage.
+            Higher holder tiers can unlock larger allowances or discounts later.
           </div>
         </div>
         <div className="pro-staking-pill-group">
           <span className={`pro-staking-pill ${eligible ? 'eligible' : ''}`}>
             {eligible ? 'Holder access available' : 'Access not yet unlocked'}
           </span>
-          {accessSource && <span className="pro-staking-pill pro-staking-pill-live">Live source: {accessSource === 'holder' ? 'holder' : 'payment'}</span>}
+          {accessSource && accessSource !== 'free' && <span className="pro-staking-pill pro-staking-pill-live">Live source: {accessSource === 'holder' ? 'holder' : accessSource}</span>}
         </div>
       </section>
 
@@ -354,14 +354,15 @@ function OverviewSubscribe({
             <span className="pro-hero-price-loading">…</span>
           )}
         </div>
-        <div className="pro-hero-subtitle">Pay in USDC via x402. No separate dashboard, no separate account, no card flow.</div>
+        <div className="pro-hero-subtitle">DAEMON AI, Pro Skills, Arena, MCP sync, and monthly usage credits. Pay in USDC via x402.</div>
       </div>
 
       <div className="pro-features-grid">
+        <FeatureCard title="DAEMON AI" description="Hosted project-aware AI with Solana-native context and monthly credits." />
         <FeatureCard title="Arena" description="Submit your tools, vote on community submissions, and see what ships next." />
         <FeatureCard title="Pro skill pack" description="Curated agents, audit pipelines, and templates updated monthly." />
         <FeatureCard title="Hosted MCP sync" description="One MCP config, every machine. Push from one install, pull on the next." />
-        <FeatureCard title="Priority API quota" description="500 calls / month to the paid AI endpoints without per-call charges." />
+        <FeatureCard title="Priority API quota" description="Standard priority allowance for cloud-backed DAEMON workflows." />
       </div>
 
       {holderStatus.enabled && (
@@ -381,7 +382,7 @@ function OverviewSubscribe({
         ) : (
           <>
             <div className="pro-form-row">
-              <label className="pro-form-label">Pay from wallet</label>
+              <label className="pro-form-label">{isHolderEligible ? 'Claim with wallet' : 'Pay from wallet'}</label>
               <select className="pro-form-input" value={selectedWalletId} onChange={(e) => onSelectWallet(e.target.value)}>
                 {wallets.map((wallet) => (
                   <option key={wallet.id} value={wallet.id}>
@@ -430,7 +431,7 @@ function OverviewActive({
         <ProStat label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
         <ProStat label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
         <ProStat label="Features" value={`${features.length} unlocked`} />
-        <ProStat label="Access" value={accessSource === 'holder' ? 'Holder' : 'Paid'} />
+        <ProStat label="Access" value={accessSource === 'holder' ? 'Holder' : accessSource === 'payment' ? 'Paid' : 'Pro'} />
         <ProStat label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
       </div>
       <div className="pro-active-features">
@@ -460,12 +461,22 @@ function featureLabel(feature: ProFeature) {
   switch (feature) {
     case 'arena':
       return 'Arena access'
+    case 'daemon-ai':
+      return 'DAEMON AI'
     case 'pro-skills':
       return 'Pro skill pack'
     case 'mcp-sync':
       return 'Hosted MCP sync'
     case 'priority-api':
       return 'Priority API quota'
+    case 'app-factory':
+      return 'App Factory'
+    case 'shipline':
+      return 'Shipline'
+    case 'cloud-agents':
+      return 'Cloud agents'
+    case 'team-admin':
+      return 'Team admin'
     default:
       return feature
   }

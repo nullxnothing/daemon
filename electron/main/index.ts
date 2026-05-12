@@ -20,6 +20,7 @@ import { registerEnvHandlers } from '../ipc/env'
 import { registerPortHandlers } from '../ipc/ports'
 import { registerWalletHandlers } from '../ipc/wallet'
 import { registerProHandlers } from '../ipc/pro'
+import { registerDaemonAIHandlers } from '../ipc/daemon-ai'
 import { registerSettingsHandlers } from '../ipc/settings'
 import { registerPluginHandlers } from '../ipc/plugins'
 import { registerTweetHandlers } from '../ipc/tweets'
@@ -212,6 +213,7 @@ function registerAllIpc() {
   registerPortHandlers()
   registerWalletHandlers()
   registerProHandlers()
+  registerDaemonAIHandlers()
   registerSettingsHandlers()
   registerPluginHandlers()
   registerTweetHandlers()
