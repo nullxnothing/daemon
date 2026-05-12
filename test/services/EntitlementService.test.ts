@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { getMonthlyAiCredits, getPlanFeatures, hasFeature, normalizePlan } from '../../electron/services/EntitlementService'
+import {
+  canUseHostedModelLane,
+  getHostedLaneRequiredPlan,
+  getMonthlyAiCredits,
+  getPlanFeatures,
+  hasFeature,
+  isPlanAtLeast,
+  normalizePlan,
+} from '../../electron/services/EntitlementService'
 
 describe('EntitlementService', () => {
   it('keeps Light local-only and Pro AI-enabled', () => {
@@ -24,5 +32,18 @@ describe('EntitlementService', () => {
     expect(getMonthlyAiCredits('light')).toBe(0)
     expect(getMonthlyAiCredits('operator')).toBeGreaterThan(getMonthlyAiCredits('pro'))
     expect(getMonthlyAiCredits('ultra')).toBeGreaterThan(getMonthlyAiCredits('operator'))
+  })
+
+  it('gates hosted model lanes by plan level', () => {
+    expect(getHostedLaneRequiredPlan('standard')).toBe('pro')
+    expect(getHostedLaneRequiredPlan('reasoning')).toBe('operator')
+    expect(getHostedLaneRequiredPlan('premium')).toBe('ultra')
+    expect(isPlanAtLeast('operator', 'pro')).toBe(true)
+    expect(isPlanAtLeast('team', 'ultra')).toBe(false)
+    expect(canUseHostedModelLane({ active: true, plan: 'pro', features: [] }, 'standard')).toBe(true)
+    expect(canUseHostedModelLane({ active: true, plan: 'pro', features: [] }, 'reasoning')).toBe(false)
+    expect(canUseHostedModelLane({ active: true, plan: 'operator', features: [] }, 'reasoning')).toBe(true)
+    expect(canUseHostedModelLane({ active: true, plan: 'operator', features: [] }, 'premium')).toBe(false)
+    expect(canUseHostedModelLane({ active: true, plan: 'ultra', features: [] }, 'premium')).toBe(true)
   })
 })
