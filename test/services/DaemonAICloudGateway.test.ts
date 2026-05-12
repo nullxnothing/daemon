@@ -166,6 +166,110 @@ describe('DAEMON AI Cloud Gateway', () => {
     }))
   })
 
+  it('returns hosted usage and full model contracts for desktop clients', async () => {
+    const app = createDaemonAICloudGateway({
+      providers: [openAiProvider],
+      auth: { verifyBearerToken: vi.fn(async () => entitlement) },
+      usage: {
+        assertCredits: vi.fn(),
+        record: vi.fn(),
+      },
+    })
+    const baseUrl = await listen(app)
+
+    const usageResponse = await fetch(`${baseUrl}/v1/ai/usage`, {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const modelsResponse = await fetch(`${baseUrl}/v1/ai/models`, {
+      headers: { Authorization: 'Bearer valid-token' },
+    })
+    const usageBody = await usageResponse.json()
+    const modelsBody = await modelsResponse.json()
+
+    expect(usageBody.data).toMatchObject({
+      plan: 'pro',
+      monthlyCredits: 1_000,
+      usedCredits: 100,
+      remainingCredits: 900,
+    })
+    expect(usageBody.data.resetAt).toBeGreaterThan(Date.now())
+    expect(modelsBody.data[0]).toMatchObject({
+      lane: 'auto',
+      hosted: true,
+      byok: false,
+      requiresPlan: 'pro',
+    })
+  })
+
+  it('returns payment-required errors when usage credits are exhausted', async () => {
+    const app = createDaemonAICloudGateway({
+      providers: [openAiProvider],
+      auth: { verifyBearerToken: vi.fn(async () => entitlement) },
+      usage: {
+        assertCredits: vi.fn(async () => {
+          throw new Error('credits exhausted')
+        }),
+        record: vi.fn(),
+      },
+    })
+    const baseUrl = await listen(app)
+
+    const response = await fetch(`${baseUrl}/v1/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({ message: 'hello', prompt: 'hello' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(402)
+    expect(body).toEqual({
+      ok: false,
+      code: 'daemon_ai_insufficient_credits',
+      error: 'credits exhausted',
+    })
+  })
+
+  it('returns provider gateway errors without charging usage', async () => {
+    const failingProvider: DaemonAiModelProvider = {
+      id: 'openai',
+      supports: () => true,
+      generate: vi.fn(async () => {
+        throw new Error('provider unavailable')
+      }),
+    }
+    const record = vi.fn(async () => {})
+    const app = createDaemonAICloudGateway({
+      providers: [failingProvider],
+      auth: { verifyBearerToken: vi.fn(async () => entitlement) },
+      usage: {
+        assertCredits: vi.fn(async () => {}),
+        record,
+      },
+    })
+    const baseUrl = await listen(app)
+
+    const response = await fetch(`${baseUrl}/v1/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({ message: 'hello', prompt: 'hello' }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(502)
+    expect(body).toEqual({
+      ok: false,
+      code: 'daemon_ai_provider_error',
+      error: 'provider unavailable',
+    })
+    expect(record).not.toHaveBeenCalled()
+  })
+
   it('rejects missing hosted bearer tokens', async () => {
     const app = createDaemonAICloudGateway({
       providers: [openAiProvider],
