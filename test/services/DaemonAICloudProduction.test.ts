@@ -6,6 +6,7 @@ import {
   verifyDaemonAiJwt,
   type DaemonAiCloudEntitlement,
 } from '../../electron/services/daemon-ai-cloud'
+import { resolveDaemonAICloudServerConfig } from '../../electron/services/daemon-ai-cloud/server'
 
 const secret = 'test-secret'
 
@@ -17,6 +18,23 @@ function signJwt(claims: Record<string, unknown>, header: Record<string, unknown
 }
 
 describe('DAEMON AI Cloud production helpers', () => {
+  it('resolves deployable server config from platform environment', () => {
+    expect(resolveDaemonAICloudServerConfig({
+      PORT: '8080',
+      DAEMON_AI_CLOUD_HOST: '127.0.0.1',
+      DAEMON_AI_CLOUD_DB_PATH: 'C:/daemon/staging.db',
+      DAEMON_AI_CLOUD_ALLOW_UNREADY: '1',
+    } as NodeJS.ProcessEnv)).toMatchObject({
+      host: '127.0.0.1',
+      port: 8080,
+      dbPath: 'C:/daemon/staging.db',
+      failOnMissingEnv: false,
+      readiness: { ready: false },
+    })
+
+    expect(() => resolveDaemonAICloudServerConfig({ PORT: '99999' } as NodeJS.ProcessEnv)).toThrow(/port/i)
+  })
+
   it('reports hosted runtime readiness from deployment environment', () => {
     expect(getDaemonAICloudRuntimeReadiness({} as NodeJS.ProcessEnv)).toMatchObject({
       ready: false,

@@ -16,6 +16,7 @@
     "dev": "vite",
     "dev:debug": "powershell -NoProfile -Command \"$env:DAEMON_OPEN_DEVTOOLS='1'; vite\"",
     "build": "tsc && vite build",
+    "build:daemon-ai-cloud": "vite build --config vite.cloud.config.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch --preserveWatchOutput",
     "mobile:seeker": "npm --prefix apps/seeker-mobile run start",
@@ -40,6 +41,7 @@
     "test:visual": "pnpm run build && node scripts/smoke/visual-regression.mjs",
     "test:visual:update": "pnpm run build && node scripts/smoke/visual-regression.mjs --update",
     "test:daemon-ai:live": "node scripts/smoke/daemon-ai-live.mjs",
+    "start:daemon-ai-cloud": "node dist-cloud/daemon-ai-cloud-server.mjs",
     "lint:styles": "node scripts/style-debt-check.mjs"
   },
   "dependencies": {
