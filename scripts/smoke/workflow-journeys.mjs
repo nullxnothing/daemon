@@ -211,14 +211,16 @@ async function verifyTokenLaunchFlow(page) {
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
     return body.includes('Step 1')
-      && body.includes('Check readiness and recent launches')
+      && body.includes('Choose the launch path')
       && body.includes('Step 2')
       && body.includes('Save protocol config once')
       && body.includes('Recommended flow')
   }, { timeout: 30000 })
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
-    return body.includes('Pump live now') && body.includes('Launch Token')
+    return body.includes('Open Streamlock')
+      && body.includes('Streamlock is the current external launch path')
+      && body.includes('Recent Launches')
   }, { timeout: 30000 })
 }
 
