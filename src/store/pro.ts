@@ -28,12 +28,13 @@ interface ProStoreState {
 
 const EMPTY_SUBSCRIPTION: ProSubscriptionState = {
   active: false,
+  plan: 'light',
   walletId: null,
   walletAddress: null,
   expiresAt: null,
   features: [],
   tier: null,
-  accessSource: null,
+  accessSource: 'free',
   holderStatus: {
     enabled: false,
     eligible: false,

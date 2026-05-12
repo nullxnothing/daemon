@@ -16,6 +16,7 @@ import type {
 } from '../shared/types'
 import * as SecureKey from './SecureKeyService'
 import { withKeypair } from './SolanaService'
+import { getPlanFeatures, normalizePlan } from './EntitlementService'
 
 const DEFAULT_PRO_API_BASE =
   process.env.NODE_ENV === 'production'
@@ -25,9 +26,9 @@ const DEFAULT_PRO_API_BASE =
 const DAEMON_PRO_API_BASE = process.env.DAEMON_PRO_API_BASE ?? DEFAULT_PRO_API_BASE
 const DEV_BYPASS_ENABLED =
   process.env.NODE_ENV !== 'production' && process.env.DAEMON_PRO_DEV_BYPASS === '1'
-const DEV_BYPASS_FEATURES: ProFeature[] = ['arena', 'pro-skills', 'mcp-sync', 'priority-api']
+const DEV_BYPASS_FEATURES: ProFeature[] = getPlanFeatures('pro')
 const DEV_BYPASS_PRICE: ProPriceInfo = {
-  priceUsdc: 5,
+  priceUsdc: 20,
   durationDays: 30,
   network: 'solana:mainnet',
   payTo: 'GNVxk3sn4iJ2iUaqEUskWQ1KNy9Mmcee3WF3AMtRjN7W',
@@ -49,12 +50,13 @@ function devBypassState(overrides: Partial<ProSubscriptionState> = {}): ProSubsc
   const expiresAt = Date.now() + DEV_BYPASS_PRICE.durationDays * 24 * 60 * 60 * 1000
   return {
     active: true,
+    plan: 'pro',
     walletId: null,
     walletAddress: null,
     expiresAt,
     features: DEV_BYPASS_FEATURES,
     tier: 'pro',
-    accessSource: 'holder',
+    accessSource: 'dev_bypass',
     holderStatus: {
       enabled: true,
       eligible: true,
@@ -89,7 +91,7 @@ function writeLocalProState(params: {
   walletAddress: string | null
   expiresAt: number | null
   features: ProFeature[]
-  tier: 'pro' | null
+  tier: Exclude<ProSubscriptionState['plan'], 'light'> | null
 }) {
   getDb()
     .prepare(`
@@ -131,7 +133,7 @@ export function getLocalSubscriptionState(): ProSubscriptionState {
       walletAddress: row.wallet_address,
       expiresAt: row.expires_at,
       features: row.features ? (JSON.parse(row.features) as ProFeature[]) : DEV_BYPASS_FEATURES,
-      tier: (row.tier as 'pro' | null) ?? 'pro',
+      tier: normalizePlan(row.tier) === 'light' ? 'pro' : normalizePlan(row.tier) as Exclude<ProSubscriptionState['plan'], 'light'>,
     })
   }
 
@@ -139,12 +141,13 @@ export function getLocalSubscriptionState(): ProSubscriptionState {
   if (!row) {
     return {
       active: false,
+      plan: 'light',
       walletId: null,
       walletAddress: null,
       expiresAt: null,
       features: [],
       tier: null,
-      accessSource: null,
+      accessSource: 'free',
       holderStatus: EMPTY_HOLDER_STATUS,
       priceUsdc: null,
       durationDays: null,
@@ -154,12 +157,13 @@ export function getLocalSubscriptionState(): ProSubscriptionState {
   const active = row.expires_at !== null && row.expires_at > Date.now()
   return {
     active,
+    plan: active ? normalizePlan(row.tier) : 'light',
     walletId: row.wallet_id,
     walletAddress: row.wallet_address,
     expiresAt: row.expires_at,
     features: active && row.features ? (JSON.parse(row.features) as ProFeature[]) : [],
-    tier: active ? (row.tier as 'pro' | null) : null,
-    accessSource: active ? 'payment' : null,
+    tier: active ? (normalizePlan(row.tier) === 'light' ? null : normalizePlan(row.tier) as Exclude<ProSubscriptionState['plan'], 'light'>) : null,
+    accessSource: active ? 'payment' : 'free',
     holderStatus: EMPTY_HOLDER_STATUS,
     priceUsdc: null,
     durationDays: null,
@@ -230,8 +234,9 @@ export async function refreshStatusFromServer(walletAddress: string): Promise<Pr
     active: boolean
     expiresAt: number | null
     features: ProFeature[]
-    tier: 'pro' | null
-    accessSource: 'payment' | 'holder' | null
+    tier: Exclude<ProSubscriptionState['plan'], 'light'> | null
+    plan?: ProSubscriptionState['plan']
+    accessSource: ProSubscriptionState['accessSource']
     holderStatus: ProSubscriptionState['holderStatus']
   }>(`/v1/subscribe/status?wallet=${encodeURIComponent(walletAddress)}`)
 
@@ -241,11 +246,12 @@ export async function refreshStatusFromServer(walletAddress: string): Promise<Pr
     walletAddress,
     expiresAt: data.expiresAt,
     features: data.features,
-    tier: data.tier,
+    tier: normalizePlan(data.plan ?? data.tier) === 'light' ? null : normalizePlan(data.plan ?? data.tier) as Exclude<ProSubscriptionState['plan'], 'light'>,
   })
 
   return {
     ...getLocalSubscriptionState(),
+    plan: normalizePlan(data.plan ?? data.tier),
     accessSource: data.accessSource,
     holderStatus: data.holderStatus,
   }
@@ -307,6 +313,7 @@ export async function subscribe(walletId: string): Promise<{ state: ProSubscript
     expiresAt: number
     features: ProFeature[]
     tier: 'pro'
+    plan?: ProSubscriptionState['plan']
   }
   if (!body.ok || !body.jwt) throw new ProApiError(500, 'Server returned malformed subscribe response')
 
@@ -316,7 +323,7 @@ export async function subscribe(walletId: string): Promise<{ state: ProSubscript
     walletAddress,
     expiresAt: body.expiresAt,
     features: body.features,
-    tier: body.tier,
+    tier: normalizePlan(body.plan ?? body.tier) === 'light' ? 'pro' : normalizePlan(body.plan ?? body.tier) as Exclude<ProSubscriptionState['plan'], 'light'>,
   })
 
   return { state: getLocalSubscriptionState(), price }
@@ -358,6 +365,7 @@ export async function claimHolderAccess(walletId: string): Promise<{ state: ProS
     expiresAt: number
     features: ProFeature[]
     tier: 'pro'
+    plan?: ProSubscriptionState['plan']
   }>('/v1/subscribe/holder/claim', {
     method: 'POST',
     body: JSON.stringify({
@@ -373,12 +381,13 @@ export async function claimHolderAccess(walletId: string): Promise<{ state: ProS
     walletAddress,
     expiresAt: body.expiresAt,
     features: body.features,
-    tier: body.tier,
+    tier: normalizePlan(body.plan ?? body.tier) === 'light' ? 'pro' : normalizePlan(body.plan ?? body.tier) as Exclude<ProSubscriptionState['plan'], 'light'>,
   })
 
   return {
     state: {
       ...getLocalSubscriptionState(),
+      plan: normalizePlan(body.plan ?? body.tier),
       accessSource: 'holder',
       holderStatus: challenge.holderStatus,
     },

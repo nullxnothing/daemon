@@ -95,6 +95,11 @@ import type {
   LspLocation,
   LspPosition,
   LspServerStatus,
+  DaemonAiChatRequest,
+  DaemonAiChatResponse,
+  DaemonAiFeatureState,
+  DaemonAiModelInfo,
+  DaemonAiUsageSnapshot,
 } from '../../electron/shared/types'
 
 export type {
@@ -189,6 +194,11 @@ export type {
   LspLocation,
   LspPosition,
   LspServerStatus,
+  DaemonAiChatRequest,
+  DaemonAiChatResponse,
+  DaemonAiFeatureState,
+  DaemonAiModelInfo,
+  DaemonAiUsageSnapshot,
 }
 
 declare global {
@@ -329,6 +339,11 @@ declare global {
   type ArenaSubmission = import('../../electron/shared/types').ArenaSubmission
   type ArenaSubmissionInput = import('../../electron/shared/types').ArenaSubmissionInput
   type ProSkillManifest = import('../../electron/shared/types').ProSkillManifest
+  type DaemonAiChatRequest = import('../../electron/shared/types').DaemonAiChatRequest
+  type DaemonAiChatResponse = import('../../electron/shared/types').DaemonAiChatResponse
+  type DaemonAiFeatureState = import('../../electron/shared/types').DaemonAiFeatureState
+  type DaemonAiModelInfo = import('../../electron/shared/types').DaemonAiModelInfo
+  type DaemonAiUsageSnapshot = import('../../electron/shared/types').DaemonAiUsageSnapshot
 
   interface DaemonWindow {
     minimize: () => void
@@ -1053,6 +1068,15 @@ declare global {
     mcpPull: () => Promise<IpcResponse<{ count: number }>>
   }
 
+  interface DaemonAI {
+    chat: (input: DaemonAiChatRequest) => Promise<IpcResponse<DaemonAiChatResponse>>
+    streamChat: (input: DaemonAiChatRequest) => Promise<IpcResponse<DaemonAiChatResponse>>
+    getUsage: () => Promise<IpcResponse<DaemonAiUsageSnapshot>>
+    getModels: () => Promise<IpcResponse<DaemonAiModelInfo[]>>
+    getFeatures: () => Promise<IpcResponse<DaemonAiFeatureState>>
+    summarizeContext: (input: DaemonAiChatRequest) => Promise<IpcResponse<{ usedContext: string[]; preview: string }>>
+  }
+
   interface DaemonAPI {
     window: DaemonWindow
     terminal: DaemonTerminal
@@ -1092,6 +1116,7 @@ declare global {
     validator: DaemonValidator
     pnl: DaemonPnl
     pro: DaemonPro
+    ai: DaemonAI
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
     replay: DaemonReplay

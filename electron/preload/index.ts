@@ -294,6 +294,15 @@ contextBridge.exposeInMainWorld('daemon', {
     mcpPull: () => ipcRenderer.invoke('pro:mcp-pull'),
   },
 
+  ai: {
+    chat: (input: object) => ipcRenderer.invoke('daemon-ai:chat', input),
+    streamChat: (input: object) => ipcRenderer.invoke('daemon-ai:stream-chat', input),
+    getUsage: () => ipcRenderer.invoke('daemon-ai:usage'),
+    getModels: () => ipcRenderer.invoke('daemon-ai:models'),
+    getFeatures: () => ipcRenderer.invoke('daemon-ai:features'),
+    summarizeContext: (input: object) => ipcRenderer.invoke('daemon-ai:summarize-context', input),
+  },
+
   pnl: {
     syncHistory: (walletAddress?: string) => ipcRenderer.invoke('pnl:sync-history', walletAddress),
     getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => ipcRenderer.invoke('pnl:get-portfolio', walletAddress, holdings),
