@@ -49,11 +49,12 @@ Only after both gates pass:
 
 1. Change `package.json` from `4.0.0-rc.0` to `4.0.0`.
 2. Change `Whatsnew.md` from RC notes to final release notes.
-3. Re-run `pnpm run release:check:v4:local`.
-4. Commit from a clean worktree.
-5. Run `pnpm run release:check:v4:final-state`.
-6. Tag `v4.0.0`.
-7. Publish `release/4.0.0/DAEMON-setup.exe` and verify the GitHub latest download URL.
+3. Replace the desktop DAEMON AI cloud fallback with the production URL in `electron/services/DaemonAICloudClient.ts`.
+4. Re-run `pnpm run release:check:v4:local`.
+5. Commit from a clean worktree.
+6. Run `pnpm run release:check:v4:final-state`.
+7. Tag `v4.0.0`.
+8. Publish `release/4.0.0/DAEMON-setup.exe` and verify the GitHub latest download URL.
 
 ## 4. Known External Follow-Up
 
