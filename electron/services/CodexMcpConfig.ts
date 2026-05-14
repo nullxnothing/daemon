@@ -29,7 +29,8 @@ export interface CodexMcpListEntry {
   source: 'codex'
 }
 
-const CONFIG_PATH = path.join(os.homedir(), '.codex', 'config.toml')
+const MCP_HOME_DIR = process.env.DAEMON_MCP_HOME_DIR || os.homedir()
+const CONFIG_PATH = path.join(MCP_HOME_DIR, '.codex', 'config.toml')
 
 function readConfig(): CodexConfig {
   try {

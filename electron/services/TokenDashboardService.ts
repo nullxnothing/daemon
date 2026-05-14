@@ -1,13 +1,17 @@
-import { getHeliusApiKey } from './SolanaService'
+import { getHeliusApiKey, getJupiterApiKey } from './SolanaService'
 
-const JUPITER_PRICE_URL = 'https://api.jup.ag/price/v2'
+const JUPITER_PRICE_URL = 'https://api.jup.ag/price/v3'
 const HELIUS_RPC_BASE = 'https://mainnet.helius-rpc.com'
 const TOKEN_ACCOUNT_PAGE_LIMIT = 1000
 const TOKEN_ACCOUNT_MAX_PAGES = 50
+const TOKEN_PRICE_CACHE_TTL = 10_000
+const tokenPriceCache = new Map<string, { timestamp: number; value: TokenPrice }>()
+const tokenPriceInflight = new Map<string, Promise<TokenPrice>>()
 
 export interface TokenPrice {
   price: number
   priceChange24h: number | null
+  confidenceLevel?: string | null
 }
 
 export interface TokenMetadata {
@@ -62,19 +66,51 @@ function pickTokenImage(content: {
     ?? normalizeTokenImageUrl(content?.links?.image)
 }
 
+function cloneTokenPrice(value: TokenPrice): TokenPrice {
+  return { ...value }
+}
+
+function parseOptionalNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? parseFloat(value) : NaN
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export async function getTokenPrice(mint: string): Promise<TokenPrice> {
+  const now = Date.now()
+  const cached = tokenPriceCache.get(mint)
+  if (cached && now - cached.timestamp < TOKEN_PRICE_CACHE_TTL) return cloneTokenPrice(cached.value)
+
+  const inflight = tokenPriceInflight.get(mint)
+  if (inflight) return cloneTokenPrice(await inflight)
+
   const url = `${JUPITER_PRICE_URL}?ids=${mint}`
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Jupiter price fetch failed: ${response.status}`)
+  const request = (async () => {
+    const jupiterKey = getJupiterApiKey()
+    const response = await fetch(url, {
+      headers: jupiterKey ? { 'x-api-key': jupiterKey } : {},
+    })
+    if (!response.ok) throw new Error(`Jupiter price fetch failed: ${response.status}`)
 
-  const json = await response.json() as { data: Record<string, { price: string } | null> }
-  const entry = json.data[mint]
-  if (!entry) throw new Error(`No price data for mint ${mint}`)
+    const json = await response.json() as Record<string, { usdPrice?: number | string; priceChange24h?: number | string; confidenceLevel?: string } | null>
+    const entry = json[mint]
+    if (!entry) throw new Error(`No price data for mint ${mint}`)
 
-  return {
-    price: parseFloat(entry.price),
-    priceChange24h: null,
-  }
+    const price = parseOptionalNumber(entry.usdPrice)
+    if (price === null) throw new Error(`No USD price for mint ${mint}`)
+
+    const value: TokenPrice = {
+      price,
+      priceChange24h: parseOptionalNumber(entry.priceChange24h),
+      confidenceLevel: typeof entry.confidenceLevel === 'string' ? entry.confidenceLevel : null,
+    }
+    tokenPriceCache.set(mint, { timestamp: Date.now(), value: cloneTokenPrice(value) })
+    return value
+  })().finally(() => {
+    tokenPriceInflight.delete(mint)
+  })
+
+  tokenPriceInflight.set(mint, request)
+  return cloneTokenPrice(await request)
 }
 
 export async function getTokenMetadata(mint: string): Promise<TokenMetadata> {

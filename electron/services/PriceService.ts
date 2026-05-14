@@ -1,27 +1,84 @@
 import { getDb } from '../db/db'
 import { API_ENDPOINTS } from '../config/constants'
+import { getJupiterApiKey } from './SolanaService'
 
 interface PriceResult {
   mint: string
   priceUsd: number
   priceSol: number
   source: string
+  confidenceLevel?: string | null
+}
+
+interface JupiterPriceResult {
+  priceUsd: number
+  confidenceLevel: string | null
 }
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const PRICE_CACHE_TTL = 10_000 // 10s in-memory TTL
+const JUPITER_PRICE_BATCH_SIZE = 50
 const memoryCache = new Map<string, { price: PriceResult; ts: number }>()
+const jupiterPriceBatchInflight = new Map<string, Promise<PriceResult[]>>()
 
 let solPriceUsd = 0
 let solPriceTs = 0
 
+function getJupiterHeaders(): HeadersInit {
+  const key = getJupiterApiKey()
+  return key ? { 'x-api-key': key } : {}
+}
+
+function optionalNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? parseFloat(value) : NaN
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function readJupiterPrice(json: unknown, mint: string): JupiterPriceResult | null {
+  if (!json || typeof json !== 'object') return null
+  const root = json as Record<string, unknown>
+
+  const direct = root[mint]
+  if (direct && typeof direct === 'object') {
+    const entry = direct as Record<string, unknown>
+    const priceUsd = optionalNumber(entry.usdPrice)
+    if (!priceUsd) return null
+    return {
+      priceUsd,
+      confidenceLevel: optionalString(entry.confidenceLevel),
+    }
+  }
+
+  const data = root.data
+  if (data && typeof data === 'object') {
+    const entry = (data as Record<string, unknown>)[mint]
+    if (entry && typeof entry === 'object') {
+      const legacy = entry as Record<string, unknown>
+      const priceUsd = optionalNumber(legacy.price)
+      if (!priceUsd) return null
+      return {
+        priceUsd,
+        confidenceLevel: optionalString(legacy.confidenceLevel),
+      }
+    }
+  }
+
+  return null
+}
+
 async function fetchSolPrice(): Promise<number> {
   if (solPriceUsd > 0 && Date.now() - solPriceTs < 30_000) return solPriceUsd
   try {
-    const res = await fetch(`${API_ENDPOINTS.JUPITER_PRICE}?ids=${SOL_MINT}&vsToken=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
+    const res = await fetch(`${API_ENDPOINTS.JUPITER_PRICE}?ids=${SOL_MINT}`, {
+      headers: getJupiterHeaders(),
+    })
     if (!res.ok) return solPriceUsd || 150
-    const json = await res.json() as { data?: Record<string, { price?: string }> }
-    const p = parseFloat(json.data?.[SOL_MINT]?.price ?? '0')
+    const json = await res.json()
+    const p = readJupiterPrice(json, SOL_MINT)?.priceUsd ?? 0
     if (p > 0) { solPriceUsd = p; solPriceTs = Date.now() }
     return solPriceUsd || 150
   } catch {
@@ -29,60 +86,77 @@ async function fetchSolPrice(): Promise<number> {
   }
 }
 
+async function fetchJupiterPriceBatch(batch: string[], solPrice: number, now: number): Promise<PriceResult[]> {
+  const batchKey = batch.slice().sort().join(',')
+  const inflight = jupiterPriceBatchInflight.get(batchKey)
+  if (inflight) return inflight
+
+  const request = (async () => {
+    const results: PriceResult[] = []
+    const res = await fetch(`${API_ENDPOINTS.JUPITER_PRICE}?ids=${batch.join(',')}`, {
+      headers: getJupiterHeaders(),
+    })
+    if (!res.ok) return results
+
+    const json = await res.json()
+    for (const mint of batch) {
+      const price = readJupiterPrice(json, mint)
+      if (price) {
+        const result: PriceResult = {
+          mint,
+          priceUsd: price.priceUsd,
+          priceSol: solPrice > 0 ? price.priceUsd / solPrice : 0,
+          source: 'jupiter',
+          confidenceLevel: price.confidenceLevel,
+        }
+        results.push(result)
+        memoryCache.set(mint, { price: result, ts: now })
+      }
+    }
+    return results
+  })().finally(() => {
+    jupiterPriceBatchInflight.delete(batchKey)
+  })
+
+  jupiterPriceBatchInflight.set(batchKey, request)
+  return request
+}
+
 export async function getPrices(mints: string[]): Promise<PriceResult[]> {
   if (mints.length === 0) return []
 
   const now = Date.now()
-  const results: PriceResult[] = []
+  const resultMap = new Map<string, PriceResult>()
   const needFetch: string[] = []
+  const uniqueMints = Array.from(new Set(mints))
 
   // Check memory cache first
-  for (const mint of mints) {
+  for (const mint of uniqueMints) {
     const cached = memoryCache.get(mint)
     if (cached && now - cached.ts < PRICE_CACHE_TTL) {
-      results.push(cached.price)
+      resultMap.set(mint, cached.price)
     } else {
       needFetch.push(mint)
     }
   }
 
-  if (needFetch.length === 0) return results
+  if (needFetch.length === 0) return mints.map((mint) => resultMap.get(mint)).filter((result): result is PriceResult => Boolean(result))
 
   const solPrice = await fetchSolPrice()
 
-  // Batch Jupiter Price API (up to 100 at a time)
-  const jupiterPriced = new Set<string>()
-  for (let i = 0; i < needFetch.length; i += 100) {
-    const batch = needFetch.slice(i, i + 100)
+  // Jupiter Price API V3 supports up to 50 mints per request.
+  for (let i = 0; i < needFetch.length; i += JUPITER_PRICE_BATCH_SIZE) {
+    const batch = needFetch.slice(i, i + JUPITER_PRICE_BATCH_SIZE)
     try {
-      const res = await fetch(`${API_ENDPOINTS.JUPITER_PRICE}?ids=${batch.join(',')}&showExtraInfo=true`)
-      if (res.ok) {
-        const json = await res.json() as { data?: Record<string, { price?: string }> }
-        if (json.data) {
-          for (const mint of batch) {
-            const entry = json.data[mint]
-            if (entry?.price) {
-              const priceUsd = parseFloat(entry.price)
-              if (priceUsd > 0) {
-                const result: PriceResult = {
-                  mint,
-                  priceUsd,
-                  priceSol: solPrice > 0 ? priceUsd / solPrice : 0,
-                  source: 'jupiter',
-                }
-                results.push(result)
-                memoryCache.set(mint, { price: result, ts: now })
-                jupiterPriced.add(mint)
-              }
-            }
-          }
-        }
+      const batchResults = await fetchJupiterPriceBatch(batch, solPrice, now)
+      for (const result of batchResults) {
+        resultMap.set(result.mint, result)
       }
     } catch { /* fallback below */ }
   }
 
   // DexScreener fallback for tokens Jupiter didn't price (PumpFun bonding curve)
-  const unpriced = needFetch.filter((m) => !jupiterPriced.has(m))
+  const unpriced = needFetch.filter((m) => !resultMap.has(m))
   if (unpriced.length > 0) {
     // DexScreener supports batching up to 30 addresses
     for (let i = 0; i < unpriced.length; i += 30) {
@@ -102,7 +176,7 @@ export async function getPrices(mints: string[]): Promise<PriceResult[]> {
                   priceSol: solPrice > 0 ? priceUsd / solPrice : 0,
                   source: 'dexscreener',
                 }
-                results.push(result)
+                resultMap.set(mint, result)
                 memoryCache.set(mint, { price: result, ts: now })
               }
             }
@@ -113,19 +187,18 @@ export async function getPrices(mints: string[]): Promise<PriceResult[]> {
   }
 
   // Fill remaining with $0
-  const pricedMints = new Set(results.map((r) => r.mint))
   for (const mint of needFetch) {
-    if (!pricedMints.has(mint)) {
+    if (!resultMap.has(mint)) {
       const result: PriceResult = { mint, priceUsd: 0, priceSol: 0, source: 'none' }
-      results.push(result)
+      resultMap.set(mint, result)
       memoryCache.set(mint, { price: result, ts: now })
     }
   }
 
   // Persist to DB cache
-  persistPriceCache(results.filter((r) => r.priceUsd > 0))
+  persistPriceCache(Array.from(resultMap.values()).filter((r) => r.priceUsd > 0))
 
-  return results
+  return mints.map((mint) => resultMap.get(mint)).filter((result): result is PriceResult => Boolean(result))
 }
 
 export function getCachedPrice(mint: string): PriceResult | null {

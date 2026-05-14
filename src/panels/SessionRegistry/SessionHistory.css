@@ -34,14 +34,14 @@
 }
 
 .sr-stat-value {
-  font-size: 26px;
+  font-size: var(--fs-26);
   font-weight: 700;
   color: var(--t1);
   font-family: 'JetBrains Mono', monospace;
 }
 
 .sr-stat-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   color: var(--t3);
   text-transform: uppercase;
@@ -50,7 +50,7 @@
 .sr-error {
   margin: 16px 20px 0;
   padding: 10px 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   background: color-mix(in srgb, var(--red) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
@@ -71,12 +71,12 @@
 }
 
 .sr-publish-bar-text {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
 .sr-publish-all-btn {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 4px 10px;
@@ -105,7 +105,7 @@
 
 .sr-empty {
   padding: 24px 16px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   text-align: center;
   line-height: 1.5;
@@ -175,7 +175,7 @@
 }
 
 .sr-agent-name {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   color: var(--t1);
   white-space: nowrap;
@@ -184,7 +184,7 @@
 }
 
 .sr-row-meta {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   margin-top: 4px;
 }
@@ -199,12 +199,12 @@
 }
 
 .sr-model-badge {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--s3);
   color: var(--t3);
 }
@@ -225,11 +225,11 @@
 }
 
 .sr-terminal-closed {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 500;
   letter-spacing: 0.03em;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--t4) 8%, transparent);
   color: var(--t4);
   border: 1px solid color-mix(in srgb, var(--t4) 15%, transparent);
@@ -237,23 +237,23 @@
 }
 
 .sr-published-badge {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--green) 8%, transparent);
   color: var(--green-dim);
   border: 1px solid color-mix(in srgb, var(--green) 15%, transparent);
 }
 
 .sr-publish-btn {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--s3);
   color: var(--t2);
@@ -278,7 +278,7 @@
   padding: 0;
   cursor: text;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   color: var(--t1);
   white-space: nowrap;
@@ -293,12 +293,12 @@
 }
 
 .sr-name-input {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   color: var(--t1);
   background: var(--s3);
   border: 1px solid var(--green-dim);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   padding: 1px 5px;
   outline: none;
   width: 140px;
@@ -323,11 +323,11 @@
 }
 
 .sr-action-btn {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--s3);
   cursor: pointer;

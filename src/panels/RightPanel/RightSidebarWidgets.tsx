@@ -30,13 +30,15 @@ function WidgetShell({
   kicker,
   title,
   children,
+  className,
 }: {
   kicker: string
   title: string
   children: ReactNode
+  className?: string
 }) {
   return (
-    <section className="rp-side-widget">
+    <section className={`rp-side-widget${className ? ` ${className}` : ''}`}>
       <div className="rp-side-widget-head">
         <div>
           <div className="rp-agent-widget-kicker">{kicker}</div>
@@ -46,6 +48,18 @@ function WidgetShell({
       {children}
     </section>
   )
+}
+
+function openZauthWorkspace(pageId?: 'database' | 'provider-hub') {
+  if (pageId) {
+    try {
+      window.localStorage.setItem('daemon:zauth:activePage', pageId)
+      window.dispatchEvent(new CustomEvent('daemon:zauth-open', { detail: pageId }))
+    } catch {
+      // The workspace tool still opens on its default page if storage/events are unavailable.
+    }
+  }
+  useUIStore.getState().openWorkspaceTool('zauth')
 }
 
 function useRightSidebarWidgetConfig() {
@@ -88,6 +102,7 @@ function ProjectStatusWidget() {
 function WalletSnapshotWidget() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const dashboard = useWalletStore((s) => s.dashboard)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const wallets = dashboard?.wallets ?? EMPTY_WALLETS
   const refresh = useWalletStore((s) => s.refresh)
   const fallbackWallet = wallets.find((wallet) => wallet.isDefault) ?? wallets[0] ?? null
@@ -95,12 +110,13 @@ function WalletSnapshotWidget() {
   const activeHoldingCount = dashboard?.activeWallet?.holdings.length ?? 0
 
   useEffect(() => {
+    if (lowPowerMode) return
     if (!dashboard) void refresh(activeProjectId)
-  }, [activeProjectId, dashboard, refresh])
+  }, [activeProjectId, dashboard, lowPowerMode, refresh])
 
   return (
     <WidgetShell kicker="Wallet" title={money(dashboard?.portfolio.totalUsd ?? 0)}>
-      <div className="rp-side-widget-line">{activeWalletName ?? 'No wallet loaded'}</div>
+      <div className="rp-side-widget-line">{activeWalletName ?? (lowPowerMode ? 'Cached until opened' : 'No wallet loaded')}</div>
       <div className="rp-agent-widget-grid rp-side-widget-grid">
         <div><span>Wallets</span><strong>{wallets.length}</strong></div>
         <div><span>Tokens</span><strong>{activeHoldingCount}</strong></div>
@@ -152,6 +168,33 @@ function AiStatusWidget() {
   )
 }
 
+function ZauthSidebarWidget() {
+  const rows = [
+    { label: 'Database', value: 'Registry', ready: true },
+    { label: 'Provider Hub', value: 'Console', ready: true },
+    { label: 'Layer', value: 'x402', ready: true },
+  ]
+
+  return (
+    <WidgetShell kicker="x402" title="Zauth" className="rp-zauth-widget">
+      <div className="rp-side-status-list">
+        {rows.map((row) => (
+          <div key={row.label} className="rp-side-status-row">
+            <span className={`rp-side-status-dot ${row.ready ? 'live' : ''}`} />
+            <span>{row.label}</span>
+            <strong>{row.value}</strong>
+          </div>
+        ))}
+      </div>
+      <div className="rp-agent-widget-actions">
+        <button type="button" onClick={() => openZauthWorkspace('database')}>Database</button>
+        <button type="button" onClick={() => openZauthWorkspace('provider-hub')}>Hub</button>
+        <button type="button" onClick={() => openZauthWorkspace()}>Full</button>
+      </div>
+    </WidgetShell>
+  )
+}
+
 export function RightSidebarWidgets() {
   const config = useRightSidebarWidgetConfig()
 
@@ -161,6 +204,7 @@ export function RightSidebarWidgets() {
       {config.enabled['wallet-snapshot'] && <WalletSnapshotWidget />}
       {config.enabled['solana-readiness'] && <SolanaReadinessSidebarWidget />}
       {config.enabled['token-watch'] && <TokenWatchSidebarWidget />}
+      {config.enabled['zauth'] && <ZauthSidebarWidget />}
       {config.enabled['ai-status'] && <AiStatusWidget />}
       <SpawnAgentSidebarWidget />
     </>

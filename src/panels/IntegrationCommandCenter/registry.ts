@@ -63,6 +63,23 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'zauth',
+    name: 'Zauth',
+    tagline: 'x402 endpoint database and Provider Hub',
+    description: 'Manage x402 provider endpoints, discovery, verification, monitoring, and Provider Hub workflows from inside DAEMON.',
+    category: 'infra',
+    docsUrl: 'https://zauth.inc/provider-hub',
+    recommendedFor: ['x402 providers', 'paid APIs', 'endpoint discovery', 'payment telemetry', 'provider monitoring'],
+    requirements: [
+      { type: 'external-url', key: 'https://zauth.inc/database', label: 'Zauth x402 Database' },
+      { type: 'external-url', key: 'https://zauth.inc/provider-hub', label: 'Zauth Provider Hub' },
+    ],
+    actions: [
+      { id: 'open-zauth-database', label: 'Open database', description: 'Open the Zauth x402 endpoint database inside DAEMON.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-zauth-provider-hub', label: 'Open Provider Hub', description: 'Open the Zauth Provider Hub inside DAEMON.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'sendai-agent-kit',
     name: 'SendAI Agent Kit',
     tagline: 'AI actions and Solana tools through MCP',

@@ -23,7 +23,7 @@
 
 .daemon-ai-header h2 {
   margin: 4px 0 0;
-  font-size: 22px;
+  font-size: var(--fs-22);
   line-height: 1.15;
 }
 
@@ -40,7 +40,7 @@
 .daemon-ai-composer button {
   background: var(--green);
   border-color: var(--green);
-  color: #07120d;
+  color: var(--on-accent-dark);
   font-weight: 700;
 }
 
@@ -59,20 +59,20 @@
 .daemon-ai-stat {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.035);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 10px;
 }
 
 .daemon-ai-stat span {
   display: block;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .daemon-ai-stat strong {
   display: block;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   overflow-wrap: anywhere;
 }
 
@@ -121,17 +121,17 @@
 .daemon-ai-error {
   border: 1px solid rgba(246, 199, 104, 0.35);
   background: rgba(246, 199, 104, 0.08);
-  color: #f8dca0;
-  border-radius: 8px;
+  color: color-mix(in srgb, var(--amber) 72%, var(--t1));
+  border-radius: var(--radius-lg);
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.45;
 }
 
 .daemon-ai-error {
   border-color: rgba(248, 113, 113, 0.35);
   background: rgba(248, 113, 113, 0.08);
-  color: #fecaca;
+  color: color-mix(in srgb, var(--red) 36%, var(--t1));
 }
 
 .daemon-ai-context {
@@ -145,10 +145,10 @@
   align-items: center;
   gap: 6px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px 9px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .daemon-ai-chat {
@@ -165,13 +165,13 @@
 .daemon-ai-thinking {
   color: var(--text-muted);
   border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 18px;
 }
 
 .daemon-ai-message {
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 12px;
   background: rgba(255, 255, 255, 0.035);
 }
@@ -206,7 +206,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.22);
   color: var(--text-primary);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 10px 12px;
   font: inherit;
 }

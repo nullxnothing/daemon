@@ -14,7 +14,7 @@ const WEB_TOOLS = [
 ]
 
 const SOLANA_TOOLS = [
-  ...WEB_TOOLS, 'wallet', 'agent-work', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'block-scanner',
+  ...WEB_TOOLS, 'wallet', 'agent-work', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'zauth', 'block-scanner',
   'replay-engine', 'dashboard', 'hackathon', 'pro', 'agent-station',
 ]
 

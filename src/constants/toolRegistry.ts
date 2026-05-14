@@ -23,6 +23,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'project-readiness', name: 'Project Readiness', moduleClass: 'addon', surface: 'drawer' },
   { id: 'solana-toolbox', name: 'Solana', moduleClass: 'addon', surface: 'drawer' },
   { id: 'integrations', name: 'Integrations', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'zauth', name: 'Zauth', moduleClass: 'addon', surface: 'drawer' },
   { id: 'block-scanner', name: 'Block Scanner', moduleClass: 'addon', surface: 'drawer' },
   { id: 'replay-engine', name: 'Replay', moduleClass: 'addon', surface: 'drawer' },
   { id: 'docs', name: 'Docs', moduleClass: 'addon', surface: 'drawer' },

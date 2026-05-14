@@ -127,7 +127,7 @@ export const PLUGIN_REGISTRY: Record<string, PluginManifest> = {
   // 'browser': { id: 'browser', name: 'Browser', description: 'Embedded browser view', mountPosition: 'right-panel-tab', icon: BrowserIcon, component: lazy(() => import('../panels/plugins/Browser/Browser')) },
   // 'email' — moved to native panel (sidebar icon + center panel)
   // 'telegram': { id: 'telegram', name: 'Telegram', description: 'Full Telegram client', mountPosition: 'right-panel-tab', icon: TelegramIcon, component: lazy(() => import('../panels/plugins/Telegram/Telegram')) },
-  // 'subscriptions': { id: 'subscriptions', name: 'Subscriptions', description: 'API subscription tracker', mountPosition: 'right-panel-tab', icon: SubscriptionsIcon, component: lazy(() => import('../panels/plugins/Subscriptions/Subscriptions')) },
+  'subscriptions': { id: 'subscriptions', name: 'Subscriptions', description: 'DAEMON plans, holder access, and hosted AI lane status', mountPosition: 'right-panel-tab', icon: SubscriptionsIcon, component: lazy(() => import('../panels/plugins/Subscriptions/Subscriptions')) },
   // 'morning-briefing': { id: 'morning-briefing', name: 'Morning Briefing', description: 'Overnight report overlay', mountPosition: 'overlay', icon: BriefingIcon, component: lazy(() => import('../panels/plugins/MorningBriefing/MorningBriefing')) },
   // 'services': { id: 'services', name: 'Services', description: 'Manage background services', mountPosition: 'right-panel-tab', icon: ServicesIcon, component: lazy(() => import('../panels/plugins/Services/Services')) },
   'deploy': {

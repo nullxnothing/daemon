@@ -16,7 +16,7 @@
 }
 
 .ports-section-kicker {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -53,20 +53,20 @@
 }
 
 .ports-stat-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--t4);
 }
 
 .ports-stat-value {
-  font-size: 26px;
+  font-size: var(--fs-26);
   line-height: 1;
   color: var(--t1);
 }
 
 .ports-stat-detail {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -85,13 +85,13 @@
 
 .ports-section-title {
   margin: 4px 0 0;
-  font-size: 20px;
+  font-size: var(--fs-20);
   line-height: 1.1;
   color: var(--t1);
 }
 
 .ports-section-count {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   font-family: var(--font-code);
 }
@@ -120,7 +120,7 @@
 
 .ports-empty-card {
   color: var(--t3);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.55;
 }
 
@@ -139,7 +139,7 @@
 }
 
 .ports-row-titleline strong {
-  font-size: 18px;
+  font-size: var(--fs-18);
   color: var(--t1);
   font-family: var(--font-code);
 }
@@ -148,7 +148,7 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
@@ -157,10 +157,10 @@
   align-items: center;
   min-height: 22px;
   padding: 0 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--green) 22%, var(--s4));
   background: color-mix(in srgb, var(--green) 9%, transparent);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--green);
 }
@@ -190,7 +190,7 @@
 }
 
 .ports-row-note {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t4);
   white-space: nowrap;
 }
@@ -198,8 +198,8 @@
 .ports-btn {
   height: 32px;
   padding: 0 14px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-12);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--s5);

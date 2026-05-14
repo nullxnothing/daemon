@@ -17,7 +17,7 @@
 .confirm-dialog {
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 20px;
   min-width: 360px;
   max-width: 480px;
@@ -35,14 +35,14 @@
 }
 
 .confirm-title {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   color: var(--t1);
   margin-bottom: 8px;
 }
 
 .confirm-body {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
   line-height: 1.5;
   margin-bottom: 16px;
@@ -57,14 +57,14 @@
 }
 
 .confirm-typed-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .confirm-typed-label code {
   background: var(--s3);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-family: var(--mono);
   color: var(--t1);
 }
@@ -76,7 +76,7 @@
   border-radius: 4px;
   padding: 6px 8px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .confirm-typed-input:focus {
@@ -97,7 +97,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 6px 14px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   cursor: pointer;
   transition: background 0.15s;
 }

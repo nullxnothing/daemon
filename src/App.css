@@ -28,6 +28,16 @@
   --sidebar-w: 42px;
 }
 
+.app--low-power,
+.app--low-power *,
+.app--low-power *::before,
+.app--low-power *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
 /* Skip navigation links — visible only on focus */
 .skip-link {
   position: absolute;
@@ -55,7 +65,7 @@
   padding: 6px 16px;
   background: rgba(239, 83, 80, 0.1);
   border-bottom: 1px solid var(--red);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
 }
 
@@ -63,7 +73,7 @@
   background: none;
   border: none;
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
@@ -107,8 +117,8 @@
   width: var(--left-panel-w);
   min-width: 140px;
   max-width: 350px;
-  background: var(--surface-flat);
-  border-right: 1px solid var(--border);
+  background: var(--panel-bg);
+  border-right: 1px solid var(--panel-border);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -132,35 +142,35 @@
   justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
+  background: var(--panel-header-bg);
 }
 
 .panel-header-action {
   background: transparent;
   border: 1px solid transparent;
   color: var(--t3);
-  font-size: 13px;
+  font-size: var(--fs-13);
   width: 22px;
   height: 22px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .panel-header-action:hover {
-  background: var(--s3);
+  background: var(--control-bg-hover);
   color: var(--t1);
-  border-color: var(--border);
+  border-color: var(--control-border);
 }
 
 /* Center Area */
@@ -194,12 +204,68 @@
   position: relative;
 }
 
+.low-power-editor-start {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 32px;
+  text-align: center;
+  color: var(--t2);
+}
+
+.low-power-editor-start h1 {
+  margin: 8px 0 8px;
+  font-size: var(--fs-24);
+  font-weight: 650;
+  color: var(--t1);
+}
+
+.low-power-editor-start p {
+  margin: 0;
+  max-width: 420px;
+  font-size: var(--fs-13);
+  line-height: 1.55;
+}
+
+.low-power-editor-kicker {
+  color: var(--green);
+  font-size: var(--fs-11);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.low-power-editor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.low-power-editor-actions button {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  color: var(--t1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.low-power-editor-actions button:hover {
+  border-color: color-mix(in srgb, var(--green) 55%, var(--border));
+}
+
 .splitter {
   height: 5px;
   background: color-mix(in srgb, var(--surface-flat) 78%, var(--border) 22%);
   cursor: row-resize;
   flex-shrink: 0;
-  transition: background 0.2s;
+  transition: background var(--transition-normal);
   position: relative;
 }
 
@@ -210,7 +276,7 @@
   left: 50%;
   width: 64px;
   height: 2px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transform: translateX(-50%);
   background: color-mix(in srgb, var(--t4) 58%, transparent);
 }
@@ -230,7 +296,7 @@
   position: relative;
   z-index: 20;
   background: var(--surface-sunken);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--panel-border);
 }
 
 /* Right Panel — resizable via min/max */
@@ -238,8 +304,8 @@
   width: var(--right-panel-w);
   min-width: 200px;
   max-width: 400px;
-  background: var(--surface-flat);
-  border-left: 1px solid var(--border);
+  background: var(--panel-bg);
+  border-left: 1px solid var(--panel-border);
   flex-shrink: 0;
   overflow: hidden;
   resize: horizontal;
@@ -274,7 +340,7 @@
 
 .right-panel-placeholder {
   padding: 16px 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 

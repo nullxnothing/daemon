@@ -129,7 +129,7 @@
 /* ── Doc primitives ─────────────────────────────────────────────────────── */
 
 .docHeading {
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-family: var(--font-ui);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -191,7 +191,7 @@
 
 .inlineCode {
   font-family: var(--font-code);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--green);
   background: var(--s2);
   border: 1px solid var(--border);
@@ -224,7 +224,7 @@
 
 .codeBlockCode {
   font-family: var(--font-code);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
   line-height: 1.6;
   white-space: pre;

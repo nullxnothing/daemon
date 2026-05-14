@@ -13,6 +13,7 @@ import {
   RIGHT_SIDEBAR_WIDGET_EVENT,
   writeRightSidebarWidgetConfig,
 } from './sidebarAgentWidgetConfig'
+import { SPAWN_AGENT_PNL_COLORS } from '../../styles/daemonTheme'
 
 const EMPTY_WALLETS: WalletDashboard['wallets'] = []
 
@@ -26,8 +27,8 @@ function truncate(s: string, n = 4) {
 }
 
 function pnlColor(n: number) {
-  if (n > 0) return '#3fbf78'
-  if (n < 0) return '#ff365d'
+  if (n > 0) return SPAWN_AGENT_PNL_COLORS.positive
+  if (n < 0) return SPAWN_AGENT_PNL_COLORS.negative
   return 'var(--t2)'
 }
 
@@ -46,6 +47,7 @@ function ageLabel(bornAt?: string | null) {
 export function SpawnAgentSidebarWidget() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const wallets = useWalletStore((s) => s.dashboard?.wallets ?? EMPTY_WALLETS)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const refreshWallets = useWalletStore((s) => s.refresh)
   const [config, setConfig] = useState(readRightSidebarWidgetConfig)
   const [agent, setAgent] = useState<SpawnAgentRecord | null>(null)
@@ -64,9 +66,10 @@ export function SpawnAgentSidebarWidget() {
   }, [])
 
   useEffect(() => {
+    if (lowPowerMode) return
     if (!config.enabled['spawn-agent'] || config.spawnAgentId || wallets.length > 0) return
     void refreshWallets(activeProjectId)
-  }, [activeProjectId, config.spawnAgentId, config.enabled, refreshWallets, wallets.length])
+  }, [activeProjectId, config.spawnAgentId, config.enabled, lowPowerMode, refreshWallets, wallets.length])
 
   const ownerWallet = useMemo(() => {
     if (wallets.length === 0) return null
@@ -145,9 +148,18 @@ export function SpawnAgentSidebarWidget() {
       }
     }
 
-    if (config.enabled['spawn-agent']) void run()
+    if (!config.enabled['spawn-agent']) return () => { cancelled = true }
+    if (lowPowerMode && !config.spawnAgentId) return () => { cancelled = true }
+    if (lowPowerMode) {
+      const timer = window.setTimeout(() => { void run() }, 10_000)
+      return () => {
+        cancelled = true
+        window.clearTimeout(timer)
+      }
+    }
+    void run()
     return () => { cancelled = true }
-  }, [config.spawnAgentId, config.enabled, ownerWallet])
+  }, [config.spawnAgentId, config.enabled, lowPowerMode, ownerWallet])
 
   if (!config.enabled['spawn-agent']) return null
 
@@ -161,7 +173,7 @@ export function SpawnAgentSidebarWidget() {
   const avatar = liveAgent?.avatar ?? profileAgent?.meta?.avatar ?? null
 
   return (
-    <section className="rp-agent-widget">
+    <section className="rp-agent-widget rp-agent-widget--spawnagents">
       <div className="rp-agent-widget-head">
         <div className="rp-agent-widget-agent">
           <div className="rp-agent-widget-avatar">{avatar ? <img src={avatar} alt="" /> : <span />}</div>

@@ -23,6 +23,8 @@ const EMPTY_WALLETS: WalletDashboard['wallets'] = []
 const KILL_COOLDOWN_MS = 24 * 60 * 60 * 1000
 const CHILD_ACTIVITY_GATE_TRADES = 10
 const CHILD_ACTIVITY_GATE_MS = 7 * 24 * 60 * 60 * 1000
+const PM_EDGE_THRESHOLD_DEFAULT = 0.05
+const PM_EDGE_THRESHOLD_MAX = 0.5
 
 function computeGate(agent: SpawnAgentRecord) {
   const out = { can_kill: true, can_withdraw: true, kill_reason: '', withdraw_reason: '' }
@@ -59,6 +61,11 @@ function pnlColor(val: number) {
 
 function fmt(val: number, decimals = 4) {
   return val.toLocaleString(undefined, { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
+}
+
+function fmtPctFromRatio(value: number | undefined) {
+  if (value == null || !Number.isFinite(value)) return '--'
+  return `${(value * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%`
 }
 
 function truncate(addr: string, len = 6) {
@@ -152,9 +159,20 @@ const DEFAULT_DNA: SpawnAgentDna = {
   reproduction_cost_sol: 0.3,
   royalty_pct: 0.05,
   pm_categories: ['crypto'],
-  pm_edge_threshold: 5,
+  pm_edge_threshold: PM_EDGE_THRESHOLD_DEFAULT,
   pm_max_position_pct: 10,
   pm_max_positions: 10,
+}
+
+function normalizePmEdgeThresholdForApi(value: number | undefined) {
+  const raw = value ?? PM_EDGE_THRESHOLD_DEFAULT
+  if (!Number.isFinite(raw)) return PM_EDGE_THRESHOLD_DEFAULT
+  const ratio = raw > 1 ? raw / 100 : raw
+  return Number(clampNumber(ratio, 0, PM_EDGE_THRESHOLD_MAX).toFixed(4))
+}
+
+function pmEdgeThresholdPercentValue(value: number | undefined) {
+  return Number(((value ?? PM_EDGE_THRESHOLD_DEFAULT) * 100).toFixed(2))
 }
 
 function normalizeSpawnDna(dna: SpawnAgentDna): SpawnAgentDna {
@@ -169,7 +187,7 @@ function normalizeSpawnDna(dna: SpawnAgentDna): SpawnAgentDna {
       ? next.pm_categories
       : ['crypto']
     next.pm_categories = categories
-    next.pm_edge_threshold = clampNumber(next.pm_edge_threshold ?? 5, 0, 50)
+    next.pm_edge_threshold = normalizePmEdgeThresholdForApi(next.pm_edge_threshold)
     next.pm_max_position_pct = clampNumber(next.pm_max_position_pct ?? 10, 1, 50)
     next.pm_max_positions = Math.round(clampNumber(next.pm_max_positions ?? 10, 1, 100))
   } else {
@@ -195,6 +213,7 @@ function DnaSlider({ label, field, value, min, max, step = 0.01, onChange }: {
       <label className="sa-dna-label">{label}</label>
       <input
         type="range"
+        aria-label={label}
         min={min}
         max={max}
         step={step}
@@ -388,7 +407,15 @@ function SpawnForm({ ownerWallet, walletId, walletCanSign, onCancel, onDeposit, 
 
             {dna.trades_prediction && (
               <>
-                <DnaSlider label="Edge threshold %" field="pm_edge_threshold" value={dna.pm_edge_threshold ?? 5} min={0} max={50} step={1} onChange={(v) => setDnaField('pm_edge_threshold', v)} />
+                <DnaSlider
+                  label="Edge threshold %"
+                  field="pm_edge_threshold"
+                  value={pmEdgeThresholdPercentValue(dna.pm_edge_threshold)}
+                  min={0}
+                  max={PM_EDGE_THRESHOLD_MAX * 100}
+                  step={1}
+                  onChange={(v) => setDnaField('pm_edge_threshold', Number((clampNumber(v, 0, PM_EDGE_THRESHOLD_MAX * 100) / 100).toFixed(4)))}
+                />
                 <DnaSlider label="Max position %" field="pm_max_position_pct" value={dna.pm_max_position_pct ?? 10} min={1} max={50} step={1} onChange={(v) => setDnaField('pm_max_position_pct', v)} />
                 <DnaSlider label="Max PM positions" field="pm_max_positions" value={dna.pm_max_positions ?? 10} min={1} max={100} step={1} onChange={(v) => setDnaField('pm_max_positions', Math.round(v))} />
               </>
@@ -649,7 +676,7 @@ function AgentDetail({ agent, walletId, onRefresh }: { agent: SpawnAgentRecord; 
           {displayDna.trades_prediction && (
             <>
               <div><span>PM categories</span><strong>{displayDna.pm_categories?.join(', ') ?? 'crypto'}</strong></div>
-              <div><span>PM edge</span><strong>{displayDna.pm_edge_threshold ?? '--'}%</strong></div>
+              <div><span>PM edge</span><strong>{fmtPctFromRatio(displayDna.pm_edge_threshold)}</strong></div>
               <div><span>PM strategy</span><strong>{displayDna.pm_sell_strategy ?? 'hold'}</strong></div>
             </>
           )}

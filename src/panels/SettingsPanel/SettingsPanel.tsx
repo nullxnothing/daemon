@@ -54,7 +54,7 @@ const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
   { tab: 'sidePanels', keywords: ['side panel', 'side panels', 'right panel', 'right sidebar', 'widget', 'widgets', 'spawn agent', 'wallet snapshot'] },
-  { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market'] },
+  { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market', 'performance', 'low power', 'polling', 'animations'] },
   { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding'] },
   { tab: 'shortcuts', keywords: ['shortcut', 'keyboard', 'hotkey', 'keybind', 'ctrl', 'cmd', 'key binding'] },
   { tab: 'help', keywords: ['help', 'guide', 'navigation', 'how to', 'sidebar', 'drawer', 'palette'] },
@@ -719,6 +719,7 @@ function SidePanelsSection() {
         'wallet-snapshot': true,
         'solana-readiness': true,
         'token-watch': true,
+        'zauth': true,
         'ai-status': true,
       },
     })
@@ -733,6 +734,7 @@ function SidePanelsSection() {
         'wallet-snapshot': false,
         'solana-readiness': false,
         'token-watch': false,
+        'zauth': false,
         'ai-status': false,
         'spawn-agent': false,
       },
@@ -780,11 +782,14 @@ function SidePanelsSection() {
 function DisplaySection() {
   const showMarketTape = useWalletStore((s) => s.showMarketTape)
   const showTitlebarWallet = useWalletStore((s) => s.showTitlebarWallet)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const setShowMarketTape = useWalletStore((s) => s.setShowMarketTape)
   const setShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
+  const setLowPowerMode = useWalletStore((s) => s.setLowPowerMode)
 
   const handleToggleMarketTape = (enabled: boolean) => { void setShowMarketTape(enabled) }
   const handleToggleTitlebarWallet = (enabled: boolean) => { void setShowTitlebarWallet(enabled) }
+  const handleToggleLowPowerMode = (enabled: boolean) => { void setLowPowerMode(enabled) }
 
   return (
     <div className="settings-section">
@@ -802,6 +807,14 @@ function DisplaySection() {
         <span className="settings-display-label">Titlebar wallet balance</span>
         <span className="settings-display-hint">Show portfolio value in the titlebar</span>
         <Toggle checked={showTitlebarWallet} onChange={handleToggleTitlebarWallet} />
+      </div>
+
+      <div className="settings-divider" />
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Low power mode</span>
+        <span className="settings-display-hint">Reduce panel preloads, background polling, and UI motion for slower computers</span>
+        <Toggle checked={lowPowerMode} onChange={handleToggleLowPowerMode} />
       </div>
     </div>
   )

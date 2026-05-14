@@ -30,7 +30,7 @@
   border: 1px solid var(--s5);
   border-radius: 100px;
   color: var(--t3);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: inherit;
   cursor: pointer;
   transition: background var(--transition-normal),
@@ -68,7 +68,7 @@
 }
 
 .tweet-gen__source-label {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   color: var(--blue);
   text-transform: uppercase;
@@ -82,7 +82,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: inherit;
   line-height: 1.45;
   resize: vertical;
@@ -111,7 +111,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: inherit;
   line-height: 1.45;
   resize: vertical;
@@ -130,7 +130,7 @@
   position: absolute;
   bottom: 5px;
   right: 8px;
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   pointer-events: none;
 }
@@ -144,7 +144,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: inherit;
   cursor: pointer;
   transition: background var(--transition-normal);
@@ -171,7 +171,7 @@
 /* ---- Section labels ---- */
 
 .tweet-gen__section-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--t2);
   text-transform: uppercase;
@@ -197,7 +197,7 @@
 }
 
 .tweet-gen__card-text {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -212,7 +212,7 @@
   border: 1px solid var(--t3);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: inherit;
   line-height: 1.45;
   resize: vertical;
@@ -226,7 +226,7 @@
 }
 
 .tweet-gen__char-badge {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 100px;
@@ -258,7 +258,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
   color: var(--t2);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: inherit;
   cursor: pointer;
   transition: background var(--transition-normal),
@@ -340,7 +340,7 @@
 
 .tweet-gen__draft-preview {
   flex: 1;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   line-height: 1.4;
   overflow: hidden;
@@ -357,7 +357,7 @@
 }
 
 .tweet-gen__draft-mode {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -374,7 +374,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
   color: var(--t3);
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-family: inherit;
   cursor: pointer;
   transition: color var(--transition-normal),
@@ -410,7 +410,7 @@
 }
 
 .tweet-gen__arrow {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   transition: transform var(--transition-normal);
 }
@@ -434,7 +434,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: inherit;
   line-height: 1.45;
   resize: vertical;
@@ -469,7 +469,7 @@
 }
 
 .tweet-gen__examples-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
@@ -481,7 +481,7 @@
 
 .tweet-gen__example-text {
   flex: 1;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   line-height: 1.4;
   overflow: hidden;
@@ -493,7 +493,7 @@
   background: transparent;
   border: none;
   color: var(--t3);
-  font-size: 12px;
+  font-size: var(--fs-12);
   cursor: pointer;
   padding: 0 4px;
 }
@@ -514,7 +514,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: inherit;
   outline: none;
 }
@@ -526,14 +526,14 @@
 /* ---- Shared ---- */
 
 .tweet-gen__empty {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   text-align: center;
   padding: var(--space-md) 0;
 }
 
 .tweet-gen__error {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   padding: 6px 8px;
   background: var(--red-glow);

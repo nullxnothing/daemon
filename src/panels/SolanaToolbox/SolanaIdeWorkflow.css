@@ -88,7 +88,7 @@
   background: rgba(0, 0, 0, 0.22);
   color: var(--t2);
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.45;
   word-break: break-word;
 }
@@ -112,7 +112,7 @@
 }
 
 .solana-ide-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 800;
   letter-spacing: 1.2px;
   text-transform: uppercase;
@@ -127,7 +127,7 @@
   background: var(--s2);
   color: var(--t1);
   font-family: var(--font-code);
-  font-size: 12px;
+  font-size: var(--fs-12);
   outline: none;
 }
 
@@ -169,7 +169,7 @@
 .solana-ide-check-dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-top: 6px;
   background: var(--green);
   box-shadow: 0 0 8px rgba(62, 207, 142, 0.3);
@@ -209,7 +209,7 @@
 }
 
 .solana-ide-analysis-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 800;
   letter-spacing: 1.1px;
   text-transform: uppercase;

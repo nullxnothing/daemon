@@ -273,7 +273,6 @@ function registerAllIpc() {
 
 async function createWindow() {
   if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:start')
-  getDb()
   registerAllIpc()
 
   // CSP headers only in production — in dev, Vite serves /@react-refresh and
@@ -283,7 +282,7 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com https://api.dexscreener.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
         }
       })
     })
@@ -453,25 +452,26 @@ async function createWindow() {
     })
   }
 
-  // Startup crash detection — warn if >3 crashes in the last hour
-  try {
-    const db = getDb()
-    const recentCrashes = db.prepare(
-      'SELECT COUNT(*) as count FROM app_crashes WHERE created_at > ?'
-    ).get(Date.now() - 3600_000) as { count: number }
-    startupUiRecovery = maybeRecoverUnstableUiState(recentCrashes.count)
+  win.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      const target = win
+      if (!target || target.isDestroyed()) return
+      try {
+        const db = getDb()
+        const recentCrashes = db.prepare(
+          'SELECT COUNT(*) as count FROM app_crashes WHERE created_at > ?'
+        ).get(Date.now() - 3600_000) as { count: number }
+        startupUiRecovery = maybeRecoverUnstableUiState(recentCrashes.count)
 
-    if (recentCrashes.count > 3) {
-      win.webContents.on('did-finish-load', () => {
-        win?.webContents.send('crash-warning', recentCrashes.count)
-      })
-    }
-    if (startupUiRecovery) {
-      win.webContents.on('did-finish-load', () => {
-        win?.webContents.send('ui-recovery-applied', startupUiRecovery)
-      })
-    }
-  } catch { /* table may not exist yet on first run */ }
+        if (recentCrashes.count > 3) {
+          target.webContents.send('crash-warning', recentCrashes.count)
+        }
+        if (startupUiRecovery) {
+          target.webContents.send('ui-recovery-applied', startupUiRecovery)
+        }
+      } catch { /* table may not exist yet on first run */ }
+    }, 1000)
+  })
 }
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
@@ -483,14 +483,16 @@ app.whenReady().then(() => {
     }
   }
   initTelemetry(app.getVersion() || '3.0.8')
-  flushRemoteTelemetry().catch((err) => {
-    console.warn('[telemetry] Remote telemetry startup failed:', err instanceof Error ? err.message : String(err))
-  })
   createWindow().catch((err) => {
     console.error('[smoke] createWindow:error', err)
   })
+  setTimeout(() => {
+    flushRemoteTelemetry().catch((err) => {
+      console.warn('[telemetry] Remote telemetry startup failed:', err instanceof Error ? err.message : String(err))
+    })
+  }, 5000)
 
-  if (app.isPackaged) {
+  if (app.isPackaged && process.env.DAEMON_DISABLE_AUTO_UPDATE !== '1') {
     autoUpdater.on('error', (err: Error) => {
       console.error('[AutoUpdater] error:', err.message)
     })

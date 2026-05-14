@@ -69,4 +69,25 @@ describe('Integration Command Center registry', () => {
       'open-spawnagents-live',
     ])
   })
+
+  it('has Zauth as an embedded x402 management integration', () => {
+    const zauth = INTEGRATION_REGISTRY.find((integration) => integration.id === 'zauth')
+
+    expect(zauth).toBeDefined()
+    expect(zauth!.docsUrl).toBe('https://zauth.inc/provider-hub')
+    expect(zauth!.requirements).toContainEqual({
+      type: 'external-url',
+      key: 'https://zauth.inc/database',
+      label: 'Zauth x402 Database',
+    })
+    expect(zauth!.requirements).toContainEqual({
+      type: 'external-url',
+      key: 'https://zauth.inc/provider-hub',
+      label: 'Zauth Provider Hub',
+    })
+    expect(zauth!.actions.map((action) => action.id)).toEqual([
+      'open-zauth-database',
+      'open-zauth-provider-hub',
+    ])
+  })
 })

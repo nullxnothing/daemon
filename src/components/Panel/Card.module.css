@@ -1,7 +1,7 @@
 .card {
-  border: 1px solid var(--border);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-card);
-  background: var(--surface-raised);
+  background: var(--card-bg);
   box-shadow: var(--shadow-sm);
   padding: var(--space-lg);
   display: flex;
@@ -28,8 +28,8 @@
     box-shadow var(--transition-fast);
 }
 .interactive:hover {
-  border-color: var(--border-hover);
-  background: var(--surface-floating);
+  border-color: var(--control-border-hover);
+  background: var(--card-bg-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }

@@ -90,7 +90,7 @@
 }
 
 .aria-chamber-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 700;
   color: var(--t1);
   line-height: 1.35;
@@ -99,14 +99,14 @@
 
 .aria-chamber-text {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   line-height: 1.25;
   color: var(--t3);
 }
 
 .aria-chamber-label {
   font-family: var(--font-code);
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   letter-spacing: 3px;
   text-transform: lowercase;
@@ -134,7 +134,7 @@
 }
 
 .aria-toolbar-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
@@ -148,7 +148,7 @@
 }
 
 .aria-toolbar-btn {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   color: var(--t4);
   padding: 1px 6px;
@@ -207,7 +207,7 @@
 }
 
 .aria-role {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -222,13 +222,13 @@
 }
 
 .aria-time {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   font-family: var(--font-code);
 }
 
 .aria-content {
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.5;
   color: var(--t1);
   word-break: break-word;
@@ -277,7 +277,7 @@
 
 .aria-code-block code {
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   white-space: pre;
 }
@@ -293,7 +293,7 @@
 }
 
 .aria-action-chip {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   color: var(--green);
   padding: 1px 7px;
@@ -367,7 +367,7 @@
 
 .aria-prompt-caret {
   font-family: var(--font-code);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--green);
   line-height: 28px;
   flex-shrink: 0;
@@ -381,7 +381,7 @@
   min-height: 28px;
   max-height: 80px;
   padding: 4px 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: var(--font-code);
   color: var(--t1);
   background: transparent;
@@ -403,7 +403,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-code);
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--green);
   min-width: 28px;
   height: 28px;

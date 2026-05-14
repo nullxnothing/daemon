@@ -7,11 +7,38 @@ import { runMigrations } from './migrations'
 let _db: Database.Database | null = null
 let _walCheckpointTimer: ReturnType<typeof setInterval> | null = null
 
+function dbPath() {
+  return path.join(app.getPath('userData'), 'daemon.db')
+}
+
+function startupMarkerPath() {
+  return path.join(app.getPath('userData'), 'daemon.db.open')
+}
+
+function shouldRunFullIntegrityCheck() {
+  return process.env.DAEMON_FULL_DB_INTEGRITY_CHECK === '1' || fs.existsSync(startupMarkerPath())
+}
+
+function checkDatabaseIntegrity(db: Database.Database, dbFile: string, fullCheck: boolean) {
+  const pragmaName = fullCheck ? 'integrity_check' : 'quick_check'
+  const result = db.pragma(pragmaName) as Array<Record<string, string>>
+  const status = Object.values(result[0] ?? {})[0]
+  if (status === 'ok') return
+
+  const backupPath = dbFile + '.corrupted.' + Date.now()
+  if (fs.existsSync(dbFile)) fs.copyFileSync(dbFile, backupPath)
+  db.close()
+  _db = null
+  if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile)
+  throw new Error(`Database corruption detected. Backup saved to ${backupPath}. Restarting with fresh database.`)
+}
+
 export function getDb(): Database.Database {
   if (_db) return _db
 
-  const dbPath = path.join(app.getPath('userData'), 'daemon.db')
-  _db = new Database(dbPath)
+  const filePath = dbPath()
+  const runFullIntegrityCheck = shouldRunFullIntegrityCheck()
+  _db = new Database(filePath)
 
   _db.pragma('journal_mode = WAL')
   _db.pragma('foreign_keys = ON')
@@ -20,16 +47,10 @@ export function getDb(): Database.Database {
   _db.pragma('cache_size = -32000')
   _db.pragma('temp_store = MEMORY')
 
-  // Integrity check before migrations — detect corruption early
-  const integrity = _db.pragma('integrity_check') as Array<{ integrity_check: string }>
-  if (integrity[0]?.integrity_check !== 'ok') {
-    const backupPath = dbPath + '.corrupted.' + Date.now()
-    fs.copyFileSync(dbPath, backupPath)
-    _db.close()
-    _db = null
-    fs.unlinkSync(dbPath)
-    throw new Error(`Database corruption detected. Backup saved to ${backupPath}. Restarting with fresh database.`)
-  }
+  checkDatabaseIntegrity(_db, filePath, runFullIntegrityCheck)
+  try {
+    fs.writeFileSync(startupMarkerPath(), String(Date.now()))
+  } catch { /* marker is best-effort */ }
 
   runMigrations(_db)
 
@@ -63,4 +84,7 @@ export function closeDb() {
     _db.close()
     _db = null
   }
+  try {
+    fs.unlinkSync(startupMarkerPath())
+  } catch { /* marker is best-effort */ }
 }

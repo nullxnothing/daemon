@@ -13,6 +13,7 @@ export type RightSidebarWidgetId =
   | 'wallet-snapshot'
   | 'solana-readiness'
   | 'token-watch'
+  | 'zauth'
   | 'ai-status'
   | 'spawn-agent'
 
@@ -50,6 +51,11 @@ export const RIGHT_SIDEBAR_WIDGETS: Array<{
     description: 'Paste a token mint, track price/holders, and jump into buy or sell.',
   },
   {
+    id: 'zauth',
+    name: 'Zauth',
+    description: 'x402 Database and Provider Hub shortcuts in the right sidebar.',
+  },
+  {
     id: 'ai-status',
     name: 'AI Status',
     description: 'Claude and Codex connection state without opening settings.',
@@ -67,6 +73,7 @@ const DEFAULT_WIDGET_CONFIG: RightSidebarWidgetConfig = {
     'wallet-snapshot': false,
     'solana-readiness': false,
     'token-watch': false,
+    'zauth': false,
     'ai-status': false,
     'spawn-agent': false,
   },

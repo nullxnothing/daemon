@@ -25,7 +25,7 @@
   padding: 0 7px;
   height: 30px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--surface-sunken);
 }
 
@@ -35,7 +35,7 @@
 }
 
 .file-explorer-search-icon {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
@@ -46,7 +46,7 @@
   outline: none;
   background: transparent;
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .file-explorer-search-input::placeholder {
@@ -63,7 +63,7 @@
   color: var(--t3);
   background: var(--surface-raised);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -97,7 +97,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
 }
 
@@ -106,24 +106,24 @@
 }
 
 .file-search-result-name {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
 }
 
 .file-search-result-path {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
 .file-search-empty {
   padding: 12px 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .file-explorer-empty {
   padding: 16px 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
@@ -148,7 +148,7 @@
 
 .file-node-chevron {
   width: 12px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-align: center;
   flex-shrink: 0;
   color: var(--t3);
@@ -172,8 +172,8 @@
   margin-left: auto;
   min-width: 14px;
   height: 14px;
-  border-radius: 4px;
-  font-size: 9px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-9);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -279,44 +279,44 @@
 
 .file-svg.file.ts .file-glyph,
 .file-svg.file.tsx .file-glyph {
-  stroke: #7cc7ff;
+  stroke: var(--file-accent-ts);
 }
 
 .file-svg.file.js .file-glyph {
-  stroke: #f4c95d;
+  stroke: var(--file-accent-js);
 }
 
 .file-svg.file.json .file-glyph {
-  stroke: #d4b4ff;
+  stroke: var(--file-accent-json);
 }
 
 .file-svg.file.md .file-glyph {
-  stroke: #8de2b0;
+  stroke: var(--file-accent-md);
 }
 
 .file-svg.file.css .file-glyph {
-  stroke: #8fd9df;
+  stroke: var(--file-accent-css);
 }
 
 .file-svg.file.html .file-glyph {
-  stroke: #ffb17d;
+  stroke: var(--file-accent-html);
 }
 
 .file-svg.file.image .file-glyph {
-  stroke: #d7b3ff;
+  stroke: var(--file-accent-image);
 }
 
 .file-svg.file.yaml .file-glyph {
-  stroke: #ffd27a;
+  stroke: var(--file-accent-yaml);
 }
 
 .file-svg.file.env .file-glyph {
-  stroke: #8de2b0;
+  stroke: var(--file-accent-md);
 }
 
 .file-svg.file.shell .file-glyph,
 .file-svg.file.node .file-glyph {
-  stroke: #9fe39f;
+  stroke: var(--file-accent-runtime);
 }
 
 .file-svg.folder .file-fill-secondary {
@@ -338,15 +338,15 @@
 }
 
 .file-svg.folder.accent-blue .file-stroke {
-  stroke: #7cc7ff;
+  stroke: var(--file-accent-ts);
 }
 
 .file-svg.folder.accent-amber .file-stroke {
-  stroke: #f4c95d;
+  stroke: var(--file-accent-js);
 }
 
 .file-svg.folder.accent-green .file-stroke {
-  stroke: #9fe39f;
+  stroke: var(--file-accent-runtime);
 }
 
 .file-svg.folder.accent-muted .file-stroke {
@@ -365,9 +365,9 @@
   box-sizing: border-box;
   background: color-mix(in srgb, var(--s1) 96%, black 4%);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 4px;
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.58);
+  box-shadow: var(--shadow-float);
 }
 
 .context-menu-item {
@@ -375,9 +375,9 @@
   display: flex;
   align-items: center;
   padding: 0 12px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
   /* button resets */
@@ -407,12 +407,12 @@
 /* Inline Rename / Create Input */
 .file-rename-input {
   height: 22px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t1);
   background: var(--s2);
   border: 1px solid var(--focus);
   box-shadow: var(--focus-ring);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 0 6px;
   outline: none;
   width: 100%;

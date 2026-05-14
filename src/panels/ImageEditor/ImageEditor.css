@@ -17,7 +17,7 @@
 
 .ie-btn {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -37,14 +37,14 @@
 .ie-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .ie-filepath {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-code);
   margin-left: auto;
 }
 
 .ie-status {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--green);
   font-family: var(--font-code);
 }

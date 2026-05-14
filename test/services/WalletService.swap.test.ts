@@ -131,7 +131,7 @@ vi.mock('@solana/spl-token', () => ({
   getAccount: mockGetAccount,
 }))
 
-import { executeSwap, getDashboard, getSwapQuote, transferSOL, transferToken } from '../../electron/services/WalletService'
+import { executeSwap, getDashboard, getSwapQuote, searchJupiterTokens, transferSOL, transferToken } from '../../electron/services/WalletService'
 
 function makeWalletDbChain(overrides: { walletRow?: object | null; dailySpendTotal?: number } = {}) {
   const walletRow = overrides.walletRow !== undefined
@@ -660,6 +660,75 @@ describe('Jupiter swap — Swap API V2', () => {
         keypair_path: null,
       },
     }))
+  })
+
+  it('searches Jupiter Tokens V2 with the stored API key and exposes safety metadata', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ([{
+        id: outputMint,
+        name: 'USD Coin',
+        symbol: 'USDC',
+        icon: 'https://static.jup.ag/usdc/icon.png',
+        decimals: 6,
+        usdPrice: 0.9999,
+        liquidity: 1_000_000,
+        holderCount: 1000,
+        organicScore: 98.5,
+        audit: { isSus: false, verified: true },
+        tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+      }]),
+      text: async () => '',
+    })
+
+    const results = await searchJupiterTokens('usdc')
+
+    const [url, init] = mockFetch.mock.calls[0]
+    expect(String(url)).toContain('https://api.jup.ag/tokens/v2/search')
+    expect(String(url)).toContain('query=usdc')
+    expect(init).toEqual({ headers: { 'x-api-key': 'jup-key' } })
+    expect(results).toEqual([{
+      mint: outputMint,
+      name: 'USD Coin',
+      symbol: 'USDC',
+      icon: 'https://static.jup.ag/usdc/icon.png',
+      decimals: 6,
+      usdPrice: 0.9999,
+      liquidity: 1_000_000,
+      holderCount: 1000,
+      organicScore: 98.5,
+      isSus: false,
+      verified: true,
+      tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+    }])
+  })
+
+  it('coalesces and caches repeated Jupiter token searches', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ([{
+        id: outputMint,
+        name: 'Bonk',
+        symbol: 'BONK',
+        decimals: 5,
+        audit: { isSus: false, verified: true },
+      }]),
+      text: async () => '',
+    })
+
+    const [first, second] = await Promise.all([
+      searchJupiterTokens('bonk'),
+      searchJupiterTokens('bonk'),
+    ])
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(first).toEqual(second)
+
+    mockFetch.mockClear()
+    const cached = await searchJupiterTokens('BONK')
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(cached).toEqual(first)
   })
 
   it('requests an executable V2 order with the wallet taker and validates the response shape', async () => {

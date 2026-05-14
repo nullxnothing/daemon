@@ -23,7 +23,7 @@
   width: 106px;
   min-width: 106px;
   height: 106px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid rgba(62, 207, 142, 0.24);
   background: rgba(62, 207, 142, 0.06);
   display: flex;
@@ -34,7 +34,7 @@
 }
 
 .solana-project-score-value {
-  font-size: 28px;
+  font-size: var(--fs-28);
   line-height: 1;
   font-weight: 800;
   color: var(--green);
@@ -43,7 +43,7 @@
 
 .solana-project-score-label {
   margin-top: 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 1.2px;
   color: var(--t4);
@@ -72,7 +72,7 @@
 
 .solana-project-fingerprint-value {
   margin-top: 12px;
-  font-size: 20px;
+  font-size: var(--fs-20);
   line-height: 1.15;
   font-weight: 750;
   color: var(--t1);
@@ -86,7 +86,7 @@
 }
 
 .solana-project-panel-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 800;
   letter-spacing: 1.4px;
   text-transform: uppercase;
@@ -169,7 +169,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.22);
   color: var(--t2);
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.4;
   word-break: break-word;
 }
@@ -192,7 +192,7 @@
 .solana-project-loop-index {
   width: 24px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +200,7 @@
   border: 1px solid rgba(62, 207, 142, 0.2);
   color: var(--green);
   background: rgba(62, 207, 142, 0.06);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 800;
   font-family: var(--font-code);
 }

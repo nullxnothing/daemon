@@ -10,6 +10,7 @@ import type {
 import * as SecureKey from './SecureKeyService'
 
 const PRO_JWT_KEY = 'daemon_pro_jwt'
+export const DAEMON_AI_STAGING_API_BASE = 'https://daemon-ai-cloud-v4-staging.onrender.com'
 
 export type HostedUsageReport = {
   inputTokens?: number
@@ -58,7 +59,9 @@ type ApiBody<T> = {
 }
 
 export function getDaemonAICloudBase(): string {
-  return (process.env.DAEMON_AI_API_BASE ?? '').replace(/\/+$/, '')
+  const configuredBase = process.env.DAEMON_AI_API_BASE?.trim()
+  const fallbackBase = process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD === '1' ? '' : DAEMON_AI_STAGING_API_BASE
+  return (configuredBase || fallbackBase).replace(/\/+$/, '')
 }
 
 export function isDaemonAICloudConfigured(): boolean {
@@ -66,7 +69,16 @@ export function isDaemonAICloudConfigured(): boolean {
 }
 
 export function getDaemonAICloudToken(): string | null {
-  return SecureKey.getKey(PRO_JWT_KEY)
+  const storedToken = SecureKey.getKey(PRO_JWT_KEY)
+  if (storedToken) return storedToken
+
+  const envToken =
+    process.env.DAEMON_PRO_JWT?.trim() ||
+    process.env.DAEMON_OPERATOR_JWT?.trim() ||
+    process.env.DAEMON_ULTRA_JWT?.trim() ||
+    process.env.DAEMON_AI_SMOKE_JWT?.trim()
+  const allowEnvToken = process.env.NODE_ENV !== 'production' || process.env.DAEMON_AI_ALLOW_ENV_JWT === '1'
+  return envToken && allowEnvToken ? envToken : null
 }
 
 function cloudHeaders(token: string): Record<string, string> {

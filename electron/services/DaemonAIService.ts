@@ -17,6 +17,7 @@ import {
   getMonthlyAiCredits,
   hasFeature,
 } from './EntitlementService'
+import { getVerifiedEntitlementState } from './EntitlementGuardService'
 import type {
   DaemonAiAccessMode,
   DaemonAiChatMode,
@@ -237,7 +238,7 @@ export async function getUsage(): Promise<DaemonAiUsageSnapshot> {
 }
 
 export async function getFeatures(): Promise<DaemonAiFeatureState> {
-  const state = getLocalSubscriptionState()
+  const state = await getVerifiedEntitlementState()
   const connections = ProviderRegistry.getAllConnections()
   const byokAvailable = Boolean(
     connections.claude?.authMode !== 'none' && connections.claude ||
@@ -245,12 +246,13 @@ export async function getFeatures(): Promise<DaemonAiFeatureState> {
   )
   const localHostedAvailable = hasFeature(state, 'daemon-ai')
   const backendConfigured = isDaemonAICloudConfigured()
-  let hostedAvailable = localHostedAvailable
+  const cloudToken = getDaemonAICloudToken()
+  let hostedAvailable = false
   let plan = state.plan
   let accessSource = state.accessSource
   let features = state.features
 
-  if (backendConfigured && getDaemonAICloudToken() && localHostedAvailable) {
+  if (backendConfigured && cloudToken) {
     try {
       const cloud = await fetchHostedFeatures()
       hostedAvailable = cloud.hostedAvailable
@@ -268,7 +270,7 @@ export async function getFeatures(): Promise<DaemonAiFeatureState> {
     plan,
     accessSource,
     features,
-    upgradeRequired: !localHostedAvailable,
+    upgradeRequired: !hostedAvailable && !localHostedAvailable,
     backendConfigured,
   }
 }
@@ -297,10 +299,26 @@ async function runByokChat(prompt: string, lane: DaemonAiModelLane, projectPath?
 export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResponse> {
   const request = normalizeChatRequest(input)
 
-  const state = getLocalSubscriptionState()
   const accessMode = request.accessMode ?? 'byok'
   const lane = request.modelPreference ?? 'auto'
-  if (accessMode === 'hosted' && !canUseHostedModelLane(state, lane)) {
+  const state = accessMode === 'hosted' ? await getVerifiedEntitlementState() : getLocalSubscriptionState()
+  let entitlementState = state
+  if (accessMode === 'hosted' && isDaemonAICloudConfigured() && getDaemonAICloudToken()) {
+    try {
+      const cloud = await fetchHostedFeatures()
+      entitlementState = {
+        ...state,
+        active: cloud.hostedAvailable,
+        plan: cloud.plan,
+        tier: cloud.plan === 'light' ? null : cloud.plan,
+        accessSource: cloud.accessSource,
+        features: cloud.features,
+      }
+    } catch {
+      entitlementState = { ...state, active: false, features: [] }
+    }
+  }
+  if (accessMode === 'hosted' && !canUseHostedModelLane(entitlementState, lane)) {
     const required = getHostedLaneRequiredPlan(lane)
     throw new Error(`Hosted ${lane} DAEMON AI requires the ${required} plan or higher.`)
   }
@@ -315,7 +333,7 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
   ].filter(Boolean).join('\n\n')
 
   if (accessMode === 'hosted') {
-    const usage = getLocalUsageSnapshot()
+    const usage = await getUsage()
     const estimatedInputCredits = creditsFor(estimateTokens(fullPrompt), 0, lane)
     if (usage.remainingCredits < estimatedInputCredits) {
       throw new Error('DAEMON AI credits are exhausted for this billing period. Use BYOK mode or upgrade your plan.')
@@ -347,9 +365,9 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
   recordAiUsage({
     id: crypto.randomUUID(),
     userId: null,
-    walletAddress: state.walletAddress,
-    plan: state.plan,
-    accessSource: state.accessSource,
+    walletAddress: entitlementState.walletAddress,
+    plan: entitlementState.plan,
+    accessSource: entitlementState.accessSource,
     feature: 'daemon-ai-chat',
     provider: accessMode === 'hosted' ? (hostedResult?.provider ?? 'daemon-cloud') : 'local',
     model: hostedResult?.model ?? modelForLane(lane),

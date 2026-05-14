@@ -15,7 +15,7 @@
 }
 
 .plugin-dashboard-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t2);
   text-transform: uppercase;
@@ -29,7 +29,7 @@
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   outline: none;
   transition: border-color 0.15s;
@@ -55,7 +55,7 @@
   padding: 16px;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border-left: 3px solid transparent;
   min-height: 132px;
   cursor: default;
@@ -123,7 +123,7 @@
 }
 
 .plugin-card-v2-name {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   white-space: nowrap;
@@ -132,7 +132,7 @@
 }
 
 .plugin-card-v2-desc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.5;
   color: var(--t2);
   display: -webkit-box;
@@ -152,7 +152,7 @@
 .plugin-card-v2-btn {
   height: 28px;
   padding: 0 14px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   border-radius: 4px;
   border: none;

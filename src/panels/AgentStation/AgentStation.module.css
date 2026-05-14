@@ -22,14 +22,14 @@
 }
 
 .headerTitle {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   letter-spacing: 0.01em;
 }
 
 .headerBadge {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--solana);
   background: rgba(153, 69, 255, 0.12);
@@ -49,7 +49,7 @@
   color: var(--on-accent);
   border: none;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -79,13 +79,13 @@
 }
 
 .emptyTitle {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   color: var(--t2);
 }
 
 .emptyDesc {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   line-height: 1.6;
   max-width: 280px;
@@ -101,7 +101,7 @@
 .card {
   background: var(--s1);
   border: 1px solid var(--s3);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 12px 14px;
   transition: border-color 0.15s;
 }
@@ -116,7 +116,7 @@
 }
 
 .cardName {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   flex: 1;
@@ -142,7 +142,7 @@
 }
 
 .metaChip {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 500;
   color: var(--t3);
   background: var(--s2);
@@ -160,14 +160,14 @@
 }
 
 .cardDesc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.5;
   margin-bottom: 10px;
 }
 
 .cardPath {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: 'Geist Mono', monospace;
   white-space: nowrap;
@@ -187,8 +187,8 @@
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: 5px;
-  font-size: 11px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-11);
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
@@ -233,7 +233,7 @@
 }
 
 .formTitle {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   color: var(--t1);
   padding-bottom: 2px;
@@ -248,7 +248,7 @@
 }
 
 .label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   color: var(--t3);
   text-transform: uppercase;
@@ -260,7 +260,7 @@
   border: 1px solid var(--s4);
   border-radius: 6px;
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 7px 10px;
   outline: none;
   transition: border-color 0.15s;
@@ -304,14 +304,14 @@
 }
 
 .templateCardName {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--t1);
   margin-bottom: 3px;
 }
 
 .templateCardDesc {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   line-height: 1.4;
 }
@@ -325,7 +325,7 @@
 .pluginToggle {
   padding: 3px 10px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   cursor: pointer;
   border: 1px solid var(--s4);
@@ -355,7 +355,7 @@
   color: var(--on-accent);
   border: none;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -369,7 +369,7 @@
   color: var(--t3);
   border: 1px solid var(--s4);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   cursor: pointer;
   transition: border-color 0.15s;
@@ -378,29 +378,29 @@
 
 /* Error / info */
 .errorMsg {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   background: rgba(239, 83, 80, 0.08);
   border: 1px solid rgba(239, 83, 80, 0.2);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   padding: 7px 10px;
 }
 
 .infoMsg {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   background: var(--s1);
   border: 1px solid var(--s3);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   padding: 7px 10px;
   line-height: 1.5;
 }
 
 .successMsg {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--green);
   background: rgba(62, 207, 142, 0.06);
   border: 1px solid rgba(62, 207, 142, 0.2);
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   padding: 7px 10px;
 }

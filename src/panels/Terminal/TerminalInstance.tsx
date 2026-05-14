@@ -7,29 +7,7 @@ import { useTerminalInput } from './useTerminalInput'
 import { HintsOverlay, HistorySearchOverlay, TerminalSearchOverlay } from './TerminalOverlays'
 import { useUIStore } from '../../store/ui'
 import { useBrowserStore } from '../../store/browser'
-
-const XTERM_THEME = {
-  background: '#0a0a0a',
-  foreground: '#ebebeb',
-  cursor: '#ebebeb',
-  selectionBackground: '#2a2a2a',
-  black: '#0a0a0a',
-  brightBlack: '#3d3d3d',
-  red: '#8c4a4a',
-  brightRed: '#a65c5c',
-  green: '#4a8c62',
-  brightGreen: '#5ca674',
-  yellow: '#8c7a4a',
-  brightYellow: '#a6925c',
-  blue: '#4a6a8c',
-  brightBlue: '#5c82a6',
-  magenta: '#7a4a8c',
-  brightMagenta: '#925ca6',
-  cyan: '#4a8c8c',
-  brightCyan: '#5ca6a6',
-  white: '#ebebeb',
-  brightWhite: '#ffffff',
-}
+import { DAEMON_XTERM_THEME } from '../../styles/daemonTheme'
 
 // Matches Unix absolute, Unix relative, Windows absolute, Windows relative paths
 // with an optional :line or :line:col suffix. Extension required to reduce false positives.
@@ -272,7 +250,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       cursorBlink: true,
       cursorStyle: 'bar',
       scrollback: 10000,
-      theme: XTERM_THEME,
+      theme: DAEMON_XTERM_THEME,
     })
 
     const fitAddon = new FitAddon()

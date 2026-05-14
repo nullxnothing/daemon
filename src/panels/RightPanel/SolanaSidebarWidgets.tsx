@@ -65,6 +65,7 @@ export function SolanaReadinessSidebarWidget() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
   const dashboard = useWalletStore((s) => s.dashboard)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const refreshWallets = useWalletStore((s) => s.refresh)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
   const validator = useSolanaToolboxStore((s) => s.validator)
@@ -82,43 +83,75 @@ export function SolanaReadinessSidebarWidget() {
 
   useEffect(() => {
     let cancelled = false
+    let inFlight = false
     async function refresh() {
-      const [heliusResult, jupiterResult, infraResult] = await Promise.allSettled([
-        daemon.wallet.hasHeliusKey(),
-        daemon.wallet.hasJupiterKey(),
-        daemon.settings.getWalletInfrastructureSettings(),
-        refreshValidatorStatus(),
-        refreshWallets(activeProjectId),
-      ])
-      if (cancelled) return
-      const heliusRes = heliusResult.status === 'fulfilled' ? heliusResult.value : null
-      const jupiterRes = jupiterResult.status === 'fulfilled' ? jupiterResult.value : null
-      const infraRes = infraResult.status === 'fulfilled' ? infraResult.value : null
-      setHasHelius(Boolean(heliusRes?.ok && heliusRes.data))
-      setHasJupiter(Boolean(jupiterRes?.ok && jupiterRes.data))
-      setInfra(infraRes?.ok && infraRes.data ? infraRes.data : DEFAULT_INFRA)
+      if (inFlight) return
+      inFlight = true
+      const walletState = useWalletStore.getState()
+      const walletFreshMs = lowPowerMode ? 180_000 : 45_000
+      const requestedProjectId = activeProjectId ?? null
+      const walletDashboardFresh = Boolean(
+        walletState.dashboard &&
+        walletState.lastRefreshProjectId === requestedProjectId &&
+        Date.now() - walletState.lastRefreshAt < walletFreshMs,
+      )
+      try {
+        const [heliusResult, jupiterResult, infraResult] = await Promise.allSettled([
+          daemon.wallet.hasHeliusKey(),
+          daemon.wallet.hasJupiterKey(),
+          daemon.settings.getWalletInfrastructureSettings(),
+          refreshValidatorStatus(),
+          walletDashboardFresh ? Promise.resolve() : refreshWallets(requestedProjectId),
+        ])
+        if (cancelled) return
+        const heliusRes = heliusResult.status === 'fulfilled' ? heliusResult.value : null
+        const jupiterRes = jupiterResult.status === 'fulfilled' ? jupiterResult.value : null
+        const infraRes = infraResult.status === 'fulfilled' ? infraResult.value : null
+        setHasHelius(Boolean(heliusRes?.ok && heliusRes.data))
+        setHasJupiter(Boolean(jupiterRes?.ok && jupiterRes.data))
+        setInfra(infraRes?.ok && infraRes.data ? infraRes.data : DEFAULT_INFRA)
+      } finally {
+        inFlight = false
+      }
     }
-    void refresh()
-    const retryTimer = window.setTimeout(() => { void refresh() }, 2500)
-    const interval = window.setInterval(() => { void refresh() }, 30_000)
+    const initialTimer = lowPowerMode ? window.setTimeout(() => { void refresh() }, 10_000) : null
+    if (!lowPowerMode) void refresh()
+    const retryTimer = lowPowerMode ? null : window.setTimeout(() => { void refresh() }, 2500)
+    const interval = window.setInterval(() => { void refresh() }, lowPowerMode ? 180_000 : 30_000)
     return () => {
       cancelled = true
-      window.clearTimeout(retryTimer)
+      if (initialTimer != null) window.clearTimeout(initialTimer)
+      if (retryTimer != null) window.clearTimeout(retryTimer)
       window.clearInterval(interval)
     }
-  }, [activeProjectId, refreshValidatorStatus, refreshWallets])
+  }, [activeProjectId, lowPowerMode, refreshValidatorStatus, refreshWallets])
 
   useEffect(() => {
-    if (!activeProjectPath) {
-      void loadToolchain(undefined)
-      return
+    let cancelled = false
+    const load = () => {
+      if (cancelled) return
+      if (!activeProjectPath) {
+        void loadToolchain(undefined)
+        return
+      }
+      void Promise.all([
+        loadMcps(activeProjectPath),
+        detectProject(activeProjectPath),
+        loadToolchain(activeProjectPath),
+      ])
     }
-    void Promise.all([
-      loadMcps(activeProjectPath),
-      detectProject(activeProjectPath),
-      loadToolchain(activeProjectPath),
-    ])
-  }, [activeProjectPath, detectProject, loadMcps, loadToolchain])
+
+    if (lowPowerMode) {
+      const timer = window.setTimeout(load, 10_000)
+      return () => {
+        cancelled = true
+        window.clearTimeout(timer)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [activeProjectPath, detectProject, loadMcps, loadToolchain, lowPowerMode])
 
   useEffect(() => {
     let cancelled = false
@@ -178,6 +211,7 @@ export function SolanaReadinessSidebarWidget() {
 export function TokenWatchSidebarWidget() {
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
   const setActiveDashboardMint = useUIStore((s) => s.setActiveDashboardMint)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const setWalletView = useWalletStore((s) => s.setActiveView)
   const setPreferredSwap = useWalletStore((s) => s.setPreferredSwap)
   const [mint, setMint] = useState(() => readRightSidebarWidgetConfig().tokenWatchMint ?? '')
@@ -240,12 +274,12 @@ export function TokenWatchSidebarWidget() {
       if (!metaRes.ok && !priceRes.ok) setError(metaRes.error ?? priceRes.error ?? 'Token lookup failed')
     }
     void load()
-    const interval = window.setInterval(() => { void load() }, 30_000)
+    const interval = window.setInterval(() => { void load() }, lowPowerMode ? 180_000 : 30_000)
     return () => {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [hasMint, mint])
+  }, [hasMint, lowPowerMode, mint])
 
   const openSwap = (mode: 'buy' | 'sell') => {
     if (!hasMint) return

@@ -27,7 +27,7 @@
   border: 1px solid var(--s5);
   border-radius: 4px;
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: 'JetBrains Mono', monospace;
   outline: none;
 }
@@ -46,7 +46,7 @@
   border: 1px solid var(--s5);
   border-radius: 4px;
   color: var(--t2);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -72,7 +72,7 @@
 }
 
 .browser__page-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
   font-weight: 500;
   overflow: hidden;
@@ -83,7 +83,7 @@
 .browser__page-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
@@ -101,7 +101,7 @@
   border: 1px solid var(--s5);
   border-radius: 4px;
   color: var(--t2);
-  font-size: 10px;
+  font-size: var(--fs-10);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -130,7 +130,7 @@
 }
 
 .browser__text-content {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   line-height: 1.6;
   white-space: pre-wrap;
@@ -145,14 +145,14 @@
 }
 
 .browser__analysis-header {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .browser__analysis-body {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   line-height: 1.6;
   white-space: pre-wrap;
@@ -170,7 +170,7 @@
 }
 
 .browser__finding {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   padding: 4px 8px;
   background: var(--s2);
@@ -186,7 +186,7 @@
 }
 
 .browser__history-title {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -210,7 +210,7 @@
 }
 
 .browser__history-url {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t1);
   font-family: 'JetBrains Mono', monospace;
   overflow: hidden;
@@ -220,7 +220,7 @@
 }
 
 .browser__history-time {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t3);
 }
 
@@ -228,9 +228,9 @@
   padding: 3px 8px;
   background: transparent;
   border: 1px solid var(--s5);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--t3);
-  font-size: 9px;
+  font-size: var(--fs-9);
   cursor: pointer;
   align-self: flex-end;
 }
@@ -242,21 +242,21 @@
 
 /* Empty + loading */
 .browser__empty {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   text-align: center;
   padding: 24px 12px;
 }
 
 .browser__loading {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   text-align: center;
   padding: 12px;
 }
 
 .browser__error {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   padding: 6px 8px;
   background: var(--s2);
@@ -279,7 +279,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--t3);
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;

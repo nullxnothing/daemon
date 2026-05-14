@@ -73,7 +73,7 @@
 
 .bootloader__letter {
   font-family: var(--font-ui);
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--t1);
@@ -92,7 +92,7 @@
 /* ── Status line ── */
 .bootloader__status {
   font-family: var(--font-code);
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   color: var(--t4);
   opacity: 0;

@@ -9,7 +9,7 @@
   justify-content: center;
   gap: 4px;
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-ui);
   font-weight: 500;
   border-radius: var(--radius-md);
@@ -59,7 +59,7 @@
 
 .dash-btn-lg {
   padding: 9px 20px;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 /* ── Shared select ── */
@@ -69,7 +69,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-ui);
   cursor: pointer;
   outline: none;
@@ -101,7 +101,7 @@
 }
 
 .dash-mini-empty-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   font-family: var(--font-ui);
   text-align: center;
@@ -149,7 +149,7 @@
 }
 
 .dash-mini-hint {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t4);
   font-family: var(--font-ui);
   padding: 16px 10px;
@@ -165,7 +165,7 @@
 }
 
 .dash-price-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-ui);
   text-transform: uppercase;
@@ -179,7 +179,7 @@
 }
 
 .dash-price-main {
-  font-size: 18px;
+  font-size: var(--fs-18);
   font-family: var(--font-code);
   color: var(--t1);
   font-weight: 600;
@@ -187,7 +187,7 @@
 }
 
 .dash-price-change {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-code);
   font-weight: 500;
 }
@@ -215,7 +215,7 @@
 }
 
 .dash-metric-label {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
@@ -223,7 +223,7 @@
 }
 
 .dash-metric-value {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t1);
   font-family: var(--font-code);
   font-weight: 600;
@@ -269,14 +269,14 @@
 }
 
 .dash-canvas-empty-title {
-  font-size: 18px;
+  font-size: var(--fs-18);
   color: var(--t1);
   font-family: var(--font-ui);
   font-weight: 600;
 }
 
 .dash-canvas-empty-sub {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t3);
   font-family: var(--font-ui);
   text-align: center;
@@ -319,7 +319,7 @@
 }
 
 .dash-canvas-token-name {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t1);
   font-family: var(--font-ui);
   font-weight: 600;
@@ -327,7 +327,7 @@
 }
 
 .dash-canvas-token-symbol {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-code);
   text-transform: uppercase;
@@ -337,14 +337,14 @@
 .dash-canvas-loading,
 .dash-canvas-hint {
   padding: 16px 20px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t4);
   font-family: var(--font-ui);
 }
 
 .dash-canvas-error {
   padding: 10px 20px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   font-family: var(--font-ui);
   background: var(--red-glow);
@@ -372,7 +372,7 @@
 }
 
 .dash-metric-card-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
@@ -380,7 +380,7 @@
 }
 
 .dash-metric-card-value {
-  font-size: 20px;
+  font-size: var(--fs-20);
   font-family: var(--font-code);
   color: var(--t1);
   font-weight: 600;
@@ -400,7 +400,7 @@
 }
 
 .dash-chart-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
@@ -439,7 +439,7 @@
 }
 
 .dash-section-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   font-family: var(--font-ui);
   font-weight: 600;
@@ -452,7 +452,7 @@
 }
 
 .dash-refresh-btn {
-  font-size: 10px;
+  font-size: var(--fs-10);
   padding: 2px 7px;
   background: var(--s3);
   color: var(--t3);
@@ -469,14 +469,14 @@
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .dash-table th {
   text-align: left;
   padding: 4px 6px;
   color: var(--t4);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-ui);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -497,7 +497,7 @@
 .dash-table-amount { color: var(--green); text-align: right; }
 
 .dash-table-empty {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t4);
   font-family: var(--font-ui);
 }
@@ -519,7 +519,7 @@
 }
 
 .dash-mint-label {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
@@ -527,7 +527,7 @@
 }
 
 .dash-mint-addr {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t3);
   font-family: var(--font-code);
   word-break: break-all;
@@ -564,7 +564,7 @@
 }
 
 .dash-import-panel-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: var(--font-ui);
   font-weight: 600;
   color: var(--t1);
@@ -577,7 +577,7 @@
   border: none;
   color: var(--t4);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
@@ -592,7 +592,7 @@
 
 .dash-import-tab {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-ui);
   background: var(--s3);
   color: var(--t3);
@@ -623,7 +623,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   padding: 5px 8px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-code);
   color: var(--t1);
   outline: none;
@@ -634,7 +634,7 @@
 .dash-import-error {
   display: block;
   width: 100%;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   font-family: var(--font-ui);
   margin-top: 4px;
@@ -648,7 +648,7 @@
 }
 
 .dash-import-scanning {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   font-family: var(--font-ui);
   display: flex;
@@ -695,7 +695,7 @@
 }
 
 .dash-scan-name {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
   flex: 1;
   min-width: 0;
@@ -705,7 +705,7 @@
 }
 
 .dash-scan-mint {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: var(--font-code);
   flex-shrink: 0;

@@ -8,6 +8,10 @@ import './ProPanel.css'
 
 type ProTab = 'overview' | 'staking' | 'arena' | 'skills' | 'sync'
 
+type ProWalletOption = { id: string; name: string; address: string; isDefault: boolean }
+
+const EMPTY_WALLETS: ProWalletOption[] = []
+
 interface StakingTier {
   id: string
   label: string
@@ -65,7 +69,7 @@ export function ProPanel() {
   const clearError = useProStore((state) => state.clearError)
   const quota = useProStore((state) => state.quota)
   const loadQuota = useProStore((state) => state.loadQuota)
-  const wallets = useWalletStore((state) => state.dashboard?.wallets ?? [])
+  const wallets = useWalletStore((state) => state.dashboard?.wallets ?? EMPTY_WALLETS)
 
   const [activeTab, setActiveTab] = useState<ProTab>('overview')
   const [selectedWalletId, setSelectedWalletId] = useState('')
@@ -328,7 +332,7 @@ function OverviewSubscribe({
   accessSource,
 }: {
   price: ProPriceInfo | null
-  wallets: Array<{ id: string; name: string; address: string; isDefault: boolean }>
+  wallets: ProWalletOption[]
   selectedWalletId: string
   onSelectWallet: (walletId: string) => void
   subscribing: boolean

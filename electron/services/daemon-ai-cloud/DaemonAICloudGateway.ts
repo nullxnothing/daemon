@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
+import { canUseHostedModelLane, getHostedLaneRequiredPlan } from '../EntitlementService'
 import { estimateRequestCredits } from './creditMath'
 import { ModelRouter } from './ModelRouter'
 import { normalizeCloudChatRequest } from './requestValidation'
@@ -6,11 +7,24 @@ import type { DaemonAiModelInfo } from '../../shared/types'
 import type {
   DaemonAiCloudAuthContext,
   DaemonAiCloudChatResponse,
+  DaemonAiCloudEntitlement,
   DaemonAiCloudGatewayOptions,
 } from './types'
 
 type AuthenticatedRequest = Request & {
   daemonAuth?: DaemonAiCloudAuthContext
+}
+
+class DaemonAiCloudHttpError extends Error {
+  status: number
+  code: string
+
+  constructor(status: number, code: string, message: string) {
+    super(message)
+    this.name = 'DaemonAiCloudHttpError'
+    this.status = status
+    this.code = code
+  }
 }
 
 function bearerToken(req: Request): string | null {
@@ -38,7 +52,15 @@ function hostedModelCatalog(): DaemonAiModelInfo[] {
   ]
 }
 
+function canUseEntitledLane(entitlement: DaemonAiCloudEntitlement, lane: DaemonAiModelInfo['lane']): boolean {
+  return entitlement.allowedLanes.includes(lane) &&
+    canUseHostedModelLane({ active: true, plan: entitlement.plan, features: entitlement.features }, lane)
+}
+
 function errorCode(error: unknown): string {
+  if (error && typeof error === 'object' && 'code' in error && typeof error.code === 'string') {
+    return error.code
+  }
   const message = errorMessage(error).toLowerCase()
   if (message.includes('credit') || message.includes('quota') || message.includes('billing')) return 'daemon_ai_insufficient_credits'
   if (message.includes('provider') || message.includes('model')) return 'daemon_ai_provider_error'
@@ -92,6 +114,9 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
         plan: entitlement.plan,
         accessSource: entitlement.accessSource,
         features: entitlement.features,
+        lane: entitlement.lane,
+        allowedLanes: entitlement.allowedLanes,
+        entitlementExpiresAt: entitlement.entitlementExpiresAt ?? null,
       },
     })
   })
@@ -106,6 +131,8 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
       data: {
         plan: entitlement.plan,
         accessSource: entitlement.accessSource,
+        lane: entitlement.lane,
+        allowedLanes: entitlement.allowedLanes,
         monthlyCredits,
         usedCredits,
         remainingCredits: Math.max(monthlyCredits - usedCredits, 0),
@@ -125,6 +152,14 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
     try {
       const input = normalizeCloudChatRequest(req.body)
       const entitlement = req.daemonAuth!.entitlement
+      if (!canUseEntitledLane(entitlement, input.modelPreference)) {
+        const required = getHostedLaneRequiredPlan(input.modelPreference)
+        throw new DaemonAiCloudHttpError(
+          403,
+          'daemon_ai_plan_required',
+          `Hosted ${input.modelPreference} DAEMON AI requires the ${required} plan or higher.`,
+        )
+      }
       const estimatedCredits = estimateRequestCredits(input.prompt, input.modelPreference)
       await options.usage.assertCredits(entitlement, estimatedCredits)
 

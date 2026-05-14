@@ -33,7 +33,7 @@
 }
 
 .category-group-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -42,7 +42,7 @@
 }
 
 .category-group-count {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-family: var(--font-code);
   color: var(--t4);
   flex-shrink: 0;

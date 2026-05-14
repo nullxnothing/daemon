@@ -26,10 +26,10 @@ export function IntroductionDoc() {
 
       <H2 id="what-is-daemon">What is DAEMON?</H2>
       <Paragraph>
-        DAEMON is a <strong>Solana-native agent workbench</strong>, a standalone desktop application
-        built from scratch for verifiable AI development work. It combines a full-featured code editor,
-        AI agents, built-in wallet, token launcher, MCP management, and devnet work receipts into a
-        single app.
+        DAEMON is an <strong>AI-native Solana development environment</strong>, a standalone desktop
+        application built from scratch for agent-assisted shipping. It combines a full-featured code
+        editor, terminal, DAEMON AI, spawned agents, wallet tooling, token launch flows, MCP
+        management, deployments, and verifiable work receipts into a single app.
       </Paragraph>
       <Paragraph>
         DAEMON is not a VS Code fork. It is not a plugin or extension. It is a purpose-built
@@ -52,6 +52,7 @@ export function IntroductionDoc() {
           <><strong>Launch tokens</strong> on PumpFun with a one-click wizard</>,
           <><strong>Swap tokens</strong> via Jupiter aggregation directly from the wallet panel</>,
           <><strong>Deploy</strong> to Vercel or Railway without leaving the editor</>,
+          <><strong>Manage access</strong> through DAEMON Pro, holder claims, subscriptions, and 402 integrations</>,
           <><strong>Track everything</strong> with a built-in dashboard showing price, holders, market cap, and sparkline charts</>,
         ]}
       />
@@ -72,7 +73,10 @@ export function IntroductionDoc() {
       <Divider />
 
       <H2 id="open-source">Open Source</H2>
-      <Paragraph>DAEMON is free and open source under the MIT License.</Paragraph>
+      <Paragraph>
+        DAEMON Light is free and open source under the MIT License. Hosted DAEMON AI, Pro Skills,
+        cloud-backed workflows, and premium usage lanes are protected by DAEMON Pro or holder access.
+      </Paragraph>
       <List
         items={[
           <><strong>GitHub:</strong>{' '}<a href="https://github.com/nullxnothing/daemon" target="_blank" rel="noopener noreferrer">github.com/nullxnothing/daemon</a></>,
@@ -469,6 +473,241 @@ export function SolanaDevelopmentDoc() {
   )
 }
 
+// ─── DAEMON AI Cloud ────────────────────────────────────────────────────────
+
+export function DaemonAICloudDoc() {
+  return (
+    <>
+      <DocHeading>DAEMON AI Cloud</DocHeading>
+      <DocSubheading>
+        Hosted DAEMON AI for paid users and eligible holders, with BYOK mode preserved for local builders.
+      </DocSubheading>
+
+      <H2 id="what-it-is">What It Is</H2>
+      <Paragraph>
+        DAEMON AI Cloud is the private hosted layer behind DAEMON AI. The desktop app sends
+        entitled requests to the cloud service, and the cloud service verifies access, meters
+        usage, routes models, and protects premium prompts, skills, and workflow templates.
+      </Paragraph>
+      <Paragraph>
+        Free users can still use DAEMON Light with bring-your-own-key providers. Hosted DAEMON AI
+        is the paid and holder-access path.
+      </Paragraph>
+
+      <H2 id="architecture">Architecture</H2>
+      <Table
+        headers={['Layer', 'Responsibility']}
+        rows={[
+          ['Desktop app', 'Editor, terminal, git, wallet context, DAEMON AI panel, and local tool approval'],
+          ['DAEMON AI Cloud', 'JWT verification, entitlement checks, usage metering, model routing, and provider calls'],
+          ['Model providers', 'OpenAI, Anthropic, and future provider lanes behind DAEMON policy'],
+          ['Storage', 'Persistent usage, entitlement, and audit data for production readiness'],
+        ]}
+      />
+
+      <H2 id="hosted-lanes">Hosted Model Lanes</H2>
+      <Table
+        headers={['Lane', 'Minimum Plan', 'Use']}
+        rows={[
+          ['Standard', 'Pro', 'Project-aware chat, standard hosted calls, and normal workflow help'],
+          ['Reasoning', 'Operator', 'Architecture, deeper debugging, larger context, and heavier agent planning'],
+          ['Premium', 'Ultra', 'Highest-priority models and expensive automation paths'],
+        ]}
+      />
+
+      <H2 id="production-readiness">Production Readiness</H2>
+      <List
+        items={[
+          <>Set <Code>DAEMON_AI_API_BASE</Code> to the production cloud URL before final v4 release.</>,
+          <>Set the same <Code>DAEMON_AI_JWT_SECRET</Code> on the landing app and cloud service.</>,
+          <>Set <Code>DAEMON_PRO_PAY_TO</Code>, <Code>SOLANA_RPC_URL</Code>, and <Code>DAEMON_PRO_ADMIN_SECRET</Code> on the cloud service.</>,
+          <>Use <Code>DAEMON_PRO_JWT_PREVIOUS_SECRETS</Code> during JWT secret rotation windows.</>,
+          <>Run <Code>pnpm run test:daemon-ai:live</Code> with real Pro, Operator, and Ultra wallet-issued JWTs.</>,
+          'Confirm Pro blocks premium, Operator unlocks reasoning, and Ultra unlocks premium against the deployed service.',
+          <>Attach persistent cloud storage and set <Code>DAEMON_AI_CLOUD_DB_PATH</Code> to that disk path.</>,
+          'Confirm payment replay, admin revoke, and expired subscription paths all keep hosted AI locked.',
+          'Keep private provider keys, premium prompts, and paid workflow assets on the server side.',
+        ]}
+      />
+
+      <CodeBlock title="Live Smoke">{`$env:DAEMON_AI_API_BASE="https://your-production-daemon-ai-cloud"
+$env:DAEMON_PRO_JWT="real-pro-jwt"
+$env:DAEMON_OPERATOR_JWT="real-operator-jwt"
+$env:DAEMON_ULTRA_JWT="real-ultra-jwt"
+$env:DAEMON_AI_REQUIRE_ALL_LIVE_JWTS="1"
+pnpm run test:daemon-ai:live`}</CodeBlock>
+
+      <Hint type="warning">
+        Do not switch from RC to final v4 until the production cloud URL, real JWT lanes, and persistent
+        storage are all confirmed.
+      </Hint>
+    </>
+  )
+}
+
+// ─── Pricing & Subscriptions ────────────────────────────────────────────────
+
+export function PricingSubscriptionsDoc() {
+  return (
+    <>
+      <DocHeading>Pricing & Subscriptions</DocHeading>
+      <DocSubheading>
+        DAEMON Light stays useful and free. Hosted DAEMON AI, premium workflows, and larger model lanes are tiered.
+      </DocSubheading>
+
+      <H2 id="plans">Plans</H2>
+      <Table
+        headers={['Plan', 'Price', 'Best For', 'Positioning']}
+        rows={[
+          [<strong key="light">Light</strong>, 'Free', 'Local builders', 'Local workbench, BYOK agents, editor, terminal, git, wallet, and core tools'],
+          [<strong key="pro">Pro</strong>, '$20/month', 'Individual builders', 'DAEMON AI, Pro Skills, Arena, standard hosted usage, and advanced workflows'],
+          [<strong key="operator">Operator</strong>, '$60/month', 'Daily agent users', 'Higher AI limits, larger context, cloud agents, and advanced ship/deploy flows'],
+          [<strong key="ultra">Ultra</strong>, '$200/month', 'Power users', 'Maximum individual usage, priority model access, early features, and advanced automation'],
+          [<strong key="teams">Teams</strong>, '$49/user/month', 'Studios and teams', 'Shared workspaces, pooled usage, billing, admin controls, and collaboration'],
+          [<strong key="enterprise">Enterprise</strong>, 'Custom', 'Larger orgs', 'Private deployments, custom limits, support, compliance, and invoicing'],
+        ]}
+      />
+
+      <H2 id="current-launch-state">Current Launch State</H2>
+      <List
+        items={[
+          'Pro, Operator, and Ultra are live paid subscription lanes.',
+          'Paid subscriptions issue DAEMON AI cloud JWTs with plan, lane, allowed lane, feature, and monthly credit claims.',
+          'Teams and Enterprise should be positioned as roadmap or contact-sales until shared workspace and billing controls are implemented.',
+          'Avoid promising unlimited DAEMON AI usage. Hosted model calls have real provider cost.',
+        ]}
+      />
+
+      <H2 id="subscription-panel">Subscription Panel</H2>
+      <Paragraph>
+        The Subscriptions plugin shows the current plan, usage credits, hosted lane locks, holder
+        eligibility, and the plan ladder. It should be the operational place users check before
+        upgrading, claiming holder access, or troubleshooting hosted DAEMON AI.
+      </Paragraph>
+
+      <H2 id="payment-rails">Payment Rails</H2>
+      <Table
+        headers={['Phase', 'Rail', 'Notes']}
+        rows={[
+          ['Phase 1', 'USDC/x402 or Solana payment flow', 'Fits DAEMON builder audience and 402-provider integrations'],
+          ['Phase 1', 'DAEMON AI JWTs', 'Active subscriptions can request short-lived cloud entitlement tokens'],
+          ['Phase 1', 'Holder claim', 'Wallet signs a message. No token transfer is required'],
+          ['Phase 1', 'Manual/admin grants', 'Useful for early users and live testing'],
+          ['Phase 2', 'Stripe/card', 'Annual plans, wider onboarding, and team billing'],
+          ['Phase 3', 'Usage overages', 'Credit packs, pooled team usage, and enterprise metering'],
+        ]}
+      />
+    </>
+  )
+}
+
+// ─── Holder Access ──────────────────────────────────────────────────────────
+
+export function HolderAccessDoc() {
+  return (
+    <>
+      <DocHeading>Holder Access</DocHeading>
+      <DocSubheading>
+        $DAEMON holder utility should unlock meaningful product access without creating unlimited AI cost exposure.
+      </DocSubheading>
+
+      <H2 id="launch-rule">Launch Rule</H2>
+      <Paragraph>
+        The clean initial rule is: hold <strong>1,000,000 DAEMON</strong> and claim DAEMON Pro with
+        included monthly AI usage. Higher holder tiers can unlock larger allowances or discounts later.
+      </Paragraph>
+
+      <Table
+        headers={['Holder Tier', 'Requirement', 'Benefit', 'Status']}
+        rows={[
+          ['Holder Pro', '1M DAEMON', 'Claim DAEMON Pro with standard Pro monthly AI usage', 'Live path'],
+          ['Holder Operator', '5M DAEMON', 'Higher allowance or Operator discount path', 'Planned'],
+          ['Holder Ultra', '10M DAEMON', 'Ultra discount, higher priority, and private beta access', 'Planned'],
+          ['Founding/Strategic', 'Manual', 'Founder badge, private beta, or enterprise-style grant', 'Manual'],
+        ]}
+      />
+
+      <H2 id="claim-flow">Claim Flow</H2>
+      <List
+        items={[
+          'User opens DAEMON Pro or Subscriptions.',
+          'User selects a local wallet.',
+          'DAEMON asks the wallet to sign a plain message.',
+          'The backend verifies address ownership, nonce freshness, and token balance.',
+          'The backend issues an entitlement token.',
+          'DAEMON unlocks the correct plan and periodically refreshes status.',
+        ]}
+      />
+
+      <Hint type="info">
+        Holder claim must be a message signature, not a transaction. No DAEMON tokens should leave the wallet.
+      </Hint>
+
+      <H2 id="messaging-rules">Messaging Rules</H2>
+      <Table
+        headers={['Use', 'Avoid']}
+        rows={[
+          ['Holder access benefit', 'Investment'],
+          ['Claim DAEMON Pro with eligible holdings', 'Yield'],
+          ['No tokens are transferred', 'Dividend'],
+          ['AI usage is subject to fair-use limits', 'Guaranteed return'],
+          ['Higher holder tiers may receive higher limits or discounts', 'Unlimited AI forever'],
+        ]}
+      />
+    </>
+  )
+}
+
+// ─── Zauth 402 Integration ──────────────────────────────────────────────────
+
+export function Zauth402Doc() {
+  return (
+    <>
+      <DocHeading>Zauth 402 Integration</DocHeading>
+      <DocSubheading>
+        Zauth can be positioned as DAEMON's embedded 402/provider-management surface while backend enforcement stays server-side.
+      </DocSubheading>
+
+      <H2 id="integration-scope">Integration Scope</H2>
+      <Paragraph>
+        DAEMON embeds Zauth Database and Provider Hub as a managed integration surface. Users can
+        inspect x402/provider configuration from DAEMON while keeping actual paid access enforcement
+        in DAEMON AI Cloud and the relevant provider backends.
+      </Paragraph>
+
+      <Table
+        headers={['Surface', 'URL', 'Use']}
+        rows={[
+          ['Database', 'https://zauth.inc/database', 'Inspect and manage 402-related records and access data'],
+          ['Provider Hub', 'https://zauth.inc/provider-hub', 'Manage provider setup and operational 402 configuration'],
+          ['Integration card', 'DAEMON Integrations panel', 'Open the embedded Zauth pages and review the integration status'],
+          ['Side panel', 'DAEMON right sidebar', 'Quick access to Database, Hub, or the full Zauth workspace tool'],
+        ]}
+      />
+
+      <H2 id="recommended-boundary">Recommended Boundary</H2>
+      <List
+        items={[
+          'Use Zauth as the operator-facing 402 management surface.',
+          'Keep DAEMON AI entitlement checks in DAEMON AI Cloud.',
+          'Keep model provider keys and premium workflow assets server-side.',
+          'Treat Zauth as an integration layer unless DAEMON formally adopts it as the production payment authority.',
+        ]}
+      />
+
+      <H2 id="next-steps">Next Steps</H2>
+      <List
+        items={[
+          'Decide whether Zauth is official production payment authority or an embedded management integration.',
+          'Document which DAEMON resources are protected by 402 payments.',
+          'Add a backend contract for entitlement sync if Zauth becomes authoritative.',
+          'Validate the full payment, entitlement, and hosted DAEMON AI request flow with real accounts.',
+        ]}
+      />
+    </>
+  )
+}
+
 // ─── Editor & Terminal ───────────────────────────────────────────────────────
 
 export function EditorTerminalDoc() {
@@ -714,9 +953,9 @@ export function ArchitectureDoc() {
       <Table
         headers={['Layer', 'Technology', 'Detail']}
         rows={[
-          ['Shell', 'Electron 33', 'Chromium + Node in one process'],
+          ['Shell', 'Electron 41', 'Chromium + Node in one process'],
           ['Build', 'Vite', 'Sub-second HMR'],
-          ['UI', 'React 18 + TypeScript', 'Strict types, zero any'],
+          ['UI', 'React 19 + TypeScript', 'Strict types, zero any'],
           ['Editor', 'Monaco Editor', 'Custom protocol, fully offline'],
           ['Terminal', 'node-pty + xterm.js', 'Real PTY, not emulated'],
           ['State', 'Zustand', 'One store per domain'],
@@ -1054,7 +1293,7 @@ pnpm run dev`}</CodeBlock>
   db/              SQLite schema + migrations
   shared/          Types shared between main and renderer
 
-src/               Renderer - React 18 + TypeScript
+src/               Renderer - React 19 + TypeScript
   panels/          One directory per panel
   store/           Zustand stores
   components/      Shared UI components
@@ -1109,6 +1348,10 @@ export const DOC_COMPONENTS: Record<string, () => JSX.Element> = {
   'ai-agents': AIAgentsDoc,
   'grind-mode': GrindModeDoc,
   'solana-development': SolanaDevelopmentDoc,
+  'daemon-ai-cloud': DaemonAICloudDoc,
+  'pricing-subscriptions': PricingSubscriptionsDoc,
+  'holder-access': HolderAccessDoc,
+  'zauth-402': Zauth402Doc,
   'editor-terminal': EditorTerminalDoc,
   'git-integration': GitIntegrationDoc,
   deployment: DeploymentDoc,

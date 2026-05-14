@@ -20,16 +20,10 @@ export interface TelemetrySession {
 }
 
 let currentSession: TelemetrySession | null = null
+let telemetryTablesReady = false
 
-export function initTelemetry(version: string): TelemetrySession {
-  const sessionId = `session_${randomUUID()}`
-  currentSession = {
-    sessionId,
-    startedAt: Date.now(),
-    version,
-  }
-
-  // Ensure telemetry tables exist
+function ensureTelemetryTables() {
+  if (telemetryTablesReady) return
   const db = getDb()
   db.exec(`
     CREATE TABLE IF NOT EXISTS telemetry_events (
@@ -47,6 +41,16 @@ export function initTelemetry(version: string): TelemetrySession {
     CREATE INDEX IF NOT EXISTS idx_telemetry_event_name ON telemetry_events(event_name);
     CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_events(timestamp);
   `)
+  telemetryTablesReady = true
+}
+
+export function initTelemetry(version: string): TelemetrySession {
+  const sessionId = `session_${randomUUID()}`
+  currentSession = {
+    sessionId,
+    startedAt: Date.now(),
+    version,
+  }
 
   return currentSession
 }
@@ -72,6 +76,7 @@ export function trackEvent(
   }
 
   try {
+    ensureTelemetryTables()
     const db = getDb()
     db.prepare(`
       INSERT INTO telemetry_events (
@@ -108,6 +113,7 @@ export function getSessionStats(): { eventsCount: number; sessionDuration: numbe
   if (!currentSession) return { eventsCount: 0, sessionDuration: 0 }
 
   try {
+    ensureTelemetryTables()
     const db = getDb()
     const row = db.prepare(`
       SELECT COUNT(*) as count FROM telemetry_events
@@ -126,6 +132,7 @@ export function getSessionStats(): { eventsCount: number; sessionDuration: numbe
 
 export function getRecentEvents(limit: number = 50): TelemetryEvent[] {
   try {
+    ensureTelemetryTables()
     const db = getDb()
     const rows = db.prepare(`
       SELECT
@@ -161,6 +168,7 @@ export function getRecentEvents(limit: number = 50): TelemetryEvent[] {
 
 export function cleanupOldTelemetry(olderThanDays: number = 30): void {
   try {
+    ensureTelemetryTables()
     const db = getDb()
     const cutoff = Date.now() - olderThanDays * 24 * 60 * 60 * 1000
     db.prepare('DELETE FROM telemetry_events WHERE timestamp < ?').run(cutoff)

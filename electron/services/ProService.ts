@@ -16,6 +16,7 @@ import type {
 } from '../shared/types'
 import * as SecureKey from './SecureKeyService'
 import { withKeypair } from './SolanaService'
+import { transferToken } from './WalletService'
 import { getPlanFeatures, normalizePlan } from './EntitlementService'
 
 const DEFAULT_PRO_API_BASE =
@@ -36,6 +37,7 @@ const DEV_BYPASS_PRICE: ProPriceInfo = {
   holderMinAmount: 1_000_000,
 }
 const JWT_KEY = 'daemon_pro_jwt'
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
 const EMPTY_HOLDER_STATUS: ProSubscriptionState['holderStatus'] = {
   enabled: false,
@@ -277,26 +279,24 @@ export async function subscribe(walletId: string): Promise<{ state: ProSubscript
     throw new ProApiError(challengeRes.status, `Expected 402 Payment Required, got ${challengeRes.status}`)
   }
 
-  const { walletAddress, paymentHeader } = await withKeypair(walletId, async (keypair) => {
-    const walletAddress = keypair.publicKey.toBase58()
-    const nonce = crypto.randomUUID()
-    const amount = String(Math.round(price.priceUsdc * 1_000_000))
-    const digest = Buffer.from(`${walletAddress}|${nonce}|${amount}|${price.network}|${price.payTo}`, 'utf8')
-    const signature = crypto.createHash('sha256').update(digest).update(keypair.secretKey).digest()
-    return {
-      walletAddress,
-      paymentHeader: Buffer.from(
-        JSON.stringify({
-          wallet: walletAddress,
-          signature: bs58.encode(signature),
-          nonce,
-          amount,
-          network: price.network,
-        }),
-        'utf8',
-      ).toString('base64url'),
-    }
-  })
+  const walletAddress = await withKeypair(walletId, async (keypair) => keypair.publicKey.toBase58())
+  const payment = await transferToken(
+    walletId,
+    price.payTo,
+    price.paymentMint ?? USDC_MINT,
+    price.priceUsdc,
+  )
+  const paymentHeader = Buffer.from(
+    JSON.stringify({
+      wallet: walletAddress,
+      txSignature: payment.signature,
+      amount: price.priceUsdc,
+      network: price.network,
+      payTo: price.payTo,
+      mint: price.paymentMint ?? USDC_MINT,
+    }),
+    'utf8',
+  ).toString('base64url')
 
   const paidRes = await fetch(`${DAEMON_PRO_API_BASE}/v1/subscribe`, {
     method: 'POST',
@@ -495,6 +495,11 @@ function proSkillsLocalDir(): string {
   return path.join(app?.getPath?.('userData') ?? os.homedir(), 'daemon-pro-skills')
 }
 
+function claudeConfigPath(): string {
+  const homeDir = process.env.DAEMON_MCP_HOME_DIR?.trim() || os.homedir()
+  return path.join(homeDir, '.claude.json')
+}
+
 export async function fetchProSkillsManifest(): Promise<ProSkillManifest> {
   if (DEV_BYPASS_ENABLED) return { version: 1, skills: [] }
   return proFetch<ProSkillManifest>('/v1/pro-skills/manifest', { headers: authHeaders() })
@@ -557,7 +562,7 @@ export async function getPriorityApiQuota(): Promise<{ quota: number; used: numb
 
 export async function pushLocalClaudeConfig(): Promise<number> {
   if (DEV_BYPASS_ENABLED) return 0
-  const claudeJsonPath = path.join(os.homedir(), '.claude.json')
+  const claudeJsonPath = claudeConfigPath()
   if (!fs.existsSync(claudeJsonPath)) return 0
   const json = JSON.parse(fs.readFileSync(claudeJsonPath, 'utf8')) as {
     mcpServers?: Record<string, { command: string; args: string[]; env?: Record<string, string> }>
@@ -580,7 +585,7 @@ export async function pullMcpConfigToLocal(): Promise<number> {
   } | null>('/v1/sync/mcp', { headers: authHeaders() })
   if (!remote) return 0
 
-  const claudeJsonPath = path.join(os.homedir(), '.claude.json')
+  const claudeJsonPath = claudeConfigPath()
   let current: Record<string, unknown> = {}
   if (fs.existsSync(claudeJsonPath)) {
     try {
@@ -590,6 +595,7 @@ export async function pullMcpConfigToLocal(): Promise<number> {
     }
   }
   current.mcpServers = remote.mcpServers
+  fs.mkdirSync(path.dirname(claudeJsonPath), { recursive: true })
   fs.writeFileSync(claudeJsonPath, JSON.stringify(current, null, 2), 'utf8')
   return Object.keys(remote.mcpServers).length
 }

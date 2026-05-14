@@ -1,7 +1,7 @@
 :root {
-  --drawer-surface-divider: var(--border);
-  --drawer-surface-bg: var(--s1);
-  --drawer-surface-card: var(--s2);
+  --drawer-surface-divider: var(--panel-border);
+  --drawer-surface-bg: var(--panel-bg);
+  --drawer-surface-card: var(--card-bg);
   --drawer-space-inline: var(--panel-pad-x);
   --drawer-space-inline-tight: var(--space-md);
   --drawer-space-block: var(--space-md);
@@ -24,7 +24,7 @@
 .pro-panel .pro-panel-header,
 .settings-center .settings-header {
   border-bottom: 1px solid var(--drawer-surface-divider);
-  background: var(--drawer-surface-bg);
+  background: var(--panel-header-bg);
 }
 
 .wallet-panel .wallet-workspace-kicker,
@@ -77,7 +77,7 @@
 .process-panel .process-stat-card,
 .session-history .sr-stat,
 .git-center .git-workflow-metric {
-  border: 1px solid var(--border);
+  border: 1px solid var(--card-border);
   background: var(--drawer-surface-card);
   border-radius: var(--radius-card);
 }
@@ -101,7 +101,7 @@
   gap: 8px;
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   border-bottom: 1px solid var(--drawer-surface-divider);
-  background: var(--s1);
+  background: var(--panel-bg);
 }
 
 .wallet-panel .wallet-tab,
@@ -123,7 +123,7 @@
 .pro-panel .pro-tab:hover {
   color: var(--t1);
   background: var(--hover-bg);
-  border-color: var(--border-hover);
+  border-color: var(--control-border-hover);
 }
 
 .wallet-panel .wallet-tab--active,
@@ -152,12 +152,12 @@
 .solana-toolbox .solana-view-tab {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--drawer-surface-card);
+  background: var(--card-bg);
 }
 
 .solana-toolbox .solana-view-tab:hover {
   border-color: color-mix(in srgb, var(--green) 28%, var(--border));
-  background: var(--s3);
+  background: var(--card-bg-hover);
 }
 
 .solana-toolbox .solana-view-tab.active {

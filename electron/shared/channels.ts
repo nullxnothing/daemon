@@ -133,6 +133,7 @@ export interface ChannelMap {
 
   // --- Settings ---
   'settings:get-ui': { input: void; output: UiSettings }
+  'settings:set-low-power-mode': { input: boolean; output: void }
   'settings:is-onboarding-complete': { input: void; output: boolean }
 
   // --- Plugins ---

@@ -63,7 +63,7 @@
 }
 
 .git-workflow-metric-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
@@ -73,20 +73,20 @@
 .git-workflow-metric-value {
   margin-top: 8px;
   color: var(--t1);
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 700;
   line-height: 1.2;
 }
 
 .git-workflow-metric-value--mono {
   font-family: var(--font-code);
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t2);
   word-break: break-word;
 }
 
 .git-title {
-  font-size: 26px;
+  font-size: var(--fs-26);
   line-height: 1.08;
   font-weight: 700;
   color: var(--t1);
@@ -96,7 +96,7 @@
 .git-branch-selector select {
   height: 28px;
   padding: 0 26px 0 10px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -116,9 +116,9 @@
   top: calc(100% + 6px);
   left: 0;
   padding: 4px 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   line-height: 1.2;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--t3);
   background: var(--s3);
   border: 1px solid var(--s5);
@@ -131,7 +131,7 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--t3);
-  font-size: 10px;
+  font-size: var(--fs-10);
   line-height: 1;
   pointer-events: none;
 }
@@ -139,7 +139,7 @@
 .git-push-btn {
   height: 32px;
   padding: 0 16px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--amber);
   background: var(--s2);
   border: 1px solid rgba(240, 180, 41, 0.25);
@@ -156,7 +156,7 @@
 .git-add-btn {
   height: 28px;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   background: var(--s2);
   border: 1px solid var(--border);
@@ -205,13 +205,13 @@
 }
 
 .git-add-option-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
   font-weight: 600;
 }
 
 .git-add-option-subtext {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.3;
 }
@@ -228,7 +228,7 @@
   flex: 1;
   height: 30px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
   background: var(--bg);
   border: 1px solid var(--border);
@@ -238,7 +238,7 @@
 .git-add-branch-create-btn {
   height: 30px;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   background: var(--success);
   border-radius: 6px;
@@ -253,14 +253,14 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.3;
 }
 
 .git-error {
   padding: 8px 24px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--error);
   background: rgba(140, 74, 74, 0.1);
 }
@@ -277,7 +277,7 @@
   flex: 1;
   height: 32px;
   padding: 0 12px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -293,7 +293,7 @@
 .git-commit-btn {
   height: 32px;
   padding: 0 16px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--on-accent-dark);
   background: var(--success);
   border-radius: 6px;
@@ -307,7 +307,7 @@
   height: 32px;
   min-width: 40px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t1);
   background: var(--s2);
   border-radius: 6px;
@@ -343,7 +343,7 @@
 .git-file-section-subtext {
   margin-top: 6px;
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
@@ -360,7 +360,7 @@
 }
 
 .git-folder-name {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   font-family: var(--font-code);
 }
@@ -370,7 +370,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   transition: all var(--transition-fast);
 }
 
@@ -380,9 +380,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -390,12 +390,12 @@
 .git-file-status.untracked { color: var(--success); background: var(--green-glow); }
 .git-file-status.deleted { color: var(--red); background: var(--red-glow); }
 .git-file-row.staged .git-file-status { color: var(--success); background: var(--green-glow); }
-.git-file-row.diff-active { background: var(--s2); border-radius: 3px; }
+.git-file-row.diff-active { background: var(--s2); border-radius: var(--radius-sm); }
 
 .git-file-path {
   flex: 1;
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -405,9 +405,9 @@
 .git-file-btn {
   height: 20px;
   padding: 0 6px;
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t3);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -437,7 +437,7 @@
 .git-empty-files {
   padding: 24px 0;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -446,7 +446,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -472,14 +472,14 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  font-size: 11px;
+  font-size: var(--fs-11);
   border-bottom: 1px solid var(--border);
 }
 
 .git-commit-hash {
   color: var(--green);
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   min-width: 60px;
   flex-shrink: 0;
 }
@@ -494,7 +494,7 @@
 
 .git-commit-time {
   color: var(--t3);
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-align: right;
   flex-shrink: 0;
 }
@@ -521,16 +521,16 @@
 
 .git-diff-filename {
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
 .git-diff-close {
   width: 18px;
   height: 18px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -544,7 +544,7 @@
 
 .git-diff-loading {
   padding: 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   font-family: var(--font-code);
 }
@@ -555,7 +555,7 @@
   margin: 0;
   padding: 0;
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.5;
   flex: 1;
 }
@@ -577,7 +577,7 @@
   padding: 0 8px 0 4px;
   text-align: right;
   color: var(--t4);
-  font-size: 10px;
+  font-size: var(--fs-10);
   user-select: none;
   flex-shrink: 0;
   border-right: 1px solid var(--border);

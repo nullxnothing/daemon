@@ -16,7 +16,7 @@
 }
 
 .process-section-kicker {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -53,20 +53,20 @@
 }
 
 .process-stat-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--t4);
 }
 
 .process-stat-value {
-  font-size: 26px;
+  font-size: var(--fs-26);
   line-height: 1;
   color: var(--t1);
 }
 
 .process-stat-detail {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -85,13 +85,13 @@
 
 .process-section-title {
   margin: 4px 0 0;
-  font-size: 20px;
+  font-size: var(--fs-20);
   line-height: 1.1;
   color: var(--t1);
 }
 
 .process-section-count {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   font-family: var(--font-code);
 }
@@ -120,7 +120,7 @@
 
 .process-empty-card {
   color: var(--t3);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.55;
 }
 
@@ -151,7 +151,7 @@
 .process-dot.critical { background: var(--red); }
 
 .process-name {
-  font-size: 16px;
+  font-size: var(--fs-16);
   line-height: 1.2;
   color: var(--t1);
   min-width: 0;
@@ -163,8 +163,8 @@
   align-items: center;
   min-height: 22px;
   padding: 0 8px;
-  border-radius: 999px;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-10);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -192,20 +192,20 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .memory-bar {
   height: 7px;
   background: var(--s4);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
 .memory-bar-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: width var(--transition-normal) ease;
 }
 
@@ -223,8 +223,8 @@
 .process-btn {
   height: 32px;
   padding: 0 14px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-12);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--s5);

@@ -150,6 +150,7 @@ function installDaemonBridge(options: {
       outputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
       inAmount: '100000000',
       outAmount: '14.82',
+      requestId: 'test-request',
       priceImpactPct: '0.17',
       routePlan: [{ label: 'Jupiter', percent: 100 }],
       rawQuoteResponse: {},

@@ -15,7 +15,7 @@
 }
 
 .deploy-title {
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--t1);
   margin: 0;
@@ -31,7 +31,7 @@
 }
 
 .deploy-section-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-transform: uppercase;
   font-weight: 600;
   color: var(--t3);
@@ -47,14 +47,14 @@
 }
 
 .deploy-platform-name {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   color: var(--t1);
   min-width: 60px;
 }
 
 .deploy-platform-url {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   flex: 1;
   overflow: hidden;
@@ -94,7 +94,7 @@
 .deploy-btn {
   height: 28px;
   padding: 0 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   background: var(--s2);
   color: var(--t1);
   border: 1px solid var(--s5);
@@ -138,7 +138,7 @@
   background: var(--s2);
   border: 1px solid var(--s5);
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 0 8px;
   border-radius: 4px;
   width: 100%;
@@ -168,7 +168,7 @@
 
 .deploy-hash {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--green);
   min-width: 56px;
   flex-shrink: 0;
@@ -176,16 +176,16 @@
 
 .deploy-branch {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   background: var(--s2);
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
 .deploy-msg {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t1);
   flex: 1;
   overflow: hidden;
@@ -194,17 +194,17 @@
 }
 
 .deploy-time {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   flex-shrink: 0;
 }
 
 .deploy-status {
-  font-size: 9px;
+  font-size: var(--fs-9);
   text-transform: uppercase;
   font-weight: 600;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
 
@@ -234,7 +234,7 @@
 }
 
 .deploy-link {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t3);
   cursor: pointer;
   background: none;
@@ -250,7 +250,7 @@
 .deploy-empty {
   text-align: center;
   color: var(--t3);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 24px;
 }
 
@@ -269,7 +269,7 @@
 }
 
 .deploy-connect-card-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   color: var(--t1);
 }
@@ -285,7 +285,7 @@
 }
 
 .deploy-connect-hint {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
@@ -295,7 +295,7 @@
   background: none;
   border: none;
   padding: 0;
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-decoration: none;
 }
 
@@ -314,12 +314,12 @@
 }
 
 .deploy-env-count {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
 .deploy-error {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   padding: 4px 0;
 }
@@ -336,7 +336,7 @@
   background: var(--s2);
   border: 1px solid var(--s5);
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 0 8px;
   border-radius: 4px;
   flex: 1;
@@ -348,7 +348,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--s5);

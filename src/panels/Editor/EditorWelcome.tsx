@@ -3,15 +3,16 @@ import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useAppActions } from '../../store/appActions'
 import { DaemonMark } from '../../components/DaemonMark'
+import { EDITOR_WELCOME_TEMPLATE_COLORS } from '../../styles/daemonTheme'
 
 interface EditorWelcomeProps {
   activeProjectId: string | null
 }
 
 const QUICK_TEMPLATES = [
-  { id: 'anchor-program', name: 'Anchor Program', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', color: '#60a5fa' },
-  { id: 'trading-bot', name: 'Trading Bot', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: '#f0b429' },
-  { id: 'dapp-nextjs', name: 'dApp', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9', color: '#c084fc' },
+  { id: 'anchor-program', name: 'Anchor Program', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', color: EDITOR_WELCOME_TEMPLATE_COLORS.blue },
+  { id: 'trading-bot', name: 'Trading Bot', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: EDITOR_WELCOME_TEMPLATE_COLORS.amber },
+  { id: 'dapp-nextjs', name: 'dApp', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9', color: EDITOR_WELCOME_TEMPLATE_COLORS.violet },
 ]
 
 export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {

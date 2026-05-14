@@ -4,7 +4,8 @@
   align-items: flex-start;
   gap: var(--space-lg);
   padding: var(--space-lg) var(--panel-pad-x) var(--space-md);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-header-bg);
   flex-shrink: 0;
 }
 

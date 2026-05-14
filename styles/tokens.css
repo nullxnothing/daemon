@@ -81,17 +81,28 @@
   --mono: var(--font-code);
 
   /* Typography — size scale (single source of truth, no panel may set font-size in px) */
+  --fs-8:    8px;
   --fs-9:    9px;
   --fs-10:  10px;
   --fs-11:  11px;
   --fs-12:  12px;
   --fs-13:  13px;   /* body baseline (matches base.css) */
   --fs-14:  14px;
+  --fs-15:  15px;
   --fs-16:  16px;
   --fs-18:  18px;
   --fs-20:  20px;
+  --fs-22:  22px;
   --fs-24:  24px;
+  --fs-26:  26px;
+  --fs-28:  28px;
   --fs-32:  32px;
+  --fs-34:  34px;
+  --fs-36:  36px;
+  --fs-42:  42px;
+  --fs-44:  44px;
+  --fs-52:  52px;
+  --fs-84:  84px;
   --fs-display: 40px;
 
   /* Legacy aliases — existing components reference these, keep them mapped */
@@ -100,6 +111,8 @@
   --font-base: var(--fs-12);
   --font-md:   var(--fs-13);
   --font-lg:   var(--fs-16);
+  --font-xl:   var(--fs-16);
+  --font-mono: var(--font-code);
 
   /* Typography — weight scale */
   --fw-regular:  400;
@@ -147,6 +160,7 @@
   --radius-md:   5px;
   --radius-lg:   8px;
   --radius-card: 8px;
+  --radius-control: var(--radius-lg);
   --radius-pill: 999px;
 
   /* Control sizing */
@@ -167,6 +181,7 @@
   --shadow-lg: 0 16px 34px rgba(0, 0, 0, 0.30), var(--edge-highlight-strong);
   --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.38), var(--edge-highlight-strong);
   --shadow-lifted: var(--shadow-md);
+  --shadow-modal: var(--shadow-xl);
 
   /* Surface roles — semantic; prefer these over bare s1/s2/s3 in panel CSS */
   --surface-flat:     #0d1013;
@@ -174,6 +189,71 @@
   --surface-raised:   #13171b;
   --surface-floating: #181e24;
   --surface-overlay:  var(--glass-bg);
+  --surface-panel:    var(--surface-flat);
+  --surface-card:     var(--surface-raised);
+  --surface-card-hover: var(--surface-floating);
+  --surface-control:  var(--s2);
+  --surface-control-hover: var(--s3);
+  --surface-control-active: var(--s4);
+
+  /* Shared component semantics */
+  --panel-bg: var(--surface-panel);
+  --panel-border: var(--border);
+  --panel-header-bg: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
+  --card-bg: var(--surface-card);
+  --card-bg-hover: var(--surface-card-hover);
+  --card-border: var(--border);
+  --control-bg: var(--surface-control);
+  --control-bg-hover: var(--surface-control-hover);
+  --control-border: var(--border);
+  --control-border-hover: var(--border-hover);
+  --selection-bg: color-mix(in srgb, var(--green) 26%, transparent);
+
+  /* Partner accent tokens. These stay inside DAEMON card/layout systems. */
+  --brand-jupiter: #14f195;
+  --brand-phantom: #a78bfa;
+  --brand-helius: #ff7e1f;
+  --brand-sendai: #2f81ff;
+  --brand-metaplex: #22c55e;
+  --brand-light: #2dd4bf;
+  --brand-magicblock: #3b82f6;
+  --brand-spawnagents: #c41e3a;
+  --brand-discord: #5865f2;
+  --brand-spawnagents-deep: #1d080d;
+  --brand-spawnagents-glow: rgba(196, 30, 58, 0.5);
+  --brand-spawnagents-success: #3fb950;
+  --brand-spawnagents-surface: #0a0608;
+  --brand-spawnagents-surface-2: #0c080a;
+  --brand-spawnagents-surface-3: #0d0a0c;
+  --brand-spawnagents-border: #1c181a;
+  --brand-spawnagents-border-strong: #2a2226;
+  --brand-spawnagents-text: #ede8ea;
+  --brand-spawnagents-muted: #6b5f63;
+  --brand-spawnagents-muted-strong: #8a7d82;
+
+  /* Integration image-card surfaces. Use these instead of raw brand-dark hex in panel CSS. */
+  --integration-surface-neutral: #090a0b;
+  --integration-surface-neutral-strong: #070707;
+  --integration-surface-helius: #05070a;
+  --integration-surface-sendai: #050812;
+  --integration-surface-spawnagents: var(--brand-spawnagents-surface);
+  --integration-surface-phantom: #130d24;
+  --integration-surface-jupiter: #04100d;
+  --integration-surface-light: #04100f;
+  --integration-surface-magicblock: #040812;
+  --integration-surface-debridge: #060606;
+  --integration-surface-squads: #050505;
+
+  /* File explorer glyph accents */
+  --file-accent-ts: #7cc7ff;
+  --file-accent-js: #f4c95d;
+  --file-accent-json: #d4b4ff;
+  --file-accent-md: #8de2b0;
+  --file-accent-css: #8fd9df;
+  --file-accent-html: #ffb17d;
+  --file-accent-image: #d7b3ff;
+  --file-accent-yaml: #ffd27a;
+  --file-accent-runtime: #9fe39f;
 
   /* Hero gradients — for panel headers that earn weight (rare) */
   --surface-hero:
