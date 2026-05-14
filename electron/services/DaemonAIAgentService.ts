@@ -1,8 +1,7 @@
 import crypto from 'node:crypto'
 import path from 'node:path'
 import { getDb } from '../db/db'
-import { canUseHostedModelLane, hasFeature } from './EntitlementService'
-import { getLocalSubscriptionState } from './ProService'
+import { assertVerifiedFeature, assertVerifiedHostedModelLane } from './EntitlementGuardService'
 import { isPathSafe } from '../shared/pathValidation'
 import type {
   DaemonAiAccessMode,
@@ -109,19 +108,18 @@ function mapRun(row: Record<string, unknown>): DaemonAiAgentRun {
   }
 }
 
-function assertEntitlement(input: ReturnType<typeof normalizeAgentRunInput>) {
-  const state = getLocalSubscriptionState()
-  if (input.accessMode === 'hosted' && !canUseHostedModelLane(state, input.modelPreference)) {
-    throw new Error('Hosted DAEMON AI agent runs require an active plan for the selected model lane.')
+async function assertEntitlement(input: ReturnType<typeof normalizeAgentRunInput>) {
+  if (input.accessMode === 'hosted') {
+    await assertVerifiedHostedModelLane(input.modelPreference)
   }
-  if (input.mode === 'background' && !hasFeature(state, 'cloud-agents')) {
-    throw new Error('Background DAEMON AI runs require Operator, Ultra, Team, or Enterprise access.')
+  if (input.mode === 'background') {
+    await assertVerifiedFeature('cloud-agents')
   }
 }
 
-export function createAgentRun(input: DaemonAiAgentRunInput): DaemonAiAgentRun {
+export async function createAgentRun(input: DaemonAiAgentRunInput): Promise<DaemonAiAgentRun> {
   const normalized = normalizeAgentRunInput(input)
-  assertEntitlement(normalized)
+  await assertEntitlement(normalized)
   if (normalized.projectPath && !isPathSafe(normalized.projectPath)) {
     throw new Error('projectPath is not allowed')
   }

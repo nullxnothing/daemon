@@ -4,8 +4,8 @@
   display: flex;
   align-items: center;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--surface-flat));
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 84%, black 16%);
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--panel-bg));
+  border-bottom: 1px solid var(--panel-border);
   -webkit-app-region: no-drag;
   user-select: none;
   flex-shrink: 0;
@@ -87,7 +87,7 @@
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   color: var(--t2);
-  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 54%, transparent);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   white-space: nowrap;
@@ -98,12 +98,12 @@
 }
 
 .project-tab:hover {
-  background: var(--surface-floating);
+  background: var(--card-bg-hover);
   color: var(--t1);
 }
 
 .project-tab.active {
-  background: color-mix(in srgb, var(--green-glow) 32%, var(--surface-raised) 68%);
+  background: color-mix(in srgb, var(--green-glow) 32%, var(--card-bg) 68%);
   color: var(--t1);
   border-color: var(--border);
 }
@@ -235,8 +235,8 @@
   gap: var(--space-xs);
   padding: 0 var(--space-md);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
   color: var(--t2);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
@@ -248,9 +248,9 @@
 .titlebar-portfolio:hover,
 .titlebar-mode-toggle:hover,
 .titlebar-switcher-toggle:hover {
-  background: var(--s3);
+  background: var(--control-bg-hover);
   color: var(--t1);
-  border-color: var(--border-hover);
+  border-color: var(--control-border-hover);
 }
 
 .titlebar-portfolio-total { font-weight: var(--fw-semibold); }
@@ -407,7 +407,7 @@
 }
 
 .titlebar-btn:hover {
-  background: var(--surface-floating);
+  background: var(--card-bg-hover);
   color: var(--t1);
 }
 

@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center">DAEMON</h1>
-  <p align="center">An open-source Solana-native workbench for verifiable AI agent development.</p>
+  <p align="center">An AI-native Solana development environment for agents, wallets, launches, deployments, and hosted DAEMON AI.</p>
 </p>
 
 <p align="center">
@@ -8,13 +8,14 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-407%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-542%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">
   <a href="https://daemon-landing.vercel.app">Website</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#features">Features</a> &middot;
+  <a href="#daemon-ai-and-access">DAEMON AI</a> &middot;
   <a href="FRONTIER_SUBMISSION.md">Frontier</a> &middot;
   <a href="#architecture">Architecture</a> &middot;
   <a href="#development">Development</a> &middot;
@@ -35,7 +36,9 @@
 
 **[Frontier demo runbook](FRONTIER_SUBMISSION.md#2-minute-demo-runbook)** — 2-minute submission flow from project open to devnet settlement.
 
-DAEMON is a standalone Electron agent workbench for Solana developers who use autonomous coding agents. It combines an offline editor, real PTY terminals, Claude/Codex agent spawning, MCP server management, wallet/RPC readiness, and an Anchor-backed registry for publishing verifiable agent work receipts on devnet. Not a VS Code fork.
+DAEMON is a standalone Electron development environment for Solana builders who use AI agents to ship. It combines an offline editor, real PTY terminals, DAEMON AI, Claude/Codex agent spawning, MCP management, wallet/RPC readiness, token launches, deployments, integrations, and an Anchor-backed registry for publishing verifiable agent work receipts. Not a VS Code fork.
+
+DAEMON Light stays free and useful for local work and bring-your-own-key AI. DAEMON Pro and holder access unlock hosted DAEMON AI, Pro Skills, Arena, MCP sync, priority workflows, and higher model lanes as they go live.
 
 ## Install
 
@@ -53,7 +56,7 @@ pnpm run build
 pnpm run package
 ```
 
-The `.dmg` will be in `release/2.0.0/`. Signed/notarized builds require Apple Developer credentials in the packaging environment. Without them, the app will still package, but Gatekeeper may require right-click > Open on first launch.
+The `.dmg` will be in `release/<version>/`. Signed/notarized builds require Apple Developer credentials in the packaging environment. Without them, the app will still package, but Gatekeeper may require right-click > Open on first launch.
 
 <a name="linux-install"></a>
 
@@ -67,7 +70,7 @@ pnpm run build
 pnpm run package
 ```
 
-The AppImage will be in `release/2.0.0/`. Make it executable with `chmod +x` and run directly.
+The AppImage will be in `release/<version>/`. Make it executable with `chmod +x` and run directly.
 
 **Build from source (any platform):**
 
@@ -118,6 +121,23 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 **Plugin System** — Extensible architecture for loading additional panels and integrations.
 
+## DAEMON AI and Access
+
+DAEMON AI is the hosted agent layer for project-aware chat, patch workflows, Solana-aware development help, model routing, usage metering, and premium workflows. Free users can use local/BYOK mode; paid users and eligible holders can use DAEMON-hosted AI through DAEMON AI Cloud.
+
+| Plan | Price | Positioning |
+|------|------:|-------------|
+| DAEMON Light | Free | Local workbench, editor, terminal, git, wallet, BYOK agents, and core tools. |
+| DAEMON Pro | $20/month | Hosted DAEMON AI, Pro Skills, Arena, MCP sync, and standard monthly usage. |
+| DAEMON Operator | $60/month | Higher AI limits, larger context, cloud agents, and advanced ship/deploy workflows. |
+| DAEMON Ultra | $200/month | Maximum individual usage, priority model access, early features, and advanced automation. |
+| DAEMON Teams | $49/user/month | Shared workspaces, pooled usage, team billing, admin controls, and collaboration. |
+| Enterprise | Custom | Private deployments, custom limits, support, compliance, and invoicing. |
+
+Holder access starts with a simple rule: hold 1,000,000 $DAEMON to claim DAEMON Pro with included monthly AI usage. Higher holder tiers can unlock higher limits, discounts, badges, and early access later. Holder access does not mean unlimited AI usage.
+
+DAEMON also includes a Zauth integration surface for x402 database and Provider Hub management. Payment and entitlement enforcement should remain server-side through DAEMON AI Cloud and the relevant provider backends.
+
 ## Architecture
 
 ```
@@ -147,9 +167,9 @@ Key decisions:
 
 | Layer | Technology |
 |-------|-----------|
-| Shell | Electron 33 |
+| Shell | Electron 41 |
 | Build | Vite |
-| UI | React 18, TypeScript |
+| UI | React 19, TypeScript |
 | Editor | Monaco Editor |
 | Terminal | node-pty, xterm.js |
 | State | Zustand |

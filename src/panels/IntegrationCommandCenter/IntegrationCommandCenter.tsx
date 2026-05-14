@@ -1210,6 +1210,7 @@ function IntegrationCard({
 
 function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'streamlock') return 'streamlock'
+  if (integrationId === 'zauth') return 'zauth'
   if (integrationId === 'helius') return 'helius'
   if (integrationId === 'sendai-agent-kit') return 'sendai'
   if (integrationId === 'spawnagents') return 'spawnagents'
@@ -1526,6 +1527,16 @@ export function IntegrationCommandCenter() {
       else if (action.id === 'open-wallet') openWorkspaceTool('wallet')
       else if (action.id === 'open-token-launch') openWorkspaceTool('token-launch')
       else if (action.id === 'open-spawnagents-panel') openWorkspaceTool('spawnagents')
+      else if (action.id === 'open-zauth-database' || action.id === 'open-zauth-provider-hub') {
+        const pageId = action.id === 'open-zauth-provider-hub' ? 'provider-hub' : 'database'
+        try {
+          window.localStorage.setItem('daemon:zauth:activePage', pageId)
+          window.dispatchEvent(new CustomEvent('daemon:zauth-open', { detail: pageId }))
+        } catch {
+          // The Zauth panel still opens on its default page if storage/events are unavailable.
+        }
+        openWorkspaceTool('zauth')
+      }
       else openWorkspaceTool('solana-toolbox')
       return
     }

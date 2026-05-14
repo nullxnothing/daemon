@@ -9,6 +9,7 @@ import {
   listSessions,
   startRelayServer,
   stopRelayServer,
+  updateApprovalStatus,
   updateProjectSnapshot,
   type SeekerProjectSnapshot,
   type SeekerApprovalRequest,
@@ -51,6 +52,10 @@ export function registerSeekerHandlers() {
 
   ipcMain.handle('seeker:add-approval', ipcHandler(async (_event, pairingCode: string, approval: Omit<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'> & Partial<Pick<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'>>) => {
     return addApproval(pairingCode, approval)
+  }))
+
+  ipcMain.handle('seeker:update-approval-status', ipcHandler(async (_event, pairingCode: string, approvalId: string, status: 'pending' | 'approved' | 'rejected') => {
+    return updateApprovalStatus(pairingCode, approvalId, status)
   }))
 
   ipcMain.handle('seeker:clear-session', ipcHandler(async (_event, pairingCode: string) => {

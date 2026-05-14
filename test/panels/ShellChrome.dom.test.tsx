@@ -42,6 +42,7 @@ const { SettingsPanel } = await import('../../src/panels/SettingsPanel/SettingsP
 function installDaemonBridge() {
   const setShowMarketTape = vi.fn().mockResolvedValue({ ok: true })
   const setShowTitlebarWallet = vi.fn().mockResolvedValue({ ok: true })
+  const setLowPowerMode = vi.fn().mockResolvedValue({ ok: true })
   const setLayout = vi.fn().mockResolvedValue({ ok: true })
   const windowControls = {
     close: vi.fn(),
@@ -102,10 +103,11 @@ function installDaemonBridge() {
         getCrashes: vi.fn().mockResolvedValue({ ok: true, data: [] }),
         getUi: vi.fn().mockResolvedValue({
           ok: true,
-          data: { showMarketTape: true, showTitlebarWallet: true },
+          data: { showMarketTape: true, showTitlebarWallet: true, lowPowerMode: false },
         }),
         recoverUiState: vi.fn().mockResolvedValue({ ok: true }),
         setLayout,
+        setLowPowerMode,
         setOnboardingComplete: vi.fn().mockResolvedValue({ ok: true }),
         setOnboardingProgress: vi.fn().mockResolvedValue({ ok: true }),
         setShowMarketTape,
@@ -115,7 +117,7 @@ function installDaemonBridge() {
     },
   })
 
-  return { setLayout, setShowMarketTape, setShowTitlebarWallet, windowControls }
+  return { setLayout, setLowPowerMode, setShowMarketTape, setShowTitlebarWallet, windowControls }
 }
 
 function resetStores() {
@@ -161,6 +163,7 @@ function resetStores() {
     },
     showMarketTape: true,
     showTitlebarWallet: true,
+    lowPowerMode: false,
     loading: false,
     error: null,
     agentWallets: null,
@@ -270,7 +273,7 @@ describe('Shell chrome DOM coverage', () => {
   })
 
   it('routes settings search to display and persists display toggles', async () => {
-    const { setShowMarketTape, setShowTitlebarWallet } = installDaemonBridge()
+    const { setLowPowerMode, setShowMarketTape, setShowTitlebarWallet } = installDaemonBridge()
 
     render(<SettingsPanel />)
 
@@ -293,10 +296,12 @@ describe('Shell chrome DOM coverage', () => {
 
     await userEvent.click(titlebarSwitch as HTMLElement)
     await userEvent.click(marketSwitch as HTMLElement)
+    await userEvent.click(screen.getByText('Low power mode').closest('.settings-display-row')!.querySelector('[role="switch"]') as HTMLElement)
 
     await waitFor(() => {
       expect(setShowTitlebarWallet).toHaveBeenCalledWith(false)
       expect(setShowMarketTape).toHaveBeenCalledWith(false)
+      expect(setLowPowerMode).toHaveBeenCalledWith(true)
     })
   })
 })

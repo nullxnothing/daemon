@@ -1,5 +1,6 @@
 import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
+import os from 'node:os'
 import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
 
 export interface RaydiumLaunchpadSettings {
@@ -69,10 +70,18 @@ export function setJsonSetting(key: string, value: unknown): void {
   ).run(key, JSON.stringify(value), Date.now())
 }
 
-export function getUiSettings(): { showMarketTape: boolean; showTitlebarWallet: boolean } {
+function lowPowerDefault(): boolean {
+  if (process.env.DAEMON_LOW_POWER_MODE === '1') return true
+  if (process.env.DAEMON_LOW_POWER_MODE === '0') return false
+  const memoryGb = os.totalmem() / 1024 / 1024 / 1024
+  return os.cpus().length <= 4 || memoryGb <= 5
+}
+
+export function getUiSettings(): { showMarketTape: boolean; showTitlebarWallet: boolean; lowPowerMode: boolean } {
   return {
     showMarketTape: getBooleanSetting('show_market_tape', true),
     showTitlebarWallet: getBooleanSetting('show_titlebar_wallet', true),
+    lowPowerMode: getBooleanSetting('low_power_mode', lowPowerDefault()),
   }
 }
 

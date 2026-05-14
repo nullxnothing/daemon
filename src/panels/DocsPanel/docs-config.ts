@@ -27,6 +27,15 @@ export const docsConfig: DocSection[] = [
     ],
   },
   {
+    title: 'DAEMON AI',
+    items: [
+      { title: 'DAEMON AI Cloud', slug: 'daemon-ai-cloud' },
+      { title: 'Pricing & Subscriptions', slug: 'pricing-subscriptions' },
+      { title: 'Holder Access', slug: 'holder-access' },
+      { title: 'Zauth 402 Integration', slug: 'zauth-402' },
+    ],
+  },
+  {
     title: 'Editor & Tools',
     items: [
       { title: 'Monaco Editor & Terminal', slug: 'editor-terminal' },

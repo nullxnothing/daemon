@@ -1,4 +1,4 @@
-import type { DaemonPlanId, ProFeature, ProSubscriptionState } from '../shared/types'
+import type { DaemonAiModelLane, DaemonPlanId, ProFeature, ProSubscriptionState } from '../shared/types'
 
 export const PLAN_FEATURES: Record<DaemonPlanId, ProFeature[]> = {
   light: [],
@@ -48,6 +48,11 @@ export function getHostedLaneRequiredPlan(lane: 'auto' | 'fast' | 'standard' | '
   if (lane === 'premium') return 'ultra'
   if (lane === 'reasoning') return 'operator'
   return 'pro'
+}
+
+export function getHostedLanesForPlan(plan: DaemonPlanId): DaemonAiModelLane[] {
+  return (['auto', 'fast', 'standard', 'reasoning', 'premium'] as DaemonAiModelLane[])
+    .filter((lane) => isPlanAtLeast(plan, getHostedLaneRequiredPlan(lane)))
 }
 
 export function canUseHostedModelLane(

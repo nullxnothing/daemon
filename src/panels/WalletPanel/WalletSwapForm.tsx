@@ -18,6 +18,7 @@ interface SwapQuote {
   outputMint: string
   inAmount: string
   outAmount: string
+  requestId: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   // Raw Jupiter quoteResponse, passed back to execute so the backend uses the
@@ -59,6 +60,12 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const [outputMint, setOutputMint] = useState(initialOutputMint ?? USDC_MINT)
   const [amount, setAmount] = useState('')
   const [slippageBps, setSlippageBps] = useState('50')
+  const [searchedTokens, setSearchedTokens] = useState<TokenOption[]>([])
+  const [tokenSearchQuery, setTokenSearchQuery] = useState('')
+  const [tokenSearchTarget, setTokenSearchTarget] = useState<'input' | 'output'>('output')
+  const [tokenSearchResults, setTokenSearchResults] = useState<JupiterTokenSearchResult[]>([])
+  const [tokenSearchLoading, setTokenSearchLoading] = useState(false)
+  const [tokenSearchError, setTokenSearchError] = useState<string | null>(null)
 
   const [quote, setQuote] = useState<SwapQuote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
@@ -77,7 +84,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const swapLockRef = useRef(false)
 
   // Merge wallet holdings with common tokens for the dropdown
-  const allTokens = mergeTokenLists(holdings, [initialInputMint, initialOutputMint])
+  const allTokens = mergeTokenLists(holdings, [initialInputMint, initialOutputMint], searchedTokens)
 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
@@ -87,6 +94,59 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
     if (initialInputMint) setInputMint(initialInputMint)
     if (initialOutputMint) setOutputMint(initialOutputMint)
   }, [initialInputMint, initialOutputMint])
+
+  useEffect(() => {
+    const query = tokenSearchQuery.trim()
+    setTokenSearchError(null)
+
+    if (query.length < 2) {
+      setTokenSearchResults([])
+      setTokenSearchLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setTokenSearchLoading(true)
+    const timeout = setTimeout(() => {
+      void window.daemon.wallet.searchJupiterTokens(query).then((res) => {
+        if (cancelled) return
+        if (res.ok && res.data) {
+          setTokenSearchResults(res.data)
+        } else {
+          setTokenSearchResults([])
+          setTokenSearchError(res.error ?? 'Token search failed')
+        }
+      }).catch((err) => {
+        if (cancelled) return
+        setTokenSearchResults([])
+        setTokenSearchError(err instanceof Error ? err.message : 'Token search failed')
+      }).finally(() => {
+        if (!cancelled) setTokenSearchLoading(false)
+      })
+    }, 300)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+    }
+  }, [tokenSearchQuery])
+
+  const handleSelectSearchToken = (token: JupiterTokenSearchResult) => {
+    const nextToken = tokenSearchResultToOption(token)
+    setSearchedTokens((prev) => upsertTokenOption(prev, nextToken))
+    if (tokenSearchTarget === 'input') {
+      setInputMint(token.mint)
+    } else {
+      setOutputMint(token.mint)
+    }
+    setQuote(null)
+    setPendingSwap(null)
+    setSwapResult(null)
+    setSwapError(null)
+    setTokenSearchQuery('')
+    setTokenSearchResults([])
+    setTokenSearchError(null)
+  }
 
   const handleGetQuote = async () => {
     setQuoteError(null)
@@ -350,6 +410,50 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
           <div className="wallet-caption">{(parseInt(slippageBps, 10) / 100).toFixed(2)}%</div>
         </div>
 
+        <div className="wallet-swap-field">
+          <label className="wallet-caption">Find token with Jupiter</label>
+          <div className="wallet-swap-search-row">
+            <select
+              className="wallet-input wallet-swap-search-target"
+              value={tokenSearchTarget}
+              onChange={(e) => setTokenSearchTarget(e.target.value === 'input' ? 'input' : 'output')}
+            >
+              <option value="input">From</option>
+              <option value="output">To</option>
+            </select>
+            <input
+              className="wallet-input"
+              value={tokenSearchQuery}
+              onChange={(e) => setTokenSearchQuery(e.target.value)}
+              placeholder="Search symbol, name, or mint"
+            />
+          </div>
+          {tokenSearchLoading && <div className="wallet-caption">Searching Jupiter tokens...</div>}
+          {tokenSearchError && <div className="wallet-caption wallet-warning-text">{tokenSearchError}</div>}
+          {tokenSearchResults.length > 0 && (
+            <div className="wallet-token-search-results">
+              {tokenSearchResults.map((token) => (
+                <button
+                  key={token.mint}
+                  type="button"
+                  className="wallet-token-search-result"
+                  onClick={() => handleSelectSearchToken(token)}
+                  title={token.mint}
+                >
+                  {token.icon && <img src={token.icon} alt="" className="wallet-token-search-icon" />}
+                  <span className="wallet-token-search-main">
+                    <span className="wallet-token-search-symbol">{token.symbol}</span>
+                    <span className="wallet-token-search-name">{token.name}</span>
+                  </span>
+                  <span className="wallet-token-search-meta">
+                    {token.isSus ? 'Suspicious' : token.verified ? 'Verified' : token.organicScore != null ? `Score ${Math.round(token.organicScore)}` : shortMint(token.mint)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Custom mint input */}
         <div className="wallet-swap-field">
           <label className="wallet-caption">Or paste a token mint</label>
@@ -475,11 +579,18 @@ interface TokenOption {
   symbol: string
   balance?: number
   decimals?: number
+  name?: string
+  icon?: string | null
+  usdPrice?: number | null
+  organicScore?: number | null
+  isSus?: boolean
+  verified?: boolean
 }
 
 function mergeTokenLists(
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>,
   extraMints: Array<string | undefined> = [],
+  searchedTokens: TokenOption[] = [],
 ): TokenOption[] {
   const seen = new Set<string>()
   const result: TokenOption[] = []
@@ -489,6 +600,13 @@ function mergeTokenLists(
     if (!seen.has(h.mint)) {
       seen.add(h.mint)
       result.push({ mint: h.mint, symbol: h.symbol, balance: h.amount, decimals: h.decimals })
+    }
+  }
+
+  for (const token of searchedTokens) {
+    if (!seen.has(token.mint)) {
+      seen.add(token.mint)
+      result.push(token)
     }
   }
 
@@ -507,6 +625,25 @@ function mergeTokenLists(
   }
 
   return result
+}
+
+function tokenSearchResultToOption(token: JupiterTokenSearchResult): TokenOption {
+  return {
+    mint: token.mint,
+    symbol: token.symbol,
+    decimals: token.decimals,
+    name: token.name,
+    icon: token.icon,
+    usdPrice: token.usdPrice,
+    organicScore: token.organicScore,
+    isSus: token.isSus,
+    verified: token.verified,
+  }
+}
+
+function upsertTokenOption(tokens: TokenOption[], token: TokenOption): TokenOption[] {
+  const without = tokens.filter((entry) => entry.mint !== token.mint)
+  return [token, ...without].slice(0, 20)
 }
 
 function formatTokenBalance(value: number): string {

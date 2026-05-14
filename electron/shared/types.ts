@@ -329,6 +329,7 @@ export interface ProPriceInfo {
   durationDays: number
   network: string
   payTo: string
+  paymentMint?: string
   holderMint?: string
   holderMinAmount?: number
 }
@@ -831,6 +832,7 @@ export interface ProviderConnectionInfo {
 export interface UiSettings {
   showMarketTape: boolean
   showTitlebarWallet: boolean
+  lowPowerMode: boolean
 }
 
 // --- Recovery ---
@@ -1007,6 +1009,21 @@ export interface AgentWalletEntry {
 export interface WalletBalanceResult {
   sol: number
   lamports: number
+}
+
+export interface JupiterTokenSearchResult {
+  mint: string
+  name: string
+  symbol: string
+  icon: string | null
+  decimals: number
+  usdPrice: number | null
+  liquidity: number | null
+  holderCount: number | null
+  organicScore: number | null
+  isSus: boolean
+  verified: boolean
+  tokenProgram: string | null
 }
 
 // --- Agent Work Escrow ---

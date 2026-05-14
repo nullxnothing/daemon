@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react'
+import { PUMP_FUN_CURVE_COLORS } from '../../../styles/daemonTheme'
 
 interface BondingCurveData {
   virtualSolReserves: string
@@ -18,21 +19,7 @@ interface Props {
 // Pump.fun constant-product curve: price = solReserves / tokenReserves
 // As tokens are bought, tokenReserves decreases and price rises
 
-const COLORS = {
-  bg: '#141414',
-  curveLine: '#3ecf8e',
-  curveLineTop: '#60a5fa',
-  fillBottom: 'rgba(62, 207, 142, 0.06)',
-  fillTop: 'rgba(96, 165, 250, 0.04)',
-  dot: '#3ecf8e',
-  dotGlow: 'rgba(62, 207, 142, 0.25)',
-  impactBuy: 'rgba(62, 207, 142, 0.12)',
-  impactSell: 'rgba(239, 83, 80, 0.12)',
-  gradLine: '#333333',
-  gradLabel: '#666666',
-  priceLine: 'rgba(136, 136, 136, 0.25)',
-  priceLabel: '#888888',
-} as const
+const COLORS = PUMP_FUN_CURVE_COLORS
 
 export function BondingCurveCanvas({ curve, tradeAction, tradeAmountSol }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)

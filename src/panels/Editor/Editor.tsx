@@ -37,6 +37,7 @@ import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { lazyNamedWithReload } from '../../utils/lazyWithReload'
 import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import { DAEMON_MONACO_THEME_COLORS } from '../../styles/daemonTheme'
 import type { LspDiagnosticEvent, LspLocation, LspPosition } from '../../../electron/shared/types'
 import './Editor.css'
 
@@ -544,23 +545,7 @@ export function EditorPanel() {
       base: 'vs-dark',
       inherit: true,
       rules: [],
-      // Monaco API requires hex values — keep in sync with tokens.css
-      colors: {
-        'editor.background': '#0a0a0a',
-        'editor.foreground': '#ebebeb',
-        'editorLineNumber.foreground': '#3d3d3d',
-        'editorLineNumber.activeForeground': '#7a7a7a',
-        'editor.selectionBackground': '#2a2a2a',
-        'editor.lineHighlightBackground': '#101010',
-        'editorCursor.foreground': '#ebebeb',
-        'editorWidget.background': '#101010',
-        'editorWidget.border': '#2a2a2a',
-        'input.background': '#151515',
-        'input.border': '#2a2a2a',
-        'dropdown.background': '#101010',
-        'list.hoverBackground': '#1a1a1a',
-        'list.activeSelectionBackground': '#222222',
-      },
+      colors: DAEMON_MONACO_THEME_COLORS,
     })
     themeIsDefined = true
   }

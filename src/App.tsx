@@ -42,6 +42,7 @@ const STARTUP_PRELOAD_SKIP = new Set([
   'dashboard',
   'image-editor',
   'integrations',
+  'zauth',
   'solana-toolbox',
   'token-launch',
   'block-scanner',
@@ -57,8 +58,68 @@ const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./pane
 const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/RightPanel/RightPanel'), (module) => module.RightPanel)
 const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
+function scheduleIdleWork(callback: () => void, timeout = 2000): () => void {
+  let cancelled = false
+  const run = () => {
+    if (!cancelled) callback()
+  }
+  const idleCallback = (window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+    cancelIdleCallback?: (id: number) => void
+  }).requestIdleCallback
+
+  if (typeof idleCallback === 'function') {
+    const idleId = idleCallback(run, { timeout })
+    return () => {
+      cancelled = true
+      window.cancelIdleCallback?.(idleId)
+    }
+  }
+
+  const timeoutId = window.setTimeout(run, timeout)
+  return () => {
+    cancelled = true
+    window.clearTimeout(timeoutId)
+  }
+}
+
 function PanelSkeleton({ className }: { className: string }) {
   return <Skeleton className={className} />
+}
+
+function LowPowerEditorStart({
+  projectName,
+  onOpenFiles,
+  onOpenTools,
+}: {
+  projectName: string | null
+  onOpenFiles: () => void
+  onOpenTools: () => void
+}) {
+  return (
+    <div className="low-power-editor-start">
+      <div>
+        <span className="low-power-editor-kicker">Low power mode</span>
+        <h1>{projectName ?? 'DAEMON'}</h1>
+        <p>Editor runtime is waiting until a file or workspace tool is opened.</p>
+      </div>
+      <div className="low-power-editor-actions">
+        <button type="button" onClick={onOpenFiles}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M4 4h6l2 3h8v13H4z" />
+          </svg>
+          Open File
+        </button>
+        <button type="button" onClick={onOpenTools}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19 12h2M3 12h2M12 3v2M12 19v2M17 7l1.4-1.4M5.6 18.4 7 17M17 17l1.4 1.4M5.6 5.6 7 7" />
+          </svg>
+          Tools
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function App() {
@@ -76,6 +137,13 @@ function App() {
   const centerMode = useUIStore((s) => s.centerMode)
   const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
   const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
+  const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
+  const browserTabActive = useUIStore((s) => s.browserTabActive)
+  const dashboardTabActive = useUIStore((s) => s.dashboardTabActive)
+  const hasOpenEditorFile = useUIStore((s) => {
+    const projectId = s.activeProjectId
+    return Boolean(projectId && s.openFiles.some((file) => file.projectId === projectId))
+  })
   const [showExplorer, setShowExplorer] = useState(true)
   const [showRightPanel, setShowRightPanel] = useState(true)
   const [showAgentLauncher, setShowAgentLauncher] = useState(false)
@@ -89,6 +157,7 @@ function App() {
   const { loadProjects, addProject, removeProject } = useProjects()
   const { paletteMode, setPaletteMode, paletteFiles, handleFileSelect, closePalette } = useCommandPalette()
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const closeAgentLauncher = useCallback(() => setShowAgentLauncher(false), [])
 
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
@@ -111,6 +180,16 @@ function App() {
 
   const shouldShowRightPanel = showRightPanel
   const canShowTerminal = showTerminal && (Boolean(activeProjectId) || projects.length > 0)
+  const activeProjectName = useMemo(
+    () => projects.find((project) => project.id === activeProjectId)?.name ?? null,
+    [activeProjectId, projects],
+  )
+  const shouldUseLowPowerEditorStart = lowPowerMode
+    && centerMode === 'canvas'
+    && !hasOpenEditorFile
+    && !browserTabActive
+    && !dashboardTabActive
+    && !activeWorkspaceToolId
 
   // Determine if the editor should be hidden because the terminal has been
   // dragged to fill the full center area height.
@@ -134,16 +213,14 @@ function App() {
 
     const bootSequence = async () => {
       setBootStatus('loading workspace data...')
-      const startupTasks: Array<[string, Promise<unknown>]> = [
+      const criticalStartupTasks: Array<[string, Promise<unknown>]> = [
+        ['loading display settings...', useWalletStore.getState().loadUiSettings()],
         ['loading projects...', loadProjects(guard)],
-        ['loading plugins...', usePluginStore.getState().load()],
         ['loading workspace profile...', useWorkspaceProfileStore.getState().load()],
         ['restoring layout...', useUIStore.getState().loadPinnedState()],
-        ['loading onboarding...', useOnboardingStore.getState().loadProgress()],
-        ['loading activity...', useNotificationsStore.getState().loadActivity()],
       ]
 
-      const tasksPromise = Promise.allSettled(startupTasks.map(([, task]) => task))
+      const tasksPromise = Promise.allSettled(criticalStartupTasks.map(([, task]) => task))
       const results = await tasksPromise
 
       if (guard.cancelled) return
@@ -154,6 +231,20 @@ function App() {
       setBootStatus('ready')
       setAppReady(true)
       window.postMessage({ payload: 'removeLoading' }, '*')
+
+      scheduleIdleWork(() => {
+        if (guard.cancelled) return
+        const deferredStartupTasks: Array<[string, Promise<unknown>]> = [
+          ['loading plugins...', usePluginStore.getState().load()],
+          ['loading onboarding...', useOnboardingStore.getState().loadProgress()],
+          ['loading activity...', useNotificationsStore.getState().loadActivity()],
+        ]
+        void Promise.allSettled(deferredStartupTasks.map(([, task]) => task)).then((deferredResults) => {
+          if (!smokeMode || guard.cancelled) return
+          const rejected = deferredResults.filter((result) => result.status === 'rejected').length
+          console.log('[smoke-renderer] app:deferred-boot-tasks-settled', JSON.stringify({ rejected }))
+        })
+      }, 1500)
     }
 
     void bootSequence()
@@ -177,6 +268,17 @@ function App() {
   useEffect(() => { if (terminalFocusRequestId > 0) setShowTerminal(true) }, [terminalFocusRequestId])
 
   const previousTierRef = useRef(tier)
+  const lowPowerLayoutAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!lowPowerMode) {
+      lowPowerLayoutAppliedRef.current = false
+      return
+    }
+    if (lowPowerLayoutAppliedRef.current) return
+    lowPowerLayoutAppliedRef.current = true
+    setShowRightPanel(false)
+  }, [lowPowerMode])
+
   useEffect(() => {
     const previousTier = previousTierRef.current
     previousTierRef.current = tier
@@ -252,66 +354,55 @@ function App() {
     console.log('[smoke-renderer] app:state', JSON.stringify({
       appReady,
       activeProjectId,
+      activeWorkspaceToolId,
       centerMode,
       drawerOpen,
+      shouldUseLowPowerEditorStart,
       launchWizardOpen,
       tier,
       showExplorer,
       showRightPanel,
       showTerminal,
+      lowPowerMode,
     }))
-  }, [activeProjectId, appReady, centerMode, drawerOpen, launchWizardOpen, showExplorer, showRightPanel, showTerminal, smokeMode, tier])
+  }, [activeProjectId, activeWorkspaceToolId, appReady, centerMode, drawerOpen, launchWizardOpen, lowPowerMode, shouldUseLowPowerEditorStart, showExplorer, showRightPanel, showTerminal, smokeMode, tier])
 
   useEffect(() => {
     if (smokeMode) console.log('[smoke-renderer] app:layout-mounted')
   }, [smokeMode])
 
   useEffect(() => {
-    void useWalletStore.getState().loadUiSettings()
-  }, [])
-
-  useEffect(() => {
     if (!appReady) return
+    if (lowPowerMode) return
     const pinnedTools = useUIStore.getState().pinnedTools
     const warmSet = [...new Set(pinnedTools)]
       .filter((toolId) => !STARTUP_PRELOAD_SKIP.has(toolId))
       .filter((toolId) => isToolVisible(toolId))
       .slice(0, STARTUP_PRELOAD_LIMIT)
 
-    let cancelled = false
     const warmPanels = () => {
-      if (cancelled) return
       warmSet.forEach((toolId) => preloadToolPanel(toolId))
     }
 
-    const idleCallback = (window as Window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
-      cancelIdleCallback?: (id: number) => void
-    }).requestIdleCallback
+    return scheduleIdleWork(warmPanels, 3000)
+  }, [appReady, isToolVisible, lowPowerMode])
 
-    if (typeof idleCallback === 'function') {
-      const idleId = idleCallback(warmPanels, { timeout: 3000 })
-      return () => {
-        cancelled = true
-        window.cancelIdleCallback?.(idleId)
-      }
-    }
-
-    const timeoutId = window.setTimeout(warmPanels, 1500)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timeoutId)
-    }
-  }, [appReady, isToolVisible])
-
-  // Poll unread email counts every 60 seconds
+  // Poll unread email counts every 60 seconds, or much less often in low power mode.
   useEffect(() => {
     if (!isToolVisible('email')) return
-    const poll = () => useEmailStore.getState().pollUnreadCounts()
-    poll()
-    const interval = setInterval(poll, 60_000)
-    return () => clearInterval(interval)
-  }, [isToolVisible])
+    let cancelled = false
+    const poll = () => {
+      if (!cancelled) void useEmailStore.getState().pollUnreadCounts()
+    }
+    const initialTimer = lowPowerMode ? window.setTimeout(poll, 30_000) : null
+    if (!lowPowerMode) poll()
+    const interval = window.setInterval(poll, lowPowerMode ? 300_000 : 60_000)
+    return () => {
+      cancelled = true
+      if (initialTimer != null) window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+    }
+  }, [isToolVisible, lowPowerMode])
 
   // Build command list for the palette
   const paletteCommands = useMemo(
@@ -340,7 +431,7 @@ function App() {
   )
 
   return (
-    <div className={`app app--${tier}`} data-app-ready={appReady ? 'true' : 'false'}>
+    <div className={`app app--${tier}${lowPowerMode ? ' app--low-power' : ''}`} data-app-ready={appReady ? 'true' : 'false'} data-low-power={lowPowerMode ? 'true' : 'false'}>
       <a href="#editor-area" className="skip-link">Skip to editor</a>
       <a href="#terminal-area" className="skip-link">Skip to terminal</a>
       <BootLoader ready={appReady} status={bootStatus} />
@@ -394,6 +485,12 @@ function App() {
                 <Suspense fallback={<PanelSkeleton className="editor-panel" />}>
                   <AgentGrid />
                 </Suspense>
+              ) : shouldUseLowPowerEditorStart ? (
+                <LowPowerEditorStart
+                  projectName={activeProjectName}
+                  onOpenFiles={() => setPaletteMode('files')}
+                  onOpenTools={() => useWorkflowShellStore.getState().toggleDrawer()}
+                />
               ) : (
                 <PanelErrorBoundary fallbackLabel="Editor crashed — press Ctrl+K to access tools">
                   <Suspense fallback={<PanelSkeleton className="editor-panel" />}>

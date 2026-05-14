@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SpawnAgentsPanel } from '../../src/panels/SpawnAgents/SpawnAgentsPanel'
@@ -159,9 +159,33 @@ describe('SpawnAgentsPanel spawn form', () => {
           trades_memecoins: true,
           trades_prediction: true,
           pm_categories: ['crypto'],
-          pm_edge_threshold: 5,
+          pm_edge_threshold: 0.05,
           pm_max_position_pct: 10,
           pm_max_positions: 10,
+        }),
+      }))
+    })
+  })
+
+  it('submits prediction edge threshold as API ratio while displaying percent points', async () => {
+    render(<SpawnAgentsPanel />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Spawn agent' }))
+    await userEvent.type(screen.getByPlaceholderText('Agent name'), 'Edge Test')
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Prediction markets' }))
+
+    const edgeSlider = screen.getByRole('slider', { name: 'Edge threshold %' })
+    expect(edgeSlider).toHaveValue('5')
+    fireEvent.change(edgeSlider, { target: { value: '7' } })
+    expect(edgeSlider).toHaveValue('7')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Get deposit address' }))
+
+    await waitFor(() => {
+      expect(initiateSpawn).toHaveBeenCalledWith(expect.objectContaining({
+        dna: expect.objectContaining({
+          trades_prediction: true,
+          pm_edge_threshold: 0.07,
         }),
       }))
     })

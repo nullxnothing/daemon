@@ -12,6 +12,7 @@ import type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
   CodexConnection,
@@ -126,6 +127,7 @@ export type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
   CodexConnection,
@@ -320,6 +322,7 @@ declare global {
   type SecureKeyEntry = import('../../electron/shared/types').SecureKeyEntry
   type WalletListEntry = import('../../electron/shared/types').WalletListEntry
   type WalletDashboard = import('../../electron/shared/types').WalletDashboard
+  type JupiterTokenSearchResult = import('../../electron/shared/types').JupiterTokenSearchResult
   type MarketTickerEntry = import('../../electron/shared/types').MarketTickerEntry
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
   type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
@@ -374,6 +377,27 @@ declare global {
   type DaemonAiToolApprovalRequest = import('../../electron/shared/types').DaemonAiToolApprovalRequest
   type DaemonAiToolCallInput = import('../../electron/shared/types').DaemonAiToolCallInput
   type DaemonAiUsageSnapshot = import('../../electron/shared/types').DaemonAiUsageSnapshot
+  type SeekerApprovalRequest = import('../../electron/services/SeekerRelayService').SeekerApprovalRequest
+  type SeekerApprovalStatus = import('../../electron/services/SeekerRelayService').SeekerApprovalStatus
+  type SeekerProjectSnapshot = import('../../electron/services/SeekerRelayService').SeekerProjectSnapshot
+  type SeekerRelayStatus = import('../../electron/services/SeekerRelayService').SeekerRelayStatus
+
+  interface SeekerSessionSnapshot {
+    session: {
+      id: string
+      pairingCode: string
+      relayUrl: string
+      deepLink: string
+      projectName: string
+      status: 'pairing' | 'paired' | 'expired'
+      expiresAt: number
+      pairedAt: number | null
+      pairedDevice: string | null
+    }
+    project: SeekerProjectSnapshot
+    approvals: SeekerApprovalRequest[]
+    events: Array<{ type: string; payload?: Record<string, unknown>; receivedAt?: number }>
+  }
 
   interface DaemonWindow {
     minimize: () => void
@@ -510,7 +534,8 @@ declare global {
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
-    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; requestId: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    searchJupiterTokens: (query: string) => Promise<IpcResponse<JupiterTokenSearchResult[]>>
     transactionPreview: (input: SolanaTransactionPreviewInput) => Promise<IpcResponse<SolanaTransactionPreview>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
@@ -554,6 +579,7 @@ declare global {
     getAppMeta: () => Promise<IpcResponse<AppMeta>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
+    setLowPowerMode: (enabled: boolean) => Promise<IpcResponse>
     isOnboardingComplete: () => Promise<IpcResponse<boolean>>
     setOnboardingComplete: (complete: boolean) => Promise<IpcResponse>
     getOnboardingProgress: () => Promise<IpcResponse<OnboardingProgress>>
@@ -1098,6 +1124,25 @@ declare global {
     mcpPull: () => Promise<IpcResponse<{ count: number }>>
   }
 
+  interface DaemonSeeker {
+    relayStart: (port?: number) => Promise<IpcResponse<SeekerRelayStatus>>
+    relayStop: () => Promise<IpcResponse<{ stopped: boolean }>>
+    relayStatus: () => Promise<IpcResponse<SeekerRelayStatus>>
+    createSession: (input?: {
+      projectId?: string | null
+      projectPath?: string | null
+      projectName?: string | null
+      project?: Partial<SeekerProjectSnapshot> | null
+      seedDemoApprovals?: boolean
+    }) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    getSession: (pairingCode: string) => Promise<IpcResponse<SeekerSessionSnapshot | null>>
+    listSessions: () => Promise<IpcResponse<SeekerSessionSnapshot[]>>
+    updateProject: (pairingCode: string, project: Partial<SeekerProjectSnapshot>) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    addApproval: (pairingCode: string, approval: Omit<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'> & Partial<Pick<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'>>) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    updateApprovalStatus: (pairingCode: string, approvalId: string, status: SeekerApprovalStatus) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    clearSession: (pairingCode: string) => Promise<IpcResponse<{ cleared: boolean }>>
+  }
+
   interface DaemonAI {
     chat: (input: DaemonAiChatRequest) => Promise<IpcResponse<DaemonAiChatResponse>>
     streamChat: (input: DaemonAiChatRequest) => Promise<IpcResponse<DaemonAiChatResponse>>
@@ -1158,6 +1203,7 @@ declare global {
     validator: DaemonValidator
     pnl: DaemonPnl
     pro: DaemonPro
+    seeker: DaemonSeeker
     ai: DaemonAI
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
@@ -1271,7 +1317,7 @@ declare global {
   }
 
   interface DaemonDashboard {
-    tokenPrice: (mint: string) => Promise<IpcResponse<{ price: number; priceChange24h: number | null }>>
+    tokenPrice: (mint: string) => Promise<IpcResponse<{ price: number; priceChange24h: number | null; confidenceLevel?: string | null }>>
     tokenMetadata: (mint: string) => Promise<IpcResponse<{ name: string; symbol: string; image: string | null; supply: number; decimals: number }>>
     tokenHolders: (mint: string) => Promise<IpcResponse<{ count: number; topHolders: Array<{ address: string; amount: number }> }>>
     detectTokens: (walletAddress: string) => Promise<IpcResponse<DetectedToken[]>>

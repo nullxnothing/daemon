@@ -102,6 +102,15 @@ describe('ProPanel Arena status', () => {
     expect(screen.getByText('DAEMON_PRO_DEV_BYPASS=1')).toBeInTheDocument()
   })
 
+  it('renders the inactive no-wallet state before the wallet dashboard has loaded', async () => {
+    useWalletStore.setState({ dashboard: null } as any)
+
+    render(<ProPanel />)
+
+    expect(await screen.findByText('Unlock DAEMON Pro')).toBeInTheDocument()
+    expect(screen.getByText('You need a wallet to subscribe. Create one from the Wallet panel first.')).toBeInTheDocument()
+  })
+
   it('shows holder utility tiers and live holder status', async () => {
     const statusData = {
       active: false,

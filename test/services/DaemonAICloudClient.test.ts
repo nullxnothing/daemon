@@ -6,17 +6,30 @@ vi.mock('../../electron/services/SecureKeyService', () => ({
   getKey: vi.fn(() => 'valid-token'),
 }))
 
+import * as SecureKey from '../../electron/services/SecureKeyService'
 import {
+  DAEMON_AI_STAGING_API_BASE,
   DaemonAICloudClientError,
   fetchHostedFeatures,
   fetchHostedModels,
   fetchHostedUsage,
+  getDaemonAICloudBase,
+  getDaemonAICloudToken,
+  isDaemonAICloudConfigured,
   runHostedChat,
 } from '../../electron/services/DaemonAICloudClient'
 
 describe('DaemonAICloudClient', () => {
   let server: Server | null = null
   const originalBase = process.env.DAEMON_AI_API_BASE
+  const originalDisableDefaultCloud = process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD
+  const originalProJwt = process.env.DAEMON_PRO_JWT
+  const originalOperatorJwt = process.env.DAEMON_OPERATOR_JWT
+  const originalUltraJwt = process.env.DAEMON_ULTRA_JWT
+  const originalSmokeJwt = process.env.DAEMON_AI_SMOKE_JWT
+  const originalAllowEnvJwt = process.env.DAEMON_AI_ALLOW_ENV_JWT
+  const originalNodeEnv = process.env.NODE_ENV
+  const getKeyMock = vi.mocked(SecureKey.getKey)
 
   afterEach(() => {
     server?.close()
@@ -26,7 +39,43 @@ describe('DaemonAICloudClient', () => {
     } else {
       process.env.DAEMON_AI_API_BASE = originalBase
     }
+    if (originalDisableDefaultCloud == null) {
+      delete process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD
+    } else {
+      process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD = originalDisableDefaultCloud
+    }
+    if (originalProJwt == null) {
+      delete process.env.DAEMON_PRO_JWT
+    } else {
+      process.env.DAEMON_PRO_JWT = originalProJwt
+    }
+    if (originalOperatorJwt == null) {
+      delete process.env.DAEMON_OPERATOR_JWT
+    } else {
+      process.env.DAEMON_OPERATOR_JWT = originalOperatorJwt
+    }
+    if (originalUltraJwt == null) {
+      delete process.env.DAEMON_ULTRA_JWT
+    } else {
+      process.env.DAEMON_ULTRA_JWT = originalUltraJwt
+    }
+    if (originalSmokeJwt == null) {
+      delete process.env.DAEMON_AI_SMOKE_JWT
+    } else {
+      process.env.DAEMON_AI_SMOKE_JWT = originalSmokeJwt
+    }
+    if (originalAllowEnvJwt == null) {
+      delete process.env.DAEMON_AI_ALLOW_ENV_JWT
+    } else {
+      process.env.DAEMON_AI_ALLOW_ENV_JWT = originalAllowEnvJwt
+    }
+    if (originalNodeEnv == null) {
+      delete process.env.NODE_ENV
+    } else {
+      process.env.NODE_ENV = originalNodeEnv
+    }
     vi.clearAllMocks()
+    getKeyMock.mockReturnValue('valid-token')
   })
 
   async function listen(app: express.Express): Promise<string> {
@@ -109,6 +158,53 @@ describe('DaemonAICloudClient', () => {
     })
     return listen(app)
   }
+
+  it('defaults the desktop hosted API base to v4 staging while keeping env overrides', () => {
+    delete process.env.DAEMON_AI_API_BASE
+    delete process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD
+
+    expect(getDaemonAICloudBase()).toBe(DAEMON_AI_STAGING_API_BASE)
+    expect(isDaemonAICloudConfigured()).toBe(true)
+
+    process.env.DAEMON_AI_API_BASE = 'http://127.0.0.1:4021/'
+    expect(getDaemonAICloudBase()).toBe('http://127.0.0.1:4021')
+
+    delete process.env.DAEMON_AI_API_BASE
+    process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD = '1'
+    expect(getDaemonAICloudBase()).toBe('')
+    expect(isDaemonAICloudConfigured()).toBe(false)
+  })
+
+  it('uses explicit non-production smoke JWT env fallback when no secure Pro token exists', () => {
+    getKeyMock.mockReturnValue(null)
+    process.env.NODE_ENV = 'development'
+    delete process.env.DAEMON_PRO_JWT
+    delete process.env.DAEMON_OPERATOR_JWT
+    delete process.env.DAEMON_ULTRA_JWT
+    process.env.DAEMON_AI_SMOKE_JWT = 'smoke-token'
+
+    expect(getDaemonAICloudToken()).toBe('smoke-token')
+
+    process.env.NODE_ENV = 'production'
+    expect(getDaemonAICloudToken()).toBe(null)
+
+    process.env.DAEMON_AI_ALLOW_ENV_JWT = '1'
+    expect(getDaemonAICloudToken()).toBe('smoke-token')
+  })
+
+  it('accepts Operator and Ultra entitlement JWT env fallbacks outside production', () => {
+    getKeyMock.mockReturnValue(null)
+    process.env.NODE_ENV = 'development'
+    delete process.env.DAEMON_PRO_JWT
+    delete process.env.DAEMON_AI_SMOKE_JWT
+
+    process.env.DAEMON_OPERATOR_JWT = 'operator-token'
+    expect(getDaemonAICloudToken()).toBe('operator-token')
+
+    delete process.env.DAEMON_OPERATOR_JWT
+    process.env.DAEMON_ULTRA_JWT = 'ultra-token'
+    expect(getDaemonAICloudToken()).toBe('ultra-token')
+  })
 
   it('fetches hosted desktop features, usage, models, and chat with bearer auth', async () => {
     process.env.DAEMON_AI_API_BASE = await makeApi()

@@ -12,6 +12,7 @@ const EVENT_POLL_TIMEOUT_MS = 8_000
 const EVENT_POLL_INTERVAL_MS = 5000
 const SPAWN_STATUS_POLL_INTERVAL_MS = 3500
 const SPAWN_STATUS_TIMEOUT_MS = 5 * 60 * 1000
+const PM_EDGE_THRESHOLD_MAX_RATIO = 0.5
 
 // ------------------------------------------------------------------ types ---
 
@@ -283,6 +284,31 @@ function nonce(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+function clampNumber(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.min(max, Math.max(min, value))
+}
+
+function normalizePmEdgeThreshold(value: number | undefined): number | undefined {
+  if (value == null) return undefined
+  const ratio = value > 1 ? value / 100 : value
+  return Number(clampNumber(ratio, 0, PM_EDGE_THRESHOLD_MAX_RATIO).toFixed(4))
+}
+
+function normalizeSpawnDnaForApi(dna: SpawnAgentDna): SpawnAgentDna {
+  const next = { ...dna }
+  const edgeThreshold = normalizePmEdgeThreshold(next.pm_edge_threshold)
+  if (edgeThreshold != null) next.pm_edge_threshold = edgeThreshold
+  return next
+}
+
+function normalizeSpawnInputForApi(input: SpawnInput): SpawnInput {
+  return {
+    ...input,
+    dna: normalizeSpawnDnaForApi(input.dna),
+  }
+}
+
 async function sign(walletId: string, message: string): Promise<{ owner_wallet: string; signature: string; message: string }> {
   return withKeypair(walletId, async (keypair) => {
     const db = getDb()
@@ -338,7 +364,7 @@ export async function pollSpawnStatus(ref: string): Promise<SpawnStatusResult> {
 export async function initiateSpawn(input: SpawnInput): Promise<SpawnDepositInstruction> {
   return apiFetch('/agents', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(normalizeSpawnInputForApi(input)),
   })
 }
 

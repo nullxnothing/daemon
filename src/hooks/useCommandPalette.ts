@@ -25,7 +25,7 @@ export function useCommandPalette() {
       return
     }
     let isCancelled = false
-    window.daemon.fs.readDir(activeProjectPath, 6).then((res) => {
+    window.daemon.fs.readDir(activeProjectPath, 3).then((res) => {
       if (!isCancelled && res.ok && res.data) {
         setPaletteFiles(flattenEntries(res.data))
       }

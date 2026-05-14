@@ -7,5 +7,5 @@
 .plugin-placeholder {
   padding: 16px 12px;
   color: var(--t2);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }

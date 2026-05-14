@@ -14,7 +14,7 @@ const IGNORED = new Set([
   '.vercel', '.wrangler',
 ])
 const MAX_READ_DIR_DEPTH = 6
-const MAX_READ_DIR_ENTRIES = 2500
+const MAX_READ_DIR_ENTRIES = 1200
 
 interface ReadDirState {
   remaining: number

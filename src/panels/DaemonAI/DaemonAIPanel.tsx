@@ -122,7 +122,7 @@ export function DaemonAIPanel() {
 
       {accessMode === 'hosted' && !canUseHosted && (
         <div className="daemon-ai-gate">
-          Hosted DAEMON AI needs Pro or holder access plus `DAEMON_AI_API_BASE`. BYOK mode remains available for local provider accounts.
+          Hosted DAEMON AI needs active Pro or holder access. BYOK mode remains available for local provider accounts.
         </div>
       )}
 

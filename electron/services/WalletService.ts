@@ -7,10 +7,36 @@ import bs58 from 'bs58'
 import { dialog } from 'electron'
 import fs from 'node:fs'
 import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getPriorityFeeLamports, withKeypair, type TransactionExecutionResult } from './SolanaService'
+import type { JupiterTokenSearchResult, WalletDashboard } from '../shared/types'
 
-async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
+const DEFAULT_FETCH_TIMEOUT_MS = 8_000
+const KEY_VALIDATION_FETCH_TIMEOUT_MS = 6_000
+const SWAP_FETCH_TIMEOUT_MS = 15_000
+
+function isTestRuntime() {
+  return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+}
+
+async function fetchWithTimeout(url: string | URL, init: RequestInit = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS): Promise<Response> {
+  if (isTestRuntime()) return fetch(url, init)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
-    const response = await fetch(url)
+    const response = await fetchWithTimeout(url, undefined, timeoutMs)
     if (response.ok) return response
 
     if (response.status === 429 && attempt < retries - 1) {
@@ -135,6 +161,10 @@ const TOKEN_TRANSFER_WITH_ATA_COMPUTE_UNITS = 140_000
 // In-memory balance cache with 30-second TTL
 const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
 const BALANCE_CACHE_TTL = 30_000
+const dashboardCache = new Map<string, { data: WalletDashboard; timestamp: number }>()
+const dashboardInflight = new Map<string, Promise<WalletDashboard>>()
+const DASHBOARD_CACHE_TTL = 30_000
+const DASHBOARD_STALE_TTL = 5 * 60_000
 let lastSolPrice = 0
 
 async function runWithConcurrency<T, R>(
@@ -151,7 +181,34 @@ async function runWithConcurrency<T, R>(
   return results
 }
 
-export async function getDashboard(projectId?: string | null) {
+export async function getDashboard(projectId?: string | null): Promise<WalletDashboard> {
+  if (isTestRuntime()) return buildDashboard(projectId)
+
+  const cacheKey = projectId ?? '__default__'
+  const cached = dashboardCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < DASHBOARD_CACHE_TTL) return cached.data
+
+  const inflight = dashboardInflight.get(cacheKey)
+  if (inflight) return inflight
+
+  const request = buildDashboard(projectId)
+    .then((data) => {
+      dashboardCache.set(cacheKey, { data, timestamp: Date.now() })
+      return data
+    })
+    .catch((error) => {
+      if (cached && Date.now() - cached.timestamp < DASHBOARD_STALE_TTL) return cached.data
+      throw error
+    })
+    .finally(() => {
+      dashboardInflight.delete(cacheKey)
+    })
+
+  dashboardInflight.set(cacheKey, request)
+  return request
+}
+
+async function buildDashboard(projectId?: string | null): Promise<WalletDashboard> {
   const heliusKey = SecureKey.getKey('HELIUS_API_KEY')
   const heliusConfigured = Boolean(heliusKey)
   const wallets = listWalletsRaw()
@@ -405,11 +462,11 @@ export function getProjectWalletId(projectId: string | null): string | null {
 }
 
 export async function storeHeliusKey(value: string) {
-  const res = await fetch(`https://mainnet.helius-rpc.com/?api-key=${value}`, {
+  const res = await fetchWithTimeout(`https://mainnet.helius-rpc.com/?api-key=${value}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getHealth' }),
-  })
+  }, KEY_VALIDATION_FETCH_TIMEOUT_MS)
   if (!res.ok) throw new Error('Invalid Helius API key — connection failed')
   SecureKey.storeKey('HELIUS_API_KEY', value)
 }
@@ -426,9 +483,9 @@ export async function storeJupiterKey(value: string) {
   const trimmed = value.trim()
   if (!trimmed) throw new Error('Jupiter API key is required')
 
-  const res = await fetch('https://api.jup.ag/tokens/v2/search?query=SOL', {
+  const res = await fetchWithTimeout('https://api.jup.ag/tokens/v2/search?query=SOL', {
     headers: { 'x-api-key': trimmed },
-  })
+  }, KEY_VALIDATION_FETCH_TIMEOUT_MS)
   if (!res.ok) throw new Error('Invalid Jupiter API key — connection failed')
   SecureKey.storeKey('JUPITER_API_KEY', trimmed)
 }
@@ -443,7 +500,7 @@ export function hasJupiterKey() {
 
 async function getMarketTape() {
   try {
-    const response = await fetch(API_ENDPOINTS.COINGECKO_PRICE)
+    const response = await fetchWithTimeout(API_ENDPOINTS.COINGECKO_PRICE)
     if (!response.ok) throw new Error(`CoinGecko error: ${response.status}`)
     const json = await response.json() as Record<string, { usd: number; usd_24h_change?: number }>
     const solPrice = json.solana?.usd ?? 0
@@ -474,7 +531,7 @@ async function getWalletBalances(address: string, apiKey: string): Promise<Heliu
 }
 
 async function getWalletBalancesViaDas(address: string, apiKey: string): Promise<HeliusBalancesResponse> {
-  const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
+  const response = await fetchWithTimeout(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1104,7 +1161,12 @@ export async function transferToken(
 
 const JUPITER_SWAP_ORDER_API = 'https://api.jup.ag/swap/v2/order'
 const JUPITER_SWAP_EXECUTE_API = 'https://api.jup.ag/swap/v2/execute'
+const JUPITER_TOKENS_SEARCH_API = 'https://api.jup.ag/tokens/v2/search'
+const JUPITER_TOKEN_SEARCH_CACHE_TTL = 5 * 60_000
+const JUPITER_TOKEN_SEARCH_CACHE_MAX_ENTRIES = 100
 const LAMPORTS_DECIMALS = 9
+const jupiterTokenSearchCache = new Map<string, { timestamp: number; results: JupiterTokenSearchResult[] }>()
+const jupiterTokenSearchInflight = new Map<string, Promise<JupiterTokenSearchResult[]>>()
 
 interface JupiterRoutePlanItem {
   swapInfo?: {
@@ -1149,6 +1211,7 @@ interface SwapQuoteResult {
   outputMint: string
   inAmount: string
   outAmount: string
+  requestId: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   rawQuoteResponse: unknown
@@ -1267,6 +1330,112 @@ function normalizeJupiterRoutePlan(routePlan: JupiterRoutePlanItem[]): Array<{ l
   }))
 }
 
+function optionalNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? parseFloat(value) : NaN
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function normalizeTokenSearchResult(value: unknown): JupiterTokenSearchResult | null {
+  if (!isRecord(value)) return null
+
+  const mint = optionalString(value.id) ?? optionalString(value.mint) ?? optionalString(value.address)
+  if (!mint || !isValidSolanaAddress(mint)) return null
+
+  const audit = isRecord(value.audit) ? value.audit : {}
+  const tags = Array.isArray(value.tags) ? value.tags.filter((entry): entry is string => typeof entry === 'string') : []
+  const decimals = optionalNumber(value.decimals)
+
+  return {
+    mint,
+    name: optionalString(value.name) ?? mint,
+    symbol: optionalString(value.symbol) ?? truncateMint(mint),
+    icon: optionalString(value.icon),
+    decimals: decimals !== null ? Math.max(0, Math.trunc(decimals)) : 0,
+    usdPrice: optionalNumber(value.usdPrice),
+    liquidity: optionalNumber(value.liquidity),
+    holderCount: optionalNumber(value.holderCount),
+    organicScore: optionalNumber(value.organicScore) ?? optionalNumber(audit.organicScore),
+    isSus: value.isSus === true || audit.isSus === true,
+    verified: value.verified === true || audit.verified === true || tags.includes('verified'),
+    tokenProgram: optionalString(value.tokenProgram),
+  }
+}
+
+function normalizeTokenSearchQuery(query: string): string {
+  return query.trim().replace(/\s+/g, ' ').slice(0, 128)
+}
+
+function getTokenSearchCacheKey(query: string): string {
+  return query.length >= 32 ? query : query.toLowerCase()
+}
+
+function cloneJupiterTokenSearchResults(results: JupiterTokenSearchResult[]): JupiterTokenSearchResult[] {
+  return results.map((result) => ({ ...result }))
+}
+
+function cacheJupiterTokenSearch(cacheKey: string, results: JupiterTokenSearchResult[]): void {
+  if (jupiterTokenSearchCache.has(cacheKey)) jupiterTokenSearchCache.delete(cacheKey)
+  jupiterTokenSearchCache.set(cacheKey, { timestamp: Date.now(), results: cloneJupiterTokenSearchResults(results) })
+
+  while (jupiterTokenSearchCache.size > JUPITER_TOKEN_SEARCH_CACHE_MAX_ENTRIES) {
+    const oldestKey = jupiterTokenSearchCache.keys().next().value
+    if (typeof oldestKey !== 'string') break
+    jupiterTokenSearchCache.delete(oldestKey)
+  }
+}
+
+export async function searchJupiterTokens(query: string): Promise<JupiterTokenSearchResult[]> {
+  const trimmed = normalizeTokenSearchQuery(query)
+  if (trimmed.length < 2) return []
+
+  const cacheKey = getTokenSearchCacheKey(trimmed)
+  const cached = jupiterTokenSearchCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < JUPITER_TOKEN_SEARCH_CACHE_TTL) {
+    return cloneJupiterTokenSearchResults(cached.results)
+  }
+
+  const inflight = jupiterTokenSearchInflight.get(cacheKey)
+  if (inflight) return cloneJupiterTokenSearchResults(await inflight)
+
+  const url = new URL(JUPITER_TOKENS_SEARCH_API)
+  url.searchParams.set('query', trimmed)
+
+  const request = (async () => {
+    const jupiterApiKey = getJupiterApiKey()
+    const response = await fetchWithTimeout(url.toString(), {
+      headers: jupiterApiKey ? { 'x-api-key': jupiterApiKey } : {},
+    })
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+      throw new Error(`Jupiter token search failed (${response.status}): ${body || response.statusText}`)
+    }
+
+    const json = await response.json()
+    if (!Array.isArray(json)) return []
+
+    const seen = new Set<string>()
+    const results: JupiterTokenSearchResult[] = []
+    for (const item of json) {
+      const normalized = normalizeTokenSearchResult(item)
+      if (!normalized || seen.has(normalized.mint)) continue
+      seen.add(normalized.mint)
+      results.push(normalized)
+      if (results.length >= 20) break
+    }
+    cacheJupiterTokenSearch(cacheKey, results)
+    return results
+  })().finally(() => {
+    jupiterTokenSearchInflight.delete(cacheKey)
+  })
+
+  jupiterTokenSearchInflight.set(cacheKey, request)
+  return cloneJupiterTokenSearchResults(await request)
+}
+
 async function requestJupiterSwapOrder(
   inputMint: string,
   outputMint: string,
@@ -1283,9 +1452,9 @@ async function requestJupiterSwapOrder(
   url.searchParams.set('swapMode', 'ExactIn')
   url.searchParams.set('slippageBps', String(slippageBps))
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     headers: { 'x-api-key': jupiterApiKey },
-  })
+  }, SWAP_FETCH_TIMEOUT_MS)
   if (!response.ok) {
     const body = await response.text()
     throw new Error(`Jupiter order failed (${response.status}): ${body}`)
@@ -1326,6 +1495,7 @@ export async function getSwapQuote(
     outputMint: data.outputMint,
     inAmount: humanInAmount,
     outAmount: humanOutAmount,
+    requestId: data.requestId,
     priceImpactPct: normalizeJupiterPriceImpactPct(data),
     routePlan: normalizeJupiterRoutePlan(data.routePlan),
     // The raw Jupiter response is passed back to executeSwap so it can use the
@@ -1428,7 +1598,7 @@ export async function executeSwap(
     ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
 
     try {
-      const executeRes = await fetch(JUPITER_SWAP_EXECUTE_API, {
+      const executeRes = await fetchWithTimeout(JUPITER_SWAP_EXECUTE_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1439,7 +1609,7 @@ export async function executeSwap(
           requestId: orderData.requestId,
           lastValidBlockHeight: orderData.lastValidBlockHeight,
         }),
-      })
+      }, SWAP_FETCH_TIMEOUT_MS)
 
       if (!executeRes.ok) {
         const body = await executeRes.text()

@@ -3,18 +3,18 @@
    serif/sans because external @import is blocked by the app CSP. */
 
 .sa-root {
-  --sa-red: #c41e3a;
-  --sa-red-deep: #1d080d;
-  --sa-red-glow: rgba(196, 30, 58, 0.5);
-  --sa-green: #3fb950;
-  --sa-bg: #0a0608;
-  --sa-bg-2: #0c080a;
-  --sa-bg-3: #0d0a0c;
-  --sa-border: #1c181a;
-  --sa-border-2: #2a2226;
-  --sa-text: #ede8ea;
-  --sa-muted: #6b5f63;
-  --sa-muted-2: #8a7d82;
+  --sa-red: var(--brand-spawnagents);
+  --sa-red-deep: var(--brand-spawnagents-deep);
+  --sa-red-glow: var(--brand-spawnagents-glow);
+  --sa-green: var(--brand-spawnagents-success);
+  --sa-bg: var(--brand-spawnagents-surface);
+  --sa-bg-2: var(--brand-spawnagents-surface-2);
+  --sa-bg-3: var(--brand-spawnagents-surface-3);
+  --sa-border: var(--brand-spawnagents-border);
+  --sa-border-2: var(--brand-spawnagents-border-strong);
+  --sa-text: var(--brand-spawnagents-text);
+  --sa-muted: var(--brand-spawnagents-muted);
+  --sa-muted-2: var(--brand-spawnagents-muted-strong);
 
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@
     var(--sa-bg);
   color: var(--sa-text);
   font-family: 'Sora', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-size: var(--fs-13);
   overflow: hidden;
 }
 
@@ -45,14 +45,14 @@
 .sa-brand {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
   font-weight: 700;
-  color: #fff;
+  color: var(--on-accent);
   letter-spacing: 0.18em;
-  font-size: 15px;
+  font-size: var(--fs-15);
   text-transform: uppercase;
 }
 
 .sa-owner {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: 'JetBrains Mono', monospace;
   color: var(--sa-muted-2);
   background: var(--sa-bg-2);
@@ -71,7 +71,7 @@
   margin-right: 8px;
   color: var(--sa-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -84,7 +84,7 @@
   border-radius: 0;
   color: var(--sa-text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 7px 9px;
   outline: none;
 }
@@ -98,7 +98,7 @@
   padding: 6px 12px;
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   border-radius: 0;
@@ -152,7 +152,7 @@
 
 .sa-card-name {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-13);
   letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
@@ -162,7 +162,7 @@
 
 .sa-card-status {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -178,7 +178,7 @@
   display: flex;
   gap: 8px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--sa-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -189,12 +189,12 @@
 .sa-card-pnl {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--fs-15);
   letter-spacing: 0.01em;
 }
 .sa-card-trades {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--sa-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -208,7 +208,7 @@
   color: var(--sa-text);
   padding: 10px 12px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
   width: 100%;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
@@ -231,14 +231,14 @@
   color: var(--sa-red);
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 9px 16px;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.sa-btn-primary:hover { background: var(--sa-red); color: #fff; box-shadow: 0 0 18px -4px var(--sa-red-glow); }
+.sa-btn-primary:hover { background: var(--sa-red); color: var(--on-accent); box-shadow: 0 0 18px -4px var(--sa-red-glow); }
 .sa-btn-primary:active { transform: translateY(1px); }
 .sa-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; background: var(--sa-red-deep); color: var(--sa-red); box-shadow: none; }
 
@@ -249,7 +249,7 @@
   color: var(--sa-muted-2);
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -265,7 +265,7 @@
   color: var(--sa-muted);
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 4px 0;
@@ -279,21 +279,21 @@
   color: var(--sa-red);
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 7px 14px;
   transition: background 0.15s, color 0.15s;
 }
-.sa-btn-danger:hover { background: var(--sa-red); color: #fff; }
+.sa-btn-danger:hover { background: var(--sa-red); color: var(--on-accent); }
 .sa-btn-danger:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; color: var(--sa-red); }
 
 /* ---- error / msg ---- */
 .sa-error {
-  color: #f85149;
+  color: var(--red);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.04em;
   padding: 8px 12px;
   background: rgba(248, 81, 73, 0.05);
@@ -303,7 +303,7 @@
 .sa-msg {
   color: var(--sa-green);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.04em;
   padding: 8px 12px;
   background: rgba(63, 185, 80, 0.05);
@@ -316,7 +316,7 @@
 .sa-loading {
   color: var(--sa-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 12px 0;
@@ -334,7 +334,7 @@
 }
 .sa-empty-title {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -353,7 +353,7 @@
 }
 .sa-no-wallet-title {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size: 20px;
+  font-size: var(--fs-20);
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -376,7 +376,7 @@
 .sa-form-eyebrow {
   color: var(--sa-red);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.22em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -384,7 +384,7 @@
 
 .sa-form-title {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size: 28px;
+  font-size: var(--fs-28);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -394,7 +394,7 @@
 .sa-owner-pill {
   color: var(--sa-muted-2);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   background: var(--sa-bg-2);
   border: 1px solid var(--sa-border);
   border-radius: 0;
@@ -424,7 +424,7 @@
 .sa-panel-title {
   font-family: 'JetBrains Mono', monospace;
   color: var(--sa-red);
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.22em;
   text-transform: uppercase;
   margin-bottom: 16px;
@@ -441,14 +441,14 @@
 .sa-form-field:last-child { margin-bottom: 0; }
 .sa-form-field label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--sa-muted-2);
 }
 .sa-field-hint {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--sa-muted);
   letter-spacing: 0.04em;
 }
@@ -483,7 +483,7 @@
   overflow: hidden;
   text-align: center;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border-radius: 0;
@@ -500,7 +500,7 @@
   flex-basis: 100%;
   color: var(--sa-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -511,7 +511,7 @@
 
 .sa-dna-title {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-transform: uppercase;
   letter-spacing: 0.22em;
   color: var(--sa-red);
@@ -532,7 +532,7 @@
   align-items: center;
   gap: 8px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--sa-muted-2);
@@ -552,7 +552,7 @@
 
 .sa-dna-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sa-muted-2);
@@ -567,7 +567,7 @@
 
 .sa-dna-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-align: right;
   color: var(--sa-red);
   letter-spacing: 0.04em;
@@ -578,13 +578,13 @@
 .sa-preview-avatar {
   width: 100%;
   aspect-ratio: 1;
-  font-size: 11px;
+  font-size: var(--fs-11);
   margin-bottom: 16px;
 }
 
 .sa-preview-name {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size: 20px;
+  font-size: var(--fs-20);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -594,7 +594,7 @@
 
 .sa-preview-bio {
   color: var(--sa-muted-2);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.55;
   min-height: 38px;
   margin-bottom: 14px;
@@ -609,7 +609,7 @@
   border-radius: 0;
   color: var(--sa-red);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 4px 9px;
@@ -630,7 +630,7 @@
 .sa-preview-stats span {
   color: var(--sa-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-9);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   margin-bottom: 5px;
@@ -638,7 +638,7 @@
 
 .sa-preview-stats strong {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--sa-text);
   letter-spacing: 0.02em;
 }
@@ -651,7 +651,7 @@
   gap: 16px;
 }
 
-.sa-deposit-copy { color: var(--sa-muted-2); font-size: 13px; margin: 0; line-height: 1.65; }
+.sa-deposit-copy { color: var(--sa-muted-2); font-size: var(--fs-13); margin: 0; line-height: 1.65; }
 .sa-deposit-copy strong { color: var(--sa-red); font-family: 'JetBrains Mono', monospace; }
 
 .sa-deposit-addr-row {
@@ -666,20 +666,20 @@
 
 .sa-deposit-addr {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   flex: 1;
   word-break: break-all;
   color: var(--sa-red);
   letter-spacing: 0.02em;
 }
 
-.sa-copy-btn { flex-shrink: 0; font-size: 10px; padding: 4px 10px; }
+.sa-copy-btn { flex-shrink: 0; font-size: var(--fs-10); padding: 4px 10px; }
 
 .sa-deposit-meta {
   display: flex;
   gap: 18px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--sa-muted);
   letter-spacing: 0.04em;
 }
@@ -689,7 +689,7 @@
   padding: 10px 14px;
   border-radius: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: var(--sa-bg-2);
@@ -699,7 +699,7 @@
 .sa-deposit-status.pending { border-color: var(--sa-red); color: var(--sa-red); background: var(--sa-red-deep); }
 .sa-deposit-status.confirmed { border-color: rgba(63, 185, 80, 0.6); color: var(--sa-green); }
 .sa-deposit-status.funding_failed,
-.sa-deposit-status.expired { border-color: rgba(248, 81, 73, 0.6); color: #f85149; }
+.sa-deposit-status.expired { border-color: color-mix(in srgb, var(--red) 60%, transparent); color: var(--red); }
 
 /* ---- detail ---- */
 .sa-back-btn {
@@ -708,7 +708,7 @@
   color: var(--sa-muted);
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 0;
@@ -751,7 +751,7 @@
   width: 42px;
   height: 42px;
   display: block;
-  background: linear-gradient(135deg, #f0eeee 0 46%, transparent 46% 54%, #f0eeee 54%);
+  background: linear-gradient(135deg, var(--sa-text) 0 46%, transparent 46% 54%, var(--sa-text) 54%);
 }
 
 .sa-detail-avatar img {
@@ -762,7 +762,7 @@
 
 .sa-detail-name {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -773,7 +773,7 @@
   flex-wrap: wrap;
   gap: 12px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.06em;
   color: var(--sa-muted);
   align-items: center;
@@ -799,7 +799,7 @@
 
 .sa-detail-pnl {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 24px;
+  font-size: var(--fs-24);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -814,12 +814,12 @@
 .sa-stat { display: flex; flex-direction: column; gap: 4px; }
 .sa-stat span {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-9);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--sa-muted);
 }
-.sa-stat strong { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--sa-text); }
+.sa-stat strong { font-family: 'JetBrains Mono', monospace; font-size: var(--fs-14); color: var(--sa-text); }
 
 .sa-public-grid {
   display: grid;
@@ -835,7 +835,7 @@
 .sa-section-label {
   color: var(--sa-red);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   margin-bottom: 10px;
@@ -846,7 +846,7 @@
   background: rgba(180, 30, 50, 0.04);
   color: var(--sa-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.6;
   padding: 12px 14px;
 }
@@ -872,7 +872,7 @@
   display: block;
   color: var(--sa-muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: var(--fs-9);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-bottom: 7px;
@@ -883,7 +883,7 @@
   display: block;
   color: var(--sa-text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   overflow-wrap: anywhere;
 }
 
@@ -901,7 +901,7 @@
   background: rgba(180, 30, 50, 0.04);
   padding: 8px 10px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .sa-actions-row {
@@ -920,7 +920,7 @@
   align-items: center;
   flex-wrap: wrap;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.04em;
   color: var(--sa-muted-2);
 }
@@ -928,7 +928,7 @@
 .sa-gate-hint {
   flex-basis: 100%;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.06em;
   color: var(--sa-muted);
 }
@@ -947,7 +947,7 @@
   color: var(--sa-muted);
   cursor: pointer;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 10px 18px;
@@ -969,12 +969,12 @@
   border: 1px solid var(--sa-border);
   border-radius: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 .sa-pos-sym { font-weight: 600; min-width: 80px; color: var(--sa-text); }
 .sa-pos-val { color: var(--sa-text); }
 .sa-pos-side {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -990,12 +990,12 @@
   border: 1px solid var(--sa-border);
   border-radius: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   background: var(--sa-bg-2);
 }
 .sa-trade-action {
   font-weight: 700;
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   min-width: 36px;
@@ -1003,13 +1003,13 @@
 .sa-trade-row.buy .sa-trade-action { color: var(--sa-green); }
 .sa-trade-row.sell .sa-trade-action { color: var(--sa-red); }
 .sa-trade-addr { color: var(--sa-muted); }
-.sa-trade-time { margin-left: auto; color: var(--sa-muted); font-size: 10px; }
+.sa-trade-time { margin-left: auto; color: var(--sa-muted); font-size: var(--fs-10); }
 
 /* ---- events ---- */
 .sa-events-view { display: flex; flex-direction: column; gap: 12px; }
 .sa-events-header {
   font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1019,7 +1019,7 @@
 .sa-events-scope {
   font-family: 'JetBrains Mono', monospace;
   color: var(--sa-red);
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
   text-transform: none;
 }
@@ -1032,7 +1032,7 @@
   padding: 7px 12px;
   border: 1px solid var(--sa-border);
   border-radius: 0;
-  font-size: 10px;
+  font-size: var(--fs-10);
   background: var(--sa-bg-2);
   font-family: 'JetBrains Mono', monospace;
   letter-spacing: 0.04em;
@@ -1055,7 +1055,7 @@
 @media (max-width: 560px) {
   .sa-body { padding: 16px; }
   .sa-form-heading { flex-direction: column; }
-  .sa-form-title { font-size: 22px; }
+  .sa-form-title { font-size: var(--fs-22); }
   .sa-dna-row { grid-template-columns: 1fr 56px; }
   .sa-dna-label { grid-column: 1 / -1; }
   .sa-spawn-preview { grid-template-columns: 1fr; }

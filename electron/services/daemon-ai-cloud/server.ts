@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import Database from 'better-sqlite3'
 import express from 'express'
 import { createProductionDaemonAICloudGateway, getDaemonAICloudRuntimeReadiness } from './productionGateway'
+import { createDaemonSubscriptionGateway } from './SubscriptionGateway'
 import type { DaemonAICloudRuntimeReadiness } from './productionGateway'
 
 export interface DaemonAICloudServerConfig {
@@ -58,6 +59,11 @@ export function createDaemonAICloudServerApp(db: Database.Database, env: NodeJS.
       ...readiness,
     })
   })
+  app.use(createDaemonSubscriptionGateway({
+    db,
+    env,
+    jwtSecret: env.DAEMON_PRO_JWT_SECRET?.trim() || env.DAEMON_AI_JWT_SECRET?.trim() || '',
+  }))
   app.use(createProductionDaemonAICloudGateway(db, env))
   return app
 }

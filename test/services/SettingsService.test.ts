@@ -16,6 +16,7 @@ import {
   getDrawerToolOrder,
   getPinnedTools,
   getTokenLaunchSettings,
+  getUiSettings,
   getWorkspaceProfile,
   maybeRecoverUnstableUiState,
   recoverUiState,
@@ -41,6 +42,19 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+    })
+  })
+
+  it('includes persisted low power mode in UI settings', () => {
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'low_power_mode') return { value: 'true' }
+      return undefined
+    })
+
+    expect(getUiSettings()).toMatchObject({
+      showMarketTape: true,
+      showTitlebarWallet: true,
+      lowPowerMode: true,
     })
   })
 

@@ -6,6 +6,7 @@ import type {
   DaemonAiUsageEvent,
   DaemonPlanId,
   ProAccessSource,
+  ProFeature,
 } from '../../shared/types'
 
 export type DaemonAiCloudProvider = Extract<DaemonAiUsageEvent['provider'], 'openai' | 'anthropic' | 'google' | 'other'>
@@ -41,9 +42,12 @@ export interface DaemonAiCloudEntitlement {
   walletAddress?: string | null
   plan: DaemonPlanId
   accessSource: ProAccessSource | null
-  features: string[]
+  features: ProFeature[]
+  lane: DaemonAiModelLane
+  allowedLanes: DaemonAiModelLane[]
   monthlyCredits: number
   usedCredits: number
+  entitlementExpiresAt?: string | null
 }
 
 export interface DaemonAiCloudAuthContext {

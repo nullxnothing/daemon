@@ -6,6 +6,11 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { TOOL_DISPLAY_NAMES } from '../../constants/toolRegistry'
 import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
+import {
+  DAEMON_SOLANA_LOGO_COLORS,
+  DAEMON_TOOL_ACCENT_FALLBACK,
+  DAEMON_TOOL_COLORS,
+} from '../../styles/daemonTheme'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -223,18 +228,19 @@ function RecoveryIcon({ size = 18 }: IconProps) {
   )
 }
 function SolanaIcon({ size = 18 }: { size?: number }) {
+  const { green, purple, magenta } = DAEMON_SOLANA_LOGO_COLORS
   return (
     <svg width={size} height={size} viewBox="0 0 397.7 311.7">
       <defs>
         <linearGradient id="solana-flow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00FFA3">
-            <animate attributeName="stop-color" values="#00FFA3;#DC1FFF;#00FFA3" dur="4s" repeatCount="indefinite" />
+          <stop offset="0%" stopColor={green}>
+            <animate attributeName="stop-color" values={`${green};${magenta};${green}`} dur="4s" repeatCount="indefinite" />
           </stop>
-          <stop offset="50%" stopColor="#9945FF">
-            <animate attributeName="stop-color" values="#9945FF;#00FFA3;#9945FF" dur="4s" repeatCount="indefinite" />
+          <stop offset="50%" stopColor={purple}>
+            <animate attributeName="stop-color" values={`${purple};${green};${purple}`} dur="4s" repeatCount="indefinite" />
           </stop>
-          <stop offset="100%" stopColor="#DC1FFF">
-            <animate attributeName="stop-color" values="#DC1FFF;#9945FF;#DC1FFF" dur="4s" repeatCount="indefinite" />
+          <stop offset="100%" stopColor={magenta}>
+            <animate attributeName="stop-color" values={`${magenta};${purple};${magenta}`} dur="4s" repeatCount="indefinite" />
           </stop>
         </linearGradient>
       </defs>
@@ -252,6 +258,17 @@ function IntegrationsIcon({ size = 18 }: { size?: number }) {
       <circle cx="18" cy="12" r="2" />
       <circle cx="12" cy="18" r="2" />
       <path d="m7.5 10.5 3-3M13.5 7.5l3 3M16.5 13.5l-3 3M10.5 16.5l-3-3" />
+    </ToolIconBase>
+  )
+}
+function ZauthIcon({ size = 18 }: { size?: number }) {
+  return (
+    <ToolIconBase size={size}>
+      <ellipse cx="12" cy="5.5" rx="6.5" ry="2.5" />
+      <path d="M5.5 5.5v7c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5v-7" />
+      <path d="M5.5 9c0 1.4 2.9 2.5 6.5 2.5s6.5-1.1 6.5-2.5" />
+      <path d="M14.7 17.6a2.8 2.8 0 1 0-5.4 0" />
+      <path d="M8.4 17.6h7.2v3H8.4z" />
     </ToolIconBase>
   )
 }
@@ -340,7 +357,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, 'replay-engine': ReplayIcon, docs: DocsIcon, starter: StarterIcon,
-  'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'project-readiness': ReadinessIcon,
+  'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, zauth: ZauthIcon, 'project-readiness': ReadinessIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
   'daemon-ai': DaemonAIIcon,
   'agent-station': AgentStationIcon,
@@ -363,6 +380,7 @@ const loadProcessManager = () => import('../../panels/ProcessManager/ProcessMana
 const loadImageEditor = () => import('../../panels/ImageEditor/ImageEditor')
 const loadSolanaToolbox = () => import('../../panels/SolanaToolbox/SolanaToolbox')
 const loadIntegrationCommandCenter = () => import('../../panels/IntegrationCommandCenter/IntegrationCommandCenter')
+const loadZauthPanel = () => import('../../panels/Zauth/ZauthPanel')
 const loadProjectReadiness = () => import('../../panels/ProjectReadiness/ProjectReadiness')
 const loadTokenLaunchTool = () => import('../../panels/TokenLaunchTool/TokenLaunchTool')
 const loadBlockScanner = () => import('../../panels/BlockScanner/BlockScanner')
@@ -392,6 +410,7 @@ const ProcessManager = lazyNamedWithReload('process-manager', loadProcessManager
 const ImageEditor = lazyWithReload('image-editor', loadImageEditor)
 const SolanaToolbox = lazyWithReload('solana-toolbox', loadSolanaToolbox)
 const IntegrationCommandCenter = lazyWithReload('integration-command-center', loadIntegrationCommandCenter)
+const ZauthPanel = lazyNamedWithReload('zauth-panel', loadZauthPanel, (m) => m.ZauthPanel)
 const ProjectReadiness = lazyWithReload('project-readiness', loadProjectReadiness)
 const TokenLaunchTool = lazyWithReload('token-launch-tool', loadTokenLaunchTool)
 const BlockScanner = lazyWithReload('block-scanner', loadBlockScanner)
@@ -410,38 +429,8 @@ const ReplayEngine = lazyNamedWithReload('replay-engine', loadReplayEngine, (m) 
 const AgentWork = lazyNamedWithReload('agent-work', loadAgentWork, (m) => m.AgentWork)
 const SpawnAgentsPanel = lazyNamedWithReload('spawnagents', loadSpawnAgents, (m) => m.SpawnAgentsPanel)
 
-// Per-tool accent colors for the drawer grid and sidebar
-export const TOOL_COLORS: Record<string, string> = {
-  starter: '#7dd3fc',
-  git: '#a78bfa',
-  deploy: '#60a5fa',
-  env: '#f6c768',
-  wallet: '#f0abfc',
-  email: '#fb923c',
-  browser: '#60a5fa',
-  ports: '#67e8f9',
-  processes: '#f87171',
-  settings: '#a3aab8',
-  'image-editor': '#d8b4fe',
-  'solana-toolbox': '#14f195',
-  integrations: '#5eead4',
-  'project-readiness': '#86efac',
-  'token-launch': '#34d399',
-  'block-scanner': '#38bdf8',
-  'replay-engine': '#7dd3fc',
-  docs: '#fbbf24',
-  dashboard: '#22c55e',
-  sessions: '#38bdf8',
-  hackathon: '#facc15',
-  'daemon-ai': '#3ecf8e',
-  plugins: '#cbd5e1',
-  recovery: '#fb7185',
-  pro: '#fde047',
-  activity: '#2dd4bf',
-  'agent-station': '#c4b5fd',
-  'agent-work': '#38bdf8',
-  'spawnagents': '#c41e3a',
-}
+// Per-tool accent colors for the drawer grid and sidebar.
+export const TOOL_COLORS = DAEMON_TOOL_COLORS
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
 // Note: 'browser' is intentionally excluded — it opens as a pinned editor tab (Ctrl+Shift+B), not a drawer panel
@@ -460,6 +449,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'project-readiness', name: 'Project Readiness', description: 'Solana project, wallet, RPC, MCP, and first-action checklist', icon: ReadinessIcon, component: ProjectReadiness, preload: () => { void loadProjectReadiness() }, category: 'crypto' },
   { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
   { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'crypto' },
+  { id: 'zauth', name: 'Zauth', description: 'x402 database and Provider Hub', icon: ZauthIcon, component: ZauthPanel, preload: () => { void loadZauthPanel() }, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, preload: () => { void loadBlockScanner() }, category: 'crypto' },
   { id: 'replay-engine', name: 'Replay', description: 'Replay any Solana transaction with on-chain context and AI handoff', icon: ReplayIcon, component: ReplayEngine, preload: () => { void loadReplayEngine() }, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, preload: () => { void loadDocsPanel() }, category: 'system' },
@@ -803,7 +793,7 @@ function DrawerCard({
   onClick, onDragStart, onDragEnd, onCardDragOver, onCardDragLeave, onCardDrop,
 }: DrawerCardProps) {
   const Icon = tool.icon
-  const color = TOOL_COLORS[tool.id] ?? '#3ecf8e'
+  const color = TOOL_COLORS[tool.id] ?? DAEMON_TOOL_ACCENT_FALLBACK
   return (
     <button
       className={`drawer-tool-card${isDropTarget ? ' drawer-tool-card--drop-target' : ''}`}

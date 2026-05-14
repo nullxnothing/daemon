@@ -87,19 +87,19 @@
 }
 
 .tour-tooltip-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--t1);
 }
 
 .tour-tooltip-counter {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: 'JetBrains Mono', monospace;
 }
 
 .tour-tooltip-body {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   line-height: 1.5;
   margin: 0 0 12px;
@@ -116,7 +116,7 @@
   height: 26px;
   padding: 0 10px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   cursor: pointer;
   border: 1px solid var(--border);
   transition: opacity var(--transition-fast);

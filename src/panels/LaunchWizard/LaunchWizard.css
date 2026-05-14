@@ -22,7 +22,7 @@
 
 /* ── Header ── */
 .lw-title {
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
@@ -76,7 +76,7 @@
 
 /* ── Step label ── */
 .lw-step-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
@@ -85,7 +85,7 @@
 }
 
 .lw-subtitle {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
   text-align: center;
   margin-bottom: 18px;
@@ -106,7 +106,7 @@
 
 .lw-label {
   display: block;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
@@ -115,7 +115,7 @@
 
 .lw-label-optional {
   color: var(--t4);
-  font-size: 9px;
+  font-size: var(--fs-9);
   text-transform: none;
   letter-spacing: 0;
   margin-left: 4px;
@@ -129,7 +129,7 @@
 
 .lw-validation-error {
   color: var(--red);
-  font-size: 10px;
+  font-size: var(--fs-10);
   margin-top: 4px;
 }
 
@@ -145,7 +145,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 0 10px;
   outline: none;
   box-sizing: border-box;
@@ -164,7 +164,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 8px 10px;
   outline: none;
   resize: vertical;
@@ -180,7 +180,7 @@
 }
 
 .lw-char-count {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   text-align: right;
   margin-top: 3px;
@@ -192,7 +192,7 @@
 
 .lw-help-text {
   margin-top: 6px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   line-height: 1.5;
 }
@@ -214,14 +214,14 @@
 }
 
 .lw-daemon-deployer-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   color: var(--t1);
   margin-bottom: 3px;
 }
 
 .lw-daemon-deployer-copy {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   line-height: 1.45;
   word-break: break-all;
@@ -229,7 +229,7 @@
 
 .lw-daemon-deployer-status {
   margin-top: 6px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--green);
   text-transform: uppercase;
   letter-spacing: 0;
@@ -282,7 +282,7 @@
 }
 
 .lw-image-path {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: 'JetBrains Mono', monospace;
   overflow: hidden;
@@ -359,21 +359,21 @@
 }
 
 .lw-launchpad-name {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--t1);
   margin-bottom: 2px;
 }
 
 .lw-launchpad-desc {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
 .lw-launchpad-badge {
-  font-size: 9px;
+  font-size: var(--fs-9);
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--s4);
   color: var(--t4);
   border: 1px solid var(--border);
@@ -408,7 +408,7 @@
 }
 
 .lw-summary-key {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0;
@@ -417,7 +417,7 @@
 }
 
 .lw-summary-val {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t1);
   flex: 1;
   overflow: hidden;
@@ -427,7 +427,7 @@
 
 .lw-summary-val.mono {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 /* ── Cost box ── */
@@ -440,7 +440,7 @@
 }
 
 .lw-cost-title {
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--t3);
@@ -462,12 +462,12 @@
 }
 
 .lw-cost-desc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
 .lw-cost-amount {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: 'JetBrains Mono', monospace;
   color: var(--t1);
 }
@@ -483,7 +483,7 @@
   min-width: 44px;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -520,14 +520,14 @@
 }
 
 .lw-balance-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0;
 }
 
 .lw-balance-amount {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: 'JetBrains Mono', monospace;
   color: var(--t1);
 }
@@ -539,7 +539,7 @@
   border: 1px solid var(--amber-dim);
   border-radius: 4px;
   margin-bottom: 14px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--amber);
   line-height: 1.5;
 }
@@ -550,7 +550,7 @@
   border: 1px solid var(--red-dim);
   border-radius: 4px;
   margin-bottom: 14px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   line-height: 1.5;
 }
@@ -582,7 +582,7 @@
 }
 
 .lw-confirm-text {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   line-height: 1.4;
 }
@@ -612,7 +612,7 @@
 }
 
 .lw-phase-label {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
 }
 
@@ -627,7 +627,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t4);
   padding: 0 4px;
 }
@@ -685,13 +685,13 @@
 }
 
 .lw-success-title {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   color: var(--t1);
 }
 
 .lw-success-mint {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: 'JetBrains Mono', monospace;
   color: var(--t3);
   word-break: break-all;
@@ -699,7 +699,7 @@
 }
 
 .lw-success-link {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--blue);
   cursor: pointer;
   background: none;
@@ -716,7 +716,7 @@
 .lw-btn {
   height: 34px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   cursor: pointer;
   transition: opacity var(--transition-fast);
@@ -781,7 +781,7 @@
   background: none;
   border: none;
   color: var(--t4);
-  font-size: 11px;
+  font-size: var(--fs-11);
   cursor: pointer;
   padding: 0;
 }
@@ -789,7 +789,7 @@
 .lw-footer-close:hover { color: var(--t2); }
 
 .lw-step-counter {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: 'JetBrains Mono', monospace;
 }

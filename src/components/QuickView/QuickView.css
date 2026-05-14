@@ -85,7 +85,7 @@
 }
 
 .quickview-wallet-eyebrow {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -94,14 +94,14 @@
 
 .quickview-wallet-name {
   margin-top: 6px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 700;
   color: var(--t1);
 }
 
 .quickview-wallet-address {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.45;
   color: var(--t3);
   word-break: break-word;
@@ -110,11 +110,11 @@
 .quickview-top-link {
   height: 30px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--border) 76%, rgba(255, 255, 255, 0.08) 24%);
   background: color-mix(in srgb, var(--s2) 86%, black 14%);
   color: var(--t2);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -129,7 +129,7 @@
 
 .quickview-balance {
   font-family: var(--font-ui);
-  font-size: 28px;
+  font-size: var(--fs-28);
   font-weight: 700;
   color: var(--t1);
   letter-spacing: -0.02em;
@@ -141,7 +141,7 @@
   align-items: center;
   gap: 6px;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
 }
 
@@ -155,7 +155,7 @@
 
 .quickview-delta-timeframe {
   color: var(--t3);
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -180,7 +180,7 @@
 }
 
 .quickview-stat-card .quickview-stat-label {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -189,14 +189,14 @@
 
 .quickview-stat-card .quickview-stat-value {
   margin-top: 6px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 700;
   line-height: 1.2;
   color: var(--t1);
 }
 
 .quickview-stat-card .quickview-stat-value--sm {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t2);
 }
@@ -244,7 +244,7 @@
 }
 
 .quickview-action-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t2);
   font-family: var(--font-ui);
@@ -316,7 +316,7 @@
   justify-content: center;
   background: var(--s3);
   color: var(--t2);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   font-family: var(--font-ui);
 }
@@ -327,7 +327,7 @@
 }
 
 .quickview-token-symbol {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   overflow: hidden;
@@ -336,7 +336,7 @@
 }
 
 .quickview-token-name {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -349,14 +349,14 @@
 }
 
 .quickview-token-amount {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--t1);
   font-family: var(--font-code);
 }
 
 .quickview-token-usd {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-code);
 }
@@ -366,7 +366,7 @@
 .quickview-empty {
   text-align: center;
   padding: 28px 18px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -385,15 +385,15 @@
 }
 
 .quickview-footer-copy {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
 }
 
 .quickview-footer-link {
   height: 30px;
   padding: 0 12px;
-  border-radius: 999px;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--green);
   cursor: pointer;
@@ -425,13 +425,13 @@
 }
 
 .quickview-email-header-title {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
 }
 
 .quickview-email-header-count {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
@@ -443,7 +443,7 @@
 .quickview-email-btn {
   padding: 4px 10px;
   border-radius: var(--radius-md);
-  font-size: 10px;
+  font-size: var(--fs-10);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -509,7 +509,7 @@
 }
 
 .quickview-email-sender {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   color: var(--t2);
   overflow: hidden;
@@ -524,14 +524,14 @@
 }
 
 .quickview-email-time {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t3);
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .quickview-email-subject {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   color: var(--t2);
   margin-top: 2px;
@@ -541,7 +541,7 @@
 }
 
 .quickview-email-preview {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   margin-top: 2px;
   overflow: hidden;
@@ -594,7 +594,7 @@
 }
 
 .qv-subview-title {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   font-family: var(--font-ui);
@@ -611,7 +611,7 @@
 }
 
 .qv-field-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
@@ -627,7 +627,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: var(--font-ui);
   cursor: pointer;
   appearance: none;
@@ -647,7 +647,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: var(--font-code);
   outline: none;
   transition: border-color var(--transition-fast);
@@ -662,7 +662,7 @@
 }
 
 .qv-input--address {
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .qv-input-row {
@@ -682,7 +682,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--t2);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   font-family: var(--font-ui);
   cursor: pointer;
@@ -701,8 +701,8 @@
   background: var(--green);
   border: none;
   border-radius: var(--radius-lg);
-  color: #0a0a0a;
-  font-size: 13px;
+  color: var(--on-accent-dark);
+  font-size: var(--fs-13);
   font-weight: 600;
   font-family: var(--font-ui);
   cursor: pointer;
@@ -725,7 +725,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--t2);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   font-family: var(--font-ui);
   cursor: pointer;
@@ -738,7 +738,7 @@
 }
 
 .qv-feedback {
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 8px 10px;
   border-radius: var(--radius-md);
   font-family: var(--font-code);
@@ -789,7 +789,7 @@
 }
 
 .qv-slippage-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-ui);
   flex: 1;
@@ -803,7 +803,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-code);
   text-align: right;
   outline: none;
@@ -814,7 +814,7 @@
 }
 
 .qv-slippage-unit {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-ui);
 }
@@ -830,14 +830,14 @@
 }
 
 .qv-quote-rate {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--t1);
   font-family: var(--font-code);
 }
 
 .qv-quote-impact {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-code);
 }
@@ -851,14 +851,14 @@
 }
 
 .qv-receive-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   font-family: var(--font-ui);
   margin-bottom: 8px;
 }
 
 .qv-receive-address {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: var(--font-code);
   color: var(--t1);
   word-break: break-all;

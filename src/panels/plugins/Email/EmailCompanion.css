@@ -18,7 +18,7 @@
 }
 
 .email-companion__breadcrumb {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
@@ -68,7 +68,7 @@
 
 /* Full message body */
 .email-companion__body {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t1);
   line-height: 1.6;
   white-space: pre-wrap;
@@ -77,21 +77,21 @@
 }
 
 .email-companion__subject {
-  font-size: 15px;
+  font-size: var(--fs-15);
   color: var(--t1);
   font-weight: 500;
   margin-bottom: 8px;
 }
 
 .email-companion__meta {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   margin-bottom: 16px;
 }
 
 /* Extraction section title */
 .email-companion__section-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   font-weight: 600;
   text-transform: uppercase;
@@ -100,7 +100,7 @@
 }
 
 .email-companion__empty {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   text-align: center;
   padding: 24px;

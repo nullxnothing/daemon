@@ -31,15 +31,15 @@
 }
 
 .sidebar-icon--explorer {
-  --tool-accent: #60a5fa;
+  --tool-accent: var(--blue);
 }
 
 .sidebar-icon--agents {
-  --tool-accent: #a78bfa;
+  --tool-accent: var(--solana);
 }
 
 .sidebar-icon--tools {
-  --tool-accent: #14f195;
+  --tool-accent: var(--green);
 }
 
 .sidebar-icon svg {
@@ -185,8 +185,8 @@
 }
 
 .sidebar-icon--discord:hover {
-  color: #5865f2;
-  background: color-mix(in srgb, #5865f2 12%, transparent);
+  color: var(--brand-discord);
+  background: color-mix(in srgb, var(--brand-discord) 12%, transparent);
 }
 
 /* Submenu (kept for agent launcher flyout) */

@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--surface-flat);
+  background: var(--panel-bg);
 }
 
 .right-panel-header {
@@ -11,8 +11,8 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-md);
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-header-bg);
 }
 
 .right-panel-header-copy {
@@ -34,8 +34,8 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 8px var(--space-sm);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-flat);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-bg);
 }
 
 .right-panel-tab {
@@ -47,7 +47,7 @@
   height: 32px;
   padding: 0 8px;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
   cursor: pointer;
   transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
@@ -56,7 +56,7 @@
 .right-panel-tab:hover {
   color: var(--t1);
   background: var(--hover-bg);
-  border-color: var(--border-hover);
+  border-color: var(--control-border-hover);
 }
 
 .right-panel-tab.active {
@@ -100,7 +100,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: 8px var(--space-sm);
-  background: var(--surface-flat);
+  background: var(--panel-bg);
 }
 
 .right-panel-content--closed {
@@ -123,25 +123,157 @@
 }
 
 .rp-agent-widget {
+  position: relative;
   margin: 8px var(--space-sm) 0;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--card-border));
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--green-glow) 30%, transparent), transparent),
-    var(--surface-raised);
+    var(--card-bg);
   color: var(--t1);
   flex-shrink: 0;
 }
 
+.rp-agent-widget--spawnagents {
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--brand-spawnagents) 36%, var(--card-border));
+  background: var(--brand-spawnagents-surface);
+  box-shadow: var(--edge-highlight);
+}
+
+.rp-agent-widget--spawnagents::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(10, 6, 8, 0.98) 0%, rgba(10, 6, 8, 0.78) 54%, rgba(10, 6, 8, 0.32) 100%),
+    linear-gradient(0deg, rgba(10, 6, 8, 0.9) 0%, rgba(10, 6, 8, 0.16) 58%, rgba(10, 6, 8, 0.62) 100%),
+    url('/spawnagents.png');
+  background-position: center right;
+  background-size: cover;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.rp-agent-widget--spawnagents > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-kicker {
+  color: var(--brand-spawnagents);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-title {
+  color: var(--brand-spawnagents-text);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-avatar {
+  border-color: color-mix(in srgb, var(--brand-spawnagents) 46%, var(--card-border));
+  background: color-mix(in srgb, var(--brand-spawnagents) 8%, transparent);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-avatar span {
+  background: linear-gradient(135deg, var(--brand-spawnagents-text) 0 46%, transparent 46% 54%, var(--brand-spawnagents) 54%);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-grid div {
+  border-color: color-mix(in srgb, var(--brand-spawnagents) 24%, var(--card-border));
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-grid span,
+.rp-agent-widget--spawnagents .rp-agent-widget-meta,
+.rp-agent-widget--spawnagents .rp-agent-widget-empty {
+  color: var(--brand-spawnagents-muted-strong);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-grid strong {
+  color: var(--brand-spawnagents-text);
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-close,
+.rp-agent-widget--spawnagents .rp-agent-widget-actions button {
+  border-color: color-mix(in srgb, var(--brand-spawnagents) 44%, var(--card-border));
+  background: color-mix(in srgb, var(--brand-spawnagents) 12%, transparent);
+  color: color-mix(in srgb, var(--brand-spawnagents) 42%, var(--brand-spawnagents-text));
+}
+
+.rp-agent-widget--spawnagents .rp-agent-widget-close:hover,
+.rp-agent-widget--spawnagents .rp-agent-widget-actions button:hover {
+  border-color: color-mix(in srgb, var(--brand-spawnagents) 72%, var(--card-border));
+  background: color-mix(in srgb, var(--brand-spawnagents) 22%, transparent);
+  color: var(--on-accent);
+}
+
 .rp-side-widget {
+  position: relative;
   margin: 8px var(--space-sm) 0;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--border) 78%, rgba(255, 255, 255, 0.08) 22%);
+  border: 1px solid var(--card-border);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent),
-    color-mix(in srgb, var(--surface-raised) 86%, black 14%);
+    linear-gradient(180deg, color-mix(in srgb, white 2%, transparent), transparent),
+    var(--card-bg);
   color: var(--t1);
   flex-shrink: 0;
+}
+
+.rp-zauth-widget {
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--integration-surface-neutral-strong);
+}
+
+.rp-zauth-widget::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(7, 7, 7, 0.98) 0%, rgba(7, 7, 7, 0.74) 55%, rgba(7, 7, 7, 0.32) 100%),
+    linear-gradient(0deg, rgba(7, 7, 7, 0.84) 0%, rgba(7, 7, 7, 0.08) 58%, rgba(7, 7, 7, 0.58) 100%),
+    url('/zauth.png');
+  background-position: center right;
+  background-size: cover;
+  opacity: 0.96;
+  pointer-events: none;
+}
+
+.rp-zauth-widget > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rp-zauth-widget .rp-agent-widget-kicker {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.rp-zauth-widget .rp-side-widget-title {
+  color: var(--on-accent);
+}
+
+.rp-zauth-widget .rp-side-status-row {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.rp-zauth-widget .rp-side-status-row strong {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.rp-zauth-widget .rp-side-status-dot.live {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.22);
+}
+
+.rp-zauth-widget .rp-agent-widget-actions button {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.rp-zauth-widget .rp-agent-widget-actions button:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  color: var(--on-accent);
 }
 
 .rp-side-widget-head {
@@ -155,8 +287,8 @@
   margin-top: 9px;
   overflow: hidden;
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-code);
+  font-size: var(--fs-10);
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -180,18 +312,18 @@
   gap: 7px;
   min-height: 26px;
   padding: 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--card-border);
+  background: var(--surface-sunken);
   color: var(--t2);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .rp-side-status-row strong {
   min-width: 0;
   overflow: hidden;
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-family: var(--font-code);
+  font-size: var(--fs-9);
   letter-spacing: 0.08em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -201,7 +333,7 @@
 .rp-side-status-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--t4);
 }
 
@@ -223,7 +355,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: var(--surface-raised);
+  background: var(--card-bg);
 }
 
 .rp-agent-widget-head,
@@ -249,7 +381,7 @@
   height: 36px;
   flex: 0 0 36px;
   border: 1px solid color-mix(in srgb, var(--green) 28%, var(--border));
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--hover-bg);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -259,7 +391,7 @@
   width: 20px;
   height: 20px;
   display: block;
-  background: linear-gradient(135deg, #f0eeee 0 46%, transparent 46% 54%, #f0eeee 54%);
+  background: linear-gradient(135deg, var(--t1) 0 46%, transparent 46% 54%, var(--t1) 54%);
 }
 
 .rp-agent-widget-avatar img {
@@ -274,7 +406,7 @@
 
 .rp-agent-widget-kicker {
   color: var(--green);
-  font-size: 8px;
+  font-size: var(--fs-8);
   font-weight: var(--fw-bold);
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -286,7 +418,7 @@
   overflow: hidden;
   color: var(--t1);
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-overflow: ellipsis;
@@ -301,7 +433,7 @@
   background: var(--green-glow);
   color: var(--t2);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -328,8 +460,8 @@
 
 .rp-agent-widget-pnl {
   margin-top: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
+  font-family: var(--font-code);
+  font-size: var(--fs-16);
   font-weight: 700;
 }
 
@@ -344,15 +476,15 @@
   min-width: 0;
   padding: 7px;
   border: 1px solid color-mix(in srgb, var(--green) 14%, var(--border));
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--surface-sunken);
 }
 
 .rp-agent-widget-grid span,
 .rp-agent-widget-meta,
 .rp-agent-widget-empty {
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-family: var(--font-code);
+  font-size: var(--fs-9);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -366,8 +498,8 @@
   display: block;
   overflow-wrap: anywhere;
   color: var(--t1);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
 }
 
 .rp-agent-widget-meta {
@@ -397,17 +529,17 @@
   min-width: 0;
   height: 24px;
   padding: 0 7px;
-  border: 1px solid var(--border);
-  background: var(--surface-sunken);
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
   color: var(--t1);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-code);
+  font-size: var(--fs-10);
   outline: none;
 }
 
 .rp-token-watch-input:focus {
   border-color: color-mix(in srgb, var(--green) 42%, var(--border));
-  box-shadow: 0 0 0 2px var(--green-glow);
+  box-shadow: var(--focus-ring);
 }
 
 .rp-token-watch-headline {
@@ -421,25 +553,25 @@
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--card-border);
   object-fit: cover;
 }
 
 .rp-token-watch-headline strong,
 .rp-token-watch-headline span {
   display: block;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
 }
 
 .rp-token-watch-headline strong {
   color: var(--t1);
-  font-size: 15px;
+  font-size: var(--fs-15);
 }
 
 .rp-token-watch-headline span {
   margin-top: 2px;
   color: var(--green);
-  font-size: 10px;
+  font-size: var(--fs-10);
 }
 
 .rp-token-watch-headline span.down {

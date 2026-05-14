@@ -744,3 +744,44 @@ CREATE TABLE IF NOT EXISTS ai_patch_proposals (
 CREATE INDEX IF NOT EXISTS idx_ai_patch_proposals_run ON ai_patch_proposals(run_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_patch_proposals_status ON ai_patch_proposals(status, created_at);
 `
+
+export const SCHEMA_V35 = `
+CREATE TABLE IF NOT EXISTS daemon_subscriptions (
+  wallet_address TEXT PRIMARY KEY,
+  plan TEXT NOT NULL,
+  access_source TEXT NOT NULL,
+  payment_id TEXT UNIQUE,
+  expires_at INTEGER NOT NULL,
+  features_json TEXT NOT NULL,
+  revoked_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_daemon_subscriptions_expires
+  ON daemon_subscriptions(expires_at, revoked_at);
+
+CREATE TABLE IF NOT EXISTS daemon_holder_challenges (
+  nonce TEXT PRIMARY KEY,
+  wallet_address TEXT NOT NULL,
+  message TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_daemon_holder_challenges_wallet
+  ON daemon_holder_challenges(wallet_address, expires_at);
+
+CREATE TABLE IF NOT EXISTS daemon_subscription_audit (
+  id TEXT PRIMARY KEY,
+  wallet_address TEXT,
+  action TEXT NOT NULL,
+  actor TEXT,
+  plan TEXT,
+  access_source TEXT,
+  payment_id TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_daemon_subscription_audit_wallet
+  ON daemon_subscription_audit(wallet_address, created_at);
+`

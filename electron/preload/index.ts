@@ -267,6 +267,7 @@ contextBridge.exposeInMainWorld('daemon', {
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
     holdings: (walletId: string) => ipcRenderer.invoke('wallet:holdings', walletId),
     swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
+    searchJupiterTokens: (query: string) => ipcRenderer.invoke('wallet:jupiter-token-search', query),
     transactionPreview: (input: object) => ipcRenderer.invoke('wallet:transaction-preview', input),
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => ipcRenderer.invoke('wallet:swap-execute', input),
     agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
@@ -292,6 +293,20 @@ contextBridge.exposeInMainWorld('daemon', {
     quota: () => ipcRenderer.invoke('pro:quota'),
     mcpPush: () => ipcRenderer.invoke('pro:mcp-push'),
     mcpPull: () => ipcRenderer.invoke('pro:mcp-pull'),
+  },
+
+  seeker: {
+    relayStart: (port?: number) => ipcRenderer.invoke('seeker:relay-start', port),
+    relayStop: () => ipcRenderer.invoke('seeker:relay-stop'),
+    relayStatus: () => ipcRenderer.invoke('seeker:relay-status'),
+    createSession: (input?: object) => ipcRenderer.invoke('seeker:create-session', input),
+    getSession: (pairingCode: string) => ipcRenderer.invoke('seeker:get-session', pairingCode),
+    listSessions: () => ipcRenderer.invoke('seeker:list-sessions'),
+    updateProject: (pairingCode: string, project: object) => ipcRenderer.invoke('seeker:update-project', pairingCode, project),
+    addApproval: (pairingCode: string, approval: object) => ipcRenderer.invoke('seeker:add-approval', pairingCode, approval),
+    updateApprovalStatus: (pairingCode: string, approvalId: string, status: string) =>
+      ipcRenderer.invoke('seeker:update-approval-status', pairingCode, approvalId, status),
+    clearSession: (pairingCode: string) => ipcRenderer.invoke('seeker:clear-session', pairingCode),
   },
 
   ai: {
@@ -327,6 +342,7 @@ contextBridge.exposeInMainWorld('daemon', {
     getAppMeta: () => ipcRenderer.invoke('settings:get-app-meta'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
+    setLowPowerMode: (enabled: boolean) => ipcRenderer.invoke('settings:set-low-power-mode', enabled),
     isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),
     setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke('settings:set-onboarding-complete', complete),
     getOnboardingProgress: () => ipcRenderer.invoke('settings:get-onboarding-progress'),

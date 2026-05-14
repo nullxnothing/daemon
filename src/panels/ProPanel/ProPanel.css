@@ -27,20 +27,20 @@
 }
 
 .pro-panel-kicker {
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--amber);
 }
 
 .pro-panel-title {
-  font-size: 18px;
+  font-size: var(--fs-18);
   font-weight: 600;
 }
 
 .pro-panel-subtitle,
 .pro-disclaimer {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   line-height: 1.5;
 }
@@ -57,7 +57,7 @@
   border: 0;
   border-bottom: 2px solid transparent;
   color: var(--t3);
-  font-size: 12px;
+  font-size: var(--fs-12);
   cursor: pointer;
 }
 
@@ -88,7 +88,7 @@
   border: 1px solid var(--red);
   border-radius: 4px;
   color: var(--red-dim);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .pro-error-dismiss,
@@ -106,7 +106,7 @@
   border: 1px solid var(--s4);
   border-radius: 4px;
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .pro-btn-primary {
@@ -136,7 +136,7 @@
   padding: 16px;
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .pro-staking-hero {
@@ -158,9 +158,9 @@
 
 .pro-staking-pill {
   padding: 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--s4);
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--t3);
@@ -218,7 +218,7 @@
 
 .pro-hero-price-amount {
   font-family: var(--font-mono);
-  font-size: 36px;
+  font-size: var(--fs-36);
   font-weight: 700;
   color: var(--green);
 }
@@ -232,7 +232,7 @@
 .pro-holder-banner-copy,
 .pro-subscribe-empty {
   color: var(--t3);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.5;
 }
 
@@ -263,7 +263,7 @@
 .pro-section-title,
 .pro-arena-card-title,
 .pro-stat-value {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   color: var(--t1);
 }
@@ -284,7 +284,7 @@
 .pro-form-label,
 .pro-arena-kicker,
 .pro-arena-prize-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--t4);
@@ -304,7 +304,7 @@
 }
 
 .pro-active-feature {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
 }
 
@@ -353,14 +353,14 @@
 
 .pro-arena-contest-title {
   margin: 0 0 10px;
-  font-size: 28px;
+  font-size: var(--fs-28);
   line-height: 1.05;
 }
 
 .pro-arena-contest-body,
 .pro-arena-prize-note,
 .pro-arena-card-description {
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.6;
   color: var(--t2);
 }
@@ -369,7 +369,7 @@
   margin-top: 16px;
   padding: 14px;
   border: 1px solid rgba(62, 207, 142, 0.16);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: rgba(10, 14, 12, 0.56);
 }
 
@@ -384,13 +384,13 @@
 .pro-arena-trigger-label,
 .pro-arena-trigger-stat span,
 .pro-arena-progress-caption {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t4);
 }
 
 .pro-arena-trigger-value {
   margin-top: 4px;
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--t1);
 }
@@ -407,7 +407,7 @@
 }
 
 .pro-arena-trigger-stat strong {
-  font-size: 14px;
+  font-size: var(--fs-14);
   color: var(--green);
 }
 
@@ -421,7 +421,7 @@
 .pro-arena-progress-bar {
   width: 100%;
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
@@ -442,13 +442,13 @@
 
 .pro-arena-prize-card {
   padding: 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
 
 .pro-arena-prize-value {
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-weight: 700;
 }
 
@@ -474,10 +474,10 @@
 .pro-arena-filter {
   padding: 4px 10px;
   border: 1px solid var(--s4);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--t3);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .pro-arena-filter.active {
@@ -493,15 +493,15 @@
   border: 1px solid var(--s4);
   border-radius: 4px;
   color: var(--t3);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .pro-arena-status,
 .pro-arena-category,
 .pro-arena-theme {
   padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-10);
 }
 
 .pro-arena-status {

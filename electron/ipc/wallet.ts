@@ -86,6 +86,10 @@ export function registerWalletHandlers() {
     return await WalletService.getSwapQuote(input.walletId, input.inputMint, input.outputMint, input.amount, input.slippageBps)
   }))
 
+  ipcMain.handle('wallet:jupiter-token-search', ipcHandler(async (_event, query: string) => {
+    return await WalletService.searchJupiterTokens(query)
+  }))
+
   ipcMain.handle('wallet:transaction-preview', ipcHandler(async (_event, input: SolanaTransactionPreviewInput) => {
     return previewSolanaTransaction(input)
   }))

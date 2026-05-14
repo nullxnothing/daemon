@@ -26,7 +26,7 @@ html, body, #root {
 }
 
 ::selection {
-  background: var(--s4);
+  background: var(--selection-bg);
   color: var(--t1);
 }
 

@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
-import { getMonthlyAiCredits, getPlanFeatures, normalizePlan } from '../EntitlementService'
-import type { ProAccessSource, ProFeature } from '../../shared/types'
+import { canUseHostedModelLane, getHostedLanesForPlan, getMonthlyAiCredits, getPlanFeatures, normalizePlan } from '../EntitlementService'
+import type { DaemonAiModelLane, ProAccessSource, ProFeature } from '../../shared/types'
 import type { DaemonAiCloudAuthVerifier, DaemonAiCloudEntitlement } from './types'
 
 type JwtHeader = {
@@ -17,13 +17,17 @@ type DaemonAiJwtClaims = {
   accessSource?: unknown
   source?: unknown
   features?: unknown
+  lane?: unknown
+  allowedLanes?: unknown
   monthlyCredits?: unknown
   usedCredits?: unknown
+  entitlementExpiresAt?: unknown
   exp?: unknown
   nbf?: unknown
 }
 
 const VALID_ACCESS_SOURCES = new Set<ProAccessSource>(['payment', 'holder', 'admin', 'trial', 'dev_bypass'])
+const VALID_MODEL_LANES = new Set<DaemonAiModelLane>(['auto', 'fast', 'standard', 'reasoning', 'premium'])
 
 function decodeBase64UrlJson<T>(value: string): T {
   const json = Buffer.from(value, 'base64url').toString('utf8')
@@ -63,6 +67,66 @@ function positiveNumber(input: unknown, fallback: number): number {
   return Number.isFinite(value) && value >= 0 ? value : fallback
 }
 
+function normalizeAllowedLanes(plan: DaemonAiCloudEntitlement['plan'], input: unknown): DaemonAiModelLane[] {
+  const planLanes = getHostedLanesForPlan(plan)
+  const inputLanes = Array.isArray(input)
+    ? input.filter((lane): lane is DaemonAiModelLane =>
+      VALID_MODEL_LANES.has(lane as DaemonAiModelLane) &&
+      canUseHostedModelLane({ active: true, plan, features: getPlanFeatures(plan) }, lane as DaemonAiModelLane))
+    : []
+
+  const lanes = inputLanes.length > 0 ? inputLanes : planLanes
+  return [...new Set(lanes)]
+}
+
+function normalizeLane(plan: DaemonAiCloudEntitlement['plan'], input: unknown, allowedLanes: DaemonAiModelLane[]): DaemonAiModelLane {
+  if (
+    typeof input === 'string' &&
+    VALID_MODEL_LANES.has(input as DaemonAiModelLane) &&
+    allowedLanes.includes(input as DaemonAiModelLane)
+  ) {
+    return input as DaemonAiModelLane
+  }
+  if (plan === 'ultra' || plan === 'enterprise') return 'premium'
+  if (plan === 'operator' || plan === 'team') return 'reasoning'
+  return 'standard'
+}
+
+function normalizeString(input: unknown): string | null {
+  return typeof input === 'string' && input.trim() ? input.trim() : null
+}
+
+export function signDaemonAiJwt(
+  entitlement: Omit<DaemonAiCloudEntitlement, 'usedCredits'> & { usedCredits?: number },
+  secret: string,
+  now = Date.now(),
+): string {
+  if (!secret.trim()) throw new Error('DAEMON AI JWT secret is not configured')
+  const expiresAtMs = entitlement.entitlementExpiresAt ? Date.parse(entitlement.entitlementExpiresAt) : NaN
+  const exp = Number.isFinite(expiresAtMs)
+    ? Math.floor(expiresAtMs / 1000)
+    : Math.floor((now + 30 * 24 * 60 * 60 * 1000) / 1000)
+  const header = { alg: 'HS256', typ: 'JWT' }
+  const claims = {
+    sub: entitlement.userId ?? undefined,
+    walletAddress: entitlement.walletAddress ?? undefined,
+    plan: entitlement.plan,
+    accessSource: entitlement.accessSource,
+    features: entitlement.features,
+    lane: entitlement.lane,
+    allowedLanes: entitlement.allowedLanes,
+    monthlyCredits: entitlement.monthlyCredits,
+    usedCredits: entitlement.usedCredits ?? 0,
+    entitlementExpiresAt: entitlement.entitlementExpiresAt ?? null,
+    iat: Math.floor(now / 1000),
+    exp,
+  }
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url')
+  const encodedPayload = Buffer.from(JSON.stringify(claims)).toString('base64url')
+  const signature = signatureFor(`${encodedHeader}.${encodedPayload}`, secret).toString('base64url')
+  return `${encodedHeader}.${encodedPayload}.${signature}`
+}
+
 export function verifyDaemonAiJwt(token: string, secret: string, now = Date.now()): DaemonAiCloudEntitlement {
   if (!secret.trim()) throw new Error('DAEMON AI JWT secret is not configured')
   const parts = token.split('.')
@@ -83,31 +147,43 @@ export function verifyDaemonAiJwt(token: string, secret: string, now = Date.now(
   if (plan === 'light') throw new Error('DAEMON AI entitlement required')
   const features = normalizeFeatures(plan, claims.features)
   if (!features.includes('daemon-ai')) throw new Error('DAEMON AI entitlement required')
+  const allowedLanes = normalizeAllowedLanes(plan, claims.allowedLanes)
+  const lane = normalizeLane(plan, claims.lane, allowedLanes)
 
   return {
-    userId: typeof claims.sub === 'string' && claims.sub.trim() ? claims.sub.trim() : null,
-    walletAddress: typeof claims.walletAddress === 'string'
-      ? claims.walletAddress.trim()
-      : typeof claims.wallet === 'string'
-        ? claims.wallet.trim()
-        : null,
+    userId: normalizeString(claims.sub),
+    walletAddress: normalizeString(claims.walletAddress) ?? normalizeString(claims.wallet),
     plan,
     accessSource: normalizeAccessSource(claims.accessSource ?? claims.source),
     features,
+    lane,
+    allowedLanes,
     monthlyCredits: positiveNumber(claims.monthlyCredits, getMonthlyAiCredits(plan)),
     usedCredits: positiveNumber(claims.usedCredits, 0),
+    entitlementExpiresAt: normalizeString(claims.entitlementExpiresAt),
   }
 }
 
 export class Hs256DaemonAiJwtAuthVerifier implements DaemonAiCloudAuthVerifier {
-  private secret: string
+  private secrets: string[]
 
-  constructor(secret = process.env.DAEMON_PRO_JWT_SECRET ?? process.env.DAEMON_AI_JWT_SECRET ?? '') {
-    if (!secret.trim()) throw new Error('Set DAEMON_PRO_JWT_SECRET or DAEMON_AI_JWT_SECRET before starting DAEMON AI Cloud')
-    this.secret = secret
+  constructor(secret: string | string[] = process.env.DAEMON_PRO_JWT_SECRET ?? process.env.DAEMON_AI_JWT_SECRET ?? '') {
+    const secrets = Array.isArray(secret)
+      ? secret.map((entry) => entry.trim()).filter(Boolean)
+      : secret.split(',').map((entry) => entry.trim()).filter(Boolean)
+    if (secrets.length === 0) throw new Error('Set DAEMON_PRO_JWT_SECRET or DAEMON_AI_JWT_SECRET before starting DAEMON AI Cloud')
+    this.secrets = secrets
   }
 
   async verifyBearerToken(token: string): Promise<DaemonAiCloudEntitlement> {
-    return verifyDaemonAiJwt(token, this.secret)
+    let lastError: unknown = null
+    for (const secret of this.secrets) {
+      try {
+        return verifyDaemonAiJwt(token, secret)
+      } catch (error) {
+        lastError = error
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('Invalid DAEMON Pro token')
   }
 }

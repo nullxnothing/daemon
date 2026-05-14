@@ -5,6 +5,7 @@ import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { BUILTIN_TOOLS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import { DAEMON_ICON_GRADIENTS, DAEMON_SIDEBAR_ACCENT_FALLBACK } from '../../styles/daemonTheme'
 import './IconSidebar.css'
 
 interface IconSidebarProps {
@@ -16,12 +17,13 @@ interface IconSidebarProps {
 
 function ExplorerGlyph({ size = 18 }: { size?: number }) {
   const gradientId = useId()
+  const [from, to] = DAEMON_ICON_GRADIENTS.explorer
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <defs>
         <linearGradient id={gradientId} x1="4" y1="5" x2="20" y2="19" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7bc4ff" />
-          <stop offset="100%" stopColor="#60a5fa" />
+          <stop offset="0%" stopColor={from} />
+          <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
       <path d="M4 8a2.5 2.5 0 0 1 2.5-2.5h4.25l1.65 1.8h5.1A2.5 2.5 0 0 1 20 9.8v6.7A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5V8Z" stroke={`url(#${gradientId})`} />
@@ -32,12 +34,13 @@ function ExplorerGlyph({ size = 18 }: { size?: number }) {
 
 function LauncherGlyph({ size = 18 }: { size?: number }) {
   const gradientId = useId()
+  const [from, to] = DAEMON_ICON_GRADIENTS.launcher
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round">
       <defs>
         <linearGradient id={gradientId} x1="5" y1="4" x2="19" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="100%" stopColor="#38bdf8" />
+          <stop offset="0%" stopColor={from} />
+          <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
       <rect x="6.25" y="7.25" width="11.5" height="8.5" rx="3" stroke={`url(#${gradientId})`} />
@@ -67,12 +70,13 @@ function DiscordGlyph({ size = 15 }: { size?: number }) {
 
 function HackathonGlyph({ size = 16 }: { size?: number }) {
   const gradientId = useId()
+  const [from, to] = DAEMON_ICON_GRADIENTS.hackathon
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
       <defs>
         <linearGradient id={gradientId} x1="2" y1="3" x2="14" y2="13" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ffd84d" />
-          <stop offset="100%" stopColor="#f59e0b" />
+          <stop offset="0%" stopColor={from} />
+          <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
       <path d="M3 12.5h10M4.25 12.5V7.75a3.75 3.75 0 0 1 7.5 0v4.75" stroke={`url(#${gradientId})`} />
@@ -83,12 +87,13 @@ function HackathonGlyph({ size = 16 }: { size?: number }) {
 
 function ToolsGlyph({ size = 20 }: { size?: number }) {
   const gradientId = useId()
+  const [from, to] = DAEMON_ICON_GRADIENTS.tools
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <defs>
         <linearGradient id={gradientId} x1="5" y1="5" x2="19" y2="19" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#14f195" />
-          <stop offset="100%" stopColor="#2dd4bf" />
+          <stop offset="0%" stopColor={from} />
+          <stop offset="100%" stopColor={to} />
         </linearGradient>
       </defs>
       <rect x="3" y="3" width="8" height="8" rx="1.5" stroke={`url(#${gradientId})`} />
@@ -246,7 +251,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const visiblePinned = pinnedTools.filter((id) => id !== 'settings' && isToolVisible(id))
   const SettingsIcon = TOOL_ICONS.settings
   const toolStyle = (toolId: string): CSSProperties => ({
-    '--tool-accent': TOOL_COLORS[toolId] ?? '#8f98a8',
+    '--tool-accent': TOOL_COLORS[toolId] ?? DAEMON_SIDEBAR_ACCENT_FALLBACK,
   } as CSSProperties)
 
   return (

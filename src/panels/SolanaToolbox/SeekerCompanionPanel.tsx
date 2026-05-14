@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { daemon } from '../../lib/daemonBridge'
 import type { SolanaMcpEntry, SolanaProjectInfo, SolanaToolchainStatus, ValidatorState } from '../../store/solanaToolbox'
 import './SeekerCompanionPanel.css'
 
@@ -52,8 +53,6 @@ interface SeekerSessionSnapshot {
   events: Array<{ type: string; payload?: Record<string, unknown>; receivedAt?: number }>
 }
 
-const RELAY_BASE_URL = 'http://127.0.0.1:7778'
-
 const TOOLBOX_ITEMS = [
   'Wallet lookup',
   'Token checker',
@@ -92,24 +91,6 @@ function hasProgram(projectInfo?: SolanaProjectInfo | null) {
 
 function isValidatorRunning(validator?: ValidatorState | null) {
   return validator?.status === 'running'
-}
-
-async function postRelay<T>(path: string, payload: unknown): Promise<T> {
-  const res = await fetch(`${RELAY_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  const body = await res.json()
-  if (!res.ok || body?.ok === false) throw new Error(body?.error ?? `Relay returned ${res.status}`)
-  return (body?.data ?? body) as T
-}
-
-async function getRelay<T>(path: string): Promise<T> {
-  const res = await fetch(`${RELAY_BASE_URL}${path}`)
-  const body = await res.json()
-  if (!res.ok || body?.ok === false) throw new Error(body?.error ?? `Relay returned ${res.status}`)
-  return (body?.data ?? body) as T
 }
 
 function secondsLeft(expiresAt?: number) {
@@ -169,22 +150,43 @@ export function SeekerCompanionPanel({
   useEffect(() => {
     if (!session?.session.pairingCode) return
     const code = session.session.pairingCode
-    const timer = window.setInterval(() => {
-      void getRelay<SeekerSessionSnapshot>(`/api/seeker/session/${encodeURIComponent(code)}`)
-        .then((snapshot) => {
-          setSession(snapshot)
+    let cancelled = false
+    let timer: number | null = null
+    let delayMs = 2200
+
+    async function pollSession() {
+      if (cancelled) return
+      try {
+        const res = await daemon.seeker.getSession(code)
+        if (!res.ok) throw new Error(res.error)
+        if (!res.data) throw new Error('Pairing session expired')
+        if (!cancelled) {
+          setSession(res.data)
           setRelayError(null)
-        })
-        .catch((error) => setRelayError(error instanceof Error ? error.message : 'Could not sync Seeker session'))
-    }, 2200)
-    return () => window.clearInterval(timer)
+          delayMs = 2200
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setRelayError(error instanceof Error ? error.message : 'Could not sync Seeker session')
+          delayMs = Math.min(10_000, Math.round(delayMs * 1.5))
+        }
+      } finally {
+        if (!cancelled) timer = window.setTimeout(pollSession, delayMs)
+      }
+    }
+
+    timer = window.setTimeout(pollSession, 1200)
+    return () => {
+      cancelled = true
+      if (timer != null) window.clearTimeout(timer)
+    }
   }, [session?.session.pairingCode])
 
   const createSession = useCallback(async () => {
     setIsCreatingSession(true)
     setRelayError(null)
     try {
-      const snapshot = await postRelay<SeekerSessionSnapshot>('/api/seeker/sessions', {
+      const res = await daemon.seeker.createSession({
         projectId,
         projectPath,
         projectName: formatPath(projectPath),
@@ -199,7 +201,8 @@ export function SeekerCompanionPanel({
           walletBalance: 'Seeker wallet ready',
         },
       })
-      setSession(snapshot)
+      if (!res.ok || !res.data) throw new Error(res.ok ? 'Could not create Seeker session' : res.error)
+      setSession(res.data)
     } catch (error) {
       setRelayError(error instanceof Error ? error.message : 'Could not create Seeker session')
     } finally {
@@ -211,12 +214,9 @@ export function SeekerCompanionPanel({
     if (!session?.session.pairingCode) return
     setRelayError(null)
     try {
-      const next = await postRelay<SeekerSessionSnapshot>('/api/seeker/events', {
-        type: status === 'approved' ? 'approval.approve' : 'approval.reject',
-        sessionCode: session.session.pairingCode,
-        payload: { approvalId, status },
-      })
-      setSession(next)
+      const res = await daemon.seeker.updateApprovalStatus(session.session.pairingCode, approvalId, status)
+      if (!res.ok || !res.data) throw new Error(res.ok ? 'Could not update approval' : res.error)
+      setSession(res.data)
     } catch (error) {
       setRelayError(error instanceof Error ? error.message : 'Could not update approval')
     }
@@ -226,11 +226,9 @@ export function SeekerCompanionPanel({
     if (!session?.session.pairingCode) return
     setRelayError(null)
     try {
-      const next = await postRelay<SeekerSessionSnapshot>(
-        `/api/seeker/session/${encodeURIComponent(session.session.pairingCode)}/approvals/${encodeURIComponent(approval.id)}`,
-        { status: 'pending' },
-      )
-      setSession(next)
+      const res = await daemon.seeker.updateApprovalStatus(session.session.pairingCode, approval.id, 'pending')
+      if (!res.ok || !res.data) throw new Error(res.ok ? 'Could not reset approval' : res.error)
+      setSession(res.data)
     } catch (error) {
       setRelayError(error instanceof Error ? error.message : 'Could not reset approval')
     }

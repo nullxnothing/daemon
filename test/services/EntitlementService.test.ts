@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   canUseHostedModelLane,
   getHostedLaneRequiredPlan,
+  getHostedLanesForPlan,
   getMonthlyAiCredits,
   getPlanFeatures,
   hasFeature,
@@ -45,5 +46,8 @@ describe('EntitlementService', () => {
     expect(canUseHostedModelLane({ active: true, plan: 'operator', features: [] }, 'reasoning')).toBe(true)
     expect(canUseHostedModelLane({ active: true, plan: 'operator', features: [] }, 'premium')).toBe(false)
     expect(canUseHostedModelLane({ active: true, plan: 'ultra', features: [] }, 'premium')).toBe(true)
+    expect(getHostedLanesForPlan('pro')).toEqual(['auto', 'fast', 'standard'])
+    expect(getHostedLanesForPlan('operator')).toEqual(['auto', 'fast', 'standard', 'reasoning'])
+    expect(getHostedLanesForPlan('ultra')).toEqual(['auto', 'fast', 'standard', 'reasoning', 'premium'])
   })
 })

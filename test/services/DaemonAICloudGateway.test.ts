@@ -17,6 +17,8 @@ const entitlement: DaemonAiCloudEntitlement = {
   plan: 'pro',
   accessSource: 'payment',
   features: ['daemon-ai'],
+  lane: 'standard',
+  allowedLanes: ['auto', 'fast', 'standard'],
   monthlyCredits: 1_000,
   usedCredits: 100,
 }
@@ -164,6 +166,83 @@ describe('DAEMON AI Cloud Gateway', () => {
       model: 'gpt-5.2',
       requestId: 'req-1',
     }))
+  })
+
+  it('enforces hosted model lane plan requirements at the API boundary', async () => {
+    const record = vi.fn(async () => {})
+    const assertCredits = vi.fn(async () => {})
+    const app = createDaemonAICloudGateway({
+      providers: [openAiProvider],
+      auth: { verifyBearerToken: vi.fn(async () => entitlement) },
+      usage: { assertCredits, record },
+    })
+    const baseUrl = await listen(app)
+
+    const response = await fetch(`${baseUrl}/v1/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer valid-token',
+      },
+      body: JSON.stringify({
+        requestId: 'premium-bypass-attempt',
+        mode: 'ask',
+        message: 'use premium',
+        prompt: 'use premium',
+        modelPreference: 'premium',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      ok: false,
+      code: 'daemon_ai_plan_required',
+      error: 'Hosted premium DAEMON AI requires the ultra plan or higher.',
+    })
+    expect(assertCredits).not.toHaveBeenCalled()
+    expect(record).not.toHaveBeenCalled()
+    expect(openAiProvider.generate).not.toHaveBeenCalled()
+  })
+
+  it('honors JWT allowed lane claims for Operator reasoning access', async () => {
+    const operatorEntitlement: DaemonAiCloudEntitlement = {
+      ...entitlement,
+      plan: 'operator',
+      features: ['daemon-ai', 'cloud-agents'],
+      lane: 'reasoning',
+      allowedLanes: ['auto', 'fast', 'standard', 'reasoning'],
+      monthlyCredits: 20_000,
+      usedCredits: 0,
+    }
+    const record = vi.fn(async () => {})
+    const assertCredits = vi.fn(async () => {})
+    const app = createDaemonAICloudGateway({
+      providers: [openAiProvider],
+      auth: { verifyBearerToken: vi.fn(async () => operatorEntitlement) },
+      usage: { assertCredits, record },
+    })
+    const baseUrl = await listen(app)
+
+    const response = await fetch(`${baseUrl}/v1/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer operator-token',
+      },
+      body: JSON.stringify({
+        requestId: 'operator-reasoning',
+        mode: 'ask',
+        message: 'use reasoning',
+        prompt: 'use reasoning',
+        modelPreference: 'reasoning',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data.model).toBe('gpt-5.2')
+    expect(assertCredits).toHaveBeenCalledWith(operatorEntitlement, expect.any(Number))
   })
 
   it('returns hosted usage and full model contracts for desktop clients', async () => {

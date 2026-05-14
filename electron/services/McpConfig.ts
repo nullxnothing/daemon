@@ -16,7 +16,8 @@ interface McpServerConfig {
   url?: string
 }
 
-const CLAUDE_JSON_PATH = path.join(os.homedir(), '.claude.json')
+const MCP_HOME_DIR = process.env.DAEMON_MCP_HOME_DIR || os.homedir()
+const CLAUDE_JSON_PATH = path.join(MCP_HOME_DIR, '.claude.json')
 
 function readClaudeJson(): Record<string, unknown> {
   try {

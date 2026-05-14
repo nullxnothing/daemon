@@ -18,7 +18,7 @@
 }
 
 .starter-title {
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--t1);
   margin: 0;
@@ -27,7 +27,7 @@
 
 .starter-subtitle {
   display: none;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
   margin: 0 0 16px;
 }
@@ -38,7 +38,7 @@
   border: 1px solid var(--s4);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 7px 12px;
   font-family: var(--font-ui);
   outline: none;
@@ -105,14 +105,14 @@
 }
 
 .starter-card-name {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   margin-bottom: 2px;
 }
 
 .starter-card-desc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.4;
 }
@@ -124,7 +124,7 @@
 }
 
 .starter-tag {
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 600;
   color: var(--t3);
   background: var(--s4);
@@ -138,7 +138,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 32px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -147,7 +147,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   cursor: pointer;
   padding: 4px 8px;
@@ -175,14 +175,14 @@
 }
 
 .starter-configure-title {
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 600;
   color: var(--t1);
   margin: 0 0 2px;
 }
 
 .starter-configure-desc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   margin: 0;
 }
@@ -193,7 +193,7 @@
 
 .starter-label {
   display: block;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t2);
   margin-bottom: 6px;
@@ -207,7 +207,7 @@
   border: 1px solid var(--s4);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 13px;
+  font-size: var(--fs-13);
   padding: 8px 12px;
   font-family: var(--font-mono);
   outline: none;
@@ -230,7 +230,7 @@
 
 .starter-path-display {
   flex: 1;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   background: var(--s2);
   border: 1px solid var(--s4);
@@ -243,7 +243,7 @@
 }
 
 .starter-browse-btn {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t1);
   background: var(--s3);
@@ -261,7 +261,7 @@
 }
 
 .starter-error {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   margin-bottom: 12px;
   padding: 6px 10px;
@@ -278,7 +278,7 @@
 }
 
 .starter-runtime-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t2);
   text-transform: uppercase;
@@ -287,7 +287,7 @@
 
 .starter-runtime-copy {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.5;
 }
@@ -301,7 +301,7 @@
 
 .starter-build-btn {
   width: 100%;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--bg);
   background: var(--green);
@@ -346,14 +346,14 @@
 }
 
 .starter-building-title {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   margin: 0;
 }
 
 .starter-building-desc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   margin: 0;
   max-width: 300px;

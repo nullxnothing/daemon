@@ -28,6 +28,10 @@ export function registerSettingsHandlers() {
     Settings.setBooleanSetting('show_titlebar_wallet', enabled)
   }))
 
+  ipcMain.handle('settings:set-low-power-mode', ipcHandler(async (_event, enabled: boolean) => {
+    Settings.setBooleanSetting('low_power_mode', enabled)
+  }))
+
   ipcMain.handle('settings:is-onboarding-complete', ipcHandler(async () => {
     return Settings.isOnboardingComplete()
   }))
