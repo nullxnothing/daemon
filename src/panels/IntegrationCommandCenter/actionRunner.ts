@@ -99,6 +99,28 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-kausalayer-config') {
+    const envKeys = new Set(
+      context.envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment && envVar.value.trim().length > 0).map((envVar) => envVar.key)),
+    )
+    const hasApiKey = envKeys.has('KAUSALAYER_API_KEY')
+    const mcp = context.mcps.find((entry) => entry.name === 'kausalayer')
+    const mcpReady = Boolean(mcp?.enabled)
+    const missing = [
+      hasApiKey ? null : 'KAUSALAYER_API_KEY',
+      mcpReady ? null : mcp ? 'Enable kausalayer MCP' : 'Add kausalayer MCP',
+    ].filter((item): item is string => Boolean(item))
+
+    return {
+      title: 'KausaLayer config',
+      status: missing.length === 0 ? 'success' : hasApiKey || mcp ? 'info' : 'warning',
+      detail: missing.length === 0
+        ? 'KausaLayer API key and MCP route are ready for agent-side privacy tooling.'
+        : 'KausaLayer needs an API key and enabled MCP route before DAEMON can expose privacy tooling safely.',
+      items: missing.length === 0 ? ['KAUSALAYER_API_KEY', 'kausalayer MCP enabled'] : missing,
+    }
+  }
+
   if (actionId === 'check-light-package') {
     const packages = ['@lightprotocol/stateless.js', '@lightprotocol/compressed-token']
     const installed = packages.filter((name) => context.packages.has(name))
@@ -180,6 +202,24 @@ export async function runIntegrationAction(actionId: string, context: Integratio
       title: 'Opening live agents',
       status: 'success',
       detail: 'Launched the SpawnAgents live agent directory in your browser.',
+    }
+  }
+
+  if (actionId === 'open-kausalayer-mcp-register') {
+    void daemon.shell.openExternal('https://www.kausalayer.com/mcp')
+    return {
+      title: 'Opening KausaLayer API key page',
+      status: 'success',
+      detail: 'Launched the KausaLayer MCP API key page in your browser.',
+    }
+  }
+
+  if (actionId === 'open-kausalayer-docs') {
+    void daemon.shell.openExternal('https://docs.kausalayer.com')
+    return {
+      title: 'Opening KausaLayer docs',
+      status: 'success',
+      detail: 'Launched the KausaLayer documentation in your browser.',
     }
   }
 

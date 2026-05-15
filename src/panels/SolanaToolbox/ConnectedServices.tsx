@@ -6,6 +6,7 @@ const MCP_TAGS: Record<string, string> = {
   'phantom-docs': 'WALLET',
   'payai-mcp-server': 'PAY',
   'x402-mcp': 'PAY',
+  kausalayer: 'PRIVACY',
 }
 
 interface ConnectedServicesProps {

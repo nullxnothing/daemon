@@ -8,7 +8,7 @@ vi.mock('../../electron/services/SecureKeyService', () => ({
 
 import * as SecureKey from '../../electron/services/SecureKeyService'
 import {
-  DAEMON_AI_STAGING_API_BASE,
+  DAEMON_AI_DEFAULT_API_BASE,
   DaemonAICloudClientError,
   fetchHostedFeatures,
   fetchHostedModels,
@@ -159,11 +159,11 @@ describe('DaemonAICloudClient', () => {
     return listen(app)
   }
 
-  it('defaults the desktop hosted API base to v4 staging while keeping env overrides', () => {
+  it('defaults the desktop hosted API base to the bundled cloud URL while keeping env overrides', () => {
     delete process.env.DAEMON_AI_API_BASE
     delete process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD
 
-    expect(getDaemonAICloudBase()).toBe(DAEMON_AI_STAGING_API_BASE)
+    expect(getDaemonAICloudBase()).toBe(DAEMON_AI_DEFAULT_API_BASE)
     expect(isDaemonAICloudConfigured()).toBe(true)
 
     process.env.DAEMON_AI_API_BASE = 'http://127.0.0.1:4021/'

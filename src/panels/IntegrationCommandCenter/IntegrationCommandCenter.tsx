@@ -37,6 +37,7 @@ function statusLabel(summary: IntegrationStatusSummary): string {
   return 'Setup needed'
 }
 
+const INTEGRATION_ENABLE_STORAGE_KEY = 'daemon:integration-command-center:enabled'
 const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), scripts: new Set(), packageManagerHint: null }
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -101,6 +102,13 @@ const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
 const INTEGRATION_SELECTION_ALIASES = new Map<string, string>([
   ['sendai-solana-mcp', 'sendai-agent-kit'],
 ])
+const INTEGRATION_IDS = new Set(INTEGRATION_REGISTRY.map((integration) => integration.id))
+const EMPTY_INTEGRATION_STATUS: IntegrationStatusSummary = {
+  status: 'missing',
+  readyRequired: 0,
+  totalRequired: 0,
+  requirements: [],
+}
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
   rpcProvider: 'helius',
   quicknodeRpcUrl: '',
@@ -114,6 +122,28 @@ const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
 interface DetailShortcut {
   label: string
   onClick: () => void
+}
+
+function loadEnabledIntegrationIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = window.localStorage.getItem(INTEGRATION_ENABLE_STORAGE_KEY)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return new Set()
+    return new Set(parsed.filter((id): id is string => typeof id === 'string' && INTEGRATION_IDS.has(id)))
+  } catch {
+    return new Set()
+  }
+}
+
+function storeEnabledIntegrationIds(ids: Set<string>) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(INTEGRATION_ENABLE_STORAGE_KEY, JSON.stringify([...ids]))
+  } catch {
+    // Local storage failure should not block the integration catalog.
+  }
 }
 
 interface PhantomRpcSetupInput {
@@ -1177,29 +1207,32 @@ function PhantomWalletWorkflow({
 
 function IntegrationCard({
   integration,
+  enabled,
   selected,
   summary,
   onSelect,
 }: {
   integration: IntegrationDefinition
+  enabled: boolean
   selected: boolean
   summary: IntegrationStatusSummary
   onSelect: () => void
 }) {
   const brandClass = getBrandedIntegrationClass(integration.id)
-  const brandedCardClass = brandClass ? `icc-card--${brandClass}` : ''
+  const brandedCardClass = enabled && brandClass ? `icc-card--${brandClass}` : ''
+  const statusClass = enabled ? summary.status : 'off'
 
   return (
     <button
       type="button"
-      className={`icc-card ${brandedCardClass} ${selected ? 'selected' : ''}`}
+      className={`icc-card ${brandedCardClass} ${enabled ? '' : 'icc-card--off'} ${selected ? 'selected' : ''}`}
       onClick={onSelect}
     >
-      <span className={`icc-status-dot ${summary.status}`} />
+      <span className={`icc-status-dot ${statusClass}`} />
       <div className="icc-card-main">
         <div className="icc-card-top">
           <span className="icc-card-name">{integration.name}</span>
-          <span className={`icc-status-badge ${summary.status}`}>{statusLabel(summary)}</span>
+          <span className={`icc-status-badge ${statusClass}`}>{enabled ? statusLabel(summary) : 'Off'}</span>
         </div>
         <span className="icc-card-tagline">{integration.tagline}</span>
         <span className="icc-card-desc">{integration.description}</span>
@@ -1214,6 +1247,7 @@ function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'helius') return 'helius'
   if (integrationId === 'sendai-agent-kit') return 'sendai'
   if (integrationId === 'spawnagents') return 'spawnagents'
+  if (integrationId === 'kausalayer') return 'kausalayer'
   if (integrationId === 'phantom') return 'phantom'
   if (integrationId === 'jupiter') return 'jupiter'
   if (integrationId === 'metaplex') return 'metaplex'
@@ -1263,6 +1297,18 @@ export function IntegrationCommandCenter() {
   const [runningActionId, setRunningActionId] = useState<string | null>(null)
   const [defaultAiProvider, setDefaultAiProvider] = useState<'claude' | 'codex'>('claude')
   const [launchingAiSetup, setLaunchingAiSetup] = useState(false)
+  const [enabledIntegrationIds, setEnabledIntegrationIds] = useState<Set<string>>(() => loadEnabledIntegrationIds())
+
+  function setIntegrationEnabled(id: string, enabled: boolean) {
+    setEnabledIntegrationIds((current) => {
+      const next = new Set(current)
+      if (enabled) next.add(id)
+      else next.delete(id)
+      storeEnabledIntegrationIds(next)
+      return next
+    })
+    setActionResult(null)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -1279,8 +1325,27 @@ export function IntegrationCommandCenter() {
 
   useEffect(() => {
     let cancelled = false
+    const shouldLoadContext = enabledIntegrationIds.size > 0
 
     async function loadContext() {
+      if (!shouldLoadContext) {
+        setActionResult(null)
+        setEnvFiles([])
+        setPackageInfo(EMPTY_PACKAGE_INFO)
+        setPackageJsonContent(null)
+        setLockfiles({})
+        setPnpmWorkspaceRoot(false)
+        setHasStarterAgentFile(false)
+        setHasStreamlockStarterFile(false)
+        setWallets([])
+        setWalletSignerReady({})
+        setWalletInfrastructure(DEFAULT_WALLET_INFRASTRUCTURE)
+        setSecureKeys({})
+        setSendAiSetupApplied(false)
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setActionResult(null)
 
@@ -1378,7 +1443,7 @@ export function IntegrationCommandCenter() {
     return () => {
       cancelled = true
     }
-  }, [activeProjectPath, activeProjectId, loadMcps, loadToolchain])
+  }, [activeProjectPath, activeProjectId, enabledIntegrationIds.size, loadMcps, loadToolchain])
 
   const defaultWallet = useMemo(
     () => wallets.find((wallet) => wallet.is_default === 1) ?? wallets[0] ?? null,
@@ -1402,7 +1467,18 @@ export function IntegrationCommandCenter() {
     toolchain,
   }), [envFiles, mcps, packageInfo, defaultWallet, secureKeys, toolchain])
 
-  const registrySummary = useMemo(() => summarizeRegistry(INTEGRATION_REGISTRY, context), [context])
+  const enabledIntegrations = useMemo(
+    () => INTEGRATION_REGISTRY.filter((integration) => enabledIntegrationIds.has(integration.id)),
+    [enabledIntegrationIds],
+  )
+  const enabledStatusById = useMemo(() => {
+    const statuses = new Map<string, IntegrationStatusSummary>()
+    for (const integration of enabledIntegrations) {
+      statuses.set(integration.id, resolveIntegrationStatus(integration, context))
+    }
+    return statuses
+  }, [context, enabledIntegrations])
+  const registrySummary = useMemo(() => summarizeRegistry(enabledIntegrations, context), [context, enabledIntegrations])
   const envKeys = useMemo(() => new Set(
     envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
   ), [envFiles])
@@ -1465,8 +1541,11 @@ export function IntegrationCommandCenter() {
   }, [integrationCommandSelectionId, setIntegrationCommandSelectionId])
 
   const selectedIntegration = visibleIntegrations.find((integration) => integration.id === selectedId) ?? visibleIntegrations[0] ?? INTEGRATION_REGISTRY[0]
-  const selectedSummary = resolveIntegrationStatus(selectedIntegration, context)
-  const selectedBrandClass = getBrandedIntegrationClass(selectedIntegration.id)
+  const selectedIntegrationEnabled = enabledIntegrationIds.has(selectedIntegration.id)
+  const selectedSummary = selectedIntegrationEnabled
+    ? enabledStatusById.get(selectedIntegration.id) ?? resolveIntegrationStatus(selectedIntegration, context)
+    : EMPTY_INTEGRATION_STATUS
+  const selectedBrandClass = selectedIntegrationEnabled ? getBrandedIntegrationClass(selectedIntegration.id) : ''
   const streamlockRunCommand = buildScriptRunCommand(projectPackageManager, STREAMLOCK_STARTER_SCRIPT)
   const streamlockNextLabel = !activeProjectPath
     ? 'Open New Project'
@@ -1487,7 +1566,7 @@ export function IntegrationCommandCenter() {
     : null
   const defaultAiProviderLabel = defaultAiProvider === 'claude' ? 'Claude' : 'Codex'
   const detailShortcut = useMemo<DetailShortcut | null>(() => {
-    if (GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id)) {
+    if (!selectedIntegrationEnabled || GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id)) {
       return null
     }
 
@@ -1516,7 +1595,7 @@ export function IntegrationCommandCenter() {
     }
 
     return null
-  }, [openWorkspaceTool, selectedIntegration.id, selectedSummary.requirements])
+  }, [openWorkspaceTool, selectedIntegration.id, selectedIntegrationEnabled, selectedSummary.requirements])
 
   async function handleRunAction(actionId: string) {
     const action = selectedIntegration.actions.find((candidate) => candidate.id === actionId)
@@ -1536,6 +1615,22 @@ export function IntegrationCommandCenter() {
           // The Zauth panel still opens on its default page if storage/events are unavailable.
         }
         openWorkspaceTool('zauth')
+      }
+      else if (action.id === 'open-kausalayer-mcp-register' || action.id === 'open-kausalayer-docs') {
+        setRunningActionId(actionId)
+        setActionResult(null)
+        try {
+          const result = await runIntegrationAction(actionId, context)
+          setActionResult(result)
+        } catch (error) {
+          setActionResult({
+            title: 'Action failed',
+            status: 'error',
+            detail: error instanceof Error ? error.message : 'DAEMON could not complete this action.',
+          })
+        } finally {
+          setRunningActionId(null)
+        }
       }
       else openWorkspaceTool('solana-toolbox')
       return
@@ -2686,9 +2781,9 @@ Please inspect the project, apply the safe setup work you can complete, and summ
       </header>
 
       <section className="icc-metrics" aria-label="Integration readiness summary">
+        <div className="icc-metric"><span>{enabledIntegrationIds.size}</span><small>enabled</small></div>
         <div className="icc-metric"><span>{registrySummary.ready}</span><small>ready</small></div>
         <div className="icc-metric"><span>{registrySummary.partial}</span><small>partial</small></div>
-        <div className="icc-metric"><span>{registrySummary.missing}</span><small>need setup</small></div>
         <div className="icc-metric"><span>{registrySummary.safeActions}</span><small>safe checks</small></div>
       </section>
 
@@ -2719,8 +2814,9 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             <IntegrationCard
               key={integration.id}
               integration={integration}
+              enabled={enabledIntegrationIds.has(integration.id)}
               selected={integration.id === selectedIntegration.id}
-              summary={resolveIntegrationStatus(integration, context)}
+              summary={enabledStatusById.get(integration.id) ?? EMPTY_INTEGRATION_STATUS}
               onSelect={() => {
                 setSelectedId(integration.id)
                 setActionResult(null)
@@ -2739,13 +2835,27 @@ Please inspect the project, apply the safe setup work you can complete, and summ
               <h2>{selectedIntegration.name}</h2>
               <p>{selectedIntegration.description}</p>
             </div>
-            <span className={`icc-status-badge ${selectedSummary.status}`}>{statusLabel(selectedSummary)}</span>
+            <span className={`icc-status-badge ${selectedIntegrationEnabled ? selectedSummary.status : 'off'}`}>
+              {selectedIntegrationEnabled ? statusLabel(selectedSummary) : 'Off'}
+            </span>
           </div>
 
-          <div className="icc-detail-section">
-            <div className="icc-section-title">Setup</div>
-            <RequirementList summary={selectedSummary} />
-          </div>
+          {!selectedIntegrationEnabled ? (
+            <div className="icc-detail-section icc-integration-off">
+              <div className="icc-section-title">Disabled</div>
+              <p>
+                This integration is available but off by default. Enable it when this project actually needs the setup checks, MCP route, or partner-specific actions.
+              </p>
+              <button type="button" className="icc-primary" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
+                Enable integration
+              </button>
+            </div>
+          ) : (
+            <div className="icc-detail-section">
+              <div className="icc-section-title">Setup</div>
+              <RequirementList summary={selectedSummary} />
+            </div>
+          )}
 
           <div className="icc-detail-section">
             <div className="icc-section-title">Best for</div>
@@ -2754,14 +2864,14 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             </div>
           </div>
 
-          {selectedInstallCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
+          {selectedIntegrationEnabled && selectedInstallCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className="icc-install">
               <span>Install</span>
               <code>{selectedInstallCommand}</code>
             </div>
           )}
 
-          {selectedIntegration.id === 'sendai-agent-kit' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'sendai-agent-kit' && (
             <SendAiAgentLaunchpad
               projectReady={Boolean(activeProjectPath && packageJsonContent)}
               setupPlan={sendAiSetupPlan}
@@ -2781,7 +2891,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'sendai-agent-kit' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'sendai-agent-kit' && (
             <SendAiSkillsWorkflow
               installCommand={SENDAI_SKILLS_INSTALL_COMMAND}
               suggestions={sendAiSkillSuggestions}
@@ -2794,7 +2904,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'streamlock' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'streamlock' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Primitive Layer workflow"
               title="Scaffold the first Streamlock Operator API check"
@@ -2834,7 +2944,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'phantom' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'phantom' && (
             <PhantomWalletWorkflow
               wallet={defaultWallet}
               isMainWallet={defaultWalletIsMain}
@@ -2862,7 +2972,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'sendai-agent-kit' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'sendai-agent-kit' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="MCP workflow"
               title="Route one Solana MCP path inside DAEMON"
@@ -2894,7 +3004,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'helius' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'helius' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Provider workflow"
               title="Verify the Helius-backed wallet data path"
@@ -2927,7 +3037,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'jupiter' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'jupiter' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Swap workflow"
               title="Get to a first Jupiter quote before any signing"
@@ -2960,7 +3070,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'metaplex' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'metaplex' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="NFT workflow"
               title="Create a first metadata draft inside the project"
@@ -2999,7 +3109,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'light-protocol' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'light-protocol' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Compression workflow"
               title="Scaffold the first Light compression starter"
@@ -3043,7 +3153,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'magicblock' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'magicblock' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Ephemeral Rollup workflow"
               title="Scaffold the first MagicBlock readiness check"
@@ -3087,7 +3197,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'debridge' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'debridge' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Cross-chain workflow"
               title="Scaffold the first deBridge DLN route preview"
@@ -3127,7 +3237,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {selectedIntegration.id === 'squads' && (
+          {selectedIntegrationEnabled && selectedIntegration.id === 'squads' && (
             <IntegrationFirstWinWorkflow
               sectionTitle="Smart account workflow"
               title="Scaffold the first Squads multisig inspection"
@@ -3171,7 +3281,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             />
           )}
 
-          {!GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
+          {selectedIntegrationEnabled && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className="icc-detail-section">
               <div className="icc-section-title">Actions</div>
               <AiSetupCallout
@@ -3201,7 +3311,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             </div>
           )}
 
-          {actionResult && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
+          {selectedIntegrationEnabled && actionResult && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className={`icc-result ${actionResult.status}`}>
               <span className="icc-result-title">{actionResult.title}</span>
               <p>{actionResult.detail}</p>
@@ -3215,6 +3325,15 @@ Please inspect the project, apply the safe setup work you can complete, and summ
 
           <div className="icc-footer-actions">
             <button type="button" className="icc-secondary" onClick={openDocs}>Open docs</button>
+            {selectedIntegrationEnabled ? (
+              <button type="button" className="icc-secondary" onClick={() => setIntegrationEnabled(selectedIntegration.id, false)}>
+                Disable integration
+              </button>
+            ) : (
+              <button type="button" className="icc-primary" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
+                Enable integration
+              </button>
+            )}
             {detailShortcut ? (
               <button type="button" className="icc-primary" onClick={detailShortcut.onClick}>{detailShortcut.label}</button>
             ) : null}

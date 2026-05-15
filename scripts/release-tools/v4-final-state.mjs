@@ -31,6 +31,11 @@ if (/daemon-ai-cloud-v4-staging\.onrender\.com|DAEMON_AI_STAGING_API_BASE/.test(
   fail('Desktop DAEMON AI Cloud fallback still points at staging. Configure the production default cloud URL before final release.')
 }
 
+const proService = readText('electron/services/ProService.ts')
+if (/daemon-pro-api-production\.up\.railway\.app/.test(proService)) {
+  fail('Desktop Pro subscription API fallback still points at Railway. Configure it to use the production DAEMON AI Cloud URL.')
+}
+
 const status = execFileSync('git', ['status', '--porcelain'], {
   cwd: repoRoot,
   encoding: 'utf8',

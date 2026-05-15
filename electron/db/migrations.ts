@@ -557,6 +557,21 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
     console.warn('[Migrations] x402-mcp registry seed check failed:', (err as Error).message)
   }
 
+  // Ensure KausaLayer MCP exists in registry (stealth pockets, maze routes, sweeps, swaps)
+  try {
+    const hasKausaLayerMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'kausalayer'").get()
+    if (!hasKausaLayerMcp) {
+      db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
+        'kausalayer',
+        JSON.stringify({ command: 'npx', args: ['-y', '@kausalayer/mcp'], env: { KAUSALAYER_API_KEY: '' } }),
+        'KausaLayer privacy infrastructure MCP for Solana stealth pockets, private SOL routing, maze routing, sweeps, swaps, wallet slots, and history',
+        0,
+      )
+    }
+  } catch (err) {
+    console.warn('[Migrations] kausalayer registry seed check failed:', (err as Error).message)
+  }
+
   // Ensure all registry plugins have DB rows (handles plugins added after initial migration)
   try {
     const newPlugins = [
@@ -841,6 +856,12 @@ function seedMcpRegistry(db: Database.Database) {
       name: 'phantom-docs',
       config: JSON.stringify({ type: 'http', url: 'https://docs.phantom.com/mcp' }),
       description: 'Phantom Connect SDK docs MCP for wallet connection, signing, and Phantom Portal guidance',
+      isGlobal: 0,
+    },
+    {
+      name: 'kausalayer',
+      config: JSON.stringify({ command: 'npx', args: ['-y', '@kausalayer/mcp'], env: { KAUSALAYER_API_KEY: '' } }),
+      description: 'KausaLayer privacy infrastructure MCP for Solana stealth pockets, private SOL routing, maze routing, sweeps, swaps, wallet slots, and history',
       isGlobal: 0,
     },
     {
