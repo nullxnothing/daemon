@@ -56,6 +56,7 @@ const scenarios = [
     maxChangedPixels: 500,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
+      await page.waitForSelector('.wallet-workspace-metrics', { timeout: 30000 })
     },
     selector: '.wallet-panel-header',
   },
@@ -280,6 +281,26 @@ async function normalizeWalletQuickView(page) {
   })
 }
 
+async function normalizeWalletWorkspaceBar(page) {
+  await page.evaluate(() => {
+    const header = document.querySelector('.wallet-panel-header')
+    if (!header) return
+
+    const title = header.querySelector('h1')
+    if (title) title.textContent = 'Move funds, inspect holdings, and act from one place'
+
+    const subtitle = header.querySelector('p')
+    if (subtitle) subtitle.textContent = 'DAEMON Visual Regression Smoke · Smoke Wallet'
+
+    const metrics = Array.from(header.querySelectorAll('.wallet-workspace-metric'))
+    const values = ['1', 'Local mode', 'Wallet']
+    for (const [index, metric] of metrics.entries()) {
+      const value = metric.querySelector('.wallet-workspace-metric-value')
+      if (value && values[index]) value.textContent = values[index]
+    }
+  })
+}
+
 async function openTerminalLauncher(page) {
   await openTerminalPanel(page)
   await page.getByRole('button', { name: 'New tab options' }).click()
@@ -410,6 +431,10 @@ async function normalizeSettingsMeta(page) {
 }
 
 async function stabilizeScenario(page, scenario) {
+  if (scenario.name === 'wallet-workspace-bar') {
+    await normalizeWalletWorkspaceBar(page)
+  }
+
   if (scenario.name === 'settings-center') {
     await normalizeSettingsMeta(page)
   }

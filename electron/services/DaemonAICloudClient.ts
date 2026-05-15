@@ -10,7 +10,7 @@ import type {
 import * as SecureKey from './SecureKeyService'
 
 const PRO_JWT_KEY = 'daemon_pro_jwt'
-export const DAEMON_AI_DEFAULT_API_BASE = 'https://daemon-ai-cloud-v4-staging.onrender.com'
+export const DAEMON_AI_DEFAULT_API_BASE = 'https://daemon-ai-cloud-v4-live.onrender.com'
 
 export type HostedUsageReport = {
   inputTokens?: number
