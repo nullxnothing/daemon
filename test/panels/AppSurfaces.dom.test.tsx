@@ -374,6 +374,21 @@ async function selectIntegrationCard(name: string) {
   await userEvent.click(target!.closest('button')!)
 }
 
+async function enableSelectedIntegration() {
+  const enableButtons = screen.queryAllByRole('button', { name: 'Enable integration' })
+  if (enableButtons.length === 0) return
+
+  await userEvent.click(enableButtons[0])
+  await waitFor(() => {
+    expect(screen.getAllByRole('button', { name: 'Disable integration' }).length).toBeGreaterThan(0)
+  })
+}
+
+async function selectEnabledIntegrationCard(name: string) {
+  await selectIntegrationCard(name)
+  await enableSelectedIntegration()
+}
+
 describe('App surface DOM coverage', () => {
   beforeEach(() => {
     installDaemonBridge()
@@ -453,6 +468,7 @@ describe('App surface DOM coverage', () => {
     expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
     expect(screen.getByText('safe checks')).toBeInTheDocument()
+    await enableSelectedIntegration()
     expect(screen.getByText('Get this project to a first working SendAI agent')).toBeInTheDocument()
     expect(screen.getAllByText('Next step').length).toBeGreaterThan(0)
     expect(await screen.findByText(/pnpm add @solana-agent-kit\/plugin-token/)).toBeInTheDocument()
@@ -502,12 +518,13 @@ describe('App surface DOM coverage', () => {
     expect(useUIStore.getState().terminals.some((terminal) => terminal.id === 'terminal-sendai-skills')).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'DeFi' }))
+    await enableSelectedIntegration()
     expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
     expect(screen.queryByText('Token Launch Stack')).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByText('Phantom'))
+    await selectEnabledIntegrationCard('Phantom')
     expect(screen.getByText('Set up the Phantom route')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Use wallet for current project' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Use wallet for current project' }))
@@ -530,13 +547,13 @@ describe('App surface DOM coverage', () => {
       amount: 0.01,
     }))
 
-    await userEvent.click(screen.getByText('Helius'))
+    await selectEnabledIntegrationCard('Helius')
     expect(screen.getByText('Verify the Helius-backed wallet data path')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Read wallet with Helius' }))
     expect(await screen.findByText('Helius wallet read complete')).toBeInTheDocument()
     expect(window.daemon.wallet.holdings).toHaveBeenCalledWith('wallet-1')
 
-    await userEvent.click(screen.getByText('Jupiter'))
+    await selectEnabledIntegrationCard('Jupiter')
     expect(screen.getByText('Get to a first Jupiter quote before any signing')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Preview Jupiter quote' }))
     expect(await screen.findByText('Jupiter quote ready')).toBeInTheDocument()
@@ -548,7 +565,7 @@ describe('App surface DOM coverage', () => {
       slippageBps: 50,
     })
 
-    await userEvent.click(screen.getByText('Metaplex'))
+    await selectEnabledIntegrationCard('Metaplex')
     expect(screen.getByText('Create a first metadata draft inside the project')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Create metadata draft' }))
     expect(await screen.findByText('Metaplex draft created')).toBeInTheDocument()
@@ -557,7 +574,7 @@ describe('App surface DOM coverage', () => {
       expect.stringContaining('"name": "DAEMON Collection Example"'),
     )
 
-    await userEvent.click(screen.getByText('Light Protocol'))
+    await selectEnabledIntegrationCard('Light Protocol')
     expect(screen.getByText('Scaffold the first Light compression starter')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Install Light SDK' }))
     expect(await screen.findByText('Install Light SDK opened')).toBeInTheDocument()
@@ -565,7 +582,7 @@ describe('App surface DOM coverage', () => {
       startupCommand: 'pnpm add @lightprotocol/stateless.js @lightprotocol/compressed-token',
     }))
 
-    await userEvent.click(screen.getByText('Streamlock'))
+    await selectEnabledIntegrationCard('Streamlock')
     expect(screen.getByText('Scaffold the first Streamlock Operator API check')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Create operator starter' }))
     expect(await screen.findByText('Streamlock starter created')).toBeInTheDocument()
@@ -607,7 +624,7 @@ describe('App surface DOM coverage', () => {
     render(<IntegrationCommandCenter />)
     expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
 
-    await selectIntegrationCard('Streamlock')
+    await selectEnabledIntegrationCard('Streamlock')
     await userEvent.click(screen.getByRole('button', { name: 'Create operator starter' }))
     expect(await screen.findByText('Streamlock starter created')).toBeInTheDocument()
     expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src')
@@ -628,7 +645,7 @@ describe('App surface DOM coverage', () => {
       startupCommand: 'pnpm run streamlock:operator-check',
     }))
 
-    await selectIntegrationCard('Metaplex')
+    await selectEnabledIntegrationCard('Metaplex')
     await userEvent.click(screen.getByRole('button', { name: 'Create metadata draft' }))
     expect(await screen.findByText('Metaplex draft created')).toBeInTheDocument()
     expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/assets')
@@ -638,7 +655,7 @@ describe('App surface DOM coverage', () => {
       expect.stringContaining('"name": "DAEMON Collection Example"'),
     )
 
-    await selectIntegrationCard('Light Protocol')
+    await selectEnabledIntegrationCard('Light Protocol')
     await userEvent.click(screen.getByRole('button', { name: 'Create compression starter' }))
     expect(await screen.findByText('Light starter created')).toBeInTheDocument()
     expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/light')
@@ -648,7 +665,7 @@ describe('App surface DOM coverage', () => {
     )
     expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"light:check"')
 
-    await selectIntegrationCard('MagicBlock')
+    await selectEnabledIntegrationCard('MagicBlock')
     await userEvent.click(screen.getByRole('button', { name: 'Create ER readiness starter' }))
     expect(await screen.findByText('MagicBlock starter created')).toBeInTheDocument()
     expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/magicblock')
@@ -658,7 +675,7 @@ describe('App surface DOM coverage', () => {
     )
     expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"magicblock:check"')
 
-    await selectIntegrationCard('deBridge')
+    await selectEnabledIntegrationCard('deBridge')
     await userEvent.click(screen.getByRole('button', { name: 'Create route preview starter' }))
     expect(await screen.findByText('deBridge starter created')).toBeInTheDocument()
     expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/debridge')
@@ -668,7 +685,7 @@ describe('App surface DOM coverage', () => {
     )
     expect(writtenFiles.get('C:/work/daemon-app/package.json')).toContain('"debridge:preview"')
 
-    await selectIntegrationCard('Squads')
+    await selectEnabledIntegrationCard('Squads')
     await userEvent.click(screen.getByRole('button', { name: 'Create multisig inspection starter' }))
     expect(await screen.findByText('Squads starter created')).toBeInTheDocument()
     expect(createDir).toHaveBeenCalledWith('C:/work/daemon-app/src/squads')
@@ -733,6 +750,7 @@ describe('App surface DOM coverage', () => {
     expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
 
     await userEvent.click(screen.getAllByText('SendAI Agent Kit')[0].closest('button')!)
+    await enableSelectedIntegration()
     await userEvent.click(screen.getByRole('button', { name: 'Open MCP setup' }))
 
     expect(useUIStore.getState().integrationCommandSelectionId).toBeNull()
