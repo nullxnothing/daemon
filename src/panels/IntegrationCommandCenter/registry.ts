@@ -120,6 +120,27 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'kausalayer',
+    name: 'KausaLayer',
+    tagline: 'Solana stealth pockets and maze routing',
+    description: 'Use KausaLayer for privacy-oriented Solana workflows: stealth pockets, private SOL routing, dynamic maze routing, sweeps, swaps, wallet slots, history, and agent-accessible MCP tooling.',
+    category: 'infra',
+    docsUrl: 'https://docs.kausalayer.com',
+    installCommand: 'npx -y @kausalayer/mcp',
+    recommendedFor: ['privacy infrastructure', 'maze routing', 'stealth pockets', 'private SOL routing', 'agent-accessible MCP tools', 'wallet history', 'private swaps'],
+    requirements: [
+      { type: 'env', key: 'KAUSALAYER_API_KEY', label: 'KausaLayer API key' },
+      { type: 'mcp', key: 'kausalayer', label: 'KausaLayer MCP enabled' },
+      { type: 'env', key: 'SOLANA_RPC_URL', label: 'Solana RPC URL', optional: true },
+    ],
+    actions: [
+      { id: 'check-kausalayer-config', label: 'Check config', description: 'Verify the project has the KausaLayer API key and MCP route ready.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'open-kausalayer-mcp-register', label: 'Get API key', description: 'Open the KausaLayer MCP API key page for wallet connection and agent access.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-kausalayer-docs', label: 'Open docs', description: 'Open the KausaLayer documentation for stealth pockets, maze routes, sweeps, swaps, and wallet slots.', kind: 'setup', risk: 'read-only' },
+      { id: 'preview-kausalayer-privacy-flow', label: 'Preview privacy flow', description: 'Review the pocket and maze-routing setup path before any wallet or transaction action is enabled.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
+  {
     id: 'helius',
     name: 'Helius',
     tagline: 'RPC, DAS, webhooks, priority fees',

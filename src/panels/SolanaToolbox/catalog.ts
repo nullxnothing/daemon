@@ -79,6 +79,12 @@ export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
     category: 'payments',
     docsUrl: 'https://github.com/coinbase/x402',
   },
+  kausalayer: {
+    label: 'KausaLayer',
+    description: 'Stealth pockets, private SOL routing, maze routing, sweeps, swaps, wallet slots, and history for Solana agents.',
+    category: 'wallets',
+    docsUrl: 'https://docs.kausalayer.com',
+  },
 }
 
 export const SOLANA_AGENT_SKILL_GROUPS: Array<{ label: string; skills: string[] }> = [
@@ -246,6 +252,16 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     description: 'V4 multisig, smart accounts, vault inspection, and treasury safety workflows for Solana teams.',
     docsUrl: 'https://docs.squads.so/main/development',
     skill: '/squads',
+  },
+  {
+    id: 'kausalayer',
+    label: 'KausaLayer',
+    area: 'Protocols',
+    kind: 'MCP',
+    status: 'native',
+    description: 'Solana privacy infrastructure for stealth pockets, private SOL routing, maze routing, sweeps, swaps, wallet slots, and agent-side history.',
+    docsUrl: 'https://docs.kausalayer.com',
+    mcpName: 'kausalayer',
   },
   {
     id: 'surfpool',

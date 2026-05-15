@@ -10,7 +10,7 @@ import type {
 import * as SecureKey from './SecureKeyService'
 
 const PRO_JWT_KEY = 'daemon_pro_jwt'
-export const DAEMON_AI_STAGING_API_BASE = 'https://daemon-ai-cloud-v4-staging.onrender.com'
+export const DAEMON_AI_DEFAULT_API_BASE = 'https://daemon-ai-cloud-v4-staging.onrender.com'
 
 export type HostedUsageReport = {
   inputTokens?: number
@@ -60,7 +60,7 @@ type ApiBody<T> = {
 
 export function getDaemonAICloudBase(): string {
   const configuredBase = process.env.DAEMON_AI_API_BASE?.trim()
-  const fallbackBase = process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD === '1' ? '' : DAEMON_AI_STAGING_API_BASE
+  const fallbackBase = process.env.DAEMON_AI_DISABLE_DEFAULT_CLOUD === '1' ? '' : DAEMON_AI_DEFAULT_API_BASE
   return (configuredBase || fallbackBase).replace(/\/+$/, '')
 }
 

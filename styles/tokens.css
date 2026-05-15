@@ -218,6 +218,8 @@
   --brand-light: #2dd4bf;
   --brand-magicblock: #3b82f6;
   --brand-spawnagents: #c41e3a;
+  --brand-kausalayer: #0f766e;
+  --brand-kausalayer-warm: #d97706;
   --brand-discord: #5865f2;
   --brand-spawnagents-deep: #1d080d;
   --brand-spawnagents-glow: rgba(196, 30, 58, 0.5);
@@ -243,6 +245,7 @@
   --integration-surface-magicblock: #040812;
   --integration-surface-debridge: #060606;
   --integration-surface-squads: #050505;
+  --integration-surface-kausalayer: #03110f;
 
   /* File explorer glyph accents */
   --file-accent-ts: #7cc7ff;

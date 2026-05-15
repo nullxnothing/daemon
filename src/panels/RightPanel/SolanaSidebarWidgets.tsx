@@ -62,16 +62,12 @@ function readinessState(ready: boolean, blocked = false) {
 
 export function SolanaReadinessSidebarWidget() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
-  const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
   const dashboard = useWalletStore((s) => s.dashboard)
   const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const refreshWallets = useWalletStore((s) => s.refresh)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
   const validator = useSolanaToolboxStore((s) => s.validator)
-  const loadMcps = useSolanaToolboxStore((s) => s.loadMcps)
-  const detectProject = useSolanaToolboxStore((s) => s.detectProject)
-  const loadToolchain = useSolanaToolboxStore((s) => s.loadToolchain)
   const refreshValidatorStatus = useSolanaToolboxStore((s) => s.refreshValidatorStatus)
   const [hasHelius, setHasHelius] = useState(false)
   const [hasJupiter, setHasJupiter] = useState(false)
@@ -125,33 +121,6 @@ export function SolanaReadinessSidebarWidget() {
       window.clearInterval(interval)
     }
   }, [activeProjectId, lowPowerMode, refreshValidatorStatus, refreshWallets])
-
-  useEffect(() => {
-    let cancelled = false
-    const load = () => {
-      if (cancelled) return
-      if (!activeProjectPath) {
-        void loadToolchain(undefined)
-        return
-      }
-      void Promise.all([
-        loadMcps(activeProjectPath),
-        detectProject(activeProjectPath),
-        loadToolchain(activeProjectPath),
-      ])
-    }
-
-    if (lowPowerMode) {
-      const timer = window.setTimeout(load, 10_000)
-      return () => {
-        cancelled = true
-        window.clearTimeout(timer)
-      }
-    }
-
-    load()
-    return () => { cancelled = true }
-  }, [activeProjectPath, detectProject, loadMcps, loadToolchain, lowPowerMode])
 
   useEffect(() => {
     let cancelled = false

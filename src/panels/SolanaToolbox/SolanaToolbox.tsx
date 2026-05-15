@@ -88,17 +88,20 @@ export function SolanaToolbox() {
   const refreshValidatorStatus = useSolanaToolboxStore((s) => s.refreshValidatorStatus)
 
   useEffect(() => {
-    if (activeProjectPath) {
-      void loadMcps(activeProjectPath)
-      void detectProject(activeProjectPath)
-      void loadToolchain(activeProjectPath)
-    }
-  }, [activeProjectPath, loadMcps, detectProject, loadToolchain])
+    if (!activeProjectPath) return
+
+    const needsMcps = activeView === 'connect' || activeView === 'transact'
+    const needsProjectDiagnostics = activeView === 'diagnose' || activeView === 'build' || activeView === 'monitor' || activeView === 'seeker'
+    const needsToolchain = activeView === 'debug' || activeView === 'build' || activeView === 'seeker'
+
+    if (needsMcps) void loadMcps(activeProjectPath)
+    if (needsProjectDiagnostics) void detectProject(activeProjectPath)
+    if (needsToolchain) void loadToolchain(activeProjectPath)
+  }, [activeProjectPath, activeView, loadMcps, detectProject, loadToolchain])
 
   useEffect(() => {
     void refreshValidatorStatus()
-    void loadToolchain(activeProjectPath ?? undefined)
-  }, [refreshValidatorStatus, loadToolchain, activeProjectPath])
+  }, [refreshValidatorStatus])
 
   const handleScaffoldX402 = () => {
     if (activeProjectId) void scaffoldX402(activeProjectId)

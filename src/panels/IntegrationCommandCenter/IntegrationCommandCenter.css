@@ -179,6 +179,25 @@
   background: color-mix(in srgb, var(--green-glow) 42%, var(--card-bg));
 }
 
+.icc-card--off {
+  border-color: color-mix(in srgb, var(--card-border) 72%, transparent);
+  background: color-mix(in srgb, var(--card-bg) 74%, var(--s0));
+  opacity: 0.74;
+}
+
+.icc-card--off:hover,
+.icc-card--off.selected {
+  border-color: color-mix(in srgb, var(--green) 20%, var(--card-border));
+  background: color-mix(in srgb, var(--green-glow) 18%, var(--card-bg));
+  opacity: 1;
+}
+
+.icc-card--off .icc-card-name,
+.icc-card--off .icc-card-tagline,
+.icc-card--off .icc-card-desc {
+  color: var(--t4);
+}
+
 .icc-card--streamlock {
   min-height: 136px;
   align-items: center;
@@ -506,6 +525,7 @@
 .icc-card--magicblock,
 .icc-card--debridge,
 .icc-card--squads,
+.icc-card--kausalayer,
 .icc-card--spawnagents {
   min-height: 136px;
   align-items: center;
@@ -519,6 +539,7 @@
 .icc-card--magicblock::before,
 .icc-card--debridge::before,
 .icc-card--squads::before,
+.icc-card--kausalayer::before,
 .icc-card--spawnagents::before {
   content: '';
   position: absolute;
@@ -538,6 +559,8 @@
 .icc-card--debridge .icc-card-main,
 .icc-card--squads .icc-status-dot,
 .icc-card--squads .icc-card-main,
+.icc-card--kausalayer .icc-status-dot,
+.icc-card--kausalayer .icc-card-main,
 .icc-card--spawnagents .icc-status-dot,
 .icc-card--spawnagents .icc-card-main {
   position: relative;
@@ -550,6 +573,7 @@
 .icc-card--magicblock .icc-card-name,
 .icc-card--debridge .icc-card-name,
 .icc-card--squads .icc-card-name,
+.icc-card--kausalayer .icc-card-name,
 .icc-card--spawnagents .icc-card-name {
   color: var(--on-accent);
 }
@@ -560,6 +584,7 @@
 .icc-card--magicblock .icc-card-tagline,
 .icc-card--debridge .icc-card-tagline,
 .icc-card--squads .icc-card-tagline,
+.icc-card--kausalayer .icc-card-tagline,
 .icc-card--spawnagents .icc-card-tagline {
   max-width: 260px;
   color: rgba(255, 255, 255, 0.76);
@@ -571,6 +596,7 @@
 .icc-card--magicblock .icc-card-desc,
 .icc-card--debridge .icc-card-desc,
 .icc-card--squads .icc-card-desc,
+.icc-card--kausalayer .icc-card-desc,
 .icc-card--spawnagents .icc-card-desc {
   max-width: 310px;
   color: rgba(255, 255, 255, 0.62);
@@ -756,6 +782,40 @@
   color: rgba(255, 255, 255, 0.88);
 }
 
+.icc-card--kausalayer {
+  border-color: color-mix(in srgb, var(--brand-kausalayer) 34%, var(--card-border));
+  background: var(--integration-surface-kausalayer);
+}
+
+.icc-card--kausalayer::before {
+  background:
+    radial-gradient(circle at 84% 38%, color-mix(in srgb, var(--brand-kausalayer-warm) 28%, transparent) 0 11%, transparent 30%),
+    radial-gradient(circle at 76% 68%, color-mix(in srgb, var(--brand-kausalayer) 30%, transparent) 0 12%, transparent 34%),
+    linear-gradient(90deg, rgba(3, 17, 15, 0.96) 0%, rgba(3, 17, 15, 0.76) 45%, rgba(3, 17, 15, 0.3) 100%),
+    linear-gradient(0deg, rgba(3, 17, 15, 0.9) 0%, rgba(3, 17, 15, 0.14) 58%, rgba(3, 17, 15, 0.64) 100%),
+    url('/kausalayer.svg');
+  background-position: center, center, center, center, right 24px center;
+  background-repeat: no-repeat;
+  background-size: auto, auto, auto, auto, auto 76%;
+}
+
+.icc-card--kausalayer:hover,
+.icc-card--kausalayer.selected {
+  border-color: color-mix(in srgb, var(--brand-kausalayer-warm) 46%, var(--brand-kausalayer));
+  background: var(--integration-surface-kausalayer);
+}
+
+.icc-card--kausalayer .icc-status-dot {
+  background: linear-gradient(135deg, var(--brand-kausalayer), var(--brand-kausalayer-warm));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-kausalayer) 16%, transparent), 0 0 18px color-mix(in srgb, var(--brand-kausalayer-warm) 24%, transparent);
+}
+
+.icc-card--kausalayer .icc-status-badge {
+  border-color: color-mix(in srgb, var(--brand-kausalayer) 36%, var(--brand-kausalayer-warm));
+  background: color-mix(in srgb, var(--brand-kausalayer) 12%, transparent);
+  color: rgba(227, 255, 249, 0.92);
+}
+
 .icc-status-dot {
   width: 9px;
   height: 9px;
@@ -767,6 +827,7 @@
 .icc-status-dot.ready { background: var(--green); }
 .icc-status-dot.partial { background: var(--amber); }
 .icc-status-dot.missing { background: var(--t3); }
+.icc-status-dot.off { background: color-mix(in srgb, var(--t4) 58%, transparent); }
 
 .icc-card-main {
   display: flex;
@@ -829,6 +890,12 @@
 .icc-status-badge.partial {
   border-color: rgba(245, 158, 11, 0.35);
   color: var(--amber);
+}
+
+.icc-status-badge.off {
+  border-color: color-mix(in srgb, var(--card-border) 82%, transparent);
+  background: color-mix(in srgb, var(--s1) 70%, transparent);
+  color: var(--t4);
 }
 
 .icc-detail {
@@ -990,6 +1057,18 @@
   background-size: cover;
 }
 
+.icc-detail--kausalayer .icc-detail-head::before {
+  background:
+    radial-gradient(circle at 82% 38%, color-mix(in srgb, var(--brand-kausalayer-warm) 30%, transparent) 0 10%, transparent 30%),
+    radial-gradient(circle at 76% 70%, color-mix(in srgb, var(--brand-kausalayer) 32%, transparent) 0 12%, transparent 34%),
+    linear-gradient(90deg, rgba(3, 17, 15, 0.94) 0%, rgba(3, 17, 15, 0.68) 42%, rgba(3, 17, 15, 0.2) 100%),
+    linear-gradient(0deg, rgba(3, 17, 15, 0.88) 0%, rgba(3, 17, 15, 0.16) 58%, rgba(3, 17, 15, 0.62) 100%),
+    url('/kausalayer.svg');
+  background-position: center, center, center, center, right 44px center;
+  background-repeat: no-repeat;
+  background-size: auto, auto, auto, auto, auto 86%;
+}
+
 .icc-detail-kicker,
 .icc-section-title,
 .icc-install span {
@@ -1018,6 +1097,17 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.icc-integration-off {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--s1) 82%, transparent);
+}
+
+.icc-integration-off p {
+  margin: 0;
 }
 
 .icc-detail-section--compact {
@@ -1717,6 +1807,7 @@
   .icc-card--magicblock,
   .icc-card--debridge,
   .icc-card--squads,
+  .icc-card--kausalayer,
   .icc-card--spawnagents {
     min-height: 112px;
   }
@@ -1865,6 +1956,7 @@
   .icc-card--magicblock,
   .icc-card--debridge,
   .icc-card--squads,
+  .icc-card--kausalayer,
   .icc-card--spawnagents {
     min-height: 88px;
     padding: 8px;
@@ -1939,6 +2031,7 @@
   .icc-card--magicblock,
   .icc-card--debridge,
   .icc-card--squads,
+  .icc-card--kausalayer,
   .icc-card--spawnagents {
     min-height: 70px;
   }
@@ -1992,6 +2085,7 @@
   .icc-card--magicblock,
   .icc-card--debridge,
   .icc-card--squads,
+  .icc-card--kausalayer,
   .icc-card--spawnagents {
     min-height: 62px;
     padding: 7px;
@@ -2054,6 +2148,7 @@
   .icc-card--magicblock,
   .icc-card--debridge,
   .icc-card--squads,
+  .icc-card--kausalayer,
   .icc-card--spawnagents {
     min-height: 100px;
   }

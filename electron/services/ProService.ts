@@ -18,13 +18,14 @@ import * as SecureKey from './SecureKeyService'
 import { withKeypair } from './SolanaService'
 import { transferToken } from './WalletService'
 import { getPlanFeatures, normalizePlan } from './EntitlementService'
+import { DAEMON_AI_DEFAULT_API_BASE } from './DaemonAICloudClient'
 
 const DEFAULT_PRO_API_BASE =
   process.env.NODE_ENV === 'production'
-    ? 'https://daemon-pro-api-production.up.railway.app'
+    ? process.env.DAEMON_AI_API_BASE?.trim() || DAEMON_AI_DEFAULT_API_BASE
     : 'http://127.0.0.1:4021'
 
-const DAEMON_PRO_API_BASE = process.env.DAEMON_PRO_API_BASE ?? DEFAULT_PRO_API_BASE
+const DAEMON_PRO_API_BASE = (process.env.DAEMON_PRO_API_BASE ?? DEFAULT_PRO_API_BASE).replace(/\/+$/, '')
 const DEV_BYPASS_ENABLED =
   process.env.NODE_ENV !== 'production' && process.env.DAEMON_PRO_DEV_BYPASS === '1'
 const DEV_BYPASS_FEATURES: ProFeature[] = getPlanFeatures('pro')
