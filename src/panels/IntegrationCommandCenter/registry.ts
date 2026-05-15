@@ -103,6 +103,24 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'styxx',
+    name: 'Styxx',
+    tagline: 'Cognitive vitals for AI agents',
+    description: 'Use Styxx as an agent observability layer for DAEMON AI, Claude, Codex, and MCP workflows. Preview hallucination, refusal calibration, tool-call drift, sycophancy, conversation loops, deception signatures, plan-action gap, overconfidence, and goal drift before agent output becomes code, commands, or shipped product.',
+    category: 'agent',
+    docsUrl: 'https://fathom.darkflobi.com/styxx',
+    installCommand: 'python -m pip install -U styxx',
+    recommendedFor: ['agent safety', 'AI observability', 'hallucination checks', 'tool-call drift', 'plan-action gap', 'release checks', 'agent vitals', 'cognitive scoring'],
+    requirements: [
+      { type: 'toolchain', key: 'python', label: 'Python runtime for local Styxx scans', optional: true },
+      { type: 'external-url', key: 'https://fathom.darkflobi.com/styxx', label: 'Styxx docs and package reference' },
+    ],
+    actions: [
+      { id: 'preview-styxx-agent-vitals', label: 'Preview agent vitals', description: 'Show how DAEMON can use Styxx to score agent outputs before patches, terminal commands, or release checks.', kind: 'planned', risk: 'read-only' },
+      { id: 'open-styxx-docs', label: 'Open Styxx docs', description: 'Open the Styxx cognitive-vitals docs and install reference.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'helius',
     name: 'Helius',
     tagline: 'RPC, DAS, webhooks, priority fees',
