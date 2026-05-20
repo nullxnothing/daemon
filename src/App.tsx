@@ -229,9 +229,11 @@ function App() {
         if (guard.cancelled) return
         const deferredStartupTasks: Array<[string, Promise<unknown>]> = [
           ['loading plugins...', usePluginStore.getState().load()],
-          ['loading onboarding...', useOnboardingStore.getState().loadProgress()],
           ['loading activity...', useNotificationsStore.getState().loadActivity()],
         ]
+        if (!smokeMode) {
+          deferredStartupTasks.push(['loading onboarding...', useOnboardingStore.getState().loadProgress()])
+        }
         void Promise.allSettled(deferredStartupTasks.map(([, task]) => task)).then((deferredResults) => {
           if (!smokeMode || guard.cancelled) return
           const rejected = deferredResults.filter((result) => result.status === 'rejected').length
@@ -539,7 +541,7 @@ function App() {
         />
       )}
 
-      {showResumeBanner && (
+      {!smokeMode && showResumeBanner && (
         <div className="resume-banner">
           <span className="resume-banner-text">Continue setting up DAEMON?</span>
           <button
@@ -558,10 +560,10 @@ function App() {
           </button>
         </div>
       )}
-      {wizardOpen && <OnboardingWizard />}
+      {!smokeMode && wizardOpen && <OnboardingWizard />}
       {launchWizardOpen && <LaunchWizard />}
 
-      {showTourOffer && (
+      {!smokeMode && showTourOffer && (
         <div className="wizard-overlay">
           <div className="tour-offer-card">
             <div className="tour-offer-title">Setup complete</div>
