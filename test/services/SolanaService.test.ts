@@ -39,6 +39,7 @@ import {
 
 function mockInfrastructureSettings(overrides: Record<string, unknown> = {}) {
   mockGetWalletInfrastructureSettings.mockReturnValue({
+    cluster: 'devnet',
     rpcProvider: 'helius',
     quicknodeRpcUrl: '',
     customRpcUrl: '',
@@ -116,13 +117,13 @@ describe('SolanaService transaction execution', () => {
     }, 'confirmed')
   })
 
-  it('logs when falling back to public mainnet RPC', () => {
+  it('logs when falling back to public RPC for the selected cluster', () => {
     mockInfrastructureSettings({ rpcProvider: 'public' })
 
-    expect(getRpcEndpoint()).toBe('https://api.mainnet-beta.solana.com')
+    expect(getRpcEndpoint()).toBe('https://api.devnet.solana.com')
     expect(mockLogWarn).toHaveBeenCalledWith(
       'SolanaService',
-      expect.stringContaining('Using public Solana mainnet RPC fallback'),
+      expect.stringContaining('Using public Solana RPC fallback'),
       expect.objectContaining({ reason: 'Public Solana RPC is selected.' }),
     )
   })

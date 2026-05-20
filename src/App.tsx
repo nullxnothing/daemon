@@ -163,18 +163,11 @@ function App() {
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
 
   const centerRef = useRef<HTMLDivElement>(null)
-  const [windowHeight, setWindowHeight] = useState(() => window.innerHeight)
-  useEffect(() => {
-    const onResize = () => setWindowHeight(window.innerHeight)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  const halfCenter = Math.round((windowHeight - 80) / 2)
   const { size: terminalHeight, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
     max: 99999,
-    initial: halfCenter,
+    initial: Math.round((window.innerHeight - 80) / 2),
     containerRef: centerRef,
   })
 
@@ -561,7 +554,7 @@ function App() {
             className="resume-banner-btn secondary"
             onClick={() => useOnboardingStore.getState().dismissBanner()}
           >
-            Dismiss
+            Do not show again
           </button>
         </div>
       )}

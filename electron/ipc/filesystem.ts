@@ -72,6 +72,7 @@ export function registerFilesystemHandlers() {
     const ext = path.extname(filePath).toLowerCase()
     if (!ALLOWED.has(ext)) throw new Error('Not an image file')
     const buffer = Buffer.from(base64, 'base64')
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, buffer)
   }))
 

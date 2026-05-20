@@ -42,4 +42,13 @@ describe('DaemonAIAgentService contract helpers', () => {
     expect(input.allowedTools).toEqual(['run_tests', 'read_file'])
     expect(() => normalizeAgentRunInput({ task: '   ' })).toThrow('task required')
   })
+
+  it('preserves auto access mode for agent runs', () => {
+    const input = normalizeAgentRunInput({
+      task: 'route this through the configured AI mode',
+      accessMode: 'auto',
+    })
+
+    expect(input.accessMode).toBe('auto')
+  })
 })

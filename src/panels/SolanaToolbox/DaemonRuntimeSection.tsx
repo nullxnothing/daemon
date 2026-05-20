@@ -22,6 +22,7 @@ interface DaemonRuntimeSectionProps {
 }
 
 const DEFAULT_RUNTIME: SolanaRuntimeStatusSummary = {
+  cluster: 'devnet',
   rpc: {
     label: 'Helius',
     detail: 'Helius key missing',

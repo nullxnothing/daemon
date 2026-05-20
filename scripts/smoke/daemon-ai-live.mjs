@@ -6,18 +6,27 @@ const requireAllLiveJwts = process.env.DAEMON_AI_REQUIRE_ALL_LIVE_JWTS === '1'
 const releaseFinal = process.env.DAEMON_AI_RELEASE_FINAL === '1'
 const allowNonProduction = process.env.DAEMON_AI_LIVE_ALLOW_NON_PRODUCTION === '1'
 
+function envValue(name) {
+  return process.env[name]?.trim() || ''
+}
+
+const smokeJwt = envValue('DAEMON_AI_SMOKE_JWT')
+const proJwt = envValue('DAEMON_PRO_JWT')
+const operatorJwt = envValue('DAEMON_OPERATOR_JWT')
+const ultraJwt = envValue('DAEMON_ULTRA_JWT')
+
 const entitlementInputs = [
   {
     label: 'pro',
-    token: process.env.DAEMON_PRO_JWT ?? process.env.DAEMON_AI_SMOKE_JWT ?? '',
-    expectedPlan: process.env.DAEMON_AI_SMOKE_JWT && !process.env.DAEMON_PRO_JWT ? null : 'pro',
+    token: proJwt || smokeJwt,
+    expectedPlan: smokeJwt && !proJwt ? null : 'pro',
     allowedLane: 'standard',
     deniedLane: 'premium',
     chatLane: 'fast',
   },
   {
     label: 'operator',
-    token: process.env.DAEMON_OPERATOR_JWT ?? '',
+    token: operatorJwt,
     expectedPlan: 'operator',
     allowedLane: 'reasoning',
     deniedLane: 'premium',
@@ -25,7 +34,7 @@ const entitlementInputs = [
   },
   {
     label: 'ultra',
-    token: process.env.DAEMON_ULTRA_JWT ?? '',
+    token: ultraJwt,
     expectedPlan: 'ultra',
     allowedLane: 'premium',
     deniedLane: null,
@@ -58,12 +67,12 @@ if (releaseFinal && !allowNonProduction && isNonProductionBase(apiBase)) {
 if (entitlementInputs.length === 0) {
   fail('Set DAEMON_PRO_JWT, DAEMON_OPERATOR_JWT, DAEMON_ULTRA_JWT, or DAEMON_AI_SMOKE_JWT to valid entitlement tokens.')
 }
-if (requireAllLiveJwts && entitlementInputs.some((entry) => entry.label === 'pro' && process.env.DAEMON_AI_SMOKE_JWT && !process.env.DAEMON_PRO_JWT)) {
+if (requireAllLiveJwts && entitlementInputs.some((entry) => entry.label === 'pro' && smokeJwt && !proJwt)) {
   fail('DAEMON_AI_REQUIRE_ALL_LIVE_JWTS=1 requires DAEMON_PRO_JWT, not only DAEMON_AI_SMOKE_JWT.')
 }
 if (requireAllLiveJwts) {
   for (const name of ['DAEMON_PRO_JWT', 'DAEMON_OPERATOR_JWT', 'DAEMON_ULTRA_JWT']) {
-    if (!process.env[name]) fail(`DAEMON_AI_REQUIRE_ALL_LIVE_JWTS=1 requires ${name}.`)
+    if (!envValue(name)) fail(`DAEMON_AI_REQUIRE_ALL_LIVE_JWTS=1 requires ${name}.`)
   }
 }
 

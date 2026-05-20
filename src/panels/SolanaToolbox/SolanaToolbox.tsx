@@ -15,8 +15,8 @@ import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
 import { ProgramMonitorPanel } from './ProgramMonitorPanel'
 import { BuildDeployPanel } from './BuildDeployPanel'
 import { TransactionInspector } from './TransactionInspector'
-import { SeekerCompanionPanel } from './SeekerCompanionPanel'
 import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge, scaffoldSquads } from './scaffolding'
+import { getSolanaProjectEmptyCopy, getSolanaProjectEmptyTitle } from './solanaToolboxCopy'
 import './SolanaToolbox.css'
 
 const SOLANA_VIEWS = [
@@ -26,44 +26,24 @@ const SOLANA_VIEWS = [
     summary: 'Readiness, runtime, and first moves',
   },
   {
-    id: 'seeker',
-    label: 'Seeker',
-    summary: 'Mobile command center and approval queue',
-  },
-  {
     id: 'connect',
     label: 'Connect',
-    summary: 'Providers, MCPs, and wallet paths',
-  },
-  {
-    id: 'diagnose',
-    label: 'Diagnose',
-    summary: 'Anchor.toml, IDL, keypair, and program drift',
+    summary: 'Wallet, RPC, providers, and MCPs',
   },
   {
     id: 'build',
     label: 'Build',
-    summary: 'Build, test, deploy, and IDL loops',
-  },
-  {
-    id: 'inspect',
-    label: 'Inspect',
-    summary: 'Transaction logs, signatures, and replay prep',
-  },
-  {
-    id: 'monitor',
-    label: 'Monitor',
-    summary: 'Program state and upgrade authority lookups',
-  },
-  {
-    id: 'transact',
-    label: 'Transact',
-    summary: 'Quotes, execution, and agent capabilities',
+    summary: 'Build, test, deploy, Shipline proof',
   },
   {
     id: 'launch',
     label: 'Launch',
     summary: 'Protocol flows and launch-oriented surfaces',
+  },
+  {
+    id: 'inspect',
+    label: 'Inspect',
+    summary: 'Transactions, programs, and receipts',
   },
   {
     id: 'debug',
@@ -86,13 +66,15 @@ export function SolanaToolbox() {
   const detectProject = useSolanaToolboxStore((s) => s.detectProject)
   const loadToolchain = useSolanaToolboxStore((s) => s.loadToolchain)
   const refreshValidatorStatus = useSolanaToolboxStore((s) => s.refreshValidatorStatus)
+  const loading = useSolanaToolboxStore((s) => s.loading)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
 
   useEffect(() => {
     if (!activeProjectPath) return
 
-    const needsMcps = activeView === 'connect' || activeView === 'transact'
-    const needsProjectDiagnostics = activeView === 'diagnose' || activeView === 'build' || activeView === 'monitor' || activeView === 'seeker'
-    const needsToolchain = activeView === 'debug' || activeView === 'build' || activeView === 'seeker'
+    const needsMcps = activeView === 'start' || activeView === 'connect'
+    const needsProjectDiagnostics = activeView === 'start' || activeView === 'build' || activeView === 'inspect' || activeView === 'debug'
+    const needsToolchain = activeView === 'start' || activeView === 'debug' || activeView === 'build'
 
     if (needsMcps) void loadMcps(activeProjectPath)
     if (needsProjectDiagnostics) void detectProject(activeProjectPath)
@@ -135,9 +117,9 @@ export function SolanaToolbox() {
         <div className="solana-workflow-header">
           <div>
             <div className="solana-token-launch-kicker">Solana Workspace</div>
-            <h1 className="solana-workflow-title">Work through one Solana task at a time</h1>
+            <h1 className="solana-workflow-title">Ship Solana apps from one AI-native workspace</h1>
             <p className="solana-workflow-copy">
-              Use the same task language as Wallet and Integrations so setup, execution, launch, and debugging feel like one Solana workflow.
+              Open or scaffold a project, connect wallet and RPC, use project-aware agents, build safely, and keep deploy proof in one focused flow.
             </p>
           </div>
         </div>
@@ -159,6 +141,30 @@ export function SolanaToolbox() {
         </div>
 
         <div className="solana-view-panel">
+          {(!activeProjectPath || (projectInfo && !projectInfo.isSolanaProject)) && (
+            <section className="solana-project-empty-card">
+              <div>
+                <div className="solana-token-launch-kicker">{activeProjectPath ? 'Project context' : 'No project selected'}</div>
+                <h2>{getSolanaProjectEmptyTitle(activeProjectPath)}</h2>
+                <p>{getSolanaProjectEmptyCopy(activeProjectPath)}</p>
+              </div>
+              <div className="solana-project-empty-actions">
+                <button type="button" className="sol-btn green" onClick={() => openWorkspaceTool('starter')}>
+                  Open project starter
+                </button>
+                <button type="button" className="sol-btn" onClick={() => setActiveView('connect')}>
+                  Check RPC and integrations
+                </button>
+              </div>
+            </section>
+          )}
+
+          {activeProjectPath && loading && (
+            <div className="solana-loading-state" role="status">
+              Checking Solana project files, MCPs, and toolchain status...
+            </div>
+          )}
+
           {activeView === 'start' && (
             <>
               <div className="solana-validator-zone">
@@ -196,17 +202,6 @@ export function SolanaToolbox() {
             </>
           )}
 
-          {activeView === 'seeker' && (
-            <SeekerCompanionPanel
-              projectId={activeProjectId}
-              projectPath={activeProjectPath}
-              projectInfo={projectInfo}
-              toolchain={toolchain}
-              validator={validator}
-              mcps={mcps}
-            />
-          )}
-
           {activeView === 'connect' && (
             <>
               <div className="solana-validator-zone">
@@ -216,43 +211,6 @@ export function SolanaToolbox() {
                   onToggle={toggleMcp}
                 />
               </div>
-              <div className="solana-validator-zone">
-                <RuntimeStackSection />
-              </div>
-            </>
-          )}
-
-          {activeView === 'diagnose' && (
-            <ProjectDiagnosticsPanel projectInfo={projectInfo} />
-          )}
-
-          {activeView === 'build' && (
-            <BuildDeployPanel
-              projectId={activeProjectId}
-              projectPath={activeProjectPath}
-              projectInfo={projectInfo}
-              toolchain={toolchain}
-              validator={validator}
-            />
-          )}
-
-          {activeView === 'inspect' && (
-            <TransactionInspector
-              projectId={activeProjectId}
-              projectPath={activeProjectPath}
-            />
-          )}
-
-          {activeView === 'monitor' && (
-            <ProgramMonitorPanel
-              projectId={activeProjectId}
-              projectPath={activeProjectPath}
-              projectInfo={projectInfo}
-            />
-          )}
-
-          {activeView === 'transact' && (
-            <>
               <div className="solana-validator-zone">
                 <RuntimeStackSection />
               </div>
@@ -272,6 +230,30 @@ export function SolanaToolbox() {
             </>
           )}
 
+          {activeView === 'build' && (
+            <BuildDeployPanel
+              projectId={activeProjectId}
+              projectPath={activeProjectPath}
+              projectInfo={projectInfo}
+              toolchain={toolchain}
+              validator={validator}
+            />
+          )}
+
+          {activeView === 'inspect' && (
+            <>
+              <TransactionInspector
+                projectId={activeProjectId}
+                projectPath={activeProjectPath}
+              />
+              <ProgramMonitorPanel
+                projectId={activeProjectId}
+                projectPath={activeProjectPath}
+                projectInfo={projectInfo}
+              />
+            </>
+          )}
+
           {activeView === 'launch' && (
             <>
               <div className="solana-validator-zone">
@@ -285,6 +267,7 @@ export function SolanaToolbox() {
 
           {activeView === 'debug' && (
             <>
+              <ProjectDiagnosticsPanel projectInfo={projectInfo} />
               <div className="solana-validator-zone">
                 <ToolchainSection toolchain={toolchain} />
               </div>

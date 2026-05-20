@@ -10,7 +10,11 @@ import { WalletSwapForm } from '../WalletSwapForm'
 import { VaultSection } from '../VaultSection'
 import { PnlHoldings } from '../PnlHoldings'
 import { WalletSendForm } from '../WalletSendForm'
+import { WalletReadinessChecklist } from '../WalletReadinessChecklist'
 import { buildSolanaRouteReadiness } from '../../../lib/solanaReadiness'
+import { getSolscanTxLabel, getSolscanTxUrl } from '../../../lib/solanaExplorer'
+import { describeWalletActionError } from '../walletCopy'
+import { compactAddress } from '../../../utils/textDisplay'
 
 interface Props {
   onRefresh: () => Promise<void>
@@ -42,6 +46,7 @@ export function WalletTab({ onRefresh }: Props) {
   const [genSuccess, setGenSuccess] = useState<string | null>(null)
   const [jupiterConfigured, setJupiterConfigured] = useState(false)
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>({
+    cluster: 'devnet',
     rpcProvider: 'helius',
     quicknodeRpcUrl: '',
     customRpcUrl: '',
@@ -86,8 +91,24 @@ export function WalletTab({ onRefresh }: Props) {
   const activeWalletMeta = dashboard.wallets.find((w) => w.id === activeWallet?.id)
   const hasKeypair = activeWalletMeta ? keypairCache[activeWalletMeta.id] === true : false
   const trackedWallets = dashboard.wallets
+  const walletIdsFingerprint = useMemo(() => trackedWallets.map((wallet) => wallet.id).join('|'), [trackedWallets])
   const holdingsPreview = activeWallet?.holdings.slice(0, 4) ?? []
   const executionLabel = walletInfrastructure.executionMode === 'jito' ? 'Jito path' : 'Standard RPC'
+  const explorerCluster = walletInfrastructure.cluster
+  const recipientWalletOptions = useMemo(() => (
+    activeWallet
+      ? dashboard.wallets
+        .filter((wallet) => wallet.id !== activeWallet.id)
+        .map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))
+      : []
+  ), [activeWallet, dashboard.wallets])
+  const activeWalletTokenOptions = useMemo(() => (
+    activeWallet
+      ? activeWallet.holdings
+        .filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL')
+        .map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))
+      : []
+  ), [activeWallet])
 
   useEffect(() => {
     if (trackedWallets.length === 0 && activeView === 'overview') {
@@ -107,10 +128,10 @@ export function WalletTab({ onRefresh }: Props) {
   }, [])
 
   useEffect(() => {
-    if (!dashboard.wallets) return
+    if (!trackedWallets) return
     const check = async () => {
       const cache: Record<string, boolean> = {}
-      for (const w of dashboard.wallets) {
+      for (const w of trackedWallets) {
         try {
           const res = await window.daemon.wallet.hasKeypair(w.id)
           cache[w.id] = res.ok && res.data === true
@@ -121,7 +142,7 @@ export function WalletTab({ onRefresh }: Props) {
       setKeypairCache(cache)
     }
     void check()
-  }, [dashboard.wallets])
+  }, [walletIdsFingerprint])
 
   useEffect(() => {
     if ((activeView === 'move' || activeView === 'overview') && activeWallet && !sendWalletId) {
@@ -139,7 +160,7 @@ export function WalletTab({ onRefresh }: Props) {
         setWalletBalances((prev) => ({ ...prev, [walletId]: data.sol }))
       }
     }).catch(() => {})
-  }, [sendWalletId, dashboard.wallets])
+  }, [sendWalletId])
 
   useEffect(() => {
     if (!sendWalletId || sendMode !== 'token') return
@@ -186,7 +207,7 @@ export function WalletTab({ onRefresh }: Props) {
     if (!activeWallet) return []
     return [
       { label: 'Active wallet', value: activeWallet.name, meta: truncateAddress(activeWallet.address) },
-      { label: 'Execution', value: executionLabel, meta: dashboard.heliusConfigured ? 'Helius connected' : 'Local mode' },
+      { label: 'Execution', value: executionLabel, meta: dashboard.heliusConfigured ? 'Helius connected' : 'Helius key missing' },
       { label: 'Can sign', value: hasKeypair ? 'Ready' : 'Watch-only', meta: hasKeypair ? 'Send, swap, export, receive' : 'Import or generate a signer to act' },
     ]
   }, [activeWallet, dashboard.heliusConfigured, executionLabel, hasKeypair])
@@ -370,13 +391,13 @@ export function WalletTab({ onRefresh }: Props) {
     const amount = parseFloat(sendAmount)
     if (sendMode === 'sol') {
       if (!sendDest.trim() || (!sendMax && (isNaN(amount) || amount <= 0))) {
-        setSendError('Invalid destination or amount')
+        setSendError('Enter a destination address and a SOL amount before review.')
         return
       }
       setPendingSend({ walletId: fromWalletId, mode: 'sol', dest: sendDest.trim(), amount: sendMax ? undefined : amount, sendMax })
     } else {
       if (!sendDest.trim() || !sendMint.trim() || (!sendMax && (isNaN(amount) || amount <= 0))) {
-        setSendError('Invalid destination, mint, or amount')
+        setSendError('Enter a destination address, token mint, and amount before review.')
         return
       }
       setPendingSend({ walletId: fromWalletId, mode: 'token', dest: sendDest.trim(), amount: sendMax ? undefined : amount, sendMax, mint: sendMint.trim() })
@@ -399,8 +420,8 @@ export function WalletTab({ onRefresh }: Props) {
     try {
       if (pendingSend.mode === 'sol') {
         const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount, sendMax: pendingSend.sendMax })
-        setPendingSend(null)
         if (res.ok && res.data) {
+          setPendingSend(null)
           setSendResult(res.data)
           activity.addActivity({
             kind: 'success',
@@ -408,23 +429,30 @@ export function WalletTab({ onRefresh }: Props) {
             message: `SOL send confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
             projectId: activeProjectId,
             projectName: activeProjectName,
+            artifacts: [{
+              type: 'transaction',
+              label: getSolscanTxLabel(explorerCluster),
+              value: res.data.signature,
+              href: getSolscanTxUrl(res.data.signature, explorerCluster),
+            }],
           })
           resetSendState()
           await onRefresh()
         } else {
+          const message = describeWalletActionError(res.error, 'SOL send failed. Nothing was submitted.')
           activity.addActivity({
             kind: 'error',
             context: 'Wallet',
-            message: res.error ?? 'SOL send failed',
+            message,
             projectId: activeProjectId,
             projectName: activeProjectName,
           })
-          setSendError(res.error ?? 'Send failed')
+          setSendError(message)
         }
       } else {
         const res = await window.daemon.wallet.sendToken({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, mint: pendingSend.mint!, amount: pendingSend.amount, sendMax: pendingSend.sendMax })
-        setPendingSend(null)
         if (res.ok && res.data) {
+          setPendingSend(null)
           setSendResult(res.data)
           activity.addActivity({
             kind: 'success',
@@ -432,20 +460,37 @@ export function WalletTab({ onRefresh }: Props) {
             message: `Token send confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
             projectId: activeProjectId,
             projectName: activeProjectName,
+            artifacts: [{
+              type: 'transaction',
+              label: getSolscanTxLabel(explorerCluster),
+              value: res.data.signature,
+              href: getSolscanTxUrl(res.data.signature, explorerCluster),
+            }],
           })
           resetSendState()
           await onRefresh()
         } else {
+          const message = describeWalletActionError(res.error, 'Token send failed. Nothing was submitted.')
           activity.addActivity({
             kind: 'error',
             context: 'Wallet',
-            message: res.error ?? 'Token send failed',
+            message,
             projectId: activeProjectId,
             projectName: activeProjectName,
           })
-          setSendError(res.error ?? 'Send failed')
+          setSendError(message)
         }
       }
+    } catch (err) {
+      const message = describeWalletActionError(err instanceof Error ? err.message : null, 'Send failed. Nothing was submitted.')
+      activity.addActivity({
+        kind: 'error',
+        context: 'Wallet',
+        message,
+        projectId: activeProjectId,
+        projectName: activeProjectName,
+      })
+      setSendError(message)
     } finally {
       setSendLoading(false)
       sendLockRef.current = false
@@ -580,6 +625,7 @@ export function WalletTab({ onRefresh }: Props) {
         walletName={activeWallet.name}
         holdings={activeWallet.holdings}
         executionMode={walletInfrastructure.executionMode}
+        cluster={walletInfrastructure.cluster}
         initialInputMint={preferredSwap?.inputMint}
         initialOutputMint={preferredSwap?.outputMint}
         onBack={() => {
@@ -601,7 +647,9 @@ export function WalletTab({ onRefresh }: Props) {
               {dashboard.portfolio.delta24hUsd >= 0 ? '+' : '-'}${formatUsd(Math.abs(dashboard.portfolio.delta24hUsd))} · {formatPct(dashboard.portfolio.delta24hPct)}
               <span className="wallet-delta-timeframe">24h</span>
             </div>
-            <div className="wallet-caption">{dashboard.portfolio.walletCount} wallet{dashboard.portfolio.walletCount !== 1 ? 's' : ''} tracked</div>
+            <div className="wallet-caption">
+              {dashboard.portfolio.walletCount} wallet{dashboard.portfolio.walletCount !== 1 ? 's' : ''} tracked · Cluster: {walletInfrastructure.cluster}
+            </div>
           </div>
           <div className="wallet-portfolio-grid">
             {walletActionCards.map((card) => (
@@ -674,48 +722,20 @@ export function WalletTab({ onRefresh }: Props) {
                 {hasKeypair && <button type="button" className="wallet-btn primary-soft" onClick={() => handleExportKeyStart(activeWallet.id)}>Export key</button>}
               </div>
             </div>
-            <div className="wallet-readiness-shell">
-              <div className="wallet-readiness-hero">
-                <span className="wallet-overview-label">Wallet readiness</span>
-                <strong>{walletReadiness.headline}</strong>
-                <p>{walletReadiness.description}</p>
-                <div className="wallet-readiness-progress">
-                  <span>{walletReadiness.readyCount}/{walletReadiness.totalCount} checks ready</span>
-                  <span>{activeProjectId ? 'Project-aware route' : 'Workspace route'}</span>
-                </div>
-                <div className="wallet-actions wallet-actions-wrap">
+            <WalletReadinessChecklist
+              readiness={walletReadiness}
+              routeLabel={activeProjectId ? 'Project-aware route' : 'Workspace route'}
+              activityDetail={transactions?.length ? `${transactions.length} recent transaction${transactions.length === 1 ? '' : 's'} loaded.` : 'No recent transactions loaded yet.'}
+              assetDetail={`${activeWallet.holdings.length} asset${activeWallet.holdings.length === 1 ? '' : 's'} tracked for this wallet.`}
+              actions={(
+                <>
                   {walletPrimaryAction ? (
                     <button type="button" className="wallet-btn primary" onClick={walletPrimaryAction.onClick}>{walletPrimaryAction.label}</button>
                   ) : null}
                   <button type="button" className="wallet-btn" onClick={walletSecondaryAction.onClick}>{walletSecondaryAction.label}</button>
-                </div>
-              </div>
-              <div className="wallet-readiness-grid">
-                {walletReadiness.items.map((item) => (
-                  <div key={item.label} className={`wallet-readiness-item${item.ready ? ' ready' : ''}`}>
-                    <span className={`wallet-readiness-dot${item.ready ? ' ready' : ''}`} />
-                    <div>
-                      <strong>{item.label}</strong>
-                      <p>{item.detail}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="wallet-readiness-item">
-                  <span className="wallet-readiness-dot ready" />
-                  <div>
-                    <strong>Activity snapshot</strong>
-                    <p>{transactions?.length ? `${transactions.length} recent transaction${transactions.length === 1 ? '' : 's'} loaded.` : 'No recent transactions loaded yet.'}</p>
-                  </div>
-                </div>
-                <div className="wallet-readiness-item">
-                  <span className="wallet-readiness-dot ready" />
-                  <div>
-                    <strong>Asset coverage</strong>
-                    <p>{activeWallet.holdings.length} asset{activeWallet.holdings.length === 1 ? '' : 's'} tracked for this wallet.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </>
+              )}
+            />
           </section>
 
           {holdingsPreview.length > 0 && (
@@ -790,10 +810,11 @@ export function WalletTab({ onRefresh }: Props) {
                 sendMint={sendMint}
                 sendMax={sendMax}
                 selectedRecipientWalletId={selectedRecipientWalletId}
-                recipientWallets={dashboard.wallets.filter((wallet) => wallet.id !== activeWallet.id).map((wallet) => ({ id: wallet.id, name: wallet.name, address: wallet.address }))}
-                tokenOptions={sendMode === 'token' ? (walletTokenOptions[activeWallet.id] ?? activeWallet.holdings.filter((holding) => holding.amount > 0 && holding.symbol !== 'SOL').map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))) : []}
+                recipientWallets={recipientWalletOptions}
+                tokenOptions={sendMode === 'token' ? (walletTokenOptions[activeWallet.id] ?? activeWalletTokenOptions) : []}
                 walletBalanceSol={walletBalances[activeWallet.id] ?? null}
                 executionMode={walletInfrastructure.executionMode}
+                cluster={walletInfrastructure.cluster}
                 sendLoading={sendLoading}
                 sendError={sendError}
                 sendResult={sendResult}
@@ -948,7 +969,7 @@ export function WalletTab({ onRefresh }: Props) {
               <div className="wallet-caption">Recent confirmed transactions for the active wallet.</div>
             </div>
           </div>
-          {transactions && transactions.length > 0 ? <TransactionHistory transactions={transactions} /> : <div className="wallet-empty">No recent transactions for the active wallet yet.</div>}
+          {transactions && transactions.length > 0 ? <TransactionHistory transactions={transactions} cluster={walletInfrastructure.cluster} /> : <div className="wallet-empty">No recent transactions for the active wallet yet.</div>}
         </section>
       )}
 
@@ -979,6 +1000,5 @@ function formatPct(value: number): string {
 }
 
 function truncateAddress(address: string): string {
-  if (address.length <= 12) return address
-  return `${address.slice(0, 4)}…${address.slice(-4)}`
+  return compactAddress(address)
 }

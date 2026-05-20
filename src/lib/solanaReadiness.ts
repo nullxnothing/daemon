@@ -40,8 +40,8 @@ interface BuildSolanaRouteReadinessInput {
 export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput): SolanaRouteReadinessModel {
   const preferredWalletReady = input.requirePreferredWallet ? input.preferredWallet === 'phantom' : true
   const preferredWalletDetail = input.preferredWallet === 'phantom'
-    ? 'Phantom-first is the user-facing signing path.'
-    : 'Wallet Standard is active. Switch preference here if this project should lead with Phantom.'
+    ? 'Local signer is active; generated app defaults prefer Phantom.'
+    : 'Local signer is active; generated app defaults prefer Wallet Standard.'
 
   const items: SolanaRouteReadinessItem[] = [
     {
@@ -52,7 +52,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
         ? input.isMainWallet
           ? `${input.walletName ?? 'Wallet'} is the default route for sends, swaps, launches, and previews.`
           : `${input.walletName ?? 'Wallet'} exists, but it is not the default route yet.`
-        : 'Create or import one DAEMON wallet before configuring Phantom-first signing.',
+        : 'Create or import one DAEMON wallet before configuring generated app wallet defaults.',
     },
     {
       key: 'signer',
@@ -86,7 +86,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
     ? {
       id: 'open-wallet',
       label: 'Create or import wallet',
-      detail: 'Start with one DAEMON wallet so this Phantom integration has a concrete route to configure.',
+      detail: 'Start with one DAEMON wallet so Solana actions have a concrete route to configure.',
     }
     : !input.isMainWallet
       ? {
@@ -116,7 +116,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
               ? {
                 id: 'set-preferred-wallet',
                 label: 'Set Phantom-first',
-                detail: 'Make Phantom the preferred user-facing wallet path for this project.',
+                detail: 'Make Phantom the preferred wallet default for generated app scaffolds.',
               }
               : {
                 id: input.requirePreferredWallet ? 'preview-transaction' : 'transact',
@@ -137,7 +137,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
         : nextAction.id === 'open-infrastructure'
           ? 'Finish the execution path before sending'
           : nextAction.id === 'set-preferred-wallet'
-            ? 'Switch to a Phantom-first signing path'
+            ? 'Switch generated app defaults to Phantom-first'
             : nextAction.id === 'preview-transaction'
               ? 'Phantom route is ready for a safe first preview'
               : 'Wallet route is ready for Solana actions'

@@ -785,3 +785,84 @@ CREATE TABLE IF NOT EXISTS daemon_subscription_audit (
 CREATE INDEX IF NOT EXISTS idx_daemon_subscription_audit_wallet
   ON daemon_subscription_audit(wallet_address, created_at);
 `
+
+export const SCHEMA_V36 = `
+CREATE TABLE IF NOT EXISTS shipline_runs (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  project_path TEXT NOT NULL,
+  project_name TEXT NOT NULL,
+  cluster TEXT NOT NULL,
+  status TEXT NOT NULL,
+  current_step TEXT,
+  summary TEXT NOT NULL,
+  warnings_json TEXT NOT NULL DEFAULT '[]',
+  recovery_json TEXT NOT NULL DEFAULT '[]',
+  programs_json TEXT NOT NULL DEFAULT '[]',
+  steps_json TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_shipline_runs_project
+  ON shipline_runs(project_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_shipline_runs_path
+  ON shipline_runs(project_path, updated_at DESC);
+`
+
+export const SCHEMA_V37 = `
+CREATE TABLE IF NOT EXISTS idle_resource_cache (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  method TEXT NOT NULL,
+  price_usdc REAL NOT NULL,
+  asset TEXT NOT NULL,
+  network TEXT NOT NULL,
+  payee TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  schema_json TEXT NOT NULL DEFAULT '{}',
+  raw_json TEXT NOT NULL DEFAULT '{}',
+  registry_url TEXT,
+  last_seen_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_idle_resource_cache_provider
+  ON idle_resource_cache(provider, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_idle_resource_cache_status
+  ON idle_resource_cache(status, score DESC);
+
+CREATE TABLE IF NOT EXISTS idle_paid_call_receipts (
+  id TEXT PRIMARY KEY,
+  resource_id TEXT NOT NULL,
+  project_id TEXT,
+  task_id TEXT,
+  agent_id TEXT,
+  endpoint TEXT NOT NULL,
+  method TEXT NOT NULL,
+  amount_usdc REAL NOT NULL,
+  asset TEXT NOT NULL,
+  network TEXT NOT NULL,
+  payee TEXT NOT NULL,
+  status TEXT NOT NULL,
+  payment_id TEXT,
+  facilitator TEXT,
+  request_hash TEXT,
+  response_hash TEXT,
+  response_status INTEGER,
+  response_content_type TEXT,
+  response_bytes INTEGER,
+  error_message TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_idle_receipts_project
+  ON idle_paid_call_receipts(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_idle_receipts_task
+  ON idle_paid_call_receipts(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_idle_receipts_resource
+  ON idle_paid_call_receipts(resource_id, created_at DESC);
+`

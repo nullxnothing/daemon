@@ -64,7 +64,7 @@ select,
 a,
 [role='button'],
 [tabindex] {
-  transition: box-shadow var(--dur-instant) var(--ease-standard), border-color var(--dur-instant) var(--ease-standard);
+  transition: box-shadow var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
 }
 
 button:focus-visible,

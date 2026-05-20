@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { useUIStore } from '../../store/ui'
@@ -10,11 +9,14 @@ import {
   RIGHT_SIDEBAR_WIDGET_EVENT,
   writeRightSidebarWidgetConfig,
 } from './sidebarAgentWidgetConfig'
+import { middleEllipsis } from '../../utils/textDisplay'
+import { RightRailSection } from './RightRailSection'
 
 const EMPTY_WALLETS: WalletDashboard['wallets'] = []
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const MINT_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
 const DEFAULT_INFRA: WalletInfrastructureSettings = {
+  cluster: 'devnet',
   rpcProvider: 'helius',
   quicknodeRpcUrl: '',
   customRpcUrl: '',
@@ -24,22 +26,8 @@ const DEFAULT_INFRA: WalletInfrastructureSettings = {
   jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
 }
 
-function WidgetShell({ kicker, title, children }: { kicker: string; title: string; children: ReactNode }) {
-  return (
-    <section className="rp-side-widget">
-      <div className="rp-side-widget-head">
-        <div>
-          <div className="rp-agent-widget-kicker">{kicker}</div>
-          <div className="rp-side-widget-title">{title}</div>
-        </div>
-      </div>
-      {children}
-    </section>
-  )
-}
-
 function shortMint(mint: string) {
-  return mint.length > 12 ? `${mint.slice(0, 4)}...${mint.slice(-4)}` : mint
+  return middleEllipsis(mint, 4, 4)
 }
 
 function formatPrice(value: number | null) {
@@ -159,7 +147,7 @@ export function SolanaReadinessSidebarWidget() {
   const readyCount = rows.filter((row) => row.ready).length
 
   return (
-    <WidgetShell kicker="Solana" title={`${readyCount}/${rows.length} ready`}>
+    <RightRailSection kicker="Solana" title={`${readyCount}/${rows.length} ready`}>
       <div className="rp-side-status-list">
         {rows.map((row) => (
           <div key={row.label} className="rp-side-status-row">
@@ -173,7 +161,7 @@ export function SolanaReadinessSidebarWidget() {
         <button type="button" onClick={() => openWorkspaceTool('project-readiness')}>Readiness</button>
         <button type="button" onClick={() => openWorkspaceTool('wallet')}>Wallet</button>
       </div>
-    </WidgetShell>
+    </RightRailSection>
   )
 }
 
@@ -265,7 +253,7 @@ export function TokenWatchSidebarWidget() {
   }
 
   return (
-    <WidgetShell kicker="Token watch" title={meta?.symbol ?? (hasMint ? shortMint(mint) : 'Track mint')}>
+    <RightRailSection kicker="Token watch" title={meta?.symbol ?? (hasMint ? shortMint(mint) : 'Track mint')}>
       <div className="rp-token-watch-input-row">
         <input
           className="rp-token-watch-input"
@@ -300,6 +288,6 @@ export function TokenWatchSidebarWidget() {
         <div className="rp-agent-widget-empty">{error ?? 'Paste a Solana token mint to track price and holders.'}</div>
       )}
       {error && hasMint && <div className="rp-agent-widget-empty">{error}</div>}
-    </WidgetShell>
+    </RightRailSection>
   )
 }

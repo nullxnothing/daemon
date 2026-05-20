@@ -24,19 +24,20 @@ export function WalletPanel() {
   }, [activeProjectId])
 
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? null
+  const activeWalletId = dashboard?.activeWallet?.id ?? null
   const activeWalletName = dashboard?.activeWallet?.name ?? 'No active wallet'
   const walletCount = dashboard?.portfolio.walletCount ?? 0
-  const transportLabel = dashboard?.heliusConfigured ? 'Helius connected' : 'Local mode'
+  const transportLabel = dashboard?.heliusConfigured ? 'Helius connected' : 'Helius key missing'
 
   useEffect(() => { void load() }, [load])
   useEffect(() => useWalletStore.getState().subscribeFastPoll(), [])
   useEffect(() => { void useWalletStore.getState().loadAgentWallets() }, [])
 
   useEffect(() => {
-    if (dashboard?.activeWallet) {
-      void useWalletStore.getState().loadTransactions(dashboard.activeWallet.id ?? '')
+    if (activeWalletId) {
+      void useWalletStore.getState().loadTransactions(activeWalletId)
     }
-  }, [dashboard?.activeWallet])
+  }, [activeWalletId])
 
   if (!dashboard && loading) {
     return (

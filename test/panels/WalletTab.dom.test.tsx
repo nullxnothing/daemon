@@ -37,6 +37,7 @@ function installDaemonBridge() {
         getWalletInfrastructureSettings: vi.fn().mockResolvedValue({
           ok: true,
           data: {
+            cluster: 'devnet',
             rpcProvider: 'helius',
             quicknodeRpcUrl: '',
             customRpcUrl: '',
@@ -131,6 +132,7 @@ describe('WalletTab readiness UX', () => {
           amount: 1,
           mint: null,
           status: 'confirmed',
+          error: null,
           created_at: Date.now(),
         },
       ],

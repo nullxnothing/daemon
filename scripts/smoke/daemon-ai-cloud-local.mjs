@@ -199,6 +199,10 @@ try {
   await runNode(['scripts/smoke/daemon-ai-live.mjs'], {
     DAEMON_AI_API_BASE: baseUrl,
     DAEMON_AI_SMOKE_JWT: token,
+    DAEMON_PRO_JWT: '',
+    DAEMON_OPERATOR_JWT: '',
+    DAEMON_ULTRA_JWT: '',
+    DAEMON_AI_REQUIRE_ALL_LIVE_JWTS: '',
     DAEMON_AI_LIVE_SMOKE_CHAT: '1',
   })
 

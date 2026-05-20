@@ -11,6 +11,7 @@ export interface SolanaExecutionCoverageItem {
 }
 
 export interface SolanaRuntimeStatusSummary {
+  cluster: 'devnet' | 'mainnet-beta' | 'localnet'
   rpc: {
     label: string
     detail: string
@@ -49,20 +50,34 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
         : 'Helius'
 
   const rpcStatus: RuntimeStatusLevel =
-    settings.rpcProvider === 'helius'
+    settings.cluster === 'localnet'
+      ? 'partial'
+      : settings.rpcProvider === 'helius'
       ? heliusConfigured ? 'live' : 'setup'
       : settings.rpcProvider === 'public'
         ? 'partial'
+        : settings.rpcProvider === 'quicknode'
+          ? settings.quicknodeRpcUrl ? 'live' : 'setup'
+          : settings.rpcProvider === 'custom'
+            ? settings.customRpcUrl ? 'live' : 'setup'
         : 'live'
 
-  const rpcDetail = settings.rpcProvider === 'quicknode'
+  const publicEndpoint = settings.cluster === 'mainnet-beta'
+    ? 'https://api.mainnet-beta.solana.com'
+    : settings.cluster === 'localnet'
+      ? 'http://127.0.0.1:8899'
+      : 'https://api.devnet.solana.com'
+
+  const rpcDetail = settings.cluster === 'localnet'
+    ? publicEndpoint
+    : settings.rpcProvider === 'quicknode'
     ? settings.quicknodeRpcUrl || 'QuickNode endpoint not set'
     : settings.rpcProvider === 'custom'
       ? settings.customRpcUrl || 'Custom endpoint not set'
       : settings.rpcProvider === 'public'
-        ? 'https://api.mainnet-beta.solana.com'
+        ? publicEndpoint
         : heliusConfigured
-          ? 'Helius key connected'
+          ? `Helius key connected on ${settings.cluster}`
           : 'Helius key missing'
 
   const executionBackendStatus: RuntimeStatusLevel =
@@ -71,8 +86,9 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       : jupiterConfigured ? 'live' : 'partial'
 
   return {
+    cluster: settings.cluster,
     rpc: {
-      label: rpcLabel,
+      label: `${rpcLabel} · ${settings.cluster}`,
       detail: rpcDetail,
       status: rpcStatus,
     },

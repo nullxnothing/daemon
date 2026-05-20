@@ -226,6 +226,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .starter-path-display {
@@ -258,6 +259,12 @@
 .starter-browse-btn:hover {
   background: var(--s4);
   border-color: var(--s6);
+}
+
+.starter-browse-btn--active {
+  color: var(--green);
+  border-color: rgba(62, 207, 142, 0.35);
+  background: rgba(62, 207, 142, 0.1);
 }
 
 .starter-error {
@@ -297,6 +304,64 @@
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 10px;
+}
+
+.starter-meme-config {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--s2);
+}
+
+.starter-meme-config .starter-field {
+  margin-bottom: 12px;
+}
+
+.starter-meme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.starter-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.starter-asset-picker {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--s4);
+  border-radius: var(--radius-sm);
+  background: var(--s1);
+}
+
+.starter-asset-picker span {
+  font-size: var(--fs-10);
+  font-weight: 600;
+  color: var(--t2);
+  text-transform: uppercase;
+}
+
+.starter-asset-picker strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-11);
+  color: var(--t3);
+  font-weight: 500;
+}
+
+.starter-asset-note {
+  margin: 10px 0 0;
+  font-size: var(--fs-11);
+  line-height: 1.45;
+  color: var(--t2);
 }
 
 .starter-build-btn {
@@ -364,5 +429,10 @@
   .starter-hero {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .starter-meme-grid,
+  .starter-asset-grid {
+    grid-template-columns: 1fr;
   }
 }

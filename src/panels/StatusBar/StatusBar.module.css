@@ -4,19 +4,19 @@
   height: var(--statusbar-h);
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   background: var(--surface-flat);
   border-top: 1px solid color-mix(in srgb, var(--border) 88%, black 12%);
   flex-shrink: 0;
   min-width: 0;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .left,
 .right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-md);
   min-width: 0;
   flex: 1;
 }
@@ -48,8 +48,8 @@
 .statusGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 8px;
+  gap: var(--space-sm);
+  padding: 0 var(--space-sm);
 }
 
 .statusGroup + .statusGroup {
@@ -63,7 +63,8 @@
 }
 
 .branch {
-  color: var(--success);
+  color: var(--t2);
+  font-family: var(--font-code);
 }
 
 .path {
@@ -71,6 +72,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  direction: ltr;
 }
 
 .clickable {
@@ -80,6 +82,50 @@
 
 .clickable:hover {
   color: var(--t1);
+}
+
+.inlineDot {
+  margin-right: 4px;
+}
+
+.claudeStatus {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.claudeStatus .inlineDot {
+  margin-right: 0;
+}
+
+.claudeLabel {
+  font-size: var(--fs-10);
+}
+
+.walletRuntime {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 190px;
+}
+
+.walletRuntimeText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.walletRuntimeLive {
+  color: var(--green);
+}
+
+.walletRuntimeWarning {
+  color: var(--amber);
+}
+
+.walletRuntimeMuted {
+  color: var(--t4);
 }
 
 .emailBtn {
@@ -131,7 +177,7 @@
 .marketTape {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-md);
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -145,7 +191,7 @@
 }
 
 .marketTapeItem + .marketTapeItem {
-  padding-left: 14px;
+  padding-left: var(--space-md);
   border-left: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
@@ -230,8 +276,8 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-left: 8px;
-  padding-left: 8px;
+  margin-left: var(--space-sm);
+  padding-left: var(--space-sm);
   border-left: 1px solid var(--border);
 }
 

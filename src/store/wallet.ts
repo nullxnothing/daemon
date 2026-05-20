@@ -5,7 +5,7 @@ import { daemon } from '../lib/daemonBridge'
 let pollInterval: ReturnType<typeof setInterval> | null = null
 let subscriberCount = 0
 let backgroundPollingEnabled = false
-let refreshInFlight: Promise<void> | null = null
+let refreshInFlightByProjectId = new Map<string, Promise<void>>()
 
 // Reset module-level state on HMR so poll timers don't stack across hot reloads
 if (import.meta.hot) {
@@ -14,7 +14,7 @@ if (import.meta.hot) {
     pollInterval = null
     subscriberCount = 0
     backgroundPollingEnabled = false
-    refreshInFlight = null
+    refreshInFlightByProjectId = new Map()
   })
 }
 
@@ -56,6 +56,7 @@ interface WalletTransaction {
   amount: number
   mint: string | null
   status: string
+  error: string | null
   created_at: number
 }
 
@@ -131,10 +132,12 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
   },
 
   refresh: async (projectId) => {
-    if (refreshInFlight) return refreshInFlight
-
     const requestedProjectId = projectId ?? null
-    refreshInFlight = (async () => {
+    const refreshKey = requestedProjectId ?? '__global__'
+    const existingRefresh = refreshInFlightByProjectId.get(refreshKey)
+    if (existingRefresh) return existingRefresh
+
+    const refreshInFlight = (async () => {
       set({ loading: true, error: null })
 
       try {
@@ -161,10 +164,11 @@ export const useWalletStore = create<WalletStoreState>((set) => ({
           error: error instanceof Error ? error.message : 'Failed to load wallet dashboard',
         })
       } finally {
-        refreshInFlight = null
+        refreshInFlightByProjectId.delete(refreshKey)
       }
     })()
 
+    refreshInFlightByProjectId.set(refreshKey, refreshInFlight)
     return refreshInFlight
   },
 

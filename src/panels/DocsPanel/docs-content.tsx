@@ -27,9 +27,9 @@ export function IntroductionDoc() {
       <H2 id="what-is-daemon">What is DAEMON?</H2>
       <Paragraph>
         DAEMON is an <strong>AI-native Solana development environment</strong>, a standalone desktop
-        application built from scratch for agent-assisted shipping. It combines a full-featured code
-        editor, terminal, DAEMON AI, spawned agents, wallet tooling, token launch flows, MCP
-        management, deployments, and verifiable work receipts into a single app.
+        application built from scratch for agent-assisted shipping. It keeps code, terminals,
+        wallet readiness, project-aware agents, Shipline deploy proof, MCP context, and verification
+        in one focused workspace.
       </Paragraph>
       <Paragraph>
         DAEMON is not a VS Code fork. It is not a plugin or extension. It is a purpose-built
@@ -40,16 +40,16 @@ export function IntroductionDoc() {
       <H2 id="why-daemon">Why DAEMON?</H2>
       <Paragraph>
         Building on Solana today means juggling a dozen tools: a code editor, a separate terminal,
-        Phantom wallet in the browser, PumpFun in another tab, Jupiter in another, a deploy
-        dashboard somewhere else, and AI assistants in yet another window.
+        wallet signing in the browser, RPC dashboards, deploy scripts, block explorers, and AI
+        assistants that do not know whether the project is actually ready to ship.
       </Paragraph>
       <Paragraph>DAEMON consolidates all of that into one app:</Paragraph>
       <List
         items={[
           <><strong>Write code</strong> in a fully offline Monaco editor with syntax highlighting, multi-tab, and breadcrumbs</>,
-          <><strong>Run AI agents</strong> that work on your codebase in parallel to debug, review, test, and ship simultaneously</>,
-          <><strong>Manage your wallet</strong> with live portfolio tracking via Helius, SPL token balances, and real-time prices</>,
-          <><strong>Launch tokens</strong> on PumpFun with a one-click wizard</>,
+          <><strong>Run project-aware agents</strong> with file tree, git state, terminal context, wallet readiness, and RPC checks available at prompt time</>,
+          <><strong>Manage your wallet</strong> with live portfolio tracking via Helius, SPL token balances, send/receive, swaps, and PnL context</>,
+          <><strong>Ship with Shipline</strong> through a deploy timeline for preflight, build, tests, deploy, confirmation, verification, and IDL proof</>,
           <><strong>Swap tokens</strong> via Jupiter aggregation directly from the wallet panel</>,
           <><strong>Deploy</strong> to Vercel or Railway without leaving the editor</>,
           <><strong>Manage access</strong> through DAEMON Pro, holder claims, subscriptions, and 402 integrations</>,
@@ -62,10 +62,10 @@ export function IntroductionDoc() {
         headers={['Feature', 'DAEMON', 'VS Code + Extensions']}
         rows={[
           ['Solana wallet', 'Built-in, native', 'Requires browser extension'],
-          ['Token launches', 'One-click PumpFun wizard', 'Not available'],
-          ['AI agents', 'Parallel execution with Grind Mode', 'Single Copilot chat'],
+          ['Shipline deploy proof', 'Preflight, build, tests, deploy, confirm, verify, IDL', 'Manual scripts and notes'],
+          ['AI agents', 'Project-aware context with wallet/runtime state', 'Generic chat unless configured manually'],
           ['Terminal', 'Real PTY via node-pty', 'Integrated terminal'],
-          ['Deploys', 'One-click Vercel/Railway', 'Requires CLI or dashboard'],
+          ['Deploys', 'Connected Vercel/Railway workflows', 'Requires CLI or dashboard'],
           ['Offline editor', 'Custom protocol, zero CDN', 'Depends on extensions'],
         ]}
       />
@@ -190,8 +190,8 @@ export function OnboardingDoc() {
       <List
         items={[
           <><strong>Gmail</strong> for email notifications and summaries</>,
-          <><strong>Vercel</strong> for one-click project deployment</>,
-          <><strong>Railway</strong> for one-click backend deployment</>,
+          <><strong>Vercel</strong> for connected project deployment</>,
+          <><strong>Railway</strong> for connected backend deployment</>,
         ]}
       />
 
@@ -560,7 +560,7 @@ export function PricingSubscriptionsDoc() {
         headers={['Plan', 'Price', 'Best For', 'Positioning']}
         rows={[
           [<strong key="light">Light</strong>, 'Free', 'Local builders', 'Local workbench, BYOK agents, editor, terminal, git, wallet, and core tools'],
-          [<strong key="pro">Pro</strong>, '$20/month', 'Individual builders', 'DAEMON AI, Pro Skills, Arena, standard hosted usage, and advanced workflows'],
+          [<strong key="pro">Pro</strong>, '$20/month', 'Individual builders', 'DAEMON AI, Pro Skills, Arena, standard hosted usage, and Shipline proof workflows'],
           [<strong key="operator">Operator</strong>, '$60/month', 'Daily agent users', 'Higher AI limits, larger context, cloud agents, and advanced ship/deploy flows'],
           [<strong key="ultra">Ultra</strong>, '$200/month', 'Power users', 'Maximum individual usage, priority model access, early features, and advanced automation'],
           [<strong key="teams">Teams</strong>, '$49/user/month', 'Studios and teams', 'Shared workspaces, pooled usage, billing, admin controls, and collaboration'],
@@ -856,11 +856,11 @@ export function DeploymentDoc() {
     <>
       <DocHeading>Deployment</DocHeading>
       <DocSubheading>
-        One-click deployment to Vercel and Railway directly from the editor.
+        Connected deployment workflows for Vercel and Railway directly from the editor.
       </DocSubheading>
 
       <H2 id="vercel">Vercel</H2>
-      <Paragraph>Deploy frontend projects to Vercel with a single click:</Paragraph>
+      <Paragraph>Deploy frontend projects to Vercel after connecting your account:</Paragraph>
       <List
         items={[
           <><strong>Connect once</strong> by linking your Vercel account in Settings &gt; Integrations</>,
@@ -900,7 +900,7 @@ export function DeploymentDoc() {
           'Write and test your code in the Monaco editor',
           'Run tests with an AI agent or the terminal',
           'Commit changes via the visual git panel',
-          'Click deploy and your app is live',
+          'Click deploy, monitor logs, and verify the production URL',
         ]}
       />
       <Paragraph>

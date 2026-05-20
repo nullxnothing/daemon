@@ -16,15 +16,20 @@
 }
 
 .daemon-ai-kicker {
-  color: var(--green);
-  font: 700 11px/1 var(--font-mono);
-  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
 }
 
 .daemon-ai-header h2 {
   margin: 4px 0 0;
-  font-size: var(--fs-22);
-  line-height: 1.15;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+  letter-spacing: var(--type-page-title-tracking);
 }
 
 .daemon-ai-ghost-btn,
@@ -78,9 +83,46 @@
 
 .daemon-ai-controls {
   display: grid;
-  grid-template-columns: auto auto minmax(130px, 1fr);
+  grid-template-columns: auto minmax(130px, 1fr);
   gap: 8px;
   align-items: center;
+}
+
+.daemon-ai-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.daemon-ai-tabs button,
+.daemon-ai-primary-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-12);
+}
+
+.daemon-ai-tabs button.active {
+  border-color: var(--tab-active-border);
+  background: var(--tab-active-bg);
+  color: var(--tab-active-color);
+}
+
+.daemon-ai-primary-btn {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-accent-dark);
+  font-weight: 700;
+}
+
+.daemon-ai-primary-btn:disabled,
+.daemon-ai-tabs button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .daemon-ai-segment {
@@ -161,6 +203,156 @@
   padding-right: 4px;
 }
 
+.daemon-ai-chat-mode,
+.daemon-ai-card-head,
+.daemon-ai-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.daemon-ai-workbench,
+.daemon-ai-card-list,
+.daemon-ai-run-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.daemon-ai-card-list {
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.daemon-ai-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.daemon-ai-card p {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: var(--fs-12);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.daemon-ai-card-title {
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.daemon-ai-card-meta {
+  color: var(--text-muted);
+  font-size: var(--fs-11);
+}
+
+.daemon-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: var(--fs-10);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.daemon-ai-badge.low,
+.daemon-ai-badge.completed,
+.daemon-ai-badge.applied {
+  color: var(--green);
+  background: rgba(62, 207, 142, 0.08);
+  border-color: rgba(62, 207, 142, 0.2);
+}
+
+.daemon-ai-badge.medium,
+.daemon-ai-badge.running,
+.daemon-ai-badge.awaiting_approval,
+.daemon-ai-badge.proposed,
+.daemon-ai-badge.accepted {
+  color: var(--amber);
+  background: rgba(246, 199, 104, 0.08);
+  border-color: rgba(246, 199, 104, 0.24);
+}
+
+.daemon-ai-badge.high,
+.daemon-ai-badge.blocked,
+.daemon-ai-badge.failed,
+.daemon-ai-badge.rejected {
+  color: var(--red);
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.24);
+}
+
+.daemon-ai-tool-list,
+.daemon-ai-finding-list,
+.daemon-ai-receipt-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.daemon-ai-tool-list span,
+.daemon-ai-finding-list span,
+.daemon-ai-receipt-grid span {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 4px 8px;
+  font-size: var(--fs-11);
+}
+
+.daemon-ai-run-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.daemon-ai-input,
+.daemon-ai-run-form textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  font: inherit;
+  min-width: 0;
+}
+
+.daemon-ai-run-form textarea {
+  resize: vertical;
+}
+
+.daemon-ai-json,
+.daemon-ai-diff {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text-secondary);
+  padding: 10px;
+  font: 11px/1.45 var(--font-mono);
+  white-space: pre-wrap;
+}
+
+.daemon-ai-diff {
+  max-height: 320px;
+}
+
 .daemon-ai-empty,
 .daemon-ai-thinking {
   color: var(--text-muted);
@@ -183,7 +375,11 @@
 .daemon-ai-message-role {
   margin-bottom: 6px;
   color: var(--text-muted);
-  font: 700 11px/1 var(--font-mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
 }
 
 .daemon-ai-message-body {
@@ -214,6 +410,7 @@
 @media (max-width: 820px) {
   .daemon-ai-status-grid,
   .daemon-ai-controls,
+  .daemon-ai-run-grid,
   .daemon-ai-composer {
     grid-template-columns: 1fr;
   }

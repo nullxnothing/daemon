@@ -184,7 +184,7 @@ async function run() {
   await page.waitForSelector('.project-tab.active', { timeout: 30000 })
 
   logStep('checking dynamic tool chunks')
-  await openToolFromLauncher(page, 'Solana', '.solana-toolbox')
+  await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   await page.getByRole('tab', { name: /^Connect\b/ }).click()
   await page.waitForSelector('.solana-service-row', { timeout: 30000 })
   await openToolFromLauncher(page, 'Settings', '.settings-center')

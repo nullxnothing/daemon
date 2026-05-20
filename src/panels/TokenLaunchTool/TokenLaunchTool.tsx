@@ -42,7 +42,7 @@ export function TokenLaunchTool() {
           <Toolbar>
             <Button variant="primary" size="md" onClick={openStreamlock}>Open Streamlock</Button>
             <Button
-              variant="default"
+              variant="secondary"
               size="md"
               onClick={() => setLaunchpadRefreshNonce((nonce) => nonce + 1)}
             >

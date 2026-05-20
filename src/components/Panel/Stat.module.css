@@ -3,11 +3,7 @@
   flex-direction: column;
   gap: var(--space-xs);
   min-width: 0;
-  padding: var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-sm);
+  min-height: 88px;
 }
 
 .label {
@@ -36,11 +32,6 @@
   line-height: var(--lh-normal);
   color: var(--t3);
 }
-
-.success { border-color: color-mix(in srgb, var(--green) 28%, var(--border)); }
-.warn    { border-color: color-mix(in srgb, var(--amber) 32%, var(--border)); }
-.danger  { border-color: color-mix(in srgb, var(--red) 32%, var(--border)); }
-.info    { border-color: color-mix(in srgb, var(--blue) 32%, var(--border)); }
 
 @keyframes numberTick {
   0% { transform: translateY(2px); color: var(--green); }

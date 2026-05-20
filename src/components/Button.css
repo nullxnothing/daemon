@@ -7,7 +7,8 @@
   font-weight: var(--fw-semibold);
   white-space: nowrap;
   cursor: pointer;
-  border: 1px solid var(--control-border);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
 }
 
@@ -16,32 +17,42 @@
   cursor: not-allowed;
 }
 
-/* Variants */
-.btn--default {
+.btn--secondary {
   background: var(--control-bg);
-  color: var(--t2);
+  border-color: var(--control-border);
+  color: var(--t1);
 }
-.btn--default:hover:not(:disabled) {
+
+.btn--secondary:hover:not(:disabled) {
   background: var(--control-bg-hover);
+  border-color: var(--border-medium);
   color: var(--t1);
 }
 
 .btn--primary {
-  background: var(--green-glow);
-  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
-  color: var(--green);
-}
-.btn--primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--green) 16%, transparent);
+  background: var(--accent-green);
+  border-color: color-mix(in srgb, var(--accent-green) 80%, white 20%);
+  color: var(--bg-app);
 }
 
-.btn--danger {
-  background: var(--red-glow);
-  border-color: color-mix(in srgb, var(--red) 36%, var(--border));
-  color: var(--red);
+.btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-green) 88%, white 12%);
 }
-.btn--danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--red) 16%, transparent);
+
+.btn--destructive {
+  background: var(--red-glow);
+  border-color: color-mix(in srgb, var(--accent-red) 30%, var(--border));
+  color: var(--accent-red);
+}
+
+.btn--destructive:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-red) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent-red) 44%, var(--border));
+}
+
+.btn--destructive:focus-visible {
+  box-shadow: var(--focus-ring-red);
+  border-color: color-mix(in srgb, var(--accent-red) 54%, var(--border));
 }
 
 .btn--ghost {
@@ -50,7 +61,7 @@
   color: var(--t3);
 }
 .btn--ghost:hover:not(:disabled) {
-  background: var(--control-bg);
+  background: color-mix(in srgb, var(--control-bg) 62%, transparent);
   color: var(--t1);
 }
 
@@ -59,19 +70,16 @@
   height: var(--btn-h-sm);
   padding: 0 var(--space-sm);
   font-size: var(--fs-11);
-  border-radius: var(--radius-control);
 }
 
 .btn--md {
   height: var(--btn-h-md);
   padding: 0 var(--space-md);
   font-size: var(--fs-12);
-  border-radius: var(--radius-control);
 }
 
 .btn--lg {
   height: var(--btn-h-lg);
   padding: 0 var(--space-lg);
   font-size: var(--fs-13);
-  border-radius: var(--radius-control);
 }

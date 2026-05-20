@@ -3,7 +3,7 @@ import styles from './PanelHeader.module.css'
 
 interface PanelHeaderProps {
   kicker?: string
-  /** Tint the kicker green. Reserve for brand-significant panels (Wallet, Dashboard). */
+  /** Add a small green glyph for brand-significant panels without tinting the eyebrow text. */
   brandKicker?: boolean
   title: string
   subtitle?: string

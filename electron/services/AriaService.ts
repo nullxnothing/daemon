@@ -24,7 +24,17 @@ RULES:
 
 const MAX_HISTORY = 40
 const MAX_SESSIONS = 20
-const ARIA_MODEL = 'haiku'
+
+function modelForPreference(model: ProviderRegistry.ProviderPreferences['aria']['model']): string {
+  switch (model) {
+    case 'reasoning':
+      return 'sonnet'
+    case 'standard':
+      return 'sonnet'
+    default:
+      return 'haiku'
+  }
+}
 
 type ConversationEntry = { role: 'user' | 'assistant'; content: string }
 
@@ -114,15 +124,17 @@ export async function sendMessage(sessionId: string, userMessage: string): Promi
 
   persistMessage({ role: 'user', content: userMessage, metadata: '{}', session_id: sessionId })
 
-  const provider = ProviderRegistry.getDefault()
+  const prefs = ProviderRegistry.getPreferences()
+  const provider = ProviderRegistry.getFeatureProvider('aria')
   const prompt = buildPrompt(history)
+  const model = modelForPreference(prefs.aria.model)
   let rawText: string | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       rawText = await provider.runPrompt({
         prompt,
         systemPrompt: ARIA_SYSTEM,
-        model: ARIA_MODEL,
+        model,
         effort: 'low',
         maxTokens: 1024,
         timeoutMs: 60_000,
@@ -145,7 +157,7 @@ export async function sendMessage(sessionId: string, userMessage: string): Promi
   recordLocalAiUsage({
     feature: 'aria-side-panel',
     provider: provider.id === 'claude' ? 'anthropic' : 'local',
-    model: ARIA_MODEL,
+    model,
     inputText: prompt,
     outputText: cleanText,
   })

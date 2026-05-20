@@ -21,7 +21,7 @@
 }
 
 .icc-header-kicker {
-  color: var(--green);
+  color: var(--text-muted);
   font-size: var(--fs-10);
   font-weight: 780;
   letter-spacing: 0;
@@ -48,34 +48,9 @@
 .icc-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   flex-shrink: 0;
-}
-
-.icc-metric {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  background: var(--card-bg);
-  box-shadow: var(--shadow-sm);
-  min-width: 0;
-}
-
-.icc-metric span {
-  font-size: var(--fs-16);
-  font-weight: 750;
-  color: var(--t1);
-}
-
-.icc-metric small {
-  font-size: var(--fs-10);
-  text-transform: uppercase;
-  letter-spacing: 0;
-  color: var(--t4);
 }
 
 .icc-toolbar {
@@ -125,8 +100,8 @@
 }
 
 .icc-filter.active {
-  border-color: color-mix(in srgb, var(--green) 36%, var(--control-border));
-  background: var(--green-glow);
+  border-color: var(--tab-active-border);
+  background: var(--tab-active-bg);
   color: var(--t1);
 }
 
@@ -155,639 +130,128 @@
   padding-right: 2px;
 }
 
+/* ============================================================
+   Integration list cards — branded art driver
+   Every card (enabled OR off) gets its partner art. OFF cards
+   are veiled & desaturated with an "Enable" CTA badge — they
+   read as "available, click to enable", never as broken stubs.
+   ============================================================ */
+
 .icc-card {
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
+  gap: var(--space-sm);
   width: 100%;
-  min-height: 0;
+  min-height: 156px;
+  align-items: start;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   background: var(--card-bg);
   color: inherit;
   cursor: pointer;
-  padding: 10px;
+  padding: var(--space-md);
   text-align: left;
   overflow: hidden;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--dur-base) var(--ease-out-quint);
 }
 
-.icc-card:hover,
+.icc-card:hover {
+  border-color: color-mix(in srgb, var(--ic-accent, var(--green)) 42%, var(--card-border));
+  box-shadow: var(--shadow-md);
+}
+
 .icc-card.selected {
-  border-color: color-mix(in srgb, var(--green) 28%, var(--card-border));
-  background: color-mix(in srgb, var(--green-glow) 42%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--ic-accent, var(--green)) 64%, var(--card-border));
+  box-shadow: var(--shadow-md), inset 3px 0 0 var(--ic-accent, var(--green));
 }
 
-.icc-card--off {
-  border-color: color-mix(in srgb, var(--card-border) 72%, transparent);
-  background: color-mix(in srgb, var(--card-bg) 74%, var(--s0));
-  opacity: 0.74;
+.icc-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
-.icc-card--off:hover,
-.icc-card--off.selected {
-  border-color: color-mix(in srgb, var(--green) 20%, var(--card-border));
-  background: color-mix(in srgb, var(--green-glow) 18%, var(--card-bg));
-  opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .icc-card:hover { transition: none; }
 }
 
-.icc-card--off .icc-card-name,
-.icc-card--off .icc-card-tagline,
-.icc-card--off .icc-card-desc {
-  color: var(--t4);
-}
-
-.icc-card--streamlock {
-  min-height: 136px;
+/* ---- Generic branded card driver (consumes --ic-* tokens) ---- */
+.icc-card[data-brand] {
   align-items: center;
-  border-color: rgba(255, 255, 255, 0.13);
-  background: var(--integration-surface-neutral);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border-color: color-mix(in srgb, var(--ic-accent) 32%, var(--card-border));
+  background: var(--ic-surface, var(--card-bg));
 }
 
-.icc-card--streamlock::before {
+.icc-card[data-brand]::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(5, 6, 7, 0.96) 0%, rgba(5, 6, 7, 0.72) 45%, rgba(5, 6, 7, 0.34) 100%),
-    linear-gradient(0deg, rgba(5, 6, 7, 0.88) 0%, rgba(5, 6, 7, 0.12) 58%, rgba(5, 6, 7, 0.62) 100%),
-    url('/streamlock.png');
-  background-position: center right;
-  background-size: cover;
+    linear-gradient(90deg,
+      rgba(var(--ic-scrim), 0.96) 0%,
+      rgba(var(--ic-scrim), 0.72) 45%,
+      rgba(var(--ic-scrim), var(--ic-scrim-edge, 0.3)) 100%),
+    linear-gradient(0deg,
+      rgba(var(--ic-scrim), 0.9) 0%,
+      rgba(var(--ic-scrim), 0.16) 58%,
+      rgba(var(--ic-scrim), 0.64) 100%),
+    var(--ic-image);
+  background-position: var(--ic-image-pos, center right);
+  background-size: var(--ic-image-size, cover);
+  background-repeat: no-repeat;
   opacity: 0.96;
+  transition: opacity var(--dur-base) var(--ease-out-quint), filter var(--dur-base) var(--ease-out-quint);
 }
 
-.icc-card--streamlock:hover,
-.icc-card--streamlock.selected {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: var(--integration-surface-neutral);
-}
-
-.icc-card--streamlock .icc-status-dot,
-.icc-card--streamlock .icc-card-main {
+.icc-card[data-brand] .icc-status-dot,
+.icc-card[data-brand] .icc-card-main {
   position: relative;
   z-index: 1;
 }
 
-.icc-card--streamlock .icc-status-dot {
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+.icc-card[data-brand] .icc-status-dot {
+  background: var(--ic-dot, var(--ic-accent));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--ic-accent) 16%, transparent),
+    0 0 18px color-mix(in srgb, var(--ic-accent) 24%, transparent);
 }
 
-.icc-card--streamlock .icc-card-name {
-  color: var(--on-accent);
+.icc-card[data-brand] .icc-card-name {
+  color: var(--ic-name, var(--on-accent));
 }
 
-.icc-card--streamlock .icc-card-tagline {
+.icc-card[data-brand] .icc-card-tagline {
   max-width: 260px;
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--ic-text, rgba(255, 255, 255, 0.82));
 }
 
-.icc-card--streamlock .icc-card-desc {
-  max-width: 310px;
-  color: rgba(255, 255, 255, 0.62);
+.icc-card[data-brand] .icc-card-desc {
+  max-width: 320px;
+  color: var(--ic-muted, rgba(255, 255, 255, 0.7));
 }
 
-.icc-card--streamlock .icc-status-badge {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.86);
+.icc-card[data-brand] .icc-status-badge:not(.off):not(.partial):not(.missing) {
+  border-color: var(--ic-badge-border, color-mix(in srgb, var(--ic-accent) 42%, var(--card-border)));
+  background: var(--ic-badge-bg, color-mix(in srgb, var(--ic-accent) 14%, transparent));
+  color: var(--ic-badge-color, rgba(255, 255, 255, 0.94));
+  backdrop-filter: blur(6px);
 }
 
-.icc-card--zauth {
-  min-height: 136px;
-  align-items: center;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: var(--integration-surface-neutral-strong);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+.icc-card[data-brand]:hover,
+.icc-card[data-brand].selected {
+  border-color: color-mix(in srgb, var(--ic-accent) 66%, var(--card-border));
 }
 
-.icc-card--zauth::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(6, 6, 6, 0.98) 0%, rgba(6, 6, 6, 0.74) 45%, rgba(6, 6, 6, 0.18) 100%),
-    linear-gradient(0deg, rgba(6, 6, 6, 0.9) 0%, rgba(6, 6, 6, 0.12) 58%, rgba(6, 6, 6, 0.62) 100%),
-    url('/zauth.png');
-  background-position: center right;
-  background-size: cover;
-  opacity: 0.96;
+/* Special art: kausalayer — radial glow + offset SVG mark */
+.icc-card[data-brand='kausalayer'] .icc-status-dot {
+  background: linear-gradient(135deg, var(--brand-kausalayer), var(--brand-kausalayer-warm));
 }
 
-.icc-card--zauth:hover,
-.icc-card--zauth.selected {
-  border-color: rgba(255, 255, 255, 0.38);
-  background: var(--integration-surface-neutral-strong);
-}
-
-.icc-card--zauth .icc-status-dot,
-.icc-card--zauth .icc-card-main {
-  position: relative;
-  z-index: 1;
-}
-
-.icc-card--zauth .icc-status-dot {
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 18px rgba(255, 255, 255, 0.16);
-}
-
-.icc-card--zauth .icc-card-name {
-  color: var(--on-accent);
-}
-
-.icc-card--zauth .icc-card-tagline {
-  max-width: 260px;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.icc-card--zauth .icc-card-desc {
-  max-width: 310px;
-  color: rgba(255, 255, 255, 0.64);
-}
-
-.icc-card--zauth .icc-status-badge {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.icc-card--helius {
-  min-height: 136px;
-  align-items: center;
-  border-color: rgba(255, 126, 31, 0.24);
-  background: var(--integration-surface-helius);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.icc-card--helius::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(3, 5, 8, 0.96) 0%, rgba(3, 5, 8, 0.74) 45%, rgba(3, 5, 8, 0.32) 100%),
-    linear-gradient(0deg, rgba(3, 5, 8, 0.9) 0%, rgba(3, 5, 8, 0.16) 58%, rgba(3, 5, 8, 0.66) 100%),
-    url('/helius.png');
-  background-position: right 38%;
-  background-size: auto 122%;
-  opacity: 0.96;
-}
-
-.icc-card--helius:hover,
-.icc-card--helius.selected {
-  border-color: rgba(255, 126, 31, 0.42);
-  background: var(--integration-surface-helius);
-}
-
-.icc-card--helius .icc-status-dot,
-.icc-card--helius .icc-card-main {
-  position: relative;
-  z-index: 1;
-}
-
-.icc-card--helius .icc-status-dot {
-  background: var(--brand-helius);
-  box-shadow: 0 0 0 3px rgba(255, 126, 31, 0.14), 0 0 18px rgba(255, 126, 31, 0.22);
-}
-
-.icc-card--helius .icc-card-name {
-  color: var(--on-accent);
-}
-
-.icc-card--helius .icc-card-tagline {
-  max-width: 260px;
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.icc-card--helius .icc-card-desc {
-  max-width: 310px;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.icc-card--helius .icc-status-badge {
-  border-color: rgba(255, 126, 31, 0.38);
-  background: rgba(255, 126, 31, 0.1);
-  color: rgba(255, 222, 198, 0.9);
-}
-
-.icc-card--sendai {
-  min-height: 136px;
-  align-items: center;
-  border-color: rgba(37, 99, 235, 0.28);
-  background: var(--integration-surface-sendai);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.icc-card--sendai::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(3, 7, 18, 0.96) 0%, rgba(3, 7, 18, 0.74) 45%, rgba(3, 7, 18, 0.34) 100%),
-    linear-gradient(0deg, rgba(3, 7, 18, 0.9) 0%, rgba(3, 7, 18, 0.18) 58%, rgba(3, 7, 18, 0.66) 100%),
-    url('/sendai.png');
-  background-position: center right;
-  background-size: cover;
-  opacity: 0.96;
-}
-
-.icc-card--sendai:hover,
-.icc-card--sendai.selected {
-  border-color: rgba(37, 99, 235, 0.5);
-  background: var(--integration-surface-sendai);
-}
-
-.icc-card--sendai .icc-status-dot,
-.icc-card--sendai .icc-card-main {
-  position: relative;
-  z-index: 1;
-}
-
-.icc-card--sendai .icc-status-dot {
-  background: var(--brand-sendai);
-  box-shadow: 0 0 0 3px rgba(47, 129, 255, 0.14), 0 0 18px rgba(47, 129, 255, 0.2);
-}
-
-.icc-card--sendai .icc-card-name {
-  color: var(--on-accent);
-}
-
-.icc-card--sendai .icc-card-tagline {
-  max-width: 260px;
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.icc-card--sendai .icc-card-desc {
-  max-width: 310px;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.icc-card--sendai .icc-status-badge {
-  border-color: rgba(47, 129, 255, 0.38);
-  background: rgba(47, 129, 255, 0.1);
-  color: rgba(205, 225, 255, 0.9);
-}
-
-.icc-card--spawnagents {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 34%, var(--card-border));
-  background: var(--integration-surface-spawnagents);
-}
-
-.icc-card--spawnagents::before {
-  background:
-    linear-gradient(90deg, rgba(10, 6, 8, 0.98) 0%, rgba(10, 6, 8, 0.74) 45%, rgba(10, 6, 8, 0.28) 100%),
-    linear-gradient(0deg, rgba(10, 6, 8, 0.9) 0%, rgba(10, 6, 8, 0.16) 58%, rgba(10, 6, 8, 0.64) 100%),
-    url('/spawnagents.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--spawnagents:hover,
-.icc-card--spawnagents.selected {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 58%, var(--card-border));
-  background: var(--integration-surface-spawnagents);
-}
-
-.icc-card--spawnagents .icc-status-dot {
-  background: var(--brand-spawnagents);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-spawnagents) 16%, transparent), 0 0 18px color-mix(in srgb, var(--brand-spawnagents) 24%, transparent);
-}
-
-.icc-card--spawnagents .icc-status-badge {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 46%, var(--card-border));
-  background: color-mix(in srgb, var(--brand-spawnagents) 12%, transparent);
-  color: rgba(255, 220, 226, 0.94);
-}
-
-.icc-card--phantom {
-  min-height: 136px;
-  align-items: center;
-  border-color: rgba(167, 139, 250, 0.32);
-  background: var(--integration-surface-phantom);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.icc-card--phantom::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(18, 13, 36, 0.9) 0%, rgba(18, 13, 36, 0.66) 45%, rgba(18, 13, 36, 0.28) 100%),
-    linear-gradient(0deg, rgba(18, 13, 36, 0.78) 0%, rgba(18, 13, 36, 0.2) 58%, rgba(18, 13, 36, 0.42) 100%),
-    url('/phantom.png');
-  background-position: center right;
-  background-size: cover;
-  opacity: 0.98;
-}
-
-.icc-card--phantom:hover,
-.icc-card--phantom.selected {
-  border-color: rgba(167, 139, 250, 0.56);
-  background: var(--integration-surface-phantom);
-}
-
-.icc-card--phantom .icc-status-dot,
-.icc-card--phantom .icc-card-main {
-  position: relative;
-  z-index: 1;
-}
-
-.icc-card--phantom .icc-status-dot {
-  background: var(--brand-phantom);
-  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.16), 0 0 18px rgba(167, 139, 250, 0.22);
-}
-
-.icc-card--phantom .icc-card-name {
-  color: var(--on-accent);
-}
-
-.icc-card--phantom .icc-card-tagline {
-  max-width: 260px;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.icc-card--phantom .icc-card-desc {
-  max-width: 310px;
-  color: rgba(255, 255, 255, 0.66);
-}
-
-.icc-card--phantom .icc-status-badge {
-  border-color: rgba(167, 139, 250, 0.42);
-  background: rgba(167, 139, 250, 0.12);
-  color: rgba(244, 239, 255, 0.92);
-}
-
-.icc-card--jupiter,
-.icc-card--metaplex,
-.icc-card--light,
-.icc-card--magicblock,
-.icc-card--debridge,
-.icc-card--squads,
-.icc-card--kausalayer,
-.icc-card--spawnagents {
-  min-height: 136px;
-  align-items: center;
-  background: var(--integration-surface-sendai);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.icc-card--jupiter::before,
-.icc-card--metaplex::before,
-.icc-card--light::before,
-.icc-card--magicblock::before,
-.icc-card--debridge::before,
-.icc-card--squads::before,
-.icc-card--kausalayer::before,
-.icc-card--spawnagents::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.96;
-}
-
-.icc-card--jupiter .icc-status-dot,
-.icc-card--jupiter .icc-card-main,
-.icc-card--metaplex .icc-status-dot,
-.icc-card--metaplex .icc-card-main,
-.icc-card--light .icc-status-dot,
-.icc-card--light .icc-card-main,
-.icc-card--magicblock .icc-status-dot,
-.icc-card--magicblock .icc-card-main,
-.icc-card--debridge .icc-status-dot,
-.icc-card--debridge .icc-card-main,
-.icc-card--squads .icc-status-dot,
-.icc-card--squads .icc-card-main,
-.icc-card--kausalayer .icc-status-dot,
-.icc-card--kausalayer .icc-card-main,
-.icc-card--spawnagents .icc-status-dot,
-.icc-card--spawnagents .icc-card-main {
-  position: relative;
-  z-index: 1;
-}
-
-.icc-card--jupiter .icc-card-name,
-.icc-card--metaplex .icc-card-name,
-.icc-card--light .icc-card-name,
-.icc-card--magicblock .icc-card-name,
-.icc-card--debridge .icc-card-name,
-.icc-card--squads .icc-card-name,
-.icc-card--kausalayer .icc-card-name,
-.icc-card--spawnagents .icc-card-name {
-  color: var(--on-accent);
-}
-
-.icc-card--jupiter .icc-card-tagline,
-.icc-card--metaplex .icc-card-tagline,
-.icc-card--light .icc-card-tagline,
-.icc-card--magicblock .icc-card-tagline,
-.icc-card--debridge .icc-card-tagline,
-.icc-card--squads .icc-card-tagline,
-.icc-card--kausalayer .icc-card-tagline,
-.icc-card--spawnagents .icc-card-tagline {
-  max-width: 260px;
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.icc-card--jupiter .icc-card-desc,
-.icc-card--metaplex .icc-card-desc,
-.icc-card--light .icc-card-desc,
-.icc-card--magicblock .icc-card-desc,
-.icc-card--debridge .icc-card-desc,
-.icc-card--squads .icc-card-desc,
-.icc-card--kausalayer .icc-card-desc,
-.icc-card--spawnagents .icc-card-desc {
-  max-width: 310px;
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.icc-card--jupiter {
-  border-color: rgba(20, 241, 149, 0.28);
-}
-
-.icc-card--jupiter::before {
-  background:
-    linear-gradient(90deg, rgba(3, 10, 16, 0.96) 0%, rgba(3, 10, 16, 0.72) 45%, rgba(3, 10, 16, 0.28) 100%),
-    linear-gradient(0deg, rgba(3, 10, 16, 0.88) 0%, rgba(3, 10, 16, 0.14) 58%, rgba(3, 10, 16, 0.62) 100%),
-    url('/jupiter.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--jupiter:hover,
-.icc-card--jupiter.selected {
-  border-color: rgba(20, 241, 149, 0.5);
-  background: var(--integration-surface-jupiter);
-}
-
-.icc-card--jupiter .icc-status-dot {
-  background: var(--brand-jupiter);
-  box-shadow: 0 0 0 3px rgba(20, 241, 149, 0.14), 0 0 18px rgba(20, 241, 149, 0.2);
-}
-
-.icc-card--jupiter .icc-status-badge {
-  border-color: rgba(20, 241, 149, 0.38);
-  background: rgba(20, 241, 149, 0.1);
-  color: rgba(211, 255, 236, 0.9);
-}
-
-.icc-card--metaplex {
-  border-color: rgba(34, 197, 94, 0.26);
-}
-
-.icc-card--metaplex::before {
-  background:
-    linear-gradient(90deg, rgba(3, 8, 12, 0.96) 0%, rgba(3, 8, 12, 0.74) 45%, rgba(3, 8, 12, 0.28) 100%),
-    linear-gradient(0deg, rgba(3, 8, 12, 0.9) 0%, rgba(3, 8, 12, 0.18) 58%, rgba(3, 8, 12, 0.64) 100%),
-    url('/metaplex.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--metaplex:hover,
-.icc-card--metaplex.selected {
-  border-color: rgba(34, 197, 94, 0.48);
-  background: var(--integration-surface-jupiter);
-}
-
-.icc-card--metaplex .icc-status-dot {
-  background: var(--brand-metaplex);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14), 0 0 18px rgba(34, 197, 94, 0.2);
-}
-
-.icc-card--metaplex .icc-status-badge {
-  border-color: rgba(34, 197, 94, 0.38);
-  background: rgba(34, 197, 94, 0.1);
-  color: rgba(220, 255, 232, 0.9);
-}
-
-.icc-card--light {
-  border-color: rgba(45, 212, 191, 0.28);
-}
-
-.icc-card--light::before {
-  background:
-    linear-gradient(90deg, rgba(2, 8, 12, 0.96) 0%, rgba(2, 8, 12, 0.72) 45%, rgba(2, 8, 12, 0.28) 100%),
-    linear-gradient(0deg, rgba(2, 8, 12, 0.88) 0%, rgba(2, 8, 12, 0.16) 58%, rgba(2, 8, 12, 0.62) 100%),
-    url('/lightprotocol.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--light:hover,
-.icc-card--light.selected {
-  border-color: rgba(45, 212, 191, 0.5);
-  background: var(--integration-surface-light);
-}
-
-.icc-card--light .icc-status-dot {
-  background: var(--brand-light);
-  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.14), 0 0 18px rgba(45, 212, 191, 0.2);
-}
-
-.icc-card--light .icc-status-badge {
-  border-color: rgba(45, 212, 191, 0.38);
-  background: rgba(45, 212, 191, 0.1);
-  color: rgba(211, 255, 250, 0.9);
-}
-
-.icc-card--magicblock {
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.icc-card--magicblock::before {
-  background:
-    linear-gradient(90deg, rgba(4, 7, 18, 0.96) 0%, rgba(4, 7, 18, 0.7) 45%, rgba(4, 7, 18, 0.18) 100%),
-    linear-gradient(0deg, rgba(4, 7, 18, 0.9) 0%, rgba(4, 7, 18, 0.18) 58%, rgba(4, 7, 18, 0.62) 100%),
-    url('/majicblock.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--magicblock:hover,
-.icc-card--magicblock.selected {
-  border-color: rgba(59, 130, 246, 0.54);
-  background: var(--integration-surface-magicblock);
-}
-
-.icc-card--magicblock .icc-status-dot {
-  background: var(--brand-magicblock);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14), 0 0 18px rgba(59, 130, 246, 0.22);
-}
-
-.icc-card--magicblock .icc-status-badge {
-  border-color: rgba(59, 130, 246, 0.42);
-  background: rgba(59, 130, 246, 0.11);
-  color: rgba(216, 231, 255, 0.9);
-}
-
-.icc-card--debridge {
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-.icc-card--debridge::before {
-  background:
-    linear-gradient(90deg, rgba(5, 5, 6, 0.96) 0%, rgba(5, 5, 6, 0.74) 45%, rgba(5, 5, 6, 0.26) 100%),
-    linear-gradient(0deg, rgba(5, 5, 6, 0.9) 0%, rgba(5, 5, 6, 0.16) 58%, rgba(5, 5, 6, 0.64) 100%),
-    url('/debrige.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--debridge:hover,
-.icc-card--debridge.selected {
-  border-color: rgba(255, 255, 255, 0.34);
-  background: var(--integration-surface-debridge);
-}
-
-.icc-card--debridge .icc-status-dot {
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 18px rgba(255, 255, 255, 0.14);
-}
-
-.icc-card--debridge .icc-status-badge {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.icc-card--squads {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.icc-card--squads::before {
-  background:
-    linear-gradient(90deg, rgba(4, 4, 5, 0.96) 0%, rgba(4, 4, 5, 0.74) 45%, rgba(4, 4, 5, 0.24) 100%),
-    linear-gradient(0deg, rgba(4, 4, 5, 0.9) 0%, rgba(4, 4, 5, 0.14) 58%, rgba(4, 4, 5, 0.64) 100%),
-    url('/squads.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-card--squads:hover,
-.icc-card--squads.selected {
-  border-color: rgba(255, 255, 255, 0.36);
-  background: var(--integration-surface-squads);
-}
-
-.icc-card--squads .icc-status-dot {
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1), 0 0 18px rgba(255, 255, 255, 0.14);
-}
-
-.icc-card--squads .icc-status-badge {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.icc-card--kausalayer {
-  border-color: color-mix(in srgb, var(--brand-kausalayer) 34%, var(--card-border));
-  background: var(--integration-surface-kausalayer);
-}
-
-.icc-card--kausalayer::before {
+.icc-card[data-brand='kausalayer']::before {
   background:
     radial-gradient(circle at 84% 38%, color-mix(in srgb, var(--brand-kausalayer-warm) 28%, transparent) 0 11%, transparent 30%),
     radial-gradient(circle at 76% 68%, color-mix(in srgb, var(--brand-kausalayer) 30%, transparent) 0 12%, transparent 34%),
@@ -799,29 +263,276 @@
   background-size: auto, auto, auto, auto, auto 76%;
 }
 
-.icc-card--kausalayer:hover,
-.icc-card--kausalayer.selected {
-  border-color: color-mix(in srgb, var(--brand-kausalayer-warm) 46%, var(--brand-kausalayer));
-  background: var(--integration-surface-kausalayer);
+/* Special art: phantom — lighter veil to show the purple art */
+.icc-card[data-brand='phantom']::before {
+  background:
+    linear-gradient(90deg, rgba(18, 13, 36, 0.9) 0%, rgba(18, 13, 36, 0.66) 45%, rgba(18, 13, 36, 0.28) 100%),
+    linear-gradient(0deg, rgba(18, 13, 36, 0.78) 0%, rgba(18, 13, 36, 0.2) 58%, rgba(18, 13, 36, 0.42) 100%),
+    url('/phantom.png');
+  background-position: center right;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
-.icc-card--kausalayer .icc-status-dot {
-  background: linear-gradient(135deg, var(--brand-kausalayer), var(--brand-kausalayer-warm));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-kausalayer) 16%, transparent), 0 0 18px color-mix(in srgb, var(--brand-kausalayer-warm) 24%, transparent);
+/* Special theme: idle-protocol — light "paper" treatment */
+.icc-card[data-brand='idle'] {
+  border-color: rgba(45, 95, 76, 0.42);
+  background: #f2ebdd;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), var(--shadow-sm);
 }
 
-.icc-card--kausalayer .icc-status-badge {
-  border-color: color-mix(in srgb, var(--brand-kausalayer) 36%, var(--brand-kausalayer-warm));
-  background: color-mix(in srgb, var(--brand-kausalayer) 12%, transparent);
-  color: rgba(227, 255, 249, 0.92);
+.icc-card[data-brand='idle']::before {
+  background:
+    linear-gradient(90deg, rgba(242, 235, 221, 0.98) 0%, rgba(242, 235, 221, 0.9) 44%, rgba(242, 235, 221, 0.68) 100%),
+    repeating-linear-gradient(0deg, rgba(45, 95, 76, 0.08) 0 1px, transparent 1px 27px),
+    repeating-linear-gradient(90deg, rgba(45, 95, 76, 0.07) 0 1px, transparent 1px 32px),
+    linear-gradient(135deg, #fbfaf6 0%, #f2ebdd 52%, #dfe2d5 100%);
 }
+
+.icc-card[data-brand='idle']::after {
+  content: 'x402  /  5 min  /  paid endpoints';
+  position: absolute;
+  right: 14px;
+  bottom: 11px;
+  z-index: 1;
+  max-width: 42%;
+  overflow: hidden;
+  color: rgba(45, 95, 76, 0.72);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: var(--fs-9);
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.icc-card[data-brand='idle']:hover,
+.icc-card[data-brand='idle'].selected {
+  border-color: rgba(45, 95, 76, 0.7);
+}
+
+.icc-card[data-brand='idle'] .icc-status-dot {
+  background: #2d5f4c;
+  box-shadow: 0 0 0 3px rgba(45, 95, 76, 0.16), 0 0 18px rgba(45, 95, 76, 0.18);
+}
+
+.icc-card[data-brand='idle'] .icc-card-name {
+  color: #1a1a1a;
+  font-family: Fraunces, Georgia, 'Times New Roman', serif;
+  font-size: var(--fs-16);
+}
+
+.icc-card[data-brand='idle'] .icc-card-tagline {
+  max-width: 260px;
+  color: rgba(26, 26, 26, 0.72);
+}
+
+.icc-card[data-brand='idle'] .icc-card-desc {
+  max-width: 320px;
+  color: rgba(26, 26, 26, 0.6);
+}
+
+.icc-card[data-brand='idle'] .icc-status-badge {
+  border-color: rgba(45, 95, 76, 0.28);
+  background: rgba(45, 95, 76, 0.1);
+  color: #2d5f4c;
+}
+
+/* ============================================================
+   OFF state — premium: art still visible but veiled & desaturated.
+   Badge becomes an "Enable" CTA. Hovering brightens the art.
+   Reads as "available", never "broken".
+   ============================================================ */
+.icc-card.icc-card--off {
+  background: color-mix(in srgb, var(--card-bg) 88%, var(--s0));
+}
+
+.icc-card--off[data-brand]::before {
+  filter: saturate(0.35) brightness(0.78);
+  opacity: 0.62;
+}
+
+.icc-card--off[data-brand] .icc-card-name {
+  color: color-mix(in srgb, var(--ic-name, var(--on-accent)) 78%, transparent);
+}
+
+.icc-card--off[data-brand] .icc-card-tagline {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.icc-card--off[data-brand] .icc-card-desc {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.icc-card--off[data-brand] .icc-status-dot {
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+}
+
+.icc-card--off .icc-status-badge.off {
+  border-color: color-mix(in srgb, var(--border-strong) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 68%, transparent);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+}
+
+.icc-card--off:hover[data-brand]::before {
+  filter: saturate(0.85) brightness(0.95);
+  opacity: 0.92;
+}
+
+.icc-card--off:hover .icc-status-badge.off,
+.icc-card--off.selected .icc-status-badge.off {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+/* Idle OFF uses paper colors, not white-on-dark */
+.icc-card--off[data-brand='idle']::before { filter: saturate(0.6) brightness(0.96); opacity: 0.86; }
+.icc-card--off[data-brand='idle'] .icc-card-name { color: rgba(26, 26, 26, 0.7); }
+.icc-card--off[data-brand='idle'] .icc-card-tagline { color: rgba(26, 26, 26, 0.5); }
+.icc-card--off[data-brand='idle'] .icc-card-desc { color: rgba(26, 26, 26, 0.42); }
+.icc-card--off[data-brand='idle']::after { color: rgba(45, 95, 76, 0.42); }
+.icc-card--off[data-brand='idle'] .icc-status-badge.off {
+  border-color: rgba(45, 95, 76, 0.28);
+  background: rgba(255, 255, 255, 0.5);
+  color: rgba(26, 26, 26, 0.64);
+}
+.icc-card--off[data-brand='idle']:hover .icc-status-badge.off,
+.icc-card--off[data-brand='idle'].selected .icc-status-badge.off {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(45, 95, 76, 0.4);
+  color: #1a1a1a;
+}
+
+/* ---- Per-brand tokens (shared by card + detail header) ---- */
+[data-brand='streamlock'] {
+  --ic-accent: rgba(255, 255, 255, 0.82);
+  --ic-surface: var(--integration-surface-neutral);
+  --ic-image: url('/streamlock.png');
+  --ic-scrim: 5, 6, 7;
+  --ic-scrim-edge: 0.34;
+  --ic-dot: rgba(255, 255, 255, 0.86);
+}
+
+[data-brand='zauth'] {
+  --ic-accent: rgba(255, 255, 255, 0.86);
+  --ic-surface: var(--integration-surface-neutral-strong);
+  --ic-image: url('/zauth.png');
+  --ic-scrim: 6, 6, 6;
+  --ic-scrim-edge: 0.18;
+  --ic-dot: rgba(255, 255, 255, 0.88);
+}
+
+[data-brand='helius'] {
+  --ic-accent: var(--brand-helius);
+  --ic-surface: var(--integration-surface-helius);
+  --ic-image: url('/helius.png');
+  --ic-image-pos: right 38%;
+  --ic-image-size: auto 122%;
+  --ic-detail-image-pos: right 36%;
+  --ic-detail-image-size: auto 124%;
+  --ic-scrim: 3, 5, 8;
+  --ic-scrim-edge: 0.32;
+}
+
+[data-brand='sendai'] {
+  --ic-accent: var(--brand-sendai);
+  --ic-surface: var(--integration-surface-sendai);
+  --ic-image: url('/sendai.png');
+  --ic-scrim: 3, 7, 18;
+  --ic-scrim-edge: 0.34;
+}
+
+[data-brand='spawnagents'] {
+  --ic-accent: var(--brand-spawnagents);
+  --ic-surface: var(--integration-surface-spawnagents);
+  --ic-image: url('/spawnagents.png');
+  --ic-detail-image: url('/spawnagents.jpg');
+  --ic-scrim: 10, 6, 8;
+  --ic-scrim-edge: 0.28;
+  --ic-badge-color: rgba(255, 220, 226, 0.94);
+}
+
+[data-brand='jupiter'] {
+  --ic-accent: var(--brand-jupiter);
+  --ic-surface: var(--integration-surface-jupiter);
+  --ic-image: url('/jupiter.png');
+  --ic-scrim: 3, 10, 16;
+  --ic-scrim-edge: 0.28;
+  --ic-badge-color: rgba(211, 255, 236, 0.9);
+}
+
+[data-brand='metaplex'] {
+  --ic-accent: var(--brand-metaplex);
+  --ic-surface: var(--integration-surface-jupiter);
+  --ic-image: url('/metaplex.png');
+  --ic-scrim: 3, 8, 12;
+  --ic-scrim-edge: 0.28;
+  --ic-badge-color: rgba(220, 255, 232, 0.9);
+}
+
+[data-brand='light'] {
+  --ic-accent: var(--brand-light);
+  --ic-surface: var(--integration-surface-light);
+  --ic-image: url('/lightprotocol.png');
+  --ic-scrim: 2, 8, 12;
+  --ic-scrim-edge: 0.28;
+  --ic-badge-color: rgba(211, 255, 250, 0.9);
+}
+
+[data-brand='magicblock'] {
+  --ic-accent: var(--brand-magicblock);
+  --ic-surface: var(--integration-surface-magicblock);
+  --ic-image: url('/majicblock.png');
+  --ic-scrim: 4, 7, 18;
+  --ic-scrim-edge: 0.18;
+  --ic-badge-color: rgba(216, 231, 255, 0.9);
+}
+
+[data-brand='debridge'] {
+  --ic-accent: rgba(255, 255, 255, 0.84);
+  --ic-surface: var(--integration-surface-debridge);
+  --ic-image: url('/debrige.png');
+  --ic-scrim: 5, 5, 6;
+  --ic-scrim-edge: 0.26;
+  --ic-dot: rgba(255, 255, 255, 0.86);
+}
+
+[data-brand='squads'] {
+  --ic-accent: rgba(255, 255, 255, 0.84);
+  --ic-surface: var(--integration-surface-squads);
+  --ic-image: url('/squads.png');
+  --ic-scrim: 4, 4, 5;
+  --ic-scrim-edge: 0.24;
+  --ic-dot: rgba(255, 255, 255, 0.86);
+}
+
+[data-brand='kausalayer'] {
+  --ic-accent: var(--brand-kausalayer);
+  --ic-surface: var(--integration-surface-kausalayer);
+  --ic-scrim: 3, 17, 15;
+  --ic-scrim-edge: 0.3;
+  --ic-badge-color: rgba(227, 255, 249, 0.92);
+}
+
+/* phantom token block */
+[data-brand='phantom'] {
+  --ic-accent: var(--brand-phantom);
+  --ic-surface: var(--integration-surface-phantom);
+  --ic-image: url('/phantom.png');
+  --ic-scrim: 18, 13, 36;
+  --ic-badge-color: rgba(244, 239, 255, 0.92);
+}
+
+/* idle-protocol has no partner art — monogram glyph keeps its leaf-green accent */
+[data-brand='idle'] {
+  --ic-accent: #2d5f4c;
+}
+
 
 .icc-status-dot {
-  width: 9px;
-  height: 9px;
-  margin-top: 5px;
-  border-radius: var(--radius-pill);
-  background: var(--t4);
+  margin-top: 6px;
 }
 
 .icc-status-dot.ready { background: var(--green); }
@@ -832,13 +543,12 @@
 .icc-card-main {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-xs);
   min-width: 0;
   overflow: hidden;
 }
 
-.icc-card-top,
-.icc-detail-head {
+.icc-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -850,6 +560,20 @@
   font-size: var(--fs-13);
   font-weight: 750;
   color: var(--t1);
+}
+
+.icc-card-title-wrap {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.icc-card-category {
+  color: var(--t4);
+  font-size: var(--fs-10);
+  font-weight: 700;
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
 }
 
 .icc-card-tagline {
@@ -870,16 +594,28 @@
   -webkit-line-clamp: 3;
 }
 
+.icc-card-setup {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: var(--fs-11);
+  line-height: 1.35;
+}
+
+.icc-card-setup.warning {
+  color: var(--accent-amber);
+}
+
+.icc-card-action {
+  width: fit-content;
+  margin-top: var(--space-xs);
+  color: var(--text-secondary);
+  font-size: var(--fs-11);
+  font-weight: 700;
+}
+
 .icc-status-badge {
   flex: 0 0 auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--s5);
-  color: var(--t3);
-  font-size: var(--fs-9);
-  font-weight: 750;
-  letter-spacing: 0;
-  padding: 5px 7px;
-  text-transform: uppercase;
+  border-radius: var(--radius-pill);
 }
 
 .icc-status-badge.ready {
@@ -909,164 +645,76 @@
   padding: 12px;
 }
 
-.icc-detail--brand .icc-detail-head {
-  position: relative;
-  min-height: 176px;
+.icc-detail-pin {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  max-height: 0;
+  margin: 0;
+  padding: 0 10px;
   overflow: hidden;
-  align-items: flex-end;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  background: var(--s1);
+  border: 1px solid color-mix(in srgb, var(--ic-accent, var(--green)) 18%, var(--card-border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--s1) 94%, transparent);
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    max-height var(--transition-fast),
+    padding var(--transition-fast),
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-.icc-detail--brand .icc-detail-head::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.98;
+.icc-detail-pin.visible {
+  max-height: 52px;
+  padding: 8px 10px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
-.icc-detail--brand .icc-detail-head > * {
-  position: relative;
-  z-index: 1;
+.icc-detail-pin-glyph {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ic-accent, var(--green)) 12%, var(--s2));
+  color: color-mix(in srgb, var(--ic-accent, var(--green)) 48%, var(--t1));
+  font-size: var(--fs-12);
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
-.icc-detail--brand .icc-detail-kicker,
-.icc-detail--brand .icc-detail h2,
-.icc-detail--brand .icc-detail-head h2 {
-  color: var(--on-accent);
+.icc-detail-pin-copy {
+  display: grid;
+  min-width: 0;
 }
 
-.icc-detail--brand .icc-detail-head p {
-  max-width: 720px;
-  color: rgba(255, 255, 255, 0.68);
+.icc-detail-pin-kicker,
+.icc-detail-pin-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.icc-detail--brand .icc-detail-head .icc-status-badge {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.88);
+.icc-detail-pin-kicker {
+  color: var(--t4);
+  font-size: var(--fs-9);
+  font-weight: 780;
+  text-transform: uppercase;
 }
 
-.icc-detail--streamlock .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(5, 6, 7, 0.94) 0%, rgba(5, 6, 7, 0.7) 42%, rgba(5, 6, 7, 0.22) 100%),
-    linear-gradient(0deg, rgba(5, 6, 7, 0.86) 0%, rgba(5, 6, 7, 0.16) 58%, rgba(5, 6, 7, 0.58) 100%),
-    url('/streamlock.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--zauth .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(6, 6, 6, 0.96) 0%, rgba(6, 6, 6, 0.7) 42%, rgba(6, 6, 6, 0.16) 100%),
-    linear-gradient(0deg, rgba(6, 6, 6, 0.88) 0%, rgba(6, 6, 6, 0.12) 58%, rgba(6, 6, 6, 0.58) 100%),
-    url('/zauth.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--helius .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(3, 5, 8, 0.94) 0%, rgba(3, 5, 8, 0.7) 42%, rgba(3, 5, 8, 0.22) 100%),
-    linear-gradient(0deg, rgba(3, 5, 8, 0.88) 0%, rgba(3, 5, 8, 0.18) 58%, rgba(3, 5, 8, 0.62) 100%),
-    url('/helius.png');
-  background-position: right 36%;
-  background-size: auto 124%;
-}
-
-.icc-detail--sendai .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(3, 7, 18, 0.94) 0%, rgba(3, 7, 18, 0.68) 42%, rgba(3, 7, 18, 0.24) 100%),
-    linear-gradient(0deg, rgba(3, 7, 18, 0.88) 0%, rgba(3, 7, 18, 0.18) 58%, rgba(3, 7, 18, 0.62) 100%),
-    url('/sendai.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--spawnagents .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(10, 6, 8, 0.96) 0%, rgba(10, 6, 8, 0.72) 42%, rgba(10, 6, 8, 0.24) 100%),
-    linear-gradient(0deg, rgba(10, 6, 8, 0.88) 0%, rgba(10, 6, 8, 0.18) 58%, rgba(10, 6, 8, 0.62) 100%),
-    url('/spawnagents.jpg');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--phantom .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(18, 13, 36, 0.82) 0%, rgba(18, 13, 36, 0.58) 42%, rgba(18, 13, 36, 0.2) 100%),
-    linear-gradient(0deg, rgba(18, 13, 36, 0.7) 0%, rgba(18, 13, 36, 0.14) 58%, rgba(18, 13, 36, 0.34) 100%),
-    url('/phantom.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--jupiter .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(3, 10, 16, 0.94) 0%, rgba(3, 10, 16, 0.68) 42%, rgba(3, 10, 16, 0.2) 100%),
-    linear-gradient(0deg, rgba(3, 10, 16, 0.86) 0%, rgba(3, 10, 16, 0.16) 58%, rgba(3, 10, 16, 0.6) 100%),
-    url('/jupiter.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--metaplex .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(3, 8, 12, 0.94) 0%, rgba(3, 8, 12, 0.68) 42%, rgba(3, 8, 12, 0.2) 100%),
-    linear-gradient(0deg, rgba(3, 8, 12, 0.88) 0%, rgba(3, 8, 12, 0.16) 58%, rgba(3, 8, 12, 0.62) 100%),
-    url('/metaplex.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--light .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(2, 8, 12, 0.94) 0%, rgba(2, 8, 12, 0.68) 42%, rgba(2, 8, 12, 0.2) 100%),
-    linear-gradient(0deg, rgba(2, 8, 12, 0.86) 0%, rgba(2, 8, 12, 0.16) 58%, rgba(2, 8, 12, 0.6) 100%),
-    url('/lightprotocol.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--magicblock .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(4, 7, 18, 0.94) 0%, rgba(4, 7, 18, 0.68) 42%, rgba(4, 7, 18, 0.18) 100%),
-    linear-gradient(0deg, rgba(4, 7, 18, 0.88) 0%, rgba(4, 7, 18, 0.16) 58%, rgba(4, 7, 18, 0.62) 100%),
-    url('/majicblock.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--debridge .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(5, 5, 6, 0.94) 0%, rgba(5, 5, 6, 0.68) 42%, rgba(5, 5, 6, 0.2) 100%),
-    linear-gradient(0deg, rgba(5, 5, 6, 0.88) 0%, rgba(5, 5, 6, 0.14) 58%, rgba(5, 5, 6, 0.62) 100%),
-    url('/debrige.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--squads .icc-detail-head::before {
-  background:
-    linear-gradient(90deg, rgba(4, 4, 5, 0.94) 0%, rgba(4, 4, 5, 0.68) 42%, rgba(4, 4, 5, 0.2) 100%),
-    linear-gradient(0deg, rgba(4, 4, 5, 0.88) 0%, rgba(4, 4, 5, 0.14) 58%, rgba(4, 4, 5, 0.62) 100%),
-    url('/squads.png');
-  background-position: center right;
-  background-size: cover;
-}
-
-.icc-detail--kausalayer .icc-detail-head::before {
-  background:
-    radial-gradient(circle at 82% 38%, color-mix(in srgb, var(--brand-kausalayer-warm) 30%, transparent) 0 10%, transparent 30%),
-    radial-gradient(circle at 76% 70%, color-mix(in srgb, var(--brand-kausalayer) 32%, transparent) 0 12%, transparent 34%),
-    linear-gradient(90deg, rgba(3, 17, 15, 0.94) 0%, rgba(3, 17, 15, 0.68) 42%, rgba(3, 17, 15, 0.2) 100%),
-    linear-gradient(0deg, rgba(3, 17, 15, 0.88) 0%, rgba(3, 17, 15, 0.16) 58%, rgba(3, 17, 15, 0.62) 100%),
-    url('/kausalayer.svg');
-  background-position: center, center, center, center, right 44px center;
-  background-repeat: no-repeat;
-  background-size: auto, auto, auto, auto, auto 86%;
+.icc-detail-pin-name {
+  color: var(--t1);
+  font-size: var(--fs-12);
+  font-weight: 780;
 }
 
 .icc-detail-kicker,
@@ -1084,6 +732,16 @@
   margin: 4px 0 0;
   font-size: var(--fs-16);
   line-height: 1.2;
+}
+
+.icc-detail-heading {
+  display: grid;
+  gap: 4px;
+  padding: 2px 2px 6px;
+}
+
+.icc-detail-heading p {
+  max-width: 68ch;
 }
 
 .icc-detail p {
@@ -1125,11 +783,7 @@
 .icc-requirement {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 9px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--s1);
+  gap: var(--space-sm);
 }
 
 .icc-requirement.ready {
@@ -1137,15 +791,7 @@
 }
 
 .icc-requirement-dot {
-  width: 7px;
-  height: 7px;
   margin-top: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--t3);
-}
-
-.icc-requirement-dot.ready {
-  background: var(--green);
 }
 
 .icc-requirement-label,
@@ -1215,6 +861,230 @@
 .icc-setup-workflow--secondary {
   border-color: var(--border);
   background: var(--s2);
+}
+
+.icc-idle-workflow {
+  border-color: rgba(45, 95, 76, 0.28);
+  background:
+    repeating-linear-gradient(0deg, rgba(45, 95, 76, 0.055) 0 1px, transparent 1px 30px),
+    linear-gradient(180deg, #fbfaf6 0%, #f2ebdd 100%);
+  color: #1a1a1a;
+}
+
+.icc-idle-workflow .icc-setup-head h3,
+.icc-idle-workflow .icc-step-main strong,
+.icc-idle-workflow .icc-result-title {
+  color: #1a1a1a;
+}
+
+.icc-idle-workflow .icc-setup-head p,
+.icc-idle-workflow .icc-step-main p,
+.icc-idle-workflow .icc-result p,
+.icc-idle-workflow .icc-inline-note {
+  color: rgba(26, 26, 26, 0.64);
+}
+
+.icc-idle-head h3 {
+  font-family: Fraunces, Georgia, 'Times New Roman', serif;
+  font-size: var(--fs-18);
+}
+
+.icc-idle-kicker {
+  color: #2d5f4c;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: var(--fs-10);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.icc-idle-status {
+  flex: 0 0 auto;
+  border: 1px solid rgba(45, 95, 76, 0.18);
+  border-radius: var(--radius-pill);
+  background: rgba(45, 95, 76, 0.08);
+  color: #2d5f4c;
+  font-size: var(--fs-9);
+  font-weight: 800;
+  padding: 6px 9px;
+  text-transform: uppercase;
+}
+
+.icc-idle-status.partial {
+  border-color: rgba(26, 26, 26, 0.14);
+  background: rgba(255, 255, 255, 0.54);
+  color: rgba(26, 26, 26, 0.56);
+}
+
+.icc-idle-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(45, 95, 76, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.icc-idle-pipeline span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1a1a1a;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: var(--fs-10);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.icc-idle-pipeline small {
+  color: rgba(45, 95, 76, 0.5);
+  font-size: var(--fs-10);
+}
+
+.icc-idle-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.icc-idle-resource-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(26, 26, 26, 0.1);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 1px 2px rgba(26, 26, 26, 0.05);
+}
+
+.icc-idle-resource-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.icc-idle-resource-top span,
+.icc-idle-settlement span {
+  color: rgba(45, 95, 76, 0.78);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: var(--fs-9);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.icc-idle-resource-top strong {
+  color: #2d5f4c;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: var(--fs-12);
+}
+
+.icc-idle-resource-card h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: var(--fs-13);
+  font-weight: 780;
+  line-height: 1.2;
+}
+
+.icc-idle-resource-card p,
+.icc-idle-resource-card code {
+  margin: 0;
+  color: rgba(26, 26, 26, 0.56);
+  font-size: var(--fs-11);
+}
+
+.icc-idle-resource-card code {
+  color: #2d5f4c;
+}
+
+.icc-idle-settlement {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid rgba(45, 95, 76, 0.16);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.icc-idle-settlement div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border-right: 1px solid rgba(45, 95, 76, 0.12);
+}
+
+.icc-idle-settlement div:last-child {
+  border-right: 0;
+}
+
+.icc-idle-settlement strong {
+  color: #1a1a1a;
+  font-size: var(--fs-12);
+  font-weight: 760;
+}
+
+.icc-idle-workflow .icc-ai-setup {
+  border-color: rgba(45, 95, 76, 0.22);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.icc-idle-workflow .icc-ai-setup-copy strong {
+  color: #1a1a1a;
+}
+
+.icc-idle-workflow .icc-ai-setup-copy p {
+  color: rgba(26, 26, 26, 0.62);
+}
+
+.icc-idle-workflow .icc-ai-setup-copy small {
+  color: #2d5f4c;
+}
+
+.icc-idle-workflow .icc-ai-setup-button,
+.icc-idle-workflow .icc-primary {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+  color: #f2ebdd;
+}
+
+.icc-idle-workflow .icc-ai-setup-button:hover:not(:disabled),
+.icc-idle-workflow .icc-primary:hover:not(:disabled) {
+  border-color: #2d5f4c;
+  background: #2d5f4c;
+  color: #ffffff;
+}
+
+.icc-idle-workflow .icc-secondary {
+  border-color: rgba(26, 26, 26, 0.14);
+  background: rgba(255, 255, 255, 0.66);
+  color: #1a1a1a;
+}
+
+.icc-idle-workflow .icc-secondary:hover:not(:disabled) {
+  border-color: rgba(45, 95, 76, 0.3);
+  background: rgba(255, 255, 255, 0.88);
+  color: #2d5f4c;
+}
+
+.icc-idle-workflow .icc-step,
+.icc-idle-workflow .icc-result,
+.icc-idle-workflow .icc-inline-note {
+  border-color: rgba(26, 26, 26, 0.1);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.icc-idle-workflow .icc-step-index {
+  border-color: rgba(45, 95, 76, 0.2);
+  background: rgba(45, 95, 76, 0.08);
+  color: #2d5f4c;
+}
+
+.icc-idle-workflow .icc-result-items code {
+  color: #2d5f4c;
 }
 
 .icc-setup-head {
@@ -1778,18 +1648,27 @@
 
   .icc-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(108px, auto) minmax(0, 1fr);
     overflow: hidden;
   }
 
   .icc-list {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(230px, 280px);
+    grid-auto-columns: minmax(216px, 260px);
+    grid-template-rows: 1fr;
     overflow-x: auto;
     overflow-y: hidden;
     padding: 0 0 8px;
     scrollbar-gutter: auto;
+  }
+
+  .icc-list-group {
+    display: contents;
+  }
+
+  .icc-list-group-header {
+    display: none;
   }
 
   .icc-detail {
@@ -1797,23 +1676,17 @@
   }
 
   .icc-card,
-  .icc-card--streamlock,
-  .icc-card--helius,
-  .icc-card--sendai,
-  .icc-card--phantom,
-  .icc-card--jupiter,
-  .icc-card--metaplex,
-  .icc-card--light,
-  .icc-card--magicblock,
-  .icc-card--debridge,
-  .icc-card--squads,
-  .icc-card--kausalayer,
-  .icc-card--spawnagents {
-    min-height: 112px;
+  .icc-card[data-brand] {
+    height: 100%;
+    min-height: 108px;
   }
 
   .icc-card-desc {
     -webkit-line-clamp: 2;
+  }
+
+  .icc-card[data-brand=idle] {
+    min-height: 108px;
   }
 }
 
@@ -1823,7 +1696,6 @@
   }
 
   .icc-card-top,
-  .icc-detail-head,
   .icc-setup-head,
   .icc-footer-actions,
   .icc-action,
@@ -1834,6 +1706,8 @@
 
   .icc-plan-grid,
   .icc-plan-columns,
+  .icc-idle-resource-grid,
+  .icc-idle-settlement,
   .icc-ai-setup,
   .icc-quick-wallet,
   .icc-quick-wallet-form,
@@ -1858,6 +1732,15 @@
     width: auto;
   }
 
+  .icc-list .icc-card-top {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+
+  .icc-list .icc-status-badge {
+    align-self: flex-start;
+  }
+
   .icc-primary,
   .icc-secondary {
     width: 100%;
@@ -1866,7 +1749,7 @@
 
 @container (max-width: 560px) {
   .icc-metrics {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .icc-header {
@@ -1888,6 +1771,33 @@
   }
 }
 
+@container (min-width: 561px) and (max-width: 760px) {
+  .icc-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+}
+
+@container icc (max-height: 760px) {
+  .icc-layout {
+    grid-template-rows: minmax(96px, auto) minmax(0, 1fr);
+  }
+
+  .icc-list {
+    grid-auto-columns: minmax(200px, 238px);
+  }
+
+  .icc-card,
+  .icc-card[data-brand] {
+    min-height: 96px;
+    padding: 9px 10px;
+  }
+
+  .icc-card[data-brand=idle] {
+    min-height: 96px;
+  }
+}
+
 @container icc (max-height: 620px) {
   .icc-header {
     gap: 4px;
@@ -1906,18 +1816,6 @@
   .icc-metrics {
     gap: 6px;
     padding-bottom: 8px;
-  }
-
-  .icc-metric {
-    padding: 7px 9px;
-  }
-
-  .icc-metric span {
-    font-size: var(--fs-14);
-  }
-
-  .icc-metric small {
-    font-size: var(--fs-9);
   }
 
   .icc-toolbar {
@@ -1946,18 +1844,7 @@
   }
 
   .icc-card,
-  .icc-card--streamlock,
-  .icc-card--helius,
-  .icc-card--sendai,
-  .icc-card--phantom,
-  .icc-card--jupiter,
-  .icc-card--metaplex,
-  .icc-card--light,
-  .icc-card--magicblock,
-  .icc-card--debridge,
-  .icc-card--squads,
-  .icc-card--kausalayer,
-  .icc-card--spawnagents {
+  .icc-card[data-brand] {
     min-height: 88px;
     padding: 8px;
   }
@@ -1971,15 +1858,16 @@
     -webkit-line-clamp: 2;
   }
 
+  .icc-card[data-brand=idle] {
+    min-height: 88px;
+    padding: 8px;
+  }
+
   .icc-detail {
     gap: 8px;
     padding: 10px;
   }
 
-  .icc-detail--brand .icc-detail-head {
-    min-height: 112px;
-    padding: 12px;
-  }
 }
 
 @container icc (max-height: 500px) {
@@ -2016,23 +1904,8 @@
     grid-auto-columns: minmax(190px, 220px);
   }
 
-  .icc-detail--brand .icc-detail-head {
-    min-height: 96px;
-  }
-
   .icc-card,
-  .icc-card--streamlock,
-  .icc-card--helius,
-  .icc-card--sendai,
-  .icc-card--phantom,
-  .icc-card--jupiter,
-  .icc-card--metaplex,
-  .icc-card--light,
-  .icc-card--magicblock,
-  .icc-card--debridge,
-  .icc-card--squads,
-  .icc-card--kausalayer,
-  .icc-card--spawnagents {
+  .icc-card[data-brand] {
     min-height: 70px;
   }
 
@@ -2042,6 +1915,14 @@
 
   .icc-card-desc {
     -webkit-line-clamp: 1;
+  }
+
+  .icc-card[data-brand=idle] {
+    min-height: 70px;
+  }
+
+  .icc-card[data-brand=idle]::after {
+    display: none;
   }
 }
 
@@ -2075,18 +1956,7 @@
   }
 
   .icc-card,
-  .icc-card--streamlock,
-  .icc-card--helius,
-  .icc-card--sendai,
-  .icc-card--phantom,
-  .icc-card--jupiter,
-  .icc-card--metaplex,
-  .icc-card--light,
-  .icc-card--magicblock,
-  .icc-card--debridge,
-  .icc-card--squads,
-  .icc-card--kausalayer,
-  .icc-card--spawnagents {
+  .icc-card[data-brand] {
     min-height: 62px;
     padding: 7px;
   }
@@ -2095,13 +1965,15 @@
     display: none;
   }
 
+  .icc-card[data-brand=idle] {
+    min-height: 62px;
+    padding: 7px;
+  }
+
   .icc-detail {
     padding: 8px;
   }
 
-  .icc-detail--brand .icc-detail-head {
-    min-height: 82px;
-  }
 }
 
 @media (max-height: 780px) {
@@ -2124,10 +1996,6 @@
     padding-bottom: 8px;
   }
 
-  .icc-metric {
-    padding: 8px 10px;
-  }
-
   .icc-toolbar {
     gap: 8px;
     padding-bottom: 8px;
@@ -2138,18 +2006,11 @@
   }
 
   .icc-card,
-  .icc-card--streamlock,
-  .icc-card--helius,
-  .icc-card--sendai,
-  .icc-card--phantom,
-  .icc-card--jupiter,
-  .icc-card--metaplex,
-  .icc-card--light,
-  .icc-card--magicblock,
-  .icc-card--debridge,
-  .icc-card--squads,
-  .icc-card--kausalayer,
-  .icc-card--spawnagents {
+  .icc-card[data-brand] {
+    min-height: 100px;
+  }
+
+  .icc-card[data-brand=idle] {
     min-height: 100px;
   }
 
@@ -2158,13 +2019,253 @@
     padding: 10px;
   }
 
-  .icc-detail--brand .icc-detail-head {
-    min-height: 124px;
-    padding: 12px;
-  }
-
   .icc-setup-workflow {
     gap: 9px;
     padding: 9px;
   }
+}
+
+
+/* ============================================================
+   Tier 2 polish — elevation rhythm, selected state, hover lift,
+   KPI tiles, section-title accents. Uses existing design tokens.
+   ============================================================ */
+
+/* Card hover/selected/focus + reduced-motion now live in the
+   branded card driver above. Kept here: KPI tiles, section ticks,
+   elevation rhythm, detail head v2. */
+
+/* Elevation rhythm: promote primary section containers above sub-items */
+.icc-detail--brand,
+.icc-setup-workflow {
+  box-shadow: var(--shadow-md);
+}
+
+/* Section titles: accent tick + one step up in legibility */
+.icc-section-title,
+.icc-mini-title {
+  position: relative;
+  padding-left: 11px;
+  font-size: var(--fs-11);
+}
+
+.icc-section-title::before,
+.icc-mini-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 11px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--green) 70%, transparent);
+  transform: translateY(-50%);
+}
+
+/* Idle "paper" theme keeps its own accent hue for the tick */
+.icc-idle-workflow .icc-section-title::before,
+.icc-idle-workflow .icc-mini-title::before {
+  background: color-mix(in srgb, #2d5f4c 70%, transparent);
+}
+
+/* ---- Requirements: premium status rhythm ---- */
+.icc-requirement {
+  position: relative;
+  align-items: center;
+  padding: 12px 14px 12px 16px;
+  border-color: color-mix(in srgb, var(--card-border) 80%, transparent);
+  background: color-mix(in srgb, var(--s1) 92%, var(--s2));
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--dur-base) var(--ease-out-quint);
+  box-shadow: var(--shadow-sm), inset 3px 0 0 color-mix(in srgb, var(--t4) 50%, transparent);
+}
+
+.icc-requirement.ready {
+  border-color: color-mix(in srgb, var(--green) 28%, var(--card-border));
+  background: color-mix(in srgb, var(--green) 5%, var(--s1));
+  box-shadow: var(--shadow-sm), inset 3px 0 0 var(--green);
+}
+
+.icc-requirement-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 0;
+  background: color-mix(in srgb, var(--t3) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--t3) 14%, transparent);
+}
+
+.icc-requirement-dot.ready {
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent),
+              0 0 12px color-mix(in srgb, var(--green) 26%, transparent);
+}
+
+.icc-requirement-label {
+  color: var(--t1);
+  font-size: var(--fs-13);
+  letter-spacing: -0.005em;
+}
+
+.icc-requirement-detail {
+  margin-top: 3px;
+  color: var(--t3);
+  font-size: var(--fs-11);
+}
+
+.icc-optional {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--t4) 50%, var(--card-border));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--t4) 12%, transparent);
+  color: var(--t3);
+  font-size: var(--fs-9);
+  font-weight: 700;
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+
+/* ---- Tags: brand-tinted when inside a branded detail ---- */
+.icc-tags span {
+  padding: 6px 10px;
+  border-color: color-mix(in srgb, var(--card-border) 90%, transparent);
+  background: color-mix(in srgb, var(--s1) 80%, transparent);
+  color: var(--t2);
+  font-weight: 600;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.icc-detail[data-brand] .icc-tags span {
+  border-color: color-mix(in srgb, var(--ic-accent) 22%, var(--card-border));
+  color: color-mix(in srgb, var(--ic-accent) 35%, var(--t1));
+  background: color-mix(in srgb, var(--ic-accent) 6%, var(--s1));
+}
+
+.icc-tags span:hover {
+  border-color: color-mix(in srgb, var(--ic-accent, var(--green)) 50%, var(--card-border));
+  color: var(--t1);
+}
+
+/* ============================================================
+   Brand identity carries through the detail body.
+   When a non-idle branded integration is selected, the workflow
+   accent (steps, AI setup, check ticks, ready states, primary
+   button) swaps from generic DAEMON green to var(--ic-accent).
+   Idle keeps its bespoke paper-green theme.
+   ============================================================ */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-section-title::before,
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-mini-title::before {
+  background: color-mix(in srgb, var(--ic-accent) 72%, transparent);
+}
+
+/* Requirement ready state */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-requirement.ready {
+  border-color: color-mix(in srgb, var(--ic-accent) 32%, var(--card-border));
+  background: color-mix(in srgb, var(--ic-accent) 6%, var(--s1));
+  box-shadow: var(--shadow-sm), inset 3px 0 0 var(--ic-accent);
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-requirement-dot.ready {
+  background: var(--ic-accent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--ic-accent) 18%, transparent),
+    0 0 12px color-mix(in srgb, var(--ic-accent) 26%, transparent);
+}
+
+/* Status badges inside the detail body */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-status-badge.ready {
+  border-color: color-mix(in srgb, var(--ic-accent) 38%, var(--card-border));
+  color: color-mix(in srgb, var(--ic-accent) 42%, var(--t1));
+}
+
+/* Step list — active / ready / index pill / action button */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.active {
+  border-color: color-mix(in srgb, var(--ic-accent) 24%, var(--card-border));
+  background: color-mix(in srgb, var(--ic-accent) 5%, var(--s1));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.ready {
+  border-color: color-mix(in srgb, var(--ic-accent) 18%, var(--card-border));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.active .icc-step-index,
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.ready .icc-step-index {
+  border-color: color-mix(in srgb, var(--ic-accent) 30%, var(--card-border));
+  color: color-mix(in srgb, var(--ic-accent) 45%, var(--t1));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-step-action {
+  border-color: color-mix(in srgb, var(--ic-accent) 28%, var(--card-border));
+  background: color-mix(in srgb, var(--ic-accent) 8%, transparent);
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-step-action:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--ic-accent) 48%, var(--card-border));
+  background: color-mix(in srgb, var(--ic-accent) 14%, transparent);
+}
+
+/* AI setup card — featured CTA in brand color */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup {
+  border-color: color-mix(in srgb, var(--ic-accent) 32%, var(--card-border));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--ic-accent) 14%, transparent),
+    rgba(255, 255, 255, 0.025));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup-copy small {
+  color: color-mix(in srgb, var(--ic-accent) 50%, var(--t1));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup-button {
+  border-color: color-mix(in srgb, var(--ic-accent) 48%, transparent);
+  background: var(--ic-accent);
+  color: var(--bg);
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup-button:hover:not(:disabled) {
+  border-color: var(--ic-accent);
+  background: color-mix(in srgb, var(--ic-accent) 82%, var(--bg));
+}
+
+/* Check ticks + safety badges + actions */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-check-list span::before {
+  color: var(--ic-accent);
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-safety-notes span::before {
+  color: var(--ic-accent);
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-action:hover {
+  border-color: color-mix(in srgb, var(--ic-accent) 28%, var(--card-border));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-risk--read-only {
+  border-color: color-mix(in srgb, var(--ic-accent) 28%, var(--card-border));
+  color: color-mix(in srgb, var(--ic-accent) 50%, var(--t1));
+}
+
+/* Primary button picks up the brand */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-primary {
+  border-color: color-mix(in srgb, var(--ic-accent) 38%, var(--control-border));
+  background: color-mix(in srgb, var(--ic-accent) 12%, transparent);
+  color: color-mix(in srgb, var(--ic-accent) 30%, var(--t1));
+}
+
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-primary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--ic-accent) 60%, var(--control-border));
+  background: color-mix(in srgb, var(--ic-accent) 22%, transparent);
+  color: var(--t1);
+}
+
+/* Result success border */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-result.success {
+  border-color: color-mix(in srgb, var(--ic-accent) 26%, var(--card-border));
+}
+
+/* Guided next + step-action ready indicators */
+.icc-detail[data-brand]:not([data-brand='idle']) .icc-guided-next {
+  border-color: color-mix(in srgb, var(--ic-accent) 14%, var(--card-border));
 }

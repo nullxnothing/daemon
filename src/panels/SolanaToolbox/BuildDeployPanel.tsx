@@ -1,5 +1,9 @@
+import { useState } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useAppActions } from '../../store/appActions'
 import type { SolanaProjectInfo, SolanaToolchainStatus, ValidatorState } from '../../store/solanaToolbox'
+import { ShiplineTimeline } from './ShiplineTimeline'
+import { describeSolanaToolboxError, getSolanaProjectEmptyCopy, getSolanaProjectEmptyTitle } from './solanaToolboxCopy'
 import './SolanaIdeWorkflow.css'
 
 interface BuildDeployPanelProps {
@@ -59,7 +63,7 @@ const DEPLOY_COMMANDS: WorkflowCommand[] = [
     id: 'anchor-deploy-devnet',
     title: 'Anchor deploy to devnet',
     detail: 'Deploy through Anchor after build/test passes. Confirm cluster and upgrade authority first.',
-    command: 'solana config set --url devnet && anchor deploy',
+    command: 'anchor deploy --provider.cluster devnet',
     requiresProject: true,
     preferredFor: ['anchor'],
   },
@@ -131,21 +135,52 @@ function safetyChecks(projectInfo: SolanaProjectInfo | null, toolchain: SolanaTo
 
 export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchain, validator }: BuildDeployPanelProps) {
   const addTerminal = useUIStore((s) => s.addTerminal)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
   const canRun = Boolean(projectId && projectPath)
   const visibleBuildCommands = BUILD_COMMANDS.filter((command) => isCommandPreferred(command, projectInfo))
   const visibleDeployCommands = DEPLOY_COMMANDS.filter((command) => isCommandPreferred(command, projectInfo))
   const checks = safetyChecks(projectInfo, toolchain, validator)
+  const [terminalError, setTerminalError] = useState<string | null>(null)
 
   const runCommand = async (command: WorkflowCommand | undefined) => {
     if (!projectId || !projectPath || !command) return
-    const res = await window.daemon.terminal.create({
-      cwd: projectPath,
-      startupCommand: command.command,
-      userInitiated: true,
-    })
-    if (res.ok && res.data) {
-      addTerminal(projectId, res.data.id, terminalLabel(command))
+    setTerminalError(null)
+    try {
+      const res = await window.daemon.terminal.create({
+        cwd: projectPath,
+        startupCommand: command.command,
+        userInitiated: true,
+      })
+      if (res.ok && res.data) {
+        addTerminal(projectId, res.data.id, terminalLabel(command))
+        focusTerminal()
+        return
+      }
+      setTerminalError(describeSolanaToolboxError(res.error, `Could not open a terminal for "${command.title}".`))
+    } catch (error) {
+      setTerminalError(describeSolanaToolboxError(error instanceof Error ? error.message : null, `Could not open a terminal for "${command.title}".`))
     }
+  }
+
+  const runRawCommand = async (command: string, label: string): Promise<string | null> => {
+    if (!projectId || !projectPath) return null
+    setTerminalError(null)
+    try {
+      const res = await window.daemon.terminal.create({
+        cwd: projectPath,
+        startupCommand: command,
+        userInitiated: true,
+      })
+      if (res.ok && res.data) {
+        addTerminal(projectId, res.data.id, label)
+        focusTerminal()
+        return res.data.id
+      }
+      setTerminalError(describeSolanaToolboxError(res.error, `Could not open a terminal for "${label}".`))
+    } catch (error) {
+      setTerminalError(describeSolanaToolboxError(error instanceof Error ? error.message : null, `Could not open a terminal for "${label}".`))
+    }
+    return null
   }
 
   return (
@@ -153,9 +188,9 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
       <div className="solana-ide-hero">
         <div>
           <div className="solana-token-launch-kicker">Build / Test / Deploy</div>
-          <h3 className="solana-token-launch-title">Make DAEMON own the Solana program loop</h3>
+          <h3 className="solana-token-launch-title">Run the Solana build loop with Shipline proof</h3>
           <p className="solana-token-launch-copy">
-            Run the core program workflow from the active repo, with deploy actions kept behind explicit safety reminders.
+            Run build, tests, devnet deploy, confirmation, verification, and IDL proof from the active repo with the safety checks visible before each step.
           </p>
         </div>
         <div className="solana-ide-hero-actions">
@@ -164,6 +199,28 @@ export function BuildDeployPanel({ projectId, projectPath, projectInfo, toolchai
           </button>
         </div>
       </div>
+
+      {!canRun && (
+        <section className="solana-ide-empty-panel">
+          <div>
+            <div className="solana-token-launch-kicker">Project required</div>
+            <h3>{getSolanaProjectEmptyTitle(projectPath)}</h3>
+            <p>{getSolanaProjectEmptyCopy(projectPath)}</p>
+          </div>
+        </section>
+      )}
+
+      <ShiplineTimeline
+        projectId={projectId}
+        projectPath={projectPath}
+        onRunCommand={runRawCommand}
+      />
+
+      {terminalError && (
+        <div className="solana-ide-error" role="status">
+          {terminalError}
+        </div>
+      )}
 
       <div className="solana-ide-grid">
         <section className="solana-ide-panel">

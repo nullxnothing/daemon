@@ -33,7 +33,7 @@ const ULTRA_STATE: ProSubscriptionState = {
   walletId: 'wallet-1',
   walletAddress: '7Y12wallet9AbC',
   expiresAt: Date.UTC(2026, 5, 1),
-  features: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'app-factory', 'shipline', 'cloud-agents'],
+  features: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'shipline', 'cloud-agents'],
   tier: 'ultra',
   accessSource: 'payment',
   holderStatus: {

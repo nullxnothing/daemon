@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { BondingCurveCanvas } from './BondingCurveCanvas'
+import { getSolscanTxLabel } from '../../../lib/solanaExplorer'
+import { describePumpfunError, openPumpfunSignature, shortSignature } from './pumpfunUi'
 
 interface BondingCurveInfo {
   mint: string
@@ -13,7 +15,10 @@ interface BondingCurveInfo {
   realTokenReserves: string
 }
 
-interface Props { walletId: string | null }
+interface Props {
+  walletId: string | null
+  cluster: WalletInfrastructureSettings['cluster']
+}
 
 const SLIPPAGE_OPTIONS = [50, 100, 300, 500]
 
@@ -28,7 +33,7 @@ function formatPrice(sol: number): string {
   return s
 }
 
-export function TradeTab({ walletId }: Props) {
+export function TradeTab({ walletId, cluster }: Props) {
   const [mint, setMint] = useState('')
   const [curve, setCurve] = useState<BondingCurveInfo | null>(null)
   const [loading, setLoading] = useState(false)
@@ -38,19 +43,30 @@ export function TradeTab({ walletId }: Props) {
   const [executing, setExecuting] = useState(false)
   const [result, setResult] = useState<{ signature?: string; error?: string } | null>(null)
 
-  const handleLoad = async () => {
+  const loadCurve = async (clearResult = true) => {
     if (!mint.trim()) return
     setLoading(true)
-    setCurve(null)
-    setResult(null)
+    if (clearResult) setCurve(null)
+    if (clearResult) setResult(null)
 
-    const res = await window.daemon.pumpfun.bondingCurve(mint.trim())
-    if (res.ok && res.data) {
-      setCurve(res.data as BondingCurveInfo)
-    } else {
-      setResult({ error: res.error ?? 'Failed to load bonding curve' })
+    try {
+      const res = await window.daemon.pumpfun.bondingCurve(mint.trim())
+      if (res.ok && res.data) {
+        setCurve(res.data as BondingCurveInfo)
+      } else if (clearResult) {
+        setResult({ error: describePumpfunError(res.error, 'Could not load the PumpFun bonding curve.') })
+      }
+    } catch (error) {
+      if (clearResult) {
+        setResult({ error: describePumpfunError(error instanceof Error ? error.message : null, 'Could not load the PumpFun bonding curve.') })
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
+  }
+
+  const handleLoad = () => {
+    void loadCurve(true)
   }
 
   const handleTrade = async () => {
@@ -66,21 +82,22 @@ export function TradeTab({ walletId }: Props) {
       ...(action === 'buy' ? { amountSol: parseFloat(amount) } : { amountTokens: parseFloat(amount) }),
     }
 
-    const res = action === 'buy'
-      ? await window.daemon.pumpfun.buy(input)
-      : await window.daemon.pumpfun.sell(input)
+    try {
+      const res = action === 'buy'
+        ? await window.daemon.pumpfun.buy(input)
+        : await window.daemon.pumpfun.sell(input)
 
-    if (res.ok && res.data) {
-      setResult({ signature: (res.data as { signature: string }).signature })
-      handleLoad() // Refresh curve state
-    } else {
-      setResult({ error: res.error ?? 'Trade failed' })
+      if (res.ok && res.data) {
+        setResult({ signature: (res.data as { signature: string }).signature })
+        void loadCurve(false)
+      } else {
+        setResult({ error: describePumpfunError(res.error, 'PumpFun trade failed. Nothing was submitted.') })
+      }
+    } catch (error) {
+      setResult({ error: describePumpfunError(error instanceof Error ? error.message : null, 'PumpFun trade failed. Nothing was submitted.') })
+    } finally {
+      setExecuting(false)
     }
-    setExecuting(false)
-  }
-
-  const openTx = (sig: string) => {
-    window.daemon.shell.openExternal(`https://solscan.io/tx/${sig}`)
   }
 
   return (
@@ -163,10 +180,10 @@ export function TradeTab({ walletId }: Props) {
 
       {result?.signature && (
         <div className="pf-result success">
-          Trade confirmed.{' '}
-          <span className="pf-tx-link" onClick={() => openTx(result.signature!)}>
-            {result.signature.slice(0, 20)}...
-          </span>
+          <span>Trade confirmed. Receipt {shortSignature(result.signature)}.</span>
+          <button type="button" className="pf-tx-link" onClick={() => void openPumpfunSignature(result.signature!, cluster)}>
+            {getSolscanTxLabel(cluster)}
+          </button>
         </div>
       )}
 

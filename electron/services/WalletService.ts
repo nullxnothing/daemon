@@ -815,14 +815,56 @@ function readTokenMintDecimals(accountInfo: Awaited<ReturnType<Connection['getPa
   return decimals
 }
 
+function numberToPlainDecimal(value: number): string {
+  const text = value.toString().toLowerCase()
+  if (!text.includes('e')) return text
+
+  const [mantissa, exponentText] = text.split('e')
+  const exponent = Number(exponentText)
+  if (!Number.isInteger(exponent)) throw new Error('Amount is not a valid decimal number')
+
+  const [whole = '0', fraction = ''] = mantissa.split('.')
+  const digits = `${whole}${fraction}`.replace(/^0+(?=\d)/, '')
+  const decimalIndex = whole.length + exponent
+
+  if (decimalIndex <= 0) return `0.${'0'.repeat(Math.abs(decimalIndex))}${digits}`
+  if (decimalIndex >= digits.length) return digits.padEnd(decimalIndex, '0')
+  return `${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`
+}
+
 function toRawTokenAmount(amount: number, decimals: number): bigint {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Amount must be greater than 0')
   }
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 100) {
+    throw new Error('Token mint decimals are outside the supported range')
+  }
 
-  const [wholePart = '0', fractionalPart = ''] = amount.toString().split('.')
+  const [wholePart = '0', fractionalPart = ''] = numberToPlainDecimal(amount).split('.')
+  const unsupportedPrecision = fractionalPart.slice(decimals)
+  if (/[1-9]/.test(unsupportedPrecision)) {
+    throw new Error(`Amount exceeds token precision of ${decimals} decimals`)
+  }
   const normalizedFraction = fractionalPart.padEnd(decimals, '0').slice(0, decimals)
   return BigInt(`${wholePart}${normalizedFraction}`.replace(/^0+(?=\d)/, '') || '0')
+}
+
+function toLamports(amountSol: number): number {
+  const lamports = toRawTokenAmount(amountSol, LAMPORTS_DECIMALS)
+  if (lamports > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('SOL amount is too large for safe client-side execution')
+  }
+  return Number(lamports)
+}
+
+function normalizeSlippageBps(input: number): number {
+  if (!Number.isFinite(input) || !Number.isInteger(input)) {
+    throw new Error('Slippage must be a whole number of basis points')
+  }
+  if (input < 1 || input > 5000) {
+    throw new Error('Slippage must be between 1 and 5000 bps')
+  }
+  return input
 }
 
 function formatTokenAmount(rawAmount: bigint, decimals: number): string {
@@ -1009,7 +1051,7 @@ export async function transferSOL(
     const feeBufferLamports = Math.max(10_000, BASE_SIGNATURE_FEE_LAMPORTS + priorityFeeLamports)
     const lamportsToSend = sendMax
       ? Math.max(0, balance - feeBufferLamports)
-      : Math.round((amountSol ?? 0) * LAMPORTS_PER_SOL)
+      : toLamports(amountSol ?? 0)
 
     if (lamportsToSend <= 0) {
       throw new Error('Not enough SOL to send after reserving network fees')
@@ -1083,6 +1125,7 @@ export async function transferToken(
     const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
     const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
     const decimals = readTokenMintDecimals(mintInfo.value)
+    const requestedRawAmount = sendMax ? null : toRawTokenAmount(amount ?? 0, decimals)
     let rawAmount: bigint
     let amountToRecord: number
     try {
@@ -1090,7 +1133,7 @@ export async function transferToken(
       const rawBalance = accountInfo.amount
       rawAmount = sendMax
         ? rawBalance
-        : toRawTokenAmount(amount ?? 0, decimals)
+        : requestedRawAmount ?? 0n
 
       if (rawAmount <= 0n) {
         throw new Error('No token balance available to send')
@@ -1474,6 +1517,7 @@ export async function getSwapQuote(
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
   if (amount <= 0) throw new Error('Amount must be greater than 0')
   if (inputMint === outputMint) throw new Error('Input and output mints must differ')
+  const normalizedSlippageBps = normalizeSlippageBps(slippageBps)
 
   const jupiterApiKey = getJupiterApiKey()
   if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
@@ -1482,8 +1526,8 @@ export async function getSwapQuote(
 
   // Resolve decimals for the input mint to convert human amount to raw
   const decimals = await getMintDecimals(inputMint)
-  const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
-  const data = await requestJupiterSwapOrder(inputMint, outputMint, rawAmount, slippageBps, taker, jupiterApiKey)
+  const rawAmount = toRawTokenAmount(amount, decimals)
+  const data = await requestJupiterSwapOrder(inputMint, outputMint, rawAmount, normalizedSlippageBps, taker, jupiterApiKey)
 
   // Convert raw amounts to human-readable
   const outputDecimals = await getMintDecimals(outputMint)
@@ -1515,6 +1559,7 @@ export async function executeSwap(
   if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
   if (amount <= 0) throw new Error('Amount must be greater than 0')
+  const normalizedSlippageBps = normalizeSlippageBps(slippageBps)
 
   const jupiterApiKey = getJupiterApiKey()
   if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
@@ -1530,7 +1575,7 @@ export async function executeSwap(
     const decimals = await getMintDecimals(inputMint, connection)
     if (inputMint === SOL_MINT) {
       const lamports = await connection.getBalance(keypair.publicKey)
-      const requiredLamports = Math.round(amount * Math.pow(10, decimals)) + 10_000 // fee buffer
+      const requiredLamports = toLamports(amount) + 10_000 // fee buffer
       if (lamports < requiredLamports) {
         throw new Error(
           `Insufficient SOL: have ${(lamports / Math.pow(10, decimals)).toFixed(4)}, need ${amount} + fees`
@@ -1556,7 +1601,7 @@ export async function executeSwap(
     // Use the executable order the user reviewed when provided. Fall back to
     // fetching a fresh order only if no rawQuoteResponse was supplied.
     let orderData: JupiterSwapOrderResponse
-    const rawRequested = BigInt(Math.round(amount * Math.pow(10, decimals)))
+    const rawRequested = toRawTokenAmount(amount, decimals)
     if (rawQuoteResponse) {
       const q = parseJupiterSwapOrder(rawQuoteResponse)
       if (q.inputMint !== inputMint) {
@@ -1581,7 +1626,7 @@ export async function executeSwap(
 
       orderData = q
     } else {
-      orderData = await requestJupiterSwapOrder(inputMint, outputMint, rawRequested, slippageBps, userPublicKey, jupiterApiKey)
+      orderData = await requestJupiterSwapOrder(inputMint, outputMint, rawRequested, normalizedSlippageBps, userPublicKey, jupiterApiKey)
     }
 
     // Deserialize and sign Jupiter's assembled V2 order transaction, then hand it

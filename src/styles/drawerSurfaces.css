@@ -35,11 +35,12 @@
 .solana-toolbox .solana-token-launch-kicker,
 .git-center .git-workflow-kicker,
 .pro-panel .pro-panel-kicker {
-  font-size: var(--fs-10);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: var(--green);
+  color: var(--text-faint);
 }
 
 .wallet-panel .wallet-workspace-title,
@@ -51,11 +52,11 @@
 .git-center .git-title,
 .pro-panel .pro-panel-title {
   margin: 0;
-  font-size: var(--fs-24);
-  line-height: var(--lh-tight);
-  font-weight: var(--fw-semibold);
+  font-size: var(--type-page-title-size);
+  line-height: var(--type-page-title-line);
+  font-weight: var(--type-page-title-weight);
   color: var(--t1);
-  letter-spacing: var(--ls-tight);
+  letter-spacing: var(--type-page-title-tracking);
 }
 
 .wallet-panel .wallet-workspace-subtitle,
@@ -66,9 +67,9 @@
 .solana-toolbox .solana-workflow-copy,
 .git-center .git-workflow-text,
 .pro-panel .pro-panel-subtitle {
-  font-size: var(--fs-12);
-  line-height: var(--lh-normal);
-  color: var(--t3);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--text-secondary);
 }
 
 .wallet-panel .wallet-workspace-metric,
@@ -199,7 +200,8 @@
   .solana-toolbox .solana-workflow-title,
   .git-center .git-title,
   .pro-panel .pro-panel-title {
-    font-size: var(--fs-20);
+    font-size: var(--type-section-title-size);
+    line-height: var(--type-section-title-line);
   }
 }
 
@@ -230,7 +232,7 @@
   .solana-toolbox .solana-workflow-title,
   .git-center .git-title,
   .pro-panel .pro-panel-title {
-    font-size: var(--fs-18);
-    line-height: var(--lh-snug);
+    font-size: var(--type-section-title-size);
+    line-height: var(--type-section-title-line);
   }
 }

@@ -1,4 +1,6 @@
 import './WalletPanel.css'
+import { canOpenSolscan, getSolscanTxLabel, getSolscanTxUrl } from '../../lib/solanaExplorer'
+import { compactAddress } from '../../utils/textDisplay'
 
 interface WalletTransaction {
   id: string
@@ -9,14 +11,16 @@ interface WalletTransaction {
   amount: number
   mint: string | null
   status: string
+  error?: string | null
   created_at: number
 }
 
 interface TransactionHistoryProps {
   transactions: WalletTransaction[]
+  cluster: WalletInfrastructureSettings['cluster']
 }
 
-export function TransactionHistory({ transactions }: TransactionHistoryProps) {
+export function TransactionHistory({ transactions, cluster }: TransactionHistoryProps) {
   if (transactions.length === 0) return null
 
   return (
@@ -24,17 +28,33 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
       <div className="wallet-section-title">Transaction History</div>
       {transactions.slice(0, 10).map((tx) => (
         <div key={tx.id} className="wallet-tx-row">
-          <div>
+          <div className="wallet-tx-main">
             <div className="wallet-label">{tx.type}</div>
             <div className="wallet-caption">
               {shortAddress(tx.from_address)} → {shortAddress(tx.to_address)}
             </div>
+            {tx.error && <div className="wallet-caption wallet-tx-error">{tx.error}</div>}
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div className="wallet-tx-side">
             <div className="wallet-label">{tx.amount}{tx.mint ? '' : ' SOL'}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+            <div className="wallet-tx-meta">
               <span className={`wallet-tx-status ${tx.status}`}>{tx.status}</span>
               <span className="wallet-caption">{relativeTime(tx.created_at)}</span>
+              {tx.signature && (
+                <button
+                  type="button"
+                  className="wallet-tx-link"
+                  onClick={() => {
+                    if (canOpenSolscan(cluster)) {
+                      void window.daemon.shell.openExternal(getSolscanTxUrl(tx.signature!, cluster))
+                    } else {
+                      void window.daemon.env.copyValue(tx.signature!)
+                    }
+                  }}
+                >
+                  {getSolscanTxLabel(cluster)}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -44,7 +64,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
 }
 
 function shortAddress(value: string): string {
-  return `${value.slice(0, 4)}...${value.slice(-4)}`
+  return compactAddress(value)
 }
 
 function relativeTime(ts: number): string {

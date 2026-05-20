@@ -8,7 +8,7 @@
 }
 
 .sr-panel-header {
-  padding: 18px 20px 14px;
+  padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
   border-bottom: 1px solid var(--s4);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
 }
@@ -16,7 +16,7 @@
 .sr-stats {
   display: flex;
   gap: 12px;
-  padding: 18px 20px 0;
+  padding: 0 var(--panel-pad-x) var(--space-md);
   border-bottom: none;
   flex-shrink: 0;
 }

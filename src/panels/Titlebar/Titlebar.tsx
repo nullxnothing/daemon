@@ -88,13 +88,23 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
 }
 
 function TitlebarBrand({ showText }: { showText: boolean }) {
+  const [version, setVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    window.daemon.settings.getAppMeta().then((res) => {
+      if (!cancelled && res.ok && res.data?.version) setVersion(res.data.version)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <div className={`titlebar-left${showText ? '' : ' titlebar-left--icon-only'}`}>
       <DaemonMark className="titlebar-icon" />
       {showText && (
         <>
-          <span className="titlebar-title">DAEMON</span>
-          <span className="titlebar-beta">BETA</span>
+          <span className="titlebar-title">Daemon</span>
+          <span className="titlebar-version">v{version ?? '4.0.0'}</span>
         </>
       )}
     </div>

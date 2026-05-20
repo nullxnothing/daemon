@@ -32,13 +32,13 @@ export interface IntegrationDefinition {
 
 export const INTEGRATION_CATEGORIES: Array<{ id: IntegrationCategory | 'all'; label: string }> = [
   { id: 'all', label: 'All' },
-  { id: 'agent', label: 'Agent' },
-  { id: 'wallet', label: 'Wallet' },
-  { id: 'rpc', label: 'RPC/Data' },
-  { id: 'defi', label: 'DeFi' },
-  { id: 'nft', label: 'NFT' },
+  { id: 'agent', label: 'AI Agents' },
+  { id: 'wallet', label: 'Wallet UX' },
+  { id: 'rpc', label: 'RPC + Data' },
+  { id: 'defi', label: 'DeFi Protocols' },
+  { id: 'nft', label: 'NFT + IDL' },
   { id: 'launch', label: 'Launch' },
-  { id: 'infra', label: 'Infra' },
+  { id: 'infra', label: 'Paid APIs + Infra' },
 ]
 
 export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
@@ -77,6 +77,27 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     actions: [
       { id: 'open-zauth-database', label: 'Open database', description: 'Open the Zauth x402 endpoint database inside DAEMON.', kind: 'setup', risk: 'read-only' },
       { id: 'open-zauth-provider-hub', label: 'Open Provider Hub', description: 'Open the Zauth Provider Hub inside DAEMON.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
+    id: 'idle-protocol',
+    name: 'IDLE Protocol',
+    tagline: 'Risk-scored paid resource network',
+    description: 'Discover IDLE resources, score them for agent readiness, and wrap safe calls with Meterflow/x402 payments, receipts, budgets, and provider revenue routing.',
+    category: 'infra',
+    docsUrl: 'https://earnidle.com/docs',
+    recommendedFor: ['idle resources', 'paid API endpoints', 'agent resource routing', 'x402 pay-per-call', 'resource reputation', 'provider revenue'],
+    requirements: [
+      { type: 'env', key: 'IDLE_REGISTRY_URL', label: 'IDLE resource registry URL' },
+      { type: 'external-url', key: 'https://earnidle.com/resources', label: 'IDLE resource network' },
+      { type: 'external-url', key: 'https://earnidle.com/docs', label: 'IDLE docs' },
+      { type: 'mcp', key: 'payai-mcp-server', label: 'PayAI x402 MCP enabled', optional: true },
+      { type: 'mcp', key: 'x402-mcp', label: 'x402 MCP enabled', optional: true },
+    ],
+    actions: [
+      { id: 'open-idle-resources', label: 'Open IDLE resources', description: 'Open the IDLE resource network to review available endpoints and providers.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-idle-docs', label: 'Open IDLE docs', description: 'Open IDLE docs for resource publishing, gateways, and payment setup.', kind: 'setup', risk: 'read-only' },
+      { id: 'preview-idle-router', label: 'Build route stack', description: 'Build the DAEMON route stack for discovering, scoring, wrapping, paying, and proving IDLE resource calls.', kind: 'safe-check', risk: 'read-only' },
     ],
   },
   {
@@ -195,19 +216,21 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
   {
     id: 'metaplex',
     name: 'Metaplex',
-    tagline: 'NFTs, metadata, Core, Bubblegum',
-    description: 'Use Metaplex for NFT collections, metadata, compressed NFTs, Candy Machine, and digital asset workflows.',
+    tagline: 'Core, DAS, Candy Machine, Agent Registry',
+    description: 'Use Metaplex for Core assets, DAS reads, token metadata, Core Candy Machine drops, Bubblegum, Genesis, and agent identity workflows.',
     category: 'nft',
-    docsUrl: 'https://developers.metaplex.com/',
-    installCommand: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/mpl-token-metadata',
-    recommendedFor: ['NFT minting', 'metadata', 'collections'],
+    docsUrl: 'https://www.metaplex.com/docs',
+    installCommand: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/umi-bundle-defaults @metaplex-foundation/mpl-core @metaplex-foundation/mpl-token-metadata @metaplex-foundation/digital-asset-standard-api',
+    recommendedFor: ['Core NFTs', 'DAS reads', 'metadata', 'collections', 'agent identity'],
     requirements: [
       { type: 'package', key: '@metaplex-foundation/umi', label: 'Umi package', optional: true },
+      { type: 'package', key: '@metaplex-foundation/mpl-core', label: 'MPL Core package', optional: true },
+      { type: 'package', key: '@metaplex-foundation/digital-asset-standard-api', label: 'DAS API package', optional: true },
       { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet' },
     ],
     actions: [
-      { id: 'check-nft-packages', label: 'Check packages', description: 'Verify common Metaplex packages in this project.', kind: 'safe-check', risk: 'read-only' },
-      { id: 'preview-nft-mint', label: 'Preview mint', description: 'Planned: metadata and fee preview before minting.', kind: 'planned', risk: 'transaction' },
+      { id: 'check-nft-packages', label: 'Check packages', description: 'Verify Core, Token Metadata, and DAS packages in this project.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-core-agent-flow', label: 'Preview Core/agent flow', description: 'Planned: Core asset, Agent Registry identity, delegation, fee, and wallet approval preview before signing.', kind: 'planned', risk: 'requires-confirmation' },
     ],
   },
   {

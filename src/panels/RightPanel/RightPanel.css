@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--panel-bg);
+  background: var(--surface-flat);
 }
 
 .right-panel-header {
@@ -22,20 +22,20 @@
 }
 
 .right-panel-kicker {
-  font-size: var(--fs-10);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: var(--green);
+  color: var(--text-muted);
 }
 
 .right-panel-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  padding: 8px var(--space-sm);
+  gap: var(--space-xs);
+  padding: var(--space-sm);
   border-bottom: 1px solid var(--panel-border);
-  background: var(--panel-bg);
+  background: var(--surface-flat);
 }
 
 .right-panel-tab {
@@ -60,8 +60,8 @@
 }
 
 .right-panel-tab.active {
-  border-color: color-mix(in srgb, var(--green) 42%, var(--border));
-  background: color-mix(in srgb, var(--green-glow) 76%, var(--surface-raised) 24%);
+  border-color: var(--tab-active-border);
+  background: var(--tab-active-bg);
 }
 
 .right-panel-tab img {
@@ -100,7 +100,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: 8px var(--space-sm);
-  background: var(--panel-bg);
+  background: var(--surface-flat);
 }
 
 .right-panel-content--closed {
@@ -122,100 +122,21 @@
   margin-top: 0;
 }
 
-.rp-agent-widget {
+.rp-side-widget {
   position: relative;
-  margin: 8px var(--space-sm) 0;
-  padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--card-border));
+  margin: var(--space-sm) var(--space-sm) 0;
+  padding: var(--space-md);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--green-glow) 30%, transparent), transparent),
+    linear-gradient(180deg, color-mix(in srgb, white 2%, transparent), transparent),
     var(--card-bg);
   color: var(--t1);
   flex-shrink: 0;
 }
 
 .rp-agent-widget--spawnagents {
-  overflow: hidden;
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 36%, var(--card-border));
-  background: var(--brand-spawnagents-surface);
-  box-shadow: var(--edge-highlight);
-}
-
-.rp-agent-widget--spawnagents::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(10, 6, 8, 0.98) 0%, rgba(10, 6, 8, 0.78) 54%, rgba(10, 6, 8, 0.32) 100%),
-    linear-gradient(0deg, rgba(10, 6, 8, 0.9) 0%, rgba(10, 6, 8, 0.16) 58%, rgba(10, 6, 8, 0.62) 100%),
-    url('/spawnagents.png');
-  background-position: center right;
-  background-size: cover;
-  opacity: 0.72;
-  pointer-events: none;
-}
-
-.rp-agent-widget--spawnagents > * {
-  position: relative;
-  z-index: 1;
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-kicker {
-  color: var(--brand-spawnagents);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-title {
-  color: var(--brand-spawnagents-text);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-avatar {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 46%, var(--card-border));
-  background: color-mix(in srgb, var(--brand-spawnagents) 8%, transparent);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-avatar span {
-  background: linear-gradient(135deg, var(--brand-spawnagents-text) 0 46%, transparent 46% 54%, var(--brand-spawnagents) 54%);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-grid div {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 24%, var(--card-border));
-  background: rgba(0, 0, 0, 0.24);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-grid span,
-.rp-agent-widget--spawnagents .rp-agent-widget-meta,
-.rp-agent-widget--spawnagents .rp-agent-widget-empty {
-  color: var(--brand-spawnagents-muted-strong);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-grid strong {
-  color: var(--brand-spawnagents-text);
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-close,
-.rp-agent-widget--spawnagents .rp-agent-widget-actions button {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 44%, var(--card-border));
-  background: color-mix(in srgb, var(--brand-spawnagents) 12%, transparent);
-  color: color-mix(in srgb, var(--brand-spawnagents) 42%, var(--brand-spawnagents-text));
-}
-
-.rp-agent-widget--spawnagents .rp-agent-widget-close:hover,
-.rp-agent-widget--spawnagents .rp-agent-widget-actions button:hover {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 72%, var(--card-border));
-  background: color-mix(in srgb, var(--brand-spawnagents) 22%, transparent);
-  color: var(--on-accent);
-}
-
-.rp-side-widget {
-  position: relative;
-  margin: 8px var(--space-sm) 0;
-  padding: 10px;
-  border: 1px solid var(--card-border);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, white 2%, transparent), transparent),
-    var(--card-bg);
-  color: var(--t1);
-  flex-shrink: 0;
+  border-color: color-mix(in srgb, var(--brand-spawnagents) 28%, var(--card-border));
 }
 
 .rp-zauth-widget {
@@ -281,6 +202,17 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+}
+
+.rp-side-widget-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.rp-side-widget-copy {
+  min-width: 0;
 }
 
 .rp-side-widget-line {
@@ -358,22 +290,10 @@
   background: var(--card-bg);
 }
 
-.rp-agent-widget-head,
-.rp-agent-widget-agent,
 .rp-agent-widget-meta,
 .rp-agent-widget-actions {
   display: flex;
   align-items: center;
-}
-
-.rp-agent-widget-head {
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.rp-agent-widget-agent {
-  min-width: 0;
-  gap: 9px;
 }
 
 .rp-agent-widget-avatar {
@@ -405,10 +325,10 @@
 }
 
 .rp-agent-widget-kicker {
-  color: var(--green);
-  font-size: var(--fs-8);
+  color: var(--text-muted);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
-  letter-spacing: 0.16em;
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
@@ -417,20 +337,20 @@
   margin-top: 3px;
   overflow: hidden;
   color: var(--t1);
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--fs-13);
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-family: var(--font-ui);
+  font-size: var(--type-item-title-size);
+  font-weight: var(--type-item-title-weight);
+  letter-spacing: 0;
   text-overflow: ellipsis;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 }
 
 .rp-agent-widget-close,
 .rp-agent-widget-action,
 .rp-agent-widget-actions button {
-  border: 1px solid color-mix(in srgb, var(--green) 28%, var(--border));
-  background: var(--green-glow);
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
   color: var(--t2);
   cursor: pointer;
   font-size: var(--fs-10);
@@ -454,7 +374,8 @@
 .rp-agent-widget-close:hover,
 .rp-agent-widget-action:hover,
 .rp-agent-widget-actions button:hover {
-  border-color: color-mix(in srgb, var(--green) 52%, var(--border));
+  border-color: var(--control-border-hover);
+  background: var(--control-bg-hover);
   color: var(--t1);
 }
 

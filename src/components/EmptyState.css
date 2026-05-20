@@ -6,11 +6,11 @@
   padding: var(--space-xl) var(--space-lg);
   gap: var(--space-sm);
   text-align: center;
+  color: var(--text-muted);
 }
 
 .empty-state-icon {
-  color: var(--t4);
-  opacity: 0.6;
+  color: var(--text-faint);
   margin-bottom: var(--space-xs);
 }
 
@@ -20,16 +20,17 @@
 }
 
 .empty-state-title {
-  font-size: var(--font-md);
-  font-weight: 500;
-  color: var(--t3);
+  font-size: var(--type-item-title-size);
+  font-weight: var(--type-item-title-weight);
+  line-height: var(--type-item-title-line);
+  color: var(--text-secondary);
 }
 
 .empty-state-desc {
-  font-size: var(--font-base);
-  color: var(--t4);
-  max-width: 240px;
-  line-height: 1.4;
+  max-width: 320px;
+  color: var(--text-muted);
+  font-size: var(--type-metadata-size);
+  line-height: var(--type-metadata-line);
 }
 
 .empty-state-action {

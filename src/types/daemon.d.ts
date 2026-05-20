@@ -58,6 +58,9 @@ import type {
   DeployAuthStatus,
   DeployStatus,
   DeploymentEntry,
+  ShiplineCreateRunInput,
+  ShiplineRun,
+  ShiplineUpdateStepInput,
   VercelLink,
   RailwayLink,
   VercelEnvVar,
@@ -256,6 +259,7 @@ declare global {
   }
 
   type WalletInfrastructureSettings = {
+    cluster: 'devnet' | 'mainnet-beta' | 'localnet'
     rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
     quicknodeRpcUrl: string
     customRpcUrl: string
@@ -266,6 +270,8 @@ declare global {
   }
 
   type WalletExecutionResult = {
+    id?: string
+    status?: 'confirmed'
     signature: string
     transport: 'rpc' | 'jito' | 'jupiter'
   }
@@ -286,6 +292,7 @@ declare global {
   }
 
   type SolanaRuntimeStatusSummary = {
+    cluster: 'devnet' | 'mainnet-beta' | 'localnet'
     rpc: {
       label: string
       detail: string
@@ -338,6 +345,9 @@ declare global {
   type DeployAuthStatus = import('../../electron/shared/types').DeployAuthStatus
   type DeployStatus = import('../../electron/shared/types').DeployStatus
   type DeploymentEntry = import('../../electron/shared/types').DeploymentEntry
+  type ShiplineCreateRunInput = import('../../electron/shared/types').ShiplineCreateRunInput
+  type ShiplineRun = import('../../electron/shared/types').ShiplineRun
+  type ShiplineUpdateStepInput = import('../../electron/shared/types').ShiplineUpdateStepInput
   type VercelLink = import('../../electron/shared/types').VercelLink
   type RailwayLink = import('../../electron/shared/types').RailwayLink
   type VercelEnvVar = import('../../electron/shared/types').VercelEnvVar
@@ -411,7 +421,7 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
-    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
+    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     ready: (id: string, cols?: number, rows?: number) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
@@ -655,6 +665,14 @@ declare global {
     redeploy: (projectId: string, platform: DeployPlatform) => Promise<IpcResponse>
     envVars: (projectId: string, platform: DeployPlatform) => Promise<IpcResponse<unknown>>
     autoDetect: (projectPath: string) => Promise<IpcResponse<Record<string, unknown[]>>>
+  }
+
+  interface DaemonShipline {
+    createTimeline: (input: ShiplineCreateRunInput) => Promise<IpcResponse<ShiplineRun>>
+    listTimelines: (projectId?: string | null, limit?: number) => Promise<IpcResponse<ShiplineRun[]>>
+    getTimeline: (id: string) => Promise<IpcResponse<ShiplineRun | null>>
+    updateStep: (input: ShiplineUpdateStepInput) => Promise<IpcResponse<ShiplineRun>>
+    onTimelineUpdated: (callback: (run: ShiplineRun) => void) => () => void
   }
 
   interface DaemonShell {
@@ -1016,6 +1034,60 @@ declare global {
     isConfigured: () => Promise<IpcResponse<boolean>>
   }
 
+  type IdleResource = import('../../electron/shared/types').IdleResource
+  type IdleBudgetPolicy = import('../../electron/shared/types').IdleBudgetPolicy
+  type IdlePolicyCheckInput = import('../../electron/shared/types').IdlePolicyCheckInput
+  type IdlePolicyCheckResult = import('../../electron/shared/types').IdlePolicyCheckResult
+  type IdlePaidCallInput = import('../../electron/shared/types').IdlePaidCallInput
+  type IdlePaidCallReceipt = import('../../electron/shared/types').IdlePaidCallReceipt
+  type IdleRegistryStatus = import('../../electron/shared/types').IdleRegistryStatus
+
+  interface DaemonIdle {
+    status: (registryUrl?: string | null) => Promise<IpcResponse<IdleRegistryStatus>>
+    refreshRegistry: (input?: { registryUrl?: string | null }) => Promise<IpcResponse<IdleResource[]>>
+    listResources: (limit?: number) => Promise<IpcResponse<IdleResource[]>>
+    checkPolicy: (input: IdlePolicyCheckInput) => Promise<IpcResponse<IdlePolicyCheckResult>>
+    executePaidCall: (input: IdlePaidCallInput) => Promise<IpcResponse<IdlePaidCallReceipt>>
+    listReceipts: (limit?: number) => Promise<IpcResponse<IdlePaidCallReceipt[]>>
+  }
+
+  interface MetaplexCoreAgentAssetReceipt {
+    id: string
+    createdAt: string
+    action: 'metaplex-core-agent-asset-create'
+    network: 'devnet'
+    wallet: string
+    asset: string
+    signature: string
+    explorerUrl: string
+    docsUrl: string
+    postWriteRead: {
+      ok: boolean
+      name?: string
+      uri?: string
+      owner?: string
+      error?: string
+    }
+    safety: {
+      walletApproval: true
+      liveWrite: true
+      mainnetBlocked: true
+      nextBlockedActions: string[]
+    }
+  }
+
+  interface DaemonMetaplex {
+    createCoreAgentAsset: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      name: string
+      uri: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => Promise<IpcResponse<MetaplexCoreAgentAssetReceipt>>
+  }
+
   interface DaemonCodex {
     verifyConnection: () => Promise<IpcResponse<CodexConnection>>
     getConnection: () => Promise<IpcResponse<CodexConnection | null>>
@@ -1038,11 +1110,34 @@ declare global {
     codex: { providerId: 'codex'; cliPath: string; hasApiKey: boolean; isAuthenticated: boolean; authMode: string } | null
   }
 
+  type ProviderId = 'claude' | 'codex'
+  type ProviderFeatureId = 'aria' | 'daemonAi' | 'agents' | 'terminal'
+  interface ProviderPreferences {
+    aria: {
+      provider: ProviderId
+      model: 'fast' | 'standard' | 'reasoning'
+    }
+    daemonAi: {
+      accessMode: 'auto' | 'hosted' | 'byok'
+      byokProvider: ProviderId
+      modelLane: 'auto' | 'fast' | 'standard' | 'reasoning' | 'premium'
+    }
+    agents: {
+      defaultProvider: ProviderId
+    }
+    terminal: {
+      defaultProvider: ProviderId
+    }
+  }
+
   interface DaemonProvider {
     verifyAll: () => Promise<IpcResponse<ProviderConnectionMap>>
     getAllConnections: () => Promise<IpcResponse<ProviderConnectionMap>>
     getDefault: () => Promise<IpcResponse<string>>
     setDefault: (id: string) => Promise<IpcResponse<{ defaultProvider: string }>>
+    getPreferences: () => Promise<IpcResponse<ProviderPreferences>>
+    setPreferences: (preferences: Partial<ProviderPreferences>) => Promise<IpcResponse<ProviderPreferences>>
+    resolveFeatureProvider: (featureId: ProviderFeatureId) => Promise<IpcResponse<ProviderId>>
   }
 
   interface DaemonActivityEntry {
@@ -1190,6 +1285,7 @@ declare global {
     browser: DaemonBrowser
     recovery: DaemonRecovery
     deploy: DaemonDeploy
+    shipline: DaemonShipline
     shell: DaemonShell
     pumpfun: DaemonPumpFun
     email: DaemonEmail
@@ -1199,6 +1295,8 @@ declare global {
     dashboard: DaemonDashboard
     registry: DaemonRegistry
     colosseum: DaemonColosseum
+    idle: DaemonIdle
+    metaplex: DaemonMetaplex
     vault: DaemonVault
     validator: DaemonValidator
     pnl: DaemonPnl

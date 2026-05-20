@@ -1,0 +1,60 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-card) 72%, transparent);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-caps);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sm {
+  min-height: 20px;
+  padding: 0 var(--space-sm);
+}
+
+.md {
+  min-height: 24px;
+  padding: 0 var(--space-md);
+}
+
+.neutral {
+  color: var(--text-muted);
+}
+
+.success {
+  color: var(--accent-green);
+  border-color: color-mix(in srgb, var(--accent-green) 32%, var(--border-soft));
+  background: var(--green-glow);
+}
+
+.warning {
+  color: var(--accent-amber);
+  border-color: color-mix(in srgb, var(--accent-amber) 32%, var(--border-soft));
+  background: var(--amber-glow);
+}
+
+.danger {
+  color: var(--accent-red);
+  border-color: color-mix(in srgb, var(--accent-red) 32%, var(--border-soft));
+  background: var(--red-glow);
+}
+
+.info {
+  color: var(--accent-blue);
+  border-color: color-mix(in srgb, var(--accent-blue) 32%, var(--border-soft));
+  background: var(--blue-glow);
+}
+
+.feature {
+  color: var(--accent-purple);
+  border-color: color-mix(in srgb, var(--accent-purple) 32%, var(--border-soft));
+  background: var(--accent-purple-glow);
+}

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useGitStore, useGitProject } from '../../store/git'
-import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useOnboardingStore } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
-import type { DeployStatus } from '../../../electron/shared/types'
+import { Badge, DataRow, MetricCard, StatusDot } from '../../components/Panel'
+import { Button } from '../../components/Button'
+import { middleEllipsisPath } from '../../utils/textDisplay'
+import type { DeployStatus, GitFile } from '../../../electron/shared/types'
 import './GitPanel.css'
 
 export function GitPanel() {
@@ -347,7 +349,8 @@ export function GitPanel() {
   const staged = files.filter((f) => f.staged)
   const unstaged = files.filter((f) => f.unstaged || f.untracked)
   const isWorkingInCopy = !!branch && branch !== 'main' && branch !== 'master'
-  const workingTreeLabel = files.length === 0 ? 'Clean' : `${unstaged.length} changes`
+  const workingTreeLabel = `${unstaged.length} ${unstaged.length === 1 ? 'change' : 'changes'}`
+  const unstagedFolders = groupFilesByFolder(unstaged)
   const deployLabel = deployStatus ? `${deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'} ${deployStatus.latestStatus ?? 'Linked'}` : 'No linked deploy'
 
   return (
@@ -517,39 +520,23 @@ export function GitPanel() {
         </div>
 
         <div className="git-workflow-metrics">
-          <div className="git-workflow-metric">
-            <div className="git-workflow-metric-label">Branch</div>
-            <div className="git-workflow-metric-value git-workflow-metric-value--mono">{branch ?? 'Detached'}</div>
-          </div>
-          <div className="git-workflow-metric">
-            <div className="git-workflow-metric-label">Working tree</div>
-            <div className="git-workflow-metric-value">{workingTreeLabel}</div>
-          </div>
-          <div className="git-workflow-metric">
-            <div className="git-workflow-metric-label">Ready to commit</div>
-            <div className="git-workflow-metric-value">{staged.length} staged</div>
-          </div>
-          <div className="git-workflow-metric">
-            <div className="git-workflow-metric-label">Deploy link</div>
-            <div className="git-workflow-metric-value">{deployLabel}</div>
-          </div>
+          <MetricCard label="Branch" value={branch ?? ''} size="compact" />
+          <MetricCard label="Working tree" value={workingTreeLabel} size="compact" />
+          <MetricCard label="Ready to commit" value={`${staged.length} staged`} size="compact" />
+          <MetricCard label="Deploy link" value={deployLabel} size="compact" />
         </div>
       </section>
 
-      {deployStatus && (() => {
-        const dotColor = deployStatus.latestStatus === 'READY' ? 'var(--green)'
-          : deployStatus.latestStatus === 'BUILDING' || deployStatus.latestStatus === 'QUEUED' ? 'var(--amber)'
-          : deployStatus.latestStatus === 'ERROR' ? 'var(--red)' : 'var(--t4)'
-        return (
-          <div
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', margin: '0 16px', fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', border: '1px solid var(--s5)', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start' }}
-            onClick={() => useUIStore.getState().openWorkspaceTool('deploy')}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-            <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>
-          </div>
-        )
-      })()}
+      {deployStatus && (
+        <button
+          type="button"
+          className="git-deploy-pill"
+          onClick={() => useUIStore.getState().openWorkspaceTool('deploy')}
+        >
+          <StatusDot tone={getDeployTone(deployStatus)} label={`Deploy status: ${deployStatus.latestStatus ?? 'Linked'}`} className="git-deploy-dot" />
+          <span>{deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'}: {deployStatus.latestStatus ?? 'Linked'}</span>
+        </button>
+      )}
 
       {error && <div className="git-error">{error}</div>}
 
@@ -579,11 +566,15 @@ export function GitPanel() {
             </div>
             <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {staged.map((f) => (
-              <div key={f.path} className={`git-file-row staged${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
-                <span className="git-file-status">S</span>
-                <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
-                <button type="button" className="git-file-btn" onClick={() => handleUnstage(f.path)}>Unstage</button>
-              </div>
+              <GitFileRow
+                key={f.path}
+                file={f}
+                isSelected={selectedDiffFile === f.path}
+                onOpenDiff={handleFileClick}
+                onStage={handleStage}
+                onUnstage={handleUnstage}
+                onDiscard={handleDiscard}
+              />
             ))}
           </div>
         )}
@@ -592,45 +583,37 @@ export function GitPanel() {
           <div className="git-file-section">
             <div className="git-file-section-header">
               <span>Changes ({unstaged.length})</span>
-              <button type="button" className="git-file-btn" onClick={handleStageAll}>Stage All</button>
+              <Button variant="secondary" size="sm" onClick={handleStageAll}>Stage all</Button>
             </div>
             <div className="git-file-section-subtext">Select files to stage for this commit.</div>
-            {(() => {
-              const folders = new Map<string, typeof unstaged>()
-              for (const f of unstaged) {
-                const sep = f.path.lastIndexOf('/')
-                const folder = sep > 0 ? f.path.slice(0, sep) : '.'
-                if (!folders.has(folder)) folders.set(folder, [])
-                folders.get(folder)!.push(f)
-              }
-              return Array.from(folders.entries()).map(([folder, folderFiles]) => (
-                <div key={folder} className="git-folder-group">
-                  {folders.size > 1 && (
-                    <div className="git-folder-header">
-                      <span className="git-folder-name">{folder === '.' ? 'root' : folder}/</span>
-                      <button type="button" className="git-file-btn" onClick={() => handleStageFolder(folder === '.' ? '' : folder)}>
-                        Stage {folderFiles.length}
-                      </button>
+            {unstagedFolders.map(({ folder, files: folderFiles }) => (
+              <div key={folder} className="git-folder-group">
+                {unstagedFolders.length > 1 && (
+                  <div className="git-folder-header">
+                    <div className="git-folder-meta">
+                      <span className="git-folder-name" title={folder}>{folder === '.' ? 'root' : `${middleEllipsisPath(folder)}/`}</span>
+                      <Badge tone="neutral" className="git-folder-count">
+                        {folderFiles.length} {folderFiles.length === 1 ? 'file' : 'files'}
+                      </Badge>
                     </div>
-                  )}
-                  {folderFiles.map((f) => (
-                    <div key={f.path} className={`git-file-row${selectedDiffFile === f.path ? ' diff-active' : ''}`}>
-                      <span className={`git-file-status ${f.untracked ? 'untracked' : f.deleted ? 'deleted' : 'modified'}`}>
-                        {f.untracked ? 'U' : f.deleted ? 'D' : 'M'}
-                      </span>
-                      <span className="git-file-path git-file-path--clickable" onClick={() => handleFileClick(f.path)}>{f.path}</span>
-                      {!f.untracked && (
-                        <button type="button" className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Discard</button>
-                      )}
-                      {f.untracked && (
-                        <button type="button" className="git-file-btn git-file-btn--discard" onClick={() => handleDiscard(f.path)}>Delete</button>
-                      )}
-                      <button type="button" className="git-file-btn" onClick={() => handleStage(f.path)}>Stage</button>
-                    </div>
-                  ))}
-                </div>
-              ))
-            })()}
+                    <Button variant="secondary" size="sm" onClick={() => handleStageFolder(folder === '.' ? '' : folder)}>
+                      Stage
+                    </Button>
+                  </div>
+                )}
+                {folderFiles.map((f) => (
+                  <GitFileRow
+                    key={f.path}
+                    file={f}
+                    isSelected={selectedDiffFile === f.path}
+                    onOpenDiff={handleFileClick}
+                    onStage={handleStage}
+                    onUnstage={handleUnstage}
+                    onDiscard={handleDiscard}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         )}
 
@@ -684,4 +667,94 @@ export function GitPanel() {
       </div>
     </div>
   )
+}
+
+function getDeployTone(deployStatus: DeployStatus) {
+  if (deployStatus.latestStatus === 'READY') return 'success'
+  if (deployStatus.latestStatus === 'BUILDING' || deployStatus.latestStatus === 'QUEUED') return 'warning'
+  if (deployStatus.latestStatus === 'ERROR') return 'danger'
+  return 'neutral'
+}
+
+interface GitFileRowProps {
+  file: GitFile
+  isSelected: boolean
+  onOpenDiff: (filePath: string) => void
+  onStage: (filePath: string) => void
+  onUnstage: (filePath: string) => void
+  onDiscard: (filePath: string) => void
+}
+
+function GitFileRow({ file, isSelected, onOpenDiff, onStage, onUnstage, onDiscard }: GitFileRowProps) {
+  const display = getGitFileDisplay(file)
+  const pathParts = splitGitPath(file.path)
+
+  return (
+    <DataRow
+      className={`git-file-row${file.staged ? ' staged' : ''}${isSelected ? ' diff-active' : ''}`}
+      density="compact"
+      leading={<Badge tone={display.tone} className={`git-file-status ${display.className}`}>{display.code}</Badge>}
+      title={(
+        <button
+          type="button"
+          className="git-file-path git-file-path--clickable"
+          title={file.path}
+          onClick={() => onOpenDiff(file.path)}
+        >
+          {pathParts.name}
+        </button>
+      )}
+      meta={<span className="git-file-state">{display.label}</span>}
+      detail={<span className="git-file-folder" title={pathParts.folder}>{pathParts.folderLabel}</span>}
+      actions={(
+        <>
+          {file.staged ? (
+            <Button variant="ghost" size="sm" onClick={() => onUnstage(file.path)}>Unstage</Button>
+          ) : (
+            <>
+              <Button variant="destructive" size="sm" onClick={() => onDiscard(file.path)}>Discard</Button>
+              <Button variant="secondary" size="sm" onClick={() => onStage(file.path)}>Stage</Button>
+            </>
+          )}
+        </>
+      )}
+    />
+  )
+}
+
+function groupFilesByFolder(files: GitFile[]) {
+  const folders = new Map<string, GitFile[]>()
+  for (const file of files) {
+    const sep = file.path.lastIndexOf('/')
+    const folder = sep > 0 ? file.path.slice(0, sep) : '.'
+    if (!folders.has(folder)) folders.set(folder, [])
+    folders.get(folder)!.push(file)
+  }
+  return Array.from(folders.entries()).map(([folder, folderFiles]) => ({ folder, files: folderFiles }))
+}
+
+function splitGitPath(path: string) {
+  const normalized = path.replace(/\\/g, '/')
+  const sep = normalized.lastIndexOf('/')
+  const folder = sep > 0 ? normalized.slice(0, sep) : '.'
+  const name = sep > 0 ? normalized.slice(sep + 1) : normalized
+
+  return {
+    folder,
+    name,
+    folderLabel: folder === '.' ? 'root' : middleEllipsisPath(folder),
+  }
+}
+
+function getGitFileDisplay(file: GitFile) {
+  if (file.staged) {
+    return { code: 'S', label: 'staged', tone: 'success' as const, className: 'staged' }
+  }
+  if (file.deleted) {
+    return { code: 'D', label: 'deleted', tone: 'danger' as const, className: 'deleted' }
+  }
+  if (file.untracked) {
+    return { code: 'U', label: 'untracked', tone: 'info' as const, className: 'untracked' }
+  }
+  return { code: 'M', label: 'modified', tone: 'warning' as const, className: 'modified' }
 }

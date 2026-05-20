@@ -745,6 +745,13 @@
   word-break: break-all;
 }
 
+.qv-feedback .qv-secondary-btn {
+  margin-top: 8px;
+  height: 30px;
+  font-family: var(--font-ui);
+  word-break: normal;
+}
+
 .qv-feedback--error {
   background: var(--red-glow);
   color: var(--red);

@@ -43,7 +43,7 @@ const BUILD_LOOP = [
   ['Prepare', 'Verify CLI, Anchor, AVM, runtime, and project-level test harnesses.'],
   ['Run', 'Start localnet or forked runtime before tests and transaction work.'],
   ['Debug', 'Use failures, logs, and project context to guide the agent loop.'],
-  ['Ship', 'Move toward safe deploy, IDL, upgrade authority, and monitoring flows.'],
+  ['Shipline', 'Run the deploy timeline, capture signatures, verify program state, and export proof.'],
 ] as const
 
 function statusLabel(status: ReadinessStatus): string {
@@ -327,9 +327,9 @@ export function ProjectControlCenter({
       <div className="solana-project-control-hero">
         <div>
           <div className="solana-token-launch-kicker">Project Control Center</div>
-          <h3 className="solana-token-launch-title">Turn the active repo into a Solana build loop</h3>
+          <h3 className="solana-token-launch-title">Turn the active repo into a Shipline-ready Solana loop</h3>
           <p className="solana-token-launch-copy">
-            DAEMON is now grouping project detection, toolchain readiness, local runtime state, and next moves into one workspace-level view.
+            DAEMON groups project detection, wallet/runtime readiness, local toolchain state, and next actions before the deploy timeline starts.
           </p>
         </div>
         <div className="solana-project-score" aria-label={`Solana readiness score ${readinessScore}%`}>

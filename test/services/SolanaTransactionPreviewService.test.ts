@@ -19,6 +19,7 @@ describe('SolanaTransactionPreviewService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetSolanaRuntimeStatus.mockReturnValue({
+      cluster: 'devnet',
       rpc: { label: 'Helius', detail: 'Helius key connected', status: 'live' },
       walletPath: { label: 'Phantom-first', detail: 'Phantom flow', status: 'live' },
       swapEngine: { label: 'Jupiter', detail: 'Jupiter ready', status: 'live' },
@@ -48,8 +49,10 @@ describe('SolanaTransactionPreviewService', () => {
 
     expect(preview.title).toBe('Review SOL Send')
     expect(preview.backendLabel).toBe('Shared RPC executor')
+    expect(preview.networkLabel).toBe('devnet')
     expect(preview.signerLabel).toContain('Main Wallet')
     expect(preview.amountLabel).toBe('0.5 SOL')
+    expect(preview.notes).toContain('Network: devnet.')
     expect(preview.warnings).toEqual([])
   })
 
@@ -72,6 +75,7 @@ describe('SolanaTransactionPreviewService', () => {
 
   it('includes runtime troubleshooting in previews', () => {
     mockGetSolanaRuntimeStatus.mockReturnValue({
+      cluster: 'devnet',
       rpc: { label: 'Helius', detail: 'Helius key missing', status: 'setup' },
       walletPath: { label: 'Phantom-first', detail: 'Phantom flow', status: 'live' },
       swapEngine: { label: 'Jupiter', detail: 'Jupiter key missing', status: 'setup' },

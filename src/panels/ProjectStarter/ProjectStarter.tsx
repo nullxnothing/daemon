@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
 import { useAppActions } from '../../store/appActions'
+import { useBrowserStore } from '../../store/browser'
 import './ProjectStarter.css'
 
 // --- Template definitions ---
@@ -16,22 +17,25 @@ export interface Template {
   prompt: string
 }
 
+const MEME_COIN_WEBSITE_TEMPLATE_ID = 'meme-coin-website'
+
 export const TEMPLATES: Template[] = [
   {
     id: 'nft-collection',
     name: 'NFT Collection',
-    description: 'Metaplex collection with minting, metadata, and candy machine',
+    description: 'Metaplex Core collection with DAS reads, metadata, and Core Candy Machine',
     tags: ['NFT', 'Metaplex'],
     icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
-    prompt: `Scaffold a Solana NFT collection project using Metaplex. Include:
-- Anchor program for collection creation and minting
-- Candy Machine v3 configuration
-- Asset upload scripts (images + JSON metadata)
-- TypeScript mint client with allowlist/public phases
-- Example metadata JSON and asset folder structure
-- .env.example with RPC_URL, WALLET_PATH, COLLECTION_NAME, COLLECTION_SIZE
+    prompt: `Scaffold a Solana NFT collection project using current Metaplex docs. Include:
+- Metaplex Core collection and asset flow using Umi
+- Core Candy Machine configuration for collection launches
+- DAS read helpers for asset, owner, and collection lookups
+- Asset upload scripts or clear metadata URI hooks for images + JSON metadata
+- TypeScript mint client with guard-aware allowlist/public phases
+- Example Core asset and collection metadata JSON with attribute structure
+- .env.example with RPC_URL, WALLET_PATH, COLLECTION_NAME, COLLECTION_SIZE, METAPLEX_ASSET_ID
 - README with full setup and deployment guide
-Use Metaplex Umi plus @solana/kit-compatible client code. Initialize git repo.`,
+Use Metaplex Umi, MPL Core, Token Metadata, and DAS-compatible client code. Keep mainnet minting behind explicit wallet approval. Initialize git repo.`,
   },
   {
     id: 'trading-bot',
@@ -69,6 +73,22 @@ Initialize git repo. Use @solana/kit and Helius or QuickNode as the transport la
 - .env.example with NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_HELIUS_API_KEY
 - README with dev server and deployment instructions
 Initialize git repo. Prefer @solana/client, @solana/react-hooks, and @solana/web3-compat only when compatibility shims are needed.`,
+  },
+  {
+    id: MEME_COIN_WEBSITE_TEMPLATE_ID,
+    name: 'Meme Coin Website',
+    description: 'High-end token landing page with CA copy, social links, chart CTA, and asset slots',
+    tags: ['Meme', 'Website', 'Next.js'],
+    icon: 'M12 2l2.4 6.2L21 9l-5 4.1L17.5 20 12 16.4 6.5 20 8 13.1 3 9l6.6-.8L12 2z',
+    prompt: `Scaffold a premium meme coin website. Include:
+- Next.js 15 App Router with TypeScript
+- A high-impact first viewport with token name, ticker, hero media, contract address copy, buy/chart/social calls to action
+- Token metadata configured from DAEMON setup fields: name, ticker, contract address, links, and brand assets
+- Responsive sections for thesis, ticker tape, meme wall, roadmap, and community CTA
+- Asset folders under public/assets with safe placeholders when no uploads are supplied
+- .env.example with public override variables for token metadata and links
+- README with setup, asset replacement, and deploy instructions
+Keep the scaffold static/read-only by default. Do not add wallet signing or transaction submission unless requested later.`,
   },
   {
     id: 'anchor-program',
@@ -232,12 +252,52 @@ Initialize git repo.`,
 // --- Wizard state machine ---
 
 type WizardStep = 'templates' | 'configure' | 'building'
+type ScaffoldTargetMode = 'new' | 'current'
 
 interface WizardState {
   step: WizardStep
   template: Template | null
   projectName: string
   savePath: string
+  targetMode: ScaffoldTargetMode
+  meme: MemeCoinWebsiteSettings
+}
+
+interface MemeCoinWebsiteSettings {
+  tokenName: string
+  ticker: string
+  contractAddress: string
+  tagline: string
+  xUrl: string
+  telegramUrl: string
+  chartUrl: string
+  buyUrl: string
+  logoAssetPath: string
+  heroAssetPath: string
+}
+
+interface MemeCoinWebsiteScaffoldSettings extends MemeCoinWebsiteSettings {
+  logoFileName: string
+  heroFileName: string
+}
+
+function defaultMemeSettings(): MemeCoinWebsiteSettings {
+  return {
+    tokenName: '',
+    ticker: '',
+    contractAddress: '',
+    tagline: '',
+    xUrl: '',
+    telegramUrl: '',
+    chartUrl: '',
+    buyUrl: '',
+    logoAssetPath: '',
+    heroAssetPath: '',
+  }
+}
+
+function isMemeCoinWebsiteTemplate(templateId: string | null | undefined): boolean {
+  return templateId === MEME_COIN_WEBSITE_TEMPLATE_ID
 }
 
 export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null): string {
@@ -261,6 +321,7 @@ export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null
 
   return [
     'Runtime stack requirements from this DAEMON workspace:',
+    `- Target ${settings.cluster} by default. Mainnet-beta actions must keep explicit review and confirmation states.`,
     `- ${rpcPreference}`,
     `- ${walletPreference}`,
     `- Use ${settings.swapProvider === 'jupiter' ? 'Jupiter' : settings.swapProvider} as the default swap and routing layer when swaps are part of the scaffold.`,
@@ -277,6 +338,7 @@ export function buildRuntimePreset(settings: WalletInfrastructureSettings | null
     generatedBy: 'DAEMON',
     generatedAt: new Date().toISOString(),
     transport: {
+      cluster: settings.cluster,
       provider: settings.rpcProvider,
       quicknodeRpcUrl: settings.quicknodeRpcUrl || null,
       customRpcUrl: settings.customRpcUrl || null,
@@ -458,8 +520,259 @@ function packageName(projectName: string): string {
   return projectName.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'daemon-project'
 }
 
+function cleanTicker(value: string, fallback: string): string {
+  const source = value.trim() || fallback.trim() || 'MEME'
+  const cleaned = source.replace(/^\$/, '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12).toUpperCase()
+  return cleaned || 'MEME'
+}
+
+function publicEnvOrLiteral(envName: string, value: string): string {
+  return `process.env.${envName} ?? ${JSON.stringify(value)}`
+}
+
+function sanitizeUrl(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return '#'
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (trimmed.startsWith('@')) return `https://x.com/${trimmed.slice(1)}`
+  return trimmed
+}
+
+function pickedAssetFileName(filePath: string, fallbackBase: string): string {
+  const ext = filePath.split(/[\\/]/).pop()?.match(/\.[a-z0-9]+$/i)?.[0]?.toLowerCase()
+  if (!ext) return `${fallbackBase}.png`
+  return `${fallbackBase}${ext}`
+}
+
+function normalizeMemeSettings(settings: MemeCoinWebsiteSettings, projectName: string): MemeCoinWebsiteScaffoldSettings {
+  const tokenName = settings.tokenName.trim() || projectName.replace(/[-_]+/g, ' ') || 'Meme Coin'
+  const ticker = cleanTicker(settings.ticker, tokenName)
+  const contractAddress = settings.contractAddress.trim() || 'CA coming soon'
+  const tagline = settings.tagline.trim() || `${ticker} is the internet's next absurdly serious community coin.`
+
+  return {
+    ...settings,
+    tokenName,
+    ticker,
+    contractAddress,
+    tagline,
+    xUrl: sanitizeUrl(settings.xUrl),
+    telegramUrl: sanitizeUrl(settings.telegramUrl),
+    chartUrl: sanitizeUrl(settings.chartUrl),
+    buyUrl: sanitizeUrl(settings.buyUrl),
+    logoFileName: settings.logoAssetPath ? pickedAssetFileName(settings.logoAssetPath, 'logo') : 'brand-mark.svg',
+    heroFileName: settings.heroAssetPath ? pickedAssetFileName(settings.heroAssetPath, 'hero') : 'hero-poster.svg',
+  }
+}
+
+function base64FromDataUrl(dataUrl: string): string {
+  const commaIndex = dataUrl.indexOf(',')
+  return commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function trimPathEnd(filePath: string): string {
+  return filePath.trim().replace(/[\\/]+$/, '')
+}
+
+function pathBaseName(filePath: string): string {
+  const cleaned = trimPathEnd(filePath)
+  return cleaned.split(/[\\/]/).filter(Boolean).pop() ?? ''
+}
+
+function pathDirName(filePath: string): string {
+  const cleaned = trimPathEnd(filePath)
+  const parts = cleaned.split(/[\\/]/)
+  if (parts.length <= 1) return ''
+  parts.pop()
+  const separator = cleaned.includes('\\') ? '\\' : '/'
+  return parts.join(separator)
+}
+
+function joinProjectPath(basePath: string, projectName: string): string {
+  const cleaned = trimPathEnd(basePath)
+  if (!cleaned) return projectName
+  const separator = cleaned.includes('\\') ? '\\' : '/'
+  return `${cleaned}${separator}${projectName}`
+}
+
+function normalizeProjectPath(filePath: string): string {
+  return trimPathEnd(filePath).replace(/[\\/]+/g, '/').toLowerCase()
+}
+
+function sameProjectPath(a: string, b: string): boolean {
+  return normalizeProjectPath(a) === normalizeProjectPath(b)
+}
+
+async function chooseMemeWebsiteDevPort(): Promise<number> {
+  const preferredPorts = [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010]
+  try {
+    const scanRes = await window.daemon.ports.scan()
+    const listening = new Set(scanRes.ok && scanRes.data ? scanRes.data.map((entry) => entry.port) : [])
+    return preferredPorts.find((port) => !listening.has(port)) ?? 3011
+  } catch {
+    return 3000
+  }
+}
+
+function buildMemeWebsiteStartupCommand(port: number): string {
+  const url = `http://127.0.0.1:${port}`
+  const isWindows = typeof navigator !== 'undefined' && /windows/i.test(navigator.userAgent)
+  if (isWindows) {
+    return [
+      'Write-Host "DAEMON: installing website dependencies..."',
+      'pnpm install',
+      'if ($LASTEXITCODE -ne 0) { Write-Host "DAEMON: install failed"; exit $LASTEXITCODE }',
+      'Write-Host "DAEMON: building the site..."',
+      'pnpm run build',
+      'if ($LASTEXITCODE -ne 0) { Write-Host "DAEMON: build failed"; exit $LASTEXITCODE }',
+      `Write-Host "DAEMON: starting website at ${url}"`,
+      `pnpm exec next dev --hostname 127.0.0.1 --port ${port}`,
+    ].join('; ')
+  }
+
+  return [
+    'printf "DAEMON: installing website dependencies...\\n"',
+    'pnpm install',
+    'printf "DAEMON: building the site...\\n"',
+    'pnpm run build',
+    `printf "DAEMON: starting website at ${url}\\n"`,
+    `pnpm exec next dev --hostname 127.0.0.1 --port ${port}`,
+  ].join(' && ')
+}
+
+async function isPortListening(port: number): Promise<boolean> {
+  try {
+    const scanRes = await window.daemon.ports.scan()
+    return Boolean(scanRes.ok && scanRes.data?.some((entry) => entry.port === port))
+  } catch {
+    return false
+  }
+}
+
+async function waitForMemeWebsiteReady(terminalId: string, port: number, timeoutMs = 300_000): Promise<boolean> {
+  let sawReadyOutput = false
+  let terminalExited = false
+  const readyPattern = new RegExp(`(127\\.0\\.0\\.1|localhost):${port}|ready in|compiled`, 'i')
+  const offData = window.daemon.terminal.onData((payload) => {
+    if (payload.id === terminalId && readyPattern.test(payload.data)) sawReadyOutput = true
+  })
+  const offExit = window.daemon.terminal.onExit((payload) => {
+    if (payload.id === terminalId) terminalExited = true
+  })
+
+  try {
+    const deadline = Date.now() + timeoutMs
+    while (Date.now() < deadline) {
+      if (sawReadyOutput || await isPortListening(port)) return true
+      if (terminalExited) return false
+      await sleep(1000)
+    }
+    return false
+  } finally {
+    offData()
+    offExit()
+  }
+}
+
+async function openMemeWebsiteWhenReady(input: {
+  terminalId: string
+  port: number
+  projectId: string
+  projectName: string
+  sessionId: string
+}) {
+  const url = `http://127.0.0.1:${input.port}`
+  const ready = await waitForMemeWebsiteReady(input.terminalId, input.port)
+  const notifications = useNotificationsStore.getState()
+  if (!ready) {
+    notifications.addActivity({
+      kind: 'warning',
+      context: 'Scaffold',
+      message: `Website build did not report a running server for ${input.projectName}. Check the terminal for install or build errors.`,
+      sessionId: input.sessionId,
+      sessionStatus: 'blocked',
+      projectId: input.projectId,
+      projectName: input.projectName,
+    })
+    notifications.pushToast({
+      kind: 'warning',
+      context: 'Meme Website',
+      message: 'Website build needs attention. Check the terminal output.',
+    })
+    return
+  }
+
+  useBrowserStore.getState().setUrl(url)
+  useUIStore.getState().openBrowserTab()
+  notifications.addActivity({
+    kind: 'success',
+    context: 'Scaffold',
+    message: `Website is running for ${input.projectName} at ${url}.`,
+    sessionId: input.sessionId,
+    sessionStatus: 'complete',
+    projectId: input.projectId,
+    projectName: input.projectName,
+    artifacts: [{ type: 'project', label: 'Local website', value: url, href: url }],
+  })
+  notifications.pushSuccess(`Opened ${input.projectName} in DAEMON browser`, 'Meme Website')
+}
+
+function escapeMarkup(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function quotedJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`
+}
+
+function isNextTemplate(templateId: string): boolean {
+  return ['dapp-nextjs', 'solana-foundation', 'perps-frontend', MEME_COIN_WEBSITE_TEMPLATE_ID].includes(templateId)
+}
+
+function tsconfigForTemplate(template: Template): Record<string, unknown> {
+  if (isNextTemplate(template.id)) {
+    return {
+      compilerOptions: {
+        target: 'ES2022',
+        lib: ['dom', 'dom.iterable', 'esnext'],
+        allowJs: true,
+        skipLibCheck: true,
+        strict: true,
+        noEmit: true,
+        esModuleInterop: true,
+        module: 'esnext',
+        moduleResolution: 'bundler',
+        resolveJsonModule: true,
+        isolatedModules: true,
+        jsx: 'preserve',
+        incremental: true,
+        plugins: [{ name: 'next' }],
+      },
+      include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
+      exclude: ['node_modules'],
+    }
+  }
+
+  return {
+    compilerOptions: {
+      target: 'ES2022',
+      module: 'NodeNext',
+      moduleResolution: 'NodeNext',
+      strict: true,
+      esModuleInterop: true,
+      skipLibCheck: true,
+      outDir: 'dist',
+    },
+    include: ['src', 'app', 'tests'],
+  }
 }
 
 function envForTemplate(templateId: string): string {
@@ -476,6 +789,15 @@ function envForTemplate(templateId: string): string {
     'mcp-server': [],
     'solana-foundation': ['NEXT_PUBLIC_CLUSTER=devnet'],
     'dapp-nextjs': ['NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com', 'NEXT_PUBLIC_HELIUS_API_KEY='],
+    [MEME_COIN_WEBSITE_TEMPLATE_ID]: [
+      'NEXT_PUBLIC_TOKEN_NAME=',
+      'NEXT_PUBLIC_TOKEN_TICKER=',
+      'NEXT_PUBLIC_CONTRACT_ADDRESS=',
+      'NEXT_PUBLIC_X_URL=',
+      'NEXT_PUBLIC_TELEGRAM_URL=',
+      'NEXT_PUBLIC_CHART_URL=',
+      'NEXT_PUBLIC_BUY_URL=',
+    ],
     'perps-trading-bot': ['VENUE=drift', 'MARKET_INDEX=0', 'MAX_POSITION_USD=100'],
     'perps-vault': ['VAULT_NAME=daemon-vault', 'MAX_LEVERAGE=2'],
     'perps-frontend': ['NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com', 'NEXT_PUBLIC_VENUE=jupiter', 'HELIUS_API_KEY='],
@@ -486,15 +808,13 @@ function envForTemplate(templateId: string): string {
 }
 
 function buildPackageJson(template: Template, projectName: string) {
-  const isNext = ['dapp-nextjs', 'solana-foundation', 'perps-frontend'].includes(template.id)
+  const isNext = isNextTemplate(template.id)
   const isAnchor = template.id === 'anchor-program'
   const dependencies: Record<string, string> = isNext
     ? {
-        '@solana/kit': '^2.3.0',
         next: '^15.5.0',
         react: '^19.0.0',
         'react-dom': '^19.0.0',
-        zod: '^3.25.0',
       }
     : {
         '@solana/kit': '^2.3.0',
@@ -504,10 +824,21 @@ function buildPackageJson(template: Template, projectName: string) {
       }
 
   if (template.id === 'mcp-server') dependencies['@modelcontextprotocol/sdk'] = '^1.17.0'
+  if (isNext && template.id !== MEME_COIN_WEBSITE_TEMPLATE_ID) {
+    dependencies['@solana/kit'] = '^2.3.0'
+    dependencies.zod = '^3.25.0'
+  }
   if (template.id === 'telegram-bot') dependencies.grammy = '^1.37.0'
   if (template.id.startsWith('perps-')) dependencies['@pythnetwork/price-service-client'] = '^1.9.0'
   if (template.id === 'trading-bot') dependencies['@jup-ag/api'] = '^6.0.42'
-  if (template.id === 'nft-collection') dependencies['@metaplex-foundation/umi'] = '^1.2.0'
+  if (template.id === 'nft-collection') {
+    dependencies['@metaplex-foundation/umi'] = '^1.2.0'
+    dependencies['@metaplex-foundation/umi-bundle-defaults'] = '^1.2.0'
+    dependencies['@metaplex-foundation/mpl-core'] = '^1.4.0'
+    dependencies['@metaplex-foundation/mpl-token-metadata'] = '^3.4.0'
+    dependencies['@metaplex-foundation/digital-asset-standard-api'] = '^1.0.0'
+    dependencies['@metaplex-foundation/mpl-core-candy-machine'] = '^0.3.0'
+  }
 
   return {
     name: packageName(projectName),
@@ -550,7 +881,46 @@ function buildPackageJson(template: Template, projectName: string) {
   }
 }
 
-function readmeForTemplate(template: Template, projectName: string): string {
+function readmeForTemplate(template: Template, projectName: string, memeSettings?: MemeCoinWebsiteScaffoldSettings | null): string {
+  if (template.id === MEME_COIN_WEBSITE_TEMPLATE_ID && memeSettings) {
+    return `# ${projectName}
+
+Premium DAEMON scaffold for **${memeSettings.tokenName}**.
+
+## Setup
+
+\`\`\`bash
+pnpm install
+cp .env.example .env
+pnpm dev
+\`\`\`
+
+## Token Settings
+
+- Token: ${memeSettings.tokenName}
+- Ticker: $${memeSettings.ticker}
+- Contract address: ${memeSettings.contractAddress}
+- X: ${memeSettings.xUrl}
+- Telegram: ${memeSettings.telegramUrl}
+- Chart: ${memeSettings.chartUrl}
+- Buy: ${memeSettings.buyUrl}
+
+The generated site reads env overrides first, then falls back to the values captured during scaffold setup.
+
+## Assets
+
+- Logo: \`public/assets/${memeSettings.logoFileName}\`
+- Hero media: \`public/assets/${memeSettings.heroFileName}\`
+
+Files chosen in DAEMON setup are copied into \`public/assets\`. If no file is chosen, the site tries a CA-based token image first, then falls back to generated placeholders.
+Replace either file with production artwork whenever the brand is final.
+
+## Deploy
+
+This is a static/read-only marketing site. Deploy to Vercel, Netlify, or any Next.js host after replacing placeholder links and checking the CA.
+`
+  }
+
   return `# ${projectName}
 
 Deterministic DAEMON scaffold for **${template.name}**.
@@ -580,7 +950,664 @@ ${template.prompt.replace(/^/gm, '> ')}
 `
 }
 
-function nextAppFiles(template: Template, projectName: string): ScaffoldFile[] {
+function memeCoinWebsiteFiles(template: Template, projectName: string, settings: MemeCoinWebsiteScaffoldSettings): ScaffoldFile[] {
+  const logoSrc = `/assets/${settings.logoFileName}`
+  const heroSrc = `/assets/${settings.heroFileName}`
+  const fallbackLogoSrc = '/assets/brand-mark.svg'
+  const fallbackHeroSrc = '/assets/hero-poster.svg'
+  const logoSourcesExpression = settings.logoAssetPath
+    ? '[localLogoSrc, tokenMetadataImageSrc, fallbackLogoSrc].filter(Boolean)'
+    : '[tokenMetadataImageSrc, localLogoSrc].filter(Boolean)'
+  const heroSourcesExpression = settings.heroAssetPath
+    ? '[localHeroSrc, tokenMetadataImageSrc, fallbackHeroSrc].filter(Boolean)'
+    : '[tokenMetadataImageSrc, localHeroSrc].filter(Boolean)'
+  const placeholderFiles: ScaffoldFile[] = []
+
+  if (!settings.logoAssetPath) {
+    placeholderFiles.push({
+      path: `public/assets/${settings.logoFileName}`,
+      content: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#070709"/>
+  <circle cx="160" cy="156" r="92" fill="#f8e15c"/>
+  <circle cx="344" cy="188" r="112" fill="#58e6c4"/>
+  <path d="M110 349c64-78 150-107 258-88 18 3 28 22 19 38-30 57-82 88-155 93-44 3-85-9-122-43Z" fill="#ff5c8a"/>
+  <text x="256" y="288" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="88" fill="#070709">${escapeMarkup(settings.ticker)}</text>
+</svg>
+`,
+    })
+  } else {
+    placeholderFiles.push({
+      path: 'public/assets/brand-mark.svg',
+      content: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#070709"/>
+  <circle cx="160" cy="156" r="92" fill="#f8e15c"/>
+  <circle cx="344" cy="188" r="112" fill="#58e6c4"/>
+  <path d="M110 349c64-78 150-107 258-88 18 3 28 22 19 38-30 57-82 88-155 93-44 3-85-9-122-43Z" fill="#ff5c8a"/>
+  <text x="256" y="288" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="88" fill="#070709">${escapeMarkup(settings.ticker)}</text>
+</svg>
+`,
+    })
+  }
+
+  if (!settings.heroAssetPath) {
+    placeholderFiles.push({
+      path: `public/assets/${settings.heroFileName}`,
+      content: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900">
+  <rect width="1400" height="900" fill="#070709"/>
+  <path d="M0 696c160-76 320-94 480-54s319 37 476-9 305-31 444 45v222H0Z" fill="#58e6c4"/>
+  <path d="M0 176c130 58 247 72 352 43s210-27 315 7 212 25 321-29 247-58 412-12v212c-170-45-310-39-420 18s-220 66-330 28-220-38-330 0S113 466 0 420Z" fill="#ff5c8a"/>
+  <circle cx="1042" cy="260" r="156" fill="#f8e15c"/>
+  <circle cx="458" cy="462" r="188" fill="#ffffff"/>
+  <circle cx="407" cy="421" r="24" fill="#070709"/>
+  <circle cx="508" cy="421" r="24" fill="#070709"/>
+  <path d="M381 511c52 47 104 47 156 0" stroke="#070709" stroke-width="26" stroke-linecap="round" fill="none"/>
+  <text x="700" y="802" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="132" fill="#070709">${escapeMarkup(settings.tokenName)}</text>
+</svg>
+`,
+    })
+  } else {
+    placeholderFiles.push({
+      path: 'public/assets/hero-poster.svg',
+      content: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900">
+  <rect width="1400" height="900" fill="#070709"/>
+  <path d="M0 696c160-76 320-94 480-54s319 37 476-9 305-31 444 45v222H0Z" fill="#58e6c4"/>
+  <path d="M0 176c130 58 247 72 352 43s210-27 315 7 212 25 321-29 247-58 412-12v212c-170-45-310-39-420 18s-220 66-330 28-220-38-330 0S113 466 0 420Z" fill="#ff5c8a"/>
+  <circle cx="1042" cy="260" r="156" fill="#f8e15c"/>
+  <circle cx="458" cy="462" r="188" fill="#ffffff"/>
+  <circle cx="407" cy="421" r="24" fill="#070709"/>
+  <circle cx="508" cy="421" r="24" fill="#070709"/>
+  <path d="M381 511c52 47 104 47 156 0" stroke="#070709" stroke-width="26" stroke-linecap="round" fill="none"/>
+  <text x="700" y="802" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="132" fill="#070709">${escapeMarkup(settings.tokenName)}</text>
+</svg>
+`,
+    })
+  }
+
+  return [
+    {
+      path: 'src/token-site.ts',
+      content: `const tokenName = ${publicEnvOrLiteral('NEXT_PUBLIC_TOKEN_NAME', settings.tokenName)}
+const ticker = ${publicEnvOrLiteral('NEXT_PUBLIC_TOKEN_TICKER', settings.ticker)}
+const contractAddress = ${publicEnvOrLiteral('NEXT_PUBLIC_CONTRACT_ADDRESS', settings.contractAddress)}
+const tagline = ${publicEnvOrLiteral('NEXT_PUBLIC_TOKEN_TAGLINE', settings.tagline)}
+const xUrl = ${publicEnvOrLiteral('NEXT_PUBLIC_X_URL', settings.xUrl)}
+const telegramUrl = ${publicEnvOrLiteral('NEXT_PUBLIC_TELEGRAM_URL', settings.telegramUrl)}
+const chartUrl = ${publicEnvOrLiteral('NEXT_PUBLIC_CHART_URL', settings.chartUrl)}
+const buyUrl = ${publicEnvOrLiteral('NEXT_PUBLIC_BUY_URL', settings.buyUrl)}
+const localLogoSrc = '${logoSrc}'
+const localHeroSrc = '${heroSrc}'
+const fallbackLogoSrc = '${fallbackLogoSrc}'
+const fallbackHeroSrc = '${fallbackHeroSrc}'
+
+function isSolanaMintAddress(value: string) {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value)
+}
+
+const tokenMetadataImageSrc = isSolanaMintAddress(contractAddress)
+  ? \`https://dd.dexscreener.com/ds-data/tokens/solana/\${contractAddress}.png\`
+  : ''
+
+export const tokenSite = {
+  tokenName,
+  ticker,
+  contractAddress,
+  tagline,
+  xUrl,
+  telegramUrl,
+  chartUrl,
+  buyUrl,
+  logoSrc: localLogoSrc,
+  heroSrc: localHeroSrc,
+  tokenMetadataImageSrc,
+  logoSources: ${logoSourcesExpression},
+  heroSources: ${heroSourcesExpression},
+}
+`,
+    },
+    {
+      path: 'app/CopyCaButton.tsx',
+      content: `'use client'
+
+import { useState } from 'react'
+
+export function CopyCaButton({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function copyAddress() {
+    await navigator.clipboard.writeText(address)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  return (
+    <button type="button" className="copy-ca" onClick={copyAddress}>
+      <span>{copied ? 'Copied' : 'Copy CA'}</span>
+    </button>
+  )
+}
+`,
+    },
+    {
+      path: 'app/TokenImage.tsx',
+      content: `'use client'
+
+import { useState } from 'react'
+
+interface TokenImageProps {
+  sources: string[]
+  alt?: string
+  className?: string
+}
+
+export function TokenImage({ sources, alt = '', className }: TokenImageProps) {
+  const usableSources = sources.filter(Boolean)
+  const [sourceIndex, setSourceIndex] = useState(0)
+  const src = usableSources[sourceIndex] ?? usableSources[usableSources.length - 1] ?? ''
+
+  if (!src) return null
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => {
+        setSourceIndex((current) => Math.min(current + 1, usableSources.length - 1))
+      }}
+    />
+  )
+}
+`,
+    },
+    {
+      path: 'app/layout.tsx',
+      content: `import type { ReactNode } from 'react'
+import './globals.css'
+
+export const metadata = {
+  title: '${settings.tokenName}',
+  description: '${template.description}',
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return <html lang="en"><body>{children}</body></html>
+}
+`,
+    },
+    {
+      path: 'app/page.tsx',
+      content: `import { CopyCaButton } from './CopyCaButton'
+import { TokenImage } from './TokenImage'
+import { tokenSite } from '../src/token-site'
+
+const linkItems = [
+  { label: 'Buy', href: tokenSite.buyUrl },
+  { label: 'Chart', href: tokenSite.chartUrl },
+  { label: 'X', href: tokenSite.xUrl },
+  { label: 'Telegram', href: tokenSite.telegramUrl },
+].filter((item) => item.href && item.href !== '#')
+
+function shortAddress(address: string) {
+  if (address.length < 16) return address
+  return \`\${address.slice(0, 6)}...\${address.slice(-6)}\`
+}
+
+export default function Home() {
+  return (
+    <main className="site-shell">
+      <header className="topbar">
+        <a className="brand-lockup" href="#top" aria-label={tokenSite.tokenName}>
+          <TokenImage sources={tokenSite.logoSources} />
+          <span>{tokenSite.ticker}</span>
+        </a>
+        <nav className="top-links" aria-label="Primary links">
+          {linkItems.slice(0, 3).map((item) => (
+            <a key={item.label} href={item.href}>{item.label}</a>
+          ))}
+        </nav>
+      </header>
+
+      <section id="top" className="hero">
+        <div className="hero-copy">
+          <p className="eyebrow">Solana meme asset</p>
+          <h1>{tokenSite.tokenName}</h1>
+          <p className="hero-line">{tokenSite.tagline}</p>
+          <div className="hero-actions">
+            {linkItems.slice(0, 2).map((item) => (
+              <a key={item.label} className={item.label === 'Buy' ? 'primary-link' : 'secondary-link'} href={item.href}>
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div className="hero-media" aria-label="Token artwork">
+          <TokenImage sources={tokenSite.heroSources} />
+          <div className="price-stamp">
+            <span>\${tokenSite.ticker}</span>
+            <strong>community owned chaos</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="contract-strip" aria-label="Contract address">
+        <span>CA</span>
+        <code>{shortAddress(tokenSite.contractAddress)}</code>
+        <CopyCaButton address={tokenSite.contractAddress} />
+      </section>
+
+      <section className="ticker-tape" aria-label="Token ticker tape">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <span key={index}>\${tokenSite.ticker}</span>
+        ))}
+      </section>
+
+      <section className="thesis-grid">
+        <article>
+          <span>01</span>
+          <h2>Instantly legible</h2>
+          <p>Big symbol, obvious contract, and one click from discovery to chart or buy flow.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h2>Meme first</h2>
+          <p>Designed for screenshots, raids, pinned posts, and fast edits when the narrative moves.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h2>Launch ready</h2>
+          <p>Static by default, safe to host, and easy to wire into analytics, merch, or community pages.</p>
+        </article>
+      </section>
+
+      <section className="meme-wall">
+        <div>
+          <p className="eyebrow">Media kit</p>
+          <h2>Drop the meme, keep the site polished.</h2>
+        </div>
+        <div className="wall-grid">
+          <TokenImage sources={tokenSite.logoSources} />
+          <TokenImage sources={tokenSite.heroSources} />
+          <div className="wall-card"><strong>raid kit</strong><span>stickers / banners / posts</span></div>
+          <div className="wall-card"><strong>lore</strong><span>community-written fuel</span></div>
+        </div>
+      </section>
+
+      <section className="roadmap">
+        {['Site live', 'Community raids', 'Chart expansion', 'Meme machine'].map((item, index) => (
+          <div key={item}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{item}</strong>
+          </div>
+        ))}
+      </section>
+
+      <footer className="footer-cta">
+        <h2>Join \${tokenSite.ticker} before the timeline gets loud.</h2>
+        <div className="footer-links">
+          {linkItems.map((item) => <a key={item.label} href={item.href}>{item.label}</a>)}
+        </div>
+      </footer>
+    </main>
+  )
+}
+`,
+    },
+    {
+      path: 'app/globals.css',
+      content: `:root {
+  color-scheme: dark;
+  --ink: #070709;
+  --paper: #f8f5ef;
+  --line: rgba(248, 245, 239, 0.18);
+  --pink: #ff5c8a;
+  --mint: #58e6c4;
+  --yellow: #f8e15c;
+  --blue: #6ea8ff;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--ink);
+  color: var(--paper);
+}
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+
+.site-shell {
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 92, 138, 0.28), transparent 24%),
+    radial-gradient(circle at 86% 16%, rgba(88, 230, 196, 0.24), transparent 23%),
+    #070709;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px clamp(18px, 4vw, 56px);
+  background: rgba(7, 7, 9, 0.78);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(18px);
+}
+
+.brand-lockup, .top-links, .hero-actions, .footer-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-lockup img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.brand-lockup span, .eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.top-links a, .secondary-link, .primary-link, .footer-links a, .copy-ca {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.primary-link {
+  background: var(--yellow);
+  color: var(--ink);
+  border-color: var(--yellow);
+}
+
+.secondary-link, .footer-links a, .copy-ca {
+  background: rgba(248, 245, 239, 0.07);
+  color: var(--paper);
+}
+
+.hero {
+  min-height: min(760px, calc(100vh - 68px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
+  gap: clamp(24px, 5vw, 72px);
+  align-items: start;
+  padding: clamp(26px, 5vw, 64px) clamp(18px, 5vw, 72px) 30px;
+}
+
+.hero-copy {
+  align-self: start;
+  padding-top: clamp(8px, 3vw, 34px);
+}
+
+.hero-copy h1 {
+  max-width: 980px;
+  margin: 10px 0 18px;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: clamp(64px, 13vw, 180px);
+  line-height: 0.82;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.hero-line {
+  max-width: 650px;
+  margin: 0 0 24px;
+  color: rgba(248, 245, 239, 0.78);
+  font-size: clamp(18px, 2vw, 28px);
+  line-height: 1.25;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--mint);
+}
+
+.hero-media {
+  position: relative;
+  align-self: stretch;
+  min-height: clamp(320px, 46vw, 560px);
+  display: grid;
+  place-items: center;
+}
+
+.hero-media img {
+  width: min(100%, 620px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 30px 120px rgba(0, 0, 0, 0.55);
+  transform: rotate(2deg);
+}
+
+.price-stamp {
+  position: absolute;
+  right: 4%;
+  bottom: 6%;
+  width: min(240px, 46vw);
+  padding: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 10px;
+  transform: rotate(-4deg);
+}
+
+.price-stamp span {
+  display: block;
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: 48px;
+}
+
+.price-stamp strong {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.contract-strip {
+  margin: 0 clamp(18px, 5vw, 72px) 36px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(248, 245, 239, 0.06);
+}
+
+.contract-strip span {
+  color: var(--mint);
+  font-weight: 900;
+}
+
+.contract-strip code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  color: rgba(248, 245, 239, 0.86);
+}
+
+.copy-ca {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ticker-tape {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  padding: 18px 0;
+  border-block: 1px solid var(--line);
+  animation: tape 22s linear infinite;
+}
+
+.ticker-tape span {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: clamp(36px, 7vw, 88px);
+  color: var(--pink);
+}
+
+@keyframes tape {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.thesis-grid, .roadmap {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 54px clamp(18px, 5vw, 72px);
+}
+
+.thesis-grid article, .roadmap div, .wall-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px;
+  background: rgba(248, 245, 239, 0.055);
+}
+
+.thesis-grid span, .roadmap span {
+  color: var(--yellow);
+  font-weight: 900;
+}
+
+.thesis-grid h2, .meme-wall h2, .footer-cta h2 {
+  margin: 10px 0;
+  font-size: clamp(28px, 4vw, 58px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.thesis-grid p {
+  color: rgba(248, 245, 239, 0.7);
+  line-height: 1.55;
+}
+
+.meme-wall {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 22px;
+  align-items: start;
+  padding: 30px clamp(18px, 5vw, 72px) 64px;
+}
+
+.wall-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wall-grid img, .wall-card {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.wall-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wall-card strong {
+  font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+  font-size: 42px;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.wall-card span {
+  color: rgba(248, 245, 239, 0.72);
+}
+
+.roadmap {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-top: 0;
+}
+
+.roadmap strong {
+  display: block;
+  margin-top: 20px;
+  font-size: 20px;
+}
+
+.footer-cta {
+  min-height: 44vh;
+  display: grid;
+  align-content: center;
+  gap: 24px;
+  padding: 60px clamp(18px, 5vw, 72px);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.footer-cta h2 {
+  max-width: 880px;
+}
+
+.footer-links a {
+  border-color: rgba(7, 7, 9, 0.2);
+  color: var(--ink);
+  background: rgba(7, 7, 9, 0.06);
+}
+
+@media (max-width: 860px) {
+  .top-links { display: none; }
+  .hero, .meme-wall { grid-template-columns: 1fr; }
+  .hero { min-height: auto; }
+  .hero-copy { padding-top: 0; }
+  .hero-media { min-height: 340px; }
+  .thesis-grid, .roadmap { grid-template-columns: 1fr; }
+  .contract-strip { grid-template-columns: 1fr; align-items: stretch; }
+  .copy-ca { width: 100%; }
+}
+`,
+    },
+    ...placeholderFiles,
+    {
+      path: 'next.config.mjs',
+      content: `import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const nextConfig = {
+  outputFileTracingRoot: __dirname,
+}
+
+export default nextConfig
+`,
+    },
+  ]
+}
+
+function nextAppFiles(template: Template, projectName: string, memeSettings?: MemeCoinWebsiteScaffoldSettings | null): ScaffoldFile[] {
+  if (template.id === MEME_COIN_WEBSITE_TEMPLATE_ID && memeSettings) {
+    return memeCoinWebsiteFiles(template, projectName, memeSettings)
+  }
+
   return [
     {
       path: 'src/config.ts',
@@ -598,7 +1625,20 @@ function nextAppFiles(template: Template, projectName: string): ScaffoldFile[] {
       path: 'app/globals.css',
       content: `:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #080b0f; color: #f5f7fb; }\nbody { margin: 0; }\n.page-shell { min-height: 100vh; padding: 48px; background: #080b0f; }\n.workspace-header { max-width: 760px; }\n.eyebrow { color: #14f195; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }\nh1 { font-size: 44px; margin: 8px 0; }\np { color: #a8b3c7; line-height: 1.6; }\n.panel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 32px; max-width: 960px; }\n.panel-grid div { border: 1px solid #263040; border-radius: 8px; padding: 16px; background: #101620; }\n.panel-grid span { display: block; color: #7d8aa3; font-size: 12px; margin-bottom: 8px; }\n.panel-grid strong { font-size: 14px; overflow-wrap: anywhere; }\n@media (max-width: 720px) { .page-shell { padding: 28px; } .panel-grid { grid-template-columns: 1fr; } h1 { font-size: 34px; } }\n`,
     },
-    { path: 'next.config.mjs', content: `const nextConfig = {}\nexport default nextConfig\n` },
+    {
+      path: 'next.config.mjs',
+      content: `import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const nextConfig = {
+  outputFileTracingRoot: __dirname,
+}
+
+export default nextConfig
+`,
+    },
   ]
 }
 
@@ -634,21 +1674,25 @@ function nodeAppFiles(template: Template): ScaffoldFile[] {
   ]
 }
 
-function commonFiles(template: Template, projectName: string): ScaffoldFile[] {
+function commonFiles(template: Template, projectName: string, memeSettings?: MemeCoinWebsiteScaffoldSettings | null): ScaffoldFile[] {
   return [
     { path: 'package.json', content: quotedJson(buildPackageJson(template, projectName)) },
     { path: '.gitignore', content: `node_modules\ndist\n.next\n.env\n.DS_Store\ntarget\n.anchor\n` },
     { path: '.env.example', content: envForTemplate(template.id) },
-    { path: 'README.md', content: readmeForTemplate(template, projectName) },
-    { path: 'tsconfig.json', content: quotedJson({ compilerOptions: { target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', strict: true, esModuleInterop: true, skipLibCheck: true, outDir: 'dist' }, include: ['src', 'app', 'tests'] }) },
+    { path: 'README.md', content: readmeForTemplate(template, projectName, memeSettings) },
+    { path: 'tsconfig.json', content: quotedJson(tsconfigForTemplate(template)) },
   ]
 }
 
-export function buildDeterministicScaffold(template: Template, projectName: string): DeterministicScaffold {
-  const isNext = ['dapp-nextjs', 'solana-foundation', 'perps-frontend'].includes(template.id)
+export function buildDeterministicScaffold(
+  template: Template,
+  projectName: string,
+  options: { memeSettings?: MemeCoinWebsiteScaffoldSettings | null } = {},
+): DeterministicScaffold {
+  const isNext = isNextTemplate(template.id)
   const files = [
-    ...commonFiles(template, projectName),
-    ...(template.id === 'anchor-program' ? anchorFiles(projectName) : isNext ? nextAppFiles(template, projectName) : nodeAppFiles(template)),
+    ...commonFiles(template, projectName, options.memeSettings),
+    ...(template.id === 'anchor-program' ? anchorFiles(projectName) : isNext ? nextAppFiles(template, projectName, options.memeSettings) : nodeAppFiles(template)),
   ]
 
   const dirs = new Set<string>(['src'])
@@ -658,6 +1702,10 @@ export function buildDeterministicScaffold(template: Template, projectName: stri
       dirs.add(parts.slice(0, i).join('/'))
     }
   }
+  if (template.id === MEME_COIN_WEBSITE_TEMPLATE_ID) {
+    dirs.add('public')
+    dirs.add('public/assets')
+  }
 
   return {
     dirs: [...dirs].filter(Boolean),
@@ -665,8 +1713,36 @@ export function buildDeterministicScaffold(template: Template, projectName: stri
   }
 }
 
+async function copyPickedMemeAssets(projectPath: string, settings: MemeCoinWebsiteScaffoldSettings): Promise<void> {
+  const assetDirRes = await window.daemon.fs.createDir(`${projectPath}/public/assets`)
+  if (!assetDirRes.ok) {
+    throw new Error(assetDirRes.error ?? 'Failed to create public/assets')
+  }
+
+  const assets = [
+    { sourcePath: settings.logoAssetPath, fileName: settings.logoFileName },
+    { sourcePath: settings.heroAssetPath, fileName: settings.heroFileName },
+  ].filter((asset) => asset.sourcePath)
+
+  for (const asset of assets) {
+    const readRes = await window.daemon.fs.readPickedImageBase64(asset.sourcePath)
+    if (!readRes.ok || !readRes.data) {
+      throw new Error(readRes.error ?? `Failed to read ${asset.sourcePath}`)
+    }
+
+    const writeRes = await window.daemon.fs.writeImageFromBase64(
+      `${projectPath}/public/assets/${asset.fileName}`,
+      base64FromDataUrl(readRes.data.dataUrl),
+    )
+    if (!writeRes.ok) {
+      throw new Error(writeRes.error ?? `Failed to write ${asset.fileName}`)
+    }
+  }
+}
+
 export function ProjectStarter() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const addTerminal = useUIStore((s) => s.addTerminal)
   const setCenterMode = useUIStore((s) => s.setCenterMode)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
@@ -681,11 +1757,21 @@ export function ProjectStarter() {
     template: null,
     projectName: '',
     savePath: '',
+    targetMode: 'new',
+    meme: defaultMemeSettings(),
   })
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? null
+  const currentProjectTarget = activeProjectId && activeProjectPath
+    ? {
+        id: activeProjectId,
+        name: activeProject?.name ?? pathBaseName(activeProjectPath),
+        path: activeProjectPath,
+      }
+    : null
 
   // Focus name input when entering configure step
   useEffect(() => {
@@ -707,35 +1793,68 @@ export function ProjectStarter() {
   }, [])
 
   const selectTemplate = useCallback((template: Template) => {
+    const suggestedSavePath = activeProjectPath ? pathDirName(activeProjectPath) : ''
     setWizard({
       step: 'configure',
       template,
       projectName: '',
-      savePath: '',
+      savePath: suggestedSavePath,
+      targetMode: 'new',
+      meme: defaultMemeSettings(),
     })
     setError(null)
-  }, [])
+  }, [activeProjectPath])
 
   const goBack = useCallback(() => {
-    setWizard({ step: 'templates', template: null, projectName: '', savePath: '' })
+    setWizard({ step: 'templates', template: null, projectName: '', savePath: '', targetMode: 'new', meme: defaultMemeSettings() })
     setError(null)
   }, [])
 
   const pickFolder = useCallback(async () => {
     const res = await window.daemon.projects.openDialog()
     if (res.ok && res.data) {
-      setWizard((prev) => ({ ...prev, savePath: res.data as string }))
+      setWizard((prev) => ({ ...prev, savePath: res.data as string, targetMode: 'new' }))
+    }
+  }, [])
+
+  const useCurrentProjectFolder = useCallback(() => {
+    if (!currentProjectTarget?.path) return
+    setWizard((prev) => ({
+      ...prev,
+      projectName: currentProjectTarget.name || pathBaseName(currentProjectTarget.path) || prev.projectName,
+      savePath: currentProjectTarget.path,
+      targetMode: 'current',
+    }))
+  }, [currentProjectTarget?.name, currentProjectTarget?.path])
+
+  const updateMemeField = useCallback(<K extends keyof MemeCoinWebsiteSettings,>(
+    field: K,
+    value: MemeCoinWebsiteSettings[K],
+  ) => {
+    setWizard((prev) => ({ ...prev, meme: { ...prev.meme, [field]: value } }))
+  }, [])
+
+  const pickMemeAsset = useCallback(async (field: 'logoAssetPath' | 'heroAssetPath') => {
+    const res = await window.daemon.fs.pickImage()
+    if (res.ok && res.data) {
+      setWizard((prev) => ({ ...prev, meme: { ...prev.meme, [field]: res.data as string } }))
     }
   }, [])
 
   const startBuild = useCallback(async () => {
-    if (!wizard.template || !wizard.projectName.trim() || !wizard.savePath) {
+    if (!wizard.template || !wizard.savePath || (wizard.targetMode === 'new' && !wizard.projectName.trim())) {
       setError('Fill in all fields')
       return
     }
 
-    const name = wizard.projectName.trim()
-    const projectPath = `${wizard.savePath}/${name}`
+    const name = wizard.projectName.trim() || pathBaseName(wizard.savePath) || 'daemon-site'
+    const projectPath = wizard.targetMode === 'current'
+      ? trimPathEnd(wizard.savePath)
+      : joinProjectPath(wizard.savePath, name)
+    const memeSettings = isMemeCoinWebsiteTemplate(wizard.template.id)
+      ? normalizeMemeSettings(wizard.meme, name)
+      : null
+    const memeDevPort = memeSettings ? await chooseMemeWebsiteDevPort() : null
     const sessionId = `scaffold-${crypto.randomUUID()}`
 
     setWizard((prev) => ({ ...prev, step: 'building' }))
@@ -752,24 +1871,42 @@ export function ProjectStarter() {
     try {
       // Register the project before using sandboxed filesystem APIs so the
       // target path is treated as a valid project root during scaffolding.
-      const projRes = await window.daemon.projects.create({ name, path: projectPath })
-      if (!projRes.ok || !projRes.data) {
-        useNotificationsStore.getState().addActivity({
-          kind: 'error',
-          context: 'Scaffold',
-          message: projRes.error ?? `Failed to register project ${name}`,
-          sessionId,
-          sessionStatus: 'failed',
-          projectName: name,
-        })
-        setError(projRes.error ?? 'Failed to register project')
-        setWizard((prev) => ({ ...prev, step: 'configure' }))
-        return
+      const existingProject = projects.find((project) => sameProjectPath(project.path, projectPath))
+        ?? (currentProjectTarget?.path && sameProjectPath(currentProjectTarget.path, projectPath)
+          ? currentProjectTarget
+          : null)
+      let newProject: { id: string; name: string; path: string }
+      let createdProject = false
+
+      if (existingProject?.id) {
+        newProject = {
+          id: existingProject.id,
+          name: existingProject.name || name,
+          path: existingProject.path,
+        }
+      } else {
+        const projRes = await window.daemon.projects.create({ name, path: projectPath })
+        if (!projRes.ok || !projRes.data) {
+          useNotificationsStore.getState().addActivity({
+            kind: 'error',
+            context: 'Scaffold',
+            message: projRes.error ?? `Failed to register project ${name}`,
+            sessionId,
+            sessionStatus: 'failed',
+            projectName: name,
+          })
+          setError(projRes.error ?? 'Failed to register project')
+          setWizard((prev) => ({ ...prev, step: 'configure' }))
+          return
+        }
+        newProject = projRes.data as { id: string; name: string; path: string }
+        createdProject = true
       }
 
-      const newProject = projRes.data as { id: string; name: string; path: string }
       const cleanupProject = async () => {
-        await window.daemon.projects.delete(newProject.id)
+        if (createdProject && newProject.id) {
+          await window.daemon.projects.delete(newProject.id)
+        }
       }
 
       const mkdirRes = await window.daemon.fs.createDir(projectPath)
@@ -820,13 +1957,17 @@ export function ProjectStarter() {
       }
 
 
-      const scaffold = buildDeterministicScaffold(wizard.template, name)
+      const scaffold = buildDeterministicScaffold(wizard.template, name, { memeSettings })
       try {
         for (const dir of scaffold.dirs) {
           const dirRes = await window.daemon.fs.createDir(`${projectPath}/${dir}`)
           if (!dirRes.ok) {
             throw new Error(dirRes.error ?? `Failed to create ${dir}`)
           }
+        }
+
+        if (memeSettings) {
+          await copyPickedMemeAssets(projectPath, memeSettings)
         }
 
         for (const file of scaffold.files) {
@@ -853,15 +1994,21 @@ export function ProjectStarter() {
 
       const termRes = await window.daemon.terminal.create({
         cwd: projectPath,
+        startupCommand: memeDevPort ? buildMemeWebsiteStartupCommand(memeDevPort) : undefined,
         userInitiated: true,
       })
 
       if (termRes.ok && termRes.data) {
-        addTerminal(newProject.id, termRes.data.id, `Terminal: ${name}`, null)
+        addTerminal(newProject.id, termRes.data.id, memeDevPort ? `Website: ${name}` : `Terminal: ${name}`, null)
+        if (memeDevPort) {
+          await window.daemon.ports.register(memeDevPort, newProject.id, `${name} website`)
+        }
         useNotificationsStore.getState().addActivity({
           kind: 'success',
           context: 'Scaffold',
-          message: `Project scaffold written for ${name}. Open terminal is idle; run pnpm install when ready.`,
+          message: memeDevPort
+            ? `Project scaffold written for ${name}. Installing dependencies, building, then starting http://127.0.0.1:${memeDevPort}.`
+            : `Project scaffold written for ${name}. Open terminal is idle; run pnpm install when ready.`,
           sessionId,
           sessionStatus: 'running',
           projectId: newProject.id,
@@ -871,6 +2018,15 @@ export function ProjectStarter() {
         setActiveWorkspaceTool(null)
         focusTerminal()
         closeDrawer()
+        if (memeDevPort) {
+          void openMemeWebsiteWhenReady({
+            terminalId: termRes.data.id,
+            port: memeDevPort,
+            projectId: newProject.id,
+            projectName: name,
+            sessionId,
+          })
+        }
       } else {
         useNotificationsStore.getState().addActivity({
           kind: 'error',
@@ -896,10 +2052,10 @@ export function ProjectStarter() {
       setError(String(err))
       setWizard((prev) => ({ ...prev, step: 'configure' }))
     }
-  }, [wizard, addTerminal, setCenterMode, setActiveProject, setActiveWorkspaceTool, setProjects, closeDrawer, focusTerminal])
+  }, [wizard, projects, currentProjectTarget, addTerminal, setCenterMode, setActiveProject, setActiveWorkspaceTool, setProjects, closeDrawer, focusTerminal])
 
   const handleNameKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && wizard.projectName.trim() && wizard.savePath) {
+    if (e.key === 'Enter' && wizard.savePath && (wizard.targetMode === 'current' || wizard.projectName.trim())) {
       startBuild()
     }
   }
@@ -955,7 +2111,9 @@ export function ProjectStarter() {
   // --- Configure step ---
   if (wizard.step === 'configure' && wizard.template) {
     const displayPath = wizard.savePath
-      ? `${wizard.savePath}/${wizard.projectName.trim() || '...'}`
+      ? wizard.targetMode === 'current'
+        ? trimPathEnd(wizard.savePath)
+        : joinProjectPath(wizard.savePath, wizard.projectName.trim() || '...')
       : 'Choose a location...'
     const runtimeSummary = walletInfrastructure ? [
       walletInfrastructure.rpcProvider === 'quicknode' ? 'QuickNode RPC' : walletInfrastructure.rpcProvider === 'custom' ? 'Custom RPC' : walletInfrastructure.rpcProvider === 'public' ? 'Public RPC' : 'Helius RPC',
@@ -963,6 +2121,9 @@ export function ProjectStarter() {
       `${walletInfrastructure.swapProvider === 'jupiter' ? 'Jupiter' : walletInfrastructure.swapProvider} swaps`,
       walletInfrastructure.executionMode === 'jito' ? 'Jito execution' : 'RPC execution',
     ] : []
+    const isMemeTemplate = isMemeCoinWebsiteTemplate(wizard.template.id)
+    const assetLabel = (assetPath: string, fallback: string) => assetPath.split(/[\\/]/).pop() || fallback
+    const canBuild = Boolean(wizard.savePath && (wizard.targetMode === 'current' || wizard.projectName.trim()))
 
     return (
       <div className="starter-panel">
@@ -1004,8 +2165,121 @@ export function ProjectStarter() {
             <div className="starter-path-row">
               <div className="starter-path-display">{displayPath}</div>
               <button type="button" className="starter-browse-btn" onClick={pickFolder}>Browse</button>
+              {currentProjectTarget && (
+                <button
+                  type="button"
+                  className={`starter-browse-btn${wizard.targetMode === 'current' ? ' starter-browse-btn--active' : ''}`}
+                  onClick={useCurrentProjectFolder}
+                  title={currentProjectTarget.path}
+                >
+                  Use current folder
+                </button>
+              )}
             </div>
           </div>
+
+          {isMemeTemplate && (
+            <div className="starter-meme-config">
+              <div className="starter-meme-grid">
+                <div className="starter-field">
+                  <label className="starter-label">Token Name</label>
+                  <input
+                    className="starter-input"
+                    placeholder="Bipolar Sol"
+                    value={wizard.meme.tokenName}
+                    onChange={(e) => updateMemeField('tokenName', e.target.value)}
+                    maxLength={48}
+                  />
+                </div>
+                <div className="starter-field">
+                  <label className="starter-label">Ticker</label>
+                  <input
+                    className="starter-input"
+                    placeholder="BIPOLAR"
+                    value={wizard.meme.ticker}
+                    onChange={(e) => updateMemeField('ticker', e.target.value.replace(/[^a-zA-Z0-9$]/g, '').slice(0, 13))}
+                    maxLength={13}
+                  />
+                </div>
+              </div>
+
+              <div className="starter-field">
+                <label className="starter-label">CA</label>
+                <input
+                  className="starter-input"
+                  placeholder="Token contract address or CA coming soon"
+                  value={wizard.meme.contractAddress}
+                  onChange={(e) => updateMemeField('contractAddress', e.target.value)}
+                />
+              </div>
+
+              <div className="starter-field">
+                <label className="starter-label">Tagline</label>
+                <input
+                  className="starter-input"
+                  placeholder="The timeline is not ready."
+                  value={wizard.meme.tagline}
+                  onChange={(e) => updateMemeField('tagline', e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+
+              <div className="starter-meme-grid">
+                <div className="starter-field">
+                  <label className="starter-label">X Link</label>
+                  <input
+                    className="starter-input"
+                    placeholder="https://x.com/..."
+                    value={wizard.meme.xUrl}
+                    onChange={(e) => updateMemeField('xUrl', e.target.value)}
+                  />
+                </div>
+                <div className="starter-field">
+                  <label className="starter-label">Telegram</label>
+                  <input
+                    className="starter-input"
+                    placeholder="https://t.me/..."
+                    value={wizard.meme.telegramUrl}
+                    onChange={(e) => updateMemeField('telegramUrl', e.target.value)}
+                  />
+                </div>
+                <div className="starter-field">
+                  <label className="starter-label">Chart Link</label>
+                  <input
+                    className="starter-input"
+                    placeholder="DexScreener or Birdeye URL"
+                    value={wizard.meme.chartUrl}
+                    onChange={(e) => updateMemeField('chartUrl', e.target.value)}
+                  />
+                </div>
+                <div className="starter-field">
+                  <label className="starter-label">Buy Link</label>
+                  <input
+                    className="starter-input"
+                    placeholder="Jupiter, Pump.fun, or launch URL"
+                    value={wizard.meme.buyUrl}
+                    onChange={(e) => updateMemeField('buyUrl', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="starter-asset-grid">
+                <div className="starter-asset-picker">
+                  <span>Logo / PFP</span>
+                  <strong>{assetLabel(wizard.meme.logoAssetPath, 'Generated placeholder')}</strong>
+                  <button type="button" className="starter-browse-btn" onClick={() => void pickMemeAsset('logoAssetPath')}>Choose</button>
+                </div>
+                <div className="starter-asset-picker">
+                  <span>Hero Art</span>
+                  <strong>{assetLabel(wizard.meme.heroAssetPath, 'Generated placeholder')}</strong>
+                  <button type="button" className="starter-browse-btn" onClick={() => void pickMemeAsset('heroAssetPath')}>Choose</button>
+                </div>
+              </div>
+              <p className="starter-asset-note">
+                Chosen images are copied into public/assets. If you skip images, the site tries the CA metadata image first, then a generated placeholder.
+              </p>
+            </div>
+          )}
 
           {runtimeSummary.length > 0 && (
             <div className="starter-runtime-card">
@@ -1026,9 +2300,9 @@ export function ProjectStarter() {
           <button
             className="starter-build-btn"
             onClick={startBuild}
-            disabled={!wizard.projectName.trim() || !wizard.savePath}
+            disabled={!canBuild}
           >
-            Build Project
+            {isMemeTemplate ? 'Start Building' : 'Build Project'}
           </button>
         </div>
       </div>

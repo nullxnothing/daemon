@@ -40,7 +40,7 @@ const MODELS: DaemonAiModelInfo[] = [
   { lane: 'premium', label: 'Premium', description: 'Highest-quality model lane for hard builds and audits.', hosted: true, byok: false, requiresPlan: 'ultra' },
 ]
 
-const VALID_ACCESS_MODES = new Set<DaemonAiAccessMode>(['hosted', 'byok'])
+const VALID_ACCESS_MODES = new Set<DaemonAiAccessMode>(['auto', 'hosted', 'byok'])
 const VALID_CHAT_MODES = new Set<DaemonAiChatMode>(['ask', 'plan'])
 const VALID_MODEL_LANES = new Set<DaemonAiModelLane>(['auto', 'fast', 'standard', 'reasoning', 'premium'])
 
@@ -117,8 +117,8 @@ export function normalizeChatRequest(input: DaemonAiChatRequest): DaemonAiChatRe
     },
     message,
     mode: normalizeChatMode(input.mode),
-    accessMode: normalizeAccessMode(input.accessMode),
-    modelPreference: normalizeModelLane(input.modelPreference),
+    accessMode: input.accessMode == null ? undefined : normalizeAccessMode(input.accessMode),
+    modelPreference: input.modelPreference == null ? undefined : normalizeModelLane(input.modelPreference),
   }
 }
 
@@ -281,7 +281,7 @@ function toNumber(input: unknown): number | undefined {
 }
 
 async function runByokChat(prompt: string, lane: DaemonAiModelLane, projectPath?: string | null): Promise<string> {
-  const provider = ProviderRegistry.getDefault()
+  const provider = ProviderRegistry.getFeatureProvider('daemonAi')
   return provider.runPrompt({
     prompt,
     systemPrompt: [
@@ -299,11 +299,14 @@ async function runByokChat(prompt: string, lane: DaemonAiModelLane, projectPath?
 export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResponse> {
   const request = normalizeChatRequest(input)
 
-  const accessMode = request.accessMode ?? 'byok'
-  const lane = request.modelPreference ?? 'auto'
-  const state = accessMode === 'hosted' ? await getVerifiedEntitlementState() : getLocalSubscriptionState()
+  const prefs = ProviderRegistry.getPreferences()
+  const requestedAccessMode = request.accessMode ?? prefs.daemonAi.accessMode
+  const lane = request.modelPreference ?? prefs.daemonAi.modelLane
+  const hostedCandidate = requestedAccessMode === 'hosted' || requestedAccessMode === 'auto'
+  const state = hostedCandidate ? await getVerifiedEntitlementState() : getLocalSubscriptionState()
   let entitlementState = state
-  if (accessMode === 'hosted' && isDaemonAICloudConfigured() && getDaemonAICloudToken()) {
+  let canUseHosted = false
+  if (hostedCandidate && isDaemonAICloudConfigured() && getDaemonAICloudToken()) {
     try {
       const cloud = await fetchHostedFeatures()
       entitlementState = {
@@ -314,10 +317,14 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
         accessSource: cloud.accessSource,
         features: cloud.features,
       }
+      canUseHosted = cloud.hostedAvailable && canUseHostedModelLane(entitlementState, lane)
     } catch {
       entitlementState = { ...state, active: false, features: [] }
     }
   }
+  const accessMode: DaemonAiAccessMode = requestedAccessMode === 'auto'
+    ? (canUseHosted ? 'hosted' : 'byok')
+    : requestedAccessMode
   if (accessMode === 'hosted' && !canUseHostedModelLane(entitlementState, lane)) {
     const required = getHostedLaneRequiredPlan(lane)
     throw new Error(`Hosted ${lane} DAEMON AI requires the ${required} plan or higher.`)

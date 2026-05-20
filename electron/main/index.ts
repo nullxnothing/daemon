@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { app, BrowserWindow, shell, ipcMain, protocol, net, session } from 'electron'
+import { app, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -32,6 +32,7 @@ import { registerSpawnAgentsHandlers } from '../ipc/spawnagents'
 import { stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
+import { registerShiplineHandlers } from '../ipc/shipline'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
@@ -39,6 +40,8 @@ import { registerLaunchHandlers } from '../ipc/launch'
 import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerRegistryHandlers } from '../ipc/registry'
 import { registerColosseumHandlers } from '../ipc/colosseum'
+import { registerIdleHandlers } from '../ipc/idle'
+import { registerMetaplexHandlers } from '../ipc/metaplex'
 import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
 import { registerSeekerHandlers } from '../ipc/seeker'
@@ -52,6 +55,7 @@ import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import { shutdownAllLspSessions } from '../services/LspService'
+import { isAllowedWebviewUrl, isSafeExternalUrl, openSafeExternalUrl } from '../security/externalNavigation'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -224,6 +228,7 @@ function registerAllIpc() {
   registerSpawnAgentsHandlers()
   registerBrowserHandlers()
   registerDeployHandlers()
+  registerShiplineHandlers()
   registerEmailHandlers()
   registerImageHandlers()
   registerAriaHandlers()
@@ -231,6 +236,8 @@ function registerAllIpc() {
   registerDashboardHandlers()
   registerRegistryHandlers()
   registerColosseumHandlers()
+  registerIdleHandlers()
+  registerMetaplexHandlers()
   registerVaultHandlers()
   registerValidatorHandlers()
   registerSeekerHandlers()
@@ -262,12 +269,7 @@ function registerAllIpc() {
 
   // Shell utilities
   ipcMain.handle('shell:open-external', async (_event, url: string) => {
-    try {
-      const parsed = new URL(url)
-      if (parsed.protocol !== 'https:') return
-      if (parsed.username || parsed.password) return
-      await shell.openExternal(url)
-    } catch { /* invalid URL */ }
+    await openSafeExternalUrl(url)
   })
 }
 
@@ -403,16 +405,24 @@ async function createWindow() {
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https:')) shell.openExternal(url)
+    if (isSafeExternalUrl(url)) void openSafeExternalUrl(url)
     return { action: 'deny' }
   })
 
   // Enforce security on webview creation from main process
-  win.webContents.on('will-attach-webview', (_event, webPreferences) => {
+  win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    if (!isAllowedWebviewUrl(params.src)) {
+      event.preventDefault()
+      return
+    }
     webPreferences.nodeIntegration = false
     webPreferences.contextIsolation = true
     webPreferences.sandbox = true
+    webPreferences.webSecurity = true
+    webPreferences.allowRunningInsecureContent = false
     delete (webPreferences as Record<string, unknown>).preload
+    delete (webPreferences as Record<string, unknown>).enableBlinkFeatures
+    delete (webPreferences as Record<string, unknown>).disableBlinkFeatures
   })
 
   // Block navigation away from app origin (XSS defense)

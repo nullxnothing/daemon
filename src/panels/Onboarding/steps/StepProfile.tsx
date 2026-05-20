@@ -58,7 +58,7 @@ function GridIcon() {
 }
 
 export function StepProfile() {
-  const [selected, setSelected] = useState<WorkspaceProfileName | null>(null)
+  const [selected, setSelected] = useState<WorkspaceProfileName>('solana')
   const [saving, setSaving] = useState(false)
   const advanceStep = useOnboardingStore((s) => s.advanceStep)
   const setStepStatus = useOnboardingStore((s) => s.setStepStatus)
@@ -68,7 +68,7 @@ export function StepProfile() {
   }
 
   const handleConfirm = async () => {
-    if (!selected || saving) return
+    if (saving) return
     setSaving(true)
     await useWorkspaceProfileStore.getState().setProfile(selected)
     setStepStatus('profile', 'complete')
@@ -90,7 +90,7 @@ export function StepProfile() {
         <ProfileCard
           name="solana"
           label="Solana Development"
-          description="Everything in Web plus Wallet, Token Launcher, and crypto tools"
+          description="Recommended: Solana Start, Wallet, DAEMON AI, Build, Launch, Inspect, and protocol tools"
           icon={<ChainIcon />}
           selected={selected === 'solana'}
           onSelect={handleSelect}
@@ -108,7 +108,7 @@ export function StepProfile() {
       <button
         className="wizard-btn primary"
         onClick={handleConfirm}
-        disabled={!selected || saving}
+        disabled={saving}
       >
         {saving ? 'Saving...' : 'Continue'}
       </button>

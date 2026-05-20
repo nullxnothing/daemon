@@ -2,11 +2,11 @@ import type { DaemonAiModelLane, DaemonPlanId, ProFeature, ProSubscriptionState 
 
 export const PLAN_FEATURES: Record<DaemonPlanId, ProFeature[]> = {
   light: [],
-  pro: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'app-factory', 'shipline'],
-  operator: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'app-factory', 'shipline', 'cloud-agents'],
-  ultra: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'app-factory', 'shipline', 'cloud-agents'],
-  team: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'app-factory', 'shipline', 'cloud-agents', 'team-admin'],
-  enterprise: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'app-factory', 'shipline', 'cloud-agents', 'team-admin'],
+  pro: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'shipline'],
+  operator: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'shipline', 'cloud-agents'],
+  ultra: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'shipline', 'cloud-agents'],
+  team: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'shipline', 'cloud-agents', 'team-admin'],
+  enterprise: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api', 'shipline', 'cloud-agents', 'team-admin'],
 }
 
 export const AI_MONTHLY_CREDITS: Record<DaemonPlanId, number> = {

@@ -26,20 +26,23 @@
 }
 
 .solana-workflow-shell {
+  --solana-workflow-pad-x: 20px;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
 .solana-workflow-header {
-  padding: 18px 20px 12px;
+  padding: var(--solana-workflow-pad-x) var(--solana-workflow-pad-x) var(--space-md);
   border-bottom: 1px solid rgba(62, 207, 142, 0.06);
 }
 
 .solana-workflow-title {
   margin: 0;
-  font-size: var(--fs-28);
-  line-height: 1.08;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+  letter-spacing: var(--type-page-title-tracking);
   color: var(--t1);
 }
 
@@ -54,7 +57,7 @@
 .solana-view-tabs {
   display: flex;
   gap: var(--space-sm);
-  padding: 0 20px var(--drawer-space-block);
+  padding: 0 var(--solana-workflow-pad-x) var(--space-md);
   margin: 0;
   border-bottom: 1px solid var(--drawer-surface-divider);
   background: var(--s1);
@@ -81,14 +84,14 @@
 
 .solana-view-tab:hover {
   color: var(--t1);
-  border-color: color-mix(in srgb, var(--green) 28%, var(--border));
-  background: var(--s3);
+  border-color: var(--control-border-hover);
+  background: var(--tab-hover-bg);
 }
 
 .solana-view-tab.active {
-  color: var(--green);
-  border-color: color-mix(in srgb, var(--green) 36%, var(--border));
-  background: var(--green-glow);
+  color: var(--tab-active-color);
+  border-color: var(--tab-active-border);
+  background: var(--tab-active-bg);
   box-shadow: none;
 }
 
@@ -105,6 +108,53 @@
 .solana-view-panel {
   display: flex;
   flex-direction: column;
+}
+
+.solana-project-empty-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px;
+  padding: 16px;
+  border: 1px solid rgba(240, 180, 41, 0.16);
+  border-radius: var(--radius-lg);
+  background: rgba(240, 180, 41, 0.035);
+  min-width: 0;
+}
+
+.solana-project-empty-card h2 {
+  margin: 0;
+  font-size: var(--fs-18);
+  line-height: 1.2;
+  color: var(--t1);
+}
+
+.solana-project-empty-card p {
+  margin: 8px 0 0;
+  max-width: 78ch;
+  color: var(--t3);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.solana-project-empty-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.solana-loading-state {
+  margin: 0 16px 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(62, 207, 142, 0.12);
+  border-radius: var(--radius-md);
+  background: rgba(62, 207, 142, 0.035);
+  color: var(--t3);
+  font-size: var(--font-sm);
+  line-height: 1.45;
 }
 
 /* ── Validator zone (full width) ── */
@@ -256,18 +306,20 @@
 }
 
 .solana-token-launch-kicker {
-  font-size: var(--font-xs);
-  font-weight: 700;
-  color: var(--green);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1.6px;
+  letter-spacing: var(--ls-eyebrow);
   margin-bottom: 6px;
 }
 
 .solana-token-launch-title {
   margin: 0;
-  font-size: var(--fs-22);
-  line-height: 1.15;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
   color: var(--t1);
 }
 
@@ -292,6 +344,20 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   min-width: 0;
+}
+
+.solana-launch-state {
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
+.solana-launch-state.warning {
+  border: 1px solid rgba(240, 180, 41, 0.18);
+  background: rgba(240, 180, 41, 0.045);
+  color: var(--t2);
 }
 
 .solana-token-launch-card {
@@ -813,7 +879,21 @@
 @media (max-width: 1100px) {
   .solana-view-tabs {
     flex-wrap: wrap;
-    margin-inline: var(--space-md);
+  }
+
+  .solana-project-empty-card,
+  .solana-project-empty-actions,
+  .solana-env-none {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .solana-project-empty-actions .sol-btn {
+    width: 100%;
+  }
+
+  .solana-env-none span:last-child {
+    white-space: normal;
   }
 
   .solana-token-launch-header,
@@ -917,11 +997,12 @@
 }
 
 .solana-split-title {
-  font-size: var(--font-sm);
-  font-weight: 700;
-  color: var(--t2);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: var(--ls-eyebrow);
 }
 
 .solana-split-count {
@@ -966,11 +1047,12 @@
 }
 
 .solana-zone-label {
-  font-size: var(--font-sm);
-  font-weight: 700;
-  color: var(--t2);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: var(--ls-eyebrow);
 }
 
 .solana-zone-summary {
@@ -1052,10 +1134,27 @@
 .solana-env-health.grey { background: var(--t4); color: transparent; }
 
 .solana-env-none {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-size: var(--font-base);
   color: var(--t4);
   padding: 12px 16px;
   border-bottom: 1px solid var(--s4);
+  background: rgba(240, 180, 41, 0.025);
+}
+
+.solana-env-none span:first-child {
+  color: var(--t2);
+  font-weight: 650;
+}
+
+.solana-env-none span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Status dot ── */
@@ -1159,6 +1258,28 @@
   border-radius: var(--radius-sm);
   border: 1px solid rgba(62, 207, 142, 0.1);
   margin-bottom: 4px;
+}
+
+.solana-validator-help {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--t3);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
+.solana-validator-help.running {
+  border-color: rgba(62, 207, 142, 0.14);
+  background: rgba(62, 207, 142, 0.035);
+}
+
+.solana-validator-help.error {
+  border-color: rgba(239, 83, 80, 0.2);
+  background: rgba(239, 83, 80, 0.06);
+  color: var(--t2);
 }
 
 .solana-validator-actions {
@@ -1637,4 +1758,5 @@
   font-size: var(--font-base);
   color: var(--t4);
   padding: 8px 0;
+  line-height: 1.45;
 }

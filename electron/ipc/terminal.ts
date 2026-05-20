@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import * as pty from 'node-pty'
 import { execFileSync } from 'node:child_process'
@@ -7,6 +10,7 @@ import { registerPort } from '../services/PortService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { LogService } from '../services/LogService'
 import * as SessionTracker from '../services/SessionTracker'
+import * as ShiplineService from '../services/ShiplineService'
 import { getEmbeddedProviderStartupCommand, type ProviderShellId } from '../shared/providerLaunch'
 import { validateCwd } from '../shared/pathValidation'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
@@ -21,7 +25,42 @@ const PORT_PATTERNS = [
   /0\.0\.0\.0:(\d{3,5})/i,                                 // "0.0.0.0:3000"
 ]
 
+const TERMINAL_OUTPUT_RECEIPT_LIMIT = 80_000
 const sessions = new Map<string, TerminalSession>()
+
+function quotePowerShellLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+function quotePosixLiteral(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`
+}
+
+function writeProviderPromptFile(providerId: ProviderShellId, prompt: string): string {
+  const promptFilePath = path.join(os.tmpdir(), `daemon_${providerId}_prompt_${crypto.randomUUID()}.md`)
+  fs.writeFileSync(promptFilePath, prompt.trim(), 'utf8')
+  return promptFilePath
+}
+
+function buildPromptedProviderStartupCommand(providerId: ProviderShellId, promptFilePath: string | null): string {
+  const providerCommand = getEmbeddedProviderStartupCommand(providerId)
+  if (!promptFilePath) return providerCommand
+
+  if (process.platform === 'win32') {
+    const promptPath = quotePowerShellLiteral(promptFilePath)
+    const promptVar = `$prompt = Get-Content -LiteralPath ${promptPath} -Raw`
+    if (providerId === 'codex') {
+      return `${promptVar}; ${providerCommand} --sandbox workspace-write --ask-for-approval on-request $prompt`
+    }
+    return `${promptVar}; ${providerCommand} $prompt`
+  }
+
+  const promptPath = quotePosixLiteral(promptFilePath)
+  if (providerId === 'codex') {
+    return `${providerCommand} --sandbox workspace-write --ask-for-approval on-request "$(cat ${promptPath})"`
+  }
+  return `${providerCommand} "$(cat ${promptPath})"`
+}
 
 export function getSession(id: string) {
   return sessions.get(id)
@@ -111,6 +150,7 @@ function createPtySession(
     providerId,
     isAgentShell,
     dataBuffer: [],
+    outputBuffer: '',
     rendererReady: false,
     generatedLineCount: 0,
   }
@@ -118,6 +158,7 @@ function createPtySession(
 
   ptyProcess.onData((data) => {
     session.generatedLineCount = (session.generatedLineCount ?? 0) + (data.match(/\r\n|\r|\n/g)?.length ?? 0)
+    session.outputBuffer = `${session.outputBuffer ?? ''}${data}`.slice(-TERMINAL_OUTPUT_RECEIPT_LIMIT)
 
     if (session.rendererReady) {
       getWin()?.webContents.send('terminal:data', { id, data })
@@ -164,7 +205,15 @@ function createPtySession(
     try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
       LogService.warn('Terminal', `Failed to clean up active_session ${id}`, { error: (err as Error).message })
     }
-    getWin()?.webContents.send('terminal:exit', { id, exitCode })
+    let shiplineRun = null
+    try {
+      shiplineRun = ShiplineService.completeRunningStepForTerminal(id, exitCode, session.outputBuffer ?? '')
+    } catch (err) {
+      LogService.warn('Terminal', `Failed to update Shipline step for terminal ${id}`, { error: (err as Error).message })
+    }
+    const win = getWin()
+    win?.webContents.send('terminal:exit', { id, exitCode })
+    if (shiplineRun) win?.webContents.send('shipline:timeline-updated', shiplineRun)
   })
 
   return session
@@ -190,6 +239,7 @@ export function registerTerminalHandlers() {
     providerId: ProviderShellId
     projectId?: string
     cwd?: string
+    initialPrompt?: string
   }) => {
     if (opts.providerId !== 'claude' && opts.providerId !== 'codex') {
       throw new Error('Unsupported provider')
@@ -204,8 +254,11 @@ export function registerTerminalHandlers() {
     validateCwd(cwd)
 
     const id = crypto.randomUUID()
-    const session = createPtySession(id, '', [], cwd, null, null, opts.providerId, true)
-    session.pendingStartupCommand = getEmbeddedProviderStartupCommand(opts.providerId)
+    const promptFilePath = opts.initialPrompt?.trim()
+      ? writeProviderPromptFile(opts.providerId, opts.initialPrompt)
+      : null
+    const session = createPtySession(id, '', [], cwd, null, promptFilePath, opts.providerId, true)
+    session.pendingStartupCommand = buildPromptedProviderStartupCommand(opts.providerId, promptFilePath)
 
     if (opts.projectId) {
       getDb().prepare(

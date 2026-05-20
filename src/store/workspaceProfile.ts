@@ -59,6 +59,17 @@ export const useWorkspaceProfileStore = create<WorkspaceProfileState>((set, get)
     const profile: WorkspaceProfile = { name, toolVisibility: visibility }
     await daemon.settings.setWorkspaceProfile(profile).catch(() => {})
 
+    if (name === 'solana') {
+      useUIStore.getState().setPinnedTools([
+        'project-readiness',
+        'wallet',
+        'daemon-ai',
+        'solana-toolbox',
+        'activity',
+        'settings',
+      ])
+    }
+
     // Hide pinned tools that are no longer visible in the new profile.
     // We don't delete them — pinnedTools persists, but the sidebar will
     // filter via isToolVisible. Surface a toast so the user notices.

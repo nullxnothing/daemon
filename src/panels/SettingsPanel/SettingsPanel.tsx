@@ -21,7 +21,7 @@ import type { WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'tools' | 'sidePanels' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
+type SettingsTab = 'keys' | 'integrations' | 'aiProviders' | 'agents' | 'tools' | 'sidePanels' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
 interface AppMeta {
   version: string
   electronVersion: string
@@ -51,6 +51,7 @@ interface AgentRow {
 const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'keys', keywords: ['key', 'api', 'token', 'secret', 'helius', 'openai', 'anthropic', 'birdeye', 'gemini'] },
   { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
+  { tab: 'aiProviders', keywords: ['ai provider', 'provider', 'default provider', 'aria', 'daemon ai', 'codex', 'claude', 'model'] },
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
   { tab: 'sidePanels', keywords: ['side panel', 'side panels', 'right panel', 'right sidebar', 'widget', 'widgets', 'spawn agent', 'wallet snapshot'] },
@@ -96,14 +97,14 @@ export function SettingsPanel() {
       </div>
 
       <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
+        {(['keys', 'integrations', 'aiProviders', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
             data-tab={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'sidePanels' ? 'Side Panels' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
+            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'aiProviders' ? 'AI Providers' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'sidePanels' ? 'Side Panels' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
           </button>
         ))}
       </div>
@@ -111,6 +112,7 @@ export function SettingsPanel() {
       <div className="settings-body">
         {tab === 'keys' && <KeysSection />}
         {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
+        {tab === 'aiProviders' && <AIProvidersSection />}
         {tab === 'agents' && <AgentsSection />}
         {tab === 'tools' && <ToolVisibilitySection />}
         {tab === 'sidePanels' && <SidePanelsSection />}
@@ -436,6 +438,191 @@ function DefaultProviderSection() {
   )
 }
 
+function isProviderConnected(connection: ProviderConnectionMap[keyof ProviderConnectionMap]): boolean {
+  return Boolean(connection && (connection.isAuthenticated || connection.authMode !== 'none'))
+}
+
+function AIProvidersSection() {
+  const [preferences, setPreferences] = useState<ProviderPreferences | null>(null)
+  const [conns, setConns] = useState<ProviderConnectionMap | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    const [prefsRes, connRes] = await Promise.all([
+      window.daemon.provider.getPreferences(),
+      window.daemon.provider.verifyAll(),
+    ])
+    if (prefsRes.ok && prefsRes.data) setPreferences(prefsRes.data)
+    if (connRes.ok && connRes.data) setConns(connRes.data)
+    setError(prefsRes.ok && connRes.ok ? null : prefsRes.error ?? connRes.error ?? 'Failed to load provider settings')
+  }, [])
+
+  useEffect(() => { void refresh() }, [refresh])
+
+  const save = async (next: ProviderPreferences) => {
+    setSaving(true)
+    setError(null)
+    const res = await window.daemon.provider.setPreferences(next)
+    setSaving(false)
+    if (res.ok && res.data) {
+      setPreferences(res.data)
+    } else {
+      setError(res.error ?? 'Failed to save provider settings')
+    }
+  }
+
+  const update = (mutate: (current: ProviderPreferences) => ProviderPreferences) => {
+    if (!preferences) return
+    void save(mutate(preferences))
+  }
+
+  if (!preferences || !conns) return <div className="settings-section"><div className="settings-empty">Checking providers...</div></div>
+
+  const connected = {
+    claude: isProviderConnected(conns.claude),
+    codex: isProviderConnected(conns.codex),
+  }
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Choose which provider powers each AI surface. These choices affect new requests and new agent sessions.
+      </div>
+
+      <div className="settings-provider-status-grid">
+        {(['claude', 'codex'] as ProviderId[]).map((id) => (
+          <div key={id} className="settings-provider-status-card">
+            <span className={`settings-provider-dot${connected[id] ? ' connected' : ''}`} />
+            <span className="settings-display-label">{id}</span>
+            <span className="settings-display-hint">{connected[id] ? conns[id]?.authMode : 'Not connected'}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="settings-divider" />
+
+      <ProviderPreferenceRow
+        label="Aria"
+        hint="Small side assistant for navigation, quick answers, and action chips."
+        value={preferences.aria.provider}
+        connected={connected}
+        onChange={(provider) => update((current) => ({ ...current, aria: { ...current.aria, provider } }))}
+      />
+      <SelectPreferenceRow
+        label="Aria model"
+        hint="Fast is best for short UI orchestration; standard/reasoning use stronger models."
+        value={preferences.aria.model}
+        options={['fast', 'standard', 'reasoning']}
+        onChange={(model) => update((current) => ({ ...current, aria: { ...current.aria, model: model as ProviderPreferences['aria']['model'] } }))}
+      />
+
+      <div className="settings-divider" />
+
+      <SelectPreferenceRow
+        label="DAEMON AI access"
+        hint="Auto uses hosted when available and falls back to BYOK."
+        value={preferences.daemonAi.accessMode}
+        options={['auto', 'hosted', 'byok']}
+        onChange={(accessMode) => update((current) => ({ ...current, daemonAi: { ...current.daemonAi, accessMode: accessMode as ProviderPreferences['daemonAi']['accessMode'] } }))}
+      />
+      <ProviderPreferenceRow
+        label="DAEMON AI BYOK"
+        hint="Provider used when DAEMON AI runs locally through your own account."
+        value={preferences.daemonAi.byokProvider}
+        connected={connected}
+        onChange={(byokProvider) => update((current) => ({ ...current, daemonAi: { ...current.daemonAi, byokProvider } }))}
+      />
+      <SelectPreferenceRow
+        label="DAEMON AI lane"
+        hint="Default lane for project-aware chat."
+        value={preferences.daemonAi.modelLane}
+        options={['auto', 'fast', 'standard', 'reasoning', 'premium']}
+        onChange={(modelLane) => update((current) => ({ ...current, daemonAi: { ...current.daemonAi, modelLane: modelLane as ProviderPreferences['daemonAi']['modelLane'] } }))}
+      />
+
+      <div className="settings-divider" />
+
+      <ProviderPreferenceRow
+        label="Auto agents"
+        hint="Default provider for agents configured as auto."
+        value={preferences.agents.defaultProvider}
+        connected={connected}
+        onChange={(defaultProvider) => update((current) => ({ ...current, agents: { defaultProvider } }))}
+      />
+      <ProviderPreferenceRow
+        label="Provider terminal"
+        hint="Default provider for future quick terminal shortcuts."
+        value={preferences.terminal.defaultProvider}
+        connected={connected}
+        onChange={(defaultProvider) => update((current) => ({ ...current, terminal: { defaultProvider } }))}
+      />
+
+      {saving && <div className="settings-section-desc settings-inline-note">Saving...</div>}
+      {error && <div className="settings-section-desc settings-inline-note error">{error}</div>}
+    </div>
+  )
+}
+
+function ProviderPreferenceRow({
+  label,
+  hint,
+  value,
+  connected,
+  onChange,
+}: {
+  label: string
+  hint: string
+  value: ProviderId
+  connected: Record<ProviderId, boolean>
+  onChange: (provider: ProviderId) => void
+}) {
+  return (
+    <div className="settings-display-row settings-provider-pref-row">
+      <span className="settings-display-label">{label}</span>
+      <span className="settings-display-hint">{hint}</span>
+      <div className="settings-provider-toggle">
+        {(['claude', 'codex'] as ProviderId[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={`settings-provider-mini${value === id ? ' active' : ''}`}
+            disabled={!connected[id]}
+            onClick={() => onChange(id)}
+            title={!connected[id] ? `Connect ${id} first` : id}
+          >
+            {id}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SelectPreferenceRow({
+  label,
+  hint,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  hint: string
+  value: string
+  options: string[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="settings-display-row settings-provider-pref-row">
+      <span className="settings-display-label">{label}</span>
+      <span className="settings-display-hint">{hint}</span>
+      <select className="settings-provider-select" value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </label>
+  )
+}
+
 function AgentsSection() {
   const [agents, setAgents] = useState<AgentRow[]>([])
 
@@ -449,11 +636,8 @@ function AgentsSection() {
 
   return (
     <div className="settings-section">
-      <DefaultProviderSection />
-      <div className="settings-divider" />
-
       <div className="settings-section-desc">
-        Registered agents and model preferences. Use the Agent Launcher (Ctrl+Shift+A) to create or edit agents.
+        Registered agents and model preferences. Use the Agent Launcher (Ctrl+Shift+A) to create or edit agents. Provider defaults live in AI Providers.
       </div>
 
       <div className="settings-agent-list">
@@ -594,7 +778,14 @@ function SetupSection() {
   }, [])
 
   const handleRerunWizard = async () => {
-    const freshProgress = { profile: 'pending' as const, claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
+    const freshProgress = {
+      profile: 'pending' as const,
+      project: 'pending' as const,
+      runtime: 'pending' as const,
+      ai: 'pending' as const,
+      firstRun: 'pending' as const,
+      tour: 'pending' as const,
+    }
     await window.daemon.settings.setOnboardingComplete(false)
     await window.daemon.settings.setOnboardingProgress(freshProgress)
     // Reset in-memory progress before opening so progress dots start clean

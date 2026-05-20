@@ -40,7 +40,7 @@ const TIERS: TierDefinition[] = [
     credits: '2,000',
     lane: 'Standard hosted lane',
     bestFor: 'Individual builders',
-    features: ['DAEMON AI hosted usage', 'Pro Skills, Arena, MCP sync', 'Basic App Factory and Shipline flows'],
+    features: ['DAEMON AI hosted usage', 'Pro Skills, Arena, MCP sync', 'Shipline proof workflows'],
   },
   {
     id: 'operator',

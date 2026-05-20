@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useAppActions } from '../../store/appActions'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { Button } from '../../components/Button'
+import { Badge, Card, MetricCard, StatusDot } from '../../components/Panel'
 import type { EnvFile, WalletListEntry } from '../../types/daemon'
+import type { IdlePaidCallReceipt, IdleRegistryStatus, IdleResource } from '../../../electron/shared/types'
 import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
 import { INTEGRATION_CATEGORIES, INTEGRATION_REGISTRY, type IntegrationCategory, type IntegrationDefinition } from './registry'
 import { runIntegrationAction, type IntegrationActionResult } from './actionRunner'
@@ -31,10 +34,45 @@ function joinProjectPath(projectPath: string, child: string): string {
   return `${projectPath.replace(/[\\/]+$/, '')}/${child}`
 }
 
-function statusLabel(summary: IntegrationStatusSummary): string {
-  if (summary.status === 'ready') return 'Ready'
-  if (summary.status === 'partial') return 'Partial'
-  return 'Setup needed'
+type IntegrationDisplayStatus = IntegrationStatusSummary['status'] | 'off'
+
+function statusLabel(status: IntegrationDisplayStatus): string {
+  if (status === 'ready') return 'Ready'
+  if (status === 'partial') return 'Partial'
+  if (status === 'missing') return 'Setup needed'
+  return 'Off'
+}
+
+function statusBadgeTone(status: IntegrationDisplayStatus): 'neutral' | 'success' | 'warning' {
+  if (status === 'ready') return 'success'
+  if (status === 'partial') return 'warning'
+  if (status === 'missing') return 'warning'
+  return 'neutral'
+}
+
+function getIntegrationStatusDisplay(enabled: boolean, summary: IntegrationStatusSummary) {
+  const status: IntegrationDisplayStatus = enabled ? summary.status : 'off'
+  const missingRequired = enabled
+    ? summary.requirements.filter((requirement) => !requirement.optional && !requirement.ready)
+    : []
+
+  return {
+    status,
+    badgeLabel: enabled ? statusLabel(status) : 'Off',
+    badgeTone: statusBadgeTone(status),
+    dotTone: status === 'ready' ? 'success' as const : status === 'partial' || status === 'missing' ? 'warning' as const : 'neutral' as const,
+    setupSummary: !enabled
+      ? 'Enable to inspect setup checks.'
+      : missingRequired.length > 0
+        ? `${missingRequired.length} required setup item${missingRequired.length === 1 ? '' : 's'} missing.`
+        : 'Required checks are ready.',
+    actionLabel: !enabled
+      ? 'Enable'
+      : status === 'ready'
+        ? 'Open'
+        : 'Review setup',
+    hasMissingRequired: missingRequired.length > 0,
+  }
 }
 
 const INTEGRATION_ENABLE_STORAGE_KEY = 'daemon:integration-command-center:enabled'
@@ -74,6 +112,21 @@ const STREAMLOCK_ENV_TEMPLATE: EnvTemplateEntry[] = [
 const METAPLEX_DRAFT_DIR = 'assets/metaplex'
 const METAPLEX_DRAFT_FILE = `${METAPLEX_DRAFT_DIR}/metadata.example.json`
 const METAPLEX_DRAFT_SCRIPT = 'metaplex:draft-check'
+const METAPLEX_STARTER_DIR = 'src/metaplex'
+const METAPLEX_STARTER_FILE = `${METAPLEX_STARTER_DIR}/core-das-readiness.mjs`
+const METAPLEX_STARTER_SCRIPT = 'metaplex:core-das-check'
+const METAPLEX_ENV_TEMPLATE: EnvTemplateEntry[] = [
+  {
+    key: 'METAPLEX_RPC_URL',
+    value: 'https://api.devnet.solana.com',
+    comment: 'Optional Metaplex-specific RPC. Use a DAS-capable RPC for asset reads in production.',
+  },
+  {
+    key: 'METAPLEX_ASSET_ID',
+    value: 'replace_with_core_or_das_asset_id',
+    comment: 'Optional asset ID for the read-only Core/DAS starter. Leave as placeholder to skip network reads.',
+  },
+]
 const LIGHT_STARTER_DIR = 'src/light'
 const LIGHT_STARTER_FILE = `${LIGHT_STARTER_DIR}/compression-check.mjs`
 const LIGHT_STARTER_SCRIPT = 'light:check'
@@ -89,6 +142,7 @@ const SQUADS_STARTER_SCRIPT = 'squads:inspect'
 const SENDAI_SKILLS_INSTALL_COMMAND = 'npx skills add sendaifun/skills'
 const GUIDED_WORKFLOW_INTEGRATIONS = new Set([
   'streamlock',
+  'idle-protocol',
   'sendai-agent-kit',
   'helius',
   'phantom',
@@ -110,6 +164,7 @@ const EMPTY_INTEGRATION_STATUS: IntegrationStatusSummary = {
   requirements: [],
 }
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
+  cluster: 'devnet',
   rpcProvider: 'helius',
   quicknodeRpcUrl: '',
   customRpcUrl: '',
@@ -153,10 +208,14 @@ interface PhantomRpcSetupInput {
 }
 
 function getWalletRpcLabel(settings: WalletInfrastructureSettings): string {
-  if (settings.rpcProvider === 'helius') return 'Helius RPC'
-  if (settings.rpcProvider === 'quicknode') return 'QuickNode RPC'
-  if (settings.rpcProvider === 'custom') return 'Custom RPC'
-  return 'Public RPC'
+  const provider = settings.rpcProvider === 'helius'
+    ? 'Helius RPC'
+    : settings.rpcProvider === 'quicknode'
+      ? 'QuickNode RPC'
+      : settings.rpcProvider === 'custom'
+        ? 'Custom RPC'
+        : 'Public RPC'
+  return `${provider} · ${settings.cluster}`
 }
 
 function isWalletRpcReady(settings: WalletInfrastructureSettings, heliusConfigured: boolean): boolean {
@@ -164,6 +223,14 @@ function isWalletRpcReady(settings: WalletInfrastructureSettings, heliusConfigur
   if (settings.rpcProvider === 'quicknode') return settings.quicknodeRpcUrl.trim().length > 0
   if (settings.rpcProvider === 'custom') return settings.customRpcUrl.trim().length > 0
   return true
+}
+
+function getEnvValue(envFiles: EnvFile[], key: string): string | null {
+  for (const file of envFiles) {
+    const match = file.vars.find((envVar) => !envVar.isComment && envVar.key === key && envVar.value.trim().length > 0)
+    if (match) return match.value.trim()
+  }
+  return null
 }
 
 function buildSendAiSkillSuggestions(context: IntegrationContext): string[] {
@@ -268,6 +335,66 @@ function buildMetaplexDraftFile(): string {
       ],
     },
   }, null, 2)}\n`
+}
+
+function buildMetaplexCoreDasStarter(): string {
+  return `async function main() {
+  const rpcUrl = process.env.METAPLEX_RPC_URL?.trim() || process.env.RPC_URL?.trim() || 'https://api.devnet.solana.com'
+  const assetId = process.env.METAPLEX_ASSET_ID?.trim()
+
+  const [{ createUmi }, { mplCore }, { mplTokenMetadata }, { dasApi }, { publicKey }] = await Promise.all([
+    import('@metaplex-foundation/umi-bundle-defaults'),
+    import('@metaplex-foundation/mpl-core'),
+    import('@metaplex-foundation/mpl-token-metadata'),
+    import('@metaplex-foundation/digital-asset-standard-api'),
+    import('@metaplex-foundation/umi'),
+  ])
+
+  const umi = createUmi(rpcUrl)
+    .use(mplCore())
+    .use(mplTokenMetadata())
+    .use(dasApi())
+
+  console.log('Metaplex Core/DAS starter is ready.')
+  console.log(JSON.stringify({
+    rpcUrl,
+    packages: [
+      '@metaplex-foundation/umi',
+      '@metaplex-foundation/umi-bundle-defaults',
+      '@metaplex-foundation/mpl-core',
+      '@metaplex-foundation/mpl-token-metadata',
+      '@metaplex-foundation/digital-asset-standard-api',
+    ],
+    mode: 'read-only',
+  }, null, 2))
+
+  if (!assetId || assetId === 'replace_with_core_or_das_asset_id') {
+    console.log('METAPLEX_ASSET_ID is not set. Skipping DAS fetch.')
+    console.log('Next step: add a Core asset, collection, or token mint ID to inspect metadata before enabling any mint transaction path.')
+    console.log('No asset was minted, transferred, burned, or updated.')
+    return
+  }
+
+  const asset = await umi.rpc.getAsset(publicKey(assetId))
+  console.log('DAS asset fetch complete.')
+  console.log(JSON.stringify({
+    id: asset.id?.toString?.() ?? asset.id,
+    interface: asset.interface,
+    name: asset.content?.metadata?.name ?? null,
+    symbol: asset.content?.metadata?.symbol ?? null,
+    owner: asset.ownership?.owner ?? null,
+    image: asset.content?.links?.image ?? null,
+    compressed: asset.compression?.compressed ?? null,
+  }, null, 2))
+  console.log('This starter is read-only. Keep Core create, Candy Machine mint, Genesis launch, and Agent Registry delegation behind explicit wallet approval.')
+}
+
+main().catch((error) => {
+  console.error('Metaplex Core/DAS starter failed.')
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exitCode = 1
+})
+`
 }
 
 function buildLightCompressionStarter(): string {
@@ -473,8 +600,12 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
   return (
     <div className="icc-requirements">
       {summary.requirements.map((requirement) => (
-        <div key={`${requirement.type}:${requirement.key}`} className={`icc-requirement ${requirement.ready ? 'ready' : ''}`}>
-          <span className={`icc-requirement-dot ${requirement.ready ? 'ready' : ''}`} />
+        <Card key={`${requirement.type}:${requirement.key}`} className={`icc-requirement ${requirement.ready ? 'ready' : ''}`}>
+          <StatusDot
+            tone={requirement.ready ? 'success' : 'warning'}
+            label={`${requirement.label}: ${requirement.ready ? 'ready' : 'needs setup'}`}
+            className="icc-requirement-dot"
+          />
           <div>
             <span className="icc-requirement-label">
               {requirement.label}
@@ -482,7 +613,7 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
             </span>
             <span className="icc-requirement-detail">{requirement.detail}</span>
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   )
@@ -513,10 +644,10 @@ function AiSetupCallout({
         <span className="icc-mini-title">AI setup</span>
         <strong>{title ?? 'Let DAEMON set this up'}</strong>
         <p>{detail}</p>
-        {providerLabel ? <small>Uses {providerLabel}</small> : null}
+        {providerLabel ? <small>Launches a {providerLabel} terminal. Review output before file or command changes; no transactions or secrets are required.</small> : null}
       </div>
       <button type="button" className="icc-ai-setup-button" onClick={onSetup} disabled={busy || disabled}>
-        {busy ? (busyLabel ?? 'Setting up...') : (actionLabel ?? 'Set up with AI')}
+        {busy ? (busyLabel ?? 'Launching terminal...') : (actionLabel ?? 'Launch AI setup in Terminal')}
       </button>
     </div>
   )
@@ -910,6 +1041,191 @@ function IntegrationFirstWinWorkflow({
   )
 }
 
+function IdleProtocolWorkflow({
+  paymentMcpReady,
+  registryUrl,
+  status,
+  resources,
+  receipts,
+  loadingStatus,
+  result,
+  busy,
+  onPreview,
+  onRefreshRegistry,
+  onOpenResources,
+  onOpenDocs,
+  aiProviderLabel,
+  aiBusy,
+  onAiSetup,
+}: {
+  paymentMcpReady: boolean
+  registryUrl: string | null
+  status: IdleRegistryStatus | null
+  resources: IdleResource[]
+  receipts: IdlePaidCallReceipt[]
+  loadingStatus: boolean
+  result?: IntegrationActionResult | null
+  busy: boolean
+  onPreview: () => void
+  onRefreshRegistry: () => void
+  onOpenResources: () => void
+  onOpenDocs: () => void
+  aiProviderLabel: string
+  aiBusy: boolean
+  onAiSetup: () => void
+}) {
+  const routeSteps = ['Discover', 'Score', 'Wrap', 'Pay', 'Prove']
+  const visibleResources = resources.length > 0
+    ? resources.slice(0, 3)
+    : [
+      { type: 'api', name: 'Registry pending', endpoint: 'Add IDLE_REGISTRY_URL', priceUsdc: 0, score: 0, status: 'disabled' as const },
+      { type: 'agent', name: 'Budget pending', endpoint: 'Set spend caps', priceUsdc: 0, score: 0, status: 'disabled' as const },
+      { type: 'data', name: 'Receipt pending', endpoint: 'Run after approval', priceUsdc: 0, score: 0, status: 'disabled' as const },
+    ] as Array<Pick<IdleResource, 'type' | 'name' | 'endpoint' | 'priceUsdc' | 'score' | 'status'>>
+  const statusLabel = !registryUrl
+    ? 'registry required'
+    : status?.executionReady
+      ? paymentMcpReady ? 'execution ready' : 'payment setup needed'
+      : 'gated'
+
+  return (
+    <div className="icc-setup-workflow icc-idle-workflow">
+      <div className="icc-setup-head icc-idle-head">
+        <div>
+          <span className="icc-idle-kicker">IDLE x DAEMON / Meterflow</span>
+          <h3>IDLE Resource Router</h3>
+          <p>Turn configured IDLE resource registries into agent-safe paid routes with readiness scores, x402 budgets, explicit approval, and stored receipts.</p>
+        </div>
+        <span className={`icc-idle-status ${status?.executionReady && paymentMcpReady ? 'ready' : 'partial'}`}>
+          {loadingStatus ? 'checking' : statusLabel}
+        </span>
+      </div>
+
+      <div className="icc-idle-pipeline" aria-label="IDLE resource route stages">
+        {routeSteps.map((step, index) => (
+          <span key={step}>
+            {step}
+            {index < routeSteps.length - 1 ? <small>-&gt;</small> : null}
+          </span>
+        ))}
+      </div>
+
+      <div className="icc-idle-resource-grid">
+        {visibleResources.map((resource) => (
+          <div key={resource.name} className="icc-idle-resource-card">
+            <div className="icc-idle-resource-top">
+              <span>{resource.type.toUpperCase()}</span>
+              <strong>{resource.score}</strong>
+            </div>
+            <h4>{resource.name}</h4>
+            <p>{resource.status === 'available' ? 'registry route' : resource.endpoint}</p>
+            <code>{resource.priceUsdc > 0 ? `$${resource.priceUsdc.toFixed(3)} / call` : 'gated'}</code>
+          </div>
+        ))}
+      </div>
+
+      <div className="icc-idle-settlement">
+        <div>
+          <span>Payment</span>
+          <strong>x402 USDC</strong>
+        </div>
+        <div>
+          <span>Budget</span>
+          <strong>required</strong>
+        </div>
+        <div>
+          <span>Receipt</span>
+          <strong>{receipts.length ? `${receipts.length} stored` : 'required'}</strong>
+        </div>
+        <div>
+          <span>Revenue</span>
+          <strong>IDLE-defined</strong>
+        </div>
+      </div>
+
+      <div className="icc-inline-note">
+        {registryUrl
+          ? `Registry source: ${registryUrl}`
+          : 'Add IDLE_REGISTRY_URL in the project env before importing resources or claiming paid-call execution.'}
+      </div>
+
+      {status?.blockers.length ? (
+        <div className="icc-result warning">
+          <span className="icc-result-title">Execution still gated</span>
+          <p>{status.blockers.join(' ')}</p>
+        </div>
+      ) : null}
+
+      <AiSetupCallout
+        title="Stage the partnership lane"
+        detail={`${aiProviderLabel} can inspect the project and scaffold a safe IDLE resource-router adapter with route, budget, receipt, and provider-revenue policy.`}
+        providerLabel={aiProviderLabel}
+        busy={aiBusy}
+        busyLabel={`Launching ${aiProviderLabel}...`}
+        onSetup={onAiSetup}
+      />
+
+      <div className="icc-step-list">
+        <div className="icc-step ready">
+          <span className="icc-step-index">1</span>
+          <div className="icc-step-main">
+            <strong>Discover IDLE resources</strong>
+            <p>Import agents, APIs, GPUs, wallets, data, or machines from a configured IDLE registry URL.</p>
+          </div>
+          <span className={`icc-status-badge ${registryUrl ? 'ready' : 'partial'}`}>{registryUrl ? 'ready' : 'gated'}</span>
+        </div>
+        <div className="icc-step ready">
+          <span className="icc-step-index">2</span>
+          <div className="icc-step-main">
+            <strong>Score agent readiness</strong>
+            <p>DAEMON checks endpoint health, wallet reputation, schema clarity, pricing, and risk flags before any agent call.</p>
+          </div>
+          <span className="icc-status-badge ready">ready</span>
+        </div>
+        <div className={`icc-step ${paymentMcpReady ? 'ready' : 'active'}`}>
+          <span className="icc-step-index">3</span>
+          <div className="icc-step-main">
+            <strong>Wrap paid calls</strong>
+            <p>DAEMON applies route allowlists, spend caps, x402 payment evidence, and receipt storage to approved resources.</p>
+          </div>
+          <span className={`icc-status-badge ${paymentMcpReady ? 'ready' : 'partial'}`}>{paymentMcpReady ? 'ready' : 'next'}</span>
+        </div>
+      </div>
+
+      <div className="icc-inline-note">
+        IDLE execution stays explicit: registry source, resource score, route allowlist, budget, payment evidence, and receipt policy are visible before any paid call.
+      </div>
+
+      {result ? (
+        <div className={`icc-result ${result.status}`}>
+          <span className="icc-result-title">{result.title}</span>
+          <p>{result.detail}</p>
+          {result.items?.length ? (
+            <div className="icc-result-items">
+              {result.items.map((item) => <code key={item}>{item}</code>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="icc-setup-actions">
+        <button type="button" className="icc-primary" onClick={onPreview} disabled={busy}>
+          {busy ? 'Building...' : 'Build route stack'}
+        </button>
+        <button type="button" className="icc-secondary" onClick={onRefreshRegistry} disabled={busy || !registryUrl}>
+          {busy ? 'Importing...' : 'Import registry'}
+        </button>
+        <button type="button" className="icc-secondary" onClick={onOpenResources} disabled={busy}>
+          Open IDLE resources
+        </button>
+        <button type="button" className="icc-secondary" onClick={onOpenDocs} disabled={busy}>
+          Open IDLE docs
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function PhantomWalletWorkflow({
   wallet,
   isMainWallet,
@@ -1219,31 +1535,48 @@ function IntegrationCard({
   onSelect: () => void
 }) {
   const brandClass = getBrandedIntegrationClass(integration.id)
-  const brandedCardClass = enabled && brandClass ? `icc-card--${brandClass}` : ''
-  const statusClass = enabled ? summary.status : 'off'
+  const statusDisplay = getIntegrationStatusDisplay(enabled, summary)
 
   return (
     <button
       type="button"
-      className={`icc-card ${brandedCardClass} ${enabled ? '' : 'icc-card--off'} ${selected ? 'selected' : ''}`}
+      className={`icc-card ${enabled ? '' : 'icc-card--off'} ${selected ? 'selected' : ''}`}
+      data-brand={brandClass || undefined}
+      aria-pressed={selected}
       onClick={onSelect}
     >
-      <span className={`icc-status-dot ${statusClass}`} />
+      <StatusDot
+        tone={statusDisplay.dotTone}
+        label={`${integration.name}: ${statusDisplay.badgeLabel}`}
+        className={`icc-status-dot ${statusDisplay.status}`}
+      />
       <div className="icc-card-main">
         <div className="icc-card-top">
-          <span className="icc-card-name">{integration.name}</span>
-          <span className={`icc-status-badge ${statusClass}`}>{enabled ? statusLabel(summary) : 'Off'}</span>
+          <span className="icc-card-title-wrap">
+            <span className="icc-card-name">{integration.name}</span>
+            <span className="icc-card-category">{categoryLabel(integration.category)}</span>
+          </span>
+          <Badge tone={statusDisplay.badgeTone} className={`icc-status-badge ${statusDisplay.status}`}>
+            {enabled ? statusDisplay.badgeLabel : statusDisplay.actionLabel}
+          </Badge>
         </div>
         <span className="icc-card-tagline">{integration.tagline}</span>
         <span className="icc-card-desc">{integration.description}</span>
+        <span className={`icc-card-setup ${statusDisplay.hasMissingRequired ? 'warning' : ''}`}>{statusDisplay.setupSummary}</span>
+        <span className="icc-card-action">{statusDisplay.actionLabel}</span>
       </div>
     </button>
   )
 }
 
+function categoryLabel(category: IntegrationCategory): string {
+  return INTEGRATION_CATEGORIES.find((item) => item.id === category)?.label ?? category
+}
+
 function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'streamlock') return 'streamlock'
   if (integrationId === 'zauth') return 'zauth'
+  if (integrationId === 'idle-protocol') return 'idle'
   if (integrationId === 'helius') return 'helius'
   if (integrationId === 'sendai-agent-kit') return 'sendai'
   if (integrationId === 'spawnagents') return 'spawnagents'
@@ -1281,6 +1614,7 @@ export function IntegrationCommandCenter() {
   const [pnpmWorkspaceRoot, setPnpmWorkspaceRoot] = useState(false)
   const [hasStarterAgentFile, setHasStarterAgentFile] = useState(false)
   const [hasStreamlockStarterFile, setHasStreamlockStarterFile] = useState(false)
+  const [hasMetaplexStarterFile, setHasMetaplexStarterFile] = useState(false)
   const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [walletSignerReady, setWalletSignerReady] = useState<Record<string, boolean>>({})
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>(DEFAULT_WALLET_INFRASTRUCTURE)
@@ -1298,6 +1632,10 @@ export function IntegrationCommandCenter() {
   const [defaultAiProvider, setDefaultAiProvider] = useState<'claude' | 'codex'>('claude')
   const [launchingAiSetup, setLaunchingAiSetup] = useState(false)
   const [enabledIntegrationIds, setEnabledIntegrationIds] = useState<Set<string>>(() => loadEnabledIntegrationIds())
+  const [idleStatus, setIdleStatus] = useState<IdleRegistryStatus | null>(null)
+  const [idleResources, setIdleResources] = useState<IdleResource[]>([])
+  const [idleReceipts, setIdleReceipts] = useState<IdlePaidCallReceipt[]>([])
+  const [loadingIdle, setLoadingIdle] = useState(false)
 
   function setIntegrationEnabled(id: string, enabled: boolean) {
     setEnabledIntegrationIds((current) => {
@@ -1337,6 +1675,7 @@ export function IntegrationCommandCenter() {
         setPnpmWorkspaceRoot(false)
         setHasStarterAgentFile(false)
         setHasStreamlockStarterFile(false)
+        setHasMetaplexStarterFile(false)
         setWallets([])
         setWalletSignerReady({})
         setWalletInfrastructure(DEFAULT_WALLET_INFRASTRUCTURE)
@@ -1396,6 +1735,7 @@ export function IntegrationCommandCenter() {
             pnpmWorkspaceYmlRes,
             starterFileRes,
             streamlockStarterFileRes,
+            metaplexStarterFileRes,
           ] = await Promise.all([
             daemon.env.projectVars(activeProjectPath),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'package.json')),
@@ -1407,6 +1747,7 @@ export function IntegrationCommandCenter() {
             daemon.fs.readFile(joinProjectPath(activeProjectPath, 'pnpm-workspace.yml')),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, SENDAI_FIRST_AGENT_ENTRY)),
             daemon.fs.readFile(joinProjectPath(activeProjectPath, STREAMLOCK_STARTER_FILE)),
+            daemon.fs.readFile(joinProjectPath(activeProjectPath, METAPLEX_STARTER_FILE)),
           ])
 
           if (cancelled) return
@@ -1423,6 +1764,7 @@ export function IntegrationCommandCenter() {
           setPnpmWorkspaceRoot(Boolean(pnpmWorkspaceYamlRes.ok || pnpmWorkspaceYmlRes.ok))
           setHasStarterAgentFile(Boolean(starterFileRes.ok))
           setHasStreamlockStarterFile(Boolean(streamlockStarterFileRes.ok))
+          setHasMetaplexStarterFile(Boolean(metaplexStarterFileRes.ok))
         } else {
           setEnvFiles([])
           setPackageInfo(EMPTY_PACKAGE_INFO)
@@ -1431,6 +1773,7 @@ export function IntegrationCommandCenter() {
           setPnpmWorkspaceRoot(false)
           setHasStarterAgentFile(false)
           setHasStreamlockStarterFile(false)
+          setHasMetaplexStarterFile(false)
           setSendAiSetupApplied(false)
           await loadToolchain(undefined)
         }
@@ -1482,6 +1825,7 @@ export function IntegrationCommandCenter() {
   const envKeys = useMemo(() => new Set(
     envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
   ), [envFiles])
+  const idleRegistryUrl = useMemo(() => getEnvValue(envFiles, 'IDLE_REGISTRY_URL'), [envFiles])
   const projectPackageManager = useMemo<PackageManager | null>(
     () => (activeProjectPath ? detectPackageManager(packageInfo, lockfiles) : null),
     [activeProjectPath, packageInfo, lockfiles],
@@ -1491,9 +1835,17 @@ export function IntegrationCommandCenter() {
     [projectPackageManager, pnpmWorkspaceRoot],
   )
   const streamlockConfigReady = envKeys.has('STREAMLOCK_OPERATOR_KEY')
+  const idlePaymentMcpReady = context.mcps.some((entry) => (entry.name === 'payai-mcp-server' || entry.name === 'x402-mcp') && entry.enabled)
   const lightStatelessReady = packageInfo.packages.has('@lightprotocol/stateless.js')
   const lightCompressedTokenReady = packageInfo.packages.has('@lightprotocol/compressed-token')
   const lightPackagesReady = lightStatelessReady && lightCompressedTokenReady
+  const metaplexCorePackagesReady = [
+    '@metaplex-foundation/umi',
+    '@metaplex-foundation/umi-bundle-defaults',
+    '@metaplex-foundation/mpl-core',
+    '@metaplex-foundation/mpl-token-metadata',
+    '@metaplex-foundation/digital-asset-standard-api',
+  ].every((packageName) => packageInfo.packages.has(packageName))
   const magicBlockPackageReady = packageInfo.packages.has('@magicblock-labs/ephemeral-rollups-sdk')
   const debridgePackageReady = packageInfo.packages.has('@debridge-finance/dln-client')
   const squadsPackageReady = packageInfo.packages.has('@sqds/multisig')
@@ -1527,6 +1879,20 @@ export function IntegrationCommandCenter() {
     })
   }, [category, search])
 
+  const groupedVisible = useMemo(() => {
+    if (category !== 'all') {
+      return [{ id: category, label: categoryLabel(category), items: visibleIntegrations }]
+    }
+    return INTEGRATION_CATEGORIES
+      .filter((entry) => entry.id !== 'all')
+      .map((entry) => ({
+        id: entry.id,
+        label: entry.label,
+        items: visibleIntegrations.filter((integration) => integration.category === entry.id),
+      }))
+      .filter((group) => group.items.length > 0)
+  }, [category, visibleIntegrations])
+
   useEffect(() => {
     if (!integrationCommandSelectionId) return
     const targetId = INTEGRATION_SELECTION_ALIASES.get(integrationCommandSelectionId) ?? integrationCommandSelectionId
@@ -1546,7 +1912,31 @@ export function IntegrationCommandCenter() {
     ? enabledStatusById.get(selectedIntegration.id) ?? resolveIntegrationStatus(selectedIntegration, context)
     : EMPTY_INTEGRATION_STATUS
   const selectedBrandClass = selectedIntegrationEnabled ? getBrandedIntegrationClass(selectedIntegration.id) : ''
+  const selectedStatusDisplay = getIntegrationStatusDisplay(selectedIntegrationEnabled, selectedSummary)
+
+  const detailScrollRef = useRef<HTMLElement | null>(null)
+  const heroRef = useRef<HTMLDivElement | null>(null)
+  const [heroPinned, setHeroPinned] = useState(false)
+
+  useEffect(() => {
+    const root = detailScrollRef.current
+    const target = heroRef.current
+    if (!root || !target) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroPinned(entry.intersectionRatio < 0.18),
+      { root, threshold: [0, 0.18, 0.5, 1] },
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    detailScrollRef.current?.scrollTo({ top: 0 })
+    setHeroPinned(false)
+  }, [selectedIntegration.id])
+
   const streamlockRunCommand = buildScriptRunCommand(projectPackageManager, STREAMLOCK_STARTER_SCRIPT)
+  const metaplexRunCommand = buildScriptRunCommand(projectPackageManager, METAPLEX_STARTER_SCRIPT)
   const streamlockNextLabel = !activeProjectPath
     ? 'Open New Project'
     : !hasStreamlockStarterFile
@@ -1565,6 +1955,36 @@ export function IntegrationCommandCenter() {
     ? normalizeProjectInstallCommand(selectedIntegration.installCommand, installCommandOptions)
     : null
   const defaultAiProviderLabel = defaultAiProvider === 'claude' ? 'Claude' : 'Codex'
+
+  useEffect(() => {
+    if (!enabledIntegrationIds.has('idle-protocol')) {
+      setIdleStatus(null)
+      setIdleResources([])
+      setIdleReceipts([])
+      return
+    }
+    let cancelled = false
+    async function loadIdleState() {
+      setLoadingIdle(true)
+      try {
+        const [statusRes, resourcesRes, receiptsRes] = await Promise.all([
+          daemon.idle.status(idleRegistryUrl),
+          daemon.idle.listResources(6),
+          daemon.idle.listReceipts(6),
+        ])
+        if (cancelled) return
+        setIdleStatus(statusRes.ok ? statusRes.data ?? null : null)
+        setIdleResources(resourcesRes.ok ? resourcesRes.data ?? [] : [])
+        setIdleReceipts(receiptsRes.ok ? receiptsRes.data ?? [] : [])
+      } finally {
+        if (!cancelled) setLoadingIdle(false)
+      }
+    }
+    void loadIdleState()
+    return () => {
+      cancelled = true
+    }
+  }, [enabledIntegrationIds, idleRegistryUrl])
   const detailShortcut = useMemo<DetailShortcut | null>(() => {
     if (!selectedIntegrationEnabled || GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id)) {
       return null
@@ -1632,6 +2052,22 @@ export function IntegrationCommandCenter() {
           setRunningActionId(null)
         }
       }
+      else if (action.id === 'open-idle-resources' || action.id === 'open-idle-docs') {
+        setRunningActionId(actionId)
+        setActionResult(null)
+        try {
+          const result = await runIntegrationAction(actionId, context)
+          setActionResult(result)
+        } catch (error) {
+          setActionResult({
+            title: 'Action failed',
+            status: 'error',
+            detail: error instanceof Error ? error.message : 'DAEMON could not complete this action.',
+          })
+        } finally {
+          setRunningActionId(null)
+        }
+      }
       else openWorkspaceTool('solana-toolbox')
       return
     }
@@ -1641,6 +2077,42 @@ export function IntegrationCommandCenter() {
     try {
       const result = await runIntegrationAction(actionId, context)
       setActionResult(result)
+    } finally {
+      setRunningActionId(null)
+    }
+  }
+
+  async function handleRefreshIdleRegistry() {
+    setRunningActionId('idle-refresh-registry')
+    setActionResult(null)
+    try {
+      const result = await daemon.idle.refreshRegistry({ registryUrl: idleRegistryUrl })
+      if (!result.ok) {
+        setActionResult({
+          title: 'IDLE registry import failed',
+          status: 'error',
+          detail: result.error ?? 'DAEMON could not import the configured IDLE registry.',
+        })
+        return
+      }
+      const [statusRes, receiptsRes] = await Promise.all([
+        daemon.idle.status(idleRegistryUrl),
+        daemon.idle.listReceipts(6),
+      ])
+      setIdleResources(result.data ?? [])
+      setIdleStatus(statusRes.ok ? statusRes.data ?? null : null)
+      setIdleReceipts(receiptsRes.ok ? receiptsRes.data ?? [] : [])
+      setActionResult({
+        title: 'IDLE registry imported',
+        status: 'success',
+        detail: `${result.data?.length ?? 0} resources are cached locally. Paid execution still requires allowlist, spend caps, explicit approval, and payment evidence.`,
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'IDLE registry import failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not import the configured IDLE registry.',
+      })
     } finally {
       setRunningActionId(null)
     }
@@ -2422,41 +2894,115 @@ export function IntegrationCommandCenter() {
     }
   }
 
-  async function handleCreateMetaplexDraft() {
-    if (!activeProjectPath) {
+  async function handleCreateMetaplexStarter() {
+    if (!activeProjectPath || !packageJsonContent) {
       setActionResult({
-        title: 'Open a project first',
+        title: 'Create a Node project first',
         status: 'warning',
-        detail: 'DAEMON needs an active project before it can scaffold a metadata draft.',
+        detail: 'DAEMON needs an active project with package.json before it can scaffold a Metaplex Core/DAS starter.',
       })
       return
     }
 
-    setRunningGuidedFlow('metaplex-draft')
+    setRunningGuidedFlow('metaplex-starter')
     setActionResult(null)
 
     try {
+      const packageJsonPath = joinProjectPath(activeProjectPath, 'package.json')
+      const envPath = joinProjectPath(activeProjectPath, '.env.example')
+      const envRes = await daemon.fs.readFile(envPath)
+      const currentEnv = envRes.ok && envRes.data ? envRes.data.content : ''
+      const nextEnv = mergeEnvExample(currentEnv, METAPLEX_ENV_TEMPLATE, 'Metaplex Core and DAS')
+      if (nextEnv !== currentEnv) {
+        const envWriteRes = await daemon.fs.writeFile(envPath, nextEnv)
+        if (!envWriteRes.ok) {
+          throw new Error(envWriteRes.error ?? 'Could not update .env.example for Metaplex')
+        }
+      }
+
+      const nextPackageJson = upsertPackageJsonScript(packageJsonContent, METAPLEX_STARTER_SCRIPT, `node ${METAPLEX_STARTER_FILE}`)
+      if (nextPackageJson !== packageJsonContent) {
+        const packageWriteRes = await daemon.fs.writeFile(packageJsonPath, nextPackageJson)
+        if (!packageWriteRes.ok) {
+          throw new Error(packageWriteRes.error ?? 'Could not update package.json for Metaplex starter')
+        }
+        setPackageJsonContent(nextPackageJson)
+        setPackageInfo(parsePackageInfo(nextPackageJson))
+      }
+
       await ensureDir(joinProjectPath(activeProjectPath, 'assets'))
       await ensureDir(joinProjectPath(activeProjectPath, METAPLEX_DRAFT_DIR))
-      const writeRes = await daemon.fs.writeFile(
+      await ensureDir(joinProjectPath(activeProjectPath, 'src'))
+      await ensureDir(joinProjectPath(activeProjectPath, METAPLEX_STARTER_DIR))
+      const draftWriteRes = await daemon.fs.writeFile(
         joinProjectPath(activeProjectPath, METAPLEX_DRAFT_FILE),
         buildMetaplexDraftFile(),
       )
-      if (!writeRes.ok) {
-        throw new Error(writeRes.error ?? 'Could not write the Metaplex metadata draft')
+      if (!draftWriteRes.ok) {
+        throw new Error(draftWriteRes.error ?? 'Could not write the Metaplex metadata draft')
       }
+      const starterWriteRes = await daemon.fs.writeFile(
+        joinProjectPath(activeProjectPath, METAPLEX_STARTER_FILE),
+        buildMetaplexCoreDasStarter(),
+      )
+      if (!starterWriteRes.ok) {
+        throw new Error(starterWriteRes.error ?? 'Could not write the Metaplex Core/DAS starter')
+      }
+      setHasMetaplexStarterFile(true)
 
       setActionResult({
-        title: 'Metaplex draft created',
+        title: 'Metaplex starter created',
         status: 'success',
-        detail: 'DAEMON scaffolded a metadata-first NFT draft so the project has a concrete starting point before any mint flow.',
-        items: [METAPLEX_DRAFT_FILE],
+        detail: 'DAEMON scaffolded a Core/DAS read-only starter, metadata draft, env placeholders, and package script before any mint path.',
+        items: [METAPLEX_STARTER_FILE, METAPLEX_DRAFT_FILE, metaplexRunCommand, '.env.example'],
       })
     } catch (error) {
       setActionResult({
-        title: 'Metaplex draft failed',
+        title: 'Metaplex starter failed',
         status: 'error',
-        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the Metaplex metadata draft.',
+        detail: error instanceof Error ? error.message : 'DAEMON could not scaffold the Metaplex starter.',
+      })
+    } finally {
+      setRunningGuidedFlow(null)
+    }
+  }
+
+  async function handleRunMetaplexStarter() {
+    if (!activeProjectPath || !activeProjectId) {
+      setActionResult({
+        title: 'Open a project first',
+        status: 'warning',
+        detail: 'DAEMON needs an active project before it can run the Metaplex Core/DAS check.',
+      })
+      return
+    }
+
+    setRunningGuidedFlow('metaplex-run')
+    setActionResult(null)
+
+    try {
+      const terminalRes = await daemon.terminal.create({
+        cwd: activeProjectPath,
+        startupCommand: metaplexRunCommand,
+        userInitiated: true,
+      })
+      if (!terminalRes.ok || !terminalRes.data) {
+        throw new Error(terminalRes.error ?? 'Could not open the Metaplex Core/DAS check terminal')
+      }
+
+      addTerminal(activeProjectId, terminalRes.data.id, 'Metaplex Core/DAS Check', terminalRes.data.agentId)
+      focusTerminal()
+      setActionResult({
+        title: 'Metaplex check opened',
+        status: 'success',
+        detail: 'DAEMON opened a terminal for the read-only Metaplex Core/DAS starter.',
+        items: [metaplexRunCommand],
+      })
+    } catch (error) {
+      setActionResult({
+        title: 'Metaplex check failed',
+        status: 'error',
+        detail: error instanceof Error ? error.message : 'DAEMON could not run the Metaplex Core/DAS starter.',
       })
     } finally {
       setRunningGuidedFlow(null)
@@ -2732,10 +3278,12 @@ Please inspect the project, apply the safe setup work you can complete, and summ
     setActionResult(null)
 
     try {
+      const prompt = buildAiSetupPrompt()
       const terminalRes = await daemon.terminal.spawnProvider({
         providerId: defaultAiProvider,
         projectId: activeProjectId,
         cwd: activeProjectPath,
+        initialPrompt: prompt,
       })
       if (!terminalRes.ok || !terminalRes.data) {
         throw new Error(terminalRes.error ?? `Could not launch ${defaultAiProviderLabel}`)
@@ -2744,15 +3292,10 @@ Please inspect the project, apply the safe setup work you can complete, and summ
       addTerminal(activeProjectId, terminalRes.data.id, `${defaultAiProviderLabel} Integration Setup`, terminalRes.data.agentId)
       focusTerminal()
 
-      const prompt = buildAiSetupPrompt()
-      window.setTimeout(() => {
-        daemon.terminal.write(terminalRes.data!.id, `\x1b[200~${prompt}\x1b[201~\r`)
-      }, 2600)
-
       setActionResult({
         title: `${defaultAiProviderLabel} setup launched`,
         status: 'success',
-        detail: `${defaultAiProviderLabel} is running in Terminal with a focused ${selectedIntegration.name} setup prompt.`,
+        detail: `${defaultAiProviderLabel} is running in Terminal with the ${selectedIntegration.name} setup prompt attached at launch.`,
         items: [activeProjectPath, selectedIntegration.name],
       })
     } catch (error) {
@@ -2781,10 +3324,10 @@ Please inspect the project, apply the safe setup work you can complete, and summ
       </header>
 
       <section className="icc-metrics" aria-label="Integration readiness summary">
-        <div className="icc-metric"><span>{enabledIntegrationIds.size}</span><small>enabled</small></div>
-        <div className="icc-metric"><span>{registrySummary.ready}</span><small>ready</small></div>
-        <div className="icc-metric"><span>{registrySummary.partial}</span><small>partial</small></div>
-        <div className="icc-metric"><span>{registrySummary.safeActions}</span><small>safe checks</small></div>
+        <MetricCard label="Enabled" value={enabledIntegrationIds.size} size="compact" />
+        <MetricCard label="Ready" value={registrySummary.ready} tone="success" size="compact" />
+        <MetricCard label="Partial" value={registrySummary.partial} tone="warn" size="compact" />
+        <MetricCard label="Safe checks" value={registrySummary.safeActions} tone="info" size="compact" />
       </section>
 
       <div className="icc-toolbar">
@@ -2810,48 +3353,72 @@ Please inspect the project, apply the safe setup work you can complete, and summ
 
       <main className="icc-layout">
         <section className="icc-list" aria-label="Integrations">
-          {visibleIntegrations.map((integration) => (
-            <IntegrationCard
-              key={integration.id}
-              integration={integration}
-              enabled={enabledIntegrationIds.has(integration.id)}
-              selected={integration.id === selectedIntegration.id}
-              summary={enabledStatusById.get(integration.id) ?? EMPTY_INTEGRATION_STATUS}
-              onSelect={() => {
-                setSelectedId(integration.id)
-                setActionResult(null)
-              }}
-            />
+          {groupedVisible.map((group) => (
+            <div key={group.id} className="icc-list-group">
+              <div className="icc-list-group-header">
+                <span className="icc-list-group-label">{group.label}</span>
+                <span className="icc-list-group-count">{group.items.length}</span>
+              </div>
+              {group.items.map((integration) => (
+                <IntegrationCard
+                  key={integration.id}
+                  integration={integration}
+                  enabled={enabledIntegrationIds.has(integration.id)}
+                  selected={integration.id === selectedIntegration.id}
+                  summary={enabledStatusById.get(integration.id) ?? EMPTY_INTEGRATION_STATUS}
+                  onSelect={() => {
+                    setSelectedId(integration.id)
+                    setActionResult(null)
+                  }}
+                />
+              ))}
+            </div>
           ))}
           {visibleIntegrations.length === 0 && (
             <div className="icc-empty">No integrations match this filter.</div>
           )}
         </section>
 
-        <aside className={`icc-detail ${selectedBrandClass ? `icc-detail--brand icc-detail--${selectedBrandClass}` : ''}`} aria-label={`${selectedIntegration.name} details`}>
-          <div className="icc-detail-head">
-            <div>
-              <span className="icc-detail-kicker">{selectedIntegration.category}</span>
-              <h2>{selectedIntegration.name}</h2>
-              <p>{selectedIntegration.description}</p>
-            </div>
-            <span className={`icc-status-badge ${selectedIntegrationEnabled ? selectedSummary.status : 'off'}`}>
-              {selectedIntegrationEnabled ? statusLabel(selectedSummary) : 'Off'}
+        <aside
+          ref={detailScrollRef}
+          className={`icc-detail ${selectedBrandClass ? 'icc-detail--brand' : ''}`}
+          data-brand={selectedBrandClass || undefined}
+          aria-label={`${selectedIntegration.name} details`}
+        >
+          <div className="icc-detail-heading">
+            <span className="icc-detail-kicker">{categoryLabel(selectedIntegration.category)}</span>
+            <h2>{selectedIntegration.name}</h2>
+            <p>{selectedIntegration.description}</p>
+          </div>
+
+          <div className={`icc-detail-pin ${heroPinned ? 'visible' : ''}`} aria-hidden={!heroPinned}>
+            <span className="icc-detail-pin-glyph" aria-hidden="true">
+              {selectedIntegration.name.charAt(0)}
             </span>
+            <div className="icc-detail-pin-copy">
+              <span className="icc-detail-pin-kicker">{categoryLabel(selectedIntegration.category)}</span>
+              <span className="icc-detail-pin-name">{selectedIntegration.name}</span>
+            </div>
+            <Badge
+              tone={selectedStatusDisplay.badgeTone}
+              className={`icc-status-badge ${selectedStatusDisplay.status}`}
+            >
+              {selectedStatusDisplay.badgeLabel}
+            </Badge>
           </div>
 
           {!selectedIntegrationEnabled ? (
-            <div className="icc-detail-section icc-integration-off">
+            <div className="icc-detail-section icc-integration-off" ref={heroRef}>
               <div className="icc-section-title">Disabled</div>
               <p>
                 This integration is available but off by default. Enable it when this project actually needs the setup checks, MCP route, or partner-specific actions.
               </p>
-              <button type="button" className="icc-primary" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
+              <Button type="button" variant="primary" size="md" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
                 Enable integration
-              </button>
+              </Button>
             </div>
           ) : (
-            <div className="icc-detail-section">
+            <div className="icc-detail-section" ref={heroRef}>
               <div className="icc-section-title">Setup</div>
               <RequirementList summary={selectedSummary} />
             </div>
@@ -2898,6 +3465,26 @@ Please inspect the project, apply the safe setup work you can complete, and summ
               result={actionResult?.title.includes('Skills') ? actionResult : null}
               installing={installingSkills}
               onInstall={() => void handleInstallSkills(SENDAI_SKILLS_INSTALL_COMMAND)}
+              aiProviderLabel={defaultAiProviderLabel}
+              aiBusy={launchingAiSetup}
+              onAiSetup={() => void handleSelectedAiSetup()}
+            />
+          )}
+
+          {selectedIntegrationEnabled && selectedIntegration.id === 'idle-protocol' && (
+            <IdleProtocolWorkflow
+              paymentMcpReady={idlePaymentMcpReady}
+              registryUrl={idleRegistryUrl}
+              status={idleStatus}
+              resources={idleResources}
+              receipts={idleReceipts}
+              loadingStatus={loadingIdle}
+              result={actionResult}
+              busy={runningActionId === 'preview-idle-router' || runningActionId === 'open-idle-resources' || runningActionId === 'open-idle-docs' || runningActionId === 'idle-refresh-registry'}
+              onPreview={() => void handleRunAction('preview-idle-router')}
+              onRefreshRegistry={() => void handleRefreshIdleRegistry()}
+              onOpenResources={() => void handleRunAction('open-idle-resources')}
+              onOpenDocs={() => void handleRunAction('open-idle-docs')}
               aiProviderLabel={defaultAiProviderLabel}
               aiBusy={launchingAiSetup}
               onAiSetup={() => void handleSelectedAiSetup()}
@@ -3072,37 +3659,43 @@ Please inspect the project, apply the safe setup work you can complete, and summ
 
           {selectedIntegrationEnabled && selectedIntegration.id === 'metaplex' && (
             <IntegrationFirstWinWorkflow
-              sectionTitle="NFT workflow"
-              title="Create a first metadata draft inside the project"
-              description="The first Metaplex success should be a metadata scaffold the project can edit immediately, not a vague promise of NFT support."
-              status={Boolean(activeProjectPath) && packageInfo.packages.has('@metaplex-foundation/umi') ? 'ready' : 'partial'}
+              sectionTitle="Metaplex workflow"
+              title="Scaffold Core asset and DAS readiness"
+              description="Metaplex should start with a Core-first, read-only inspection path before DAEMON exposes create, mint, launch, or delegation transactions."
+              status={Boolean(activeProjectPath) && metaplexCorePackagesReady && hasMetaplexStarterFile ? 'ready' : 'partial'}
               result={actionResult}
-              nextLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@metaplex-foundation/umi') ? 'Install Metaplex packages' : 'Create metadata draft'}
+              nextLabel={!activeProjectPath ? 'Open New Project' : !metaplexCorePackagesReady ? 'Install Metaplex packages' : !hasMetaplexStarterFile ? 'Create Core/DAS starter' : 'Run Core/DAS check'}
               nextDetail={!activeProjectPath
-                ? 'Open or scaffold a project first so the metadata draft has somewhere to live.'
-                : !packageInfo.packages.has('@metaplex-foundation/umi')
-                  ? 'Install the common Metaplex packages before DAEMON scaffolds the draft file.'
-                  : 'Write a ready-to-edit metadata JSON draft into the project assets folder.'}
+                ? 'Open or scaffold a project first so the Metaplex starter has a project home.'
+                : !metaplexCorePackagesReady
+                  ? 'Install the current Metaplex Core, Token Metadata, Umi, and DAS packages before scaffolding the starter.'
+                  : !hasMetaplexStarterFile
+                    ? 'Write a read-only Core/DAS starter, metadata draft, .env placeholders, and package script.'
+                    : 'Run the read-only Core/DAS check in a visible terminal.'}
               cards={[
                 { label: 'Project', value: activeProjectPath ? activeProjectPath.split('/').pop() ?? activeProjectPath : 'No project open' },
-                { label: 'Draft file', value: METAPLEX_DRAFT_FILE },
+                { label: 'Starter file', value: METAPLEX_STARTER_FILE },
+                { label: 'Metadata draft', value: METAPLEX_DRAFT_FILE },
               ]}
               items={[
                 { label: 'Project context', detail: activeProjectPath ? 'A project is open and ready for asset scaffolding.' : 'Open or create a project before running the NFT starter flow.', ready: Boolean(activeProjectPath) },
-                { label: 'Metaplex package', detail: packageInfo.packages.has('@metaplex-foundation/umi') ? 'Core Metaplex package detected in package.json.' : 'Install the Metaplex packages DAEMON expects for metadata workflows.', ready: packageInfo.packages.has('@metaplex-foundation/umi') },
-                { label: 'Metadata-first start', detail: 'Create and edit metadata before pushing the user into mint or collection creation flows.', ready: false },
+                { label: 'Core SDK', detail: metaplexCorePackagesReady ? 'Core, Token Metadata, Umi, and DAS packages are installed.' : 'Install the Core/DAS starter package set from the current Metaplex docs.', ready: metaplexCorePackagesReady },
+                { label: 'Read-only starter', detail: hasMetaplexStarterFile ? `${METAPLEX_STARTER_FILE} exists in the active project.` : 'Create the starter before adding any mint or launch transaction path.', ready: hasMetaplexStarterFile },
+                { label: 'Meeting angle', detail: 'Agent Registry and Metaplex Skill are the partnership wedge: verifiable agent identity plus accurate AI coding context.', ready: false },
               ]}
-              primaryLabel={!activeProjectPath ? 'Open New Project' : !packageInfo.packages.has('@metaplex-foundation/umi') ? 'Install Metaplex packages' : 'Create metadata draft'}
-              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !packageInfo.packages.has('@metaplex-foundation/umi') ? 'Opening install terminal...' : 'Creating metadata draft...'}
-              busy={runningGuidedFlow === 'Install Metaplex' || runningGuidedFlow === 'metaplex-draft'}
+              primaryLabel={!activeProjectPath ? 'Open New Project' : !metaplexCorePackagesReady ? 'Install Metaplex packages' : !hasMetaplexStarterFile ? 'Create Core/DAS starter' : 'Run Core/DAS check'}
+              primaryBusyLabel={!activeProjectPath ? 'Opening project flow...' : !metaplexCorePackagesReady ? 'Opening install terminal...' : !hasMetaplexStarterFile ? 'Creating Core/DAS starter...' : 'Opening Core/DAS check...'}
+              busy={runningGuidedFlow === 'Install Metaplex' || runningGuidedFlow === 'metaplex-starter' || runningGuidedFlow === 'metaplex-run'}
               onPrimary={!activeProjectPath
                 ? () => openWorkspaceTool('starter')
-                : !packageInfo.packages.has('@metaplex-foundation/umi')
+                : !metaplexCorePackagesReady
                   ? () => void handleOpenProjectInstall(selectedInstallCommand!, 'Install Metaplex')
-                  : () => void handleCreateMetaplexDraft()}
-              secondaryLabel="Open New Project"
-              onSecondary={() => openWorkspaceTool('starter')}
-              note="This stays deliberately metadata-first so the user gets a concrete asset draft before any mint transaction path."
+                  : !hasMetaplexStarterFile
+                    ? () => void handleCreateMetaplexStarter()
+                    : () => void handleRunMetaplexStarter()}
+              secondaryLabel="Open Metaplex docs"
+              onSecondary={openDocs}
+              note="This aligns with the current Metaplex docs: Core first for new NFTs, DAS for reads, Core Candy Machine for drops, Genesis for token launches, and Agent Registry for agent identity. The starter never mints or signs."
               aiProviderLabel={defaultAiProviderLabel}
               aiBusy={launchingAiSetup}
               onAiSetup={() => void handleSelectedAiSetup()}
@@ -3324,18 +3917,18 @@ Please inspect the project, apply the safe setup work you can complete, and summ
           )}
 
           <div className="icc-footer-actions">
-            <button type="button" className="icc-secondary" onClick={openDocs}>Open docs</button>
+            <Button type="button" variant="secondary" size="sm" onClick={openDocs}>Open docs</Button>
             {selectedIntegrationEnabled ? (
-              <button type="button" className="icc-secondary" onClick={() => setIntegrationEnabled(selectedIntegration.id, false)}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setIntegrationEnabled(selectedIntegration.id, false)}>
                 Disable integration
-              </button>
+              </Button>
             ) : (
-              <button type="button" className="icc-primary" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
+              <Button type="button" variant="primary" size="sm" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
                 Enable integration
-              </button>
+              </Button>
             )}
             {detailShortcut ? (
-              <button type="button" className="icc-primary" onClick={detailShortcut.onClick}>{detailShortcut.label}</button>
+              <Button type="button" variant="primary" size="sm" onClick={detailShortcut.onClick}>{detailShortcut.label}</Button>
             ) : null}
           </div>
 

@@ -14,7 +14,7 @@ import type {
 } from '../shared/types'
 
 const VALID_AGENT_MODES = new Set<DaemonAiAgentMode>(['patch', 'agent', 'background'])
-const VALID_ACCESS_MODES = new Set<DaemonAiAccessMode>(['hosted', 'byok'])
+const VALID_ACCESS_MODES = new Set<DaemonAiAccessMode>(['auto', 'hosted', 'byok'])
 const VALID_MODEL_LANES = new Set<DaemonAiModelLane>(['auto', 'fast', 'standard', 'reasoning', 'premium'])
 const VALID_APPROVAL_POLICIES = new Set<DaemonAiApprovalPolicy>([
   'require_for_write_and_terminal',

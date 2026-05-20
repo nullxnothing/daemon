@@ -142,11 +142,12 @@
   justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
-  font-size: var(--fs-11);
-  font-weight: 600;
-  color: var(--t2);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--ls-eyebrow);
   border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
   background: var(--panel-header-bg);
@@ -218,8 +219,10 @@
 
 .low-power-editor-start h1 {
   margin: 8px 0 8px;
-  font-size: var(--fs-24);
-  font-weight: 650;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+  letter-spacing: var(--type-page-title-tracking);
   color: var(--t1);
 }
 
@@ -231,10 +234,11 @@
 }
 
 .low-power-editor-kicker {
-  color: var(--green);
-  font-size: var(--fs-11);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
@@ -304,7 +308,7 @@
   width: var(--right-panel-w);
   min-width: 200px;
   max-width: 400px;
-  background: var(--panel-bg);
+  background: var(--surface-flat);
   border-left: 1px solid var(--panel-border);
   flex-shrink: 0;
   overflow: hidden;

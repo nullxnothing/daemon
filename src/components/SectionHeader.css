@@ -28,11 +28,12 @@
 }
 
 .section-header-title {
-  font-size: var(--font-sm);
-  font-weight: 600;
-  color: var(--t3);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--ls-eyebrow);
   flex: 1;
 }
 
