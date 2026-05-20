@@ -22,9 +22,12 @@ vi.mock('../../electron/services/SecureKeyService', () => ({
 
 vi.mock('../../electron/services/SettingsService', () => ({
   getWalletInfrastructureSettings: () => ({
+    cluster: 'devnet',
     rpcProvider: 'public',
     quicknodeRpcUrl: '',
     customRpcUrl: '',
+    swapProvider: 'jupiter',
+    preferredWallet: 'phantom',
     executionMode: 'rpc',
     jitoBlockEngineUrl: '',
   }),

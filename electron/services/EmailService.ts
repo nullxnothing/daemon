@@ -96,7 +96,7 @@ export async function listAccounts(): Promise<EmailAccount[]> {
 }
 
 /**
- * One-click Gmail OAuth. If clientId/clientSecret are provided, stores them as shared credentials.
+ * Gmail OAuth connection. If clientId/clientSecret are provided, stores them as shared credentials.
  * If omitted, reuses previously stored shared credentials.
  */
 export async function addGmailAccount(clientId?: string, clientSecret?: string): Promise<EmailAccount> {

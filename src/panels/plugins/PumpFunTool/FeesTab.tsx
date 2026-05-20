@@ -1,8 +1,13 @@
 import { useState } from 'react'
+import { getSolscanTxLabel } from '../../../lib/solanaExplorer'
+import { describePumpfunError, openPumpfunSignature, shortSignature } from './pumpfunUi'
 
-interface Props { walletId: string | null }
+interface Props {
+  walletId: string | null
+  cluster: WalletInfrastructureSettings['cluster']
+}
 
-export function FeesTab({ walletId }: Props) {
+export function FeesTab({ walletId, cluster }: Props) {
   const [collecting, setCollecting] = useState(false)
   const [result, setResult] = useState<{ signature?: string; error?: string } | null>(null)
 
@@ -11,17 +16,18 @@ export function FeesTab({ walletId }: Props) {
     setCollecting(true)
     setResult(null)
 
-    const res = await window.daemon.pumpfun.collectFees(walletId)
-    if (res.ok && res.data) {
-      setResult({ signature: (res.data as { signature: string }).signature })
-    } else {
-      setResult({ error: res.error ?? 'Fee collection failed' })
+    try {
+      const res = await window.daemon.pumpfun.collectFees(walletId)
+      if (res.ok && res.data) {
+        setResult({ signature: (res.data as { signature: string }).signature })
+      } else {
+        setResult({ error: describePumpfunError(res.error, 'Fee collection failed. Nothing was submitted.') })
+      }
+    } catch (error) {
+      setResult({ error: describePumpfunError(error instanceof Error ? error.message : null, 'Fee collection failed. Nothing was submitted.') })
+    } finally {
+      setCollecting(false)
     }
-    setCollecting(false)
-  }
-
-  const openTx = (sig: string) => {
-    window.daemon.shell.openExternal(`https://solscan.io/tx/${sig}`)
   }
 
   return (
@@ -41,10 +47,10 @@ export function FeesTab({ walletId }: Props) {
 
       {result?.signature && (
         <div className="pf-result success">
-          Fees collected.{' '}
-          <span className="pf-tx-link" onClick={() => openTx(result.signature!)}>
-            {result.signature.slice(0, 20)}...
-          </span>
+          <span>Fees collected. Receipt {shortSignature(result.signature)}.</span>
+          <button type="button" className="pf-tx-link" onClick={() => void openPumpfunSignature(result.signature!, cluster)}>
+            {getSolscanTxLabel(cluster)}
+          </button>
         </div>
       )}
 

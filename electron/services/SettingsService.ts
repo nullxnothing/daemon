@@ -29,6 +29,7 @@ export interface TokenLaunchSettings {
 }
 
 export interface WalletInfrastructureSettings {
+  cluster: 'devnet' | 'mainnet-beta' | 'localnet'
   rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
   quicknodeRpcUrl: string
   customRpcUrl: string
@@ -95,15 +96,18 @@ export function setOnboardingComplete(complete: boolean): void {
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
   profile: 'pending',
-  claude: 'pending',
-  gmail: 'pending',
-  vercel: 'pending',
-  railway: 'pending',
+  project: 'pending',
+  runtime: 'pending',
+  ai: 'pending',
+  firstRun: 'pending',
   tour: 'pending',
 }
 
 export function getOnboardingProgress(): OnboardingProgress {
-  return getJsonSetting<OnboardingProgress>('onboarding_progress', DEFAULT_PROGRESS)
+  return {
+    ...DEFAULT_PROGRESS,
+    ...getJsonSetting<Partial<OnboardingProgress>>('onboarding_progress', DEFAULT_PROGRESS),
+  }
 }
 
 export function setOnboardingProgress(progress: OnboardingProgress): void {
@@ -235,6 +239,7 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
 }
 
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
+  cluster: 'devnet',
   rpcProvider: 'helius',
   quicknodeRpcUrl: '',
   customRpcUrl: '',
@@ -349,6 +354,7 @@ export function getWalletInfrastructureSettings(): WalletInfrastructureSettings 
   )
 
   return {
+    cluster: value?.cluster === 'mainnet-beta' || value?.cluster === 'localnet' ? value.cluster : 'devnet',
     rpcProvider: value?.rpcProvider === 'public' || value?.rpcProvider === 'quicknode' || value?.rpcProvider === 'custom'
       ? value.rpcProvider
       : 'helius',
@@ -363,6 +369,7 @@ export function getWalletInfrastructureSettings(): WalletInfrastructureSettings 
 
 export function setWalletInfrastructureSettings(settings: WalletInfrastructureSettings): void {
   const next: WalletInfrastructureSettings = {
+    cluster: settings?.cluster === 'mainnet-beta' || settings?.cluster === 'localnet' ? settings.cluster : 'devnet',
     rpcProvider: settings?.rpcProvider === 'public' || settings?.rpcProvider === 'quicknode' || settings?.rpcProvider === 'custom'
       ? settings.rpcProvider
       : 'helius',

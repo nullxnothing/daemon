@@ -68,23 +68,6 @@ function DiscordGlyph({ size = 15 }: { size?: number }) {
   )
 }
 
-function HackathonGlyph({ size = 16 }: { size?: number }) {
-  const gradientId = useId()
-  const [from, to] = DAEMON_ICON_GRADIENTS.hackathon
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-      <defs>
-        <linearGradient id={gradientId} x1="2" y1="3" x2="14" y2="13" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={from} />
-          <stop offset="100%" stopColor={to} />
-        </linearGradient>
-      </defs>
-      <path d="M3 12.5h10M4.25 12.5V7.75a3.75 3.75 0 0 1 7.5 0v4.75" stroke={`url(#${gradientId})`} />
-      <path d="M6.25 7.75v4.75M8 6.25v6.25M9.75 7.75v4.75" stroke={`url(#${gradientId})`} />
-    </svg>
-  )
-}
-
 function ToolsGlyph({ size = 20 }: { size?: number }) {
   const gradientId = useId()
   const [from, to] = DAEMON_ICON_GRADIENTS.tools

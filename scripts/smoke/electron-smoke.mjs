@@ -223,7 +223,7 @@ async function verifyPinnedSidebarToolClicks(page) {
 
   await clickAndAssert('Git', '.git-center')
   await clickAndAssert('Wallet', '.wallet-panel')
-  await clickAndAssert('Solana', '.solana-toolbox')
+  await clickAndAssert('Solana Workflow', '.solana-toolbox')
 }
 
 async function run() {

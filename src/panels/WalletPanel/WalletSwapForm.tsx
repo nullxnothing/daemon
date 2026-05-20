@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNotificationsStore } from '../../store/notifications'
 import { useUIStore } from '../../store/ui'
 import './WalletPanel.css'
-import { TransactionPreviewCard } from './TransactionPreviewCard'
+import { TransactionPipeline, TransactionPreviewCard, type TransactionPipelineStep } from './TransactionPreviewCard'
+import { canOpenSolscan, getSolscanTxLabel, getSolscanTxUrl } from '../../lib/solanaExplorer'
+import { buildPreviewUnavailableWarning, describeWalletActionError, getClusterDisplayName, getExecutionModeDisplayName } from './walletCopy'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -31,13 +33,14 @@ interface WalletSwapFormProps {
   walletName: string
   holdings: Array<{ mint: string; symbol: string; amount: number; decimals?: number }>
   executionMode: WalletInfrastructureSettings['executionMode']
+  cluster: WalletInfrastructureSettings['cluster']
   initialInputMint?: string
   initialOutputMint?: string
   onBack: () => void
   onRefresh: () => Promise<void>
 }
 
-// Confirmation step state — shown between "Get Quote" and "Execute Swap"
+// Confirmation step state — shown between "Get Quote" and "Sign and Swap"
 interface PendingSwap {
   quote: SwapQuote
   // Raw Jupiter quoteResponse to pass to execute (avoids re-fetching a different price)
@@ -51,7 +54,7 @@ interface PendingSwap {
   confirmedAt: number
 }
 
-export function WalletSwapForm({ walletId, walletName, holdings, executionMode, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
+export function WalletSwapForm({ walletId, walletName, holdings, executionMode, cluster, initialInputMint, initialOutputMint, onBack, onRefresh }: WalletSwapFormProps) {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectName = useUIStore((s) => (
     s.activeProjectId ? s.projects.find((project) => project.id === s.activeProjectId)?.name ?? null : null
@@ -79,6 +82,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const [swapResult, setSwapResult] = useState<WalletExecutionResult | null>(null)
   const [swapError, setSwapError] = useState<string | null>(null)
   const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
 
   // Ref-based mutex — prevents double-submit even if React state update is batched
   const swapLockRef = useRef(false)
@@ -89,6 +93,17 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   const inputToken = allTokens.find((t) => t.mint === inputMint)
   const outputToken = allTokens.find((t) => t.mint === outputMint)
   const backendLabel = executionMode === 'jito' ? 'Shared Jito executor' : 'Shared RPC executor'
+  const executionDisplay = getExecutionModeDisplayName(executionMode)
+  const clusterDisplay = getClusterDisplayName(cluster)
+  const currentSlippageBps = parseSlippageBps(slippageBps)
+  const slippagePctLabel = currentSlippageBps == null ? 'Invalid' : (currentSlippageBps / 100).toFixed(2)
+  const pipelineSteps = buildSwapPipelineSteps({
+    quoted: Boolean(quote || pendingSwap),
+    reviewing: Boolean(pendingSwap),
+    submitting: swapLoading,
+    succeeded: Boolean(swapResult),
+    failed: Boolean(swapError),
+  })
 
   useEffect(() => {
     if (initialInputMint) setInputMint(initialInputMint)
@@ -157,12 +172,18 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
 
     const parsedAmount = parseFloat(amount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setQuoteError('Enter a valid amount')
+      setQuoteError('Enter an amount greater than zero before requesting a quote.')
       return
     }
 
     if (inputMint === outputMint) {
-      setQuoteError('Input and output tokens must differ')
+      setQuoteError('Choose two different tokens before requesting a quote.')
+      return
+    }
+
+    const parsedSlippageBps = parseSlippageBps(slippageBps)
+    if (parsedSlippageBps == null) {
+      setQuoteError('Slippage must be a whole number between 1 and 5000 bps')
       return
     }
 
@@ -173,16 +194,16 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
         inputMint,
         outputMint,
         amount: parsedAmount,
-        slippageBps: parseInt(slippageBps, 10),
+        slippageBps: parsedSlippageBps,
       })
 
       if (res.ok && res.data) {
         setQuote(res.data)
       } else {
-        setQuoteError(res.error ?? 'Failed to get quote')
+        setQuoteError(describeWalletActionError(res.error, 'DAEMON could not get a Jupiter quote.'))
       }
     } catch (err) {
-      setQuoteError(err instanceof Error ? err.message : 'Quote request failed')
+      setQuoteError(describeWalletActionError(err instanceof Error ? err.message : null, 'Quote request failed.'))
     } finally {
       setQuoteLoading(false)
     }
@@ -192,13 +213,18 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   // We record the timestamp here so the main process can enforce the 60-second window.
   const handleRequestConfirm = () => {
     if (!quote) return
+    const parsedSlippageBps = parseSlippageBps(slippageBps)
+    if (parsedSlippageBps == null) {
+      setQuoteError('Slippage must be a whole number between 1 and 5000 bps')
+      return
+    }
     const impactPct = parseFloat(quote.priceImpactPct)
     setPendingSwap({
       quote,
       rawQuoteResponse: quote.rawQuoteResponse,
       inputSymbol: inputToken?.symbol ?? shortMint(inputMint),
       outputSymbol: outputToken?.symbol ?? shortMint(outputMint),
-      slippagePct: (parseInt(slippageBps, 10) / 100).toFixed(2),
+      slippagePct: (parsedSlippageBps / 100).toFixed(2),
       impactPct,
       confirmedAt: Date.now(),
     })
@@ -213,6 +239,13 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
     setSwapLoading(true)
     setSwapError(null)
     setSwapResult(null)
+    const parsedSlippageBps = parseSlippageBps(slippageBps)
+    if (parsedSlippageBps == null) {
+      setSwapLoading(false)
+      setSwapError('Slippage must be a whole number between 1 and 5000 bps')
+      swapLockRef.current = false
+      return
+    }
     const activity = useNotificationsStore.getState()
     activity.addActivity({
       kind: 'info',
@@ -228,7 +261,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
         inputMint,
         outputMint,
         amount: parseFloat(amount),
-        slippageBps: parseInt(slippageBps, 10),
+        slippageBps: parsedSlippageBps,
         rawQuoteResponse: pendingSwap.rawQuoteResponse,
         confirmedAt: pendingSwap.confirmedAt,
         acknowledgedImpact: highImpactAcknowledged,
@@ -242,31 +275,39 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
           message: `Swap confirmed via ${res.data.transport.toUpperCase()} with signature ${res.data.signature}`,
           projectId: activeProjectId,
           projectName: activeProjectName,
+          artifacts: [{
+            type: 'transaction',
+            label: getSolscanTxLabel(cluster),
+            value: res.data.signature,
+            href: getSolscanTxUrl(res.data.signature, cluster),
+          }],
         })
         setQuote(null)
         setPendingSwap(null)
         setAmount('')
         await onRefresh()
       } else {
+        const message = describeWalletActionError(res.error, 'Swap failed. Nothing was submitted.')
         activity.addActivity({
           kind: 'error',
           context: 'Wallet',
-          message: res.error ?? 'Swap failed',
+          message,
           projectId: activeProjectId,
           projectName: activeProjectName,
         })
-        setSwapError(res.error ?? 'Swap failed')
+        setSwapError(message)
         setPendingSwap(null)
       }
     } catch (err) {
+      const message = describeWalletActionError(err instanceof Error ? err.message : null, 'Swap execution failed. Nothing was submitted.')
       activity.addActivity({
         kind: 'error',
         context: 'Wallet',
-        message: err instanceof Error ? err.message : 'Swap execution failed',
+        message,
         projectId: activeProjectId,
         projectName: activeProjectName,
       })
-      setSwapError(err instanceof Error ? err.message : 'Swap execution failed')
+      setSwapError(message)
       setPendingSwap(null)
     } finally {
       setSwapLoading(false)
@@ -304,6 +345,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
   useEffect(() => {
     let cancelled = false
     setPreview(null)
+    setPreviewError(null)
 
     if (!pendingSwap) return
 
@@ -317,12 +359,18 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
       inputAmount: pendingSwap.quote.inAmount,
       outputAmount: pendingSwap.quote.outAmount,
       amount: parseFloat(amount),
-      slippageBps: parseInt(slippageBps, 10),
+      slippageBps: parseSlippageBps(slippageBps) ?? 0,
       priceImpactPct: pendingSwap.quote.priceImpactPct,
     }).then((res) => {
-      if (cancelled || !res.ok || !res.data) return
+      if (cancelled) return
+      if (!res.ok || !res.data) {
+        setPreviewError(res.error ?? 'DAEMON could not prepare the swap preview.')
+        return
+      }
       setPreview(res.data)
-    }).catch(() => {})
+    }).catch(() => {
+      if (!cancelled) setPreviewError('DAEMON could not prepare the swap preview.')
+    })
 
     return () => {
       cancelled = true
@@ -337,9 +385,9 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
         <div style={{ width: 40 }} />
       </div>
 
-      <div className="wallet-swap-container">
+        <div className="wallet-swap-container">
         <div className="wallet-caption">{walletName}</div>
-        <div className="wallet-caption">Execution path: {executionMode === 'jito' ? 'Jito block engine' : 'Standard RPC'}</div>
+        <div className="wallet-caption">Execution path: {executionDisplay} · Network: {clusterDisplay}</div>
 
         {/* Input token */}
         <div className="wallet-swap-field">
@@ -400,14 +448,20 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
           <input
             className="wallet-input"
             value={slippageBps}
-            onChange={(e) => setSlippageBps(e.target.value)}
+            onChange={(e) => {
+              setSlippageBps(e.target.value)
+              setQuote(null)
+              setPendingSwap(null)
+              setSwapResult(null)
+              setSwapError(null)
+            }}
             placeholder="50"
             type="number"
             step="1"
             min="1"
             max="5000"
           />
-          <div className="wallet-caption">{(parseInt(slippageBps, 10) / 100).toFixed(2)}%</div>
+          <div className={`wallet-caption${currentSlippageBps == null ? ' wallet-warning-text' : ''}`}>{slippagePctLabel}%</div>
         </div>
 
         <div className="wallet-swap-field">
@@ -511,7 +565,7 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
                 className="wallet-btn primary"
                 onClick={handleRequestConfirm}
               >
-                Review Swap
+                Review swap quote
               </button>
               <button type="button" className="wallet-btn" onClick={handleCancelQuote}>Cancel</button>
             </div>
@@ -524,17 +578,23 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
             <TransactionPreviewCard
               title={preview?.title ?? 'Review Swap'}
               backendLabel={preview?.backendLabel ?? backendLabel}
+              networkLabel={preview?.networkLabel ?? cluster}
               signerLabel={preview?.signerLabel ?? walletName}
               destinationLabel={preview?.targetLabel ?? `${pendingSwap.inputSymbol} → ${pendingSwap.outputSymbol}`}
               amountLabel={preview?.amountLabel ?? `${formatLargeNumber(pendingSwap.quote.inAmount)} ${pendingSwap.inputSymbol} → ${formatLargeNumber(pendingSwap.quote.outAmount)} ${pendingSwap.outputSymbol}`}
               feeLabel={preview?.feeLabel}
-              warnings={preview?.warnings}
+              warnings={[
+                ...(preview?.warnings ?? []),
+                ...(previewError ? [buildPreviewUnavailableWarning(previewError)] : []),
+              ]}
               notes={preview?.notes ?? [
                 `Slippage setting: ${pendingSwap.slippagePct}%`,
                 `Price impact: ${pendingSwap.impactPct.toFixed(4)}%${pendingSwap.impactPct >= 5 ? ' (very high)' : pendingSwap.impactPct >= 1 ? ' (high)' : ''}`,
                 'This quote confirmation expires after 60 seconds.',
+                getSolscanTxLabel(cluster) === 'Copy signature' ? 'Localnet transactions cannot open in Solscan, so DAEMON will copy the signature after swap.' : `${getSolscanTxLabel(cluster)} will be available after confirmation.`,
               ]}
             />
+            <TransactionPipeline steps={pipelineSteps} />
 
             {pendingSwap.impactPct >= 5 && (
               <label className="wallet-swap-ack-row">
@@ -555,23 +615,70 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
                 disabled={swapLoading || executeBlocked}
                 onClick={handleExecuteSwap}
               >
-                {swapLoading ? 'Swapping...' : 'Confirm Swap'}
+                {swapLoading ? 'Broadcasting...' : 'Sign and swap'}
               </button>
               <button type="button" className="wallet-btn" onClick={handleCancelConfirm} disabled={swapLoading}>Cancel</button>
             </div>
           </div>
         )}
 
-        {quoteError && <div className="wallet-empty">{quoteError}</div>}
-        {swapError && <div className="wallet-empty">{swapError}</div>}
+        {quoteError && <div className="wallet-error-msg" role="alert">{quoteError}</div>}
+        {swapError && <div className="wallet-error-msg" role="alert">{swapError}</div>}
         {swapResult && (
           <div className="wallet-success-msg">
-            Swap confirmed via {swapResult.transport === 'jupiter' ? 'Jupiter' : swapResult.transport === 'jito' ? 'Jito' : 'RPC'}! Sig: {swapResult.signature.slice(0, 8)}...{swapResult.signature.slice(-8)}
+            <span>Swap confirmed via {swapResult.transport === 'jupiter' ? 'Jupiter' : swapResult.transport === 'jito' ? 'Jito' : 'RPC'}: {swapResult.signature.slice(0, 8)}...{swapResult.signature.slice(-8)}</span>
+            <button
+              type="button"
+              className="wallet-success-link"
+              onClick={() => {
+                if (canOpenSolscan(cluster)) {
+                  void window.daemon.shell.openExternal(getSolscanTxUrl(swapResult.signature, cluster))
+                } else {
+                  void window.daemon.env.copyValue(swapResult.signature)
+                }
+              }}
+            >
+              {getSolscanTxLabel(cluster)}
+            </button>
           </div>
         )}
       </div>
     </section>
   )
+}
+
+function parseSlippageBps(value: string): number | null {
+  const trimmed = value.trim()
+  if (!/^\d+$/.test(trimmed)) return null
+  const parsed = Number(trimmed)
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 5000) return null
+  return parsed
+}
+
+function buildSwapPipelineSteps(state: {
+  quoted: boolean
+  reviewing: boolean
+  submitting: boolean
+  succeeded: boolean
+  failed: boolean
+}): TransactionPipelineStep[] {
+  return [
+    {
+      label: 'Quote',
+      detail: state.quoted ? 'Jupiter route and price impact are available.' : 'Request a quote before review.',
+      state: state.quoted ? 'complete' : 'idle',
+    },
+    {
+      label: 'Review',
+      detail: state.reviewing ? 'Confirm route, slippage, signer, and risk warnings.' : 'Review starts from a fresh quote.',
+      state: state.submitting || state.succeeded || state.failed ? 'complete' : state.reviewing ? 'active' : 'idle',
+    },
+    {
+      label: 'Execute',
+      detail: state.submitting ? 'Submitting signed Jupiter order.' : state.succeeded ? 'Swap signature confirmed.' : state.failed ? 'Check the error before retrying.' : 'Execution waits for confirmation.',
+      state: state.submitting ? 'active' : state.succeeded ? 'complete' : state.failed ? 'failed' : 'idle',
+    },
+  ]
 }
 
 interface TokenOption {

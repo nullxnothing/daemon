@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useUIStore } from '../../store/ui'
 import './FileExplorer.css'
@@ -179,9 +179,11 @@ export function FileExplorer() {
     return <div className="file-explorer-empty">No project selected</div>
   }
 
-  const searchResults = searchQuery.trim().length > 0
-    ? fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), searchQuery)
-    : []
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim()
+    if (!query) return []
+    return fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), query)
+  }, [entries, searchQuery])
   const rootCreateActive = creating
     ? normalizePath(creating.parentPath) === normalizePath(activeProjectPath)
     : false

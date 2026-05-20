@@ -20,10 +20,10 @@ function resetStore() {
     currentStepIndex: 0,
     progress: {
       profile: 'pending',
-      claude: 'pending',
-      gmail: 'pending',
-      vercel: 'pending',
-      railway: 'pending',
+      project: 'pending',
+      runtime: 'pending',
+      ai: 'pending',
+      firstRun: 'pending',
       tour: 'pending',
     },
     showResumeBanner: false,
@@ -109,10 +109,10 @@ describe('useOnboardingStore — skipWizard', () => {
   })
 
   it('marks the current step as skipped', () => {
-    useOnboardingStore.setState({ currentStepIndex: 1 }) // 'claude' step
+    useOnboardingStore.setState({ currentStepIndex: 1 }) // 'project' step
     useOnboardingStore.getState().skipWizard()
     const { progress } = useOnboardingStore.getState()
-    expect(progress['claude']).toBe('skipped')
+    expect(progress.project).toBe('skipped')
   })
 
   it('does not alter other step progress', () => {
@@ -120,8 +120,8 @@ describe('useOnboardingStore — skipWizard', () => {
     useOnboardingStore.getState().skipWizard()
     const { progress } = useOnboardingStore.getState()
     // Only 'profile' (index 0) should be skipped
-    expect(progress['claude']).toBe('pending')
-    expect(progress['gmail']).toBe('pending')
+    expect(progress.project).toBe('pending')
+    expect(progress.runtime).toBe('pending')
   })
 
   it('hides the resume banner', () => {
@@ -138,15 +138,15 @@ describe('useOnboardingStore — openWizard (firstIncomplete index)', () => {
     useOnboardingStore.setState({
       progress: {
         profile: 'complete',
-        claude: 'pending',
-        gmail: 'pending',
-        vercel: 'pending',
-        railway: 'pending',
+        project: 'pending',
+        runtime: 'pending',
+        ai: 'pending',
+        firstRun: 'pending',
         tour: 'pending',
       },
     })
     useOnboardingStore.getState().openWizard()
-    // 'claude' is at index 1
+    // 'project' is at index 1
     expect(useOnboardingStore.getState().currentStepIndex).toBe(1)
   })
 
@@ -159,10 +159,10 @@ describe('useOnboardingStore — openWizard (firstIncomplete index)', () => {
     useOnboardingStore.setState({
       progress: {
         profile: 'complete',
-        claude: 'complete',
-        gmail: 'complete',
-        vercel: 'complete',
-        railway: 'complete',
+        project: 'complete',
+        runtime: 'complete',
+        ai: 'complete',
+        firstRun: 'complete',
         tour: 'complete',
       },
     })

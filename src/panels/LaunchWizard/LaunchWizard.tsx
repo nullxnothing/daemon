@@ -4,6 +4,7 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
 import { useTokenLaunch } from './useTokenLaunch'
 import type { LaunchParams } from './useTokenLaunch'
+import { getSolscanTxUrl } from '../../lib/solanaExplorer'
 import './LaunchWizard.css'
 
 type Step = 1 | 2 | 3 | 4
@@ -73,6 +74,7 @@ export function LaunchWizard() {
   const [preflight, setPreflight] = useState<TokenLaunchPreflight | null>(null)
   const [preflightLoading, setPreflightLoading] = useState(false)
   const [preflightError, setPreflightError] = useState<string | null>(null)
+  const [cluster, setCluster] = useState<WalletInfrastructureSettings['cluster']>('devnet')
 
   const { state: launchState, launch, reset } = useTokenLaunch()
 
@@ -135,6 +137,12 @@ export function LaunchWizard() {
       if (active) {
         setS2((prev) => ({ ...prev, launchpad: active.id }))
       }
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    window.daemon.settings.getWalletInfrastructureSettings().then((res) => {
+      if (res.ok && res.data) setCluster(res.data.cluster)
     }).catch(() => {})
   }, [])
 
@@ -416,6 +424,7 @@ export function LaunchWizard() {
               result={launchState.result}
               error={launchState.error}
               activePhaseIdx={activePhaseIdx}
+              cluster={cluster}
               onRetry={handleRetry}
               onClose={closeLaunchWizard}
             />
@@ -935,6 +944,7 @@ function StepExecuting({
   result,
   error,
   activePhaseIdx,
+  cluster,
   onRetry,
   onClose,
 }: {
@@ -942,6 +952,7 @@ function StepExecuting({
   result: { mint: string; signature: string; success: boolean } | null
   error: string | null
   activePhaseIdx: number
+  cluster: WalletInfrastructureSettings['cluster']
   onRetry: () => void
   onClose: () => void
 }) {
@@ -967,7 +978,7 @@ function StepExecuting({
           className="lw-success-link"
           onClick={() => {
             if (result.signature) {
-              window.daemon.shell.openExternal(`https://solscan.io/tx/${result.signature}`)
+              window.daemon.shell.openExternal(getSolscanTxUrl(result.signature, cluster))
             }
           }}
         >

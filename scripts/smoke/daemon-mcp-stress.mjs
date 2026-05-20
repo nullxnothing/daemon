@@ -260,7 +260,7 @@ async function stressMcpBridge(page) {
 }
 
 async function verifySolanaMcpUi(page) {
-  await openToolFromLauncher(page, 'Solana', '.solana-toolbox')
+  await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   await page.getByRole('tab', { name: /^Connect\b/ }).click()
   await page.waitForSelector('.solana-service-row', { timeout: 30000 })
   await page.waitForFunction((expectedCount) => {
@@ -307,7 +307,7 @@ async function verifyLowPowerStillResponds(page) {
   }
 
   await setLowPower(true)
-  await openToolFromLauncher(page, 'Solana', '.solana-toolbox')
+  await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   await page.getByRole('tab', { name: /^Connect\b/ }).click()
   await page.waitForSelector('.solana-service-row', { timeout: 30000 })
   await setLowPower(false)

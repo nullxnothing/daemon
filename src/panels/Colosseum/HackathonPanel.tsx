@@ -319,7 +319,7 @@ export function HackathonPanel() {
         <Button variant="primary" size="md" onClick={handleResearchAgent}>
           Research Competition
         </Button>
-        <Button variant="default" size="md" onClick={handleOpenArena}>
+        <Button variant="secondary" size="md" onClick={handleOpenArena}>
           Open Arena
         </Button>
         </Toolbar>

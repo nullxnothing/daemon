@@ -1,0 +1,81 @@
+.surface {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
+}
+
+.variant-card {
+  border-radius: var(--radius-card);
+}
+
+.variant-feature {
+  border-radius: var(--radius-feature);
+}
+
+.variant-well {
+  border-color: color-mix(in srgb, var(--border-soft) 72%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--bg-well);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 4%, transparent);
+}
+
+.padding-sm {
+  padding: var(--space-md);
+}
+
+.padding-md {
+  padding: var(--space-lg);
+}
+
+.padding-lg {
+  padding: var(--space-xl);
+}
+
+.padding-flush {
+  padding: 0;
+}
+
+.tone-success { border-color: color-mix(in srgb, var(--accent-green) 28%, var(--card-border)); }
+.tone-warning { border-color: color-mix(in srgb, var(--accent-amber) 32%, var(--card-border)); }
+.tone-danger { border-color: color-mix(in srgb, var(--accent-red) 32%, var(--card-border)); }
+.tone-info { border-color: color-mix(in srgb, var(--accent-blue) 32%, var(--card-border)); }
+.tone-feature { border-color: color-mix(in srgb, var(--accent-purple) 28%, var(--card-border)); }
+
+.interactive {
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.interactive:hover {
+  border-color: var(--control-border-hover);
+  background: var(--card-bg-hover);
+}
+
+.interactive:active {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--card-bg-hover) 82%, var(--bg-well));
+}
+
+.selected {
+  border-color: var(--accent-green);
+  background: color-mix(in srgb, var(--accent-green) 6%, var(--card-bg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive {
+    transition: none;
+  }
+}

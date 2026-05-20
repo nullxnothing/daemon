@@ -10,7 +10,7 @@
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px 14px;
+  padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
   border-bottom: 1px solid var(--s4);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
 }

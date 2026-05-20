@@ -380,7 +380,7 @@ export interface ProSkillManifest {
   skills: ProSkillManifestEntry[]
 }
 
-export type DaemonAiAccessMode = 'hosted' | 'byok'
+export type DaemonAiAccessMode = 'auto' | 'hosted' | 'byok'
 export type DaemonAiChatMode = 'ask' | 'plan'
 export type DaemonAiModelLane = 'auto' | 'fast' | 'standard' | 'reasoning' | 'premium'
 export type DaemonAiAgentMode = 'patch' | 'agent' | 'background'
@@ -725,6 +725,7 @@ export interface SolanaTransactionPreviewInput {
 export interface SolanaTransactionPreview {
   title: string
   backendLabel: string
+  networkLabel?: string
   signerLabel: string
   targetLabel: string
   amountLabel: string
@@ -890,6 +891,8 @@ export interface TerminalSession {
   localSessionId?: string | null
   /** Best-effort count of terminal output lines for session receipts. */
   generatedLineCount?: number
+  /** Bounded recent terminal output for workflow receipts. */
+  outputBuffer?: string
   /** Buffers PTY data until renderer signals ready */
   dataBuffer?: string[]
   /** True once renderer has attached its xterm onData listener */
@@ -1170,6 +1173,101 @@ export interface PnlSyncResult {
   walletsProcessed: number
 }
 
+// --- IDLE paid resource routing ---
+
+export type IdleResourceType = 'gpu' | 'agent' | 'api' | 'pc' | 'wallet' | 'data' | 'unknown'
+export type IdleResourceStatus = 'available' | 'degraded' | 'disabled'
+export type IdleReceiptStatus = 'previewed' | 'settled' | 'failed' | 'blocked'
+
+export interface IdleResource {
+  id: string
+  provider: string
+  type: IdleResourceType
+  name: string
+  endpoint: string
+  method: 'GET' | 'POST'
+  priceUsdc: number
+  asset: string
+  network: string
+  payee: string
+  score: number
+  status: IdleResourceStatus
+  schema: Record<string, unknown>
+  registryUrl: string | null
+  lastSeenAt: number
+}
+
+export interface IdleBudgetPolicy {
+  maxPerCallUsdc: number
+  maxPerTaskUsdc: number
+  allowedDomains: string[]
+  allowedNetworks: string[]
+  allowedAssets: string[]
+  allowedPayees: string[]
+  receiptRequired: boolean
+  humanApproved: boolean
+}
+
+export interface IdleRegistryRefreshInput {
+  registryUrl?: string | null
+}
+
+export interface IdlePolicyCheckInput {
+  resourceId: string
+  projectId?: string | null
+  taskId?: string | null
+  policy: IdleBudgetPolicy
+}
+
+export interface IdlePolicyCheckResult {
+  allowed: boolean
+  reasons: string[]
+  resource: IdleResource | null
+  spentThisTaskUsdc: number
+  remainingTaskBudgetUsdc: number
+}
+
+export interface IdlePaidCallInput extends IdlePolicyCheckInput {
+  agentId?: string | null
+  requestBody?: unknown
+  paymentSignature?: string | null
+  approvedBy?: string | null
+}
+
+export interface IdlePaidCallReceipt {
+  id: string
+  resourceId: string
+  projectId: string | null
+  taskId: string | null
+  agentId: string | null
+  endpoint: string
+  method: string
+  amountUsdc: number
+  asset: string
+  network: string
+  payee: string
+  status: IdleReceiptStatus
+  paymentId: string | null
+  facilitator: string | null
+  responseStatus: number | null
+  responseContentType: string | null
+  responseBytes: number | null
+  errorMessage: string | null
+  metadata: Record<string, unknown>
+  createdAt: number
+  updatedAt: number
+}
+
+export interface IdleRegistryStatus {
+  registryConfigured: boolean
+  registryUrl: string | null
+  resourceCount: number
+  receiptCount: number
+  latestReceipt: IdlePaidCallReceipt | null
+  executionReady: boolean
+  blockers: string[]
+}
+
 // --- MCP Management ---
 
 export interface McpAddInput {
@@ -1424,6 +1522,81 @@ export interface VercelEnvVar {
   type: string
 }
 
+// --- Shipline ---
+
+export type ShiplineCluster = 'devnet' | 'mainnet-beta'
+export type ShiplineRunStatus = 'ready' | 'blocked' | 'running' | 'complete' | 'failed'
+export type ShiplineStepStatus = 'pending' | 'ready' | 'running' | 'complete' | 'warning' | 'blocked' | 'failed'
+export type ShiplineStepId =
+  | 'preflight'
+  | 'build'
+  | 'tests'
+  | 'priority-fees'
+  | 'deploy'
+  | 'confirm'
+  | 'verify'
+  | 'idl-export'
+
+export interface ShiplineProgramTarget {
+  name: string
+  preferredProgramId: string | null
+  anchorProgramId: string | null
+  declareId: string | null
+  idlAddress: string | null
+  keypairAddress: string | null
+  explorerUrl: string | null
+  warnings: string[]
+}
+
+export interface ShiplineTimelineStep {
+  id: ShiplineStepId
+  label: string
+  detail: string
+  status: ShiplineStepStatus
+  command: string | null
+  artifacts: Array<{
+    label: string
+    value: string
+    href?: string | null
+  }>
+  warnings: string[]
+  recovery: string[]
+  startedAt: number | null
+  completedAt: number | null
+  terminalId?: string | null
+}
+
+export interface ShiplineRun {
+  id: string
+  projectId: string | null
+  projectPath: string
+  projectName: string
+  cluster: ShiplineCluster
+  status: ShiplineRunStatus
+  currentStep: ShiplineStepId | null
+  summary: string
+  warnings: string[]
+  recovery: string[]
+  programs: ShiplineProgramTarget[]
+  steps: ShiplineTimelineStep[]
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ShiplineCreateRunInput {
+  projectId?: string | null
+  projectPath: string
+  projectName?: string | null
+  cluster?: ShiplineCluster
+}
+
+export interface ShiplineUpdateStepInput {
+  runId: string
+  stepId: ShiplineStepId
+  status: ShiplineStepStatus
+  terminalId?: string | null
+}
+
 // --- Images ---
 
 export interface ImageRecord {
@@ -1485,11 +1658,15 @@ export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
 
 export interface OnboardingProgress {
   profile: OnboardingStepStatus
-  claude: OnboardingStepStatus
-  gmail: OnboardingStepStatus
-  vercel: OnboardingStepStatus
-  railway: OnboardingStepStatus
+  project: OnboardingStepStatus
+  runtime: OnboardingStepStatus
+  ai: OnboardingStepStatus
+  firstRun: OnboardingStepStatus
   tour: OnboardingStepStatus
+  claude?: OnboardingStepStatus
+  gmail?: OnboardingStepStatus
+  vercel?: OnboardingStepStatus
+  railway?: OnboardingStepStatus
 }
 
 // --- Workspace Profile ---

@@ -429,17 +429,19 @@ function OverviewActive({
   quota: { quota: number; used: number; remaining: number } | null
   accessSource: ProSubscriptionState['accessSource']
 }) {
+  const visibleFeatures = features.filter((feature) => feature !== 'app-factory')
+
   return (
     <div className="pro-overview">
       <div className="pro-active-grid">
         <ProStat label="Expires" value={expiresAt ? new Date(expiresAt).toLocaleDateString() : '—'} />
         <ProStat label="Wallet" value={walletAddress ? `${walletAddress.slice(0, 6)}…${walletAddress.slice(-6)}` : '—'} mono />
-        <ProStat label="Features" value={`${features.length} unlocked`} />
+        <ProStat label="Features" value={`${visibleFeatures.length} unlocked`} />
         <ProStat label="Access" value={accessSource === 'holder' ? 'Holder' : accessSource === 'payment' ? 'Paid' : 'Pro'} />
         <ProStat label="Priority API" value={quota ? `${quota.used} / ${quota.quota}` : '—'} />
       </div>
       <div className="pro-active-features">
-        {features.map((feature) => (
+        {visibleFeatures.map((feature) => (
           <div key={feature} className="pro-active-feature">
             <span className="pro-active-check">✓</span> {featureLabel(feature)}
           </div>
@@ -474,9 +476,9 @@ function featureLabel(feature: ProFeature) {
     case 'priority-api':
       return 'Priority API quota'
     case 'app-factory':
-      return 'App Factory'
+      return 'Project scaffolds'
     case 'shipline':
-      return 'Shipline'
+      return 'Shipline deploy proof'
     case 'cloud-agents':
       return 'Cloud agents'
     case 'team-admin':

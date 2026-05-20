@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import type { SolanaProjectInfo, SolanaProgramDiagnostic } from '../../store/solanaToolbox'
+import { describeSolanaToolboxError, getSolanaProjectEmptyCopy, getSolanaProjectEmptyTitle } from './solanaToolboxCopy'
 import './SolanaIdeWorkflow.css'
 
 interface ProgramMonitorPanelProps {
@@ -29,16 +31,24 @@ export function ProgramMonitorPanel({ projectId, projectPath, projectInfo }: Pro
   const diagnostics = projectInfo?.diagnostics
   const programs = diagnostics?.programs ?? []
   const canRun = Boolean(projectId && projectPath)
+  const [terminalError, setTerminalError] = useState<string | null>(null)
 
   const runCommand = async (command: string, label: string) => {
     if (!projectId || !projectPath) return
-    const res = await window.daemon.terminal.create({
-      cwd: projectPath,
-      startupCommand: command,
-      userInitiated: true,
-    })
-    if (res.ok && res.data) {
-      addTerminal(projectId, res.data.id, label)
+    setTerminalError(null)
+    try {
+      const res = await window.daemon.terminal.create({
+        cwd: projectPath,
+        startupCommand: command,
+        userInitiated: true,
+      })
+      if (res.ok && res.data) {
+        addTerminal(projectId, res.data.id, label)
+        return
+      }
+      setTerminalError(describeSolanaToolboxError(res.error, `Could not open "${label}".`))
+    } catch (error) {
+      setTerminalError(describeSolanaToolboxError(error instanceof Error ? error.message : null, `Could not open "${label}".`))
     }
   }
 
@@ -50,10 +60,18 @@ export function ProgramMonitorPanel({ projectId, projectPath, projectInfo }: Pro
             <div className="solana-token-launch-kicker">Program Monitor</div>
             <h3 className="solana-token-launch-title">No deployable programs detected yet</h3>
             <p className="solana-token-launch-copy">
-              Open an Anchor or native Solana program workspace so DAEMON can discover program IDs, generated IDLs, and deploy keypairs.
+              {getSolanaProjectEmptyCopy(projectPath)}
             </p>
           </div>
         </div>
+        <section className="solana-ide-empty-panel">
+          <div>
+            <h3>{getSolanaProjectEmptyTitle(projectPath)}</h3>
+            <p>
+              Program monitor becomes useful after DAEMON finds Anchor.toml, declare_id!, generated IDL files, or deploy keypairs.
+            </p>
+          </div>
+        </section>
       </div>
     )
   }
@@ -74,6 +92,12 @@ export function ProgramMonitorPanel({ projectId, projectPath, projectInfo }: Pro
           </button>
         </div>
       </div>
+
+      {terminalError && (
+        <div className="solana-ide-error" role="status">
+          {terminalError}
+        </div>
+      )}
 
       <div className="solana-ide-grid three">
         <section className="solana-ide-card emphasis">

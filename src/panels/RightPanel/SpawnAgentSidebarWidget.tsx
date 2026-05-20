@@ -14,6 +14,8 @@ import {
   writeRightSidebarWidgetConfig,
 } from './sidebarAgentWidgetConfig'
 import { SPAWN_AGENT_PNL_COLORS } from '../../styles/daemonTheme'
+import { middleEllipsis } from '../../utils/textDisplay'
+import { RightRailSection } from './RightRailSection'
 
 const EMPTY_WALLETS: WalletDashboard['wallets'] = []
 
@@ -23,7 +25,7 @@ function fmt(n: number, d = 4) {
 }
 
 function truncate(s: string, n = 4) {
-  return s.length <= n * 2 + 3 ? s : `${s.slice(0, n)}...${s.slice(-n)}`
+  return middleEllipsis(s, n, n)
 }
 
 function pnlColor(n: number) {
@@ -173,15 +175,12 @@ export function SpawnAgentSidebarWidget() {
   const avatar = liveAgent?.avatar ?? profileAgent?.meta?.avatar ?? null
 
   return (
-    <section className="rp-agent-widget rp-agent-widget--spawnagents">
-      <div className="rp-agent-widget-head">
-        <div className="rp-agent-widget-agent">
-          <div className="rp-agent-widget-avatar">{avatar ? <img src={avatar} alt="" /> : <span />}</div>
-          <div className="rp-agent-widget-name-wrap">
-            <div className="rp-agent-widget-kicker">Spawn agent</div>
-            <div className="rp-agent-widget-title">{liveAgent?.name ?? (loading ? 'Loading...' : 'No agent')}</div>
-          </div>
-        </div>
+    <RightRailSection
+      kicker="Spawn agent"
+      title={liveAgent?.name ?? (loading ? 'Loading...' : 'No agent')}
+      className="rp-agent-widget--spawnagents"
+      media={<div className="rp-agent-widget-avatar">{avatar ? <img src={avatar} alt="" /> : <span />}</div>}
+      action={(
         <button
           type="button"
           className="rp-agent-widget-close"
@@ -193,8 +192,8 @@ export function SpawnAgentSidebarWidget() {
         >
           x
         </button>
-      </div>
-
+      )}
+    >
       {liveAgent ? (
         <>
           <div className="rp-agent-widget-pnl" style={{ color: pnlColor(pnl) }}>
@@ -220,6 +219,6 @@ export function SpawnAgentSidebarWidget() {
           {loading ? 'Loading agent...' : 'Open a SpawnAgents detail page and add an agent.'}
         </div>
       )}
-    </section>
+    </RightRailSection>
   )
 }

@@ -25,7 +25,7 @@
 }
 
 .pf-tab:hover { color: var(--t2); }
-.pf-tab.active { color: var(--t1); border-bottom-color: var(--green); }
+.pf-tab.active { color: var(--tab-active-color); border-bottom-color: var(--tab-active-border); }
 
 .pf-content {
   flex: 1;
@@ -291,12 +291,24 @@
   padding: 8px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-11);
+  line-height: 1.45;
 }
 
 .pf-result.success {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   background: rgba(74, 140, 98, 0.1);
   border: 1px solid rgba(74, 140, 98, 0.3);
   color: var(--green);
+}
+
+.pf-result.warning {
+  background: rgba(240, 180, 41, 0.08);
+  border: 1px solid rgba(240, 180, 41, 0.22);
+  color: var(--t2);
 }
 
 .pf-result.error {
@@ -306,12 +318,19 @@
 }
 
 .pf-tx-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: var(--blue);
   cursor: pointer;
   text-decoration: underline;
   font-family: var(--font-code);
   font-size: var(--fs-10);
+  line-height: 1.45;
   word-break: break-all;
+  text-align: left;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .pf-empty {

@@ -36,6 +36,7 @@ export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): 
   const signerLabel = getWalletLabel(input.walletId)
   const warnings = [...runtime.troubleshooting]
   const notes: string[] = [
+    `Network: ${runtime.cluster}.`,
     `Execution backend: ${runtime.executionBackend.label}.`,
     'Network fees are finalized when DAEMON builds and submits the transaction.',
   ]
@@ -110,6 +111,7 @@ export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): 
   return {
     title,
     backendLabel: runtime.executionBackend.label,
+    networkLabel: runtime.cluster,
     signerLabel,
     targetLabel,
     amountLabel,

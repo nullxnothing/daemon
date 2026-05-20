@@ -94,4 +94,17 @@ describe('wallet performance polling', () => {
 
     cleanup()
   })
+
+  it('does not reuse an in-flight wallet refresh across project scopes', async () => {
+    const { dashboard } = installDaemonBridge()
+
+    await Promise.all([
+      useWalletStore.getState().refresh(null),
+      useWalletStore.getState().refresh('project-1'),
+    ])
+
+    expect(dashboard).toHaveBeenCalledTimes(2)
+    expect(dashboard).toHaveBeenNthCalledWith(1, null)
+    expect(dashboard).toHaveBeenNthCalledWith(2, 'project-1')
+  })
 })

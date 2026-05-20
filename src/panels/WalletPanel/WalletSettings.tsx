@@ -53,6 +53,10 @@ export function WalletSettings({
     setJupiterKey('')
   }
 
+  const rpcReady = getRpcReady(draftInfra, heliusConfigured)
+  const rpcStatusLabel = rpcReady ? 'RPC ready' : 'Setup needed'
+  const rpcProviderLabel = getRpcProviderLabel(draftInfra)
+
   return (
     <section className="wallet-section wallet-settings-shell">
       <div className="wallet-section-header">
@@ -74,15 +78,25 @@ export function WalletSettings({
               </div>
             </div>
             <span className={`wallet-state-badge ${heliusConfigured ? 'live' : 'muted'}`}>
-              {heliusConfigured ? 'Runtime Active' : 'Needs Setup'}
+              {rpcStatusLabel}
             </span>
           </div>
 
           <div className="wallet-runtime-summary-grid">
             <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Cluster</div>
+              <div className="wallet-runtime-summary-value">
+                {draftInfra.cluster}
+              </div>
+              <div className="wallet-caption">
+                DAEMON uses this cluster for wallet execution, generated project defaults, deploy proof, and explorer links.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
               <div className="wallet-runtime-summary-label">Reads + Data</div>
               <div className="wallet-runtime-summary-value">
-                {draftInfra.rpcProvider === 'helius' ? 'Helius indexed runtime' : draftInfra.rpcProvider === 'public' ? 'Public RPC fallback' : draftInfra.rpcProvider === 'quicknode' ? 'QuickNode runtime' : 'Custom RPC runtime'}
+                {rpcProviderLabel}
               </div>
               <div className="wallet-caption">
                 DAEMON uses this path for balance reads, holdings, toolbox checks, and generated Solana transports.
@@ -92,10 +106,10 @@ export function WalletSettings({
             <div className="wallet-runtime-summary-item">
               <div className="wallet-runtime-summary-label">Wallet UX</div>
               <div className="wallet-runtime-summary-value">
-                {draftInfra.preferredWallet === 'phantom' ? 'Phantom-first' : 'Wallet Standard'}
+                {draftInfra.preferredWallet === 'phantom' ? 'Local signer, Phantom-first app defaults' : 'Wallet Standard app defaults'}
               </div>
               <div className="wallet-caption">
-                This should become the default connect and signing experience across DAEMON-generated apps.
+                DAEMON's built-in wallet currently signs with imported or generated local signers. This preference is used for generated app defaults.
               </div>
             </div>
 
@@ -148,23 +162,32 @@ export function WalletSettings({
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">
             <div>
-              <div className="wallet-label">Reads + RPC Provider</div>
+              <div className="wallet-label">Cluster + RPC Provider</div>
               <div className="wallet-caption">
                 Choose the Solana transport DAEMON should trust for wallet reads, toolbox checks, and generated project defaults.
               </div>
             </div>
-            <span className={`wallet-state-badge ${draftInfra.rpcProvider === 'helius' && heliusConfigured ? 'live' : 'muted'}`}>
-              {draftInfra.rpcProvider.toUpperCase()}
+            <span className={`wallet-state-badge ${rpcReady ? 'live' : 'muted'}`}>
+              {rpcStatusLabel} · {draftInfra.cluster}
             </span>
           </div>
 
+          <select
+            className="wallet-input"
+            value={draftInfra.cluster}
+            onChange={(e) => setDraftInfra((prev) => ({ ...prev, cluster: e.target.value as WalletInfrastructureSettings['cluster'] }))}
+          >
+            <option value="devnet">Devnet - default for builds</option>
+            <option value="mainnet-beta">Mainnet-beta - requires review</option>
+            <option value="localnet">Localnet - validator or Surfpool</option>
+          </select>
           <select
             className="wallet-input"
             value={draftInfra.rpcProvider}
             onChange={(e) => setDraftInfra((prev) => ({ ...prev, rpcProvider: e.target.value as WalletInfrastructureSettings['rpcProvider'] }))}
           >
             <option value="helius">Helius</option>
-            <option value="public">Public Mainnet RPC</option>
+            <option value="public">Public RPC for selected cluster</option>
             <option value="quicknode">QuickNode</option>
             <option value="custom">Custom RPC URL</option>
           </select>
@@ -204,6 +227,8 @@ export function WalletSettings({
 
           <input
             className="wallet-input"
+            type="password"
+            autoComplete="off"
             value={heliusKey}
             onChange={(e) => setHeliusKey(e.target.value)}
             placeholder={heliusConfigured ? 'Replace Helius API key' : 'HELIUS_API_KEY'}
@@ -241,8 +266,8 @@ export function WalletSettings({
             value={draftInfra.preferredWallet}
             onChange={(e) => setDraftInfra((prev) => ({ ...prev, preferredWallet: e.target.value as WalletInfrastructureSettings['preferredWallet'] }))}
           >
-            <option value="phantom">Phantom-first</option>
-            <option value="wallet-standard">Wallet Standard</option>
+            <option value="phantom">Local signer + Phantom app defaults</option>
+            <option value="wallet-standard">Local signer + Wallet Standard app defaults</option>
           </select>
           <select
             className="wallet-input"
@@ -262,6 +287,8 @@ export function WalletSettings({
           )}
           <input
             className="wallet-input"
+            type="password"
+            autoComplete="off"
             value={jupiterKey}
             onChange={(e) => setJupiterKey(e.target.value)}
             placeholder={jupiterConfigured ? 'Replace JUPITER_API_KEY' : 'JUPITER_API_KEY'}
@@ -277,4 +304,18 @@ export function WalletSettings({
       </div>
     </section>
   )
+}
+
+function getRpcReady(settings: WalletInfrastructureSettings, heliusConfigured: boolean): boolean {
+  if (settings.rpcProvider === 'helius') return heliusConfigured
+  if (settings.rpcProvider === 'quicknode') return settings.quicknodeRpcUrl.trim().length > 0
+  if (settings.rpcProvider === 'custom') return settings.customRpcUrl.trim().length > 0
+  return true
+}
+
+function getRpcProviderLabel(settings: WalletInfrastructureSettings): string {
+  if (settings.rpcProvider === 'helius') return 'Helius indexed runtime'
+  if (settings.rpcProvider === 'quicknode') return 'QuickNode runtime'
+  if (settings.rpcProvider === 'custom') return 'Custom RPC runtime'
+  return 'Public RPC fallback'
 }

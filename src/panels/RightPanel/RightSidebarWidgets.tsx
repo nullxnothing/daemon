@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import type { WalletDashboard } from '../../types/daemon'
+import { compactPathLabel } from '../../utils/textDisplay'
+import { RightRailSection } from './RightRailSection'
 import { SpawnAgentSidebarWidget } from './SpawnAgentSidebarWidget'
 import { SolanaReadinessSidebarWidget, TokenWatchSidebarWidget } from './SolanaSidebarWidgets'
 import {
@@ -17,37 +18,6 @@ const EMPTY_WALLETS: WalletDashboard['wallets'] = []
 function money(value: number) {
   if (!Number.isFinite(value)) return '--'
   return value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
-}
-
-function shortPath(path: string | null) {
-  if (!path) return 'No project'
-  const normalized = path.replace(/\\/g, '/')
-  const parts = normalized.split('/').filter(Boolean)
-  return parts.slice(-2).join('/')
-}
-
-function WidgetShell({
-  kicker,
-  title,
-  children,
-  className,
-}: {
-  kicker: string
-  title: string
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <section className={`rp-side-widget${className ? ` ${className}` : ''}`}>
-      <div className="rp-side-widget-head">
-        <div>
-          <div className="rp-agent-widget-kicker">{kicker}</div>
-          <div className="rp-side-widget-title">{title}</div>
-        </div>
-      </div>
-      {children}
-    </section>
-  )
 }
 
 function openZauthWorkspace(pageId?: 'database' | 'provider-hub') {
@@ -89,13 +59,13 @@ function ProjectStatusWidget() {
   const projectFiles = openFiles.filter((file) => file.projectId === activeProjectId)
 
   return (
-    <WidgetShell kicker="Workspace" title={activeProject?.name ?? 'Project'}>
-      <div className="rp-side-widget-line" title={activeProjectPath ?? undefined}>{shortPath(activeProjectPath)}</div>
+    <RightRailSection kicker="Workspace" title={activeProject?.name ?? 'Project'}>
+      <div className="rp-side-widget-line" title={activeProjectPath ?? undefined}>{compactPathLabel(activeProjectPath)}</div>
       <div className="rp-agent-widget-grid rp-side-widget-grid">
         <div><span>Files</span><strong>{projectFiles.length}</strong></div>
         <div><span>Terms</span><strong>{projectTerminals.length}</strong></div>
       </div>
-    </WidgetShell>
+    </RightRailSection>
   )
 }
 
@@ -115,13 +85,13 @@ function WalletSnapshotWidget() {
   }, [activeProjectId, dashboard, lowPowerMode, refresh])
 
   return (
-    <WidgetShell kicker="Wallet" title={money(dashboard?.portfolio.totalUsd ?? 0)}>
+    <RightRailSection kicker="Wallet" title={money(dashboard?.portfolio.totalUsd ?? 0)}>
       <div className="rp-side-widget-line">{activeWalletName ?? (lowPowerMode ? 'Cached until opened' : 'No wallet loaded')}</div>
       <div className="rp-agent-widget-grid rp-side-widget-grid">
         <div><span>Wallets</span><strong>{wallets.length}</strong></div>
         <div><span>Tokens</span><strong>{activeHoldingCount}</strong></div>
       </div>
-    </WidgetShell>
+    </RightRailSection>
   )
 }
 
@@ -154,7 +124,7 @@ function AiStatusWidget() {
   ] as const, [claude, codex])
 
   return (
-    <WidgetShell kicker="Assistants" title="AI Status">
+    <RightRailSection kicker="Assistants" title="AI Status">
       <div className="rp-side-status-list">
         {rows.map(([name, status]) => (
           <div key={name} className="rp-side-status-row">
@@ -164,7 +134,7 @@ function AiStatusWidget() {
           </div>
         ))}
       </div>
-    </WidgetShell>
+    </RightRailSection>
   )
 }
 
@@ -176,7 +146,7 @@ function ZauthSidebarWidget() {
   ]
 
   return (
-    <WidgetShell kicker="x402" title="Zauth" className="rp-zauth-widget">
+    <RightRailSection kicker="x402" title="Zauth" className="rp-zauth-widget">
       <div className="rp-side-status-list">
         {rows.map((row) => (
           <div key={row.label} className="rp-side-status-row">
@@ -191,7 +161,7 @@ function ZauthSidebarWidget() {
         <button type="button" onClick={() => openZauthWorkspace('provider-hub')}>Hub</button>
         <button type="button" onClick={() => openZauthWorkspace()}>Full</button>
       </div>
-    </WidgetShell>
+    </RightRailSection>
   )
 }
 

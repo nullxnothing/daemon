@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld('daemon', {
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
-    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
+    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
     ready: (id: string, cols?: number, rows?: number) => ipcRenderer.send('terminal:ready', id, cols, rows),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
@@ -74,6 +74,18 @@ contextBridge.exposeInMainWorld('daemon', {
     list: () => ipcRenderer.invoke('process:list'),
     orphans: () => ipcRenderer.invoke('process:orphans'),
     kill: (pid: number) => ipcRenderer.invoke('process:kill', pid),
+  },
+
+  metaplex: {
+    createCoreAgentAsset: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      name: string
+      uri: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => ipcRenderer.invoke('metaplex:create-core-agent-asset', input),
   },
 
   fs: {
@@ -164,6 +176,9 @@ contextBridge.exposeInMainWorld('daemon', {
     getAllConnections: () => ipcRenderer.invoke('provider:get-all-connections'),
     getDefault: () => ipcRenderer.invoke('provider:get-default'),
     setDefault: (id: string) => ipcRenderer.invoke('provider:set-default', id),
+    getPreferences: () => ipcRenderer.invoke('provider:get-preferences'),
+    setPreferences: (preferences: object) => ipcRenderer.invoke('provider:set-preferences', preferences),
+    resolveFeatureProvider: (featureId: string) => ipcRenderer.invoke('provider:resolve-feature-provider', featureId),
   },
 
   activity: {
@@ -177,6 +192,7 @@ contextBridge.exposeInMainWorld('daemon', {
       sessionStatus?: string | null
       projectId?: string | null
       projectName?: string | null
+      artifacts?: Array<{ type: string; label: string; value: string; href?: string | null }> | null
     }) =>
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
@@ -572,6 +588,18 @@ contextBridge.exposeInMainWorld('daemon', {
     autoDetect: (projectPath: string) => ipcRenderer.invoke('deploy:auto-detect', projectPath),
   },
 
+  shipline: {
+    createTimeline: (input: object) => ipcRenderer.invoke('shipline:create-timeline', input),
+    listTimelines: (projectId?: string | null, limit?: number) => ipcRenderer.invoke('shipline:list-timelines', projectId ?? null, limit),
+    getTimeline: (id: string) => ipcRenderer.invoke('shipline:get-timeline', id),
+    updateStep: (input: object) => ipcRenderer.invoke('shipline:update-step', input),
+    onTimelineUpdated: (callback: (run: object) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, run: object) => callback(run)
+      ipcRenderer.on('shipline:timeline-updated', handler)
+      return () => ipcRenderer.off('shipline:timeline-updated', handler)
+    },
+  },
+
   registry: {
     listSessions: (limit?: number) => ipcRenderer.invoke('registry:list-sessions', limit),
     getProfile: () => ipcRenderer.invoke('registry:get-profile'),
@@ -651,6 +679,15 @@ contextBridge.exposeInMainWorld('daemon', {
     hasKey: (configId: string) => ipcRenderer.invoke('agent-station:has-key', configId),
     deleteKey: (configId: string) => ipcRenderer.invoke('agent-station:delete-key', configId),
     updateStatus: (id: string, status: 'idle' | 'running' | 'stopped') => ipcRenderer.invoke('agent-station:update-status', id, status),
+  },
+
+  idle: {
+    status: (registryUrl?: string | null) => ipcRenderer.invoke('idle:status', registryUrl ?? null),
+    refreshRegistry: (input?: { registryUrl?: string | null }) => ipcRenderer.invoke('idle:refresh-registry', input ?? {}),
+    listResources: (limit?: number) => ipcRenderer.invoke('idle:list-resources', limit),
+    checkPolicy: (input: unknown) => ipcRenderer.invoke('idle:check-policy', input),
+    executePaidCall: (input: unknown) => ipcRenderer.invoke('idle:execute-paid-call', input),
+    listReceipts: (limit?: number) => ipcRenderer.invoke('idle:list-receipts', limit),
   },
 
   replay: {

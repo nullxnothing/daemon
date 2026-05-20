@@ -1,4 +1,4 @@
-import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useSolanaToolboxStore, type ValidatorState } from '../../store/solanaToolbox'
 
 const STATUS_COLORS: Record<string, string> = {
   stopped: 'grey',
@@ -12,6 +12,19 @@ const STATUS_LABELS: Record<string, string> = {
   starting: 'Starting...',
   running: 'Running',
   error: 'Error',
+}
+
+function getValidatorHelpText(validator: ValidatorState): string {
+  if (validator.status === 'running' && validator.port) {
+    return `Local RPC is ready at http://localhost:${validator.port}.`
+  }
+  if (validator.status === 'starting') {
+    return 'Starting the local runtime. Check terminal logs if this takes more than a few seconds.'
+  }
+  if (validator.status === 'error') {
+    return 'Validator did not start. Check missing CLI tools, port conflicts, or terminal logs, then retry.'
+  }
+  return 'Start a local runtime before relying on local transaction tests or localnet explorer links.'
 }
 
 export function ValidatorCard() {
@@ -54,6 +67,10 @@ export function ValidatorCard() {
           http://localhost:{validator.port}
         </div>
       )}
+
+      <div className={`solana-validator-help ${validator.status}`}>
+        {getValidatorHelpText(validator)}
+      </div>
 
       {validator.status === 'running' && (
         <div className="solana-validator-actions">

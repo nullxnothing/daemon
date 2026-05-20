@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { canOpenSolscan, getSolscanTxLabel, getSolscanTxUrl } from '../../lib/solanaExplorer'
+import { describeSolanaToolboxError } from './solanaToolboxCopy'
 
 const PULSE_CATEGORIES: Array<{ id: PulseTokenCategory; label: string }> = [
   { id: 'newly-created', label: 'New' },
@@ -53,10 +55,13 @@ export function TokenLaunchSection({
   const [pulseCategory, setPulseCategory] = useState<PulseTokenCategory>('graduated')
   const [pulseFeed, setPulseFeed] = useState<PulseTokenFeed | null>(null)
   const [walletNames, setWalletNames] = useState<Record<string, string>>({})
+  const [cluster, setCluster] = useState<WalletInfrastructureSettings['cluster']>('devnet')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const pulsePromise = typeof window.daemon.launch.listPulseTokens === 'function'
         ? window.daemon.launch.listPulseTokens({ category: pulseCategory, pageSize: 6 })
@@ -68,6 +73,7 @@ export function TokenLaunchSection({
         pulsePromise,
       ])
       const walletsRes = await window.daemon.wallet.list()
+      const infraRes = await window.daemon.settings.getWalletInfrastructureSettings()
       if (launchpadsRes.ok && launchpadsRes.data) {
         setLaunchpads(launchpadsRes.data)
       }
@@ -82,6 +88,14 @@ export function TokenLaunchSection({
       if (walletsRes.ok && walletsRes.data) {
         setWalletNames(Object.fromEntries(walletsRes.data.map((wallet) => [wallet.id, wallet.name])))
       }
+      if (infraRes.ok && infraRes.data) {
+        setCluster(infraRes.data.cluster)
+      }
+    } catch (error) {
+      setLoadError(describeSolanaToolboxError(
+        error instanceof Error ? error.message : null,
+        'Could not load token launch data.',
+      ))
     } finally {
       setLoading(false)
     }
@@ -126,6 +140,12 @@ export function TokenLaunchSection({
       )}
 
       <div className="solana-token-launch-grid">
+        {loadError && (
+          <div className="solana-launch-state warning" role="status">
+            {loadError}
+          </div>
+        )}
+
         <div className="solana-token-launch-card">
           <div className="solana-token-launch-card-head">
             <div>
@@ -200,9 +220,11 @@ export function TokenLaunchSection({
             </div>
           </div>
           {loading ? (
-            <div className="solana-empty">Loading launches...</div>
+            <div className="solana-empty">Loading launch history and wallet names...</div>
           ) : launches.length === 0 ? (
-            <div className="solana-empty">No launches recorded yet.</div>
+            <div className="solana-empty">
+              No launches recorded yet. Launches appear here after DAEMON records a token creation signature.
+            </div>
           ) : (
             <div className="solana-launch-history">
               {launches.map((launch) => (
@@ -224,10 +246,14 @@ export function TokenLaunchSection({
                     <button
                       className="sol-btn"
                       onClick={() => {
-                        void window.daemon.shell.openExternal(`https://solscan.io/tx/${launch.create_signature}`)
+                        if (canOpenSolscan(cluster)) {
+                          void window.daemon.shell.openExternal(getSolscanTxUrl(launch.create_signature!, cluster))
+                        } else {
+                          void window.daemon.env.copyValue(launch.create_signature!)
+                        }
                       }}
                     >
-                      View Tx
+                      {getSolscanTxLabel(cluster)}
                     </button>
                   ) : (
                     <button type="button" className="sol-btn" disabled>No Tx</button>
@@ -255,9 +281,11 @@ export function TokenLaunchSection({
             </div>
           </div>
           {loading ? (
-            <div className="solana-empty">Loading Pulse feed...</div>
+            <div className="solana-empty">Loading Printr Pulse feed...</div>
           ) : !pulseFeed || pulseFeed.tokens.length === 0 ? (
-            <div className="solana-empty">Pulse feed unavailable for this workspace.</div>
+            <div className="solana-empty">
+              Pulse feed is unavailable right now. Check network access or refresh after setting launch integrations.
+            </div>
           ) : (
             <div className="solana-launch-history">
               {pulseFeed.tokens.map((token) => (

@@ -62,8 +62,8 @@
 }
 
 .pro-tab.active {
-  color: var(--t1);
-  border-bottom-color: var(--green);
+  color: var(--tab-active-color);
+  border-bottom-color: var(--tab-active-border);
 }
 
 .pro-tab:disabled {

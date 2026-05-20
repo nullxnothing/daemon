@@ -21,6 +21,7 @@ describe('SolanaRuntimeStatusService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetWalletInfrastructureSettings.mockReturnValue({
+      cluster: 'devnet',
       rpcProvider: 'helius',
       quicknodeRpcUrl: '',
       customRpcUrl: '',
@@ -37,6 +38,7 @@ describe('SolanaRuntimeStatusService', () => {
     const status = getSolanaRuntimeStatus()
 
     expect(status.rpc.status).toBe('live')
+    expect(status.cluster).toBe('devnet')
     expect(status.swapEngine.status).toBe('live')
     expect(status.executionBackend.label).toBe('Shared RPC executor')
     expect(status.executionCoverage.every((item) => item.status === 'live')).toBe(true)
@@ -58,6 +60,7 @@ describe('SolanaRuntimeStatusService', () => {
 
   it('marks jito over public rpc as partial', () => {
     mockGetWalletInfrastructureSettings.mockReturnValue({
+      cluster: 'devnet',
       rpcProvider: 'public',
       quicknodeRpcUrl: '',
       customRpcUrl: '',
@@ -74,5 +77,43 @@ describe('SolanaRuntimeStatusService', () => {
     expect(status.executionBackend.status).toBe('partial')
     expect(status.executionBackend.detail).toContain('Jito-backed executor')
     expect(status.troubleshooting).toContain('Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.')
+  })
+
+  it('marks blank QuickNode RPC as setup instead of live', () => {
+    mockGetWalletInfrastructureSettings.mockReturnValue({
+      cluster: 'devnet',
+      rpcProvider: 'quicknode',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'phantom',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    })
+
+    const status = getSolanaRuntimeStatus()
+
+    expect(status.rpc.status).toBe('setup')
+    expect(status.rpc.detail).toBe('QuickNode endpoint not set')
+    expect(status.troubleshooting).toContain('QuickNode is selected but the endpoint is blank. Add a QuickNode RPC URL before using this stack.')
+  })
+
+  it('marks blank custom RPC as setup instead of live', () => {
+    mockGetWalletInfrastructureSettings.mockReturnValue({
+      cluster: 'devnet',
+      rpcProvider: 'custom',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'phantom',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    })
+
+    const status = getSolanaRuntimeStatus()
+
+    expect(status.rpc.status).toBe('setup')
+    expect(status.rpc.detail).toBe('Custom endpoint not set')
+    expect(status.troubleshooting).toContain('Custom RPC is selected but no RPC URL is configured.')
   })
 })

@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
 
-export type OnboardingStepId = 'profile' | 'claude' | 'gmail' | 'vercel' | 'railway'
+export type OnboardingStepId = 'profile' | 'project' | 'runtime' | 'ai' | 'firstRun'
+type LegacyOnboardingStepId = 'claude' | 'gmail' | 'vercel' | 'railway'
 
 export interface OnboardingState {
   // Wizard
@@ -18,7 +19,7 @@ export interface OnboardingState {
   // Wizard actions
   openWizard: () => void
   closeWizard: () => void
-  setStepStatus: (id: OnboardingStepId | 'tour', status: OnboardingStepStatus) => void
+  setStepStatus: (id: OnboardingStepId | LegacyOnboardingStepId | 'tour', status: OnboardingStepStatus) => void
   advanceStep: () => void
   goToStep: (index: number) => void
   skipWizard: () => void
@@ -36,15 +37,15 @@ export interface OnboardingState {
   saveProgress: () => Promise<void>
 }
 
-const STEP_ORDER: OnboardingStepId[] = ['profile', 'claude', 'gmail', 'vercel', 'railway']
+const STEP_ORDER: OnboardingStepId[] = ['profile', 'project', 'runtime', 'ai', 'firstRun']
 const TOUR_STEPS_COUNT = 7
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
   profile: 'pending',
-  claude: 'pending',
-  gmail: 'pending',
-  vercel: 'pending',
-  railway: 'pending',
+  project: 'pending',
+  runtime: 'pending',
+  ai: 'pending',
+  firstRun: 'pending',
   tour: 'pending',
 }
 
@@ -138,7 +139,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       const isComplete = completeRes.ok && completeRes.data === true
       if (isComplete) return
 
-      const progress = progressRes.ok && progressRes.data ? progressRes.data : { ...DEFAULT_PROGRESS }
+      const progress = progressRes.ok && progressRes.data ? { ...DEFAULT_PROGRESS, ...progressRes.data } : { ...DEFAULT_PROGRESS }
       const hasIncomplete = STEP_ORDER.some((id) => progress[id] === 'pending')
       const hasAnyProgress = STEP_ORDER.some((id) => progress[id] !== 'pending')
 

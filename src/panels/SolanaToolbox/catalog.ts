@@ -314,8 +314,8 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     area: 'Protocols',
     kind: 'Skill',
     status: 'guided',
-    description: 'Core NFTs, metadata, compressed assets, and mint flows.',
-    docsUrl: 'https://developers.metaplex.com/',
+    description: 'Core assets, DAS reads, token metadata, compressed assets, Agent Registry, and mint flows.',
+    docsUrl: 'https://www.metaplex.com/docs',
     skill: '/metaplex',
   },
   {
@@ -455,9 +455,9 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     label: 'Metaplex',
     status: 'guided',
     skill: '/metaplex',
-    docsUrl: 'https://developers.metaplex.com/',
-    kickoff: 'Use Metaplex for metadata, Core assets, Bubblegum, and mint workflows.',
-    installHint: 'pnpm add @metaplex-foundation/umi',
+    docsUrl: 'https://www.metaplex.com/docs',
+    kickoff: 'Use Metaplex for Core assets, DAS reads, Core Candy Machine, Bubblegum, Genesis, and Agent Registry workflows.',
+    installHint: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/mpl-core',
   },
   {
     id: 'light',

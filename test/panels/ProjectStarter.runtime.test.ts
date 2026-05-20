@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import ts from 'typescript'
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildDeterministicScaffold,
@@ -23,6 +24,7 @@ describe('ProjectStarter runtime preset helpers', () => {
     vi.setSystemTime(new Date('2026-04-10T12:00:00.000Z'))
 
     const preset = buildRuntimePreset({
+      cluster: 'devnet',
       rpcProvider: 'helius',
       quicknodeRpcUrl: '',
       customRpcUrl: '',
@@ -37,6 +39,7 @@ describe('ProjectStarter runtime preset helpers', () => {
       generatedBy: 'DAEMON',
       generatedAt: '2026-04-10T12:00:00.000Z',
       transport: {
+        cluster: 'devnet',
         provider: 'helius',
         quicknodeRpcUrl: null,
         customRpcUrl: null,
@@ -59,6 +62,7 @@ describe('ProjectStarter runtime preset helpers', () => {
 
 describe('Perps template prompt addon', () => {
   const settings = {
+    cluster: 'devnet' as const,
     rpcProvider: 'helius' as const,
     quicknodeRpcUrl: '',
     customRpcUrl: '',
@@ -196,11 +200,12 @@ describe('deterministic project scaffold', () => {
         expect(filePaths.has('Anchor.toml')).toBe(true)
         expect([...filePaths].some((filePath) => filePath.startsWith('programs/') && filePath.endsWith('/src/lib.rs'))).toBe(true)
         expect([...filePaths].some((filePath) => filePath.startsWith('tests/') && filePath.endsWith('.test.ts'))).toBe(true)
-      } else if (['dapp-nextjs', 'solana-foundation', 'perps-frontend'].includes(template.id)) {
+      } else if (['dapp-nextjs', 'solana-foundation', 'perps-frontend', 'meme-coin-website'].includes(template.id)) {
         expect(filePaths.has('app/layout.tsx')).toBe(true)
         expect(filePaths.has('app/page.tsx')).toBe(true)
         expect(filePaths.has('app/globals.css')).toBe(true)
         expect(filePaths.has('next.config.mjs')).toBe(true)
+        expect(JSON.parse(fs.readFileSync(path.join(root, 'tsconfig.json'), 'utf8')).compilerOptions.moduleResolution).toBe('bundler')
         expect(fs.existsSync(path.join(root, 'app', 'page.tsx'))).toBe(true)
       } else {
         expect(filePaths.has('src/config.ts')).toBe(true)
@@ -211,5 +216,86 @@ describe('deterministic project scaffold', () => {
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
+  })
+
+  it('writes meme coin website token metadata and placeholders', () => {
+    const template = TEMPLATES.find((item) => item.id === 'meme-coin-website')
+    expect(template).toBeTruthy()
+
+    const scaffold = buildDeterministicScaffold(template!, 'DemoMeme', {
+      memeSettings: {
+        tokenName: 'Demo Meme',
+        ticker: 'DEMO',
+        contractAddress: 'Demo111111111111111111111111111111111111',
+        tagline: 'High signal, low seriousness.',
+        xUrl: 'https://x.com/demo',
+        telegramUrl: 'https://t.me/demo',
+        chartUrl: 'https://dexscreener.com/solana/demo',
+        buyUrl: 'https://jup.ag/swap/SOL-DEMO',
+        logoAssetPath: '',
+        heroAssetPath: '',
+        logoFileName: 'brand-mark.svg',
+        heroFileName: 'hero-poster.svg',
+      },
+    })
+
+    const byPath = new Map(scaffold.files.map((file) => [file.path, file.content]))
+    expect(byPath.get('src/token-site.ts')).toContain('Demo Meme')
+    expect(byPath.get('src/token-site.ts')).toContain('Demo111111111111111111111111111111111111')
+    expect(byPath.has('public/assets/brand-mark.svg')).toBe(true)
+    expect(byPath.has('public/assets/hero-poster.svg')).toBe(true)
+    expect(byPath.get('app/page.tsx')).toContain('CopyCaButton')
+    expect(byPath.get('app/page.tsx')).toContain('TokenImage')
+    expect(byPath.get('app/globals.css')).toContain('min(760px')
+    expect(byPath.get('app/globals.css')).toContain('.hero-copy')
+    expect(byPath.get('src/token-site.ts')).toContain('tokenMetadataImageSrc')
+    expect(byPath.get('src/token-site.ts')).toContain('[tokenMetadataImageSrc, localLogoSrc]')
+    expect(JSON.parse(byPath.get('tsconfig.json') ?? '{}').compilerOptions.moduleResolution).toBe('bundler')
+    expect(byPath.get('next.config.mjs')).toContain('outputFileTracingRoot')
+
+    for (const filePath of ['src/token-site.ts', 'app/CopyCaButton.tsx', 'app/TokenImage.tsx', 'app/layout.tsx', 'app/page.tsx']) {
+      const transpiled = ts.transpileModule(byPath.get(filePath) ?? '', {
+        fileName: filePath,
+        compilerOptions: {
+          jsx: ts.JsxEmit.ReactJSX,
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2022,
+        },
+        reportDiagnostics: true,
+      })
+      expect(transpiled.diagnostics ?? []).toEqual([])
+    }
+  })
+
+  it('creates meme coin asset directories when uploaded assets replace placeholders', () => {
+    const template = TEMPLATES.find((item) => item.id === 'meme-coin-website')
+    expect(template).toBeTruthy()
+
+    const scaffold = buildDeterministicScaffold(template!, 'UploadedMeme', {
+      memeSettings: {
+        tokenName: 'Uploaded Meme',
+        ticker: 'UPLOAD',
+        contractAddress: 'Upload111111111111111111111111111111111',
+        tagline: 'Assets copied from the setup wizard.',
+        xUrl: '#',
+        telegramUrl: '#',
+        chartUrl: '#',
+        buyUrl: '#',
+        logoAssetPath: 'C:\\Users\\offic\\Pictures\\logo.png',
+        heroAssetPath: 'C:\\Users\\offic\\Pictures\\hero.webp',
+        logoFileName: 'logo.png',
+        heroFileName: 'hero.webp',
+      },
+    })
+
+    const filePaths = new Set(scaffold.files.map((file) => file.path))
+    expect(scaffold.dirs).toContain('public/assets')
+    expect(filePaths.has('public/assets/logo.png')).toBe(false)
+    expect(filePaths.has('public/assets/hero.webp')).toBe(false)
+    expect(filePaths.has('public/assets/brand-mark.svg')).toBe(true)
+    expect(filePaths.has('public/assets/hero-poster.svg')).toBe(true)
+    expect(scaffold.files.find((file) => file.path === 'src/token-site.ts')?.content).toContain('/assets/logo.png')
+    expect(scaffold.files.find((file) => file.path === 'src/token-site.ts')?.content).toContain('/assets/hero.webp')
+    expect(scaffold.files.find((file) => file.path === 'src/token-site.ts')?.content).toContain('[localLogoSrc, tokenMetadataImageSrc, fallbackLogoSrc]')
   })
 })

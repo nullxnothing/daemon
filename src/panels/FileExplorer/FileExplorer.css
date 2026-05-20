@@ -1,5 +1,5 @@
 .file-explorer {
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
   overflow-y: auto;
   height: 100%;
   position: relative;
@@ -11,9 +11,11 @@
   z-index: 6;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 0 8px 8px;
-  background: var(--surface-flat);
+  gap: var(--space-sm);
+  margin: 0 var(--space-sm) var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--panel-bg);
 }
 
 .file-explorer-search {
@@ -21,8 +23,8 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 7px;
+  gap: var(--space-xs);
+  padding: 0 var(--space-sm);
   height: 30px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -61,7 +63,7 @@
   align-items: center;
   justify-content: center;
   color: var(--t3);
-  background: var(--surface-raised);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -142,7 +144,7 @@
 }
 
 .file-node:hover {
-  background: var(--surface-raised);
+  background: var(--hover-bg);
   color: var(--t1);
 }
 

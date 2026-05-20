@@ -416,9 +416,10 @@
 }
 
 .claude-section-title {
-  font-size: var(--fs-10);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
-  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  letter-spacing: var(--ls-eyebrow);
 }
 
 .restart-btn,

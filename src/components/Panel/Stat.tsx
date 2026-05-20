@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Surface } from './Surface'
 import styles from './Stat.module.css'
 
 type StatTone = 'default' | 'success' | 'warn' | 'danger' | 'info'
@@ -12,14 +13,6 @@ interface StatProps {
   labelClassName?: string
   valueClassName?: string
   detailClassName?: string
-}
-
-const TONE_CLASS: Record<StatTone, string | undefined> = {
-  default: undefined,
-  success: styles.success,
-  warn: styles.warn,
-  danger: styles.danger,
-  info: styles.info,
 }
 
 export function Stat({
@@ -40,16 +33,17 @@ export function Stat({
     return () => window.clearTimeout(timer)
   }, [value])
 
-  const classes = [styles.stat, TONE_CLASS[tone], className].filter(Boolean).join(' ')
+  const classes = [styles.stat, className].filter(Boolean).join(' ')
   const labelClass = [styles.label, labelClassName].filter(Boolean).join(' ')
   const valueClass = [styles.value, tick ? styles.tick : undefined, valueClassName].filter(Boolean).join(' ')
   const detailClass = [styles.detail, detailClassName].filter(Boolean).join(' ')
+  const normalizedValue = value === null || value === undefined || value === '' ? '—' : value
 
   return (
-    <div className={classes}>
+    <Surface className={classes} tone={tone === 'warn' ? 'warning' : tone}>
       <span className={labelClass}>{label}</span>
-      <strong className={valueClass}>{value}</strong>
+      <strong className={valueClass}>{normalizedValue}</strong>
       {detail ? <span className={detailClass}>{detail}</span> : null}
-    </div>
+    </Surface>
   )
 }

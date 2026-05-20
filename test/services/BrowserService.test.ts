@@ -12,8 +12,13 @@ describe('BrowserService.navigate', () => {
     expect(getLatestPage()?.url).toBe('https://example.com')
   })
 
-  it('rejects localhost and private network targets', async () => {
-    await expect(navigate('http://localhost:3000')).rejects.toThrow(/blocked/i)
+  it('accepts local dev preview urls without fetching server-side content', async () => {
+    const result = await navigate('http://localhost:3000')
+    expect(result.url).toBe('http://localhost:3000')
+    expect(getLatestPage()?.url).toBe('http://localhost:3000')
+  })
+
+  it('rejects private network targets', async () => {
     await expect(navigate('http://192.168.1.10')).rejects.toThrow(/blocked/i)
     await expect(navigate('http://172.20.1.5')).rejects.toThrow(/blocked/i)
     await expect(navigate('http://169.254.169.254/latest/meta-data')).rejects.toThrow(/blocked/i)

@@ -326,7 +326,7 @@ async function run() {
   await openTool(page, 'Wallet', '.wallet-panel')
   await page.waitForSelector('.wallet-tab', { timeout: 30000 })
   const walletSnapshot = await readLayoutSnapshot(page)
-  await openTool(page, 'Solana', '.solana-toolbox')
+  await openTool(page, 'Solana Workflow', '.solana-toolbox')
   const solanaSnapshot = await readLayoutSnapshot(page)
   const quickviewAvailable = await openWalletQuickView(page)
   const quickviewSnapshot = quickviewAvailable ? await readLayoutSnapshot(page) : null

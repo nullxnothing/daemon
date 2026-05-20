@@ -1,0 +1,637 @@
+.metaplex-demo-panel {
+  height: 100%;
+  overflow: auto;
+  padding: 22px;
+  color: #f5f7f4;
+  background: #090b0c;
+}
+
+.metaplex-demo-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #26312d;
+}
+
+.metaplex-demo-kicker {
+  display: block;
+  color: #5cff9d;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-head h2,
+.metaplex-demo-detail h3 {
+  margin: 8px 0 10px;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.metaplex-demo-head h2 {
+  font-size: 34px;
+}
+
+.metaplex-demo-head p,
+.metaplex-demo-card p,
+.metaplex-demo-detail p {
+  margin: 0;
+  color: #a9b5af;
+  line-height: 1.45;
+}
+
+.metaplex-demo-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.metaplex-demo-actions button,
+.metaplex-demo-filter button,
+.metaplex-demo-preview-list button,
+.metaplex-demo-detail-actions button {
+  border: 1px solid #2a3732;
+  border-radius: 6px;
+  background: #111615;
+  color: #dce6e0;
+  min-height: 38px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.metaplex-demo-actions button:hover,
+.metaplex-demo-filter button:hover,
+.metaplex-demo-preview-list button:hover,
+.metaplex-demo-detail-actions button:hover {
+  border-color: #5cff9d;
+}
+
+.metaplex-demo-actions button:disabled,
+.metaplex-demo-preview-list button:disabled,
+.metaplex-demo-detail-actions button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.metaplex-demo-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.metaplex-demo-metrics div,
+.metaplex-demo-nav,
+.metaplex-demo-card,
+.metaplex-demo-workflow-card,
+.metaplex-demo-detail,
+.metaplex-demo-detail-grid > div,
+.metaplex-demo-workflow-grid > div,
+.metaplex-demo-package-box,
+.metaplex-demo-flow div,
+.metaplex-demo-notice {
+  border: 1px solid #26312d;
+  border-radius: 8px;
+  background: #101413;
+}
+
+.metaplex-demo-metrics div {
+  padding: 14px;
+}
+
+.metaplex-demo-metrics strong {
+  display: block;
+  font-size: 28px;
+}
+
+.metaplex-demo-metrics span {
+  color: #a9b5af;
+}
+
+.metaplex-demo-notice {
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  color: #5cff9d;
+}
+
+.metaplex-demo-operator {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.1fr) minmax(280px, 0.9fr) minmax(260px, 0.75fr);
+  gap: 14px;
+  align-items: start;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #26312d;
+}
+
+.metaplex-demo-operator-copy,
+.metaplex-demo-operator-form,
+.metaplex-demo-operator-plan,
+.metaplex-demo-das-box,
+.metaplex-demo-live-write {
+  min-width: 0;
+}
+
+.metaplex-demo-operator-copy h3 {
+  margin: 8px 0 10px;
+  font-size: 28px;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-operator-copy p,
+.metaplex-demo-operator-stage p,
+.metaplex-demo-das-status {
+  margin: 0;
+  color: #a9b5af;
+  line-height: 1.45;
+}
+
+.metaplex-demo-operator-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.metaplex-demo-operator-actions button,
+.metaplex-demo-operator-form input,
+.metaplex-demo-operator-form select,
+.metaplex-demo-das-box input,
+.metaplex-demo-das-box select,
+.metaplex-demo-live-write input,
+.metaplex-demo-live-write select,
+.metaplex-demo-live-write button {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #2a3732;
+  border-radius: 6px;
+  background: #111615;
+  color: #dce6e0;
+  padding: 8px 10px;
+}
+
+.metaplex-demo-operator-actions button {
+  cursor: pointer;
+}
+
+.metaplex-demo-operator-actions button:hover,
+.metaplex-demo-live-write button:hover {
+  border-color: #5cff9d;
+}
+
+.metaplex-demo-operator-actions button:disabled,
+.metaplex-demo-live-write button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.metaplex-demo-operator-warning,
+.metaplex-demo-live-write,
+.metaplex-demo-operator-plan,
+.metaplex-demo-das-box {
+  border: 1px solid #26312d;
+  border-radius: 8px;
+  background: #101413;
+}
+
+.metaplex-demo-operator-warning {
+  padding: 12px;
+}
+
+.metaplex-demo-operator-warning strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #f3c869;
+}
+
+.metaplex-demo-live-write {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.metaplex-demo-live-write strong {
+  color: #5cff9d;
+}
+
+.metaplex-demo-live-write label {
+  display: grid;
+  gap: 6px;
+  color: #a9b5af;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-live-write button {
+  color: #08100d;
+  background: #5cff9d;
+  cursor: pointer;
+}
+
+.metaplex-demo-operator-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metaplex-demo-operator-form label,
+.metaplex-demo-das-box label {
+  display: grid;
+  gap: 6px;
+  color: #a9b5af;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-operator-form label.wide {
+  grid-column: 1 / -1;
+}
+
+.metaplex-demo-operator-plan,
+.metaplex-demo-das-box {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.metaplex-demo-operator-plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #68d8ff;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-operator-plan-head strong {
+  border: 1px solid #5cff9d;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #5cff9d;
+}
+
+.metaplex-demo-operator-stage {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid #26312d;
+  border-radius: 8px;
+  background: #0d1110;
+}
+
+.metaplex-demo-operator-stage > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #5cff9d;
+  border-radius: 50%;
+  color: #5cff9d;
+}
+
+.metaplex-demo-operator-stage strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.metaplex-demo-das-status {
+  padding: 10px;
+  border: 1px solid #26312d;
+  border-radius: 6px;
+  background: #0d1110;
+}
+
+.metaplex-demo-grid {
+  display: grid;
+  grid-template-columns: 240px minmax(460px, 1.35fr) minmax(320px, 0.95fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.metaplex-demo-nav {
+  padding: 12px;
+}
+
+.metaplex-demo-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #26312d;
+}
+
+.metaplex-demo-filter button.active {
+  border-color: #5cff9d;
+  color: #5cff9d;
+}
+
+.metaplex-demo-preview-list {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.metaplex-demo-preview-list span {
+  color: #68d8ff;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-preview-list button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-list {
+  display: grid;
+  gap: 12px;
+}
+
+.metaplex-demo-workflows {
+  display: grid;
+  grid-template-columns: minmax(400px, 1.1fr) minmax(360px, 0.9fr);
+  gap: 14px;
+  margin-bottom: 18px;
+  align-items: start;
+}
+
+.metaplex-demo-workflow-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.metaplex-demo-workflow-card {
+  display: grid;
+  gap: 8px;
+  min-height: 176px;
+  padding: 14px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.metaplex-demo-workflow-card.active {
+  border-color: #5cff9d;
+  background: #121816;
+}
+
+.metaplex-demo-workflow-card span {
+  color: #68d8ff;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-workflow-card strong {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-workflow-card p {
+  margin: 0;
+  color: #a9b5af;
+  line-height: 1.45;
+}
+
+.metaplex-demo-workflow-detail {
+  padding: 16px;
+  border-left: 1px solid #26312d;
+  background: #0d1110;
+}
+
+.metaplex-demo-workflow-detail h3 {
+  margin: 8px 0 10px;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.metaplex-demo-workflow-detail p {
+  margin: 0;
+  color: #a9b5af;
+  line-height: 1.45;
+}
+
+.metaplex-demo-workflow-grid {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.metaplex-demo-workflow-grid > div {
+  padding: 12px;
+}
+
+.metaplex-demo-workflow-grid strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.metaplex-demo-workflow-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metaplex-demo-workflow-tags button,
+.metaplex-demo-doc-link {
+  border: 1px solid #2a3732;
+  border-radius: 6px;
+  background: #111615;
+  color: #dce6e0;
+  min-height: 34px;
+  padding: 7px 9px;
+  cursor: pointer;
+}
+
+.metaplex-demo-doc-link {
+  color: #5cff9d;
+  border-color: #5cff9d;
+}
+
+.metaplex-demo-workflow-tags button:hover,
+.metaplex-demo-doc-link:hover {
+  border-color: #5cff9d;
+}
+
+.metaplex-demo-lane {
+  display: grid;
+  gap: 8px;
+}
+
+.metaplex-demo-lane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #68d8ff;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-lane-head strong {
+  min-width: 26px;
+  min-height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #26312d;
+  border-radius: 999px;
+  color: #dce6e0;
+  background: #101413;
+}
+
+.metaplex-demo-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.metaplex-demo-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.metaplex-demo-card.active {
+  border-color: #5cff9d;
+}
+
+.metaplex-demo-card span {
+  color: #68d8ff;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metaplex-demo-card strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-card p {
+  display: -webkit-box;
+  min-height: 62px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-card code {
+  align-self: end;
+  justify-self: start;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #5cff9d;
+  color: #08100d;
+}
+
+.metaplex-demo-detail {
+  padding: 18px;
+}
+
+.metaplex-demo-detail h3 {
+  font-size: 28px;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.metaplex-demo-detail-grid > div,
+.metaplex-demo-package-box {
+  padding: 12px;
+}
+
+.metaplex-demo-detail-grid strong,
+.metaplex-demo-package-box strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.metaplex-demo-package-box {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.metaplex-demo-package-box code {
+  color: #dce6e0;
+  overflow-wrap: anywhere;
+}
+
+.metaplex-demo-flow {
+  display: grid;
+  gap: 8px;
+}
+
+.metaplex-demo-flow div {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+}
+
+.metaplex-demo-flow span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #5cff9d;
+  border-radius: 50%;
+  color: #5cff9d;
+}
+
+.metaplex-demo-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1180px) {
+  .metaplex-demo-head,
+  .metaplex-demo-operator,
+  .metaplex-demo-workflows,
+  .metaplex-demo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metaplex-demo-actions,
+  .metaplex-demo-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .metaplex-demo-panel {
+    padding: 14px;
+  }
+
+  .metaplex-demo-head h2 {
+    font-size: 34px;
+  }
+
+  .metaplex-demo-actions,
+  .metaplex-demo-metrics,
+  .metaplex-demo-operator-actions,
+  .metaplex-demo-operator-form,
+  .metaplex-demo-workflow-list,
+  .metaplex-demo-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

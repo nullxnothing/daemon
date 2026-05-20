@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+import { Surface } from './Surface'
 import styles from './DataRow.module.css'
 
 type DataRowTone = 'default' | 'success' | 'warn' | 'danger' | 'info'
+type DataRowDensity = 'compact' | 'default' | 'spacious'
 
 interface DataRowProps {
   leading?: ReactNode
@@ -10,22 +12,15 @@ interface DataRowProps {
   detail?: ReactNode
   actions?: ReactNode
   tone?: DataRowTone
+  density?: DataRowDensity
   className?: string
 }
 
-const TONE_CLASS: Record<DataRowTone, string | undefined> = {
-  default: undefined,
-  success: styles.success,
-  warn: styles.warn,
-  danger: styles.danger,
-  info: styles.info,
-}
-
-export function DataRow({ leading, title, meta, detail, actions, tone = 'default', className }: DataRowProps) {
-  const classes = [styles.row, TONE_CLASS[tone], className].filter(Boolean).join(' ')
+export function DataRow({ leading, title, meta, detail, actions, tone = 'default', density = 'default', className }: DataRowProps) {
+  const classes = [styles.row, styles[density], className].filter(Boolean).join(' ')
 
   return (
-    <article className={classes}>
+    <Surface className={classes} tone={tone === 'warn' ? 'warning' : tone} padding="sm">
       {leading ? <div className={styles.leading}>{leading}</div> : null}
       <div className={styles.main}>
         <div className={styles.titleLine}>
@@ -35,6 +30,6 @@ export function DataRow({ leading, title, meta, detail, actions, tone = 'default
         {detail ? <div className={styles.detail}>{detail}</div> : null}
       </div>
       {actions ? <div className={styles.actions}>{actions}</div> : null}
-    </article>
+    </Surface>
   )
 }

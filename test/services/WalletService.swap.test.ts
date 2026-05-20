@@ -637,6 +637,81 @@ describe('transferToken — validation', () => {
       { computeUnitLimit: 140_000 },
     )
   })
+
+  it('converts tiny decimal token sends without exponent notation drift', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain())
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 9 } },
+        },
+      },
+    })
+    mockGetAssociatedTokenAddress
+      .mockResolvedValueOnce('from-ata')
+      .mockResolvedValueOnce('to-ata')
+    mockGetAccount
+      .mockResolvedValueOnce({ amount: 10n })
+      .mockResolvedValueOnce({ amount: 1n })
+    mockCreateTransferInstruction.mockReturnValue({})
+    mockCreateAssociatedTokenAccountInstruction.mockReturnValue({})
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await transferToken(
+      'w1',
+      'So11111111111111111111111111111111111111112',
+      'So11111111111111111111111111111111111111112',
+      0.000000001,
+    )
+
+    expect(mockCreateTransferInstruction).toHaveBeenCalledWith(
+      'from-ata',
+      'to-ata',
+      fakeKeypair.publicKey,
+      1n,
+    )
+  })
+
+  it('rejects token amounts below the mint precision', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain())
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 9 } },
+        },
+      },
+    })
+    mockGetAssociatedTokenAddress.mockResolvedValue('from-ata')
+    mockGetAccount.mockResolvedValue({ amount: 10n })
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await expect(
+      transferToken(
+        'w1',
+        'So11111111111111111111111111111111111111112',
+        'So11111111111111111111111111111111111111112',
+        0.0000000001,
+      )
+    ).rejects.toThrow(/token precision/i)
+
+    expect(mockCreateTransferInstruction).not.toHaveBeenCalled()
+  })
 })
 
 describe('Jupiter swap — Swap API V2', () => {
@@ -701,6 +776,14 @@ describe('Jupiter swap — Swap API V2', () => {
       verified: true,
       tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
     }])
+  })
+
+  it('rejects invalid slippage before requesting a Jupiter order', async () => {
+    await expect(
+      getSwapQuote('w1', inputMint, outputMint, 0.1, 0)
+    ).rejects.toThrow(/slippage/i)
+
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it('coalesces and caches repeated Jupiter token searches', async () => {

@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { Toggle } from '../../../components/Toggle'
+import { getSolscanTxLabel } from '../../../lib/solanaExplorer'
+import { describePumpfunError, openPumpfunSignature, shortSignature } from './pumpfunUi'
 
-interface Props { walletId: string | null }
+interface Props {
+  walletId: string | null
+  cluster: WalletInfrastructureSettings['cluster']
+}
 
-export function LaunchTab({ walletId }: Props) {
+export function LaunchTab({ walletId, cluster }: Props) {
   const [name, setName] = useState('')
   const [symbol, setSymbol] = useState('')
   const [description, setDescription] = useState('')
@@ -14,8 +19,16 @@ export function LaunchTab({ walletId }: Props) {
   const [result, setResult] = useState<{ signature?: string; mint?: string; error?: string } | null>(null)
 
   const handlePickImage = async () => {
-    const res = await window.daemon.launch.pickImage()
-    if (res.ok && res.data) setImagePath(res.data)
+    try {
+      const res = await window.daemon.launch.pickImage()
+      if (res.ok && res.data) {
+        setImagePath(res.data)
+      } else if (!res.ok) {
+        setResult({ error: describePumpfunError(res.error, 'Could not read the selected token image.') })
+      }
+    } catch (error) {
+      setResult({ error: describePumpfunError(error instanceof Error ? error.message : null, 'Could not read the selected token image.') })
+    }
   }
 
   const handleLaunch = async () => {
@@ -23,32 +36,33 @@ export function LaunchTab({ walletId }: Props) {
     setLaunching(true)
     setResult(null)
 
-    const res = await window.daemon.launch.createToken({
-      launchpad: 'pumpfun',
-      walletId,
-      name: name.trim(),
-      symbol: symbol.trim().toUpperCase(),
-      description: description.trim(),
-      imagePath,
-      twitter: '',
-      telegram: '',
-      website: '',
-      initialBuySol: parseFloat(initialBuy) || 0,
-      slippageBps: 1000,
-      priorityFeeSol: 0.005,
-      mayhemMode,
-    })
+    try {
+      const res = await window.daemon.launch.createToken({
+        launchpad: 'pumpfun',
+        walletId,
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        description: description.trim(),
+        imagePath,
+        twitter: '',
+        telegram: '',
+        website: '',
+        initialBuySol: parseFloat(initialBuy) || 0,
+        slippageBps: 1000,
+        priorityFeeSol: 0.005,
+        mayhemMode,
+      })
 
-    if (res.ok && res.data) {
-      setResult({ signature: res.data.signature, mint: res.data.mint })
-    } else {
-      setResult({ error: res.error ?? 'Launch failed' })
+      if (res.ok && res.data) {
+        setResult({ signature: res.data.signature, mint: res.data.mint })
+      } else {
+        setResult({ error: describePumpfunError(res.error, 'Token launch failed. Nothing was submitted.') })
+      }
+    } catch (error) {
+      setResult({ error: describePumpfunError(error instanceof Error ? error.message : null, 'Token launch failed. Nothing was submitted.') })
+    } finally {
+      setLaunching(false)
     }
-    setLaunching(false)
-  }
-
-  const openTx = (sig: string) => {
-    window.daemon.shell.openExternal(`https://solscan.io/tx/${sig}`)
   }
 
   return (
@@ -107,10 +121,10 @@ export function LaunchTab({ walletId }: Props) {
 
       {result?.signature && (
         <div className="pf-result success">
-          Token launched{result.mint ? ` (${result.mint.slice(0, 6)}...${result.mint.slice(-4)})` : ''}.{' '}
-          <span className="pf-tx-link" onClick={() => openTx(result.signature!)}>
-            {result.signature.slice(0, 20)}...
-          </span>
+          <span>Token launched{result.mint ? ` (${result.mint.slice(0, 6)}...${result.mint.slice(-4)})` : ''}. Receipt {shortSignature(result.signature)}.</span>
+          <button type="button" className="pf-tx-link" onClick={() => void openPumpfunSignature(result.signature!, cluster)}>
+            {getSolscanTxLabel(cluster)}
+          </button>
         </div>
       )}
 

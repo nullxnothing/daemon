@@ -542,7 +542,7 @@ export function ReplayEngine() {
             <li>· Decoded instruction tree with inner instructions</li>
             <li>· Writable-account lamport and SPL token diffs</li>
             <li>· Anchor error code, account, and program decoded from logs</li>
-            <li>· One-click context handoff to Claude</li>
+            <li>· Context handoff to Claude</li>
           </ul>
         </div>
       ) : null}

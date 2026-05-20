@@ -11,7 +11,9 @@ import fs from 'node:fs'
  * Centralizes RPC connection creation and keypair lifecycle management.
  */
 
-const PUBLIC_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com'
+const PUBLIC_MAINNET_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com'
+const PUBLIC_DEVNET_RPC_ENDPOINT = 'https://api.devnet.solana.com'
+const PUBLIC_LOCALNET_RPC_ENDPOINT = 'http://127.0.0.1:8899'
 const DEFAULT_COMPUTE_UNIT_LIMIT = 200_000
 const DEFAULT_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS = 100_000
 const PRIORITY_FEE_CACHE_MS = 30_000
@@ -26,6 +28,18 @@ interface BlockheightConfirmationStrategy {
 let publicRpcFallbackWarned = false
 let priorityFeeCache: { endpoint: string; value: number; expiresAt: number } | null = null
 
+function publicRpcEndpointForCluster(cluster: ReturnType<typeof getWalletInfrastructureSettings>['cluster']): string {
+  if (cluster === 'mainnet-beta') return PUBLIC_MAINNET_RPC_ENDPOINT
+  if (cluster === 'localnet') return PUBLIC_LOCALNET_RPC_ENDPOINT
+  return PUBLIC_DEVNET_RPC_ENDPOINT
+}
+
+function heliusRpcEndpointForCluster(cluster: ReturnType<typeof getWalletInfrastructureSettings>['cluster'], key: string): string {
+  if (cluster === 'localnet') return PUBLIC_LOCALNET_RPC_ENDPOINT
+  const subdomain = cluster === 'mainnet-beta' ? 'mainnet' : 'devnet'
+  return `https://${subdomain}.helius-rpc.com/?api-key=${key}`
+}
+
 export function getHeliusApiKey(): string | null {
   return SecureKey.getKey('HELIUS_API_KEY') ?? process.env.HELIUS_API_KEY ?? null
 }
@@ -36,6 +50,8 @@ export function getJupiterApiKey(): string | null {
 
 export function getRpcEndpoint(): string {
   const settings = getWalletInfrastructureSettings()
+  const publicEndpoint = publicRpcEndpointForCluster(settings.cluster)
+  if (settings.cluster === 'localnet') return publicEndpoint
   if (settings.rpcProvider === 'quicknode') {
     if (settings.quicknodeRpcUrl) return settings.quicknodeRpcUrl
     warnPublicRpcFallback('QuickNode RPC is selected but no QuickNode endpoint is configured.')
@@ -47,7 +63,7 @@ export function getRpcEndpoint(): string {
 
   if (settings.rpcProvider === 'helius') {
     const key = getHeliusApiKey()
-    if (key) return `https://mainnet.helius-rpc.com/?api-key=${key}`
+    if (key) return heliusRpcEndpointForCluster(settings.cluster, key)
     warnPublicRpcFallback('Helius RPC is selected but HELIUS_API_KEY is not configured.')
   }
 
@@ -55,7 +71,7 @@ export function getRpcEndpoint(): string {
     warnPublicRpcFallback('Public Solana RPC is selected.')
   }
 
-  return PUBLIC_RPC_ENDPOINT
+  return publicEndpoint
 }
 
 export function getConnection(): Connection {
@@ -65,7 +81,7 @@ export function getConnection(): Connection {
 export function getConnectionStrict(): Connection {
   const key = getHeliusApiKey()
   if (!key) throw new Error('HELIUS_API_KEY not configured. Add it in Wallet settings.')
-  return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
+  return new Connection(heliusRpcEndpointForCluster(getWalletInfrastructureSettings().cluster, key), 'confirmed')
 }
 
 export function getTransactionSubmissionSettings() {
@@ -86,8 +102,9 @@ export interface TransactionExecutionResult {
 function warnPublicRpcFallback(reason: string): void {
   if (publicRpcFallbackWarned) return
   publicRpcFallbackWarned = true
-  const message = 'Using public Solana mainnet RPC fallback. Public RPC is aggressively rate limited; configure Helius, QuickNode, or a custom RPC for wallet execution.'
-  LogService.warn('SolanaService', message, { reason, endpoint: PUBLIC_RPC_ENDPOINT })
+  const endpoint = publicRpcEndpointForCluster(getWalletInfrastructureSettings().cluster)
+  const message = 'Using public Solana RPC fallback. Public RPC is aggressively rate limited; configure Helius, QuickNode, or a custom RPC for wallet execution.'
+  LogService.warn('SolanaService', message, { reason, endpoint })
 }
 
 function getComputeBudgetOpcode(ix: TransactionInstruction): number | null {

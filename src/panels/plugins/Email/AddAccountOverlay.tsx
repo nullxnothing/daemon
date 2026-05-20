@@ -114,7 +114,7 @@ export function AddAccountOverlay({ onClose, onAccountAdded }: AddAccountOverlay
                 <span className="email__auth-waiting-hint">Complete sign-in in your browser. This window will update automatically.</span>
               </div>
             ) : hasGmailCreds && !showCredsForm ? (
-              /* One-click connect — credentials already stored */
+              /* Connect with credentials already stored */
               <>
                 <button type="button" className="email__auth-btn email__auth-btn--primary" onClick={handleGmailQuickConnect}>
                   Connect with Google
