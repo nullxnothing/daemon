@@ -458,7 +458,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     wrapperRef.current?.classList.toggle('drag-active', active)
   }
 
-  const quotePath = (value: string) => `"${value.replace(/"/g, '\\"')}"`
+  const quotePath = (value: string) => `"${value.replace(/[\\"]/g, (char) => `\\${char}`)}"`
 
   const writeDroppedPaths = (paths: string[]) => {
     if (paths.length === 0) return
