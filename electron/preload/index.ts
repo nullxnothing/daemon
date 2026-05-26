@@ -1,6 +1,15 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { ipcRenderer, contextBridge, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('daemon', {
+  // Electron 32+ removed File.path; webUtils.getPathForFile is the supported
+  // way to resolve the absolute path of a dropped/selected File in the renderer.
+  getPathForFile: (file: File): string => {
+    try {
+      return webUtils.getPathForFile(file)
+    } catch {
+      return (file as File & { path?: string }).path ?? ''
+    }
+  },
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
@@ -19,10 +28,21 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  agentops: {
+    getPendingOpenRequest: () => ipcRenderer.invoke('agentops:get-pending-open-request'),
+    ackOpenRequest: (receivedAt: string) => ipcRenderer.invoke('agentops:ack-open-request', receivedAt),
+    deriveAccounts: (assetAddress: string) => ipcRenderer.invoke('agentops:derive-accounts', assetAddress),
+    onOpenRequest: (callback: (payload: unknown) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: unknown) => callback(payload)
+      ipcRenderer.on('agentops:open-request', handler)
+      return () => ipcRenderer.off('agentops:open-request', handler)
+    },
+  },
+
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
-    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
     ready: (id: string, cols?: number, rows?: number) => ipcRenderer.send('terminal:ready', id, cols, rows),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
@@ -86,6 +106,9 @@ contextBridge.exposeInMainWorld('daemon', {
       confirmedAt: number
       acknowledgement: string
     }) => ipcRenderer.invoke('metaplex:create-core-agent-asset', input),
+    mintRegisteredAgent: (input: object) => ipcRenderer.invoke('metaplex:mint-registered-agent', input),
+    registerAgentIdentity: (input: object) => ipcRenderer.invoke('metaplex:register-agent-identity', input),
+    readAgentIdentity: (input: object) => ipcRenderer.invoke('metaplex:read-agent-identity', input),
   },
 
   fs: {
@@ -98,6 +121,7 @@ contextBridge.exposeInMainWorld('daemon', {
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
     createFile: (filePath: string) => ipcRenderer.invoke('fs:createFile', filePath),
     createDir: (dirPath: string) => ipcRenderer.invoke('fs:createDir', dirPath),
+    importPaths: (sourcePaths: string[], destDir: string) => ipcRenderer.invoke('fs:importPaths', sourcePaths, destDir),
     rename: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:rename', oldPath, newPath),
     delete: (targetPath: string) => ipcRenderer.invoke('fs:delete', targetPath),
     reveal: (targetPath: string) => ipcRenderer.invoke('fs:reveal', targetPath),
@@ -230,6 +254,15 @@ contextBridge.exposeInMainWorld('daemon', {
     recent: (limit?: number) => ipcRenderer.invoke('telemetry:recent', limit),
   },
 
+  voight: {
+    status: () => ipcRenderer.invoke('voight:status'),
+    storeKey: (value: string) => ipcRenderer.invoke('voight:store-key', value),
+    deleteKey: () => ipcRenderer.invoke('voight:delete-key'),
+    testEvent: () => ipcRenderer.invoke('voight:test-event'),
+    setPrivacyLevel: (level: 'minimal' | 'standard' | 'full') => ipcRenderer.invoke('voight:set-privacy-level', level),
+    flushQueue: () => ipcRenderer.invoke('voight:flush-queue'),
+  },
+
   git: {
     branch: (cwd: string) => ipcRenderer.invoke('git:branch', cwd),
     branches: (cwd: string) => ipcRenderer.invoke('git:branches', cwd),
@@ -289,6 +322,7 @@ contextBridge.exposeInMainWorld('daemon', {
     agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
     createAgentWallet: (agentId: string, agentName: string) => ipcRenderer.invoke('wallet:create-agent-wallet', agentId, agentName),
     hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
+    signMessage: (walletId: string, message: string) => ipcRenderer.invoke('wallet:sign-message', walletId, message),
     transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
     exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
   },
@@ -688,6 +722,30 @@ contextBridge.exposeInMainWorld('daemon', {
     checkPolicy: (input: unknown) => ipcRenderer.invoke('idle:check-policy', input),
     executePaidCall: (input: unknown) => ipcRenderer.invoke('idle:execute-paid-call', input),
     listReceipts: (limit?: number) => ipcRenderer.invoke('idle:list-receipts', limit),
+  },
+
+  meterflow: {
+    status: () => ipcRenderer.invoke('meterflow:status'),
+    storeApiKey: (apiKey: string) => ipcRenderer.invoke('meterflow:store-api-key', apiKey),
+    deleteApiKey: () => ipcRenderer.invoke('meterflow:delete-api-key'),
+    overview: () => ipcRenderer.invoke('meterflow:overview'),
+    listReceipts: (input?: number | { meterId?: string; status?: string; limit?: number }) => ipcRenderer.invoke('meterflow:list-receipts', input ?? {}),
+    getReceipt: (receiptId: string) => ipcRenderer.invoke('meterflow:get-receipt', receiptId),
+    ingestReceipt: (receipt: object) => ipcRenderer.invoke('meterflow:ingest-receipt', receipt),
+    createDemoWallet: () => ipcRenderer.invoke('meterflow:create-demo-wallet'),
+    getDemoWallet: () => ipcRenderer.invoke('meterflow:get-demo-wallet'),
+    checkDemoWalletReadiness: () => ipcRenderer.invoke('meterflow:check-demo-wallet-readiness'),
+    callPaidAgentReadiness: (input: object) => ipcRenderer.invoke('meterflow:call-paid-agent-readiness', input),
+    watchProject: (projectPath: string) => ipcRenderer.invoke('meterflow:watch-project', projectPath),
+    getReceiptGraph: (receiptId: string) => ipcRenderer.invoke('meterflow:get-receipt-graph', receiptId),
+    listMeters: () => ipcRenderer.invoke('meterflow:list-meters'),
+    testMeter: (meterId: string) => ipcRenderer.invoke('meterflow:test-meter', meterId),
+    listBudgets: () => ipcRenderer.invoke('meterflow:list-budgets'),
+    listAgentSessions: () => ipcRenderer.invoke('meterflow:list-agent-sessions'),
+    listWebhooks: () => ipcRenderer.invoke('meterflow:list-webhooks'),
+    providerRevenue: () => ipcRenderer.invoke('meterflow:provider-revenue'),
+    registrySummary: () => ipcRenderer.invoke('meterflow:registry-summary'),
+    exportReceiptsCsv: () => ipcRenderer.invoke('meterflow:export-receipts-csv'),
   },
 
   replay: {

@@ -118,7 +118,7 @@ export function TerminalPanel() {
 
     const files = Array.from(e.dataTransfer.files)
     for (const file of files) {
-      const filePath = (file as File & { path?: string }).path
+      const filePath = window.daemon?.getPathForFile?.(file) || (file as File & { path?: string }).path
       if (!filePath) continue
 
       const folderName = filePath.replace(/\\/g, '/').split('/').pop() ?? 'Terminal'
@@ -155,6 +155,22 @@ export function TerminalPanel() {
       return
     }
     setLaunchError(res.error ?? 'Failed to start Solana agent.')
+  }, [resolveProjectContext, addTerminal])
+
+  const handleStartSpettro = useCallback(async () => {
+    const projectContext = resolveProjectContext()
+    if (!projectContext) return
+    setLaunchError(null)
+    const res = await window.daemon.terminal.spawnProvider({
+      providerId: 'spettro',
+      projectId: projectContext.projectId,
+      cwd: projectContext.projectPath,
+    })
+    if (res.ok && res.data) {
+      addTerminal(projectContext.projectId, res.data.id, res.data.agentName ?? 'Spettro', res.data.agentId)
+      return
+    }
+    setLaunchError(res.error ?? 'Failed to start Spettro.')
   }, [resolveProjectContext, addTerminal])
 
   const handleLaunchAgent = useCallback(async (agent: Agent) => {
@@ -313,6 +329,7 @@ export function TerminalPanel() {
         onUnsplit={handleUnsplit}
         onStartShell={handleStartShell}
         onStartClaudeChat={handleStartClaudeChat}
+        onStartSpettro={handleStartSpettro}
         onStartSolanaAgent={handleStartSolanaAgent}
         onLaunchAgent={handleLaunchAgent}
         onLaunchCommand={handleLaunchCommand}

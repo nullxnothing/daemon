@@ -17,6 +17,7 @@ import {
   getMonthlyAiCredits,
   hasFeature,
 } from './EntitlementService'
+import * as Voight from './VoightService'
 import { getVerifiedEntitlementState } from './EntitlementGuardService'
 import type {
   DaemonAiAccessMode,
@@ -297,6 +298,7 @@ async function runByokChat(prompt: string, lane: DaemonAiModelLane, projectPath?
 }
 
 export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResponse> {
+  const startedAt = Date.now()
   const request = normalizeChatRequest(input)
 
   const prefs = ProviderRegistry.getPreferences()
@@ -384,6 +386,32 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
     providerCostUsd: toNumber(hostedResult?.usage?.providerCostUsd) ?? 0,
     daemonCreditsCharged: charged,
     createdAt: Date.now(),
+  })
+
+  Voight.emitEventSafe({
+    agentId: 'daemon-ai',
+    type: 'reasoning',
+    input: {
+      messages: [{ role: 'user', content: request.message }],
+      mode: request.mode,
+      projectId: request.projectId,
+      projectPath: request.projectPath,
+      usedContext: context.usedContext,
+    },
+    reasoning: { response: text },
+    outcome: 'success',
+    durationMs: Date.now() - startedAt,
+    model: hostedResult?.model ?? modelForLane(lane),
+    metadata: {
+      sessionId: conversationId,
+      traceId: messageId,
+      tokens: {
+        input: toNumber(inputTokens) ?? estimateTokens(fullPrompt),
+        output: toNumber(outputTokens) ?? estimateTokens(text),
+      },
+      accessMode,
+      lane,
+    },
   })
 
   insertMessage(conversationId, 'assistant', text, { accessMode, lane, messageId })

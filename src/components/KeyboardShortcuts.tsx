@@ -39,6 +39,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'System',
     shortcuts: [
       { keys: 'Ctrl+Shift+R', description: 'Reload window' },
+      { keys: '?', description: 'Show keyboard shortcuts' },
       { keys: 'Escape', description: 'Close modal/palette' },
     ],
   },

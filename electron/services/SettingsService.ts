@@ -22,10 +22,25 @@ export interface PrintrLaunchpadSettings {
   chain: string
 }
 
+export interface OpenBidLaunchpadSettings {
+  apiBaseUrl: string
+  chainId: string
+  dex: 'meteora' | 'raydium' | ''
+  feeTier: string
+  packageType: 'based' | 'super_based' | 'ultra_based' | ''
+  marketCap: string
+  totalSupply: string
+  maxAllocationPerUser: string
+  referrer: string
+  board: string
+  boardOwner: string
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadSettings
   meteora: MeteoraLaunchpadSettings
   printr: PrintrLaunchpadSettings
+  openbid: OpenBidLaunchpadSettings
 }
 
 export interface WalletInfrastructureSettings {
@@ -236,6 +251,19 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
     createPath: '',
     chain: '',
   },
+  openbid: {
+    apiBaseUrl: '',
+    chainId: '',
+    dex: '',
+    feeTier: '',
+    packageType: '',
+    marketCap: '',
+    totalSupply: '',
+    maxAllocationPerUser: '',
+    referrer: '',
+    board: '',
+    boardOwner: '',
+  },
 }
 
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
@@ -276,6 +304,16 @@ function validateOptionalPositiveInteger(value: string, fieldName: string): void
   }
 }
 
+function validateOptionalNumberString(value: string, fieldName: string): void {
+  if (!value) return
+  if (!/^\d+(\.\d+)?$/.test(value)) {
+    throw new Error(`${fieldName} must be a valid number`)
+  }
+  if (Number(value) <= 0) {
+    throw new Error(`${fieldName} must be greater than zero`)
+  }
+}
+
 function validateOptionalHttpUrl(value: string, fieldName: string): void {
   if (!value) return
   let url: URL
@@ -308,6 +346,21 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
       createPath: normalizeText(value?.printr?.createPath),
       chain: normalizeText(value?.printr?.chain),
     },
+    openbid: {
+      apiBaseUrl: normalizeText(value?.openbid?.apiBaseUrl),
+      chainId: normalizeText(value?.openbid?.chainId),
+      dex: value?.openbid?.dex === 'raydium' || value?.openbid?.dex === 'meteora' ? value.openbid.dex : '',
+      feeTier: normalizeText(value?.openbid?.feeTier),
+      packageType: value?.openbid?.packageType === 'super_based' || value?.openbid?.packageType === 'ultra_based' || value?.openbid?.packageType === 'based'
+        ? value.openbid.packageType
+        : '',
+      marketCap: normalizeText(value?.openbid?.marketCap),
+      totalSupply: normalizeText(value?.openbid?.totalSupply),
+      maxAllocationPerUser: normalizeText(value?.openbid?.maxAllocationPerUser),
+      referrer: normalizeText(value?.openbid?.referrer),
+      board: normalizeText(value?.openbid?.board),
+      boardOwner: normalizeText(value?.openbid?.boardOwner),
+    },
   }
 }
 
@@ -329,6 +382,21 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
       createPath: normalizeText(settings?.printr?.createPath),
       chain: normalizeText(settings?.printr?.chain),
     },
+    openbid: {
+      apiBaseUrl: normalizeText(settings?.openbid?.apiBaseUrl),
+      chainId: normalizeText(settings?.openbid?.chainId),
+      dex: settings?.openbid?.dex === 'raydium' || settings?.openbid?.dex === 'meteora' ? settings.openbid.dex : '',
+      feeTier: normalizeText(settings?.openbid?.feeTier),
+      packageType: settings?.openbid?.packageType === 'super_based' || settings?.openbid?.packageType === 'ultra_based' || settings?.openbid?.packageType === 'based'
+        ? settings.openbid.packageType
+        : '',
+      marketCap: normalizeText(settings?.openbid?.marketCap),
+      totalSupply: normalizeText(settings?.openbid?.totalSupply),
+      maxAllocationPerUser: normalizeText(settings?.openbid?.maxAllocationPerUser),
+      referrer: normalizeText(settings?.openbid?.referrer),
+      board: normalizeText(settings?.openbid?.board),
+      boardOwner: normalizeText(settings?.openbid?.boardOwner),
+    },
   }
 
   validateOptionalPublicKey(next.raydium.configId, 'Raydium config ID')
@@ -342,6 +410,21 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   }
   if (next.printr.createPath && !next.printr.createPath.startsWith('/')) {
     throw new Error('Printr create path must start with "/"')
+  }
+  validateOptionalHttpUrl(next.openbid.apiBaseUrl, 'OpenBid API base URL')
+  validateOptionalPositiveInteger(next.openbid.chainId, 'OpenBid chain ID')
+  if (next.openbid.feeTier && !['0', '1', '2', '3'].includes(next.openbid.feeTier)) {
+    throw new Error('OpenBid fee tier must be 0, 1, 2, or 3')
+  }
+  validateOptionalNumberString(next.openbid.marketCap, 'OpenBid market cap')
+  validateOptionalNumberString(next.openbid.totalSupply, 'OpenBid total supply')
+  if (next.openbid.maxAllocationPerUser && !/^\d+(\.\d+)?$/.test(next.openbid.maxAllocationPerUser)) {
+    throw new Error('OpenBid max allocation per user must be a valid number')
+  }
+  validateOptionalPublicKey(next.openbid.referrer, 'OpenBid referrer')
+  validateOptionalPublicKey(next.openbid.boardOwner, 'OpenBid board owner')
+  if ((next.openbid.board && !next.openbid.boardOwner) || (!next.openbid.board && next.openbid.boardOwner)) {
+    throw new Error('OpenBid board and board owner must both be set or both be empty')
   }
 
   setJsonSetting('token_launch_settings', next)

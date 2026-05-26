@@ -413,8 +413,8 @@ export function MetaplexDemoPanel() {
       <section className="metaplex-demo-head">
         <div>
           <span className="metaplex-demo-kicker">DAEMON / Metaplex</span>
-          <h2>Metaplex capability workbench</h2>
-          <p>Native DAEMON operator surface for Agent Registry, agent tokens, Genesis launches, creator-fee receipts, Core assets, DAS verification, and CLI handoff.</p>
+          <h2>Metaplex AgentOps workbench</h2>
+          <p>Native DAEMON surface for Agent Registry, service metadata, x402 commerce, cloud runs, work receipts, Genesis token boundaries, Core assets, DAS verification, and CLI handoff.</p>
         </div>
         <div className="metaplex-demo-actions">
           <button type="button" onClick={handleActivateProject} disabled={busy !== null}>

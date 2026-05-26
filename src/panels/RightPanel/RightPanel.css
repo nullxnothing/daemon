@@ -31,7 +31,7 @@
 
 .right-panel-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-xs);
   padding: var(--space-sm);
   border-bottom: 1px solid var(--panel-border);
@@ -69,6 +69,18 @@
   height: 14px;
   flex-shrink: 0;
   object-fit: contain;
+}
+
+.right-panel-tab svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: var(--t2);
+}
+
+.right-panel-tab.active svg,
+.right-panel-tab:hover svg {
+  color: var(--t1);
 }
 
 .right-panel-tab-dot {
@@ -143,6 +155,10 @@
   overflow: hidden;
   border-color: rgba(255, 255, 255, 0.2);
   background: var(--integration-surface-neutral-strong);
+}
+
+.rp-meterflow-widget {
+  border-color: color-mix(in srgb, var(--green) 24%, var(--card-border));
 }
 
 .rp-zauth-widget::before {

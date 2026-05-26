@@ -166,11 +166,8 @@
 }
 
 .terminal-launcher-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 240px;
-  max-width: 320px;
+  position: fixed;
+  box-sizing: border-box;
   border: 1px solid var(--border-glass);
   border-radius: 6px;
   background: var(--glass-bg);
@@ -179,8 +176,8 @@
   padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  z-index: 8;
+  gap: 1px;
+  z-index: 1000;
 }
 
 .terminal-launcher-header {
@@ -188,11 +185,12 @@
 }
 
 .terminal-launcher-item {
-  min-height: 26px;
+  min-height: 28px;
   border-radius: var(--radius-md);
   text-align: left;
-  padding: 0 8px;
+  padding: 0 10px;
   font-size: var(--fs-11);
+  line-height: 1;
   color: var(--t2);
   display: flex;
   align-items: center;
@@ -214,7 +212,7 @@
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  padding: 4px 8px 2px;
+  padding: 8px 10px 3px;
 }
 
 .terminal-launcher-item-title {
@@ -228,13 +226,13 @@
 .terminal-launcher-empty {
   font-size: var(--fs-11);
   color: var(--t3);
-  padding: 4px 8px;
+  padding: 5px 10px 6px;
 }
 
 .terminal-launcher-divider {
   height: 1px;
   background: var(--border);
-  margin: 4px 0;
+  margin: 5px 0 3px;
 }
 
 .terminal-tools {

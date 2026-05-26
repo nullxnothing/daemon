@@ -117,6 +117,7 @@ const ActivityIcon = createPhosphorIcon(Sparkle)
 const AgentStationIcon = createPhosphorIcon(DesktopTower)
 const AgentWorkIcon = createPhosphorIcon(Briefcase)
 const SpawnAgentsIcon = createPhosphorIcon(Circuitry)
+const AgentOpsIcon = createPhosphorIcon(ShareNetwork)
 
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon,
@@ -129,6 +130,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   'agent-station': AgentStationIcon,
   'agent-work': AgentWorkIcon,
   'spawnagents': SpawnAgentsIcon,
+  agentops: AgentOpsIcon,
 }
 
 // Tool name lookup
@@ -147,6 +149,7 @@ const loadImageEditor = () => import('../../panels/ImageEditor/ImageEditor')
 const loadSolanaToolbox = () => import('../../panels/SolanaToolbox/SolanaToolbox')
 const loadIntegrationCommandCenter = () => import('../../panels/IntegrationCommandCenter/IntegrationCommandCenter')
 const loadMetaplexDemo = () => import('../../panels/MetaplexDemo/MetaplexDemoPanel')
+const loadAgentOps = () => import('../../panels/AgentOps/AgentOpsPanel')
 const loadZauthPanel = () => import('../../panels/Zauth/ZauthPanel')
 const loadProjectReadiness = () => import('../../panels/ProjectReadiness/ProjectReadiness')
 const loadTokenLaunchTool = () => import('../../panels/TokenLaunchTool/TokenLaunchTool')
@@ -178,6 +181,7 @@ const ImageEditor = lazyWithReload('image-editor', loadImageEditor)
 const SolanaToolbox = lazyWithReload('solana-toolbox', loadSolanaToolbox)
 const IntegrationCommandCenter = lazyWithReload('integration-command-center', loadIntegrationCommandCenter)
 const MetaplexDemoPanel = lazyNamedWithReload('metaplex-demo', loadMetaplexDemo, (m) => m.MetaplexDemoPanel)
+const AgentOpsPanel = lazyNamedWithReload('agentops', loadAgentOps, (m) => m.AgentOpsPanel)
 const ZauthPanel = lazyNamedWithReload('zauth-panel', loadZauthPanel, (m) => m.ZauthPanel)
 const ProjectReadiness = lazyWithReload('project-readiness', loadProjectReadiness)
 const TokenLaunchTool = lazyWithReload('token-launch-tool', loadTokenLaunchTool)
@@ -213,10 +217,11 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, preload: () => { void loadProcessManager() }, category: 'system' },
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, preload: () => { void loadSettingsPanel() }, category: 'system' },
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, preload: () => { void loadImageEditor() }, category: 'create' },
-  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, and Meteora launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
+  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, Meteora, and OpenBid launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
   { id: 'project-readiness', name: 'Solana Start', description: 'Project, wallet, RPC, MCP, AI, and first safe action checklist', icon: ReadinessIcon, component: ProjectReadiness, preload: () => { void loadProjectReadiness() }, category: 'crypto' },
   { id: 'solana-toolbox', name: 'Solana Workflow', description: 'Start, Connect, Build, Launch, Inspect, and Debug for Solana projects', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
   { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'crypto' },
+  { id: 'agentops', name: 'AgentOps', description: 'Simple Metaplex agent control and website handoff', icon: AgentOpsIcon, component: AgentOpsPanel, preload: () => { void loadAgentOps() }, category: 'crypto' },
   { id: 'metaplex-demo', name: 'Metaplex Demo', description: 'Native Core, DAS, launch, and Agent Registry demo', icon: IntegrationsIcon, component: MetaplexDemoPanel, preload: () => { void loadMetaplexDemo() }, category: 'crypto' },
   { id: 'zauth', name: 'Zauth', description: 'x402 database and Provider Hub', icon: ZauthIcon, component: ZauthPanel, preload: () => { void loadZauthPanel() }, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, preload: () => { void loadBlockScanner() }, category: 'crypto' },
@@ -373,6 +378,10 @@ export function CommandDrawer() {
       e.preventDefault()
       openWorkspaceTool(filteredTools[0].id)
       setSearch('')
+    } else if (e.key === 'ArrowDown') {
+      // Move from the search field into the first tool card.
+      const first = drawerRef.current?.querySelector<HTMLElement>('.drawer-tool-card')
+      if (first) { e.preventDefault(); first.focus() }
     }
   }
 
@@ -380,6 +389,48 @@ export function CommandDrawer() {
     preloadToolPanel(toolId)
     openWorkspaceTool(toolId)
     setSearch('')
+  }
+
+  // Spatial arrow-key navigation across the tool card grid. Cards are buttons
+  // in a CSS grid, so rows/columns are derived from layout geometry.
+  const handleGridKeyDown = (e: React.KeyboardEvent) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    const active = document.activeElement as HTMLElement | null
+    if (!active?.classList.contains('drawer-tool-card')) return
+
+    const cards = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>('.drawer-tool-card') ?? [])
+    const index = cards.indexOf(active)
+    if (index === -1) return
+    e.preventDefault()
+
+    if (e.key === 'ArrowRight') { cards[Math.min(index + 1, cards.length - 1)]?.focus(); return }
+    if (e.key === 'ArrowLeft') {
+      if (index === 0) { searchRef.current?.focus(); return }
+      cards[index - 1]?.focus(); return
+    }
+
+    // Up/Down: find the card in the adjacent row nearest the current column (by x center).
+    const rect = active.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const rowGap = rect.height / 2
+    const candidates = cards.filter((card) => {
+      const r = card.getBoundingClientRect()
+      return e.key === 'ArrowDown' ? r.top > rect.top + rowGap : r.bottom < rect.bottom - rowGap
+    })
+    if (candidates.length === 0) {
+      if (e.key === 'ArrowUp') searchRef.current?.focus()
+      return
+    }
+    const targetRowTop = e.key === 'ArrowDown'
+      ? Math.min(...candidates.map((c) => c.getBoundingClientRect().top))
+      : Math.max(...candidates.map((c) => c.getBoundingClientRect().top))
+    const rowCards = candidates.filter((c) => Math.abs(c.getBoundingClientRect().top - targetRowTop) < 4)
+    const nearest = rowCards.reduce((best, c) => {
+      const r = c.getBoundingClientRect()
+      const dist = Math.abs(r.left + r.width / 2 - cx)
+      return dist < best.dist ? { card: c, dist } : best
+    }, { card: rowCards[0], dist: Infinity })
+    nearest.card?.focus()
   }
 
   // --- Drag-and-drop for reordering ---
@@ -436,7 +487,7 @@ export function CommandDrawer() {
       </div>
 
       {/* Content */}
-      <div className="drawer-content">
+      <div className="drawer-content" onKeyDown={handleGridKeyDown}>
         <DrawerGrid
           tools={filteredTools}
           search={search}

@@ -14,6 +14,7 @@ export type RightSidebarWidgetId =
   | 'solana-readiness'
   | 'token-watch'
   | 'zauth'
+  | 'meterflow'
   | 'ai-status'
   | 'spawn-agent'
 
@@ -56,6 +57,11 @@ export const RIGHT_SIDEBAR_WIDGETS: Array<{
     description: 'x402 Database and Provider Hub shortcuts in the right sidebar.',
   },
   {
+    id: 'meterflow',
+    name: 'Meterflow',
+    description: 'Live receipts, meters, spend controls, and webhook status.',
+  },
+  {
     id: 'ai-status',
     name: 'AI Status',
     description: 'Claude and Codex connection state without opening settings.',
@@ -74,6 +80,7 @@ const DEFAULT_WIDGET_CONFIG: RightSidebarWidgetConfig = {
     'solana-readiness': false,
     'token-watch': false,
     'zauth': false,
+    'meterflow': false,
     'ai-status': false,
     'spawn-agent': false,
   },

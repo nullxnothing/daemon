@@ -6,6 +6,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { getDb } from '../db/db'
 import { isPathWithinBase } from '../shared/pathValidation'
+import * as Voight from './VoightService'
 import type {
   DaemonAiPatchApplyInput,
   DaemonAiPatchApplyResult,
@@ -199,7 +200,26 @@ export function createPatchProposal(input: DaemonAiPatchProposalInput): DaemonAi
     null,
   )
 
-  return getPatchProposal(id)
+  const proposal = getPatchProposal(id)
+  Voight.emitEventSafe({
+    agentId: proposal.runId,
+    type: 'action',
+    toolExecuted: 'patch_propose',
+    outcome: 'pending',
+    input: {
+      title: proposal.title,
+      summary: proposal.summary,
+      files: proposal.files,
+      riskLevel: proposal.riskLevel,
+    },
+    metadata: {
+      sessionId: proposal.runId,
+      traceId: proposal.id,
+      detail: 'patch proposal created',
+      dedupKey: `patch-propose:${proposal.id}`,
+    },
+  })
+  return proposal
 }
 
 export function getPatchProposal(id: string): DaemonAiPatchProposal {
@@ -237,7 +257,22 @@ export function decidePatchProposal(input: DaemonAiPatchDecisionInput): DaemonAi
     Date.now(),
     input.proposalId,
   )
-  return getPatchProposal(input.proposalId)
+  const proposal = getPatchProposal(input.proposalId)
+  Voight.emitEventSafe({
+    agentId: proposal.runId,
+    type: 'decision',
+    toolExecuted: 'patch_decide',
+    outcome: proposal.status === 'accepted' ? 'success' : 'failed',
+    metadata: {
+      sessionId: proposal.runId,
+      traceId: proposal.id,
+      policyDecision: proposal.status,
+      humanApproverIdentity: 'local-user',
+      detail: proposal.decisionReason ?? 'patch decision recorded',
+      dedupKey: `patch-decision:${proposal.id}:${proposal.status}`,
+    },
+  })
+  return proposal
 }
 
 function formatExecError(error: unknown): string {
@@ -321,8 +356,22 @@ export async function applyPatchProposal(input: DaemonAiPatchApplyInput): Promis
     input.proposalId,
   )
 
+  const applied = getPatchProposal(input.proposalId)
+  Voight.emitEventSafe({
+    agentId: applied.runId,
+    type: 'action',
+    toolExecuted: 'patch_apply',
+    outcome: 'success',
+    input: { files: result.files },
+    metadata: {
+      sessionId: applied.runId,
+      traceId: applied.id,
+      detail: 'patch applied',
+      dedupKey: `patch-apply:${applied.id}`,
+    },
+  })
   return {
-    proposal: getPatchProposal(input.proposalId),
+    proposal: applied,
     files: result.files,
     appliedAt: result.appliedAt,
   }

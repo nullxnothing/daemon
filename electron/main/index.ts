@@ -9,6 +9,7 @@ import { registerTerminalHandlers, killAllSessions } from '../ipc/terminal'
 import { registerFilesystemHandlers } from '../ipc/filesystem'
 import { registerProjectHandlers } from '../ipc/projects'
 import { registerAgentHandlers } from '../ipc/agents'
+import { registerAgentOpsHandlers } from '../ipc/agentops'
 import { registerClaudeHandlers } from '../ipc/claude'
 import { registerCodexHandlers } from '../ipc/codex'
 import { registerProviderHandlers } from '../ipc/provider'
@@ -41,6 +42,7 @@ import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerRegistryHandlers } from '../ipc/registry'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
+import { registerMeterflowHandlers } from '../ipc/meterflow'
 import { registerMetaplexHandlers } from '../ipc/metaplex'
 import { registerVaultHandlers } from '../ipc/vault'
 import { registerValidatorHandlers } from '../ipc/validator'
@@ -51,7 +53,9 @@ import { registerAgentStationHandlers } from '../ipc/agentStation'
 import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
 import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
+import { registerVoightHandlers } from '../ipc/voight'
 import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
+import { flushQueue as flushVoightQueue } from '../services/VoightService'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
 import { shutdownAllLspSessions } from '../services/LspService'
@@ -164,8 +168,20 @@ let ipcRegistered = false
 let startupUiRecovery: UiRecoveryResult | null = null
 let shutdownStarted = false
 let mainWindowShown = false
+const AGENTOPS_OPEN_CHANNEL = 'agentops:open-request'
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
+
+interface AgentOpsOpenRequest {
+  asset?: string
+  network?: 'solana-devnet' | 'solana-mainnet'
+  service?: string
+  price?: string
+  sourceUrl: string
+  receivedAt: string
+}
+
+let pendingAgentOpsOpenRequest: AgentOpsOpenRequest | null = null
 
 function cleanupRuntimeState() {
   killAllSessions()
@@ -194,6 +210,73 @@ function shutdownApp() {
   }
 }
 
+function parseAgentOpsOpenUrl(value: string): AgentOpsOpenRequest | null {
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'daemon:' || parsed.hostname !== 'agentops') return null
+    if (parsed.pathname && parsed.pathname !== '/open') return null
+
+    const networkParam = parsed.searchParams.get('network')?.trim()
+    const network =
+      networkParam === 'solana-mainnet' || networkParam === 'mainnet-beta' || networkParam === 'mainnet'
+        ? 'solana-mainnet'
+        : 'solana-devnet'
+
+    const readParam = (name: string) => {
+      const param = parsed.searchParams.get(name)?.trim()
+      return param ? param.slice(0, 512) : undefined
+    }
+
+    return {
+      asset: readParam('asset'),
+      network,
+      service: readParam('service'),
+      price: readParam('price'),
+      sourceUrl: value,
+      receivedAt: new Date().toISOString(),
+    }
+  } catch {
+    return null
+  }
+}
+
+function focusMainWindow() {
+  const target = win
+  if (!target || target.isDestroyed()) return
+  if (target.isMinimized()) target.restore()
+  target.focus()
+}
+
+function dispatchAgentOpsOpenRequest(payload: AgentOpsOpenRequest) {
+  pendingAgentOpsOpenRequest = payload
+  focusMainWindow()
+
+  const target = win
+  if (!target || target.isDestroyed() || target.webContents.isLoading()) return
+  target.webContents.send(AGENTOPS_OPEN_CHANNEL, payload)
+}
+
+function dispatchInitialAgentOpsOpenRequest() {
+  for (const arg of process.argv) {
+    const payload = parseAgentOpsOpenUrl(arg)
+    if (!payload) continue
+    dispatchAgentOpsOpenRequest(payload)
+    break
+  }
+}
+
+function registerDaemonProtocolClient() {
+  try {
+    if (process.defaultApp && process.argv[1]) {
+      app.setAsDefaultProtocolClient('daemon', process.execPath, [path.resolve(process.argv[1])])
+    } else {
+      app.setAsDefaultProtocolClient('daemon')
+    }
+  } catch (err) {
+    console.warn('[protocol] daemon registration failed:', err instanceof Error ? err.message : String(err))
+  }
+}
+
 function registerAllIpc() {
   if (ipcRegistered) return
   ipcRegistered = true
@@ -207,6 +290,7 @@ function registerAllIpc() {
   registerFilesystemHandlers()
   registerProjectHandlers()
   registerAgentHandlers()
+  registerAgentOpsHandlers()
   registerClaudeHandlers()
   registerCodexHandlers()
   registerProviderHandlers()
@@ -237,6 +321,7 @@ function registerAllIpc() {
   registerRegistryHandlers()
   registerColosseumHandlers()
   registerIdleHandlers()
+  registerMeterflowHandlers()
   registerMetaplexHandlers()
   registerVaultHandlers()
   registerValidatorHandlers()
@@ -246,6 +331,7 @@ function registerAllIpc() {
   registerAgentStationHandlers()
   registerReplayHandlers()
   registerLspHandlers()
+  registerVoightHandlers()
 
   // Window controls
   ipcMain.on('window:minimize', () => win?.minimize())
@@ -266,6 +352,14 @@ function registerAllIpc() {
     }
   })
   ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
+
+  ipcMain.handle('agentops:get-pending-open-request', () => pendingAgentOpsOpenRequest)
+  ipcMain.handle('agentops:ack-open-request', (_event, receivedAt: string) => {
+    if (pendingAgentOpsOpenRequest?.receivedAt === receivedAt) {
+      pendingAgentOpsOpenRequest = null
+    }
+    return true
+  })
 
   // Shell utilities
   ipcMain.handle('shell:open-external', async (_event, url: string) => {
@@ -395,13 +489,21 @@ async function createWindow() {
     const url = new URL(VITE_DEV_SERVER_URL)
     if (SMOKE_TEST_MODE) {
       url.searchParams.set('smoke', '1')
+      if (process.env.DAEMON_SMOKE_ONBOARDING === '1') {
+        url.searchParams.set('smokeOnboarding', '1')
+      }
     }
     win.loadURL(url.toString())
     if (process.env.DAEMON_OPEN_DEVTOOLS === '1') {
       win.webContents.openDevTools()
     }
   } else {
-    win.loadFile(indexHtml, SMOKE_TEST_MODE ? { query: { smoke: '1' } } : undefined)
+    win.loadFile(indexHtml, SMOKE_TEST_MODE ? {
+      query: {
+        smoke: '1',
+        ...(process.env.DAEMON_SMOKE_ONBOARDING === '1' ? { smokeOnboarding: '1' } : {}),
+      },
+    } : undefined)
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -449,6 +551,9 @@ async function createWindow() {
   })
   win.webContents.on('did-finish-load', () => {
     if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:did-finish-load')
+    if (pendingAgentOpsOpenRequest) {
+      win?.webContents.send(AGENTOPS_OPEN_CHANNEL, pendingAgentOpsOpenRequest)
+    }
     setTimeout(() => showMainWindow('did-finish-load-fallback'), 1500)
   })
   if (SMOKE_TEST_MODE) {
@@ -485,6 +590,7 @@ async function createWindow() {
 }
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
+  registerDaemonProtocolClient()
   if (process.platform === 'darwin' && app.dock) {
     try {
       app.dock.setIcon(path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'))
@@ -496,9 +602,13 @@ app.whenReady().then(() => {
   createWindow().catch((err) => {
     console.error('[smoke] createWindow:error', err)
   })
+  dispatchInitialAgentOpsOpenRequest()
   setTimeout(() => {
     flushRemoteTelemetry().catch((err) => {
       console.warn('[telemetry] Remote telemetry startup failed:', err instanceof Error ? err.message : String(err))
+    })
+    flushVoightQueue().catch((err) => {
+      console.warn('[voight] Queue flush failed:', err instanceof Error ? err.message : String(err))
     })
   }, 5000)
 
@@ -517,6 +627,12 @@ app.whenReady().then(() => {
   }
 })
 
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  const payload = parseAgentOpsOpenUrl(url)
+  if (payload) dispatchAgentOpsOpenRequest(payload)
+})
+
 app.on('before-quit', () => {
   beginShutdownCleanup()
 })
@@ -527,11 +643,14 @@ app.on('window-all-closed', () => {
   app.quit()
 })
 
-app.on('second-instance', () => {
-  if (win) {
-    if (win.isMinimized()) win.restore()
-    win.focus()
+app.on('second-instance', (_event, argv) => {
+  for (const arg of argv) {
+    const payload = parseAgentOpsOpenUrl(arg)
+    if (!payload) continue
+    dispatchAgentOpsOpenRequest(payload)
+    return
   }
+  focusMainWindow()
 })
 
 app.on('activate', () => {

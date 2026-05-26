@@ -16,4 +16,13 @@ describe('Right sidebar widget config', () => {
   it('normalizes default visibility for the Zauth widget', () => {
     expect(readRightSidebarWidgetConfig().enabled.zauth).toBe(false)
   })
+
+  it('registers Meterflow as a configurable side panel', () => {
+    expect(RIGHT_SIDEBAR_WIDGETS).toContainEqual({
+      id: 'meterflow',
+      name: 'Meterflow',
+      description: 'Live receipts, meters, spend controls, and webhook status.',
+    })
+    expect(readRightSidebarWidgetConfig().enabled.meterflow).toBe(false)
+  })
 })

@@ -12,6 +12,7 @@ const {
   getBalanceMock,
   hasHeliusKeyMock,
   getTokenLaunchSettingsMock,
+  getWalletInfrastructureSettingsMock,
 } = vi.hoisted(() => ({
   mockRun: vi.fn(),
   mockGet: vi.fn(),
@@ -24,6 +25,7 @@ const {
   getBalanceMock: vi.fn(),
   hasHeliusKeyMock: vi.fn(),
   getTokenLaunchSettingsMock: vi.fn(),
+  getWalletInfrastructureSettingsMock: vi.fn(),
 }))
 
 vi.mock('../../electron/db/db', () => ({
@@ -47,6 +49,7 @@ vi.mock('../../electron/services/WalletService', () => ({
 
 vi.mock('../../electron/services/SettingsService', () => ({
   getTokenLaunchSettings: getTokenLaunchSettingsMock,
+  getWalletInfrastructureSettings: getWalletInfrastructureSettingsMock,
 }))
 
 import { createLaunch, listLaunchWallets, listLaunchpads, preflightLaunch } from '../../electron/services/TokenLaunchService'
@@ -60,10 +63,21 @@ describe('TokenLaunchService', () => {
     hasKeypairMock.mockReturnValue(true)
     getBalanceMock.mockResolvedValue({ sol: 1.5, lamports: 1_500_000_000 })
     hasHeliusKeyMock.mockReturnValue(true)
+    getWalletInfrastructureSettingsMock.mockReturnValue({
+      cluster: 'devnet',
+      rpcProvider: 'public',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'phantom',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: '',
+    })
     getTokenLaunchSettingsMock.mockReturnValue({
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO launched_tokens')) return { run: mockRun }
@@ -74,10 +88,11 @@ describe('TokenLaunchService', () => {
     })
   })
 
-  it('exposes one live launchpad and planned placeholders', () => {
+  it('exposes live launchpads and planned placeholders', () => {
     const launchpads = listLaunchpads()
-    expect(launchpads.map((entry) => entry.id)).toEqual(['pumpfun', 'raydium', 'meteora', 'printr', 'bags', 'bonk'])
+    expect(launchpads.map((entry) => entry.id)).toEqual(['pumpfun', 'raydium', 'meteora', 'printr', 'openbid', 'bags', 'bonk'])
     expect(launchpads.find((entry) => entry.id === 'pumpfun')?.enabled).toBe(true)
+    expect(launchpads.find((entry) => entry.id === 'openbid')?.enabled).toBe(true)
     expect(launchpads.find((entry) => entry.id === 'bags')?.name).toBe('Bags Launchpad')
     expect(launchpads.filter((entry) => !entry.enabled)).toHaveLength(5)
   })
@@ -87,6 +102,7 @@ describe('TokenLaunchService', () => {
       raydium: { configId: '11111111111111111111111111111111', quoteMint: '' },
       meteora: { configId: '11111111111111111111111111111111', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })
 
     const launchpads = listLaunchpads()

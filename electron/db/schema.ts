@@ -866,3 +866,65 @@ CREATE INDEX IF NOT EXISTS idx_idle_receipts_task
 CREATE INDEX IF NOT EXISTS idx_idle_receipts_resource
   ON idle_paid_call_receipts(resource_id, created_at DESC);
 `
+
+export const SCHEMA_V38 = `
+CREATE TABLE IF NOT EXISTS meterflow_receipts (
+  id TEXT PRIMARY KEY,
+  route TEXT,
+  method TEXT,
+  status TEXT,
+  payment_protocol TEXT,
+  payment_state TEXT,
+  amount_usd REAL,
+  asset TEXT,
+  tx_signature TEXT,
+  public_verify_url TEXT,
+  trust_state TEXT,
+  trust_score INTEGER,
+  agent_id TEXT,
+  agent_name TEXT,
+  payer_wallet TEXT,
+  provider_name TEXT,
+  provider_route TEXT,
+  raw_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_meterflow_receipts_created
+  ON meterflow_receipts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_meterflow_receipts_agent
+  ON meterflow_receipts(agent_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_meterflow_receipts_tx
+  ON meterflow_receipts(tx_signature);
+`
+
+export const SCHEMA_V39 = `
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_gate_id TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_open_url TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_capsule_hash TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_created_at INTEGER;
+CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_keycard
+  ON agent_work_tasks(keycard_gate_id);
+`
+
+export const SCHEMA_V40 = `
+CREATE TABLE IF NOT EXISTS voight_event_queue (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  outcome TEXT,
+  dedup_key TEXT UNIQUE,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  sent_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_voight_queue_status
+  ON voight_event_queue(status, next_attempt_at, created_at);
+CREATE INDEX IF NOT EXISTS idx_voight_queue_agent
+  ON voight_event_queue(agent_id, created_at DESC);
+`

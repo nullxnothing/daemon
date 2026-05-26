@@ -472,7 +472,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     let hasFolder = false
 
     for (const file of files) {
-      const fp = (file as File & { path?: string }).path
+      const fp = window.daemon?.getPathForFile?.(file) || (file as File & { path?: string }).path
       if (!fp) continue
       filePaths.push(fp)
       if (file.size === 0 && !file.type) hasFolder = true

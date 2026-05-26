@@ -1993,6 +1993,10 @@
 }
 
 .vault-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: var(--fs-12);
   color: var(--t4);
   padding: 24px 0;

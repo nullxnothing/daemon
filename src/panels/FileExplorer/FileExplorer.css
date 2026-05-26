@@ -5,6 +5,40 @@
   position: relative;
 }
 
+.file-explorer--drop-active {
+  outline: 1.5px dashed var(--accent);
+  outline-offset: -4px;
+  border-radius: var(--radius-md);
+}
+
+.file-explorer-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: color-mix(in srgb, var(--accent-green-glow) 60%, var(--bg-overlay));
+  backdrop-filter: var(--glass-blur-scrim);
+  pointer-events: none;
+}
+
+.file-explorer-drop-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  color: var(--accent);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  text-align: center;
+}
+
 .file-explorer-toolbar {
   position: sticky;
   top: 0;
@@ -146,6 +180,13 @@
 .file-node:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.file-node:focus-visible {
+  outline: none;
+  background: var(--hover-bg);
+  color: var(--t1);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .file-node-chevron {

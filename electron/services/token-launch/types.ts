@@ -1,4 +1,4 @@
-export type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
+export type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'openbid' | 'bags' | 'bonk'
 export type LaunchpadStatus = 'available' | 'planned'
 
 export interface RaydiumLaunchpadConfig {
@@ -20,10 +20,38 @@ export interface PrintrLaunchpadConfig {
   chain?: string
 }
 
+export interface OpenBidLaunchpadConfig {
+  apiBaseUrl?: string
+  chainId?: string
+  dex?: 'meteora' | 'raydium' | ''
+  feeTier?: string
+  packageType?: 'based' | 'super_based' | 'ultra_based' | ''
+  marketCap?: string
+  totalSupply?: string
+  maxAllocationPerUser?: string
+  referrer?: string
+  board?: string
+  boardOwner?: string
+}
+
+export interface OpenBidLaunchInputConfig extends OpenBidLaunchpadConfig {
+  chain?: 'solana'
+  saleStartTime?: number | null
+  softCap?: string
+  endTime?: number | null
+  whitelistedAddresses?: string[]
+  buyFeePercent?: number
+  sellFeePercent?: number
+  referralFeePercent?: number
+  graduationFeePercent?: number
+  dynamicFee?: boolean
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadConfig
   meteora: MeteoraLaunchpadConfig
   printr: PrintrLaunchpadConfig
+  openbid: OpenBidLaunchpadConfig
 }
 
 export interface TokenLaunchCheck {
@@ -57,6 +85,7 @@ export interface TokenLaunchInput {
   slippageBps: number
   priorityFeeSol: number
   mayhemMode?: boolean
+  openbid?: OpenBidLaunchInputConfig
 }
 
 export interface AdapterLaunchResult {

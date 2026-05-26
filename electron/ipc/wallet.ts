@@ -156,6 +156,13 @@ export function registerWalletHandlers() {
     return WalletService.hasKeypair(walletId)
   }))
 
+  ipcMain.handle('wallet:sign-message', ipcHandler(async (_event, walletId: string, message: string) => {
+    if (!ValidationService.checkRateLimit(`wallet-sign-message:${walletId}`, 20, 60 * 1000)) {
+      throw new Error('Too many signing attempts. Please wait before trying again.')
+    }
+    return WalletService.signMessage(walletId, message)
+  }))
+
   ipcMain.handle('wallet:transaction-history', ipcHandler(async (_event, walletId: string, limit?: number) => {
     const safeLimitVal = Math.min(Math.max(limit ?? 50, 1), 200)
     return WalletService.getTransactionHistory(walletId, safeLimitVal)

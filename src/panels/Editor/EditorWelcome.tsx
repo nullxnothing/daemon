@@ -45,7 +45,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
 
     const files = Array.from(e.dataTransfer.files)
     for (const file of files) {
-      const filePath = (file as File & { path?: string }).path
+      const filePath = window.daemon?.getPathForFile?.(file) || (file as File & { path?: string }).path
       if (!filePath) continue
 
       const folderName = filePath.replace(/\\/g, '/').split('/').pop() ?? 'Terminal'

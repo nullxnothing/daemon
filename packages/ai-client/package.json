@@ -12,11 +12,11 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@daemon/shared": "workspace:*",
-    "@anthropic-ai/sdk": "^0.88.0"
+    "@anthropic-ai/sdk": "^0.98.0"
   },
   "devDependencies": {
     "typescript": "^5.4.2"

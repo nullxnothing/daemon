@@ -17,6 +17,18 @@ const { TerminalPanel } = await import('../../src/panels/Terminal/Terminal')
 function installDaemonBridge(createTerminal = vi.fn()) {
   let terminalId = 0
   const terminalCreate = createTerminal
+  const spawnProvider = vi.fn().mockImplementation(async ({ providerId }: { providerId: string }) => {
+    terminalId += 1
+    return {
+      ok: true,
+      data: {
+        id: `${providerId}-${terminalId}`,
+        pid: 123,
+        agentId: null,
+        agentName: providerId === 'spettro' ? 'Spettro' : providerId,
+      },
+    }
+  })
   if (!terminalCreate.getMockImplementation()) {
     terminalCreate.mockImplementation(async () => {
       terminalId += 1
@@ -48,12 +60,13 @@ function installDaemonBridge(createTerminal = vi.fn()) {
         ready: vi.fn().mockResolvedValue({ ok: true }),
         resize: vi.fn().mockResolvedValue({ ok: true }),
         spawnAgent: vi.fn().mockResolvedValue({ ok: false }),
+        spawnProvider,
         write: vi.fn().mockResolvedValue({ ok: true }),
       },
     },
   })
 
-  return terminalCreate
+  return { terminalCreate, spawnProvider }
 }
 
 function deferred<T>() {
@@ -88,7 +101,7 @@ describe('TerminalPanel DOM behavior', () => {
   })
 
   it('auto-creates a plain shell terminal without a Claude startup command', async () => {
-    const terminalCreate = installDaemonBridge()
+    const { terminalCreate } = installDaemonBridge()
 
     render(<TerminalPanel />)
 
@@ -119,11 +132,33 @@ describe('TerminalPanel DOM behavior', () => {
     expect(screen.getByRole('button', { name: 'Standard Terminal' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Claude Chat' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solana Agent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Spettro' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Surfpool' })).toBeInTheDocument()
   })
 
+  it('launches Spettro in the active project from the launcher', async () => {
+    const { terminalCreate, spawnProvider } = installDaemonBridge()
+    render(<TerminalPanel />)
+
+    await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getAllByTitle('New tab options')[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Spettro' }))
+
+    await waitFor(() => expect(spawnProvider).toHaveBeenCalledTimes(1))
+    expect(spawnProvider).toHaveBeenCalledWith({
+      providerId: 'spettro',
+      projectId: 'project-1',
+      cwd: 'C:/work/daemon-app',
+    })
+    expect(useUIStore.getState().terminals.at(-1)).toMatchObject({
+      id: 'spettro-2',
+      label: 'Spettro',
+      projectId: 'project-1',
+    })
+  })
+
   it('opens a second active terminal from the launcher while one is already running', async () => {
-    const terminalCreate = installDaemonBridge()
+    const { terminalCreate } = installDaemonBridge()
     render(<TerminalPanel />)
 
     await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
@@ -138,7 +173,7 @@ describe('TerminalPanel DOM behavior', () => {
 
   it('does not duplicate the first terminal when the empty state is clicked while auto-create is pending', async () => {
     const pendingTerminal = deferred<{ ok: true; data: { id: string } }>()
-    const terminalCreate = installDaemonBridge(vi.fn().mockReturnValueOnce(pendingTerminal.promise))
+    const { terminalCreate } = installDaemonBridge(vi.fn().mockReturnValueOnce(pendingTerminal.promise))
     render(<TerminalPanel />)
 
     await waitFor(() => expect(terminalCreate).toHaveBeenCalledTimes(1))
@@ -152,7 +187,7 @@ describe('TerminalPanel DOM behavior', () => {
   it('does not create duplicate split terminals from rapid split clicks', async () => {
     const pendingSplit = deferred<{ ok: true; data: { id: string } }>()
     let createCount = 0
-    const terminalCreate = installDaemonBridge(vi.fn().mockImplementation(() => {
+    const { terminalCreate } = installDaemonBridge(vi.fn().mockImplementation(() => {
       createCount += 1
       if (createCount === 1) return Promise.resolve({ ok: true, data: { id: 'term-1' } })
       if (createCount === 2) return pendingSplit.promise
@@ -170,7 +205,7 @@ describe('TerminalPanel DOM behavior', () => {
   })
 
   it('falls back to the most recent project when the user starts a terminal without an active project', async () => {
-    const terminalCreate = installDaemonBridge()
+    const { terminalCreate } = installDaemonBridge()
     useUIStore.setState({
       activeProjectId: null,
       activeProjectPath: null,
@@ -189,7 +224,7 @@ describe('TerminalPanel DOM behavior', () => {
   })
 
   it('does not auto-create a terminal when no project exists', async () => {
-    const terminalCreate = installDaemonBridge()
+    const { terminalCreate } = installDaemonBridge()
     useUIStore.setState({
       activeProjectId: null,
       activeProjectPath: null,

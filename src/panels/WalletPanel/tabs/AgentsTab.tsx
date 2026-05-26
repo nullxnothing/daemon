@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useWalletStore } from '../../../store/wallet'
 import { confirm } from '../../../store/confirm'
 import { compactAddress } from '../../../utils/textDisplay'
+import { LiveRegion } from '../../../components/LiveRegion'
 
 interface AgentWallet {
   id: string
@@ -176,6 +177,7 @@ export function AgentsTab() {
 
   return (
     <div className="wallet-agents-tab">
+      <LiveRegion message={copiedId ? 'Wallet address copied to clipboard' : ''} />
       {/* Portfolio summary — matches wallet tab style */}
       <section className="wallet-section">
         <div className="wallet-section-title">Agent Portfolio</div>

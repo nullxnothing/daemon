@@ -3,6 +3,7 @@ import path from 'node:path'
 import { getDb } from '../db/db'
 import { assertVerifiedFeature, assertVerifiedHostedModelLane } from './EntitlementGuardService'
 import { isPathSafe } from '../shared/pathValidation'
+import * as Voight from './VoightService'
 import type {
   DaemonAiAccessMode,
   DaemonAiAgentMode,
@@ -149,7 +150,27 @@ export async function createAgentRun(input: DaemonAiAgentRunInput): Promise<Daem
     now,
   )
 
-  return getAgentRun(id)
+  const run = getAgentRun(id)
+  Voight.emitEventSafe({
+    agentId: run.id,
+    type: 'action',
+    outcome: 'pending',
+    input: {
+      task: normalized.task,
+      mode: normalized.mode,
+      allowedTools: normalized.allowedTools,
+      approvalPolicy: normalized.approvalPolicy,
+    },
+    model: normalized.modelPreference,
+    metadata: {
+      sessionId: run.id,
+      projectId: normalized.projectId,
+      projectPath: normalized.projectPath,
+      accessMode: normalized.accessMode,
+      detail: 'agent run created',
+    },
+  })
+  return run
 }
 
 export function getAgentRun(id: string): DaemonAiAgentRun {
@@ -177,5 +198,18 @@ export function cancelAgentRun(id: string): DaemonAiAgentRun {
     SET status = 'cancelled', cancelled_at = ?, updated_at = ?
     WHERE id = ?
   `).run(now, now, id)
-  return getAgentRun(id)
+  const cancelled = getAgentRun(id)
+  Voight.emitEventSafe({
+    agentId: cancelled.id,
+    type: 'action',
+    outcome: 'failed',
+    input: { status: 'cancelled' },
+    metadata: {
+      sessionId: cancelled.id,
+      projectId: cancelled.projectId,
+      projectPath: cancelled.projectPath,
+      detail: 'agent run cancelled',
+    },
+  })
+  return cancelled
 }

@@ -20,6 +20,21 @@ function money(value: number) {
   return value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 }
 
+function receiptAmount(receipt: MeterflowReceipt): number {
+  const value = receipt.amountUsd ?? receipt.amountUSDC ?? receipt.amount_usd
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value.replace(/^\$/, '').trim())
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+function isSettledMeterflowReceipt(receipt: MeterflowReceipt): boolean {
+  const status = String(receipt.paymentState ?? receipt.status ?? '').toLowerCase()
+  return status.includes('settled') || status.includes('verified') || status.includes('success') || status.includes('paid')
+}
+
 function openZauthWorkspace(pageId?: 'database' | 'provider-hub') {
   if (pageId) {
     try {
@@ -165,6 +180,54 @@ function ZauthSidebarWidget() {
   )
 }
 
+function MeterflowSidebarWidget() {
+  const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
+  const [overview, setOverview] = useState<MeterflowOverview | null>(null)
+  const [configured, setConfigured] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function refresh() {
+      const status = await daemon.meterflow.status()
+      if (cancelled) return
+      setConfigured(Boolean(status.ok && status.data?.configured))
+      if (!status.ok || !status.data?.configured) {
+        setOverview(null)
+        return
+      }
+      const res = await daemon.meterflow.overview()
+      if (!cancelled && res.ok && res.data) setOverview(res.data)
+    }
+    void refresh()
+    const interval = window.setInterval(() => void refresh(), 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [])
+
+  const receipts = overview?.receipts ?? []
+  const settled = receipts.filter(isSettledMeterflowReceipt)
+  const gross = settled.reduce((sum, receipt) => sum + receiptAmount(receipt), 0)
+  const latest = receipts[0]
+  const latestStatus = latest ? String(latest.paymentState ?? latest.status ?? 'recorded') : configured ? 'No receipts' : 'Key missing'
+
+  return (
+    <RightRailSection
+      kicker="Meterflow"
+      title={configured ? money(gross) : 'Setup'}
+      className="rp-meterflow-widget"
+      action={<button type="button" className="rp-agent-widget-action" onClick={() => setRightPanelTab('meterflow')}>Open</button>}
+    >
+      <div className="rp-side-widget-line">{latestStatus}</div>
+      <div className="rp-agent-widget-grid rp-side-widget-grid">
+        <div><span>Receipts</span><strong>{receipts.length}</strong></div>
+        <div><span>Settled</span><strong>{settled.length}</strong></div>
+      </div>
+    </RightRailSection>
+  )
+}
+
 export function RightSidebarWidgets() {
   const config = useRightSidebarWidgetConfig()
 
@@ -175,6 +238,7 @@ export function RightSidebarWidgets() {
       {config.enabled['solana-readiness'] && <SolanaReadinessSidebarWidget />}
       {config.enabled['token-watch'] && <TokenWatchSidebarWidget />}
       {config.enabled['zauth'] && <ZauthSidebarWidget />}
+      {config.enabled['meterflow'] && <MeterflowSidebarWidget />}
       {config.enabled['ai-status'] && <AiStatusWidget />}
       <SpawnAgentSidebarWidget />
     </>

@@ -39,6 +39,10 @@ const overdueTasks = [
     diff_hash: null,
     tests_hash: null,
     artifact_uri: null,
+    keycard_gate_id: null,
+    keycard_open_url: null,
+    keycard_capsule_hash: null,
+    keycard_created_at: null,
     submitted_at: null,
     approved_at: null,
     settled_signature: null,
@@ -78,6 +82,10 @@ const overdueTasks = [
     diff_hash: null,
     tests_hash: null,
     artifact_uri: null,
+    keycard_gate_id: null,
+    keycard_open_url: null,
+    keycard_capsule_hash: null,
+    keycard_created_at: null,
     submitted_at: null,
     approved_at: null,
     settled_signature: null,
@@ -86,17 +94,18 @@ const overdueTasks = [
   },
 ] as AgentWorkTask[]
 
-function installDaemonBridge() {
+function installDaemonBridge(tasks: AgentWorkTask[] = overdueTasks) {
   const expireAgentWork = vi.fn().mockResolvedValue({ ok: true, data: overdueTasks[0] })
+  const submitAgentWork = vi.fn().mockResolvedValue({ ok: true, data: tasks[0] })
   Object.defineProperty(window, 'daemon', {
     configurable: true,
     value: {
       registry: {
-        listAgentWork: vi.fn().mockResolvedValue({ ok: true, data: overdueTasks }),
+        listAgentWork: vi.fn().mockResolvedValue({ ok: true, data: tasks }),
         createAgentWork: vi.fn(),
         fundAgentWork: vi.fn(),
         startAgentWork: vi.fn(),
-        submitAgentWork: vi.fn(),
+        submitAgentWork,
         approveAgentWork: vi.fn(),
         rejectAgentWork: vi.fn(),
         settleAgentWork: vi.fn(),
@@ -112,7 +121,7 @@ function installDaemonBridge() {
       shell: { openExternal: vi.fn() },
     },
   })
-  return { expireAgentWork }
+  return { expireAgentWork, submitAgentWork }
 }
 
 describe('AgentWork', () => {
@@ -133,5 +142,20 @@ describe('AgentWork', () => {
     await userEvent.click(expiryButtons[0])
 
     expect(expireAgentWork).toHaveBeenCalledWith('funded-overdue')
+  })
+
+  it('submits running tasks as KEYCARD receipts on explicit action', async () => {
+    const runningTask = {
+      ...overdueTasks[1],
+      id: 'running-ready',
+      deadline_at: Date.now() + 60_000,
+    }
+    const { submitAgentWork } = installDaemonBridge([runningTask])
+
+    render(<AgentWork />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Submit KEYCARD Receipt' }))
+
+    expect(submitAgentWork).toHaveBeenCalledWith('running-ready', { artifactMode: 'keycard' })
   })
 })

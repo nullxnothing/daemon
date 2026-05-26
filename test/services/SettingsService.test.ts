@@ -42,6 +42,7 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })
   })
 
@@ -63,6 +64,7 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: 'not-a-key', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })).toThrow('Raydium config ID must be a valid Solana public key')
   })
 
@@ -71,6 +73,7 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: 'abc' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })).toThrow('Meteora base supply must be a positive integer')
   })
 
@@ -91,6 +94,19 @@ describe('SettingsService token launch settings', () => {
         quotePath: '',
         createPath: '',
         chain: '',
+      },
+      openbid: {
+        apiBaseUrl: '',
+        chainId: '',
+        dex: '',
+        feeTier: '',
+        packageType: '',
+        marketCap: '',
+        totalSupply: '',
+        maxAllocationPerUser: '',
+        referrer: '',
+        board: '',
+        boardOwner: '',
       },
     })
 

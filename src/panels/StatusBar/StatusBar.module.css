@@ -84,6 +84,18 @@
   color: var(--t1);
 }
 
+/* Reset button chrome when reusing .item/.clickable on a real <button> */
+.linkButton {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
 .inlineDot {
   margin-right: 4px;
 }

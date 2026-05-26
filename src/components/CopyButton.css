@@ -1,0 +1,42 @@
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--btn-h-sm);
+  padding: 0 var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--t3);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.copy-button:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+}
+
+.copy-button--copied {
+  color: var(--green);
+}
+
+.copy-button-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.copy-button-icon svg {
+  animation: copy-pop var(--duration-fast) var(--ease-spring);
+}
+
+@keyframes copy-pop {
+  from { transform: scale(0.7); opacity: 0.5; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy-button-icon svg { animation: none; }
+}

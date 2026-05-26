@@ -16,6 +16,10 @@ vi.mock('../../src/panels/CodexPanel/CodexPanel', () => ({
   CodexPanel: () => <div data-testid="codex-panel">Codex Panel</div>,
 }))
 
+vi.mock('../../src/panels/Meterflow/MeterflowPanel', () => ({
+  MeterflowPanel: () => <div data-testid="meterflow-panel">Meterflow Panel</div>,
+}))
+
 vi.mock('../../src/panels/ClaudePanel/AriaChat', () => ({
   AriaChat: () => <div data-testid="aria-chat">ARIA</div>,
 }))
@@ -71,6 +75,23 @@ function installDaemonBridge() {
           ok: true,
           data: { authMode: 'cli', isAuthenticated: true },
         }),
+      },
+      meterflow: {
+        status: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: true, executionReady: true },
+        }),
+      },
+      voight: {
+        status: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: false, keySource: 'none', privacyLevel: 'standard', endpoint: 'https://api.voight.xyz/v1/events', pending: 0, failed: 0, sent: 0, lastSentAt: null, lastError: null },
+        }),
+        storeKey: vi.fn().mockResolvedValue({ ok: true }),
+        deleteKey: vi.fn().mockResolvedValue({ ok: true }),
+        testEvent: vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, status: 202, eventId: 'event-1', response: {} } }),
+        setPrivacyLevel: vi.fn().mockResolvedValue({ ok: true }),
+        flushQueue: vi.fn().mockResolvedValue({ ok: true, data: { sent: 0, failed: 0, pending: 0 } }),
       },
       events: {
         on: vi.fn(() => () => {}),
@@ -211,6 +232,12 @@ describe('Shell chrome DOM coverage', () => {
     expect(screen.getByRole('tab', { name: 'Codex' })).toHaveAttribute('aria-selected', 'true')
     expect(useUIStore.getState().rightPanelTab).toBe('codex')
     expect(screen.getByTestId('codex-panel')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Meterflow' }))
+
+    expect(screen.getByRole('tab', { name: 'Meterflow' })).toHaveAttribute('aria-selected', 'true')
+    expect(useUIStore.getState().rightPanelTab).toBe('meterflow')
+    expect(screen.getByTestId('meterflow-panel')).toBeInTheDocument()
   })
 
   it('opens the titlebar wallet quick view from the portfolio chip', async () => {
@@ -279,7 +306,7 @@ describe('Shell chrome DOM coverage', () => {
 
     await userEvent.type(screen.getByLabelText('Search settings'), 'titlebar')
 
-    expect(screen.getByRole('button', { name: 'Display' })).toHaveClass('active')
+    expect(screen.getByRole('tab', { name: 'Display' })).toHaveClass('active')
     expect(await screen.findByText('Titlebar wallet balance')).toBeInTheDocument()
 
     const titlebarRow = screen.getByText('Titlebar wallet balance').closest('.settings-display-row')

@@ -23,6 +23,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'project-readiness', name: 'Solana Start', moduleClass: 'addon', surface: 'drawer' },
   { id: 'solana-toolbox', name: 'Solana Workflow', moduleClass: 'addon', surface: 'drawer' },
   { id: 'integrations', name: 'Integrations', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'agentops', name: 'AgentOps', moduleClass: 'addon', surface: 'drawer' },
   { id: 'metaplex-demo', name: 'Metaplex Demo', moduleClass: 'addon', surface: 'drawer' },
   { id: 'zauth', name: 'Zauth', moduleClass: 'addon', surface: 'drawer' },
   { id: 'block-scanner', name: 'Block Scanner', moduleClass: 'addon', surface: 'drawer' },

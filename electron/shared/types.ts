@@ -836,6 +836,30 @@ export interface UiSettings {
   lowPowerMode: boolean
 }
 
+// --- Voight observability ---
+
+export type VoightPrivacyLevel = 'minimal' | 'standard' | 'full'
+export type VoightKeySource = 'secure' | 'env' | 'none'
+
+export interface VoightStatus {
+  configured: boolean
+  keySource: VoightKeySource
+  privacyLevel: VoightPrivacyLevel
+  endpoint: string
+  pending: number
+  failed: number
+  sent: number
+  lastSentAt: number | null
+  lastError: string | null
+}
+
+export interface VoightTestResult {
+  accepted: boolean
+  status: number
+  eventId: string
+  response: unknown
+}
+
 // --- Recovery ---
 
 export interface RecoveryWalletInfo {
@@ -1073,6 +1097,10 @@ export interface AgentWorkTask {
   diff_hash: string | null
   tests_hash: string | null
   artifact_uri: string | null
+  keycard_gate_id: string | null
+  keycard_open_url: string | null
+  keycard_capsule_hash: string | null
+  keycard_created_at: number | null
   submitted_at: number | null
   approved_at: number | null
   settled_signature: string | null
@@ -1096,6 +1124,7 @@ export interface AgentWorkCreateInput {
 export interface AgentWorkSubmitInput {
   artifactUri?: string | null
   testsOutput?: string | null
+  artifactMode?: 'local' | 'keycard'
 }
 
 // --- PnL Tracking ---
@@ -1266,6 +1295,211 @@ export interface IdleRegistryStatus {
   latestReceipt: IdlePaidCallReceipt | null
   executionReady: boolean
   blockers: string[]
+}
+
+// --- Meterflow control plane ---
+
+export type MeterflowKeySource = 'secure' | 'env' | 'none'
+
+export interface MeterflowStatus {
+  configured: boolean
+  keySource: MeterflowKeySource
+  baseUrl: string
+  tier: string | null
+  balanceUsd: number | null
+  executionReady: boolean
+  error: string | null
+  raw: Record<string, unknown> | null
+}
+
+export interface MeterflowReceipt {
+  id: string
+  createdAt?: string | number | null
+  updatedAt?: string | number | null
+  status?: string | null
+  method?: string | null
+  paymentProtocol?: string | null
+  paymentState?: string | null
+  route?: string | null
+  providerRoute?: string | null
+  meterId?: string | null
+  payerWallet?: string | null
+  wallet?: string | null
+  amountUsd?: number | string | null
+  amountUSDC?: number | string | null
+  asset?: string | null
+  txSignature?: string | null
+  publicVerifyUrl?: string | null
+  trustState?: string | null
+  trustScore?: number | string | null
+  agentId?: string | null
+  agentName?: string | null
+  providerName?: string | null
+  responseStatus?: number | string | null
+  error?: string | null
+  raw?: Record<string, unknown> | null
+  [key: string]: unknown
+}
+
+export interface MeterflowReceiptGraph {
+  receipt?: MeterflowReceipt
+  quote?: unknown
+  payment?: unknown
+  policy?: unknown
+  provider?: unknown
+  webhook?: unknown
+  [key: string]: unknown
+}
+
+export interface MeterflowMeter {
+  id: string
+  route?: string | null
+  endpoint?: string | null
+  targetUrl?: string | null
+  targetHost?: string | null
+  method?: string | null
+  unit?: string | null
+  priceUsd?: number | string | null
+  asset?: string | null
+  status?: string | null
+  mode?: string | null
+  providerName?: string | null
+  category?: string | null
+  description?: string | null
+  capabilities?: string[]
+  daemonReady?: boolean
+  source?: string | null
+  metrics?: Record<string, unknown> | null
+  [key: string]: unknown
+}
+
+export interface MeterflowBudget {
+  id: string
+  name?: string | null
+  status?: string | null
+  dailyCapUsd?: number | string | null
+  perCallCapUsd?: number | string | null
+  spentUsdToday?: number | string | null
+  allowedMeterIds?: string[]
+  [key: string]: unknown
+}
+
+export interface MeterflowAgentSession {
+  id: string
+  name?: string | null
+  agentId?: string | null
+  status?: string | null
+  maxSpendUsd?: number | string | null
+  spentUsd?: number | string | null
+  perCallCapUsd?: number | string | null
+  authMethod?: string | null
+  metadataPolicy?: string | null
+  expiresAt?: string | number | null
+  allowedMeterIds?: string[]
+  [key: string]: unknown
+}
+
+export interface MeterflowWebhook {
+  id: string
+  url?: string | null
+  events?: string[]
+  status?: string | null
+  createdAt?: string | number | null
+  updatedAt?: string | number | null
+  lastDeliveryAt?: string | number | null
+  lastStatus?: string | number | null
+  secretHint?: string | null
+  [key: string]: unknown
+}
+
+export interface MeterflowRevenueRow {
+  meterId?: string | null
+  route?: string | null
+  unit?: string | null
+  calls?: number | string | null
+  successful?: number | string | null
+  failed?: number | string | null
+  grossUsd?: number | string | null
+  verifiedUsd?: number | string | null
+  estimatedUsd?: number | string | null
+  avgLatencyMs?: number | string | null
+  [key: string]: unknown
+}
+
+export interface MeterflowReceiptsQuery {
+  meterId?: string
+  status?: string
+  limit?: number
+}
+
+export interface MeterflowReceiptDetail {
+  receipt: MeterflowReceipt
+  graph: MeterflowReceiptGraph | null
+}
+
+export interface MeterflowDemoWallet {
+  walletId: string
+  address: string
+  name: string
+  walletType: 'agent' | 'user' | string
+  createdAt: number
+  hasKeypair: boolean
+}
+
+export interface MeterflowWalletReadiness {
+  wallet: MeterflowDemoWallet | null
+  ready: boolean
+  network: string
+  solBalance: number | null
+  usdcBalance: number | null
+  fundingMessage: string
+  blockers: string[]
+}
+
+export interface MeterflowPaidAgentReadinessInput {
+  agentName?: string
+  metaplexAssetAddress?: string
+  idempotencyKey?: string
+  action?: string
+  address?: string
+  [key: string]: unknown
+}
+
+export interface MeterflowPaidAgentReadinessResult {
+  wallet: MeterflowDemoWallet
+  idempotencyKey: string
+  status: number
+  ok: boolean
+  receipt: MeterflowReceipt
+  receiptId: string | null
+  receiptUrl: string | null
+  txSignature: string | null
+  result: Record<string, unknown>
+}
+
+export interface MeterflowWatchProjectResult {
+  projectPath: string
+  watchPath: string
+  watching: boolean
+}
+
+export interface MeterflowCsvExport {
+  filename: string
+  contentType: string
+  content: string
+}
+
+export interface MeterflowOverview {
+  status: MeterflowStatus
+  receipts: MeterflowReceipt[]
+  meters: MeterflowMeter[]
+  budgets: MeterflowBudget[]
+  agentSessions: MeterflowAgentSession[]
+  webhooks: MeterflowWebhook[]
+  revenue: MeterflowRevenueRow[]
+  registrySummary: Record<string, unknown> | null
+  errors: string[]
+  fetchedAt: number
 }
 
 // --- MCP Management ---

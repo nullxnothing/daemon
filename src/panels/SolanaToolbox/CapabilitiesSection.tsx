@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import type { SolanaMcpEntry } from '../../store/solanaToolbox'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../../components/LiveRegion'
 import { SOLANA_AGENT_SKILL_GROUPS } from './catalog'
 
 interface CapabilitiesSectionProps {
@@ -15,18 +17,14 @@ interface CapabilitiesSectionProps {
 }
 
 export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX402, onScaffoldMpp, onScaffoldLight, onScaffoldMagicBlock, onScaffoldDebridge, onScaffoldSquads }: CapabilitiesSectionProps) {
-  const [copiedSkill, setCopiedSkill] = useState<string | null>(null)
+  const { copiedKey: copiedSkill, copy } = useClipboard()
   const [showAllSkills, setShowAllSkills] = useState(false)
 
   const payaiMcp = mcps.find((m) => m.name === 'payai-mcp-server')
   const x402Mcp = mcps.find((m) => m.name === 'x402-mcp')
   const paymentEnabled = payaiMcp?.enabled || x402Mcp?.enabled
 
-  const handleCopySkill = useCallback((skill: string) => {
-    navigator.clipboard.writeText(skill).catch(() => {})
-    setCopiedSkill(skill)
-    setTimeout(() => setCopiedSkill(null), 1500)
-  }, [])
+  const handleCopySkill = (skill: string) => { void copy(skill, skill) }
 
   const totalSkills = SOLANA_AGENT_SKILL_GROUPS.reduce((sum, g) => sum + g.skills.length, 0)
   const visibleGroups = showAllSkills ? SOLANA_AGENT_SKILL_GROUPS : SOLANA_AGENT_SKILL_GROUPS.slice(0, 3)
@@ -144,8 +142,9 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
       </div>
 
       {copiedSkill && (
-        <div className="solana-toast">Copied {copiedSkill}</div>
+        <div className="solana-toast" aria-hidden="true">Copied {copiedSkill}</div>
       )}
+      <LiveRegion message={copiedSkill ? `Copied ${copiedSkill} to clipboard` : ''} />
     </div>
   )
 }

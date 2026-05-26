@@ -133,27 +133,30 @@ function ProjectTabs({
   return (
     <div className="project-tabs">
       {projects.map((project) => (
-        <button
-          type="button"
+        <div
           key={project.id}
-          className={`project-tab ${activeProjectId === project.id ? 'active' : ''}`}
-          onClick={() => onSelectProject(project.id, project.path)}
+          className={`project-tab-wrap ${activeProjectId === project.id ? 'active' : ''}`}
         >
-          <span
-            className={`project-tab-dot ${activeProjectId === project.id ? 'live' : ''}`}
-            title={activeProjectId === project.id ? 'Project active' : 'Project inactive'}
-          />
-          <span className="project-tab-name">{project.name}</span>
-          <span
+          <button
+            type="button"
+            className={`project-tab ${activeProjectId === project.id ? 'active' : ''}`}
+            onClick={() => onSelectProject(project.id, project.path)}
+          >
+            <span
+              className={`project-tab-dot ${activeProjectId === project.id ? 'live' : ''}`}
+              title={activeProjectId === project.id ? 'Project active' : 'Project inactive'}
+            />
+            <span className="project-tab-name">{project.name}</span>
+          </button>
+          <button
+            type="button"
             className="project-tab-close"
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemoveProject(project.id)
-            }}
+            aria-label={`Close ${project.name}`}
+            onClick={() => onRemoveProject(project.id)}
           >
             &times;
-          </span>
-        </button>
+          </button>
+        </div>
       ))}
       <ProjectAddMenu
         isOpen={isAddOpen}

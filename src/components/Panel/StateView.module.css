@@ -1,0 +1,66 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.pad {
+  padding: var(--space-md);
+}
+
+/* Gentle enter: 8px rise + fade. Reduced-motion users get an instant cut. */
+.enter {
+  animation: state-enter var(--duration-normal) var(--ease-out-quint);
+}
+
+@keyframes state-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    animation: none;
+  }
+}
+
+.errorIcon {
+  color: var(--red);
+}
+
+.retry {
+  height: var(--btn-h-md);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  color: var(--t1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.retry:hover {
+  background: var(--control-bg-hover);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -23,7 +23,7 @@
 .icc-header-kicker {
   color: var(--text-muted);
   font-size: var(--fs-10);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -33,7 +33,7 @@
   margin: 0;
   color: var(--t1);
   font-size: var(--fs-16);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
   line-height: 1.2;
 }
 
@@ -317,7 +317,7 @@
 
 .icc-card[data-brand='idle'] .icc-card-name {
   color: #1a1a1a;
-  font-family: Fraunces, Georgia, 'Times New Roman', serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: var(--fs-16);
 }
 
@@ -707,14 +707,14 @@
 .icc-detail-pin-kicker {
   color: var(--t4);
   font-size: var(--fs-9);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
 }
 
 .icc-detail-pin-name {
   color: var(--t1);
   font-size: var(--fs-12);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
 }
 
 .icc-detail-kicker,
@@ -885,7 +885,7 @@
 }
 
 .icc-idle-head h3 {
-  font-family: Fraunces, Georgia, 'Times New Roman', serif;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: var(--fs-18);
 }
 
@@ -985,7 +985,7 @@
   margin: 0;
   color: #1a1a1a;
   font-size: var(--fs-13);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
   line-height: 1.2;
 }
 
@@ -1124,7 +1124,7 @@
 .icc-guided-next strong {
   color: var(--t1);
   font-size: var(--fs-14);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
   line-height: 1.2;
 }
 
@@ -1297,7 +1297,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--t2);
   font-size: var(--fs-11);
-  font-weight: 780;
+  font-weight: var(--fw-bold);
   background: var(--s2);
 }
 

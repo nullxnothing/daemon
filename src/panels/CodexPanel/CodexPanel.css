@@ -1,3 +1,13 @@
+.codex-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--space-md);
+  font-size: var(--fs-11);
+  color: var(--t4);
+  line-height: 1.4;
+}
+
 .codex-panel {
   display: flex;
   flex-direction: column;

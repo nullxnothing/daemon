@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type RightPanelTab = 'claude' | 'codex'
+export type RightPanelTab = 'claude' | 'codex' | 'meterflow'
 
 interface LayoutState {
   // Panel selection

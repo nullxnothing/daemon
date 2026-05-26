@@ -9,6 +9,15 @@ interface UseAppShortcutsOptions {
   setShowExplorer: Dispatch<SetStateAction<boolean>>
   setShowRightPanel: Dispatch<SetStateAction<boolean>>
   setShowTerminal: Dispatch<SetStateAction<boolean>>
+  setShowShortcuts: Dispatch<SetStateAction<boolean>>
+}
+
+// True when focus is in a text-entry context, where '?' should type a literal.
+function isTypingContext(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null
+  if (!el) return false
+  const tag = el.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
 }
 
 export function useAppShortcuts({
@@ -17,9 +26,16 @@ export function useAppShortcuts({
   setShowExplorer,
   setShowRightPanel,
   setShowTerminal,
+  setShowShortcuts,
 }: UseAppShortcutsOptions) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Shortcuts overlay: '?' (Shift+/), only outside text fields.
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !isTypingContext(e.target)) {
+        e.preventDefault()
+        setShowShortcuts((v) => !v)
+        return
+      }
       // Command Palette: Ctrl+Shift+P
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
         e.preventDefault()
@@ -78,5 +94,5 @@ export function useAppShortcuts({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setPaletteMode, setShowAgentLauncher, setShowExplorer, setShowRightPanel, setShowTerminal])
+  }, [setPaletteMode, setShowAgentLauncher, setShowExplorer, setShowRightPanel, setShowTerminal, setShowShortcuts])
 }

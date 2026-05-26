@@ -276,6 +276,7 @@ async function run() {
     env: {
       ...process.env,
       DAEMON_SMOKE_TEST: '1',
+      DAEMON_SMOKE_ONBOARDING: '1',
       DAEMON_SMOKE_CDP_PORT: String(cdpPort),
       DAEMON_USER_DATA_DIR: userDataDir,
     },

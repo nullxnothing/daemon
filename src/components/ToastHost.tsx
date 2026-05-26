@@ -5,8 +5,9 @@ export function ToastHost() {
   const toasts = useNotificationsStore((s) => s.toasts)
   const dismiss = useNotificationsStore((s) => s.dismiss)
 
-  if (toasts.length === 0) return null
-
+  // The live region stays mounted even when empty so screen readers register
+  // it before toasts arrive — a region inserted alongside its content won't
+  // reliably announce. `pointer-events: none` keeps the empty host inert.
   return (
     <div className="toast-host" role="region" aria-live="polite" aria-label="Notifications">
       {toasts.map((toast) => (

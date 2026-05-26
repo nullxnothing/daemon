@@ -5,6 +5,7 @@ import path from 'node:path'
 import { getInstalledBeardedIconsTheme } from '../services/IconThemeService'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import * as Voight from '../services/VoightService'
 import type { FileEntry } from '../shared/types'
 
 const IGNORED = new Set([
@@ -22,6 +23,34 @@ interface ReadDirState {
 
 function validatePath(p: string): void {
   if (!isPathSafe(p)) throw new Error('Path outside project boundaries')
+}
+
+function trackFileAction(toolExecuted: string, filePath: string, metadata: Record<string, unknown> = {}): void {
+  Voight.emitEventSafe({
+    agentId: 'daemon-filesystem',
+    type: 'action',
+    toolExecuted,
+    outcome: 'success',
+    metadata: {
+      sessionId: `fs:${toolExecuted}`,
+      path: filePath,
+      ...metadata,
+    },
+  })
+}
+
+// Returns a path in destDir for `name` that doesn't already exist, appending
+// " (2)", " (3)", ... before the extension on collision.
+async function resolveCollisionFreePath(destDir: string, name: string): Promise<string> {
+  const ext = path.extname(name)
+  const base = path.basename(name, ext)
+  let candidate = path.join(destDir, name)
+  let counter = 2
+  while (await fs.access(candidate).then(() => true).catch(() => false)) {
+    candidate = path.join(destDir, `${base} (${counter})${ext}`)
+    counter += 1
+  }
+  return candidate
 }
 
 async function readImageBase64(filePath: string) {
@@ -74,6 +103,7 @@ export function registerFilesystemHandlers() {
     const buffer = Buffer.from(base64, 'base64')
     await fs.mkdir(path.dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, buffer)
+    trackFileAction('fs_write_image', filePath, { bytes: buffer.length })
   }))
 
   ipcMain.handle('fs:pickImage', ipcHandler(async () => {
@@ -89,6 +119,7 @@ export function registerFilesystemHandlers() {
   ipcMain.handle('fs:writeFile', ipcHandler(async (_event, filePath: string, content: string) => {
     validatePath(filePath)
     await fs.writeFile(filePath, content, 'utf8')
+    trackFileAction('fs_write_file', filePath, { bytes: Buffer.byteLength(content, 'utf8') })
   }))
 
   ipcMain.handle('fs:createFile', ipcHandler(async (_event, filePath: string) => {
@@ -100,23 +131,53 @@ export function registerFilesystemHandlers() {
       if ((e as Error).message === 'File already exists') throw e
     }
     await fs.writeFile(filePath, '', 'utf8')
+    trackFileAction('fs_create_file', filePath)
   }))
 
   ipcMain.handle('fs:createDir', ipcHandler(async (_event, dirPath: string) => {
     validatePath(dirPath)
     await fs.mkdir(dirPath, { recursive: true })
+    trackFileAction('fs_create_dir', dirPath)
+  }))
+
+  // Import OS files/folders (drag-and-drop) into a destination directory.
+  // Sources are arbitrary user-chosen paths; only the destination must be
+  // inside project boundaries. Names collide-resolve so nothing is overwritten.
+  ipcMain.handle('fs:importPaths', ipcHandler(async (_event, sourcePaths: string[], destDir: string) => {
+    validatePath(destDir)
+    const destStat = await fs.stat(destDir).catch(() => null)
+    if (!destStat?.isDirectory()) throw new Error('Destination is not a directory')
+
+    const imported: string[] = []
+    for (const source of sourcePaths) {
+      if (typeof source !== 'string' || source.length === 0) continue
+      const srcStat = await fs.stat(source).catch(() => null)
+      if (!srcStat) continue
+
+      const target = await resolveCollisionFreePath(destDir, path.basename(source))
+      if (srcStat.isDirectory()) {
+        await fs.cp(source, target, { recursive: true, errorOnExist: false })
+      } else {
+        await fs.copyFile(source, target)
+      }
+      imported.push(target)
+      trackFileAction('fs_import_path', target, { sourceName: path.basename(source), isDirectory: srcStat.isDirectory() })
+    }
+    return imported
   }))
 
   ipcMain.handle('fs:rename', ipcHandler(async (_event, oldPath: string, newPath: string) => {
     validatePath(oldPath)
     validatePath(newPath)
     await fs.rename(oldPath, newPath)
+    trackFileAction('fs_rename', newPath, { oldPath })
   }))
 
   // Delete sends to recycle bin (recoverable) instead of permanent rmSync
   ipcMain.handle('fs:delete', ipcHandler(async (_event, targetPath: string) => {
     validatePath(targetPath)
     await shell.trashItem(targetPath)
+    trackFileAction('fs_delete', targetPath)
   }))
 
   ipcMain.handle('fs:reveal', ipcHandler(async (_event, targetPath: string) => {
