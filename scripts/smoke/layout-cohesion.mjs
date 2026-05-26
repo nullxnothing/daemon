@@ -90,6 +90,7 @@ async function seedAppState(page) {
   await page.evaluate(async ({ projectPath, projectName }) => {
     await window.daemon.settings.setOnboardingComplete(true)
     await window.daemon.settings.setShowTitlebarWallet(true)
+    await window.daemon.settings.setLowPowerMode(false)
     await window.daemon.settings.setWorkspaceProfile({
       name: 'custom',
       toolVisibility: {},
@@ -137,7 +138,14 @@ async function ensureRightPanelVisible(page) {
   const rightPanelVisible = await page.locator('.right-panel').isVisible().catch(() => false)
   if (rightPanelVisible) return
 
-  await page.keyboard.press('Control+B')
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'b',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    }))
+  })
   await page.waitForSelector('.right-panel-content', { timeout: 30000 })
 }
 
