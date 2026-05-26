@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
+import rateLimit from 'express-rate-limit'
 import { canUseHostedModelLane, getHostedLaneRequiredPlan } from '../EntitlementService'
 import { estimateRequestCredits } from './creditMath'
 import { ModelRouter } from './ModelRouter'
@@ -15,6 +16,9 @@ type AuthenticatedRequest = Request & {
   daemonAuth?: DaemonAiCloudAuthContext
 }
 
+const CLOUD_RATE_LIMIT_WINDOW_MS = 60_000
+const CLOUD_RATE_LIMIT_MAX = 240
+
 class DaemonAiCloudHttpError extends Error {
   status: number
   code: string
@@ -29,8 +33,14 @@ class DaemonAiCloudHttpError extends Error {
 
 function bearerToken(req: Request): string | null {
   const header = req.header('authorization') ?? ''
-  const match = header.match(/^Bearer\s+(.+)$/i)
-  return match?.[1]?.trim() || null
+  if (header.length <= 6 || header.slice(0, 6).toLowerCase() !== 'bearer') return null
+
+  let tokenStart = 6
+  while (header[tokenStart] === ' ' || header[tokenStart] === '\t') tokenStart += 1
+  if (tokenStart === 6) return null
+
+  const token = header.slice(tokenStart).trim()
+  return token || null
 }
 
 function errorMessage(error: unknown): string {
@@ -85,6 +95,22 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
   const app = express()
   app.use(express.json({ limit: '2mb' }))
 
+  const cloudLimiter = rateLimit({
+    windowMs: CLOUD_RATE_LIMIT_WINDOW_MS,
+    limit: CLOUD_RATE_LIMIT_MAX,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, res) => {
+      res.status(429).json({ ok: false, code: 'daemon_ai_rate_limited', error: 'Too many DAEMON AI requests. Retry shortly.' })
+    },
+  })
+
+  app.get('/health', (_req, res) => {
+    res.json({ ok: true, service: 'daemon-ai-cloud' })
+  })
+
+  app.use(cloudLimiter)
+
   app.use(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (req.path === '/health') return next()
     const token = bearerToken(req)
@@ -99,10 +125,6 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
     } catch (error) {
       return res.status(401).json({ ok: false, error: errorMessage(error) })
     }
-  })
-
-  app.get('/health', (_req, res) => {
-    res.json({ ok: true, service: 'daemon-ai-cloud' })
   })
 
   app.get('/v1/ai/features', (req: AuthenticatedRequest, res) => {

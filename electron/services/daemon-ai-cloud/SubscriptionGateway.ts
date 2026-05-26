@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import express, { type Request, type Response } from 'express'
+import rateLimit from 'express-rate-limit'
 import type Database from 'better-sqlite3'
 import bs58 from 'bs58'
 import nacl from 'tweetnacl'
@@ -27,6 +28,8 @@ const DEVNET_NETWORK = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
 const DEFAULT_PRO_PAY_TO = 'GNVxk3sn4iJ2iUaqEUskWQ1KNy9Mmcee3WF3AMtRjN7W'
 const USDC_DECIMALS = 6
 const HOLDER_CHALLENGE_TTL_MS = 5 * 60_000
+const SUBSCRIPTION_RATE_LIMIT_WINDOW_MS = 60_000
+const SUBSCRIPTION_RATE_LIMIT_MAX = 180
 const SOLANA_NETWORK_ALIASES: Record<string, string> = {
   solana: DEFAULT_NETWORK,
   'solana:mainnet': DEFAULT_NETWORK,
@@ -591,6 +594,15 @@ export function createDaemonSubscriptionGateway(options: SubscriptionGatewayOpti
 
   const app = express()
   app.use(express.json({ limit: '1mb' }))
+  app.use(rateLimit({
+    windowMs: SUBSCRIPTION_RATE_LIMIT_WINDOW_MS,
+    limit: SUBSCRIPTION_RATE_LIMIT_MAX,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, res) => {
+      responseError(res, 429, 'Too many subscription requests. Retry shortly.', 'daemon_pro_rate_limited')
+    },
+  }))
 
   app.get('/v1/subscribe/price', (req, res) => {
     const price = priceConfig(env, req.query.plan)
