@@ -33,7 +33,7 @@ const toolChecks = [
   { name: 'Solana Start', readySelector: '.project-readiness', expectedText: 'Solana project status' },
   { name: 'Solana Workflow', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
   { name: 'Settings', readySelector: '.settings-center', expectedText: 'Settings' },
-  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'No tokens launched' },
+  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Launch your first token' },
   { name: 'Sessions', readySelector: '.session-history', expectedText: 'Sessions' },
   { name: 'Recovery', readySelector: '.recovery-panel', expectedText: 'Wallets' },
 ]
