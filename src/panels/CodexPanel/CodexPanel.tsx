@@ -4,7 +4,7 @@ import { useAppActions } from '../../store/appActions'
 import { Button } from '../../components/Button'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { EmptyState } from '../../components/EmptyState'
-import { StatusDot } from '../../components/Panel'
+import { StatusDot, Spinner } from '../../components/Panel'
 import { Toggle } from '../../components/Toggle'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
 import './CodexPanel.css'
@@ -268,7 +268,7 @@ function McpSection() {
     }
   }
 
-  if (loading) return <div className="codex-mcp-desc">Loading...</div>
+  if (loading) return <div className="codex-loading" role="status" aria-live="polite"><Spinner size={13} tone="muted" /> Loading MCP servers…</div>
   if (mcps.length === 0) return <div className="codex-mcp-desc">No MCP servers configured in ~/.codex/config.toml</div>
 
   return (
@@ -330,7 +330,7 @@ function AgentsMdSection({ projectPath }: { projectPath: string }) {
     <CollapsibleSection title="AGENTS.md" defaultOpen={false}>
       <div className="codex-section-body">
         {!loaded ? (
-          <div className="codex-mcp-desc">Loading...</div>
+          <div className="codex-loading" role="status" aria-live="polite"><Spinner size={13} tone="muted" /> Loading AGENTS.md…</div>
         ) : editing ? (
           <>
             <textarea

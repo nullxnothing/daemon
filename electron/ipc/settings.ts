@@ -159,7 +159,7 @@ export function registerSettingsHandlers() {
     if (layout.centerMode === 'canvas' || layout.centerMode === 'grind') {
       upsert.run('layout_center_mode', layout.centerMode, now)
     }
-    if (layout.rightPanelTab === 'claude' || layout.rightPanelTab === 'codex') {
+    if (layout.rightPanelTab === 'claude' || layout.rightPanelTab === 'codex' || layout.rightPanelTab === 'meterflow') {
       upsert.run('layout_right_panel_tab', layout.rightPanelTab, now)
     }
   }))

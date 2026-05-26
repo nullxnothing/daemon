@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './fonts.css';
 @import './typography.css';
+@import './motion.css';
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -103,4 +104,18 @@ code, pre {
 a {
   color: var(--t2);
   text-decoration: none;
+}
+
+/* Visually hidden but available to screen readers. Use for live-region
+   announcements and labels that are conveyed visually by other means. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

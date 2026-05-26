@@ -16,8 +16,8 @@ export {
 export { DaemonAiCreditsError, SqliteDaemonAIUsageMeter } from './SqliteUsageMeter'
 export {
   createDaemonSubscriptionGateway,
+  PayAiX402PaymentVerifier,
   SolanaHolderVerifier,
-  SolanaUsdcPaymentVerifier,
   type DaemonProHolderVerifier,
   type DaemonProPaymentVerifier,
 } from './SubscriptionGateway'

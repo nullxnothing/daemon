@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useConfirmStore } from '../store/confirm'
+import { FocusTrap } from './FocusTrap'
 import './ConfirmDialog.css'
 
 export function ConfirmDialog() {
@@ -43,6 +44,7 @@ export function ConfirmDialog() {
 
   return (
     <div className="confirm-overlay" onClick={() => resolve(false)} role="presentation">
+      <FocusTrap autoFocus={false} restoreFocus={false}>
       <div
         className={`confirm-dialog ${current.danger ? 'danger' : ''}`}
         onClick={(e) => e.stopPropagation()}
@@ -84,6 +86,7 @@ export function ConfirmDialog() {
           </button>
         </div>
       </div>
+      </FocusTrap>
     </div>
   )
 }

@@ -67,9 +67,20 @@ interface IdleReceiptRow {
 }
 
 const DEFAULT_ASSET = 'USDC'
-const DEFAULT_NETWORK = 'solana:mainnet'
+const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
+const SOLANA_DEVNET_CAIP2 = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
+const DEFAULT_NETWORK = SOLANA_MAINNET_CAIP2
 const DEFAULT_METHOD = 'POST'
+const USDC_DECIMALS = 6
 const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,64}$/
+const NETWORK_ALIASES: Record<string, string> = {
+  solana: SOLANA_MAINNET_CAIP2,
+  'solana:mainnet': SOLANA_MAINNET_CAIP2,
+  'solana-mainnet': SOLANA_MAINNET_CAIP2,
+  'solana-mainnet-beta': SOLANA_MAINNET_CAIP2,
+  'solana:devnet': SOLANA_DEVNET_CAIP2,
+  'solana-devnet': SOLANA_DEVNET_CAIP2,
+}
 
 function dbFrom(deps?: ServiceDeps) {
   return deps?.db ?? getDb()
@@ -101,6 +112,12 @@ function numberValue(value: unknown): number | null {
   return null
 }
 
+function normalizeNetwork(value: unknown): string | null {
+  const network = optionalString(value)
+  if (!network) return null
+  return NETWORK_ALIASES[network.toLowerCase()] ?? network
+}
+
 function arrayFromPayload(payload: unknown): unknown[] {
   if (Array.isArray(payload)) return payload
   if (payload && typeof payload === 'object') {
@@ -119,6 +136,7 @@ function normalizeMethod(value: unknown): 'GET' | 'POST' {
 
 function normalizeType(value: unknown): IdleResourceType {
   const type = optionalString(value)?.toLowerCase()
+  if (type === 'http') return 'api'
   if (type === 'gpu' || type === 'agent' || type === 'api' || type === 'pc' || type === 'wallet' || type === 'data') return type
   return 'unknown'
 }
@@ -148,32 +166,43 @@ function assertHttpsEndpoint(endpoint: string) {
 function normalizeResource(input: unknown, registryUrl: string | null, index: number, now: number): IdleResource {
   if (!input || typeof input !== 'object') throw new Error(`Invalid IDLE resource at index ${index}`)
   const record = input as Record<string, unknown>
+  const accepts = Array.isArray(record.accepts) && record.accepts[0] && typeof record.accepts[0] === 'object'
+    ? record.accepts[0] as Record<string, unknown>
+    : {}
+  const metadata = record.metadata && typeof record.metadata === 'object' ? record.metadata as Record<string, unknown> : {}
   const endpoint = optionalString(record.endpoint) ?? optionalString(record.url) ?? optionalString(record.resource) ?? ''
   assertHttpsEndpoint(endpoint)
-  const provider = optionalString(record.provider) ?? optionalString(record.owner) ?? 'idle-protocol'
-  const name = optionalString(record.name) ?? optionalString(record.id) ?? `idle-resource-${index + 1}`
+  const defaultProvider = registryUrl?.includes('facilitator.payai.network') ? 'payai-bazaar' : 'idle-protocol'
+  const provider = optionalString(record.provider) ?? optionalString(record.owner) ?? optionalString(metadata.provider) ?? defaultProvider
+  const name = optionalString(record.name)
+    ?? optionalString(record.id)
+    ?? optionalString(metadata.name)
+    ?? optionalString(metadata.title)
+    ?? new URL(endpoint).pathname.split('/').filter(Boolean).at(-1)
+    ?? `paid-resource-${index + 1}`
   const priceUsdc = numberValue(record.priceUsdc)
     ?? numberValue(record.price_usdc)
-    ?? numberValue(record.maxAmountRequired)
-    ?? numberValue(record.amount)
+    ?? numberValue(record.price)
+    ?? amountUsdcFromRequirement(record)
+    ?? amountUsdcFromRequirement(accepts)
     ?? 0
-  const payee = optionalString(record.payee) ?? optionalString(record.payTo) ?? optionalString(record.recipient) ?? ''
+  const payee = optionalString(record.payee) ?? optionalString(record.payTo) ?? optionalString(record.recipient) ?? optionalString(accepts.payTo) ?? ''
   const score = Math.max(0, Math.min(100, Math.round(numberValue(record.score) ?? 70)))
 
   return {
     id: optionalString(record.id) ?? stableResourceId(endpoint, provider, name),
     provider,
-    type: normalizeType(record.type ?? record.resourceType),
+    type: normalizeType(record.type ?? record.resourceType ?? metadata.type),
     name,
     endpoint,
     method: normalizeMethod(record.method),
     priceUsdc,
-    asset: optionalString(record.asset) ?? DEFAULT_ASSET,
-    network: optionalString(record.network) ?? DEFAULT_NETWORK,
+    asset: optionalString(record.asset) ?? optionalString(accepts.asset) ?? DEFAULT_ASSET,
+    network: normalizeNetwork(record.network ?? accepts.network) ?? DEFAULT_NETWORK,
     payee,
     score,
     status: normalizeStatus(record.status),
-    schema: (record.schema && typeof record.schema === 'object' ? record.schema : {}) as Record<string, unknown>,
+    schema: (record.schema && typeof record.schema === 'object' ? record.schema : metadata) as Record<string, unknown>,
     registryUrl,
     lastSeenAt: now,
   }
@@ -280,8 +309,8 @@ export function listResources(limit = 50, deps?: ServiceDeps): IdleResource[] {
 
 export async function refreshRegistry(input: IdleRegistryRefreshInput = {}, deps?: ServiceDeps): Promise<IdleResource[]> {
   const env = deps?.env ?? process.env
-  const registryUrl = optionalString(input.registryUrl) ?? optionalString(env.IDLE_REGISTRY_URL)
-  if (!registryUrl) throw new Error('IDLE_REGISTRY_URL is required before DAEMON can import live resources.')
+  const registryUrl = optionalString(input.registryUrl) ?? optionalString(env.IDLE_REGISTRY_URL) ?? optionalString(env.PAYAI_DISCOVERY_URL)
+  if (!registryUrl) throw new Error('IDLE_REGISTRY_URL or PAYAI_DISCOVERY_URL is required before DAEMON can import live resources.')
   assertHttpsEndpoint(registryUrl)
 
   const fetchImpl = deps?.fetchImpl ?? fetch
@@ -313,6 +342,11 @@ function hostAllowed(endpoint: string, allowedDomains: string[]) {
 
 function valueAllowed(value: string, allowed: string[]) {
   return allowed.map((item) => item.toLowerCase()).includes(value.toLowerCase())
+}
+
+function networkAllowed(value: string, allowed: string[]) {
+  const normalized = normalizeNetwork(value)
+  return Boolean(normalized && allowed.some((item) => normalizeNetwork(item)?.toLowerCase() === normalized.toLowerCase()))
 }
 
 function spentForTask(db: Database.Database, taskId?: string | null, projectId?: string | null) {
@@ -353,7 +387,7 @@ export function checkPolicy(input: IdlePolicyCheckInput, deps?: ServiceDeps): Id
   if (resource.status !== 'available') reasons.push(`Resource status is ${resource.status}.`)
   if (resource.priceUsdc <= 0) reasons.push('Resource price is missing or zero.')
   if (!policy.allowedDomains.length || !hostAllowed(resource.endpoint, policy.allowedDomains)) reasons.push('Endpoint host is not on the route allowlist.')
-  if (!policy.allowedNetworks.length || !valueAllowed(resource.network, policy.allowedNetworks)) reasons.push('Network is not allowed by policy.')
+  if (!policy.allowedNetworks.length || !networkAllowed(resource.network, policy.allowedNetworks)) reasons.push('Network is not allowed by policy.')
   if (!policy.allowedAssets.length || !valueAllowed(resource.asset, policy.allowedAssets)) reasons.push('Payment asset is not allowed by policy.')
   if (!policy.allowedPayees.length || !valueAllowed(resource.payee, policy.allowedPayees)) reasons.push('Payee is not allowed by policy.')
   if (resource.payee && BASE58_RE.test(resource.payee) === false && resource.payee.length < 8) reasons.push('Payee identifier is not specific enough.')
@@ -404,15 +438,23 @@ function extractRequirement(response: Response, bodyText: string): Record<string
   return accepts ?? payload
 }
 
+function amountUsdcFromRequirement(requirement: Record<string, unknown>): number | null {
+  const price = numberValue(requirement.price)
+  if (price !== null) return price
+  const amount = numberValue(requirement.maxAmountRequired) ?? numberValue(requirement.amount)
+  if (amount === null) return null
+  return amount > 1 ? amount / 10 ** USDC_DECIMALS : amount
+}
+
 function requirementMismatch(resource: IdleResource, requirement: Record<string, unknown>) {
   const reasons: string[] = []
   const payTo = optionalString(requirement.payTo)
   const asset = optionalString(requirement.asset)
-  const network = optionalString(requirement.network)
-  const amount = numberValue(requirement.maxAmountRequired) ?? numberValue(requirement.amount)
+  const network = normalizeNetwork(requirement.network)
+  const amount = amountUsdcFromRequirement(requirement)
   if (payTo && payTo !== resource.payee) reasons.push('Payment requirement payee does not match selected resource.')
   if (asset && asset.toLowerCase() !== resource.asset.toLowerCase()) reasons.push('Payment requirement asset does not match selected resource.')
-  if (network && network.toLowerCase() !== resource.network.toLowerCase()) reasons.push('Payment requirement network does not match selected resource.')
+  if (network && network.toLowerCase() !== normalizeNetwork(resource.network)?.toLowerCase()) reasons.push('Payment requirement network does not match selected resource.')
   if (amount !== null && amount > resource.priceUsdc) reasons.push('Payment requirement exceeds selected resource price.')
   return reasons
 }
@@ -525,6 +567,7 @@ export async function executePaidCall(input: IdlePaidCallInput, deps?: ServiceDe
     })
     if (paid.status >= 300 && paid.status < 400) throw new Error('IDLE paid call redirected after payment.')
     const contentType = paid.headers.get('content-type')
+    const paymentResponse = paid.headers.get('payment-response') ?? paid.headers.get('x-payment-response')
     const buffer = Buffer.from(await paid.arrayBuffer())
     const receipt = writeReceipt(db, {
       resource,
@@ -541,6 +584,7 @@ export async function executePaidCall(input: IdlePaidCallInput, deps?: ServiceDe
         approvedBy: input.approvedBy ?? null,
         x402Version: requirement.x402Version ?? null,
         requirementHash: hashPayload(requirement),
+        paymentResponseHash: paymentResponse ? hashPayload(paymentResponse) : null,
       },
     }, deps)
     return receipt
@@ -563,12 +607,16 @@ export function listReceipts(limit = 25, deps?: ServiceDeps): IdlePaidCallReceip
 
 export function getStatus(registryUrl?: string | null, deps?: ServiceDeps): IdleRegistryStatus {
   const db = dbFrom(deps)
-  const configuredUrl = optionalString(registryUrl) ?? optionalString(deps?.env?.IDLE_REGISTRY_URL) ?? optionalString(process.env.IDLE_REGISTRY_URL)
+  const configuredUrl = optionalString(registryUrl)
+    ?? optionalString(deps?.env?.IDLE_REGISTRY_URL)
+    ?? optionalString(deps?.env?.PAYAI_DISCOVERY_URL)
+    ?? optionalString(process.env.IDLE_REGISTRY_URL)
+    ?? optionalString(process.env.PAYAI_DISCOVERY_URL)
   const resourceCount = Number((db.prepare('SELECT COUNT(*) AS count FROM idle_resource_cache').get() as { count: number }).count)
   const receiptCount = Number((db.prepare('SELECT COUNT(*) AS count FROM idle_paid_call_receipts').get() as { count: number }).count)
   const latestRow = db.prepare('SELECT * FROM idle_paid_call_receipts ORDER BY created_at DESC LIMIT 1').get() as IdleReceiptRow | undefined
   const blockers: string[] = []
-  if (!configuredUrl) blockers.push('IDLE_REGISTRY_URL is not configured.')
+  if (!configuredUrl) blockers.push('IDLE_REGISTRY_URL or PAYAI_DISCOVERY_URL is not configured.')
   if (resourceCount === 0) blockers.push('No IDLE resources have been imported.')
   return {
     registryConfigured: Boolean(configuredUrl),

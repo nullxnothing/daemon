@@ -18,6 +18,7 @@ export interface LaunchParams {
   slippageBps: number
   priorityFeeSol: number
   walletId: string
+  openbid?: OpenBidLaunchInputConfig
 }
 
 export interface LaunchResult {
@@ -63,6 +64,7 @@ export function useTokenLaunch() {
         slippageBps: params.slippageBps,
         priorityFeeSol: params.priorityFeeSol,
         walletId: params.walletId,
+        openbid: params.openbid,
       })
 
       if (!res.ok || !res.data) {

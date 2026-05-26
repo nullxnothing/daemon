@@ -11,6 +11,7 @@ import {
 } from '../../electron/services/daemon-ai-cloud'
 
 const jwtSecret = 'subscription-test-secret'
+const SOLANA_MAINNET_CAIP2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
 
 describe('Daemon subscription gateway', () => {
   let server: Server | null = null
@@ -124,10 +125,32 @@ describe('Daemon subscription gateway', () => {
     env?: NodeJS.ProcessEnv
   } = {}) {
     db = createFakeDb()
+    const testPaymentVerifier: DaemonProPaymentVerifier = options.paymentVerifier ?? {
+      createPaymentRequiredHeader: vi.fn(async (price) => Buffer.from(JSON.stringify({
+        x402Version: 2,
+        resource: {
+          url: '/v1/subscribe',
+          description: `DAEMON ${price.plan} subscription`,
+          mimeType: 'application/json',
+        },
+        accepts: [{
+          scheme: 'exact',
+          network: price.network,
+          amount: String(Math.round(price.priceUsdc * 1_000_000)),
+          asset: price.paymentMint,
+          payTo: price.payTo,
+          maxTimeoutSeconds: 60,
+          extra: { name: 'USDC', version: '2', plan: price.plan },
+        }],
+      })).toString('base64')),
+      verifyPayment: vi.fn(async () => {
+        throw new Error('unexpected payment verification')
+      }),
+    }
     const app = createDaemonSubscriptionGateway({
       db: db as never,
       jwtSecret,
-      paymentVerifier: options.paymentVerifier,
+      paymentVerifier: testPaymentVerifier,
       holderVerifier: options.holderVerifier,
       env: {
         DAEMON_PRO_PAY_TO: Keypair.generate().publicKey.toBase58(),
@@ -149,7 +172,14 @@ describe('Daemon subscription gateway', () => {
     const body = await response.json()
 
     expect(response.status).toBe(402)
-    expect(response.headers.get('payment-required')).toBeTruthy()
+    const paymentRequired = response.headers.get('payment-required')
+    expect(paymentRequired).toBeTruthy()
+    const requirements = JSON.parse(Buffer.from(paymentRequired!, 'base64').toString('utf8'))
+    expect(requirements.accepts[0]).toMatchObject({
+      scheme: 'exact',
+      network: SOLANA_MAINNET_CAIP2,
+      amount: '20000000',
+    })
     expect(body).toMatchObject({
       ok: false,
       code: 'daemon_pro_payment_required',

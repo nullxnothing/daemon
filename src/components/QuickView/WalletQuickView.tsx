@@ -6,6 +6,8 @@ import { formatCompactUsd } from '../../utils/format'
 import { QuickView } from './QuickView'
 import { TransactionPreviewCard } from '../../panels/WalletPanel/TransactionPreviewCard'
 import { Stat } from '../Panel'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../LiveRegion'
 import { canOpenSolscan, getSolscanTxLabel, getSolscanTxUrl } from '../../lib/solanaExplorer'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
@@ -587,22 +589,7 @@ function ReceiveView({ address, onBack }: {
   address: string
   onBack: () => void
 }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(address)
-    } catch {
-      const el = document.createElement('textarea')
-      el.value = address
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [address])
+  const { copied, copy } = useClipboard({ resetMs: 2000 })
 
   return (
     <div className="qv-subview">
@@ -612,9 +599,10 @@ function ReceiveView({ address, onBack }: {
         <div className="qv-receive-address" title={address}>
           {address}
         </div>
-        <button type="button" className="qv-primary-btn" onClick={handleCopy}>
-          {copied ? 'Copied' : 'Copy Address'}
+        <button type="button" className="qv-primary-btn" onClick={() => void copy(address)}>
+          {copied ? 'Copied ✓' : 'Copy Address'}
         </button>
+        <LiveRegion message={copied ? 'Wallet address copied to clipboard' : ''} />
       </div>
     </div>
   )

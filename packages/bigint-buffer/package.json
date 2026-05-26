@@ -1,0 +1,22 @@
+{
+  "name": "bigint-buffer",
+  "version": "1.1.6",
+  "description": "Pure JavaScript bigint-buffer compatibility package",
+  "main": "index.cjs",
+  "browser": {
+    "./index.cjs": "./browser.cjs"
+  },
+  "types": "index.d.ts",
+  "license": "Apache-2.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "browser": "./browser.cjs",
+      "default": "./index.cjs"
+    },
+    "./index.cjs": "./index.cjs",
+    "./browser.cjs": "./browser.cjs",
+    "./package.json": "./package.json"
+  }
+}

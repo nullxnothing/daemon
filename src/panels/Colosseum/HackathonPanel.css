@@ -167,6 +167,9 @@
 }
 
 .hackathon-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--fs-11);
   color: var(--t4);
   padding: var(--space-sm) 0;

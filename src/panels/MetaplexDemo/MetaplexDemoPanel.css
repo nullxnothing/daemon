@@ -1,62 +1,65 @@
 .metaplex-demo-panel {
   height: 100%;
   overflow: auto;
-  padding: 22px;
-  color: #f5f7f4;
-  background: #090b0c;
+  padding: var(--space-xl);
+  color: var(--t1);
+  background: var(--surface-sunken);
 }
 
 .metaplex-demo-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
+  gap: var(--space-lg);
   align-items: end;
-  padding-bottom: 18px;
-  border-bottom: 1px solid #26312d;
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
 }
 
 .metaplex-demo-kicker {
   display: block;
-  color: #5cff9d;
-  font-size: 12px;
+  color: var(--green);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
 .metaplex-demo-head h2,
 .metaplex-demo-detail h3 {
-  margin: 8px 0 10px;
+  margin: var(--space-sm) 0 10px;
   letter-spacing: 0;
   line-height: 1;
 }
 
 .metaplex-demo-head h2 {
-  font-size: 34px;
+  font-size: var(--fs-34);
+  font-weight: var(--fw-semibold);
 }
 
 .metaplex-demo-head p,
 .metaplex-demo-card p,
 .metaplex-demo-detail p {
   margin: 0;
-  color: #a9b5af;
+  color: var(--t3);
   line-height: 1.45;
 }
 
 .metaplex-demo-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(132px, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .metaplex-demo-actions button,
 .metaplex-demo-filter button,
 .metaplex-demo-preview-list button,
 .metaplex-demo-detail-actions button {
-  border: 1px solid #2a3732;
-  border-radius: 6px;
-  background: #111615;
-  color: #dce6e0;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+  color: var(--t1);
   min-height: 38px;
-  padding: 8px 10px;
+  padding: var(--space-sm) 10px;
   cursor: pointer;
 }
 
@@ -64,7 +67,7 @@
 .metaplex-demo-filter button:hover,
 .metaplex-demo-preview-list button:hover,
 .metaplex-demo-detail-actions button:hover {
-  border-color: #5cff9d;
+  border-color: var(--green);
 }
 
 .metaplex-demo-actions button:disabled,
@@ -78,7 +81,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin: 18px 0;
+  margin: var(--space-lg) 0;
 }
 
 .metaplex-demo-metrics div,
@@ -91,9 +94,9 @@
 .metaplex-demo-package-box,
 .metaplex-demo-flow div,
 .metaplex-demo-notice {
-  border: 1px solid #26312d;
-  border-radius: 8px;
-  background: #101413;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
 }
 
 .metaplex-demo-metrics div {
@@ -102,17 +105,18 @@
 
 .metaplex-demo-metrics strong {
   display: block;
-  font-size: 28px;
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
 }
 
 .metaplex-demo-metrics span {
-  color: #a9b5af;
+  color: var(--t3);
 }
 
 .metaplex-demo-notice {
-  padding: 12px 14px;
-  margin-bottom: 18px;
-  color: #5cff9d;
+  padding: var(--space-md) 14px;
+  margin-bottom: var(--space-lg);
+  color: var(--green);
 }
 
 .metaplex-demo-operator {
@@ -120,9 +124,9 @@
   grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.1fr) minmax(280px, 0.9fr) minmax(260px, 0.75fr);
   gap: 14px;
   align-items: start;
-  padding-bottom: 18px;
-  margin-bottom: 18px;
-  border-bottom: 1px solid #26312d;
+  padding-bottom: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
 }
 
 .metaplex-demo-operator-copy,
@@ -134,8 +138,9 @@
 }
 
 .metaplex-demo-operator-copy h3 {
-  margin: 8px 0 10px;
-  font-size: 28px;
+  margin: var(--space-sm) 0 10px;
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
   line-height: 1;
   overflow-wrap: anywhere;
 }
@@ -144,14 +149,14 @@
 .metaplex-demo-operator-stage p,
 .metaplex-demo-das-status {
   margin: 0;
-  color: #a9b5af;
+  color: var(--t3);
   line-height: 1.45;
 }
 
 .metaplex-demo-operator-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
   margin: 14px 0;
 }
 
@@ -165,11 +170,11 @@
 .metaplex-demo-live-write button {
   width: 100%;
   min-height: 38px;
-  border: 1px solid #2a3732;
-  border-radius: 6px;
-  background: #111615;
-  color: #dce6e0;
-  padding: 8px 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+  color: var(--t1);
+  padding: var(--space-sm) 10px;
 }
 
 .metaplex-demo-operator-actions button {
@@ -178,7 +183,7 @@
 
 .metaplex-demo-operator-actions button:hover,
 .metaplex-demo-live-write button:hover {
-  border-color: #5cff9d;
+  border-color: var(--green);
 }
 
 .metaplex-demo-operator-actions button:disabled,
@@ -191,43 +196,45 @@
 .metaplex-demo-live-write,
 .metaplex-demo-operator-plan,
 .metaplex-demo-das-box {
-  border: 1px solid #26312d;
-  border-radius: 8px;
-  background: #101413;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
 }
 
 .metaplex-demo-operator-warning {
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .metaplex-demo-operator-warning strong {
   display: block;
   margin-bottom: 6px;
-  color: #f3c869;
+  color: var(--amber);
 }
 
 .metaplex-demo-live-write {
   display: grid;
   gap: 10px;
-  padding: 12px;
-  margin-top: 12px;
+  padding: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .metaplex-demo-live-write strong {
-  color: #5cff9d;
+  color: var(--green);
 }
 
 .metaplex-demo-live-write label {
   display: grid;
   gap: 6px;
-  color: #a9b5af;
-  font-size: 12px;
+  color: var(--t3);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
 .metaplex-demo-live-write button {
-  color: #08100d;
-  background: #5cff9d;
+  color: var(--on-accent-dark);
+  background: var(--green);
   cursor: pointer;
 }
 
@@ -241,8 +248,10 @@
 .metaplex-demo-das-box label {
   display: grid;
   gap: 6px;
-  color: #a9b5af;
-  font-size: 12px;
+  color: var(--t3);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
@@ -253,25 +262,27 @@
 .metaplex-demo-operator-plan,
 .metaplex-demo-das-box {
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
 }
 
 .metaplex-demo-operator-plan-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  color: #68d8ff;
-  font-size: 12px;
+  gap: var(--space-md);
+  color: var(--blue);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
 .metaplex-demo-operator-plan-head strong {
-  border: 1px solid #5cff9d;
-  border-radius: 999px;
-  padding: 4px 8px;
-  color: #5cff9d;
+  border: 1px solid var(--green);
+  border-radius: var(--radius-pill);
+  padding: 4px var(--space-sm);
+  color: var(--green);
 }
 
 .metaplex-demo-operator-stage {
@@ -280,9 +291,9 @@
   gap: 10px;
   align-items: start;
   padding: 10px;
-  border: 1px solid #26312d;
-  border-radius: 8px;
-  background: #0d1110;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
 }
 
 .metaplex-demo-operator-stage > span {
@@ -290,9 +301,9 @@
   height: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid #5cff9d;
+  border: 1px solid var(--green);
   border-radius: 50%;
-  color: #5cff9d;
+  color: var(--green);
 }
 
 .metaplex-demo-operator-stage strong {
@@ -302,9 +313,9 @@
 
 .metaplex-demo-das-status {
   padding: 10px;
-  border: 1px solid #26312d;
-  border-radius: 6px;
-  background: #0d1110;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
 }
 
 .metaplex-demo-grid {
@@ -315,31 +326,33 @@
 }
 
 .metaplex-demo-nav {
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .metaplex-demo-filter {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-sm);
   padding-bottom: 14px;
-  border-bottom: 1px solid #26312d;
+  border-bottom: 1px solid var(--border);
 }
 
 .metaplex-demo-filter button.active {
-  border-color: #5cff9d;
-  color: #5cff9d;
+  border-color: var(--green);
+  color: var(--green);
 }
 
 .metaplex-demo-preview-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   padding-top: 14px;
 }
 
 .metaplex-demo-preview-list span {
-  color: #68d8ff;
-  font-size: 12px;
+  color: var(--blue);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
@@ -350,26 +363,26 @@
 
 .metaplex-demo-list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .metaplex-demo-workflows {
   display: grid;
   grid-template-columns: minmax(400px, 1.1fr) minmax(360px, 0.9fr);
   gap: 14px;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-lg);
   align-items: start;
 }
 
 .metaplex-demo-workflow-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .metaplex-demo-workflow-card {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 176px;
   padding: 14px;
   color: inherit;
@@ -378,100 +391,106 @@
 }
 
 .metaplex-demo-workflow-card.active {
-  border-color: #5cff9d;
-  background: #121816;
+  border-color: var(--green);
+  background: var(--surface-card-hover);
 }
 
 .metaplex-demo-workflow-card span {
-  color: #68d8ff;
-  font-size: 12px;
+  color: var(--blue);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
 .metaplex-demo-workflow-card strong {
-  font-size: 17px;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
   overflow-wrap: anywhere;
 }
 
 .metaplex-demo-workflow-card p {
   margin: 0;
-  color: #a9b5af;
+  color: var(--t3);
   line-height: 1.45;
 }
 
 .metaplex-demo-workflow-detail {
-  padding: 16px;
-  border-left: 1px solid #26312d;
-  background: #0d1110;
+  padding: var(--space-lg);
+  border-left: 1px solid var(--border);
+  background: var(--surface-sunken);
 }
 
 .metaplex-demo-workflow-detail h3 {
-  margin: 8px 0 10px;
-  font-size: 26px;
+  margin: var(--space-sm) 0 10px;
+  font-size: var(--fs-26);
+  font-weight: var(--fw-semibold);
   line-height: 1;
 }
 
 .metaplex-demo-workflow-detail p {
   margin: 0;
-  color: #a9b5af;
+  color: var(--t3);
   line-height: 1.45;
 }
 
 .metaplex-demo-workflow-grid {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   margin: 14px 0;
 }
 
 .metaplex-demo-workflow-grid > div {
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .metaplex-demo-workflow-grid strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .metaplex-demo-workflow-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .metaplex-demo-workflow-tags button,
 .metaplex-demo-doc-link {
-  border: 1px solid #2a3732;
-  border-radius: 6px;
-  background: #111615;
-  color: #dce6e0;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+  color: var(--t1);
   min-height: 34px;
   padding: 7px 9px;
   cursor: pointer;
 }
 
 .metaplex-demo-doc-link {
-  color: #5cff9d;
-  border-color: #5cff9d;
+  color: var(--green);
+  border-color: var(--green);
 }
 
 .metaplex-demo-workflow-tags button:hover,
 .metaplex-demo-doc-link:hover {
-  border-color: #5cff9d;
+  border-color: var(--green);
 }
 
 .metaplex-demo-lane {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .metaplex-demo-lane-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  color: #68d8ff;
-  font-size: 12px;
+  gap: var(--space-md);
+  color: var(--blue);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
@@ -480,21 +499,21 @@
   min-height: 24px;
   display: grid;
   place-items: center;
-  border: 1px solid #26312d;
-  border-radius: 999px;
-  color: #dce6e0;
-  background: #101413;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--t1);
+  background: var(--surface-raised);
 }
 
 .metaplex-demo-lane-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .metaplex-demo-card {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   width: 100%;
   padding: 14px;
   color: inherit;
@@ -503,17 +522,20 @@
 }
 
 .metaplex-demo-card.active {
-  border-color: #5cff9d;
+  border-color: var(--green);
 }
 
 .metaplex-demo-card span {
-  color: #68d8ff;
-  font-size: 12px;
+  color: var(--blue);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
 .metaplex-demo-card strong {
-  font-size: 16px;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -529,18 +551,19 @@
 .metaplex-demo-card code {
   align-self: end;
   justify-self: start;
-  border-radius: 999px;
-  padding: 4px 8px;
-  background: #5cff9d;
-  color: #08100d;
+  border-radius: var(--radius-pill);
+  padding: 4px var(--space-sm);
+  background: var(--green);
+  color: var(--on-accent-dark);
 }
 
 .metaplex-demo-detail {
-  padding: 18px;
+  padding: var(--space-lg);
 }
 
 .metaplex-demo-detail h3 {
-  font-size: 28px;
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -548,18 +571,18 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
-  margin: 16px 0;
+  margin: var(--space-lg) 0;
 }
 
 .metaplex-demo-detail-grid > div,
 .metaplex-demo-package-box {
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .metaplex-demo-detail-grid strong,
 .metaplex-demo-package-box strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .metaplex-demo-package-box {
@@ -569,13 +592,14 @@
 }
 
 .metaplex-demo-package-box code {
-  color: #dce6e0;
+  color: var(--t1);
+  font-family: var(--font-code);
   overflow-wrap: anywhere;
 }
 
 .metaplex-demo-flow {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .metaplex-demo-flow div {
@@ -591,16 +615,16 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border: 1px solid #5cff9d;
+  border: 1px solid var(--green);
   border-radius: 50%;
-  color: #5cff9d;
+  color: var(--green);
 }
 
 .metaplex-demo-detail-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
 }
 
 @media (max-width: 1180px) {
@@ -623,7 +647,7 @@
   }
 
   .metaplex-demo-head h2 {
-    font-size: 34px;
+    font-size: var(--fs-34);
   }
 
   .metaplex-demo-actions,

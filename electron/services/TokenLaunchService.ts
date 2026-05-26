@@ -4,10 +4,12 @@ import { getDb } from '../db/db'
 import * as PumpFun from './PumpFunService'
 import * as Settings from './SettingsService'
 import * as WalletService from './WalletService'
+import * as Voight from './VoightService'
 import { pumpFunLaunchAdapter } from './token-launch/adapters/PumpFunLaunchAdapter'
 import { createRaydiumLaunchLabAdapter } from './token-launch/adapters/RaydiumLaunchLabAdapter'
 import { createMeteoraDbcLaunchAdapter } from './token-launch/adapters/MeteoraDbcLaunchAdapter'
 import { createPrintrLaunchAdapter } from './token-launch/adapters/PrintrLaunchAdapter'
+import { createOpenBidLaunchAdapter } from './token-launch/adapters/OpenBidLaunchAdapter'
 import type {
   AdapterLaunchResult,
   LaunchpadDefinition,
@@ -122,6 +124,7 @@ function getAdapters(settings: TokenLaunchSettings): Record<LaunchpadId, TokenLa
     raydium: createRaydiumLaunchLabAdapter({ settings: settings.raydium }),
     meteora: createMeteoraDbcLaunchAdapter({ settings: settings.meteora }),
     printr: createPrintrLaunchAdapter({ settings: settings.printr }),
+    openbid: createOpenBidLaunchAdapter({ settings: settings.openbid }),
     bags: null,
     bonk: null,
   }
@@ -134,6 +137,7 @@ export function listLaunchpads(): LaunchpadDefinition[] {
     adapters.raydium!.definition,
     adapters.meteora!.definition,
     adapters.printr!.definition,
+    adapters.openbid!.definition,
     bagsDefinition,
     bonkDefinition,
   ]
@@ -309,6 +313,7 @@ export async function preflightLaunch(input: TokenLaunchInput): Promise<TokenLau
 }
 
 export async function createLaunch(input: TokenLaunchInput): Promise<TokenLaunchResult> {
+  const startedAt = Date.now()
   validateLaunchInput(input)
 
   const adapter = getAdapters(Settings.getTokenLaunchSettings())[input.launchpad]
@@ -322,8 +327,37 @@ export async function createLaunch(input: TokenLaunchInput): Promise<TokenLaunch
     throw new Error(adapter.definition.reason ?? `${adapter.definition.name} is not available yet`)
   }
 
-  const result = await adapter.createLaunch(input)
-  return persistLaunchResult(input, result)
+  try {
+    const result = await adapter.createLaunch(input)
+    const persisted = persistLaunchResult(input, result)
+    Voight.emitEventSafe({
+      agentId: 'daemon-token-launch',
+      type: 'tx',
+      transaction: persisted.signature,
+      amountToken: input.symbol,
+      amountValue: input.initialBuySol,
+      outcome: 'success',
+      metadata: {
+        sessionId: persisted.launch.id,
+        projectId: input.projectId ?? null,
+        launchpad: input.launchpad,
+        mint: persisted.mint,
+        poolAddress: persisted.poolAddress,
+        bondingCurveAddress: persisted.bondingCurveAddress,
+        durationMs: Date.now() - startedAt,
+      },
+    })
+    return persisted
+  } catch (err) {
+    Voight.trackError('daemon-token-launch', err, {
+      sessionId: `launch:${input.launchpad}:${Date.now()}`,
+      projectId: input.projectId ?? null,
+      launchpad: input.launchpad,
+      symbol: input.symbol,
+      durationMs: Date.now() - startedAt,
+    })
+    throw err
+  }
 }
 
 function persistLaunchResult(input: TokenLaunchInput, result: AdapterLaunchResult): TokenLaunchResult {
@@ -345,6 +379,7 @@ function persistLaunchResult(input: TokenLaunchInput, result: AdapterLaunchResul
       slippageBps: input.slippageBps,
       priorityFeeSol: input.priorityFeeSol,
       mayhemMode: input.mayhemMode ?? false,
+      openbid: input.openbid ?? null,
     }),
     protocolReceiptsJson: JSON.stringify({
       socials: {

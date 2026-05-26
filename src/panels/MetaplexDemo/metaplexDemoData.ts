@@ -40,6 +40,17 @@ export const METAPLEX_DEMO_PREVIEWS = [
 
 export const METAPLEX_FOCUS_WORKFLOWS: MetaplexFocusWorkflow[] = [
   {
+    id: 'agentops-commerce-workbench',
+    title: 'Metaplex AgentOps by DAEMON',
+    status: 'primary',
+    docsUrl: 'https://www.metaplex.com/docs/agents/agent-commerce',
+    bestFor: 'A builder wants one place to create, run, monetize, and audit Metaplex agents after registration.',
+    userAction: 'Register or import an agent, confirm service endpoints, review x402 pricing, choose web or desktop execution, then store proof receipts.',
+    daemonAction: 'Resolves Agent Identity, Asset Signer, execution delegation, EIP-8004 services, x402 payment boundary, cloud runner handoff, and receipt state.',
+    proofRecord: 'Agent asset, Agent Identity PDA, Asset Signer PDA, service metadata, payment signature, run hash, receipt asset, DAS read, and operator approval.',
+    capabilityIds: ['agentops-runtime', 'agent-registry', 'agentic-commerce', 'das-api'],
+  },
+  {
     id: 'agent-token-operator',
     title: 'Agent Token Operator',
     status: 'primary',
@@ -173,6 +184,17 @@ export const METAPLEX_DEMO_CAPABILITIES: MetaplexDemoCapability[] = [
     summary: 'Plan launch pools, presales, auctions, bonding curves, creator fees, Raydium graduation, claims, and authority revocation.',
     shows: ['launch type selection', 'creator fee route', 'Raydium graduation', 'claim flow', 'authority revocation'],
     demoMode: 'Generates a Genesis launch timeline and receipt checklist. No launch transaction is sent.',
+  },
+  {
+    id: 'agentops-runtime',
+    title: 'AgentOps Runtime',
+    category: 'Agents',
+    status: 'preview-ready',
+    docsUrl: 'https://www.metaplex.com/docs/agents/agent-commerce',
+    packages: ['@metaplex-foundation/mpl-agent-registry', '@metaplex-foundation/mpl-core', '@x402/svm'],
+    summary: 'Manage Metaplex agents as operating services with EIP-8004 metadata, x402 payment endpoints, cloud runs, desktop handoff, and receipt proofs.',
+    shows: ['service discovery', 'x402 payment route', 'cloud runner handoff', 'work receipt ledger', 'web management boundary'],
+    demoMode: 'Builds the AgentOps runbook and browser-management plan without signing delegation or payment transactions.',
   },
   {
     id: 'agent-registry',

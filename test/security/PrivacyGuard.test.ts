@@ -12,11 +12,18 @@ import {
 describe('PrivacyGuard', () => {
   it('redacts common secret formats from text', () => {
     const keypair = `[${Array.from({ length: 64 }, (_, i) => i % 256).join(',')}]`
+    const anthropicFixture = 'sk-ant-' + '123456789012345678901234567890'
+    const bearerFixture = 'abcdefghijklmnopqrstuvwxyz' + '123456'
+    const seedFixture = [
+      'abandon', 'abandon', 'abandon', 'abandon',
+      'abandon', 'abandon', 'abandon', 'abandon',
+      'abandon', 'abandon', 'abandon', 'about',
+    ].join(' ')
     const input = [
-      'ANTHROPIC_API_KEY=sk-ant-123456789012345678901234567890',
-      'Authorization: Bearer abcdefghijklmnopqrstuvwxyz123456',
+      `ANTHROPIC_API_KEY=${anthropicFixture}`,
+      `Authorization: Bearer ${bearerFixture}`,
       `wallet=${keypair}`,
-      'mnemonic: abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      `mnemonic: ${seedFixture}`,
     ].join('\n')
 
     const result = redactText(input)
@@ -27,6 +34,36 @@ describe('PrivacyGuard', () => {
     expect(result.value).toContain('mnemonic: [REDACTED_SEED_PHRASE]')
     expect(result.value).not.toContain('sk-ant-')
     expect(result.findings.map((finding) => finding.type)).toContain('solana_keypair_array')
+  })
+
+  it('redacts Voight, GitHub, AWS, Slack, PEM, and card values', () => {
+    const voightFixture = 'vk_' + 'redaction_fixture_000000000000'
+    const githubFixture = 'ghp_' + '1234567890abcdefghijklmnopqrstuvwxyz'
+    const awsFixture = 'AKIA' + '1234567890ABCDEF'
+    const slackFixture = 'xoxb-' + '123456789012-123456789012-abcdefghijklmnopqrstuvwx'
+    const pemFixture = [
+      '-----BEGIN ' + 'PRIVATE KEY-----',
+      'secret',
+      '-----END ' + 'PRIVATE KEY-----',
+    ].join('\n')
+    const input = [
+      `VOIGHT_KEY=${voightFixture}`,
+      `GITHUB_TOKEN=${githubFixture}`,
+      `AWS_ACCESS_KEY_ID=${awsFixture}`,
+      `SLACK=${slackFixture}`,
+      pemFixture,
+      'card 4242 4242 4242 4242',
+    ].join('\n')
+
+    const result = redactText(input)
+
+    expect(result.value).toContain('VOIGHT_KEY=[REDACTED_VOIGHT_KEY]')
+    expect(result.value).toContain('GITHUB_TOKEN=[REDACTED_SECRET]')
+    expect(result.value).toContain('AWS_ACCESS_KEY_ID=[REDACTED_AWS_KEY]')
+    expect(result.value).toContain('[REDACTED_PEM_KEY]')
+    expect(result.value).toContain('[REDACTED_CARD]')
+    expect(result.value).not.toContain('vk_')
+    expect(result.value).not.toContain('ghp_')
   })
 
   it('redacts sensitive object keys and nested string values', () => {
@@ -74,8 +111,9 @@ describe('PrivacyGuard', () => {
   })
 
   it('adds privacy instructions to AI prompts', () => {
+    const anthropicFixture = 'sk-ant-' + '123456789012345678901234567890'
     const result = sanitizeAiPrompt({
-      prompt: 'Summarize this sk-ant-123456789012345678901234567890',
+      prompt: `Summarize this ${anthropicFixture}`,
       systemPrompt: 'Be concise',
       context: {
         capability: 'test.ai',
@@ -90,7 +128,8 @@ describe('PrivacyGuard', () => {
   })
 
   it('sanitizes IPC error messages', () => {
-    const result = sanitizeErrorMessage(new Error('failed with token=sk-ant-123456789012345678901234567890'))
+    const anthropicFixture = 'sk-ant-' + '123456789012345678901234567890'
+    const result = sanitizeErrorMessage(new Error(`failed with token=${anthropicFixture}`))
 
     expect(result).not.toContain('sk-ant-')
     expect(result).toContain('token=[REDACTED_SECRET]')

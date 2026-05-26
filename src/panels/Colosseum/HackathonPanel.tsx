@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useBrowserStore } from '../../store/browser'
 import { Button } from '../../components/Button'
-import { Card, MetricCard, PanelHeader, Toolbar } from '../../components/Panel'
+import { Card, MetricCard, PanelHeader, Toolbar, Spinner } from '../../components/Panel'
 import './HackathonPanel.css'
 
 const DEADLINE_KEY = 'daemon:hackathon-deadline'
@@ -163,7 +163,13 @@ export function HackathonPanel() {
   }, [])
 
   if (isConfigured === null) {
-    return <div className="hackathon-panel"><span className="hackathon-loading">Loading...</span></div>
+    return (
+      <div className="hackathon-panel">
+        <span className="hackathon-loading" role="status" aria-live="polite">
+          <Spinner size={13} tone="muted" /> Checking hackathon status…
+        </span>
+      </div>
+    )
   }
 
   // Disconnected state

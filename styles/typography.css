@@ -92,3 +92,13 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Inline empty/placeholder text for small in-panel sections (lists, sub-blocks).
+   Use EmptyState for full-panel empties; use this for one-liners inside a section. */
+.ds-inline-empty {
+  display: block;
+  padding: var(--space-xs) 0;
+  font-size: var(--fs-11);
+  line-height: 1.5;
+  color: var(--text-muted);
+}

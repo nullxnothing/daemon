@@ -17,11 +17,27 @@ import {
   writeRightSidebarWidgetConfig,
   type RightSidebarWidgetConfig,
 } from '../RightPanel/sidebarAgentWidgetConfig'
-import type { WorkspaceProfileName } from '../../../electron/shared/types'
+import type { VoightPrivacyLevel, VoightStatus, WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
 type SettingsTab = 'keys' | 'integrations' | 'aiProviders' | 'agents' | 'tools' | 'sidePanels' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
+
+// Single-word labels so the tab row stays on one line at every responsive tier.
+const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
+  keys: 'Keys',
+  integrations: 'Integrations',
+  aiProviders: 'Providers',
+  agents: 'Agents',
+  tools: 'Tools',
+  sidePanels: 'Panels',
+  display: 'Display',
+  setup: 'Setup',
+  shortcuts: 'Shortcuts',
+  help: 'Help',
+  crashes: 'Crashes',
+}
+
 interface AppMeta {
   version: string
   electronVersion: string
@@ -50,7 +66,7 @@ interface AgentRow {
 // Lookup table mapping common search keywords to the tab they live in
 const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'keys', keywords: ['key', 'api', 'token', 'secret', 'helius', 'openai', 'anthropic', 'birdeye', 'gemini'] },
-  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
+  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'voight', 'observability', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
   { tab: 'aiProviders', keywords: ['ai provider', 'provider', 'default provider', 'aria', 'daemon ai', 'codex', 'claude', 'model'] },
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
@@ -96,15 +112,17 @@ export function SettingsPanel() {
         />
       </div>
 
-      <div className="settings-tabs">
+      <div className="settings-tabs" role="tablist">
         {(['keys', 'integrations', 'aiProviders', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
+            role="tab"
+            aria-selected={tab === t}
             data-tab={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'aiProviders' ? 'AI Providers' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'sidePanels' ? 'Side Panels' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
+            {SETTINGS_TAB_LABELS[t]}
           </button>
         ))}
       </div>
@@ -345,6 +363,10 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
       <div className="settings-divider" />
 
+      <VoightIntegrationCard />
+
+      <div className="settings-divider" />
+
       {/* MCP Servers */}
       <div className="settings-section-label">MCP Servers</div>
       {!projectPath && <div className="settings-empty">Select a project to manage MCPs</div>}
@@ -357,6 +379,134 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function VoightIntegrationCard() {
+  const [status, setStatus] = useState<VoightStatus | null>(null)
+  const [keyInput, setKeyInput] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    const res = await window.daemon.voight.status()
+    if (res.ok && res.data) setStatus(res.data)
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const saveKey = async () => {
+    if (!keyInput.trim()) return
+    setBusy('save')
+    setMessage(null)
+    const res = await window.daemon.voight.storeKey(keyInput.trim())
+    setBusy(null)
+    if (res.ok && res.data) {
+      setStatus(res.data)
+      setKeyInput('')
+      setMessage('Voight key saved')
+    } else {
+      setMessage(res.error ?? 'Could not save Voight key')
+    }
+  }
+
+  const deleteKey = async () => {
+    setBusy('delete')
+    setMessage(null)
+    const res = await window.daemon.voight.deleteKey()
+    setBusy(null)
+    if (res.ok && res.data) {
+      setStatus(res.data)
+      setMessage('Voight key removed')
+    } else {
+      setMessage(res.error ?? 'Could not remove Voight key')
+    }
+  }
+
+  const testEvent = async () => {
+    setBusy('test')
+    setMessage(null)
+    const res = await window.daemon.voight.testEvent()
+    setBusy(null)
+    if (res.ok && res.data) {
+      setMessage(`Test event accepted (${res.data.status})`)
+      await refresh()
+    } else {
+      setMessage(res.error ?? 'Voight test event failed')
+    }
+  }
+
+  const setPrivacy = async (privacyLevel: VoightPrivacyLevel) => {
+    setBusy('privacy')
+    const res = await window.daemon.voight.setPrivacyLevel(privacyLevel)
+    setBusy(null)
+    if (res.ok && res.data) setStatus(res.data)
+    else setMessage(res.error ?? 'Could not update privacy level')
+  }
+
+  const connected = status?.configured === true
+  const privacyLevel = status?.privacyLevel ?? 'standard'
+
+  return (
+    <>
+      <div className="settings-section-label">Voight Observability</div>
+      <div className="settings-section-desc">
+        Stream DAEMON agent runs, tools, terminal activity, file actions, transactions, and errors into Voight.
+      </div>
+
+      <div className="settings-integration-row">
+        <div className={`settings-integration-dot ${connected ? 'green' : ''}`} />
+        <span className="settings-integration-name">Status</span>
+        <span className="settings-integration-status">
+          {connected ? `Connected via ${status?.keySource}` : 'Not configured'}
+        </span>
+      </div>
+
+      <div className="settings-display-row settings-provider-pref-row">
+        <span className="settings-display-label">Privacy</span>
+        <span className="settings-display-hint">Sender-side scrubbing before events are queued or posted.</span>
+        <select
+          className="settings-provider-select"
+          value={privacyLevel}
+          disabled={busy === 'privacy'}
+          onChange={(event) => setPrivacy(event.target.value as VoightPrivacyLevel)}
+        >
+          <option value="minimal">minimal</option>
+          <option value="standard">standard</option>
+          <option value="full">full</option>
+        </select>
+      </div>
+
+      <div className="settings-inline-row">
+        <input
+          className="settings-input"
+          type="password"
+          placeholder="vk_..."
+          value={keyInput}
+          onChange={(e) => setKeyInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+        />
+        <button type="button" className="settings-btn primary" onClick={saveKey} disabled={busy === 'save' || !keyInput.trim()}>
+          {busy === 'save' ? 'Saving...' : 'Save Key'}
+        </button>
+        <button type="button" className="settings-btn" onClick={testEvent} disabled={busy === 'test' || !connected}>
+          {busy === 'test' ? 'Sending...' : 'Test Event'}
+        </button>
+        <button type="button" className="settings-btn danger" onClick={deleteKey} disabled={busy === 'delete' || !connected}>
+          Remove
+        </button>
+      </div>
+
+      {status && (
+        <div className="settings-section-desc tight">
+          Queue: {status.pending} pending, {status.sent} sent, {status.failed} failed.
+          {status.lastError ? ` Last error: ${status.lastError}` : ''}
+        </div>
+      )}
+      {message && <div className="settings-section-desc tight">{message}</div>}
+    </>
   )
 }
 
@@ -911,6 +1061,7 @@ function SidePanelsSection() {
         'solana-readiness': true,
         'token-watch': true,
         'zauth': true,
+        'meterflow': true,
         'ai-status': true,
       },
     })
@@ -926,6 +1077,7 @@ function SidePanelsSection() {
         'solana-readiness': false,
         'token-watch': false,
         'zauth': false,
+        'meterflow': false,
         'ai-status': false,
         'spawn-agent': false,
       },

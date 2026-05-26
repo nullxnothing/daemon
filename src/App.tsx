@@ -13,6 +13,7 @@ import { LaunchWizard } from './panels/LaunchWizard/LaunchWizard'
 import { TourOverlay } from './components/Tour/TourOverlay'
 import { ToastHost } from './components/ToastHost'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { KeyboardShortcutsOverlay } from './components/KeyboardShortcutsOverlay'
 import { useNotificationsStore } from './store/notifications'
 import { useAppActions } from './store/appActions'
 import { useOnboardingStore } from './store/onboarding'
@@ -23,6 +24,7 @@ import { useWalletStore } from './store/wallet'
 import { usePluginStore } from './store/plugins'
 import { useEmailStore } from './store/email'
 import { useWorkflowShellStore } from './store/workflowShell'
+import { useAgentOpsStore } from './store/agentops'
 import { SolanaOnboardingBanner } from './components/SolanaOnboarding/SolanaOnboardingBanner'
 import { Skeleton } from './components/Panel'
 import { useSplitter } from './hooks/useSplitter'
@@ -127,6 +129,10 @@ function App() {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).get('smoke') === '1'
   }, [])
+  const smokeOnboardingMode = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('smokeOnboarding') === '1'
+  }, [])
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const projects = useUIStore((s) => s.projects)
@@ -152,6 +158,7 @@ function App() {
   const [bootStatus, setBootStatus] = useState('initializing workspace...')
 
   const [showTerminal, setShowTerminal] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const { tier, isCompact, isTablet, isSmall } = useShellLayout()
 
   const { loadProjects, addProject, removeProject } = useProjects()
@@ -160,7 +167,7 @@ function App() {
   const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const closeAgentLauncher = useCallback(() => setShowAgentLauncher(false), [])
 
-  useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal })
+  useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal, setShowShortcuts })
 
   const centerRef = useRef<HTMLDivElement>(null)
   const { size: terminalHeight, splitterProps } = useSplitter({
@@ -231,7 +238,7 @@ function App() {
           ['loading plugins...', usePluginStore.getState().load()],
           ['loading activity...', useNotificationsStore.getState().loadActivity()],
         ]
-        if (!smokeMode) {
+        if (!smokeMode || smokeOnboardingMode) {
           deferredStartupTasks.push(['loading onboarding...', useOnboardingStore.getState().loadProgress()])
         }
         void Promise.allSettled(deferredStartupTasks.map(([, task]) => task)).then((deferredResults) => {
@@ -251,7 +258,7 @@ function App() {
     return () => {
       guard.cancelled = true
     }
-  }, [loadProjects, smokeMode])
+  }, [loadProjects, smokeMode, smokeOnboardingMode])
 
   // Imperative app actions from nested components — replaces synthetic keyboard
   // events. Each requestId increments to retrigger.
@@ -342,6 +349,22 @@ function App() {
         message: `DAEMON reset ${cleared} unstable UI setting${cleared === 1 ? '' : 's'}${sessionSuffix} so the workspace could boot cleanly.`,
       })
     })
+  }, [])
+
+  useEffect(() => {
+    const handleOpenRequest = (payload: AgentOpsOpenRequest) => {
+      useAgentOpsStore.getState().setOpenRequest(payload)
+      useUIStore.getState().openWorkspaceTool('agentops')
+      void daemon.agentops.ackOpenRequest(payload.receivedAt)
+    }
+
+    daemon.agentops.getPendingOpenRequest()
+      .then((payload) => {
+        if (payload) handleOpenRequest(payload)
+      })
+      .catch(() => {})
+
+    return daemon.agentops.onOpenRequest(handleOpenRequest)
   }, [])
 
   useEffect(() => {
@@ -541,7 +564,7 @@ function App() {
         />
       )}
 
-      {!smokeMode && showResumeBanner && (
+      {(!smokeMode || smokeOnboardingMode) && showResumeBanner && (
         <div className="resume-banner">
           <span className="resume-banner-text">Continue setting up DAEMON?</span>
           <button
@@ -560,10 +583,10 @@ function App() {
           </button>
         </div>
       )}
-      {!smokeMode && wizardOpen && <OnboardingWizard />}
+      {(!smokeMode || smokeOnboardingMode) && wizardOpen && <OnboardingWizard />}
       {launchWizardOpen && <LaunchWizard />}
 
-      {!smokeMode && showTourOffer && (
+      {(!smokeMode || smokeOnboardingMode) && showTourOffer && (
         <div className="wizard-overlay">
           <div className="tour-offer-card">
             <div className="tour-offer-title">Setup complete</div>
@@ -583,6 +606,7 @@ function App() {
       )}
 
       {tourActive && <TourOverlay />}
+      {showShortcuts && <KeyboardShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
       <ToastHost />
       <ConfirmDialog />
     </div>

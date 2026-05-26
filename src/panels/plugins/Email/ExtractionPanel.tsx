@@ -1,5 +1,6 @@
-import { useState } from 'react'
 import type { ExtractionResult } from '../../../types/daemon.d'
+import { useClipboard } from '../../../hooks/useClipboard'
+import { LiveRegion } from '../../../components/LiveRegion'
 
 interface ExtractionPanelProps {
   extraction: ExtractionResult | null
@@ -44,13 +45,9 @@ interface ExtractionCardProps {
 }
 
 function ExtractionCard({ item }: ExtractionCardProps) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useClipboard()
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(item.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+  const handleCopy = () => { void copy(item.content) }
 
   const handleOpenInEditor = () => {
     const name = item.language ? `untitled.${item.language}` : 'untitled.txt'
@@ -80,6 +77,7 @@ function ExtractionCard({ item }: ExtractionCardProps) {
           </button>
         )}
       </div>
+      <LiveRegion message={copied ? `${typeLabel} copied to clipboard` : ''} />
     </div>
   )
 }

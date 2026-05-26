@@ -88,7 +88,7 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     docsUrl: 'https://earnidle.com/docs',
     recommendedFor: ['idle resources', 'paid API endpoints', 'agent resource routing', 'x402 pay-per-call', 'resource reputation', 'provider revenue'],
     requirements: [
-      { type: 'env', key: 'IDLE_REGISTRY_URL', label: 'IDLE resource registry URL' },
+      { type: 'env', key: 'IDLE_REGISTRY_URL|PAYAI_DISCOVERY_URL', label: 'IDLE or PayAI discovery URL' },
       { type: 'external-url', key: 'https://earnidle.com/resources', label: 'IDLE resource network' },
       { type: 'external-url', key: 'https://earnidle.com/docs', label: 'IDLE docs' },
       { type: 'mcp', key: 'payai-mcp-server', label: 'PayAI x402 MCP enabled', optional: true },

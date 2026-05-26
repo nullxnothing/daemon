@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Spinner } from '../../components/Panel'
 
 interface VaultFileMeta {
   id: string
@@ -183,8 +184,12 @@ export function VaultSection({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      {loading && files.length === 0 && <div className="vault-empty">Loading...</div>}
-      {!loading && files.length === 0 && <div className="vault-empty">No files in vault</div>}
+      {loading && files.length === 0 && (
+        <div className="vault-empty" role="status" aria-live="polite">
+          <Spinner size={13} tone="muted" /> Loading vault…
+        </div>
+      )}
+      {!loading && files.length === 0 && <div className="vault-empty">No files in vault yet</div>}
 
       <div className="vault-list">
         {files.map((file) => (

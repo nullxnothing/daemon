@@ -9,9 +9,10 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "noEmit": true,
+    "rootDir": "./src",
     "outDir": "./dist"
   },
   "include": ["src"],

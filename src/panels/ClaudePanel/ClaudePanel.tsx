@@ -217,7 +217,7 @@ function SkillsSection() {
   }, [])
 
   if (items.length === 0) {
-    return <div style={{ fontSize: 11, color: 'var(--t3)', padding: '4px 0' }}>No skills installed</div>
+    return <div className="ds-inline-empty">No skills installed</div>
   }
 
   const renderSkillRow = (item: { name: string; type: string; enabled: boolean }) => (
@@ -283,7 +283,7 @@ function UsageSection({ projectPath }: { projectPath: string }) {
   }, [projectPath])
 
   if (!usage) {
-    return <div style={{ fontSize: 11, color: 'var(--t3)' }}>No usage data</div>
+    return <div className="ds-inline-empty">No usage data</div>
   }
 
   const totalInput = Object.values(usage.models).reduce((s, m) => s + m.inputTokens, 0)

@@ -178,6 +178,7 @@ function installDaemonBridge(options: {
     configurable: true,
     value: {
       claude: {
+        listKeys: vi.fn().mockResolvedValue({ ok: true, data: [] }),
         projectMcpAll: vi.fn().mockResolvedValue({
           ok: true,
           data: [
@@ -285,6 +286,8 @@ function installDaemonBridge(options: {
           data: {
             raydium: { configId: '', quoteMint: '' },
             meteora: { configId: '', quoteMint: '', baseSupply: '' },
+            printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+            openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
           },
         }),
         getWalletInfrastructureSettings: vi.fn().mockResolvedValue({
@@ -410,6 +413,41 @@ function installDaemonBridge(options: {
         }),
       },
       wallet: {
+        dashboard: vi.fn().mockResolvedValue({
+          ok: true,
+          data: {
+            heliusConfigured: true,
+            market: [],
+            portfolio: {
+              totalUsd: 375,
+              delta24hUsd: 0,
+              delta24hPct: 0,
+              walletCount: 1,
+            },
+            wallets: [
+              {
+                id: 'wallet-1',
+                name: 'Main Wallet',
+                address: '7Y12wallet9AbC',
+                isDefault: true,
+                totalUsd: 375,
+                tokenCount: 2,
+                assignedProjectIds: ['project-1'],
+              },
+            ],
+            activeWallet: {
+              id: 'wallet-1',
+              name: 'Main Wallet',
+              address: '7Y12wallet9AbC',
+              isDefault: true,
+              totalUsd: 375,
+              tokenCount: 2,
+              assignedProjectIds: ['project-1'],
+            },
+            feed: [],
+            recentActivity: [],
+          },
+        }),
         list: vi.fn().mockResolvedValue({ ok: true, data: [{ id: 'wallet-1', name: 'Main Wallet', address: '7Y12wallet9AbC', is_default: 1, created_at: 1, assigned_project_ids: [] }] }),
         generate: vi.fn().mockResolvedValue({ ok: true, data: { id: 'wallet-2', name: 'DAEMON Solana Dev Wallet', address: '8Y12wallet9AbC', is_default: 1, created_at: 2, assigned_project_ids: ['project-1'] } }),
         hasKeypair: vi.fn().mockResolvedValue({ ok: true, data: true }),

@@ -4,11 +4,13 @@ interface FocusTrapProps {
   children: ReactNode
   active?: boolean
   restoreFocus?: boolean
+  /** When false, the host manages initial focus itself (avoids double-focus). */
+  autoFocus?: boolean
 }
 
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
-export function FocusTrap({ children, active = true, restoreFocus = true }: FocusTrapProps) {
+export function FocusTrap({ children, active = true, restoreFocus = true, autoFocus = true }: FocusTrapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
@@ -21,9 +23,11 @@ export function FocusTrap({ children, active = true, restoreFocus = true }: Focu
     const container = containerRef.current
     if (!container) return
 
-    const firstFocusable = container.querySelector<HTMLElement>(FOCUSABLE)
-    if (firstFocusable) {
-      requestAnimationFrame(() => firstFocusable.focus())
+    if (autoFocus) {
+      const firstFocusable = container.querySelector<HTMLElement>(FOCUSABLE)
+      if (firstFocusable) {
+        requestAnimationFrame(() => firstFocusable.focus())
+      }
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,7 +60,9 @@ export function FocusTrap({ children, active = true, restoreFocus = true }: Focu
         previousFocusRef.current.focus()
       }
     }
-  }, [active, restoreFocus])
+  }, [active, restoreFocus, autoFocus])
 
-  return <div ref={containerRef}>{children}</div>
+  // display:contents keeps the wrapper out of layout so the trap can wrap a
+  // flex/grid child without altering centering or sizing.
+  return <div ref={containerRef} style={{ display: 'contents' }}>{children}</div>
 }

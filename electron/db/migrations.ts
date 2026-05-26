@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37, SCHEMA_V38, SCHEMA_V39, SCHEMA_V40 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -435,6 +435,45 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 38) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V38.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(38)
+    })()
+  }
+
+  if (currentVersion < 39) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V39.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(39)
+    })()
+  }
+
+  if (currentVersion < 40) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V40.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(40)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -555,14 +594,26 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
 
   // Ensure payai-mcp-server exists in registry (x402 payment protocol for AI agents)
   try {
-    const hasPayaiMcp = db.prepare("SELECT name FROM mcp_registry WHERE name = 'payai-mcp-server'").get()
+    const payaiMcpConfig = JSON.stringify({ command: 'npx', args: ['-y', 'payai-mcp-server@latest', 'https://mcp.payai.network'] })
+    const hasPayaiMcp = db.prepare("SELECT name, config FROM mcp_registry WHERE name = 'payai-mcp-server'").get() as { name: string; config: string } | undefined
     if (!hasPayaiMcp) {
       db.prepare('INSERT OR IGNORE INTO mcp_registry (name, config, description, is_global) VALUES (?,?,?,?)').run(
         'payai-mcp-server',
-        JSON.stringify({ command: 'npx', args: ['-y', 'payai-mcp-server'] }),
+        payaiMcpConfig,
         'x402 payment protocol — monetize APIs with USDC micropayments via PayAI facilitator',
         0,
       )
+    } else {
+      let args: unknown[] = []
+      try {
+        const parsed = JSON.parse(hasPayaiMcp.config) as { args?: unknown[] }
+        args = Array.isArray(parsed.args) ? parsed.args : []
+      } catch {
+        args = []
+      }
+      if (args.length === 2 && args[0] === '-y' && args[1] === 'payai-mcp-server') {
+        db.prepare("UPDATE mcp_registry SET config = ? WHERE name = 'payai-mcp-server'").run(payaiMcpConfig)
+      }
     }
   } catch (err) {
     console.warn('[Migrations] payai-mcp-server registry seed check failed:', (err as Error).message)

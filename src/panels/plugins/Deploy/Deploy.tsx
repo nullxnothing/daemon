@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../../store/ui'
 import { useNotificationsStore, type ActivityArtifact } from '../../../store/notifications'
+import { SkeletonRows } from '../../../components/Panel'
+import { EmptyState } from '../../../components/EmptyState'
 import { DeployConnect } from './DeployConnect'
 import './Deploy.css'
 
@@ -386,9 +388,16 @@ export default function DeployPanel() {
       <div className="deploy-section">
         <div className="deploy-section-label">Recent Deployments</div>
         {loadingDeployments && deployments.length === 0 ? (
-          <div className="deploy-empty">Loading deployments...</div>
+          <div role="status" aria-busy="true" aria-live="polite">
+            <span className="sr-only">Loading deployments…</span>
+            <SkeletonRows rows={3} />
+          </div>
         ) : deployments.length === 0 ? (
-          <div className="deploy-empty">No deployments yet</div>
+          <EmptyState
+            className="deploy-empty"
+            title="No deployments yet"
+            description="Push a commit or hit Deploy to ship your first build. Recent deployments will show up here."
+          />
         ) : (
           deployments.map((d) => (
             <div key={d.id} className="deploy-row">

@@ -3,6 +3,7 @@ import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { getWalletInfrastructureSettings } from './SettingsService'
 import { LogService } from './LogService'
+import * as Voight from './VoightService'
 import bs58 from 'bs58'
 import fs from 'node:fs'
 
@@ -310,16 +311,37 @@ export async function executeTransaction(
     }
   }
 
-  const signature = await submitRawTransaction(connection, transaction.serialize(), {
-    skipPreflight: mode === 'jito',
-    maxRetries: mode === 'jito' ? 0 : 3,
-    ...options?.sendOptions,
-  })
-  await confirmSignature(connection, signature, options?.timeoutMs, confirmationStrategy)
-
-  return {
-    signature,
-    transport: mode,
+  let signature: string | null = null
+  try {
+    signature = await submitRawTransaction(connection, transaction.serialize(), {
+      skipPreflight: mode === 'jito',
+      maxRetries: mode === 'jito' ? 0 : 3,
+      ...options?.sendOptions,
+    })
+    await confirmSignature(connection, signature, options?.timeoutMs, confirmationStrategy)
+    Voight.emitEventSafe({
+      agentId: 'daemon-solana',
+      type: 'tx',
+      transaction: signature,
+      outcome: 'success',
+      metadata: {
+        sessionId: `solana:${signature}`,
+        transport: mode,
+        signers: signers.length,
+      },
+    })
+    return {
+      signature,
+      transport: mode,
+    }
+  } catch (err) {
+    Voight.trackError('daemon-solana', err, {
+      sessionId: signature ? `solana:${signature}` : `solana:${Date.now()}`,
+      transaction: signature,
+      transport: mode,
+      signers: signers.length,
+    })
+    throw err
   }
 }
 

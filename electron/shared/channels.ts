@@ -44,6 +44,16 @@ import type {
   LspLocation,
   LspPosition,
   LspServerStatus,
+  MeterflowOverview,
+  MeterflowPaidAgentReadinessInput,
+  MeterflowPaidAgentReadinessResult,
+  MeterflowReceipt,
+  MeterflowReceiptDetail,
+  MeterflowReceiptsQuery,
+  MeterflowDemoWallet,
+  MeterflowStatus,
+  MeterflowWalletReadiness,
+  MeterflowWatchProjectResult,
 } from './types'
 
 export interface ChannelMap {
@@ -147,6 +157,19 @@ export interface ChannelMap {
   'tools:list': { input: void; output: ToolRow[] }
   'tools:get': { input: string; output: ToolRow }
   'tools:create': { input: ToolCreateInput; output: ToolRow }
+
+  // --- Meterflow ---
+  'meterflow:status': { input: void; output: MeterflowStatus }
+  'meterflow:overview': { input: void; output: MeterflowOverview }
+  'meterflow:list-receipts': { input: MeterflowReceiptsQuery | number | void; output: MeterflowReceipt[] }
+  'meterflow:get-receipt': { input: string; output: MeterflowReceiptDetail }
+  'meterflow:ingest-receipt': { input: Record<string, unknown>; output: MeterflowReceipt }
+  'meterflow:create-demo-wallet': { input: void; output: MeterflowDemoWallet }
+  'meterflow:get-demo-wallet': { input: void; output: MeterflowDemoWallet | null }
+  'meterflow:check-demo-wallet-readiness': { input: void; output: MeterflowWalletReadiness }
+  'meterflow:call-paid-agent-readiness': { input: MeterflowPaidAgentReadinessInput; output: MeterflowPaidAgentReadinessResult }
+  'meterflow:watch-project': { input: string; output: MeterflowWatchProjectResult }
+  'meterflow:store-api-key': { input: string; output: MeterflowStatus }
 }
 
 /** Extract the input type for a given channel */

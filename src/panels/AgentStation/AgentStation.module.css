@@ -91,6 +91,37 @@
   max-width: 280px;
 }
 
+.emptyAction {
+  margin-top: var(--space-xs);
+  height: var(--btn-h-md);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  color: var(--t1);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.emptyAction:hover {
+  background: var(--control-bg-hover);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Agent cards */
 .cardList {
   display: flex;

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { getDb } from '../db/db'
 import { sanitizeTelemetryProperties } from '../security/PrivacyGuard'
+import * as Voight from './VoightService'
 
 export interface TelemetryEvent {
   eventId: string
@@ -91,6 +92,19 @@ export function trackEvent(
       JSON.stringify(event.properties),
       event.version,
     )
+    Voight.emitEventSafe({
+      agentId: 'daemon-telemetry',
+      type: 'action',
+      toolExecuted: eventName,
+      outcome: 'success',
+      input: event.properties,
+      metadata: {
+        sessionId: event.sessionId,
+        traceId: event.eventId,
+        userId: userId ?? undefined,
+        version: event.version,
+      },
+    })
   } catch (err) {
     console.error('[telemetry] Failed to record event:', err)
   }

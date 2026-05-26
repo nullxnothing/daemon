@@ -1,5 +1,6 @@
 import { IpcMainInvokeEvent } from 'electron'
 import { sanitizeErrorMessage } from '../security/PrivacyGuard'
+import * as Voight from './VoightService'
 
 export type IpcResponse<T = unknown> = 
   | { ok: true; data?: T }
@@ -9,6 +10,14 @@ export type IpcHandlerFn<R = unknown> = (
   event: IpcMainInvokeEvent,
   ...args: any[]
 ) => Promise<R> | R
+
+function trackIpcError(message: string): void {
+  try {
+    Voight.trackError('daemon-ipc', message, { detail: 'ipc handler error' })
+  } catch {
+    // observability must not affect IPC
+  }
+}
 
 /**
  * Wraps an IPC handler with standardized try/catch and response formatting.
@@ -37,6 +46,7 @@ export function ipcHandler<R = unknown>(
           ? (onError(err) ?? (err as Error).message ?? String(err))
           : (err as Error).message ?? String(err)
       )
+      trackIpcError(message)
       return { ok: false, error: message }
     }
   }

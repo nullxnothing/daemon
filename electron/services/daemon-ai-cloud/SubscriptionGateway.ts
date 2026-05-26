@@ -3,7 +3,13 @@ import express, { type Request, type Response } from 'express'
 import type Database from 'better-sqlite3'
 import bs58 from 'bs58'
 import nacl from 'tweetnacl'
-import { Connection, PublicKey, type ParsedTransactionWithMeta } from '@solana/web3.js'
+import { createFacilitatorConfig } from '@payai/facilitator'
+import { Connection, PublicKey } from '@solana/web3.js'
+import { decodePaymentSignatureHeader, encodePaymentRequiredHeader, encodePaymentResponseHeader } from '@x402/core/http'
+import { HTTPFacilitatorClient, x402ResourceServer, type ResourceConfig } from '@x402/core/server'
+import type { AssetAmount, Network, PaymentPayload as X402PaymentPayload, PaymentRequirements, ResourceInfo, SettleResponse } from '@x402/core/types'
+import { decodeTransactionFromPayload, getTokenPayerFromTransaction } from '@x402/svm'
+import { registerExactSvmScheme } from '@x402/svm/exact/server'
 import {
   getHostedLanesForPlan,
   getMonthlyAiCredits,
@@ -15,10 +21,20 @@ import type { DaemonAiCloudEntitlement } from './types'
 import type { DaemonPlanId, ProAccessSource, ProFeature, ProHolderStatus, ProPriceInfo } from '../../shared/types'
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-const DEFAULT_NETWORK = 'solana:mainnet'
+const USDC_DEVNET_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'
+const DEFAULT_NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
+const DEVNET_NETWORK = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
 const DEFAULT_PRO_PAY_TO = 'GNVxk3sn4iJ2iUaqEUskWQ1KNy9Mmcee3WF3AMtRjN7W'
 const USDC_DECIMALS = 6
 const HOLDER_CHALLENGE_TTL_MS = 5 * 60_000
+const SOLANA_NETWORK_ALIASES: Record<string, string> = {
+  solana: DEFAULT_NETWORK,
+  'solana:mainnet': DEFAULT_NETWORK,
+  'solana-mainnet': DEFAULT_NETWORK,
+  'solana-mainnet-beta': DEFAULT_NETWORK,
+  'solana:devnet': DEVNET_NETWORK,
+  'solana-devnet': DEVNET_NETWORK,
+}
 
 type PaidPlan = Exclude<DaemonPlanId, 'light'>
 
@@ -27,27 +43,23 @@ interface PriceConfig extends ProPriceInfo {
   paymentMint: string
 }
 
-interface PaymentPayload {
-  wallet?: unknown
-  walletAddress?: unknown
-  txSignature?: unknown
-  signature?: unknown
-  amount?: unknown
-  network?: unknown
-  payTo?: unknown
-  mint?: unknown
-  plan?: unknown
-}
-
 interface VerifiedPayment {
   walletAddress: string
   paymentId: string
   plan: PaidPlan
   paidUsdc: number
+  settlementTransaction?: string
+  settlementResponse?: SettleResponse
+  x402?: {
+    paymentPayload: X402PaymentPayload
+    paymentRequirements: PaymentRequirements
+  }
 }
 
 export interface DaemonProPaymentVerifier {
+  createPaymentRequiredHeader?(price: PriceConfig): Promise<string>
   verifyPayment(paymentHeader: string, price: PriceConfig): Promise<VerifiedPayment>
+  settlePayment?(payment: VerifiedPayment): Promise<VerifiedPayment>
 }
 
 export interface DaemonProHolderVerifier {
@@ -121,18 +133,6 @@ function laneForPlan(plan: DaemonPlanId): DaemonAiCloudEntitlement['lane'] {
   return 'standard'
 }
 
-function parsePaymentPayload(header: string): PaymentPayload {
-  try {
-    return JSON.parse(Buffer.from(header, 'base64url').toString('utf8')) as PaymentPayload
-  } catch {
-    try {
-      return JSON.parse(Buffer.from(header, 'base64').toString('utf8')) as PaymentPayload
-    } catch {
-      throw new Error('Malformed payment header')
-    }
-  }
-}
-
 function assertPublicKey(value: string, label: string): string {
   try {
     return new PublicKey(value).toBase58()
@@ -145,31 +145,14 @@ function rawUsdcAmount(amount: number): bigint {
   return BigInt(Math.round(amount * 10 ** USDC_DECIMALS))
 }
 
-function tokenAmountRaw(input: unknown): bigint {
-  if (!input || typeof input !== 'object') return 0n
-  const amount = (input as { uiTokenAmount?: { amount?: unknown } }).uiTokenAmount?.amount
-  if (typeof amount !== 'string' || !/^\d+$/.test(amount)) return 0n
-  return BigInt(amount)
+function normalizeNetwork(input: unknown): string | null {
+  const network = optionalString(input)
+  if (!network) return null
+  return SOLANA_NETWORK_ALIASES[network.toLowerCase()] ?? network
 }
 
-function tokenOwnerDelta(tx: ParsedTransactionWithMeta, owner: string, mint: string): bigint {
-  const pre = new Map<number, bigint>()
-  for (const balance of tx.meta?.preTokenBalances ?? []) {
-    if (balance.mint === mint) pre.set(balance.accountIndex, tokenAmountRaw(balance))
-  }
-
-  let delta = 0n
-  for (const balance of tx.meta?.postTokenBalances ?? []) {
-    if (balance.mint !== mint || balance.owner !== owner) continue
-    const before = pre.get(balance.accountIndex) ?? 0n
-    const after = tokenAmountRaw(balance)
-    if (after > before) delta += after - before
-  }
-  return delta
-}
-
-function transactionHasSigner(tx: ParsedTransactionWithMeta, walletAddress: string): boolean {
-  return tx.transaction.message.accountKeys.some((key) => key.signer && key.pubkey.toBase58() === walletAddress)
+function defaultUsdcMint(network: string): string {
+  return network === DEVNET_NETWORK ? USDC_DEVNET_MINT : USDC_MINT
 }
 
 function rpcUrl(env: NodeJS.ProcessEnv): string {
@@ -180,48 +163,132 @@ function rpcUrl(env: NodeJS.ProcessEnv): string {
   return 'https://api.mainnet-beta.solana.com'
 }
 
-export class SolanaUsdcPaymentVerifier implements DaemonProPaymentVerifier {
-  private connection: Connection
+function paymentAssetAmount(price: PriceConfig): AssetAmount {
+  return {
+    asset: assertPublicKey(price.paymentMint, 'configured payment mint'),
+    amount: rawUsdcAmount(price.priceUsdc).toString(),
+    extra: { name: 'USDC', version: '2' },
+  }
+}
+
+function paymentResourceConfig(price: PriceConfig): ResourceConfig {
+  return {
+    scheme: 'exact',
+    payTo: assertPublicKey(price.payTo, 'configured payment recipient'),
+    price: paymentAssetAmount(price),
+    network: price.network as Network,
+    maxTimeoutSeconds: 60,
+    extra: { plan: price.plan },
+  }
+}
+
+function paymentResourceInfo(price: PriceConfig): ResourceInfo {
+  return {
+    url: '/v1/subscribe',
+    description: `DAEMON ${price.plan} subscription`,
+    mimeType: 'application/json',
+    serviceName: 'DAEMON Pro',
+    tags: ['daemon', 'subscription', price.plan],
+  }
+}
+
+function amountToUsdc(amount: string): number {
+  if (!/^\d+$/.test(amount)) return 0
+  return Number(BigInt(amount)) / 10 ** USDC_DECIMALS
+}
+
+function paymentHeaderId(paymentHeader: string): string {
+  return `x402:${crypto.createHash('sha256').update(paymentHeader).digest('hex')}`
+}
+
+function payerFromPayload(paymentPayload: X402PaymentPayload): string | null {
+  const transaction = optionalString(paymentPayload.payload.transaction)
+  if (!transaction) return null
+  try {
+    return getTokenPayerFromTransaction(decodeTransactionFromPayload({ transaction }))
+  } catch {
+    return null
+  }
+}
+
+function setPaymentResponseHeader(res: Response, payment: VerifiedPayment) {
+  if (!payment.settlementResponse) return
+  const responseHeader = encodePaymentResponseHeader(payment.settlementResponse)
+  res.setHeader('PAYMENT-RESPONSE', responseHeader)
+  res.setHeader('X-Payment-Response', responseHeader)
+}
+
+export class PayAiX402PaymentVerifier implements DaemonProPaymentVerifier {
+  private ready: Promise<void> | null = null
+  private server: x402ResourceServer
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
-    this.connection = new Connection(rpcUrl(env), 'confirmed')
+    const config = createFacilitatorConfig(env.PAYAI_API_KEY_ID, env.PAYAI_API_KEY_SECRET)
+    const url = env.PAYAI_FACILITATOR_URL?.trim() || env.X402_FACILITATOR_URL?.trim()
+    const facilitatorClient = new HTTPFacilitatorClient(url ? { ...config, url } : config)
+    this.server = registerExactSvmScheme(new x402ResourceServer(facilitatorClient))
+  }
+
+  async createPaymentRequiredHeader(price: PriceConfig): Promise<string> {
+    const requirements = await this.buildPaymentRequirements(price)
+    const paymentRequired = await this.server.createPaymentRequiredResponse(
+      requirements,
+      paymentResourceInfo(price),
+      'Payment required',
+    )
+    return encodePaymentRequiredHeader(paymentRequired)
   }
 
   async verifyPayment(paymentHeader: string, price: PriceConfig): Promise<VerifiedPayment> {
-    const payload = parsePaymentPayload(paymentHeader)
-    const walletAddress = assertPublicKey(optionalString(payload.walletAddress) ?? optionalString(payload.wallet) ?? '', 'payment wallet')
-    const txSignature = optionalString(payload.txSignature) ?? optionalString(payload.signature)
-    if (!txSignature) throw new Error('Payment transaction signature is required')
+    const paymentPayload = decodePaymentSignatureHeader(paymentHeader)
+    const requirements = await this.buildPaymentRequirements(price)
+    const paymentRequirements = this.server.findMatchingRequirements(requirements, paymentPayload)
+    if (!paymentRequirements) throw new Error('No matching payment requirements')
 
-    const network = optionalString(payload.network) ?? price.network
-    const payTo = assertPublicKey(optionalString(payload.payTo) ?? price.payTo, 'payment recipient')
-    const mint = assertPublicKey(optionalString(payload.mint) ?? price.paymentMint, 'payment mint')
-    if (network !== price.network) throw new Error(`Payment network must be ${price.network}`)
-    if (payTo !== assertPublicKey(price.payTo, 'configured payment recipient')) throw new Error('Payment recipient mismatch')
-    if (mint !== assertPublicKey(price.paymentMint, 'configured payment mint')) throw new Error('Payment mint mismatch')
-
-    const declaredAmount = Number(payload.amount)
-    if (Number.isFinite(declaredAmount) && declaredAmount + Number.EPSILON < price.priceUsdc) {
-      throw new Error('Payment amount is below the selected plan price')
+    const verified = await this.server.verifyPayment(paymentPayload, paymentRequirements)
+    if (!verified.isValid) {
+      throw new Error(verified.invalidMessage ?? verified.invalidReason ?? 'Payment verification failed')
     }
 
-    const tx = await this.connection.getParsedTransaction(txSignature, {
-      commitment: 'confirmed',
-      maxSupportedTransactionVersion: 0,
-    })
-    if (!tx?.meta || tx.meta.err) throw new Error('Payment transaction was not confirmed successfully')
-    if (!transactionHasSigner(tx, walletAddress)) throw new Error('Payment wallet did not sign the transaction')
-
-    const paidRaw = tokenOwnerDelta(tx, payTo, mint)
-    const requiredRaw = rawUsdcAmount(price.priceUsdc)
-    if (paidRaw < requiredRaw) throw new Error('Payment transaction did not transfer enough USDC')
-
+    const payer = verified.payer ?? payerFromPayload(paymentPayload)
+    const walletAddress = assertPublicKey(payer ?? '', 'payment payer')
     return {
       walletAddress,
-      paymentId: txSignature,
+      paymentId: paymentHeaderId(paymentHeader),
       plan: price.plan,
-      paidUsdc: Number(paidRaw) / 10 ** USDC_DECIMALS,
+      paidUsdc: amountToUsdc(paymentRequirements.amount),
+      x402: { paymentPayload, paymentRequirements },
     }
+  }
+
+  async settlePayment(payment: VerifiedPayment): Promise<VerifiedPayment> {
+    if (!payment.x402) return payment
+
+    const settle = await this.server.settlePayment(payment.x402.paymentPayload, payment.x402.paymentRequirements)
+    if (!settle.success) {
+      throw new Error(settle.errorMessage ?? settle.errorReason ?? 'Payment settlement failed')
+    }
+
+    const walletAddress = assertPublicKey(settle.payer ?? payment.walletAddress, 'payment payer')
+    if (walletAddress !== payment.walletAddress) throw new Error('Payment payer mismatch')
+
+    return {
+      ...payment,
+      walletAddress,
+      settlementTransaction: settle.transaction,
+      settlementResponse: settle,
+      paidUsdc: amountToUsdc(settle.amount ?? payment.x402.paymentRequirements.amount),
+    }
+  }
+
+  private async buildPaymentRequirements(price: PriceConfig): Promise<PaymentRequirements[]> {
+    await this.ensureReady()
+    return this.server.buildPaymentRequirements(paymentResourceConfig(price))
+  }
+
+  private ensureReady(): Promise<void> {
+    if (!this.ready) this.ready = this.server.initialize()
+    return this.ready
   }
 }
 
@@ -290,6 +357,7 @@ function migrate(db: Database.Database) {
 function priceConfig(env: NodeJS.ProcessEnv, inputPlan: unknown): PriceConfig {
   const plan = paidPlan(inputPlan)
   const durationDays = numberFromEnv(env.DAEMON_PRO_DURATION_DAYS, 30)
+  const network = normalizeNetwork(env.DAEMON_PRO_PAYMENT_NETWORK) ?? DEFAULT_NETWORK
   const priceUsdc = plan === 'ultra'
     ? numberFromEnv(env.DAEMON_ULTRA_PRICE_USDC, 200)
     : plan === 'operator'
@@ -304,28 +372,28 @@ function priceConfig(env: NodeJS.ProcessEnv, inputPlan: unknown): PriceConfig {
     plan,
     priceUsdc,
     durationDays,
-    network: env.DAEMON_PRO_PAYMENT_NETWORK?.trim() || DEFAULT_NETWORK,
+    network,
     payTo: env.DAEMON_PRO_PAY_TO?.trim() || DEFAULT_PRO_PAY_TO,
-    paymentMint: env.DAEMON_PRO_PAYMENT_MINT?.trim() || USDC_MINT,
+    paymentMint: env.DAEMON_PRO_PAYMENT_MINT?.trim() || defaultUsdcMint(network),
     holderMint: env.DAEMON_HOLDER_MINT?.trim() || undefined,
     holderMinAmount: numberFromEnv(env.DAEMON_HOLDER_MIN_AMOUNT, 1_000_000),
   }
 }
 
 function paymentRequiredHeader(price: PriceConfig): string {
-  return Buffer.from(JSON.stringify({
+  return encodePaymentRequiredHeader({
     x402Version: 2,
     accepts: [{
       scheme: 'exact',
-      price: `$${price.priceUsdc}`,
-      network: price.network,
+      amount: rawUsdcAmount(price.priceUsdc).toString(),
+      network: price.network as Network,
       payTo: price.payTo,
       asset: price.paymentMint,
+      maxTimeoutSeconds: 60,
+      extra: { name: 'USDC', version: '2', plan: price.plan },
     }],
-    plan: price.plan,
-    durationDays: price.durationDays,
-    description: `DAEMON ${price.plan} subscription`,
-  })).toString('base64url')
+    resource: paymentResourceInfo(price),
+  })
 }
 
 function holderStatus(price: PriceConfig, currentAmount: number | null = null): ProHolderStatus {
@@ -517,7 +585,7 @@ function requireAdmin(req: Request, env: NodeJS.ProcessEnv): string {
 export function createDaemonSubscriptionGateway(options: SubscriptionGatewayOptions): express.Express {
   const env = options.env ?? process.env
   const db = options.db
-  const paymentVerifier = options.paymentVerifier ?? new SolanaUsdcPaymentVerifier(env)
+  const paymentVerifier = options.paymentVerifier ?? new PayAiX402PaymentVerifier(env)
   const holderVerifier = options.holderVerifier ?? new SolanaHolderVerifier(env)
   migrate(db)
 
@@ -554,22 +622,28 @@ export function createDaemonSubscriptionGateway(options: SubscriptionGatewayOpti
     const price = priceConfig(env, req.body?.plan ?? req.query.plan)
     const paymentHeader = req.header('x-payment') ?? req.header('payment-signature')
     if (!paymentHeader) {
-      const required = paymentRequiredHeader(price)
-      res.setHeader('PAYMENT-REQUIRED', required)
-      res.setHeader('X-Payment-Required', required)
-      return responseError(res, 402, 'Payment required', 'daemon_pro_payment_required')
+      try {
+        const required = paymentVerifier.createPaymentRequiredHeader
+          ? await paymentVerifier.createPaymentRequiredHeader(price)
+          : paymentRequiredHeader(price)
+        res.setHeader('PAYMENT-REQUIRED', required)
+        res.setHeader('X-Payment-Required', required)
+        return responseError(res, 402, 'Payment required', 'daemon_pro_payment_required')
+      } catch (error) {
+        return responseError(res, 503, error instanceof Error ? error.message : String(error), 'daemon_pro_payment_unavailable')
+      }
     }
 
     try {
-      const payment = await paymentVerifier.verifyPayment(paymentHeader, price)
-      const existingPayment = subscriptionByPayment(db, payment.paymentId)
-      if (existingPayment && existingPayment.wallet_address !== payment.walletAddress) {
+      const verifiedPayment = await paymentVerifier.verifyPayment(paymentHeader, price)
+      const existingPayment = subscriptionByPayment(db, verifiedPayment.paymentId)
+      if (existingPayment && existingPayment.wallet_address !== verifiedPayment.walletAddress) {
         writeAudit(db, {
-          walletAddress: payment.walletAddress,
+          walletAddress: verifiedPayment.walletAddress,
           action: 'payment_replay',
-          plan: payment.plan,
+          plan: verifiedPayment.plan,
           accessSource: 'payment',
-          paymentId: payment.paymentId,
+          paymentId: verifiedPayment.paymentId,
           metadata: { originalWallet: existingPayment.wallet_address },
         })
         return responseError(res, 409, 'Payment has already been used', 'daemon_pro_payment_replayed')
@@ -588,10 +662,13 @@ export function createDaemonSubscriptionGateway(options: SubscriptionGatewayOpti
           tier: entitlement.plan,
           plan: entitlement.plan,
           paymentId: existingPayment.payment_id,
-          paidUsdc: payment.paidUsdc,
+          paidUsdc: verifiedPayment.paidUsdc,
         })
       }
 
+      const payment = paymentVerifier.settlePayment
+        ? await paymentVerifier.settlePayment(verifiedPayment)
+        : verifiedPayment
       const expiresAt = Date.now() + daysToMs(price.durationDays)
       const entitlement = entitlementFor({
         walletAddress: payment.walletAddress,
@@ -613,9 +690,13 @@ export function createDaemonSubscriptionGateway(options: SubscriptionGatewayOpti
         plan: payment.plan,
         accessSource: 'payment',
         paymentId: payment.paymentId,
-        metadata: { paidUsdc: payment.paidUsdc },
+        metadata: {
+          paidUsdc: payment.paidUsdc,
+          settlementTransaction: payment.settlementTransaction,
+        },
       })
 
+      setPaymentResponseHeader(res, payment)
       return res.json({
         ok: true,
         jwt: issueJwt(entitlement, options.jwtSecret),
@@ -625,6 +706,7 @@ export function createDaemonSubscriptionGateway(options: SubscriptionGatewayOpti
         plan: payment.plan,
         paymentId: payment.paymentId,
         paidUsdc: payment.paidUsdc,
+        settlementTransaction: payment.settlementTransaction,
       })
     } catch (error) {
       return responseError(res, 402, error instanceof Error ? error.message : String(error), 'daemon_pro_payment_invalid')

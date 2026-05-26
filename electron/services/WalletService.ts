@@ -4,9 +4,11 @@ import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
+import nacl from 'tweetnacl'
 import { dialog } from 'electron'
 import fs from 'node:fs'
 import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getPriorityFeeLamports, withKeypair, type TransactionExecutionResult } from './SolanaService'
+import * as Voight from './VoightService'
 import type { JupiterTokenSearchResult, WalletDashboard } from '../shared/types'
 
 const DEFAULT_FETCH_TIMEOUT_MS = 8_000
@@ -1090,10 +1092,35 @@ export async function transferSOL(
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      Voight.emitEventSafe({
+        agentId: 'daemon-wallet',
+        type: 'tx',
+        transaction: signature,
+        amountToken: 'SOL',
+        amountValue: amountToRecord,
+        outcome: 'success',
+        metadata: {
+          sessionId: txId,
+          walletId: fromWalletId,
+          fromAddress,
+          toAddress,
+          transport,
+          action: 'send_sol',
+        },
+      })
       return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      Voight.trackError('daemon-wallet', err, {
+        sessionId: txId,
+        walletId: fromWalletId,
+        fromAddress,
+        toAddress,
+        amountToken: 'SOL',
+        amountValue: amountToRecord,
+        action: 'send_sol',
+      })
       throw err
     }
   })
@@ -1189,10 +1216,35 @@ export async function transferToken(
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      Voight.emitEventSafe({
+        agentId: 'daemon-wallet',
+        type: 'tx',
+        transaction: signature,
+        amountToken: mint,
+        amountValue: amountToRecord,
+        outcome: 'success',
+        metadata: {
+          sessionId: txId,
+          walletId: fromWalletId,
+          fromAddress,
+          toAddress,
+          transport,
+          action: 'send_token',
+        },
+      })
       return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      Voight.trackError('daemon-wallet', err, {
+        sessionId: txId,
+        walletId: fromWalletId,
+        fromAddress,
+        toAddress,
+        amountToken: mint,
+        amountValue: amountToRecord,
+        action: 'send_token',
+      })
       throw err
     }
   })
@@ -1668,10 +1720,34 @@ export async function executeSwap(
       }
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(executeData.signature, 'confirmed', txId)
+      Voight.emitEventSafe({
+        agentId: 'daemon-wallet',
+        type: 'tx',
+        transaction: executeData.signature,
+        amountToken: inputMint,
+        amountValue: amount,
+        outcome: 'success',
+        metadata: {
+          sessionId: txId,
+          walletId,
+          outputMint,
+          route: 'jupiter',
+          action: 'swap',
+        },
+      })
       return { signature: executeData.signature, transport: 'jupiter' }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      Voight.trackError('daemon-wallet', err, {
+        sessionId: txId,
+        walletId,
+        amountToken: inputMint,
+        amountValue: amount,
+        outputMint,
+        route: 'jupiter',
+        action: 'swap',
+      })
       throw err
     }
   })
@@ -1752,6 +1828,20 @@ export function hasKeypair(walletId: string): boolean {
   const db = getDb()
   const row = db.prepare('SELECT 1 FROM secure_keys WHERE key_name = ?').get(`WALLET_KEYPAIR_${walletId}`)
   return !!row
+}
+
+export async function signMessage(walletId: string, message: string): Promise<{ walletAddress: string; signatureBase58: string; message: string }> {
+  const safeMessage = typeof message === 'string' ? message : ''
+  if (!safeMessage.trim()) throw new Error('Message cannot be empty')
+  if (safeMessage.length > 8_000) throw new Error('Message is too large to sign')
+
+  const expectedAddress = getWalletAddressOrThrow(walletId)
+  return withKeypair(walletId, async (keypair) => {
+    const walletAddress = keypair.publicKey.toBase58()
+    if (walletAddress !== expectedAddress) throw new Error('Wallet keypair does not match wallet address')
+    const signatureBase58 = bs58.encode(nacl.sign.detached(new TextEncoder().encode(safeMessage), keypair.secretKey))
+    return { walletAddress, signatureBase58, message: safeMessage }
+  })
 }
 
 export function getTransactionHistory(walletId: string, limit = 20) {

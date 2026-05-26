@@ -5,6 +5,11 @@ import path from 'node:path'
 import { app } from 'electron'
 import bs58 from 'bs58'
 import nacl from 'tweetnacl'
+import { createKeyPairSignerFromBytes } from '@solana/kit'
+import { x402Client, x402HTTPClient } from '@x402/core/client'
+import type { Network } from '@x402/core/types'
+import { toClientSvmSigner } from '@x402/svm'
+import { registerExactSvmScheme } from '@x402/svm/exact/client'
 import { getDb } from '../db/db'
 import type {
   ArenaSubmission,
@@ -16,7 +21,6 @@ import type {
 } from '../shared/types'
 import * as SecureKey from './SecureKeyService'
 import { withKeypair } from './SolanaService'
-import { transferToken } from './WalletService'
 import { getPlanFeatures, normalizePlan } from './EntitlementService'
 import { DAEMON_AI_DEFAULT_API_BASE } from './DaemonAICloudClient'
 
@@ -32,13 +36,12 @@ const DEV_BYPASS_FEATURES: ProFeature[] = getPlanFeatures('pro')
 const DEV_BYPASS_PRICE: ProPriceInfo = {
   priceUsdc: 20,
   durationDays: 30,
-  network: 'solana:mainnet',
+  network: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
   payTo: 'GNVxk3sn4iJ2iUaqEUskWQ1KNy9Mmcee3WF3AMtRjN7W',
   holderMint: '4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump',
   holderMinAmount: 1_000_000,
 }
 const JWT_KEY = 'daemon_pro_jwt'
-const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
 const EMPTY_HOLDER_STATUS: ProSubscriptionState['holderStatus'] = {
   enabled: false,
@@ -280,28 +283,24 @@ export async function subscribe(walletId: string): Promise<{ state: ProSubscript
     throw new ProApiError(challengeRes.status, `Expected 402 Payment Required, got ${challengeRes.status}`)
   }
 
-  const walletAddress = await withKeypair(walletId, async (keypair) => keypair.publicKey.toBase58())
-  const payment = await transferToken(
-    walletId,
-    price.payTo,
-    price.paymentMint ?? USDC_MINT,
-    price.priceUsdc,
-  )
-  const paymentHeader = Buffer.from(
-    JSON.stringify({
-      wallet: walletAddress,
-      txSignature: payment.signature,
-      amount: price.priceUsdc,
-      network: price.network,
-      payTo: price.payTo,
-      mint: price.paymentMint ?? USDC_MINT,
-    }),
-    'utf8',
-  ).toString('base64url')
+  const { walletAddress, paymentHeaders } = await withKeypair(walletId, async (keypair) => {
+    const signer = toClientSvmSigner(await createKeyPairSignerFromBytes(keypair.secretKey))
+    const client = registerExactSvmScheme(new x402Client(), {
+      signer,
+      networks: [price.network as Network],
+    })
+    const httpClient = new x402HTTPClient(client)
+    const paymentRequired = httpClient.getPaymentRequiredResponse((name: string) => challengeRes.headers.get(name))
+    const paymentPayload = await httpClient.createPaymentPayload(paymentRequired)
+    return {
+      walletAddress: keypair.publicKey.toBase58(),
+      paymentHeaders: httpClient.encodePaymentSignatureHeader(paymentPayload),
+    }
+  })
 
   const paidRes = await fetch(`${DAEMON_PRO_API_BASE}/v1/subscribe`, {
     method: 'POST',
-    headers: { 'X-Payment': paymentHeader },
+    headers: paymentHeaders,
   })
   if (!paidRes.ok) {
     const errBody = await paidRes.json().catch(() => ({ error: `HTTP ${paidRes.status}` })) as { error?: string }

@@ -135,7 +135,7 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     const envKeys = new Set(
       context.envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment && envVar.value.trim().length > 0).map((envVar) => envVar.key)),
     )
-    const registryReady = envKeys.has('IDLE_REGISTRY_URL')
+    const registryReady = envKeys.has('IDLE_REGISTRY_URL') || envKeys.has('PAYAI_DISCOVERY_URL')
     return {
       title: registryReady && paymentMcp ? 'IDLE execution prerequisites ready' : 'IDLE route stack gated',
       status: registryReady && paymentMcp ? 'success' : 'info',
@@ -143,7 +143,7 @@ export async function runIntegrationAction(actionId: string, context: Integratio
         ? paymentMcp
           ? `DAEMON can import the configured IDLE registry and use ${paymentMcp.label ?? paymentMcp.name} for x402 payment policy.`
           : 'DAEMON can import the configured IDLE registry, but paid execution stays gated until PayAI or x402 MCP is enabled.'
-        : 'Add IDLE_REGISTRY_URL before DAEMON imports live resources or claims paid-call execution.',
+        : 'Add IDLE_REGISTRY_URL or PAYAI_DISCOVERY_URL before DAEMON imports live resources or claims paid-call execution.',
       items: [
         registryReady ? 'Registry URL configured' : 'Registry URL required',
         'Score imported resources before execution',

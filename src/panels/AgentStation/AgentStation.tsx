@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { daemon } from '../../lib/daemonBridge'
+import { SkeletonRows } from '../../components/Panel'
+import { useAppActions } from '../../store/appActions'
+import { useUIStore } from '../../store/ui'
 import css from './AgentStation.module.css'
 
 const TEMPLATES: Array<{ id: AgentTemplate; name: string; desc: string; defaultPlugins: string[] }> = [
@@ -7,6 +10,7 @@ const TEMPLATES: Array<{ id: AgentTemplate; name: string; desc: string; defaultP
   { id: 'defi-trader', name: 'DeFi Trader', desc: 'Jupiter swaps + Pyth price feeds.', defaultPlugins: ['token', 'defi', 'misc'] },
   { id: 'portfolio-monitor', name: 'Portfolio Monitor', desc: 'Watch wallet balances and alert on changes.', defaultPlugins: ['token', 'misc'] },
   { id: 'nft-minter', name: 'NFT Minter', desc: 'Mint NFTs via Metaplex Core.', defaultPlugins: ['nft', 'misc'] },
+  { id: 'metaplex-meterflow-operator', name: 'Metaplex + Meterflow', desc: 'Onchain identity + paid x402 tool call + DAEMON receipt.', defaultPlugins: ['nft', 'misc'] },
 ]
 
 const ALL_PLUGINS = ['token', 'defi', 'nft', 'misc', 'blinks']
@@ -179,6 +183,13 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
   const [scaffoldMsg, setScaffoldMsg] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [running, setRunning] = useState(false)
+  const projects = useUIStore((s) => s.projects)
+  const setProjects = useUIStore((s) => s.setProjects)
+  const setActiveProject = useUIStore((s) => s.setActiveProject)
+  const setCenterMode = useUIStore((s) => s.setCenterMode)
+  const setActiveWorkspaceTool = useUIStore((s) => s.setActiveWorkspaceTool)
+  const addTerminal = useUIStore((s) => s.addTerminal)
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
 
   const plugins: string[] = (() => { try { return JSON.parse(config.plugins) } catch { return [] } })()
 
@@ -198,13 +209,31 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
       setScaffoldMsg('Scaffold the project first')
       return
     }
-    // Open a terminal session in the project directory
     setRunning(true)
+    let project = projects.find((item) => item.path === config.project_path)
+    if (!project) {
+      const created = await daemon.projects.create({ name: config.name, path: config.project_path })
+      if (!created.ok || !created.data) {
+        setRunning(false)
+        setScaffoldMsg('Failed to register project: ' + (created.error ?? 'unknown error'))
+        return
+      }
+      project = created.data
+      setProjects([created.data, ...projects])
+    }
+    setActiveProject(project.id, project.path)
+    setCenterMode('canvas')
+    setActiveWorkspaceTool(null)
+    focusTerminal()
+
     const termRes = await daemon.terminal.create({ cwd: config.project_path, startupCommand: 'npm start', userInitiated: true })
     setRunning(false)
     if (!termRes.ok) { setScaffoldMsg('Failed to open terminal: ' + termRes.error); return }
+    addTerminal(project.id, termRes.data!.id, `${config.name} Agent`, termRes.data!.agentId)
+    focusTerminal()
     await daemon.agentStation.updateStatus(config.id, 'running')
     onStatusChange(config.id, 'running')
+    setScaffoldMsg('Running in Terminal')
   }
 
   async function handleStop() {
@@ -328,8 +357,9 @@ export function AgentStation() {
             onCancel={() => setView('list')}
           />
         ) : loading ? (
-          <div className={css.emptyState}>
-            <div className={css.emptyDesc}>Loading...</div>
+          <div role="status" aria-busy="true" aria-live="polite">
+            <span className={css.srOnly}>Loading agents…</span>
+            <SkeletonRows rows={3} />
           </div>
         ) : configs.length === 0 ? (
           <div className={css.emptyState}>
@@ -339,11 +369,14 @@ export function AgentStation() {
             </svg>
             <div className={css.emptyTitle}>No agents yet</div>
             <div className={css.emptyDesc}>
-              Create a Solana AI agent powered by Solana Agent Kit. Scaffold templates for DeFi trading, portfolio monitoring, NFT minting, and more.
+              Spin up a Solana agent on Solana Agent Kit. Start from a template — DeFi trading, portfolio watching, NFT minting — or build your own.
             </div>
+            <button className={css.emptyAction} type="button" onClick={() => setView('create')}>
+              + Create your first agent
+            </button>
           </div>
         ) : (
-          <div className={css.cardList}>
+          <div className={`${css.cardList} motion-stagger`}>
             {configs.map((config) => (
               <AgentCard
                 key={config.id}

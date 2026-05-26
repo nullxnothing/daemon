@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useWalletStore } from '../../store/wallet'
 import { useUIStore } from '../../store/ui'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../../components/LiveRegion'
 import type { WalletDashboard } from '../../types/daemon'
 import type {
   SpawnAgentRecord,
@@ -462,6 +464,7 @@ function SpawnForm({ ownerWallet, walletId, walletCanSign, onCancel, onDeposit, 
 function DepositStep({ instr, onDone, onCancel }: { instr: SpawnDepositInstruction; onDone: () => void; onCancel: () => void }) {
   const [status, setStatus] = useState<SpawnStatusResult['status'] | 'polling'>('polling')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { copied, copy } = useClipboard()
 
   const poll = useCallback(async () => {
     const res = await daemon.spawnAgents.spawnStatus(instr.reference)
@@ -478,8 +481,8 @@ function DepositStep({ instr, onDone, onCancel }: { instr: SpawnDepositInstructi
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [poll])
 
-  async function copyAddress() {
-    await navigator.clipboard.writeText(instr.recipient)
+  function copyAddress() {
+    void copy(instr.recipient)
   }
 
   return (
@@ -489,8 +492,9 @@ function DepositStep({ instr, onDone, onCancel }: { instr: SpawnDepositInstructi
 
       <div className="sa-deposit-addr-row">
         <span className="sa-deposit-addr">{instr.recipient}</span>
-        <button className="sa-btn-ghost sa-copy-btn" onClick={copyAddress}>Copy</button>
+        <button className="sa-btn-ghost sa-copy-btn" onClick={copyAddress}>{copied ? 'Copied ✓' : 'Copy'}</button>
       </div>
+      <LiveRegion message={copied ? 'Deposit address copied to clipboard' : ''} />
 
       <div className="sa-deposit-meta">
         <span>Agent: <strong>{instr.agent_name}</strong></span>

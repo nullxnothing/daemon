@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { getDb } from '../db/db'
+import * as Voight from './VoightService'
 import type {
   DaemonAiToolApprovalDecisionInput,
   DaemonAiToolApprovalRequest,
@@ -154,7 +155,23 @@ export function requestToolApproval(input: DaemonAiToolCallInput): DaemonAiToolA
     riskLevel === 'blocked' ? now : null,
   )
 
-  return getToolApproval(input.runId, toolCallId)
+  const approval = getToolApproval(input.runId, toolCallId)
+  Voight.emitEventSafe({
+    agentId: input.runId,
+    type: approval.status === 'blocked' ? 'decision' : 'tool',
+    toolExecuted: approval.toolName,
+    outcome: approval.status === 'blocked' ? 'failed' : 'pending',
+    input: approval.argumentsPreview,
+    metadata: {
+      sessionId: approval.runId,
+      toolCallId: approval.toolCallId,
+      riskLevel: approval.riskLevel,
+      policyDecision: approval.status,
+      detail: approval.summary,
+      dedupKey: `tool-request:${approval.runId}:${approval.toolCallId}:${approval.status}`,
+    },
+  })
+  return approval
 }
 
 export function decideToolApproval(input: DaemonAiToolApprovalDecisionInput): DaemonAiToolApprovalRequest {
@@ -178,7 +195,23 @@ export function decideToolApproval(input: DaemonAiToolApprovalDecisionInput): Da
     input.toolCallId,
   )
 
-  return getToolApproval(input.runId, input.toolCallId)
+  const approval = getToolApproval(input.runId, input.toolCallId)
+  Voight.emitEventSafe({
+    agentId: approval.runId,
+    type: 'decision',
+    toolExecuted: approval.toolName,
+    outcome: approval.status === 'approved' ? 'success' : 'failed',
+    metadata: {
+      sessionId: approval.runId,
+      toolCallId: approval.toolCallId,
+      riskLevel: approval.riskLevel,
+      policyDecision: approval.status,
+      humanApproverIdentity: 'local-user',
+      detail: approval.decisionReason ?? approval.summary,
+      dedupKey: `tool-decision:${approval.runId}:${approval.toolCallId}:${approval.status}`,
+    },
+  })
+  return approval
 }
 
 export function getToolApproval(runId: string, toolCallId: string): DaemonAiToolApprovalRequest {

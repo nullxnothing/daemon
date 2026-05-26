@@ -1,0 +1,439 @@
+.agentops-panel {
+  height: 100%;
+  overflow: auto;
+  padding: var(--space-xl);
+  color: var(--t1);
+  background: var(--surface-sunken);
+}
+
+.agentops-card {
+  display: grid;
+  min-height: calc(100vh - 96px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-lg);
+}
+
+.agentops-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+  gap: var(--space-lg);
+  align-items: end;
+  padding: var(--space-xl);
+  border-bottom: 1px solid var(--border);
+}
+
+.agentops-card-head span,
+.agentops-card-main label span,
+.agentops-rail-section label span {
+  display: block;
+  color: var(--t3);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+.agentops-card-head h2 {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--fs-28);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.agentops-status-pill {
+  justify-self: end;
+  max-width: 360px;
+  padding: 9px var(--space-md);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-pill);
+  color: var(--t2);
+  background: var(--surface-raised);
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+.agentops-status-pill[data-ready="true"] {
+  border-color: color-mix(in srgb, var(--green) 46%, transparent);
+  color: var(--green);
+}
+
+.agentops-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+
+.agentops-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface-panel);
+  color: var(--t3);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.agentops-tabs button:last-child {
+  border-right: 0;
+}
+
+.agentops-tabs button[data-active="true"] {
+  color: var(--t1);
+  background: var(--tab-active-bg);
+  box-shadow: inset 0 -2px 0 var(--green);
+}
+
+.agentops-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 0;
+}
+
+.agentops-card-main {
+  min-width: 0;
+  padding: var(--space-lg);
+}
+
+.agentops-card-rail {
+  display: grid;
+  align-content: start;
+  border-left: 1px solid var(--border);
+}
+
+.agentops-section-stack,
+.agentops-rail-section {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.agentops-rail-section {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.agentops-rail-section h3 {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0;
+}
+
+.agentops-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.34fr);
+  gap: 10px;
+}
+
+.agentops-card-main label,
+.agentops-rail-section label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.agentops-card-main input,
+.agentops-card-main select,
+.agentops-card-main textarea,
+.agentops-rail-section input,
+.agentops-rail-section select,
+.agentops-actions button,
+.agentops-rail-section button {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+  color: var(--t1);
+  padding: var(--space-sm) 10px;
+}
+
+.agentops-card-main input,
+.agentops-card-main textarea,
+.agentops-rail-section input,
+.agentops-data-row code,
+.agentops-inline-plan code,
+.agentops-inline-plan span,
+.agentops-log code,
+.agentops-record-list code {
+  font-family: var(--font-code);
+}
+
+.agentops-card-main textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.agentops-rail-section textarea {
+  width: 100%;
+  min-height: 86px;
+  resize: vertical;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+  color: var(--t1);
+  padding: var(--space-sm) 10px;
+}
+
+.agentops-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.agentops-actions button,
+.agentops-rail-section button,
+.agentops-record-list button,
+.agentops-receipts button {
+  cursor: pointer;
+}
+
+.agentops-actions button:hover,
+.agentops-rail-section button:hover,
+.agentops-record-list button:hover,
+.agentops-receipts button:hover {
+  border-color: var(--green);
+}
+
+.agentops-actions button:disabled,
+.agentops-rail-section button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.agentops-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.agentops-data-row {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--space-md);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-card);
+}
+
+.agentops-data-row:nth-child(2n) {
+  border-right: 0;
+}
+
+.agentops-data-row:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.agentops-data-row code,
+.agentops-record-list code,
+.agentops-log code {
+  color: var(--t1);
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+.agentops-inline-plan {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.agentops-step-list {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.agentops-step-card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+  min-height: 150px;
+  min-width: 0;
+  padding: var(--space-md);
+  border-right: 1px solid var(--border);
+  background: var(--surface-card);
+}
+
+.agentops-step-card:last-child {
+  border-right: 0;
+}
+
+.agentops-step-card span {
+  color: var(--green);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+}
+
+.agentops-step-card strong {
+  color: var(--t1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+}
+
+.agentops-step-card p {
+  margin: 0;
+  color: var(--t3);
+  font-size: var(--fs-12);
+  line-height: 1.45;
+}
+
+.agentops-ack-list,
+.agentops-rail-actions {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.agentops-ack-list {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.agentops-ack-list code {
+  color: var(--t3);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+  overflow-wrap: anywhere;
+}
+
+.agentops-inline-plan strong {
+  color: var(--t1);
+}
+
+.agentops-inline-plan code,
+.agentops-inline-plan span,
+.agentops-receipts span,
+.agentops-receipts time,
+.agentops-record-list span,
+.agentops-record-list p,
+.agentops-receipts p,
+.agentops-log > span {
+  color: var(--t3);
+  font-size: var(--fs-12);
+}
+
+.agentops-log {
+  display: grid;
+  gap: var(--space-sm);
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: var(--surface-sunken);
+}
+
+.agentops-log div {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.agentops-log div > span {
+  color: var(--green);
+  font-size: var(--fs-11);
+  text-transform: uppercase;
+}
+
+.agentops-log div[data-direction="in"] > span {
+  color: var(--blue);
+}
+
+.agentops-log div[data-direction="system"] > span {
+  color: var(--amber);
+}
+
+.agentops-record-list,
+.agentops-receipts {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.agentops-record-list button,
+.agentops-receipts button {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  background: var(--control-bg);
+  color: var(--t1);
+  text-align: left;
+}
+
+.agentops-receipts button {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.agentops-receipts button strong,
+.agentops-receipts button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.agentops-receipts button span {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1040px) {
+  .agentops-card-grid,
+  .agentops-card-head,
+  .agentops-field-grid,
+  .agentops-data-grid,
+  .agentops-step-list {
+    grid-template-columns: 1fr;
+  }
+
+  .agentops-card-rail {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .agentops-data-row,
+  .agentops-data-row:nth-child(2n),
+  .agentops-data-row:nth-last-child(-n + 2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .agentops-data-row:last-child {
+    border-bottom: 0;
+  }
+
+  .agentops-step-card {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .agentops-step-card:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .agentops-panel {
+    padding: var(--space-md);
+  }
+
+  .agentops-tabs,
+  .agentops-actions,
+  .agentops-receipts button {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import type { SolanaMcpEntry, SolanaProjectInfo, SolanaToolchainStatus, ValidatorState } from '../../store/solanaToolbox'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../../components/LiveRegion'
 import './SeekerCompanionPanel.css'
+
+const COPY_ANNOUNCE: Record<'code' | 'link' | 'relay', string> = {
+  code: 'Pairing code copied to clipboard',
+  link: 'Deep link copied to clipboard',
+  relay: 'Relay URL copied to clipboard',
+}
 
 type StatusTone = 'live' | 'pending' | 'warning' | 'locked'
 type ApprovalStatus = 'pending' | 'approved' | 'rejected'
@@ -115,7 +123,7 @@ export function SeekerCompanionPanel({
   const [session, setSession] = useState<SeekerSessionSnapshot | null>(null)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [relayError, setRelayError] = useState<string | null>(null)
-  const [copied, setCopied] = useState<'code' | 'link' | 'relay' | null>(null)
+  const { copiedKey: copied, copy } = useClipboard({ resetMs: 1400 })
   const [, setTick] = useState(Date.now())
 
   const enabledMcps = useMemo(() => (mcps ?? []).filter((mcp) => Boolean(mcp.enabled)).length, [mcps])
@@ -234,16 +242,10 @@ export function SeekerCompanionPanel({
     }
   }, [session?.session.pairingCode])
 
-  const copyText = useCallback(async (kind: 'code' | 'link' | 'relay', value?: string) => {
+  const copyText = useCallback((kind: 'code' | 'link' | 'relay', value?: string) => {
     if (!value) return
-    try {
-      await navigator.clipboard?.writeText(value)
-      setCopied(kind)
-      window.setTimeout(() => setCopied(null), 1400)
-    } catch {
-      setCopied(null)
-    }
-  }, [])
+    void copy(value, kind)
+  }, [copy])
 
   const openDeepLink = useCallback(() => {
     if (!session?.session.deepLink) return
@@ -252,6 +254,7 @@ export function SeekerCompanionPanel({
 
   return (
     <div className="seeker-companion">
+      <LiveRegion message={copied ? COPY_ANNOUNCE[copied as 'code' | 'link' | 'relay'] : ''} />
       <section className="seeker-hero-card">
         <div className="seeker-hero-copy">
           <div className="solana-token-launch-kicker">Daemon for Seeker</div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { CaretDown } from '@phosphor-icons/react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
@@ -137,6 +138,7 @@ export function AriaChat() {
 
   const [input, setInput] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
   const [isChatFocused, setIsChatFocused] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -153,15 +155,16 @@ export function AriaChat() {
 
   // Auto-expand when messages exist or loading
   useEffect(() => {
-    if (messages.length > 0 || isLoading) {
+    if (!isMinimized && (messages.length > 0 || isLoading)) {
       setIsExpanded(true)
     }
-  }, [messages.length, isLoading])
+  }, [isMinimized, messages.length, isLoading])
 
   const handleSend = useCallback(async () => {
     const trimmed = input.trim()
     if (!trimmed || isLoading) return
     setInput('')
+    setIsMinimized(false)
     setIsExpanded(true)
     if (textareaRef.current) {
       textareaRef.current.style.height = '28px'
@@ -188,12 +191,14 @@ export function AriaChat() {
   }
 
   const handleChamberActivate = useCallback(() => {
+    setIsMinimized(false)
     requestAnimationFrame(() => {
       textareaRef.current?.focus()
     })
   }, [])
 
   const handleFocus = () => {
+    setIsMinimized(false)
     setIsChatFocused(true)
     if (messages.length > 0 || isLoading) {
       setIsExpanded(true)
@@ -273,8 +278,32 @@ export function AriaChat() {
   const hasMessages = messages.length > 0 || isLoading
   const showChamber = !hasMessages
 
+  const handleRestore = () => {
+    setIsMinimized(false)
+    if (hasMessages) {
+      setIsExpanded(true)
+    }
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  if (isMinimized) {
+    return (
+      <div className="aria-dock aria-dock-minimized">
+        <button type="button" className="aria-minimized-button" onClick={handleRestore} aria-label="Open ARIA">
+          <AriaPresence isChatFocused={false} isChatExpanded={false} size="small" />
+          <span>ARIA</span>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className={`aria-dock ${isExpanded && hasMessages ? 'aria-dock-expanded' : ''} ${showChamber ? 'aria-dock-chamber' : ''}`}>
+      {!(isExpanded && hasMessages) && (
+        <button type="button" className="aria-dock-minimize" onClick={() => setIsMinimized(true)} title="Minimize ARIA" aria-label="Minimize ARIA">
+          <CaretDown size={13} weight="bold" />
+        </button>
+      )}
       {showChamber && (
         <AriaChamber isChatFocused={isChatFocused} onActivate={handleChamberActivate} />
       )}
@@ -288,8 +317,8 @@ export function AriaChat() {
             <button type="button" className="aria-toolbar-btn" onClick={clearMessages} title="Clear history">
               clear
             </button>
-            <button type="button" className="aria-toolbar-btn" onClick={() => setIsExpanded(false)} title="Collapse">
-              &#x2013;
+            <button type="button" className="aria-toolbar-btn aria-toolbar-icon-btn" onClick={() => setIsMinimized(true)} title="Minimize ARIA" aria-label="Minimize ARIA">
+              <CaretDown size={13} weight="bold" />
             </button>
           </div>
         </div>

@@ -114,6 +114,26 @@ import type {
   DaemonAiToolApprovalRequest,
   DaemonAiToolCallInput,
   DaemonAiUsageSnapshot,
+  MeterflowAgentSession,
+  MeterflowBudget,
+  MeterflowCsvExport,
+  MeterflowDemoWallet,
+  MeterflowMeter,
+  MeterflowOverview,
+  MeterflowPaidAgentReadinessInput,
+  MeterflowPaidAgentReadinessResult,
+  MeterflowReceipt,
+  MeterflowReceiptDetail,
+  MeterflowReceiptGraph,
+  MeterflowReceiptsQuery,
+  MeterflowRevenueRow,
+  MeterflowStatus,
+  MeterflowWalletReadiness,
+  MeterflowWatchProjectResult,
+  MeterflowWebhook,
+  VoightPrivacyLevel,
+  VoightStatus,
+  VoightTestResult,
 } from '../../electron/shared/types'
 
 export type {
@@ -224,6 +244,26 @@ export type {
   DaemonAiToolApprovalRequest,
   DaemonAiToolCallInput,
   DaemonAiUsageSnapshot,
+  MeterflowAgentSession,
+  MeterflowBudget,
+  MeterflowCsvExport,
+  MeterflowDemoWallet,
+  MeterflowMeter,
+  MeterflowOverview,
+  MeterflowPaidAgentReadinessInput,
+  MeterflowPaidAgentReadinessResult,
+  MeterflowReceipt,
+  MeterflowReceiptDetail,
+  MeterflowReceiptGraph,
+  MeterflowReceiptsQuery,
+  MeterflowRevenueRow,
+  MeterflowStatus,
+  MeterflowWalletReadiness,
+  MeterflowWatchProjectResult,
+  MeterflowWebhook,
+  VoightPrivacyLevel,
+  VoightStatus,
+  VoightTestResult,
 }
 
 declare global {
@@ -256,6 +296,43 @@ declare global {
       createPath: string
       chain: string
     }
+    openbid: {
+      apiBaseUrl: string
+      chainId: string
+      dex: 'meteora' | 'raydium' | ''
+      feeTier: string
+      packageType: 'based' | 'super_based' | 'ultra_based' | ''
+      marketCap: string
+      totalSupply: string
+      maxAllocationPerUser: string
+      referrer: string
+      board: string
+      boardOwner: string
+    }
+  }
+
+  type OpenBidLaunchInputConfig = {
+    chain?: 'solana'
+    apiBaseUrl?: string
+    chainId?: string
+    dex?: 'meteora' | 'raydium' | ''
+    feeTier?: string
+    packageType?: 'based' | 'super_based' | 'ultra_based' | ''
+    marketCap?: string
+    totalSupply?: string
+    maxAllocationPerUser?: string
+    referrer?: string
+    board?: string
+    boardOwner?: string
+    saleStartTime?: number | null
+    softCap?: string
+    endTime?: number | null
+    whitelistedAddresses?: string[]
+    buyFeePercent?: number
+    sellFeePercent?: number
+    referralFeePercent?: number
+    graduationFeePercent?: number
+    dynamicFee?: boolean
   }
 
   type WalletInfrastructureSettings = {
@@ -421,7 +498,7 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
-    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null; agentName?: string }>>
     ready: (id: string, cols?: number, rows?: number) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
@@ -496,6 +573,7 @@ declare global {
     writeFile: (filePath: string, content: string) => Promise<IpcResponse>
     createFile: (filePath: string) => Promise<IpcResponse>
     createDir: (dirPath: string) => Promise<IpcResponse>
+    importPaths: (sourcePaths: string[], destDir: string) => Promise<IpcResponse<string[]>>
     rename: (oldPath: string, newPath: string) => Promise<IpcResponse>
     delete: (targetPath: string) => Promise<IpcResponse>
     reveal: (targetPath: string) => Promise<IpcResponse>
@@ -521,6 +599,27 @@ declare global {
     create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
+  }
+
+  interface AgentOpsOpenRequest {
+    asset?: string
+    network?: 'solana-devnet' | 'solana-mainnet'
+    service?: string
+    price?: string
+    sourceUrl: string
+    receivedAt: string
+  }
+
+  interface AgentOpsDerivedAccounts {
+    agentIdentityPda?: string
+    assetSignerPda?: string
+  }
+
+  interface DaemonAgentOps {
+    getPendingOpenRequest: () => Promise<AgentOpsOpenRequest | null>
+    ackOpenRequest: (receivedAt: string) => Promise<boolean>
+    deriveAccounts: (assetAddress: string) => Promise<IpcResponse<AgentOpsDerivedAccounts>>
+    onOpenRequest: (callback: (payload: AgentOpsOpenRequest) => void) => () => void
   }
 
   interface DaemonWallet {
@@ -551,6 +650,7 @@ declare global {
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+    signMessage: (walletId: string, message: string) => Promise<IpcResponse<{ walletAddress: string; signatureBase58: string; message: string }>>
     transactionHistory: (walletId: string, limit?: number) => Promise<IpcResponse<Array<{ id: string; wallet_id: string; type: string; signature: string | null; from_address: string; to_address: string; amount: number; mint: string | null; symbol: string | null; status: string; error: string | null; created_at: number }>>>
     exportPrivateKey: (walletId: string) => Promise<IpcResponse<boolean>>
   }
@@ -837,7 +937,7 @@ declare global {
     created_at: number
   }
 
-  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
+  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'openbid' | 'bags' | 'bonk'
   type LaunchpadStatus = 'available' | 'planned'
 
   type PulseTokenCategory = 'newly-created' | 'almost-graduated' | 'graduated'
@@ -931,6 +1031,7 @@ declare global {
       slippageBps: number
       priorityFeeSol: number
       mayhemMode?: boolean
+      openbid?: OpenBidLaunchInputConfig
     }) => Promise<IpcResponse<TokenLaunchPreflight>>
     createToken: (input: {
       launchpad: LaunchpadId
@@ -947,6 +1048,7 @@ declare global {
       slippageBps: number
       priorityFeeSol: number
       mayhemMode?: boolean
+      openbid?: OpenBidLaunchInputConfig
     }) => Promise<IpcResponse<TokenLaunchResult>>
     saveToken: (input: {
       walletId: string
@@ -1041,6 +1143,26 @@ declare global {
   type IdlePaidCallInput = import('../../electron/shared/types').IdlePaidCallInput
   type IdlePaidCallReceipt = import('../../electron/shared/types').IdlePaidCallReceipt
   type IdleRegistryStatus = import('../../electron/shared/types').IdleRegistryStatus
+  type MeterflowStatus = import('../../electron/shared/types').MeterflowStatus
+  type MeterflowOverview = import('../../electron/shared/types').MeterflowOverview
+  type MeterflowReceipt = import('../../electron/shared/types').MeterflowReceipt
+  type MeterflowReceiptsQuery = import('../../electron/shared/types').MeterflowReceiptsQuery
+  type MeterflowReceiptDetail = import('../../electron/shared/types').MeterflowReceiptDetail
+  type MeterflowReceiptGraph = import('../../electron/shared/types').MeterflowReceiptGraph
+  type MeterflowMeter = import('../../electron/shared/types').MeterflowMeter
+  type MeterflowBudget = import('../../electron/shared/types').MeterflowBudget
+  type MeterflowAgentSession = import('../../electron/shared/types').MeterflowAgentSession
+  type MeterflowWebhook = import('../../electron/shared/types').MeterflowWebhook
+  type MeterflowRevenueRow = import('../../electron/shared/types').MeterflowRevenueRow
+  type MeterflowCsvExport = import('../../electron/shared/types').MeterflowCsvExport
+  type MeterflowDemoWallet = import('../../electron/shared/types').MeterflowDemoWallet
+  type MeterflowWalletReadiness = import('../../electron/shared/types').MeterflowWalletReadiness
+  type VoightPrivacyLevel = import('../../electron/shared/types').VoightPrivacyLevel
+  type VoightStatus = import('../../electron/shared/types').VoightStatus
+  type VoightTestResult = import('../../electron/shared/types').VoightTestResult
+  type MeterflowPaidAgentReadinessInput = import('../../electron/shared/types').MeterflowPaidAgentReadinessInput
+  type MeterflowPaidAgentReadinessResult = import('../../electron/shared/types').MeterflowPaidAgentReadinessResult
+  type MeterflowWatchProjectResult = import('../../electron/shared/types').MeterflowWatchProjectResult
 
   interface DaemonIdle {
     status: (registryUrl?: string | null) => Promise<IpcResponse<IdleRegistryStatus>>
@@ -1049,6 +1171,30 @@ declare global {
     checkPolicy: (input: IdlePolicyCheckInput) => Promise<IpcResponse<IdlePolicyCheckResult>>
     executePaidCall: (input: IdlePaidCallInput) => Promise<IpcResponse<IdlePaidCallReceipt>>
     listReceipts: (limit?: number) => Promise<IpcResponse<IdlePaidCallReceipt[]>>
+  }
+
+  interface DaemonMeterflow {
+    status: () => Promise<IpcResponse<MeterflowStatus>>
+    storeApiKey: (apiKey: string) => Promise<IpcResponse<MeterflowStatus>>
+    deleteApiKey: () => Promise<IpcResponse<{ deleted: boolean }>>
+    overview: () => Promise<IpcResponse<MeterflowOverview>>
+    listReceipts: (input?: MeterflowReceiptsQuery | number) => Promise<IpcResponse<MeterflowReceipt[]>>
+    getReceipt: (receiptId: string) => Promise<IpcResponse<MeterflowReceiptDetail>>
+    ingestReceipt: (receipt: object) => Promise<IpcResponse<MeterflowReceipt>>
+    createDemoWallet: () => Promise<IpcResponse<MeterflowDemoWallet>>
+    getDemoWallet: () => Promise<IpcResponse<MeterflowDemoWallet | null>>
+    checkDemoWalletReadiness: () => Promise<IpcResponse<MeterflowWalletReadiness>>
+    callPaidAgentReadiness: (input: MeterflowPaidAgentReadinessInput) => Promise<IpcResponse<MeterflowPaidAgentReadinessResult>>
+    watchProject: (projectPath: string) => Promise<IpcResponse<MeterflowWatchProjectResult>>
+    getReceiptGraph: (receiptId: string) => Promise<IpcResponse<MeterflowReceiptGraph>>
+    listMeters: () => Promise<IpcResponse<MeterflowMeter[]>>
+    testMeter: (meterId: string) => Promise<IpcResponse<Record<string, unknown>>>
+    listBudgets: () => Promise<IpcResponse<MeterflowBudget[]>>
+    listAgentSessions: () => Promise<IpcResponse<MeterflowAgentSession[]>>
+    listWebhooks: () => Promise<IpcResponse<MeterflowWebhook[]>>
+    providerRevenue: () => Promise<IpcResponse<MeterflowRevenueRow[]>>
+    registrySummary: () => Promise<IpcResponse<Record<string, unknown>>>
+    exportReceiptsCsv: () => Promise<IpcResponse<MeterflowCsvExport>>
   }
 
   interface MetaplexCoreAgentAssetReceipt {
@@ -1076,6 +1222,51 @@ declare global {
     }
   }
 
+  interface MetaplexRegisteredAgentReceipt {
+    id: string
+    createdAt: string
+    action: 'metaplex-agent-mint-and-register'
+    network: 'devnet'
+    wallet: string
+    asset: string
+    signature: string
+    explorerUrl: string
+    docsUrl: string
+    agentMetadata: {
+      type: 'agent'
+      name: string
+      description: string
+      services: Array<{ name: string; endpoint: string }>
+      registrations: Array<{ agentId: string; agentRegistry: string }>
+      supportedTrust: string[]
+    }
+  }
+
+  interface MetaplexRegisterAgentIdentityReceipt {
+    id: string
+    createdAt: string
+    action: 'metaplex-agent-register-identity'
+    network: 'devnet'
+    wallet: string
+    asset: string
+    agentIdentityPda: string
+    signature: string
+    explorerUrl: string
+    docsUrl: string
+  }
+
+  interface MetaplexReadAgentIdentityResult {
+    registered: boolean
+    network: 'devnet' | 'mainnet-beta'
+    asset: string
+    agentIdentityPda: string
+    identity?: {
+      publicKey: string
+      bump: number
+      asset: string
+    }
+  }
+
   interface DaemonMetaplex {
     createCoreAgentAsset: (input: {
       walletId: string
@@ -1086,6 +1277,32 @@ declare global {
       confirmedAt: number
       acknowledgement: string
     }) => Promise<IpcResponse<MetaplexCoreAgentAssetReceipt>>
+    mintRegisteredAgent: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      name: string
+      description: string
+      uri: string
+      serviceUrl: string
+      priceUsdc: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => Promise<IpcResponse<MetaplexRegisteredAgentReceipt>>
+    registerAgentIdentity: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      assetAddress: string
+      agentRegistrationUri: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => Promise<IpcResponse<MetaplexRegisterAgentIdentityReceipt>>
+    readAgentIdentity: (input: {
+      network: 'devnet' | 'mainnet-beta'
+      rpcUrl: string
+      assetAddress: string
+    }) => Promise<IpcResponse<MetaplexReadAgentIdentityResult>>
   }
 
   interface DaemonCodex {
@@ -1201,6 +1418,15 @@ declare global {
     recent: (limit?: number) => Promise<IpcResponse<TelemetryEventRecord[]>>
   }
 
+  interface DaemonVoight {
+    status: () => Promise<IpcResponse<VoightStatus>>
+    storeKey: (value: string) => Promise<IpcResponse<VoightStatus>>
+    deleteKey: () => Promise<IpcResponse<VoightStatus>>
+    testEvent: () => Promise<IpcResponse<VoightTestResult>>
+    setPrivacyLevel: (level: VoightPrivacyLevel) => Promise<IpcResponse<VoightStatus>>
+    flushQueue: () => Promise<IpcResponse<{ sent: number; failed: number; pending: number }>>
+  }
+
   interface DaemonPro {
     status: () => Promise<IpcResponse<ProSubscriptionState>>
     refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
@@ -1260,7 +1486,9 @@ declare global {
   }
 
   interface DaemonAPI {
+    getPathForFile: (file: File) => string
     window: DaemonWindow
+    agentops: DaemonAgentOps
     terminal: DaemonTerminal
     tools: DaemonTools
     engine: DaemonEngine
@@ -1280,6 +1508,7 @@ declare global {
     activity: DaemonActivity
     events: DaemonEvents
     telemetry: DaemonTelemetry
+    voight: DaemonVoight
     tweets: DaemonTweets
     plugins: DaemonPlugins
     browser: DaemonBrowser
@@ -1296,6 +1525,7 @@ declare global {
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
+    meterflow: DaemonMeterflow
     metaplex: DaemonMetaplex
     vault: DaemonVault
     validator: DaemonValidator
@@ -1438,7 +1668,7 @@ declare global {
     daemon: DaemonAPI
   }
 
-  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter'
+  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter' | 'metaplex-meterflow-operator'
   type AgentStationStatus = 'idle' | 'running' | 'stopped'
 
   interface AgentStationConfig {

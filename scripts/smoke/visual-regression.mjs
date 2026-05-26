@@ -558,7 +558,17 @@ async function runVisuals(page) {
       writeFileSync(actualPath, screenshot)
 
       const hadBaseline = existsSync(baselinePath)
-      if (updateBaselines || !hadBaseline) {
+      if (!hadBaseline && !updateBaselines) {
+        failures.push({
+          scenario: `${profile.name}/${scenario.name}`,
+          missingBaseline: true,
+          baselinePath,
+          actualPath,
+        })
+        continue
+      }
+
+      if (updateBaselines) {
         ensureDir(path.dirname(baselinePath))
         writeFileSync(baselinePath, screenshot)
         console.log(`${hadBaseline ? 'Updated' : 'Created'} baseline ${profile.name}/${scenario.name}`)
@@ -596,7 +606,9 @@ async function runVisuals(page) {
 
   if (failures.length > 0) {
     const details = failures
-      .map((failure) => `${failure.scenario}: ${failure.changedPixels}/${failure.allowedChangedPixels} changed pixels, ${failure.widthDelta}w/${failure.heightDelta}h dimension drift\nactual: ${failure.actualPath}\ndiff: ${failure.diffPath}`)
+      .map((failure) => failure.missingBaseline
+        ? `${failure.scenario}: missing baseline\nactual: ${failure.actualPath}\nbaseline: ${failure.baselinePath}`
+        : `${failure.scenario}: ${failure.changedPixels}/${failure.allowedChangedPixels} changed pixels, ${failure.widthDelta}w/${failure.heightDelta}h dimension drift\nactual: ${failure.actualPath}\ndiff: ${failure.diffPath}`)
       .join('\n\n')
     throw new Error(`Visual regression mismatches detected\n\n${details}`)
   }

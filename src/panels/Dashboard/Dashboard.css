@@ -262,24 +262,102 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-md);
   flex: 1;
-  padding: 40px;
+  padding: var(--space-3xl) var(--space-xl);
   min-height: 300px;
+  text-align: center;
+}
+
+/* Illustrated rocket glyph with ambient glow */
+.dash-empty-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: var(--space-2xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-feature);
+  background: var(--surface-raised);
+  color: var(--green);
+}
+
+.dash-empty-glow {
+  position: absolute;
+  inset: -30%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--green-glow), transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.dash-empty-art svg {
+  position: relative;
+  z-index: 1;
+}
+
+.dash-empty-eyebrow {
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
 .dash-canvas-empty-title {
-  font-size: var(--fs-18);
+  margin: 0;
+  font-size: var(--fs-22);
   color: var(--t1);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .dash-canvas-empty-sub {
+  margin: 0;
+  max-width: 380px;
   font-size: var(--fs-13);
+  line-height: 1.55;
   color: var(--t3);
   font-family: var(--font-ui);
-  text-align: center;
+}
+
+.dash-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.dash-empty-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.dash-empty-preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface-raised) 60%, transparent);
+  font-size: var(--fs-11);
+  color: var(--t3);
+}
+
+.dash-empty-preview-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green-dim);
 }
 
 .dash-canvas-header {

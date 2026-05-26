@@ -1,5 +1,10 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { type TerminalLaunchRecent } from './RecentsManager'
+
+const LAUNCHER_MENU_WIDTH = 188
+const LAUNCHER_MENU_GUTTER = 8
+const LAUNCHER_MENU_OFFSET = 6
 
 interface TerminalLauncherProps {
   activeProjectId: string | null
@@ -7,6 +12,7 @@ interface TerminalLauncherProps {
   launchRecents: TerminalLaunchRecent[]
   onStartShell: () => void
   onStartClaudeChat: () => void
+  onStartSpettro: () => void
   onStartSolanaAgent: () => void
   onLaunchAgent: (agent: Agent) => void
   onLaunchCommand: (command: string, label: string) => void
@@ -18,13 +24,16 @@ export function TerminalLauncher({
   launchRecents,
   onStartShell,
   onStartClaudeChat,
+  onStartSpettro,
   onStartSolanaAgent,
   onLaunchAgent,
   onLaunchCommand,
 }: TerminalLauncherProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [agents, setAgents] = useState<Agent[]>([])
+  const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null)
   const launcherRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!isOpen) return
@@ -41,7 +50,7 @@ export function TerminalLauncher({
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node | null
       if (!launcherRef.current || !target) return
-      if (!launcherRef.current.contains(target)) {
+      if (!launcherRef.current.contains(target) && !menuRef.current?.contains(target)) {
         setIsOpen(false)
       }
     }
@@ -60,6 +69,37 @@ export function TerminalLauncher({
     }
   }, [isOpen])
 
+  const updateMenuPosition = useCallback(() => {
+    const launcher = launcherRef.current
+    if (!launcher) return
+
+    const rect = launcher.getBoundingClientRect()
+    const maxLeft = Math.max(
+      LAUNCHER_MENU_GUTTER,
+      window.innerWidth - LAUNCHER_MENU_WIDTH - LAUNCHER_MENU_GUTTER,
+    )
+
+    setMenuPosition({
+      left: Math.min(Math.max(rect.left, LAUNCHER_MENU_GUTTER), maxLeft),
+      top: rect.bottom + LAUNCHER_MENU_OFFSET,
+    })
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setMenuPosition(null)
+      return
+    }
+
+    updateMenuPosition()
+    window.addEventListener('resize', updateMenuPosition)
+    window.addEventListener('scroll', updateMenuPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition)
+      window.removeEventListener('scroll', updateMenuPosition, true)
+    }
+  }, [isOpen, updateMenuPosition])
+
   const handleShell = useCallback(() => {
     onStartShell()
     setIsOpen(false)
@@ -74,6 +114,11 @@ export function TerminalLauncher({
     onStartSolanaAgent()
     setIsOpen(false)
   }, [onStartSolanaAgent])
+
+  const handleSpettro = useCallback(() => {
+    onStartSpettro()
+    setIsOpen(false)
+  }, [onStartSpettro])
 
   const handleAgent = useCallback((agent: Agent) => {
     onLaunchAgent(agent)
@@ -100,6 +145,109 @@ export function TerminalLauncher({
     [launchRecents],
   )
 
+  const menu = isOpen && menuPosition ? (
+    <div
+      ref={menuRef}
+      className="terminal-launcher-menu"
+      role="menu"
+      aria-label="New terminal options"
+      style={{
+        left: menuPosition.left,
+        top: menuPosition.top,
+        width: LAUNCHER_MENU_WIDTH,
+      }}
+    >
+      <div className="terminal-launcher-header" aria-hidden="true">
+        <span className="terminal-launcher-kicker">Quick Start</span>
+        <span className="terminal-launcher-title">Open the right session</span>
+      </div>
+      <button
+        className="terminal-launcher-item"
+        onClick={handleShell}
+        disabled={!canLaunchInProject}
+        aria-label="Standard Terminal"
+      >
+        <span className="terminal-launcher-item-title">Standard Terminal</span>
+        <span className="terminal-launcher-item-desc">Plain shell in the current project</span>
+      </button>
+      <button
+        className="terminal-launcher-item"
+        onClick={handleClaude}
+        aria-label="Claude Chat"
+      >
+        <span className="terminal-launcher-item-title">Claude Chat</span>
+        <span className="terminal-launcher-item-desc">Open the assistant drawer for Claude</span>
+      </button>
+      <button
+        className="terminal-launcher-item"
+        onClick={handleSolana}
+        disabled={!canLaunchInProject}
+        aria-label="Solana Agent"
+      >
+        <span className="terminal-launcher-item-title">Solana Agent</span>
+        <span className="terminal-launcher-item-desc">Start the Solana-focused coding agent</span>
+      </button>
+      <button
+        className="terminal-launcher-item"
+        onClick={handleSpettro}
+        disabled={!canLaunchInProject}
+        aria-label="Spettro"
+      >
+        <span className="terminal-launcher-item-title">Spettro</span>
+        <span className="terminal-launcher-item-desc">Launch Spettro in the current project</span>
+      </button>
+      <button
+        className="terminal-launcher-item"
+        onClick={() => handleCommand('surfpool', 'Surfpool')}
+        disabled={!canLaunchInProject}
+        aria-label="Surfpool"
+      >
+        <span className="terminal-launcher-item-title">Surfpool</span>
+        <span className="terminal-launcher-item-desc">Launch the local Solana dev validator</span>
+      </button>
+
+      <div className="terminal-launcher-divider" />
+      <div className="terminal-launcher-section">Recent Agents</div>
+      {recentAgentItems.length === 0 ? (
+        <div className="terminal-launcher-empty">No recent agents</div>
+      ) : (
+        recentAgentItems.map((item) => {
+          const agent = launchableAgents.find((candidate) => candidate.id === item.key)
+          return (
+            <button
+              key={`recent-agent-${item.key}`}
+              className="terminal-launcher-item"
+              onClick={() => agent && handleAgent(agent)}
+              disabled={!canLaunchInProject || !agent}
+              title={agent ? undefined : 'Agent no longer available'}
+            >
+              <span className="terminal-launcher-item-title">{item.label}</span>
+              <span className="terminal-launcher-item-desc">Recent agent launch</span>
+            </button>
+          )
+        })
+      )}
+
+      {recentCommandItems.length > 0 && (
+        <>
+          <div className="terminal-launcher-divider" />
+          <div className="terminal-launcher-section">Recent Commands</div>
+          {recentCommandItems.map((item) => (
+            <button
+              key={`recent-command-${item.key}`}
+              className="terminal-launcher-item"
+              onClick={() => item.command && handleCommand(item.command, item.label)}
+              disabled={!canLaunchInProject || !item.command}
+            >
+              <span className="terminal-launcher-item-title">{item.label}</span>
+              <span className="terminal-launcher-item-desc">Recent command</span>
+            </button>
+          ))}
+        </>
+      )}
+    </div>
+  ) : null
+
   return (
     <div className="terminal-launcher" ref={launcherRef}>
       <button
@@ -111,89 +259,7 @@ export function TerminalLauncher({
         <span className="terminal-tab-add-plus" aria-hidden="true">+</span>
         <span className="terminal-tab-add-label" aria-hidden="true">New</span>
       </button>
-      {isOpen && (
-        <div className="terminal-launcher-menu" role="menu" aria-label="New terminal options">
-          <div className="terminal-launcher-header" aria-hidden="true">
-            <span className="terminal-launcher-kicker">Quick Start</span>
-            <span className="terminal-launcher-title">Open the right session</span>
-          </div>
-          <button
-            className="terminal-launcher-item"
-            onClick={handleShell}
-            disabled={!canLaunchInProject}
-            aria-label="Standard Terminal"
-          >
-            <span className="terminal-launcher-item-title">Standard Terminal</span>
-            <span className="terminal-launcher-item-desc">Plain shell in the current project</span>
-          </button>
-          <button
-            className="terminal-launcher-item"
-            onClick={handleClaude}
-            aria-label="Claude Chat"
-          >
-            <span className="terminal-launcher-item-title">Claude Chat</span>
-            <span className="terminal-launcher-item-desc">Open the assistant drawer for Claude</span>
-          </button>
-          <button
-            className="terminal-launcher-item"
-            onClick={handleSolana}
-            disabled={!canLaunchInProject}
-            aria-label="Solana Agent"
-          >
-            <span className="terminal-launcher-item-title">Solana Agent</span>
-            <span className="terminal-launcher-item-desc">Start the Solana-focused coding agent</span>
-          </button>
-          <button
-            className="terminal-launcher-item"
-            onClick={() => handleCommand('surfpool', 'Surfpool')}
-            disabled={!canLaunchInProject}
-            aria-label="Surfpool"
-          >
-            <span className="terminal-launcher-item-title">Surfpool</span>
-            <span className="terminal-launcher-item-desc">Launch the local Solana dev validator</span>
-          </button>
-
-          <div className="terminal-launcher-divider" />
-          <div className="terminal-launcher-section">Recent Agents</div>
-          {recentAgentItems.length === 0 ? (
-            <div className="terminal-launcher-empty">No recent agents</div>
-          ) : (
-            recentAgentItems.map((item) => {
-              const agent = launchableAgents.find((candidate) => candidate.id === item.key)
-              return (
-                <button
-                  key={`recent-agent-${item.key}`}
-                  className="terminal-launcher-item"
-                  onClick={() => agent && handleAgent(agent)}
-                  disabled={!canLaunchInProject || !agent}
-                  title={agent ? undefined : 'Agent no longer available'}
-                >
-                  <span className="terminal-launcher-item-title">{item.label}</span>
-                  <span className="terminal-launcher-item-desc">Recent agent launch</span>
-                </button>
-              )
-            })
-          )}
-
-          {recentCommandItems.length > 0 && (
-            <>
-              <div className="terminal-launcher-divider" />
-              <div className="terminal-launcher-section">Recent Commands</div>
-              {recentCommandItems.map((item) => (
-                <button
-                  key={`recent-command-${item.key}`}
-                  className="terminal-launcher-item"
-                  onClick={() => item.command && handleCommand(item.command, item.label)}
-                  disabled={!canLaunchInProject || !item.command}
-                >
-                  <span className="terminal-launcher-item-title">{item.label}</span>
-                  <span className="terminal-launcher-item-desc">Recent command</span>
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
+      {menu && createPortal(menu, document.body)}
     </div>
   )
 }

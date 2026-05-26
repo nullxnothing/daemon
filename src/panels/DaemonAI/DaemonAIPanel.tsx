@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAiStore } from '../../store/aiStore'
 import { useUIStore } from '../../store/ui'
+import { Spinner } from '../../components/Panel'
 import './DaemonAIPanel.css'
 
 type ContextKey = keyof NonNullable<DaemonAiChatRequest['context']>
@@ -308,15 +309,20 @@ function ChatSurface({ messages, loading }: { messages: Array<{ id: string; role
           </article>
         ))
       )}
-      {loading && <div className="daemon-ai-thinking">Working...</div>}
+      {loading && (
+        <div className="daemon-ai-thinking" role="status" aria-live="polite">
+          <Spinner size={14} tone="muted" />
+          Working…
+        </div>
+      )}
     </div>
   )
 }
 
 function RunList({ runs, onCancel }: { runs: DaemonAiAgentRun[]; onCancel: (runId: string) => void }) {
-  if (runs.length === 0) return <div className="daemon-ai-empty">No agent runs yet. Queue a patch proposal or read-only run from this workbench.</div>
+  if (runs.length === 0) return <div className="daemon-ai-empty">No runs yet. Queue a read-only run or a patch proposal to get started.</div>
   return (
-    <div className="daemon-ai-card-list">
+    <div className="daemon-ai-card-list motion-stagger">
       {runs.map((run) => (
         <article key={run.id} className="daemon-ai-card">
           <div className="daemon-ai-card-head">
@@ -346,7 +352,7 @@ function ApprovalList({ approvals, onDecision }: {
 }) {
   if (approvals.length === 0) return <div className="daemon-ai-empty">No tool approvals yet. Risky tools will appear here before they run.</div>
   return (
-    <div className="daemon-ai-card-list">
+    <div className="daemon-ai-card-list motion-stagger">
       {approvals.map((approval) => (
         <article key={approval.id} className="daemon-ai-card">
           <div className="daemon-ai-card-head">
@@ -381,7 +387,7 @@ function PatchList({ proposals, onDecision, onApply }: {
   const [expandedPatchId, setExpandedPatchId] = useState<string | null>(null)
   if (proposals.length === 0) return <div className="daemon-ai-empty">No patch proposals yet. Generated code changes will appear here before apply.</div>
   return (
-    <div className="daemon-ai-card-list">
+    <div className="daemon-ai-card-list motion-stagger">
       {proposals.map((proposal) => {
         const expanded = expandedPatchId === proposal.id
         return (
@@ -439,7 +445,7 @@ function ReceiptList({ runs, approvals, proposals }: {
   }))
   if (rows.length === 0) return <div className="daemon-ai-empty">Receipts will appear after chat, agent runs, approvals, and patches are created.</div>
   return (
-    <div className="daemon-ai-card-list">
+    <div className="daemon-ai-card-list motion-stagger">
       {rows.map(({ run, approvals: runApprovals, proposals: runProposals }) => (
         <article key={run.id} className="daemon-ai-card">
           <div className="daemon-ai-card-head">
@@ -455,6 +461,11 @@ function ReceiptList({ runs, approvals, proposals }: {
             <span>{runProposals.length} patch proposal{runProposals.length === 1 ? '' : 's'}</span>
             <span>{run.projectPath ? compactPath(run.projectPath) : 'No project path'}</span>
           </div>
+          {keycardOpenUrl(run) && (
+            <button type="button" className="daemon-ai-ghost-btn" onClick={() => void window.daemon.shell.openExternal(keycardOpenUrl(run)!)}>
+              Open Keycard
+            </button>
+          )}
         </article>
       ))}
     </div>
@@ -484,6 +495,20 @@ function shortId(value: string): string {
 function compactPath(path: string): string {
   const parts = path.split(/[\\/]/).filter(Boolean)
   return parts.slice(-2).join('/')
+}
+
+function keycardOpenUrl(run: DaemonAiAgentRun): string | null {
+  const result = run.result ?? {}
+  const direct = typeof result.keycardOpenUrl === 'string' ? result.keycardOpenUrl : null
+  if (direct) return direct
+
+  const artifactUri = typeof result.artifactUri === 'string'
+    ? result.artifactUri
+    : typeof result.artifact_uri === 'string'
+      ? result.artifact_uri
+      : null
+  const match = artifactUri?.match(/^keycard:\/\/([^#]+)/)
+  return match?.[1] ? `https://keycardsol.xyz/open/${match[1]}` : null
 }
 
 function formatTime(value: number): string {

@@ -143,8 +143,8 @@ describe('Integration Command Center registry', () => {
     expect(idle!.docsUrl).toBe('https://earnidle.com/docs')
     expect(idle!.requirements).toContainEqual({
       type: 'env',
-      key: 'IDLE_REGISTRY_URL',
-      label: 'IDLE resource registry URL',
+      key: 'IDLE_REGISTRY_URL|PAYAI_DISCOVERY_URL',
+      label: 'IDLE or PayAI discovery URL',
     })
     expect(idle!.requirements).toContainEqual({
       type: 'external-url',

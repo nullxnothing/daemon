@@ -6,6 +6,9 @@ import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useAppActions } from '../../store/appActions'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../../components/LiveRegion'
 import { useShellLayout } from '../../hooks/useShellLayout'
 import { daemon } from '../../lib/daemonBridge'
 import { formatCompactUsd } from '../../utils/format'
@@ -21,11 +24,10 @@ const EMPTY_MARKET: MarketTickerEntry[] = []
 export const StatusBar = memo(function StatusBar() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const { tier, isDesktop, isCompact, isTablet, isSmall } = useShellLayout()
+  const { copied: pathCopied, copy: copyPath } = useClipboard()
 
   const handleCopyPath = () => {
-    if (activeProjectPath) {
-      navigator.clipboard.writeText(activeProjectPath).catch(() => {})
-    }
+    if (activeProjectPath) void copyPath(activeProjectPath)
   }
 
   const showCenterTape = isDesktop
@@ -75,13 +77,16 @@ export const StatusBar = memo(function StatusBar() {
         </div>
         {showPath && activeProjectPath && (
           <div className={styles.statusGroup}>
-            <span
-              className={`${styles.item} ${styles.path} ${styles.clickable}`}
+            <button
+              type="button"
+              className={`${styles.item} ${styles.path} ${styles.clickable} ${styles.linkButton}`}
               onClick={handleCopyPath}
-              title="Copy path to clipboard"
+              title={pathCopied ? 'Copied to clipboard' : 'Copy path to clipboard'}
+              aria-label={pathCopied ? 'Project path copied' : `Copy project path ${activeProjectPath}`}
             >
-              {middleEllipsisPath(activeProjectPath)}
-            </span>
+              {pathCopied ? 'Copied ✓' : middleEllipsisPath(activeProjectPath)}
+            </button>
+            <LiveRegion message={pathCopied ? 'Project path copied to clipboard' : ''} />
           </div>
         )}
         <PanelToggles />
@@ -95,19 +100,18 @@ function TerminalCount() {
   const count = useUIStore((s) =>
     s.terminals.reduce((n, t) => n + (t.projectId === activeProjectId ? 1 : 0), 0)
   )
-
-  const handleClick = () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: '`', ctrlKey: true, bubbles: true }))
-  }
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
 
   return (
-    <span
-      className={`${styles.item} ${styles.clickable}`}
-      onClick={handleClick}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.clickable} ${styles.linkButton}`}
+      onClick={focusTerminal}
       title="Toggle terminal"
+      aria-label={`Toggle terminal (${count} active)`}
     >
       {count} terminal{count !== 1 ? 's' : ''}
-    </span>
+    </button>
   )
 }
 
@@ -121,14 +125,19 @@ function ValidatorStatus() {
   const port = validator.port ? ` :${validator.port}` : ''
 
   return (
-    <span
-      className={`${styles.item} ${styles.clickable}`}
-      onClick={() => useUIStore.getState().openWorkspaceTool('solana-toolbox')}
-      title="Open Solana Workflow"
-    >
-      <StatusDot tone={tone} className={styles.inlineDot} />
-      {label}{port}
-    </span>
+    <>
+      <button
+        type="button"
+        className={`${styles.item} ${styles.clickable} ${styles.linkButton}`}
+        onClick={() => useUIStore.getState().openWorkspaceTool('solana-toolbox')}
+        title="Open Solana Workflow"
+        aria-label={`${label} ${validator.status}${port}. Open Solana Workflow`}
+      >
+        <StatusDot tone={tone} className={styles.inlineDot} />
+        {label}{port}
+      </button>
+      <LiveRegion message={`${label} ${validator.status}`} />
+    </>
   )
 }
 

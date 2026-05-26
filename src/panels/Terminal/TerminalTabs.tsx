@@ -29,6 +29,7 @@ interface TerminalTabsProps {
   onUnsplit: () => void
   onStartShell: () => void
   onStartClaudeChat: () => void
+  onStartSpettro: () => void
   onStartSolanaAgent: () => void
   onLaunchAgent: (agent: Agent) => void
   onLaunchCommand: (command: string, label: string) => void
@@ -49,6 +50,7 @@ export function TerminalTabs({
   onUnsplit,
   onStartShell,
   onStartClaudeChat,
+  onStartSpettro,
   onStartSolanaAgent,
   onLaunchAgent,
   onLaunchCommand,
@@ -86,17 +88,19 @@ export function TerminalTabs({
             </span>
           </button>
         ))}
-        <TerminalLauncher
-          activeProjectId={activeProjectId}
-          canLaunchInProject={canLaunchInProject}
-          launchRecents={launchRecents}
-          onStartShell={onStartShell}
-          onStartClaudeChat={onStartClaudeChat}
-          onStartSolanaAgent={onStartSolanaAgent}
-          onLaunchAgent={onLaunchAgent}
-          onLaunchCommand={onLaunchCommand}
-        />
       </div>
+
+      <TerminalLauncher
+        activeProjectId={activeProjectId}
+        canLaunchInProject={canLaunchInProject}
+        launchRecents={launchRecents}
+        onStartShell={onStartShell}
+        onStartClaudeChat={onStartClaudeChat}
+        onStartSpettro={onStartSpettro}
+        onStartSolanaAgent={onStartSolanaAgent}
+        onLaunchAgent={onLaunchAgent}
+        onLaunchCommand={onLaunchCommand}
+      />
 
       <div className="terminal-tools">
         <button
