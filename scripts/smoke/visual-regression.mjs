@@ -79,17 +79,23 @@ const scenarios = [
   },
   {
     name: 'right-panel-tabs',
-    setup: async () => {},
+    setup: async (page) => {
+      await ensureRightPanelVisible(page)
+    },
     selector: '.right-panel-tabs',
   },
   {
     name: 'aria-chamber',
-    setup: async () => {},
+    setup: async (page) => {
+      await ensureRightPanelVisible(page)
+    },
     selector: '.aria-chamber',
   },
   {
     name: 'aria-prompt',
-    setup: async () => {},
+    setup: async (page) => {
+      await ensureRightPanelVisible(page)
+    },
     selector: '.aria-prompt',
   },
   {
@@ -196,6 +202,7 @@ async function seedAppState(page) {
     await window.daemon.settings.setOnboardingComplete(true)
     await window.daemon.settings.setDrawerToolOrder([])
     await window.daemon.settings.setShowTitlebarWallet(true)
+    await window.daemon.settings.setLowPowerMode(false)
     await window.daemon.settings.setWorkspaceProfile({
       name: 'custom',
       toolVisibility: {},
@@ -254,6 +261,22 @@ async function openTool(page, toolName, readySelector) {
   }, toolName)
   assert.equal(clicked, true, `could not find drawer tool ${toolName}`)
   await page.waitForSelector(readySelector, { timeout: 30000 })
+}
+
+async function ensureRightPanelVisible(page) {
+  await closeTransientUi(page)
+  const rightPanelVisible = await page.locator('.right-panel').isVisible().catch(() => false)
+  if (rightPanelVisible) return
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'b',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    }))
+  })
+  await page.waitForSelector('.right-panel-content', { timeout: 30000 })
 }
 
 async function openWalletQuickView(page) {
@@ -639,6 +662,7 @@ async function run() {
 
   const page = await getPage()
   attachPageDiagnostics(page)
+  await page.setViewportSize({ width: profiles[0].width, height: profiles[0].height })
   await waitForAppReady(page)
   await seedAppState(page)
   await page.reload()
