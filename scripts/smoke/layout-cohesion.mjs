@@ -133,6 +133,14 @@ async function openTool(page, toolName, readySelector) {
   await page.waitForSelector(readySelector, { timeout: 30000 })
 }
 
+async function ensureRightPanelVisible(page) {
+  const rightPanelVisible = await page.locator('.right-panel').isVisible().catch(() => false)
+  if (rightPanelVisible) return
+
+  await page.keyboard.press('Control+B')
+  await page.waitForSelector('.right-panel-content', { timeout: 30000 })
+}
+
 async function openWalletQuickView(page) {
   const trigger = page.locator('.titlebar-portfolio').first()
   const hasTrigger = await trigger.waitFor({ state: 'visible', timeout: 5000 })
@@ -322,6 +330,7 @@ async function run() {
   await openDrawerGrid(page)
   const drawerSnapshot = await readLayoutSnapshot(page)
   await openTool(page, 'Settings', '.settings-center')
+  await ensureRightPanelVisible(page)
   const settingsSnapshot = await readLayoutSnapshot(page)
   await openTool(page, 'Wallet', '.wallet-panel')
   await page.waitForSelector('.wallet-tab', { timeout: 30000 })
