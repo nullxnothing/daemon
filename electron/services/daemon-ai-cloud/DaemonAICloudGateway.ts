@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import rateLimit from 'express-rate-limit'
 import { canUseHostedModelLane, getHostedLaneRequiredPlan } from '../EntitlementService'
@@ -10,6 +11,7 @@ import type {
   DaemonAiCloudChatResponse,
   DaemonAiCloudEntitlement,
   DaemonAiCloudGatewayOptions,
+  DaemonAiProviderResult,
 } from './types'
 
 type AuthenticatedRequest = Request & {
@@ -45,6 +47,10 @@ function bearerToken(req: Request): string | null {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function authErrorMessage(): string {
+  return 'Invalid or expired DAEMON AI token'
 }
 
 function monthResetAt(now = Date.now()): number {
@@ -89,6 +95,15 @@ function statusForError(error: unknown): number {
   return 500
 }
 
+function publicErrorMessage(error: unknown): string {
+  if (error instanceof DaemonAiCloudHttpError) return error.message
+  const code = errorCode(error)
+  if (code === 'daemon_ai_bad_request') return errorMessage(error)
+  if (code === 'daemon_ai_insufficient_credits') return 'DAEMON AI credits exhausted for this billing period'
+  if (code === 'daemon_ai_provider_error') return 'DAEMON AI provider is unavailable. Retry shortly.'
+  return 'DAEMON AI Cloud request failed'
+}
+
 export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions): express.Express {
   if (!options.providers.length) throw new Error('At least one DAEMON AI model provider is required')
   const router = new ModelRouter(options.providers)
@@ -123,7 +138,7 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
       req.daemonAuth = { token, entitlement }
       return next()
     } catch (error) {
-      return res.status(401).json({ ok: false, error: errorMessage(error) })
+      return res.status(401).json({ ok: false, code: 'daemon_ai_auth_required', error: authErrorMessage() })
     }
   })
 
@@ -171,6 +186,7 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
   })
 
   app.post('/v1/ai/chat', async (req: AuthenticatedRequest, res) => {
+    const requestId = randomUUID()
     try {
       const input = normalizeCloudChatRequest(req.body)
       const entitlement = req.daemonAuth!.entitlement
@@ -183,17 +199,27 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
         )
       }
       const estimatedCredits = estimateRequestCredits(input.prompt, input.modelPreference)
-      await options.usage.assertCredits(entitlement, estimatedCredits)
+      if (options.usage.reserveCredits) {
+        await options.usage.reserveCredits(entitlement, estimatedCredits, requestId)
+      } else {
+        await options.usage.assertCredits(entitlement, estimatedCredits)
+      }
 
       const provider = router.resolve(input.modelPreference)
-      const result = await provider.generate({
-        requestId: input.requestId,
-        mode: input.mode,
-        message: input.message,
-        prompt: input.prompt,
-        usedContext: input.usedContext,
-        modelLane: input.modelPreference,
-      })
+      let result: DaemonAiProviderResult
+      try {
+        result = await provider.generate({
+          requestId,
+          mode: input.mode,
+          message: input.message,
+          prompt: input.prompt,
+          usedContext: input.usedContext,
+          modelLane: input.modelPreference,
+        })
+      } catch (error) {
+        await options.usage.releaseReservedCredits?.(requestId)
+        throw error
+      }
       const charged = result.usage.daemonCreditsCharged ?? estimatedCredits
       const usage = {
         ...result.usage,
@@ -205,7 +231,7 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
         provider: result.provider,
         model: result.model,
         usage,
-        requestId: input.requestId,
+        requestId,
       })
 
       const data: DaemonAiCloudChatResponse = {
@@ -213,10 +239,16 @@ export function createDaemonAICloudGateway(options: DaemonAiCloudGatewayOptions)
         provider: result.provider,
         model: result.model,
         usage,
+        requestId,
       }
       return res.json({ ok: true, data })
     } catch (error) {
-      return res.status(statusForError(error)).json({ ok: false, code: errorCode(error), error: errorMessage(error) })
+      return res.status(statusForError(error)).json({
+        ok: false,
+        code: errorCode(error),
+        error: publicErrorMessage(error),
+        requestId,
+      })
     }
   })
 

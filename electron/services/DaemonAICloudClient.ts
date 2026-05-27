@@ -26,6 +26,7 @@ export type HostedChatResult = {
   provider?: DaemonAiUsageEvent['provider']
   model?: string
   usage?: HostedUsageReport
+  requestId?: string
 }
 
 export interface HostedChatInput {
@@ -42,12 +43,14 @@ export interface HostedChatInput {
 export class DaemonAICloudClientError extends Error {
   status: number
   code: string
+  requestId?: string
 
-  constructor(status: number, message: string, code = 'daemon_ai_cloud_error') {
+  constructor(status: number, message: string, code = 'daemon_ai_cloud_error', requestId?: string) {
     super(message)
     this.name = 'DaemonAICloudClientError'
     this.status = status
     this.code = code
+    this.requestId = requestId
   }
 }
 
@@ -56,6 +59,7 @@ type ApiBody<T> = {
   data?: T
   error?: string
   code?: string
+  requestId?: string
 }
 
 export function getDaemonAICloudBase(): string {
@@ -139,6 +143,7 @@ export async function daemonAICloudFetch<T>(
       response.status,
       body?.error ?? `DAEMON AI Cloud returned HTTP ${response.status}`,
       body?.code ?? 'daemon_ai_cloud_error',
+      body?.requestId,
     )
   }
 
@@ -163,6 +168,7 @@ export async function runHostedChat(input: HostedChatInput): Promise<HostedChatR
     provider?: unknown
     model?: unknown
     usage?: HostedUsageReport
+    requestId?: unknown
   }>('/v1/ai/chat', {
     method: 'POST',
     body: JSON.stringify({
@@ -186,5 +192,6 @@ export async function runHostedChat(input: HostedChatInput): Promise<HostedChatR
     provider: normalizeProvider(data.provider),
     model: typeof data.model === 'string' && data.model.trim() ? data.model : undefined,
     usage: data.usage,
+    requestId: typeof data.requestId === 'string' && data.requestId.trim() ? data.requestId : undefined,
   }
 }

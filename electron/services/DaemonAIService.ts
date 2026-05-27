@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { getDb } from '../db/db'
 import * as ProviderRegistry from './providers/ProviderRegistry'
 import { collectAiContext } from './ContextService'
+import { redactText } from '../security/PrivacyGuard'
 import { getLocalSubscriptionState } from './ProService'
 import {
   fetchHostedFeatures,
@@ -32,6 +33,9 @@ import type {
 } from '../shared/types'
 
 const MAX_MESSAGE_CHARS = 24_000
+const MAX_ACTIVE_FILE_CONTENT_CHARS = 120_000
+const MAX_HISTORY_MESSAGES = 12
+const MAX_HISTORY_CHARS = 16_000
 
 const MODELS: DaemonAiModelInfo[] = [
   { lane: 'auto', label: 'Auto', description: 'DAEMON chooses the right lane for the request.', hosted: true, byok: true, requiresPlan: 'pro' },
@@ -108,7 +112,7 @@ export function normalizeChatRequest(input: DaemonAiChatRequest): DaemonAiChatRe
     projectId: optionalString(input.projectId),
     projectPath: optionalString(input.projectPath),
     activeFilePath: optionalString(input.activeFilePath),
-    activeFileContent: typeof input.activeFileContent === 'string' ? input.activeFileContent : null,
+    activeFileContent: typeof input.activeFileContent === 'string' ? input.activeFileContent.slice(0, MAX_ACTIVE_FILE_CONTENT_CHARS) : null,
     context: {
       activeFile: input.context?.activeFile !== false,
       projectTree: input.context?.projectTree !== false,
@@ -144,6 +148,27 @@ function insertMessage(conversationId: string, role: 'user' | 'assistant', conte
     INSERT INTO ai_local_messages (id, conversation_id, role, content, metadata_json, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(crypto.randomUUID(), conversationId, role, content, JSON.stringify(metadata), Date.now())
+}
+
+function getConversationHistory(conversationId: string): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const rows = getDb().prepare(`
+    SELECT role, content
+    FROM ai_local_messages
+    WHERE conversation_id = ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).all(conversationId, MAX_HISTORY_MESSAGES) as Array<{ role: 'user' | 'assistant'; content: string }>
+  return rows.reverse()
+}
+
+function formatConversationHistory(conversationId: string): string | null {
+  const history = getConversationHistory(conversationId)
+  if (history.length === 0) return null
+  const text = history
+    .map((message) => `${message.role === 'user' ? 'User' : 'DAEMON AI'}:\n${redactText(message.content).value}`)
+    .join('\n\n')
+    .slice(0, MAX_HISTORY_CHARS)
+  return text ? `Previous conversation:\n${text}` : null
 }
 
 export function recordAiUsage(event: DaemonAiUsageEvent) {
@@ -335,8 +360,10 @@ export async function chat(input: DaemonAiChatRequest): Promise<DaemonAiChatResp
   const conversationId = request.conversationId || crypto.randomUUID()
   const messageId = crypto.randomUUID()
   const context = await collectAiContext(request)
+  const history = formatConversationHistory(conversationId)
   const fullPrompt = [
     `Mode: ${request.mode}`,
+    history,
     `User request:\n${request.message}`,
     context.sections.length ? `\nDAEMON context:\n${context.sections.join('\n\n')}` : '',
   ].filter(Boolean).join('\n\n')

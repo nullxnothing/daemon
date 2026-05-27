@@ -35,6 +35,7 @@ export interface DaemonAiCloudChatResponse {
   provider: DaemonAiCloudProvider
   model: string
   usage: DaemonAiCloudUsage
+  requestId: string
 }
 
 export interface DaemonAiCloudEntitlement {
@@ -65,6 +66,8 @@ export interface DaemonAiCloudUsageMeter {
     monthlyCredits?: number
     resetAt?: number
   }>
+  reserveCredits?(entitlement: DaemonAiCloudEntitlement, estimatedCredits: number, requestId?: string | null): Promise<void>
+  releaseReservedCredits?(requestId?: string | null): Promise<void>
   assertCredits(entitlement: DaemonAiCloudEntitlement, estimatedCredits: number): Promise<void>
   record(event: {
     entitlement: DaemonAiCloudEntitlement

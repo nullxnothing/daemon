@@ -145,7 +145,15 @@ describe('DAEMON AI Cloud production helpers', () => {
   })
 
   it('meters credits by billing month and makes request IDs idempotent', async () => {
-    const rows: Array<{ owner_key: string; request_id: string | null; daemon_credits_charged: number; created_at: number }> = []
+    const rows: Array<{
+      id: string
+      owner_key: string
+      request_id: string | null
+      daemon_credits_charged: number
+      reserved_credits: number
+      status: string
+      created_at: number
+    }> = []
     const db = {
       exec: vi.fn(),
       transaction: vi.fn((fn: () => void) => fn),
@@ -154,23 +162,41 @@ describe('DAEMON AI Cloud production helpers', () => {
           if (sql.includes('WHERE request_id = ?')) {
             return rows.find((row) => row.request_id === args[0])
           }
-          if (sql.includes('SUM(daemon_credits_charged)')) {
+          if (sql.includes('SUM(')) {
             const owner = String(args[0])
             const start = Number(args[1])
             return {
               used: rows
                 .filter((row) => row.owner_key === owner && row.created_at >= start)
-                .reduce((sum, row) => sum + row.daemon_credits_charged, 0),
+                .reduce((sum, row) => sum + (row.status === 'reserved' ? row.reserved_credits : row.daemon_credits_charged), 0),
             }
           }
           return undefined
         }),
         run: vi.fn((...args: unknown[]) => {
+          if (sql.includes('UPDATE daemon_ai_cloud_usage_ledger')) {
+            const row = rows.find((item) => item.id === args[9])
+            if (row) {
+              row.daemon_credits_charged = Number(args[7])
+              row.reserved_credits = 0
+              row.status = 'recorded'
+              row.created_at = Number(args[8])
+            }
+            return
+          }
+          if (sql.includes('DELETE FROM daemon_ai_cloud_usage_ledger')) {
+            const index = rows.findIndex((row) => row.request_id === args[0] && row.status === 'reserved')
+            if (index >= 0) rows.splice(index, 1)
+            return
+          }
           rows.push({
+            id: String(args[0]),
             owner_key: String(args[3]),
             request_id: typeof args[9] === 'string' ? args[9] : null,
             daemon_credits_charged: Number(args[14]),
-            created_at: Number(args[15]),
+            reserved_credits: Number(args[15]),
+            status: String(args[16]),
+            created_at: Number(args[17]),
           })
         }),
       })),
@@ -188,7 +214,8 @@ describe('DAEMON AI Cloud production helpers', () => {
       usedCredits: 0,
     }
 
-    await meter.assertCredits(entitlement, 3)
+    await meter.reserveCredits(entitlement, 3, 'req-1')
+    await expect(meter.reserveCredits(entitlement, 3, 'req-2')).rejects.toMatchObject({ status: 402 })
     await meter.record({
       entitlement,
       feature: 'daemon-ai-chat',
@@ -202,6 +229,8 @@ describe('DAEMON AI Cloud production helpers', () => {
         daemonCreditsCharged: 3,
       },
     })
+    await meter.reserveCredits(entitlement, 2, 'req-2')
+    await meter.releaseReservedCredits('req-2')
     await meter.record({
       entitlement,
       feature: 'daemon-ai-chat',

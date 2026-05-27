@@ -9,6 +9,7 @@ import type { DaemonAiChatRequest } from '../shared/types'
 const execFile = promisify(execFileCb)
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'dist-electron', 'build', 'target', 'test-results'])
 const MAX_CONTEXT_CHARS = 80_000
+const MAX_ACTIVE_FILE_CHARS = 30_000
 
 export interface AiContextBundle {
   sections: string[]
@@ -55,6 +56,32 @@ async function getGitDiff(projectPath: string): Promise<string> {
   }
 }
 
+function displayProjectPath(projectPath: string): string {
+  return path.basename(projectPath)
+}
+
+function displayFilePath(filePath: string, projectPath: string | null): string {
+  if (!projectPath) return path.basename(filePath)
+  const relative = path.relative(projectPath, filePath)
+  return (relative || path.basename(filePath)).replace(/\\/g, '/')
+}
+
+function readFilePreview(filePath: string): string {
+  let handle: number
+  try {
+    handle = fs.openSync(filePath, 'r')
+  } catch {
+    return ''
+  }
+  try {
+    const buffer = Buffer.alloc(MAX_ACTIVE_FILE_CHARS)
+    const bytesRead = fs.readSync(handle, buffer, 0, buffer.length, 0)
+    return buffer.toString('utf8', 0, bytesRead)
+  } finally {
+    fs.closeSync(handle)
+  }
+}
+
 export async function collectAiContext(input: DaemonAiChatRequest): Promise<AiContextBundle> {
   const context = input.context ?? {}
   const sections: string[] = []
@@ -71,7 +98,8 @@ export async function collectAiContext(input: DaemonAiChatRequest): Promise<AiCo
   }
 
   if (projectPath && isPathSafe(projectPath)) {
-    pushSection(`<project path="${projectPath}">\nProject path: ${projectPath}\n</project>`)
+    const projectName = displayProjectPath(projectPath)
+    pushSection(`<project>\nProject: ${projectName}\n</project>`)
     usedContext.push('project:path')
   }
 
@@ -87,9 +115,10 @@ export async function collectAiContext(input: DaemonAiChatRequest): Promise<AiCo
     const activeFilePath = path.resolve(input.activeFilePath)
     const withinProject = projectPath ? isPathWithinBase(activeFilePath, projectPath) : isPathSafe(activeFilePath)
     if (withinProject) {
-      const rawContent = input.activeFileContent ?? (fs.existsSync(activeFilePath) ? fs.readFileSync(activeFilePath, 'utf8') : '')
+      const rawContent = input.activeFileContent?.slice(0, MAX_ACTIVE_FILE_CHARS) ??
+        (fs.existsSync(activeFilePath) ? readFilePreview(activeFilePath) : '')
       const content = redactText(rawContent).value
-      pushSection(buildUntrustedContext('project_code', `Active file: ${activeFilePath}\n\n${content.slice(0, 30_000)}`))
+      pushSection(buildUntrustedContext('project_code', `Active file: ${displayFilePath(activeFilePath, projectPath)}\n\n${content}`))
       usedContext.push(`file:${path.basename(activeFilePath)}`)
     }
   }

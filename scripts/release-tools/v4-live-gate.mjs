@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 
 const apiBase = (process.env.DAEMON_AI_API_BASE ?? '').replace(/\/+$/, '')
 const requiredJwtVars = ['DAEMON_PRO_JWT', 'DAEMON_OPERATOR_JWT', 'DAEMON_ULTRA_JWT']
+const adminSecret = process.env.DAEMON_PRO_ADMIN_SECRET?.trim() || process.env.DAEMON_ADMIN_SECRET?.trim()
 
 function fail(message) {
   console.error(`[v4-live-gate] ${message}`)
@@ -35,22 +36,30 @@ for (const name of requiredJwtVars) {
     fail(`Set ${name} to a real wallet-issued live entitlement JWT.`)
   }
 }
+if (!adminSecret) {
+  fail('Set DAEMON_PRO_ADMIN_SECRET or DAEMON_ADMIN_SECRET to verify production readiness details.')
+}
 
 const readyRes = await fetch(`${apiBase}/health/ready`)
 const readiness = await readyRes.json().catch(() => null)
-if (!readyRes.ok || readiness?.ok !== true || readiness?.ready !== true) {
-  const missing = Array.isArray(readiness?.missing) && readiness.missing.length
-    ? ` Missing: ${readiness.missing.join(', ')}.`
-    : ''
-  fail(`/health/ready is not production-ready.${missing}`)
+if (!readyRes.ok || readiness?.ok !== true) {
+  fail('/health/ready is not production-ready.')
 }
 
-if (!Array.isArray(readiness.providers) || readiness.providers.length === 0) {
-  fail('/health/ready reported no hosted model providers.')
+const detailsRes = await fetch(`${apiBase}/health/ready/details`, {
+  headers: { 'x-admin-secret': adminSecret },
+})
+const details = await detailsRes.json().catch(() => null)
+if (!detailsRes.ok || details?.ok !== true || details?.ready !== true) {
+  fail('/health/ready/details is not production-ready.')
 }
 
-if (readiness.storage?.persistentHint !== true) {
-  fail('/health/ready did not confirm persistent storage. Attach persistent disk storage and set DAEMON_AI_REQUIRE_PERSISTENT_STORAGE=1.')
+if (!Array.isArray(details.providers) || details.providers.length === 0) {
+  fail('/health/ready/details reported no hosted model providers.')
+}
+
+if (details.storage?.persistentHint !== true) {
+  fail('/health/ready/details did not confirm persistent storage. Attach persistent disk storage and set DAEMON_AI_REQUIRE_PERSISTENT_STORAGE=1.')
 }
 
 await runNode(['scripts/smoke/daemon-ai-live.mjs'], {
@@ -58,4 +67,4 @@ await runNode(['scripts/smoke/daemon-ai-live.mjs'], {
   DAEMON_AI_REQUIRE_ALL_LIVE_JWTS: '1',
 })
 
-console.log(`[v4-live-gate] passed base=${apiBase} providers=${readiness.providers.join(',')}`)
+console.log(`[v4-live-gate] passed base=${apiBase} providers=${details.providers.join(',')}`)

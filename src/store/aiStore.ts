@@ -108,7 +108,7 @@ export const useAiStore = create<AiStoreState>((set, get) => ({
       set((state) => ({
         loading: false,
         error: res.error ?? 'DAEMON AI request failed',
-        messages: state.messages,
+        messages: state.messages.filter((message) => message.id !== userMessage.id),
       }))
       return false
     }

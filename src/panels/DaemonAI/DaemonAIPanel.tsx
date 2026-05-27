@@ -16,6 +16,7 @@ const CONTEXT_OPTIONS: Array<{ key: ContextKey; label: string }> = [
 ]
 
 const DEFAULT_ALLOWED_TOOLS = 'read_file, search_files, list_project_tree, get_git_status, get_git_diff, write_patch, run_tests'
+const MAX_ACTIVE_FILE_CONTENT_CHARS = 120_000
 
 export function DaemonAIPanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -23,6 +24,7 @@ export function DaemonAIPanel() {
   const openFiles = useUIStore((s) => s.openFiles)
   const activeFilePath = useUIStore((s) => activeProjectId ? s.activeFilePathByProject[activeProjectId] ?? null : null)
   const activeFile = openFiles.find((file) => file.path === activeFilePath) ?? null
+  const activeFileContent = activeFile?.content.slice(0, MAX_ACTIVE_FILE_CONTENT_CHARS) ?? null
 
   const messages = useAiStore((s) => s.messages)
   const usage = useAiStore((s) => s.usage)
@@ -96,7 +98,7 @@ export function DaemonAIPanel() {
       projectId: activeProjectId,
       projectPath: activeProjectPath,
       activeFilePath,
-      activeFileContent: activeFile?.content ?? null,
+      activeFileContent,
       context,
     })
     if (!ok) setMessage(nextMessage)
@@ -116,7 +118,7 @@ export function DaemonAIPanel() {
       projectId: activeProjectId,
       projectPath: activeProjectPath,
       activeFilePath,
-      activeFileContent: activeFile?.content ?? null,
+      activeFileContent,
       context,
     })
     if (ok) {

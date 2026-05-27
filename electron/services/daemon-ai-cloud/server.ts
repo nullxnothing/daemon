@@ -39,6 +39,10 @@ function defaultDbPath(env: NodeJS.ProcessEnv): string {
     ?? path.join(process.cwd(), 'data', 'daemon-ai-cloud.db')
 }
 
+function adminSecret(env: NodeJS.ProcessEnv): string | null {
+  return env.DAEMON_PRO_ADMIN_SECRET?.trim() || env.DAEMON_ADMIN_SECRET?.trim() || null
+}
+
 export function resolveDaemonAICloudServerConfig(env: NodeJS.ProcessEnv = process.env): DaemonAICloudServerConfig {
   return {
     host: env.DAEMON_AI_CLOUD_HOST?.trim() || '0.0.0.0',
@@ -54,6 +58,17 @@ export function createDaemonAICloudServerApp(db: Database.Database, env: NodeJS.
   app.get('/health/ready', (_req, res) => {
     const readiness = getDaemonAICloudRuntimeReadiness(env)
     res.status(readiness.ready ? 200 : 503).json({
+      ok: readiness.ready,
+      service: 'daemon-ai-cloud',
+    })
+  })
+  app.get('/health/ready/details', (req, res) => {
+    const secret = adminSecret(env)
+    if (!secret || req.header('x-admin-secret') !== secret) {
+      return res.status(401).json({ ok: false, code: 'daemon_admin_unauthorized', error: 'Invalid admin credentials' })
+    }
+    const readiness = getDaemonAICloudRuntimeReadiness(env)
+    return res.status(readiness.ready ? 200 : 503).json({
       ok: readiness.ready,
       service: 'daemon-ai-cloud',
       ...readiness,
