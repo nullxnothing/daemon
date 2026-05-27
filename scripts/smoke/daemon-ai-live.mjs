@@ -14,6 +14,7 @@ const smokeJwt = envValue('DAEMON_AI_SMOKE_JWT')
 const proJwt = envValue('DAEMON_PRO_JWT')
 const operatorJwt = envValue('DAEMON_OPERATOR_JWT')
 const ultraJwt = envValue('DAEMON_ULTRA_JWT')
+const adminSecret = envValue('DAEMON_PRO_ADMIN_SECRET') || envValue('DAEMON_ADMIN_SECRET')
 
 const entitlementInputs = [
   {
@@ -107,6 +108,29 @@ async function expectForbidden(path, token, init = {}) {
   if (res.status !== 403 || body?.ok !== false) {
     throw new Error(`${path} should have returned HTTP 403, got HTTP ${res.status}`)
   }
+  if (!body.requestId || typeof body.requestId !== 'string') {
+    throw new Error(`${path} did not return a trace requestId`)
+  }
+  return body
+}
+
+async function expectUnauthorized(path, token, init = {}) {
+  const res = await fetch(`${apiBase}${path}`, {
+    ...init,
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${token}`,
+      'x-daemon-client': 'desktop-v4-live-smoke',
+      ...(init.headers ?? {}),
+    },
+  })
+  const body = await res.json().catch(() => null)
+  if (res.status !== 401 || body?.ok !== false || body?.code !== 'daemon_ai_auth_required') {
+    throw new Error(`${path} should have returned sanitized HTTP 401 auth error, got HTTP ${res.status}`)
+  }
+  if (/subscription|signature|revoked|database|sql/i.test(String(body.error ?? ''))) {
+    throw new Error(`${path} leaked verifier details in auth error`)
+  }
   return body
 }
 
@@ -173,6 +197,9 @@ async function smokeEntitlement(entry, models) {
     if (!chat.text || !chat.usage || !Number.isFinite(Number(chat.usage.daemonCreditsCharged))) {
       fail(`${entry.label} /v1/ai/chat did not return text and charge usage`)
     }
+    if (!chat.requestId || typeof chat.requestId !== 'string') {
+      fail(`${entry.label} /v1/ai/chat did not return a trace requestId`)
+    }
     console.log(`[daemon-ai-live] ${entry.label} chat ok provider=${chat.provider ?? 'unknown'} model=${chat.model ?? 'unknown'} credits=${chat.usage.daemonCreditsCharged}`)
   }
 
@@ -184,18 +211,28 @@ if (health?.ok !== true) fail('/health did not return ok=true')
 
 const readyRes = await fetch(`${apiBase}/health/ready`)
 const readiness = await readyRes.json().catch(() => null)
-if (!readyRes.ok || readiness?.ok !== true || readiness?.ready !== true) {
-  const missing = Array.isArray(readiness?.missing) && readiness.missing.length
-    ? ` Missing: ${readiness.missing.join(', ')}.`
-    : ''
-  fail(`/health/ready did not return ready=true.${missing}`)
+if (!readyRes.ok || readiness?.ok !== true) {
+  fail('/health/ready did not return ok=true')
 }
-if (!Array.isArray(readiness.providers) || readiness.providers.length === 0) {
-  fail('/health/ready did not report any configured model providers.')
+
+if (releaseFinal) {
+  if (!adminSecret) fail('DAEMON_AI_RELEASE_FINAL=1 requires DAEMON_PRO_ADMIN_SECRET or DAEMON_ADMIN_SECRET for readiness details.')
+  const detailsRes = await fetch(`${apiBase}/health/ready/details`, {
+    headers: { 'x-admin-secret': adminSecret },
+  })
+  const details = await detailsRes.json().catch(() => null)
+  if (!detailsRes.ok || details?.ok !== true || details?.ready !== true) {
+    fail('/health/ready/details did not return ready=true.')
+  }
+  if (!Array.isArray(details.providers) || details.providers.length === 0) {
+    fail('/health/ready/details reported no hosted model providers.')
+  }
+  if (details.storage?.persistentHint !== true) {
+    fail('/health/ready/details did not confirm persistent storage. Set DAEMON_AI_CLOUD_DB_PATH to a persistent disk path and DAEMON_AI_REQUIRE_PERSISTENT_STORAGE=1.')
+  }
 }
-if (releaseFinal && readiness.storage?.persistentHint !== true) {
-  fail('/health/ready did not confirm persistent storage. Set DAEMON_AI_CLOUD_DB_PATH to a persistent disk path and DAEMON_AI_REQUIRE_PERSISTENT_STORAGE=1.')
-}
+
+await expectUnauthorized('/v1/ai/features', 'invalid-live-smoke-token')
 
 const models = await api('/v1/ai/models', entitlementInputs[0].token)
 if (!Array.isArray(models) || !models.some((model) => model.lane === 'standard' && model.hosted === true)) {

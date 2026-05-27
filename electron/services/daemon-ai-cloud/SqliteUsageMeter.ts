@@ -22,6 +22,12 @@ function normalizeCredits(input: unknown): number {
   return Number.isFinite(value) && value > 0 ? Math.ceil(value) : 0
 }
 
+type UsageLedgerRow = {
+  id: string
+  status?: string
+  reserved_credits?: number
+}
+
 export class DaemonAiCreditsError extends Error {
   status = 402
 
@@ -57,17 +63,32 @@ export class SqliteDaemonAIUsageMeter implements DaemonAiCloudUsageMeter {
         cached_input_tokens INTEGER,
         provider_cost_usd REAL NOT NULL DEFAULT 0,
         daemon_credits_charged INTEGER NOT NULL DEFAULT 0,
+        reserved_credits INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'recorded',
         created_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_daemon_ai_cloud_usage_owner_created
         ON daemon_ai_cloud_usage_ledger(owner_key, created_at);
     `)
+    this.ensureColumn('reserved_credits', 'INTEGER NOT NULL DEFAULT 0')
+    this.ensureColumn('status', "TEXT NOT NULL DEFAULT 'recorded'")
+  }
+
+  private ensureColumn(name: string, definition: string) {
+    try {
+      this.db.prepare(`SELECT ${name} FROM daemon_ai_cloud_usage_ledger LIMIT 1`).get()
+    } catch {
+      this.db.exec(`ALTER TABLE daemon_ai_cloud_usage_ledger ADD COLUMN ${name} ${definition}`)
+    }
   }
 
   private ledgerUsedCredits(entitlement: DaemonAiCloudEntitlement, now = Date.now()): number {
     const { start } = monthBounds(now)
     const row = this.db.prepare(`
-      SELECT COALESCE(SUM(daemon_credits_charged), 0) AS used
+      SELECT COALESCE(SUM(CASE
+        WHEN status = 'reserved' THEN reserved_credits
+        ELSE daemon_credits_charged
+      END), 0) AS used
       FROM daemon_ai_cloud_usage_ledger
       WHERE owner_key = ? AND created_at >= ?
     `).get(usageOwner(entitlement), start) as { used: number } | undefined
@@ -91,6 +112,67 @@ export class SqliteDaemonAIUsageMeter implements DaemonAiCloudUsageMeter {
     }
   }
 
+  async reserveCredits(
+    entitlement: DaemonAiCloudEntitlement,
+    estimatedCredits: number,
+    requestId?: string | null,
+  ): Promise<void> {
+    const charge = normalizeCredits(estimatedCredits)
+    if (charge <= 0) return
+    const ownerKey = usageOwner(entitlement)
+    const now = Date.now()
+    const reserve = this.db.transaction(() => {
+      if (requestId) {
+        const existing = this.db.prepare(`
+          SELECT id FROM daemon_ai_cloud_usage_ledger WHERE request_id = ?
+        `).get(requestId) as UsageLedgerRow | undefined
+        if (existing) return
+      }
+
+      const usedCredits = Math.max(entitlement.usedCredits, this.ledgerUsedCredits(entitlement, now))
+      const remaining = Math.max(entitlement.monthlyCredits - usedCredits, 0)
+      if (remaining < charge) {
+        throw new DaemonAiCreditsError('DAEMON AI credits exhausted for this billing period')
+      }
+
+      this.db.prepare(`
+        INSERT INTO daemon_ai_cloud_usage_ledger (
+          id, user_id, wallet_address, owner_key, plan, access_source, feature, provider, model, request_id,
+          input_tokens, output_tokens, cached_input_tokens, provider_cost_usd, daemon_credits_charged,
+          reserved_credits, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        crypto.randomUUID(),
+        entitlement.userId,
+        entitlement.walletAddress ?? null,
+        ownerKey,
+        entitlement.plan,
+        entitlement.accessSource,
+        'daemon-ai-chat',
+        'other',
+        'reserved',
+        requestId ?? null,
+        0,
+        0,
+        null,
+        0,
+        0,
+        charge,
+        'reserved',
+        now,
+      )
+    })
+    reserve()
+  }
+
+  async releaseReservedCredits(requestId?: string | null): Promise<void> {
+    if (!requestId) return
+    this.db.prepare(`
+      DELETE FROM daemon_ai_cloud_usage_ledger
+      WHERE request_id = ? AND status = 'reserved'
+    `).run(requestId)
+  }
+
   async record(event: Parameters<DaemonAiCloudUsageMeter['record']>[0]): Promise<void> {
     const charge = normalizeCredits(event.usage.daemonCreditsCharged)
     const ownerKey = usageOwner(event.entitlement)
@@ -98,9 +180,38 @@ export class SqliteDaemonAIUsageMeter implements DaemonAiCloudUsageMeter {
     const insert = this.db.transaction(() => {
       if (event.requestId) {
         const existing = this.db.prepare(`
-          SELECT id FROM daemon_ai_cloud_usage_ledger WHERE request_id = ?
-        `).get(event.requestId) as { id: string } | undefined
-        if (existing) return
+          SELECT id, status, reserved_credits FROM daemon_ai_cloud_usage_ledger WHERE request_id = ?
+        `).get(event.requestId) as UsageLedgerRow | undefined
+        if (existing?.status === 'recorded') return
+        if (existing?.status === 'reserved') {
+          const extraCredits = Math.max(charge - normalizeCredits(existing.reserved_credits), 0)
+          if (extraCredits > 0) {
+            const usedCredits = Math.max(event.entitlement.usedCredits, this.ledgerUsedCredits(event.entitlement, now))
+            const remaining = Math.max(event.entitlement.monthlyCredits - usedCredits, 0)
+            if (remaining < extraCredits) {
+              throw new DaemonAiCreditsError('DAEMON AI credits exhausted before usage could be recorded')
+            }
+          }
+          this.db.prepare(`
+            UPDATE daemon_ai_cloud_usage_ledger
+            SET feature = ?, provider = ?, model = ?, input_tokens = ?, output_tokens = ?,
+              cached_input_tokens = ?, provider_cost_usd = ?, daemon_credits_charged = ?,
+              reserved_credits = 0, status = 'recorded', created_at = ?
+            WHERE id = ?
+          `).run(
+            event.feature,
+            event.provider,
+            event.model,
+            event.usage.inputTokens,
+            event.usage.outputTokens,
+            event.usage.cachedInputTokens ?? null,
+            event.usage.providerCostUsd,
+            charge,
+            now,
+            existing.id,
+          )
+          return
+        }
       }
 
       const usedCredits = Math.max(event.entitlement.usedCredits, this.ledgerUsedCredits(event.entitlement, now))
@@ -112,8 +223,9 @@ export class SqliteDaemonAIUsageMeter implements DaemonAiCloudUsageMeter {
       this.db.prepare(`
         INSERT INTO daemon_ai_cloud_usage_ledger (
           id, user_id, wallet_address, owner_key, plan, access_source, feature, provider, model, request_id,
-          input_tokens, output_tokens, cached_input_tokens, provider_cost_usd, daemon_credits_charged, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          input_tokens, output_tokens, cached_input_tokens, provider_cost_usd, daemon_credits_charged,
+          reserved_credits, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         crypto.randomUUID(),
         event.entitlement.userId,
@@ -130,6 +242,8 @@ export class SqliteDaemonAIUsageMeter implements DaemonAiCloudUsageMeter {
         event.usage.cachedInputTokens ?? null,
         event.usage.providerCostUsd,
         charge,
+        0,
+        'recorded',
         now,
       )
     })

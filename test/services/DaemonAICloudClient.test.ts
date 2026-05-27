@@ -138,7 +138,7 @@ describe('DaemonAICloudClient', () => {
     })
     app.post('/v1/ai/chat', (req, res) => {
       if (req.body.message === 'fail') {
-        res.status(502).json({ ok: false, code: 'daemon_ai_provider_error', error: 'provider unavailable' })
+        res.status(502).json({ ok: false, code: 'daemon_ai_provider_error', error: 'provider unavailable', requestId: 'server-error-1' })
         return
       }
       res.json({
@@ -147,6 +147,7 @@ describe('DaemonAICloudClient', () => {
           text: 'hosted answer',
           provider: 'openai',
           model: 'gpt-5.2',
+          requestId: 'server-request-1',
           usage: {
             inputTokens: 11,
             outputTokens: 7,
@@ -226,6 +227,7 @@ describe('DaemonAICloudClient', () => {
       provider: 'openai',
       model: 'gpt-5.2',
       usage: { daemonCreditsCharged: 1 },
+      requestId: 'server-request-1',
     })
   })
 
@@ -242,8 +244,9 @@ describe('DaemonAICloudClient', () => {
     })).rejects.toMatchObject({
       name: 'DaemonAICloudClientError',
       status: 502,
-      code: 'daemon_ai_provider_error',
-      message: 'provider unavailable',
-    } satisfies Partial<DaemonAICloudClientError>)
+        code: 'daemon_ai_provider_error',
+        message: 'provider unavailable',
+        requestId: 'server-error-1',
+      } satisfies Partial<DaemonAICloudClientError>)
   })
 })

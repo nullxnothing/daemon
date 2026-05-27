@@ -180,8 +180,8 @@ try {
     throw error
   })
 
-  const readiness = await waitForReady(baseUrl, cloudProcess)
-  log(`ready providers=${readiness.providers.join(',') || 'none'}`)
+  await waitForReady(baseUrl, cloudProcess)
+  log('ready')
 
   const token = signJwt({
     sub: 'local-smoke-user',

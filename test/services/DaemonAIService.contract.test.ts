@@ -45,4 +45,13 @@ describe('DaemonAIService contract helpers', () => {
     expect(request.mode).toBe('ask')
     expect(request.modelPreference).toBe('auto')
   })
+
+  it('caps active file content before context collection', () => {
+    const request = normalizeChatRequest({
+      message: 'review this',
+      activeFileContent: 'x'.repeat(140_000),
+    })
+
+    expect(request.activeFileContent).toHaveLength(120_000)
+  })
 })
