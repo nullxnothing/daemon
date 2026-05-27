@@ -1,0 +1,462 @@
+.proof-pool-panel {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  color: var(--text-primary, #f4f1e8);
+  background:
+    linear-gradient(180deg, rgba(249, 115, 22, 0.08), transparent 180px),
+    #090b0f;
+}
+
+.proof-pool-header-actions,
+.proof-pool-actions,
+.proof-pool-badges,
+.proof-pool-image-row,
+.proof-pool-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proof-pool-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.proof-pool-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.proof-pool-sidebar,
+.proof-pool-main {
+  min-width: 0;
+}
+
+.proof-pool-main {
+  display: grid;
+  gap: 16px;
+}
+
+.proof-pool-badges {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.proof-pool-section {
+  border: 1px solid rgba(244, 241, 232, 0.12);
+  background: rgba(13, 16, 22, 0.88);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.proof-pool-sidebar {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.proof-pool-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.proof-pool-section__header h2 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #f4f1e8;
+}
+
+.proof-pool-alert {
+  margin-top: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.1);
+  color: #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.proof-pool-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.proof-pool-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.proof-pool-filters button {
+  border: 1px solid rgba(244, 241, 232, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #9aa4b2;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.proof-pool-filters button:hover,
+.proof-pool-filters button.is-active {
+  border-color: rgba(249, 115, 22, 0.55);
+  color: #f4f1e8;
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.proof-pool-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  width: 100%;
+  border: 1px solid rgba(244, 241, 232, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.proof-pool-list-item:hover,
+.proof-pool-list-item.is-selected {
+  border-color: rgba(249, 115, 22, 0.55);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.proof-pool-list-item span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.proof-pool-list-item strong,
+.proof-pool-list-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proof-pool-list-item strong {
+  font-size: 13px;
+}
+
+.proof-pool-list-item small {
+  color: #9aa4b2;
+  font-size: 11px;
+}
+
+.proof-pool-form {
+  display: grid;
+  gap: 10px;
+}
+
+.proof-pool-partner-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.proof-pool-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #9aa4b2;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.proof-pool-form-row {
+  align-items: end;
+}
+
+.proof-pool-form-row > label {
+  flex: 1 1 0;
+}
+
+.proof-pool-form input,
+.proof-pool-form textarea,
+.proof-pool-backing-form input,
+.proof-pool-image-row input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(244, 241, 232, 0.12);
+  background: rgba(0, 0, 0, 0.26);
+  color: #f4f1e8;
+  border-radius: 7px;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.proof-pool-form textarea {
+  resize: vertical;
+}
+
+.proof-pool-form input:focus,
+.proof-pool-form textarea:focus,
+.proof-pool-backing-form input:focus,
+.proof-pool-image-row input:focus {
+  border-color: rgba(249, 115, 22, 0.72);
+  box-shadow: var(--focus-ring);
+}
+
+.proof-pool-image-row input {
+  flex: 1 1 auto;
+}
+
+.proof-pool-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.proof-pool-progress {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(244, 241, 232, 0.08);
+  margin: 14px 0;
+}
+
+.proof-pool-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f97316, #42f0ad);
+}
+
+.proof-pool-actions {
+  flex-wrap: wrap;
+}
+
+.proof-pool-actions .btn,
+.proof-pool-header-actions .btn,
+.proof-pool-image-row .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.proof-pool-addresses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  color: #9aa4b2;
+  font-size: 11px;
+}
+
+.proof-pool-addresses button,
+.proof-pool-table-row button,
+.proof-pool-events button {
+  border: 0;
+  background: transparent;
+  color: #7dd3fc;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.proof-pool-addresses button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.proof-pool-backing-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(86px, 0.4fr) minmax(180px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.proof-pool-table {
+  display: grid;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.proof-pool-table-row {
+  display: grid;
+  grid-template-columns: 54px minmax(120px, 1fr) 90px 90px 90px 110px 180px;
+  gap: 10px;
+  align-items: center;
+  min-width: 900px;
+  border: 1px solid rgba(244, 241, 232, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.proof-pool-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.proof-pool-row-actions .btn {
+  min-width: 0;
+  padding-inline: 8px;
+}
+
+.proof-pool-table-row.is-head {
+  color: #9aa4b2;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.proof-pool-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.proof-pool-session-list {
+  display: grid;
+  gap: 8px;
+}
+
+.proof-pool-session-item {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 0.8fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid rgba(244, 241, 232, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12px;
+}
+
+.proof-pool-session-item span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.proof-pool-session-item strong,
+.proof-pool-session-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proof-pool-session-item small {
+  color: #9aa4b2;
+}
+
+.proof-pool-events {
+  display: grid;
+  gap: 8px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.proof-pool-events button {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 150px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  border: 1px solid rgba(244, 241, 232, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8dee8;
+  border-radius: 8px;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.proof-pool-events button:disabled {
+  cursor: default;
+}
+
+.proof-pool-events span {
+  color: #f97316;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.proof-pool-events strong,
+.proof-pool-events small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proof-pool-events strong {
+  color: #f4f1e8;
+  font-size: 12px;
+}
+
+.proof-pool-events small {
+  color: #9aa4b2;
+  font-size: 11px;
+}
+
+.proof-pool-empty {
+  border: 1px dashed rgba(244, 241, 232, 0.14);
+  border-radius: 8px;
+  padding: 18px;
+  color: #9aa4b2;
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .proof-pool-grid,
+  .proof-pool-partner-grid,
+  .proof-pool-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .proof-pool-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .proof-pool-panel {
+    padding: 14px;
+  }
+
+  .proof-pool-metrics,
+  .proof-pool-session-item,
+  .proof-pool-backing-form,
+  .proof-pool-form-row {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .proof-pool-header-actions {
+    justify-content: flex-start;
+  }
+}

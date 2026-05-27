@@ -1,6 +1,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js'
+import {
+  ComputeBudgetProgram,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  VersionedTransaction,
+  type Connection,
+} from '@solana/web3.js'
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token'
 import { executeTransaction, getConnection, withKeypair } from '../../SolanaService'
 import { getWalletInfrastructureSettings } from '../../SettingsService'
 import type {
@@ -17,13 +29,26 @@ const DEFAULT_CHAIN_ID = '5011'
 const DEFAULT_DEX = 'meteora'
 const DEFAULT_FEE_TIER = '1'
 const DEFAULT_PACKAGE_TYPE = 'based'
-const DEFAULT_MARKET_CAP = '9000'
+const DEFAULT_MARKET_CAP = '11000'
 const DEFAULT_TOTAL_SUPPLY = '1000000000'
 const DEFAULT_MAX_ALLOCATION_PER_USER = '0'
+const DEFAULT_INITIAL_BUY_PERCENT = 0.1
+const MIN_MARKET_CAP = 11_000
+const MAX_MARKET_CAP = 10_000_000
+const MAX_INITIAL_BUY_PERCENT = 80.2
 const SOLANA_DECIMALS = 9
 const SOLANA_BASE_TOKEN_PAIR = 'So11111111111111111111111111111111111111112'
 const SOLANA_ZERO_ADDRESS = '11111111111111111111111111111111'
 const REQUEST_TIMEOUT_MS = 45_000
+const MAX_TRANSACTION_BYTES = 1232
+const MAX_TOKEN_IMAGE_BYTES = 5 * 1024 * 1024
+const DEFAULT_ALLOWED_PROGRAM_IDS = [
+  ComputeBudgetProgram.programId.toBase58(),
+  SystemProgram.programId.toBase58(),
+  TOKEN_PROGRAM_ID.toBase58(),
+  TOKEN_2022_PROGRAM_ID.toBase58(),
+  ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(),
+]
 
 type OpenBidDex = 'meteora' | 'raydium'
 type OpenBidPackageType = 'based' | 'super_based' | 'ultra_based'
@@ -67,6 +92,7 @@ interface ResolvedOpenBidConfig {
   marketCap: string
   totalSupply: string
   maxAllocationPerUser: string
+  initialBuyPercent: number
   referrer: string
   board: string
   boardOwner: string
@@ -91,6 +117,7 @@ function resolveConfig(env: NodeJS.ProcessEnv, settings?: OpenBidLaunchpadConfig
     marketCap: normalizeText(settings?.marketCap) || normalizeText(env.OPENBID_MARKET_CAP) || DEFAULT_MARKET_CAP,
     totalSupply: normalizeText(settings?.totalSupply) || normalizeText(env.OPENBID_TOTAL_SUPPLY) || DEFAULT_TOTAL_SUPPLY,
     maxAllocationPerUser: normalizeText(settings?.maxAllocationPerUser) || normalizeText(env.OPENBID_MAX_ALLOCATION_PER_USER) || DEFAULT_MAX_ALLOCATION_PER_USER,
+    initialBuyPercent: DEFAULT_INITIAL_BUY_PERCENT,
     referrer: normalizeText(settings?.referrer) || normalizeText(env.OPENBID_REFERRER) || SOLANA_ZERO_ADDRESS,
     board: normalizeText(settings?.board) || normalizeText(env.OPENBID_BOARD),
     boardOwner: normalizeText(settings?.boardOwner) || normalizeText(env.OPENBID_BOARD_OWNER),
@@ -110,15 +137,15 @@ function getDefinition(config: ResolvedOpenBidConfig, cluster: string) {
   const ready = Boolean(config.apiBaseUrl && cluster === 'devnet')
   return {
     id: 'openbid' as const,
-    name: 'OpenBid',
-    description: 'BasedBid LBP launch through OpenBid Solana transaction builder',
+    name: 'basedbid',
+    description: 'basedbid Pool/LBP launch through API-built Solana transactions',
     status: ready ? 'available' as const : 'planned' as const,
     enabled: ready,
     reason: ready
       ? null
       : cluster !== 'devnet'
-        ? 'OpenBid Solana launch support is currently devnet-only. Switch DAEMON wallet infrastructure to devnet.'
-        : 'OpenBid API base URL is not configured.',
+        ? 'basedbid Solana launch support is currently devnet-only. Switch DAEMON wallet infrastructure to devnet.'
+        : 'basedbid API base URL is not configured.',
   }
 }
 
@@ -140,17 +167,17 @@ export function createOpenBidLaunchAdapter(deps: OpenBidDeps = {}): TokenLaunchA
       const infra = getWalletInfrastructureSettingsImpl()
       checks.push({
         id: 'openbid-cluster',
-        label: 'OpenBid Cluster',
+        label: 'basedbid Cluster',
         status: infra.cluster === 'devnet' ? 'pass' : 'fail',
         detail: infra.cluster === 'devnet'
-          ? 'OpenBid Solana LBP flow is targeting devnet chain 5011.'
-          : `DAEMON is set to ${infra.cluster}; switch wallet infrastructure to devnet before using OpenBid.`,
+          ? 'basedbid Solana Pool/LBP flow is targeting devnet chain 5011.'
+          : `DAEMON is set to ${infra.cluster}; switch wallet infrastructure to devnet before using basedbid.`,
       })
       checks.push({
         id: 'openbid-api',
-        label: 'OpenBid API',
+        label: 'basedbid API',
         status: config.apiBaseUrl ? 'pass' : 'fail',
-        detail: config.apiBaseUrl || 'OpenBid API base URL is missing.',
+        detail: config.apiBaseUrl || 'basedbid API base URL is missing.',
       })
       checks.push({
         id: 'openbid-image',
@@ -158,26 +185,36 @@ export function createOpenBidLaunchAdapter(deps: OpenBidDeps = {}): TokenLaunchA
         status: input.imagePath && fs.existsSync(input.imagePath) ? 'pass' : 'fail',
         detail: input.imagePath
           ? fs.existsSync(input.imagePath)
-            ? `OpenBid logo upload will use ${path.basename(input.imagePath)}.`
+            ? `basedbid logo upload will use ${path.basename(input.imagePath)}.`
             : 'Selected token image was not found on disk.'
-          : 'OpenBid requires a token image for the BasedBid metadata upload.',
+          : 'basedbid requires a token image for the metadata upload.',
       })
+      const dexFeeError = validateDexFeeTier(launchConfig)
       checks.push({
         id: 'openbid-dex',
-        label: 'OpenBid DEX',
-        status: isValidFeeTier(launchConfig.feeTier) ? 'pass' : 'fail',
-        detail: `${launchConfig.dex} fee tier ${launchConfig.feeTier}.`,
+        label: 'basedbid DEX',
+        status: dexFeeError ? 'fail' : 'pass',
+        detail: dexFeeError ?? `${launchConfig.dex} fee tier ${launchConfig.feeTier}.`,
       })
+      const saleError = validateMarketCap(launchConfig.marketCap)
+        ?? (isPositiveNumberString(launchConfig.totalSupply) ? null : 'basedbid total supply must be a valid number')
       checks.push({
         id: 'openbid-sale',
-        label: 'OpenBid Sale',
-        status: isPositiveNumberString(launchConfig.marketCap) && isPositiveNumberString(launchConfig.totalSupply) ? 'pass' : 'fail',
-        detail: `Market cap ${launchConfig.marketCap}, supply ${launchConfig.totalSupply}.`,
+        label: 'basedbid Sale',
+        status: saleError ? 'fail' : 'pass',
+        detail: saleError ?? `Market cap ${launchConfig.marketCap}, supply ${launchConfig.totalSupply}.`,
+      })
+      const initialBuyError = validateInitialBuyPercent(launchConfig.initialBuyPercent)
+      checks.push({
+        id: 'openbid-initial-buy',
+        label: 'Initial Buy',
+        status: initialBuyError ? 'fail' : 'pass',
+        detail: initialBuyError ?? `Creator launch buy is ${launchConfig.initialBuyPercent}% of supply.`,
       })
       if ((launchConfig.board && !launchConfig.boardOwner) || (!launchConfig.board && launchConfig.boardOwner)) {
         checks.push({
           id: 'openbid-board',
-          label: 'OpenBid Board',
+          label: 'basedbid Board',
           status: 'fail',
           detail: 'Board and board owner must both be set or both be empty.',
         })
@@ -201,7 +238,7 @@ export function createOpenBidLaunchAdapter(deps: OpenBidDeps = {}): TokenLaunchA
       if (addressError) {
         checks.push({
           id: 'openbid-addresses',
-          label: 'OpenBid Addresses',
+          label: 'basedbid Addresses',
           status: 'fail',
           detail: addressError,
         })
@@ -210,21 +247,29 @@ export function createOpenBidLaunchAdapter(deps: OpenBidDeps = {}): TokenLaunchA
     },
     async createLaunch(input: TokenLaunchInput): Promise<AdapterLaunchResult> {
       if (!definition.enabled) {
-        throw new Error(definition.reason ?? 'OpenBid launch support is not available')
+        throw new Error(definition.reason ?? 'basedbid launch support is not available')
       }
       if (!input.imagePath || !fs.existsSync(input.imagePath)) {
-        throw new Error('OpenBid requires a token image file')
+        throw new Error('basedbid requires a token image file')
       }
+      assertSafeImagePath(input.imagePath)
       const launchConfig = resolveLaunchConfig(config, input.openbid)
-      if (!isValidFeeTier(launchConfig.feeTier)) {
-        throw new Error('OpenBid fee tier must be 0, 1, 2, or 3')
+      assertSafeApiBaseUrl(launchConfig.apiBaseUrl)
+      const dexFeeError = validateDexFeeTier(launchConfig)
+      if (dexFeeError) throw new Error(dexFeeError)
+      const marketCapError = validateMarketCap(launchConfig.marketCap)
+      if (marketCapError) throw new Error(marketCapError)
+      if (!isPositiveNumberString(launchConfig.totalSupply)) {
+        throw new Error('basedbid total supply must be a valid number')
       }
+      const initialBuyError = validateInitialBuyPercent(launchConfig.initialBuyPercent)
+      if (initialBuyError) throw new Error(initialBuyError)
       const feeError = validateFeeConfig(launchConfig)
       if (feeError) throw new Error(feeError)
       const addressError = validateAddressConfig(launchConfig)
       if (addressError) throw new Error(addressError)
       if ((launchConfig.softCap && !launchConfig.endTime) || (!launchConfig.softCap && launchConfig.endTime)) {
-        throw new Error('OpenBid soft cap protection requires both a soft cap and an end time')
+        throw new Error('basedbid soft cap protection requires both a soft cap and an end time')
       }
 
       return withKeypairImpl(input.walletId, async (keypair) => {
@@ -239,7 +284,9 @@ export function createOpenBidLaunchAdapter(deps: OpenBidDeps = {}): TokenLaunchA
         const mintKeypair = Keypair.fromSeed(mintSecret.subarray(0, 32))
         try {
           const transaction = VersionedTransaction.deserialize(Buffer.from(response.transaction!, 'base64'))
-          const result = await executeTransactionImpl(getConnectionImpl(), transaction, [keypair, mintKeypair], {
+          const connection = getConnectionImpl()
+          await validateOpenBidTransaction(connection, transaction, response, launchConfig, keypair, mintKeypair, env)
+          const result = await executeTransactionImpl(connection, transaction, [keypair, mintKeypair], {
             addComputeBudget: false,
             confirmationStrategy: {
               blockhash: response.blockhash!,
@@ -263,6 +310,7 @@ export function createOpenBidLaunchAdapter(deps: OpenBidDeps = {}): TokenLaunchA
               marketCap: launchConfig.marketCap,
               totalSupply: launchConfig.totalSupply,
               maxAllocationPerUser: launchConfig.maxAllocationPerUser,
+              initialBuyPercent: launchConfig.initialBuyPercent,
               softCap: launchConfig.softCap || null,
               endTime: launchConfig.endTime,
               whitelistedAddressCount: launchConfig.whitelistedAddresses.length,
@@ -322,7 +370,7 @@ function buildCreateLbpPayload(
   metadataUrl: string,
   seed: string,
 ) {
-  const initialBuyAmount = formatNumberString(input.initialBuySol)
+  const initialBuyAmount = formatNumberString(config.initialBuyPercent)
   const sale: Record<string, unknown> = {
     marketCap: config.marketCap,
     initialBuyAmount,
@@ -388,6 +436,7 @@ function resolveLaunchConfig(base: ResolvedOpenBidConfig, override?: OpenBidLaun
     marketCap: normalizeText(override?.marketCap) || base.marketCap,
     totalSupply: normalizeText(override?.totalSupply) || base.totalSupply,
     maxAllocationPerUser: normalizeText(override?.maxAllocationPerUser) || base.maxAllocationPerUser,
+    initialBuyPercent: normalizeNumber(override?.initialBuyPercent, base.initialBuyPercent),
     referrer: normalizeText(override?.referrer) || base.referrer,
     board: normalizeText(override?.board) || base.board,
     boardOwner: normalizeText(override?.boardOwner) || base.boardOwner,
@@ -404,22 +453,48 @@ function resolveLaunchConfig(base: ResolvedOpenBidConfig, override?: OpenBidLaun
 }
 
 async function uploadImage(fetchImpl: typeof fetch, apiBaseUrl: string, imagePath: string): Promise<string> {
-  const imageBuffer = fs.readFileSync(imagePath)
+  const image = assertSafeImagePath(imagePath)
+  const imageBuffer = fs.readFileSync(image.path)
   const formData = new FormData()
-  formData.append('file', new Blob([imageBuffer]), path.basename(imagePath))
+  formData.append('file', new Blob([imageBuffer], { type: image.mimeType }), path.basename(image.path))
   const json = await request(fetchImpl, `${apiBaseUrl}/upload`, {
     method: 'POST',
     body: formData,
   }) as BasedBidUploadResponse
   const url = json.response?.url ?? json.url
-  if (!url) throw new Error('OpenBid image upload did not return a URL')
+  if (!url) throw new Error('basedbid image upload did not return a URL')
   return url
+}
+
+function assertSafeImagePath(imagePath: string): { path: string; mimeType: string } {
+  const resolved = fs.realpathSync(imagePath)
+  const stats = fs.statSync(resolved)
+  if (!stats.isFile()) throw new Error('basedbid token image must be a file')
+  if (stats.size <= 0 || stats.size > MAX_TOKEN_IMAGE_BYTES) throw new Error('basedbid token image must be between 1 byte and 5 MB')
+  const header = Buffer.alloc(Math.min(16, stats.size))
+  const fd = fs.openSync(resolved, 'r')
+  try {
+    fs.readSync(fd, header, 0, header.length, 0)
+  } finally {
+    fs.closeSync(fd)
+  }
+  const mimeType = getImageMime(header)
+  if (!mimeType) throw new Error('basedbid token image must be a PNG, JPG, GIF, or WEBP file')
+  return { path: resolved, mimeType }
+}
+
+function getImageMime(buffer: Buffer): string | null {
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png'
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg'
+  if (buffer.length >= 6 && (buffer.subarray(0, 6).toString('ascii') === 'GIF87a' || buffer.subarray(0, 6).toString('ascii') === 'GIF89a')) return 'image/gif'
+  if (buffer.length >= 12 && buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') return 'image/webp'
+  return null
 }
 
 async function uploadMetadata(fetchImpl: typeof fetch, apiBaseUrl: string, metadata: Record<string, unknown>): Promise<string> {
   const json = await postJson<BasedBidUploadResponse>(fetchImpl, `${apiBaseUrl}/upload/json`, metadata)
   const url = json.response?.url ?? json.url
-  if (!url) throw new Error('OpenBid metadata upload did not return a URL')
+  if (!url) throw new Error('basedbid metadata upload did not return a URL')
   return url
 }
 
@@ -439,7 +514,7 @@ async function request(fetchImpl: typeof fetch, url: string, init: RequestInit):
     const text = await response.text()
     const payload = tryParseJson(text)
     if (!response.ok) {
-      throw new Error(extractErrorMessage(payload) || text || `OpenBid API request failed with HTTP ${response.status}`)
+      throw new Error(extractErrorMessage(payload) || text || `basedbid API request failed with HTTP ${response.status}`)
     }
     return payload
   } finally {
@@ -456,7 +531,88 @@ function assertCreateLbpResponse(response: CreateLbpSolanaApiResponse): void {
     response.lastValidBlockHeight ? null : 'lastValidBlockHeight',
   ].filter((value): value is string => Boolean(value))
   if (missing.length > 0) {
-    throw new Error(`OpenBid create-lbp response is missing: ${missing.join(', ')}`)
+    throw new Error(`basedbid create-lbp response is missing: ${missing.join(', ')}`)
+  }
+}
+
+function assertSafeApiBaseUrl(apiBaseUrl: string): void {
+  let url: URL
+  try {
+    url = new URL(apiBaseUrl)
+  } catch {
+    throw new Error('basedbid API base URL must be a valid URL')
+  }
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]' || url.hostname === '::1'
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
+    throw new Error('basedbid API base URL must use HTTPS unless it is localhost')
+  }
+}
+
+function getAllowedProgramIds(env: NodeJS.ProcessEnv): Set<string> {
+  const configured = normalizeText(env.OPENBID_ALLOWED_PROGRAM_IDS)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  return new Set([...DEFAULT_ALLOWED_PROGRAM_IDS, ...configured])
+}
+
+async function validateOpenBidTransaction(
+  connection: Connection,
+  transaction: VersionedTransaction,
+  response: CreateLbpSolanaApiResponse,
+  config: ResolvedOpenBidConfig,
+  payerKeypair: Keypair,
+  mintKeypair: Keypair,
+  env: NodeJS.ProcessEnv,
+): Promise<void> {
+  const payer = payerKeypair.publicKey
+  const mint = mintKeypair.publicKey
+  if (response.chainId !== undefined && String(response.chainId) !== config.chainId) {
+    throw new Error(`basedbid response chainId ${response.chainId} does not match configured chain ${config.chainId}`)
+  }
+  if (response.mintAddress !== mint.toBase58()) {
+    throw new Error('basedbid mint signer does not match response mintAddress')
+  }
+  if (transaction.message.recentBlockhash !== response.blockhash) {
+    throw new Error('basedbid transaction blockhash does not match response blockhash')
+  }
+  if (transaction.serialize().length > MAX_TRANSACTION_BYTES) {
+    throw new Error('basedbid transaction exceeds the Solana transaction size limit')
+  }
+  if (transaction.message.addressTableLookups.length > 0 || (response.lookupTableAddresses?.length ?? 0) > 0) {
+    throw new Error('basedbid transaction uses address lookup tables; enable resolved LUT validation before signing')
+  }
+
+  const staticKeys = transaction.message.staticAccountKeys
+  const feePayer = staticKeys[0]?.toBase58()
+  if (feePayer !== payer.toBase58()) {
+    throw new Error('basedbid transaction fee payer does not match selected wallet')
+  }
+
+  const requiredSigners = staticKeys
+    .slice(0, transaction.message.header.numRequiredSignatures)
+    .map((key) => key.toBase58())
+    .sort()
+  const expectedSigners = [payer.toBase58(), mint.toBase58()].sort()
+  if (JSON.stringify(requiredSigners) !== JSON.stringify(expectedSigners)) {
+    throw new Error('basedbid transaction signer set must be exactly the selected wallet and mint signer')
+  }
+
+  const allowedPrograms = getAllowedProgramIds(env)
+  for (const ix of transaction.message.compiledInstructions) {
+    const programId = staticKeys[ix.programIdIndex]?.toBase58()
+    if (!programId || !allowedPrograms.has(programId)) {
+      throw new Error(`basedbid transaction contains an unallowlisted program: ${programId ?? 'unknown'}`)
+    }
+  }
+
+  if (typeof connection.simulateTransaction === 'function') {
+    const probe = VersionedTransaction.deserialize(transaction.serialize())
+    probe.sign([payerKeypair, mintKeypair])
+    const simulation = await connection.simulateTransaction(probe, { sigVerify: false, replaceRecentBlockhash: false })
+    if (simulation.value.err) {
+      throw new Error(`basedbid transaction simulation failed: ${JSON.stringify(simulation.value.err)}`)
+    }
   }
 }
 
@@ -465,7 +621,11 @@ function normalizeText(value: unknown): string {
 }
 
 function normalizeUrl(value: unknown): string {
-  return normalizeText(value).replace(/\/+$/, '')
+  const trimmed = normalizeText(value).replace(/\/+$/, '')
+  if (!trimmed) return ''
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  assertSafeApiBaseUrl(candidate)
+  return candidate.replace(/\/+$/, '')
 }
 
 function normalizeDex(value: unknown): OpenBidDex | '' {
@@ -484,6 +644,30 @@ function getLaunchPackageIndex(packageType: OpenBidPackageType): number {
 
 function isValidFeeTier(value: string): boolean {
   return value === '0' || value === '1' || value === '2' || value === '3'
+}
+
+function validateDexFeeTier(config: ResolvedOpenBidConfig): string | null {
+  if (!isValidFeeTier(config.feeTier)) return 'basedbid fee tier must be 0, 1, 2, or 3'
+  if (config.dex === 'raydium' && config.feeTier === '3') {
+    return 'basedbid Raydium fee tier must be 0, 1, or 2'
+  }
+  return null
+}
+
+function validateMarketCap(value: string): string | null {
+  if (!isPositiveNumberString(value)) return 'basedbid market cap must be a valid number'
+  const marketCap = Number(value)
+  if (marketCap < MIN_MARKET_CAP || marketCap > MAX_MARKET_CAP) {
+    return `basedbid market cap must be between ${MIN_MARKET_CAP} and ${MAX_MARKET_CAP}`
+  }
+  return null
+}
+
+function validateInitialBuyPercent(value: number): string | null {
+  if (!Number.isFinite(value) || value < 0 || value > MAX_INITIAL_BUY_PERCENT) {
+    return `basedbid initial buy must be between 0% and ${MAX_INITIAL_BUY_PERCENT}% of supply`
+  }
+  return null
 }
 
 function isPositiveNumberString(value: string): boolean {
@@ -518,10 +702,10 @@ function percentToRate(value: number): number {
 
 function validateFeeConfig(config: ResolvedOpenBidConfig): string | null {
   const checks = [
-    ['OpenBid buy creator fee', config.buyFeePercent, 1],
-    ['OpenBid sell creator fee', config.sellFeePercent, 1],
-    ['OpenBid referral fee', config.referralFeePercent, 1],
-    ['OpenBid graduation fee', config.graduationFeePercent, 2.5],
+    ['basedbid buy creator fee', config.buyFeePercent, 1],
+    ['basedbid sell creator fee', config.sellFeePercent, 1],
+    ['basedbid referral fee', config.referralFeePercent, 1],
+    ['basedbid graduation fee', config.graduationFeePercent, 2.5],
   ] as const
   for (const [label, value, max] of checks) {
     if (!Number.isFinite(value) || value < 0 || value > max) {
@@ -533,8 +717,8 @@ function validateFeeConfig(config: ResolvedOpenBidConfig): string | null {
 
 function validateAddressConfig(config: ResolvedOpenBidConfig): string | null {
   for (const [label, value] of [
-    ['OpenBid referrer', config.referrer],
-    ['OpenBid board owner', config.boardOwner],
+    ['basedbid referrer', config.referrer],
+    ['basedbid board owner', config.boardOwner],
   ] as const) {
     if (!value) continue
     try {

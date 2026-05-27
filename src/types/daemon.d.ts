@@ -12,6 +12,15 @@ import type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  ForensicsBlacklistResult,
+  ForensicsExpandInput,
+  ForensicsExpandResult,
+  ForensicsHolderPollResult,
+  ForensicsScanInput,
+  ForensicsScanResult,
+  ForensicsGraphData,
+  ForensicsGraphNode,
+  RicoMapsEmbedStatus,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -150,6 +159,15 @@ export type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  ForensicsBlacklistResult,
+  ForensicsExpandInput,
+  ForensicsExpandResult,
+  ForensicsHolderPollResult,
+  ForensicsScanInput,
+  ForensicsScanResult,
+  ForensicsGraphData,
+  ForensicsGraphNode,
+  RicoMapsEmbedStatus,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -321,6 +339,7 @@ declare global {
     marketCap?: string
     totalSupply?: string
     maxAllocationPerUser?: string
+    initialBuyPercent?: number
     referrer?: string
     board?: string
     boardOwner?: string
@@ -798,6 +817,47 @@ declare global {
     pickImage: () => Promise<IpcResponse<string | null>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
     importKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+  }
+
+  type ProofPool = import('../../electron/shared/types').ProofPool
+  type ProofPoolDetail = import('../../electron/shared/types').ProofPoolDetail
+  type ProofEscrowStatus = import('../../electron/shared/types').ProofEscrowStatus
+  type CreateProofPoolInput = import('../../electron/shared/types').CreateProofPoolInput
+  type VerifyProofBackingInput = import('../../electron/shared/types').VerifyProofBackingInput
+  type ImportProofVanityMintInput = import('../../electron/shared/types').ImportProofVanityMintInput
+  type ProofBackingActionInput = import('../../electron/shared/types').ProofBackingActionInput
+  type ProofPoolLaunchResult = import('../../electron/shared/types').ProofPoolLaunchResult
+  type ProofCollectFeesResult = import('../../electron/shared/types').ProofCollectFeesResult
+  type ProofEscrowExportResult = import('../../electron/shared/types').ProofEscrowExportResult
+  type ProofPartnerCredentialStatus = import('../../electron/shared/types').ProofPartnerCredentialStatus
+  type ConfigureProofPartnerCredentialsInput = import('../../electron/shared/types').ConfigureProofPartnerCredentialsInput
+  type CreateProofPartnerSessionInput = import('../../electron/shared/types').CreateProofPartnerSessionInput
+  type ProofPartnerSession = import('../../electron/shared/types').ProofPartnerSession
+
+  interface DaemonProof {
+    escrowStatus: () => Promise<IpcResponse<ProofEscrowStatus>>
+    configureEscrow: (input?: { privateKeyBase58?: string | null; allowRotation?: boolean | null }) => Promise<IpcResponse<ProofEscrowStatus>>
+    exportEscrow: () => Promise<IpcResponse<ProofEscrowExportResult>>
+    listPools: () => Promise<IpcResponse<ProofPool[]>>
+    getPool: (poolId: string) => Promise<IpcResponse<ProofPoolDetail>>
+    createPool: (input: CreateProofPoolInput) => Promise<IpcResponse<ProofPoolDetail>>
+    verifyBacking: (input: VerifyProofBackingInput) => Promise<IpcResponse<ProofPoolDetail>>
+    launchPool: (poolId: string) => Promise<IpcResponse<ProofPoolLaunchResult>>
+    distributePool: (poolId: string) => Promise<IpcResponse<ProofPoolDetail>>
+    distributeBacking: (input: ProofBackingActionInput) => Promise<IpcResponse<ProofPoolDetail>>
+    refundPool: (poolId: string) => Promise<IpcResponse<ProofPoolDetail>>
+    refundBacking: (input: ProofBackingActionInput) => Promise<IpcResponse<ProofPoolDetail>>
+    collectFees: (poolId: string) => Promise<IpcResponse<ProofCollectFeesResult>>
+    claimFees: (input: { backingId: string }) => Promise<IpcResponse<{ signature: string; amountSol: number }>>
+    importVanityMint: (input: ImportProofVanityMintInput) => Promise<IpcResponse<{ id: string; address: string }>>
+    pickImage: () => Promise<IpcResponse<string | null>>
+    partnerConfigStatus: () => Promise<IpcResponse<ProofPartnerCredentialStatus>>
+    configurePartnerCredentials: (input: ConfigureProofPartnerCredentialsInput) => Promise<IpcResponse<ProofPartnerCredentialStatus>>
+    listPartnerSessions: () => Promise<IpcResponse<ProofPartnerSession[]>>
+    createPartnerSession: (input: CreateProofPartnerSessionInput) => Promise<IpcResponse<ProofPartnerSession>>
+    getPartnerSession: (sessionId: string) => Promise<IpcResponse<ProofPartnerSession>>
+    pollPartnerSession: (sessionId: string) => Promise<IpcResponse<ProofPartnerSession>>
+    partnerPrefill: (sessionId: string) => Promise<IpcResponse<unknown>>
   }
 
   interface DaemonTweets {
@@ -1517,11 +1577,13 @@ declare global {
     shipline: DaemonShipline
     shell: DaemonShell
     pumpfun: DaemonPumpFun
+    proof: DaemonProof
     email: DaemonEmail
     images: DaemonImages
     aria: DaemonAria
     launch: DaemonLaunch
     dashboard: DaemonDashboard
+    forensics: DaemonForensics
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
@@ -1650,6 +1712,16 @@ declare global {
     tokenHolders: (mint: string) => Promise<IpcResponse<{ count: number; topHolders: Array<{ address: string; amount: number }> }>>
     detectTokens: (walletAddress: string) => Promise<IpcResponse<DetectedToken[]>>
     importToken: (mint: string, walletId: string) => Promise<IpcResponse<{ id: string; alreadyExists: boolean }>>
+  }
+
+  interface DaemonForensics {
+    scan: (input: ForensicsScanInput) => Promise<IpcResponse<ForensicsScanResult>>
+    expand: (input: ForensicsExpandInput) => Promise<IpcResponse<ForensicsExpandResult>>
+    blacklist: () => Promise<IpcResponse<ForensicsBlacklistResult>>
+    exportBlacklist: () => Promise<IpcResponse<{ csv: string; copied: boolean }>>
+    pollHolders: (mint: string) => Promise<IpcResponse<ForensicsHolderPollResult>>
+    ricoMapsStatus: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
+    startRicoMaps: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
   }
 
   interface DaemonBrowser {

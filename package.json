@@ -60,6 +60,7 @@
     "test:pro-entitlement": "pnpm run build && node scripts/smoke/pro-entitlement-flow.mjs",
     "test:scaffold-smoke": "pnpm run build && node scripts/smoke/project-scaffold.mjs",
     "test:replay-devnet": "pnpm run build && node scripts/smoke/replay-devnet-loop.mjs",
+    "test:proof-pool-devnet": "pnpm run build && node scripts/smoke/proof-pool-devnet.mjs",
     "test:journeys": "pnpm run build && node scripts/smoke/workflow-journeys.mjs",
     "test:responsive": "pnpm run build && node scripts/smoke/app-responsive.mjs",
     "test:layout": "pnpm run build && node scripts/smoke/layout-cohesion.mjs",
@@ -162,6 +163,7 @@
       "postcss": "8.5.10",
       "protobufjs": "7.5.8",
       "qs": "6.15.2",
+      "tmp": "0.2.6",
       "uuid": "11.1.1",
       "ws": "8.20.1"
     },

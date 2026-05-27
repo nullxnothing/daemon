@@ -231,6 +231,19 @@
   color: var(--t1);
 }
 
+.solana-launchpad-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.solana-launchpad-brand-mark {
+  width: 24px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(80, 210, 74, 0.28));
+}
+
 .solana-launchpad-settings-desc {
   margin: 4px 0 0;
   font-size: var(--font-sm);

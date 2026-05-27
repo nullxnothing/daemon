@@ -32,6 +32,7 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
   zauth: '#e5e7eb',
   'project-readiness': '#86efac',
   'token-launch': '#34d399',
+  'proof-pool': '#f97316',
   'block-scanner': '#38bdf8',
   'replay-engine': '#7dd3fc',
   docs: '#fbbf24',
@@ -46,6 +47,7 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
   'agent-station': '#c4b5fd',
   'agent-work': '#38bdf8',
   spawnagents: '#c41e3a',
+  ricomaps: '#00ff41',
 }
 
 export const DAEMON_XTERM_THEME = {

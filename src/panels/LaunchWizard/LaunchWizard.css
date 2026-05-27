@@ -627,6 +627,15 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   transition: all var(--dur-base) var(--ease-out-quint);
 }
 
+.lw-pad-brand {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: -2px;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--green) 28%, transparent));
+}
+
 .lw-pad.selected .lw-pad-dot {
   border-color: var(--green);
   background: var(--green-glow);
@@ -1205,6 +1214,13 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   text-transform: uppercase;
   letter-spacing: var(--ls-eyebrow);
   font-weight: var(--fw-semibold);
+}
+
+.lw-preview-brand {
+  width: 30px;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--green) 30%, transparent));
 }
 
 .lw-preview-pill {

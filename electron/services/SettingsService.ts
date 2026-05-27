@@ -266,6 +266,9 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
   },
 }
 
+const BASEDBID_MIN_MARKET_CAP = 11_000
+const BASEDBID_MAX_MARKET_CAP = 10_000_000
+
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
   cluster: 'devnet',
   rpcProvider: 'helius',
@@ -324,6 +327,20 @@ function validateOptionalHttpUrl(value: string, fieldName: string): void {
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new Error(`${fieldName} must use http or https`)
+  }
+}
+
+function validateOptionalHttpsUrlExceptLocal(value: string, fieldName: string): void {
+  if (!value) return
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error(`${fieldName} must be a valid URL`)
+  }
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]' || url.hostname === '::1'
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
+    throw new Error(`${fieldName} must use HTTPS unless it points at localhost`)
   }
 }
 
@@ -411,20 +428,29 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   if (next.printr.createPath && !next.printr.createPath.startsWith('/')) {
     throw new Error('Printr create path must start with "/"')
   }
-  validateOptionalHttpUrl(next.openbid.apiBaseUrl, 'OpenBid API base URL')
-  validateOptionalPositiveInteger(next.openbid.chainId, 'OpenBid chain ID')
+  validateOptionalHttpsUrlExceptLocal(next.openbid.apiBaseUrl, 'basedbid API base URL')
+  validateOptionalPositiveInteger(next.openbid.chainId, 'basedbid chain ID')
   if (next.openbid.feeTier && !['0', '1', '2', '3'].includes(next.openbid.feeTier)) {
-    throw new Error('OpenBid fee tier must be 0, 1, 2, or 3')
+    throw new Error('basedbid fee tier must be 0, 1, 2, or 3')
   }
-  validateOptionalNumberString(next.openbid.marketCap, 'OpenBid market cap')
-  validateOptionalNumberString(next.openbid.totalSupply, 'OpenBid total supply')
+  if (next.openbid.dex === 'raydium' && next.openbid.feeTier === '3') {
+    throw new Error('basedbid Raydium fee tier must be 0, 1, or 2')
+  }
+  validateOptionalNumberString(next.openbid.marketCap, 'basedbid market cap')
+  if (next.openbid.marketCap) {
+    const marketCap = Number(next.openbid.marketCap)
+    if (marketCap < BASEDBID_MIN_MARKET_CAP || marketCap > BASEDBID_MAX_MARKET_CAP) {
+      throw new Error(`basedbid market cap must be between ${BASEDBID_MIN_MARKET_CAP} and ${BASEDBID_MAX_MARKET_CAP}`)
+    }
+  }
+  validateOptionalNumberString(next.openbid.totalSupply, 'basedbid total supply')
   if (next.openbid.maxAllocationPerUser && !/^\d+(\.\d+)?$/.test(next.openbid.maxAllocationPerUser)) {
-    throw new Error('OpenBid max allocation per user must be a valid number')
+    throw new Error('basedbid max allocation per user must be a valid number')
   }
-  validateOptionalPublicKey(next.openbid.referrer, 'OpenBid referrer')
-  validateOptionalPublicKey(next.openbid.boardOwner, 'OpenBid board owner')
+  validateOptionalPublicKey(next.openbid.referrer, 'basedbid referrer')
+  validateOptionalPublicKey(next.openbid.boardOwner, 'basedbid board owner')
   if ((next.openbid.board && !next.openbid.boardOwner) || (!next.openbid.board && next.openbid.boardOwner)) {
-    throw new Error('OpenBid board and board owner must both be set or both be empty')
+    throw new Error('basedbid board and board owner must both be set or both be empty')
   }
 
   setJsonSetting('token_launch_settings', next)

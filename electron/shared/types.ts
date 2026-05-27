@@ -11,6 +11,204 @@ export interface IpcResponse<T = unknown> {
   error?: string
 }
 
+// --- Proof Pools ---
+
+export type ProofPoolStatus = 'backing' | 'funded' | 'launching' | 'live' | 'distributed' | 'refunding' | 'failed'
+export type ProofBackingStatus = 'confirmed' | 'withdrawn' | 'refunding' | 'refunded' | 'distributing' | 'distributed'
+
+export interface ProofPool {
+  id: string
+  name: string
+  symbol: string
+  description: string
+  image_path: string | null
+  twitter: string | null
+  telegram: string | null
+  website: string | null
+  creator_wallet: string
+  pool_wallet: string
+  pool_key_name: string
+  creator_subescrow: string
+  creator_key_name: string
+  mint: string | null
+  mint_key_name: string | null
+  metadata_uri: string | null
+  launch_signature: string | null
+  proof_level: string | null
+  total_slots: number
+  min_backing_sol: number
+  min_backing_lamports: number
+  current_backing_sol: number
+  current_backing_lamports: number
+  pool_token_balance: string | null
+  status: ProofPoolStatus
+  backing_deadline: number
+  launched_at: number | null
+  distributed_at: number | null
+  created_at: number
+  updated_at: number
+  error_message: string | null
+}
+
+export interface ProofBacking {
+  id: string
+  pool_id: string
+  backer_wallet: string
+  amount_sol: number
+  amount_lamports: number
+  deposit_signature: string
+  slot_number: number
+  status: ProofBackingStatus
+  tokens_allocated: string | null
+  distribution_signature: string | null
+  refund_signature: string | null
+  claimable_fees_sol: number
+  claimable_fees_lamports: number
+  total_claimed_sol: number
+  total_claimed_lamports: number
+  last_claim_signature: string | null
+  distributed_at: number | null
+  refunded_at: number | null
+  created_at: number
+  updated_at: number
+}
+
+export interface ProofPoolEvent {
+  id: string
+  pool_id: string
+  kind: string
+  message: string
+  signature: string | null
+  metadata_json: string
+  created_at: number
+}
+
+export interface ProofPoolDetail {
+  pool: ProofPool
+  backings: ProofBacking[]
+  events: ProofPoolEvent[]
+}
+
+export interface ProofEscrowStatus {
+  configured: boolean
+  address: string | null
+  keyName: string
+  hint: string
+  balanceLamports?: number
+  balanceSol?: number
+}
+
+export interface CreateProofPoolInput {
+  name: string
+  symbol: string
+  description: string
+  imagePath?: string | null
+  twitter?: string | null
+  telegram?: string | null
+  website?: string | null
+  creatorWallet: string
+  totalSlots: number
+  minBackingSol: number
+  backingDays?: number
+}
+
+export interface VerifyProofBackingInput {
+  poolId: string
+  backerWallet: string
+  amountSol: number
+  depositSignature: string
+}
+
+export interface ImportProofVanityMintInput {
+  privateKeyBase58: string
+}
+
+export interface ProofClaimFeesInput {
+  backingId: string
+}
+
+export interface ProofBackingActionInput {
+  backingId: string
+  force?: boolean
+}
+
+export interface ProofPoolLaunchResult {
+  pool: ProofPool
+  signature: string
+  mint: string
+  metadataUri: string
+  proofLevel: string
+  poolTokenBalance: string
+}
+
+export interface ProofCollectFeesResult {
+  ok: boolean
+  skipped?: string
+  collectedLamports?: number
+  platformLamports?: number
+  backerLamports?: number
+  backerCount?: number
+  collectSig?: string
+  drainSig?: string
+  error?: string
+}
+
+export interface ProofEscrowExportResult {
+  copied: boolean
+  address: string
+  expiresInMs: number
+}
+
+export interface ProofPartnerCredentialStatus {
+  apiKeyConfigured: boolean
+  webhookSecretConfigured: boolean
+  apiBase: string
+  partnerSlug: string
+}
+
+export interface ConfigureProofPartnerCredentialsInput {
+  apiKey?: string | null
+  webhookSecret?: string | null
+}
+
+export interface CreateProofPartnerSessionInput {
+  name: string
+  symbol: string
+  description: string
+  imageUrl?: string | null
+  creatorWallet: string
+  totalSlots: number
+  minBackingSol: number
+  metadata?: Record<string, string | null | undefined> | null
+  returnUrl?: string | null
+  partnerReference?: string | null
+}
+
+export interface ProofPartnerSession {
+  id: string
+  partner_reference: string
+  name: string
+  symbol: string
+  description: string
+  image_url: string | null
+  creator_wallet: string
+  total_slots: number
+  min_backing_sol: number
+  metadata_json: string
+  return_url: string | null
+  checkout_url: string | null
+  status: string
+  meme_id: string | null
+  meme_url: string | null
+  prefill_json: string | null
+  request_json: string
+  response_json: string
+  created_at: number
+  updated_at: number
+  last_polled_at: number | null
+  error_message: string | null
+}
+
 // --- DB Entities ---
 
 export interface Project {
@@ -699,6 +897,191 @@ export interface WalletDashboard {
     type?: string
     description?: string
   }>
+}
+
+// --- Forensics ---
+
+export type ForensicsScanMode = 'auto' | 'wallet' | 'token'
+export type ForensicsDetectedMode = 'wallet' | 'token'
+export type ForensicsNodeType =
+  | 'target'
+  | 'funder'
+  | 'funded'
+  | 'connected'
+  | 'holder'
+  | 'token'
+  | 'cabal-funder'
+  | 'sniper'
+  | 'bundled'
+
+export interface ForensicsWalletIdentity {
+  name: string | null
+  category: string | null
+  type: string | null
+  tags: string[]
+}
+
+export interface ForensicsGraphNode {
+  id: string
+  label: string
+  val: number
+  type: ForensicsNodeType
+  depth: number
+  solBalance?: number
+  tokenAmount?: number
+  expanded: boolean
+  identity?: ForensicsWalletIdentity
+  fundingSource?: {
+    funderAddress: string
+    funderName: string | null
+    funderType: string | null
+    amount: number
+    timestamp: number
+    signature: string
+  }
+  metadata?: {
+    firstTx?: number
+    txCount?: number
+    suspicious?: boolean
+    fundedCount?: number
+    isSniper?: boolean
+    buyBlock?: number
+    buyTimestamp?: number
+    blocksAfterLaunch?: number
+    isBundled?: boolean
+    sharedFunderGroup?: string
+    cabalConfidence?: number
+    transferPatterns?: {
+      totalIn: number
+      totalOut: number
+      uniqueCounterparties: number
+    }
+  }
+}
+
+export interface ForensicsGraphLink {
+  source: string
+  target: string
+  value: number
+  timestamp?: number
+  txSignature?: string
+  suspicious?: boolean
+}
+
+export interface ForensicsGraphData {
+  nodes: ForensicsGraphNode[]
+  links: ForensicsGraphLink[]
+}
+
+export interface ForensicsTokenSecurity {
+  hasFreezeAuthority: boolean
+  freezeAuthority?: string
+  hasMintAuthority: boolean
+  mintAuthority?: string
+  isMutable: boolean
+  supply?: number
+  decimals?: number
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  riskFactors: string[]
+}
+
+export interface ForensicsTokenMetadata {
+  name?: string
+  symbol?: string
+  image?: string
+  description?: string
+}
+
+export interface ForensicsStats {
+  nodesFound?: number
+  linksFound?: number
+  scanDepth?: number
+  totalHolders?: number
+  rawHolderCount?: number
+  filteredOut?: number
+  analyzedHolders?: number
+  analysisIncomplete?: boolean
+  cabalConnectionsFound?: number
+  suspiciousWallets?: string[]
+  snipersDetected?: number
+  sniperWallets?: string[]
+  bundleClustersDetected?: number
+  bundledWallets?: string[]
+  cacheHit?: boolean
+}
+
+export interface ForensicsScanInput {
+  address: string
+  mode?: ForensicsScanMode
+  topHolders?: number
+  maxDepth?: number
+  maxNodesPerLevel?: number
+  force?: boolean
+}
+
+export interface ForensicsScanResult {
+  mode: ForensicsDetectedMode
+  data: ForensicsGraphData
+  stats: ForensicsStats
+  tokenSecurity?: ForensicsTokenSecurity | null
+  tokenMetadata?: ForensicsTokenMetadata | null
+}
+
+export interface ForensicsExpandInput {
+  wallet: string
+  mode: 'funding' | 'funded'
+  existingNodes: string[]
+}
+
+export interface ForensicsExpandResult {
+  newNodes: ForensicsGraphNode[]
+  newLinks: ForensicsGraphLink[]
+}
+
+export interface ForensicsBundleTokenAppearance {
+  mint: string
+  tokenName?: string
+  tokenSymbol?: string
+  slot: number
+  timestamp: number
+  walletCount: number
+  transactionSignatures: string[]
+}
+
+export interface ForensicsBundleCluster {
+  id: string
+  wallets: string[]
+  tokens: ForensicsBundleTokenAppearance[]
+  totalAppearances: number
+  lastSeenTimestamp: number
+  firstSeenTimestamp: number
+  confidence: number
+  sharedFunder?: string
+  metadata?: {
+    avgClusterSize: number
+    maxSameSlotCount: number
+  }
+}
+
+export interface ForensicsBlacklistResult {
+  clusters: ForensicsBundleCluster[]
+  totalWallets: number
+  totalClusters: number
+}
+
+export interface ForensicsHolderPollResult {
+  holders: Array<{ owner: string; amount: number }>
+  timestamp: number
+}
+
+export interface RicoMapsEmbedStatus {
+  url: string
+  port: number
+  projectPath: string
+  installed: boolean
+  running: boolean
+  pid: number | null
+  error: string | null
 }
 
 export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'

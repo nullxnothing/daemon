@@ -77,6 +77,22 @@ describe('SettingsService token launch settings', () => {
     })).toThrow('Meteora base supply must be a positive integer')
   })
 
+  it('rejects basedbid settings outside documented Solana ranges', () => {
+    expect(() => setTokenLaunchSettings({
+      raydium: { configId: '', quoteMint: '' },
+      meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: 'raydium', feeTier: '3', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })).toThrow('basedbid Raydium fee tier must be 0, 1, or 2')
+
+    expect(() => setTokenLaunchSettings({
+      raydium: { configId: '', quoteMint: '' },
+      meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '9000', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })).toThrow('basedbid market cap must be between 11000 and 10000000')
+  })
+
   it('persists validated settings', () => {
     setTokenLaunchSettings({
       raydium: {

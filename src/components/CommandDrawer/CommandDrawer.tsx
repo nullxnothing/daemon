@@ -111,6 +111,7 @@ const IntegrationsIcon = createPhosphorIcon(ShareNetwork)
 const ZauthIcon = createPhosphorIcon(Database)
 const ReadinessIcon = createPhosphorIcon(ListChecks)
 const TokenLaunchIcon = createPhosphorIcon(RocketLaunch)
+const ProofPoolIcon = createPhosphorIcon(ShieldStar)
 const ProIcon = createPhosphorIcon(ShieldStar)
 const DaemonAIIcon = createPhosphorIcon(Robot)
 const ActivityIcon = createPhosphorIcon(Sparkle)
@@ -124,12 +125,13 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, 'replay-engine': ReplayIcon, docs: DocsIcon, starter: StarterIcon,
-  'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'metaplex-demo': IntegrationsIcon, zauth: ZauthIcon, 'project-readiness': ReadinessIcon,
+  'token-launch': TokenLaunchIcon, 'proof-pool': ProofPoolIcon, integrations: IntegrationsIcon, 'metaplex-demo': IntegrationsIcon, zauth: ZauthIcon, 'project-readiness': ReadinessIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
   'daemon-ai': DaemonAIIcon,
   'agent-station': AgentStationIcon,
   'agent-work': AgentWorkIcon,
   'spawnagents': SpawnAgentsIcon,
+  ricomaps: AgentOpsIcon,
   agentops: AgentOpsIcon,
 }
 
@@ -153,6 +155,7 @@ const loadAgentOps = () => import('../../panels/AgentOps/AgentOpsPanel')
 const loadZauthPanel = () => import('../../panels/Zauth/ZauthPanel')
 const loadProjectReadiness = () => import('../../panels/ProjectReadiness/ProjectReadiness')
 const loadTokenLaunchTool = () => import('../../panels/TokenLaunchTool/TokenLaunchTool')
+const loadProofPoolPanel = () => import('../../panels/ProofPool/ProofPoolPanel')
 const loadBlockScanner = () => import('../../panels/BlockScanner/BlockScanner')
 const loadDocsPanel = () => import('../../panels/DocsPanel/DocsPanel')
 const loadProjectStarter = () => import('../../panels/ProjectStarter/ProjectStarter')
@@ -168,6 +171,7 @@ const loadAgentStation = () => import('../../panels/AgentStation/AgentStation')
 const loadReplayEngine = () => import('../../panels/ReplayEngine/ReplayEngine')
 const loadAgentWork = () => import('../../panels/AgentWork/AgentWork')
 const loadSpawnAgents = () => import('../../panels/SpawnAgents/SpawnAgentsPanel')
+const loadRicoMaps = () => import('../../panels/RicoMaps/RicoMapsPanel')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -185,6 +189,7 @@ const AgentOpsPanel = lazyNamedWithReload('agentops', loadAgentOps, (m) => m.Age
 const ZauthPanel = lazyNamedWithReload('zauth-panel', loadZauthPanel, (m) => m.ZauthPanel)
 const ProjectReadiness = lazyWithReload('project-readiness', loadProjectReadiness)
 const TokenLaunchTool = lazyWithReload('token-launch-tool', loadTokenLaunchTool)
+const ProofPoolPanel = lazyNamedWithReload('proof-pool-panel', loadProofPoolPanel, (m) => m.ProofPoolPanel)
 const BlockScanner = lazyWithReload('block-scanner', loadBlockScanner)
 const DocsPanel = lazyNamedWithReload('docs-panel', loadDocsPanel, (m) => m.DocsPanel)
 const ProjectStarter = lazyWithReload('project-starter', loadProjectStarter)
@@ -200,6 +205,7 @@ const AgentStationPanel = lazyNamedWithReload('agent-station', loadAgentStation,
 const ReplayEngine = lazyNamedWithReload('replay-engine', loadReplayEngine, (m) => m.ReplayEngine)
 const AgentWork = lazyNamedWithReload('agent-work', loadAgentWork, (m) => m.AgentWork)
 const SpawnAgentsPanel = lazyNamedWithReload('spawnagents', loadSpawnAgents, (m) => m.SpawnAgentsPanel)
+const RicoMapsPanel = lazyNamedWithReload('ricomaps', loadRicoMaps, (m) => m.RicoMapsPanel)
 
 // Per-tool accent colors for the drawer grid and sidebar.
 export const TOOL_COLORS = DAEMON_TOOL_COLORS
@@ -217,7 +223,8 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, preload: () => { void loadProcessManager() }, category: 'system' },
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, preload: () => { void loadSettingsPanel() }, category: 'system' },
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, preload: () => { void loadImageEditor() }, category: 'create' },
-  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, Meteora, and OpenBid launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
+  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, Meteora, and basedbid launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
+  { id: 'proof-pool', name: 'Proof Pool', description: 'Pooled Pump.fun launches with verified backer slots', icon: ProofPoolIcon, component: ProofPoolPanel, preload: () => { void loadProofPoolPanel() }, category: 'crypto' },
   { id: 'project-readiness', name: 'Solana Start', description: 'Project, wallet, RPC, MCP, AI, and first safe action checklist', icon: ReadinessIcon, component: ProjectReadiness, preload: () => { void loadProjectReadiness() }, category: 'crypto' },
   { id: 'solana-toolbox', name: 'Solana Workflow', description: 'Start, Connect, Build, Launch, Inspect, and Debug for Solana projects', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
   { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'crypto' },
@@ -238,6 +245,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
   { id: 'agent-station', name: 'Agent Station', description: 'Scaffold and run Solana AI agents powered by SAK', icon: AgentStationIcon, component: AgentStationPanel, preload: () => { void loadAgentStation() }, category: 'crypto' },
   { id: 'spawnagents', name: 'SpawnAgents', description: 'Spawn autonomous Solana trading agents with custom DNA', icon: SpawnAgentsIcon, component: SpawnAgentsPanel, preload: () => { void loadSpawnAgents() }, category: 'crypto' },
+  { id: 'ricomaps', name: 'RicoMaps', description: 'Token and wallet forensic graphing', icon: AgentOpsIcon, component: RicoMapsPanel, preload: () => { void loadRicoMaps() }, category: 'crypto' },
 ]
 
 const BUILTIN_TOOL_PRELOADERS = new Map(

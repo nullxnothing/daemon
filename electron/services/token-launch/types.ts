@@ -36,6 +36,7 @@ export interface OpenBidLaunchpadConfig {
 
 export interface OpenBidLaunchInputConfig extends OpenBidLaunchpadConfig {
   chain?: 'solana'
+  initialBuyPercent?: number
   saleStartTime?: number | null
   softCap?: string
   endTime?: number | null
