@@ -27,6 +27,13 @@ import type {
   GhostPort,
   WalletListEntry,
   WalletDashboard,
+  ForensicsBlacklistResult,
+  ForensicsExpandInput,
+  ForensicsExpandResult,
+  ForensicsHolderPollResult,
+  ForensicsScanInput,
+  ForensicsScanResult,
+  RicoMapsEmbedStatus,
   TerminalCreateOutput,
   PluginRow,
   PluginCreateInput,
@@ -140,6 +147,15 @@ export interface ChannelMap {
   // --- Wallet ---
   'wallet:dashboard': { input: string | null; output: WalletDashboard }
   'wallet:list': { input: void; output: WalletListEntry[] }
+
+  // --- Forensics ---
+  'forensics:scan': { input: ForensicsScanInput; output: ForensicsScanResult }
+  'forensics:expand': { input: ForensicsExpandInput; output: ForensicsExpandResult }
+  'forensics:blacklist': { input: void; output: ForensicsBlacklistResult }
+  'forensics:export-blacklist': { input: void; output: { csv: string; copied: boolean } }
+  'forensics:poll-holders': { input: string; output: ForensicsHolderPollResult }
+  'forensics:ricomaps-status': { input: void; output: RicoMapsEmbedStatus }
+  'forensics:ricomaps-start': { input: void; output: RicoMapsEmbedStatus }
 
   // --- Settings ---
   'settings:get-ui': { input: void; output: UiSettings }

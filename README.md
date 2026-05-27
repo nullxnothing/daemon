@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-542%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-636%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">

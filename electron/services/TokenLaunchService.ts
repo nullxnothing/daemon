@@ -182,7 +182,8 @@ export async function pickImage(): Promise<string | null> {
 }
 
 export async function preflightLaunch(input: TokenLaunchInput): Promise<TokenLaunchPreflight> {
-  const estimatedTotalSol = input.initialBuySol + input.priorityFeeSol + 0.02
+  const isOpenBid = input.launchpad === 'openbid'
+  const estimatedTotalSol = (isOpenBid ? 0 : input.initialBuySol) + input.priorityFeeSol + 0.02
   const checks: TokenLaunchCheck[] = []
   const adapter = getAdapters(Settings.getTokenLaunchSettings())[input.launchpad]
 
@@ -284,12 +285,21 @@ export async function preflightLaunch(input: TokenLaunchInput): Promise<TokenLau
     })
   }
 
-  checks.push({
-    id: 'launch-params',
-    label: 'Launch Parameters',
-    status: input.initialBuySol > 0 && input.slippageBps > 0 && input.priorityFeeSol >= 0 ? 'pass' : 'fail',
-    detail: `Initial buy ${input.initialBuySol.toFixed(4)} SOL, slippage ${(input.slippageBps / 100).toFixed(2)}%, priority fee ${input.priorityFeeSol.toFixed(4)} SOL.`,
-  })
+  if (isOpenBid) {
+    checks.push({
+      id: 'launch-params',
+      label: 'Launch Parameters',
+      status: input.priorityFeeSol >= 0 ? 'pass' : 'fail',
+      detail: `Priority fee ${input.priorityFeeSol.toFixed(4)} SOL. basedbid initial buy is configured as a supply percentage.`,
+    })
+  } else {
+    checks.push({
+      id: 'launch-params',
+      label: 'Launch Parameters',
+      status: input.initialBuySol > 0 && input.slippageBps > 0 && input.priorityFeeSol >= 0 ? 'pass' : 'fail',
+      detail: `Initial buy ${input.initialBuySol.toFixed(4)} SOL, slippage ${(input.slippageBps / 100).toFixed(2)}%, priority fee ${input.priorityFeeSol.toFixed(4)} SOL.`,
+    })
+  }
 
   if (adapter?.preflight) {
     try {
@@ -483,7 +493,14 @@ function validateLaunchInput(input: TokenLaunchInput) {
   if (!input.name.trim()) throw new Error('name is required')
   if (!input.symbol.trim()) throw new Error('symbol is required')
   if (!input.description.trim()) throw new Error('description is required')
-  if (!(input.initialBuySol > 0)) throw new Error('initialBuySol must be greater than zero')
-  if (!(input.slippageBps > 0)) throw new Error('slippageBps must be greater than zero')
+  if (input.launchpad === 'openbid') {
+    const initialBuyPercent = input.openbid?.initialBuyPercent
+    if (typeof initialBuyPercent !== 'number' || !Number.isFinite(initialBuyPercent) || initialBuyPercent < 0 || initialBuyPercent > 80.2) {
+      throw new Error('basedbid initialBuyPercent must be between 0 and 80.2')
+    }
+  } else {
+    if (!(input.initialBuySol > 0)) throw new Error('initialBuySol must be greater than zero')
+    if (!(input.slippageBps > 0)) throw new Error('slippageBps must be greater than zero')
+  }
   if (input.priorityFeeSol < 0) throw new Error('priorityFeeSol cannot be negative')
 }

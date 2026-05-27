@@ -68,6 +68,8 @@ features/
 .mcp.json
 
 # Internal dev artifacts
+.design/
+/screenshots/
 .agents/
 .codex-run/
 PLUGIN_TODOS.md

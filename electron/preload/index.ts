@@ -508,6 +508,32 @@ contextBridge.exposeInMainWorld('daemon', {
     importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
   },
 
+  proof: {
+    escrowStatus: () => ipcRenderer.invoke('proof:escrow-status'),
+    configureEscrow: (input?: object) => ipcRenderer.invoke('proof:configure-escrow', input),
+    exportEscrow: () => ipcRenderer.invoke('proof:export-escrow'),
+    listPools: () => ipcRenderer.invoke('proof:list-pools'),
+    getPool: (poolId: string) => ipcRenderer.invoke('proof:get-pool', poolId),
+    createPool: (input: object) => ipcRenderer.invoke('proof:create-pool', input),
+    verifyBacking: (input: object) => ipcRenderer.invoke('proof:verify-backing', input),
+    launchPool: (poolId: string) => ipcRenderer.invoke('proof:launch-pool', poolId),
+    distributePool: (poolId: string) => ipcRenderer.invoke('proof:distribute-pool', poolId),
+    distributeBacking: (input: object) => ipcRenderer.invoke('proof:distribute-backing', input),
+    refundPool: (poolId: string) => ipcRenderer.invoke('proof:refund-pool', poolId),
+    refundBacking: (input: object) => ipcRenderer.invoke('proof:refund-backing', input),
+    collectFees: (poolId: string) => ipcRenderer.invoke('proof:collect-fees', poolId),
+    claimFees: (input: object) => ipcRenderer.invoke('proof:claim-fees', input),
+    importVanityMint: (input: object) => ipcRenderer.invoke('proof:import-vanity-mint', input),
+    pickImage: () => ipcRenderer.invoke('proof:pick-image'),
+    partnerConfigStatus: () => ipcRenderer.invoke('proof:partner-config-status'),
+    configurePartnerCredentials: (input: object) => ipcRenderer.invoke('proof:configure-partner-credentials', input),
+    listPartnerSessions: () => ipcRenderer.invoke('proof:list-partner-sessions'),
+    createPartnerSession: (input: object) => ipcRenderer.invoke('proof:create-partner-session', input),
+    getPartnerSession: (sessionId: string) => ipcRenderer.invoke('proof:get-partner-session', sessionId),
+    pollPartnerSession: (sessionId: string) => ipcRenderer.invoke('proof:poll-partner-session', sessionId),
+    partnerPrefill: (sessionId: string) => ipcRenderer.invoke('proof:partner-prefill', sessionId),
+  },
+
   spawnAgents: {
     list: (ownerPubkey: string) => ipcRenderer.invoke('spawnagents:list', ownerPubkey),
     get: (agentId: string) => ipcRenderer.invoke('spawnagents:get', agentId),
@@ -565,6 +591,16 @@ contextBridge.exposeInMainWorld('daemon', {
     tokenHolders: (mint: string) => ipcRenderer.invoke('dashboard:token-holders', mint),
     detectTokens: (walletAddress: string) => ipcRenderer.invoke('dashboard:detect-tokens', walletAddress),
     importToken: (mint: string, walletId: string) => ipcRenderer.invoke('dashboard:import-token', mint, walletId),
+  },
+
+  forensics: {
+    scan: (input: object) => ipcRenderer.invoke('forensics:scan', input),
+    expand: (input: object) => ipcRenderer.invoke('forensics:expand', input),
+    blacklist: () => ipcRenderer.invoke('forensics:blacklist'),
+    exportBlacklist: () => ipcRenderer.invoke('forensics:export-blacklist'),
+    pollHolders: (mint: string) => ipcRenderer.invoke('forensics:poll-holders', mint),
+    ricoMapsStatus: () => ipcRenderer.invoke('forensics:ricomaps-status'),
+    startRicoMaps: () => ipcRenderer.invoke('forensics:ricomaps-start'),
   },
 
   images: {

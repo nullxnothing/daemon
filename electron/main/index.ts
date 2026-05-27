@@ -29,6 +29,7 @@ import { registerRecoveryHandlers } from '../ipc/recovery'
 import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
+import { registerProofPoolHandlers } from '../ipc/proofPool'
 import { registerSpawnAgentsHandlers } from '../ipc/spawnagents'
 import { stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
 import { registerBrowserHandlers } from '../ipc/browser'
@@ -39,6 +40,7 @@ import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
 import { registerLaunchHandlers } from '../ipc/launch'
 import { registerDashboardHandlers } from '../ipc/dashboard'
+import { registerForensicsHandlers } from '../ipc/forensics'
 import { registerRegistryHandlers } from '../ipc/registry'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
@@ -309,6 +311,7 @@ function registerAllIpc() {
   registerEngineHandlers()
   registerToolHandlers()
   registerPumpFunHandlers()
+  registerProofPoolHandlers()
   registerSpawnAgentsHandlers()
   registerBrowserHandlers()
   registerDeployHandlers()
@@ -318,6 +321,7 @@ function registerAllIpc() {
   registerAriaHandlers()
   registerLaunchHandlers()
   registerDashboardHandlers()
+  registerForensicsHandlers()
   registerRegistryHandlers()
   registerColosseumHandlers()
   registerIdleHandlers()
@@ -562,8 +566,14 @@ async function createWindow() {
     win.webContents.on('did-stop-loading', () => console.log('[smoke] createWindow:did-stop-loading'))
     win.webContents.on('unresponsive', () => console.log('[smoke] createWindow:unresponsive'))
     win.webContents.on('responsive', () => console.log('[smoke] createWindow:responsive'))
-    win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-      console.log('[smoke] renderer:console', JSON.stringify({ level, message, line, sourceId }))
+    win.webContents.on('console-message', (event) => {
+      const details = event as Electron.Event<Electron.WebContentsConsoleMessageEventParams>
+      console.log('[smoke] renderer:console', JSON.stringify({
+        level: details.level,
+        message: details.message,
+        line: details.lineNumber,
+        sourceId: details.sourceId,
+      }))
     })
   }
 

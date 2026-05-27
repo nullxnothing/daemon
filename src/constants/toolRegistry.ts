@@ -20,6 +20,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'settings', name: 'Settings', moduleClass: 'core', surface: 'drawer' },
   { id: 'image-editor', name: 'Image Editor', moduleClass: 'addon', surface: 'drawer' },
   { id: 'token-launch', name: 'Token Launch', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'proof-pool', name: 'Proof Pool', moduleClass: 'addon', surface: 'drawer' },
   { id: 'project-readiness', name: 'Solana Start', moduleClass: 'addon', surface: 'drawer' },
   { id: 'solana-toolbox', name: 'Solana Workflow', moduleClass: 'addon', surface: 'drawer' },
   { id: 'integrations', name: 'Integrations', moduleClass: 'addon', surface: 'drawer' },
@@ -40,6 +41,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'activity', name: 'Activity', moduleClass: 'addon', surface: 'drawer' },
   { id: 'agent-station', name: 'Agent Station', moduleClass: 'addon', surface: 'drawer' },
   { id: 'spawnagents', name: 'SpawnAgents', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'ricomaps', name: 'RicoMaps', moduleClass: 'addon', surface: 'drawer' },
   { id: 'browser', name: 'Browser', moduleClass: 'addon', surface: 'tab' },
 ] as const
 

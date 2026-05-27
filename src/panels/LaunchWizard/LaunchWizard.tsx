@@ -5,6 +5,7 @@ import { useNotificationsStore } from '../../store/notifications'
 import { useTokenLaunch } from './useTokenLaunch'
 import type { LaunchParams } from './useTokenLaunch'
 import { getSolscanTxUrl } from '../../lib/solanaExplorer'
+import basedbidLogo from '../../assets/basedbid-logo.svg'
 import './LaunchWizard.css'
 
 type Step = 1 | 2 | 3 | 4
@@ -47,6 +48,7 @@ interface OpenBidState {
   marketCap: string
   totalSupply: string
   maxAllocationPerUser: string
+  initialBuyPercent: string
   saleStartTime: string
   softCap: string
   endTime: string
@@ -62,8 +64,7 @@ interface OpenBidState {
 }
 
 const OPENBID_MARKET_CAP_PRESETS = [
-  ['1000', '$1K'],
-  ['9000', '$9K'],
+  ['11000', '$11K'],
   ['49000', '$49K'],
   ['99000', '$99K'],
   ['333000', '$333K'],
@@ -79,10 +80,13 @@ const OPENBID_FEE_TIERS = [
   ['3', '6%'],
 ] as const
 
+const OPENBID_RAYDIUM_FEE_TIERS = OPENBID_FEE_TIERS.filter(([id]) => id !== '3')
+const OPENBID_MAX_INITIAL_BUY_PERCENT = 80.2
+
 const OPENBID_PLAN_META: Record<OpenBidPackageType, { title: string; detail: string; price: string }> = {
-  based: { title: 'based', detail: 'Standard launch', price: 'Launch at no cost' },
-  super_based: { title: 'super based', detail: 'Sale alert on socials', price: '0.018 ETH' },
-  ultra_based: { title: 'ultra based', detail: 'Sale alert & buy alerts on socials', price: '0.036 ETH' },
+  based: { title: 'based', detail: 'Standard launch', price: '$0' },
+  super_based: { title: 'super based', detail: 'Sale alert on socials', price: '$49' },
+  ultra_based: { title: 'ultra based', detail: 'Sale alert & buy alerts on socials', price: '$99' },
 }
 
 function createDefaultOpenBidState(): OpenBidState {
@@ -91,9 +95,10 @@ function createDefaultOpenBidState(): OpenBidState {
     packageType: 'based',
     dex: 'meteora',
     feeTier: '1',
-    marketCap: '9000',
+    marketCap: '11000',
     totalSupply: '1000000000',
     maxAllocationPerUser: '0',
+    initialBuyPercent: '0.1',
     saleStartTime: '',
     softCap: '',
     endTime: '',
@@ -124,6 +129,7 @@ function buildOpenBidConfig(state: OpenBidState): OpenBidLaunchInputConfig {
     marketCap: state.marketCap.trim(),
     totalSupply: state.totalSupply.trim(),
     maxAllocationPerUser: state.maxAllocationPerUser.trim(),
+    initialBuyPercent: parseOptionalNumber(state.initialBuyPercent, 0),
     referrer: state.referrer.trim(),
     board: state.board.trim(),
     boardOwner: state.boardOwner.trim(),
@@ -158,6 +164,19 @@ function formatCompact(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
   if (n >= 1_000) return `$${(n / 1_000).toFixed(n >= 100_000 ? 0 : 1).replace('.0', '')}K`
   return `$${n}`
+}
+
+function getOpenBidFeeTiers(dex: OpenBidDex) {
+  return dex === 'raydium' ? OPENBID_RAYDIUM_FEE_TIERS : OPENBID_FEE_TIERS
+}
+
+function getOpenBidFeeTierLabel(dex: OpenBidDex, feeTier: string): string {
+  return getOpenBidFeeTiers(dex).find(([id]) => id === feeTier)?.[1] ?? '2%'
+}
+
+function isValidOpenBidInitialBuy(value: string): boolean {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= OPENBID_MAX_INITIAL_BUY_PERCENT
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -272,12 +291,12 @@ export function LaunchWizard() {
   const s2Priority = parseFloat(s2.priorityFee) || 0
   const selectedWallet = wallets.find((w) => w.id === s2.walletId) ?? null
   const TX_BASE_COST = 0.02
-  const totalCost = s2BuySol + s2Priority + TX_BASE_COST
+  const isOpenBid = s2.launchpad === 'openbid'
+  const totalCost = (isOpenBid ? 0 : s2BuySol) + s2Priority + TX_BASE_COST
   const isBalanceLow = walletBalance !== null && walletBalance < totalCost
   const selectedWalletMissingKeypair = selectedWallet ? !selectedWallet.hasKeypair : false
   const launchChecksPassing = preflight?.ready ?? false
 
-  const isOpenBid = s2.launchpad === 'openbid'
   const selectedLaunchpad = launchpads.find((p) => p.id === s2.launchpad) ?? null
 
   const step1Missing = useMemo(() => {
@@ -291,12 +310,16 @@ export function LaunchWizard() {
 
   const canProceedStep1 = step1Missing.length === 0
 
-  const canProceedStep2 =
-    s2BuySol > 0 &&
-    parseFloat(s2.slippage) > 0 &&
-    s2Priority >= 0 &&
-    s2.walletId.length > 0 &&
-    !selectedWalletMissingKeypair
+  const canProceedStep2 = isOpenBid
+    ? isValidOpenBidInitialBuy(s2.openbid.initialBuyPercent) &&
+      s2Priority >= 0 &&
+      s2.walletId.length > 0 &&
+      !selectedWalletMissingKeypair
+    : s2BuySol > 0 &&
+      parseFloat(s2.slippage) > 0 &&
+      s2Priority >= 0 &&
+      s2.walletId.length > 0 &&
+      !selectedWalletMissingKeypair
 
   const handleLaunch = () => {
     const params: LaunchParams = {
@@ -309,8 +332,8 @@ export function LaunchWizard() {
       twitter: s1.twitter.trim(),
       telegram: s1.telegram.trim(),
       website: s1.website.trim(),
-      initialBuySol: s2BuySol,
-      slippageBps: Math.round(parseFloat(s2.slippage) * 100),
+      initialBuySol: isOpenBid ? 0 : s2BuySol,
+      slippageBps: isOpenBid ? 0 : Math.round(parseFloat(s2.slippage) * 100),
       priorityFeeSol: s2Priority,
       walletId: s2.walletId,
       openbid: isOpenBid ? buildOpenBidConfig(s2.openbid) : undefined,
@@ -388,8 +411,8 @@ export function LaunchWizard() {
         twitter: s1.twitter.trim(),
         telegram: s1.telegram.trim(),
         website: s1.website.trim(),
-        initialBuySol: s2BuySol,
-        slippageBps: Math.round(parseFloat(s2.slippage) * 100),
+        initialBuySol: isOpenBid ? 0 : s2BuySol,
+        slippageBps: isOpenBid ? 0 : Math.round(parseFloat(s2.slippage) * 100),
         priorityFeeSol: s2Priority,
         openbid: isOpenBid ? buildOpenBidConfig(s2.openbid) : undefined,
       })
@@ -559,8 +582,9 @@ export function LaunchWizard() {
                   launchpadName={selectedLaunchpad?.name ?? '—'}
                   isOpenBid={isOpenBid}
                   marketCap={s2.openbid.marketCap}
-                  feeTierLabel={OPENBID_FEE_TIERS.find(([id]) => id === s2.openbid.feeTier)?.[1] ?? '2%'}
+                  feeTierLabel={getOpenBidFeeTierLabel(s2.openbid.dex, s2.openbid.feeTier)}
                   planTitle={OPENBID_PLAN_META[s2.openbid.packageType].title}
+                  initialBuyPercent={s2.openbid.initialBuyPercent}
                   initialBuySol={s2BuySol}
                   totalCost={totalCost}
                   step={step}
@@ -636,6 +660,7 @@ function LivePreviewCard({
   marketCap,
   feeTierLabel,
   planTitle,
+  initialBuyPercent,
   initialBuySol,
   totalCost,
   step,
@@ -650,6 +675,7 @@ function LivePreviewCard({
   marketCap: string
   feeTierLabel: string
   planTitle: string
+  initialBuyPercent: string
   initialBuySol: number
   totalCost: number
   step: Step
@@ -658,7 +684,9 @@ function LivePreviewCard({
   return (
     <div className="lw-preview">
       <div className="lw-preview-head">
-        <span className="lw-preview-eyebrow">Live Preview</span>
+        {isOpenBid
+          ? <img className="lw-preview-brand" src={basedbidLogo} alt="basedbid" />
+          : <span className="lw-preview-eyebrow">Live Preview</span>}
         <span className="lw-preview-pill">{launchpadName}</span>
       </div>
 
@@ -687,7 +715,7 @@ function LivePreviewCard({
           </div>
           <div>
             <span>Initial buy</span>
-            <strong>{initialBuySol.toFixed(2)} SOL</strong>
+            <strong>{isOpenBid ? `${initialBuyPercent || '0'}%` : `${initialBuySol.toFixed(2)} SOL`}</strong>
           </div>
           <div>
             <span>DEX fee</span>
@@ -870,7 +898,9 @@ function StepConfig({
                 className={`lw-pad ${selected ? 'selected' : ''}`}
                 onClick={() => setS2((prev) => ({ ...prev, launchpad: pad.id }))}
               >
-                <div className="lw-pad-dot" />
+                {pad.id === 'openbid'
+                  ? <img className="lw-pad-brand" src={basedbidLogo} alt="" />
+                  : <div className="lw-pad-dot" />}
                 <div className="lw-pad-body">
                   <div className="lw-pad-name">
                     {pad.name}
@@ -913,7 +943,7 @@ function StepConfig({
       </Section>
 
       {isOpenBid && (
-        <Section title="based.bid pool" subtitle="LBP economics on Solana." accent>
+        <Section title="basedbid pool" subtitle="LBP economics on Solana." accent>
           <Field label="Chain">
             <Segmented
               options={[
@@ -926,7 +956,7 @@ function StepConfig({
             />
           </Field>
 
-          <Field label="Market cap target" hint="The LBP graduation target">
+          <Field label="Market cap target" hint="$11K to $10M">
             <input
               className="lw-input mono"
               value={s2.openbid.marketCap}
@@ -946,6 +976,18 @@ function StepConfig({
             </div>
           </Field>
 
+          <Field label="Initial buy" hint="% of supply">
+            <input
+              className="lw-input mono"
+              type="number"
+              min="0"
+              max={OPENBID_MAX_INITIAL_BUY_PERCENT}
+              step="0.1"
+              value={s2.openbid.initialBuyPercent}
+              onChange={(e) => setS2((prev) => ({ ...prev, openbid: { ...prev.openbid, initialBuyPercent: e.target.value } }))}
+            />
+          </Field>
+
           <div className="lw-grid-2">
             <Field label="DEX">
               <Segmented
@@ -954,12 +996,19 @@ function StepConfig({
                   { value: 'raydium', label: 'Raydium' },
                 ]}
                 value={s2.openbid.dex}
-                onChange={(v) => setS2((prev) => ({ ...prev, openbid: { ...prev.openbid, dex: v as OpenBidDex } }))}
+                onChange={(v) => setS2((prev) => ({
+                  ...prev,
+                  openbid: {
+                    ...prev.openbid,
+                    dex: v as OpenBidDex,
+                    feeTier: v === 'raydium' && prev.openbid.feeTier === '3' ? '2' : prev.openbid.feeTier,
+                  },
+                }))}
               />
             </Field>
             <Field label="DEX fees">
               <Segmented
-                options={OPENBID_FEE_TIERS.map(([id, label]) => ({ value: id, label }))}
+                options={getOpenBidFeeTiers(s2.openbid.dex).map(([id, label]) => ({ value: id, label }))}
                 value={s2.openbid.feeTier}
                 onChange={(v) => setS2((prev) => ({ ...prev, openbid: { ...prev.openbid, feeTier: v } }))}
               />
@@ -1103,17 +1152,11 @@ function StepConfig({
       )}
 
       {isOpenBid && (
-        <Section title="Economics" subtitle="Your initial buy and tx priority.">
-          <div className="lw-grid-2">
-            <Field label="Initial buy" hint="SOL">
-              <input className="lw-input mono" type="number" min="0" step="0.01" value={s2.initialBuySol}
-                onChange={(e) => setS2((p) => ({ ...p, initialBuySol: e.target.value }))} />
-            </Field>
-            <Field label="Priority fee" hint="SOL">
-              <input className="lw-input mono" type="number" min="0" step="0.001" value={s2.priorityFee}
-                onChange={(e) => setS2((p) => ({ ...p, priorityFee: e.target.value }))} />
-            </Field>
-          </div>
+        <Section title="Economics" subtitle="Transaction priority.">
+          <Field label="Priority fee" hint="SOL">
+            <input className="lw-input mono" type="number" min="0" step="0.001" value={s2.priorityFee}
+              onChange={(e) => setS2((p) => ({ ...p, priorityFee: e.target.value }))} />
+          </Field>
         </Section>
       )}
     </div>
@@ -1146,7 +1189,8 @@ function StepConfirm({
   confirmed: boolean
   onToggleConfirm: () => void
 }) {
-  const s2Buy = parseFloat(s2.initialBuySol) || 0
+  const isOpenBid = s2.launchpad === 'openbid'
+  const s2Buy = isOpenBid ? 0 : parseFloat(s2.initialBuySol) || 0
   const s2Priority = parseFloat(s2.priorityFee) || 0
 
   return (
@@ -1157,13 +1201,15 @@ function StepConfirm({
           <SummaryRow k="Description" v={s1.description} wrap />
           {s1.imagePath && <SummaryRow k="Image" v={s1.imagePath.split(/[/\\]/).pop() ?? ''} mono />}
           <SummaryRow k="Launchpad" v={launchpadName} />
-          <SummaryRow k="Slippage" v={`${s2.slippage}%`} mono />
+          {isOpenBid
+            ? <SummaryRow k="Initial buy" v={`${s2.openbid.initialBuyPercent || '0'}% of supply`} mono />
+            : <SummaryRow k="Slippage" v={`${s2.slippage}%`} mono />}
         </dl>
       </Section>
 
       <Section title="Cost" subtitle="Estimated SOL needed for this launch.">
         <div className="lw-cost">
-          <CostLine label="Initial buy" value={`${s2Buy.toFixed(4)} SOL`} />
+          {!isOpenBid && <CostLine label="Initial buy" value={`${s2Buy.toFixed(4)} SOL`} />}
           <CostLine label="Priority fee" value={`${s2Priority.toFixed(4)} SOL`} />
           <CostLine label="Tx + rent" value="~0.0200 SOL" />
           <div className="lw-cost-total">
