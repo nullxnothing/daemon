@@ -50,6 +50,19 @@ function installDaemonBridge() {
       },
       wallet: {
         hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
+        moonpayStatus: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: false, environment: null, publishableKeyHint: null },
+        }),
+        storeMoonpayKeys: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: true, environment: 'sandbox', publishableKeyHint: 'pk_test...1234' },
+        }),
+        deleteMoonpayKeys: vi.fn().mockResolvedValue({ ok: true }),
+        openMoonpayOnramp: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { url: 'https://buy-sandbox.moonpay.com/', environment: 'sandbox', walletAddress: '7Y12wallet9AbC' },
+        }),
         hasKeypair: vi.fn().mockResolvedValue({ ok: true, data: true }),
         balance: vi.fn().mockResolvedValue({ ok: true, data: { sol: 4.2, lamports: 4200000000 } }),
         assignProject,
@@ -203,6 +216,29 @@ describe('WalletTab readiness UX', () => {
 
     await waitFor(() => {
       expect(window.daemon.wallet.importKeypair).toHaveBeenCalledWith('wallet-1', 'private-key-text')
+    })
+  })
+
+  it('opens a signed MoonPay onramp for the active wallet', async () => {
+    window.daemon.wallet.moonpayStatus.mockResolvedValue({
+      ok: true,
+      data: { configured: true, environment: 'sandbox', publishableKeyHint: 'pk_test...1234' },
+    })
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+
+    render(<WalletTab onRefresh={onRefresh} />)
+
+    const buyButtons = await screen.findAllByRole('button', { name: 'Buy SOL' })
+    await userEvent.click(buyButtons[0])
+    expect(await screen.findByText(/Sandbox keys active/)).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Open MoonPay' }))
+
+    await waitFor(() => {
+      expect(window.daemon.wallet.openMoonpayOnramp).toHaveBeenCalledWith({
+        walletId: 'wallet-1',
+        baseCurrencyAmount: 50,
+        baseCurrencyCode: 'usd',
+      })
     })
   })
 })

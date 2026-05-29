@@ -7,6 +7,7 @@ interface WalletSettingsProps {
   showTitlebarWallet: boolean
   heliusConfigured: boolean
   jupiterConfigured: boolean
+  moonpayStatus: MoonpayStatus
   infrastructure: WalletInfrastructureSettings
   error: string | null
   onToggleTape: (checked: boolean) => Promise<void>
@@ -15,6 +16,8 @@ interface WalletSettingsProps {
   onDeleteHelius: () => Promise<void>
   onSaveJupiter: (key: string) => Promise<void>
   onDeleteJupiter: () => Promise<void>
+  onSaveMoonpayKeys: (publishableKey: string, secretKey: string) => Promise<void>
+  onDeleteMoonpayKeys: () => Promise<void>
   onSaveInfrastructure: (settings: WalletInfrastructureSettings) => Promise<void>
 }
 
@@ -23,6 +26,7 @@ export function WalletSettings({
   showTitlebarWallet,
   heliusConfigured,
   jupiterConfigured,
+  moonpayStatus,
   infrastructure,
   error,
   onToggleTape,
@@ -31,10 +35,14 @@ export function WalletSettings({
   onDeleteHelius,
   onSaveJupiter,
   onDeleteJupiter,
+  onSaveMoonpayKeys,
+  onDeleteMoonpayKeys,
   onSaveInfrastructure,
 }: WalletSettingsProps) {
   const [heliusKey, setHeliusKey] = useState('')
   const [jupiterKey, setJupiterKey] = useState('')
+  const [moonpayPublishableKey, setMoonpayPublishableKey] = useState('')
+  const [moonpaySecretKey, setMoonpaySecretKey] = useState('')
   const [draftInfra, setDraftInfra] = useState<WalletInfrastructureSettings>(infrastructure)
 
   useEffect(() => {
@@ -51,6 +59,13 @@ export function WalletSettings({
     if (!jupiterKey.trim()) return
     await onSaveJupiter(jupiterKey.trim())
     setJupiterKey('')
+  }
+
+  const handleSaveMoonpay = async () => {
+    if (!moonpayPublishableKey.trim() || !moonpaySecretKey.trim()) return
+    await onSaveMoonpayKeys(moonpayPublishableKey.trim(), moonpaySecretKey.trim())
+    setMoonpayPublishableKey('')
+    setMoonpaySecretKey('')
   }
 
   const rpcReady = getRpcReady(draftInfra, heliusConfigured)
@@ -130,6 +145,16 @@ export function WalletSettings({
               </div>
               <div className="wallet-caption">
                 DAEMON already treats Jupiter as the shared swap engine. The key makes that runtime usable instead of aspirational.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Onramp</div>
+              <div className="wallet-runtime-summary-value">
+                {moonpayStatus.configured ? `MoonPay ${moonpayStatus.environment}` : 'MoonPay missing'}
+              </div>
+              <div className="wallet-caption">
+                MoonPay opens a signed hosted buy flow with the active wallet prefilled for SOL deposits.
               </div>
             </div>
           </div>
@@ -298,6 +323,45 @@ export function WalletSettings({
             <button type="button" className="wallet-btn primary-soft" onClick={() => onSaveInfrastructure(draftInfra)}>Save Execution Settings</button>
             {jupiterConfigured && (
               <button type="button" className="wallet-btn danger" onClick={onDeleteJupiter}>Delete Key</button>
+            )}
+          </div>
+        </div>
+
+        <div className="wallet-settings-card">
+          <div className="wallet-settings-card-head">
+            <div>
+              <div className="wallet-label">MoonPay Onramp</div>
+              <div className="wallet-caption">
+                {moonpayStatus.configured
+                  ? `Signed SOL checkout is ready with ${moonpayStatus.publishableKeyHint}.`
+                  : 'Store MoonPay dashboard keys to open signed SOL buy URLs from the wallet panel.'}
+              </div>
+            </div>
+            <span className={`wallet-state-badge ${moonpayStatus.configured ? 'live' : 'muted'}`}>
+              {moonpayStatus.configured ? moonpayStatus.environment : 'Missing'}
+            </span>
+          </div>
+
+          <input
+            className="wallet-input"
+            type="password"
+            autoComplete="off"
+            value={moonpayPublishableKey}
+            onChange={(e) => setMoonpayPublishableKey(e.target.value)}
+            placeholder={moonpayStatus.configured ? 'Replace pk_test or pk_live key' : 'MOONPAY_PUBLISHABLE_KEY'}
+          />
+          <input
+            className="wallet-input"
+            type="password"
+            autoComplete="off"
+            value={moonpaySecretKey}
+            onChange={(e) => setMoonpaySecretKey(e.target.value)}
+            placeholder={moonpayStatus.configured ? 'Replace sk_test or sk_live key' : 'MOONPAY_SECRET_KEY'}
+          />
+          <div className="wallet-actions wallet-actions-wrap">
+            <button type="button" className="wallet-btn primary" onClick={handleSaveMoonpay}>Save MoonPay Keys</button>
+            {moonpayStatus.configured && (
+              <button type="button" className="wallet-btn danger" onClick={onDeleteMoonpayKeys}>Delete Keys</button>
             )}
           </div>
         </div>

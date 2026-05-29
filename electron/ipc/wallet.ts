@@ -4,7 +4,8 @@ import * as WalletService from '../services/WalletService'
 import { previewSolanaTransaction } from '../services/SolanaTransactionPreviewService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
-import type { SolanaTransactionPreviewInput, WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
+import { openSafeExternalUrl } from '../security/externalNavigation'
+import type { MoonpayKeysInput, MoonpayOnrampInput, SolanaTransactionPreviewInput, WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
 
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', ipcHandler(async (_event, projectId?: string | null) => {
@@ -60,6 +61,25 @@ export function registerWalletHandlers() {
 
   ipcMain.handle('wallet:has-jupiter-key', ipcHandler(async () => {
     return WalletService.hasJupiterKey()
+  }))
+
+  ipcMain.handle('wallet:moonpay-status', ipcHandler(async () => {
+    return WalletService.getMoonpayStatus()
+  }))
+
+  ipcMain.handle('wallet:store-moonpay-keys', ipcHandler(async (_event, input: MoonpayKeysInput) => {
+    return WalletService.storeMoonpayKeys(input)
+  }))
+
+  ipcMain.handle('wallet:delete-moonpay-keys', ipcHandler(async () => {
+    WalletService.deleteMoonpayKeys()
+  }))
+
+  ipcMain.handle('wallet:open-moonpay-onramp', ipcHandler(async (_event, input: MoonpayOnrampInput) => {
+    const result = WalletService.buildMoonpayOnrampUrl(input)
+    const opened = await openSafeExternalUrl(result.url)
+    if (!opened) throw new Error('MoonPay URL was blocked')
+    return result
   }))
 
   ipcMain.handle('wallet:generate', ipcHandler(async (_event, input: WalletGenerateInput) => {
