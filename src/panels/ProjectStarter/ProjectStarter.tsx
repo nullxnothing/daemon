@@ -311,9 +311,7 @@ export function buildRuntimePrompt(settings: WalletInfrastructureSettings | null
         ? 'Default to the public Solana RPC path and keep provider config overridable via env.'
         : 'Default to Helius-backed RPC and keep HELIUS_API_KEY support first-class.'
 
-  const walletPreference = settings.preferredWallet === 'wallet-standard'
-    ? 'Prefer Wallet Standard integration and keep Backpack, Solflare, and Phantom compatibility explicit.'
-    : 'Prefer Phantom-first wallet integration while keeping Wallet Standard fallback paths available.'
+  const walletPreference = getWalletPreferencePrompt(settings.preferredWallet)
 
   const executionPreference = settings.executionMode === 'jito'
     ? `Add an optional Jito execution path and environment variable for the block engine URL (${settings.jitoBlockEngineUrl || 'JITO_BLOCK_ENGINE_URL'}).`
@@ -356,24 +354,70 @@ export function buildRuntimePreset(settings: WalletInfrastructureSettings | null
   }
 }
 
+function getWalletPreferencePrompt(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') {
+    return 'Prefer Solflare wallet integration. Use @solflare-wallet/sdk for direct DAEMON-style clients and Solana Wallet Adapter with SolflareWalletAdapter for generated web apps.'
+  }
+
+  if (preferredWallet === 'wallet-standard') {
+    return 'Prefer Wallet Standard integration and keep Backpack, Solflare, and Phantom compatibility explicit.'
+  }
+
+  return 'Prefer Phantom-first wallet integration while keeping Wallet Standard fallback paths available.'
+}
+
+function getWalletScaffoldFlow(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string[] {
+  if (preferredWallet === 'solflare') {
+    return [
+      'For wallet scaffolding:',
+      '- Build a dedicated `providers/solflare-provider` or equivalent app-level wallet wrapper.',
+      '- For web dApps, use Solana Wallet Adapter with `SolflareWalletAdapter` as the first configured wallet.',
+      '- For direct clients, isolate `@solflare-wallet/sdk` behind a small connect/sign module.',
+      '- Include connect, disconnect, sign message, and send transaction examples.',
+    ]
+  }
+
+  if (preferredWallet === 'wallet-standard') {
+    return [
+      'For wallet scaffolding:',
+      '- Build around Wallet Standard as the primary abstraction.',
+      '- Keep Phantom, Backpack, and Solflare compatibility explicit in the provider layer.',
+      '- Add a dedicated adapter boundary so wallet-specific behavior stays isolated from app pages and hooks.',
+      '- Include connect, disconnect, sign message, and send transaction examples using the shared wallet abstraction.',
+    ]
+  }
+
+  return [
+    'For wallet scaffolding:',
+    '- Build a dedicated `providers/phantom-provider` or equivalent app-level wallet wrapper.',
+    '- Use the current official Phantom Connect SDK for the primary connect/sign flow.',
+    '- Keep a secondary Wallet Standard compatibility layer so the app can expand beyond Phantom later.',
+    '- Include clear connect, disconnect, sign message, and send transaction examples.',
+  ]
+}
+
+function getWalletSignerHint(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') {
+    return '- Use Solflare as the primary signer for frontend surfaces; use Wallet Adapter `SolflareWalletAdapter` for web dApps.'
+  }
+
+  if (preferredWallet === 'wallet-standard') {
+    return '- Use Wallet Standard as the primary signer abstraction; keep Phantom/Backpack/Solflare adapters wired.'
+  }
+
+  return '- Use Phantom Connect SDK as the primary signer for any frontend surface.'
+}
+
+function getWalletRuntimeLabel(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') return 'Solflare wallet flow'
+  if (preferredWallet === 'wallet-standard') return 'Wallet Standard flow'
+  return 'Phantom-first wallet flow'
+}
+
 function buildTemplateSpecificPrompt(templateId: string, settings: WalletInfrastructureSettings | null): string {
   if (!settings) return ''
 
-  const walletFlow = settings.preferredWallet === 'phantom'
-    ? [
-        'For wallet scaffolding:',
-        '- Build a dedicated `providers/phantom-provider` or equivalent app-level wallet wrapper.',
-        '- Use the current official Phantom Connect SDK for the primary connect/sign flow.',
-        '- Keep a secondary Wallet Standard compatibility layer so the app can expand beyond Phantom later.',
-        '- Include clear connect, disconnect, sign message, and send transaction examples.',
-      ]
-    : [
-        'For wallet scaffolding:',
-        '- Build around Wallet Standard as the primary abstraction.',
-        '- Keep Phantom, Backpack, and Solflare compatibility explicit in the provider layer.',
-        '- Add a dedicated adapter boundary so wallet-specific behavior stays isolated from app pages and hooks.',
-        '- Include connect, disconnect, sign message, and send transaction examples using the shared wallet abstraction.',
-      ]
+  const walletFlow = getWalletScaffoldFlow(settings.preferredWallet)
 
   const providerFlow = settings.rpcProvider === 'helius'
     ? '- Add a transport module that defaults to Helius and reads `HELIUS_API_KEY` plus `NEXT_PUBLIC_RPC_URL` or `RPC_URL` from env.'
@@ -450,9 +494,7 @@ export function buildPerpsPromptAddon(
       ? '- Default to QuickNode RPC via QUICKNODE_RPC_URL; document Helius LaserStream as the streaming option for liquidations and fill events.'
       : '- Read RPC_URL from env; document Helius LaserStream as the recommended streaming option for liquidations and fill events.'
 
-  const walletHint = settings.preferredWallet === 'phantom'
-    ? '- Use Phantom Connect SDK as the primary signer for any frontend surface.'
-    : '- Use Wallet Standard as the primary signer abstraction; keep Phantom/Backpack/Solflare adapters wired.'
+  const walletHint = getWalletSignerHint(settings.preferredWallet)
 
   const common = [
     'Perps architecture requirements:',
@@ -2117,7 +2159,7 @@ export function ProjectStarter() {
       : 'Choose a location...'
     const runtimeSummary = walletInfrastructure ? [
       walletInfrastructure.rpcProvider === 'quicknode' ? 'QuickNode RPC' : walletInfrastructure.rpcProvider === 'custom' ? 'Custom RPC' : walletInfrastructure.rpcProvider === 'public' ? 'Public RPC' : 'Helius RPC',
-      walletInfrastructure.preferredWallet === 'phantom' ? 'Phantom-first wallet flow' : 'Wallet Standard flow',
+      getWalletRuntimeLabel(walletInfrastructure.preferredWallet),
       `${walletInfrastructure.swapProvider === 'jupiter' ? 'Jupiter' : walletInfrastructure.swapProvider} swaps`,
       walletInfrastructure.executionMode === 'jito' ? 'Jito execution' : 'RPC execution',
     ] : []

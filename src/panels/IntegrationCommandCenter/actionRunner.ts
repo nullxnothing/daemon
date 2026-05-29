@@ -54,6 +54,18 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-solflare-sdk') {
+    const ready = context.packages.has('@solflare-wallet/sdk')
+    return {
+      title: 'Solflare SDK',
+      status: ready ? 'success' : 'info',
+      detail: ready
+        ? '@solflare-wallet/sdk is listed in package.json.'
+        : 'Direct Solflare integration needs @solflare-wallet/sdk. Generated web dApps can also use Solana Wallet Adapter with SolflareWalletAdapter.',
+      items: ready ? ['@solflare-wallet/sdk'] : ['@solflare-wallet/sdk', '@solana/wallet-adapter-wallets'],
+    }
+  }
+
   if (actionId === 'check-solana-mcp') {
     const mcp = context.mcps.find((entry) => entry.name === 'solana-mcp-server')
     return {
@@ -271,6 +283,15 @@ export async function runIntegrationAction(actionId: string, context: Integratio
       title: 'Opening IDLE docs',
       status: 'success',
       detail: 'Launched the IDLE documentation in your browser.',
+    }
+  }
+
+  if (actionId === 'open-solflare-docs') {
+    void daemon.shell.openExternal('https://docs.solflare.com/solflare/technical/integrate-solflare')
+    return {
+      title: 'Opening Solflare docs',
+      status: 'success',
+      detail: 'Launched Solflare integration docs in your browser.',
     }
   }
 

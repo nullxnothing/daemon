@@ -175,6 +175,15 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     skill: '/phantom-connect',
   },
   {
+    id: 'solflare-wallet',
+    label: 'Solflare',
+    area: 'Wallets',
+    kind: 'SDK',
+    status: 'guided',
+    description: 'Direct Solflare Wallet SDK for DAEMON-style clients and Solana Wallet Adapter support for generated web dApps.',
+    docsUrl: 'https://docs.solflare.com/solflare/technical/integrate-solflare',
+  },
+  {
     id: 'wallet-standard',
     label: 'Wallet Standard',
     area: 'Wallets',

@@ -79,6 +79,24 @@ describe('SolanaRuntimeStatusService', () => {
     expect(status.troubleshooting).toContain('Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.')
   })
 
+  it('reports Solflare as the selected wallet path', () => {
+    mockGetWalletInfrastructureSettings.mockReturnValue({
+      cluster: 'devnet',
+      rpcProvider: 'helius',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'solflare',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    })
+
+    const status = getSolanaRuntimeStatus()
+
+    expect(status.walletPath.label).toBe('Solflare')
+    expect(status.walletPath.detail).toContain('Solflare Wallet SDK')
+  })
+
   it('marks blank QuickNode RPC as setup instead of live', () => {
     mockGetWalletInfrastructureSettings.mockReturnValue({
       cluster: 'devnet',

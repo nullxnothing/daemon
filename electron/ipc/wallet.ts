@@ -5,7 +5,16 @@ import { previewSolanaTransaction } from '../services/SolanaTransactionPreviewSe
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
 import { openSafeExternalUrl } from '../security/externalNavigation'
-import type { MoonpayKeysInput, MoonpayOnrampInput, SolanaTransactionPreviewInput, WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
+import type {
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  SolanaTransactionPreviewInput,
+  SubmitExternalSignedTransactionInput,
+  WalletCreateInput,
+  WalletGenerateInput,
+  TransferSOLInput,
+  TransferTokenInput,
+} from '../shared/types'
 
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', ipcHandler(async (_event, projectId?: string | null) => {
@@ -96,6 +105,18 @@ export function registerWalletHandlers() {
 
   ipcMain.handle('wallet:send-sol', ipcHandler(async (_event, input: TransferSOLInput) => {
     return await WalletService.transferSOL(input.fromWalletId, input.toAddress, input.amountSol, input.sendMax === true)
+  }))
+
+  ipcMain.handle('wallet:prepare-external-sol-transfer', ipcHandler(async (_event, input: TransferSOLInput) => {
+    return await WalletService.prepareExternalSolTransfer(input.fromWalletId, input.toAddress, input.amountSol, input.sendMax === true)
+  }))
+
+  ipcMain.handle('wallet:submit-external-signed-transaction', ipcHandler(async (_event, input: SubmitExternalSignedTransactionInput) => {
+    return await WalletService.submitExternalSignedTransaction(input)
+  }))
+
+  ipcMain.handle('wallet:cancel-external-transaction', ipcHandler(async (_event, id: string, reason?: string) => {
+    WalletService.cancelExternalTransaction(id, reason)
   }))
 
   ipcMain.handle('wallet:send-token', ipcHandler(async (_event, input: TransferTokenInput) => {

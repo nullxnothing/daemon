@@ -1409,6 +1409,21 @@ export interface TransferSOLInput {
   sendMax?: boolean
 }
 
+export interface ExternalSolTransferDraft {
+  id: string
+  fromAddress: string
+  toAddress: string
+  amountSol: number
+  transactionBase64: string
+  transport: 'rpc' | 'jito'
+}
+
+export interface SubmitExternalSignedTransactionInput {
+  id: string
+  publicKey: string
+  signedTransactionBase64: string
+}
+
 export interface TransferTokenInput {
   fromWalletId: string
   toAddress: string

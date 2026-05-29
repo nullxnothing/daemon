@@ -59,6 +59,8 @@ import type {
   TweetUpdateInput,
   WalletCreateInput,
   WalletGenerateInput,
+  ExternalSolTransferDraft,
+  SubmitExternalSignedTransactionInput,
   TransferSOLInput,
   TransferTokenInput,
   SolanaTransactionPreview,
@@ -210,6 +212,8 @@ export type {
   TweetUpdateInput,
   WalletCreateInput,
   WalletGenerateInput,
+  ExternalSolTransferDraft,
+  SubmitExternalSignedTransactionInput,
   TransferSOLInput,
   TransferTokenInput,
   SolanaTransactionPreview,
@@ -368,7 +372,7 @@ declare global {
     quicknodeRpcUrl: string
     customRpcUrl: string
     swapProvider: 'jupiter'
-    preferredWallet: 'phantom' | 'wallet-standard'
+    preferredWallet: 'phantom' | 'solflare' | 'wallet-standard'
     executionMode: 'rpc' | 'jito'
     jitoBlockEngineUrl: string
   }
@@ -675,6 +679,9 @@ declare global {
     importSigningWallet: (input: { name: string; privateKey?: string }) => Promise<IpcResponse<WalletListEntry | null>>
     importKeypair: (walletId: string, privateKey?: string) => Promise<IpcResponse<boolean>>
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
+    prepareExternalSolTransfer: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<ExternalSolTransferDraft>>
+    submitExternalSignedTransaction: (input: SubmitExternalSignedTransactionInput) => Promise<IpcResponse<WalletExecutionResult>>
+    cancelExternalTransaction: (id: string, reason?: string) => Promise<IpcResponse>
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>

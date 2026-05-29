@@ -71,6 +71,33 @@ describe('Integration Command Center registry', () => {
     ])
   })
 
+  it('has Solflare as a wallet integration with SDK readiness', async () => {
+    const solflare = INTEGRATION_REGISTRY.find((integration) => integration.id === 'solflare')
+
+    expect(solflare).toBeDefined()
+    expect(solflare!.category).toBe('wallet')
+    expect(solflare!.docsUrl).toBe('https://docs.solflare.com/solflare/technical/integrate-solflare')
+    expect(solflare!.installCommand).toContain('@solflare-wallet/sdk')
+    expect(solflare!.actions.map((action) => action.id)).toEqual([
+      'check-solflare-sdk',
+      'open-solflare-docs',
+    ])
+
+    const context: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(['@solflare-wallet/sdk']),
+      walletReady: false,
+      defaultWallet: null,
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    const sdkCheck = await runIntegrationAction('check-solflare-sdk', context)
+    expect(sdkCheck.status).toBe('success')
+    expect(sdkCheck.items).toContain('@solflare-wallet/sdk')
+  })
+
   it('has Zauth as an embedded x402 management integration', () => {
     const zauth = INTEGRATION_REGISTRY.find((integration) => integration.id === 'zauth')
 
