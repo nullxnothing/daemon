@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createHmac } from 'node:crypto'
 
 // --- Mock electron (not used by WalletService directly, but transitive deps may load it)
 vi.mock('electron', () => ({
@@ -35,7 +36,14 @@ vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
   json: async () => ({}),
 }))
 
-import { createWallet, deleteWallet, setDefaultWallet } from '../../electron/services/WalletService'
+import {
+  buildMoonpayOnrampUrl,
+  createWallet,
+  deleteWallet,
+  setDefaultWallet,
+  storeMoonpayKeys,
+} from '../../electron/services/WalletService'
+import * as SecureKey from '../../electron/services/SecureKeyService'
 
 // Helper to create a controlled prepare mock for a sequence of SQL calls
 function createPrepareChain(responses: Record<string, { run?: ReturnType<typeof vi.fn>; get?: ReturnType<typeof vi.fn>; all?: ReturnType<typeof vi.fn> }>) {
@@ -100,6 +108,56 @@ describe('isValidSolanaAddress (via createWallet)', () => {
     const result = createWallet('Test', validAddress)
     expect(result).toBeDefined()
     expect(insertRun).toHaveBeenCalled()
+  })
+})
+
+describe('MoonPay onramp URLs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(SecureKey.getKey).mockImplementation((keyName: string) => {
+      if (keyName === 'MOONPAY_PUBLISHABLE_KEY') return 'pk_test_1234'
+      if (keyName === 'MOONPAY_SECRET_KEY') return 'sk_test_5678'
+      return null
+    })
+  })
+
+  it('builds a signed sandbox SOL buy URL for a wallet', () => {
+    const walletAddress = 'So11111111111111111111111111111111111111112'
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT address FROM wallets WHERE id')) {
+        return { get: vi.fn().mockReturnValue({ address: walletAddress }) }
+      }
+      return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
+    })
+
+    const result = buildMoonpayOnrampUrl({
+      walletId: 'wallet-1',
+      baseCurrencyAmount: 75,
+      baseCurrencyCode: 'usd',
+      externalTransactionId: 'daemon-test',
+    })
+
+    const url = new URL(result.url)
+    const signature = url.searchParams.get('signature')
+    url.searchParams.delete('signature')
+    const expectedSignature = createHmac('sha256', 'sk_test_5678').update(url.search).digest('base64')
+
+    expect(result.environment).toBe('sandbox')
+    expect(result.walletAddress).toBe(walletAddress)
+    expect(url.origin).toBe('https://buy-sandbox.moonpay.com')
+    expect(url.searchParams.get('apiKey')).toBe('pk_test_1234')
+    expect(url.searchParams.get('currencyCode')).toBe('sol')
+    expect(url.searchParams.get('walletAddress')).toBe(walletAddress)
+    expect(url.searchParams.get('baseCurrencyAmount')).toBe('75')
+    expect(signature).toBe(expectedSignature)
+  })
+
+  it('rejects mismatched MoonPay key environments', () => {
+    expect(() => storeMoonpayKeys({
+      publishableKey: 'pk_test_1234',
+      secretKey: 'sk_live_5678',
+    })).toThrow('same environment')
+    expect(SecureKey.storeKey).not.toHaveBeenCalled()
   })
 })
 

@@ -7,9 +7,10 @@ import bs58 from 'bs58'
 import nacl from 'tweetnacl'
 import { dialog } from 'electron'
 import fs from 'node:fs'
+import { createHmac } from 'node:crypto'
 import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getPriorityFeeLamports, withKeypair, type TransactionExecutionResult } from './SolanaService'
 import * as Voight from './VoightService'
-import type { JupiterTokenSearchResult, WalletDashboard } from '../shared/types'
+import type { JupiterTokenSearchResult, MoonpayEnvironment, MoonpayKeysInput, MoonpayOnrampInput, MoonpayOnrampResult, MoonpayStatus, WalletDashboard } from '../shared/types'
 
 const DEFAULT_FETCH_TIMEOUT_MS = 8_000
 const KEY_VALIDATION_FETCH_TIMEOUT_MS = 6_000
@@ -159,6 +160,14 @@ const BASE_SIGNATURE_FEE_LAMPORTS = 5_000
 const SOL_TRANSFER_COMPUTE_UNITS = 20_000
 const TOKEN_TRANSFER_COMPUTE_UNITS = 80_000
 const TOKEN_TRANSFER_WITH_ATA_COMPUTE_UNITS = 140_000
+const MOONPAY_PUBLISHABLE_KEY_NAME = 'MOONPAY_PUBLISHABLE_KEY'
+const MOONPAY_SECRET_KEY_NAME = 'MOONPAY_SECRET_KEY'
+const MOONPAY_SOL_CURRENCY_CODE = 'sol'
+const MOONPAY_DEFAULT_BASE_CURRENCY_CODE = 'usd'
+const MOONPAY_DEFAULT_BASE_CURRENCY_AMOUNT = 50
+const MOONPAY_THEME_COLOR = '#3ecf8e'
+const MOONPAY_SANDBOX_URL = 'https://buy-sandbox.moonpay.com'
+const MOONPAY_PRODUCTION_URL = 'https://buy.moonpay.com'
 
 // In-memory balance cache with 30-second TTL
 const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
@@ -498,6 +507,136 @@ export function deleteJupiterKey() {
 
 export function hasJupiterKey() {
   return Boolean(getJupiterApiKey())
+}
+
+function getMoonpayKeyEnvironment(key: string, publicKey: boolean): MoonpayEnvironment {
+  const expectedPrefix = publicKey ? 'pk' : 'sk'
+  if (key.startsWith(`${expectedPrefix}_test_`)) return 'sandbox'
+  if (key.startsWith(`${expectedPrefix}_live_`)) return 'production'
+  throw new Error(`MoonPay ${publicKey ? 'publishable' : 'secret'} key must start with ${expectedPrefix}_test_ or ${expectedPrefix}_live_`)
+}
+
+function getMoonpayKeys(): { publishableKey: string; secretKey: string; environment: MoonpayEnvironment } {
+  const publishableKey = SecureKey.getKey(MOONPAY_PUBLISHABLE_KEY_NAME)?.trim() ?? ''
+  const secretKey = SecureKey.getKey(MOONPAY_SECRET_KEY_NAME)?.trim() ?? ''
+  if (!publishableKey || !secretKey) throw new Error('MoonPay keys are not configured')
+
+  const publicEnvironment = getMoonpayKeyEnvironment(publishableKey, true)
+  const secretEnvironment = getMoonpayKeyEnvironment(secretKey, false)
+  if (publicEnvironment !== secretEnvironment) {
+    throw new Error('MoonPay publishable and secret keys must use the same environment')
+  }
+
+  return { publishableKey, secretKey, environment: publicEnvironment }
+}
+
+function keyHint(value: string): string {
+  return value.length > 8 ? `${value.slice(0, 7)}...${value.slice(-4)}` : 'configured'
+}
+
+export function getMoonpayStatus(): MoonpayStatus {
+  try {
+    const keys = getMoonpayKeys()
+    return {
+      configured: true,
+      environment: keys.environment,
+      publishableKeyHint: keyHint(keys.publishableKey),
+    }
+  } catch {
+    return {
+      configured: false,
+      environment: null,
+      publishableKeyHint: null,
+    }
+  }
+}
+
+export function storeMoonpayKeys(input: MoonpayKeysInput): MoonpayStatus {
+  const publishableKey = input?.publishableKey?.trim() ?? ''
+  const secretKey = input?.secretKey?.trim() ?? ''
+  if (!publishableKey) throw new Error('MoonPay publishable key is required')
+  if (!secretKey) throw new Error('MoonPay secret key is required')
+
+  const publicEnvironment = getMoonpayKeyEnvironment(publishableKey, true)
+  const secretEnvironment = getMoonpayKeyEnvironment(secretKey, false)
+  if (publicEnvironment !== secretEnvironment) {
+    throw new Error('MoonPay publishable and secret keys must use the same environment')
+  }
+
+  SecureKey.storeKey(MOONPAY_PUBLISHABLE_KEY_NAME, publishableKey)
+  SecureKey.storeKey(MOONPAY_SECRET_KEY_NAME, secretKey)
+  return getMoonpayStatus()
+}
+
+export function deleteMoonpayKeys(): void {
+  SecureKey.deleteKey(MOONPAY_PUBLISHABLE_KEY_NAME)
+  SecureKey.deleteKey(MOONPAY_SECRET_KEY_NAME)
+}
+
+function normalizeMoonpayBaseCurrencyCode(value: unknown): string {
+  const code = typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : MOONPAY_DEFAULT_BASE_CURRENCY_CODE
+  if (!/^[a-z]{3}$/.test(code)) throw new Error('MoonPay fiat currency code must be 3 letters')
+  return code
+}
+
+function normalizeMoonpayBaseCurrencyAmount(value: unknown): number {
+  const amount = value === undefined || value === null ? MOONPAY_DEFAULT_BASE_CURRENCY_AMOUNT : Number(value)
+  if (!Number.isInteger(amount) || amount <= 0) throw new Error('MoonPay fiat amount must be a positive integer')
+  return amount
+}
+
+function normalizeMoonpayExternalId(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback
+  const trimmed = value.trim()
+  if (!trimmed) return fallback
+  return trimmed.replace(/[^a-zA-Z0-9._:-]/g, '-').slice(0, 120)
+}
+
+function validateMoonpayRedirectUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null
+  const trimmed = value.trim()
+  let url: URL
+  try {
+    url = new URL(trimmed)
+  } catch {
+    throw new Error('MoonPay redirect URL must be a valid URL')
+  }
+  if (url.protocol !== 'https:') throw new Error('MoonPay redirect URL must use HTTPS')
+  if (url.username || url.password) throw new Error('MoonPay redirect URL cannot include credentials')
+  return trimmed
+}
+
+function signMoonpayUrl(url: URL, secretKey: string): string {
+  return createHmac('sha256', secretKey).update(url.search).digest('base64')
+}
+
+export function buildMoonpayOnrampUrl(input: MoonpayOnrampInput): MoonpayOnrampResult {
+  if (!input || typeof input !== 'object') throw new Error('MoonPay onramp input is required')
+
+  const keys = getMoonpayKeys()
+  const walletAddress = getWalletAddressOrThrow(input.walletId)
+  if (!isValidSolanaAddress(walletAddress)) throw new Error('Wallet has an invalid Solana address')
+
+  const url = new URL(keys.environment === 'sandbox' ? MOONPAY_SANDBOX_URL : MOONPAY_PRODUCTION_URL)
+  url.searchParams.set('apiKey', keys.publishableKey)
+  url.searchParams.set('currencyCode', MOONPAY_SOL_CURRENCY_CODE)
+  url.searchParams.set('walletAddress', walletAddress)
+  url.searchParams.set('baseCurrencyCode', normalizeMoonpayBaseCurrencyCode(input.baseCurrencyCode))
+  url.searchParams.set('baseCurrencyAmount', String(normalizeMoonpayBaseCurrencyAmount(input.baseCurrencyAmount)))
+  url.searchParams.set('theme', 'dark')
+  url.searchParams.set('colorCode', MOONPAY_THEME_COLOR)
+  url.searchParams.set('externalTransactionId', normalizeMoonpayExternalId(input.externalTransactionId, `daemon-${crypto.randomUUID()}`))
+
+  const redirectUrl = validateMoonpayRedirectUrl(input.redirectUrl)
+  if (redirectUrl) url.searchParams.set('redirectURL', redirectUrl)
+
+  url.searchParams.set('signature', signMoonpayUrl(url, keys.secretKey))
+
+  return {
+    url: url.toString(),
+    environment: keys.environment,
+    walletAddress,
+  }
 }
 
 async function getMarketTape() {

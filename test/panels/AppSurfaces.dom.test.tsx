@@ -453,6 +453,19 @@ function installDaemonBridge(options: {
         hasKeypair: vi.fn().mockResolvedValue({ ok: true, data: true }),
         hasHeliusKey: vi.fn().mockResolvedValue({ ok: true, data: true }),
         hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
+        moonpayStatus: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: false, environment: null, publishableKeyHint: null },
+        }),
+        storeMoonpayKeys: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: true, environment: 'sandbox', publishableKeyHint: 'pk_test...1234' },
+        }),
+        deleteMoonpayKeys: vi.fn().mockResolvedValue({ ok: true }),
+        openMoonpayOnramp: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { url: 'https://buy-sandbox.moonpay.com/', environment: 'sandbox', walletAddress: '7Y12wallet9AbC' },
+        }),
         assignProject: vi.fn().mockResolvedValue({ ok: true }),
         setDefault: vi.fn().mockResolvedValue({ ok: true }),
         balance: vi.fn().mockResolvedValue({ ok: true, data: { sol: 2.5, lamports: 2500000000 } }),

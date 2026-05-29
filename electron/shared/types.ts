@@ -899,6 +899,33 @@ export interface WalletDashboard {
   }>
 }
 
+export type MoonpayEnvironment = 'sandbox' | 'production'
+
+export interface MoonpayStatus {
+  configured: boolean
+  environment: MoonpayEnvironment | null
+  publishableKeyHint: string | null
+}
+
+export interface MoonpayKeysInput {
+  publishableKey: string
+  secretKey: string
+}
+
+export interface MoonpayOnrampInput {
+  walletId: string
+  baseCurrencyAmount?: number
+  baseCurrencyCode?: string
+  externalTransactionId?: string | null
+  redirectUrl?: string | null
+}
+
+export interface MoonpayOnrampResult {
+  url: string
+  environment: MoonpayEnvironment
+  walletAddress: string
+}
+
 // --- Forensics ---
 
 export type ForensicsScanMode = 'auto' | 'wallet' | 'token'

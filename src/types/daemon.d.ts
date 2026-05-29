@@ -12,6 +12,10 @@ import type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  MoonpayOnrampResult,
+  MoonpayStatus,
   ForensicsBlacklistResult,
   ForensicsExpandInput,
   ForensicsExpandResult,
@@ -159,6 +163,10 @@ export type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  MoonpayOnrampResult,
+  MoonpayStatus,
   ForensicsBlacklistResult,
   ForensicsExpandInput,
   ForensicsExpandResult,
@@ -425,6 +433,10 @@ declare global {
   type SecureKeyEntry = import('../../electron/shared/types').SecureKeyEntry
   type WalletListEntry = import('../../electron/shared/types').WalletListEntry
   type WalletDashboard = import('../../electron/shared/types').WalletDashboard
+  type MoonpayKeysInput = import('../../electron/shared/types').MoonpayKeysInput
+  type MoonpayOnrampInput = import('../../electron/shared/types').MoonpayOnrampInput
+  type MoonpayOnrampResult = import('../../electron/shared/types').MoonpayOnrampResult
+  type MoonpayStatus = import('../../electron/shared/types').MoonpayStatus
   type JupiterTokenSearchResult = import('../../electron/shared/types').JupiterTokenSearchResult
   type MarketTickerEntry = import('../../electron/shared/types').MarketTickerEntry
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
@@ -655,6 +667,10 @@ declare global {
     storeJupiterKey: (value: string) => Promise<IpcResponse>
     deleteJupiterKey: () => Promise<IpcResponse>
     hasJupiterKey: () => Promise<IpcResponse<boolean>>
+    moonpayStatus: () => Promise<IpcResponse<MoonpayStatus>>
+    storeMoonpayKeys: (input: MoonpayKeysInput) => Promise<IpcResponse<MoonpayStatus>>
+    deleteMoonpayKeys: () => Promise<IpcResponse>
+    openMoonpayOnramp: (input: MoonpayOnrampInput) => Promise<IpcResponse<MoonpayOnrampResult>>
     generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
     importSigningWallet: (input: { name: string; privateKey?: string }) => Promise<IpcResponse<WalletListEntry | null>>
     importKeypair: (walletId: string, privateKey?: string) => Promise<IpcResponse<boolean>>

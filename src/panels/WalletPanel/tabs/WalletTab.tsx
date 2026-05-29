@@ -6,6 +6,7 @@ import { WalletSettings } from '../WalletSettings'
 import { WalletExportKey } from '../WalletExportKey'
 import { TransactionHistory } from '../TransactionHistory'
 import { WalletReceiveView } from '../WalletReceiveView'
+import { WalletOnramp } from '../WalletOnramp'
 import { WalletSwapForm } from '../WalletSwapForm'
 import { VaultSection } from '../VaultSection'
 import { PnlHoldings } from '../PnlHoldings'
@@ -45,6 +46,11 @@ export function WalletTab({ onRefresh }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [genSuccess, setGenSuccess] = useState<string | null>(null)
   const [jupiterConfigured, setJupiterConfigured] = useState(false)
+  const [moonpayStatus, setMoonpayStatus] = useState<MoonpayStatus>({
+    configured: false,
+    environment: null,
+    publishableKeyHint: null,
+  })
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>({
     cluster: 'devnet',
     rpcProvider: 'helius',
@@ -120,9 +126,11 @@ export function WalletTab({ onRefresh }: Props) {
   useEffect(() => {
     void Promise.all([
       window.daemon.wallet.hasJupiterKey(),
+      window.daemon.wallet.moonpayStatus(),
       window.daemon.settings.getWalletInfrastructureSettings(),
-    ]).then(([jupiterRes, infraRes]) => {
+    ]).then(([jupiterRes, moonpayRes, infraRes]) => {
       if (jupiterRes.ok) setJupiterConfigured(jupiterRes.data === true)
+      if (moonpayRes.ok && moonpayRes.data) setMoonpayStatus(moonpayRes.data)
       if (infraRes.ok && infraRes.data) setWalletInfrastructure(infraRes.data)
     }).catch(() => {})
   }, [])
@@ -337,6 +345,28 @@ export function WalletTab({ onRefresh }: Props) {
       return
     }
     setError(res.error ?? 'Failed to delete Jupiter key')
+  }
+
+  const handleSaveMoonpayKeys = async (publishableKey: string, secretKey: string) => {
+    setError(null)
+    const res = await window.daemon.wallet.storeMoonpayKeys({ publishableKey, secretKey })
+    if (res.ok && res.data) {
+      setMoonpayStatus(res.data)
+      pushSuccess('MoonPay keys saved', 'Wallet')
+      return
+    }
+    setError(res.error ?? 'Failed to save MoonPay keys')
+  }
+
+  const handleDeleteMoonpayKeys = async () => {
+    setError(null)
+    const res = await window.daemon.wallet.deleteMoonpayKeys()
+    if (res.ok) {
+      setMoonpayStatus({ configured: false, environment: null, publishableKeyHint: null })
+      pushSuccess('MoonPay keys removed', 'Wallet')
+      return
+    }
+    setError(res.error ?? 'Failed to delete MoonPay keys')
   }
 
   const handleSaveInfrastructure = async (settings: WalletInfrastructureSettings) => {
@@ -618,6 +648,22 @@ export function WalletTab({ onRefresh }: Props) {
     return <WalletReceiveView address={activeWallet.address} walletName={activeWallet.name} onBack={() => setActiveView('overview')} />
   }
 
+  if (activeView === 'onramp' && activeWallet) {
+    return (
+      <WalletOnramp
+        walletId={activeWallet.id}
+        walletName={activeWallet.name}
+        walletAddress={activeWallet.address}
+        moonpayStatus={moonpayStatus}
+        onBack={() => setActiveView('overview')}
+        onConfigure={() => {
+          setShowInfrastructure(true)
+          setActiveView('overview')
+        }}
+      />
+    )
+  }
+
   if (activeView === 'swap' && activeWallet && hasKeypair) {
     return (
       <WalletSwapForm
@@ -665,6 +711,7 @@ export function WalletTab({ onRefresh }: Props) {
         <div className="wallet-quick-actions">
           <button type="button" className={`wallet-action-btn${activeView === 'overview' ? ' active' : ''}`} onClick={() => setActiveView('overview')}>Overview</button>
           <button type="button" className={`wallet-action-btn${activeView === 'holdings' ? ' active' : ''}`} onClick={() => setActiveView('holdings')}>Holdings</button>
+          <button type="button" className={`wallet-action-btn${activeView === 'onramp' ? ' active' : ''}`} onClick={() => setActiveView('onramp')} disabled={!activeWallet}>Buy SOL</button>
           <button type="button" className={`wallet-action-btn${activeView === 'move' ? ' active' : ''}`} onClick={() => {
             if (activeWallet && hasKeypair) openSend(activeWallet.id, sendMode ?? 'sol')
             else setActiveView('move')
@@ -681,6 +728,7 @@ export function WalletTab({ onRefresh }: Props) {
           showTitlebarWallet={showTitlebarWallet}
           heliusConfigured={dashboard.heliusConfigured}
           jupiterConfigured={jupiterConfigured}
+          moonpayStatus={moonpayStatus}
           infrastructure={walletInfrastructure}
           error={error}
           onToggleTape={async (checked) => { await setStoreShowMarketTape(checked) }}
@@ -689,6 +737,8 @@ export function WalletTab({ onRefresh }: Props) {
           onDeleteHelius={handleDeleteHelius}
           onSaveJupiter={handleSaveJupiter}
           onDeleteJupiter={handleDeleteJupiter}
+          onSaveMoonpayKeys={handleSaveMoonpayKeys}
+          onDeleteMoonpayKeys={handleDeleteMoonpayKeys}
           onSaveInfrastructure={handleSaveInfrastructure}
         />
       )}
@@ -718,6 +768,7 @@ export function WalletTab({ onRefresh }: Props) {
               </div>
               <div className="wallet-actions wallet-actions-wrap">
                 <button type="button" className="wallet-btn" onClick={() => void handleCopyWalletAddress(activeWallet.address, activeWallet.name)}>Copy address</button>
+                <button type="button" className="wallet-btn primary" onClick={() => setActiveView('onramp')}>Buy SOL</button>
                 <button type="button" className="wallet-btn" onClick={() => setActiveView('receive')}>Receive</button>
                 {hasKeypair && <button type="button" className="wallet-btn primary-soft" onClick={() => handleExportKeyStart(activeWallet.id)}>Export key</button>}
               </div>

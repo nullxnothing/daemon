@@ -1713,6 +1713,70 @@
   margin-top: 8px;
 }
 
+/* ── MoonPay Onramp ── */
+
+.wallet-onramp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wallet-onramp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.wallet-onramp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wallet-onramp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wallet-onramp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: var(--s2);
+}
+
+.wallet-onramp-field strong {
+  font-size: var(--fs-14);
+  color: var(--t1);
+}
+
+.wallet-onramp-field p {
+  margin: 0;
+  font-size: var(--fs-11);
+  color: var(--t4);
+}
+
+.wallet-onramp-amount .wallet-input {
+  height: 32px;
+}
+
+@container wallet (max-width: 760px) {
+  .wallet-onramp-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── View Header (back + title) ── */
 
 .wallet-view-header {

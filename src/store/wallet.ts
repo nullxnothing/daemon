@@ -60,7 +60,7 @@ interface WalletTransaction {
   created_at: number
 }
 
-type WalletActiveView = 'overview' | 'holdings' | 'move' | 'manage' | 'history' | 'swap' | 'receive' | 'vault'
+type WalletActiveView = 'overview' | 'holdings' | 'move' | 'manage' | 'history' | 'swap' | 'receive' | 'vault' | 'onramp'
 type WalletTab = 'wallet' | 'agents'
 
 interface PreferredSwapRoute {
