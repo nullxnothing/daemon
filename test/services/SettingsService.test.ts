@@ -17,11 +17,13 @@ import {
   getPinnedTools,
   getTokenLaunchSettings,
   getUiSettings,
+  getWalletInfrastructureSettings,
   getWorkspaceProfile,
   maybeRecoverUnstableUiState,
   recoverUiState,
   setDrawerToolOrder,
   setTokenLaunchSettings,
+  setWalletInfrastructureSettings,
 } from '../../electron/services/SettingsService'
 
 describe('SettingsService token launch settings', () => {
@@ -129,6 +131,42 @@ describe('SettingsService token launch settings', () => {
     expect(mockRun).toHaveBeenCalledWith(
       'token_launch_settings',
       expect.stringContaining('"configId":"11111111111111111111111111111111"'),
+      expect.any(Number),
+    )
+  })
+
+  it('preserves Solflare as the preferred wallet setting', () => {
+    mockGet.mockReturnValue({
+      value: JSON.stringify({
+        cluster: 'devnet',
+        rpcProvider: 'helius',
+        quicknodeRpcUrl: '',
+        customRpcUrl: '',
+        swapProvider: 'jupiter',
+        preferredWallet: 'solflare',
+        executionMode: 'rpc',
+        jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+      }),
+    })
+
+    expect(getWalletInfrastructureSettings().preferredWallet).toBe('solflare')
+  })
+
+  it('persists Solflare as the preferred wallet setting', () => {
+    setWalletInfrastructureSettings({
+      cluster: 'devnet',
+      rpcProvider: 'helius',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'solflare',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    })
+
+    expect(mockRun).toHaveBeenCalledWith(
+      'wallet_infrastructure_settings',
+      expect.stringContaining('"preferredWallet":"solflare"'),
       expect.any(Number),
     )
   })

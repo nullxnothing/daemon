@@ -1,20 +1,57 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
-import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
+import { ComputeBudgetProgram, Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
 import nacl from 'tweetnacl'
 import { dialog } from 'electron'
 import fs from 'node:fs'
 import { createHmac } from 'node:crypto'
-import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getPriorityFeeLamports, withKeypair, type TransactionExecutionResult } from './SolanaService'
+import {
+  confirmSignature,
+  executeTransaction,
+  getConnection,
+  getHeliusApiKey,
+  getJupiterApiKey,
+  getPriorityFeeLamports,
+  getPriorityFeeMicroLamports,
+  getTransactionSubmissionSettings,
+  submitRawTransaction,
+  withKeypair,
+  type TransactionExecutionResult,
+} from './SolanaService'
 import * as Voight from './VoightService'
-import type { JupiterTokenSearchResult, MoonpayEnvironment, MoonpayKeysInput, MoonpayOnrampInput, MoonpayOnrampResult, MoonpayStatus, WalletDashboard } from '../shared/types'
+import type {
+  ExternalSolTransferDraft,
+  JupiterTokenSearchResult,
+  MoonpayEnvironment,
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  MoonpayOnrampResult,
+  MoonpayStatus,
+  SubmitExternalSignedTransactionInput,
+  WalletDashboard,
+} from '../shared/types'
 
 const DEFAULT_FETCH_TIMEOUT_MS = 8_000
 const KEY_VALIDATION_FETCH_TIMEOUT_MS = 6_000
 const SWAP_FETCH_TIMEOUT_MS = 15_000
+const EXTERNAL_TRANSACTION_TTL_MS = 5 * 60_000
+
+interface PendingExternalTransaction {
+  id: string
+  walletId: string
+  fromAddress: string
+  toAddress: string
+  amountSol: number
+  messageBase64: string
+  blockhash: string
+  lastValidBlockHeight: number
+  createdAt: number
+}
+
+const pendingExternalTransactions = new Map<string, PendingExternalTransaction>()
 
 function isTestRuntime() {
   return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
@@ -1263,6 +1300,168 @@ export async function transferSOL(
       throw err
     }
   })
+}
+
+export async function prepareExternalSolTransfer(
+  fromWalletId: string,
+  toAddress: string,
+  amountSol?: number,
+  sendMax = false,
+): Promise<ExternalSolTransferDraft> {
+  if (!sendMax && (!amountSol || amountSol <= 0)) throw new Error('Amount must be greater than 0')
+  if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
+
+  const db = getDb()
+  const walletRow = db.prepare('SELECT address, wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { address: string; wallet_type: string } | undefined
+  if (!walletRow) throw new Error('Wallet not found')
+
+  const connection = getConnection()
+  const fromPubkey = new PublicKey(walletRow.address)
+  const balance = await connection.getBalance(fromPubkey)
+  const priorityFeeMicroLamports = await getPriorityFeeMicroLamports(connection)
+  const priorityFeeLamports = Math.ceil((SOL_TRANSFER_COMPUTE_UNITS * priorityFeeMicroLamports) / 1_000_000)
+  const feeBufferLamports = Math.max(10_000, BASE_SIGNATURE_FEE_LAMPORTS + priorityFeeLamports)
+  const lamportsToSend = sendMax
+    ? Math.max(0, balance - feeBufferLamports)
+    : toLamports(amountSol ?? 0)
+
+  if (lamportsToSend <= 0) {
+    throw new Error('Not enough SOL to send after reserving network fees')
+  }
+
+  const amountToRecord = lamportsToSend / LAMPORTS_PER_SOL
+  const lamportsNeeded = lamportsToSend + feeBufferLamports
+  if (balance < lamportsNeeded) {
+    throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountToRecord.toFixed(4)} SOL + fees`)
+  }
+
+  if (walletRow.wallet_type === 'agent') {
+    const dayAgo = Date.now() - 86_400_000
+    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status IN (?, ?) AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'pending', 'sol_transfer', dayAgo) as { total: number }
+    if (row.total + amountToRecord > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
+  }
+
+  const latest = await connection.getLatestBlockhash('confirmed')
+  const txId = crypto.randomUUID()
+  const transaction = new Transaction({
+    feePayer: fromPubkey,
+    recentBlockhash: latest.blockhash,
+  }).add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: SOL_TRANSFER_COMPUTE_UNITS }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFeeMicroLamports }),
+    SystemProgram.transfer({
+      fromPubkey,
+      toPubkey: new PublicKey(toAddress),
+      lamports: lamportsToSend,
+    }),
+  )
+
+  db.prepare(
+    'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
+  ).run(txId, fromWalletId, 'sol_transfer', walletRow.address, toAddress, amountToRecord, 'pending', Date.now())
+
+  pendingExternalTransactions.set(txId, {
+    id: txId,
+    walletId: fromWalletId,
+    fromAddress: walletRow.address,
+    toAddress,
+    amountSol: amountToRecord,
+    messageBase64: Buffer.from(transaction.serializeMessage()).toString('base64'),
+    blockhash: latest.blockhash,
+    lastValidBlockHeight: latest.lastValidBlockHeight,
+    createdAt: Date.now(),
+  })
+
+  return {
+    id: txId,
+    fromAddress: walletRow.address,
+    toAddress,
+    amountSol: amountToRecord,
+    transactionBase64: Buffer.from(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })).toString('base64'),
+    transport: getTransactionSubmissionSettings().mode,
+  }
+}
+
+export async function submitExternalSignedTransaction(
+  input: SubmitExternalSignedTransactionInput,
+): Promise<TransactionExecutionResult & { id: string; status: 'confirmed' }> {
+  const pending = pendingExternalTransactions.get(input.id)
+  if (!pending) throw new Error('External transaction request expired or was not found')
+  if (Date.now() - pending.createdAt > EXTERNAL_TRANSACTION_TTL_MS) {
+    cancelExternalTransaction(input.id, 'External transaction request expired')
+    throw new Error('External transaction request expired')
+  }
+  if (input.publicKey !== pending.fromAddress) {
+    cancelExternalTransaction(input.id, 'Signed transaction public key does not match the prepared wallet')
+    throw new Error('Signed transaction public key does not match the prepared wallet')
+  }
+
+  const db = getDb()
+  const submission = getTransactionSubmissionSettings()
+
+  try {
+    const signedTransaction = Transaction.from(Buffer.from(input.signedTransactionBase64, 'base64'))
+    if (signedTransaction.feePayer?.toBase58() !== pending.fromAddress) {
+      throw new Error('Signed transaction fee payer does not match the prepared wallet')
+    }
+
+    const signedMessageBase64 = Buffer.from(signedTransaction.serializeMessage()).toString('base64')
+    if (signedMessageBase64 !== pending.messageBase64) {
+      throw new Error('Signed transaction does not match the prepared transfer')
+    }
+
+    const connection = getConnection()
+    const signature = await submitRawTransaction(connection, signedTransaction.serialize(), {
+      skipPreflight: submission.mode === 'jito',
+      maxRetries: submission.mode === 'jito' ? 0 : 3,
+    })
+    await confirmSignature(connection, signature, 60_000, {
+      blockhash: pending.blockhash,
+      lastValidBlockHeight: pending.lastValidBlockHeight,
+    })
+
+    db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', pending.id)
+    pendingExternalTransactions.delete(pending.id)
+    Voight.emitEventSafe({
+      agentId: 'daemon-wallet',
+      type: 'tx',
+      transaction: signature,
+      amountToken: 'SOL',
+      amountValue: pending.amountSol,
+      outcome: 'success',
+      metadata: {
+        sessionId: pending.id,
+        walletId: pending.walletId,
+        fromAddress: pending.fromAddress,
+        toAddress: pending.toAddress,
+        transport: submission.mode,
+        signer: 'solflare',
+        action: 'send_sol',
+      },
+    })
+    return { id: pending.id, signature, status: 'confirmed', transport: submission.mode }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
+    db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, pending.id)
+    pendingExternalTransactions.delete(pending.id)
+    Voight.trackError('daemon-wallet', err, {
+      sessionId: pending.id,
+      walletId: pending.walletId,
+      fromAddress: pending.fromAddress,
+      toAddress: pending.toAddress,
+      amountToken: 'SOL',
+      amountValue: pending.amountSol,
+      signer: 'solflare',
+      action: 'send_sol',
+    })
+    throw err
+  }
+}
+
+export function cancelExternalTransaction(id: string, reason = 'External signing was cancelled'): void {
+  if (!pendingExternalTransactions.has(id)) return
+  pendingExternalTransactions.delete(id)
+  getDb().prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', reason, id)
 }
 
 export async function transferToken(

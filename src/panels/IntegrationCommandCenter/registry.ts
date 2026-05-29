@@ -196,6 +196,24 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'solflare',
+    name: 'Solflare',
+    tagline: 'External Solana wallet approvals',
+    description: 'Use Solflare for external wallet connection, message signing, transaction approval, and Solflare-first generated dApp scaffolds.',
+    category: 'wallet',
+    docsUrl: 'https://docs.solflare.com/solflare/technical/integrate-solflare',
+    installCommand: 'pnpm add @solflare-wallet/sdk @solana/web3.js',
+    recommendedFor: ['wallet connect', 'external signing', 'Solflare users', 'transaction approvals'],
+    requirements: [
+      { type: 'package', key: '@solflare-wallet/sdk', label: 'Solflare Wallet SDK', optional: true },
+      { type: 'external-url', key: 'https://www.solflare.com/', label: 'Solflare wallet' },
+    ],
+    actions: [
+      { id: 'check-solflare-sdk', label: 'Check SDK', description: 'Verify the active project has the Solflare SDK installed when it needs direct Solflare integration.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'open-solflare-docs', label: 'Open docs', description: 'Open Solflare integration docs for direct SDK and wallet adapter setup.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'jupiter',
     name: 'Jupiter',
     tagline: 'Quotes, swaps, tokens, lend, perps',

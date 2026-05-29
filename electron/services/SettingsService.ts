@@ -49,7 +49,7 @@ export interface WalletInfrastructureSettings {
   quicknodeRpcUrl: string
   customRpcUrl: string
   swapProvider: 'jupiter'
-  preferredWallet: 'phantom' | 'wallet-standard'
+  preferredWallet: 'phantom' | 'solflare' | 'wallet-standard'
   executionMode: 'rpc' | 'jito'
   jitoBlockEngineUrl: string
 }
@@ -280,6 +280,11 @@ const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
   jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
 }
 
+function normalizePreferredWallet(value: unknown): WalletInfrastructureSettings['preferredWallet'] {
+  if (value === 'phantom' || value === 'solflare' || value === 'wallet-standard') return value
+  return 'phantom'
+}
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -470,7 +475,7 @@ export function getWalletInfrastructureSettings(): WalletInfrastructureSettings 
     quicknodeRpcUrl: normalizeText(value?.quicknodeRpcUrl),
     customRpcUrl: normalizeText(value?.customRpcUrl),
     swapProvider: 'jupiter',
-    preferredWallet: value?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    preferredWallet: normalizePreferredWallet(value?.preferredWallet),
     executionMode: value?.executionMode === 'jito' ? 'jito' : 'rpc',
     jitoBlockEngineUrl: normalizeText(value?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
   }
@@ -485,7 +490,7 @@ export function setWalletInfrastructureSettings(settings: WalletInfrastructureSe
     quicknodeRpcUrl: normalizeText(settings?.quicknodeRpcUrl),
     customRpcUrl: normalizeText(settings?.customRpcUrl),
     swapProvider: 'jupiter',
-    preferredWallet: settings?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    preferredWallet: normalizePreferredWallet(settings?.preferredWallet),
     executionMode: settings?.executionMode === 'jito' ? 'jito' : 'rpc',
     jitoBlockEngineUrl: normalizeText(settings?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
   }

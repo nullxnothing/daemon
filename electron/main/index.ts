@@ -382,7 +382,7 @@ async function createWindow() {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
-          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com https://api.dexscreener.com; font-src 'self' minipaint:; frame-src minipaint:; object-src 'none'"]
+          'Content-Security-Policy': ["default-src 'self' minipaint:; script-src 'self' minipaint: 'sha256-+1m5I+GGgMQpppazcRWmPjEueczyuTJO92jm308NkKc='; style-src 'self' 'unsafe-inline' minipaint:; img-src 'self' data: daemon-icon: minipaint:; worker-src 'self' blob: monaco-editor: minipaint:; connect-src 'self' https://*.anthropic.com https://*.helius-rpc.com https://price.jup.ag https://api.coingecko.com https://api.dexscreener.com https://connect.solflare.com https://solflare.com https://*.solflare.com; font-src 'self' minipaint:; frame-src minipaint: https://connect.solflare.com https://solflare.com https://*.solflare.com; object-src 'none'"]
         }
       })
     })

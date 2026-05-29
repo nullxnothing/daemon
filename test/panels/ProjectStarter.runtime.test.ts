@@ -58,6 +58,23 @@ describe('ProjectStarter runtime preset helpers', () => {
 
     vi.useRealTimers()
   })
+
+  it('emits Solflare-first wallet guidance when selected', () => {
+    const prompt = buildRuntimePrompt({
+      cluster: 'devnet',
+      rpcProvider: 'helius',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'solflare',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    })
+
+    expect(prompt).toContain('Prefer Solflare wallet integration')
+    expect(prompt).toContain('@solflare-wallet/sdk')
+    expect(prompt).toContain('SolflareWalletAdapter')
+  })
 })
 
 describe('Perps template prompt addon', () => {

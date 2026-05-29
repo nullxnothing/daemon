@@ -14,6 +14,12 @@ import { WalletSendForm } from '../WalletSendForm'
 import { WalletReadinessChecklist } from '../WalletReadinessChecklist'
 import { buildSolanaRouteReadiness } from '../../../lib/solanaReadiness'
 import { getSolscanTxLabel, getSolscanTxUrl } from '../../../lib/solanaExplorer'
+import {
+  getSolflareState,
+  signSerializedSolflareTransaction,
+  subscribeSolflareWallet,
+  type SolflareConnectionState,
+} from '../../../lib/solflareWallet'
 import { describeWalletActionError } from '../walletCopy'
 import { compactAddress } from '../../../utils/textDisplay'
 
@@ -51,6 +57,7 @@ export function WalletTab({ onRefresh }: Props) {
     environment: null,
     publishableKeyHint: null,
   })
+  const [solflareConnection, setSolflareConnection] = useState<SolflareConnectionState>(getSolflareState())
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>({
     cluster: 'devnet',
     rpcProvider: 'helius',
@@ -96,6 +103,12 @@ export function WalletTab({ onRefresh }: Props) {
   const activeWallet = dashboard.activeWallet
   const activeWalletMeta = dashboard.wallets.find((w) => w.id === activeWallet?.id)
   const hasKeypair = activeWalletMeta ? keypairCache[activeWalletMeta.id] === true : false
+  const canSolflareSign = walletInfrastructure.preferredWallet === 'solflare'
+    && solflareConnection.status === 'connected'
+    && Boolean(activeWallet?.address)
+    && solflareConnection.publicKey === activeWallet?.address
+    && walletInfrastructure.cluster !== 'localnet'
+  const canSendSol = hasKeypair || canSolflareSign
   const trackedWallets = dashboard.wallets
   const walletIdsFingerprint = useMemo(() => trackedWallets.map((wallet) => wallet.id).join('|'), [trackedWallets])
   const holdingsPreview = activeWallet?.holdings.slice(0, 4) ?? []
@@ -115,6 +128,10 @@ export function WalletTab({ onRefresh }: Props) {
         .map((holding) => ({ mint: holding.mint, symbol: holding.symbol, amount: holding.amount }))
       : []
   ), [activeWallet])
+
+  useEffect(() => {
+    return subscribeSolflareWallet(setSolflareConnection)
+  }, [])
 
   useEffect(() => {
     if (trackedWallets.length === 0 && activeView === 'overview') {
@@ -216,9 +233,9 @@ export function WalletTab({ onRefresh }: Props) {
     return [
       { label: 'Active wallet', value: activeWallet.name, meta: truncateAddress(activeWallet.address) },
       { label: 'Execution', value: executionLabel, meta: dashboard.heliusConfigured ? 'Helius connected' : 'Helius key missing' },
-      { label: 'Can sign', value: hasKeypair ? 'Ready' : 'Watch-only', meta: hasKeypair ? 'Send, swap, export, receive' : 'Import or generate a signer to act' },
+      { label: 'Can sign', value: canSolflareSign ? 'Solflare' : hasKeypair ? 'Ready' : 'Watch-only', meta: canSolflareSign ? 'External SOL approvals' : hasKeypair ? 'Send, swap, export, receive' : 'Import, generate, or connect Solflare to act' },
     ]
-  }, [activeWallet, dashboard.heliusConfigured, executionLabel, hasKeypair])
+  }, [activeWallet, canSolflareSign, dashboard.heliusConfigured, executionLabel, hasKeypair])
 
   const resetSendState = () => {
     setSendDest('')
@@ -381,6 +398,27 @@ export function WalletTab({ onRefresh }: Props) {
     setError(res.error ?? 'Failed to save wallet infrastructure settings')
   }
 
+  const handleTrackSolflareWallet = async (address: string) => {
+    setError(null)
+    const existing = dashboard.wallets.find((wallet) => wallet.address === address)
+    if (existing) {
+      pushSuccess('Solflare wallet already tracked', 'Wallet')
+      return
+    }
+
+    const res = await window.daemon.wallet.create({ name: 'Solflare Wallet', address })
+    if (res.ok) {
+      pushSuccess('Solflare wallet tracked', 'Wallet')
+      await onRefresh()
+      return
+    }
+
+    const message = res.error ?? 'Failed to track Solflare wallet'
+    setError(message)
+    pushError(message, 'Wallet')
+    throw new Error(message)
+  }
+
   const handleSetDefault = async (walletId: string) => {
     setError(null)
     const res = await window.daemon.wallet.setDefault(walletId)
@@ -449,7 +487,9 @@ export function WalletTab({ onRefresh }: Props) {
     setSendError(null)
     try {
       if (pendingSend.mode === 'sol') {
-        const res = await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount, sendMax: pendingSend.sendMax })
+        const res = canSolflareSign
+          ? await signAndSubmitSolflareSend(pendingSend)
+          : await window.daemon.wallet.sendSol({ fromWalletId: pendingSend.walletId, toAddress: pendingSend.dest, amountSol: pendingSend.amount, sendMax: pendingSend.sendMax })
         if (res.ok && res.data) {
           setPendingSend(null)
           setSendResult(res.data)
@@ -528,6 +568,31 @@ export function WalletTab({ onRefresh }: Props) {
   }
 
   const handleCancelSend = () => setPendingSend(null)
+
+  const signAndSubmitSolflareSend = async (send: NonNullable<typeof pendingSend>) => {
+    const draft = await window.daemon.wallet.prepareExternalSolTransfer({
+      fromWalletId: send.walletId,
+      toAddress: send.dest,
+      amountSol: send.amount,
+      sendMax: send.sendMax,
+    })
+    if (!draft.ok || !draft.data) return { ok: false, error: draft.error ?? 'Failed to prepare Solflare transfer' }
+
+    try {
+      const signed = await signSerializedSolflareTransaction(draft.data.transactionBase64)
+      return await window.daemon.wallet.submitExternalSignedTransaction({
+        id: draft.data.id,
+        publicKey: signed.publicKey,
+        signedTransactionBase64: signed.signedTransactionBase64,
+      })
+    } catch (error) {
+      await window.daemon.wallet.cancelExternalTransaction(
+        draft.data.id,
+        error instanceof Error ? error.message : 'Solflare signing was cancelled',
+      )
+      throw error
+    }
+  }
 
   const handleExportKeyStart = (walletId: string) => {
     setExportConfirmId(walletId)
@@ -613,7 +678,7 @@ export function WalletTab({ onRefresh }: Props) {
     walletName: activeWallet?.name,
     walletAddress: activeWallet?.address,
     isMainWallet: Boolean(activeWalletMeta?.isDefault),
-    signerReady: hasKeypair,
+    signerReady: canSendSol,
     hasActiveProject: Boolean(activeProjectId),
     projectAssigned: activeProjectId ? Boolean(activeWalletMeta?.assignedProjectIds.includes(activeProjectId)) : true,
     preferredWallet: walletInfrastructure.preferredWallet,
@@ -713,7 +778,7 @@ export function WalletTab({ onRefresh }: Props) {
           <button type="button" className={`wallet-action-btn${activeView === 'holdings' ? ' active' : ''}`} onClick={() => setActiveView('holdings')}>Holdings</button>
           <button type="button" className={`wallet-action-btn${activeView === 'onramp' ? ' active' : ''}`} onClick={() => setActiveView('onramp')} disabled={!activeWallet}>Buy SOL</button>
           <button type="button" className={`wallet-action-btn${activeView === 'move' ? ' active' : ''}`} onClick={() => {
-            if (activeWallet && hasKeypair) openSend(activeWallet.id, sendMode ?? 'sol')
+            if (activeWallet && canSendSol) openSend(activeWallet.id, sendMode === 'token' && !hasKeypair ? 'sol' : sendMode ?? 'sol')
             else setActiveView('move')
           }}>Move</button>
           <button type="button" className={`wallet-action-btn${activeView === 'manage' ? ' active' : ''}`} onClick={() => setActiveView('manage')}>{trackedWallets.length === 0 ? 'Create' : 'Wallets'}</button>
@@ -740,6 +805,7 @@ export function WalletTab({ onRefresh }: Props) {
           onSaveMoonpayKeys={handleSaveMoonpayKeys}
           onDeleteMoonpayKeys={handleDeleteMoonpayKeys}
           onSaveInfrastructure={handleSaveInfrastructure}
+          onTrackSolflareWallet={handleTrackSolflareWallet}
         />
       )}
 
@@ -834,7 +900,7 @@ export function WalletTab({ onRefresh }: Props) {
             </div>
             <div className="wallet-actions wallet-actions-wrap">
               <button type="button" className={`wallet-btn ${sendMode === 'sol' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'sol')}>Send SOL</button>
-              <button type="button" className={`wallet-btn ${sendMode === 'token' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'token')}>Send token</button>
+              <button type="button" className={`wallet-btn ${sendMode === 'token' ? 'primary' : ''}`} onClick={() => openSend(activeWallet.id, 'token')} disabled={!hasKeypair}>Send token</button>
               <button type="button" className="wallet-btn" onClick={() => setActiveView('swap')} disabled={!hasKeypair}>Swap</button>
             </div>
           </div>
@@ -850,8 +916,8 @@ export function WalletTab({ onRefresh }: Props) {
               <p>{dashboard.wallets.length > 1 ? 'Use the tracked wallet picker to move funds safely inside your own wallet set.' : 'You only have one tracked wallet right now, so this acts like a send form.'}</p>
             </div>
           </div>
-          {hasKeypair ? (
-            sendWalletId === activeWallet.id && sendMode && (
+          {canSendSol ? (
+            sendWalletId === activeWallet.id && sendMode && (sendMode === 'sol' || hasKeypair) && (
               <WalletSendForm
                 walletId={activeWallet.id}
                 walletName={activeWallet.name}
@@ -882,7 +948,7 @@ export function WalletTab({ onRefresh }: Props) {
               />
             )
           ) : (
-            <div className="wallet-empty">This wallet is watch-only. Open Manage to import or generate a signing wallet before sending or swapping.</div>
+            <div className="wallet-empty">This wallet is watch-only. Import or generate a signing wallet, or connect the matching Solflare address before sending.</div>
           )}
         </section>
       )}

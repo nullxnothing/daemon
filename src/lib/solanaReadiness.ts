@@ -35,13 +35,13 @@ interface BuildSolanaRouteReadinessInput {
   rpcLabel: string
   rpcReady: boolean
   requirePreferredWallet?: boolean
+  requiredPreferredWallet?: WalletInfrastructureSettings['preferredWallet']
 }
 
 export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput): SolanaRouteReadinessModel {
-  const preferredWalletReady = input.requirePreferredWallet ? input.preferredWallet === 'phantom' : true
-  const preferredWalletDetail = input.preferredWallet === 'phantom'
-    ? 'Local signer is active; generated app defaults prefer Phantom.'
-    : 'Local signer is active; generated app defaults prefer Wallet Standard.'
+  const requiredPreferredWallet = input.requiredPreferredWallet ?? 'phantom'
+  const preferredWalletReady = input.requirePreferredWallet ? input.preferredWallet === requiredPreferredWallet : true
+  const preferredWalletDetail = getPreferredWalletDetail(input.preferredWallet)
 
   const items: SolanaRouteReadinessItem[] = [
     {
@@ -112,11 +112,11 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
               label: 'Configure RPC path',
               detail: 'Finish the RPC provider setup before using wallet-backed Solana execution.',
             }
-            : input.requirePreferredWallet && input.preferredWallet !== 'phantom'
+            : input.requirePreferredWallet && input.preferredWallet !== requiredPreferredWallet
               ? {
                 id: 'set-preferred-wallet',
-                label: 'Set Phantom-first',
-                detail: 'Make Phantom the preferred wallet default for generated app scaffolds.',
+                label: `Set ${getPreferredWalletLabel(requiredPreferredWallet)}`,
+                detail: `Make ${getPreferredWalletLabel(requiredPreferredWallet)} the preferred wallet default for generated app scaffolds.`,
               }
               : {
                 id: input.requirePreferredWallet ? 'preview-transaction' : 'transact',
@@ -137,9 +137,9 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
         : nextAction.id === 'open-infrastructure'
           ? 'Finish the execution path before sending'
           : nextAction.id === 'set-preferred-wallet'
-            ? 'Switch generated app defaults to Phantom-first'
+            ? `Switch generated app defaults to ${getPreferredWalletLabel(requiredPreferredWallet)}`
             : nextAction.id === 'preview-transaction'
-              ? 'Phantom route is ready for a safe first preview'
+              ? `${getPreferredWalletLabel(requiredPreferredWallet)} route is ready for a safe first preview`
               : 'Wallet route is ready for Solana actions'
 
   const description = nextAction.detail
@@ -147,9 +147,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
   const walletLabel = input.walletPresent
     ? `${input.walletName ?? 'Wallet'} • ${input.walletAddress ?? 'address pending'}`
     : 'No wallet configured'
-  const signingPathLabel = input.preferredWallet === 'phantom'
-    ? 'Phantom-first'
-    : 'Wallet Standard'
+  const signingPathLabel = getPreferredWalletLabel(input.preferredWallet)
 
   return {
     headline,
@@ -161,4 +159,22 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
     walletLabel,
     signingPathLabel,
   }
+}
+
+function getPreferredWalletLabel(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') return 'Solflare'
+  if (preferredWallet === 'wallet-standard') return 'Wallet Standard'
+  return 'Phantom-first'
+}
+
+function getPreferredWalletDetail(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') {
+    return 'Solflare is active for wallet connection; generated app defaults prefer Solflare.'
+  }
+
+  if (preferredWallet === 'wallet-standard') {
+    return 'Local signer is active; generated app defaults prefer Wallet Standard.'
+  }
+
+  return 'Local signer is active; generated app defaults prefer Phantom.'
 }

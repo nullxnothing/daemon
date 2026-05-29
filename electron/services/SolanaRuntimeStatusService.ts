@@ -92,13 +92,7 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       detail: rpcDetail,
       status: rpcStatus,
     },
-    walletPath: {
-      label: settings.preferredWallet === 'phantom' ? 'Phantom-first' : 'Wallet Standard',
-      detail: settings.preferredWallet === 'phantom'
-        ? 'Optimize flows for Phantom Connect, with Solana wallet UX anchored around Phantom-first handoff.'
-        : 'Prefer the multi-wallet compatibility path for Backpack, Solflare, and other Wallet Standard clients.',
-      status: 'live',
-    },
+    walletPath: getWalletPathStatus(settings.preferredWallet),
     swapEngine: {
       label: 'Jupiter',
       detail: jupiterConfigured
@@ -154,5 +148,29 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       !jupiterConfigured ? 'Jupiter is the active swap engine but no Jupiter API key is stored, so quotes and swaps will fail until configured.' : null,
       settings.executionMode === 'jito' && settings.rpcProvider === 'public' ? 'Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.' : null,
     ].filter(Boolean) as string[],
+  }
+}
+
+function getWalletPathStatus(preferredWallet: ReturnType<typeof getWalletInfrastructureSettings>['preferredWallet']): SolanaRuntimeStatusSummary['walletPath'] {
+  if (preferredWallet === 'solflare') {
+    return {
+      label: 'Solflare',
+      detail: 'Prefer Solflare Wallet SDK for DAEMON wallet connection, with Wallet Adapter guidance for generated apps.',
+      status: 'live',
+    }
+  }
+
+  if (preferredWallet === 'wallet-standard') {
+    return {
+      label: 'Wallet Standard',
+      detail: 'Prefer the multi-wallet compatibility path for Backpack, Solflare, Phantom, and other Wallet Standard clients.',
+      status: 'live',
+    }
+  }
+
+  return {
+    label: 'Phantom-first',
+    detail: 'Optimize flows for Phantom Connect, with Solana wallet UX anchored around Phantom-first handoff.',
+    status: 'live',
   }
 }

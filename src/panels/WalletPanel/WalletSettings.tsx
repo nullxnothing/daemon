@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Toggle } from '../../components/Toggle'
+import { SolflareWalletCard } from './SolflareWalletCard'
 import './WalletPanel.css'
 
 interface WalletSettingsProps {
@@ -19,6 +20,7 @@ interface WalletSettingsProps {
   onSaveMoonpayKeys: (publishableKey: string, secretKey: string) => Promise<void>
   onDeleteMoonpayKeys: () => Promise<void>
   onSaveInfrastructure: (settings: WalletInfrastructureSettings) => Promise<void>
+  onTrackSolflareWallet: (address: string) => Promise<void>
 }
 
 export function WalletSettings({
@@ -38,6 +40,7 @@ export function WalletSettings({
   onSaveMoonpayKeys,
   onDeleteMoonpayKeys,
   onSaveInfrastructure,
+  onTrackSolflareWallet,
 }: WalletSettingsProps) {
   const [heliusKey, setHeliusKey] = useState('')
   const [jupiterKey, setJupiterKey] = useState('')
@@ -71,6 +74,13 @@ export function WalletSettings({
   const rpcReady = getRpcReady(draftInfra, heliusConfigured)
   const rpcStatusLabel = rpcReady ? 'RPC ready' : 'Setup needed'
   const rpcProviderLabel = getRpcProviderLabel(draftInfra)
+  const walletPreferenceLabel = getWalletPreferenceLabel(draftInfra.preferredWallet)
+
+  const preferSolflare = async () => {
+    const next = { ...draftInfra, preferredWallet: 'solflare' as const }
+    setDraftInfra(next)
+    await onSaveInfrastructure(next)
+  }
 
   return (
     <section className="wallet-section wallet-settings-shell">
@@ -121,7 +131,7 @@ export function WalletSettings({
             <div className="wallet-runtime-summary-item">
               <div className="wallet-runtime-summary-label">Wallet UX</div>
               <div className="wallet-runtime-summary-value">
-                {draftInfra.preferredWallet === 'phantom' ? 'Local signer, Phantom-first app defaults' : 'Wallet Standard app defaults'}
+                {walletPreferenceLabel}
               </div>
               <div className="wallet-caption">
                 DAEMON's built-in wallet currently signs with imported or generated local signers. This preference is used for generated app defaults.
@@ -292,6 +302,7 @@ export function WalletSettings({
             onChange={(e) => setDraftInfra((prev) => ({ ...prev, preferredWallet: e.target.value as WalletInfrastructureSettings['preferredWallet'] }))}
           >
             <option value="phantom">Local signer + Phantom app defaults</option>
+            <option value="solflare">Solflare SDK + app defaults</option>
             <option value="wallet-standard">Local signer + Wallet Standard app defaults</option>
           </select>
           <select
@@ -326,6 +337,13 @@ export function WalletSettings({
             )}
           </div>
         </div>
+
+        <SolflareWalletCard
+          cluster={draftInfra.cluster}
+          preferredWallet={draftInfra.preferredWallet}
+          onPreferSolflare={preferSolflare}
+          onTrackWallet={onTrackSolflareWallet}
+        />
 
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">
@@ -382,4 +400,10 @@ function getRpcProviderLabel(settings: WalletInfrastructureSettings): string {
   if (settings.rpcProvider === 'quicknode') return 'QuickNode runtime'
   if (settings.rpcProvider === 'custom') return 'Custom RPC runtime'
   return 'Public RPC fallback'
+}
+
+function getWalletPreferenceLabel(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') return 'Solflare SDK + app defaults'
+  if (preferredWallet === 'wallet-standard') return 'Wallet Standard app defaults'
+  return 'Local signer, Phantom-first app defaults'
 }
