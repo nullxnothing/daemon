@@ -201,7 +201,9 @@ Confirmations → `ConfirmDialog`. Transient feedback → `ToastHost`. Never `wi
 ## Enforcement
 
 - `pnpm run lint:styles` — `scripts/style-debt-check.mjs` counts literal font-sizes,
-  radii, hex colors, and inline shadows against a baseline that only goes down.
+  radii, hex colors, inline shadows, and **hand-rolled panel headers** against a
+  baseline that only goes down. The header rule flags panel `.tsx` files that use a
+  bespoke `<header className="*-header">` instead of the shared `PanelHeader`.
 - `pnpm run test:visual` — visual regression; update baselines only for intended changes.
 - `pnpm run typecheck` — primitive prop changes are type-checked across all call sites.
 
