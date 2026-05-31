@@ -202,7 +202,7 @@ pnpm run test:daemon-ai:live        # Smoke against a deployed server (requires 
 
 See [docs/DAEMON_AI_CLOUD_API.md](docs/DAEMON_AI_CLOUD_API.md) for the HTTP API reference and [docs/internal/DAEMON_AI_CLOUD_DEPLOYMENT.md](docs/internal/DAEMON_AI_CLOUD_DEPLOYMENT.md) for the deployment runbook.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests and code style.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests and code style, and [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) for the UI design system (tokens, primitives, and panel patterns).
 
 ## License
 
