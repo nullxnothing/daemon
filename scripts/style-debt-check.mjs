@@ -10,7 +10,7 @@ const BASELINE = {
   literalRadius: 231,
   hexColors: 128,
   inlineShadow: 62,
-  handRolledHeaders: 7,
+  handRolledHeaders: 4,
 }
 
 const RULES = [

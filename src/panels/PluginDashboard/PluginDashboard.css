@@ -6,22 +6,6 @@
   overflow-y: auto;
 }
 
-.plugin-dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 16px 24px;
-  flex-shrink: 0;
-}
-
-.plugin-dashboard-title {
-  font-size: var(--fs-11);
-  font-weight: 600;
-  color: var(--t2);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 .plugin-dashboard-search {
   width: 180px;
   height: 28px;

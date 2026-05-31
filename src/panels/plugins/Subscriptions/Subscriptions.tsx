@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import type { DaemonPlanId, ProSubscriptionState } from '../../../../electron/shared/types'
 import { useProStore } from '../../../store/pro'
 import { useUIStore } from '../../../store/ui'
+import { PanelHeader } from '../../../components/Panel'
 import '../plugin.css'
 import './Subscriptions.css'
 
@@ -189,15 +190,15 @@ export default function Subscriptions() {
 
   return (
     <div className="plugin-panel subscriptions-panel">
-      <header className="subscriptions-header">
-        <div>
-          <div className="panel-header">SUBSCRIPTIONS</div>
-          <h2 className="subscriptions-title">DAEMON access and hosted AI lanes</h2>
-        </div>
-        <div className={`subscriptions-status ${subscription.active ? 'subscriptions-status--active' : ''}`}>
-          {subscription.active ? 'Active' : 'Light'}
-        </div>
-      </header>
+      <PanelHeader
+        kicker="SUBSCRIPTIONS"
+        title="DAEMON access and hosted AI lanes"
+        actions={
+          <div className={`subscriptions-status ${subscription.active ? 'subscriptions-status--active' : ''}`}>
+            {subscription.active ? 'Active' : 'Light'}
+          </div>
+        }
+      />
 
       {error && <div className="subscriptions-alert">{error}</div>}
 
