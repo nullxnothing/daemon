@@ -5,6 +5,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
+import { PanelHeader } from '../../components/Panel'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { KeyboardShortcuts } from '../../components/KeyboardShortcuts'
 import { NavigationGuide } from '../../components/NavigationGuide'
@@ -100,17 +101,19 @@ export function SettingsPanel() {
 
   return (
     <div className="settings-center">
-      <div className="settings-header">
-        <h2 className="settings-title">Settings</h2>
-        <input
-          type="text"
-          className="settings-search"
-          placeholder="Search settings..."
-          value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          aria-label="Search settings"
-        />
-      </div>
+      <PanelHeader
+        title="Settings"
+        actions={
+          <input
+            type="text"
+            className="settings-search"
+            placeholder="Search settings..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            aria-label="Search settings"
+          />
+        }
+      />
 
       <div className="settings-tabs" role="tablist">
         {(['keys', 'integrations', 'aiProviders', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
