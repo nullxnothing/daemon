@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAiStore } from '../../store/aiStore'
 import { useUIStore } from '../../store/ui'
-import { Spinner } from '../../components/Panel'
+import { PanelHeader, Spinner } from '../../components/Panel'
+import { Button } from '../../components/Button'
 import './DaemonAIPanel.css'
 
 type ContextKey = keyof NonNullable<DaemonAiChatRequest['context']>
@@ -129,15 +130,15 @@ export function DaemonAIPanel() {
 
   return (
     <section className="daemon-ai-panel">
-      <header className="daemon-ai-header">
-        <div>
-          <div className="daemon-ai-kicker">DAEMON AI</div>
-          <h2>AI Workbench</h2>
-        </div>
-        <button type="button" className="daemon-ai-ghost-btn" onClick={() => void loadWorkbench()} disabled={workbenchLoading}>
-          Refresh
-        </button>
-      </header>
+      <PanelHeader
+        kicker="DAEMON AI"
+        title="AI Workbench"
+        actions={
+          <Button variant="ghost" onClick={() => void loadWorkbench()} disabled={workbenchLoading}>
+            Refresh
+          </Button>
+        }
+      />
 
       <div className="daemon-ai-status-grid">
         <div className="daemon-ai-stat">
