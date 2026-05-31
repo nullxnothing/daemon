@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-636%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-645%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">
@@ -145,6 +145,7 @@ electron/
   main/           App entry, window management, protocol handlers
   ipc/            One handler per domain (agents, git, terminal, wallet, ...)
   services/       Business logic — never imported from renderer
+    daemon-ai-cloud/  Standalone hosted DAEMON AI server (Express, deployed separately)
   db/             SQLite (WAL mode), versioned migrations
 
 src/
@@ -187,6 +188,19 @@ pnpm run test         # Run tests (Vitest)
 pnpm run build        # Production build
 pnpm run package      # Create distributable (.exe / .dmg)
 ```
+
+### DAEMON AI Cloud
+
+The hosted DAEMON AI service is a standalone Express server built and run separately from the desktop app:
+
+```bash
+pnpm run build:daemon-ai-cloud      # Bundle the cloud server to dist-cloud/
+pnpm run start:daemon-ai-cloud      # Run the bundled server (reads env config)
+pnpm run test:daemon-ai:cloud-local # Build + local smoke against an in-process server
+pnpm run test:daemon-ai:live        # Smoke against a deployed server (requires JWTs)
+```
+
+See [docs/DAEMON_AI_CLOUD_API.md](docs/DAEMON_AI_CLOUD_API.md) for the HTTP API reference and [docs/internal/DAEMON_AI_CLOUD_DEPLOYMENT.md](docs/internal/DAEMON_AI_CLOUD_DEPLOYMENT.md) for the deployment runbook.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on pull requests and code style.
 
