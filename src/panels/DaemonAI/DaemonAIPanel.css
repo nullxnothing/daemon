@@ -8,30 +8,6 @@
   color: var(--text-primary);
 }
 
-.daemon-ai-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.daemon-ai-kicker {
-  color: var(--text-muted);
-  font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
-  line-height: var(--type-eyebrow-line);
-  letter-spacing: var(--ls-eyebrow);
-  text-transform: uppercase;
-}
-
-.daemon-ai-header h2 {
-  margin: 4px 0 0;
-  font-size: var(--type-page-title-size);
-  font-weight: var(--type-page-title-weight);
-  line-height: var(--type-page-title-line);
-  letter-spacing: var(--type-page-title-tracking);
-}
-
 .daemon-ai-ghost-btn,
 .daemon-ai-composer button {
   border: 1px solid rgba(255, 255, 255, 0.12);
