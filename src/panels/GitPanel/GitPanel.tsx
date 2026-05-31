@@ -6,6 +6,7 @@ import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { Badge, DataRow, MetricCard, StatusDot } from '../../components/Panel'
 import { Button } from '../../components/Button'
+import { EmptyState } from '../../components/EmptyState'
 import { middleEllipsisPath } from '../../utils/textDisplay'
 import type { DeployStatus, GitFile } from '../../../electron/shared/types'
 import './GitPanel.css'
@@ -341,7 +342,10 @@ export function GitPanel() {
   if (!projectPath) {
     return (
       <div className="git-center">
-        <div className="git-empty">Select a project to see git status</div>
+        <EmptyState
+          title="No project open"
+          description="Select or open a project to see its git status, branches, and history."
+        />
       </div>
     )
   }
