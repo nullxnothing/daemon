@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProStore } from '../../store/pro'
 import { useWalletStore } from '../../store/wallet'
 import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../electron/shared/types'
-import { Banner, Stat } from '../../components/Panel'
+import { Banner, PanelHeader, Stat } from '../../components/Panel'
+import { Button } from '../../components/Button'
 import { ArenaView } from './ArenaView'
 import './ProPanel.css'
 
@@ -120,16 +121,12 @@ export function ProPanel() {
 
   return (
     <section className="pro-panel">
-      <header className="pro-panel-header">
-        <div className="pro-panel-title-group">
-          <div className="pro-panel-kicker">DAEMON PRO</div>
-          <div className="pro-panel-title">{isActive ? 'Plan active' : 'Unlock DAEMON Pro'}</div>
-          {isActive && daysRemaining !== null && (
-            <div className="pro-panel-subtitle">{daysRemaining} day{daysRemaining === 1 ? '' : 's'} remaining</div>
-          )}
-        </div>
-        {isActive && <button type="button" className="pro-btn" onClick={() => { void signOut() }}>Sign out</button>}
-      </header>
+      <PanelHeader
+        kicker="DAEMON PRO"
+        title={isActive ? 'Plan active' : 'Unlock DAEMON Pro'}
+        subtitle={isActive && daysRemaining !== null ? `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining` : undefined}
+        actions={isActive ? <Button variant="ghost" onClick={() => { void signOut() }}>Sign out</Button> : undefined}
+      />
 
       {error && (
         <div className="pro-error">
