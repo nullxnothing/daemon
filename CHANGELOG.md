@@ -4,6 +4,25 @@ All notable changes to DAEMON are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows semantic-ish desktop release versioning.
 
+## [4.1.1] - 2026-06-01
+
+### Fixed
+- Production renderer no longer crashes to a blank screen — added a Buffer polyfill for
+  CJS Solana/crypto deps that the prod bundle previously left unresolved.
+- Agent grid now renders styled in grind mode (its CSS lived in `Terminal.css`, which
+  doesn't load there); moved to a component-owned `AgentGrid.css`.
+- Spettro provider uses its own logo instead of the DAEMON-icon placeholder.
+
+### Changed
+- Adopted the shared design system (`PanelHeader`, `StateView`, `EmptyState`, `MetricCard`,
+  `Button`) across Dashboard, Git, Settings, Wallet, DAEMON AI, Tools, Pro, Replay Engine,
+  Plugins, Subscriptions, and the agent panels for consistent panel chrome.
+- Added `DESIGN_SYSTEM.md`, a cloud API reference, and ratcheted style-debt enforcement.
+
+### CI
+- CI now launches the built app and asserts the renderer mounts, so a blank-screen
+  bundle crash fails the gate instead of shipping.
+
 ## [4.1.0] - 2026-05
 
 ### Added
