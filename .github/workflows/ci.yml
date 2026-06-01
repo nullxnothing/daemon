@@ -28,7 +28,15 @@ jobs:
           cache: pnpm
       - name: Install Linux UI test dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb
-      - run: pnpm install --frozen-lockfile
+      # Disable lifecycle scripts on install (Shai-Hulud-class supply-chain
+      # defense); native modules are rebuilt explicitly afterward.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run rebuild:native
+      - name: OSV supply-chain scan (lockfile)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
       - run: pnpm run typecheck
       - run: pnpm run lint:styles
       - run: pnpm run security:audit
@@ -62,7 +70,8 @@ jobs:
           key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run rebuild:native
       - run: pnpm run build
       - run: pnpm run test:visual
       - run: pnpm exec electron-builder --publish never
@@ -89,7 +98,8 @@ jobs:
           key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run rebuild:native
       - run: pnpm run build
       - name: Pre-cache Electron binary
         shell: bash
