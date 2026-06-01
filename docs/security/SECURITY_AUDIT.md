@@ -95,14 +95,33 @@ replay handoff now launches `claude -p …` (normal per-tool approval). Test
 updated to assert the flag is absent
 (`test/services/ReplayEngineService.test.ts:248`).
 
+### Guard coverage closed (post-P1 hardening)
+Two signing paths previously **bypassed the guard entirely** by submitting raw
+bytes (not via `executeTransaction`):
+- **External transfers** (`submitExternalSignedTransaction`) — the user signs in
+  their own wallet, then DAEMON submitted directly. Now: the prepared message is
+  re-hashed, `approveTransactionHash` binds an approval to those exact bytes, and
+  `assertTransactionAllowed(tx, [], { signerOverride, approvalHash })` runs the
+  caps/allow-list before submit. This is a true end-to-end hash-bound
+  propose→commit: prepare returns the message, the user approves the exact bytes
+  in their wallet, and the guard consumes the matching hash.
+- **Jupiter swaps** (`executeSwap`) — signed locally and handed to Jupiter's
+  execute endpoint. Now `assertTransactionAllowed` runs immediately before
+  `transaction.sign(...)` (Jupiter is allow-listed; per-tx/rolling caps + rate
+  limit still apply).
+- `transferSOL`/`transferToken` now tag `guardSource` for audit attribution.
+- The guard fails closed: a transaction it cannot inspect is rejected when
+  enforcing (mainnet), logged otherwise. Tests:
+  `SignerGuardService.test.ts` (+4: signerOverride accounting, hash-approved
+  external over-cap, uninspectable-reject/log).
+
 ### Residual / follow-ups (documented, not yet enforced)
-- **Hash-bound approval is available but not yet required at the wallet IPC
-  layer.** The caps/allow-list already protect the agent-drain path without
-  caller cooperation; binding the *human UI confirmation* to `approvalHash` end
-  to end (so every over-cap/launch tx carries a UI-issued token) is the next
-  increment. The external-transfer flow (`prepareExternalSolTransfer` →
-  `submitExternalSignedTransaction`) is the model to follow — it already returns
-  `messageBase64` for client signing.
+- **Internal fast-path transfers still rely on caps, not UI hash-binding.**
+  `transferSOL`/`transferToken` build-and-sign in one shot, so an over-cap
+  *internal* transfer is blocked by the cap rather than carrying a UI-issued
+  approval. Converting these to a prepare→confirm→commit pair (like the external
+  flow) so the UI can register `approveTransactionHash` is the remaining
+  increment. The caps already protect the agent-drain path without this.
 - **MCP (P1 #10):** `.mcp.json` servers are not yet content-pinned with
   re-approval on tool-description change (tool-poisoning / rug-pull). Tool
   *results* flow into the model context; they cannot reach signing except via the

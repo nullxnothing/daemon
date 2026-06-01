@@ -223,6 +223,8 @@ export interface SignerGuardOptions {
   approvalHash?: string
   /** Caller label for audit. */
   source?: string
+  /** Signer pubkey when the transaction is already externally signed (signers array is empty). */
+  signerOverride?: string
 }
 
 function fail(policy: SignerGuardPolicy, signer: string, reason: string, detail: Record<string, unknown>): void {
@@ -252,12 +254,26 @@ export function assertTransactionAllowed(
   options: SignerGuardOptions = {},
 ): void {
   const policy = currentPolicy()
-  const signer = signers[0]?.publicKey?.toBase58() ?? 'unknown'
+  const signer = signers[0]?.publicKey?.toBase58() ?? options.signerOverride ?? 'unknown'
   const now = Date.now()
-  const { programIds, outboundLamports } = inspect(transaction)
-  const outboundSol = outboundLamports / LAMPORTS_PER_SOL
 
-  const messageHash = hashTransactionMessage(transaction)
+  let programIds: string[]
+  let outboundLamports: number
+  let messageHash: string
+  try {
+    ;({ programIds, outboundLamports } = inspect(transaction))
+    messageHash = hashTransactionMessage(transaction)
+  } catch (err) {
+    // A transaction we cannot inspect cannot be vetted. Reject when enforcing,
+    // otherwise log and allow (devnet/test).
+    fail(policy, signer, 'transaction could not be inspected for the signer guard', {
+      error: err instanceof Error ? err.message : String(err),
+      source: options.source,
+    })
+    return
+  }
+
+  const outboundSol = outboundLamports / LAMPORTS_PER_SOL
   const hasApproval = options.approvalHash === messageHash && consumeApproval(messageHash)
 
   // 1) Program allow-list — non-allowlisted programs require a hash-bound approval.
