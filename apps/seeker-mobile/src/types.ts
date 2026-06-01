@@ -3,6 +3,8 @@ export type SessionStatus = 'idle' | 'pairing' | 'paired' | 'error'
 export interface PairingSession {
   status: SessionStatus
   pairingCode: string
+  /** Per-session bearer secret from the pairing deep link; required by the relay. */
+  accessToken: string | null
   relayUrl: string
   desktopId: string | null
   projectName: string

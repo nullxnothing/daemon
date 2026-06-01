@@ -76,8 +76,12 @@ method-scoped and origin-checked. ✅
   - `/sessions` list restricted to loopback.
   - Tests: `test/services/SeekerRelayService.test.ts` — no-token/wrong-token/
     browser-origin/unauth-approval rejected, correct token accepted.
-- **Follow-up (mobile app)**: `apps/seeker-mobile` must read the deep-link `token`
-  and send `Authorization: Bearer <token>` (out of scope for the desktop audit).
+- **Mobile app (done in this PR)**: `apps/seeker-mobile` now parses the deep-link
+  `token`, threads it through `PairingSession` → `useDesktopRelay` →
+  `desktopRelay` client, and sends `Authorization: Bearer <token>` on all relay
+  requests (snapshot, events, pair). Manual pairing accepts a pasted
+  `daemonseeker://` link to carry the token. Verified by `tsc` (the mobile package
+  has no test runner).
 - `daemon-ai-cloud/server.ts` is a separately-deployed cloud component gated by
   x402/SubscriptionGateway — not the desktop app's local surface; unchanged.
 
