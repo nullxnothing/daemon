@@ -200,6 +200,9 @@ importers:
       axe-core:
         specifier: ^4.11.4
         version: 4.11.4
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       electron:
         specifier: ^41.5.0
         version: 41.5.0

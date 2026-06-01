@@ -4,7 +4,7 @@ All notable changes to DAEMON are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows semantic-ish desktop release versioning.
 
-## [4.1.1] - 2026-06-01
+## [4.1.2] - 2026-06-01
 
 ### Fixed
 - Production renderer no longer crashes to a blank screen — added a Buffer polyfill for
