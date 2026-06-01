@@ -70,6 +70,7 @@ features/
 # Internal dev artifacts
 .design/
 /screenshots/
+NVIDIA Corporation/
 .agents/
 .codex-run/
 PLUGIN_TODOS.md

@@ -4,11 +4,18 @@ Audit of the Electron hot-wallet / agent-workbench. Findings are recorded per
 priority stage with `file:line` evidence and a status of **CONFIRMED+FIXED**,
 **ALREADY MITIGATED** (with proof), or **N/A**.
 
-One branch + PR per stage:
-- P0 → `fix/security-p0`
-- P1 → `fix/security-p1`
-- P2 → `fix/security-p2`
-- P3 → `fix/security-p3`
+Delivered as four staged PRs, all merged into `v4`:
+
+| Stage | PR | Headline fix |
+|---|---|---|
+| P0 | #177 | safeStorage degraded-backend refusal; IPC sender-frame validation; CI `--ignore-scripts` + OSV scan |
+| P1 | #178, #181 | non-bypassable signer guard in `executeTransaction`; close external-transfer/swap bypass; drop default `--dangerously-skip-permissions` |
+| P2 | #179 | Seeker relay per-session bearer token (+ mobile client); webview `http` restricted to loopback |
+| P3 | #180 | daemon-registry `create_task` escrow-party validation |
+
+Remaining follow-ups are listed at the end of each stage section (the largest:
+end-to-end UI hash-binding for internal transfers, MCP description-change
+re-approval, and a key-free PTY/repo worker).
 
 ---
 
