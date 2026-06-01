@@ -6,13 +6,14 @@ import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
 import { DAEMON_XTERM_MINIMAL_THEME } from '../../styles/daemonTheme'
+import './AgentGrid.css'
 
 type ProviderId = 'claude' | 'codex' | 'spettro'
 
 const PROVIDER_META: Record<ProviderId, { label: string; logo: string }> = {
   claude: { label: 'Claude', logo: './claude-logo.png' },
   codex: { label: 'Codex', logo: './codex-logo.png' },
-  spettro: { label: 'Spettro', logo: './daemon-icon.png' },
+  spettro: { label: 'Spettro', logo: './spettro-logo.png' },
 }
 
 // Stable sentinel so the selector returns the same reference when no pages exist,
