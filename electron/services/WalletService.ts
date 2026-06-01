@@ -22,6 +22,7 @@ import {
   type TransactionExecutionResult,
 } from './SolanaService'
 import * as Voight from './VoightService'
+import { assertTransactionAllowed, approveTransactionHash, hashTransactionMessage } from './SignerGuardService'
 import type {
   ExternalSolTransferDraft,
   JupiterTokenSearchResult,
@@ -1265,6 +1266,7 @@ export async function transferSOL(
 
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair], {
         computeUnitLimit: SOL_TRANSFER_COMPUTE_UNITS,
+        guardSource: 'transferSOL',
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
@@ -1410,6 +1412,17 @@ export async function submitExternalSignedTransaction(
       throw new Error('Signed transaction does not match the prepared transfer')
     }
 
+    // Signer guard: external transfers previously bypassed the guard entirely.
+    // The user approved these exact bytes in their external wallet, so bind an
+    // approval to this message hash and run the same caps/allow-list checks.
+    const messageHash = hashTransactionMessage(signedTransaction)
+    approveTransactionHash(messageHash, 'external-wallet-signed')
+    assertTransactionAllowed(signedTransaction, [], {
+      approvalHash: messageHash,
+      signerOverride: pending.fromAddress,
+      source: 'submitExternalSignedTransaction',
+    })
+
     const connection = getConnection()
     const signature = await submitRawTransaction(connection, signedTransaction.serialize(), {
       skipPreflight: submission.mode === 'jito',
@@ -1551,6 +1564,7 @@ export async function transferToken(
 
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair], {
         computeUnitLimit: needsDestinationAta ? TOKEN_TRANSFER_WITH_ATA_COMPUTE_UNITS : TOKEN_TRANSFER_COMPUTE_UNITS,
+        guardSource: 'transferToken',
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
@@ -2024,6 +2038,10 @@ export async function executeSwap(
     const { VersionedTransaction: VTx } = await import('@solana/web3.js')
     const txBuf = Buffer.from(orderData.transaction, 'base64')
     const transaction = VTx.deserialize(txBuf)
+    // Swaps are submitted via Jupiter's execute endpoint, bypassing
+    // executeTransaction — run the signer guard here before signing. Jupiter is
+    // allow-listed; the per-tx / rolling SOL caps and rate limit still apply.
+    assertTransactionAllowed(transaction, [keypair], { source: 'executeSwap' })
     transaction.sign([keypair])
     const signedTransaction = Buffer.from(transaction.serialize()).toString('base64')
 
