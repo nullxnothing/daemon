@@ -3,6 +3,9 @@ import { useToolsStore } from '../../store/tools'
 import { useUIStore } from '../../store/ui'
 import { ToolCard } from './ToolCard'
 import { ToolCreateDialog } from './ToolCreateDialog'
+import { PanelHeader, StateView } from '../../components/Panel'
+import { EmptyState } from '../../components/EmptyState'
+import { Button } from '../../components/Button'
 import './ToolBrowser.css'
 
 const CATEGORIES = ['all', 'solana', 'web3', 'dev', 'general']
@@ -82,13 +85,15 @@ export function ToolBrowser() {
 
   return (
     <div className="tool-browser">
-      <div className="tool-browser-header">
-        <h2 className="tool-browser-title">Tools</h2>
-        <div className="tool-browser-actions">
-          <button type="button" className="tool-btn" onClick={handleImport}>Import</button>
-          <button type="button" className="tool-btn primary" onClick={() => setShowCreate(true)}>New Tool</button>
-        </div>
-      </div>
+      <PanelHeader
+        title="Tools"
+        actions={
+          <div className="tool-browser-actions">
+            <Button variant="ghost" onClick={handleImport}>Import</Button>
+            <Button variant="primary" onClick={() => setShowCreate(true)}>New Tool</Button>
+          </div>
+        }
+      />
 
       <div className="tool-browser-filters">
         <input
@@ -110,24 +115,26 @@ export function ToolBrowser() {
         </div>
       </div>
 
-      {!loaded ? (
-        <div className="tool-browser-empty">Loading tools...</div>
-      ) : filtered.length === 0 ? (
-        <div className="tool-browser-empty">
-          {tools.length === 0 ? (
-            <>
-              <div className="tool-browser-empty-title">No tools yet</div>
-              <div className="tool-browser-empty-desc">Create a custom tool or import an existing folder.</div>
-              <div className="tool-browser-empty-actions">
-                <button type="button" className="tool-btn" onClick={handleImport}>Import Folder</button>
-                <button type="button" className="tool-btn primary" onClick={() => setShowCreate(true)}>Create Tool</button>
-              </div>
-            </>
+      <StateView
+        isLoading={!loaded}
+        isEmpty={filtered.length === 0}
+        empty={
+          tools.length === 0 ? (
+            <EmptyState
+              title="No tools yet"
+              description="Create a custom tool or import an existing folder."
+              action={
+                <div className="tool-browser-empty-actions">
+                  <Button variant="ghost" onClick={handleImport}>Import Folder</Button>
+                  <Button variant="primary" onClick={() => setShowCreate(true)}>Create Tool</Button>
+                </div>
+              }
+            />
           ) : (
-            'No tools match your filter.'
-          )}
-        </div>
-      ) : (
+            <EmptyState title="No matches" description="No tools match your filter." />
+          )
+        }
+      >
         <div className="tool-grid">
           {filtered.map((tool) => (
             <ToolCard
@@ -141,7 +148,7 @@ export function ToolBrowser() {
             />
           ))}
         </div>
-      )}
+      </StateView>
 
       {showCreate && (
         <ToolCreateDialog

@@ -46,7 +46,7 @@ electron/          Main process — IPC handlers, services, database
   services/        Business logic (never imported from renderer)
   db/              SQLite schema + migrations
   shared/          Types shared between main and renderer
-src/               Renderer — React 18 + TypeScript
+src/               Renderer — React 19 + TypeScript
   panels/          One directory per panel
   store/           Zustand stores
   components/      Shared UI components
@@ -58,7 +58,8 @@ test/              Vitest test suites
 
 - All DB access stays in main process — renderer uses IPC only
 - All IPC handlers use `IpcHandlerFactory` and return `{ ok, data/error }`
-- CSS Modules, no Tailwind — follow existing token system in `styles/tokens.css`
+- Follow the [Design System](DESIGN_SYSTEM.md): tokens only (no literal colors/sizes/shadows), shared chrome (`PanelHeader`, `StateView`, `Card`), one of the four async states everywhere
+- CSS Modules, no Tailwind — use the token system in `styles/tokens.css`; `pnpm run lint:styles` must not regress
 - No emoji in UI chrome — status via colored dots only
 - Test with `pnpm run package` before submitting PRs that touch native modules or electron main
 

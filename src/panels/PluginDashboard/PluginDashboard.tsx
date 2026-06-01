@@ -3,6 +3,7 @@ import { usePluginStore } from '../../store/plugins'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { Dot } from '../../components/Dot'
 import { Toggle } from '../../components/Toggle'
+import { PanelHeader } from '../../components/Panel'
 import type { PluginManifest } from '../../plugins/registry'
 import './PluginDashboard.css'
 
@@ -66,15 +67,17 @@ export function PluginDashboard() {
 
   return (
     <div className="plugin-dashboard">
-      <header className="plugin-dashboard-header">
-        <span className="plugin-dashboard-title">PLUGINS</span>
-        <input
-          className="plugin-dashboard-search"
-          placeholder="Search plugins..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </header>
+      <PanelHeader
+        title="Plugins"
+        actions={
+          <input
+            className="plugin-dashboard-search"
+            placeholder="Search plugins..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        }
+      />
       <div className="plugin-grid">
         {filteredPlugins.map((plugin) => {
           const manifest = PLUGIN_REGISTRY[plugin.id]

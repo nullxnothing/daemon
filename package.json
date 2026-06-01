@@ -52,7 +52,7 @@
     "test:security": "vitest run test/security test/services/SecureKeyService.test.ts test/services/ValidationService.test.ts test/services/ProjectSafetyService.test.ts",
     "test:smoke:core": "pnpm run test:smoke && pnpm run test:mcp-stress && pnpm run test:pro-entitlement",
     "test:smoke:ui": "pnpm run test:journeys && pnpm run test:responsive && pnpm run test:layout && pnpm run test:visual",
-    "test:ci": "pnpm install --frozen-lockfile --ignore-scripts && pnpm run typecheck && pnpm -r run typecheck && pnpm run lint:styles && pnpm run security:audit && pnpm run test:unit && pnpm run test:ui && pnpm run test:a11y && pnpm run test:keyboard && pnpm run test:solana && pnpm run test:security",
+    "test:ci": "pnpm install --frozen-lockfile --ignore-scripts && pnpm run typecheck && pnpm -r run typecheck && pnpm run lint:styles && pnpm run security:audit && pnpm run test:unit && pnpm run test:ui && pnpm run test:a11y && pnpm run test:keyboard && pnpm run test:solana && pnpm run test:security && pnpm run test:smoke",
     "test:release": "pnpm run release:check:v4:local",
     "test:all": "pnpm run test:ci && pnpm run test:smoke:core && pnpm run test:smoke:ui",
     "test:smoke": "pnpm run build && pnpm run rebuild && node scripts/smoke/electron-smoke.mjs",
@@ -147,7 +147,8 @@
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.7",
     "vitest": "^3.2.4",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "buffer": "^6.0.3"
   },
   "pnpm": {
     "overrides": {

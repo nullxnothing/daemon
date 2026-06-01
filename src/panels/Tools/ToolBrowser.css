@@ -6,20 +6,6 @@
   overflow: hidden;
 }
 
-.tool-browser-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px 0;
-}
-
-.tool-browser-title {
-  font-size: var(--fs-16);
-  font-weight: 600;
-  color: var(--t1);
-  margin: 0;
-}
-
 .tool-browser-actions {
   display: flex;
   gap: 8px;
@@ -69,30 +55,6 @@
 
 .tool-category-btn:hover { color: var(--t1); background: var(--s2); }
 .tool-category-btn.active { color: var(--t1); background: var(--s3); border-color: var(--green); }
-
-.tool-browser-empty {
-  padding: 60px 24px;
-  text-align: center;
-  font-size: var(--fs-13);
-  color: var(--t3);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.tool-browser-empty-title {
-  font-size: var(--fs-16);
-  font-weight: 600;
-  color: var(--t1);
-}
-
-.tool-browser-empty-desc {
-  font-size: var(--fs-12);
-  color: var(--t2);
-}
 
 .tool-browser-empty-actions {
   display: flex;

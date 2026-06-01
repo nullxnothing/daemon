@@ -75,6 +75,7 @@ features/
 PLUGIN_TODOS.md
 .daemon/replays/
 .daemon-*.png
+daemon-*.png
 .planning/
 .playwright-mcp/
 Usersoffic.claudeplans/
