@@ -115,7 +115,8 @@ vi.mock('@solana/web3.js', () => ({
   },
   PublicKey: vi.fn((addr: string) => ({ toBase58: () => addr, toString: () => addr })),
   Transaction: vi.fn(() => ({ add: vi.fn().mockReturnThis(), sign: vi.fn(), serialize: vi.fn().mockReturnValue(Buffer.alloc(10)) })),
-  SystemProgram: { transfer: vi.fn().mockReturnValue({}) },
+  SystemProgram: { transfer: vi.fn().mockReturnValue({}), programId: { toBase58: () => 'SystemProgram', equals: () => false } },
+  ComputeBudgetProgram: { programId: { toBase58: () => 'ComputeBudget', equals: () => false } },
   LAMPORTS_PER_SOL: 1_000_000_000,
   sendAndConfirmTransaction: vi.fn().mockResolvedValue('fake-sig'),
   TOKEN_PROGRAM_ID: { toBase58: () => 'TokenProgram' },
@@ -129,6 +130,9 @@ vi.mock('@solana/spl-token', () => ({
   createTransferInstruction: mockCreateTransferInstruction,
   createAssociatedTokenAccountInstruction: mockCreateAssociatedTokenAccountInstruction,
   getAccount: mockGetAccount,
+  TOKEN_PROGRAM_ID: { toBase58: () => 'TokenProgram' },
+  TOKEN_2022_PROGRAM_ID: { toBase58: () => 'Token2022Program' },
+  ASSOCIATED_TOKEN_PROGRAM_ID: { toBase58: () => 'AssociatedTokenProgram' },
 }))
 
 import { executeSwap, getDashboard, getSwapQuote, searchJupiterTokens, transferSOL, transferToken } from '../../electron/services/WalletService'
@@ -214,7 +218,7 @@ describe('transferSOL — validation', () => {
       expect.anything(),
       expect.anything(),
       [fakeKeypair],
-      { computeUnitLimit: 20_000 },
+      { computeUnitLimit: 20_000, guardSource: 'transferSOL' },
     )
   })
 })
@@ -591,7 +595,7 @@ describe('transferToken — validation', () => {
       expect.anything(),
       expect.anything(),
       [fakeKeypair],
-      { computeUnitLimit: 80_000 },
+      { computeUnitLimit: 80_000, guardSource: 'transferToken' },
     )
   })
 
@@ -634,7 +638,7 @@ describe('transferToken — validation', () => {
       expect.anything(),
       expect.anything(),
       [fakeKeypair],
-      { computeUnitLimit: 140_000 },
+      { computeUnitLimit: 140_000, guardSource: 'transferToken' },
     )
   })
 

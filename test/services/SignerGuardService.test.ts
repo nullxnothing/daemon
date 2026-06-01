@@ -142,3 +142,37 @@ describe('approveTransactionHash validation', () => {
     expect(() => approveTransactionHash('not-a-hash')).toThrow(/Invalid/i)
   })
 })
+
+describe('externally-signed transactions (signerOverride)', () => {
+  it('vets an already-signed transfer (empty signers) using signerOverride for accounting', () => {
+    // Simulate a Solflare-signed SOL transfer arriving via submitExternalSignedTransaction.
+    setSignerGuardPolicy({ perTxSolCap: 1 })
+    const tx = solTransferTx(2 * 1e9)
+    expect(() =>
+      assertTransactionAllowed(tx, [], { signerOverride: payer.publicKey.toBase58(), source: 'external' }),
+    ).toThrow(/per-transaction SOL cap/i)
+  })
+
+  it('permits an over-cap external transfer when its hash is pre-approved', () => {
+    setSignerGuardPolicy({ perTxSolCap: 1 })
+    const tx = solTransferTx(2 * 1e9)
+    const hash = hashTransactionMessage(tx)
+    approveTransactionHash(hash)
+    expect(() =>
+      assertTransactionAllowed(tx, [], { signerOverride: payer.publicKey.toBase58(), approvalHash: hash, source: 'external' }),
+    ).not.toThrow()
+  })
+})
+
+describe('uninspectable transactions', () => {
+  it('rejects a transaction it cannot inspect when enforcing', () => {
+    const broken = {} as unknown as Parameters<typeof assertTransactionAllowed>[0]
+    expect(() => assertTransactionAllowed(broken, [payer])).toThrow(/could not be inspected/i)
+  })
+
+  it('does not throw on an uninspectable transaction on devnet (log-only)', () => {
+    clusterRef.value = 'devnet'
+    const broken = {} as unknown as Parameters<typeof assertTransactionAllowed>[0]
+    expect(() => assertTransactionAllowed(broken, [payer])).not.toThrow()
+  })
+})
