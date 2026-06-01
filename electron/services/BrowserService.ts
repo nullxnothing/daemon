@@ -17,12 +17,13 @@ function isBlockedBrowserHost(hostname: string): boolean {
   const normalized = hostname.trim().toLowerCase().replace(/\.$/, '')
   if (!normalized) return true
 
-  if (normalized === 'localhost' || normalized.endsWith('.localhost')) return true
-  if (normalized === '0.0.0.0' || normalized === '::' || normalized === '::1') return true
+  if (normalized === 'localhost' || normalized.endsWith('.localhost')) return false
+  if (normalized === '::1' || normalized === '[::1]') return false
+  if (normalized === '0.0.0.0' || normalized === '::') return true
   if (normalized === 'metadata.google.internal') return true
   if (normalized.endsWith('.local') || normalized.endsWith('.internal')) return true
 
-  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)) return false
   if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
   if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true
   if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(normalized)) return true

@@ -102,7 +102,16 @@ describe('ProPanel Arena status', () => {
     expect(screen.getByText('DAEMON_PRO_DEV_BYPASS=1')).toBeInTheDocument()
   })
 
-  it('shows staking utility tiers and live holder status', async () => {
+  it('renders the inactive no-wallet state before the wallet dashboard has loaded', async () => {
+    useWalletStore.setState({ dashboard: null } as any)
+
+    render(<ProPanel />)
+
+    expect(await screen.findByText('Unlock DAEMON Pro')).toBeInTheDocument()
+    expect(screen.getByText('You need a wallet to subscribe. Create one from the Wallet panel first.')).toBeInTheDocument()
+  })
+
+  it('shows holder utility tiers and live holder status', async () => {
     const statusData = {
       active: false,
       walletId: null,
@@ -134,13 +143,13 @@ describe('ProPanel Arena status', () => {
 
     render(<ProPanel />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Staking' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Holder' }))
 
-    expect(screen.getByText('DAEMON staking utility')).toBeInTheDocument()
+    expect(screen.getByText('DAEMON holder access')).toBeInTheDocument()
     expect(screen.getByText('Holder access available')).toBeInTheDocument()
-    expect(screen.getByText('Signal')).toBeInTheDocument()
-    expect(screen.getByText('Builder')).toBeInTheDocument()
-    expect(screen.getByText('Operator')).toBeInTheDocument()
+    expect(screen.getByText('Holder Pro')).toBeInTheDocument()
+    expect(screen.getByText('Holder Operator')).toBeInTheDocument()
+    expect(screen.getByText('Holder Ultra')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activate holder access' })).toBeInTheDocument()
   })
 })

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { compactAddress } from '../../utils/textDisplay'
 import './WalletPanel.css'
 
 interface AgentWallet {
@@ -142,7 +143,7 @@ export function AgentWalletSection({
                     disabled={sendLoading}
                     onClick={onExecuteSend}
                   >
-                    {sendLoading ? 'Sending...' : 'Send Now'}
+                    {sendLoading ? 'Broadcasting...' : 'Sign and Send'}
                   </button>
                 </div>
               </div>
@@ -199,5 +200,5 @@ export function AgentWalletSection({
 }
 
 function shortAddress(value: string): string {
-  return `${value.slice(0, 4)}...${value.slice(-4)}`
+  return compactAddress(value)
 }

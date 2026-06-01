@@ -1,37 +1,38 @@
-import { useEffect, useRef } from 'react'
+import type { FC } from 'react'
+import { FocusTrap } from '../../components/FocusTrap'
 import { useOnboardingStore, STEP_ORDER } from '../../store/onboarding'
 import type { OnboardingStepId } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { StepProfile } from './steps/StepProfile'
-import { StepClaude } from './steps/StepClaude'
-import { StepGmail } from './steps/StepGmail'
-import { StepVercel } from './steps/StepVercel'
-import { StepRailway } from './steps/StepRailway'
+import { StepProject } from './steps/StepProject'
+import { StepWalletRuntime } from './steps/StepWalletRuntime'
+import { StepAiSafety } from './steps/StepAiSafety'
+import { StepFirstRun } from './steps/StepFirstRun'
 import daemonIcon from '../../assets/daemon-icon.png'
 import './OnboardingWizard.css'
 
 const STEP_LABELS: Record<OnboardingStepId, string> = {
   profile: 'Workspace',
-  claude: 'Claude',
-  gmail: 'Gmail',
-  vercel: 'Vercel',
-  railway: 'Railway',
+  project: 'Project',
+  runtime: 'Wallet + RPC',
+  ai: 'AI Safety',
+  firstRun: 'First Run',
 }
 
 const STEP_SUBTITLES: Record<OnboardingStepId, string> = {
   profile: 'What are you building?',
-  claude: 'Set up your AI engine',
-  gmail: 'Connect your email',
-  vercel: 'Deploy to Vercel',
-  railway: 'Deploy to Railway',
+  project: 'Open or scaffold a Solana workspace',
+  runtime: 'Choose the safe Solana execution route',
+  ai: 'Set the agent boundary before it acts',
+  firstRun: 'Start from the readiness checklist',
 }
 
-const STEP_COMPONENTS: Record<OnboardingStepId, React.FC> = {
+const STEP_COMPONENTS: Record<OnboardingStepId, FC> = {
   profile: StepProfile,
-  claude: StepClaude,
-  gmail: StepGmail,
-  vercel: StepVercel,
-  railway: StepRailway,
+  project: StepProject,
+  runtime: StepWalletRuntime,
+  ai: StepAiSafety,
+  firstRun: StepFirstRun,
 }
 
 export function OnboardingWizard() {
@@ -40,16 +41,11 @@ export function OnboardingWizard() {
   const progress = useOnboardingStore((s) => s.progress)
   const skipWizard = useOnboardingStore((s) => s.skipWizard)
   const goToStep = useOnboardingStore((s) => s.goToStep)
-  const overlayRef = useRef<HTMLDivElement>(null)
 
   const currentStepId = STEP_ORDER[currentStepIndex]
   const StepComponent = STEP_COMPONENTS[currentStepId]
   const canGoBack = currentStepIndex > 0
   const progressPct = Math.round(((currentStepIndex + 1) / STEP_ORDER.length) * 100)
-
-  useEffect(() => {
-    overlayRef.current?.focus()
-  }, [wizardOpen])
 
   const handleSkipWithConfirm = async () => {
     const ok = await confirm({
@@ -72,14 +68,19 @@ export function OnboardingWizard() {
   return (
     <div
       className="wizard-overlay"
-      ref={overlayRef}
-      tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
-      <div className="wizard-card">
+      <FocusTrap active={wizardOpen}>
+      <div
+        className="wizard-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="daemon-onboarding-title"
+        aria-describedby="daemon-onboarding-subtitle"
+      >
         <div className="wizard-brand">
           <img src={daemonIcon} alt="" className="wizard-brand-mark" draggable={false} />
-          <div className="wizard-title">DAEMON</div>
+          <div id="daemon-onboarding-title" className="wizard-title">DAEMON</div>
         </div>
 
         {/* Progress dots */}
@@ -100,7 +101,7 @@ export function OnboardingWizard() {
         </div>
 
         <div className="wizard-step-label">{STEP_LABELS[currentStepId]}</div>
-        <div className="wizard-subtitle">{STEP_SUBTITLES[currentStepId]}</div>
+        <div id="daemon-onboarding-subtitle" className="wizard-subtitle">{STEP_SUBTITLES[currentStepId]}</div>
 
         {/* Active step */}
         <div className="wizard-step-content">
@@ -125,6 +126,7 @@ export function OnboardingWizard() {
           </span>
         </div>
       </div>
+      </FocusTrap>
     </div>
   )
 }

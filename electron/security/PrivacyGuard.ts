@@ -29,6 +29,11 @@ const SECRET_KEY_RE = /\b[A-Z0-9_]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASS|PRI
 
 const REDACTION_RULES: Array<{ type: string; pattern: RegExp; replacement: string }> = [
   {
+    type: 'pem_private_key',
+    pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
+    replacement: '[REDACTED_PEM_KEY]',
+  },
+  {
     type: 'env_secret_assignment',
     pattern: /(\b(?:export\s+)?[A-Z0-9_]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASS|PRIVATE[_-]?KEY|AUTH|CREDENTIAL|CLIENT[_-]?SECRET)[A-Z0-9_]*\s*=\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s\r\n#]+)/gim,
     replacement: '[REDACTED_SECRET]',
@@ -45,8 +50,33 @@ const REDACTION_RULES: Array<{ type: string; pattern: RegExp; replacement: strin
   },
   {
     type: 'openai_key',
-    pattern: /\bsk-[A-Za-z0-9]{20,}\b/g,
+    pattern: /\bsk-(?:proj-)?[A-Za-z0-9._-]{20,}\b/g,
     replacement: '[REDACTED_API_KEY]',
+  },
+  {
+    type: 'stripe_live_key',
+    pattern: /\bsk_live_[A-Za-z0-9]{20,}\b/g,
+    replacement: '[REDACTED_API_KEY]',
+  },
+  {
+    type: 'github_pat',
+    pattern: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b/g,
+    replacement: '[REDACTED_GITHUB_TOKEN]',
+  },
+  {
+    type: 'aws_access_key',
+    pattern: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g,
+    replacement: '[REDACTED_AWS_KEY]',
+  },
+  {
+    type: 'slack_token',
+    pattern: /\bxox(?:b|p|o|a|r|s)-[A-Za-z0-9-]{20,}\b/g,
+    replacement: '[REDACTED_SLACK_TOKEN]',
+  },
+  {
+    type: 'voight_key',
+    pattern: /\bvk_[A-Za-z0-9_-]{20,}\b/g,
+    replacement: '[REDACTED_VOIGHT_KEY]',
   },
   {
     type: 'google_oauth_token',
@@ -90,6 +120,23 @@ function addFinding(findings: Map<string, number>, type: string, count: number):
   findings.set(type, (findings.get(type) ?? 0) + count)
 }
 
+function isLuhnValid(value: string): boolean {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length < 13 || digits.length > 19) return false
+  let sum = 0
+  let doubleDigit = false
+  for (let i = digits.length - 1; i >= 0; i -= 1) {
+    let digit = Number(digits[i])
+    if (doubleDigit) {
+      digit *= 2
+      if (digit > 9) digit -= 9
+    }
+    sum += digit
+    doubleDigit = !doubleDigit
+  }
+  return sum % 10 === 0
+}
+
 export function redactText(input: string): RedactionResult {
   const findings = new Map<string, number>()
   let value = input
@@ -106,6 +153,14 @@ export function redactText(input: string): RedactionResult {
     })
     addFinding(findings, rule.type, count)
   }
+
+  let cardCount = 0
+  value = value.replace(/\b(?:\d[ -]?){13,19}\b/g, (match) => {
+    if (!isLuhnValid(match)) return match
+    cardCount += 1
+    return '[REDACTED_CARD]'
+  })
+  addFinding(findings, 'credit_card', cardCount)
 
   return {
     value,

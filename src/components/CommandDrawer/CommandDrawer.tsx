@@ -1,4 +1,36 @@
 import { useState, useRef, useEffect, useCallback, useMemo, type ComponentType, type DragEvent } from 'react'
+import {
+  ArrowClockwise,
+  Briefcase,
+  ChartLineUp,
+  Circuitry,
+  ClockCounterClockwise,
+  CloudArrowUp,
+  Cpu,
+  Database,
+  DesktopTower,
+  EnvelopeSimple,
+  FilePlus,
+  FileText,
+  GearSix,
+  GitBranch,
+  GlobeHemisphereWest,
+  ImageSquare,
+  Lifebuoy,
+  ListChecks,
+  Plugs,
+  PuzzlePiece,
+  Robot,
+  RocketLaunch,
+  Scan,
+  ShareNetwork,
+  ShieldStar,
+  SlidersHorizontal,
+  Sparkle,
+  Trophy,
+  Wallet,
+  type Icon,
+} from '@phosphor-icons/react'
 import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
@@ -6,6 +38,11 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { TOOL_DISPLAY_NAMES } from '../../constants/toolRegistry'
 import { lazyNamedWithReload, lazyWithReload } from '../../utils/lazyWithReload'
+import {
+  DAEMON_SOLANA_LOGO_COLORS,
+  DAEMON_TOOL_ACCENT_FALLBACK,
+  DAEMON_TOOL_COLORS,
+} from '../../styles/daemonTheme'
 import './CommandDrawer.css'
 
 // All drawer-renderable tools (built-in + plugins)
@@ -19,222 +56,48 @@ interface DrawerTool {
   category: 'dev' | 'crypto' | 'create' | 'system'
 }
 
-// Built-in tool icons — exported for sidebar pinning.
-// These use one restrained line-icon language; color is applied by the card/rail.
+// Built-in tool icons, exported for sidebar pinning.
 type IconProps = { size?: number }
 
-function ToolIconBase({ size = 18, children }: IconProps & { children: React.ReactNode }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  )
+function createPhosphorIcon(IconComponent: Icon, weight: 'duotone' | 'regular' = 'duotone') {
+  return function PhosphorToolIcon({ size = 18 }: IconProps) {
+    return <IconComponent size={size} weight={weight} aria-hidden="true" />
+  }
 }
 
-export function GitIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <circle cx="7" cy="6" r="2.1" />
-      <circle cx="17" cy="12" r="2.1" />
-      <circle cx="7" cy="18" r="2.1" />
-      <path d="M7 8.1v7.8M9.1 6h2.4a4 4 0 0 1 4 4v0" />
-    </ToolIconBase>
-  )
-}
-
-function EnvIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M6 8h12M6 16h12" />
-      <circle cx="9" cy="8" r="2.1" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="16" r="2.1" fill="currentColor" stroke="none" />
-    </ToolIconBase>
-  )
-}
-
-function DeployIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M8.2 18.5H7a4 4 0 0 1-.8-7.9 6 6 0 0 1 11.5-1.7A4.8 4.8 0 0 1 17 18.5h-1.2" />
-      <path d="M12 18.5v-8M9 13.5l3-3 3 3" />
-    </ToolIconBase>
-  )
-}
-
-function EmailIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <rect x="4" y="5.5" width="16" height="13" rx="2.3" />
-      <path d="m5 8 7 5 7-5" />
-    </ToolIconBase>
-  )
-}
-
-function WalletIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M5 7.5h12.5A2.5 2.5 0 0 1 20 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-10A2.5 2.5 0 0 1 6.5 5H16" />
-      <path d="M16.5 12.5H21v4h-4.5a2 2 0 0 1 0-4Z" />
-      <path d="M17 14.5h.01" />
-    </ToolIconBase>
-  )
-}
-
-function SettingsIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.5a2 2 0 0 1-1 1.73l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.73v-.5a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z" />
-      <circle cx="12" cy="12" r="3" />
-    </ToolIconBase>
-  )
-}
-
-function PortsIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M7 7h10v5H7zM12 12v5M8.5 17h7" />
-      <path d="M8 4v3M12 4v3M16 4v3" />
-    </ToolIconBase>
-  )
-}
-
-function ProcessIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-      <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" />
-      <path d="M10 10h4v4h-4z" />
-    </ToolIconBase>
-  )
-}
-
-function PaintIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <rect x="4" y="5" width="16" height="14" rx="2" />
-      <circle cx="8.2" cy="9.2" r="1.2" fill="currentColor" stroke="none" />
-      <path d="m6.5 16 4-4 2.5 2.5 2-2 2.5 3.5" />
-    </ToolIconBase>
-  )
-}
-
-function BrowserIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M3.5 12h17M12 3.5a12 12 0 0 1 0 17M12 3.5a12 12 0 0 0 0 17" />
-    </ToolIconBase>
-  )
-}
-
-function DocsIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M7 3.5h7l4 4V20H7a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z" />
-      <path d="M14 3.5V8h4M8 12h8M8 15h8M8 18h5" />
-    </ToolIconBase>
-  )
-}
-
-function StarterIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M7 3.5h7l4 4V20H7a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z" />
-      <path d="M14 3.5V8h4M11.5 11.5v5M9 14h5" />
-    </ToolIconBase>
-  )
-}
-
-function ReplayIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M4.5 11a7.5 7.5 0 1 1 2.2 5.3" />
-      <path d="M4.5 6.5V11H9" />
-      <path d="m11 9.5 4 2.5-4 2.5Z" fill="currentColor" stroke="none" />
-    </ToolIconBase>
-  )
-}
-
-function ScannerIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M7 4H5.5A1.5 1.5 0 0 0 4 5.5V7M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17M17 20h1.5a1.5 1.5 0 0 0 1.5-1.5V17" />
-      <rect x="7" y="7" width="10" height="10" rx="1.8" />
-      <path d="M9.5 12h5" />
-    </ToolIconBase>
-  )
-}
-
-function DashboardIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M5 19V9M12 19V5M19 19v-7" />
-      <path d="M4 19h16" />
-      <path d="m5 9 7-4 7 7" />
-    </ToolIconBase>
-  )
-}
-
-function SessionsIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5v5l3 1.8" />
-      <path d="M8 4.6 6.6 3.4M16 4.6l1.4-1.2" />
-    </ToolIconBase>
-  )
-}
-
-function HackathonIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M8 4h8v3a4 4 0 0 1-8 0V4Z" />
-      <path d="M8 6H5.5A2.5 2.5 0 0 0 8 10.2M16 6h2.5a2.5 2.5 0 0 1-2.5 4.2" />
-      <path d="M12 11v4M9 20h6M10 15h4v5h-4z" />
-    </ToolIconBase>
-  )
-}
-
-function PluginsIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M9 4a2 2 0 1 1 4 0v2h3a2 2 0 0 1 2 2v3h-2a2 2 0 1 0 0 4h2v3a2 2 0 0 1-2 2h-3v-2a2 2 0 1 0-4 0v2H6a2 2 0 0 1-2-2v-3h2a2 2 0 1 0 0-4H4V8a2 2 0 0 1 2-2h3V4Z" />
-    </ToolIconBase>
-  )
-}
-
-function RecoveryIcon({ size = 18 }: IconProps) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M5 12a7 7 0 1 0 2.1-5" />
-      <path d="M5 4v5h5" />
-      <path d="M12 8v5l3 1.5" />
-    </ToolIconBase>
-  )
-}
+export const GitIcon = createPhosphorIcon(GitBranch, 'regular')
+const EnvIcon = createPhosphorIcon(SlidersHorizontal)
+const DeployIcon = createPhosphorIcon(CloudArrowUp)
+const EmailIcon = createPhosphorIcon(EnvelopeSimple)
+const WalletIcon = createPhosphorIcon(Wallet)
+const SettingsIcon = createPhosphorIcon(GearSix)
+const PortsIcon = createPhosphorIcon(Plugs)
+const ProcessIcon = createPhosphorIcon(Cpu)
+const PaintIcon = createPhosphorIcon(ImageSquare)
+const BrowserIcon = createPhosphorIcon(GlobeHemisphereWest, 'regular')
+const DocsIcon = createPhosphorIcon(FileText)
+const StarterIcon = createPhosphorIcon(FilePlus)
+const ReplayIcon = createPhosphorIcon(ArrowClockwise)
+const ScannerIcon = createPhosphorIcon(Scan)
+const DashboardIcon = createPhosphorIcon(ChartLineUp)
+const SessionsIcon = createPhosphorIcon(ClockCounterClockwise)
+const HackathonIcon = createPhosphorIcon(Trophy)
+const PluginsIcon = createPhosphorIcon(PuzzlePiece)
+const RecoveryIcon = createPhosphorIcon(Lifebuoy)
 function SolanaIcon({ size = 18 }: { size?: number }) {
+  const { green, purple, magenta } = DAEMON_SOLANA_LOGO_COLORS
   return (
     <svg width={size} height={size} viewBox="0 0 397.7 311.7">
       <defs>
         <linearGradient id="solana-flow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00FFA3">
-            <animate attributeName="stop-color" values="#00FFA3;#DC1FFF;#00FFA3" dur="4s" repeatCount="indefinite" />
+          <stop offset="0%" stopColor={green}>
+            <animate attributeName="stop-color" values={`${green};${magenta};${green}`} dur="4s" repeatCount="indefinite" />
           </stop>
-          <stop offset="50%" stopColor="#9945FF">
-            <animate attributeName="stop-color" values="#9945FF;#00FFA3;#9945FF" dur="4s" repeatCount="indefinite" />
+          <stop offset="50%" stopColor={purple}>
+            <animate attributeName="stop-color" values={`${purple};${green};${purple}`} dur="4s" repeatCount="indefinite" />
           </stop>
-          <stop offset="100%" stopColor="#DC1FFF">
-            <animate attributeName="stop-color" values="#DC1FFF;#9945FF;#DC1FFF" dur="4s" repeatCount="indefinite" />
+          <stop offset="100%" stopColor={magenta}>
+            <animate attributeName="stop-color" values={`${magenta};${purple};${magenta}`} dur="4s" repeatCount="indefinite" />
           </stop>
         </linearGradient>
       </defs>
@@ -244,98 +107,32 @@ function SolanaIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
-function IntegrationsIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <circle cx="6" cy="12" r="2" />
-      <circle cx="12" cy="6" r="2" />
-      <circle cx="18" cy="12" r="2" />
-      <circle cx="12" cy="18" r="2" />
-      <path d="m7.5 10.5 3-3M13.5 7.5l3 3M16.5 13.5l-3 3M10.5 16.5l-3-3" />
-    </ToolIconBase>
-  )
-}
-function ReadinessIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M9 11.5 11.2 14 16 8.5" />
-      <path d="M5 6.5h3M5 12h2M5 17.5h3" />
-      <path d="M10.5 6.5H19M10.5 17.5H19" />
-      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
-    </ToolIconBase>
-  )
-}
-function TokenLaunchIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M8 15.5c-1.3 1-2 2.7-1.8 4.3 1.6.2 3.3-.5 4.3-1.8l6.8-8A3 3 0 0 0 13 5.7l-8 6.8Z" />
-      <path d="m13 5.7 5.3 5.3M8.5 11.5l4 4" />
-      <path d="M18 4h2v2M4 18v2h2" />
-    </ToolIconBase>
-  )
-}
-function ProIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M12 3.5 19 6v5.3c0 4.2-2.7 7.2-7 9.2-4.3-2-7-5-7-9.2V6l7-2.5Z" />
-      <path d="m12 8.2 1.1 2.2 2.4.4-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.4L12 8.2Z" />
-    </ToolIconBase>
-  )
-}
-function ActivityIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M4 13h4l2-6 4 12 2-6h4" />
-      <path d="M4 20h16" opacity="0.45" />
-    </ToolIconBase>
-  )
-}
-
-// Icon lookup for pinned sidebar tools
-function AgentStationIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <rect x="5" y="6" width="14" height="10" rx="3" />
-      <path d="M12 3.5V6M9 19h6M12 16v3" />
-      <circle cx="9.2" cy="11" r="1" fill="currentColor" stroke="none" />
-      <circle cx="14.8" cy="11" r="1" fill="currentColor" stroke="none" />
-    </ToolIconBase>
-  )
-}
-
-function AgentWorkIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <path d="M5 7.5h9.5L19 12v6.5A2.5 2.5 0 0 1 16.5 21h-9A2.5 2.5 0 0 1 5 18.5v-11Z" />
-      <path d="M14.5 7.5V12H19" />
-      <path d="M8.5 14h7M8.5 17h4.5" />
-      <path d="M7.5 3.5h5l1.5 2" />
-    </ToolIconBase>
-  )
-}
-
-function SpawnAgentsIcon({ size = 18 }: { size?: number }) {
-  return (
-    <ToolIconBase size={size}>
-      <circle cx="12" cy="8" r="3" />
-      <path d="M12 11v3" />
-      <circle cx="7" cy="18" r="2.2" />
-      <circle cx="17" cy="18" r="2.2" />
-      <path d="M9 17.2 12 14l3 3.2" />
-    </ToolIconBase>
-  )
-}
+const IntegrationsIcon = createPhosphorIcon(ShareNetwork)
+const ZauthIcon = createPhosphorIcon(Database)
+const ReadinessIcon = createPhosphorIcon(ListChecks)
+const TokenLaunchIcon = createPhosphorIcon(RocketLaunch)
+const ProofPoolIcon = createPhosphorIcon(ShieldStar)
+const ProIcon = createPhosphorIcon(ShieldStar)
+const DaemonAIIcon = createPhosphorIcon(Robot)
+const ActivityIcon = createPhosphorIcon(Sparkle)
+const AgentStationIcon = createPhosphorIcon(DesktopTower)
+const AgentWorkIcon = createPhosphorIcon(Briefcase)
+const SpawnAgentsIcon = createPhosphorIcon(Circuitry)
+const AgentOpsIcon = createPhosphorIcon(ShareNetwork)
 
 export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   git: GitIcon, deploy: DeployIcon, env: EnvIcon,
   wallet: WalletIcon, email: EmailIcon, browser: BrowserIcon,
   ports: PortsIcon, processes: ProcessIcon, settings: SettingsIcon,
   'image-editor': PaintIcon, 'solana-toolbox': SolanaIcon, 'block-scanner': ScannerIcon, 'replay-engine': ReplayIcon, docs: DocsIcon, starter: StarterIcon,
-  'token-launch': TokenLaunchIcon, integrations: IntegrationsIcon, 'project-readiness': ReadinessIcon,
+  'token-launch': TokenLaunchIcon, 'proof-pool': ProofPoolIcon, integrations: IntegrationsIcon, 'metaplex-demo': IntegrationsIcon, zauth: ZauthIcon, 'project-readiness': ReadinessIcon,
   dashboard: DashboardIcon, sessions: SessionsIcon, hackathon: HackathonIcon, plugins: PluginsIcon, recovery: RecoveryIcon, pro: ProIcon, activity: ActivityIcon,
+  'daemon-ai': DaemonAIIcon,
   'agent-station': AgentStationIcon,
   'agent-work': AgentWorkIcon,
   'spawnagents': SpawnAgentsIcon,
+  ricomaps: AgentOpsIcon,
+  agentops: AgentOpsIcon,
 }
 
 // Tool name lookup
@@ -353,14 +150,19 @@ const loadProcessManager = () => import('../../panels/ProcessManager/ProcessMana
 const loadImageEditor = () => import('../../panels/ImageEditor/ImageEditor')
 const loadSolanaToolbox = () => import('../../panels/SolanaToolbox/SolanaToolbox')
 const loadIntegrationCommandCenter = () => import('../../panels/IntegrationCommandCenter/IntegrationCommandCenter')
+const loadMetaplexDemo = () => import('../../panels/MetaplexDemo/MetaplexDemoPanel')
+const loadAgentOps = () => import('../../panels/AgentOps/AgentOpsPanel')
+const loadZauthPanel = () => import('../../panels/Zauth/ZauthPanel')
 const loadProjectReadiness = () => import('../../panels/ProjectReadiness/ProjectReadiness')
 const loadTokenLaunchTool = () => import('../../panels/TokenLaunchTool/TokenLaunchTool')
+const loadProofPoolPanel = () => import('../../panels/ProofPool/ProofPoolPanel')
 const loadBlockScanner = () => import('../../panels/BlockScanner/BlockScanner')
 const loadDocsPanel = () => import('../../panels/DocsPanel/DocsPanel')
 const loadProjectStarter = () => import('../../panels/ProjectStarter/ProjectStarter')
 const loadDashboardCanvas = () => import('../../panels/Dashboard/DashboardCanvas')
 const loadSessionHistory = () => import('../../panels/SessionRegistry/SessionHistory')
 const loadHackathonPanel = () => import('../../panels/Colosseum/HackathonPanel')
+const loadDaemonAIPanel = () => import('../../panels/DaemonAI/DaemonAIPanel')
 const loadPluginManager = () => import('../../panels/PluginManager/PluginManager')
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
 const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
@@ -369,6 +171,7 @@ const loadAgentStation = () => import('../../panels/AgentStation/AgentStation')
 const loadReplayEngine = () => import('../../panels/ReplayEngine/ReplayEngine')
 const loadAgentWork = () => import('../../panels/AgentWork/AgentWork')
 const loadSpawnAgents = () => import('../../panels/SpawnAgents/SpawnAgentsPanel')
+const loadRicoMaps = () => import('../../panels/RicoMaps/RicoMapsPanel')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
 const EnvManager = lazyNamedWithReload('env-manager', loadEnvManager, (m) => m.EnvManager)
@@ -381,14 +184,19 @@ const ProcessManager = lazyNamedWithReload('process-manager', loadProcessManager
 const ImageEditor = lazyWithReload('image-editor', loadImageEditor)
 const SolanaToolbox = lazyWithReload('solana-toolbox', loadSolanaToolbox)
 const IntegrationCommandCenter = lazyWithReload('integration-command-center', loadIntegrationCommandCenter)
+const MetaplexDemoPanel = lazyNamedWithReload('metaplex-demo', loadMetaplexDemo, (m) => m.MetaplexDemoPanel)
+const AgentOpsPanel = lazyNamedWithReload('agentops', loadAgentOps, (m) => m.AgentOpsPanel)
+const ZauthPanel = lazyNamedWithReload('zauth-panel', loadZauthPanel, (m) => m.ZauthPanel)
 const ProjectReadiness = lazyWithReload('project-readiness', loadProjectReadiness)
 const TokenLaunchTool = lazyWithReload('token-launch-tool', loadTokenLaunchTool)
+const ProofPoolPanel = lazyNamedWithReload('proof-pool-panel', loadProofPoolPanel, (m) => m.ProofPoolPanel)
 const BlockScanner = lazyWithReload('block-scanner', loadBlockScanner)
 const DocsPanel = lazyNamedWithReload('docs-panel', loadDocsPanel, (m) => m.DocsPanel)
 const ProjectStarter = lazyWithReload('project-starter', loadProjectStarter)
 const DashboardCanvas = lazyNamedWithReload('dashboard-canvas', loadDashboardCanvas, (m) => m.DashboardCanvas)
 const SessionHistory = lazyNamedWithReload('session-history', loadSessionHistory, (m) => m.SessionHistory)
 const HackathonPanel = lazyNamedWithReload('hackathon-panel', loadHackathonPanel, (m) => m.HackathonPanel)
+const DaemonAIPanel = lazyNamedWithReload('daemon-ai-panel', loadDaemonAIPanel, (m) => m.DaemonAIPanel)
 const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (m) => m.PluginManager)
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
@@ -397,38 +205,10 @@ const AgentStationPanel = lazyNamedWithReload('agent-station', loadAgentStation,
 const ReplayEngine = lazyNamedWithReload('replay-engine', loadReplayEngine, (m) => m.ReplayEngine)
 const AgentWork = lazyNamedWithReload('agent-work', loadAgentWork, (m) => m.AgentWork)
 const SpawnAgentsPanel = lazyNamedWithReload('spawnagents', loadSpawnAgents, (m) => m.SpawnAgentsPanel)
+const RicoMapsPanel = lazyNamedWithReload('ricomaps', loadRicoMaps, (m) => m.RicoMapsPanel)
 
-// Per-tool accent colors for the drawer grid and sidebar
-export const TOOL_COLORS: Record<string, string> = {
-  starter: '#7dd3fc',
-  git: '#a78bfa',
-  deploy: '#60a5fa',
-  env: '#f6c768',
-  wallet: '#f0abfc',
-  email: '#fb923c',
-  browser: '#60a5fa',
-  ports: '#67e8f9',
-  processes: '#f87171',
-  settings: '#a3aab8',
-  'image-editor': '#d8b4fe',
-  'solana-toolbox': '#14f195',
-  integrations: '#5eead4',
-  'project-readiness': '#86efac',
-  'token-launch': '#34d399',
-  'block-scanner': '#38bdf8',
-  'replay-engine': '#7dd3fc',
-  docs: '#fbbf24',
-  dashboard: '#22c55e',
-  sessions: '#38bdf8',
-  hackathon: '#facc15',
-  plugins: '#cbd5e1',
-  recovery: '#fb7185',
-  pro: '#fde047',
-  activity: '#2dd4bf',
-  'agent-station': '#c4b5fd',
-  'agent-work': '#38bdf8',
-  'spawnagents': '#c41e3a',
-}
+// Per-tool accent colors for the drawer grid and sidebar.
+export const TOOL_COLORS = DAEMON_TOOL_COLORS
 
 // Built-in tools registry — exported so other modules can enumerate all tool IDs
 // Note: 'browser' is intentionally excluded — it opens as a pinned editor tab (Ctrl+Shift+B), not a drawer panel
@@ -443,10 +223,14 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'processes', name: 'Processes', description: 'System monitor', icon: ProcessIcon, component: ProcessManager, preload: () => { void loadProcessManager() }, category: 'system' },
   { id: 'settings', name: 'Settings', description: 'App configuration', icon: SettingsIcon, component: SettingsPanel, preload: () => { void loadSettingsPanel() }, category: 'system' },
   { id: 'image-editor', name: 'Image Editor', description: 'Edit images with layers & filters', icon: PaintIcon, component: ImageEditor, preload: () => { void loadImageEditor() }, category: 'create' },
-  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, and Meteora launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
-  { id: 'project-readiness', name: 'Project Readiness', description: 'Solana project, wallet, RPC, MCP, and first-action checklist', icon: ReadinessIcon, component: ProjectReadiness, preload: () => { void loadProjectReadiness() }, category: 'crypto' },
-  { id: 'solana-toolbox', name: 'Solana', description: 'Solana tools, MCPs, validator', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
+  { id: 'token-launch', name: 'Token Launch', description: 'Unified Pump.fun, Raydium, Meteora, and basedbid launch workflow', icon: TokenLaunchIcon, component: TokenLaunchTool, preload: () => { void loadTokenLaunchTool() }, category: 'crypto' },
+  { id: 'proof-pool', name: 'Proof Pool', description: 'Pooled Pump.fun launches with verified backer slots', icon: ProofPoolIcon, component: ProofPoolPanel, preload: () => { void loadProofPoolPanel() }, category: 'crypto' },
+  { id: 'project-readiness', name: 'Solana Start', description: 'Project, wallet, RPC, MCP, AI, and first safe action checklist', icon: ReadinessIcon, component: ProjectReadiness, preload: () => { void loadProjectReadiness() }, category: 'crypto' },
+  { id: 'solana-toolbox', name: 'Solana Workflow', description: 'Start, Connect, Build, Launch, Inspect, and Debug for Solana projects', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'crypto' },
   { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'crypto' },
+  { id: 'agentops', name: 'AgentOps', description: 'Simple Metaplex agent control and website handoff', icon: AgentOpsIcon, component: AgentOpsPanel, preload: () => { void loadAgentOps() }, category: 'crypto' },
+  { id: 'metaplex-demo', name: 'Metaplex Demo', description: 'Native Core, DAS, launch, and Agent Registry demo', icon: IntegrationsIcon, component: MetaplexDemoPanel, preload: () => { void loadMetaplexDemo() }, category: 'crypto' },
+  { id: 'zauth', name: 'Zauth', description: 'x402 database and Provider Hub', icon: ZauthIcon, component: ZauthPanel, preload: () => { void loadZauthPanel() }, category: 'crypto' },
   { id: 'block-scanner', name: 'Block Scanner', description: 'Solana explorer powered by Orb', icon: ScannerIcon, component: BlockScanner, preload: () => { void loadBlockScanner() }, category: 'crypto' },
   { id: 'replay-engine', name: 'Replay', description: 'Replay any Solana transaction with on-chain context and AI handoff', icon: ReplayIcon, component: ReplayEngine, preload: () => { void loadReplayEngine() }, category: 'crypto' },
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, preload: () => { void loadDocsPanel() }, category: 'system' },
@@ -454,12 +238,14 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'agent-work', name: 'Agent Work', description: 'Wallet-funded agent jobs, receipts, verification, and settlement', icon: AgentWorkIcon, component: AgentWork, preload: () => { void loadAgentWork() }, category: 'crypto' },
   { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
   { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'crypto' },
+  { id: 'daemon-ai', name: 'DAEMON AI', description: 'AI workbench for chat, runs, approvals, patches, and receipts', icon: DaemonAIIcon, component: DaemonAIPanel, preload: () => { void loadDaemonAIPanel() }, category: 'dev' },
   { id: 'pro', name: 'Daemon Pro', description: 'Arena, Pro skills, MCP sync, and priority API', icon: ProIcon, component: ProPanel, preload: () => { void loadProPanel() }, category: 'crypto' },
   { id: 'activity', name: 'Activity', description: 'Flight recorder for Solana development', icon: ActivityIcon, component: ActivityTimeline, preload: () => { void loadActivityTimeline() }, category: 'system' },
   { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
   { id: 'agent-station', name: 'Agent Station', description: 'Scaffold and run Solana AI agents powered by SAK', icon: AgentStationIcon, component: AgentStationPanel, preload: () => { void loadAgentStation() }, category: 'crypto' },
   { id: 'spawnagents', name: 'SpawnAgents', description: 'Spawn autonomous Solana trading agents with custom DNA', icon: SpawnAgentsIcon, component: SpawnAgentsPanel, preload: () => { void loadSpawnAgents() }, category: 'crypto' },
+  { id: 'ricomaps', name: 'RicoMaps', description: 'Token and wallet forensic graphing', icon: AgentOpsIcon, component: RicoMapsPanel, preload: () => { void loadRicoMaps() }, category: 'crypto' },
 ]
 
 const BUILTIN_TOOL_PRELOADERS = new Map(
@@ -472,11 +258,13 @@ export function preloadToolPanel(toolId: string) {
   BUILTIN_TOOL_PRELOADERS.get(toolId)?.()
 }
 
-function getDrawerTools(isToolVisible: (toolId: string) => boolean): DrawerTool[] {
+function getDrawerTools(
+  isToolVisible: (toolId: string) => boolean,
+  plugins: Array<{ id: string; enabled: number | boolean }>,
+): DrawerTool[] {
   const tools = [...BUILTIN_TOOLS]
 
   // Add enabled plugins
-  const plugins = usePluginStore.getState().plugins
   for (const p of plugins) {
     if (!p.enabled) continue
     const manifest = PLUGIN_REGISTRY[p.id]
@@ -513,7 +301,7 @@ export function CommandDrawer() {
 
   const plugins = usePluginStore((s) => s.plugins)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
-  const rawTools = useMemo(() => getDrawerTools(isToolVisible), [plugins, isToolVisible])
+  const rawTools = useMemo(() => getDrawerTools(isToolVisible, plugins), [plugins, isToolVisible])
 
   // Apply custom ordering if set
   const allTools = useMemo(() => {
@@ -598,6 +386,10 @@ export function CommandDrawer() {
       e.preventDefault()
       openWorkspaceTool(filteredTools[0].id)
       setSearch('')
+    } else if (e.key === 'ArrowDown') {
+      // Move from the search field into the first tool card.
+      const first = drawerRef.current?.querySelector<HTMLElement>('.drawer-tool-card')
+      if (first) { e.preventDefault(); first.focus() }
     }
   }
 
@@ -605,6 +397,48 @@ export function CommandDrawer() {
     preloadToolPanel(toolId)
     openWorkspaceTool(toolId)
     setSearch('')
+  }
+
+  // Spatial arrow-key navigation across the tool card grid. Cards are buttons
+  // in a CSS grid, so rows/columns are derived from layout geometry.
+  const handleGridKeyDown = (e: React.KeyboardEvent) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+    const active = document.activeElement as HTMLElement | null
+    if (!active?.classList.contains('drawer-tool-card')) return
+
+    const cards = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>('.drawer-tool-card') ?? [])
+    const index = cards.indexOf(active)
+    if (index === -1) return
+    e.preventDefault()
+
+    if (e.key === 'ArrowRight') { cards[Math.min(index + 1, cards.length - 1)]?.focus(); return }
+    if (e.key === 'ArrowLeft') {
+      if (index === 0) { searchRef.current?.focus(); return }
+      cards[index - 1]?.focus(); return
+    }
+
+    // Up/Down: find the card in the adjacent row nearest the current column (by x center).
+    const rect = active.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const rowGap = rect.height / 2
+    const candidates = cards.filter((card) => {
+      const r = card.getBoundingClientRect()
+      return e.key === 'ArrowDown' ? r.top > rect.top + rowGap : r.bottom < rect.bottom - rowGap
+    })
+    if (candidates.length === 0) {
+      if (e.key === 'ArrowUp') searchRef.current?.focus()
+      return
+    }
+    const targetRowTop = e.key === 'ArrowDown'
+      ? Math.min(...candidates.map((c) => c.getBoundingClientRect().top))
+      : Math.max(...candidates.map((c) => c.getBoundingClientRect().top))
+    const rowCards = candidates.filter((c) => Math.abs(c.getBoundingClientRect().top - targetRowTop) < 4)
+    const nearest = rowCards.reduce((best, c) => {
+      const r = c.getBoundingClientRect()
+      const dist = Math.abs(r.left + r.width / 2 - cx)
+      return dist < best.dist ? { card: c, dist } : best
+    }, { card: rowCards[0], dist: Infinity })
+    nearest.card?.focus()
   }
 
   // --- Drag-and-drop for reordering ---
@@ -661,7 +495,7 @@ export function CommandDrawer() {
       </div>
 
       {/* Content */}
-      <div className="drawer-content">
+      <div className="drawer-content" onKeyDown={handleGridKeyDown}>
         <DrawerGrid
           tools={filteredTools}
           search={search}
@@ -682,7 +516,7 @@ export function CommandDrawer() {
 
 const CATEGORY_LABELS: Record<DrawerTool['category'], string> = {
   dev: 'Development',
-  crypto: 'Crypto',
+  crypto: 'Solana',
   create: 'Create',
   system: 'System',
 }
@@ -789,7 +623,7 @@ function DrawerCard({
   onClick, onDragStart, onDragEnd, onCardDragOver, onCardDragLeave, onCardDrop,
 }: DrawerCardProps) {
   const Icon = tool.icon
-  const color = TOOL_COLORS[tool.id] ?? '#3ecf8e'
+  const color = TOOL_COLORS[tool.id] ?? DAEMON_TOOL_ACCENT_FALLBACK
   return (
     <button
       className={`drawer-tool-card${isDropTarget ? ' drawer-tool-card--drop-target' : ''}`}

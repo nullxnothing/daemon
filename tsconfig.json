@@ -19,6 +19,24 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@x402/core/client": [
+        "node_modules/@x402/core/dist/esm/client/index.d.mts"
+      ],
+      "@x402/core/http": [
+        "node_modules/@x402/core/dist/esm/http/index.d.mts"
+      ],
+      "@x402/core/server": [
+        "node_modules/@x402/core/dist/esm/server/index.d.mts"
+      ],
+      "@x402/core/types": [
+        "node_modules/@x402/core/dist/esm/types/index.d.mts"
+      ],
+      "@x402/svm/exact/client": [
+        "node_modules/@x402/svm/dist/esm/exact/client/index.d.mts"
+      ],
+      "@x402/svm/exact/server": [
+        "node_modules/@x402/svm/dist/esm/exact/server/index.d.mts"
       ]
     },
   },

@@ -5,22 +5,75 @@ import path from 'node:path'
 import { getInstalledBeardedIconsTheme } from '../services/IconThemeService'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import * as Voight from '../services/VoightService'
 import type { FileEntry } from '../shared/types'
 
 const IGNORED = new Set([
   'node_modules', '.git', 'dist', 'dist-electron', '.next',
   '__pycache__', '.DS_Store', 'release', '.pnpm-store',
+  'coverage', 'target', '.anchor', '.cache', '.turbo', '.vite',
+  '.vercel', '.wrangler',
 ])
+const MAX_READ_DIR_DEPTH = 6
+const MAX_READ_DIR_ENTRIES = 1200
+
+interface ReadDirState {
+  remaining: number
+}
 
 function validatePath(p: string): void {
   if (!isPathSafe(p)) throw new Error('Path outside project boundaries')
 }
 
+function trackFileAction(toolExecuted: string, filePath: string, metadata: Record<string, unknown> = {}): void {
+  Voight.emitEventSafe({
+    agentId: 'daemon-filesystem',
+    type: 'action',
+    toolExecuted,
+    outcome: 'success',
+    metadata: {
+      sessionId: `fs:${toolExecuted}`,
+      path: filePath,
+      ...metadata,
+    },
+  })
+}
+
+// Returns a path in destDir for `name` that doesn't already exist, appending
+// " (2)", " (3)", ... before the extension on collision.
+async function resolveCollisionFreePath(destDir: string, name: string): Promise<string> {
+  const ext = path.extname(name)
+  const base = path.basename(name, ext)
+  let candidate = path.join(destDir, name)
+  let counter = 2
+  while (await fs.access(candidate).then(() => true).catch(() => false)) {
+    candidate = path.join(destDir, `${base} (${counter})${ext}`)
+    counter += 1
+  }
+  return candidate
+}
+
+async function readImageBase64(filePath: string) {
+  const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp', '.avif'])
+  const ext = path.extname(filePath).toLowerCase()
+  if (!ALLOWED.has(ext)) throw new Error('Not an image file')
+  const stats = fsSync.statSync(filePath)
+  if (stats.size > 50 * 1024 * 1024) throw new Error('Image too large (>50MB)')
+  const buffer = await fs.readFile(filePath)
+  const mimeMap: Record<string, string> = {
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+    '.ico': 'image/x-icon', '.bmp': 'image/bmp', '.avif': 'image/avif',
+  }
+  const mime = mimeMap[ext] ?? 'application/octet-stream'
+  return { dataUrl: `data:${mime};base64,${buffer.toString('base64')}`, size: stats.size }
+}
+
 export function registerFilesystemHandlers() {
   ipcMain.handle('fs:readDir', ipcHandler(async (_event, dirPath: string, depth = 1) => {
     validatePath(dirPath)
-    const safeDepth = Math.min(depth ?? 3, 10)
-    return readDirRecursive(dirPath, safeDepth)
+    const safeDepth = Math.max(1, Math.min(depth ?? 1, MAX_READ_DIR_DEPTH))
+    return readDirRecursive(dirPath, safeDepth, { remaining: MAX_READ_DIR_ENTRIES })
   }))
 
   ipcMain.handle('fs:readFile', ipcHandler(async (_event, filePath: string) => {
@@ -35,19 +88,11 @@ export function registerFilesystemHandlers() {
 
   ipcMain.handle('fs:readImageBase64', ipcHandler(async (_event, filePath: string) => {
     validatePath(filePath)
-    const ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp', '.avif'])
-    const ext = path.extname(filePath).toLowerCase()
-    if (!ALLOWED.has(ext)) throw new Error('Not an image file')
-    const stats = fsSync.statSync(filePath)
-    if (stats.size > 50 * 1024 * 1024) throw new Error('Image too large (>50MB)')
-    const buffer = await fs.readFile(filePath)
-    const mimeMap: Record<string, string> = {
-      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-      '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
-      '.ico': 'image/x-icon', '.bmp': 'image/bmp', '.avif': 'image/avif',
-    }
-    const mime = mimeMap[ext] ?? 'application/octet-stream'
-    return { dataUrl: `data:${mime};base64,${buffer.toString('base64')}`, size: stats.size }
+    return readImageBase64(filePath)
+  }))
+
+  ipcMain.handle('fs:readPickedImageBase64', ipcHandler(async (_event, filePath: string) => {
+    return readImageBase64(filePath)
   }))
 
   ipcMain.handle('fs:writeImageFromBase64', ipcHandler(async (_event, filePath: string, base64: string) => {
@@ -56,7 +101,9 @@ export function registerFilesystemHandlers() {
     const ext = path.extname(filePath).toLowerCase()
     if (!ALLOWED.has(ext)) throw new Error('Not an image file')
     const buffer = Buffer.from(base64, 'base64')
+    await fs.mkdir(path.dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, buffer)
+    trackFileAction('fs_write_image', filePath, { bytes: buffer.length })
   }))
 
   ipcMain.handle('fs:pickImage', ipcHandler(async () => {
@@ -72,6 +119,7 @@ export function registerFilesystemHandlers() {
   ipcMain.handle('fs:writeFile', ipcHandler(async (_event, filePath: string, content: string) => {
     validatePath(filePath)
     await fs.writeFile(filePath, content, 'utf8')
+    trackFileAction('fs_write_file', filePath, { bytes: Buffer.byteLength(content, 'utf8') })
   }))
 
   ipcMain.handle('fs:createFile', ipcHandler(async (_event, filePath: string) => {
@@ -83,23 +131,53 @@ export function registerFilesystemHandlers() {
       if ((e as Error).message === 'File already exists') throw e
     }
     await fs.writeFile(filePath, '', 'utf8')
+    trackFileAction('fs_create_file', filePath)
   }))
 
   ipcMain.handle('fs:createDir', ipcHandler(async (_event, dirPath: string) => {
     validatePath(dirPath)
     await fs.mkdir(dirPath, { recursive: true })
+    trackFileAction('fs_create_dir', dirPath)
+  }))
+
+  // Import OS files/folders (drag-and-drop) into a destination directory.
+  // Sources are arbitrary user-chosen paths; only the destination must be
+  // inside project boundaries. Names collide-resolve so nothing is overwritten.
+  ipcMain.handle('fs:importPaths', ipcHandler(async (_event, sourcePaths: string[], destDir: string) => {
+    validatePath(destDir)
+    const destStat = await fs.stat(destDir).catch(() => null)
+    if (!destStat?.isDirectory()) throw new Error('Destination is not a directory')
+
+    const imported: string[] = []
+    for (const source of sourcePaths) {
+      if (typeof source !== 'string' || source.length === 0) continue
+      const srcStat = await fs.stat(source).catch(() => null)
+      if (!srcStat) continue
+
+      const target = await resolveCollisionFreePath(destDir, path.basename(source))
+      if (srcStat.isDirectory()) {
+        await fs.cp(source, target, { recursive: true, errorOnExist: false })
+      } else {
+        await fs.copyFile(source, target)
+      }
+      imported.push(target)
+      trackFileAction('fs_import_path', target, { sourceName: path.basename(source), isDirectory: srcStat.isDirectory() })
+    }
+    return imported
   }))
 
   ipcMain.handle('fs:rename', ipcHandler(async (_event, oldPath: string, newPath: string) => {
     validatePath(oldPath)
     validatePath(newPath)
     await fs.rename(oldPath, newPath)
+    trackFileAction('fs_rename', newPath, { oldPath })
   }))
 
   // Delete sends to recycle bin (recoverable) instead of permanent rmSync
   ipcMain.handle('fs:delete', ipcHandler(async (_event, targetPath: string) => {
     validatePath(targetPath)
     await shell.trashItem(targetPath)
+    trackFileAction('fs_delete', targetPath)
   }))
 
   ipcMain.handle('fs:reveal', ipcHandler(async (_event, targetPath: string) => {
@@ -117,15 +195,20 @@ export function registerFilesystemHandlers() {
   }))
 }
 
-async function readDirRecursive(dirPath: string, depth: number): Promise<FileEntry[]> {
-  if (depth <= 0) return []
+async function readDirRecursive(dirPath: string, depth: number, state: ReadDirState): Promise<FileEntry[]> {
+  if (depth <= 0 || state.remaining <= 0) return []
 
   try {
     const items = await fs.readdir(dirPath, { withFileTypes: true })
     const entries: FileEntry[] = []
+    items.sort((a, b) => {
+      if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1
+      return a.name.localeCompare(b.name)
+    })
 
     for (const item of items) {
       if (IGNORED.has(item.name)) continue
+      if (state.remaining <= 0) break
 
       const fullPath = path.join(dirPath, item.name)
       const entry: FileEntry = {
@@ -133,19 +216,14 @@ async function readDirRecursive(dirPath: string, depth: number): Promise<FileEnt
         path: fullPath,
         isDirectory: item.isDirectory(),
       }
+      state.remaining -= 1
 
-      if (item.isDirectory() && depth > 1) {
-        entry.children = await readDirRecursive(fullPath, depth - 1)
+      if (item.isDirectory() && depth > 1 && state.remaining > 0) {
+        entry.children = await readDirRecursive(fullPath, depth - 1, state)
       }
 
       entries.push(entry)
     }
-
-    // Directories first, then files, both alphabetical
-    entries.sort((a, b) => {
-      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
-      return a.name.localeCompare(b.name)
-    })
 
     return entries
   } catch {

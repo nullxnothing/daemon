@@ -1,0 +1,138 @@
+.ricomaps-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #000;
+  color: var(--t1);
+}
+
+.ricomaps-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--s3);
+  background: var(--s1);
+}
+
+.ricomaps-nav {
+  display: flex;
+  gap: 2px;
+}
+
+.ricomaps-nav button,
+.ricomaps-home,
+.ricomaps-start,
+.ricomaps-overlay button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-11);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ricomaps-nav button {
+  width: 28px;
+  border-radius: 999px;
+}
+
+.ricomaps-home,
+.ricomaps-start,
+.ricomaps-overlay button {
+  padding: 0 12px;
+  border-color: var(--s4);
+  background: var(--s2);
+}
+
+.ricomaps-start {
+  color: var(--green);
+}
+
+.ricomaps-nav button:hover:not(:disabled),
+.ricomaps-home:hover,
+.ricomaps-start:hover:not(:disabled),
+.ricomaps-overlay button:hover:not(:disabled) {
+  border-color: var(--s4);
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.ricomaps-nav button:disabled,
+.ricomaps-start:disabled,
+.ricomaps-overlay button:disabled {
+  color: var(--t4);
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ricomaps-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  height: 28px;
+  padding: 6px 10px;
+  border: 1px solid var(--s4);
+  border-radius: 999px;
+  background: var(--s2);
+  color: var(--t3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--fs-11);
+}
+
+.ricomaps-webview-shell {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+.ricomaps-webview {
+  width: 100%;
+  height: 100%;
+}
+
+.ricomaps-overlay {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, calc(100% - 32px));
+  padding: 12px;
+  border: 1px solid var(--s4);
+  border-radius: 12px;
+  background: var(--s1);
+  box-shadow: var(--shadow-lg);
+}
+
+.ricomaps-overlay span {
+  color: var(--t1);
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.ricomaps-overlay small {
+  color: var(--t3);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--fs-11);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.ricomaps-overlay div {
+  display: flex;
+  gap: 8px;
+}

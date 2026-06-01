@@ -1,6 +1,7 @@
-import { ipcMain, app, shell } from 'electron'
+import { ipcMain, app } from 'electron'
 import os from 'node:os'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { openSafeExternalUrl } from '../security/externalNavigation'
 
 const REPORT_ENDPOINT =
   process.env.DAEMON_BUG_REPORT_URL ??
@@ -68,7 +69,7 @@ export function registerFeedbackHandlers() {
       if (typeof url !== 'string' || !/^https:\/\/github\.com\//.test(url)) {
         throw new Error('Invalid URL')
       }
-      await shell.openExternal(url)
+      await openSafeExternalUrl(url)
       return { ok: true }
     }),
   )

@@ -1,7 +1,7 @@
 :root {
-  --drawer-surface-divider: var(--border);
-  --drawer-surface-bg: var(--s1);
-  --drawer-surface-card: var(--s2);
+  --drawer-surface-divider: var(--panel-border);
+  --drawer-surface-bg: var(--panel-bg);
+  --drawer-surface-card: var(--card-bg);
   --drawer-space-inline: var(--panel-pad-x);
   --drawer-space-inline-tight: var(--space-md);
   --drawer-space-block: var(--space-md);
@@ -24,7 +24,7 @@
 .pro-panel .pro-panel-header,
 .settings-center .settings-header {
   border-bottom: 1px solid var(--drawer-surface-divider);
-  background: var(--drawer-surface-bg);
+  background: var(--panel-header-bg);
 }
 
 .wallet-panel .wallet-workspace-kicker,
@@ -35,11 +35,12 @@
 .solana-toolbox .solana-token-launch-kicker,
 .git-center .git-workflow-kicker,
 .pro-panel .pro-panel-kicker {
-  font-size: var(--fs-10);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: var(--green);
+  color: var(--text-faint);
 }
 
 .wallet-panel .wallet-workspace-title,
@@ -51,11 +52,11 @@
 .git-center .git-title,
 .pro-panel .pro-panel-title {
   margin: 0;
-  font-size: var(--fs-24);
-  line-height: var(--lh-tight);
-  font-weight: var(--fw-semibold);
+  font-size: var(--type-page-title-size);
+  line-height: var(--type-page-title-line);
+  font-weight: var(--type-page-title-weight);
   color: var(--t1);
-  letter-spacing: var(--ls-tight);
+  letter-spacing: var(--type-page-title-tracking);
 }
 
 .wallet-panel .wallet-workspace-subtitle,
@@ -66,9 +67,9 @@
 .solana-toolbox .solana-workflow-copy,
 .git-center .git-workflow-text,
 .pro-panel .pro-panel-subtitle {
-  font-size: var(--fs-12);
-  line-height: var(--lh-normal);
-  color: var(--t3);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--text-secondary);
 }
 
 .wallet-panel .wallet-workspace-metric,
@@ -77,7 +78,7 @@
 .process-panel .process-stat-card,
 .session-history .sr-stat,
 .git-center .git-workflow-metric {
-  border: 1px solid var(--border);
+  border: 1px solid var(--card-border);
   background: var(--drawer-surface-card);
   border-radius: var(--radius-card);
 }
@@ -101,7 +102,7 @@
   gap: 8px;
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   border-bottom: 1px solid var(--drawer-surface-divider);
-  background: var(--s1);
+  background: var(--panel-bg);
 }
 
 .wallet-panel .wallet-tab,
@@ -123,7 +124,7 @@
 .pro-panel .pro-tab:hover {
   color: var(--t1);
   background: var(--hover-bg);
-  border-color: var(--border-hover);
+  border-color: var(--control-border-hover);
 }
 
 .wallet-panel .wallet-tab--active,
@@ -152,12 +153,12 @@
 .solana-toolbox .solana-view-tab {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  background: var(--drawer-surface-card);
+  background: var(--card-bg);
 }
 
 .solana-toolbox .solana-view-tab:hover {
   border-color: color-mix(in srgb, var(--green) 28%, var(--border));
-  background: var(--s3);
+  background: var(--card-bg-hover);
 }
 
 .solana-toolbox .solana-view-tab.active {
@@ -199,7 +200,8 @@
   .solana-toolbox .solana-workflow-title,
   .git-center .git-title,
   .pro-panel .pro-panel-title {
-    font-size: var(--fs-20);
+    font-size: var(--type-section-title-size);
+    line-height: var(--type-section-title-line);
   }
 }
 
@@ -230,7 +232,7 @@
   .solana-toolbox .solana-workflow-title,
   .git-center .git-title,
   .pro-panel .pro-panel-title {
-    font-size: var(--fs-18);
-    line-height: var(--lh-snug);
+    font-size: var(--type-section-title-size);
+    line-height: var(--type-section-title-line);
   }
 }

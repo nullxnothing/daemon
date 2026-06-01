@@ -16,11 +16,14 @@ import {
   getDrawerToolOrder,
   getPinnedTools,
   getTokenLaunchSettings,
+  getUiSettings,
+  getWalletInfrastructureSettings,
   getWorkspaceProfile,
   maybeRecoverUnstableUiState,
   recoverUiState,
   setDrawerToolOrder,
   setTokenLaunchSettings,
+  setWalletInfrastructureSettings,
 } from '../../electron/services/SettingsService'
 
 describe('SettingsService token launch settings', () => {
@@ -41,6 +44,20 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })
+  })
+
+  it('includes persisted low power mode in UI settings', () => {
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'low_power_mode') return { value: 'true' }
+      return undefined
+    })
+
+    expect(getUiSettings()).toMatchObject({
+      showMarketTape: true,
+      showTitlebarWallet: true,
+      lowPowerMode: true,
     })
   })
 
@@ -49,6 +66,7 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: 'not-a-key', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })).toThrow('Raydium config ID must be a valid Solana public key')
   })
 
@@ -57,7 +75,24 @@ describe('SettingsService token launch settings', () => {
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: 'abc' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })).toThrow('Meteora base supply must be a positive integer')
+  })
+
+  it('rejects basedbid settings outside documented Solana ranges', () => {
+    expect(() => setTokenLaunchSettings({
+      raydium: { configId: '', quoteMint: '' },
+      meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: 'raydium', feeTier: '3', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })).toThrow('basedbid Raydium fee tier must be 0, 1, or 2')
+
+    expect(() => setTokenLaunchSettings({
+      raydium: { configId: '', quoteMint: '' },
+      meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '9000', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })).toThrow('basedbid market cap must be between 11000 and 10000000')
   })
 
   it('persists validated settings', () => {
@@ -78,11 +113,60 @@ describe('SettingsService token launch settings', () => {
         createPath: '',
         chain: '',
       },
+      openbid: {
+        apiBaseUrl: '',
+        chainId: '',
+        dex: '',
+        feeTier: '',
+        packageType: '',
+        marketCap: '',
+        totalSupply: '',
+        maxAllocationPerUser: '',
+        referrer: '',
+        board: '',
+        boardOwner: '',
+      },
     })
 
     expect(mockRun).toHaveBeenCalledWith(
       'token_launch_settings',
       expect.stringContaining('"configId":"11111111111111111111111111111111"'),
+      expect.any(Number),
+    )
+  })
+
+  it('preserves Solflare as the preferred wallet setting', () => {
+    mockGet.mockReturnValue({
+      value: JSON.stringify({
+        cluster: 'devnet',
+        rpcProvider: 'helius',
+        quicknodeRpcUrl: '',
+        customRpcUrl: '',
+        swapProvider: 'jupiter',
+        preferredWallet: 'solflare',
+        executionMode: 'rpc',
+        jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+      }),
+    })
+
+    expect(getWalletInfrastructureSettings().preferredWallet).toBe('solflare')
+  })
+
+  it('persists Solflare as the preferred wallet setting', () => {
+    setWalletInfrastructureSettings({
+      cluster: 'devnet',
+      rpcProvider: 'helius',
+      quicknodeRpcUrl: '',
+      customRpcUrl: '',
+      swapProvider: 'jupiter',
+      preferredWallet: 'solflare',
+      executionMode: 'rpc',
+      jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+    })
+
+    expect(mockRun).toHaveBeenCalledWith(
+      'wallet_infrastructure_settings',
+      expect.stringContaining('"preferredWallet":"solflare"'),
       expect.any(Number),
     )
   })

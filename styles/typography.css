@@ -1,11 +1,12 @@
 /* Semantic typography helpers. Use these instead of hand-tuned font-size in panel CSS. */
 
 .ds-eyebrow {
-  font-size: var(--fs-10);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
+  line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: var(--green);
+  color: var(--text-faint);
   margin: 0;
 }
 
@@ -14,70 +15,64 @@
 .ds-eyebrow--red   { color: var(--red); }
 .ds-eyebrow--blue  { color: var(--blue); }
 
-.ds-display {
-  font-size: var(--fs-display);
-  font-weight: var(--fw-bold);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-tight);
-  color: var(--t1);
-  margin: 0;
-}
-
+.ds-page-title,
+.ds-display,
 .ds-h1 {
-  font-size: var(--fs-24);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-tight);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--type-page-title-weight);
+  line-height: var(--type-page-title-line);
+  letter-spacing: var(--type-page-title-tracking);
   color: var(--t1);
   margin: 0;
 }
 
+.ds-section-title,
 .ds-h2 {
-  font-size: var(--fs-20);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-tight);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line);
+  letter-spacing: 0;
   color: var(--t1);
   margin: 0;
 }
 
-.ds-h3 {
-  font-size: var(--fs-18);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
-  color: var(--t1);
-  margin: 0;
-}
-
+.ds-item-title,
+.ds-h3,
 .ds-h4 {
-  font-size: var(--fs-16);
-  font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
+  font-size: var(--type-item-title-size);
+  font-weight: var(--type-item-title-weight);
+  line-height: var(--type-item-title-line);
+  letter-spacing: 0;
   color: var(--t1);
   margin: 0;
 }
 
 .ds-body {
-  font-size: var(--fs-13);
+  font-size: var(--type-body-size);
   font-weight: var(--fw-regular);
-  line-height: var(--lh-normal);
+  line-height: var(--type-body-line);
   color: var(--t1);
 }
 
 .ds-body-sm {
-  font-size: var(--fs-12);
+  font-size: var(--type-list-size);
   font-weight: var(--fw-regular);
-  line-height: var(--lh-normal);
+  line-height: var(--type-list-line);
   color: var(--t2);
 }
 
+.ds-metadata,
 .ds-caption {
-  font-size: var(--fs-11);
-  font-weight: var(--fw-regular);
-  line-height: var(--lh-normal);
-  color: var(--t3);
+  font-size: var(--type-metadata-size);
+  font-weight: var(--type-metadata-weight);
+  line-height: var(--type-metadata-line);
+  color: var(--text-muted);
 }
 
 .ds-mono {
   font-family: var(--font-code);
+  font-size: var(--type-mono-size);
+  line-height: var(--type-mono-line);
   font-feature-settings: 'tnum' 1;
 }
 
@@ -96,4 +91,14 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Inline empty/placeholder text for small in-panel sections (lists, sub-blocks).
+   Use EmptyState for full-panel empties; use this for one-liners inside a section. */
+.ds-inline-empty {
+  display: block;
+  padding: var(--space-xs) 0;
+  font-size: var(--fs-11);
+  line-height: 1.5;
+  color: var(--text-muted);
 }

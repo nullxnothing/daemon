@@ -1,5 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWalletStore } from '../../../store/wallet'
+import { confirm } from '../../../store/confirm'
+import { compactAddress } from '../../../utils/textDisplay'
+import { LiveRegion } from '../../../components/LiveRegion'
 
 interface AgentWallet {
   id: string
@@ -121,12 +124,20 @@ export function AgentsTab() {
   // Delete
   const handleDelete = useCallback(async (walletId: string) => {
     setError(null)
+    const wallet = agentWallets?.find((w) => w.id === walletId)
+    const ok = await confirm({
+      title: 'Delete agent wallet?',
+      body: wallet ? `${wallet.name} (${compactAddress(wallet.address)}) will be removed from DAEMON.` : 'This wallet will be removed from DAEMON.',
+      confirmLabel: 'Delete wallet',
+      danger: true,
+    })
+    if (!ok) return
     const res = await window.daemon.wallet.delete(walletId)
     if (res.ok) {
       clearAction()
       await useWalletStore.getState().loadAgentWallets()
     } else { setError(res.error ?? 'Delete failed') }
-  }, [])
+  }, [agentWallets])
 
   // Export key
   const handleExportConfirm = useCallback(async () => {
@@ -166,6 +177,7 @@ export function AgentsTab() {
 
   return (
     <div className="wallet-agents-tab">
+      <LiveRegion message={copiedId ? 'Wallet address copied to clipboard' : ''} />
       {/* Portfolio summary — matches wallet tab style */}
       <section className="wallet-section">
         <div className="wallet-section-title">Agent Portfolio</div>
@@ -298,5 +310,5 @@ export function AgentsTab() {
 }
 
 function shortAddr(v: string): string {
-  return `${v.slice(0, 4)}...${v.slice(-4)}`
+  return compactAddress(v)
 }

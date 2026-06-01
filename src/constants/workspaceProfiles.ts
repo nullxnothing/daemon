@@ -14,8 +14,8 @@ const WEB_TOOLS = [
 ]
 
 const SOLANA_TOOLS = [
-  ...WEB_TOOLS, 'wallet', 'agent-work', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'block-scanner',
-  'replay-engine', 'dashboard', 'hackathon', 'pro', 'agent-station',
+  ...WEB_TOOLS, 'wallet', 'agent-work', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'zauth', 'block-scanner',
+  'replay-engine', 'dashboard', 'hackathon', 'pro', 'agent-station', 'daemon-ai', 'spawnagents', 'agentops', 'metaplex-demo',
 ]
 
 export const PROFILE_PRESETS: Record<WorkspaceProfileName, string[]> = {

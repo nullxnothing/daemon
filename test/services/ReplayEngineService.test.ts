@@ -22,9 +22,12 @@ vi.mock('../../electron/services/SecureKeyService', () => ({
 
 vi.mock('../../electron/services/SettingsService', () => ({
   getWalletInfrastructureSettings: () => ({
+    cluster: 'devnet',
     rpcProvider: 'public',
     quicknodeRpcUrl: '',
     customRpcUrl: '',
+    swapProvider: 'jupiter',
+    preferredWallet: 'phantom',
     executionMode: 'rpc',
     jitoBlockEngineUrl: '',
   }),
@@ -242,7 +245,10 @@ describe('ReplayEngineService', () => {
       expect(fs.existsSync(handoff.contextPath)).toBe(true)
       expect(fs.readFileSync(handoff.contextPath, 'utf8')).toContain(VALID_SIG)
       expect(handoff.promptText).toContain(handoff.contextPath)
-      expect(handoff.startupCommand).toContain('claude --dangerously-skip-permissions -p')
+      // Security: replay handoff must NOT auto-approve tools — the session has
+      // shell + fs access in a repo that may hold keypairs.
+      expect(handoff.startupCommand).toContain('claude -p')
+      expect(handoff.startupCommand).not.toContain('--dangerously-skip-permissions')
     })
 
     it('runs and records a passing verification command', async () => {

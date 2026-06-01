@@ -57,9 +57,9 @@
   padding: 4px 8px;
   background: transparent;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: var(--t3);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.12s ease;
@@ -89,7 +89,7 @@
   border: 1px solid var(--s4);
   border-radius: 4px;
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-family: 'JetBrains Mono', monospace;
   outline: none;
   min-width: 0;
@@ -110,7 +110,7 @@
   border: 1px solid var(--s4);
   border-radius: 4px;
   color: var(--t2);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -153,13 +153,13 @@
 
 .scanner-load-error span {
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 
 .scanner-load-error small {
   color: var(--t3);
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 1.4;
 }
 
@@ -170,7 +170,7 @@
   border: 1px solid var(--s4);
   border-radius: 4px;
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   cursor: pointer;
 }
 

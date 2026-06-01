@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react'
+import { Surface } from './Surface'
 import styles from './Card.module.css'
 
 type CardTone = 'default' | 'success' | 'warn' | 'danger' | 'info'
@@ -12,21 +13,6 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode
 }
 
-const TONE_CLASS: Record<CardTone, string | undefined> = {
-  default: undefined,
-  success: styles.success,
-  warn: styles.warn,
-  danger: styles.danger,
-  info: styles.info,
-}
-
-const PADDING_CLASS: Record<CardPadding, string | undefined> = {
-  sm: styles['padded-sm'],
-  md: undefined,
-  lg: styles['padded-lg'],
-  flush: styles.flush,
-}
-
 export function Card({
   tone = 'default',
   padding = 'md',
@@ -36,18 +22,18 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
-  const classes = [
-    styles.card,
-    TONE_CLASS[tone],
-    PADDING_CLASS[padding],
-    interactive ? styles.interactive : undefined,
-    selected ? styles.selected : undefined,
-    className,
-  ].filter(Boolean).join(' ')
+  const classes = [styles.card, className].filter(Boolean).join(' ')
 
   return (
-    <div className={classes} {...rest}>
+    <Surface
+      tone={tone === 'warn' ? 'warning' : tone}
+      padding={padding}
+      interactive={interactive}
+      selected={selected}
+      className={classes}
+      {...rest}
+    >
       {children}
-    </div>
+    </Surface>
   )
 }

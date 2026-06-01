@@ -30,10 +30,11 @@ const toolChecks = [
   { name: 'Env', readySelector: '.env-center', expectedText: 'Environment' },
   { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Wallet workspace' },
   { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Launch Center' },
-  { name: 'Project Readiness', readySelector: '.project-readiness', expectedText: 'Solana project status' },
-  { name: 'Solana', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
+  { name: 'Proof Pool', readySelector: '.proof-pool-panel', expectedText: 'Hosted partner launches and advanced Proof Pool custody' },
+  { name: 'Solana Start', readySelector: '.project-readiness', expectedText: 'Solana project status' },
+  { name: 'Solana Workflow', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
   { name: 'Settings', readySelector: '.settings-center', expectedText: 'Settings' },
-  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'No tokens launched' },
+  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Launch your first token' },
   { name: 'Sessions', readySelector: '.session-history', expectedText: 'Sessions' },
   { name: 'Recovery', readySelector: '.recovery-panel', expectedText: 'Wallets' },
 ]
@@ -202,6 +203,8 @@ async function assertNoHorizontalOverflow(page, viewportName, contextName) {
       '.env-center',
       '.wallet-panel',
       '.token-launch-tool',
+      '.proof-pool-panel',
+      '.proof-pool-grid',
       '.solana-toolbox',
       '.settings-center',
       '.dash-canvas',
@@ -262,7 +265,7 @@ async function assertNoHorizontalOverflow(page, viewportName, contextName) {
 }
 
 async function verifySolanaTabs(page) {
-  const tabs = ['Start', 'Connect', 'Transact', 'Launch', 'Debug']
+  const tabs = ['Start', 'Connect', 'Build', 'Launch', 'Inspect', 'Debug']
   for (const tab of tabs) {
     await page.locator('.solana-view-tab').evaluateAll((nodes, expected) => {
       for (const node of nodes) {
@@ -319,7 +322,7 @@ async function run() {
 
     for (const tool of toolChecks) {
       await openTool(page, tool, viewport.name)
-      if (tool.name === 'Solana') await verifySolanaTabs(page)
+      if (tool.name === 'Solana Workflow') await verifySolanaTabs(page)
       await assertNoHorizontalOverflow(page, viewport.name, tool.name)
     }
   }

@@ -5,6 +5,7 @@ import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { Toggle } from '../../components/Toggle'
 import { CategoryGroup } from '../../components/CategoryGroup'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
+import { EmptyState } from '../../components/EmptyState'
 import { groupByCategory, CATEGORIES } from '../../utils/categoryClassifier'
 import { setupCommandDrag, cleanupDragGhost } from '../../utils/dragCommand'
 import type { IpcResponse, McpEntry, SessionUsage } from '../../../electron/shared/types'
@@ -33,7 +34,10 @@ export function ClaudePanel() {
     return (
       <div className="claude-panel">
         <div className="claude-panel-scroll">
-          <div className="claude-empty">Select a project</div>
+          <EmptyState
+            title="No project open"
+            description="Select or open a project to manage its CLAUDE.md, MCP servers, skills, and usage."
+          />
         </div>
       </div>
     )
@@ -217,7 +221,7 @@ function SkillsSection() {
   }, [])
 
   if (items.length === 0) {
-    return <div style={{ fontSize: 11, color: 'var(--t3)', padding: '4px 0' }}>No skills installed</div>
+    return <div className="ds-inline-empty">No skills installed</div>
   }
 
   const renderSkillRow = (item: { name: string; type: string; enabled: boolean }) => (
@@ -283,7 +287,7 @@ function UsageSection({ projectPath }: { projectPath: string }) {
   }, [projectPath])
 
   if (!usage) {
-    return <div style={{ fontSize: 11, color: 'var(--t3)' }}>No usage data</div>
+    return <div className="ds-inline-empty">No usage data</div>
   }
 
   const totalInput = Object.values(usage.models).reduce((s, m) => s + m.inputTokens, 0)

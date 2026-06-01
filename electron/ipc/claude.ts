@@ -41,7 +41,7 @@ export function registerClaudeHandlers() {
 
   ipcMain.handle('claude:project-mcp-toggle', ipcHandler(
     withValidation(
-      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      (projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
       async (_event, projectPath: string, name: string, enabled: boolean) => {
         McpConfig.toggleProjectMcp(projectPath, name, enabled)
       }
@@ -172,7 +172,7 @@ ${content}`,
 
   ipcMain.handle('claude:claudemd-read', ipcHandler(
     withValidation(
-      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      (projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
       async (_event, projectPath: string) => {
         return getClaudeMdContext(projectPath)
       }
@@ -181,7 +181,7 @@ ${content}`,
 
   ipcMain.handle('claude:claudemd-generate', ipcHandler(
     withValidation(
-      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      (projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
       async (_event, projectPath: string) => {
         const { content, diff } = getClaudeMdContext(projectPath)
 
@@ -198,7 +198,7 @@ ${content}`,
 
   ipcMain.handle('claude:claudemd-write', ipcHandler(
     withValidation(
-      (_event, projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
+      (projectPath: string) => !isPathSafe(projectPath) ? 'Path not within a registered project' : null,
       async (_event, projectPath: string, content: string) => {
         const mdPath = path.join(projectPath, 'CLAUDE.md')
         fs.writeFileSync(mdPath, content, 'utf8')

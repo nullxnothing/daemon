@@ -32,7 +32,7 @@ export const RETRY_CONFIG = {
 export const API_ENDPOINTS = {
   HELIUS_BASE: 'https://api.helius.xyz/v1',
   COINGECKO_PRICE: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,solana,ethereum&vs_currencies=usd&include_24hr_change=true',
-  JUPITER_PRICE: 'https://api.jup.ag/price/v2',
+  JUPITER_PRICE: 'https://api.jup.ag/price/v3',
   DEXSCREENER_TOKEN: 'https://api.dexscreener.com/tokens/v1/solana',
   HELIUS_PARSE_TX: 'https://api.helius.xyz/v0/transactions',
   HELIUS_TX_HISTORY: 'https://api.helius.xyz/v0/addresses',

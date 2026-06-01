@@ -1,11 +1,18 @@
 import './Button.css'
+import type { ButtonHTMLAttributes } from 'react'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'primary' | 'danger' | 'ghost'
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
 }
 
-export function Button({ variant = 'default', size = 'sm', className, type = 'button', ...props }: ButtonProps) {
+export function Button({
+  variant = 'secondary',
+  size = 'sm',
+  className,
+  type = 'button',
+  ...props
+}: ButtonProps) {
   return (
     <button
       type={type}

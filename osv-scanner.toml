@@ -1,0 +1,14 @@
+# OSV scanner config — https://google.github.io/osv-scanner/configuration/
+# Suppressions are deliberate, justified exceptions. Everything not listed here
+# still fails CI. Review each entry by its `reviewBy` date.
+
+[[IgnoredVulns]]
+id = "GHSA-5xrq-8626-4rwp"  # CVE-2026-47429 — vitest < 4.1.0
+# Why ignored: the advisory only affects the Vitest UI server when it is exposed
+# to the network (--api.host) or when running Vitest UI / Browser Mode on Windows.
+# DAEMON runs vitest exclusively headless (`vitest run`) in CI and locally — no UI
+# server, no exposed API — so the app, its users, and the wallet are unaffected.
+# The fix landed only in vitest 4.1.0 (a major bump); upgrading is tracked
+# separately to avoid breaking the test suite on a release.
+ignoreUntil = 2026-09-01
+reason = "Dev-only: vitest UI/Browser-mode server not used; we run headless `vitest run`. Bump to vitest 4.x tracked post-release."

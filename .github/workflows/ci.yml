@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, v4]
   pull_request:
-    branches: [main]
+    branches: [main, v4]
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.15.0
       - uses: actions/setup-node@v6
@@ -25,8 +28,23 @@ jobs:
           cache: pnpm
       - name: Install Linux UI test dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb
-      - run: pnpm install --frozen-lockfile
+      # Disable lifecycle scripts on install (Shai-Hulud-class supply-chain
+      # defense); native modules and the Electron binary are set up explicitly.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run rebuild:native
+      # --ignore-scripts skips electron's postinstall binary download; run only
+      # electron's own install (not arbitrary lifecycle scripts) so tests that
+      # import electron can load.
+      - run: node node_modules/electron/install.js
+      - name: OSV supply-chain scan (lockfile)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        with:
+          scan-args: |-
+            --config=osv-scanner.toml
+            --lockfile=pnpm-lock.yaml
       - run: pnpm run typecheck
+      - run: pnpm run lint:styles
+      - run: pnpm run security:audit
       - run: pnpm run test
       - name: Responsive UI smoke
         run: xvfb-run -a pnpm run test:responsive
@@ -37,9 +55,11 @@ jobs:
     name: build-windows
     runs-on: windows-latest
     needs: lint-and-test
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.15.0
       - uses: actions/setup-node@v6
@@ -57,7 +77,9 @@ jobs:
           key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run rebuild:native
+      - run: node node_modules/electron/install.js
       - run: pnpm run build
       - run: pnpm run test:visual
       - run: pnpm exec electron-builder --publish never
@@ -66,9 +88,12 @@ jobs:
     name: build-macos
     runs-on: macos-latest
     needs: lint-and-test
+    # The Vite production build OOMs at Node's default heap on the macOS runner.
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.15.0
       - uses: actions/setup-node@v6
@@ -84,7 +109,9 @@ jobs:
           key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run rebuild:native
+      - run: node node_modules/electron/install.js
       - run: pnpm run build
       - name: Pre-cache Electron binary
         shell: bash

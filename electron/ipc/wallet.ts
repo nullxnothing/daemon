@@ -4,7 +4,17 @@ import * as WalletService from '../services/WalletService'
 import { previewSolanaTransaction } from '../services/SolanaTransactionPreviewService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 import { ValidationService } from '../services/ValidationService'
-import type { SolanaTransactionPreviewInput, WalletCreateInput, WalletGenerateInput, TransferSOLInput, TransferTokenInput } from '../shared/types'
+import { openSafeExternalUrl } from '../security/externalNavigation'
+import type {
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  SolanaTransactionPreviewInput,
+  SubmitExternalSignedTransactionInput,
+  WalletCreateInput,
+  WalletGenerateInput,
+  TransferSOLInput,
+  TransferTokenInput,
+} from '../shared/types'
 
 export function registerWalletHandlers() {
   ipcMain.handle('wallet:dashboard', ipcHandler(async (_event, projectId?: string | null) => {
@@ -62,12 +72,51 @@ export function registerWalletHandlers() {
     return WalletService.hasJupiterKey()
   }))
 
+  ipcMain.handle('wallet:moonpay-status', ipcHandler(async () => {
+    return WalletService.getMoonpayStatus()
+  }))
+
+  ipcMain.handle('wallet:store-moonpay-keys', ipcHandler(async (_event, input: MoonpayKeysInput) => {
+    return WalletService.storeMoonpayKeys(input)
+  }))
+
+  ipcMain.handle('wallet:delete-moonpay-keys', ipcHandler(async () => {
+    WalletService.deleteMoonpayKeys()
+  }))
+
+  ipcMain.handle('wallet:open-moonpay-onramp', ipcHandler(async (_event, input: MoonpayOnrampInput) => {
+    const result = WalletService.buildMoonpayOnrampUrl(input)
+    const opened = await openSafeExternalUrl(result.url)
+    if (!opened) throw new Error('MoonPay URL was blocked')
+    return result
+  }))
+
   ipcMain.handle('wallet:generate', ipcHandler(async (_event, input: WalletGenerateInput) => {
     return WalletService.generateWallet(input.name, input.walletType, input.agentId)
   }))
 
+  ipcMain.handle('wallet:import-signing-wallet', ipcHandler(async (_event, input: { name: string; privateKey?: string }) => {
+    return WalletService.importSigningWallet(input.name, input.privateKey)
+  }))
+
+  ipcMain.handle('wallet:import-keypair', ipcHandler(async (_event, walletId: string, privateKey?: string) => {
+    return WalletService.importKeypair(walletId, privateKey)
+  }))
+
   ipcMain.handle('wallet:send-sol', ipcHandler(async (_event, input: TransferSOLInput) => {
     return await WalletService.transferSOL(input.fromWalletId, input.toAddress, input.amountSol, input.sendMax === true)
+  }))
+
+  ipcMain.handle('wallet:prepare-external-sol-transfer', ipcHandler(async (_event, input: TransferSOLInput) => {
+    return await WalletService.prepareExternalSolTransfer(input.fromWalletId, input.toAddress, input.amountSol, input.sendMax === true)
+  }))
+
+  ipcMain.handle('wallet:submit-external-signed-transaction', ipcHandler(async (_event, input: SubmitExternalSignedTransactionInput) => {
+    return await WalletService.submitExternalSignedTransaction(input)
+  }))
+
+  ipcMain.handle('wallet:cancel-external-transaction', ipcHandler(async (_event, id: string, reason?: string) => {
+    WalletService.cancelExternalTransaction(id, reason)
   }))
 
   ipcMain.handle('wallet:send-token', ipcHandler(async (_event, input: TransferTokenInput) => {
@@ -76,6 +125,10 @@ export function registerWalletHandlers() {
 
   ipcMain.handle('wallet:swap-quote', ipcHandler(async (_event, input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => {
     return await WalletService.getSwapQuote(input.walletId, input.inputMint, input.outputMint, input.amount, input.slippageBps)
+  }))
+
+  ipcMain.handle('wallet:jupiter-token-search', ipcHandler(async (_event, query: string) => {
+    return await WalletService.searchJupiterTokens(query)
   }))
 
   ipcMain.handle('wallet:transaction-preview', ipcHandler(async (_event, input: SolanaTransactionPreviewInput) => {
@@ -142,6 +195,13 @@ export function registerWalletHandlers() {
 
   ipcMain.handle('wallet:has-keypair', ipcHandler(async (_event, walletId: string) => {
     return WalletService.hasKeypair(walletId)
+  }))
+
+  ipcMain.handle('wallet:sign-message', ipcHandler(async (_event, walletId: string, message: string) => {
+    if (!ValidationService.checkRateLimit(`wallet-sign-message:${walletId}`, 20, 60 * 1000)) {
+      throw new Error('Too many signing attempts. Please wait before trying again.')
+    }
+    return WalletService.signMessage(walletId, message)
   }))
 
   ipcMain.handle('wallet:transaction-history', ipcHandler(async (_event, walletId: string, limit?: number) => {

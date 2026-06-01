@@ -54,6 +54,18 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-solflare-sdk') {
+    const ready = context.packages.has('@solflare-wallet/sdk')
+    return {
+      title: 'Solflare SDK',
+      status: ready ? 'success' : 'info',
+      detail: ready
+        ? '@solflare-wallet/sdk is listed in package.json.'
+        : 'Direct Solflare integration needs @solflare-wallet/sdk. Generated web dApps can also use Solana Wallet Adapter with SolflareWalletAdapter.',
+      items: ready ? ['@solflare-wallet/sdk'] : ['@solflare-wallet/sdk', '@solana/wallet-adapter-wallets'],
+    }
+  }
+
   if (actionId === 'check-solana-mcp') {
     const mcp = context.mcps.find((entry) => entry.name === 'solana-mcp-server')
     return {
@@ -73,13 +85,22 @@ export async function runIntegrationAction(actionId: string, context: Integratio
   }
 
   if (actionId === 'check-nft-packages') {
-    const packages = ['@metaplex-foundation/umi', '@metaplex-foundation/mpl-token-metadata']
+    const packages = [
+      '@metaplex-foundation/umi',
+      '@metaplex-foundation/umi-bundle-defaults',
+      '@metaplex-foundation/mpl-core',
+      '@metaplex-foundation/mpl-token-metadata',
+      '@metaplex-foundation/digital-asset-standard-api',
+    ]
     const installed = packages.filter((name) => context.packages.has(name))
+    const missing = packages.filter((name) => !context.packages.has(name))
     return {
       title: 'Metaplex packages',
-      status: installed.length > 0 ? 'success' : 'info',
-      detail: installed.length > 0 ? 'Metaplex dependencies are present.' : 'No common Metaplex packages were found in package.json.',
-      items: installed.length > 0 ? installed : packages,
+      status: missing.length === 0 ? 'success' : installed.length > 0 ? 'info' : 'warning',
+      detail: missing.length === 0
+        ? 'Metaplex Core, Token Metadata, Umi, and DAS packages are present.'
+        : 'Install the current Metaplex Core/DAS starter packages before adding mint or collection transaction paths.',
+      items: missing.length === 0 ? installed : missing,
     }
   }
 
@@ -96,6 +117,52 @@ export async function runIntegrationAction(actionId: string, context: Integratio
         ? 'Streamlock operator API config is present in project env.'
         : `Missing ${missing.join(', ')}. Add the operator API key before calling Streamlock routes.`,
       items: missing.length === 0 ? ['STREAMLOCK_OPERATOR_KEY'] : missing,
+    }
+  }
+
+  if (actionId === 'check-kausalayer-config') {
+    const envKeys = new Set(
+      context.envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment && envVar.value.trim().length > 0).map((envVar) => envVar.key)),
+    )
+    const hasApiKey = envKeys.has('KAUSALAYER_API_KEY')
+    const mcp = context.mcps.find((entry) => entry.name === 'kausalayer')
+    const mcpReady = Boolean(mcp?.enabled)
+    const missing = [
+      hasApiKey ? null : 'KAUSALAYER_API_KEY',
+      mcpReady ? null : mcp ? 'Enable kausalayer MCP' : 'Add kausalayer MCP',
+    ].filter((item): item is string => Boolean(item))
+
+    return {
+      title: 'KausaLayer config',
+      status: missing.length === 0 ? 'success' : hasApiKey || mcp ? 'info' : 'warning',
+      detail: missing.length === 0
+        ? 'KausaLayer API key and MCP route are ready for agent-side privacy tooling.'
+        : 'KausaLayer needs an API key and enabled MCP route before DAEMON can expose privacy tooling safely.',
+      items: missing.length === 0 ? ['KAUSALAYER_API_KEY', 'kausalayer MCP enabled'] : missing,
+    }
+  }
+
+  if (actionId === 'preview-idle-router') {
+    const paymentMcp = context.mcps.find((entry) => (entry.name === 'payai-mcp-server' || entry.name === 'x402-mcp') && entry.enabled)
+    const envKeys = new Set(
+      context.envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment && envVar.value.trim().length > 0).map((envVar) => envVar.key)),
+    )
+    const registryReady = envKeys.has('IDLE_REGISTRY_URL') || envKeys.has('PAYAI_DISCOVERY_URL')
+    return {
+      title: registryReady && paymentMcp ? 'IDLE execution prerequisites ready' : 'IDLE route stack gated',
+      status: registryReady && paymentMcp ? 'success' : 'info',
+      detail: registryReady
+        ? paymentMcp
+          ? `DAEMON can import the configured IDLE registry and use ${paymentMcp.label ?? paymentMcp.name} for x402 payment policy.`
+          : 'DAEMON can import the configured IDLE registry, but paid execution stays gated until PayAI or x402 MCP is enabled.'
+        : 'Add IDLE_REGISTRY_URL or PAYAI_DISCOVERY_URL before DAEMON imports live resources or claims paid-call execution.',
+      items: [
+        registryReady ? 'Registry URL configured' : 'Registry URL required',
+        'Score imported resources before execution',
+        paymentMcp ? 'x402 payment tooling available' : 'x402 payment tooling required',
+        'Apply route allowlists and spend caps',
+        'Store redacted receipts for every attempt',
+      ],
     }
   }
 
@@ -180,6 +247,51 @@ export async function runIntegrationAction(actionId: string, context: Integratio
       title: 'Opening live agents',
       status: 'success',
       detail: 'Launched the SpawnAgents live agent directory in your browser.',
+    }
+  }
+
+  if (actionId === 'open-kausalayer-mcp-register') {
+    void daemon.shell.openExternal('https://www.kausalayer.com/mcp')
+    return {
+      title: 'Opening KausaLayer API key page',
+      status: 'success',
+      detail: 'Launched the KausaLayer MCP API key page in your browser.',
+    }
+  }
+
+  if (actionId === 'open-kausalayer-docs') {
+    void daemon.shell.openExternal('https://docs.kausalayer.com')
+    return {
+      title: 'Opening KausaLayer docs',
+      status: 'success',
+      detail: 'Launched the KausaLayer documentation in your browser.',
+    }
+  }
+
+  if (actionId === 'open-idle-resources') {
+    void daemon.shell.openExternal('https://earnidle.com/resources')
+    return {
+      title: 'Opening IDLE resources',
+      status: 'success',
+      detail: 'Launched the IDLE resource network in your browser.',
+    }
+  }
+
+  if (actionId === 'open-idle-docs') {
+    void daemon.shell.openExternal('https://earnidle.com/docs')
+    return {
+      title: 'Opening IDLE docs',
+      status: 'success',
+      detail: 'Launched the IDLE documentation in your browser.',
+    }
+  }
+
+  if (actionId === 'open-solflare-docs') {
+    void daemon.shell.openExternal('https://docs.solflare.com/solflare/technical/integrate-solflare')
+    return {
+      title: 'Opening Solflare docs',
+      status: 'success',
+      detail: 'Launched Solflare integration docs in your browser.',
     }
   }
 

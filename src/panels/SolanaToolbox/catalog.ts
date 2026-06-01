@@ -79,6 +79,12 @@ export const SOLANA_MCP_CATALOG: Record<string, SolanaCatalogMcpEntry> = {
     category: 'payments',
     docsUrl: 'https://github.com/coinbase/x402',
   },
+  kausalayer: {
+    label: 'KausaLayer',
+    description: 'Stealth pockets, private SOL routing, maze routing, sweeps, swaps, wallet slots, and history for Solana agents.',
+    category: 'wallets',
+    docsUrl: 'https://docs.kausalayer.com',
+  },
 }
 
 export const SOLANA_AGENT_SKILL_GROUPS: Array<{ label: string; skills: string[] }> = [
@@ -169,6 +175,15 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     skill: '/phantom-connect',
   },
   {
+    id: 'solflare-wallet',
+    label: 'Solflare',
+    area: 'Wallets',
+    kind: 'SDK',
+    status: 'guided',
+    description: 'Direct Solflare Wallet SDK for DAEMON-style clients and Solana Wallet Adapter support for generated web dApps.',
+    docsUrl: 'https://docs.solflare.com/solflare/technical/integrate-solflare',
+  },
+  {
     id: 'wallet-standard',
     label: 'Wallet Standard',
     area: 'Wallets',
@@ -248,6 +263,16 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     skill: '/squads',
   },
   {
+    id: 'kausalayer',
+    label: 'KausaLayer',
+    area: 'Protocols',
+    kind: 'MCP',
+    status: 'native',
+    description: 'Solana privacy infrastructure for stealth pockets, private SOL routing, maze routing, sweeps, swaps, wallet slots, and agent-side history.',
+    docsUrl: 'https://docs.kausalayer.com',
+    mcpName: 'kausalayer',
+  },
+  {
     id: 'surfpool',
     label: 'Surfpool',
     area: 'Testing',
@@ -298,8 +323,8 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     area: 'Protocols',
     kind: 'Skill',
     status: 'guided',
-    description: 'Core NFTs, metadata, compressed assets, and mint flows.',
-    docsUrl: 'https://developers.metaplex.com/',
+    description: 'Core assets, DAS reads, token metadata, compressed assets, Agent Registry, and mint flows.',
+    docsUrl: 'https://www.metaplex.com/docs',
     skill: '/metaplex',
   },
   {
@@ -439,9 +464,9 @@ export const SOLANA_PROTOCOL_PACKS: SolanaProtocolPack[] = [
     label: 'Metaplex',
     status: 'guided',
     skill: '/metaplex',
-    docsUrl: 'https://developers.metaplex.com/',
-    kickoff: 'Use Metaplex for metadata, Core assets, Bubblegum, and mint workflows.',
-    installHint: 'pnpm add @metaplex-foundation/umi',
+    docsUrl: 'https://www.metaplex.com/docs',
+    kickoff: 'Use Metaplex for Core assets, DAS reads, Core Candy Machine, Bubblegum, Genesis, and Agent Registry workflows.',
+    installHint: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/mpl-core',
   },
   {
     id: 'light',

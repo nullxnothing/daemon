@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
+import { describeSolanaToolboxError } from './solanaToolboxCopy'
 import './SolanaIdeWorkflow.css'
 
 interface TransactionInspectorProps {
@@ -82,6 +83,7 @@ function buildAgentPrompt(input: string, signature: string | null): string {
 export function TransactionInspector({ projectId, projectPath }: TransactionInspectorProps) {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const [input, setInput] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
   const findings = useMemo(() => summarizeLog(input), [input])
   const signature = useMemo(() => firstSignature(input), [input])
   const canRunTerminal = Boolean(projectId && projectPath)
@@ -89,25 +91,39 @@ export function TransactionInspector({ projectId, projectPath }: TransactionInsp
 
   const runTerminalCommand = async (command: string, label: string) => {
     if (!projectId || !projectPath) return
-    const res = await window.daemon.terminal.create({
-      cwd: projectPath,
-      startupCommand: command,
-      userInitiated: true,
-    })
-    if (res.ok && res.data) {
-      addTerminal(projectId, res.data.id, label)
+    setActionError(null)
+    try {
+      const res = await window.daemon.terminal.create({
+        cwd: projectPath,
+        startupCommand: command,
+        userInitiated: true,
+      })
+      if (res.ok && res.data) {
+        addTerminal(projectId, res.data.id, label)
+        return
+      }
+      setActionError(describeSolanaToolboxError(res.error, `Could not open "${label}".`))
+    } catch (error) {
+      setActionError(describeSolanaToolboxError(error instanceof Error ? error.message : null, `Could not open "${label}".`))
     }
   }
 
   const askAgent = async () => {
     if (!projectId) return
-    const res = await window.daemon.terminal.spawnAgent({
-      agentId: 'solana-agent',
-      projectId,
-      initialPrompt: buildAgentPrompt(input, signature),
-    })
-    if (res.ok && res.data) {
-      addTerminal(projectId, res.data.id, 'Solana Debug Agent', res.data.agentId ?? 'solana-agent')
+    setActionError(null)
+    try {
+      const res = await window.daemon.terminal.spawnAgent({
+        agentId: 'solana-agent',
+        projectId,
+        initialPrompt: buildAgentPrompt(input, signature),
+      })
+      if (res.ok && res.data) {
+        addTerminal(projectId, res.data.id, 'Solana Debug Agent', res.data.agentId ?? 'solana-agent')
+        return
+      }
+      setActionError(describeSolanaToolboxError(res.error, 'Could not start the Solana debug agent.'))
+    } catch (error) {
+      setActionError(describeSolanaToolboxError(error instanceof Error ? error.message : null, 'Could not start the Solana debug agent.'))
     }
   }
 
@@ -134,6 +150,18 @@ export function TransactionInspector({ projectId, projectPath }: TransactionInsp
           </button>
         </div>
       </div>
+
+      {!projectPath && (
+        <div className="solana-ide-note" role="status">
+          Open a project before streaming logs or launching a Solana debug agent. You can still paste logs here for local analysis.
+        </div>
+      )}
+
+      {actionError && (
+        <div className="solana-ide-error" role="status">
+          {actionError}
+        </div>
+      )}
 
       <div className="solana-ide-grid">
         <section className="solana-ide-panel">

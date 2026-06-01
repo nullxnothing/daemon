@@ -32,13 +32,13 @@ export interface IntegrationDefinition {
 
 export const INTEGRATION_CATEGORIES: Array<{ id: IntegrationCategory | 'all'; label: string }> = [
   { id: 'all', label: 'All' },
-  { id: 'agent', label: 'Agent' },
-  { id: 'wallet', label: 'Wallet' },
-  { id: 'rpc', label: 'RPC/Data' },
-  { id: 'defi', label: 'DeFi' },
-  { id: 'nft', label: 'NFT' },
+  { id: 'agent', label: 'AI Agents' },
+  { id: 'wallet', label: 'Wallet UX' },
+  { id: 'rpc', label: 'RPC + Data' },
+  { id: 'defi', label: 'DeFi Protocols' },
+  { id: 'nft', label: 'NFT + IDL' },
   { id: 'launch', label: 'Launch' },
-  { id: 'infra', label: 'Infra' },
+  { id: 'infra', label: 'Paid APIs + Infra' },
 ]
 
 export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
@@ -60,6 +60,44 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     actions: [
       { id: 'check-streamlock-config', label: 'Check config', description: 'Verify the project has the Streamlock operator API placeholders it needs.', kind: 'safe-check', risk: 'read-only' },
       { id: 'preview-streamlock-operator', label: 'Preview operator path', description: 'Review the locked-asset operator flow before enabling any signing or settlement action.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
+  {
+    id: 'zauth',
+    name: 'Zauth',
+    tagline: 'x402 endpoint database and Provider Hub',
+    description: 'Manage x402 provider endpoints, discovery, verification, monitoring, and Provider Hub workflows from inside DAEMON.',
+    category: 'infra',
+    docsUrl: 'https://zauth.inc/provider-hub',
+    recommendedFor: ['x402 providers', 'paid APIs', 'endpoint discovery', 'payment telemetry', 'provider monitoring'],
+    requirements: [
+      { type: 'external-url', key: 'https://zauth.inc/database', label: 'Zauth x402 Database' },
+      { type: 'external-url', key: 'https://zauth.inc/provider-hub', label: 'Zauth Provider Hub' },
+    ],
+    actions: [
+      { id: 'open-zauth-database', label: 'Open database', description: 'Open the Zauth x402 endpoint database inside DAEMON.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-zauth-provider-hub', label: 'Open Provider Hub', description: 'Open the Zauth Provider Hub inside DAEMON.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
+    id: 'idle-protocol',
+    name: 'IDLE Protocol',
+    tagline: 'Risk-scored paid resource network',
+    description: 'Discover IDLE resources, score them for agent readiness, and wrap safe calls with Meterflow/x402 payments, receipts, budgets, and provider revenue routing.',
+    category: 'infra',
+    docsUrl: 'https://earnidle.com/docs',
+    recommendedFor: ['idle resources', 'paid API endpoints', 'agent resource routing', 'x402 pay-per-call', 'resource reputation', 'provider revenue'],
+    requirements: [
+      { type: 'env', key: 'IDLE_REGISTRY_URL|PAYAI_DISCOVERY_URL', label: 'IDLE or PayAI discovery URL' },
+      { type: 'external-url', key: 'https://earnidle.com/resources', label: 'IDLE resource network' },
+      { type: 'external-url', key: 'https://earnidle.com/docs', label: 'IDLE docs' },
+      { type: 'mcp', key: 'payai-mcp-server', label: 'PayAI x402 MCP enabled', optional: true },
+      { type: 'mcp', key: 'x402-mcp', label: 'x402 MCP enabled', optional: true },
+    ],
+    actions: [
+      { id: 'open-idle-resources', label: 'Open IDLE resources', description: 'Open the IDLE resource network to review available endpoints and providers.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-idle-docs', label: 'Open IDLE docs', description: 'Open IDLE docs for resource publishing, gateways, and payment setup.', kind: 'setup', risk: 'read-only' },
+      { id: 'preview-idle-router', label: 'Build route stack', description: 'Build the DAEMON route stack for discovering, scoring, wrapping, paying, and proving IDLE resource calls.', kind: 'safe-check', risk: 'read-only' },
     ],
   },
   {
@@ -103,6 +141,27 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'kausalayer',
+    name: 'KausaLayer',
+    tagline: 'Solana stealth pockets and maze routing',
+    description: 'Use KausaLayer for privacy-oriented Solana workflows: stealth pockets, private SOL routing, dynamic maze routing, sweeps, swaps, wallet slots, history, and agent-accessible MCP tooling.',
+    category: 'infra',
+    docsUrl: 'https://docs.kausalayer.com',
+    installCommand: 'npx -y @kausalayer/mcp',
+    recommendedFor: ['privacy infrastructure', 'maze routing', 'stealth pockets', 'private SOL routing', 'agent-accessible MCP tools', 'wallet history', 'private swaps'],
+    requirements: [
+      { type: 'env', key: 'KAUSALAYER_API_KEY', label: 'KausaLayer API key' },
+      { type: 'mcp', key: 'kausalayer', label: 'KausaLayer MCP enabled' },
+      { type: 'env', key: 'SOLANA_RPC_URL', label: 'Solana RPC URL', optional: true },
+    ],
+    actions: [
+      { id: 'check-kausalayer-config', label: 'Check config', description: 'Verify the project has the KausaLayer API key and MCP route ready.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'open-kausalayer-mcp-register', label: 'Get API key', description: 'Open the KausaLayer MCP API key page for wallet connection and agent access.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-kausalayer-docs', label: 'Open docs', description: 'Open the KausaLayer documentation for stealth pockets, maze routes, sweeps, swaps, and wallet slots.', kind: 'setup', risk: 'read-only' },
+      { id: 'preview-kausalayer-privacy-flow', label: 'Preview privacy flow', description: 'Review the pocket and maze-routing setup path before any wallet or transaction action is enabled.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
+  {
     id: 'helius',
     name: 'Helius',
     tagline: 'RPC, DAS, webhooks, priority fees',
@@ -137,6 +196,24 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'solflare',
+    name: 'Solflare',
+    tagline: 'External Solana wallet approvals',
+    description: 'Use Solflare for external wallet connection, message signing, transaction approval, and Solflare-first generated dApp scaffolds.',
+    category: 'wallet',
+    docsUrl: 'https://docs.solflare.com/solflare/technical/integrate-solflare',
+    installCommand: 'pnpm add @solflare-wallet/sdk @solana/web3.js',
+    recommendedFor: ['wallet connect', 'external signing', 'Solflare users', 'transaction approvals'],
+    requirements: [
+      { type: 'package', key: '@solflare-wallet/sdk', label: 'Solflare Wallet SDK', optional: true },
+      { type: 'external-url', key: 'https://www.solflare.com/', label: 'Solflare wallet' },
+    ],
+    actions: [
+      { id: 'check-solflare-sdk', label: 'Check SDK', description: 'Verify the active project has the Solflare SDK installed when it needs direct Solflare integration.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'open-solflare-docs', label: 'Open docs', description: 'Open Solflare integration docs for direct SDK and wallet adapter setup.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'jupiter',
     name: 'Jupiter',
     tagline: 'Quotes, swaps, tokens, lend, perps',
@@ -157,19 +234,21 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
   {
     id: 'metaplex',
     name: 'Metaplex',
-    tagline: 'NFTs, metadata, Core, Bubblegum',
-    description: 'Use Metaplex for NFT collections, metadata, compressed NFTs, Candy Machine, and digital asset workflows.',
+    tagline: 'Core, DAS, Candy Machine, Agent Registry',
+    description: 'Use Metaplex for Core assets, DAS reads, token metadata, Core Candy Machine drops, Bubblegum, Genesis, and agent identity workflows.',
     category: 'nft',
-    docsUrl: 'https://developers.metaplex.com/',
-    installCommand: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/mpl-token-metadata',
-    recommendedFor: ['NFT minting', 'metadata', 'collections'],
+    docsUrl: 'https://www.metaplex.com/docs',
+    installCommand: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/umi-bundle-defaults @metaplex-foundation/mpl-core @metaplex-foundation/mpl-token-metadata @metaplex-foundation/digital-asset-standard-api',
+    recommendedFor: ['Core NFTs', 'DAS reads', 'metadata', 'collections', 'agent identity'],
     requirements: [
       { type: 'package', key: '@metaplex-foundation/umi', label: 'Umi package', optional: true },
+      { type: 'package', key: '@metaplex-foundation/mpl-core', label: 'MPL Core package', optional: true },
+      { type: 'package', key: '@metaplex-foundation/digital-asset-standard-api', label: 'DAS API package', optional: true },
       { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet' },
     ],
     actions: [
-      { id: 'check-nft-packages', label: 'Check packages', description: 'Verify common Metaplex packages in this project.', kind: 'safe-check', risk: 'read-only' },
-      { id: 'preview-nft-mint', label: 'Preview mint', description: 'Planned: metadata and fee preview before minting.', kind: 'planned', risk: 'transaction' },
+      { id: 'check-nft-packages', label: 'Check packages', description: 'Verify Core, Token Metadata, and DAS packages in this project.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'preview-core-agent-flow', label: 'Preview Core/agent flow', description: 'Planned: Core asset, Agent Registry identity, delegation, fee, and wallet approval preview before signing.', kind: 'planned', risk: 'requires-confirmation' },
     ],
   },
   {

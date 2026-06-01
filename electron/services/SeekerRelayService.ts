@@ -38,6 +38,8 @@ export interface SeekerRelayEvent {
 export interface SeekerSession {
   id: string
   pairingCode: string
+  /** High-entropy bearer secret delivered to the paired device via the deep link/QR. */
+  accessToken: string
   relayUrl: string
   deepLink: string
   projectId: string | null
@@ -69,15 +71,16 @@ const MAX_BODY_BYTES = 512 * 1024
 let server: http.Server | null = null
 let boundPort = DEFAULT_PORT
 let autoStartAttempted = false
+let externalRelayStatus: SeekerRelayStatus | null = null
 const sessions = new Map<string, SeekerSession>()
 
 function json(res: ServerResponse, statusCode: number, payload: unknown) {
+  // No CORS allow-origin: the relay serves the native app, not browsers. Browser
+  // preflight will fail by design (see hasBrowserOrigin guard).
   res.writeHead(statusCode, {
     'content-type': 'application/json; charset=utf-8',
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET,POST,PATCH,OPTIONS',
-    'access-control-allow-headers': 'content-type',
     'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
   })
   res.end(JSON.stringify(payload))
 }
@@ -122,15 +125,64 @@ function getRelayUrls(port = boundPort) {
   }
 }
 
+function isAddressInUse(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'EADDRINUSE')
+}
+
+async function probeExistingRelay(port: number): Promise<SeekerRelayStatus | null> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 600)
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/seeker/status`, { signal: controller.signal })
+    const body = await res.json().catch(() => null) as { ok?: boolean; data?: SeekerRelayStatus } | null
+    if (res.ok && body?.ok && body.data?.relayUrl) {
+      return { ...body.data, running: true, port }
+    }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timeout)
+  }
+  return null
+}
+
 function makePairingCode() {
   const segment = crypto.randomBytes(3).toString('hex').slice(0, 4).toUpperCase()
   const suffix = String(10 + crypto.randomInt(89))
   return `DMN-${segment}-${suffix}`
 }
 
-function makeDeepLink(pairingCode: string, relayUrl: string, projectName: string) {
-  const params = new URLSearchParams({ code: pairingCode, relay: relayUrl, project: projectName })
+function makeAccessToken() {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+function makeDeepLink(pairingCode: string, accessToken: string, relayUrl: string, projectName: string) {
+  const params = new URLSearchParams({ code: pairingCode, token: accessToken, relay: relayUrl, project: projectName })
   return `daemonseeker://pair?${params.toString()}`
+}
+
+/** Constant-time bearer check against the session token. */
+function isAuthorizedForSession(req: IncomingMessage, session: SeekerSession): boolean {
+  const header = req.headers['authorization']
+  const presented = typeof header === 'string' && header.startsWith('Bearer ')
+    ? header.slice('Bearer '.length).trim()
+    : ''
+  if (!presented || presented.length !== session.accessToken.length) return false
+  try {
+    return crypto.timingSafeEqual(Buffer.from(presented), Buffer.from(session.accessToken))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Reject requests that carry a browser Origin header. The relay is for the
+ * native Seeker app (which sends no Origin); a web page must not reach it even
+ * if it learns the LAN address.
+ */
+function hasBrowserOrigin(req: IncomingMessage): boolean {
+  const origin = req.headers['origin']
+  return typeof origin === 'string' && origin.length > 0
 }
 
 function defaultProjectSnapshot(projectName: string): SeekerProjectSnapshot {
@@ -261,6 +313,8 @@ function recordMobileEvent(event: SeekerRelayEvent) {
 }
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+  // Block web pages outright — the native app sends no Origin.
+  if (hasBrowserOrigin(req)) return json(res, 403, { ok: false, error: 'Forbidden' })
   if (req.method === 'OPTIONS') return json(res, 204, {})
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? '127.0.0.1'}`)
 
@@ -268,7 +322,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     return json(res, 200, { ok: true, data: getRelayStatus() })
   }
 
+  // The session LIST exposes every session's snapshot — keep it to the desktop
+  // (loopback) only; the LAN-reachable phone uses the token-scoped endpoints.
   if (req.method === 'GET' && url.pathname === '/api/seeker/sessions') {
+    if (!isLoopbackRequest(req)) return json(res, 403, { ok: false, error: 'Forbidden' })
     return json(res, 200, { ok: true, data: listSessions() })
   }
 
@@ -286,7 +343,11 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   if (req.method === 'GET' && sessionMatch) {
     const pairingCode = decodeURIComponent(sessionMatch[1])
     const session = getSessionOrNull(pairingCode)
-    if (!session) return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
+    // Generic 404 (not 401/403) so the token-gated endpoints don't reveal which
+    // pairing codes exist to a brute-forcing LAN client.
+    if (!session || !isAuthorizedForSession(req, session)) {
+      return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
+    }
     return json(res, 200, snapshotForMobile(session))
   }
 
@@ -294,6 +355,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   if (req.method === 'POST' && approvalAddMatch) {
     try {
       const pairingCode = decodeURIComponent(approvalAddMatch[1])
+      const session = getSessionOrNull(pairingCode)
+      if (!session || !isAuthorizedForSession(req, session)) {
+        return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
+      }
       const body = await readBody(req) as Omit<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'> & Partial<Pick<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'>>
       return json(res, 200, { ok: true, data: addApproval(pairingCode, body) })
     } catch (error) {
@@ -305,6 +370,10 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   if ((req.method === 'POST' || req.method === 'PATCH') && approvalStatusMatch) {
     try {
       const pairingCode = decodeURIComponent(approvalStatusMatch[1])
+      const session = getSessionOrNull(pairingCode)
+      if (!session || !isAuthorizedForSession(req, session)) {
+        return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
+      }
       const approvalId = decodeURIComponent(approvalStatusMatch[2])
       const body = await readBody(req) as { status?: unknown }
       if (!isApprovalStatus(body.status)) return json(res, 400, { ok: false, error: 'Invalid approval status' })
@@ -318,9 +387,13 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     try {
       const body = await readBody(req) as Partial<SeekerRelayEvent>
       if (!body.type || !body.sessionCode) return json(res, 400, { ok: false, error: 'Missing event type or sessionCode' })
-      const session = recordMobileEvent(body as SeekerRelayEvent)
-      if (!session) return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
-      return json(res, 200, { ok: true, data: snapshotForMobile(session) })
+      const session = getSessionOrNull(body.sessionCode)
+      if (!session || !isAuthorizedForSession(req, session)) {
+        return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
+      }
+      const updated = recordMobileEvent(body as SeekerRelayEvent)
+      if (!updated) return json(res, 404, { ok: false, error: 'Pairing session not found or expired' })
+      return json(res, 200, { ok: true, data: snapshotForMobile(updated) })
     } catch (error) {
       return json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Invalid request' })
     }
@@ -329,22 +402,40 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   return notFound(res)
 }
 
+function isLoopbackRequest(req: IncomingMessage): boolean {
+  const addr = req.socket.remoteAddress ?? ''
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1'
+}
+
 export async function startRelayServer(port = DEFAULT_PORT): Promise<SeekerRelayStatus> {
   if (server?.listening) return getRelayStatus()
+  externalRelayStatus = null
 
-  await new Promise<void>((resolve, reject) => {
-    const nextServer = http.createServer((req, res) => {
-      void handleRequest(req, res).catch((error) => {
-        json(res, 500, { ok: false, error: error instanceof Error ? error.message : 'Relay error' })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const nextServer = http.createServer((req, res) => {
+        void handleRequest(req, res).catch((error) => {
+          json(res, 500, { ok: false, error: error instanceof Error ? error.message : 'Relay error' })
+        })
+      })
+      nextServer.once('error', reject)
+      nextServer.listen(port, '0.0.0.0', () => {
+        server = nextServer
+        boundPort = port
+        resolve()
       })
     })
-    nextServer.once('error', reject)
-    nextServer.listen(port, '0.0.0.0', () => {
-      server = nextServer
-      boundPort = port
-      resolve()
-    })
-  })
+  } catch (error) {
+    if (isAddressInUse(error)) {
+      const existing = await probeExistingRelay(port)
+      if (existing) {
+        boundPort = port
+        externalRelayStatus = existing
+        return getRelayStatus()
+      }
+    }
+    throw error
+  }
 
   return getRelayStatus()
 }
@@ -360,6 +451,7 @@ export async function ensureRelayServer(): Promise<SeekerRelayStatus> {
 }
 
 export async function stopRelayServer() {
+  externalRelayStatus = null
   if (!server) return { stopped: true }
   const current = server
   server = null
@@ -368,6 +460,9 @@ export async function stopRelayServer() {
 }
 
 export function getRelayStatus(): SeekerRelayStatus {
+  if (!server?.listening && externalRelayStatus) {
+    return externalRelayStatus
+  }
   const urls = getRelayUrls(boundPort)
   return {
     running: Boolean(server?.listening),
@@ -388,13 +483,15 @@ export async function createPairingSession(input: {
   const status = await startRelayServer()
   const projectName = input.projectName?.trim() || input.project?.name || 'Daemon Project'
   const pairingCode = makePairingCode()
+  const accessToken = makeAccessToken()
   const relayUrl = status.lanUrl
   const now = Date.now()
   const session: SeekerSession = {
     id: crypto.randomUUID(),
     pairingCode,
+    accessToken,
     relayUrl,
-    deepLink: makeDeepLink(pairingCode, relayUrl, projectName),
+    deepLink: makeDeepLink(pairingCode, accessToken, relayUrl, projectName),
     projectId: input.projectId ?? null,
     projectPath: input.projectPath ?? null,
     projectName,

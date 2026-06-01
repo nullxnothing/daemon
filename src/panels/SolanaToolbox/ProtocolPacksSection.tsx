@@ -1,6 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { SOLANA_PROTOCOL_PACKS } from './catalog'
 import { useUIStore } from '../../store/ui'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../../components/LiveRegion'
 
 const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
   jupiter: 'jupiter',
@@ -14,15 +16,11 @@ const PACK_INTEGRATION_MAP: Partial<Record<string, string>> = {
 }
 
 export function ProtocolPacksSection() {
-  const [copied, setCopied] = useState<string | null>(null)
+  const { copiedKey: copied, copy } = useClipboard()
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
   const setIntegrationCommandSelectionId = useUIStore((s) => s.setIntegrationCommandSelectionId)
 
-  const copyText = useCallback((value: string) => {
-    navigator.clipboard.writeText(value).catch(() => {})
-    setCopied(value)
-    setTimeout(() => setCopied(null), 1500)
-  }, [])
+  const copyText = useCallback((value: string) => { void copy(value, value) }, [copy])
 
   const openPackFlow = useCallback((packId: string) => {
     const integrationId = PACK_INTEGRATION_MAP[packId]
@@ -82,6 +80,7 @@ export function ProtocolPacksSection() {
           </section>
         ))}
       </div>
+      <LiveRegion message={copied ? 'Install command copied to clipboard' : ''} />
     </div>
   )
 }

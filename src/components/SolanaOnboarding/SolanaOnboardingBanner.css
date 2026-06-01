@@ -6,7 +6,7 @@
   padding: 7px 14px;
   background: color-mix(in srgb, var(--green-glow) 40%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--green) 10%, var(--border));
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   flex-shrink: 0;
 }
@@ -39,8 +39,8 @@
 .solana-onboarding-btn {
   height: 22px;
   padding: 0 8px;
-  border-radius: 3px;
-  font-size: 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-10);
   border: 1px solid color-mix(in srgb, var(--green) 18%, var(--border));
   background: color-mix(in srgb, var(--green-glow) 42%, transparent);
   color: var(--green);

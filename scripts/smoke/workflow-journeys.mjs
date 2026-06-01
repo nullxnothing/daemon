@@ -157,6 +157,42 @@ async function openToolFromLauncher(page, toolName, readySelector = null) {
 async function verifyFirstLaunchOnboarding(page) {
   await page.waitForSelector('.wizard-overlay', { timeout: 30000 })
   await page.waitForSelector('.wizard-card', { timeout: 30000 })
+  await page.waitForFunction(() => {
+    const body = document.body.textContent ?? ''
+    return body.includes('Workspace')
+      && body.includes('What are you building?')
+      && body.includes('Solana Development')
+  }, { timeout: 30000 })
+  await page.locator('.step-profile-card', { hasText: 'Solana Development' }).click()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+
+  await page.waitForFunction(() => {
+    const body = document.body.textContent ?? ''
+    return body.includes('Project') && body.includes('Open or scaffold a Solana workspace')
+  }, { timeout: 30000 })
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+
+  await page.waitForFunction(() => {
+    const body = document.body.textContent ?? ''
+    return body.includes('Wallet + RPC') && body.includes('Devnet is the default')
+  }, { timeout: 30000 })
+  await page.getByRole('button', { name: 'Use Devnet Defaults', exact: true }).click()
+
+  await page.waitForFunction(() => {
+    const body = document.body.textContent ?? ''
+    return body.includes('AI Safety') && body.includes('Ask and Plan are read-first')
+  }, { timeout: 30000 })
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+
+  await page.waitForFunction(() => {
+    const body = document.body.textContent ?? ''
+    return body.includes('First Run') && body.includes('Start from readiness')
+  }, { timeout: 30000 })
+  await page.getByRole('button', { name: 'Open Solana Start', exact: true }).click()
+  await page.waitForSelector('.project-readiness', { timeout: 30000 })
+  await page.waitForSelector('.tour-offer-card', { timeout: 30000 })
+  await page.locator('.tour-offer-card').getByRole('button', { name: 'Skip', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.wizard-overlay') === null, { timeout: 30000 })
   await page.reload()
   await waitForAppReady(page)
 }
@@ -179,13 +215,13 @@ async function verifyWalletJourney(page) {
 }
 
 async function verifySolanaWorkflowTabs(page) {
-  await openToolFromLauncher(page, 'Solana', '.solana-toolbox')
+  await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   const tabs = [
     { name: 'Start', check: () => page.locator('.solana-workflow-title').waitFor({ timeout: 30000 }) },
     { name: 'Connect', check: () => page.locator('.solana-service-row, .solana-split-title').first().waitFor({ timeout: 30000 }) },
-    { name: 'Diagnose', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
     { name: 'Build', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
     { name: 'Launch', check: () => page.locator('.solana-protocol-card').first().waitFor({ timeout: 30000 }) },
+    { name: 'Inspect', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
     { name: 'Debug', check: () => page.locator('.solana-toolchain-card').first().waitFor({ timeout: 30000 }) },
   ]
 
@@ -211,14 +247,16 @@ async function verifyTokenLaunchFlow(page) {
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
     return body.includes('Step 1')
-      && body.includes('Check readiness and recent launches')
+      && body.includes('Choose the launch path')
       && body.includes('Step 2')
       && body.includes('Save protocol config once')
       && body.includes('Recommended flow')
   }, { timeout: 30000 })
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
-    return body.includes('Pump live now') && body.includes('Launch Token')
+    return body.includes('Open Streamlock')
+      && body.includes('Streamlock is the current external launch path')
+      && body.includes('Recent Launches')
   }, { timeout: 30000 })
 }
 
@@ -238,6 +276,7 @@ async function run() {
     env: {
       ...process.env,
       DAEMON_SMOKE_TEST: '1',
+      DAEMON_SMOKE_ONBOARDING: '1',
       DAEMON_SMOKE_CDP_PORT: String(cdpPort),
       DAEMON_USER_DATA_DIR: userDataDir,
     },

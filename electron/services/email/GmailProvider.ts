@@ -1,7 +1,8 @@
 import http from 'node:http'
-import { safeStorage, shell } from 'electron'
+import { safeStorage } from 'electron'
 import { getDb } from '../../db/db'
 import { TIMEOUTS, API_ENDPOINTS } from '../../config/constants'
+import { openSafeExternalUrl } from '../../security/externalNavigation'
 import type { EmailProvider, SendEmailInput } from './EmailProvider'
 import type { EmailAccountRow, EmailMessage } from '../../shared/types'
 
@@ -298,7 +299,7 @@ function captureAuthCode(clientId: string): Promise<string> {
         `&prompt=consent` +
         `&state=${encodeURIComponent(oauthState)}`
 
-      shell.openExternal(authUrl)
+      void openSafeExternalUrl(authUrl)
 
       // Auto-close after 5 minutes if no callback
       setTimeout(() => {

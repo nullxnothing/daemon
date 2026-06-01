@@ -1,5 +1,6 @@
 import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
+import os from 'node:os'
 import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
 
 export interface RaydiumLaunchpadSettings {
@@ -21,18 +22,34 @@ export interface PrintrLaunchpadSettings {
   chain: string
 }
 
+export interface OpenBidLaunchpadSettings {
+  apiBaseUrl: string
+  chainId: string
+  dex: 'meteora' | 'raydium' | ''
+  feeTier: string
+  packageType: 'based' | 'super_based' | 'ultra_based' | ''
+  marketCap: string
+  totalSupply: string
+  maxAllocationPerUser: string
+  referrer: string
+  board: string
+  boardOwner: string
+}
+
 export interface TokenLaunchSettings {
   raydium: RaydiumLaunchpadSettings
   meteora: MeteoraLaunchpadSettings
   printr: PrintrLaunchpadSettings
+  openbid: OpenBidLaunchpadSettings
 }
 
 export interface WalletInfrastructureSettings {
+  cluster: 'devnet' | 'mainnet-beta' | 'localnet'
   rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
   quicknodeRpcUrl: string
   customRpcUrl: string
   swapProvider: 'jupiter'
-  preferredWallet: 'phantom' | 'wallet-standard'
+  preferredWallet: 'phantom' | 'solflare' | 'wallet-standard'
   executionMode: 'rpc' | 'jito'
   jitoBlockEngineUrl: string
 }
@@ -69,10 +86,18 @@ export function setJsonSetting(key: string, value: unknown): void {
   ).run(key, JSON.stringify(value), Date.now())
 }
 
-export function getUiSettings(): { showMarketTape: boolean; showTitlebarWallet: boolean } {
+function lowPowerDefault(): boolean {
+  if (process.env.DAEMON_LOW_POWER_MODE === '1') return true
+  if (process.env.DAEMON_LOW_POWER_MODE === '0') return false
+  const memoryGb = os.totalmem() / 1024 / 1024 / 1024
+  return os.cpus().length <= 4 || memoryGb <= 5
+}
+
+export function getUiSettings(): { showMarketTape: boolean; showTitlebarWallet: boolean; lowPowerMode: boolean } {
   return {
     showMarketTape: getBooleanSetting('show_market_tape', true),
     showTitlebarWallet: getBooleanSetting('show_titlebar_wallet', true),
+    lowPowerMode: getBooleanSetting('low_power_mode', lowPowerDefault()),
   }
 }
 
@@ -86,15 +111,18 @@ export function setOnboardingComplete(complete: boolean): void {
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
   profile: 'pending',
-  claude: 'pending',
-  gmail: 'pending',
-  vercel: 'pending',
-  railway: 'pending',
+  project: 'pending',
+  runtime: 'pending',
+  ai: 'pending',
+  firstRun: 'pending',
   tour: 'pending',
 }
 
 export function getOnboardingProgress(): OnboardingProgress {
-  return getJsonSetting<OnboardingProgress>('onboarding_progress', DEFAULT_PROGRESS)
+  return {
+    ...DEFAULT_PROGRESS,
+    ...getJsonSetting<Partial<OnboardingProgress>>('onboarding_progress', DEFAULT_PROGRESS),
+  }
 }
 
 export function setOnboardingProgress(progress: OnboardingProgress): void {
@@ -223,9 +251,26 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
     createPath: '',
     chain: '',
   },
+  openbid: {
+    apiBaseUrl: '',
+    chainId: '',
+    dex: '',
+    feeTier: '',
+    packageType: '',
+    marketCap: '',
+    totalSupply: '',
+    maxAllocationPerUser: '',
+    referrer: '',
+    board: '',
+    boardOwner: '',
+  },
 }
 
+const BASEDBID_MIN_MARKET_CAP = 11_000
+const BASEDBID_MAX_MARKET_CAP = 10_000_000
+
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
+  cluster: 'devnet',
   rpcProvider: 'helius',
   quicknodeRpcUrl: '',
   customRpcUrl: '',
@@ -233,6 +278,11 @@ const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
   preferredWallet: 'phantom',
   executionMode: 'rpc',
   jitoBlockEngineUrl: 'https://mainnet.block-engine.jito.wtf/api/v1/transactions',
+}
+
+function normalizePreferredWallet(value: unknown): WalletInfrastructureSettings['preferredWallet'] {
+  if (value === 'phantom' || value === 'solflare' || value === 'wallet-standard') return value
+  return 'phantom'
 }
 
 function normalizeText(value: unknown): string {
@@ -262,6 +312,16 @@ function validateOptionalPositiveInteger(value: string, fieldName: string): void
   }
 }
 
+function validateOptionalNumberString(value: string, fieldName: string): void {
+  if (!value) return
+  if (!/^\d+(\.\d+)?$/.test(value)) {
+    throw new Error(`${fieldName} must be a valid number`)
+  }
+  if (Number(value) <= 0) {
+    throw new Error(`${fieldName} must be greater than zero`)
+  }
+}
+
 function validateOptionalHttpUrl(value: string, fieldName: string): void {
   if (!value) return
   let url: URL
@@ -272,6 +332,20 @@ function validateOptionalHttpUrl(value: string, fieldName: string): void {
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new Error(`${fieldName} must use http or https`)
+  }
+}
+
+function validateOptionalHttpsUrlExceptLocal(value: string, fieldName: string): void {
+  if (!value) return
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error(`${fieldName} must be a valid URL`)
+  }
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]' || url.hostname === '::1'
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
+    throw new Error(`${fieldName} must use HTTPS unless it points at localhost`)
   }
 }
 
@@ -294,6 +368,21 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
       createPath: normalizeText(value?.printr?.createPath),
       chain: normalizeText(value?.printr?.chain),
     },
+    openbid: {
+      apiBaseUrl: normalizeText(value?.openbid?.apiBaseUrl),
+      chainId: normalizeText(value?.openbid?.chainId),
+      dex: value?.openbid?.dex === 'raydium' || value?.openbid?.dex === 'meteora' ? value.openbid.dex : '',
+      feeTier: normalizeText(value?.openbid?.feeTier),
+      packageType: value?.openbid?.packageType === 'super_based' || value?.openbid?.packageType === 'ultra_based' || value?.openbid?.packageType === 'based'
+        ? value.openbid.packageType
+        : '',
+      marketCap: normalizeText(value?.openbid?.marketCap),
+      totalSupply: normalizeText(value?.openbid?.totalSupply),
+      maxAllocationPerUser: normalizeText(value?.openbid?.maxAllocationPerUser),
+      referrer: normalizeText(value?.openbid?.referrer),
+      board: normalizeText(value?.openbid?.board),
+      boardOwner: normalizeText(value?.openbid?.boardOwner),
+    },
   }
 }
 
@@ -315,6 +404,21 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
       createPath: normalizeText(settings?.printr?.createPath),
       chain: normalizeText(settings?.printr?.chain),
     },
+    openbid: {
+      apiBaseUrl: normalizeText(settings?.openbid?.apiBaseUrl),
+      chainId: normalizeText(settings?.openbid?.chainId),
+      dex: settings?.openbid?.dex === 'raydium' || settings?.openbid?.dex === 'meteora' ? settings.openbid.dex : '',
+      feeTier: normalizeText(settings?.openbid?.feeTier),
+      packageType: settings?.openbid?.packageType === 'super_based' || settings?.openbid?.packageType === 'ultra_based' || settings?.openbid?.packageType === 'based'
+        ? settings.openbid.packageType
+        : '',
+      marketCap: normalizeText(settings?.openbid?.marketCap),
+      totalSupply: normalizeText(settings?.openbid?.totalSupply),
+      maxAllocationPerUser: normalizeText(settings?.openbid?.maxAllocationPerUser),
+      referrer: normalizeText(settings?.openbid?.referrer),
+      board: normalizeText(settings?.openbid?.board),
+      boardOwner: normalizeText(settings?.openbid?.boardOwner),
+    },
   }
 
   validateOptionalPublicKey(next.raydium.configId, 'Raydium config ID')
@@ -329,6 +433,30 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
   if (next.printr.createPath && !next.printr.createPath.startsWith('/')) {
     throw new Error('Printr create path must start with "/"')
   }
+  validateOptionalHttpsUrlExceptLocal(next.openbid.apiBaseUrl, 'basedbid API base URL')
+  validateOptionalPositiveInteger(next.openbid.chainId, 'basedbid chain ID')
+  if (next.openbid.feeTier && !['0', '1', '2', '3'].includes(next.openbid.feeTier)) {
+    throw new Error('basedbid fee tier must be 0, 1, 2, or 3')
+  }
+  if (next.openbid.dex === 'raydium' && next.openbid.feeTier === '3') {
+    throw new Error('basedbid Raydium fee tier must be 0, 1, or 2')
+  }
+  validateOptionalNumberString(next.openbid.marketCap, 'basedbid market cap')
+  if (next.openbid.marketCap) {
+    const marketCap = Number(next.openbid.marketCap)
+    if (marketCap < BASEDBID_MIN_MARKET_CAP || marketCap > BASEDBID_MAX_MARKET_CAP) {
+      throw new Error(`basedbid market cap must be between ${BASEDBID_MIN_MARKET_CAP} and ${BASEDBID_MAX_MARKET_CAP}`)
+    }
+  }
+  validateOptionalNumberString(next.openbid.totalSupply, 'basedbid total supply')
+  if (next.openbid.maxAllocationPerUser && !/^\d+(\.\d+)?$/.test(next.openbid.maxAllocationPerUser)) {
+    throw new Error('basedbid max allocation per user must be a valid number')
+  }
+  validateOptionalPublicKey(next.openbid.referrer, 'basedbid referrer')
+  validateOptionalPublicKey(next.openbid.boardOwner, 'basedbid board owner')
+  if ((next.openbid.board && !next.openbid.boardOwner) || (!next.openbid.board && next.openbid.boardOwner)) {
+    throw new Error('basedbid board and board owner must both be set or both be empty')
+  }
 
   setJsonSetting('token_launch_settings', next)
 }
@@ -340,13 +468,14 @@ export function getWalletInfrastructureSettings(): WalletInfrastructureSettings 
   )
 
   return {
+    cluster: value?.cluster === 'mainnet-beta' || value?.cluster === 'localnet' ? value.cluster : 'devnet',
     rpcProvider: value?.rpcProvider === 'public' || value?.rpcProvider === 'quicknode' || value?.rpcProvider === 'custom'
       ? value.rpcProvider
       : 'helius',
     quicknodeRpcUrl: normalizeText(value?.quicknodeRpcUrl),
     customRpcUrl: normalizeText(value?.customRpcUrl),
     swapProvider: 'jupiter',
-    preferredWallet: value?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    preferredWallet: normalizePreferredWallet(value?.preferredWallet),
     executionMode: value?.executionMode === 'jito' ? 'jito' : 'rpc',
     jitoBlockEngineUrl: normalizeText(value?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
   }
@@ -354,13 +483,14 @@ export function getWalletInfrastructureSettings(): WalletInfrastructureSettings 
 
 export function setWalletInfrastructureSettings(settings: WalletInfrastructureSettings): void {
   const next: WalletInfrastructureSettings = {
+    cluster: settings?.cluster === 'mainnet-beta' || settings?.cluster === 'localnet' ? settings.cluster : 'devnet',
     rpcProvider: settings?.rpcProvider === 'public' || settings?.rpcProvider === 'quicknode' || settings?.rpcProvider === 'custom'
       ? settings.rpcProvider
       : 'helius',
     quicknodeRpcUrl: normalizeText(settings?.quicknodeRpcUrl),
     customRpcUrl: normalizeText(settings?.customRpcUrl),
     swapProvider: 'jupiter',
-    preferredWallet: settings?.preferredWallet === 'wallet-standard' ? 'wallet-standard' : 'phantom',
+    preferredWallet: normalizePreferredWallet(settings?.preferredWallet),
     executionMode: settings?.executionMode === 'jito' ? 'jito' : 'rpc',
     jitoBlockEngineUrl: normalizeText(settings?.jitoBlockEngineUrl) || DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS.jitoBlockEngineUrl,
   }

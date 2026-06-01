@@ -1,0 +1,54 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+.avatar {
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.rowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cards {
+  display: grid;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+}
+
+.cardIcon {
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2xs);
+}

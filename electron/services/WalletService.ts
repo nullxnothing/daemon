@@ -1,14 +1,83 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
-import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
+import { ComputeBudgetProgram, Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { executeTransaction, getConnection, getHeliusApiKey, getJupiterApiKey, getPriorityFeeLamports, withKeypair, type TransactionExecutionResult } from './SolanaService'
+import nacl from 'tweetnacl'
+import { dialog } from 'electron'
+import fs from 'node:fs'
+import { createHmac } from 'node:crypto'
+import {
+  confirmSignature,
+  executeTransaction,
+  getConnection,
+  getHeliusApiKey,
+  getJupiterApiKey,
+  getPriorityFeeLamports,
+  getPriorityFeeMicroLamports,
+  getTransactionSubmissionSettings,
+  submitRawTransaction,
+  withKeypair,
+  type TransactionExecutionResult,
+} from './SolanaService'
+import * as Voight from './VoightService'
+import { assertTransactionAllowed, approveTransactionHash, hashTransactionMessage } from './SignerGuardService'
+import type {
+  ExternalSolTransferDraft,
+  JupiterTokenSearchResult,
+  MoonpayEnvironment,
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  MoonpayOnrampResult,
+  MoonpayStatus,
+  SubmitExternalSignedTransactionInput,
+  WalletDashboard,
+} from '../shared/types'
 
-async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES): Promise<Response> {
+const DEFAULT_FETCH_TIMEOUT_MS = 8_000
+const KEY_VALIDATION_FETCH_TIMEOUT_MS = 6_000
+const SWAP_FETCH_TIMEOUT_MS = 15_000
+const EXTERNAL_TRANSACTION_TTL_MS = 5 * 60_000
+
+interface PendingExternalTransaction {
+  id: string
+  walletId: string
+  fromAddress: string
+  toAddress: string
+  amountSol: number
+  messageBase64: string
+  blockhash: string
+  lastValidBlockHeight: number
+  createdAt: number
+}
+
+const pendingExternalTransactions = new Map<string, PendingExternalTransaction>()
+
+function isTestRuntime() {
+  return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+}
+
+async function fetchWithTimeout(url: string | URL, init: RequestInit = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS): Promise<Response> {
+  if (isTestRuntime()) return fetch(url, init)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function fetchWithRetry(url: string, retries = RETRY_CONFIG.MAX_RETRIES, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS): Promise<Response> {
   for (let attempt = 0; attempt < retries; attempt++) {
-    const response = await fetch(url)
+    const response = await fetchWithTimeout(url, undefined, timeoutMs)
     if (response.ok) return response
 
     if (response.status === 429 && attempt < retries - 1) {
@@ -129,10 +198,22 @@ const BASE_SIGNATURE_FEE_LAMPORTS = 5_000
 const SOL_TRANSFER_COMPUTE_UNITS = 20_000
 const TOKEN_TRANSFER_COMPUTE_UNITS = 80_000
 const TOKEN_TRANSFER_WITH_ATA_COMPUTE_UNITS = 140_000
+const MOONPAY_PUBLISHABLE_KEY_NAME = 'MOONPAY_PUBLISHABLE_KEY'
+const MOONPAY_SECRET_KEY_NAME = 'MOONPAY_SECRET_KEY'
+const MOONPAY_SOL_CURRENCY_CODE = 'sol'
+const MOONPAY_DEFAULT_BASE_CURRENCY_CODE = 'usd'
+const MOONPAY_DEFAULT_BASE_CURRENCY_AMOUNT = 50
+const MOONPAY_THEME_COLOR = '#3ecf8e'
+const MOONPAY_SANDBOX_URL = 'https://buy-sandbox.moonpay.com'
+const MOONPAY_PRODUCTION_URL = 'https://buy.moonpay.com'
 
 // In-memory balance cache with 30-second TTL
 const balanceCache = new Map<string, { data: HeliusBalancesResponse; timestamp: number }>()
 const BALANCE_CACHE_TTL = 30_000
+const dashboardCache = new Map<string, { data: WalletDashboard; timestamp: number }>()
+const dashboardInflight = new Map<string, Promise<WalletDashboard>>()
+const DASHBOARD_CACHE_TTL = 30_000
+const DASHBOARD_STALE_TTL = 5 * 60_000
 let lastSolPrice = 0
 
 async function runWithConcurrency<T, R>(
@@ -149,7 +230,34 @@ async function runWithConcurrency<T, R>(
   return results
 }
 
-export async function getDashboard(projectId?: string | null) {
+export async function getDashboard(projectId?: string | null): Promise<WalletDashboard> {
+  if (isTestRuntime()) return buildDashboard(projectId)
+
+  const cacheKey = projectId ?? '__default__'
+  const cached = dashboardCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < DASHBOARD_CACHE_TTL) return cached.data
+
+  const inflight = dashboardInflight.get(cacheKey)
+  if (inflight) return inflight
+
+  const request = buildDashboard(projectId)
+    .then((data) => {
+      dashboardCache.set(cacheKey, { data, timestamp: Date.now() })
+      return data
+    })
+    .catch((error) => {
+      if (cached && Date.now() - cached.timestamp < DASHBOARD_STALE_TTL) return cached.data
+      throw error
+    })
+    .finally(() => {
+      dashboardInflight.delete(cacheKey)
+    })
+
+  dashboardInflight.set(cacheKey, request)
+  return request
+}
+
+async function buildDashboard(projectId?: string | null): Promise<WalletDashboard> {
   const heliusKey = SecureKey.getKey('HELIUS_API_KEY')
   const heliusConfigured = Boolean(heliusKey)
   const wallets = listWalletsRaw()
@@ -159,32 +267,55 @@ export async function getDashboard(projectId?: string | null) {
   const market = await getMarketTape()
 
   if (!heliusConfigured || wallets.length === 0) {
-    return {
-      heliusConfigured,
-      market,
-      portfolio: {
-        totalUsd: 0,
-        delta24hUsd: 0,
-        delta24hPct: 0,
-        walletCount: wallets.length,
+    const fallbackResults = await runWithConcurrency(
+      wallets,
+      5,
+      async (wallet) => {
+        const solHolding = await getNativeSolHolding(wallet.address)
+        const holdings = solHolding ? [solHolding] : []
+        const walletTotal = holdings.reduce((sum, holding) => sum + holding.valueUsd, 0)
+        return { wallet, holdings, walletTotal }
       },
-      wallets: wallets.map((wallet) => ({
+    )
+
+    const fallbackSummaries: WalletSummary[] = []
+    let fallbackTotalUsd = 0
+    let fallbackActiveWallet: { id: string; name: string; address: string; holdings: HoldingSummary[] } | null = null
+
+    for (const result of fallbackResults) {
+      if (result.status !== 'fulfilled') continue
+      const { wallet, holdings, walletTotal } = result.value
+      fallbackTotalUsd += walletTotal
+      fallbackSummaries.push({
         id: wallet.id,
         name: wallet.name,
         address: wallet.address,
         isDefault: wallet.is_default === 1,
-        totalUsd: 0,
-        tokenCount: 0,
+        totalUsd: walletTotal,
+        tokenCount: holdings.length,
         assignedProjectIds: projectAssignments.get(wallet.id) ?? [],
-      })),
-      activeWallet: activeWalletRow
-        ? {
-            id: activeWalletRow.id,
-            name: activeWalletRow.name,
-            address: activeWalletRow.address,
-            holdings: [],
-          }
-        : null,
+      })
+      if (activeWalletRow && wallet.id === activeWalletRow.id) {
+        fallbackActiveWallet = {
+          id: wallet.id,
+          name: wallet.name,
+          address: wallet.address,
+          holdings,
+        }
+      }
+    }
+
+    return {
+      heliusConfigured,
+      market,
+      portfolio: {
+        totalUsd: fallbackTotalUsd,
+        delta24hUsd: 0,
+        delta24hPct: 0,
+        walletCount: wallets.length,
+      },
+      wallets: fallbackSummaries.sort((a, b) => b.totalUsd - a.totalUsd),
+      activeWallet: fallbackActiveWallet,
       feed: [] as PortfolioFeedEntry[],
       recentActivity: [] as HeliusHistoryEvent[],
     }
@@ -198,8 +329,14 @@ export async function getDashboard(projectId?: string | null) {
     wallets,
     WALLET_CONCURRENCY,
     async (wallet) => {
-      const balances = await getWalletBalances(wallet.address, apiKey)
-      const holdings = normalizeHoldings(balances.balances)
+      let holdings: HoldingSummary[]
+      try {
+        const balances = await getWalletBalances(wallet.address, apiKey)
+        holdings = normalizeHoldings(balances.balances)
+      } catch {
+        const solHolding = await getNativeSolHolding(wallet.address)
+        holdings = solHolding ? [solHolding] : []
+      }
       const walletTotal = holdings.reduce((sum, holding) => sum + holding.valueUsd, 0)
       await maybeSnapshotWallet(wallet.id, holdings)
 
@@ -374,11 +511,11 @@ export function getProjectWalletId(projectId: string | null): string | null {
 }
 
 export async function storeHeliusKey(value: string) {
-  const res = await fetch(`https://mainnet.helius-rpc.com/?api-key=${value}`, {
+  const res = await fetchWithTimeout(`https://mainnet.helius-rpc.com/?api-key=${value}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getHealth' }),
-  })
+  }, KEY_VALIDATION_FETCH_TIMEOUT_MS)
   if (!res.ok) throw new Error('Invalid Helius API key — connection failed')
   SecureKey.storeKey('HELIUS_API_KEY', value)
 }
@@ -395,9 +532,9 @@ export async function storeJupiterKey(value: string) {
   const trimmed = value.trim()
   if (!trimmed) throw new Error('Jupiter API key is required')
 
-  const res = await fetch('https://api.jup.ag/tokens/v2/search?query=SOL', {
+  const res = await fetchWithTimeout('https://api.jup.ag/tokens/v2/search?query=SOL', {
     headers: { 'x-api-key': trimmed },
-  })
+  }, KEY_VALIDATION_FETCH_TIMEOUT_MS)
   if (!res.ok) throw new Error('Invalid Jupiter API key — connection failed')
   SecureKey.storeKey('JUPITER_API_KEY', trimmed)
 }
@@ -410,9 +547,139 @@ export function hasJupiterKey() {
   return Boolean(getJupiterApiKey())
 }
 
+function getMoonpayKeyEnvironment(key: string, publicKey: boolean): MoonpayEnvironment {
+  const expectedPrefix = publicKey ? 'pk' : 'sk'
+  if (key.startsWith(`${expectedPrefix}_test_`)) return 'sandbox'
+  if (key.startsWith(`${expectedPrefix}_live_`)) return 'production'
+  throw new Error(`MoonPay ${publicKey ? 'publishable' : 'secret'} key must start with ${expectedPrefix}_test_ or ${expectedPrefix}_live_`)
+}
+
+function getMoonpayKeys(): { publishableKey: string; secretKey: string; environment: MoonpayEnvironment } {
+  const publishableKey = SecureKey.getKey(MOONPAY_PUBLISHABLE_KEY_NAME)?.trim() ?? ''
+  const secretKey = SecureKey.getKey(MOONPAY_SECRET_KEY_NAME)?.trim() ?? ''
+  if (!publishableKey || !secretKey) throw new Error('MoonPay keys are not configured')
+
+  const publicEnvironment = getMoonpayKeyEnvironment(publishableKey, true)
+  const secretEnvironment = getMoonpayKeyEnvironment(secretKey, false)
+  if (publicEnvironment !== secretEnvironment) {
+    throw new Error('MoonPay publishable and secret keys must use the same environment')
+  }
+
+  return { publishableKey, secretKey, environment: publicEnvironment }
+}
+
+function keyHint(value: string): string {
+  return value.length > 8 ? `${value.slice(0, 7)}...${value.slice(-4)}` : 'configured'
+}
+
+export function getMoonpayStatus(): MoonpayStatus {
+  try {
+    const keys = getMoonpayKeys()
+    return {
+      configured: true,
+      environment: keys.environment,
+      publishableKeyHint: keyHint(keys.publishableKey),
+    }
+  } catch {
+    return {
+      configured: false,
+      environment: null,
+      publishableKeyHint: null,
+    }
+  }
+}
+
+export function storeMoonpayKeys(input: MoonpayKeysInput): MoonpayStatus {
+  const publishableKey = input?.publishableKey?.trim() ?? ''
+  const secretKey = input?.secretKey?.trim() ?? ''
+  if (!publishableKey) throw new Error('MoonPay publishable key is required')
+  if (!secretKey) throw new Error('MoonPay secret key is required')
+
+  const publicEnvironment = getMoonpayKeyEnvironment(publishableKey, true)
+  const secretEnvironment = getMoonpayKeyEnvironment(secretKey, false)
+  if (publicEnvironment !== secretEnvironment) {
+    throw new Error('MoonPay publishable and secret keys must use the same environment')
+  }
+
+  SecureKey.storeKey(MOONPAY_PUBLISHABLE_KEY_NAME, publishableKey)
+  SecureKey.storeKey(MOONPAY_SECRET_KEY_NAME, secretKey)
+  return getMoonpayStatus()
+}
+
+export function deleteMoonpayKeys(): void {
+  SecureKey.deleteKey(MOONPAY_PUBLISHABLE_KEY_NAME)
+  SecureKey.deleteKey(MOONPAY_SECRET_KEY_NAME)
+}
+
+function normalizeMoonpayBaseCurrencyCode(value: unknown): string {
+  const code = typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : MOONPAY_DEFAULT_BASE_CURRENCY_CODE
+  if (!/^[a-z]{3}$/.test(code)) throw new Error('MoonPay fiat currency code must be 3 letters')
+  return code
+}
+
+function normalizeMoonpayBaseCurrencyAmount(value: unknown): number {
+  const amount = value === undefined || value === null ? MOONPAY_DEFAULT_BASE_CURRENCY_AMOUNT : Number(value)
+  if (!Number.isInteger(amount) || amount <= 0) throw new Error('MoonPay fiat amount must be a positive integer')
+  return amount
+}
+
+function normalizeMoonpayExternalId(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback
+  const trimmed = value.trim()
+  if (!trimmed) return fallback
+  return trimmed.replace(/[^a-zA-Z0-9._:-]/g, '-').slice(0, 120)
+}
+
+function validateMoonpayRedirectUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null
+  const trimmed = value.trim()
+  let url: URL
+  try {
+    url = new URL(trimmed)
+  } catch {
+    throw new Error('MoonPay redirect URL must be a valid URL')
+  }
+  if (url.protocol !== 'https:') throw new Error('MoonPay redirect URL must use HTTPS')
+  if (url.username || url.password) throw new Error('MoonPay redirect URL cannot include credentials')
+  return trimmed
+}
+
+function signMoonpayUrl(url: URL, secretKey: string): string {
+  return createHmac('sha256', secretKey).update(url.search).digest('base64')
+}
+
+export function buildMoonpayOnrampUrl(input: MoonpayOnrampInput): MoonpayOnrampResult {
+  if (!input || typeof input !== 'object') throw new Error('MoonPay onramp input is required')
+
+  const keys = getMoonpayKeys()
+  const walletAddress = getWalletAddressOrThrow(input.walletId)
+  if (!isValidSolanaAddress(walletAddress)) throw new Error('Wallet has an invalid Solana address')
+
+  const url = new URL(keys.environment === 'sandbox' ? MOONPAY_SANDBOX_URL : MOONPAY_PRODUCTION_URL)
+  url.searchParams.set('apiKey', keys.publishableKey)
+  url.searchParams.set('currencyCode', MOONPAY_SOL_CURRENCY_CODE)
+  url.searchParams.set('walletAddress', walletAddress)
+  url.searchParams.set('baseCurrencyCode', normalizeMoonpayBaseCurrencyCode(input.baseCurrencyCode))
+  url.searchParams.set('baseCurrencyAmount', String(normalizeMoonpayBaseCurrencyAmount(input.baseCurrencyAmount)))
+  url.searchParams.set('theme', 'dark')
+  url.searchParams.set('colorCode', MOONPAY_THEME_COLOR)
+  url.searchParams.set('externalTransactionId', normalizeMoonpayExternalId(input.externalTransactionId, `daemon-${crypto.randomUUID()}`))
+
+  const redirectUrl = validateMoonpayRedirectUrl(input.redirectUrl)
+  if (redirectUrl) url.searchParams.set('redirectURL', redirectUrl)
+
+  url.searchParams.set('signature', signMoonpayUrl(url, keys.secretKey))
+
+  return {
+    url: url.toString(),
+    environment: keys.environment,
+    walletAddress,
+  }
+}
+
 async function getMarketTape() {
   try {
-    const response = await fetch(API_ENDPOINTS.COINGECKO_PRICE)
+    const response = await fetchWithTimeout(API_ENDPOINTS.COINGECKO_PRICE)
     if (!response.ok) throw new Error(`CoinGecko error: ${response.status}`)
     const json = await response.json() as Record<string, { usd: number; usd_24h_change?: number }>
     const solPrice = json.solana?.usd ?? 0
@@ -443,7 +710,7 @@ async function getWalletBalances(address: string, apiKey: string): Promise<Heliu
 }
 
 async function getWalletBalancesViaDas(address: string, apiKey: string): Promise<HeliusBalancesResponse> {
-  const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
+  const response = await fetchWithTimeout(`https://mainnet.helius-rpc.com/?api-key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -592,6 +859,26 @@ function normalizeHoldings(balances: HeliusBalance[]): HoldingSummary[] {
     .sort((a, b) => b.valueUsd - a.valueUsd)
 }
 
+async function getNativeSolHolding(address: string): Promise<HoldingSummary | null> {
+  try {
+    const lamports = await getConnection().getBalance(new PublicKey(address))
+    if (!Number.isFinite(lamports) || lamports <= 0) return null
+    const amount = lamports / LAMPORTS_PER_SOL
+    const priceUsd = lastSolPrice
+    return {
+      mint: SOL_MINT,
+      symbol: 'SOL',
+      name: 'Solana',
+      amount,
+      priceUsd,
+      valueUsd: priceUsd > 0 ? amount * priceUsd : 0,
+      logoUri: null,
+    }
+  } catch {
+    return null
+  }
+}
+
 function listWalletsRaw(): WalletRow[] {
   const db = getDb()
   return db.prepare('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets ORDER BY is_default DESC, created_at ASC').all() as WalletRow[]
@@ -707,14 +994,56 @@ function readTokenMintDecimals(accountInfo: Awaited<ReturnType<Connection['getPa
   return decimals
 }
 
+function numberToPlainDecimal(value: number): string {
+  const text = value.toString().toLowerCase()
+  if (!text.includes('e')) return text
+
+  const [mantissa, exponentText] = text.split('e')
+  const exponent = Number(exponentText)
+  if (!Number.isInteger(exponent)) throw new Error('Amount is not a valid decimal number')
+
+  const [whole = '0', fraction = ''] = mantissa.split('.')
+  const digits = `${whole}${fraction}`.replace(/^0+(?=\d)/, '')
+  const decimalIndex = whole.length + exponent
+
+  if (decimalIndex <= 0) return `0.${'0'.repeat(Math.abs(decimalIndex))}${digits}`
+  if (decimalIndex >= digits.length) return digits.padEnd(decimalIndex, '0')
+  return `${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`
+}
+
 function toRawTokenAmount(amount: number, decimals: number): bigint {
   if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error('Amount must be greater than 0')
   }
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 100) {
+    throw new Error('Token mint decimals are outside the supported range')
+  }
 
-  const [wholePart = '0', fractionalPart = ''] = amount.toString().split('.')
+  const [wholePart = '0', fractionalPart = ''] = numberToPlainDecimal(amount).split('.')
+  const unsupportedPrecision = fractionalPart.slice(decimals)
+  if (/[1-9]/.test(unsupportedPrecision)) {
+    throw new Error(`Amount exceeds token precision of ${decimals} decimals`)
+  }
   const normalizedFraction = fractionalPart.padEnd(decimals, '0').slice(0, decimals)
   return BigInt(`${wholePart}${normalizedFraction}`.replace(/^0+(?=\d)/, '') || '0')
+}
+
+function toLamports(amountSol: number): number {
+  const lamports = toRawTokenAmount(amountSol, LAMPORTS_DECIMALS)
+  if (lamports > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('SOL amount is too large for safe client-side execution')
+  }
+  return Number(lamports)
+}
+
+function normalizeSlippageBps(input: number): number {
+  if (!Number.isFinite(input) || !Number.isInteger(input)) {
+    throw new Error('Slippage must be a whole number of basis points')
+  }
+  if (input < 1 || input > 5000) {
+    throw new Error('Slippage must be between 1 and 5000 bps')
+  }
+  return input
 }
 
 function formatTokenAmount(rawAmount: bigint, decimals: number): string {
@@ -752,6 +1081,133 @@ export function generateWallet(name: string, walletType: 'user' | 'agent' = 'use
   return db.prepare('SELECT id, name, address, is_default, wallet_type, agent_id, created_at FROM wallets WHERE id = ?').get(id)
 }
 
+function keypairFromBytes(bytes: Uint8Array | number[]): Keypair {
+  if (Array.isArray(bytes) && bytes.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
+    throw new Error('Private key byte values must be between 0 and 255')
+  }
+  const secret = Uint8Array.from(bytes)
+  if (secret.length === 64) return Keypair.fromSecretKey(secret)
+  if (secret.length === 32) return Keypair.fromSeed(secret)
+  throw new Error('Private key must decode to a 32-byte seed or 64-byte Solana secret key')
+}
+
+function cleanPrivateKeyInput(raw: string): string {
+  let value = raw.trim()
+  const assignment = value.match(/^(?:SOLANA_PRIVATE_KEY|PRIVATE_KEY|SECRET_KEY)\s*=\s*(.+)$/is)
+  if (assignment) value = assignment[1].trim()
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1).trim()
+  }
+  return value
+}
+
+function parsePrivateKeyText(raw: string): Keypair {
+  const value = cleanPrivateKeyInput(raw)
+  if (!value) throw new Error('Private key is required')
+
+  const uint8ArrayMatch = value.match(/^Uint8Array\s*\(([\s\S]+)\)$/i)
+  const candidate = uint8ArrayMatch ? uint8ArrayMatch[1].trim() : value
+
+  try {
+    const parsed = JSON.parse(candidate)
+    if (Array.isArray(parsed)) return keypairFromBytes(parsed)
+    if (typeof parsed === 'string') return parsePrivateKeyText(parsed)
+    const nested = parsed?._keypair?.secretKey ?? parsed?.secretKey ?? parsed?.privateKey ?? parsed?.secret_key ?? parsed?.seed
+    if (Array.isArray(nested)) return keypairFromBytes(nested)
+    if (typeof nested === 'string') return parsePrivateKeyText(nested)
+  } catch {
+    // Fall through to plain text formats.
+  }
+
+  const commaBytes = candidate.replace(/^\[/, '').replace(/\]$/, '').trim()
+  if (/^\d{1,3}(?:\s*,\s*\d{1,3})+$/.test(commaBytes)) {
+    return keypairFromBytes(commaBytes.split(',').map((part) => Number(part.trim())))
+  }
+
+  try {
+    return keypairFromBytes(bs58.decode(candidate))
+  } catch {
+    // Continue checking other encodings.
+  }
+
+  const hex = candidate.startsWith('0x') ? candidate.slice(2) : candidate
+  if (/^[0-9a-fA-F]+$/.test(hex) && (hex.length === 64 || hex.length === 128)) {
+    return keypairFromBytes(Buffer.from(hex, 'hex'))
+  }
+
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(candidate)) {
+    const bytes = Buffer.from(candidate, 'base64')
+    if (bytes.length === 32 || bytes.length === 64) return keypairFromBytes(bytes)
+  }
+
+  throw new Error('Unsupported private key format')
+}
+
+function parseKeypairFile(raw: string): Keypair {
+  return parsePrivateKeyText(raw)
+}
+
+async function pickKeypair(): Promise<{ keypair: Keypair; filePath: string } | null> {
+  const result = await dialog.showOpenDialog({
+    title: 'Import Solana Wallet Keypair',
+    filters: [{ name: 'Keypair JSON', extensions: ['json'] }],
+    properties: ['openFile'],
+  })
+
+  if (result.canceled || !result.filePaths[0]) return null
+  const filePath = result.filePaths[0]
+  const raw = fs.readFileSync(filePath, 'utf8')
+  return { keypair: parseKeypairFile(raw), filePath }
+}
+
+export async function importSigningWallet(name: string, privateKey?: string) {
+  const picked = privateKey?.trim() ? { keypair: parsePrivateKeyText(privateKey), filePath: null } : await pickKeypair()
+  if (!picked) return null
+
+  const { keypair } = picked
+  try {
+    const address = keypair.publicKey.toBase58()
+    const trimmedName = name.trim() || `Imported ${address.slice(0, 4)}…${address.slice(-4)}`
+    const db = getDb()
+    const existing = db.prepare('SELECT id FROM wallets WHERE address = ? LIMIT 1').get(address) as { id: string } | undefined
+    const existingDefault = db.prepare('SELECT id FROM wallets WHERE is_default = 1').get() as { id: string } | undefined
+    const id = existing?.id ?? crypto.randomUUID()
+
+    if (existing) {
+      if (name.trim()) db.prepare('UPDATE wallets SET name = ? WHERE id = ?').run(trimmedName, id)
+    } else {
+      db.prepare(
+        'INSERT INTO wallets (id, name, address, is_default, wallet_type, created_at) VALUES (?,?,?,?,?,?)'
+      ).run(id, trimmedName, address, existingDefault ? 0 : 1, 'user', Date.now())
+    }
+
+    SecureKey.storeKey(`WALLET_KEYPAIR_${id}`, bs58.encode(keypair.secretKey))
+    return db.prepare('SELECT id, name, address, is_default, wallet_type, created_at FROM wallets WHERE id = ?').get(id)
+  } finally {
+    keypair.secretKey.fill(0)
+  }
+}
+
+export async function importKeypair(walletId: string, privateKey?: string): Promise<boolean> {
+  const picked = privateKey?.trim() ? { keypair: parsePrivateKeyText(privateKey), filePath: null } : await pickKeypair()
+  if (!picked) return false
+
+  const { keypair } = picked
+  try {
+    const db = getDb()
+    const row = db.prepare('SELECT address FROM wallets WHERE id = ?').get(walletId) as { address: string } | undefined
+    if (!row) throw new Error('Wallet not found')
+    if (keypair.publicKey.toBase58() !== row.address) {
+      throw new Error(`Keypair address ${keypair.publicKey.toBase58()} does not match wallet ${row.address}`)
+    }
+
+    SecureKey.storeKey(`WALLET_KEYPAIR_${walletId}`, bs58.encode(keypair.secretKey))
+    return true
+  } finally {
+    keypair.secretKey.fill(0)
+  }
+}
+
 export async function transferSOL(
   fromWalletId: string,
   toAddress: string,
@@ -774,7 +1230,7 @@ export async function transferSOL(
     const feeBufferLamports = Math.max(10_000, BASE_SIGNATURE_FEE_LAMPORTS + priorityFeeLamports)
     const lamportsToSend = sendMax
       ? Math.max(0, balance - feeBufferLamports)
-      : Math.round((amountSol ?? 0) * LAMPORTS_PER_SOL)
+      : toLamports(amountSol ?? 0)
 
     if (lamportsToSend <= 0) {
       throw new Error('Not enough SOL to send after reserving network fees')
@@ -810,16 +1266,215 @@ export async function transferSOL(
 
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair], {
         computeUnitLimit: SOL_TRANSFER_COMPUTE_UNITS,
+        guardSource: 'transferSOL',
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      Voight.emitEventSafe({
+        agentId: 'daemon-wallet',
+        type: 'tx',
+        transaction: signature,
+        amountToken: 'SOL',
+        amountValue: amountToRecord,
+        outcome: 'success',
+        metadata: {
+          sessionId: txId,
+          walletId: fromWalletId,
+          fromAddress,
+          toAddress,
+          transport,
+          action: 'send_sol',
+        },
+      })
       return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      Voight.trackError('daemon-wallet', err, {
+        sessionId: txId,
+        walletId: fromWalletId,
+        fromAddress,
+        toAddress,
+        amountToken: 'SOL',
+        amountValue: amountToRecord,
+        action: 'send_sol',
+      })
       throw err
     }
   })
+}
+
+export async function prepareExternalSolTransfer(
+  fromWalletId: string,
+  toAddress: string,
+  amountSol?: number,
+  sendMax = false,
+): Promise<ExternalSolTransferDraft> {
+  if (!sendMax && (!amountSol || amountSol <= 0)) throw new Error('Amount must be greater than 0')
+  if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
+
+  const db = getDb()
+  const walletRow = db.prepare('SELECT address, wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { address: string; wallet_type: string } | undefined
+  if (!walletRow) throw new Error('Wallet not found')
+
+  const connection = getConnection()
+  const fromPubkey = new PublicKey(walletRow.address)
+  const balance = await connection.getBalance(fromPubkey)
+  const priorityFeeMicroLamports = await getPriorityFeeMicroLamports(connection)
+  const priorityFeeLamports = Math.ceil((SOL_TRANSFER_COMPUTE_UNITS * priorityFeeMicroLamports) / 1_000_000)
+  const feeBufferLamports = Math.max(10_000, BASE_SIGNATURE_FEE_LAMPORTS + priorityFeeLamports)
+  const lamportsToSend = sendMax
+    ? Math.max(0, balance - feeBufferLamports)
+    : toLamports(amountSol ?? 0)
+
+  if (lamportsToSend <= 0) {
+    throw new Error('Not enough SOL to send after reserving network fees')
+  }
+
+  const amountToRecord = lamportsToSend / LAMPORTS_PER_SOL
+  const lamportsNeeded = lamportsToSend + feeBufferLamports
+  if (balance < lamportsNeeded) {
+    throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountToRecord.toFixed(4)} SOL + fees`)
+  }
+
+  if (walletRow.wallet_type === 'agent') {
+    const dayAgo = Date.now() - 86_400_000
+    const row = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM transaction_history WHERE wallet_id = ? AND status IN (?, ?) AND type = ? AND created_at > ?').get(fromWalletId, 'confirmed', 'pending', 'sol_transfer', dayAgo) as { total: number }
+    if (row.total + amountToRecord > 2) throw new Error('Agent wallet daily spend limit (2 SOL) exceeded')
+  }
+
+  const latest = await connection.getLatestBlockhash('confirmed')
+  const txId = crypto.randomUUID()
+  const transaction = new Transaction({
+    feePayer: fromPubkey,
+    recentBlockhash: latest.blockhash,
+  }).add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: SOL_TRANSFER_COMPUTE_UNITS }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFeeMicroLamports }),
+    SystemProgram.transfer({
+      fromPubkey,
+      toPubkey: new PublicKey(toAddress),
+      lamports: lamportsToSend,
+    }),
+  )
+
+  db.prepare(
+    'INSERT INTO transaction_history (id, wallet_id, type, from_address, to_address, amount, status, created_at) VALUES (?,?,?,?,?,?,?,?)'
+  ).run(txId, fromWalletId, 'sol_transfer', walletRow.address, toAddress, amountToRecord, 'pending', Date.now())
+
+  pendingExternalTransactions.set(txId, {
+    id: txId,
+    walletId: fromWalletId,
+    fromAddress: walletRow.address,
+    toAddress,
+    amountSol: amountToRecord,
+    messageBase64: Buffer.from(transaction.serializeMessage()).toString('base64'),
+    blockhash: latest.blockhash,
+    lastValidBlockHeight: latest.lastValidBlockHeight,
+    createdAt: Date.now(),
+  })
+
+  return {
+    id: txId,
+    fromAddress: walletRow.address,
+    toAddress,
+    amountSol: amountToRecord,
+    transactionBase64: Buffer.from(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })).toString('base64'),
+    transport: getTransactionSubmissionSettings().mode,
+  }
+}
+
+export async function submitExternalSignedTransaction(
+  input: SubmitExternalSignedTransactionInput,
+): Promise<TransactionExecutionResult & { id: string; status: 'confirmed' }> {
+  const pending = pendingExternalTransactions.get(input.id)
+  if (!pending) throw new Error('External transaction request expired or was not found')
+  if (Date.now() - pending.createdAt > EXTERNAL_TRANSACTION_TTL_MS) {
+    cancelExternalTransaction(input.id, 'External transaction request expired')
+    throw new Error('External transaction request expired')
+  }
+  if (input.publicKey !== pending.fromAddress) {
+    cancelExternalTransaction(input.id, 'Signed transaction public key does not match the prepared wallet')
+    throw new Error('Signed transaction public key does not match the prepared wallet')
+  }
+
+  const db = getDb()
+  const submission = getTransactionSubmissionSettings()
+
+  try {
+    const signedTransaction = Transaction.from(Buffer.from(input.signedTransactionBase64, 'base64'))
+    if (signedTransaction.feePayer?.toBase58() !== pending.fromAddress) {
+      throw new Error('Signed transaction fee payer does not match the prepared wallet')
+    }
+
+    const signedMessageBase64 = Buffer.from(signedTransaction.serializeMessage()).toString('base64')
+    if (signedMessageBase64 !== pending.messageBase64) {
+      throw new Error('Signed transaction does not match the prepared transfer')
+    }
+
+    // Signer guard: external transfers previously bypassed the guard entirely.
+    // The user approved these exact bytes in their external wallet, so bind an
+    // approval to this message hash and run the same caps/allow-list checks.
+    const messageHash = hashTransactionMessage(signedTransaction)
+    approveTransactionHash(messageHash, 'external-wallet-signed')
+    assertTransactionAllowed(signedTransaction, [], {
+      approvalHash: messageHash,
+      signerOverride: pending.fromAddress,
+      source: 'submitExternalSignedTransaction',
+    })
+
+    const connection = getConnection()
+    const signature = await submitRawTransaction(connection, signedTransaction.serialize(), {
+      skipPreflight: submission.mode === 'jito',
+      maxRetries: submission.mode === 'jito' ? 0 : 3,
+    })
+    await confirmSignature(connection, signature, 60_000, {
+      blockhash: pending.blockhash,
+      lastValidBlockHeight: pending.lastValidBlockHeight,
+    })
+
+    db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', pending.id)
+    pendingExternalTransactions.delete(pending.id)
+    Voight.emitEventSafe({
+      agentId: 'daemon-wallet',
+      type: 'tx',
+      transaction: signature,
+      amountToken: 'SOL',
+      amountValue: pending.amountSol,
+      outcome: 'success',
+      metadata: {
+        sessionId: pending.id,
+        walletId: pending.walletId,
+        fromAddress: pending.fromAddress,
+        toAddress: pending.toAddress,
+        transport: submission.mode,
+        signer: 'solflare',
+        action: 'send_sol',
+      },
+    })
+    return { id: pending.id, signature, status: 'confirmed', transport: submission.mode }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
+    db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, pending.id)
+    pendingExternalTransactions.delete(pending.id)
+    Voight.trackError('daemon-wallet', err, {
+      sessionId: pending.id,
+      walletId: pending.walletId,
+      fromAddress: pending.fromAddress,
+      toAddress: pending.toAddress,
+      amountToken: 'SOL',
+      amountValue: pending.amountSol,
+      signer: 'solflare',
+      action: 'send_sol',
+    })
+    throw err
+  }
+}
+
+export function cancelExternalTransaction(id: string, reason = 'External signing was cancelled'): void {
+  if (!pendingExternalTransactions.has(id)) return
+  pendingExternalTransactions.delete(id)
+  getDb().prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', reason, id)
 }
 
 export async function transferToken(
@@ -848,6 +1503,7 @@ export async function transferToken(
     const fromAta = await getAssociatedTokenAddress(mintPubkey, keypair.publicKey)
     const mintInfo = await connection.getParsedAccountInfo(mintPubkey)
     const decimals = readTokenMintDecimals(mintInfo.value)
+    const requestedRawAmount = sendMax ? null : toRawTokenAmount(amount ?? 0, decimals)
     let rawAmount: bigint
     let amountToRecord: number
     try {
@@ -855,7 +1511,7 @@ export async function transferToken(
       const rawBalance = accountInfo.amount
       rawAmount = sendMax
         ? rawBalance
-        : toRawTokenAmount(amount ?? 0, decimals)
+        : requestedRawAmount ?? 0n
 
       if (rawAmount <= 0n) {
         throw new Error('No token balance available to send')
@@ -908,13 +1564,39 @@ export async function transferToken(
 
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair], {
         computeUnitLimit: needsDestinationAta ? TOKEN_TRANSFER_WITH_ATA_COMPUTE_UNITS : TOKEN_TRANSFER_COMPUTE_UNITS,
+        guardSource: 'transferToken',
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)
+      Voight.emitEventSafe({
+        agentId: 'daemon-wallet',
+        type: 'tx',
+        transaction: signature,
+        amountToken: mint,
+        amountValue: amountToRecord,
+        outcome: 'success',
+        metadata: {
+          sessionId: txId,
+          walletId: fromWalletId,
+          fromAddress,
+          toAddress,
+          transport,
+          action: 'send_token',
+        },
+      })
       return { id: txId, signature, status: 'confirmed', transport }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      Voight.trackError('daemon-wallet', err, {
+        sessionId: txId,
+        walletId: fromWalletId,
+        fromAddress,
+        toAddress,
+        amountToken: mint,
+        amountValue: amountToRecord,
+        action: 'send_token',
+      })
       throw err
     }
   })
@@ -926,7 +1608,12 @@ export async function transferToken(
 
 const JUPITER_SWAP_ORDER_API = 'https://api.jup.ag/swap/v2/order'
 const JUPITER_SWAP_EXECUTE_API = 'https://api.jup.ag/swap/v2/execute'
+const JUPITER_TOKENS_SEARCH_API = 'https://api.jup.ag/tokens/v2/search'
+const JUPITER_TOKEN_SEARCH_CACHE_TTL = 5 * 60_000
+const JUPITER_TOKEN_SEARCH_CACHE_MAX_ENTRIES = 100
 const LAMPORTS_DECIMALS = 9
+const jupiterTokenSearchCache = new Map<string, { timestamp: number; results: JupiterTokenSearchResult[] }>()
+const jupiterTokenSearchInflight = new Map<string, Promise<JupiterTokenSearchResult[]>>()
 
 interface JupiterRoutePlanItem {
   swapInfo?: {
@@ -971,6 +1658,7 @@ interface SwapQuoteResult {
   outputMint: string
   inAmount: string
   outAmount: string
+  requestId: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   rawQuoteResponse: unknown
@@ -1089,6 +1777,112 @@ function normalizeJupiterRoutePlan(routePlan: JupiterRoutePlanItem[]): Array<{ l
   }))
 }
 
+function optionalNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? parseFloat(value) : NaN
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function normalizeTokenSearchResult(value: unknown): JupiterTokenSearchResult | null {
+  if (!isRecord(value)) return null
+
+  const mint = optionalString(value.id) ?? optionalString(value.mint) ?? optionalString(value.address)
+  if (!mint || !isValidSolanaAddress(mint)) return null
+
+  const audit = isRecord(value.audit) ? value.audit : {}
+  const tags = Array.isArray(value.tags) ? value.tags.filter((entry): entry is string => typeof entry === 'string') : []
+  const decimals = optionalNumber(value.decimals)
+
+  return {
+    mint,
+    name: optionalString(value.name) ?? mint,
+    symbol: optionalString(value.symbol) ?? truncateMint(mint),
+    icon: optionalString(value.icon),
+    decimals: decimals !== null ? Math.max(0, Math.trunc(decimals)) : 0,
+    usdPrice: optionalNumber(value.usdPrice),
+    liquidity: optionalNumber(value.liquidity),
+    holderCount: optionalNumber(value.holderCount),
+    organicScore: optionalNumber(value.organicScore) ?? optionalNumber(audit.organicScore),
+    isSus: value.isSus === true || audit.isSus === true,
+    verified: value.verified === true || audit.verified === true || tags.includes('verified'),
+    tokenProgram: optionalString(value.tokenProgram),
+  }
+}
+
+function normalizeTokenSearchQuery(query: string): string {
+  return query.trim().replace(/\s+/g, ' ').slice(0, 128)
+}
+
+function getTokenSearchCacheKey(query: string): string {
+  return query.length >= 32 ? query : query.toLowerCase()
+}
+
+function cloneJupiterTokenSearchResults(results: JupiterTokenSearchResult[]): JupiterTokenSearchResult[] {
+  return results.map((result) => ({ ...result }))
+}
+
+function cacheJupiterTokenSearch(cacheKey: string, results: JupiterTokenSearchResult[]): void {
+  if (jupiterTokenSearchCache.has(cacheKey)) jupiterTokenSearchCache.delete(cacheKey)
+  jupiterTokenSearchCache.set(cacheKey, { timestamp: Date.now(), results: cloneJupiterTokenSearchResults(results) })
+
+  while (jupiterTokenSearchCache.size > JUPITER_TOKEN_SEARCH_CACHE_MAX_ENTRIES) {
+    const oldestKey = jupiterTokenSearchCache.keys().next().value
+    if (typeof oldestKey !== 'string') break
+    jupiterTokenSearchCache.delete(oldestKey)
+  }
+}
+
+export async function searchJupiterTokens(query: string): Promise<JupiterTokenSearchResult[]> {
+  const trimmed = normalizeTokenSearchQuery(query)
+  if (trimmed.length < 2) return []
+
+  const cacheKey = getTokenSearchCacheKey(trimmed)
+  const cached = jupiterTokenSearchCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < JUPITER_TOKEN_SEARCH_CACHE_TTL) {
+    return cloneJupiterTokenSearchResults(cached.results)
+  }
+
+  const inflight = jupiterTokenSearchInflight.get(cacheKey)
+  if (inflight) return cloneJupiterTokenSearchResults(await inflight)
+
+  const url = new URL(JUPITER_TOKENS_SEARCH_API)
+  url.searchParams.set('query', trimmed)
+
+  const request = (async () => {
+    const jupiterApiKey = getJupiterApiKey()
+    const response = await fetchWithTimeout(url.toString(), {
+      headers: jupiterApiKey ? { 'x-api-key': jupiterApiKey } : {},
+    })
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+      throw new Error(`Jupiter token search failed (${response.status}): ${body || response.statusText}`)
+    }
+
+    const json = await response.json()
+    if (!Array.isArray(json)) return []
+
+    const seen = new Set<string>()
+    const results: JupiterTokenSearchResult[] = []
+    for (const item of json) {
+      const normalized = normalizeTokenSearchResult(item)
+      if (!normalized || seen.has(normalized.mint)) continue
+      seen.add(normalized.mint)
+      results.push(normalized)
+      if (results.length >= 20) break
+    }
+    cacheJupiterTokenSearch(cacheKey, results)
+    return results
+  })().finally(() => {
+    jupiterTokenSearchInflight.delete(cacheKey)
+  })
+
+  jupiterTokenSearchInflight.set(cacheKey, request)
+  return cloneJupiterTokenSearchResults(await request)
+}
+
 async function requestJupiterSwapOrder(
   inputMint: string,
   outputMint: string,
@@ -1105,9 +1899,9 @@ async function requestJupiterSwapOrder(
   url.searchParams.set('swapMode', 'ExactIn')
   url.searchParams.set('slippageBps', String(slippageBps))
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     headers: { 'x-api-key': jupiterApiKey },
-  })
+  }, SWAP_FETCH_TIMEOUT_MS)
   if (!response.ok) {
     const body = await response.text()
     throw new Error(`Jupiter order failed (${response.status}): ${body}`)
@@ -1127,6 +1921,7 @@ export async function getSwapQuote(
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
   if (amount <= 0) throw new Error('Amount must be greater than 0')
   if (inputMint === outputMint) throw new Error('Input and output mints must differ')
+  const normalizedSlippageBps = normalizeSlippageBps(slippageBps)
 
   const jupiterApiKey = getJupiterApiKey()
   if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
@@ -1135,8 +1930,8 @@ export async function getSwapQuote(
 
   // Resolve decimals for the input mint to convert human amount to raw
   const decimals = await getMintDecimals(inputMint)
-  const rawAmount = BigInt(Math.round(amount * Math.pow(10, decimals)))
-  const data = await requestJupiterSwapOrder(inputMint, outputMint, rawAmount, slippageBps, taker, jupiterApiKey)
+  const rawAmount = toRawTokenAmount(amount, decimals)
+  const data = await requestJupiterSwapOrder(inputMint, outputMint, rawAmount, normalizedSlippageBps, taker, jupiterApiKey)
 
   // Convert raw amounts to human-readable
   const outputDecimals = await getMintDecimals(outputMint)
@@ -1148,6 +1943,7 @@ export async function getSwapQuote(
     outputMint: data.outputMint,
     inAmount: humanInAmount,
     outAmount: humanOutAmount,
+    requestId: data.requestId,
     priceImpactPct: normalizeJupiterPriceImpactPct(data),
     routePlan: normalizeJupiterRoutePlan(data.routePlan),
     // The raw Jupiter response is passed back to executeSwap so it can use the
@@ -1167,6 +1963,7 @@ export async function executeSwap(
   if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
   if (amount <= 0) throw new Error('Amount must be greater than 0')
+  const normalizedSlippageBps = normalizeSlippageBps(slippageBps)
 
   const jupiterApiKey = getJupiterApiKey()
   if (!jupiterApiKey) throw new Error('JUPITER_API_KEY not configured. Add it in Wallet settings to enable swaps.')
@@ -1182,7 +1979,7 @@ export async function executeSwap(
     const decimals = await getMintDecimals(inputMint, connection)
     if (inputMint === SOL_MINT) {
       const lamports = await connection.getBalance(keypair.publicKey)
-      const requiredLamports = Math.round(amount * Math.pow(10, decimals)) + 10_000 // fee buffer
+      const requiredLamports = toLamports(amount) + 10_000 // fee buffer
       if (lamports < requiredLamports) {
         throw new Error(
           `Insufficient SOL: have ${(lamports / Math.pow(10, decimals)).toFixed(4)}, need ${amount} + fees`
@@ -1208,7 +2005,7 @@ export async function executeSwap(
     // Use the executable order the user reviewed when provided. Fall back to
     // fetching a fresh order only if no rawQuoteResponse was supplied.
     let orderData: JupiterSwapOrderResponse
-    const rawRequested = BigInt(Math.round(amount * Math.pow(10, decimals)))
+    const rawRequested = toRawTokenAmount(amount, decimals)
     if (rawQuoteResponse) {
       const q = parseJupiterSwapOrder(rawQuoteResponse)
       if (q.inputMint !== inputMint) {
@@ -1233,7 +2030,7 @@ export async function executeSwap(
 
       orderData = q
     } else {
-      orderData = await requestJupiterSwapOrder(inputMint, outputMint, rawRequested, slippageBps, userPublicKey, jupiterApiKey)
+      orderData = await requestJupiterSwapOrder(inputMint, outputMint, rawRequested, normalizedSlippageBps, userPublicKey, jupiterApiKey)
     }
 
     // Deserialize and sign Jupiter's assembled V2 order transaction, then hand it
@@ -1241,6 +2038,10 @@ export async function executeSwap(
     const { VersionedTransaction: VTx } = await import('@solana/web3.js')
     const txBuf = Buffer.from(orderData.transaction, 'base64')
     const transaction = VTx.deserialize(txBuf)
+    // Swaps are submitted via Jupiter's execute endpoint, bypassing
+    // executeTransaction — run the signer guard here before signing. Jupiter is
+    // allow-listed; the per-tx / rolling SOL caps and rate limit still apply.
+    assertTransactionAllowed(transaction, [keypair], { source: 'executeSwap' })
     transaction.sign([keypair])
     const signedTransaction = Buffer.from(transaction.serialize()).toString('base64')
 
@@ -1250,7 +2051,7 @@ export async function executeSwap(
     ).run(txId, walletId, 'swap', userPublicKey, '', amount, `${inputMint}→${outputMint}`, 'pending', Date.now())
 
     try {
-      const executeRes = await fetch(JUPITER_SWAP_EXECUTE_API, {
+      const executeRes = await fetchWithTimeout(JUPITER_SWAP_EXECUTE_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1261,7 +2062,7 @@ export async function executeSwap(
           requestId: orderData.requestId,
           lastValidBlockHeight: orderData.lastValidBlockHeight,
         }),
-      })
+      }, SWAP_FETCH_TIMEOUT_MS)
 
       if (!executeRes.ok) {
         const body = await executeRes.text()
@@ -1275,10 +2076,34 @@ export async function executeSwap(
       }
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(executeData.signature, 'confirmed', txId)
+      Voight.emitEventSafe({
+        agentId: 'daemon-wallet',
+        type: 'tx',
+        transaction: executeData.signature,
+        amountToken: inputMint,
+        amountValue: amount,
+        outcome: 'success',
+        metadata: {
+          sessionId: txId,
+          walletId,
+          outputMint,
+          route: 'jupiter',
+          action: 'swap',
+        },
+      })
       return { signature: executeData.signature, transport: 'jupiter' }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       db.prepare('UPDATE transaction_history SET status = ?, error = ? WHERE id = ?').run('failed', errorMsg, txId)
+      Voight.trackError('daemon-wallet', err, {
+        sessionId: txId,
+        walletId,
+        amountToken: inputMint,
+        amountValue: amount,
+        outputMint,
+        route: 'jupiter',
+        action: 'swap',
+      })
       throw err
     }
   })
@@ -1359,6 +2184,20 @@ export function hasKeypair(walletId: string): boolean {
   const db = getDb()
   const row = db.prepare('SELECT 1 FROM secure_keys WHERE key_name = ?').get(`WALLET_KEYPAIR_${walletId}`)
   return !!row
+}
+
+export async function signMessage(walletId: string, message: string): Promise<{ walletAddress: string; signatureBase58: string; message: string }> {
+  const safeMessage = typeof message === 'string' ? message : ''
+  if (!safeMessage.trim()) throw new Error('Message cannot be empty')
+  if (safeMessage.length > 8_000) throw new Error('Message is too large to sign')
+
+  const expectedAddress = getWalletAddressOrThrow(walletId)
+  return withKeypair(walletId, async (keypair) => {
+    const walletAddress = keypair.publicKey.toBase58()
+    if (walletAddress !== expectedAddress) throw new Error('Wallet keypair does not match wallet address')
+    const signatureBase58 = bs58.encode(nacl.sign.detached(new TextEncoder().encode(safeMessage), keypair.secretKey))
+    return { walletAddress, signatureBase58, message: safeMessage }
+  })
 }
 
 export function getTransactionHistory(walletId: string, limit = 20) {

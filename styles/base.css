@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './fonts.css';
 @import './typography.css';
+@import './motion.css';
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -26,7 +27,7 @@ html, body, #root {
 }
 
 ::selection {
-  background: var(--s4);
+  background: var(--selection-bg);
   color: var(--t1);
 }
 
@@ -64,7 +65,7 @@ select,
 a,
 [role='button'],
 [tabindex] {
-  transition: box-shadow var(--dur-instant) var(--ease-standard), border-color var(--dur-instant) var(--ease-standard);
+  transition: box-shadow var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
 }
 
 button:focus-visible,
@@ -103,4 +104,18 @@ code, pre {
 a {
   color: var(--t2);
   text-decoration: none;
+}
+
+/* Visually hidden but available to screen readers. Use for live-region
+   announcements and labels that are conveyed visually by other means. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

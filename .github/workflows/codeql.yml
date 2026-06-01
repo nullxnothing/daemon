@@ -2,9 +2,9 @@ name: CodeQL
 
 on:
   push:
-    branches: [main, master, dev]
+    branches: [main, master, dev, v4]
   pull_request:
-    branches: [main, master, dev]
+    branches: [main, master, dev, v4]
   schedule:
     - cron: '17 4 * * 1'
 
@@ -22,7 +22,7 @@ jobs:
       matrix:
         language: [javascript-typescript]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}

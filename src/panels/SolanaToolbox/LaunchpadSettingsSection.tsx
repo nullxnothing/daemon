@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNotificationsStore } from '../../store/notifications'
+import basedbidLogo from '../../assets/basedbid-logo.svg'
 
 const EMPTY_SETTINGS: TokenLaunchSettings = {
   raydium: {
@@ -18,9 +19,35 @@ const EMPTY_SETTINGS: TokenLaunchSettings = {
     createPath: '',
     chain: '',
   },
+  openbid: {
+    apiBaseUrl: '',
+    chainId: '',
+    dex: '',
+    feeTier: '',
+    packageType: '',
+    marketCap: '',
+    totalSupply: '',
+    maxAllocationPerUser: '',
+    referrer: '',
+    board: '',
+    boardOwner: '',
+  },
 }
 
 type LaunchpadMap = Record<LaunchpadId, LaunchpadDefinition>
+
+const BASEDBID_FEE_TIER_OPTIONS = [
+  ['0', '1%'],
+  ['1', '2%'],
+  ['2', '4%'],
+  ['3', '6%'],
+] as const
+
+function getBasedbidFeeTierOptions(dex: TokenLaunchSettings['openbid']['dex']) {
+  return dex === 'raydium'
+    ? BASEDBID_FEE_TIER_OPTIONS.filter(([id]) => id !== '3')
+    : BASEDBID_FEE_TIER_OPTIONS
+}
 
 function normalizeSettings(value: Partial<TokenLaunchSettings> | null | undefined): TokenLaunchSettings {
   return {
@@ -35,6 +62,10 @@ function normalizeSettings(value: Partial<TokenLaunchSettings> | null | undefine
     printr: {
       ...EMPTY_SETTINGS.printr,
       ...(value?.printr ?? {}),
+    },
+    openbid: {
+      ...EMPTY_SETTINGS.openbid,
+      ...(value?.openbid ?? {}),
     },
   }
 }
@@ -293,6 +324,123 @@ export function LaunchpadSettingsSection({
             </label>
           </div>
           {definitions.printr?.reason && <div className="solana-launchpad-settings-note">{definitions.printr.reason}</div>}
+        </div>
+
+        <div className="solana-launchpad-settings-card">
+          <div className="solana-launchpad-settings-top">
+            <div>
+              <div className="solana-launchpad-brand-row">
+                <img className="solana-launchpad-brand-mark" src={basedbidLogo} alt="" />
+                <h3 className="solana-launchpad-settings-name">basedbid</h3>
+              </div>
+              <p className="solana-launchpad-settings-desc">basedbid uses API-built Solana Pool/LBP transactions. DAEMON signs the returned launch transaction with the selected local wallet.</p>
+            </div>
+            <LaunchpadStatusBadge definition={definitions.openbid} />
+          </div>
+          <div className="solana-launchpad-settings-fields">
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">API Base URL</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.openbid.apiBaseUrl}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, apiBaseUrl: e.target.value } }))}
+                placeholder="https://cdn.based.bid/api"
+              />
+              <span className="solana-launchpad-field-hint">Optional. basedbid CDN API is used when empty.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Chain ID</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.openbid.chainId}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, chainId: e.target.value } }))}
+                placeholder="5011"
+              />
+              <span className="solana-launchpad-field-hint">Optional. basedbid Solana currently targets devnet chain 5011.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">DEX</span>
+              <select
+                className="solana-launchpad-input"
+                value={draft.openbid.dex}
+                onChange={(e) => setDraft((prev) => {
+                  const dex = e.target.value as TokenLaunchSettings['openbid']['dex']
+                  return {
+                    ...prev,
+                    openbid: {
+                      ...prev.openbid,
+                      dex,
+                      feeTier: dex === 'raydium' && prev.openbid.feeTier === '3' ? '2' : prev.openbid.feeTier,
+                    },
+                  }
+                })}
+              >
+                <option value="">Meteora</option>
+                <option value="meteora">Meteora</option>
+                <option value="raydium">Raydium</option>
+              </select>
+              <span className="solana-launchpad-field-hint">Optional. Meteora is used when empty.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Fee Tier</span>
+              <select
+                className="solana-launchpad-input"
+                value={draft.openbid.feeTier}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, feeTier: e.target.value } }))}
+              >
+                <option value="">2%</option>
+                {getBasedbidFeeTierOptions(draft.openbid.dex).map(([id, label]) => (
+                  <option key={id} value={id}>{label}</option>
+                ))}
+              </select>
+              <span className="solana-launchpad-field-hint">Optional. basedbid fee tier 1 is used when empty.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Package</span>
+              <select
+                className="solana-launchpad-input"
+                value={draft.openbid.packageType}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, packageType: e.target.value as TokenLaunchSettings['openbid']['packageType'] } }))}
+              >
+                <option value="">Based</option>
+                <option value="based">Based</option>
+                <option value="super_based">Super Based</option>
+                <option value="ultra_based">Ultra Based</option>
+              </select>
+              <span className="solana-launchpad-field-hint">Optional. Based package is used when empty.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Market Cap</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.openbid.marketCap}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, marketCap: e.target.value } }))}
+                placeholder="11000"
+              />
+              <span className="solana-launchpad-field-hint">Optional. Use a target between 11000 and 10000000.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Total Supply</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.openbid.totalSupply}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, totalSupply: e.target.value } }))}
+                placeholder="1000000000"
+              />
+              <span className="solana-launchpad-field-hint">Optional. Numeric string with 9 token decimals.</span>
+            </label>
+            <label className="solana-launchpad-field">
+              <span className="solana-launchpad-label">Max Allocation</span>
+              <input
+                className="solana-launchpad-input"
+                value={draft.openbid.maxAllocationPerUser}
+                onChange={(e) => setDraft((prev) => ({ ...prev, openbid: { ...prev.openbid, maxAllocationPerUser: e.target.value } }))}
+                placeholder="0"
+              />
+              <span className="solana-launchpad-field-hint">Optional. Use 0 for no per-wallet allocation cap.</span>
+            </label>
+          </div>
+          {definitions.openbid?.reason && <div className="solana-launchpad-settings-note">{definitions.openbid.reason}</div>}
         </div>
       </div>
 

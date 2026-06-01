@@ -11,6 +11,7 @@ export interface SolanaExecutionCoverageItem {
 }
 
 export interface SolanaRuntimeStatusSummary {
+  cluster: 'devnet' | 'mainnet-beta' | 'localnet'
   rpc: {
     label: string
     detail: string
@@ -49,20 +50,34 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
         : 'Helius'
 
   const rpcStatus: RuntimeStatusLevel =
-    settings.rpcProvider === 'helius'
+    settings.cluster === 'localnet'
+      ? 'partial'
+      : settings.rpcProvider === 'helius'
       ? heliusConfigured ? 'live' : 'setup'
       : settings.rpcProvider === 'public'
         ? 'partial'
+        : settings.rpcProvider === 'quicknode'
+          ? settings.quicknodeRpcUrl ? 'live' : 'setup'
+          : settings.rpcProvider === 'custom'
+            ? settings.customRpcUrl ? 'live' : 'setup'
         : 'live'
 
-  const rpcDetail = settings.rpcProvider === 'quicknode'
+  const publicEndpoint = settings.cluster === 'mainnet-beta'
+    ? 'https://api.mainnet-beta.solana.com'
+    : settings.cluster === 'localnet'
+      ? 'http://127.0.0.1:8899'
+      : 'https://api.devnet.solana.com'
+
+  const rpcDetail = settings.cluster === 'localnet'
+    ? publicEndpoint
+    : settings.rpcProvider === 'quicknode'
     ? settings.quicknodeRpcUrl || 'QuickNode endpoint not set'
     : settings.rpcProvider === 'custom'
       ? settings.customRpcUrl || 'Custom endpoint not set'
       : settings.rpcProvider === 'public'
-        ? 'https://api.mainnet-beta.solana.com'
+        ? publicEndpoint
         : heliusConfigured
-          ? 'Helius key connected'
+          ? `Helius key connected on ${settings.cluster}`
           : 'Helius key missing'
 
   const executionBackendStatus: RuntimeStatusLevel =
@@ -71,18 +86,13 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       : jupiterConfigured ? 'live' : 'partial'
 
   return {
+    cluster: settings.cluster,
     rpc: {
-      label: rpcLabel,
+      label: `${rpcLabel} · ${settings.cluster}`,
       detail: rpcDetail,
       status: rpcStatus,
     },
-    walletPath: {
-      label: settings.preferredWallet === 'phantom' ? 'Phantom-first' : 'Wallet Standard',
-      detail: settings.preferredWallet === 'phantom'
-        ? 'Optimize flows for Phantom Connect, with Solana wallet UX anchored around Phantom-first handoff.'
-        : 'Prefer the multi-wallet compatibility path for Backpack, Solflare, and other Wallet Standard clients.',
-      status: 'live',
-    },
+    walletPath: getWalletPathStatus(settings.preferredWallet),
     swapEngine: {
       label: 'Jupiter',
       detail: jupiterConfigured
@@ -138,5 +148,29 @@ export function getSolanaRuntimeStatus(): SolanaRuntimeStatusSummary {
       !jupiterConfigured ? 'Jupiter is the active swap engine but no Jupiter API key is stored, so quotes and swaps will fail until configured.' : null,
       settings.executionMode === 'jito' && settings.rpcProvider === 'public' ? 'Jito submission is enabled while reads still use public RPC. For tighter landing and confirmation behavior, pair Jito with Helius or QuickNode.' : null,
     ].filter(Boolean) as string[],
+  }
+}
+
+function getWalletPathStatus(preferredWallet: ReturnType<typeof getWalletInfrastructureSettings>['preferredWallet']): SolanaRuntimeStatusSummary['walletPath'] {
+  if (preferredWallet === 'solflare') {
+    return {
+      label: 'Solflare',
+      detail: 'Prefer Solflare Wallet SDK for DAEMON wallet connection, with Wallet Adapter guidance for generated apps.',
+      status: 'live',
+    }
+  }
+
+  if (preferredWallet === 'wallet-standard') {
+    return {
+      label: 'Wallet Standard',
+      detail: 'Prefer the multi-wallet compatibility path for Backpack, Solflare, Phantom, and other Wallet Standard clients.',
+      status: 'live',
+    }
+  }
+
+  return {
+    label: 'Phantom-first',
+    detail: 'Optimize flows for Phantom Connect, with Solana wallet UX anchored around Phantom-first handoff.',
+    status: 'live',
   }
 }

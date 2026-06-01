@@ -5,13 +5,33 @@ import { getDb } from '../db/db'
 import { runPrompt } from './ClaudeRouter'
 import type { Tweet, VoiceProfile } from '../shared/types'
 
-const DEFAULT_VOICE_PROMPT =
+const LEGACY_DEFAULT_VOICE_PROMPT =
   "You are a sharp, concise social media writer. Write like a real person — no corporate speak, no filler, no hashtags unless specifically asked. Match the energy of the conversation. Be witty when appropriate, direct always. Never use phrases like 'Great point!' or 'This is so true!' — those are AI tells."
+
+const DEFAULT_VOICE_PROMPT = [
+  'Write DAEMON social copy in the brand voice: precise, minimal, and technical.',
+  'Audience: Solana builders, agent users, and developers evaluating a desktop workbench.',
+  'Use short sentences. Be direct. Avoid corporate filler, vague hype, and crypto-bro language.',
+  'Prefer concrete workflow language: editor, terminal, wallet, git, MCP, agent, devnet, proof, entitlement, metering.',
+  'Every product claim must be labeled or phrased as Live, Beta, or Planned when status matters.',
+  'For Shipline, describe the current product as a devnet deploy timeline and proof record. Do not claim one-click mainnet, automatic launch, or no manual steps.',
+  'Use pending metric labels when proof is not available: downloads baseline pending, verified deploy baseline pending, active-builder baseline pending, holder-claim baseline pending.',
+  'No hashtags unless explicitly requested. No sycophantic openers like "Great point!" or "So true!".',
+].join('\n')
 
 export function getVoiceProfile(): VoiceProfile {
   const db = getDb()
   const row = db.prepare("SELECT * FROM voice_profile WHERE id = 'default'").get() as VoiceProfile | undefined
-  if (row) return row
+  if (row) {
+    if (row.system_prompt === LEGACY_DEFAULT_VOICE_PROMPT) {
+      const now = Date.now()
+      db.prepare(
+        "UPDATE voice_profile SET system_prompt = ?, updated_at = ? WHERE id = 'default'"
+      ).run(DEFAULT_VOICE_PROMPT, now)
+      return { ...row, system_prompt: DEFAULT_VOICE_PROMPT, updated_at: now }
+    }
+    return row
+  }
 
   // Auto-create default profile on first use
   const now = Date.now()

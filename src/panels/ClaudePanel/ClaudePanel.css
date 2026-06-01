@@ -45,13 +45,6 @@
   font-family: var(--font-code);
 }
 
-.claude-empty {
-  padding: var(--space-xl) var(--space-md);
-  font-size: var(--fs-11);
-  color: var(--t3);
-  text-align: center;
-}
-
 /* Status Badge */
 .status-badge {
   display: flex;
@@ -383,13 +376,6 @@
   padding: 0 0 2px;
 }
 
-.claude-empty {
-  margin: 0 0 var(--drawer-rail-card-gap);
-  padding: var(--space-lg) var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--drawer-control-radius);
-  background: var(--s2);
-}
 
 .status-badge,
 .claude-section {
@@ -416,9 +402,10 @@
 }
 
 .claude-section-title {
-  font-size: var(--fs-10);
+  font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
-  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  letter-spacing: var(--ls-eyebrow);
 }
 
 .restart-btn,

@@ -27,6 +27,13 @@ import type {
   GhostPort,
   WalletListEntry,
   WalletDashboard,
+  ForensicsBlacklistResult,
+  ForensicsExpandInput,
+  ForensicsExpandResult,
+  ForensicsHolderPollResult,
+  ForensicsScanInput,
+  ForensicsScanResult,
+  RicoMapsEmbedStatus,
   TerminalCreateOutput,
   PluginRow,
   PluginCreateInput,
@@ -44,6 +51,16 @@ import type {
   LspLocation,
   LspPosition,
   LspServerStatus,
+  MeterflowOverview,
+  MeterflowPaidAgentReadinessInput,
+  MeterflowPaidAgentReadinessResult,
+  MeterflowReceipt,
+  MeterflowReceiptDetail,
+  MeterflowReceiptsQuery,
+  MeterflowDemoWallet,
+  MeterflowStatus,
+  MeterflowWalletReadiness,
+  MeterflowWatchProjectResult,
 } from './types'
 
 export interface ChannelMap {
@@ -131,8 +148,18 @@ export interface ChannelMap {
   'wallet:dashboard': { input: string | null; output: WalletDashboard }
   'wallet:list': { input: void; output: WalletListEntry[] }
 
+  // --- Forensics ---
+  'forensics:scan': { input: ForensicsScanInput; output: ForensicsScanResult }
+  'forensics:expand': { input: ForensicsExpandInput; output: ForensicsExpandResult }
+  'forensics:blacklist': { input: void; output: ForensicsBlacklistResult }
+  'forensics:export-blacklist': { input: void; output: { csv: string; copied: boolean } }
+  'forensics:poll-holders': { input: string; output: ForensicsHolderPollResult }
+  'forensics:ricomaps-status': { input: void; output: RicoMapsEmbedStatus }
+  'forensics:ricomaps-start': { input: void; output: RicoMapsEmbedStatus }
+
   // --- Settings ---
   'settings:get-ui': { input: void; output: UiSettings }
+  'settings:set-low-power-mode': { input: boolean; output: void }
   'settings:is-onboarding-complete': { input: void; output: boolean }
 
   // --- Plugins ---
@@ -146,6 +173,19 @@ export interface ChannelMap {
   'tools:list': { input: void; output: ToolRow[] }
   'tools:get': { input: string; output: ToolRow }
   'tools:create': { input: ToolCreateInput; output: ToolRow }
+
+  // --- Meterflow ---
+  'meterflow:status': { input: void; output: MeterflowStatus }
+  'meterflow:overview': { input: void; output: MeterflowOverview }
+  'meterflow:list-receipts': { input: MeterflowReceiptsQuery | number | void; output: MeterflowReceipt[] }
+  'meterflow:get-receipt': { input: string; output: MeterflowReceiptDetail }
+  'meterflow:ingest-receipt': { input: Record<string, unknown>; output: MeterflowReceipt }
+  'meterflow:create-demo-wallet': { input: void; output: MeterflowDemoWallet }
+  'meterflow:get-demo-wallet': { input: void; output: MeterflowDemoWallet | null }
+  'meterflow:check-demo-wallet-readiness': { input: void; output: MeterflowWalletReadiness }
+  'meterflow:call-paid-agent-readiness': { input: MeterflowPaidAgentReadinessInput; output: MeterflowPaidAgentReadinessResult }
+  'meterflow:watch-project': { input: string; output: MeterflowWatchProjectResult }
+  'meterflow:store-api-key': { input: string; output: MeterflowStatus }
 }
 
 /** Extract the input type for a given channel */

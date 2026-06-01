@@ -10,7 +10,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="sidebar"]',
     title: 'Navigation',
-    body: 'Switch between panels here. Pin your most-used tools for quick access.',
+    body: 'Open Solana Start, Wallet, DAEMON AI, Build, Launch, Inspect, and other workspace tools from here.',
     placement: 'right',
   },
   {
@@ -34,19 +34,19 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="right-panel"]',
     title: 'Panels',
-    body: 'Claude, Deploy, Email, Wallet, and more. Switch tabs at the top.',
+    body: 'Use side panels for active context, approvals, wallet signals, and project status while the main workspace stays focused.',
     placement: 'left',
   },
   {
     target: '[data-tour="statusbar"]',
     title: 'Status Bar',
-    body: 'Git branch, active agents, and system clock at a glance.',
+    body: 'Track branch, agents, runtime status, and wallet signals without leaving the Solana workflow.',
     placement: 'top',
   },
   {
     target: '[data-tour="sidebar"]',
     title: 'Quick Actions',
-    body: 'Ctrl+K opens the Command Palette. Ctrl+Shift+A launches agents. Ctrl+Shift+G enters Grind mode (multi-agent grid).',
+    body: 'Ctrl+K opens commands. Use Solana Start first when a project, wallet, RPC, build, or AI approval path is unclear.',
     placement: 'right',
   },
 ]

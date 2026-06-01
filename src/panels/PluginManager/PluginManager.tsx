@@ -235,7 +235,7 @@ export function PluginManager() {
             return (
               <Card key={plugin.id} className="plugin-card">
                 <div className="plugin-card-header">
-                  <StatusDot tone={isEnabled ? 'success' : 'neutral'} className="plugin-status-dot" />
+                  <StatusDot tone={isEnabled ? 'success' : 'neutral'} label={isEnabled ? 'Plugin enabled' : 'Plugin disabled'} className="plugin-status-dot" />
                   <div className="plugin-card-info">
                     <div className="plugin-card-name-row">
                       <span className="plugin-card-name">{display.name}</span>

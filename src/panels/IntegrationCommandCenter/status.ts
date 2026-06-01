@@ -25,7 +25,8 @@ export interface IntegrationStatusSummary {
 }
 
 function hasEnvKey(envFiles: EnvFile[], key: string): boolean {
-  return envFiles.some((file) => file.vars.some((envVar) => !envVar.isComment && envVar.key === key && envVar.value.trim().length > 0))
+  const keys = key.split('|')
+  return envFiles.some((file) => file.vars.some((envVar) => !envVar.isComment && keys.includes(envVar.key) && envVar.value.trim().length > 0))
 }
 
 function hasPackage(packages: Set<string>, key: string): boolean {

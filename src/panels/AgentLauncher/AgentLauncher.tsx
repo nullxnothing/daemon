@@ -4,6 +4,8 @@ import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
 import { AgentForm } from './AgentForm'
 import { DaemonAgentRow, ClaudeAgentRow } from './AgentRow'
+import { FocusTrap } from '../../components/FocusTrap'
+import { EmptyState } from '../../components/EmptyState'
 import './AgentLauncher.css'
 
 interface Props {
@@ -252,8 +254,16 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
   if (!isOpen) return null
 
   return (
-    <div className="agent-launcher-overlay" onClick={onClose}>
-      <div className="agent-launcher" onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>
+    <div className="agent-launcher-overlay" onClick={onClose} role="presentation">
+      <FocusTrap>
+      <div
+        className="agent-launcher"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Launch agent"
+      >
         {showForm ? (
           <AgentForm agent={editingAgent} onSave={handleFormSave} onCancel={() => { setShowForm(false); setEditingAgent(null) }} />
         ) : (
@@ -303,9 +313,11 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
                 )
               })}
               {filtered.length === 0 && filteredClaude.length === 0 && (
-                <div className="agent-launcher-empty">
-                  {agents.length === 0 && claudeAgents.length === 0 ? 'No agents configured' : 'No matches'}
-                </div>
+                <EmptyState
+                  className="agent-launcher-empty"
+                  title={agents.length === 0 && claudeAgents.length === 0 ? 'No agents configured' : 'No matches'}
+                  description={agents.length === 0 && claudeAgents.length === 0 ? 'Create an agent to get started.' : 'Try a different search.'}
+                />
               )}
             </div>
             <button type="button" className="agent-create-btn" onClick={() => setShowForm(true)}>
@@ -314,6 +326,7 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
           </>
         )}
       </div>
+      </FocusTrap>
     </div>
   )
 }

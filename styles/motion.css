@@ -1,0 +1,65 @@
+/* ── Motion utilities ──────────────────────────────────────────────
+   Token-driven, opt-in entrance + reveal helpers. All gated behind
+   prefers-reduced-motion. Use sparingly — motion should clarify, not
+   decorate. */
+
+/* Fade + 8px rise. For panels, cards, sections appearing in place. */
+.motion-enter {
+  animation: motion-enter var(--dur-base) var(--ease-out-quint) both;
+}
+
+/* Fade only — for content that shouldn't shift layout on entry. */
+.motion-fade {
+  animation: motion-fade var(--dur-base) var(--ease-standard) both;
+}
+
+/* Scale-in from 96% — for popovers/menus anchored to a trigger. */
+.motion-pop {
+  animation: motion-pop var(--dur-instant) var(--ease-spring) both;
+  transform-origin: var(--motion-origin, top center);
+}
+
+@keyframes motion-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motion-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes motion-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Staggered list reveal ──────────────────────────────────────────
+   Apply .motion-stagger to a container; direct children fade+rise with
+   an increasing delay. Capped at 12 items so a long list doesn't feel
+   sluggish — items past the cap simply appear. */
+.motion-stagger > * {
+  animation: motion-enter var(--dur-base) var(--ease-out-quint) both;
+}
+
+.motion-stagger > *:nth-child(1)  { animation-delay: 0ms; }
+.motion-stagger > *:nth-child(2)  { animation-delay: 24ms; }
+.motion-stagger > *:nth-child(3)  { animation-delay: 48ms; }
+.motion-stagger > *:nth-child(4)  { animation-delay: 72ms; }
+.motion-stagger > *:nth-child(5)  { animation-delay: 96ms; }
+.motion-stagger > *:nth-child(6)  { animation-delay: 120ms; }
+.motion-stagger > *:nth-child(7)  { animation-delay: 144ms; }
+.motion-stagger > *:nth-child(8)  { animation-delay: 168ms; }
+.motion-stagger > *:nth-child(9)  { animation-delay: 192ms; }
+.motion-stagger > *:nth-child(10) { animation-delay: 216ms; }
+.motion-stagger > *:nth-child(11) { animation-delay: 240ms; }
+.motion-stagger > *:nth-child(12) { animation-delay: 264ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-enter,
+  .motion-fade,
+  .motion-pop,
+  .motion-stagger > * {
+    animation: none;
+  }
+}

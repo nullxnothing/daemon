@@ -3,6 +3,8 @@ import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { getWalletInfrastructureSettings } from './SettingsService'
 import { LogService } from './LogService'
+import * as Voight from './VoightService'
+import { assertTransactionAllowed } from './SignerGuardService'
 import bs58 from 'bs58'
 import fs from 'node:fs'
 
@@ -11,7 +13,9 @@ import fs from 'node:fs'
  * Centralizes RPC connection creation and keypair lifecycle management.
  */
 
-const PUBLIC_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com'
+const PUBLIC_MAINNET_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com'
+const PUBLIC_DEVNET_RPC_ENDPOINT = 'https://api.devnet.solana.com'
+const PUBLIC_LOCALNET_RPC_ENDPOINT = 'http://127.0.0.1:8899'
 const DEFAULT_COMPUTE_UNIT_LIMIT = 200_000
 const DEFAULT_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS = 100_000
 const PRIORITY_FEE_CACHE_MS = 30_000
@@ -26,6 +30,18 @@ interface BlockheightConfirmationStrategy {
 let publicRpcFallbackWarned = false
 let priorityFeeCache: { endpoint: string; value: number; expiresAt: number } | null = null
 
+function publicRpcEndpointForCluster(cluster: ReturnType<typeof getWalletInfrastructureSettings>['cluster']): string {
+  if (cluster === 'mainnet-beta') return PUBLIC_MAINNET_RPC_ENDPOINT
+  if (cluster === 'localnet') return PUBLIC_LOCALNET_RPC_ENDPOINT
+  return PUBLIC_DEVNET_RPC_ENDPOINT
+}
+
+function heliusRpcEndpointForCluster(cluster: ReturnType<typeof getWalletInfrastructureSettings>['cluster'], key: string): string {
+  if (cluster === 'localnet') return PUBLIC_LOCALNET_RPC_ENDPOINT
+  const subdomain = cluster === 'mainnet-beta' ? 'mainnet' : 'devnet'
+  return `https://${subdomain}.helius-rpc.com/?api-key=${key}`
+}
+
 export function getHeliusApiKey(): string | null {
   return SecureKey.getKey('HELIUS_API_KEY') ?? process.env.HELIUS_API_KEY ?? null
 }
@@ -36,6 +52,8 @@ export function getJupiterApiKey(): string | null {
 
 export function getRpcEndpoint(): string {
   const settings = getWalletInfrastructureSettings()
+  const publicEndpoint = publicRpcEndpointForCluster(settings.cluster)
+  if (settings.cluster === 'localnet') return publicEndpoint
   if (settings.rpcProvider === 'quicknode') {
     if (settings.quicknodeRpcUrl) return settings.quicknodeRpcUrl
     warnPublicRpcFallback('QuickNode RPC is selected but no QuickNode endpoint is configured.')
@@ -47,7 +65,7 @@ export function getRpcEndpoint(): string {
 
   if (settings.rpcProvider === 'helius') {
     const key = getHeliusApiKey()
-    if (key) return `https://mainnet.helius-rpc.com/?api-key=${key}`
+    if (key) return heliusRpcEndpointForCluster(settings.cluster, key)
     warnPublicRpcFallback('Helius RPC is selected but HELIUS_API_KEY is not configured.')
   }
 
@@ -55,7 +73,7 @@ export function getRpcEndpoint(): string {
     warnPublicRpcFallback('Public Solana RPC is selected.')
   }
 
-  return PUBLIC_RPC_ENDPOINT
+  return publicEndpoint
 }
 
 export function getConnection(): Connection {
@@ -65,7 +83,7 @@ export function getConnection(): Connection {
 export function getConnectionStrict(): Connection {
   const key = getHeliusApiKey()
   if (!key) throw new Error('HELIUS_API_KEY not configured. Add it in Wallet settings.')
-  return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
+  return new Connection(heliusRpcEndpointForCluster(getWalletInfrastructureSettings().cluster, key), 'confirmed')
 }
 
 export function getTransactionSubmissionSettings() {
@@ -86,8 +104,9 @@ export interface TransactionExecutionResult {
 function warnPublicRpcFallback(reason: string): void {
   if (publicRpcFallbackWarned) return
   publicRpcFallbackWarned = true
-  const message = 'Using public Solana mainnet RPC fallback. Public RPC is aggressively rate limited; configure Helius, QuickNode, or a custom RPC for wallet execution.'
-  LogService.warn('SolanaService', message, { reason, endpoint: PUBLIC_RPC_ENDPOINT })
+  const endpoint = publicRpcEndpointForCluster(getWalletInfrastructureSettings().cluster)
+  const message = 'Using public Solana RPC fallback. Public RPC is aggressively rate limited; configure Helius, QuickNode, or a custom RPC for wallet execution.'
+  LogService.warn('SolanaService', message, { reason, endpoint })
 }
 
 function getComputeBudgetOpcode(ix: TransactionInstruction): number | null {
@@ -264,10 +283,15 @@ export async function executeTransaction(
     computeUnitLimit?: number
     computeUnitPriceMicroLamports?: number
     confirmationStrategy?: BlockheightConfirmationStrategy
+    /** Hash-bound human approval token (propose/commit) for the signer guard. */
+    approvalHash?: string
+    /** Caller label for signer-guard audit. */
+    guardSource?: string
   },
 ): Promise<TransactionExecutionResult> {
   const { mode } = getTransactionSubmissionSettings()
   let confirmationStrategy = options?.confirmationStrategy
+  const guardOptions = { approvalHash: options?.approvalHash, source: options?.guardSource }
 
   if (transaction instanceof Transaction) {
     const latest = await connection.getLatestBlockhash('confirmed')
@@ -276,6 +300,8 @@ export async function executeTransaction(
     transaction.recentBlockhash = latest.blockhash
     confirmationStrategy = latest
     if (signers.length > 0) {
+      // Guard runs on the FINAL message (blockhash + feePayer set) immediately before signing.
+      assertTransactionAllowed(transaction, signers, guardOptions)
       transaction.sign(...signers)
     }
   } else if (signers.length > 0) {
@@ -284,6 +310,7 @@ export async function executeTransaction(
       blockhash: transaction.message.recentBlockhash,
       lastValidBlockHeight: latest.lastValidBlockHeight,
     }
+    assertTransactionAllowed(transaction, signers, guardOptions)
     transaction.sign(signers)
   } else {
     const latest = await connection.getLatestBlockhash('confirmed')
@@ -293,16 +320,37 @@ export async function executeTransaction(
     }
   }
 
-  const signature = await submitRawTransaction(connection, transaction.serialize(), {
-    skipPreflight: mode === 'jito',
-    maxRetries: mode === 'jito' ? 0 : 3,
-    ...options?.sendOptions,
-  })
-  await confirmSignature(connection, signature, options?.timeoutMs, confirmationStrategy)
-
-  return {
-    signature,
-    transport: mode,
+  let signature: string | null = null
+  try {
+    signature = await submitRawTransaction(connection, transaction.serialize(), {
+      skipPreflight: mode === 'jito',
+      maxRetries: mode === 'jito' ? 0 : 3,
+      ...options?.sendOptions,
+    })
+    await confirmSignature(connection, signature, options?.timeoutMs, confirmationStrategy)
+    Voight.emitEventSafe({
+      agentId: 'daemon-solana',
+      type: 'tx',
+      transaction: signature,
+      outcome: 'success',
+      metadata: {
+        sessionId: `solana:${signature}`,
+        transport: mode,
+        signers: signers.length,
+      },
+    })
+    return {
+      signature,
+      transport: mode,
+    }
+  } catch (err) {
+    Voight.trackError('daemon-solana', err, {
+      sessionId: signature ? `solana:${signature}` : `solana:${Date.now()}`,
+      transaction: signature,
+      transport: mode,
+      signers: signers.length,
+    })
+    throw err
   }
 }
 
@@ -316,6 +364,8 @@ export async function executeInstructions(
     addComputeBudget?: boolean
     computeUnitLimit?: number
     computeUnitPriceMicroLamports?: number
+    approvalHash?: string
+    guardSource?: string
   },
 ): Promise<TransactionExecutionResult> {
   if (instructions.length === 0) {
@@ -340,6 +390,8 @@ export async function executeInstructions(
     feePayer: payer,
     addComputeBudget: false,
     confirmationStrategy: latest,
+    approvalHash: options?.approvalHash,
+    guardSource: options?.guardSource,
   })
 }
 

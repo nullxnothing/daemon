@@ -1,8 +1,7 @@
 /* Icon Sidebar */
 .icon-sidebar {
   width: var(--sidebar-w);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface-flat) 92%, white 2%), var(--surface-flat));
+  background: var(--surface-flat);
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, black 14%);
   flex-shrink: 0;
   display: flex;
@@ -10,7 +9,7 @@
   align-items: center;
   padding-top: var(--space-sm);
   padding-bottom: var(--space-sm);
-  gap: 6px;
+  gap: var(--space-xs);
   position: relative;
   z-index: 80;
 }
@@ -22,24 +21,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, var(--tool-accent) 62%, var(--t2) 38%);
+  color: var(--t3);
   border-radius: var(--radius-md);
   position: relative;
   border: 1px solid transparent;
   background: transparent;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .sidebar-icon--explorer {
-  --tool-accent: #60a5fa;
+  --tool-accent: var(--blue);
 }
 
 .sidebar-icon--agents {
-  --tool-accent: #a78bfa;
+  --tool-accent: var(--solana);
 }
 
 .sidebar-icon--tools {
-  --tool-accent: #14f195;
+  --tool-accent: var(--t3);
 }
 
 .sidebar-icon svg {
@@ -48,14 +47,14 @@
   width: 19px;
   height: 19px;
   margin: auto;
-  opacity: 0.86;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0.78;
+  transition: opacity var(--transition-fast);
 }
 
 .sidebar-icon:hover {
-  color: color-mix(in srgb, var(--tool-accent) 76%, white 10%);
-  background: color-mix(in srgb, var(--tool-accent) 10%, var(--surface-raised));
-  border-color: color-mix(in srgb, var(--tool-accent) 28%, var(--border));
+  color: var(--t1);
+  background: var(--surface-raised);
+  border-color: var(--control-border);
 }
 
 .sidebar-icon:hover svg {
@@ -63,9 +62,9 @@
 }
 
 .sidebar-icon.active {
-  color: color-mix(in srgb, var(--tool-accent) 82%, white 8%);
-  background: color-mix(in srgb, var(--tool-accent) 14%, var(--surface-raised));
-  border-color: color-mix(in srgb, var(--tool-accent) 42%, var(--border));
+  color: var(--t1);
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
 }
 
 .sidebar-icon.active::before {
@@ -75,12 +74,12 @@
   top: 10px;
   bottom: 10px;
   width: 1px;
-  background: color-mix(in srgb, var(--tool-accent) 78%, var(--border) 22%);
+  background: color-mix(in srgb, var(--tool-accent) 58%, var(--t2) 42%);
   border-radius: var(--radius-pill);
 }
 
 .sidebar-icon.sidebar-toggle.active {
-  background: color-mix(in srgb, var(--tool-accent) 16%, transparent);
+  background: var(--surface-raised);
 }
 
 .sidebar-icon.sidebar-toggle.active::before {
@@ -135,19 +134,19 @@
 
 .sidebar-drop-zone.active {
   opacity: 0.9;
-  border-color: var(--green);
-  color: var(--green);
-  background: var(--green-glow);
+  border-color: var(--border-strong);
+  color: var(--t1);
+  background: var(--surface-raised);
 }
 
 .sidebar-drop-zone--active {
   height: 36px;
   width: 36px;
-  background: var(--green-glow);
-  border-color: var(--green);
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
   border-style: solid;
   opacity: 1;
-  color: var(--green);
+  color: var(--t1);
 }
 
 /* ─── Zone Dividers ─── */
@@ -185,8 +184,8 @@
 }
 
 .sidebar-icon--discord:hover {
-  color: #5865f2;
-  background: color-mix(in srgb, #5865f2 12%, transparent);
+  color: var(--brand-discord);
+  background: var(--surface-raised);
 }
 
 /* Submenu (kept for agent launcher flyout) */
@@ -259,61 +258,4 @@
   font-size: var(--fs-12);
   color: var(--t3);
   line-height: 1.5;
-}
-
-/* Colosseum icon */
-
-.colosseum-icon-wrap {
-  --tool-accent: var(--amber);
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--amber);
-  border: 1px solid transparent;
-  background: transparent;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-}
-
-.colosseum-icon-wrap svg {
-  display: block;
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  margin: auto;
-}
-
-.colosseum-icon-wrap:hover {
-  color: var(--amber);
-  border-color: var(--amber-glow);
-  background: var(--amber-glow);
-}
-
-.colosseum-icon-wrap.active {
-  color: var(--amber);
-  border-color: var(--amber-glow);
-  background: var(--amber-glow);
-}
-
-.colosseum-icon-wrap::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -100%;
-  width: 200%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, transparent 40%, var(--green) 48%, var(--green-glow) 50%, var(--green) 52%, transparent 60%, transparent 100%);
-  animation: colosseum-pulse 3s linear infinite;
-  opacity: 0.6;
-}
-
-
-@keyframes colosseum-pulse {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(50%); }
 }

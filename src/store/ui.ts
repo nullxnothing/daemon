@@ -16,7 +16,7 @@ export interface GridCell {
   id: string | null
   label: string
   visible: boolean
-  providerId?: 'claude' | 'codex' | null
+  providerId?: 'claude' | 'codex' | 'spettro' | null
 }
 
 interface TerminalTab {
@@ -27,7 +27,7 @@ interface TerminalTab {
 }
 
 export type CenterMode = 'canvas' | 'grind'
-export type RightPanelTab = 'claude' | 'codex'
+export type RightPanelTab = 'claude' | 'codex' | 'meterflow'
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings'
@@ -549,7 +549,7 @@ export const useUIStore = create<UIState>((set) => ({
         if (layoutRes.data.centerMode === 'canvas' || layoutRes.data.centerMode === 'grind') {
           updates.centerMode = layoutRes.data.centerMode
         }
-        if (layoutRes.data.rightPanelTab === 'claude' || layoutRes.data.rightPanelTab === 'codex') {
+        if (layoutRes.data.rightPanelTab === 'claude' || layoutRes.data.rightPanelTab === 'codex' || layoutRes.data.rightPanelTab === 'meterflow') {
           updates.rightPanelTab = layoutRes.data.rightPanelTab
         }
       }

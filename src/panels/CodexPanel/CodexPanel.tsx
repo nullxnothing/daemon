@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useAppActions } from '../../store/appActions'
+import { Button } from '../../components/Button'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
+import { EmptyState } from '../../components/EmptyState'
+import { StatusDot, Spinner } from '../../components/Panel'
 import { Toggle } from '../../components/Toggle'
 import { PanelErrorBoundary } from '../../components/ErrorBoundary'
 import './CodexPanel.css'
@@ -41,7 +44,7 @@ export function CodexPanel() {
     return (
       <div className="codex-panel">
         <div className="codex-panel-scroll">
-          <div className="codex-empty">Select a project</div>
+          <EmptyState className="codex-empty" title="Select a project" />
         </div>
       </div>
     )
@@ -154,14 +157,10 @@ function ConnectionSection({ projectId, projectPath }: { projectId: string; proj
     } finally { setBusy(null) }
   }
 
-  const dotClass =
-    connected === null ? 'codex-status-dot' :
-    connected ? 'codex-status-dot connected' : 'codex-status-dot disconnected'
-
   return (
     <PanelErrorBoundary>
       <div className="codex-status-row">
-        <span className={dotClass} />
+        <StatusDot tone={connected === null ? 'neutral' : connected ? 'success' : 'danger'} />
         <span>
           {connected === null ? 'Checking…' : connected ? `Connected (${authMode})` : 'Not connected'}
         </span>
@@ -175,21 +174,21 @@ function ConnectionSection({ projectId, projectPath }: { projectId: string; proj
         <span className="codex-info-value" title={effort}>{effort}</span>
       </div>
       <div className="codex-actions-row">
-        <button type="button" className="codex-btn" onClick={handleVerify} disabled={busy !== null}>
+        <Button variant="secondary" onClick={handleVerify} disabled={busy !== null}>
           {busy === 'verify' ? 'Verifying…' : 'Verify'}
-        </button>
+        </Button>
         {connected ? (
-          <button type="button" className="codex-btn" onClick={handleLogout} disabled={busy !== null}>
+          <Button variant="secondary" onClick={handleLogout} disabled={busy !== null}>
             {busy === 'logout' ? 'Signing out…' : 'Sign out / switch'}
-          </button>
+          </Button>
         ) : (
           <>
-            <button type="button" className="codex-btn codex-btn-primary" onClick={handleLogin} disabled={busy !== null}>
+            <Button variant="primary" onClick={handleLogin} disabled={busy !== null}>
               {busy === 'login' ? 'Opening…' : 'Sign in'}
-            </button>
-            <button type="button" className="codex-btn" onClick={handleInstall} disabled={busy !== null}>
+            </Button>
+            <Button variant="secondary" onClick={handleInstall} disabled={busy !== null}>
               {busy === 'install' ? 'Installing…' : 'Install CLI'}
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -222,14 +221,14 @@ function RestartButton() {
 
   return (
     <div className="codex-restart-row">
-      <button
-        className="codex-restart-btn"
+      <Button
+        variant="secondary"
         onClick={handleRestart}
         disabled={restarting}
         title="Gracefully exits Codex in all project terminals and runs `codex resume --last`"
       >
         {restarting ? 'Restarting…' : 'Restart Codex Sessions'}
-      </button>
+      </Button>
       <StatusBar msg={msg} />
     </div>
   )
@@ -269,11 +268,11 @@ function McpSection() {
     }
   }
 
-  if (loading) return <div className="codex-mcp-desc">Loading...</div>
+  if (loading) return <div className="codex-loading" role="status" aria-live="polite"><Spinner size={13} tone="muted" /> Loading MCP servers…</div>
   if (mcps.length === 0) return <div className="codex-mcp-desc">No MCP servers configured in ~/.codex/config.toml</div>
 
   return (
-    <div style={{ padding: '0 12px' }}>
+    <div className="codex-section-body">
       <div className="codex-mcp-desc">
         Toggles MCP servers in your Codex config. Restart sessions to apply.
       </div>
@@ -329,9 +328,9 @@ function AgentsMdSection({ projectPath }: { projectPath: string }) {
 
   return (
     <CollapsibleSection title="AGENTS.md" defaultOpen={false}>
-      <div style={{ padding: '0 12px' }}>
+      <div className="codex-section-body">
         {!loaded ? (
-          <div className="codex-mcp-desc">Loading...</div>
+          <div className="codex-loading" role="status" aria-live="polite"><Spinner size={13} tone="muted" /> Loading AGENTS.md…</div>
         ) : editing ? (
           <>
             <textarea
@@ -342,10 +341,10 @@ function AgentsMdSection({ projectPath }: { projectPath: string }) {
               spellCheck={false}
             />
             <div className="codex-actions-row">
-              <button type="button" className="codex-btn codex-btn-primary" onClick={save} disabled={saving}>
+              <Button variant="primary" onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : 'Save'}
-              </button>
-              <button type="button" className="codex-btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
+              </Button>
+              <Button variant="secondary" onClick={cancelEdit} disabled={saving}>Cancel</Button>
             </div>
           </>
         ) : (
@@ -358,9 +357,9 @@ function AgentsMdSection({ projectPath }: { projectPath: string }) {
               <div className="codex-mcp-desc">No AGENTS.md in this project.</div>
             )}
             <div className="codex-actions-row">
-              <button type="button" className="codex-btn" onClick={startEdit}>
+              <Button variant="secondary" onClick={startEdit}>
                 {content ? 'Edit' : 'Create AGENTS.md'}
-              </button>
+              </Button>
             </div>
           </>
         )}

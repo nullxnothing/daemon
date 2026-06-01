@@ -15,7 +15,7 @@
   max-height: 85vh;
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -32,7 +32,7 @@
 }
 
 .title {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   color: var(--t1);
   margin: 0;
@@ -72,7 +72,7 @@
 }
 
 .labelText {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -85,7 +85,7 @@
   border-radius: 4px;
   padding: 8px 10px;
   color: var(--t1);
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-family: inherit;
   outline: none;
   transition: border-color 120ms;
@@ -108,14 +108,14 @@
 }
 
 .hint {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   margin: 0;
   line-height: 1.5;
 }
 
 .error {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--red);
   margin: 0;
   padding: 8px 10px;
@@ -135,7 +135,7 @@
 .secondaryBtn {
   padding: 7px 14px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
@@ -144,7 +144,7 @@
 
 .primaryBtn {
   background: var(--green);
-  color: #08110d;
+  color: var(--on-accent-dark);
 }
 
 .primaryBtn:hover:not(:disabled) {
@@ -185,7 +185,7 @@
 }
 
 .successText {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t1);
   margin: 0;
   line-height: 1.5;

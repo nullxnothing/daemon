@@ -10,7 +10,9 @@ node_modules
 dist
 dist-ssr
 dist-electron
+dist-cloud
 release
+*.tsbuildinfo
 *.local
 
 # Editor
@@ -66,17 +68,30 @@ features/
 .mcp.json
 
 # Internal dev artifacts
+.design/
+/screenshots/
+NVIDIA Corporation/
+.agents/
+.codex-run/
 PLUGIN_TODOS.md
 .daemon/replays/
+.daemon-*.png
+daemon-*.png
 .planning/
 .playwright-mcp/
 Usersoffic.claudeplans/
 vendor/
 *_AUDIT*.md
+*_ACTION_ITEMS.md
+*_CHECKLIST*.md
+*_DASHBOARD.md
+*_STRATEGY.md
+PLAN_INDEX.md
 release-plan.md
 docs/
 !docs/screenshots/
 .wrangler/
+scripts/_icc_row.css
 
 # Expo / RN mobile app local cache
 apps/seeker-mobile/.expo/

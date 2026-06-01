@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import * as pty from 'node-pty'
 import { execFileSync } from 'node:child_process'
@@ -5,8 +8,11 @@ import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { isTrustedSender } from '../security/ipcSender'
 import { LogService } from '../services/LogService'
 import * as SessionTracker from '../services/SessionTracker'
+import * as ShiplineService from '../services/ShiplineService'
+import * as Voight from '../services/VoightService'
 import { getEmbeddedProviderStartupCommand, type ProviderShellId } from '../shared/providerLaunch'
 import { validateCwd } from '../shared/pathValidation'
 import type { Agent, Project, ActiveSession, TerminalSession, TerminalCreateInput, TerminalSpawnAgentInput, TerminalCreateOutput } from '../shared/types'
@@ -21,7 +27,43 @@ const PORT_PATTERNS = [
   /0\.0\.0\.0:(\d{3,5})/i,                                 // "0.0.0.0:3000"
 ]
 
+const TERMINAL_OUTPUT_RECEIPT_LIMIT = 80_000
 const sessions = new Map<string, TerminalSession>()
+
+function quotePowerShellLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+function quotePosixLiteral(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`
+}
+
+function writeProviderPromptFile(providerId: ProviderShellId, prompt: string): string {
+  const promptFilePath = path.join(os.tmpdir(), `daemon_${providerId}_prompt_${crypto.randomUUID()}.md`)
+  fs.writeFileSync(promptFilePath, prompt.trim(), 'utf8')
+  return promptFilePath
+}
+
+function buildPromptedProviderStartupCommand(providerId: ProviderShellId, promptFilePath: string | null): string {
+  const providerCommand = getEmbeddedProviderStartupCommand(providerId)
+  if (!promptFilePath) return providerCommand
+  if (providerId === 'spettro') return providerCommand
+
+  if (process.platform === 'win32') {
+    const promptPath = quotePowerShellLiteral(promptFilePath)
+    const promptVar = `$prompt = Get-Content -LiteralPath ${promptPath} -Raw`
+    if (providerId === 'codex') {
+      return `${promptVar}; ${providerCommand} --sandbox workspace-write --ask-for-approval on-request $prompt`
+    }
+    return `${promptVar}; ${providerCommand} $prompt`
+  }
+
+  const promptPath = quotePosixLiteral(promptFilePath)
+  if (providerId === 'codex') {
+    return `${providerCommand} --sandbox workspace-write --ask-for-approval on-request "$(cat ${promptPath})"`
+  }
+  return `${providerCommand} "$(cat ${promptPath})"`
+}
 
 export function getSession(id: string) {
   return sessions.get(id)
@@ -111,6 +153,7 @@ function createPtySession(
     providerId,
     isAgentShell,
     dataBuffer: [],
+    outputBuffer: '',
     rendererReady: false,
     generatedLineCount: 0,
   }
@@ -118,6 +161,16 @@ function createPtySession(
 
   ptyProcess.onData((data) => {
     session.generatedLineCount = (session.generatedLineCount ?? 0) + (data.match(/\r\n|\r|\n/g)?.length ?? 0)
+    session.outputBuffer = `${session.outputBuffer ?? ''}${data}`.slice(-TERMINAL_OUTPUT_RECEIPT_LIMIT)
+    if (session.agentId || session.providerId || session.isAgentShell) {
+      Voight.trackTerminalOutput({
+        terminalId: id,
+        sessionId: session.localSessionId ?? id,
+        agentId: session.agentId,
+        providerId: session.providerId,
+        data,
+      })
+    }
 
     if (session.rendererReady) {
       getWin()?.webContents.send('terminal:data', { id, data })
@@ -151,6 +204,7 @@ function createPtySession(
   })
 
   ptyProcess.onExit(({ exitCode }) => {
+    Voight.flushTerminalOutput(id)
     if (contextFilePath) cleanupContextFile(contextFilePath)
     if (session.localSessionId) {
       SessionTracker.endSession({
@@ -164,7 +218,28 @@ function createPtySession(
     try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
       LogService.warn('Terminal', `Failed to clean up active_session ${id}`, { error: (err as Error).message })
     }
-    getWin()?.webContents.send('terminal:exit', { id, exitCode })
+    let shiplineRun = null
+    try {
+      shiplineRun = ShiplineService.completeRunningStepForTerminal(id, exitCode, session.outputBuffer ?? '')
+    } catch (err) {
+      LogService.warn('Terminal', `Failed to update Shipline step for terminal ${id}`, { error: (err as Error).message })
+    }
+    const win = getWin()
+    win?.webContents.send('terminal:exit', { id, exitCode })
+    if (shiplineRun) win?.webContents.send('shipline:timeline-updated', shiplineRun)
+    Voight.emitEventSafe({
+      agentId: session.agentId ?? session.providerId ?? 'daemon-terminal',
+      type: 'action',
+      toolExecuted: 'terminal_exit',
+      outcome: exitCode === 0 ? 'success' : 'failed',
+      metadata: {
+        sessionId: session.localSessionId ?? id,
+        terminalId: id,
+        providerId: session.providerId,
+        exitCode,
+        linesGenerated: session.generatedLineCount ?? 0,
+      },
+    })
   })
 
   return session
@@ -179,10 +254,23 @@ export function registerTerminalHandlers() {
     const session = createPtySession(id, '', [], cwd, null, null, null, opts?.isAgent ?? false)
 
     if (opts?.startupCommand?.trim()) {
-      session.pty.write(`${opts.startupCommand.trim()}\r`)
+      session.pendingStartupCommand = opts.startupCommand.trim()
     }
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: null }
+    Voight.emitEventSafe({
+      agentId: opts?.isAgent ? 'daemon-terminal-agent' : 'daemon-terminal',
+      type: 'action',
+      toolExecuted: 'terminal_create',
+      outcome: 'success',
+      metadata: {
+        sessionId: id,
+        terminalId: id,
+        cwd,
+        isAgent: opts?.isAgent === true,
+        hasStartupCommand: Boolean(opts?.startupCommand?.trim()),
+      },
+    })
     return response
   }))
 
@@ -190,8 +278,9 @@ export function registerTerminalHandlers() {
     providerId: ProviderShellId
     projectId?: string
     cwd?: string
+    initialPrompt?: string
   }) => {
-    if (opts.providerId !== 'claude' && opts.providerId !== 'codex') {
+    if (opts.providerId !== 'claude' && opts.providerId !== 'codex' && opts.providerId !== 'spettro') {
       throw new Error('Unsupported provider')
     }
 
@@ -204,8 +293,11 @@ export function registerTerminalHandlers() {
     validateCwd(cwd)
 
     const id = crypto.randomUUID()
-    const session = createPtySession(id, '', [], cwd, null, null, opts.providerId, true)
-    session.pendingStartupCommand = getEmbeddedProviderStartupCommand(opts.providerId)
+    const promptFilePath = opts.initialPrompt?.trim()
+      ? writeProviderPromptFile(opts.providerId, opts.initialPrompt)
+      : null
+    const session = createPtySession(id, '', [], cwd, null, promptFilePath, opts.providerId, true)
+    session.pendingStartupCommand = buildPromptedProviderStartupCommand(opts.providerId, promptFilePath)
 
     if (opts.projectId) {
       getDb().prepare(
@@ -217,8 +309,22 @@ export function registerTerminalHandlers() {
       id,
       pid: session.pty.pid,
       agentId: null,
-      agentName: opts.providerId === 'claude' ? 'Claude' : 'Codex',
+      agentName: opts.providerId === 'claude' ? 'Claude' : opts.providerId === 'codex' ? 'Codex' : 'Spettro',
     }
+    Voight.emitEventSafe({
+      agentId: opts.providerId,
+      type: 'action',
+      toolExecuted: 'terminal_spawn_provider',
+      outcome: 'success',
+      input: { initialPrompt: opts.initialPrompt },
+      metadata: {
+        sessionId: id,
+        terminalId: id,
+        providerId: opts.providerId,
+        projectId: opts.projectId ?? null,
+        cwd,
+      },
+    })
     return response
   }))
 
@@ -251,22 +357,61 @@ export function registerTerminalHandlers() {
     ).run(id, opts.projectId, opts.agentId, id, session.pty.pid, Date.now())
 
     const response: TerminalCreateOutput = { id, pid: session.pty.pid, agentId: opts.agentId, agentName: agent.name, localSessionId }
+    Voight.emitEventSafe({
+      agentId: opts.agentId,
+      type: 'action',
+      toolExecuted: 'terminal_spawn_agent',
+      outcome: 'success',
+      input: { initialPrompt: opts.initialPrompt },
+      model: agent.model,
+      metadata: {
+        sessionId: localSessionId,
+        terminalId: id,
+        projectId: opts.projectId,
+        projectPath: project.path,
+        agentName: agent.name,
+      },
+    })
     return response
   }))
 
   ipcMain.on('terminal:write', (_event, id: string, data: string) => {
-    sessions.get(id)?.pty.write(data)
+    // PTY input is a privileged channel — only the trusted top frame may drive it.
+    if (!isTrustedSender(_event)) return
+    const session = sessions.get(id)
+    session?.pty.write(data)
+    if (session) {
+      Voight.emitEventSafe({
+        agentId: session.agentId ?? session.providerId ?? 'daemon-terminal',
+        type: 'tool',
+        toolExecuted: 'terminal_write',
+        outcome: 'success',
+        input: { command: data },
+        metadata: {
+          sessionId: session.localSessionId ?? id,
+          terminalId: id,
+          providerId: session.providerId,
+        },
+      })
+    }
   })
 
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) => {
+    if (!isTrustedSender(_event)) return
     try { sessions.get(id)?.pty.resize(cols, rows) } catch (err) {
       LogService.warn('Terminal', `Failed to resize terminal ${id}`, { error: (err as Error).message })
     }
   })
 
-  ipcMain.on('terminal:ready', (_event, id: string) => {
+  ipcMain.on('terminal:ready', (_event, id: string, cols?: number, rows?: number) => {
+    if (!isTrustedSender(_event)) return
     const session = sessions.get(id)
     if (!session) return
+    if (Number.isFinite(cols) && Number.isFinite(rows) && cols! > 1 && rows! > 0) {
+      try { session.pty.resize(Math.floor(cols!), Math.floor(rows!)) } catch (err) {
+        LogService.warn('Terminal', `Failed to resize terminal ${id} during ready`, { error: (err as Error).message })
+      }
+    }
     session.rendererReady = true
     const buffered = session.dataBuffer ?? []
     session.dataBuffer = []
@@ -288,6 +433,18 @@ export function registerTerminalHandlers() {
       try { getDb().prepare('DELETE FROM active_sessions WHERE id = ?').run(id) } catch (err) {
         LogService.warn('Terminal', `Failed to delete active_session on kill ${id}`, { error: (err as Error).message })
       }
+      Voight.flushTerminalOutput(id)
+      Voight.emitEventSafe({
+        agentId: session.agentId ?? session.providerId ?? 'daemon-terminal',
+        type: 'action',
+        toolExecuted: 'terminal_kill',
+        outcome: 'failed',
+        metadata: {
+          sessionId: session.localSessionId ?? id,
+          terminalId: id,
+          providerId: session.providerId,
+        },
+      })
     }
   }))
 

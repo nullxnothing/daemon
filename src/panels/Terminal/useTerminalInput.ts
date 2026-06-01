@@ -19,6 +19,65 @@ const COMMAND_HINTS = [
   'cargo test',
 ]
 
+export function stripTerminalControlSequencesForInputTracking(data: string): string {
+  let output = ''
+
+  for (let index = 0; index < data.length; index += 1) {
+    const char = data[index]
+    const code = char.charCodeAt(0)
+
+    if (char === '\u001b') {
+      const next = data[index + 1]
+      if (!next) continue
+
+      if (next === '[') {
+        index += 2
+        while (index < data.length) {
+          const finalCode = data.charCodeAt(index)
+          if (finalCode >= 0x40 && finalCode <= 0x7e) break
+          index += 1
+        }
+        continue
+      }
+
+      if (next === 'O') {
+        index += 2
+        continue
+      }
+
+      if (next === ']' || next === 'P' || next === '^' || next === '_') {
+        index += 2
+        while (index < data.length) {
+          if (data.charCodeAt(index) === 0x07) break
+          if (data[index] === '\u001b' && data[index + 1] === '\\') {
+            index += 1
+            break
+          }
+          index += 1
+        }
+        continue
+      }
+
+      index += 1
+      continue
+    }
+
+    if (code === 0x9b) {
+      index += 1
+      while (index < data.length) {
+        const finalCode = data.charCodeAt(index)
+        if (finalCode >= 0x40 && finalCode <= 0x7e) break
+        index += 1
+      }
+      continue
+    }
+
+    output += char
+  }
+
+  return output
+}
+
 export function useTerminalInput(terminalId: string) {
   const [currentInput, setCurrentInputState] = useState('')
   const [commandHistory, setCommandHistoryState] = useState<string[]>([])
@@ -71,7 +130,10 @@ export function useTerminalInput(terminalId: string) {
 
   const completionHints = useMemo(() => {
     const query = currentInput.trim().toLowerCase()
-    if (!query || historySearchOpen) return []
+    if (!query || historySearchOpen) {
+      completionHintsRef.current = []
+      return []
+    }
 
     const historyHints = [...commandHistory]
       .reverse()
@@ -126,8 +188,9 @@ export function useTerminalInput(terminalId: string) {
   }
 
   const trackInputFromData = (data: string) => {
+    const sanitizedData = stripTerminalControlSequencesForInputTracking(data)
     let nextInput = currentInputRef.current
-    for (const char of data) {
+    for (const char of sanitizedData) {
       if (char === '\r') {
         pushHistory(nextInput)
         nextInput = ''

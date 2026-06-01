@@ -39,9 +39,9 @@
 }
 
 .active {
-  background: var(--green-glow);
-  color: var(--green);
-  border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+  background: var(--tab-active-bg);
+  color: var(--tab-active-color);
+  border-color: var(--tab-active-border);
 }
 
 .active::after {

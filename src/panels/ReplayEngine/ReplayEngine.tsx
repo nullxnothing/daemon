@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReplayTrace, ReplayInstruction, ReplayProgramSummary, ReplayVerificationResult } from '../../../electron/shared/types'
 import { Dot } from '../../components/Dot'
+import { PanelHeader } from '../../components/Panel'
 import { useUIStore } from '../../store/ui'
 import './ReplayEngine.css'
 
@@ -271,16 +272,16 @@ export function ReplayEngine() {
 
   return (
     <div className="replay-panel" data-tour="replay-engine">
-      <header className="replay-header">
-        <div className="replay-header-title">
-          <h1>Replay Engine</h1>
-          <span className="replay-header-sub">Fork-and-replay debugger for Solana programs</span>
-        </div>
-        <div className="replay-header-meta">
-          <Dot color="green" />
-          <span className="replay-header-rpc">{rpcLabel ? new URL(rpcLabel).host : 'no RPC'}</span>
-        </div>
-      </header>
+      <PanelHeader
+        title="Replay Engine"
+        subtitle="Fork-and-replay debugger for Solana programs"
+        actions={
+          <div className="replay-header-meta">
+            <Dot color="green" />
+            <span className="replay-header-rpc">{rpcLabel ? new URL(rpcLabel).host : 'no RPC'}</span>
+          </div>
+        }
+      />
 
       <div className="replay-mode-tabs">
         <button
@@ -542,7 +543,7 @@ export function ReplayEngine() {
             <li>· Decoded instruction tree with inner instructions</li>
             <li>· Writable-account lamport and SPL token diffs</li>
             <li>· Anchor error code, account, and program decoded from logs</li>
-            <li>· One-click context handoff to Claude</li>
+            <li>· Context handoff to Claude</li>
           </ul>
         </div>
       ) : null}

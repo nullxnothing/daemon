@@ -12,6 +12,20 @@ import type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  MoonpayOnrampResult,
+  MoonpayStatus,
+  ForensicsBlacklistResult,
+  ForensicsExpandInput,
+  ForensicsExpandResult,
+  ForensicsHolderPollResult,
+  ForensicsScanInput,
+  ForensicsScanResult,
+  ForensicsGraphData,
+  ForensicsGraphNode,
+  RicoMapsEmbedStatus,
+  JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
   CodexConnection,
@@ -45,6 +59,8 @@ import type {
   TweetUpdateInput,
   WalletCreateInput,
   WalletGenerateInput,
+  ExternalSolTransferDraft,
+  SubmitExternalSignedTransactionInput,
   TransferSOLInput,
   TransferTokenInput,
   SolanaTransactionPreview,
@@ -57,6 +73,9 @@ import type {
   DeployAuthStatus,
   DeployStatus,
   DeploymentEntry,
+  ShiplineCreateRunInput,
+  ShiplineRun,
+  ShiplineUpdateStepInput,
   VercelLink,
   RailwayLink,
   VercelEnvVar,
@@ -95,6 +114,41 @@ import type {
   LspLocation,
   LspPosition,
   LspServerStatus,
+  DaemonAiChatRequest,
+  DaemonAiChatResponse,
+  DaemonAiFeatureState,
+  DaemonAiAgentRun,
+  DaemonAiAgentRunInput,
+  DaemonAiModelInfo,
+  DaemonAiPatchApplyInput,
+  DaemonAiPatchApplyResult,
+  DaemonAiPatchDecisionInput,
+  DaemonAiPatchProposal,
+  DaemonAiPatchProposalInput,
+  DaemonAiToolApprovalDecisionInput,
+  DaemonAiToolApprovalRequest,
+  DaemonAiToolCallInput,
+  DaemonAiUsageSnapshot,
+  MeterflowAgentSession,
+  MeterflowBudget,
+  MeterflowCsvExport,
+  MeterflowDemoWallet,
+  MeterflowMeter,
+  MeterflowOverview,
+  MeterflowPaidAgentReadinessInput,
+  MeterflowPaidAgentReadinessResult,
+  MeterflowReceipt,
+  MeterflowReceiptDetail,
+  MeterflowReceiptGraph,
+  MeterflowReceiptsQuery,
+  MeterflowRevenueRow,
+  MeterflowStatus,
+  MeterflowWalletReadiness,
+  MeterflowWatchProjectResult,
+  MeterflowWebhook,
+  VoightPrivacyLevel,
+  VoightStatus,
+  VoightTestResult,
 } from '../../electron/shared/types'
 
 export type {
@@ -111,6 +165,20 @@ export type {
   SecureKeyEntry,
   WalletListEntry,
   WalletDashboard,
+  MoonpayKeysInput,
+  MoonpayOnrampInput,
+  MoonpayOnrampResult,
+  MoonpayStatus,
+  ForensicsBlacklistResult,
+  ForensicsExpandInput,
+  ForensicsExpandResult,
+  ForensicsHolderPollResult,
+  ForensicsScanInput,
+  ForensicsScanResult,
+  ForensicsGraphData,
+  ForensicsGraphNode,
+  RicoMapsEmbedStatus,
+  JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
   CodexConnection,
@@ -144,6 +212,8 @@ export type {
   TweetUpdateInput,
   WalletCreateInput,
   WalletGenerateInput,
+  ExternalSolTransferDraft,
+  SubmitExternalSignedTransactionInput,
   TransferSOLInput,
   TransferTokenInput,
   SolanaTransactionPreview,
@@ -189,6 +259,41 @@ export type {
   LspLocation,
   LspPosition,
   LspServerStatus,
+  DaemonAiChatRequest,
+  DaemonAiChatResponse,
+  DaemonAiFeatureState,
+  DaemonAiAgentRun,
+  DaemonAiAgentRunInput,
+  DaemonAiModelInfo,
+  DaemonAiPatchApplyInput,
+  DaemonAiPatchApplyResult,
+  DaemonAiPatchDecisionInput,
+  DaemonAiPatchProposal,
+  DaemonAiPatchProposalInput,
+  DaemonAiToolApprovalDecisionInput,
+  DaemonAiToolApprovalRequest,
+  DaemonAiToolCallInput,
+  DaemonAiUsageSnapshot,
+  MeterflowAgentSession,
+  MeterflowBudget,
+  MeterflowCsvExport,
+  MeterflowDemoWallet,
+  MeterflowMeter,
+  MeterflowOverview,
+  MeterflowPaidAgentReadinessInput,
+  MeterflowPaidAgentReadinessResult,
+  MeterflowReceipt,
+  MeterflowReceiptDetail,
+  MeterflowReceiptGraph,
+  MeterflowReceiptsQuery,
+  MeterflowRevenueRow,
+  MeterflowStatus,
+  MeterflowWalletReadiness,
+  MeterflowWatchProjectResult,
+  MeterflowWebhook,
+  VoightPrivacyLevel,
+  VoightStatus,
+  VoightTestResult,
 }
 
 declare global {
@@ -221,19 +326,60 @@ declare global {
       createPath: string
       chain: string
     }
+    openbid: {
+      apiBaseUrl: string
+      chainId: string
+      dex: 'meteora' | 'raydium' | ''
+      feeTier: string
+      packageType: 'based' | 'super_based' | 'ultra_based' | ''
+      marketCap: string
+      totalSupply: string
+      maxAllocationPerUser: string
+      referrer: string
+      board: string
+      boardOwner: string
+    }
+  }
+
+  type OpenBidLaunchInputConfig = {
+    chain?: 'solana'
+    apiBaseUrl?: string
+    chainId?: string
+    dex?: 'meteora' | 'raydium' | ''
+    feeTier?: string
+    packageType?: 'based' | 'super_based' | 'ultra_based' | ''
+    marketCap?: string
+    totalSupply?: string
+    maxAllocationPerUser?: string
+    initialBuyPercent?: number
+    referrer?: string
+    board?: string
+    boardOwner?: string
+    saleStartTime?: number | null
+    softCap?: string
+    endTime?: number | null
+    whitelistedAddresses?: string[]
+    buyFeePercent?: number
+    sellFeePercent?: number
+    referralFeePercent?: number
+    graduationFeePercent?: number
+    dynamicFee?: boolean
   }
 
   type WalletInfrastructureSettings = {
+    cluster: 'devnet' | 'mainnet-beta' | 'localnet'
     rpcProvider: 'helius' | 'public' | 'quicknode' | 'custom'
     quicknodeRpcUrl: string
     customRpcUrl: string
     swapProvider: 'jupiter'
-    preferredWallet: 'phantom' | 'wallet-standard'
+    preferredWallet: 'phantom' | 'solflare' | 'wallet-standard'
     executionMode: 'rpc' | 'jito'
     jitoBlockEngineUrl: string
   }
 
   type WalletExecutionResult = {
+    id?: string
+    status?: 'confirmed'
     signature: string
     transport: 'rpc' | 'jito' | 'jupiter'
   }
@@ -254,6 +400,7 @@ declare global {
   }
 
   type SolanaRuntimeStatusSummary = {
+    cluster: 'devnet' | 'mainnet-beta' | 'localnet'
     rpc: {
       label: string
       detail: string
@@ -290,6 +437,11 @@ declare global {
   type SecureKeyEntry = import('../../electron/shared/types').SecureKeyEntry
   type WalletListEntry = import('../../electron/shared/types').WalletListEntry
   type WalletDashboard = import('../../electron/shared/types').WalletDashboard
+  type MoonpayKeysInput = import('../../electron/shared/types').MoonpayKeysInput
+  type MoonpayOnrampInput = import('../../electron/shared/types').MoonpayOnrampInput
+  type MoonpayOnrampResult = import('../../electron/shared/types').MoonpayOnrampResult
+  type MoonpayStatus = import('../../electron/shared/types').MoonpayStatus
+  type JupiterTokenSearchResult = import('../../electron/shared/types').JupiterTokenSearchResult
   type MarketTickerEntry = import('../../electron/shared/types').MarketTickerEntry
   type ClaudeMdData = import('../../electron/shared/types').ClaudeMdData
   type ClaudeConnection = import('../../electron/shared/types').ClaudeConnection
@@ -305,6 +457,9 @@ declare global {
   type DeployAuthStatus = import('../../electron/shared/types').DeployAuthStatus
   type DeployStatus = import('../../electron/shared/types').DeployStatus
   type DeploymentEntry = import('../../electron/shared/types').DeploymentEntry
+  type ShiplineCreateRunInput = import('../../electron/shared/types').ShiplineCreateRunInput
+  type ShiplineRun = import('../../electron/shared/types').ShiplineRun
+  type ShiplineUpdateStepInput = import('../../electron/shared/types').ShiplineUpdateStepInput
   type VercelLink = import('../../electron/shared/types').VercelLink
   type RailwayLink = import('../../electron/shared/types').RailwayLink
   type VercelEnvVar = import('../../electron/shared/types').VercelEnvVar
@@ -329,6 +484,42 @@ declare global {
   type ArenaSubmission = import('../../electron/shared/types').ArenaSubmission
   type ArenaSubmissionInput = import('../../electron/shared/types').ArenaSubmissionInput
   type ProSkillManifest = import('../../electron/shared/types').ProSkillManifest
+  type DaemonAiChatRequest = import('../../electron/shared/types').DaemonAiChatRequest
+  type DaemonAiChatResponse = import('../../electron/shared/types').DaemonAiChatResponse
+  type DaemonAiFeatureState = import('../../electron/shared/types').DaemonAiFeatureState
+  type DaemonAiAgentRun = import('../../electron/shared/types').DaemonAiAgentRun
+  type DaemonAiAgentRunInput = import('../../electron/shared/types').DaemonAiAgentRunInput
+  type DaemonAiModelInfo = import('../../electron/shared/types').DaemonAiModelInfo
+  type DaemonAiPatchApplyInput = import('../../electron/shared/types').DaemonAiPatchApplyInput
+  type DaemonAiPatchApplyResult = import('../../electron/shared/types').DaemonAiPatchApplyResult
+  type DaemonAiPatchDecisionInput = import('../../electron/shared/types').DaemonAiPatchDecisionInput
+  type DaemonAiPatchProposal = import('../../electron/shared/types').DaemonAiPatchProposal
+  type DaemonAiPatchProposalInput = import('../../electron/shared/types').DaemonAiPatchProposalInput
+  type DaemonAiToolApprovalDecisionInput = import('../../electron/shared/types').DaemonAiToolApprovalDecisionInput
+  type DaemonAiToolApprovalRequest = import('../../electron/shared/types').DaemonAiToolApprovalRequest
+  type DaemonAiToolCallInput = import('../../electron/shared/types').DaemonAiToolCallInput
+  type DaemonAiUsageSnapshot = import('../../electron/shared/types').DaemonAiUsageSnapshot
+  type SeekerApprovalRequest = import('../../electron/services/SeekerRelayService').SeekerApprovalRequest
+  type SeekerApprovalStatus = import('../../electron/services/SeekerRelayService').SeekerApprovalStatus
+  type SeekerProjectSnapshot = import('../../electron/services/SeekerRelayService').SeekerProjectSnapshot
+  type SeekerRelayStatus = import('../../electron/services/SeekerRelayService').SeekerRelayStatus
+
+  interface SeekerSessionSnapshot {
+    session: {
+      id: string
+      pairingCode: string
+      relayUrl: string
+      deepLink: string
+      projectName: string
+      status: 'pairing' | 'paired' | 'expired'
+      expiresAt: number
+      pairedAt: number | null
+      pairedDevice: string | null
+    }
+    project: SeekerProjectSnapshot
+    approvals: SeekerApprovalRequest[]
+    events: Array<{ type: string; payload?: Record<string, unknown>; receivedAt?: number }>
+  }
 
   interface DaemonWindow {
     minimize: () => void
@@ -342,8 +533,8 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
-    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
-    ready: (id: string) => void
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null; agentName?: string }>>
+    ready: (id: string, cols?: number, rows?: number) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
     kill: (id: string) => Promise<IpcResponse>
@@ -411,11 +602,13 @@ declare global {
     readDir: (dirPath: string, depth?: number) => Promise<IpcResponse<FileEntry[]>>
     readFile: (filePath: string) => Promise<IpcResponse<{ content: string; path: string }>>
     readImageBase64: (filePath: string) => Promise<IpcResponse<{ dataUrl: string; size: number }>>
+    readPickedImageBase64: (filePath: string) => Promise<IpcResponse<{ dataUrl: string; size: number }>>
     writeImageFromBase64: (filePath: string, base64: string) => Promise<IpcResponse>
     pickImage: () => Promise<IpcResponse<string | null>>
     writeFile: (filePath: string, content: string) => Promise<IpcResponse>
     createFile: (filePath: string) => Promise<IpcResponse>
     createDir: (dirPath: string) => Promise<IpcResponse>
+    importPaths: (sourcePaths: string[], destDir: string) => Promise<IpcResponse<string[]>>
     rename: (oldPath: string, newPath: string) => Promise<IpcResponse>
     delete: (targetPath: string) => Promise<IpcResponse>
     reveal: (targetPath: string) => Promise<IpcResponse>
@@ -443,6 +636,27 @@ declare global {
     openDialog: () => Promise<IpcResponse<string | null>>
   }
 
+  interface AgentOpsOpenRequest {
+    asset?: string
+    network?: 'solana-devnet' | 'solana-mainnet'
+    service?: string
+    price?: string
+    sourceUrl: string
+    receivedAt: string
+  }
+
+  interface AgentOpsDerivedAccounts {
+    agentIdentityPda?: string
+    assetSignerPda?: string
+  }
+
+  interface DaemonAgentOps {
+    getPendingOpenRequest: () => Promise<AgentOpsOpenRequest | null>
+    ackOpenRequest: (receivedAt: string) => Promise<boolean>
+    deriveAccounts: (assetAddress: string) => Promise<IpcResponse<AgentOpsDerivedAccounts>>
+    onOpenRequest: (callback: (payload: AgentOpsOpenRequest) => void) => () => void
+  }
+
   interface DaemonWallet {
     dashboard: (projectId?: string | null) => Promise<IpcResponse<WalletDashboard>>
     list: () => Promise<IpcResponse<WalletListEntry[]>>
@@ -457,17 +671,28 @@ declare global {
     storeJupiterKey: (value: string) => Promise<IpcResponse>
     deleteJupiterKey: () => Promise<IpcResponse>
     hasJupiterKey: () => Promise<IpcResponse<boolean>>
+    moonpayStatus: () => Promise<IpcResponse<MoonpayStatus>>
+    storeMoonpayKeys: (input: MoonpayKeysInput) => Promise<IpcResponse<MoonpayStatus>>
+    deleteMoonpayKeys: () => Promise<IpcResponse>
+    openMoonpayOnramp: (input: MoonpayOnrampInput) => Promise<IpcResponse<MoonpayOnrampResult>>
     generate: (input: { name: string; walletType?: string; agentId?: string }) => Promise<IpcResponse<WalletListEntry>>
+    importSigningWallet: (input: { name: string; privateKey?: string }) => Promise<IpcResponse<WalletListEntry | null>>
+    importKeypair: (walletId: string, privateKey?: string) => Promise<IpcResponse<boolean>>
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
+    prepareExternalSolTransfer: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => Promise<IpcResponse<ExternalSolTransferDraft>>
+    submitExternalSignedTransaction: (input: SubmitExternalSignedTransactionInput) => Promise<IpcResponse<WalletExecutionResult>>
+    cancelExternalTransaction: (id: string, reason?: string) => Promise<IpcResponse>
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
-    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; requestId: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    searchJupiterTokens: (query: string) => Promise<IpcResponse<JupiterTokenSearchResult[]>>
     transactionPreview: (input: SolanaTransactionPreviewInput) => Promise<IpcResponse<SolanaTransactionPreview>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     agentWallets: (agentId?: string) => Promise<IpcResponse<Array<{ id: string; name: string; address: string; is_default: number; agent_id: string; wallet_type: string; created_at: number; assigned_project_ids: string[] }>>>
     createAgentWallet: (agentId: string, agentName: string) => Promise<IpcResponse<{ id: string; name: string; address: string; is_default: number; wallet_type: string; agent_id: string | null; created_at: number }>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+    signMessage: (walletId: string, message: string) => Promise<IpcResponse<{ walletAddress: string; signatureBase58: string; message: string }>>
     transactionHistory: (walletId: string, limit?: number) => Promise<IpcResponse<Array<{ id: string; wallet_id: string; type: string; signature: string | null; from_address: string; to_address: string; amount: number; mint: string | null; symbol: string | null; status: string; error: string | null; created_at: number }>>>
     exportPrivateKey: (walletId: string) => Promise<IpcResponse<boolean>>
   }
@@ -506,6 +731,7 @@ declare global {
     getAppMeta: () => Promise<IpcResponse<AppMeta>>
     setShowMarketTape: (enabled: boolean) => Promise<IpcResponse>
     setShowTitlebarWallet: (enabled: boolean) => Promise<IpcResponse>
+    setLowPowerMode: (enabled: boolean) => Promise<IpcResponse>
     isOnboardingComplete: () => Promise<IpcResponse<boolean>>
     setOnboardingComplete: (complete: boolean) => Promise<IpcResponse>
     getOnboardingProgress: () => Promise<IpcResponse<OnboardingProgress>>
@@ -583,6 +809,14 @@ declare global {
     autoDetect: (projectPath: string) => Promise<IpcResponse<Record<string, unknown[]>>>
   }
 
+  interface DaemonShipline {
+    createTimeline: (input: ShiplineCreateRunInput) => Promise<IpcResponse<ShiplineRun>>
+    listTimelines: (projectId?: string | null, limit?: number) => Promise<IpcResponse<ShiplineRun[]>>
+    getTimeline: (id: string) => Promise<IpcResponse<ShiplineRun | null>>
+    updateStep: (input: ShiplineUpdateStepInput) => Promise<IpcResponse<ShiplineRun>>
+    onTimelineUpdated: (callback: (run: ShiplineRun) => void) => () => void
+  }
+
   interface DaemonShell {
     openExternal: (url: string) => Promise<void>
   }
@@ -606,6 +840,47 @@ declare global {
     pickImage: () => Promise<IpcResponse<string | null>>
     hasKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
     importKeypair: (walletId: string) => Promise<IpcResponse<boolean>>
+  }
+
+  type ProofPool = import('../../electron/shared/types').ProofPool
+  type ProofPoolDetail = import('../../electron/shared/types').ProofPoolDetail
+  type ProofEscrowStatus = import('../../electron/shared/types').ProofEscrowStatus
+  type CreateProofPoolInput = import('../../electron/shared/types').CreateProofPoolInput
+  type VerifyProofBackingInput = import('../../electron/shared/types').VerifyProofBackingInput
+  type ImportProofVanityMintInput = import('../../electron/shared/types').ImportProofVanityMintInput
+  type ProofBackingActionInput = import('../../electron/shared/types').ProofBackingActionInput
+  type ProofPoolLaunchResult = import('../../electron/shared/types').ProofPoolLaunchResult
+  type ProofCollectFeesResult = import('../../electron/shared/types').ProofCollectFeesResult
+  type ProofEscrowExportResult = import('../../electron/shared/types').ProofEscrowExportResult
+  type ProofPartnerCredentialStatus = import('../../electron/shared/types').ProofPartnerCredentialStatus
+  type ConfigureProofPartnerCredentialsInput = import('../../electron/shared/types').ConfigureProofPartnerCredentialsInput
+  type CreateProofPartnerSessionInput = import('../../electron/shared/types').CreateProofPartnerSessionInput
+  type ProofPartnerSession = import('../../electron/shared/types').ProofPartnerSession
+
+  interface DaemonProof {
+    escrowStatus: () => Promise<IpcResponse<ProofEscrowStatus>>
+    configureEscrow: (input?: { privateKeyBase58?: string | null; allowRotation?: boolean | null }) => Promise<IpcResponse<ProofEscrowStatus>>
+    exportEscrow: () => Promise<IpcResponse<ProofEscrowExportResult>>
+    listPools: () => Promise<IpcResponse<ProofPool[]>>
+    getPool: (poolId: string) => Promise<IpcResponse<ProofPoolDetail>>
+    createPool: (input: CreateProofPoolInput) => Promise<IpcResponse<ProofPoolDetail>>
+    verifyBacking: (input: VerifyProofBackingInput) => Promise<IpcResponse<ProofPoolDetail>>
+    launchPool: (poolId: string) => Promise<IpcResponse<ProofPoolLaunchResult>>
+    distributePool: (poolId: string) => Promise<IpcResponse<ProofPoolDetail>>
+    distributeBacking: (input: ProofBackingActionInput) => Promise<IpcResponse<ProofPoolDetail>>
+    refundPool: (poolId: string) => Promise<IpcResponse<ProofPoolDetail>>
+    refundBacking: (input: ProofBackingActionInput) => Promise<IpcResponse<ProofPoolDetail>>
+    collectFees: (poolId: string) => Promise<IpcResponse<ProofCollectFeesResult>>
+    claimFees: (input: { backingId: string }) => Promise<IpcResponse<{ signature: string; amountSol: number }>>
+    importVanityMint: (input: ImportProofVanityMintInput) => Promise<IpcResponse<{ id: string; address: string }>>
+    pickImage: () => Promise<IpcResponse<string | null>>
+    partnerConfigStatus: () => Promise<IpcResponse<ProofPartnerCredentialStatus>>
+    configurePartnerCredentials: (input: ConfigureProofPartnerCredentialsInput) => Promise<IpcResponse<ProofPartnerCredentialStatus>>
+    listPartnerSessions: () => Promise<IpcResponse<ProofPartnerSession[]>>
+    createPartnerSession: (input: CreateProofPartnerSessionInput) => Promise<IpcResponse<ProofPartnerSession>>
+    getPartnerSession: (sessionId: string) => Promise<IpcResponse<ProofPartnerSession>>
+    pollPartnerSession: (sessionId: string) => Promise<IpcResponse<ProofPartnerSession>>
+    partnerPrefill: (sessionId: string) => Promise<IpcResponse<unknown>>
   }
 
   interface DaemonTweets {
@@ -745,7 +1020,7 @@ declare global {
     created_at: number
   }
 
-  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'bags' | 'bonk'
+  type LaunchpadId = 'pumpfun' | 'raydium' | 'meteora' | 'printr' | 'openbid' | 'bags' | 'bonk'
   type LaunchpadStatus = 'available' | 'planned'
 
   type PulseTokenCategory = 'newly-created' | 'almost-graduated' | 'graduated'
@@ -839,6 +1114,7 @@ declare global {
       slippageBps: number
       priorityFeeSol: number
       mayhemMode?: boolean
+      openbid?: OpenBidLaunchInputConfig
     }) => Promise<IpcResponse<TokenLaunchPreflight>>
     createToken: (input: {
       launchpad: LaunchpadId
@@ -855,6 +1131,7 @@ declare global {
       slippageBps: number
       priorityFeeSol: number
       mayhemMode?: boolean
+      openbid?: OpenBidLaunchInputConfig
     }) => Promise<IpcResponse<TokenLaunchResult>>
     saveToken: (input: {
       walletId: string
@@ -942,6 +1219,175 @@ declare global {
     isConfigured: () => Promise<IpcResponse<boolean>>
   }
 
+  type IdleResource = import('../../electron/shared/types').IdleResource
+  type IdleBudgetPolicy = import('../../electron/shared/types').IdleBudgetPolicy
+  type IdlePolicyCheckInput = import('../../electron/shared/types').IdlePolicyCheckInput
+  type IdlePolicyCheckResult = import('../../electron/shared/types').IdlePolicyCheckResult
+  type IdlePaidCallInput = import('../../electron/shared/types').IdlePaidCallInput
+  type IdlePaidCallReceipt = import('../../electron/shared/types').IdlePaidCallReceipt
+  type IdleRegistryStatus = import('../../electron/shared/types').IdleRegistryStatus
+  type MeterflowStatus = import('../../electron/shared/types').MeterflowStatus
+  type MeterflowOverview = import('../../electron/shared/types').MeterflowOverview
+  type MeterflowReceipt = import('../../electron/shared/types').MeterflowReceipt
+  type MeterflowReceiptsQuery = import('../../electron/shared/types').MeterflowReceiptsQuery
+  type MeterflowReceiptDetail = import('../../electron/shared/types').MeterflowReceiptDetail
+  type MeterflowReceiptGraph = import('../../electron/shared/types').MeterflowReceiptGraph
+  type MeterflowMeter = import('../../electron/shared/types').MeterflowMeter
+  type MeterflowBudget = import('../../electron/shared/types').MeterflowBudget
+  type MeterflowAgentSession = import('../../electron/shared/types').MeterflowAgentSession
+  type MeterflowWebhook = import('../../electron/shared/types').MeterflowWebhook
+  type MeterflowRevenueRow = import('../../electron/shared/types').MeterflowRevenueRow
+  type MeterflowCsvExport = import('../../electron/shared/types').MeterflowCsvExport
+  type MeterflowDemoWallet = import('../../electron/shared/types').MeterflowDemoWallet
+  type MeterflowWalletReadiness = import('../../electron/shared/types').MeterflowWalletReadiness
+  type VoightPrivacyLevel = import('../../electron/shared/types').VoightPrivacyLevel
+  type VoightStatus = import('../../electron/shared/types').VoightStatus
+  type VoightTestResult = import('../../electron/shared/types').VoightTestResult
+  type MeterflowPaidAgentReadinessInput = import('../../electron/shared/types').MeterflowPaidAgentReadinessInput
+  type MeterflowPaidAgentReadinessResult = import('../../electron/shared/types').MeterflowPaidAgentReadinessResult
+  type MeterflowWatchProjectResult = import('../../electron/shared/types').MeterflowWatchProjectResult
+
+  interface DaemonIdle {
+    status: (registryUrl?: string | null) => Promise<IpcResponse<IdleRegistryStatus>>
+    refreshRegistry: (input?: { registryUrl?: string | null }) => Promise<IpcResponse<IdleResource[]>>
+    listResources: (limit?: number) => Promise<IpcResponse<IdleResource[]>>
+    checkPolicy: (input: IdlePolicyCheckInput) => Promise<IpcResponse<IdlePolicyCheckResult>>
+    executePaidCall: (input: IdlePaidCallInput) => Promise<IpcResponse<IdlePaidCallReceipt>>
+    listReceipts: (limit?: number) => Promise<IpcResponse<IdlePaidCallReceipt[]>>
+  }
+
+  interface DaemonMeterflow {
+    status: () => Promise<IpcResponse<MeterflowStatus>>
+    storeApiKey: (apiKey: string) => Promise<IpcResponse<MeterflowStatus>>
+    deleteApiKey: () => Promise<IpcResponse<{ deleted: boolean }>>
+    overview: () => Promise<IpcResponse<MeterflowOverview>>
+    listReceipts: (input?: MeterflowReceiptsQuery | number) => Promise<IpcResponse<MeterflowReceipt[]>>
+    getReceipt: (receiptId: string) => Promise<IpcResponse<MeterflowReceiptDetail>>
+    ingestReceipt: (receipt: object) => Promise<IpcResponse<MeterflowReceipt>>
+    createDemoWallet: () => Promise<IpcResponse<MeterflowDemoWallet>>
+    getDemoWallet: () => Promise<IpcResponse<MeterflowDemoWallet | null>>
+    checkDemoWalletReadiness: () => Promise<IpcResponse<MeterflowWalletReadiness>>
+    callPaidAgentReadiness: (input: MeterflowPaidAgentReadinessInput) => Promise<IpcResponse<MeterflowPaidAgentReadinessResult>>
+    watchProject: (projectPath: string) => Promise<IpcResponse<MeterflowWatchProjectResult>>
+    getReceiptGraph: (receiptId: string) => Promise<IpcResponse<MeterflowReceiptGraph>>
+    listMeters: () => Promise<IpcResponse<MeterflowMeter[]>>
+    testMeter: (meterId: string) => Promise<IpcResponse<Record<string, unknown>>>
+    listBudgets: () => Promise<IpcResponse<MeterflowBudget[]>>
+    listAgentSessions: () => Promise<IpcResponse<MeterflowAgentSession[]>>
+    listWebhooks: () => Promise<IpcResponse<MeterflowWebhook[]>>
+    providerRevenue: () => Promise<IpcResponse<MeterflowRevenueRow[]>>
+    registrySummary: () => Promise<IpcResponse<Record<string, unknown>>>
+    exportReceiptsCsv: () => Promise<IpcResponse<MeterflowCsvExport>>
+  }
+
+  interface MetaplexCoreAgentAssetReceipt {
+    id: string
+    createdAt: string
+    action: 'metaplex-core-agent-asset-create'
+    network: 'devnet'
+    wallet: string
+    asset: string
+    signature: string
+    explorerUrl: string
+    docsUrl: string
+    postWriteRead: {
+      ok: boolean
+      name?: string
+      uri?: string
+      owner?: string
+      error?: string
+    }
+    safety: {
+      walletApproval: true
+      liveWrite: true
+      mainnetBlocked: true
+      nextBlockedActions: string[]
+    }
+  }
+
+  interface MetaplexRegisteredAgentReceipt {
+    id: string
+    createdAt: string
+    action: 'metaplex-agent-mint-and-register'
+    network: 'devnet'
+    wallet: string
+    asset: string
+    signature: string
+    explorerUrl: string
+    docsUrl: string
+    agentMetadata: {
+      type: 'agent'
+      name: string
+      description: string
+      services: Array<{ name: string; endpoint: string }>
+      registrations: Array<{ agentId: string; agentRegistry: string }>
+      supportedTrust: string[]
+    }
+  }
+
+  interface MetaplexRegisterAgentIdentityReceipt {
+    id: string
+    createdAt: string
+    action: 'metaplex-agent-register-identity'
+    network: 'devnet'
+    wallet: string
+    asset: string
+    agentIdentityPda: string
+    signature: string
+    explorerUrl: string
+    docsUrl: string
+  }
+
+  interface MetaplexReadAgentIdentityResult {
+    registered: boolean
+    network: 'devnet' | 'mainnet-beta'
+    asset: string
+    agentIdentityPda: string
+    identity?: {
+      publicKey: string
+      bump: number
+      asset: string
+    }
+  }
+
+  interface DaemonMetaplex {
+    createCoreAgentAsset: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      name: string
+      uri: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => Promise<IpcResponse<MetaplexCoreAgentAssetReceipt>>
+    mintRegisteredAgent: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      name: string
+      description: string
+      uri: string
+      serviceUrl: string
+      priceUsdc: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => Promise<IpcResponse<MetaplexRegisteredAgentReceipt>>
+    registerAgentIdentity: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      assetAddress: string
+      agentRegistrationUri: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => Promise<IpcResponse<MetaplexRegisterAgentIdentityReceipt>>
+    readAgentIdentity: (input: {
+      network: 'devnet' | 'mainnet-beta'
+      rpcUrl: string
+      assetAddress: string
+    }) => Promise<IpcResponse<MetaplexReadAgentIdentityResult>>
+  }
+
   interface DaemonCodex {
     verifyConnection: () => Promise<IpcResponse<CodexConnection>>
     getConnection: () => Promise<IpcResponse<CodexConnection | null>>
@@ -964,11 +1410,34 @@ declare global {
     codex: { providerId: 'codex'; cliPath: string; hasApiKey: boolean; isAuthenticated: boolean; authMode: string } | null
   }
 
+  type ProviderId = 'claude' | 'codex'
+  type ProviderFeatureId = 'aria' | 'daemonAi' | 'agents' | 'terminal'
+  interface ProviderPreferences {
+    aria: {
+      provider: ProviderId
+      model: 'fast' | 'standard' | 'reasoning'
+    }
+    daemonAi: {
+      accessMode: 'auto' | 'hosted' | 'byok'
+      byokProvider: ProviderId
+      modelLane: 'auto' | 'fast' | 'standard' | 'reasoning' | 'premium'
+    }
+    agents: {
+      defaultProvider: ProviderId
+    }
+    terminal: {
+      defaultProvider: ProviderId
+    }
+  }
+
   interface DaemonProvider {
     verifyAll: () => Promise<IpcResponse<ProviderConnectionMap>>
     getAllConnections: () => Promise<IpcResponse<ProviderConnectionMap>>
     getDefault: () => Promise<IpcResponse<string>>
     setDefault: (id: string) => Promise<IpcResponse<{ defaultProvider: string }>>
+    getPreferences: () => Promise<IpcResponse<ProviderPreferences>>
+    setPreferences: (preferences: Partial<ProviderPreferences>) => Promise<IpcResponse<ProviderPreferences>>
+    resolveFeatureProvider: (featureId: ProviderFeatureId) => Promise<IpcResponse<ProviderId>>
   }
 
   interface DaemonActivityEntry {
@@ -1032,6 +1501,15 @@ declare global {
     recent: (limit?: number) => Promise<IpcResponse<TelemetryEventRecord[]>>
   }
 
+  interface DaemonVoight {
+    status: () => Promise<IpcResponse<VoightStatus>>
+    storeKey: (value: string) => Promise<IpcResponse<VoightStatus>>
+    deleteKey: () => Promise<IpcResponse<VoightStatus>>
+    testEvent: () => Promise<IpcResponse<VoightTestResult>>
+    setPrivacyLevel: (level: VoightPrivacyLevel) => Promise<IpcResponse<VoightStatus>>
+    flushQueue: () => Promise<IpcResponse<{ sent: number; failed: number; pending: number }>>
+  }
+
   interface DaemonPro {
     status: () => Promise<IpcResponse<ProSubscriptionState>>
     refreshStatus: (walletAddress: string) => Promise<IpcResponse<ProSubscriptionState>>
@@ -1050,8 +1528,50 @@ declare global {
     mcpPull: () => Promise<IpcResponse<{ count: number }>>
   }
 
+  interface DaemonSeeker {
+    relayStart: (port?: number) => Promise<IpcResponse<SeekerRelayStatus>>
+    relayStop: () => Promise<IpcResponse<{ stopped: boolean }>>
+    relayStatus: () => Promise<IpcResponse<SeekerRelayStatus>>
+    createSession: (input?: {
+      projectId?: string | null
+      projectPath?: string | null
+      projectName?: string | null
+      project?: Partial<SeekerProjectSnapshot> | null
+      seedDemoApprovals?: boolean
+    }) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    getSession: (pairingCode: string) => Promise<IpcResponse<SeekerSessionSnapshot | null>>
+    listSessions: () => Promise<IpcResponse<SeekerSessionSnapshot[]>>
+    updateProject: (pairingCode: string, project: Partial<SeekerProjectSnapshot>) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    addApproval: (pairingCode: string, approval: Omit<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'> & Partial<Pick<SeekerApprovalRequest, 'id' | 'status' | 'createdAt'>>) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    updateApprovalStatus: (pairingCode: string, approvalId: string, status: SeekerApprovalStatus) => Promise<IpcResponse<SeekerSessionSnapshot>>
+    clearSession: (pairingCode: string) => Promise<IpcResponse<{ cleared: boolean }>>
+  }
+
+  interface DaemonAI {
+    chat: (input: DaemonAiChatRequest) => Promise<IpcResponse<DaemonAiChatResponse>>
+    streamChat: (input: DaemonAiChatRequest) => Promise<IpcResponse<DaemonAiChatResponse>>
+    getUsage: () => Promise<IpcResponse<DaemonAiUsageSnapshot>>
+    getModels: () => Promise<IpcResponse<DaemonAiModelInfo[]>>
+    getFeatures: () => Promise<IpcResponse<DaemonAiFeatureState>>
+    summarizeContext: (input: DaemonAiChatRequest) => Promise<IpcResponse<{ usedContext: string[]; preview: string }>>
+    createAgentRun: (input: DaemonAiAgentRunInput) => Promise<IpcResponse<DaemonAiAgentRun>>
+    getAgentRun: (runId: string) => Promise<IpcResponse<DaemonAiAgentRun>>
+    listAgentRuns: (limit?: number) => Promise<IpcResponse<DaemonAiAgentRun[]>>
+    cancelAgentRun: (runId: string) => Promise<IpcResponse<DaemonAiAgentRun>>
+    requestToolApproval: (input: DaemonAiToolCallInput) => Promise<IpcResponse<DaemonAiToolApprovalRequest>>
+    approveToolCall: (input: DaemonAiToolApprovalDecisionInput) => Promise<IpcResponse<DaemonAiToolApprovalRequest>>
+    listToolApprovals: (runId: string) => Promise<IpcResponse<DaemonAiToolApprovalRequest[]>>
+    createPatchProposal: (input: DaemonAiPatchProposalInput) => Promise<IpcResponse<DaemonAiPatchProposal>>
+    getPatchProposal: (proposalId: string) => Promise<IpcResponse<DaemonAiPatchProposal>>
+    listPatchProposals: (runId: string) => Promise<IpcResponse<DaemonAiPatchProposal[]>>
+    decidePatchProposal: (input: DaemonAiPatchDecisionInput) => Promise<IpcResponse<DaemonAiPatchProposal>>
+    applyPatchProposal: (input: DaemonAiPatchApplyInput) => Promise<IpcResponse<DaemonAiPatchApplyResult>>
+  }
+
   interface DaemonAPI {
+    getPathForFile: (file: File) => string
     window: DaemonWindow
+    agentops: DaemonAgentOps
     terminal: DaemonTerminal
     tools: DaemonTools
     engine: DaemonEngine
@@ -1071,24 +1591,33 @@ declare global {
     activity: DaemonActivity
     events: DaemonEvents
     telemetry: DaemonTelemetry
+    voight: DaemonVoight
     tweets: DaemonTweets
     plugins: DaemonPlugins
     browser: DaemonBrowser
     recovery: DaemonRecovery
     deploy: DaemonDeploy
+    shipline: DaemonShipline
     shell: DaemonShell
     pumpfun: DaemonPumpFun
+    proof: DaemonProof
     email: DaemonEmail
     images: DaemonImages
     aria: DaemonAria
     launch: DaemonLaunch
     dashboard: DaemonDashboard
+    forensics: DaemonForensics
     registry: DaemonRegistry
     colosseum: DaemonColosseum
+    idle: DaemonIdle
+    meterflow: DaemonMeterflow
+    metaplex: DaemonMetaplex
     vault: DaemonVault
     validator: DaemonValidator
     pnl: DaemonPnl
     pro: DaemonPro
+    seeker: DaemonSeeker
+    ai: DaemonAI
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
     replay: DaemonReplay
@@ -1101,6 +1630,8 @@ declare global {
   type SpawnStatusResult = import('../../electron/services/SpawnAgentsService').SpawnStatusResult
   type SpawnTrade = import('../../electron/services/SpawnAgentsService').SpawnTrade
   type SpawnAgentPositions = import('../../electron/services/SpawnAgentsService').SpawnAgentPositions
+  type SpawnAgentPublicProfile = import('../../electron/services/SpawnAgentsService').SpawnAgentPublicProfile
+  type SpawnAgentPublicPortfolio = import('../../electron/services/SpawnAgentsService').SpawnAgentPublicPortfolio
   type SpawnEvent = import('../../electron/services/SpawnAgentsService').SpawnEvent
   type SpawnEventsResult = import('../../electron/services/SpawnAgentsService').SpawnEventsResult
   type SpawnInput = import('../../electron/services/SpawnAgentsService').SpawnInput
@@ -1114,6 +1645,8 @@ declare global {
     get: (agentId: string) => Promise<IpcResponse<SpawnAgentRecord>>
     trades: (agentId: string, limit?: number, offset?: number) => Promise<IpcResponse<{ trades: SpawnTrade[]; limit: number; offset: number }>>
     positions: (agentId: string) => Promise<IpcResponse<SpawnAgentPositions>>
+    publicProfile: (agentId: string) => Promise<IpcResponse<SpawnAgentPublicProfile>>
+    publicPortfolio: (agentId: string) => Promise<IpcResponse<SpawnAgentPublicPortfolio>>
     events: (since: number, agentId?: string, limit?: number) => Promise<IpcResponse<SpawnEventsResult>>
     spawnStatus: (ref: string) => Promise<IpcResponse<SpawnStatusResult>>
     initiateSpawn: (input: SpawnInput) => Promise<IpcResponse<SpawnDepositInstruction>>
@@ -1197,11 +1730,21 @@ declare global {
   }
 
   interface DaemonDashboard {
-    tokenPrice: (mint: string) => Promise<IpcResponse<{ price: number; priceChange24h: number | null }>>
+    tokenPrice: (mint: string) => Promise<IpcResponse<{ price: number; priceChange24h: number | null; confidenceLevel?: string | null }>>
     tokenMetadata: (mint: string) => Promise<IpcResponse<{ name: string; symbol: string; image: string | null; supply: number; decimals: number }>>
     tokenHolders: (mint: string) => Promise<IpcResponse<{ count: number; topHolders: Array<{ address: string; amount: number }> }>>
     detectTokens: (walletAddress: string) => Promise<IpcResponse<DetectedToken[]>>
     importToken: (mint: string, walletId: string) => Promise<IpcResponse<{ id: string; alreadyExists: boolean }>>
+  }
+
+  interface DaemonForensics {
+    scan: (input: ForensicsScanInput) => Promise<IpcResponse<ForensicsScanResult>>
+    expand: (input: ForensicsExpandInput) => Promise<IpcResponse<ForensicsExpandResult>>
+    blacklist: () => Promise<IpcResponse<ForensicsBlacklistResult>>
+    exportBlacklist: () => Promise<IpcResponse<{ csv: string; copied: boolean }>>
+    pollHolders: (mint: string) => Promise<IpcResponse<ForensicsHolderPollResult>>
+    ricoMapsStatus: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
+    startRicoMaps: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
   }
 
   interface DaemonBrowser {
@@ -1220,7 +1763,7 @@ declare global {
     daemon: DaemonAPI
   }
 
-  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter'
+  type AgentTemplate = 'basic' | 'defi-trader' | 'portfolio-monitor' | 'nft-minter' | 'metaplex-meterflow-operator'
   type AgentStationStatus = 'idle' | 'running' | 'stopped'
 
   interface AgentStationConfig {

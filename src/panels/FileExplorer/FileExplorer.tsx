@@ -1,7 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useUIStore } from '../../store/ui'
+import { useNotificationsStore } from '../../store/notifications'
 import './FileExplorer.css'
+
+// Resolve the absolute path of a dropped File. Electron 32+ removed File.path,
+// so go through the preload bridge (webUtils.getPathForFile) with a legacy fallback.
+function droppedFilePath(file: File): string | null {
+  const viaBridge = window.daemon?.getPathForFile?.(file)
+  if (viaBridge) return viaBridge
+  const legacy = (file as File & { path?: string }).path
+  return typeof legacy === 'string' && legacy.length > 0 ? legacy : null
+}
 
 const ROOT_CONTEXT_MENU_HEIGHT = 72
 const FILE_CONTEXT_MENU_HEIGHT = 252
@@ -31,7 +41,7 @@ export function FileExplorer() {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const loadDir = useCallback(async (dirPath: string) => {
-    const res = await window.daemon.fs.readDir(dirPath, 6)
+    const res = await window.daemon.fs.readDir(dirPath, 1)
     if (res.ok && res.data) setEntries(res.data)
   }, [])
 
@@ -114,6 +124,129 @@ export function FileExplorer() {
     setCreating({ parentPath: activeProjectPath, type })
   }
 
+  // OS file/folder drop import. `destDir` lets a folder row override the
+  // project root as the drop target. Depth ref makes enter/leave flicker-free.
+  const [isFileDropActive, setIsFileDropActive] = useState(false)
+  const dropDepthRef = useRef(0)
+
+  const importDroppedFiles = useCallback(async (fileList: FileList, destDir: string) => {
+    const paths = Array.from(fileList).map(droppedFilePath).filter((p): p is string => p !== null)
+    if (paths.length === 0) return
+    const res = await window.daemon.fs.importPaths(paths, destDir)
+    if (res.ok) {
+      const count = res.data?.length ?? 0
+      useNotificationsStore.getState().pushSuccess(
+        `Imported ${count} item${count === 1 ? '' : 's'}`,
+        'Files',
+      )
+      reload()
+    } else {
+      useNotificationsStore.getState().pushError(res.error ?? 'Import failed', 'Files')
+    }
+  }, [reload])
+
+  const isExternalFileDrag = (e: React.DragEvent) => e.dataTransfer.types.includes('Files')
+
+  const handleRootDragEnter = (e: React.DragEvent) => {
+    if (!isExternalFileDrag(e) || !activeProjectPath) return
+    e.preventDefault()
+    dropDepthRef.current += 1
+    setIsFileDropActive(true)
+  }
+
+  const handleRootDragOver = (e: React.DragEvent) => {
+    if (!isExternalFileDrag(e) || !activeProjectPath) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleRootDragLeave = (e: React.DragEvent) => {
+    if (!isExternalFileDrag(e)) return
+    dropDepthRef.current = Math.max(0, dropDepthRef.current - 1)
+    if (dropDepthRef.current === 0) setIsFileDropActive(false)
+  }
+
+  const handleRootDrop = (e: React.DragEvent) => {
+    if (!isExternalFileDrag(e) || !activeProjectPath) return
+    e.preventDefault()
+    dropDepthRef.current = 0
+    setIsFileDropActive(false)
+    void importDroppedFiles(e.dataTransfer.files, activeProjectPath)
+  }
+
+  // Roving-tabindex tree navigation. Operates on the live DOM order of visible
+  // treeitems, so it works regardless of how deeply nodes are nested.
+  const treeRef = useRef<HTMLDivElement>(null)
+
+  const visibleRows = useCallback((): HTMLElement[] => {
+    if (!treeRef.current) return []
+    return Array.from(treeRef.current.querySelectorAll<HTMLElement>('[role="treeitem"]'))
+  }, [])
+
+  const focusRow = useCallback((row: HTMLElement | undefined) => {
+    if (!row) return
+    for (const r of visibleRows()) r.tabIndex = -1
+    row.tabIndex = 0
+    row.focus()
+  }, [visibleRows])
+
+  const handleTreeKeyDown = (e: React.KeyboardEvent) => {
+    const target = e.target as HTMLElement
+    if (!target.matches('[role="treeitem"]')) return
+    if (renaming) return
+
+    const rows = visibleRows()
+    const index = rows.indexOf(target)
+    if (index === -1) return
+
+    const isDir = target.dataset.dir === 'true'
+    const isExpanded = target.getAttribute('aria-expanded') === 'true'
+    const depth = Number(target.dataset.depth ?? '0')
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        focusRow(rows[Math.min(index + 1, rows.length - 1)])
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        focusRow(rows[Math.max(index - 1, 0)])
+        break
+      case 'Home':
+        e.preventDefault()
+        focusRow(rows[0])
+        break
+      case 'End':
+        e.preventDefault()
+        focusRow(rows[rows.length - 1])
+        break
+      case 'ArrowRight':
+        e.preventDefault()
+        if (isDir && !isExpanded) {
+          target.click() // expand
+        } else if (isDir && isExpanded) {
+          focusRow(rows[index + 1]) // into first child
+        }
+        break
+      case 'ArrowLeft':
+        e.preventDefault()
+        if (isDir && isExpanded) {
+          target.click() // collapse
+        } else {
+          // jump to parent: nearest previous row at a shallower depth
+          for (let i = index - 1; i >= 0; i -= 1) {
+            if (Number(rows[i].dataset.depth ?? '0') < depth) {
+              focusRow(rows[i])
+              break
+            }
+          }
+        }
+        break
+      default:
+        break
+    }
+  }
+
   const handleNewFile = () => {
     if (!contextMenu) return
     const parent = contextMenu.entry?.isDirectory ? contextMenu.entry.path : contextMenu.parentPath
@@ -179,18 +312,36 @@ export function FileExplorer() {
     return <div className="file-explorer-empty">No project selected</div>
   }
 
-  const searchResults = searchQuery.trim().length > 0
-    ? fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), searchQuery)
-    : []
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim()
+    if (!query) return []
+    return fuzzyFilter(flattenEntries(entries).filter((entry) => !entry.isDirectory), query)
+  }, [entries, searchQuery])
   const rootCreateActive = creating
     ? normalizePath(creating.parentPath) === normalizePath(activeProjectPath)
     : false
 
   return (
     <div
-      className="file-explorer"
+      className={`file-explorer${isFileDropActive ? ' file-explorer--drop-active' : ''}`}
       onContextMenu={(e) => handleContextMenu(e, null, activeProjectPath)}
+      onDragEnter={handleRootDragEnter}
+      onDragOver={handleRootDragOver}
+      onDragLeave={handleRootDragLeave}
+      onDrop={handleRootDrop}
     >
+      {isFileDropActive && (
+        <div className="file-explorer-drop-overlay" aria-hidden="true">
+          <div className="file-explorer-drop-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Drop to import into project
+          </div>
+        </div>
+      )}
       <div className="file-explorer-toolbar">
         <div className={`file-explorer-search ${isSearchFocused ? 'focused' : ''}`}>
           <span className="file-explorer-search-icon" aria-hidden="true">⌕</span>
@@ -250,19 +401,28 @@ export function FileExplorer() {
           )}
         </div>
       ) : (
-        entries.map((entry) => (
-          <FileNode
-            key={entry.path}
-            entry={entry}
-            projectId={activeProjectId}
-            depth={0}
-            onContextMenu={handleContextMenu}
-            renaming={renaming}
-            setRenaming={setRenaming}
-            reload={reload}
-            gitStatusByPath={gitStatusByPath}
-          />
-        ))
+        <div
+          ref={treeRef}
+          role="tree"
+          aria-label="Project files"
+          className="file-tree"
+          onKeyDown={handleTreeKeyDown}
+        >
+          {entries.map((entry, i) => (
+            <FileNode
+              key={entry.path}
+              entry={entry}
+              projectId={activeProjectId}
+              depth={0}
+              tabbable={i === 0}
+              onContextMenu={handleContextMenu}
+              renaming={renaming}
+              setRenaming={setRenaming}
+              reload={reload}
+              gitStatusByPath={gitStatusByPath}
+            />
+          ))}
+        </div>
       )}
 
       {creating && !rootCreateActive && !searchQuery.trim() && (
@@ -310,10 +470,11 @@ function FolderPlusIcon() {
   )
 }
 
-function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenaming, reload, gitStatusByPath }: {
+function FileNode({ entry, projectId, depth, tabbable = false, onContextMenu, renaming, setRenaming, reload, gitStatusByPath }: {
   entry: FileEntry
   projectId: string | null
   depth: number
+  tabbable?: boolean
   onContextMenu: (e: React.MouseEvent, entry: FileEntry, parentPath: string) => void
   renaming: string | null
   setRenaming: (path: string | null) => void
@@ -365,7 +526,20 @@ function FileNode({ entry, projectId, depth, onContextMenu, renaming, setRenamin
       <div
         className={`file-node ${entry.isDirectory ? 'directory' : 'file'}`}
         style={{ paddingLeft: 12 + depth * 14 }}
+        role={isRenaming ? undefined : 'treeitem'}
+        tabIndex={isRenaming ? undefined : (tabbable ? 0 : -1)}
+        data-dir={entry.isDirectory ? 'true' : 'false'}
+        data-depth={depth}
+        aria-level={depth + 1}
+        aria-expanded={entry.isDirectory ? isExpanded : undefined}
+        aria-label={entry.isDirectory ? `${entry.name} folder` : entry.name}
         onClick={isRenaming ? undefined : handleClick}
+        onKeyDown={isRenaming ? undefined : (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            void handleClick()
+          }
+        }}
         onContextMenu={(e) => onContextMenu(e, entry, parentPath)}
         draggable={!isRenaming}
         onDragStart={(e) => {

@@ -1,10 +1,7 @@
 import crypto from 'node:crypto'
-import fs from 'node:fs'
-import path from 'node:path'
-import os from 'node:os'
-import Anthropic from '@anthropic-ai/sdk'
 import { getDb } from '../db/db'
-import * as SecureKey from './SecureKeyService'
+import * as ProviderRegistry from './providers/ProviderRegistry'
+import { recordLocalAiUsage } from './DaemonAIService'
 import type { AriaMessage, AriaResponse, AriaAction } from '../shared/types'
 
 // Strip ANSI escape codes (same regex as strip-ansi package)
@@ -28,6 +25,17 @@ RULES:
 const MAX_HISTORY = 40
 const MAX_SESSIONS = 20
 
+function modelForPreference(model: ProviderRegistry.ProviderPreferences['aria']['model']): string {
+  switch (model) {
+    case 'reasoning':
+      return 'sonnet'
+    case 'standard':
+      return 'sonnet'
+    default:
+      return 'haiku'
+  }
+}
+
 type ConversationEntry = { role: 'user' | 'assistant'; content: string }
 
 const conversations = new Map<string, ConversationEntry[]>()
@@ -50,43 +58,6 @@ function touchSession(sessionId: string): void {
       conversationLastUsed.delete(oldestId)
     }
   }
-}
-
-function getOAuthToken(): string | null {
-  try {
-    const credPath = path.join(os.homedir(), '.claude', '.credentials.json')
-    if (!fs.existsSync(credPath)) return null
-    const creds = JSON.parse(fs.readFileSync(credPath, 'utf8'))
-    const token = creds?.claudeAiOauth?.accessToken
-    return (token && typeof token === 'string' && token.startsWith('sk-ant-')) ? token : null
-  } catch {
-    return null
-  }
-}
-
-function getClient(): Anthropic {
-  const oauthToken = getOAuthToken()
-  if (oauthToken) {
-    return new Anthropic({
-      apiKey: 'oauth-placeholder',
-      fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
-        const headers = new Headers(init?.headers)
-        headers.delete('x-api-key')
-        headers.set('Authorization', `Bearer ${oauthToken}`)
-        headers.set('anthropic-beta', 'oauth-2025-04-20')
-        return globalThis.fetch(url, { ...init, headers })
-      },
-    })
-  }
-
-  const stored = SecureKey.getKey('ANTHROPIC_API_KEY')
-  if (stored) return new Anthropic({ apiKey: stored })
-
-  if (process.env.ANTHROPIC_API_KEY) {
-    return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  }
-
-  throw new Error('No Claude auth found. Connect Claude CLI or add an API key in Settings > Keys.')
 }
 
 function parseActions(text: string): AriaAction[] {
@@ -128,9 +99,17 @@ function persistMessage(msg: Omit<AriaMessage, 'id' | 'created_at'>): string {
   return id
 }
 
-export async function sendMessage(sessionId: string, userMessage: string): Promise<AriaResponse> {
-  const client = getClient()
+function buildPrompt(history: ConversationEntry[]): string {
+  const recent = history.slice(-MAX_HISTORY)
+  return [
+    'ARIA side-panel conversation:',
+    ...recent.map((entry) => `${entry.role.toUpperCase()}: ${entry.content}`),
+    '',
+    'Respond as ARIA. Include action tags only when an action is useful.',
+  ].join('\n')
+}
 
+export async function sendMessage(sessionId: string, userMessage: string): Promise<AriaResponse> {
   if (!conversations.has(sessionId)) {
     conversations.set(sessionId, [])
   }
@@ -145,14 +124,20 @@ export async function sendMessage(sessionId: string, userMessage: string): Promi
 
   persistMessage({ role: 'user', content: userMessage, metadata: '{}', session_id: sessionId })
 
-  let response: Anthropic.Message | null = null
+  const prefs = ProviderRegistry.getPreferences()
+  const provider = ProviderRegistry.getFeatureProvider('aria')
+  const prompt = buildPrompt(history)
+  const model = modelForPreference(prefs.aria.model)
+  let rawText: string | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      response = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: ARIA_SYSTEM,
-        messages: history,
+      rawText = await provider.runPrompt({
+        prompt,
+        systemPrompt: ARIA_SYSTEM,
+        model,
+        effort: 'low',
+        maxTokens: 1024,
+        timeoutMs: 60_000,
       })
       break
     } catch (err: any) {
@@ -164,16 +149,18 @@ export async function sendMessage(sessionId: string, userMessage: string): Promi
       throw err
     }
   }
-  if (!response) throw new Error('Failed after retries')
-
-  const rawText = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
+  if (!rawText) throw new Error('Failed after retries')
 
   const cleanText = stripAnsi(rawText)
 
   history.push({ role: 'assistant', content: cleanText })
+  recordLocalAiUsage({
+    feature: 'aria-side-panel',
+    provider: provider.id === 'claude' ? 'anthropic' : 'local',
+    model,
+    inputText: prompt,
+    outputText: cleanText,
+  })
 
   const actions = parseActions(cleanText)
   const displayText = stripActionTags(cleanText)

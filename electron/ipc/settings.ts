@@ -28,6 +28,10 @@ export function registerSettingsHandlers() {
     Settings.setBooleanSetting('show_titlebar_wallet', enabled)
   }))
 
+  ipcMain.handle('settings:set-low-power-mode', ipcHandler(async (_event, enabled: boolean) => {
+    Settings.setBooleanSetting('low_power_mode', enabled)
+  }))
+
   ipcMain.handle('settings:is-onboarding-complete', ipcHandler(async () => {
     return Settings.isOnboardingComplete()
   }))
@@ -155,7 +159,7 @@ export function registerSettingsHandlers() {
     if (layout.centerMode === 'canvas' || layout.centerMode === 'grind') {
       upsert.run('layout_center_mode', layout.centerMode, now)
     }
-    if (layout.rightPanelTab === 'claude' || layout.rightPanelTab === 'codex') {
+    if (layout.rightPanelTab === 'claude' || layout.rightPanelTab === 'codex' || layout.rightPanelTab === 'meterflow') {
       upsert.run('layout_right_panel_tab', layout.rightPanelTab, now)
     }
   }))

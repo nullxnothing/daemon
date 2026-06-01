@@ -1,11 +1,17 @@
-import { getHeliusApiKey } from './SolanaService'
+import { getHeliusApiKey, getJupiterApiKey } from './SolanaService'
 
-const JUPITER_PRICE_URL = 'https://api.jup.ag/price/v2'
+const JUPITER_PRICE_URL = 'https://api.jup.ag/price/v3'
 const HELIUS_RPC_BASE = 'https://mainnet.helius-rpc.com'
+const TOKEN_ACCOUNT_PAGE_LIMIT = 1000
+const TOKEN_ACCOUNT_MAX_PAGES = 50
+const TOKEN_PRICE_CACHE_TTL = 10_000
+const tokenPriceCache = new Map<string, { timestamp: number; value: TokenPrice }>()
+const tokenPriceInflight = new Map<string, Promise<TokenPrice>>()
 
 export interface TokenPrice {
   price: number
   priceChange24h: number | null
+  confidenceLevel?: string | null
 }
 
 export interface TokenMetadata {
@@ -32,19 +38,79 @@ function getHeliusKey(): string {
   return key
 }
 
-export async function getTokenPrice(mint: string): Promise<TokenPrice> {
-  const url = `${JUPITER_PRICE_URL}?ids=${mint}`
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Jupiter price fetch failed: ${response.status}`)
+function normalizeTokenImageUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  if (trimmed.startsWith('ipfs://')) return `https://ipfs.io/ipfs/${trimmed.slice('ipfs://'.length).replace(/^ipfs\//, '')}`
 
-  const json = await response.json() as { data: Record<string, { price: string } | null> }
-  const entry = json.data[mint]
-  if (!entry) throw new Error(`No price data for mint ${mint}`)
-
-  return {
-    price: parseFloat(entry.price),
-    priceChange24h: null,
+  // Helius CDN URLs can be returned as /cdn-cgi/image//https://... and those
+  // currently 403 in the browser. Prefer the original asset URL in that case.
+  const passthroughMarker = '/cdn-cgi/image//'
+  const markerIndex = trimmed.indexOf(passthroughMarker)
+  if (markerIndex >= 0) {
+    const passthrough = trimmed.slice(markerIndex + passthroughMarker.length)
+    if (passthrough.startsWith('http://') || passthrough.startsWith('https://')) return passthrough
   }
+
+  return trimmed
+}
+
+function pickTokenImage(content: {
+  links?: { image?: string }
+  files?: Array<{ uri?: string; cdn_uri?: string; mime?: string }>
+} | undefined): string | null {
+  const imageFile = content?.files?.find((f) => f.mime?.startsWith('image/')) ?? content?.files?.find((f) => f.cdn_uri || f.uri)
+  return normalizeTokenImageUrl(imageFile?.cdn_uri)
+    ?? normalizeTokenImageUrl(imageFile?.uri)
+    ?? normalizeTokenImageUrl(content?.links?.image)
+}
+
+function cloneTokenPrice(value: TokenPrice): TokenPrice {
+  return { ...value }
+}
+
+function parseOptionalNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? parseFloat(value) : NaN
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+export async function getTokenPrice(mint: string): Promise<TokenPrice> {
+  const now = Date.now()
+  const cached = tokenPriceCache.get(mint)
+  if (cached && now - cached.timestamp < TOKEN_PRICE_CACHE_TTL) return cloneTokenPrice(cached.value)
+
+  const inflight = tokenPriceInflight.get(mint)
+  if (inflight) return cloneTokenPrice(await inflight)
+
+  const url = `${JUPITER_PRICE_URL}?ids=${mint}`
+  const request = (async () => {
+    const jupiterKey = getJupiterApiKey()
+    const response = await fetch(url, {
+      headers: jupiterKey ? { 'x-api-key': jupiterKey } : {},
+    })
+    if (!response.ok) throw new Error(`Jupiter price fetch failed: ${response.status}`)
+
+    const json = await response.json() as Record<string, { usdPrice?: number | string; priceChange24h?: number | string; confidenceLevel?: string } | null>
+    const entry = json[mint]
+    if (!entry) throw new Error(`No price data for mint ${mint}`)
+
+    const price = parseOptionalNumber(entry.usdPrice)
+    if (price === null) throw new Error(`No USD price for mint ${mint}`)
+
+    const value: TokenPrice = {
+      price,
+      priceChange24h: parseOptionalNumber(entry.priceChange24h),
+      confidenceLevel: typeof entry.confidenceLevel === 'string' ? entry.confidenceLevel : null,
+    }
+    tokenPriceCache.set(mint, { timestamp: Date.now(), value: cloneTokenPrice(value) })
+    return value
+  })().finally(() => {
+    tokenPriceInflight.delete(mint)
+  })
+
+  tokenPriceInflight.set(mint, request)
+  return cloneTokenPrice(await request)
 }
 
 export async function getTokenMetadata(mint: string): Promise<TokenMetadata> {
@@ -87,9 +153,7 @@ export async function getTokenMetadata(mint: string): Promise<TokenMetadata> {
   const supply = tokenInfo?.supply ?? 0
   const decimals = tokenInfo?.decimals ?? 6
 
-  // Prefer files[0] CDN URI, fall back to links.image
-  const imageFile = content?.files?.find((f) => f.mime?.startsWith('image/'))
-  const image = imageFile?.cdn_uri ?? imageFile?.uri ?? content?.links?.image ?? null
+  const image = pickTokenImage(content)
 
   return { name, symbol, image, supply, decimals }
 }
@@ -162,8 +226,7 @@ export async function detectWalletTokens(walletAddress: string): Promise<Detecte
   return authorityTokens.map((item) => {
     const content = item.content
     const tokenInfo = item.token_info
-    const imageFile = content?.files?.find((f) => f.mime?.startsWith('image/'))
-    const image = imageFile?.cdn_uri ?? imageFile?.uri ?? content?.links?.image ?? null
+    const image = pickTokenImage(content)
     return {
       mint: item.id,
       name: content?.metadata?.name ?? 'Unknown',
@@ -190,43 +253,57 @@ export async function importTokenByMint(mint: string): Promise<DetectedToken> {
 export async function getTokenHolders(mint: string): Promise<TokenHolders> {
   const key = getHeliusKey()
   const url = `${HELIUS_RPC_BASE}/?api-key=${key}`
+  const holders = new Map<string, number>()
+  let cursor: string | undefined
+  let pages = 0
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 'get-token-accounts',
-      method: 'getTokenAccounts',
-      params: {
-        mint,
-        limit: 100,
-        options: { showZeroBalance: false },
-      },
-    }),
-  })
+  do {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'get-token-accounts',
+        method: 'getTokenAccounts',
+        params: {
+          mint,
+          limit: TOKEN_ACCOUNT_PAGE_LIMIT,
+          ...(cursor ? { cursor } : {}),
+          options: { showZeroBalance: false },
+        },
+      }),
+    })
 
-  if (!response.ok) throw new Error(`Helius getTokenAccounts failed: ${response.status}`)
+    if (!response.ok) throw new Error(`Helius getTokenAccounts failed: ${response.status}`)
 
-  const json = await response.json() as {
-    result?: {
-      total?: number
-      token_accounts?: Array<{ owner: string; amount: string }>
+    const json = await response.json() as {
+      result?: {
+        cursor?: string | null
+        token_accounts?: Array<{ owner: string; amount: string }>
+      }
+      error?: { message: string }
     }
-    error?: { message: string }
-  }
 
-  if (json.error) throw new Error(json.error.message)
+    if (json.error) throw new Error(json.error.message)
 
-  const accounts = json.result?.token_accounts ?? []
-  const total = json.result?.total ?? accounts.length
+    const accounts = json.result?.token_accounts ?? []
+    for (const account of accounts) {
+      const amount = Number.parseInt(account.amount, 10)
+      if (!Number.isFinite(amount) || amount <= 0) continue
+      holders.set(account.owner, (holders.get(account.owner) ?? 0) + amount)
+    }
 
-  const topHolders: TokenHolder[] = accounts
+    cursor = json.result?.cursor ?? undefined
+    pages += 1
+  } while (cursor && pages < TOKEN_ACCOUNT_MAX_PAGES)
+
+  const topHolders: TokenHolder[] = [...holders.entries()]
+    .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map((a) => ({
-      address: a.owner,
-      amount: parseInt(a.amount, 10),
+    .map(([address, amount]) => ({
+      address,
+      amount,
     }))
 
-  return { count: total, topHolders }
+  return { count: holders.size, topHolders }
 }

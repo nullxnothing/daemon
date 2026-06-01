@@ -4,9 +4,9 @@
   height: var(--statusbar-h);
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  background: var(--s1);
-  border-top: 1px solid var(--border);
+  padding: 0 var(--space-md);
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
   flex-shrink: 0;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .statusbar-item {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
@@ -63,7 +63,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .market-symbol {

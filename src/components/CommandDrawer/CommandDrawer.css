@@ -7,8 +7,8 @@
   height: 52%;
   min-height: 200px;
   max-height: 70%;
-  background: color-mix(in srgb, var(--surface-flat) 96%, black 4%);
-  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-bg) 96%, black 4%);
+  border-top: 1px solid var(--panel-border);
   display: flex;
   flex-direction: column;
   z-index: 20;
@@ -47,7 +47,7 @@
   align-items: center;
   gap: 10px;
   padding: var(--drawer-space-block) var(--drawer-space-inline);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
@@ -56,11 +56,11 @@
 
 .drawer-search {
   flex: 1;
-  background: var(--surface-sunken);
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   height: 34px;
   padding: 0 12px;
   font-family: var(--font-ui);
@@ -77,7 +77,7 @@
 }
 
 .drawer-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t1);
   text-transform: uppercase;
@@ -104,7 +104,7 @@
 .drawer-close:hover,
 .drawer-fullscreen:hover {
   color: var(--t1);
-  background: var(--s3);
+  background: var(--control-bg-hover);
 }
 
 /* Content */
@@ -127,13 +127,13 @@
 }
 
 .drawer-loading-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--t1);
 }
 
 .drawer-loading-copy {
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 /* Tool Grid */
@@ -161,7 +161,7 @@
 }
 
 .drawer-category-header {
-  font-size: 10px;
+  font-size: var(--fs-10);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--t4);
@@ -178,8 +178,8 @@
   align-content: stretch;
   gap: 7px 11px;
   padding: 12px;
-  background: color-mix(in srgb, var(--surface-raised) 88%, var(--surface-sunken) 12%);
-  border: 1px solid color-mix(in srgb, var(--border) 84%, rgba(255, 255, 255, 0.06) 16%);
+  background: color-mix(in srgb, var(--card-bg) 88%, var(--surface-sunken) 12%);
+  border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-normal), transform var(--transition-fast);
@@ -190,7 +190,7 @@
 }
 
 .drawer-tool-card:hover {
-  background: color-mix(in srgb, var(--surface-raised) 94%, var(--tool-color, var(--green)) 6%);
+  background: color-mix(in srgb, var(--card-bg-hover) 94%, var(--tool-color, var(--green)) 6%);
   border-color: color-mix(in srgb, var(--tool-color, var(--green)) 45%, var(--border) 55%);
   box-shadow:
     0 12px 24px rgba(0, 0, 0, 0.18),
@@ -208,7 +208,7 @@
 }
 
 .drawer-tool-soon {
-  font-size: 8px;
+  font-size: var(--fs-8);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
@@ -280,7 +280,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t4);
   letter-spacing: 0.3px;
 }
@@ -289,6 +289,6 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 24px var(--drawer-space-inline);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }

@@ -34,7 +34,15 @@ export function SectionHeader({ title, count, action, collapsed, onToggle }: Sec
       )}
       <span className="section-header-title">{title}</span>
       {count !== undefined && <span className="section-header-count">{count}</span>}
-      {action && <span className="section-header-action" onClick={(e) => e.stopPropagation()}>{action}</span>}
+      {action && (
+        <span
+          className="section-header-action"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {action}
+        </span>
+      )}
     </div>
   )
 }

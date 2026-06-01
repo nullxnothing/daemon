@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Toggle } from '../../components/Toggle'
+import { SolflareWalletCard } from './SolflareWalletCard'
 import './WalletPanel.css'
 
 interface WalletSettingsProps {
@@ -7,6 +8,7 @@ interface WalletSettingsProps {
   showTitlebarWallet: boolean
   heliusConfigured: boolean
   jupiterConfigured: boolean
+  moonpayStatus: MoonpayStatus
   infrastructure: WalletInfrastructureSettings
   error: string | null
   onToggleTape: (checked: boolean) => Promise<void>
@@ -15,7 +17,10 @@ interface WalletSettingsProps {
   onDeleteHelius: () => Promise<void>
   onSaveJupiter: (key: string) => Promise<void>
   onDeleteJupiter: () => Promise<void>
+  onSaveMoonpayKeys: (publishableKey: string, secretKey: string) => Promise<void>
+  onDeleteMoonpayKeys: () => Promise<void>
   onSaveInfrastructure: (settings: WalletInfrastructureSettings) => Promise<void>
+  onTrackSolflareWallet: (address: string) => Promise<void>
 }
 
 export function WalletSettings({
@@ -23,6 +28,7 @@ export function WalletSettings({
   showTitlebarWallet,
   heliusConfigured,
   jupiterConfigured,
+  moonpayStatus,
   infrastructure,
   error,
   onToggleTape,
@@ -31,10 +37,15 @@ export function WalletSettings({
   onDeleteHelius,
   onSaveJupiter,
   onDeleteJupiter,
+  onSaveMoonpayKeys,
+  onDeleteMoonpayKeys,
   onSaveInfrastructure,
+  onTrackSolflareWallet,
 }: WalletSettingsProps) {
   const [heliusKey, setHeliusKey] = useState('')
   const [jupiterKey, setJupiterKey] = useState('')
+  const [moonpayPublishableKey, setMoonpayPublishableKey] = useState('')
+  const [moonpaySecretKey, setMoonpaySecretKey] = useState('')
   const [draftInfra, setDraftInfra] = useState<WalletInfrastructureSettings>(infrastructure)
 
   useEffect(() => {
@@ -51,6 +62,24 @@ export function WalletSettings({
     if (!jupiterKey.trim()) return
     await onSaveJupiter(jupiterKey.trim())
     setJupiterKey('')
+  }
+
+  const handleSaveMoonpay = async () => {
+    if (!moonpayPublishableKey.trim() || !moonpaySecretKey.trim()) return
+    await onSaveMoonpayKeys(moonpayPublishableKey.trim(), moonpaySecretKey.trim())
+    setMoonpayPublishableKey('')
+    setMoonpaySecretKey('')
+  }
+
+  const rpcReady = getRpcReady(draftInfra, heliusConfigured)
+  const rpcStatusLabel = rpcReady ? 'RPC ready' : 'Setup needed'
+  const rpcProviderLabel = getRpcProviderLabel(draftInfra)
+  const walletPreferenceLabel = getWalletPreferenceLabel(draftInfra.preferredWallet)
+
+  const preferSolflare = async () => {
+    const next = { ...draftInfra, preferredWallet: 'solflare' as const }
+    setDraftInfra(next)
+    await onSaveInfrastructure(next)
   }
 
   return (
@@ -74,15 +103,25 @@ export function WalletSettings({
               </div>
             </div>
             <span className={`wallet-state-badge ${heliusConfigured ? 'live' : 'muted'}`}>
-              {heliusConfigured ? 'Runtime Active' : 'Needs Setup'}
+              {rpcStatusLabel}
             </span>
           </div>
 
           <div className="wallet-runtime-summary-grid">
             <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Cluster</div>
+              <div className="wallet-runtime-summary-value">
+                {draftInfra.cluster}
+              </div>
+              <div className="wallet-caption">
+                DAEMON uses this cluster for wallet execution, generated project defaults, deploy proof, and explorer links.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
               <div className="wallet-runtime-summary-label">Reads + Data</div>
               <div className="wallet-runtime-summary-value">
-                {draftInfra.rpcProvider === 'helius' ? 'Helius indexed runtime' : draftInfra.rpcProvider === 'public' ? 'Public RPC fallback' : draftInfra.rpcProvider === 'quicknode' ? 'QuickNode runtime' : 'Custom RPC runtime'}
+                {rpcProviderLabel}
               </div>
               <div className="wallet-caption">
                 DAEMON uses this path for balance reads, holdings, toolbox checks, and generated Solana transports.
@@ -92,10 +131,10 @@ export function WalletSettings({
             <div className="wallet-runtime-summary-item">
               <div className="wallet-runtime-summary-label">Wallet UX</div>
               <div className="wallet-runtime-summary-value">
-                {draftInfra.preferredWallet === 'phantom' ? 'Phantom-first' : 'Wallet Standard'}
+                {walletPreferenceLabel}
               </div>
               <div className="wallet-caption">
-                This should become the default connect and signing experience across DAEMON-generated apps.
+                DAEMON's built-in wallet currently signs with imported or generated local signers. This preference is used for generated app defaults.
               </div>
             </div>
 
@@ -116,6 +155,16 @@ export function WalletSettings({
               </div>
               <div className="wallet-caption">
                 DAEMON already treats Jupiter as the shared swap engine. The key makes that runtime usable instead of aspirational.
+              </div>
+            </div>
+
+            <div className="wallet-runtime-summary-item">
+              <div className="wallet-runtime-summary-label">Onramp</div>
+              <div className="wallet-runtime-summary-value">
+                {moonpayStatus.configured ? `MoonPay ${moonpayStatus.environment}` : 'MoonPay missing'}
+              </div>
+              <div className="wallet-caption">
+                MoonPay opens a signed hosted buy flow with the active wallet prefilled for SOL deposits.
               </div>
             </div>
           </div>
@@ -148,23 +197,32 @@ export function WalletSettings({
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">
             <div>
-              <div className="wallet-label">Reads + RPC Provider</div>
+              <div className="wallet-label">Cluster + RPC Provider</div>
               <div className="wallet-caption">
                 Choose the Solana transport DAEMON should trust for wallet reads, toolbox checks, and generated project defaults.
               </div>
             </div>
-            <span className={`wallet-state-badge ${draftInfra.rpcProvider === 'helius' && heliusConfigured ? 'live' : 'muted'}`}>
-              {draftInfra.rpcProvider.toUpperCase()}
+            <span className={`wallet-state-badge ${rpcReady ? 'live' : 'muted'}`}>
+              {rpcStatusLabel} · {draftInfra.cluster}
             </span>
           </div>
 
+          <select
+            className="wallet-input"
+            value={draftInfra.cluster}
+            onChange={(e) => setDraftInfra((prev) => ({ ...prev, cluster: e.target.value as WalletInfrastructureSettings['cluster'] }))}
+          >
+            <option value="devnet">Devnet - default for builds</option>
+            <option value="mainnet-beta">Mainnet-beta - requires review</option>
+            <option value="localnet">Localnet - validator or Surfpool</option>
+          </select>
           <select
             className="wallet-input"
             value={draftInfra.rpcProvider}
             onChange={(e) => setDraftInfra((prev) => ({ ...prev, rpcProvider: e.target.value as WalletInfrastructureSettings['rpcProvider'] }))}
           >
             <option value="helius">Helius</option>
-            <option value="public">Public Mainnet RPC</option>
+            <option value="public">Public RPC for selected cluster</option>
             <option value="quicknode">QuickNode</option>
             <option value="custom">Custom RPC URL</option>
           </select>
@@ -204,6 +262,8 @@ export function WalletSettings({
 
           <input
             className="wallet-input"
+            type="password"
+            autoComplete="off"
             value={heliusKey}
             onChange={(e) => setHeliusKey(e.target.value)}
             placeholder={heliusConfigured ? 'Replace Helius API key' : 'HELIUS_API_KEY'}
@@ -241,8 +301,9 @@ export function WalletSettings({
             value={draftInfra.preferredWallet}
             onChange={(e) => setDraftInfra((prev) => ({ ...prev, preferredWallet: e.target.value as WalletInfrastructureSettings['preferredWallet'] }))}
           >
-            <option value="phantom">Phantom-first</option>
-            <option value="wallet-standard">Wallet Standard</option>
+            <option value="phantom">Local signer + Phantom app defaults</option>
+            <option value="solflare">Solflare SDK + app defaults</option>
+            <option value="wallet-standard">Local signer + Wallet Standard app defaults</option>
           </select>
           <select
             className="wallet-input"
@@ -262,6 +323,8 @@ export function WalletSettings({
           )}
           <input
             className="wallet-input"
+            type="password"
+            autoComplete="off"
             value={jupiterKey}
             onChange={(e) => setJupiterKey(e.target.value)}
             placeholder={jupiterConfigured ? 'Replace JUPITER_API_KEY' : 'JUPITER_API_KEY'}
@@ -274,7 +337,73 @@ export function WalletSettings({
             )}
           </div>
         </div>
+
+        <SolflareWalletCard
+          cluster={draftInfra.cluster}
+          preferredWallet={draftInfra.preferredWallet}
+          onPreferSolflare={preferSolflare}
+          onTrackWallet={onTrackSolflareWallet}
+        />
+
+        <div className="wallet-settings-card">
+          <div className="wallet-settings-card-head">
+            <div>
+              <div className="wallet-label">MoonPay Onramp</div>
+              <div className="wallet-caption">
+                {moonpayStatus.configured
+                  ? `Signed SOL checkout is ready with ${moonpayStatus.publishableKeyHint}.`
+                  : 'Store MoonPay dashboard keys to open signed SOL buy URLs from the wallet panel.'}
+              </div>
+            </div>
+            <span className={`wallet-state-badge ${moonpayStatus.configured ? 'live' : 'muted'}`}>
+              {moonpayStatus.configured ? moonpayStatus.environment : 'Missing'}
+            </span>
+          </div>
+
+          <input
+            className="wallet-input"
+            type="password"
+            autoComplete="off"
+            value={moonpayPublishableKey}
+            onChange={(e) => setMoonpayPublishableKey(e.target.value)}
+            placeholder={moonpayStatus.configured ? 'Replace pk_test or pk_live key' : 'MOONPAY_PUBLISHABLE_KEY'}
+          />
+          <input
+            className="wallet-input"
+            type="password"
+            autoComplete="off"
+            value={moonpaySecretKey}
+            onChange={(e) => setMoonpaySecretKey(e.target.value)}
+            placeholder={moonpayStatus.configured ? 'Replace sk_test or sk_live key' : 'MOONPAY_SECRET_KEY'}
+          />
+          <div className="wallet-actions wallet-actions-wrap">
+            <button type="button" className="wallet-btn primary" onClick={handleSaveMoonpay}>Save MoonPay Keys</button>
+            {moonpayStatus.configured && (
+              <button type="button" className="wallet-btn danger" onClick={onDeleteMoonpayKeys}>Delete Keys</button>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   )
+}
+
+function getRpcReady(settings: WalletInfrastructureSettings, heliusConfigured: boolean): boolean {
+  if (settings.rpcProvider === 'helius') return heliusConfigured
+  if (settings.rpcProvider === 'quicknode') return settings.quicknodeRpcUrl.trim().length > 0
+  if (settings.rpcProvider === 'custom') return settings.customRpcUrl.trim().length > 0
+  return true
+}
+
+function getRpcProviderLabel(settings: WalletInfrastructureSettings): string {
+  if (settings.rpcProvider === 'helius') return 'Helius indexed runtime'
+  if (settings.rpcProvider === 'quicknode') return 'QuickNode runtime'
+  if (settings.rpcProvider === 'custom') return 'Custom RPC runtime'
+  return 'Public RPC fallback'
+}
+
+function getWalletPreferenceLabel(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
+  if (preferredWallet === 'solflare') return 'Solflare SDK + app defaults'
+  if (preferredWallet === 'wallet-standard') return 'Wallet Standard app defaults'
+  return 'Local signer, Phantom-first app defaults'
 }

@@ -17,6 +17,7 @@ import { demoProject } from './src/data/demo'
 import { useApprovalQueue } from './src/hooks/useApprovalQueue'
 import { useDesktopRelay } from './src/hooks/useDesktopRelay'
 import { usePairingSession } from './src/hooks/usePairingSession'
+import { postRelayEvent } from './src/services/desktopRelay'
 import { useSeekerNotifications } from './src/hooks/useSeekerNotifications'
 import { useSeekerWallet } from './src/hooks/useSeekerWallet'
 import type { ApprovalRequest, ApprovalRisk, PairingSession } from './src/types'
@@ -46,33 +47,23 @@ function shortAddress(address: string | null) {
   return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
-function relayBaseUrl(relayUrl: string) {
-  return relayUrl.trim().replace(/\/$/, '')
-}
-
 async function sendPairEvent(nextSession: PairingSession) {
-  const base = relayBaseUrl(nextSession.relayUrl)
-  if (!base) return { ok: false, error: 'Missing relay URL' }
-
-  try {
-    const res = await fetch(`${base}/api/seeker/events`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        type: 'pair',
-        sessionCode: nextSession.pairingCode,
-        payload: {
-          platform: 'seeker-mobile',
-          project: nextSession.projectName,
-          device: 'Daemon Seeker app',
-        },
-      }),
-    })
-    if (!res.ok) return { ok: false, error: `Relay returned ${res.status}` }
-    return { ok: true }
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : 'Pair event failed' }
-  }
+  // Delegate to the shared relay client so the per-session bearer token is sent.
+  return postRelayEvent(
+    {
+      relayUrl: nextSession.relayUrl,
+      sessionCode: nextSession.pairingCode,
+      accessToken: nextSession.accessToken,
+    },
+    {
+      type: 'pair',
+      payload: {
+        platform: 'seeker-mobile',
+        project: nextSession.projectName,
+        device: 'Daemon Seeker app',
+      },
+    },
+  )
 }
 
 function StatusPill({ label, tone = 'green' }: { label: string; tone?: 'green' | 'blue' | 'yellow' | 'red' | 'gray' }) {
@@ -170,7 +161,7 @@ export default function App() {
   const [codeInput, setCodeInput] = useState('')
   const [pairingMessage, setPairingMessage] = useState<string | null>(null)
   const { session, deepLink, pairManually, resetPairing } = usePairingSession()
-  const relay = useDesktopRelay(session.relayUrl, session.pairingCode)
+  const relay = useDesktopRelay(session.relayUrl, session.pairingCode, session.accessToken)
   const approvals = useApprovalQueue(relay.sendRelayEvent)
   const wallet = useSeekerWallet()
   const notifications = useSeekerNotifications()
@@ -196,7 +187,21 @@ export default function App() {
   }, [approvals, relay, session.status])
 
   const handlePair = async () => {
-    const nextSession = pairManually(codeInput || session.pairingCode, relayInput || session.relayUrl)
+    // The secured relay requires the per-session token. Accept a pasted
+    // `daemonseeker://pair?...` link (carrying code+relay+token) in the code
+    // field; otherwise fall back to the typed short code (token unknown).
+    let pairCode = codeInput || session.pairingCode
+    let pairRelay = relayInput || session.relayUrl
+    let pairToken: string | undefined
+    if (codeInput.trim().startsWith('daemonseeker://')) {
+      try {
+        const params = new URL(codeInput.trim()).searchParams
+        pairCode = params.get('code') ?? pairCode
+        pairRelay = params.get('relay') ?? pairRelay
+        pairToken = params.get('token') ?? undefined
+      } catch { /* not a valid link — use typed values */ }
+    }
+    const nextSession = pairManually(pairCode, pairRelay, pairToken)
     setPairingMessage('Pairing with Daemon desktop...')
     const result = await sendPairEvent(nextSession)
     if (!result.ok) {

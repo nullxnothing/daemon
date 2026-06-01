@@ -37,6 +37,7 @@ import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { lazyNamedWithReload } from '../../utils/lazyWithReload'
 import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import { DAEMON_MONACO_THEME_COLORS } from '../../styles/daemonTheme'
 import type { LspDiagnosticEvent, LspLocation, LspPosition } from '../../../electron/shared/types'
 import './Editor.css'
 
@@ -98,7 +99,11 @@ let themeIsDefined = false
 let lspProvidersRegistered = false
 
 function WorkspacePanelFallback() {
-  return <div className="editor-content" />
+  return <div className="workspace-panel-loading">Loading panel...</div>
+}
+
+function getLspBridge() {
+  return typeof window === 'undefined' ? null : window.daemon?.lsp ?? null
 }
 
 function normalizeEditorPath(filePath: string): string {
@@ -204,6 +209,8 @@ function completionKind(kind?: number): monaco.languages.CompletionItemKind {
 
 function registerLspProviders(monacoInstance: MonacoApi) {
   if (lspProvidersRegistered) return
+  const lsp = getLspBridge()
+  if (!lsp) return
   lspProvidersRegistered = true
 
   for (const language of LSP_MONACO_LANGUAGES) {
@@ -211,7 +218,7 @@ function registerLspProviders(monacoInstance: MonacoApi) {
       async provideHover(model, position) {
         const context = lspContextForModel(model)
         if (!context) return null
-        const res = await window.daemon.lsp.hover(context.projectPath, context.filePath, context.languageId, lspPosition(position))
+        const res = await lsp.hover(context.projectPath, context.filePath, context.languageId, lspPosition(position))
         if (!res.ok || !res.data?.contents) return null
         return {
           contents: [{ value: res.data.contents }],
@@ -224,7 +231,7 @@ function registerLspProviders(monacoInstance: MonacoApi) {
       async provideDefinition(model, position) {
         const context = lspContextForModel(model)
         if (!context) return []
-        const res = await window.daemon.lsp.definition(context.projectPath, context.filePath, context.languageId, lspPosition(position))
+        const res = await lsp.definition(context.projectPath, context.filePath, context.languageId, lspPosition(position))
         if (!res.ok || !res.data) return []
         return res.data.map((location) => ({
           uri: uriForFilePath(location.filePath),
@@ -238,7 +245,7 @@ function registerLspProviders(monacoInstance: MonacoApi) {
       async provideCompletionItems(model, position) {
         const context = lspContextForModel(model)
         if (!context) return { suggestions: [] }
-        const res = await window.daemon.lsp.completion(context.projectPath, context.filePath, context.languageId, lspPosition(position))
+        const res = await lsp.completion(context.projectPath, context.filePath, context.languageId, lspPosition(position))
         if (!res.ok || !res.data?.items) return { suggestions: [] }
 
         const word = model.getWordUntilPosition(position)
@@ -374,13 +381,16 @@ export function EditorPanel() {
   }, [activeFile?.path])
 
   useEffect(() => {
-    return window.daemon.lsp.onDiagnostics((payload) => {
+    const lsp = getLspBridge()
+    if (!lsp) return
+    return lsp.onDiagnostics((payload) => {
       applyLspDiagnostics(payload)
     })
   }, [])
 
   useEffect(() => {
-    if (!activeFile || !activeProjectPath || isImageFile(activeFile.path)) {
+    const lsp = getLspBridge()
+    if (!lsp || !activeFile || !activeProjectPath || isImageFile(activeFile.path)) {
       setLspStatus(null)
       return
     }
@@ -405,7 +415,7 @@ export function EditorPanel() {
     const openTimer = window.setTimeout(() => {
       if (cancelled) return
       setLspStatus({ label: 'LSP', detail: 'Starting language server', active: true })
-      window.daemon.lsp.openDocument(input).then((res) => {
+      lsp.openDocument(input).then((res) => {
         if (cancelled) return
         if (res.ok && res.data?.supported && res.data.status) {
           setLspStatus({ label: res.data.status.label, detail: 'Language server active', active: true })
@@ -416,7 +426,7 @@ export function EditorPanel() {
         if (!cancelled) setLspStatus({ label: 'LSP', detail: (error as Error).message, active: false })
       })
 
-      window.daemon.lsp.diagnostics(activeFile.path).then((res) => {
+      lsp.diagnostics(activeFile.path).then((res) => {
         if (!cancelled && res.ok && res.data) applyLspDiagnostics(res.data)
       }).catch(() => {})
     }, 200)
@@ -428,7 +438,7 @@ export function EditorPanel() {
         window.clearTimeout(lspChangeTimerRef.current)
         lspChangeTimerRef.current = null
       }
-      void window.daemon.lsp.closeDocument({
+      void lsp.closeDocument({
         projectPath: activeProjectPath,
         filePath: activeFile.path,
         languageId,
@@ -535,23 +545,7 @@ export function EditorPanel() {
       base: 'vs-dark',
       inherit: true,
       rules: [],
-      // Monaco API requires hex values — keep in sync with tokens.css
-      colors: {
-        'editor.background': '#0a0a0a',
-        'editor.foreground': '#ebebeb',
-        'editorLineNumber.foreground': '#3d3d3d',
-        'editorLineNumber.activeForeground': '#7a7a7a',
-        'editor.selectionBackground': '#2a2a2a',
-        'editor.lineHighlightBackground': '#101010',
-        'editorCursor.foreground': '#ebebeb',
-        'editorWidget.background': '#101010',
-        'editorWidget.border': '#2a2a2a',
-        'input.background': '#151515',
-        'input.border': '#2a2a2a',
-        'dropdown.background': '#101010',
-        'list.hoverBackground': '#1a1a1a',
-        'list.activeSelectionBackground': '#222222',
-      },
+      colors: DAEMON_MONACO_THEME_COLORS,
     })
     themeIsDefined = true
   }
@@ -630,12 +624,13 @@ export function EditorPanel() {
       updateFileContent(currentPath, value)
       const projectPath = activeProjectPathRef.current
       const languageId = getLspLanguageId(currentPath)
-      if (projectPath && languageId) {
+      const lsp = getLspBridge()
+      if (projectPath && languageId && lsp) {
         if (lspChangeTimerRef.current !== null) {
           window.clearTimeout(lspChangeTimerRef.current)
         }
         lspChangeTimerRef.current = window.setTimeout(() => {
-          void window.daemon.lsp.changeDocument({
+          void lsp.changeDocument({
             projectPath,
             filePath: currentPath,
             languageId,

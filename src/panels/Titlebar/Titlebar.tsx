@@ -88,13 +88,23 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
 }
 
 function TitlebarBrand({ showText }: { showText: boolean }) {
+  const [version, setVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    window.daemon.settings.getAppMeta().then((res) => {
+      if (!cancelled && res.ok && res.data?.version) setVersion(res.data.version)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <div className={`titlebar-left${showText ? '' : ' titlebar-left--icon-only'}`}>
       <DaemonMark className="titlebar-icon" />
       {showText && (
         <>
-          <span className="titlebar-title">DAEMON</span>
-          <span className="titlebar-beta">BETA</span>
+          <span className="titlebar-title">Daemon</span>
+          <span className="titlebar-version">v{version ?? '4.0.0'}</span>
         </>
       )}
     </div>
@@ -123,27 +133,30 @@ function ProjectTabs({
   return (
     <div className="project-tabs">
       {projects.map((project) => (
-        <button
-          type="button"
+        <div
           key={project.id}
-          className={`project-tab ${activeProjectId === project.id ? 'active' : ''}`}
-          onClick={() => onSelectProject(project.id, project.path)}
+          className={`project-tab-wrap ${activeProjectId === project.id ? 'active' : ''}`}
         >
-          <span
-            className={`project-tab-dot ${activeProjectId === project.id ? 'live' : ''}`}
-            title={activeProjectId === project.id ? 'Project active' : 'Project inactive'}
-          />
-          <span className="project-tab-name">{project.name}</span>
-          <span
+          <button
+            type="button"
+            className={`project-tab ${activeProjectId === project.id ? 'active' : ''}`}
+            onClick={() => onSelectProject(project.id, project.path)}
+          >
+            <span
+              className={`project-tab-dot ${activeProjectId === project.id ? 'live' : ''}`}
+              title={activeProjectId === project.id ? 'Project active' : 'Project inactive'}
+            />
+            <span className="project-tab-name">{project.name}</span>
+          </button>
+          <button
+            type="button"
             className="project-tab-close"
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemoveProject(project.id)
-            }}
+            aria-label={`Close ${project.name}`}
+            onClick={() => onRemoveProject(project.id)}
           >
             &times;
-          </span>
-        </button>
+          </button>
+        </div>
       ))}
       <ProjectAddMenu
         isOpen={isAddOpen}

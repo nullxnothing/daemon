@@ -1,6 +1,15 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { ipcRenderer, contextBridge, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('daemon', {
+  // Electron 32+ removed File.path; webUtils.getPathForFile is the supported
+  // way to resolve the absolute path of a dropped/selected File in the renderer.
+  getPathForFile: (file: File): string => {
+    try {
+      return webUtils.getPathForFile(file)
+    } catch {
+      return (file as File & { path?: string }).path ?? ''
+    }
+  },
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
@@ -19,11 +28,22 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  agentops: {
+    getPendingOpenRequest: () => ipcRenderer.invoke('agentops:get-pending-open-request'),
+    ackOpenRequest: (receivedAt: string) => ipcRenderer.invoke('agentops:ack-open-request', receivedAt),
+    deriveAccounts: (assetAddress: string) => ipcRenderer.invoke('agentops:derive-accounts', assetAddress),
+    onOpenRequest: (callback: (payload: unknown) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: unknown) => callback(payload)
+      ipcRenderer.on('agentops:open-request', handler)
+      return () => ipcRenderer.off('agentops:open-request', handler)
+    },
+  },
+
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
-    spawnProvider: (opts: { providerId: 'claude' | 'codex'; projectId?: string; cwd?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
-    ready: (id: string) => ipcRenderer.send('terminal:ready', id),
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
+    ready: (id: string, cols?: number, rows?: number) => ipcRenderer.send('terminal:ready', id, cols, rows),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id: string) => ipcRenderer.invoke('terminal:kill', id),
@@ -76,15 +96,32 @@ contextBridge.exposeInMainWorld('daemon', {
     kill: (pid: number) => ipcRenderer.invoke('process:kill', pid),
   },
 
+  metaplex: {
+    createCoreAgentAsset: (input: {
+      walletId: string
+      network: 'devnet'
+      rpcUrl: string
+      name: string
+      uri: string
+      confirmedAt: number
+      acknowledgement: string
+    }) => ipcRenderer.invoke('metaplex:create-core-agent-asset', input),
+    mintRegisteredAgent: (input: object) => ipcRenderer.invoke('metaplex:mint-registered-agent', input),
+    registerAgentIdentity: (input: object) => ipcRenderer.invoke('metaplex:register-agent-identity', input),
+    readAgentIdentity: (input: object) => ipcRenderer.invoke('metaplex:read-agent-identity', input),
+  },
+
   fs: {
     readDir: (dirPath: string, depth?: number) => ipcRenderer.invoke('fs:readDir', dirPath, depth),
     readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
     readImageBase64: (filePath: string) => ipcRenderer.invoke('fs:readImageBase64', filePath),
+    readPickedImageBase64: (filePath: string) => ipcRenderer.invoke('fs:readPickedImageBase64', filePath),
     writeImageFromBase64: (filePath: string, base64: string) => ipcRenderer.invoke('fs:writeImageFromBase64', filePath, base64),
     pickImage: () => ipcRenderer.invoke('fs:pickImage'),
     writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:writeFile', filePath, content),
     createFile: (filePath: string) => ipcRenderer.invoke('fs:createFile', filePath),
     createDir: (dirPath: string) => ipcRenderer.invoke('fs:createDir', dirPath),
+    importPaths: (sourcePaths: string[], destDir: string) => ipcRenderer.invoke('fs:importPaths', sourcePaths, destDir),
     rename: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:rename', oldPath, newPath),
     delete: (targetPath: string) => ipcRenderer.invoke('fs:delete', targetPath),
     reveal: (targetPath: string) => ipcRenderer.invoke('fs:reveal', targetPath),
@@ -163,6 +200,9 @@ contextBridge.exposeInMainWorld('daemon', {
     getAllConnections: () => ipcRenderer.invoke('provider:get-all-connections'),
     getDefault: () => ipcRenderer.invoke('provider:get-default'),
     setDefault: (id: string) => ipcRenderer.invoke('provider:set-default', id),
+    getPreferences: () => ipcRenderer.invoke('provider:get-preferences'),
+    setPreferences: (preferences: object) => ipcRenderer.invoke('provider:set-preferences', preferences),
+    resolveFeatureProvider: (featureId: string) => ipcRenderer.invoke('provider:resolve-feature-provider', featureId),
   },
 
   activity: {
@@ -176,6 +216,7 @@ contextBridge.exposeInMainWorld('daemon', {
       sessionStatus?: string | null
       projectId?: string | null
       projectName?: string | null
+      artifacts?: Array<{ type: string; label: string; value: string; href?: string | null }> | null
     }) =>
       ipcRenderer.invoke('activity:append', entry),
     list: (limit?: number) => ipcRenderer.invoke('activity:list', limit),
@@ -192,6 +233,7 @@ contextBridge.exposeInMainWorld('daemon', {
         'process:changed',
         'port:changed',
         'wallet:changed',
+        'secure-key:degraded',
       ])
       if (!allowed.has(channel)) {
         console.warn(`[preload] events.on rejected unknown channel: ${channel}`)
@@ -211,6 +253,15 @@ contextBridge.exposeInMainWorld('daemon', {
     session: () => ipcRenderer.invoke('telemetry:session'),
     stats: () => ipcRenderer.invoke('telemetry:stats'),
     recent: (limit?: number) => ipcRenderer.invoke('telemetry:recent', limit),
+  },
+
+  voight: {
+    status: () => ipcRenderer.invoke('voight:status'),
+    storeKey: (value: string) => ipcRenderer.invoke('voight:store-key', value),
+    deleteKey: () => ipcRenderer.invoke('voight:delete-key'),
+    testEvent: () => ipcRenderer.invoke('voight:test-event'),
+    setPrivacyLevel: (level: 'minimal' | 'standard' | 'full') => ipcRenderer.invoke('voight:set-privacy-level', level),
+    flushQueue: () => ipcRenderer.invoke('voight:flush-queue'),
   },
 
   git: {
@@ -258,17 +309,28 @@ contextBridge.exposeInMainWorld('daemon', {
     storeJupiterKey: (value: string) => ipcRenderer.invoke('wallet:store-jupiter-key', value),
     deleteJupiterKey: () => ipcRenderer.invoke('wallet:delete-jupiter-key'),
     hasJupiterKey: () => ipcRenderer.invoke('wallet:has-jupiter-key'),
+    moonpayStatus: () => ipcRenderer.invoke('wallet:moonpay-status'),
+    storeMoonpayKeys: (input: { publishableKey: string; secretKey: string }) => ipcRenderer.invoke('wallet:store-moonpay-keys', input),
+    deleteMoonpayKeys: () => ipcRenderer.invoke('wallet:delete-moonpay-keys'),
+    openMoonpayOnramp: (input: { walletId: string; baseCurrencyAmount?: number; baseCurrencyCode?: string; externalTransactionId?: string | null; redirectUrl?: string | null }) => ipcRenderer.invoke('wallet:open-moonpay-onramp', input),
     generate: (input: { name: string; walletType?: string; agentId?: string }) => ipcRenderer.invoke('wallet:generate', input),
+    importSigningWallet: (input: { name: string; privateKey?: string }) => ipcRenderer.invoke('wallet:import-signing-wallet', input),
+    importKeypair: (walletId: string, privateKey?: string) => ipcRenderer.invoke('wallet:import-keypair', walletId, privateKey),
     sendSol: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-sol', input),
+    prepareExternalSolTransfer: (input: { fromWalletId: string; toAddress: string; amountSol?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:prepare-external-sol-transfer', input),
+    submitExternalSignedTransaction: (input: { id: string; publicKey: string; signedTransactionBase64: string }) => ipcRenderer.invoke('wallet:submit-external-signed-transaction', input),
+    cancelExternalTransaction: (id: string, reason?: string) => ipcRenderer.invoke('wallet:cancel-external-transaction', id, reason),
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => ipcRenderer.invoke('wallet:send-token', input),
     balance: (walletId: string) => ipcRenderer.invoke('wallet:balance', walletId),
     holdings: (walletId: string) => ipcRenderer.invoke('wallet:holdings', walletId),
     swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => ipcRenderer.invoke('wallet:swap-quote', input),
+    searchJupiterTokens: (query: string) => ipcRenderer.invoke('wallet:jupiter-token-search', query),
     transactionPreview: (input: object) => ipcRenderer.invoke('wallet:transaction-preview', input),
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => ipcRenderer.invoke('wallet:swap-execute', input),
     agentWallets: (agentId?: string) => ipcRenderer.invoke('wallet:agent-wallets', agentId),
     createAgentWallet: (agentId: string, agentName: string) => ipcRenderer.invoke('wallet:create-agent-wallet', agentId, agentName),
     hasKeypair: (walletId: string) => ipcRenderer.invoke('wallet:has-keypair', walletId),
+    signMessage: (walletId: string, message: string) => ipcRenderer.invoke('wallet:sign-message', walletId, message),
     transactionHistory: (walletId: string, limit?: number) => ipcRenderer.invoke('wallet:transaction-history', walletId, limit),
     exportPrivateKey: (walletId: string) => ipcRenderer.invoke('wallet:export-private-key', walletId),
   },
@@ -291,6 +353,41 @@ contextBridge.exposeInMainWorld('daemon', {
     mcpPull: () => ipcRenderer.invoke('pro:mcp-pull'),
   },
 
+  seeker: {
+    relayStart: (port?: number) => ipcRenderer.invoke('seeker:relay-start', port),
+    relayStop: () => ipcRenderer.invoke('seeker:relay-stop'),
+    relayStatus: () => ipcRenderer.invoke('seeker:relay-status'),
+    createSession: (input?: object) => ipcRenderer.invoke('seeker:create-session', input),
+    getSession: (pairingCode: string) => ipcRenderer.invoke('seeker:get-session', pairingCode),
+    listSessions: () => ipcRenderer.invoke('seeker:list-sessions'),
+    updateProject: (pairingCode: string, project: object) => ipcRenderer.invoke('seeker:update-project', pairingCode, project),
+    addApproval: (pairingCode: string, approval: object) => ipcRenderer.invoke('seeker:add-approval', pairingCode, approval),
+    updateApprovalStatus: (pairingCode: string, approvalId: string, status: string) =>
+      ipcRenderer.invoke('seeker:update-approval-status', pairingCode, approvalId, status),
+    clearSession: (pairingCode: string) => ipcRenderer.invoke('seeker:clear-session', pairingCode),
+  },
+
+  ai: {
+    chat: (input: object) => ipcRenderer.invoke('daemon-ai:chat', input),
+    streamChat: (input: object) => ipcRenderer.invoke('daemon-ai:stream-chat', input),
+    getUsage: () => ipcRenderer.invoke('daemon-ai:usage'),
+    getModels: () => ipcRenderer.invoke('daemon-ai:models'),
+    getFeatures: () => ipcRenderer.invoke('daemon-ai:features'),
+    summarizeContext: (input: object) => ipcRenderer.invoke('daemon-ai:summarize-context', input),
+    createAgentRun: (input: object) => ipcRenderer.invoke('daemon-ai:create-agent-run', input),
+    getAgentRun: (runId: string) => ipcRenderer.invoke('daemon-ai:get-agent-run', runId),
+    listAgentRuns: (limit?: number) => ipcRenderer.invoke('daemon-ai:list-agent-runs', limit),
+    cancelAgentRun: (runId: string) => ipcRenderer.invoke('daemon-ai:cancel-agent-run', runId),
+    requestToolApproval: (input: object) => ipcRenderer.invoke('daemon-ai:request-tool-approval', input),
+    approveToolCall: (input: object) => ipcRenderer.invoke('daemon-ai:approve-tool-call', input),
+    listToolApprovals: (runId: string) => ipcRenderer.invoke('daemon-ai:list-tool-approvals', runId),
+    createPatchProposal: (input: object) => ipcRenderer.invoke('daemon-ai:create-patch-proposal', input),
+    getPatchProposal: (proposalId: string) => ipcRenderer.invoke('daemon-ai:get-patch-proposal', proposalId),
+    listPatchProposals: (runId: string) => ipcRenderer.invoke('daemon-ai:list-patch-proposals', runId),
+    decidePatchProposal: (input: object) => ipcRenderer.invoke('daemon-ai:decide-patch-proposal', input),
+    applyPatchProposal: (input: object) => ipcRenderer.invoke('daemon-ai:apply-patch-proposal', input),
+  },
+
   pnl: {
     syncHistory: (walletAddress?: string) => ipcRenderer.invoke('pnl:sync-history', walletAddress),
     getPortfolio: (walletAddress: string, holdings: Array<{ mint: string; symbol: string; name: string; amount: number; logoUri: string | null }>) => ipcRenderer.invoke('pnl:get-portfolio', walletAddress, holdings),
@@ -303,6 +400,7 @@ contextBridge.exposeInMainWorld('daemon', {
     getAppMeta: () => ipcRenderer.invoke('settings:get-app-meta'),
     setShowMarketTape: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-market-tape', enabled),
     setShowTitlebarWallet: (enabled: boolean) => ipcRenderer.invoke('settings:set-show-titlebar-wallet', enabled),
+    setLowPowerMode: (enabled: boolean) => ipcRenderer.invoke('settings:set-low-power-mode', enabled),
     isOnboardingComplete: () => ipcRenderer.invoke('settings:is-onboarding-complete'),
     setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke('settings:set-onboarding-complete', complete),
     getOnboardingProgress: () => ipcRenderer.invoke('settings:get-onboarding-progress'),
@@ -418,11 +516,39 @@ contextBridge.exposeInMainWorld('daemon', {
     importKeypair: (walletId: string) => ipcRenderer.invoke('pumpfun:import-keypair', walletId),
   },
 
+  proof: {
+    escrowStatus: () => ipcRenderer.invoke('proof:escrow-status'),
+    configureEscrow: (input?: object) => ipcRenderer.invoke('proof:configure-escrow', input),
+    exportEscrow: () => ipcRenderer.invoke('proof:export-escrow'),
+    listPools: () => ipcRenderer.invoke('proof:list-pools'),
+    getPool: (poolId: string) => ipcRenderer.invoke('proof:get-pool', poolId),
+    createPool: (input: object) => ipcRenderer.invoke('proof:create-pool', input),
+    verifyBacking: (input: object) => ipcRenderer.invoke('proof:verify-backing', input),
+    launchPool: (poolId: string) => ipcRenderer.invoke('proof:launch-pool', poolId),
+    distributePool: (poolId: string) => ipcRenderer.invoke('proof:distribute-pool', poolId),
+    distributeBacking: (input: object) => ipcRenderer.invoke('proof:distribute-backing', input),
+    refundPool: (poolId: string) => ipcRenderer.invoke('proof:refund-pool', poolId),
+    refundBacking: (input: object) => ipcRenderer.invoke('proof:refund-backing', input),
+    collectFees: (poolId: string) => ipcRenderer.invoke('proof:collect-fees', poolId),
+    claimFees: (input: object) => ipcRenderer.invoke('proof:claim-fees', input),
+    importVanityMint: (input: object) => ipcRenderer.invoke('proof:import-vanity-mint', input),
+    pickImage: () => ipcRenderer.invoke('proof:pick-image'),
+    partnerConfigStatus: () => ipcRenderer.invoke('proof:partner-config-status'),
+    configurePartnerCredentials: (input: object) => ipcRenderer.invoke('proof:configure-partner-credentials', input),
+    listPartnerSessions: () => ipcRenderer.invoke('proof:list-partner-sessions'),
+    createPartnerSession: (input: object) => ipcRenderer.invoke('proof:create-partner-session', input),
+    getPartnerSession: (sessionId: string) => ipcRenderer.invoke('proof:get-partner-session', sessionId),
+    pollPartnerSession: (sessionId: string) => ipcRenderer.invoke('proof:poll-partner-session', sessionId),
+    partnerPrefill: (sessionId: string) => ipcRenderer.invoke('proof:partner-prefill', sessionId),
+  },
+
   spawnAgents: {
     list: (ownerPubkey: string) => ipcRenderer.invoke('spawnagents:list', ownerPubkey),
     get: (agentId: string) => ipcRenderer.invoke('spawnagents:get', agentId),
     trades: (agentId: string, limit?: number, offset?: number) => ipcRenderer.invoke('spawnagents:trades', agentId, limit, offset),
     positions: (agentId: string) => ipcRenderer.invoke('spawnagents:positions', agentId),
+    publicProfile: (agentId: string) => ipcRenderer.invoke('spawnagents:public-profile', agentId),
+    publicPortfolio: (agentId: string) => ipcRenderer.invoke('spawnagents:public-portfolio', agentId),
     events: (since: number, agentId?: string, limit?: number) => ipcRenderer.invoke('spawnagents:events', since, agentId, limit),
     spawnStatus: (ref: string) => ipcRenderer.invoke('spawnagents:spawn-status', ref),
     initiateSpawn: (input: import('../services/SpawnAgentsService').SpawnInput) => ipcRenderer.invoke('spawnagents:initiate-spawn', input),
@@ -432,9 +558,19 @@ contextBridge.exposeInMainWorld('daemon', {
     withdraw: (agentId: string, walletId: string, amountSol: number) => ipcRenderer.invoke('spawnagents:withdraw', agentId, walletId, amountSol),
     kill: (agentId: string, walletId: string) => ipcRenderer.invoke('spawnagents:kill', agentId, walletId),
     onEvent: (callback: (ev: import('../services/SpawnAgentsService').SpawnEvent) => void) => {
+      let disposed = false
       const handler = (_e: unknown, ev: import('../services/SpawnAgentsService').SpawnEvent) => callback(ev)
       ipcRenderer.on('spawnagents:event', handler)
-      return () => { ipcRenderer.off('spawnagents:event', handler) }
+      void ipcRenderer.invoke('spawnagents:event-stream:start').then(() => {
+        if (disposed) void ipcRenderer.invoke('spawnagents:event-stream:stop')
+      }).catch(() => {
+        // Event streaming is best-effort; direct reads still work.
+      })
+      return () => {
+        disposed = true
+        ipcRenderer.off('spawnagents:event', handler)
+        void ipcRenderer.invoke('spawnagents:event-stream:stop').catch(() => {})
+      }
     },
   },
 
@@ -463,6 +599,16 @@ contextBridge.exposeInMainWorld('daemon', {
     tokenHolders: (mint: string) => ipcRenderer.invoke('dashboard:token-holders', mint),
     detectTokens: (walletAddress: string) => ipcRenderer.invoke('dashboard:detect-tokens', walletAddress),
     importToken: (mint: string, walletId: string) => ipcRenderer.invoke('dashboard:import-token', mint, walletId),
+  },
+
+  forensics: {
+    scan: (input: object) => ipcRenderer.invoke('forensics:scan', input),
+    expand: (input: object) => ipcRenderer.invoke('forensics:expand', input),
+    blacklist: () => ipcRenderer.invoke('forensics:blacklist'),
+    exportBlacklist: () => ipcRenderer.invoke('forensics:export-blacklist'),
+    pollHolders: (mint: string) => ipcRenderer.invoke('forensics:poll-holders', mint),
+    ricoMapsStatus: () => ipcRenderer.invoke('forensics:ricomaps-status'),
+    startRicoMaps: () => ipcRenderer.invoke('forensics:ricomaps-start'),
   },
 
   images: {
@@ -518,6 +664,18 @@ contextBridge.exposeInMainWorld('daemon', {
     redeploy: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:redeploy', projectId, platform),
     envVars: (projectId: string, platform: string) => ipcRenderer.invoke('deploy:env-vars', projectId, platform),
     autoDetect: (projectPath: string) => ipcRenderer.invoke('deploy:auto-detect', projectPath),
+  },
+
+  shipline: {
+    createTimeline: (input: object) => ipcRenderer.invoke('shipline:create-timeline', input),
+    listTimelines: (projectId?: string | null, limit?: number) => ipcRenderer.invoke('shipline:list-timelines', projectId ?? null, limit),
+    getTimeline: (id: string) => ipcRenderer.invoke('shipline:get-timeline', id),
+    updateStep: (input: object) => ipcRenderer.invoke('shipline:update-step', input),
+    onTimelineUpdated: (callback: (run: object) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, run: object) => callback(run)
+      ipcRenderer.on('shipline:timeline-updated', handler)
+      return () => ipcRenderer.off('shipline:timeline-updated', handler)
+    },
   },
 
   registry: {
@@ -599,6 +757,39 @@ contextBridge.exposeInMainWorld('daemon', {
     hasKey: (configId: string) => ipcRenderer.invoke('agent-station:has-key', configId),
     deleteKey: (configId: string) => ipcRenderer.invoke('agent-station:delete-key', configId),
     updateStatus: (id: string, status: 'idle' | 'running' | 'stopped') => ipcRenderer.invoke('agent-station:update-status', id, status),
+  },
+
+  idle: {
+    status: (registryUrl?: string | null) => ipcRenderer.invoke('idle:status', registryUrl ?? null),
+    refreshRegistry: (input?: { registryUrl?: string | null }) => ipcRenderer.invoke('idle:refresh-registry', input ?? {}),
+    listResources: (limit?: number) => ipcRenderer.invoke('idle:list-resources', limit),
+    checkPolicy: (input: unknown) => ipcRenderer.invoke('idle:check-policy', input),
+    executePaidCall: (input: unknown) => ipcRenderer.invoke('idle:execute-paid-call', input),
+    listReceipts: (limit?: number) => ipcRenderer.invoke('idle:list-receipts', limit),
+  },
+
+  meterflow: {
+    status: () => ipcRenderer.invoke('meterflow:status'),
+    storeApiKey: (apiKey: string) => ipcRenderer.invoke('meterflow:store-api-key', apiKey),
+    deleteApiKey: () => ipcRenderer.invoke('meterflow:delete-api-key'),
+    overview: () => ipcRenderer.invoke('meterflow:overview'),
+    listReceipts: (input?: number | { meterId?: string; status?: string; limit?: number }) => ipcRenderer.invoke('meterflow:list-receipts', input ?? {}),
+    getReceipt: (receiptId: string) => ipcRenderer.invoke('meterflow:get-receipt', receiptId),
+    ingestReceipt: (receipt: object) => ipcRenderer.invoke('meterflow:ingest-receipt', receipt),
+    createDemoWallet: () => ipcRenderer.invoke('meterflow:create-demo-wallet'),
+    getDemoWallet: () => ipcRenderer.invoke('meterflow:get-demo-wallet'),
+    checkDemoWalletReadiness: () => ipcRenderer.invoke('meterflow:check-demo-wallet-readiness'),
+    callPaidAgentReadiness: (input: object) => ipcRenderer.invoke('meterflow:call-paid-agent-readiness', input),
+    watchProject: (projectPath: string) => ipcRenderer.invoke('meterflow:watch-project', projectPath),
+    getReceiptGraph: (receiptId: string) => ipcRenderer.invoke('meterflow:get-receipt-graph', receiptId),
+    listMeters: () => ipcRenderer.invoke('meterflow:list-meters'),
+    testMeter: (meterId: string) => ipcRenderer.invoke('meterflow:test-meter', meterId),
+    listBudgets: () => ipcRenderer.invoke('meterflow:list-budgets'),
+    listAgentSessions: () => ipcRenderer.invoke('meterflow:list-agent-sessions'),
+    listWebhooks: () => ipcRenderer.invoke('meterflow:list-webhooks'),
+    providerRevenue: () => ipcRenderer.invoke('meterflow:provider-revenue'),
+    registrySummary: () => ipcRenderer.invoke('meterflow:registry-summary'),
+    exportReceiptsCsv: () => ipcRenderer.invoke('meterflow:export-receipts-csv'),
   },
 
   replay: {

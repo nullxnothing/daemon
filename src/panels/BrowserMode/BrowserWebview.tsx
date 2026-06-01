@@ -25,6 +25,7 @@ export interface BrowserWebviewHandle {
 export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserWebview(_, ref) {
   const webviewRef = useRef<WebviewElement | null>(null)
   const isNavigated = useRef(false)
+  const lastLoadedUrl = useRef<string | null>(null)
 
   const setUrl = useBrowserStore((s) => s.setUrl)
   const setLoadStatus = useBrowserStore((s) => s.setLoadStatus)
@@ -40,6 +41,21 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed
     return `http://${trimmed}`
   }, [])
+
+  const loadWebviewUrl = useCallback((url: string) => {
+    const normalized = normalizeUrl(url)
+    const wv = webviewRef.current
+    if (!normalized || !wv) return
+    if (lastLoadedUrl.current === normalized) return
+
+    lastLoadedUrl.current = normalized
+    isNavigated.current = true
+    setLoadStatus('loading')
+
+    // `loadURL()` throws if the webview has not emitted dom-ready yet. Setting
+    // the src attribute lets Electron schedule initial and subsequent loads.
+    wv.setAttribute('src', normalized)
+  }, [normalizeUrl, setLoadStatus])
 
   const updateNavState = useCallback(() => {
     const wv = webviewRef.current
@@ -57,8 +73,7 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
       const normalized = normalizeUrl(url)
       if (!normalized) return
       setUrl(normalized)
-      setLoadStatus('loading')
-      isNavigated.current = true
+      loadWebviewUrl(normalized)
 
       // Create page cache entry in main process and store the pageId
       try {
@@ -71,7 +86,7 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
       }
 
     },
-    [normalizeUrl, setUrl, setLoadStatus]
+    [loadWebviewUrl, normalizeUrl, setUrl]
   )
 
   const injectInspector = useCallback(() => {
@@ -97,6 +112,10 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     injectInspector,
     removeInspector,
   }))
+
+  useEffect(() => {
+    loadWebviewUrl(currentUrl)
+  }, [currentUrl, loadWebviewUrl])
 
   useEffect(() => {
     const wv = webviewRef.current
@@ -145,6 +164,7 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
     const onNavigate = (event: any) => {
       const newUrl = event.url || ''
       if (newUrl) {
+        lastLoadedUrl.current = newUrl
         setUrl(newUrl)
         const agentTerminalId = useBrowserStore.getState().agentTerminalId
         if (agentTerminalId) {

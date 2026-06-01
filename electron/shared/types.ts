@@ -11,6 +11,204 @@ export interface IpcResponse<T = unknown> {
   error?: string
 }
 
+// --- Proof Pools ---
+
+export type ProofPoolStatus = 'backing' | 'funded' | 'launching' | 'live' | 'distributed' | 'refunding' | 'failed'
+export type ProofBackingStatus = 'confirmed' | 'withdrawn' | 'refunding' | 'refunded' | 'distributing' | 'distributed'
+
+export interface ProofPool {
+  id: string
+  name: string
+  symbol: string
+  description: string
+  image_path: string | null
+  twitter: string | null
+  telegram: string | null
+  website: string | null
+  creator_wallet: string
+  pool_wallet: string
+  pool_key_name: string
+  creator_subescrow: string
+  creator_key_name: string
+  mint: string | null
+  mint_key_name: string | null
+  metadata_uri: string | null
+  launch_signature: string | null
+  proof_level: string | null
+  total_slots: number
+  min_backing_sol: number
+  min_backing_lamports: number
+  current_backing_sol: number
+  current_backing_lamports: number
+  pool_token_balance: string | null
+  status: ProofPoolStatus
+  backing_deadline: number
+  launched_at: number | null
+  distributed_at: number | null
+  created_at: number
+  updated_at: number
+  error_message: string | null
+}
+
+export interface ProofBacking {
+  id: string
+  pool_id: string
+  backer_wallet: string
+  amount_sol: number
+  amount_lamports: number
+  deposit_signature: string
+  slot_number: number
+  status: ProofBackingStatus
+  tokens_allocated: string | null
+  distribution_signature: string | null
+  refund_signature: string | null
+  claimable_fees_sol: number
+  claimable_fees_lamports: number
+  total_claimed_sol: number
+  total_claimed_lamports: number
+  last_claim_signature: string | null
+  distributed_at: number | null
+  refunded_at: number | null
+  created_at: number
+  updated_at: number
+}
+
+export interface ProofPoolEvent {
+  id: string
+  pool_id: string
+  kind: string
+  message: string
+  signature: string | null
+  metadata_json: string
+  created_at: number
+}
+
+export interface ProofPoolDetail {
+  pool: ProofPool
+  backings: ProofBacking[]
+  events: ProofPoolEvent[]
+}
+
+export interface ProofEscrowStatus {
+  configured: boolean
+  address: string | null
+  keyName: string
+  hint: string
+  balanceLamports?: number
+  balanceSol?: number
+}
+
+export interface CreateProofPoolInput {
+  name: string
+  symbol: string
+  description: string
+  imagePath?: string | null
+  twitter?: string | null
+  telegram?: string | null
+  website?: string | null
+  creatorWallet: string
+  totalSlots: number
+  minBackingSol: number
+  backingDays?: number
+}
+
+export interface VerifyProofBackingInput {
+  poolId: string
+  backerWallet: string
+  amountSol: number
+  depositSignature: string
+}
+
+export interface ImportProofVanityMintInput {
+  privateKeyBase58: string
+}
+
+export interface ProofClaimFeesInput {
+  backingId: string
+}
+
+export interface ProofBackingActionInput {
+  backingId: string
+  force?: boolean
+}
+
+export interface ProofPoolLaunchResult {
+  pool: ProofPool
+  signature: string
+  mint: string
+  metadataUri: string
+  proofLevel: string
+  poolTokenBalance: string
+}
+
+export interface ProofCollectFeesResult {
+  ok: boolean
+  skipped?: string
+  collectedLamports?: number
+  platformLamports?: number
+  backerLamports?: number
+  backerCount?: number
+  collectSig?: string
+  drainSig?: string
+  error?: string
+}
+
+export interface ProofEscrowExportResult {
+  copied: boolean
+  address: string
+  expiresInMs: number
+}
+
+export interface ProofPartnerCredentialStatus {
+  apiKeyConfigured: boolean
+  webhookSecretConfigured: boolean
+  apiBase: string
+  partnerSlug: string
+}
+
+export interface ConfigureProofPartnerCredentialsInput {
+  apiKey?: string | null
+  webhookSecret?: string | null
+}
+
+export interface CreateProofPartnerSessionInput {
+  name: string
+  symbol: string
+  description: string
+  imageUrl?: string | null
+  creatorWallet: string
+  totalSlots: number
+  minBackingSol: number
+  metadata?: Record<string, string | null | undefined> | null
+  returnUrl?: string | null
+  partnerReference?: string | null
+}
+
+export interface ProofPartnerSession {
+  id: string
+  partner_reference: string
+  name: string
+  symbol: string
+  description: string
+  image_url: string | null
+  creator_wallet: string
+  total_slots: number
+  min_backing_sol: number
+  metadata_json: string
+  return_url: string | null
+  checkout_url: string | null
+  status: string
+  meme_id: string | null
+  meme_url: string | null
+  prefill_json: string | null
+  request_json: string
+  response_json: string
+  created_at: number
+  updated_at: number
+  last_polled_at: number | null
+  error_message: string | null
+}
+
 // --- DB Entities ---
 
 export interface Project {
@@ -285,10 +483,20 @@ export interface GhostPort {
   processName: string | null
 }
 
-// --- Daemon Pro ---
+// --- Daemon Pro / DAEMON AI ---
 
-export type ProFeature = 'arena' | 'pro-skills' | 'mcp-sync' | 'priority-api'
-export type ProAccessSource = 'payment' | 'holder'
+export type DaemonPlanId = 'light' | 'pro' | 'operator' | 'ultra' | 'team' | 'enterprise'
+export type ProFeature =
+  | 'daemon-ai'
+  | 'arena'
+  | 'pro-skills'
+  | 'mcp-sync'
+  | 'priority-api'
+  | 'app-factory'
+  | 'shipline'
+  | 'cloud-agents'
+  | 'team-admin'
+export type ProAccessSource = 'free' | 'payment' | 'holder' | 'admin' | 'trial' | 'dev_bypass'
 
 export interface ProHolderStatus {
   enabled: boolean
@@ -301,15 +509,17 @@ export interface ProHolderStatus {
 
 export interface ProSubscriptionState {
   active: boolean
+  plan: DaemonPlanId
   walletId: string | null
   walletAddress: string | null
   expiresAt: number | null
   features: ProFeature[]
-  tier: 'pro' | null
+  tier: Exclude<DaemonPlanId, 'light'> | null
   accessSource: ProAccessSource | null
   holderStatus: ProHolderStatus
   priceUsdc: number | null
   durationDays: number | null
+  offlineGraceUntil?: number | null
 }
 
 export interface ProPriceInfo {
@@ -317,6 +527,7 @@ export interface ProPriceInfo {
   durationDays: number
   network: string
   payTo: string
+  paymentMint?: string
   holderMint?: string
   holderMinAmount?: number
 }
@@ -365,6 +576,203 @@ export interface ProSkillManifestEntry {
 export interface ProSkillManifest {
   version: 1
   skills: ProSkillManifestEntry[]
+}
+
+export type DaemonAiAccessMode = 'auto' | 'hosted' | 'byok'
+export type DaemonAiChatMode = 'ask' | 'plan'
+export type DaemonAiModelLane = 'auto' | 'fast' | 'standard' | 'reasoning' | 'premium'
+export type DaemonAiAgentMode = 'patch' | 'agent' | 'background'
+export type DaemonAiAgentRunStatus = 'queued' | 'planning' | 'awaiting_approval' | 'running' | 'completed' | 'failed' | 'cancelled'
+export type DaemonAiToolRiskLevel = 'low' | 'medium' | 'high' | 'blocked'
+export type DaemonAiToolApprovalStatus = 'pending' | 'approved' | 'rejected' | 'blocked'
+export type DaemonAiToolApprovalDecision = 'approve' | 'reject'
+export type DaemonAiPatchProposalStatus = 'proposed' | 'accepted' | 'rejected' | 'superseded' | 'applied'
+export type DaemonAiPatchRiskLevel = 'low' | 'medium' | 'high' | 'blocked'
+export type DaemonAiApprovalPolicy =
+  | 'require_for_write_and_terminal'
+  | 'require_for_all_tools'
+  | 'read_only'
+
+export interface DaemonAiContextOptions {
+  activeFile?: boolean
+  projectTree?: boolean
+  gitDiff?: boolean
+  terminalLogs?: boolean
+  walletContext?: boolean
+}
+
+export interface DaemonAiContextInput {
+  projectId?: string | null
+  projectPath?: string | null
+  activeFilePath?: string | null
+  activeFileContent?: string | null
+  context?: DaemonAiContextOptions
+}
+
+export interface DaemonAiChatRequest extends DaemonAiContextInput {
+  conversationId?: string | null
+  message: string
+  mode?: DaemonAiChatMode
+  accessMode?: DaemonAiAccessMode
+  modelPreference?: DaemonAiModelLane
+}
+
+export interface DaemonAiUsageSnapshot {
+  plan: DaemonPlanId
+  accessSource: ProAccessSource | null
+  monthlyCredits: number
+  usedCredits: number
+  remainingCredits: number
+  resetAt: number
+}
+
+export interface DaemonAiChatResponse {
+  messageId: string
+  conversationId: string
+  text: string
+  accessMode: DaemonAiAccessMode
+  modelLane: DaemonAiModelLane
+  usedContext: string[]
+  usage: DaemonAiUsageSnapshot
+}
+
+export interface DaemonAiUsageEvent {
+  id: string
+  userId: string | null
+  walletAddress?: string | null
+  plan: DaemonPlanId
+  accessSource: ProAccessSource | null
+  feature: string
+  provider: 'openai' | 'anthropic' | 'google' | 'local' | 'daemon-cloud' | 'other'
+  model: string
+  inputTokens: number
+  outputTokens: number
+  cachedInputTokens?: number
+  providerCostUsd: number
+  daemonCreditsCharged: number
+  createdAt: number
+}
+
+export interface DaemonAiModelInfo {
+  lane: DaemonAiModelLane
+  label: string
+  description: string
+  hosted: boolean
+  byok: boolean
+  requiresPlan: DaemonPlanId | null
+}
+
+export interface DaemonAiFeatureState {
+  hostedAvailable: boolean
+  byokAvailable: boolean
+  plan: DaemonPlanId
+  accessSource: ProAccessSource | null
+  features: ProFeature[]
+  upgradeRequired: boolean
+  backendConfigured: boolean
+}
+
+export interface DaemonAiAgentRunInput extends DaemonAiContextInput {
+  task: string
+  mode?: DaemonAiAgentMode
+  accessMode?: DaemonAiAccessMode
+  modelPreference?: DaemonAiModelLane
+  allowedTools?: string[]
+  approvalPolicy?: DaemonAiApprovalPolicy
+}
+
+export interface DaemonAiAgentRun {
+  id: string
+  task: string
+  projectId: string | null
+  projectPath: string | null
+  mode: DaemonAiAgentMode
+  accessMode: DaemonAiAccessMode
+  modelLane: DaemonAiModelLane
+  status: DaemonAiAgentRunStatus
+  allowedTools: string[]
+  approvalPolicy: DaemonAiApprovalPolicy
+  createdAt: number
+  updatedAt: number
+  cancelledAt: number | null
+  result: Record<string, unknown> | null
+  error: string | null
+}
+
+export interface DaemonAiToolCallInput {
+  runId: string
+  toolCallId?: string | null
+  toolName: string
+  summary?: string | null
+  arguments?: unknown
+}
+
+export interface DaemonAiToolApprovalRequest {
+  id: string
+  runId: string
+  toolCallId: string
+  toolName: string
+  riskLevel: DaemonAiToolRiskLevel
+  summary: string
+  argumentsPreview: unknown
+  status: DaemonAiToolApprovalStatus
+  requiresApproval: boolean
+  createdAt: number
+  decidedAt: number | null
+  decisionReason: string | null
+}
+
+export interface DaemonAiToolApprovalDecisionInput {
+  runId: string
+  toolCallId: string
+  decision: DaemonAiToolApprovalDecision
+  reason?: string | null
+}
+
+export interface DaemonAiPatchProposalInput {
+  runId: string
+  title?: string | null
+  summary?: string | null
+  unifiedDiff: string
+}
+
+export interface DaemonAiPatchSafetyFinding {
+  severity: DaemonAiPatchRiskLevel
+  code: string
+  message: string
+  filePath?: string
+}
+
+export interface DaemonAiPatchProposal {
+  id: string
+  runId: string
+  title: string
+  summary: string | null
+  unifiedDiff: string
+  files: string[]
+  status: DaemonAiPatchProposalStatus
+  riskLevel: DaemonAiPatchRiskLevel
+  safetyFindings: DaemonAiPatchSafetyFinding[]
+  createdAt: number
+  decidedAt: number | null
+  decisionReason: string | null
+}
+
+export interface DaemonAiPatchDecisionInput {
+  proposalId: string
+  decision: 'accept' | 'reject'
+  reason?: string | null
+}
+
+export interface DaemonAiPatchApplyInput {
+  proposalId: string
+  reason?: string | null
+}
+
+export interface DaemonAiPatchApplyResult {
+  proposal: DaemonAiPatchProposal
+  files: string[]
+  appliedAt: number
 }
 
 // --- MCP ---
@@ -491,6 +899,218 @@ export interface WalletDashboard {
   }>
 }
 
+export type MoonpayEnvironment = 'sandbox' | 'production'
+
+export interface MoonpayStatus {
+  configured: boolean
+  environment: MoonpayEnvironment | null
+  publishableKeyHint: string | null
+}
+
+export interface MoonpayKeysInput {
+  publishableKey: string
+  secretKey: string
+}
+
+export interface MoonpayOnrampInput {
+  walletId: string
+  baseCurrencyAmount?: number
+  baseCurrencyCode?: string
+  externalTransactionId?: string | null
+  redirectUrl?: string | null
+}
+
+export interface MoonpayOnrampResult {
+  url: string
+  environment: MoonpayEnvironment
+  walletAddress: string
+}
+
+// --- Forensics ---
+
+export type ForensicsScanMode = 'auto' | 'wallet' | 'token'
+export type ForensicsDetectedMode = 'wallet' | 'token'
+export type ForensicsNodeType =
+  | 'target'
+  | 'funder'
+  | 'funded'
+  | 'connected'
+  | 'holder'
+  | 'token'
+  | 'cabal-funder'
+  | 'sniper'
+  | 'bundled'
+
+export interface ForensicsWalletIdentity {
+  name: string | null
+  category: string | null
+  type: string | null
+  tags: string[]
+}
+
+export interface ForensicsGraphNode {
+  id: string
+  label: string
+  val: number
+  type: ForensicsNodeType
+  depth: number
+  solBalance?: number
+  tokenAmount?: number
+  expanded: boolean
+  identity?: ForensicsWalletIdentity
+  fundingSource?: {
+    funderAddress: string
+    funderName: string | null
+    funderType: string | null
+    amount: number
+    timestamp: number
+    signature: string
+  }
+  metadata?: {
+    firstTx?: number
+    txCount?: number
+    suspicious?: boolean
+    fundedCount?: number
+    isSniper?: boolean
+    buyBlock?: number
+    buyTimestamp?: number
+    blocksAfterLaunch?: number
+    isBundled?: boolean
+    sharedFunderGroup?: string
+    cabalConfidence?: number
+    transferPatterns?: {
+      totalIn: number
+      totalOut: number
+      uniqueCounterparties: number
+    }
+  }
+}
+
+export interface ForensicsGraphLink {
+  source: string
+  target: string
+  value: number
+  timestamp?: number
+  txSignature?: string
+  suspicious?: boolean
+}
+
+export interface ForensicsGraphData {
+  nodes: ForensicsGraphNode[]
+  links: ForensicsGraphLink[]
+}
+
+export interface ForensicsTokenSecurity {
+  hasFreezeAuthority: boolean
+  freezeAuthority?: string
+  hasMintAuthority: boolean
+  mintAuthority?: string
+  isMutable: boolean
+  supply?: number
+  decimals?: number
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  riskFactors: string[]
+}
+
+export interface ForensicsTokenMetadata {
+  name?: string
+  symbol?: string
+  image?: string
+  description?: string
+}
+
+export interface ForensicsStats {
+  nodesFound?: number
+  linksFound?: number
+  scanDepth?: number
+  totalHolders?: number
+  rawHolderCount?: number
+  filteredOut?: number
+  analyzedHolders?: number
+  analysisIncomplete?: boolean
+  cabalConnectionsFound?: number
+  suspiciousWallets?: string[]
+  snipersDetected?: number
+  sniperWallets?: string[]
+  bundleClustersDetected?: number
+  bundledWallets?: string[]
+  cacheHit?: boolean
+}
+
+export interface ForensicsScanInput {
+  address: string
+  mode?: ForensicsScanMode
+  topHolders?: number
+  maxDepth?: number
+  maxNodesPerLevel?: number
+  force?: boolean
+}
+
+export interface ForensicsScanResult {
+  mode: ForensicsDetectedMode
+  data: ForensicsGraphData
+  stats: ForensicsStats
+  tokenSecurity?: ForensicsTokenSecurity | null
+  tokenMetadata?: ForensicsTokenMetadata | null
+}
+
+export interface ForensicsExpandInput {
+  wallet: string
+  mode: 'funding' | 'funded'
+  existingNodes: string[]
+}
+
+export interface ForensicsExpandResult {
+  newNodes: ForensicsGraphNode[]
+  newLinks: ForensicsGraphLink[]
+}
+
+export interface ForensicsBundleTokenAppearance {
+  mint: string
+  tokenName?: string
+  tokenSymbol?: string
+  slot: number
+  timestamp: number
+  walletCount: number
+  transactionSignatures: string[]
+}
+
+export interface ForensicsBundleCluster {
+  id: string
+  wallets: string[]
+  tokens: ForensicsBundleTokenAppearance[]
+  totalAppearances: number
+  lastSeenTimestamp: number
+  firstSeenTimestamp: number
+  confidence: number
+  sharedFunder?: string
+  metadata?: {
+    avgClusterSize: number
+    maxSameSlotCount: number
+  }
+}
+
+export interface ForensicsBlacklistResult {
+  clusters: ForensicsBundleCluster[]
+  totalWallets: number
+  totalClusters: number
+}
+
+export interface ForensicsHolderPollResult {
+  holders: Array<{ owner: string; amount: number }>
+  timestamp: number
+}
+
+export interface RicoMapsEmbedStatus {
+  url: string
+  port: number
+  projectPath: string
+  installed: boolean
+  running: boolean
+  pid: number | null
+  error: string | null
+}
+
 export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'
 
 export interface SolanaTransactionPreviewInput {
@@ -515,6 +1135,7 @@ export interface SolanaTransactionPreviewInput {
 export interface SolanaTransactionPreview {
   title: string
   backendLabel: string
+  networkLabel?: string
   signerLabel: string
   targetLabel: string
   amountLabel: string
@@ -622,6 +1243,31 @@ export interface ProviderConnectionInfo {
 export interface UiSettings {
   showMarketTape: boolean
   showTitlebarWallet: boolean
+  lowPowerMode: boolean
+}
+
+// --- Voight observability ---
+
+export type VoightPrivacyLevel = 'minimal' | 'standard' | 'full'
+export type VoightKeySource = 'secure' | 'env' | 'none'
+
+export interface VoightStatus {
+  configured: boolean
+  keySource: VoightKeySource
+  privacyLevel: VoightPrivacyLevel
+  endpoint: string
+  pending: number
+  failed: number
+  sent: number
+  lastSentAt: number | null
+  lastError: string | null
+}
+
+export interface VoightTestResult {
+  accepted: boolean
+  status: number
+  eventId: string
+  response: unknown
 }
 
 // --- Recovery ---
@@ -679,6 +1325,8 @@ export interface TerminalSession {
   localSessionId?: string | null
   /** Best-effort count of terminal output lines for session receipts. */
   generatedLineCount?: number
+  /** Bounded recent terminal output for workflow receipts. */
+  outputBuffer?: string
   /** Buffers PTY data until renderer signals ready */
   dataBuffer?: string[]
   /** True once renderer has attached its xterm onData listener */
@@ -761,6 +1409,21 @@ export interface TransferSOLInput {
   sendMax?: boolean
 }
 
+export interface ExternalSolTransferDraft {
+  id: string
+  fromAddress: string
+  toAddress: string
+  amountSol: number
+  transactionBase64: string
+  transport: 'rpc' | 'jito'
+}
+
+export interface SubmitExternalSignedTransactionInput {
+  id: string
+  publicKey: string
+  signedTransactionBase64: string
+}
+
 export interface TransferTokenInput {
   fromWalletId: string
   toAddress: string
@@ -798,6 +1461,21 @@ export interface AgentWalletEntry {
 export interface WalletBalanceResult {
   sol: number
   lamports: number
+}
+
+export interface JupiterTokenSearchResult {
+  mint: string
+  name: string
+  symbol: string
+  icon: string | null
+  decimals: number
+  usdPrice: number | null
+  liquidity: number | null
+  holderCount: number | null
+  organicScore: number | null
+  isSus: boolean
+  verified: boolean
+  tokenProgram: string | null
 }
 
 // --- Agent Work Escrow ---
@@ -844,6 +1522,10 @@ export interface AgentWorkTask {
   diff_hash: string | null
   tests_hash: string | null
   artifact_uri: string | null
+  keycard_gate_id: string | null
+  keycard_open_url: string | null
+  keycard_capsule_hash: string | null
+  keycard_created_at: number | null
   submitted_at: number | null
   approved_at: number | null
   settled_signature: string | null
@@ -867,6 +1549,7 @@ export interface AgentWorkCreateInput {
 export interface AgentWorkSubmitInput {
   artifactUri?: string | null
   testsOutput?: string | null
+  artifactMode?: 'local' | 'keycard'
 }
 
 // --- PnL Tracking ---
@@ -942,6 +1625,306 @@ export interface PnlSyncResult {
   tradesFound: number
   newTrades: number
   walletsProcessed: number
+}
+
+// --- IDLE paid resource routing ---
+
+export type IdleResourceType = 'gpu' | 'agent' | 'api' | 'pc' | 'wallet' | 'data' | 'unknown'
+export type IdleResourceStatus = 'available' | 'degraded' | 'disabled'
+export type IdleReceiptStatus = 'previewed' | 'settled' | 'failed' | 'blocked'
+
+export interface IdleResource {
+  id: string
+  provider: string
+  type: IdleResourceType
+  name: string
+  endpoint: string
+  method: 'GET' | 'POST'
+  priceUsdc: number
+  asset: string
+  network: string
+  payee: string
+  score: number
+  status: IdleResourceStatus
+  schema: Record<string, unknown>
+  registryUrl: string | null
+  lastSeenAt: number
+}
+
+export interface IdleBudgetPolicy {
+  maxPerCallUsdc: number
+  maxPerTaskUsdc: number
+  allowedDomains: string[]
+  allowedNetworks: string[]
+  allowedAssets: string[]
+  allowedPayees: string[]
+  receiptRequired: boolean
+  humanApproved: boolean
+}
+
+export interface IdleRegistryRefreshInput {
+  registryUrl?: string | null
+}
+
+export interface IdlePolicyCheckInput {
+  resourceId: string
+  projectId?: string | null
+  taskId?: string | null
+  policy: IdleBudgetPolicy
+}
+
+export interface IdlePolicyCheckResult {
+  allowed: boolean
+  reasons: string[]
+  resource: IdleResource | null
+  spentThisTaskUsdc: number
+  remainingTaskBudgetUsdc: number
+}
+
+export interface IdlePaidCallInput extends IdlePolicyCheckInput {
+  agentId?: string | null
+  requestBody?: unknown
+  paymentSignature?: string | null
+  approvedBy?: string | null
+}
+
+export interface IdlePaidCallReceipt {
+  id: string
+  resourceId: string
+  projectId: string | null
+  taskId: string | null
+  agentId: string | null
+  endpoint: string
+  method: string
+  amountUsdc: number
+  asset: string
+  network: string
+  payee: string
+  status: IdleReceiptStatus
+  paymentId: string | null
+  facilitator: string | null
+  responseStatus: number | null
+  responseContentType: string | null
+  responseBytes: number | null
+  errorMessage: string | null
+  metadata: Record<string, unknown>
+  createdAt: number
+  updatedAt: number
+}
+
+export interface IdleRegistryStatus {
+  registryConfigured: boolean
+  registryUrl: string | null
+  resourceCount: number
+  receiptCount: number
+  latestReceipt: IdlePaidCallReceipt | null
+  executionReady: boolean
+  blockers: string[]
+}
+
+// --- Meterflow control plane ---
+
+export type MeterflowKeySource = 'secure' | 'env' | 'none'
+
+export interface MeterflowStatus {
+  configured: boolean
+  keySource: MeterflowKeySource
+  baseUrl: string
+  tier: string | null
+  balanceUsd: number | null
+  executionReady: boolean
+  error: string | null
+  raw: Record<string, unknown> | null
+}
+
+export interface MeterflowReceipt {
+  id: string
+  createdAt?: string | number | null
+  updatedAt?: string | number | null
+  status?: string | null
+  method?: string | null
+  paymentProtocol?: string | null
+  paymentState?: string | null
+  route?: string | null
+  providerRoute?: string | null
+  meterId?: string | null
+  payerWallet?: string | null
+  wallet?: string | null
+  amountUsd?: number | string | null
+  amountUSDC?: number | string | null
+  asset?: string | null
+  txSignature?: string | null
+  publicVerifyUrl?: string | null
+  trustState?: string | null
+  trustScore?: number | string | null
+  agentId?: string | null
+  agentName?: string | null
+  providerName?: string | null
+  responseStatus?: number | string | null
+  error?: string | null
+  raw?: Record<string, unknown> | null
+  [key: string]: unknown
+}
+
+export interface MeterflowReceiptGraph {
+  receipt?: MeterflowReceipt
+  quote?: unknown
+  payment?: unknown
+  policy?: unknown
+  provider?: unknown
+  webhook?: unknown
+  [key: string]: unknown
+}
+
+export interface MeterflowMeter {
+  id: string
+  route?: string | null
+  endpoint?: string | null
+  targetUrl?: string | null
+  targetHost?: string | null
+  method?: string | null
+  unit?: string | null
+  priceUsd?: number | string | null
+  asset?: string | null
+  status?: string | null
+  mode?: string | null
+  providerName?: string | null
+  category?: string | null
+  description?: string | null
+  capabilities?: string[]
+  daemonReady?: boolean
+  source?: string | null
+  metrics?: Record<string, unknown> | null
+  [key: string]: unknown
+}
+
+export interface MeterflowBudget {
+  id: string
+  name?: string | null
+  status?: string | null
+  dailyCapUsd?: number | string | null
+  perCallCapUsd?: number | string | null
+  spentUsdToday?: number | string | null
+  allowedMeterIds?: string[]
+  [key: string]: unknown
+}
+
+export interface MeterflowAgentSession {
+  id: string
+  name?: string | null
+  agentId?: string | null
+  status?: string | null
+  maxSpendUsd?: number | string | null
+  spentUsd?: number | string | null
+  perCallCapUsd?: number | string | null
+  authMethod?: string | null
+  metadataPolicy?: string | null
+  expiresAt?: string | number | null
+  allowedMeterIds?: string[]
+  [key: string]: unknown
+}
+
+export interface MeterflowWebhook {
+  id: string
+  url?: string | null
+  events?: string[]
+  status?: string | null
+  createdAt?: string | number | null
+  updatedAt?: string | number | null
+  lastDeliveryAt?: string | number | null
+  lastStatus?: string | number | null
+  secretHint?: string | null
+  [key: string]: unknown
+}
+
+export interface MeterflowRevenueRow {
+  meterId?: string | null
+  route?: string | null
+  unit?: string | null
+  calls?: number | string | null
+  successful?: number | string | null
+  failed?: number | string | null
+  grossUsd?: number | string | null
+  verifiedUsd?: number | string | null
+  estimatedUsd?: number | string | null
+  avgLatencyMs?: number | string | null
+  [key: string]: unknown
+}
+
+export interface MeterflowReceiptsQuery {
+  meterId?: string
+  status?: string
+  limit?: number
+}
+
+export interface MeterflowReceiptDetail {
+  receipt: MeterflowReceipt
+  graph: MeterflowReceiptGraph | null
+}
+
+export interface MeterflowDemoWallet {
+  walletId: string
+  address: string
+  name: string
+  walletType: 'agent' | 'user' | string
+  createdAt: number
+  hasKeypair: boolean
+}
+
+export interface MeterflowWalletReadiness {
+  wallet: MeterflowDemoWallet | null
+  ready: boolean
+  network: string
+  solBalance: number | null
+  usdcBalance: number | null
+  fundingMessage: string
+  blockers: string[]
+}
+
+export interface MeterflowPaidAgentReadinessInput {
+  agentName?: string
+  metaplexAssetAddress?: string
+  idempotencyKey?: string
+  action?: string
+  address?: string
+  [key: string]: unknown
+}
+
+export interface MeterflowPaidAgentReadinessResult {
+  wallet: MeterflowDemoWallet
+  idempotencyKey: string
+  status: number
+  ok: boolean
+  receipt: MeterflowReceipt
+  receiptId: string | null
+  receiptUrl: string | null
+  txSignature: string | null
+  result: Record<string, unknown>
+}
+
+export interface MeterflowWatchProjectResult {
+  projectPath: string
+  watchPath: string
+  watching: boolean
+}
+
+export interface MeterflowCsvExport {
+  filename: string
+  contentType: string
+  content: string
+}
+
+export interface MeterflowOverview {
+  status: MeterflowStatus
+  receipts: MeterflowReceipt[]
+  meters: MeterflowMeter[]
+  budgets: MeterflowBudget[]
+  agentSessions: MeterflowAgentSession[]
+  webhooks: MeterflowWebhook[]
+  revenue: MeterflowRevenueRow[]
+  registrySummary: Record<string, unknown> | null
+  errors: string[]
+  fetchedAt: number
 }
 
 // --- MCP Management ---
@@ -1198,6 +2181,81 @@ export interface VercelEnvVar {
   type: string
 }
 
+// --- Shipline ---
+
+export type ShiplineCluster = 'devnet' | 'mainnet-beta'
+export type ShiplineRunStatus = 'ready' | 'blocked' | 'running' | 'complete' | 'failed'
+export type ShiplineStepStatus = 'pending' | 'ready' | 'running' | 'complete' | 'warning' | 'blocked' | 'failed'
+export type ShiplineStepId =
+  | 'preflight'
+  | 'build'
+  | 'tests'
+  | 'priority-fees'
+  | 'deploy'
+  | 'confirm'
+  | 'verify'
+  | 'idl-export'
+
+export interface ShiplineProgramTarget {
+  name: string
+  preferredProgramId: string | null
+  anchorProgramId: string | null
+  declareId: string | null
+  idlAddress: string | null
+  keypairAddress: string | null
+  explorerUrl: string | null
+  warnings: string[]
+}
+
+export interface ShiplineTimelineStep {
+  id: ShiplineStepId
+  label: string
+  detail: string
+  status: ShiplineStepStatus
+  command: string | null
+  artifacts: Array<{
+    label: string
+    value: string
+    href?: string | null
+  }>
+  warnings: string[]
+  recovery: string[]
+  startedAt: number | null
+  completedAt: number | null
+  terminalId?: string | null
+}
+
+export interface ShiplineRun {
+  id: string
+  projectId: string | null
+  projectPath: string
+  projectName: string
+  cluster: ShiplineCluster
+  status: ShiplineRunStatus
+  currentStep: ShiplineStepId | null
+  summary: string
+  warnings: string[]
+  recovery: string[]
+  programs: ShiplineProgramTarget[]
+  steps: ShiplineTimelineStep[]
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ShiplineCreateRunInput {
+  projectId?: string | null
+  projectPath: string
+  projectName?: string | null
+  cluster?: ShiplineCluster
+}
+
+export interface ShiplineUpdateStepInput {
+  runId: string
+  stepId: ShiplineStepId
+  status: ShiplineStepStatus
+  terminalId?: string | null
+}
+
 // --- Images ---
 
 export interface ImageRecord {
@@ -1259,11 +2317,15 @@ export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
 
 export interface OnboardingProgress {
   profile: OnboardingStepStatus
-  claude: OnboardingStepStatus
-  gmail: OnboardingStepStatus
-  vercel: OnboardingStepStatus
-  railway: OnboardingStepStatus
+  project: OnboardingStepStatus
+  runtime: OnboardingStepStatus
+  ai: OnboardingStepStatus
+  firstRun: OnboardingStepStatus
   tour: OnboardingStepStatus
+  claude?: OnboardingStepStatus
+  gmail?: OnboardingStepStatus
+  vercel?: OnboardingStepStatus
+  railway?: OnboardingStepStatus
 }
 
 // --- Workspace Profile ---

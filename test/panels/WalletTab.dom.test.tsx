@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WalletTab } from '../../src/panels/WalletPanel/tabs/WalletTab'
@@ -10,6 +10,19 @@ import { useNotificationsStore } from '../../src/store/notifications'
 
 function installDaemonBridge() {
   const assignProject = vi.fn().mockResolvedValue({ ok: true })
+  const importSigningWallet = vi.fn().mockResolvedValue({
+    ok: true,
+    data: {
+      id: 'wallet-imported',
+      name: 'Imported Wallet',
+      address: 'ImportedWallet111111111111111111111111111',
+      is_default: 0,
+      wallet_type: 'user',
+      created_at: Date.now(),
+      assigned_project_ids: [],
+    },
+  })
+  const importKeypair = vi.fn().mockResolvedValue({ ok: true, data: true })
 
   Object.defineProperty(window, 'daemon', {
     configurable: true,
@@ -24,6 +37,7 @@ function installDaemonBridge() {
         getWalletInfrastructureSettings: vi.fn().mockResolvedValue({
           ok: true,
           data: {
+            cluster: 'devnet',
             rpcProvider: 'helius',
             quicknodeRpcUrl: '',
             customRpcUrl: '',
@@ -36,14 +50,29 @@ function installDaemonBridge() {
       },
       wallet: {
         hasJupiterKey: vi.fn().mockResolvedValue({ ok: true, data: false }),
+        moonpayStatus: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: false, environment: null, publishableKeyHint: null },
+        }),
+        storeMoonpayKeys: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: true, environment: 'sandbox', publishableKeyHint: 'pk_test...1234' },
+        }),
+        deleteMoonpayKeys: vi.fn().mockResolvedValue({ ok: true }),
+        openMoonpayOnramp: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { url: 'https://buy-sandbox.moonpay.com/', environment: 'sandbox', walletAddress: '7Y12wallet9AbC' },
+        }),
         hasKeypair: vi.fn().mockResolvedValue({ ok: true, data: true }),
         balance: vi.fn().mockResolvedValue({ ok: true, data: { sol: 4.2, lamports: 4200000000 } }),
         assignProject,
+        importSigningWallet,
+        importKeypair,
       },
     },
   })
 
-  return { assignProject }
+  return { assignProject, importSigningWallet, importKeypair }
 }
 
 describe('WalletTab readiness UX', () => {
@@ -116,6 +145,7 @@ describe('WalletTab readiness UX', () => {
           amount: 1,
           mint: null,
           status: 'confirmed',
+          error: null,
           created_at: Date.now(),
         },
       ],
@@ -151,5 +181,64 @@ describe('WalletTab readiness UX', () => {
 
     expect(await screen.findByText('Wallet readiness')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Add signer' })).toBeInTheDocument()
+  })
+
+  it('imports a signing wallet from the wallet workspace', async () => {
+    const { importSigningWallet } = installDaemonBridge()
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+
+    render(<WalletTab onRefresh={onRefresh} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Wallets' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Import keypair' }))
+    await userEvent.type(screen.getByPlaceholderText('Wallet name (optional)'), 'Spawn funding')
+    fireEvent.change(screen.getByPlaceholderText('Private key, seed, JSON array, base58, base64, or hex'), { target: { value: '[1,2,3]' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Import signing wallet' }))
+
+    await waitFor(() => {
+      expect(importSigningWallet).toHaveBeenCalledWith({ name: 'Spawn funding', privateKey: '[1,2,3]' })
+    })
+    await waitFor(() => {
+      expect(onRefresh).toHaveBeenCalled()
+    })
+  })
+
+  it('adds a signer to an existing watch-only wallet', async () => {
+    window.daemon.wallet.hasKeypair.mockResolvedValue({ ok: true, data: false })
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+
+    render(<WalletTab onRefresh={onRefresh} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Wallets' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Add signer' }))
+    await userEvent.type(screen.getByPlaceholderText('Private key for this address'), 'private-key-text')
+    await userEvent.click(screen.getByRole('button', { name: 'Import signer' }))
+
+    await waitFor(() => {
+      expect(window.daemon.wallet.importKeypair).toHaveBeenCalledWith('wallet-1', 'private-key-text')
+    })
+  })
+
+  it('opens a signed MoonPay onramp for the active wallet', async () => {
+    window.daemon.wallet.moonpayStatus.mockResolvedValue({
+      ok: true,
+      data: { configured: true, environment: 'sandbox', publishableKeyHint: 'pk_test...1234' },
+    })
+    const onRefresh = vi.fn().mockResolvedValue(undefined)
+
+    render(<WalletTab onRefresh={onRefresh} />)
+
+    const buyButtons = await screen.findAllByRole('button', { name: 'Buy SOL' })
+    await userEvent.click(buyButtons[0])
+    expect(await screen.findByText(/Sandbox keys active/)).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Open MoonPay' }))
+
+    await waitFor(() => {
+      expect(window.daemon.wallet.openMoonpayOnramp).toHaveBeenCalledWith({
+        walletId: 'wallet-1',
+        baseCurrencyAmount: 50,
+        baseCurrencyCode: 'usd',
+      })
+    })
   })
 })

@@ -630,3 +630,548 @@ ALTER TABLE agent_work_tasks ADD COLUMN receipt_signature TEXT;
 ALTER TABLE agent_work_tasks ADD COLUMN review_signature TEXT;
 CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_onchain ON agent_work_tasks(onchain_task_id);
 `
+
+export const SCHEMA_V32 = `
+CREATE TABLE IF NOT EXISTS ai_local_conversations (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  project_id TEXT,
+  access_mode TEXT NOT NULL DEFAULT 'byok',
+  model_lane TEXT NOT NULL DEFAULT 'auto',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+
+CREATE TABLE IF NOT EXISTS ai_local_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+  content TEXT NOT NULL,
+  metadata_json TEXT DEFAULT '{}',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  FOREIGN KEY(conversation_id) REFERENCES ai_local_conversations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ai_usage_ledger (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  wallet_address TEXT,
+  plan TEXT NOT NULL,
+  access_source TEXT,
+  feature TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cached_input_tokens INTEGER,
+  provider_cost_usd REAL NOT NULL DEFAULT 0,
+  daemon_credits_charged INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_context_preferences (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  active_file INTEGER NOT NULL DEFAULT 1,
+  project_tree INTEGER NOT NULL DEFAULT 1,
+  git_diff INTEGER NOT NULL DEFAULT 0,
+  terminal_logs INTEGER NOT NULL DEFAULT 0,
+  wallet_context INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation ON ai_local_messages(conversation_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_ledger(created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_plan ON ai_usage_ledger(plan, created_at);
+`
+
+export const SCHEMA_V33 = `
+CREATE TABLE IF NOT EXISTS ai_agent_runs (
+  id TEXT PRIMARY KEY,
+  task TEXT NOT NULL,
+  project_id TEXT,
+  project_path TEXT,
+  mode TEXT NOT NULL,
+  access_mode TEXT NOT NULL,
+  model_lane TEXT NOT NULL,
+  status TEXT NOT NULL,
+  allowed_tools_json TEXT NOT NULL DEFAULT '[]',
+  approval_policy TEXT NOT NULL,
+  result_json TEXT,
+  error TEXT,
+  cancelled_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_tool_approval_events (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  tool_call_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  risk_level TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  arguments_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL,
+  decision_reason TEXT,
+  created_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  FOREIGN KEY(run_id) REFERENCES ai_agent_runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_agent_runs_status ON ai_agent_runs(status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_runs_project ON ai_agent_runs(project_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_ai_tool_approvals_run ON ai_tool_approval_events(run_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_tool_approvals_call ON ai_tool_approval_events(run_id, tool_call_id);
+`
+
+export const SCHEMA_V34 = `
+CREATE TABLE IF NOT EXISTS ai_patch_proposals (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT,
+  unified_diff TEXT NOT NULL,
+  files_json TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL,
+  risk_level TEXT NOT NULL,
+  safety_findings_json TEXT NOT NULL DEFAULT '[]',
+  decision_reason TEXT,
+  created_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  FOREIGN KEY(run_id) REFERENCES ai_agent_runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_patch_proposals_run ON ai_patch_proposals(run_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_patch_proposals_status ON ai_patch_proposals(status, created_at);
+`
+
+export const SCHEMA_V35 = `
+CREATE TABLE IF NOT EXISTS daemon_subscriptions (
+  wallet_address TEXT PRIMARY KEY,
+  plan TEXT NOT NULL,
+  access_source TEXT NOT NULL,
+  payment_id TEXT UNIQUE,
+  expires_at INTEGER NOT NULL,
+  features_json TEXT NOT NULL,
+  revoked_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_daemon_subscriptions_expires
+  ON daemon_subscriptions(expires_at, revoked_at);
+
+CREATE TABLE IF NOT EXISTS daemon_holder_challenges (
+  nonce TEXT PRIMARY KEY,
+  wallet_address TEXT NOT NULL,
+  message TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_daemon_holder_challenges_wallet
+  ON daemon_holder_challenges(wallet_address, expires_at);
+
+CREATE TABLE IF NOT EXISTS daemon_subscription_audit (
+  id TEXT PRIMARY KEY,
+  wallet_address TEXT,
+  action TEXT NOT NULL,
+  actor TEXT,
+  plan TEXT,
+  access_source TEXT,
+  payment_id TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_daemon_subscription_audit_wallet
+  ON daemon_subscription_audit(wallet_address, created_at);
+`
+
+export const SCHEMA_V36 = `
+CREATE TABLE IF NOT EXISTS shipline_runs (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  project_path TEXT NOT NULL,
+  project_name TEXT NOT NULL,
+  cluster TEXT NOT NULL,
+  status TEXT NOT NULL,
+  current_step TEXT,
+  summary TEXT NOT NULL,
+  warnings_json TEXT NOT NULL DEFAULT '[]',
+  recovery_json TEXT NOT NULL DEFAULT '[]',
+  programs_json TEXT NOT NULL DEFAULT '[]',
+  steps_json TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_shipline_runs_project
+  ON shipline_runs(project_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_shipline_runs_path
+  ON shipline_runs(project_path, updated_at DESC);
+`
+
+export const SCHEMA_V37 = `
+CREATE TABLE IF NOT EXISTS idle_resource_cache (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  method TEXT NOT NULL,
+  price_usdc REAL NOT NULL,
+  asset TEXT NOT NULL,
+  network TEXT NOT NULL,
+  payee TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  schema_json TEXT NOT NULL DEFAULT '{}',
+  raw_json TEXT NOT NULL DEFAULT '{}',
+  registry_url TEXT,
+  last_seen_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_idle_resource_cache_provider
+  ON idle_resource_cache(provider, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_idle_resource_cache_status
+  ON idle_resource_cache(status, score DESC);
+
+CREATE TABLE IF NOT EXISTS idle_paid_call_receipts (
+  id TEXT PRIMARY KEY,
+  resource_id TEXT NOT NULL,
+  project_id TEXT,
+  task_id TEXT,
+  agent_id TEXT,
+  endpoint TEXT NOT NULL,
+  method TEXT NOT NULL,
+  amount_usdc REAL NOT NULL,
+  asset TEXT NOT NULL,
+  network TEXT NOT NULL,
+  payee TEXT NOT NULL,
+  status TEXT NOT NULL,
+  payment_id TEXT,
+  facilitator TEXT,
+  request_hash TEXT,
+  response_hash TEXT,
+  response_status INTEGER,
+  response_content_type TEXT,
+  response_bytes INTEGER,
+  error_message TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_idle_receipts_project
+  ON idle_paid_call_receipts(project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_idle_receipts_task
+  ON idle_paid_call_receipts(task_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_idle_receipts_resource
+  ON idle_paid_call_receipts(resource_id, created_at DESC);
+`
+
+export const SCHEMA_V38 = `
+CREATE TABLE IF NOT EXISTS meterflow_receipts (
+  id TEXT PRIMARY KEY,
+  route TEXT,
+  method TEXT,
+  status TEXT,
+  payment_protocol TEXT,
+  payment_state TEXT,
+  amount_usd REAL,
+  asset TEXT,
+  tx_signature TEXT,
+  public_verify_url TEXT,
+  trust_state TEXT,
+  trust_score INTEGER,
+  agent_id TEXT,
+  agent_name TEXT,
+  payer_wallet TEXT,
+  provider_name TEXT,
+  provider_route TEXT,
+  raw_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_meterflow_receipts_created
+  ON meterflow_receipts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_meterflow_receipts_agent
+  ON meterflow_receipts(agent_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_meterflow_receipts_tx
+  ON meterflow_receipts(tx_signature);
+`
+
+export const SCHEMA_V39 = `
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_gate_id TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_open_url TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_capsule_hash TEXT;
+ALTER TABLE agent_work_tasks ADD COLUMN keycard_created_at INTEGER;
+CREATE INDEX IF NOT EXISTS idx_agent_work_tasks_keycard
+  ON agent_work_tasks(keycard_gate_id);
+`
+
+export const SCHEMA_V40 = `
+CREATE TABLE IF NOT EXISTS voight_event_queue (
+  id TEXT PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  outcome TEXT,
+  dedup_key TEXT UNIQUE,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  sent_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_voight_queue_status
+  ON voight_event_queue(status, next_attempt_at, created_at);
+CREATE INDEX IF NOT EXISTS idx_voight_queue_agent
+  ON voight_event_queue(agent_id, created_at DESC);
+`
+
+export const SCHEMA_V41 = `
+CREATE TABLE IF NOT EXISTS proof_pools (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_path TEXT,
+  twitter TEXT,
+  telegram TEXT,
+  website TEXT,
+  creator_wallet TEXT NOT NULL,
+  pool_wallet TEXT NOT NULL UNIQUE,
+  pool_key_name TEXT NOT NULL UNIQUE,
+  creator_subescrow TEXT NOT NULL UNIQUE,
+  creator_key_name TEXT NOT NULL UNIQUE,
+  mint TEXT UNIQUE,
+  mint_key_name TEXT,
+  metadata_uri TEXT,
+  launch_signature TEXT,
+  proof_level TEXT,
+  total_slots INTEGER NOT NULL,
+  min_backing_sol REAL NOT NULL,
+  min_backing_lamports INTEGER NOT NULL DEFAULT 0,
+  current_backing_sol REAL NOT NULL DEFAULT 0,
+  current_backing_lamports INTEGER NOT NULL DEFAULT 0,
+  pool_token_balance TEXT,
+  status TEXT NOT NULL DEFAULT 'backing',
+  backing_deadline INTEGER NOT NULL,
+  launched_at INTEGER,
+  distributed_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  error_message TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_proof_pools_status ON proof_pools(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_proof_pools_creator ON proof_pools(creator_wallet, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS proof_backings (
+  id TEXT PRIMARY KEY,
+  pool_id TEXT NOT NULL REFERENCES proof_pools(id) ON DELETE CASCADE,
+  backer_wallet TEXT NOT NULL,
+  amount_sol REAL NOT NULL,
+  amount_lamports INTEGER NOT NULL DEFAULT 0,
+  deposit_signature TEXT NOT NULL UNIQUE,
+  slot_number INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'confirmed',
+  tokens_allocated TEXT,
+  distribution_signature TEXT,
+  refund_signature TEXT,
+  claimable_fees_sol REAL NOT NULL DEFAULT 0,
+  claimable_fees_lamports INTEGER NOT NULL DEFAULT 0,
+  total_claimed_sol REAL NOT NULL DEFAULT 0,
+  total_claimed_lamports INTEGER NOT NULL DEFAULT 0,
+  last_claim_signature TEXT,
+  distributed_at INTEGER,
+  refunded_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_proof_backings_pool ON proof_backings(pool_id, slot_number);
+CREATE INDEX IF NOT EXISTS idx_proof_backings_wallet ON proof_backings(backer_wallet, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_backings_pool_slot_active
+  ON proof_backings(pool_id, slot_number)
+  WHERE status IN ('confirmed', 'distributing', 'distributed', 'refunding');
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_backings_pool_wallet_confirmed
+  ON proof_backings(pool_id, backer_wallet)
+  WHERE status IN ('confirmed', 'distributing', 'distributed', 'refunding');
+
+CREATE TABLE IF NOT EXISTS proof_payout_intents (
+  id TEXT PRIMARY KEY,
+  pool_id TEXT NOT NULL REFERENCES proof_pools(id) ON DELETE CASCADE,
+  backing_id TEXT REFERENCES proof_backings(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  recipient TEXT,
+  mint TEXT,
+  lamports INTEGER,
+  token_amount TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  signature TEXT,
+  error_message TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_payout_intents_backing_kind
+  ON proof_payout_intents(backing_id, kind)
+  WHERE backing_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_payout_intents_signature
+  ON proof_payout_intents(signature)
+  WHERE signature IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS proof_pool_events (
+  id TEXT PRIMARY KEY,
+  pool_id TEXT NOT NULL REFERENCES proof_pools(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  message TEXT NOT NULL,
+  signature TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_proof_pool_events_pool ON proof_pool_events(pool_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS proof_webhook_receipts (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  receipt_hash TEXT NOT NULL UNIQUE,
+  received_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_proof_webhook_receipts_provider
+  ON proof_webhook_receipts(provider, received_at DESC);
+
+CREATE TABLE IF NOT EXISTS proof_vanity_mints (
+  id TEXT PRIMARY KEY,
+  address TEXT NOT NULL UNIQUE,
+  key_name TEXT NOT NULL UNIQUE,
+  used_pool_id TEXT REFERENCES proof_pools(id) ON DELETE SET NULL,
+  used_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_proof_vanity_mints_unused ON proof_vanity_mints(used_pool_id, created_at);
+`
+
+export const SCHEMA_V42 = `
+CREATE TABLE IF NOT EXISTS proof_partner_sessions (
+  id TEXT PRIMARY KEY,
+  partner_reference TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_url TEXT,
+  creator_wallet TEXT NOT NULL,
+  total_slots INTEGER NOT NULL,
+  min_backing_sol REAL NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  return_url TEXT,
+  checkout_url TEXT,
+  status TEXT NOT NULL DEFAULT 'created',
+  meme_id TEXT,
+  meme_url TEXT,
+  prefill_json TEXT,
+  request_json TEXT NOT NULL,
+  response_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  last_polled_at INTEGER,
+  error_message TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_proof_partner_sessions_status
+  ON proof_partner_sessions(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_proof_partner_sessions_creator
+  ON proof_partner_sessions(creator_wallet, created_at DESC);
+`
+
+export const SCHEMA_V43 = `
+ALTER TABLE proof_pools ADD COLUMN min_backing_lamports INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE proof_pools ADD COLUMN current_backing_lamports INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE proof_backings ADD COLUMN amount_lamports INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE proof_backings ADD COLUMN claimable_fees_lamports INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE proof_backings ADD COLUMN total_claimed_lamports INTEGER NOT NULL DEFAULT 0;
+UPDATE proof_pools
+SET min_backing_lamports = CAST(ROUND(min_backing_sol * 1000000000) AS INTEGER)
+WHERE min_backing_lamports = 0;
+UPDATE proof_pools
+SET current_backing_lamports = CAST(ROUND(current_backing_sol * 1000000000) AS INTEGER)
+WHERE current_backing_lamports = 0;
+UPDATE proof_backings
+SET amount_lamports = CAST(ROUND(amount_sol * 1000000000) AS INTEGER)
+WHERE amount_lamports = 0;
+UPDATE proof_backings
+SET claimable_fees_lamports = CAST(ROUND(claimable_fees_sol * 1000000000) AS INTEGER)
+WHERE claimable_fees_lamports = 0 AND claimable_fees_sol > 0;
+UPDATE proof_backings
+SET total_claimed_lamports = CAST(ROUND(total_claimed_sol * 1000000000) AS INTEGER)
+WHERE total_claimed_lamports = 0 AND total_claimed_sol > 0;
+CREATE TABLE IF NOT EXISTS proof_payout_intents (
+  id TEXT PRIMARY KEY,
+  pool_id TEXT NOT NULL REFERENCES proof_pools(id) ON DELETE CASCADE,
+  backing_id TEXT REFERENCES proof_backings(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  recipient TEXT,
+  mint TEXT,
+  lamports INTEGER,
+  token_amount TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  signature TEXT,
+  error_message TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_payout_intents_backing_kind
+  ON proof_payout_intents(backing_id, kind)
+  WHERE backing_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_payout_intents_signature
+  ON proof_payout_intents(signature)
+  WHERE signature IS NOT NULL;
+CREATE TABLE IF NOT EXISTS proof_webhook_receipts (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  receipt_hash TEXT NOT NULL UNIQUE,
+  received_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_proof_webhook_receipts_provider
+  ON proof_webhook_receipts(provider, received_at DESC);
+DROP INDEX IF EXISTS idx_proof_backings_pool_slot_active;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_backings_pool_slot_active
+  ON proof_backings(pool_id, slot_number)
+  WHERE status IN ('confirmed', 'distributing', 'distributed', 'refunding');
+DROP INDEX IF EXISTS idx_proof_backings_pool_wallet_confirmed;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_backings_pool_wallet_confirmed
+  ON proof_backings(pool_id, backer_wallet)
+  WHERE status IN ('confirmed', 'distributing', 'distributed', 'refunding');
+`
+
+export const SCHEMA_V44 = `
+CREATE TABLE IF NOT EXISTS forensic_scan_cache (
+  cache_key TEXT PRIMARY KEY,
+  address TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  result_json TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_forensic_scan_cache_address
+  ON forensic_scan_cache(address, mode, expires_at);
+
+CREATE TABLE IF NOT EXISTS forensic_bundle_clusters (
+  id TEXT PRIMARY KEY,
+  wallets_json TEXT NOT NULL,
+  tokens_json TEXT NOT NULL DEFAULT '[]',
+  total_appearances INTEGER NOT NULL DEFAULT 1,
+  confidence INTEGER NOT NULL DEFAULT 50,
+  shared_funder TEXT,
+  first_seen INTEGER NOT NULL,
+  last_seen INTEGER NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_forensic_bundle_clusters_confidence
+  ON forensic_bundle_clusters(confidence DESC, last_seen DESC);
+
+CREATE TABLE IF NOT EXISTS forensic_bundle_wallet_index (
+  wallet TEXT NOT NULL,
+  cluster_id TEXT NOT NULL,
+  PRIMARY KEY (wallet, cluster_id)
+);
+CREATE INDEX IF NOT EXISTS idx_forensic_bundle_wallet
+  ON forensic_bundle_wallet_index(wallet);
+`

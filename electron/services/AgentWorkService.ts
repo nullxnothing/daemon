@@ -14,6 +14,7 @@ import {
   publishStartTaskSession,
   publishSubmitWorkReceipt,
 } from './SessionRegistryService'
+import { createAgentWorkCapsule } from './KeycardService'
 import type {
   Agent,
   AgentWorkCreateInput,
@@ -59,6 +60,10 @@ interface AgentWorkRow {
   diff_hash: string | null
   tests_hash: string | null
   artifact_uri: string | null
+  keycard_gate_id: string | null
+  keycard_open_url: string | null
+  keycard_capsule_hash: string | null
+  keycard_created_at: number | null
   submitted_at: number | null
   approved_at: number | null
   settled_signature: string | null
@@ -216,6 +221,10 @@ function rowToTask(row: AgentWorkRow): AgentWorkTask {
     diff_hash: row.diff_hash,
     tests_hash: row.tests_hash,
     artifact_uri: row.artifact_uri,
+    keycard_gate_id: row.keycard_gate_id ?? null,
+    keycard_open_url: row.keycard_open_url ?? null,
+    keycard_capsule_hash: row.keycard_capsule_hash ?? null,
+    keycard_created_at: row.keycard_created_at ?? null,
     submitted_at: row.submitted_at,
     approved_at: row.approved_at,
     settled_signature: row.settled_signature,
@@ -437,12 +446,23 @@ export async function submitReceipt(taskId: string, input: AgentWorkSubmitInput 
     } catch {}
   }
 
-  const artifactUri = input.artifactUri?.trim() || `daemon://agent-work/${task.id}`
   const testsMaterial = `${task.acceptance}\n${input.testsOutput?.trim() ?? ''}`
   const commitHash = hashHex(head || `${task.id}:uncommitted`)
   const diffHash = hashHex(diff || statusMaterial || `${task.id}:no-diff`)
   const testsHash = hashHex(testsMaterial)
-  const artifactHash = hashHex(artifactUri)
+  const keycard = input.artifactMode === 'keycard'
+    ? await createAgentWorkCapsule(task, {
+        commitHash,
+        diffHash,
+        testsHash,
+        diff,
+        status: statusMaterial,
+        testsOutput: input.testsOutput,
+      })
+    : null
+  const localArtifactUri = input.artifactUri?.trim() || `daemon://agent-work/${task.id}`
+  const artifactUri = keycard?.artifactUri ?? localArtifactUri
+  const artifactHash = keycard?.capsuleHash ?? hashHex(artifactUri)
   let receiptSignature = task.receipt_signature
 
   if (task.create_signature && !receiptSignature) {
@@ -476,6 +496,10 @@ export async function submitReceipt(taskId: string, input: AgentWorkSubmitInput 
       diff_hash = ?,
       tests_hash = ?,
       artifact_uri = ?,
+      keycard_gate_id = COALESCE(?, keycard_gate_id),
+      keycard_open_url = COALESCE(?, keycard_open_url),
+      keycard_capsule_hash = COALESCE(?, keycard_capsule_hash),
+      keycard_created_at = COALESCE(?, keycard_created_at),
       receipt_signature = COALESCE(?, receipt_signature),
       submitted_at = ?,
       updated_at = ?
@@ -485,6 +509,10 @@ export async function submitReceipt(taskId: string, input: AgentWorkSubmitInput 
     diffHash,
     testsHash,
     artifactUri,
+    keycard?.gateId ?? null,
+    keycard?.openUrl ?? null,
+    keycard?.capsuleHash ?? null,
+    keycard?.createdAt ?? null,
     receiptSignature ?? null,
     now,
     now,

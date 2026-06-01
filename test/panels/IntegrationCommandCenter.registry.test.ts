@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { INTEGRATION_REGISTRY } from '../../src/panels/IntegrationCommandCenter/registry'
+import { runIntegrationAction } from '../../src/panels/IntegrationCommandCenter/actionRunner'
 import { resolveIntegrationStatus, type IntegrationContext } from '../../src/panels/IntegrationCommandCenter/status'
 
 describe('Integration Command Center registry', () => {
@@ -68,5 +69,151 @@ describe('Integration Command Center registry', () => {
       'open-spawnagents-panel',
       'open-spawnagents-live',
     ])
+  })
+
+  it('has Solflare as a wallet integration with SDK readiness', async () => {
+    const solflare = INTEGRATION_REGISTRY.find((integration) => integration.id === 'solflare')
+
+    expect(solflare).toBeDefined()
+    expect(solflare!.category).toBe('wallet')
+    expect(solflare!.docsUrl).toBe('https://docs.solflare.com/solflare/technical/integrate-solflare')
+    expect(solflare!.installCommand).toContain('@solflare-wallet/sdk')
+    expect(solflare!.actions.map((action) => action.id)).toEqual([
+      'check-solflare-sdk',
+      'open-solflare-docs',
+    ])
+
+    const context: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(['@solflare-wallet/sdk']),
+      walletReady: false,
+      defaultWallet: null,
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    const sdkCheck = await runIntegrationAction('check-solflare-sdk', context)
+    expect(sdkCheck.status).toBe('success')
+    expect(sdkCheck.items).toContain('@solflare-wallet/sdk')
+  })
+
+  it('has Zauth as an embedded x402 management integration', () => {
+    const zauth = INTEGRATION_REGISTRY.find((integration) => integration.id === 'zauth')
+
+    expect(zauth).toBeDefined()
+    expect(zauth!.docsUrl).toBe('https://zauth.inc/provider-hub')
+    expect(zauth!.requirements).toContainEqual({
+      type: 'external-url',
+      key: 'https://zauth.inc/database',
+      label: 'Zauth x402 Database',
+    })
+    expect(zauth!.requirements).toContainEqual({
+      type: 'external-url',
+      key: 'https://zauth.inc/provider-hub',
+      label: 'Zauth Provider Hub',
+    })
+    expect(zauth!.actions.map((action) => action.id)).toEqual([
+      'open-zauth-database',
+      'open-zauth-provider-hub',
+    ])
+  })
+
+  it('keeps Metaplex aligned to Core, DAS, and agent-era docs', async () => {
+    const metaplex = INTEGRATION_REGISTRY.find((integration) => integration.id === 'metaplex')
+
+    expect(metaplex).toBeDefined()
+    expect(metaplex!.docsUrl).toBe('https://www.metaplex.com/docs')
+    expect(metaplex!.description).toContain('Core assets')
+    expect(metaplex!.description).toContain('DAS reads')
+    expect(metaplex!.description).toContain('agent identity')
+    expect(metaplex!.installCommand).toContain('@metaplex-foundation/mpl-core')
+    expect(metaplex!.installCommand).toContain('@metaplex-foundation/digital-asset-standard-api')
+    expect(metaplex!.requirements).toContainEqual({
+      type: 'package',
+      key: '@metaplex-foundation/mpl-core',
+      label: 'MPL Core package',
+      optional: true,
+    })
+    expect(metaplex!.actions.map((action) => action.id)).toEqual([
+      'check-nft-packages',
+      'preview-core-agent-flow',
+    ])
+
+    const context: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set([
+        '@metaplex-foundation/umi',
+        '@metaplex-foundation/umi-bundle-defaults',
+        '@metaplex-foundation/mpl-core',
+        '@metaplex-foundation/mpl-token-metadata',
+        '@metaplex-foundation/digital-asset-standard-api',
+      ]),
+      walletReady: false,
+      defaultWallet: null,
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    const packageCheck = await runIntegrationAction('check-nft-packages', context)
+    expect(packageCheck.status).toBe('success')
+    expect(packageCheck.detail).toContain('Core')
+    expect(packageCheck.items).toContain('@metaplex-foundation/digital-asset-standard-api')
+  })
+
+  it('has IDLE Protocol as a DAEMON/Meterflow resource-router integration', async () => {
+    const idle = INTEGRATION_REGISTRY.find((integration) => integration.id === 'idle-protocol')
+
+    expect(idle).toBeDefined()
+    expect(idle!.category).toBe('infra')
+    expect(idle!.docsUrl).toBe('https://earnidle.com/docs')
+    expect(idle!.requirements).toContainEqual({
+      type: 'env',
+      key: 'IDLE_REGISTRY_URL|PAYAI_DISCOVERY_URL',
+      label: 'IDLE or PayAI discovery URL',
+    })
+    expect(idle!.requirements).toContainEqual({
+      type: 'external-url',
+      key: 'https://earnidle.com/resources',
+      label: 'IDLE resource network',
+    })
+    expect(idle!.requirements).toContainEqual({
+      type: 'mcp',
+      key: 'x402-mcp',
+      label: 'x402 MCP enabled',
+      optional: true,
+    })
+    expect(idle!.actions.map((action) => action.id)).toEqual([
+      'open-idle-resources',
+      'open-idle-docs',
+      'preview-idle-router',
+    ])
+
+    const context: IntegrationContext = {
+      envFiles: [
+        {
+          fileName: '.env',
+          filePath: 'C:/project/.env',
+          vars: [
+            { key: 'IDLE_REGISTRY_URL', value: 'https://gateway.earnidle.com/resources.json', isComment: false, isSecret: false, secretLabel: null, lineIndex: 0, raw: 'IDLE_REGISTRY_URL=https://gateway.earnidle.com/resources.json' },
+          ],
+        },
+      ],
+      mcps: [
+        { name: 'x402-mcp', label: 'x402 MCP', description: 'payments', category: 'payments', enabled: true },
+      ],
+      packages: new Set(),
+      walletReady: false,
+      defaultWallet: null,
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    expect(resolveIntegrationStatus(idle!, context).status).toBe('ready')
+    const routeStack = await runIntegrationAction('preview-idle-router', context)
+    expect(routeStack.status).toBe('success')
+    expect(routeStack.title).toBe('IDLE execution prerequisites ready')
+    expect(routeStack.items).toContain('x402 payment tooling available')
   })
 })

@@ -21,6 +21,7 @@ describe('getDefaultVisibility — web profile', () => {
   it('hides wallet', () => expect(vis['wallet']).toBe(false))
   it('hides project-readiness', () => expect(vis['project-readiness']).toBe(false))
   it('hides solana-toolbox', () => expect(vis['solana-toolbox']).toBe(false))
+  it('hides zauth', () => expect(vis['zauth']).toBe(false))
   it('hides block-scanner', () => expect(vis['block-scanner']).toBe(false))
   it('hides dashboard', () => expect(vis['dashboard']).toBe(false))
   it('hides hackathon', () => expect(vis['hackathon']).toBe(false))
@@ -33,6 +34,7 @@ describe('getDefaultVisibility — solana profile', () => {
   it('shows wallet', () => expect(vis['wallet']).toBe(true))
   it('shows project-readiness', () => expect(vis['project-readiness']).toBe(true))
   it('shows solana-toolbox', () => expect(vis['solana-toolbox']).toBe(true))
+  it('shows zauth', () => expect(vis['zauth']).toBe(true))
   it('shows block-scanner', () => expect(vis['block-scanner']).toBe(true))
   it('shows replay-engine', () => expect(vis['replay-engine']).toBe(true))
   it('shows dashboard', () => expect(vis['dashboard']).toBe(true))
@@ -108,11 +110,13 @@ describe('PROFILE_PRESETS', () => {
 
   it('web preset excludes solana-specific tools', () => {
     expect(PROFILE_PRESETS.web).not.toContain('wallet')
+    expect(PROFILE_PRESETS.web).not.toContain('zauth')
     expect(PROFILE_PRESETS.web).not.toContain('dashboard')
   })
 
   it('solana preset includes all web tools plus solana-specific tools', () => {
     expect(PROFILE_PRESETS.solana).toContain('wallet')
+    expect(PROFILE_PRESETS.solana).toContain('zauth')
     expect(PROFILE_PRESETS.solana).toContain('dashboard')
     expect(PROFILE_PRESETS.solana).toContain('git')
   })

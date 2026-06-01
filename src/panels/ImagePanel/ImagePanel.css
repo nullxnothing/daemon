@@ -16,7 +16,7 @@
 }
 
 .image-panel-title {
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--t1);
   margin: 0;
@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
   margin-left: auto;
 }
@@ -48,7 +48,7 @@
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--border);
@@ -88,7 +88,7 @@
 }
 
 .image-no-key-text {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--t3);
   line-height: 1.5;
   max-width: 320px;
@@ -106,7 +106,7 @@
   flex: 1;
   height: 34px;
   padding: 0 12px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-family: var(--font-code);
   color: var(--t1);
   background: var(--s2);
@@ -127,7 +127,7 @@
 .image-no-key-btn {
   height: 34px;
   padding: 0 16px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--on-accent-dark);
   background: var(--green);
@@ -147,7 +147,7 @@
 }
 
 .image-no-key-hint {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t4);
   margin-top: 4px;
 }
@@ -160,11 +160,11 @@
   flex-shrink: 0;
   height: 20px;
   padding: 0 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t1);
   background: var(--s3);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -184,7 +184,7 @@
   min-height: 60px;
   max-height: 160px;
   padding: 10px 12px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-family: var(--font-ui);
   color: var(--t1);
   background: var(--s2);
@@ -227,7 +227,7 @@
 .image-model-btn {
   height: 28px;
   padding: 0 10px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   background: transparent;
   border: none;
@@ -255,7 +255,7 @@
 .image-ratio-btn {
   height: 28px;
   padding: 0 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   background: transparent;
   border: none;
@@ -283,7 +283,7 @@
 .image-generate-btn {
   height: 32px;
   padding: 0 20px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--on-accent-dark);
   background: var(--green);
@@ -315,11 +315,11 @@
 .image-tag {
   height: 24px;
   padding: 0 10px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   background: var(--s3);
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   white-space: nowrap;
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
@@ -343,7 +343,7 @@
   align-items: flex-start;
   gap: 8px;
   padding: 8px 24px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--red);
   background: rgba(140, 74, 74, 0.1);
   font-family: var(--font-code);
@@ -429,12 +429,12 @@
   top: 4px;
   right: 4px;
   padding: 1px 5px;
-  font-size: 9px;
+  font-size: var(--fs-9);
   font-weight: 700;
   font-family: var(--font-code);
   color: var(--t1);
   background: rgba(10, 10, 10, 0.75);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   pointer-events: none;
 }
 
@@ -448,7 +448,7 @@
 .image-load-more-btn {
   height: 28px;
   padding: 0 16px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--border);
@@ -466,7 +466,7 @@
   align-items: center;
   justify-content: center;
   padding: 48px 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t3);
 }
 
@@ -504,7 +504,7 @@
 }
 
 .image-detail-prompt {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--t2);
   line-height: 1.5;
   word-break: break-word;
@@ -514,7 +514,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t3);
 }
 
@@ -537,10 +537,10 @@
 
 .image-detail-tag {
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   background: var(--s3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .image-detail-actions {
@@ -552,7 +552,7 @@
 .image-detail-action-btn {
   height: 26px;
   padding: 0 10px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--border);

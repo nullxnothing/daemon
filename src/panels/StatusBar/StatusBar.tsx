@@ -6,11 +6,17 @@ import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { useWorkflowShellStore } from '../../store/workflowShell'
+import { useAppActions } from '../../store/appActions'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../../components/LiveRegion'
 import { useShellLayout } from '../../hooks/useShellLayout'
 import { daemon } from '../../lib/daemonBridge'
 import { formatCompactUsd } from '../../utils/format'
 import { EmailQuickView } from '../../components/QuickView/EmailQuickView'
 import { BugReportModal } from '../../components/BugReportModal/BugReportModal'
+import { StatusDot } from '../../components/Panel'
+import { getClusterDisplayName, getExecutionModeDisplayName } from '../WalletPanel/walletCopy'
+import { middleEllipsisPath } from '../../utils/textDisplay'
 import styles from './StatusBar.module.css'
 
 const EMPTY_MARKET: MarketTickerEntry[] = []
@@ -18,11 +24,10 @@ const EMPTY_MARKET: MarketTickerEntry[] = []
 export const StatusBar = memo(function StatusBar() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const { tier, isDesktop, isCompact, isTablet, isSmall } = useShellLayout()
+  const { copied: pathCopied, copy: copyPath } = useClipboard()
 
   const handleCopyPath = () => {
-    if (activeProjectPath) {
-      navigator.clipboard.writeText(activeProjectPath).catch(() => {})
-    }
+    if (activeProjectPath) void copyPath(activeProjectPath)
   }
 
   const showCenterTape = isDesktop
@@ -48,6 +53,7 @@ export const StatusBar = memo(function StatusBar() {
           {showHackathon && <HackathonCountdown />}
           <TerminalCount />
           <ValidatorStatus />
+          <WalletRuntimeStatus />
         </div>
       </div>
 
@@ -71,13 +77,16 @@ export const StatusBar = memo(function StatusBar() {
         </div>
         {showPath && activeProjectPath && (
           <div className={styles.statusGroup}>
-            <span
-              className={`${styles.item} ${styles.path} ${styles.clickable}`}
+            <button
+              type="button"
+              className={`${styles.item} ${styles.path} ${styles.clickable} ${styles.linkButton}`}
               onClick={handleCopyPath}
-              title="Copy path to clipboard"
+              title={pathCopied ? 'Copied to clipboard' : 'Copy path to clipboard'}
+              aria-label={pathCopied ? 'Project path copied' : `Copy project path ${activeProjectPath}`}
             >
-              {activeProjectPath}
-            </span>
+              {pathCopied ? 'Copied ✓' : middleEllipsisPath(activeProjectPath)}
+            </button>
+            <LiveRegion message={pathCopied ? 'Project path copied to clipboard' : ''} />
           </div>
         )}
         <PanelToggles />
@@ -91,19 +100,18 @@ function TerminalCount() {
   const count = useUIStore((s) =>
     s.terminals.reduce((n, t) => n + (t.projectId === activeProjectId ? 1 : 0), 0)
   )
-
-  const handleClick = () => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: '`', ctrlKey: true, bubbles: true }))
-  }
+  const focusTerminal = useAppActions((s) => s.focusTerminal)
 
   return (
-    <span
-      className={`${styles.item} ${styles.clickable}`}
-      onClick={handleClick}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.clickable} ${styles.linkButton}`}
+      onClick={focusTerminal}
       title="Toggle terminal"
+      aria-label={`Toggle terminal (${count} active)`}
     >
       {count} terminal{count !== 1 ? 's' : ''}
-    </span>
+    </button>
   )
 }
 
@@ -112,20 +120,120 @@ function ValidatorStatus() {
 
   if (validator.status === 'stopped') return null
 
-  const color = validator.status === 'running' ? 'var(--green)' : validator.status === 'starting' ? 'var(--amber)' : 'var(--red)'
+  const tone = validator.status === 'running' ? 'success' : validator.status === 'starting' ? 'warning' : 'danger'
   const label = validator.type === 'surfpool' ? 'Surfpool' : 'Validator'
   const port = validator.port ? ` :${validator.port}` : ''
 
   return (
+    <>
+      <button
+        type="button"
+        className={`${styles.item} ${styles.clickable} ${styles.linkButton}`}
+        onClick={() => useUIStore.getState().openWorkspaceTool('solana-toolbox')}
+        title="Open Solana Workflow"
+        aria-label={`${label} ${validator.status}${port}. Open Solana Workflow`}
+      >
+        <StatusDot tone={tone} className={styles.inlineDot} />
+        {label}{port}
+      </button>
+      <LiveRegion message={`${label} ${validator.status}`} />
+    </>
+  )
+}
+
+function WalletRuntimeStatus() {
+  const dashboard = useWalletStore((s) => s.dashboard)
+  const activeWallet = dashboard?.activeWallet ?? null
+  const dashboardLoaded = Boolean(dashboard)
+  const [infrastructure, setInfrastructure] = useState<WalletInfrastructureSettings | null>(null)
+  const [signerReady, setSignerReady] = useState<boolean | null>(null)
+  const { isSmall } = useShellLayout()
+
+  useEffect(() => {
+    let cancelled = false
+    const loadInfrastructure = () => {
+      daemon.settings.getWalletInfrastructureSettings()
+        .then((res) => {
+          if (!cancelled && res.ok && res.data) setInfrastructure(res.data)
+        })
+        .catch(() => {})
+    }
+
+    loadInfrastructure()
+    window.addEventListener('focus', loadInfrastructure)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', loadInfrastructure)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setSignerReady(null)
+
+    if (!activeWallet?.id) return
+
+    daemon.wallet.hasKeypair(activeWallet.id)
+      .then((res) => {
+        if (!cancelled) setSignerReady(res.ok && res.data === true)
+      })
+      .catch(() => {
+        if (!cancelled) setSignerReady(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWallet?.id])
+
+  const rpcReady = infrastructure ? getStatusBarRpcReady(infrastructure, Boolean(dashboard?.heliusConfigured)) : Boolean(dashboard?.heliusConfigured)
+  const clusterLabel = getClusterDisplayName(infrastructure?.cluster ?? 'devnet')
+  const executionLabel = getExecutionModeDisplayName(infrastructure?.executionMode)
+  const walletLabel = !dashboardLoaded
+    ? 'Wallet not loaded'
+    : activeWallet
+    ? signerReady === true
+      ? 'Signer ready'
+      : signerReady === false
+        ? 'Watch-only'
+        : 'Checking signer'
+    : 'No wallet'
+  const statusClass = !dashboardLoaded || !activeWallet
+    ? styles.walletRuntimeMuted
+    : rpcReady && signerReady === true
+      ? styles.walletRuntimeLive
+      : styles.walletRuntimeWarning
+  const title = !dashboardLoaded
+    ? `Wallet runtime: ${clusterLabel}. Open Wallet to load wallet status.`
+    : activeWallet
+    ? `Wallet runtime: ${activeWallet.name} on ${clusterLabel}. ${walletLabel}. RPC ${rpcReady ? 'ready' : 'needs setup'}. Execution: ${executionLabel}.`
+    : `Wallet runtime: ${clusterLabel}. No active wallet selected.`
+
+  return (
     <span
-      className={`${styles.item} ${styles.clickable}`}
-      onClick={() => useUIStore.getState().openWorkspaceTool('solana-toolbox')}
-      title="Open Solana Toolbox"
+      className={`${styles.item} ${styles.clickable} ${styles.walletRuntime} ${statusClass}`}
+      onClick={() => useUIStore.getState().openWorkspaceTool('wallet')}
+      title={title}
     >
-      <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: color, marginRight: 4 }} />
-      {label}{port}
+      <StatusDot
+        tone={!dashboardLoaded || !activeWallet ? 'neutral' : rpcReady && signerReady === true ? 'success' : 'warning'}
+        label={title}
+        className={styles.inlineDot}
+      />
+      {!isSmall && (
+        <span className={styles.walletRuntimeText}>
+          {clusterLabel} · {walletLabel}
+        </span>
+      )}
     </span>
   )
+}
+
+function getStatusBarRpcReady(settings: WalletInfrastructureSettings, heliusConfigured: boolean): boolean {
+  if (settings.rpcProvider === 'helius') return heliusConfigured
+  if (settings.rpcProvider === 'quicknode') return settings.quicknodeRpcUrl.trim().length > 0
+  if (settings.rpcProvider === 'custom') return settings.customRpcUrl.trim().length > 0
+  return true
 }
 
 function GitBranch() {
@@ -227,18 +335,16 @@ function ClaudeStatus() {
   }, [])
 
   const isConnected = authMode === 'cli' || authMode === 'both' || authMode === 'api'
-  const dotColor = isConnected ? 'var(--green)' : 'var(--red)'
   const label = isConnected ? 'Claude connected' : 'Claude disconnected'
 
   return (
     <span
-      className={styles.item}
-      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+      className={`${styles.item} ${styles.claudeStatus}`}
       onClick={() => { if (!isConnected) { useOnboardingStore.getState().openWizard() } }}
       title={label}
     >
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-      {!isSmall && <span style={{ fontSize: 10 }}>Claude</span>}
+      <StatusDot tone={isConnected ? 'success' : 'danger'} label={label} className={styles.inlineDot} />
+      {!isSmall && <span className={styles.claudeLabel}>Claude</span>}
     </span>
   )
 }

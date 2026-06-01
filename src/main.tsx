@@ -1,3 +1,4 @@
+import './polyfills'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
@@ -36,7 +37,7 @@ class RootErrorBoundary extends React.Component<
           gap: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ fontSize: 18 }}>Renderer crash</div>
+            <div style={{ fontSize: 18 }}>DAEMON hit a renderer error</div>
             <button
               onClick={() => window.location.reload()}
               style={{
@@ -53,14 +54,14 @@ class RootErrorBoundary extends React.Component<
               Reload App
             </button>
           </div>
-          <pre style={{
+          <div style={{
             whiteSpace: 'pre-wrap',
             lineHeight: 1.5,
-            color: '#ffb4b4',
+            color: '#bdbdbd',
             margin: 0,
           }}>
-            {this.state.error.stack || this.state.error.message}
-          </pre>
+            The app stopped rendering this view. Reload DAEMON to recover; the detailed error was written to the developer console.
+          </div>
         </div>
       )
     }

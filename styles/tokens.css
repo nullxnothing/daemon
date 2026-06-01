@@ -1,54 +1,88 @@
 :root {
-  /* Background scale (darkest to lightest) */
-  --bg:    #08090a;
-  --s1:    #0d0f11;
-  --s2:    #121519;
-  --s3:    #181c21;
-  --s4:    #22272e;
-  --s5:    #2d343d;
-  --s6:    #39424c;
+  /* Premium dark foundation */
+  --bg-app: hsl(220 16% 5%);
+  --bg-workspace: hsl(220 15% 6%);
+  --bg-panel: hsl(220 14% 8%);
+  --bg-card: hsl(220 13% 10%);
+  --bg-card-hover: hsl(220 13% 13%);
+  --bg-well: hsl(220 16% 7%);
+  --bg-overlay: hsl(220 15% 9% / 0.92);
 
-  /* Text scale (brightest to dimmest) - WCAG AA compliant */
-  --t1:    #f4f7f8;  /* Primary text */
-  --t2:    #a8b0b8;  /* Secondary text */
-  --t3:    #737d88;  /* Tertiary/muted */
-  --t4:    #515a64;  /* Disabled/placeholder */
+  /* Text ladder */
+  --text-primary: hsl(210 30% 96%);
+  --text-secondary: hsl(215 18% 72%);
+  --text-muted: hsl(215 13% 55%);
+  --text-faint: hsl(215 11% 40%);
+  --text-disabled: hsl(215 10% 30%);
 
-  /* Legacy semantic aliases used by older panels */
-  --text-primary:   var(--t1);
-  --text-secondary: var(--t2);
+  /* Border ladder */
+  --border-soft: hsl(220 13% 18% / 0.78);
+  --border-medium: hsl(220 12% 23% / 0.9);
+  --border-strong: hsl(220 11% 31%);
+
+  /* Semantic accents */
+  --accent-green: hsl(158 88% 58%);
+  --accent-green-dim: hsl(158 62% 42%);
+  --accent-green-glow: hsl(158 88% 58% / 0.12);
+  --accent-amber: hsl(39 88% 67%);
+  --accent-amber-dim: hsl(39 62% 48%);
+  --accent-amber-glow: hsl(39 88% 67% / 0.15);
+  --accent-red: hsl(348 88% 67%);
+  --accent-red-dim: hsl(348 62% 50%);
+  --accent-red-glow: hsl(348 88% 67% / 0.15);
+  --accent-blue: hsl(214 92% 70%);
+  --accent-blue-dim: hsl(214 64% 55%);
+  --accent-blue-glow: hsl(214 92% 70% / 0.15);
+  --accent-purple: hsl(256 86% 74%);
+  --accent-purple-glow: hsl(256 86% 74% / 0.18);
+
+  /* Background scale aliases (darkest to lightest) */
+  --bg: var(--bg-app);
+  --s1: var(--bg-panel);
+  --s2: var(--bg-card);
+  --s3: var(--bg-card-hover);
+  --s4: hsl(220 12% 16%);
+  --s5: var(--border-medium);
+  --s6: var(--border-strong);
+
+  /* Text scale aliases (brightest to dimmest) */
+  --t1: var(--text-primary);
+  --t2: var(--text-secondary);
+  --t3: var(--text-muted);
+  --t4: var(--text-faint);
+
+  /* @deprecated legacy alias — use --t3. Kept until panels migrate. */
   --text-tertiary:  var(--t3);
-  --text-muted:     var(--t4);
 
-  /* Accent colors - cleaner, more vibrant */
-  --green:       #37d59a;  /* Primary accent */
-  --green-dim:   #2bab78;  /* Hover/pressed state */
-  --green-glow:  rgba(55, 213, 154, 0.12);  /* Highlight bg */
+  /* Accent aliases. Green stays reserved for primary/healthy/live/ready/success. */
+  --green:       var(--accent-green);
+  --green-dim:   var(--accent-green-dim);
+  --green-glow:  var(--accent-green-glow);
   
-  --amber:       #f0b429;  /* Warning - golden amber */
-  --amber-dim:   #c99a22;
-  --amber-glow:  rgba(240, 180, 41, 0.15);
+  --amber:       var(--accent-amber);
+  --amber-dim:   var(--accent-amber-dim);
+  --amber-glow:  var(--accent-amber-glow);
   
-  --red:         #ef5350;  /* Error/danger - clear red */
-  --red-dim:     #c94442;
-  --red-glow:    rgba(239, 83, 80, 0.15);
+  --red:         var(--accent-red);
+  --red-dim:     var(--accent-red-dim);
+  --red-glow:    var(--accent-red-glow);
 
-  --blue:        #60a5fa;  /* Info/link color */
-  --blue-dim:    #4a8ad4;
-  --blue-glow:   rgba(96, 165, 250, 0.15);
+  --blue:        var(--accent-blue);
+  --blue-dim:    var(--accent-blue-dim);
+  --blue-glow:   var(--accent-blue-glow);
 
   /* Solana brand purple — used by AgentStation/Solana-affinity panels only */
-  --solana:      #9945ff;
-  --solana-glow: rgba(153, 69, 255, 0.18);
+  --solana:      var(--accent-purple);
+  --solana-glow: var(--accent-purple-glow);
 
   /* Foreground on saturated accent fill (white text on amber/red CTA pills) */
   --on-accent:   #ffffff;
-  --on-accent-dark: #090909;  /* black text on bright amber pills */
+  --on-accent-dark: var(--bg-app);
 
   /* Semantic tokens */
-  --border:        #20262d;  /* Default border */
-  --border-hover:  #313a44;  /* Border on hover */
-  --border-focus:  var(--green);  /* Border on focus */
+  --border:        var(--border-soft);
+  --border-hover:  var(--border-medium);
+  --border-focus:  var(--green);
   --focus:         var(--green);
   --focus-glow:    var(--green-glow);
   
@@ -81,25 +115,61 @@
   --mono: var(--font-code);
 
   /* Typography — size scale (single source of truth, no panel may set font-size in px) */
+  --fs-8:    8px;
   --fs-9:    9px;
   --fs-10:  10px;
   --fs-11:  11px;
   --fs-12:  12px;
   --fs-13:  13px;   /* body baseline (matches base.css) */
   --fs-14:  14px;
+  --fs-15:  15px;
   --fs-16:  16px;
   --fs-18:  18px;
   --fs-20:  20px;
+  --fs-22:  22px;
   --fs-24:  24px;
+  --fs-26:  26px;
+  --fs-28:  28px;
   --fs-32:  32px;
+  --fs-34:  34px;
+  --fs-36:  36px;
+  --fs-42:  42px;
+  --fs-44:  44px;
+  --fs-52:  52px;
+  --fs-84:  84px;
   --fs-display: 40px;
 
-  /* Legacy aliases — existing components reference these, keep them mapped */
+  /* Typography roles */
+  --type-page-title-size: 28px;
+  --type-page-title-line: 32px;
+  --type-page-title-weight: var(--fw-semibold);
+  --type-page-title-tracking: 0;
+  --type-section-title-size: 16px;
+  --type-section-title-line: 22px;
+  --type-section-title-weight: var(--fw-medium);
+  --type-item-title-size: 14px;
+  --type-item-title-line: 20px;
+  --type-item-title-weight: var(--fw-medium);
+  --type-metadata-size: 12px;
+  --type-metadata-line: 16px;
+  --type-metadata-weight: var(--fw-regular);
+  --type-mono-size: 13px;
+  --type-mono-line: 18px;
+  --type-body-size: 15px;
+  --type-body-line: 1.55;
+  --type-list-size: 13px;
+  --type-list-line: 1.4;
+  --type-eyebrow-size: 11px;
+  --type-eyebrow-line: 16px;
+
+  /* @deprecated legacy aliases — prefer --fs-* or the type role tokens. Kept until panels migrate. */
   --font-xs:   var(--fs-10);
   --font-sm:   var(--fs-11);
   --font-base: var(--fs-12);
   --font-md:   var(--fs-13);
   --font-lg:   var(--fs-16);
+  --font-xl:   var(--fs-16);
+  --font-mono: var(--font-code);
 
   /* Typography — weight scale */
   --fw-regular:  400;
@@ -127,14 +197,15 @@
   --statusbar-h: 24px;
 
   /* Spacing scale */
-  --space-2xs:  2px;
-  --space-xs:   4px;
-  --space-sm:   8px;
+  --space-2xs: 4px;   /* @deprecated duplicate of --space-xs; use --space-xs */
+  --space-xs:  4px;
+  --space-sm:  8px;
   --space-md:  12px;
   --space-lg:  16px;
   --space-xl:  24px;
   --space-2xl: 32px;
-  --space-3xl: 48px;
+  --space-3xl: 40px;
+  --space-4xl: 48px;
 
   /* Panel layout (used by PanelHeader, panel bodies) */
   --panel-pad-x:        var(--space-lg);
@@ -143,10 +214,13 @@
   --panel-content-max:  1280px;
 
   /* Border radius — keep small set, alias card/pill semantics */
-  --radius-sm:   3px;
-  --radius-md:   5px;
-  --radius-lg:   8px;
-  --radius-card: 8px;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-card: 12px;
+  --radius-feature: 16px;
+  --radius-control: var(--radius-md);
   --radius-pill: 999px;
 
   /* Control sizing */
@@ -167,13 +241,86 @@
   --shadow-lg: 0 16px 34px rgba(0, 0, 0, 0.30), var(--edge-highlight-strong);
   --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.38), var(--edge-highlight-strong);
   --shadow-lifted: var(--shadow-md);
+  --shadow-modal: var(--shadow-xl);
 
   /* Surface roles — semantic; prefer these over bare s1/s2/s3 in panel CSS */
-  --surface-flat:     #0d1013;
-  --surface-sunken:   #070809;
-  --surface-raised:   #13171b;
-  --surface-floating: #181e24;
-  --surface-overlay:  var(--glass-bg);
+  --surface-flat:     var(--bg-workspace);
+  --surface-sunken:   var(--bg-well);
+  --surface-raised:   var(--bg-card);
+  --surface-floating: var(--bg-card-hover);
+  --surface-overlay:  var(--bg-overlay);
+  --surface-panel:    var(--bg-panel);
+  --surface-card:     var(--bg-card);
+  --surface-card-hover: var(--bg-card-hover);
+  --surface-control:  var(--s2);
+  --surface-control-hover: var(--s3);
+  --surface-control-active: var(--s4);
+
+  /* Shared component semantics */
+  --panel-bg: var(--surface-panel);
+  --panel-border: var(--border);
+  --panel-header-bg: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
+  --card-bg: var(--surface-card);
+  --card-bg-hover: var(--surface-card-hover);
+  --card-border: var(--border);
+  --control-bg: var(--surface-control);
+  --control-bg-hover: var(--surface-control-hover);
+  --control-border: var(--border);
+  --control-border-hover: var(--border-hover);
+  --tab-active-bg: var(--surface-raised);
+  --tab-active-color: var(--text-primary);
+  --tab-active-border: var(--border-strong);
+  --tab-hover-bg: var(--hover-bg);
+  --selection-bg: color-mix(in srgb, var(--green) 26%, transparent);
+
+  /* Partner accent tokens. These stay inside DAEMON card/layout systems. */
+  --brand-jupiter: var(--accent-green);
+  --brand-phantom: #a78bfa;
+  --brand-helius: #ff7e1f;
+  --brand-sendai: #2f81ff;
+  --brand-metaplex: #22c55e;
+  --brand-light: #2dd4bf;
+  --brand-magicblock: #3b82f6;
+  --brand-spawnagents: #c41e3a;
+  --brand-kausalayer: #0f766e;
+  --brand-kausalayer-warm: #d97706;
+  --brand-discord: #5865f2;
+  --brand-spawnagents-deep: #1d080d;
+  --brand-spawnagents-glow: rgba(196, 30, 58, 0.5);
+  --brand-spawnagents-success: #3fb950;
+  --brand-spawnagents-surface: #0a0608;
+  --brand-spawnagents-surface-2: #0c080a;
+  --brand-spawnagents-surface-3: #0d0a0c;
+  --brand-spawnagents-border: #1c181a;
+  --brand-spawnagents-border-strong: #2a2226;
+  --brand-spawnagents-text: #ede8ea;
+  --brand-spawnagents-muted: #6b5f63;
+  --brand-spawnagents-muted-strong: #8a7d82;
+
+  /* Integration image-card surfaces. Use these instead of raw brand-dark hex in panel CSS. */
+  --integration-surface-neutral: var(--bg-well);
+  --integration-surface-neutral-strong: var(--bg-app);
+  --integration-surface-helius: var(--bg-well);
+  --integration-surface-sendai: var(--bg-well);
+  --integration-surface-spawnagents: var(--brand-spawnagents-surface);
+  --integration-surface-phantom: #130d24;
+  --integration-surface-jupiter: #04100d;
+  --integration-surface-light: #04100f;
+  --integration-surface-magicblock: #040812;
+  --integration-surface-debridge: var(--bg-app);
+  --integration-surface-squads: var(--bg-app);
+  --integration-surface-kausalayer: #03110f;
+
+  /* File explorer glyph accents */
+  --file-accent-ts: #7cc7ff;
+  --file-accent-js: #f4c95d;
+  --file-accent-json: #d4b4ff;
+  --file-accent-md: #8de2b0;
+  --file-accent-css: #8fd9df;
+  --file-accent-html: #ffb17d;
+  --file-accent-image: #d7b3ff;
+  --file-accent-yaml: #ffd27a;
+  --file-accent-runtime: #9fe39f;
 
   /* Hero gradients — for panel headers that earn weight (rare) */
   --surface-hero:
@@ -201,7 +348,7 @@
   --glow-green-ambient: 0 0 24px var(--green-glow);
 
   /* Glass surfaces (popovers, command palette, dropdown menus) */
-  --glass-bg:        color-mix(in srgb, var(--s1) 88%, transparent);
+  --glass-bg:        color-mix(in srgb, var(--bg-overlay) 92%, transparent);
   --glass-blur:      blur(18px);    /* default — popovers / dropdowns / sticky bars */
   --glass-blur-soft: blur(8px);     /* inline tray, terminal session menus */
   --glass-blur-scrim: blur(4px);    /* modal/lightbox scrims */
@@ -213,9 +360,13 @@
   --surface-gradient-subtle: none;
 
   /* Motion — durations + easing curves (ease replaced with named curves) */
-  --dur-instant:    80ms;
-  --dur-base:      160ms;
-  --dur-emphasized: 280ms;
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 320ms;
+
+  --dur-instant: var(--duration-fast);
+  --dur-base: var(--duration-normal);
+  --dur-emphasized: var(--duration-slow);
   --dur-deliberate: 420ms;
 
   --ease-standard:  cubic-bezier(0.2, 0, 0, 1);
@@ -227,4 +378,16 @@
   --transition-fast:   var(--dur-instant)    var(--ease-standard);
   --transition-normal: var(--dur-base)       var(--ease-out-quint);
   --transition-slow:   var(--dur-emphasized) var(--ease-out-quint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 1ms;
+    --duration-normal: 1ms;
+    --duration-slow: 1ms;
+    --dur-instant: 1ms;
+    --dur-base: 1ms;
+    --dur-emphasized: 1ms;
+    --dur-deliberate: 1ms;
+  }
 }

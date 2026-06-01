@@ -4,6 +4,7 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
+  position: relative;
   border-top: 1px solid var(--border);
   background: var(--surface-flat);
   contain: layout paint style;
@@ -17,6 +18,56 @@
 
 .aria-dock-chamber {
   min-height: 112px;
+}
+
+.aria-dock-minimized {
+  min-height: 44px;
+  padding: 6px;
+}
+
+.aria-minimized-button {
+  width: 100%;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--t2);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  border-radius: var(--drawer-control-radius);
+  font-family: var(--font-code);
+  font-size: var(--fs-10);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.aria-minimized-button:hover {
+  color: var(--t1);
+  border-color: color-mix(in srgb, var(--green) 24%, var(--border));
+  background: var(--hover-bg);
+}
+
+.aria-dock-minimize {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 2;
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--t4);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.aria-dock-minimize:hover {
+  color: var(--t2);
+  background: var(--hover-bg);
 }
 
 /* ── Chamber — empty state with minimal face ── */
@@ -90,7 +141,7 @@
 }
 
 .aria-chamber-title {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 700;
   color: var(--t1);
   line-height: 1.35;
@@ -99,14 +150,14 @@
 
 .aria-chamber-text {
   margin-top: 2px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   line-height: 1.25;
   color: var(--t3);
 }
 
 .aria-chamber-label {
   font-family: var(--font-code);
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   letter-spacing: 3px;
   text-transform: lowercase;
@@ -134,7 +185,7 @@
 }
 
 .aria-toolbar-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
@@ -148,7 +199,7 @@
 }
 
 .aria-toolbar-btn {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   color: var(--t4);
   padding: 1px 6px;
@@ -160,6 +211,15 @@
 .aria-toolbar-btn:hover {
   color: var(--t2);
   background: var(--hover-bg);
+}
+
+.aria-toolbar-icon-btn {
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 /* ── Messages scroll ── */
@@ -207,7 +267,7 @@
 }
 
 .aria-role {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -222,13 +282,13 @@
 }
 
 .aria-time {
-  font-size: 9px;
+  font-size: var(--fs-9);
   color: var(--t4);
   font-family: var(--font-code);
 }
 
 .aria-content {
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.5;
   color: var(--t1);
   word-break: break-word;
@@ -277,7 +337,7 @@
 
 .aria-code-block code {
   font-family: var(--font-code);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
   white-space: pre;
 }
@@ -293,7 +353,7 @@
 }
 
 .aria-action-chip {
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   color: var(--green);
   padding: 1px 7px;
@@ -367,7 +427,7 @@
 
 .aria-prompt-caret {
   font-family: var(--font-code);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--green);
   line-height: 28px;
   flex-shrink: 0;
@@ -381,7 +441,7 @@
   min-height: 28px;
   max-height: 80px;
   padding: 4px 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-family: var(--font-code);
   color: var(--t1);
   background: transparent;
@@ -403,7 +463,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-code);
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--green);
   min-width: 28px;
   height: 28px;

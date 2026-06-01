@@ -61,6 +61,12 @@ function latestRegistrySignature(task: AgentWorkTask): string | null {
   ].find((signature) => signature && !signature.startsWith('local:')) ?? null
 }
 
+function keycardOpenUrl(task: AgentWorkTask): string | null {
+  if (task.keycard_open_url) return task.keycard_open_url
+  const match = task.artifact_uri?.match(/^keycard:\/\/([^#]+)/)
+  return match?.[1] ? `https://keycardsol.xyz/open/${match[1]}` : null
+}
+
 function isTaskPastDeadline(task: AgentWorkTask): boolean {
   return typeof task.deadline_at === 'number' && task.deadline_at <= Date.now()
 }
@@ -350,6 +356,7 @@ export function AgentWork() {
                   <span>start {shortHash(task.start_signature)}</span>
                   <span>diff {shortHash(task.diff_hash)}</span>
                   <span>tests {shortHash(task.tests_hash)}</span>
+                  <span>keycard {shortHash(task.keycard_gate_id)}</span>
                   <span>review {shortHash(task.review_signature)}</span>
                   <span>settle {shortHash(task.settled_signature)}</span>
                 </div>
@@ -366,9 +373,14 @@ export function AgentWork() {
                     </button>
                   )}
                   {task.status === 'running' && !overdue && (
-                    <button type="button" onClick={() => runTaskAction(`submit:${task.id}`, () => window.daemon.registry.submitAgentWork(task.id))} disabled={busy === `submit:${task.id}`}>
-                      {busy === `submit:${task.id}` ? 'Submitting...' : 'Submit Receipt'}
-                    </button>
+                    <>
+                      <button type="button" onClick={() => runTaskAction(`submit:${task.id}`, () => window.daemon.registry.submitAgentWork(task.id))} disabled={busy === `submit:${task.id}`}>
+                        {busy === `submit:${task.id}` ? 'Submitting...' : 'Submit Receipt'}
+                      </button>
+                      <button type="button" onClick={() => runTaskAction(`submit-keycard:${task.id}`, () => window.daemon.registry.submitAgentWork(task.id, { artifactMode: 'keycard' }))} disabled={busy === `submit-keycard:${task.id}`}>
+                        {busy === `submit-keycard:${task.id}` ? 'Sealing...' : 'Submit KEYCARD Receipt'}
+                      </button>
+                    </>
                   )}
                   {(task.status === 'funded' || task.status === 'running') && overdue && (
                     <button type="button" onClick={() => runTaskAction(`expire:${task.id}`, () => window.daemon.registry.expireAgentWork(task.id))} disabled={busy === `expire:${task.id}`}>
@@ -393,6 +405,11 @@ export function AgentWork() {
                   {latestRegistrySignature(task) && (
                     <button type="button" onClick={() => window.daemon.shell.openExternal(`https://solscan.io/tx/${latestRegistrySignature(task)}?cluster=devnet`)}>
                       Open Tx
+                    </button>
+                  )}
+                  {keycardOpenUrl(task) && (
+                    <button type="button" onClick={() => window.daemon.shell.openExternal(keycardOpenUrl(task)!)}>
+                      Open Keycard
                     </button>
                   )}
                 </div>

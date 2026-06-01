@@ -5,12 +5,33 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
+import { DAEMON_XTERM_MINIMAL_THEME } from '../../styles/daemonTheme'
+import './AgentGrid.css'
 
-type ProviderId = 'claude' | 'codex'
+type ProviderId = 'claude' | 'codex' | 'spettro'
+
+const PROVIDER_META: Record<ProviderId, { label: string; logo: string }> = {
+  claude: { label: 'Claude', logo: './claude-logo.png' },
+  codex: { label: 'Codex', logo: './codex-logo.png' },
+  spettro: { label: 'Spettro', logo: './spettro-logo.png' },
+}
 
 // Stable sentinel so the selector returns the same reference when no pages exist,
 // avoiding a useSyncExternalStore infinite re-render loop.
 const EMPTY_PAGES: import('../../store/ui').GridCell[][] = []
+
+function measuredGridTerminalSize(term: XTerm, width: number, height: number): { cols: number; rows: number } | null {
+  const screen = term.element?.querySelector('.xterm-screen')
+  if (!(screen instanceof HTMLElement)) return null
+  const screenRect = screen.getBoundingClientRect()
+  const cellWidth = screenRect.width / Math.max(1, term.cols)
+  const cellHeight = screenRect.height / Math.max(1, term.rows)
+  if (!Number.isFinite(cellWidth) || !Number.isFinite(cellHeight) || cellWidth <= 0 || cellHeight <= 0) return null
+  return {
+    cols: Math.max(2, Math.floor(width / cellWidth)),
+    rows: Math.max(1, Math.floor(height / cellHeight)),
+  }
+}
 
 export function AgentGrid() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -93,7 +114,7 @@ export function AgentGrid() {
 
     if (res.ok && res.data) {
       const termId = res.data.id
-      const label = providerId === 'claude' ? 'Claude' : 'Codex'
+      const label = PROVIDER_META[providerId].label
       addTerminal(activeProjectId, termId, label)
       setGrindCell(activeProjectId, activeGrindPage, index, {
         id: termId,
@@ -263,9 +284,15 @@ export function AgentGrid() {
                 <span className={`agent-grid-cell-dot ${cell.id ? '' : 'idle'}`} />
                 <span className="agent-grid-cell-label">{cell.label}</span>
                 {cell.id && (
-                  <span className="agent-grid-cell-close" onClick={() => handleClose(i)} title="Close this agent">
+                  <button
+                    type="button"
+                    className="agent-grid-cell-close"
+                    onClick={(e) => { e.stopPropagation(); handleClose(i) }}
+                    title="Close this agent"
+                    aria-label={`Close ${cell.label || 'agent'}`}
+                  >
                     &times;
-                  </span>
+                  </button>
                 )}
               </div>
               <div className="agent-grid-cell-body">
@@ -283,20 +310,23 @@ export function AgentGrid() {
                         }}
                       />
                     ) : cells[i]?.providerId ? (
-                      <div
+                      <button
+                        type="button"
+                        className="agent-grid-activate"
                         onClick={() => activateCell(i)}
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                        aria-label={`Launch ${PROVIDER_META[cells[i].providerId].label}`}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', background: 'none', border: 'none' }}
                       >
                         <img
-                          src={cells[i].providerId === 'claude' ? './claude-logo.png' : './codex-logo.png'}
-                          alt={cells[i].providerId ?? ''}
+                          src={PROVIDER_META[cells[i].providerId].logo}
+                          alt=""
                           style={{ width: 36, height: 36 }}
                         />
                         <span className="activate-label">
-                          {cells[i].providerId === 'claude' ? 'Claude' : 'Codex'}
+                          {PROVIDER_META[cells[i].providerId].label}
                         </span>
                         <span className="activate-hint">Click to launch</span>
-                      </div>
+                      </button>
                     ) : (
                       <ServicePicker
                         onPick={(providerId) => handlePickService(i, providerId)}
@@ -400,30 +430,27 @@ function ServicePicker({
   onPick: (providerId: ProviderId) => void
   onCancel?: () => void
 }) {
-  const services: { id: ProviderId; label: string; logo: string }[] = [
-    { id: 'claude', label: 'Claude', logo: './claude-logo.png' },
-    { id: 'codex', label: 'Codex', logo: './codex-logo.png' },
-  ]
+  const services = Object.entries(PROVIDER_META) as Array<[ProviderId, { label: string; logo: string }]>
 
   return (
     <div
       onClick={(e) => e.stopPropagation()}
       style={{
         display: 'flex', flexDirection: 'column', gap: 10,
-        padding: 16, width: '100%', maxWidth: 280, alignItems: 'center',
+        padding: 16, width: '100%', maxWidth: 380, alignItems: 'center',
       }}
     >
       <div style={{ fontSize: 10, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: 1 }}>
         Pick Service
       </div>
-      <div style={{ display: 'flex', gap: 12, width: '100%', justifyContent: 'center' }}>
-        {services.map((s) => (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, width: '100%', justifyContent: 'center' }}>
+        {services.map(([id, service]) => (
           <button
-            key={s.id}
-            onClick={() => onPick(s.id)}
+            key={id}
+            onClick={() => onPick(id)}
             className="service-pick-btn"
             style={{
-              flex: 1, maxWidth: 110,
+              flex: '1 1 90px', maxWidth: 110,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
               padding: '14px 10px',
               background: 'var(--s2)',
@@ -442,8 +469,8 @@ function ServicePicker({
               e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >
-            <img src={s.logo} alt={s.label} style={{ width: 40, height: 40, objectFit: 'contain' }} />
-            <span style={{ fontSize: 12, fontWeight: 500 }}>{s.label}</span>
+            <img src={service.logo} alt={service.label} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+            <span style={{ fontSize: 12, fontWeight: 500 }}>{service.label}</span>
           </button>
         ))}
       </div>
@@ -467,21 +494,35 @@ function AgentGridTerminal({ id }: { id: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+  const disposedRef = useRef(false)
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const doFit = useCallback(() => {
+    if (disposedRef.current) return
     const fit = fitRef.current
     const term = xtermRef.current
     if (!fit || !term || !containerRef.current) return
     const { clientWidth, clientHeight } = containerRef.current
     if (clientWidth === 0 || clientHeight === 0) return
+    let canUseFitAddon = true
     try {
-      fit.fit()
-      window.daemon.terminal.resize(id, term.cols, term.rows)
-    } catch {}
+      canUseFitAddon = Boolean((term as any)._core?._renderService?.dimensions)
+    } catch {
+      canUseFitAddon = false
+    }
+    if (canUseFitAddon) {
+      try { fit.fit() } catch {}
+    }
+    const measured = measuredGridTerminalSize(term, clientWidth, clientHeight)
+    if (measured && (measured.cols !== term.cols || measured.rows !== term.rows)) {
+      try { term.resize(measured.cols, measured.rows) } catch {}
+    }
+    window.daemon.terminal.resize(id, term.cols, term.rows)
   }, [id])
 
   useEffect(() => {
     if (!containerRef.current) return
+    disposedRef.current = false
 
     const term = new XTerm({
       fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
@@ -489,13 +530,7 @@ function AgentGridTerminal({ id }: { id: string }) {
       lineHeight: 1.3,
       cursorBlink: true,
       cursorStyle: 'bar',
-      // xterm.js API requires hex values -- keep in sync with tokens.css
-      theme: {
-        background: '#0a0a0a',
-        foreground: '#ebebeb',
-        cursor: '#ebebeb',
-        selectionBackground: '#2a2a2a',
-      },
+      theme: DAEMON_XTERM_MINIMAL_THEME,
     })
 
     const fitAddon = new FitAddon()
@@ -524,20 +559,28 @@ function AgentGridTerminal({ id }: { id: string }) {
       if (payload.id === id) term.write('\r\n[Process exited]\r\n')
     })
 
-    // Tell main process the renderer is attached so it flushes buffered pty output
-    window.daemon.terminal.ready(id)
-
     const resizeObserver = new ResizeObserver(() => {
-      setTimeout(doFit, 60)
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      resizeTimerRef.current = setTimeout(doFit, 60)
     })
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current)
     }
 
+    const readyTimer = setTimeout(() => {
+      try { doFit() } catch {}
+      window.daemon.terminal.ready(id, term.cols, term.rows)
+    }, 160)
+
     return () => {
+      disposedRef.current = true
+      clearTimeout(readyTimer)
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
+      xtermRef.current = null
+      fitRef.current = null
       try { term.dispose() } catch {}
     }
   }, [id, doFit])

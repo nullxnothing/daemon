@@ -56,6 +56,7 @@ const scenarios = [
     maxChangedPixels: 500,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
+      await page.waitForSelector('.wallet-workspace-metrics', { timeout: 30000 })
     },
     selector: '.wallet-panel-header',
   },
@@ -78,22 +79,30 @@ const scenarios = [
   },
   {
     name: 'right-panel-tabs',
-    setup: async () => {},
+    setup: async (page) => {
+      await ensureRightPanelVisible(page)
+    },
     selector: '.right-panel-tabs',
   },
   {
     name: 'aria-chamber',
-    setup: async () => {},
+    setup: async (page) => {
+      await ensureRightPanelVisible(page)
+    },
     selector: '.aria-chamber',
   },
   {
     name: 'aria-prompt',
-    setup: async () => {},
+    setup: async (page) => {
+      await ensureRightPanelVisible(page)
+    },
     selector: '.aria-prompt',
   },
   {
     name: 'terminal-tabs',
-    setup: async () => {},
+    setup: async (page) => {
+      await openTerminalPanel(page)
+    },
     selector: '.terminal-tabs',
   },
   {
@@ -193,6 +202,7 @@ async function seedAppState(page) {
     await window.daemon.settings.setOnboardingComplete(true)
     await window.daemon.settings.setDrawerToolOrder([])
     await window.daemon.settings.setShowTitlebarWallet(true)
+    await window.daemon.settings.setLowPowerMode(false)
     await window.daemon.settings.setWorkspaceProfile({
       name: 'custom',
       toolVisibility: {},
@@ -253,6 +263,22 @@ async function openTool(page, toolName, readySelector) {
   await page.waitForSelector(readySelector, { timeout: 30000 })
 }
 
+async function ensureRightPanelVisible(page) {
+  await closeTransientUi(page)
+  const rightPanelVisible = await page.locator('.right-panel').isVisible().catch(() => false)
+  if (rightPanelVisible) return
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'b',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    }))
+  })
+  await page.waitForSelector('.right-panel-content', { timeout: 30000 })
+}
+
 async function openWalletQuickView(page) {
   await closeTransientUi(page)
   await page.waitForSelector('.titlebar-portfolio', { timeout: 30000 })
@@ -278,10 +304,40 @@ async function normalizeWalletQuickView(page) {
   })
 }
 
+async function normalizeWalletWorkspaceBar(page) {
+  await page.evaluate(() => {
+    const header = document.querySelector('.wallet-panel-header')
+    if (!header) return
+
+    const title = header.querySelector('h1')
+    if (title) title.textContent = 'Move funds, inspect holdings, and act from one place'
+
+    const subtitle = header.querySelector('p')
+    if (subtitle) subtitle.textContent = 'DAEMON Visual Regression Smoke · Smoke Wallet'
+
+    const metrics = Array.from(header.querySelectorAll('.wallet-workspace-metric'))
+    const values = ['1', 'Local mode', 'Wallet']
+    for (const [index, metric] of metrics.entries()) {
+      const value = metric.querySelector('.wallet-workspace-metric-value')
+      if (value && values[index]) value.textContent = values[index]
+    }
+  })
+}
+
 async function openTerminalLauncher(page) {
-  await closeTransientUi(page)
+  await openTerminalPanel(page)
   await page.getByRole('button', { name: 'New tab options' }).click()
   await page.waitForSelector('.terminal-launcher-menu', { timeout: 30000 })
+}
+
+async function openTerminalPanel(page) {
+  await closeTransientUi(page)
+  const terminalVisible = await page.locator('.terminal-panel').isVisible().catch(() => false)
+  if (!terminalVisible) {
+    await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+    await page.waitForSelector('.terminal-panel', { timeout: 30000 })
+  }
+  await page.waitForSelector('.terminal-tabs', { timeout: 30000 })
 }
 
 async function closeTransientUi(page) {
@@ -398,6 +454,10 @@ async function normalizeSettingsMeta(page) {
 }
 
 async function stabilizeScenario(page, scenario) {
+  if (scenario.name === 'wallet-workspace-bar') {
+    await normalizeWalletWorkspaceBar(page)
+  }
+
   if (scenario.name === 'settings-center') {
     await normalizeSettingsMeta(page)
   }
@@ -521,7 +581,17 @@ async function runVisuals(page) {
       writeFileSync(actualPath, screenshot)
 
       const hadBaseline = existsSync(baselinePath)
-      if (updateBaselines || !hadBaseline) {
+      if (!hadBaseline && !updateBaselines) {
+        failures.push({
+          scenario: `${profile.name}/${scenario.name}`,
+          missingBaseline: true,
+          baselinePath,
+          actualPath,
+        })
+        continue
+      }
+
+      if (updateBaselines) {
         ensureDir(path.dirname(baselinePath))
         writeFileSync(baselinePath, screenshot)
         console.log(`${hadBaseline ? 'Updated' : 'Created'} baseline ${profile.name}/${scenario.name}`)
@@ -559,7 +629,9 @@ async function runVisuals(page) {
 
   if (failures.length > 0) {
     const details = failures
-      .map((failure) => `${failure.scenario}: ${failure.changedPixels}/${failure.allowedChangedPixels} changed pixels, ${failure.widthDelta}w/${failure.heightDelta}h dimension drift\nactual: ${failure.actualPath}\ndiff: ${failure.diffPath}`)
+      .map((failure) => failure.missingBaseline
+        ? `${failure.scenario}: missing baseline\nactual: ${failure.actualPath}\nbaseline: ${failure.baselinePath}`
+        : `${failure.scenario}: ${failure.changedPixels}/${failure.allowedChangedPixels} changed pixels, ${failure.widthDelta}w/${failure.heightDelta}h dimension drift\nactual: ${failure.actualPath}\ndiff: ${failure.diffPath}`)
       .join('\n\n')
     throw new Error(`Visual regression mismatches detected\n\n${details}`)
   }
@@ -590,6 +662,7 @@ async function run() {
 
   const page = await getPage()
   attachPageDiagnostics(page)
+  await page.setViewportSize({ width: profiles[0].width, height: profiles[0].height })
   await waitForAppReady(page)
   await seedAppState(page)
   await page.reload()

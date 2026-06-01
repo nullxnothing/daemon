@@ -115,7 +115,8 @@ vi.mock('@solana/web3.js', () => ({
   },
   PublicKey: vi.fn((addr: string) => ({ toBase58: () => addr, toString: () => addr })),
   Transaction: vi.fn(() => ({ add: vi.fn().mockReturnThis(), sign: vi.fn(), serialize: vi.fn().mockReturnValue(Buffer.alloc(10)) })),
-  SystemProgram: { transfer: vi.fn().mockReturnValue({}) },
+  SystemProgram: { transfer: vi.fn().mockReturnValue({}), programId: { toBase58: () => 'SystemProgram', equals: () => false } },
+  ComputeBudgetProgram: { programId: { toBase58: () => 'ComputeBudget', equals: () => false } },
   LAMPORTS_PER_SOL: 1_000_000_000,
   sendAndConfirmTransaction: vi.fn().mockResolvedValue('fake-sig'),
   TOKEN_PROGRAM_ID: { toBase58: () => 'TokenProgram' },
@@ -129,9 +130,12 @@ vi.mock('@solana/spl-token', () => ({
   createTransferInstruction: mockCreateTransferInstruction,
   createAssociatedTokenAccountInstruction: mockCreateAssociatedTokenAccountInstruction,
   getAccount: mockGetAccount,
+  TOKEN_PROGRAM_ID: { toBase58: () => 'TokenProgram' },
+  TOKEN_2022_PROGRAM_ID: { toBase58: () => 'Token2022Program' },
+  ASSOCIATED_TOKEN_PROGRAM_ID: { toBase58: () => 'AssociatedTokenProgram' },
 }))
 
-import { executeSwap, getDashboard, getSwapQuote, transferSOL, transferToken } from '../../electron/services/WalletService'
+import { executeSwap, getDashboard, getSwapQuote, searchJupiterTokens, transferSOL, transferToken } from '../../electron/services/WalletService'
 
 function makeWalletDbChain(overrides: { walletRow?: object | null; dailySpendTotal?: number } = {}) {
   const walletRow = overrides.walletRow !== undefined
@@ -165,6 +169,7 @@ describe('transferSOL — validation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSecureGetKey.mockReturnValue(null)
+    mockGetBalance.mockResolvedValue(0)
     mockFetch.mockResolvedValue({ ok: false, status: 503, json: async () => ({}), text: async () => 'unavailable' })
     mockExecuteTransaction.mockResolvedValue({ signature: 'sig', transport: 'rpc' })
     mockGetPriorityFeeLamports.mockResolvedValue(7_000)
@@ -213,7 +218,7 @@ describe('transferSOL — validation', () => {
       expect.anything(),
       expect.anything(),
       [fakeKeypair],
-      { computeUnitLimit: 20_000 },
+      { computeUnitLimit: 20_000, guardSource: 'transferSOL' },
     )
   })
 })
@@ -222,6 +227,7 @@ describe('getDashboard — fallback active wallet', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSecureGetKey.mockReturnValue(null)
+    mockGetBalance.mockResolvedValue(0)
     mockFetch.mockResolvedValue({ ok: false, status: 503, json: async () => ({}), text: async () => 'unavailable' })
     mockExecuteTransaction.mockResolvedValue({ signature: 'sig', transport: 'rpc' })
     mockGetPriorityFeeLamports.mockResolvedValue(7_000)
@@ -311,6 +317,55 @@ describe('getDashboard — fallback active wallet', () => {
       name: 'Project Wallet',
       address: 'Project111111111111111111111111111111111111',
       holdings: [],
+    })
+  })
+
+  it('reads native SOL value without Helius configured', async () => {
+    mockGetBalance.mockResolvedValue(300_000_000)
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        solana: { usd: 150, usd_24h_change: 1.5 },
+        bitcoin: { usd: 60000 },
+        ethereum: { usd: 3000 },
+      }),
+    })
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT id, name, address, is_default, agent_id, wallet_type, created_at FROM wallets')) {
+        return {
+          all: vi.fn().mockReturnValue([
+            {
+              id: 'wallet-funded',
+              name: 'Funded Wallet',
+              address: 'A2q13vL8XxkimbQmqhLde44auyregK7kkUwrdM1D1imP',
+              is_default: 1,
+              agent_id: null,
+              wallet_type: 'user',
+              created_at: 123,
+            },
+          ]),
+        }
+      }
+      if (sql.includes('SELECT id, wallet_id FROM projects WHERE wallet_id IS NOT NULL')) {
+        return { all: vi.fn().mockReturnValue([]) }
+      }
+      if (sql.includes('SELECT wallet_id FROM projects WHERE id = ?')) {
+        return { get: vi.fn().mockReturnValue(undefined) }
+      }
+      return { all: vi.fn().mockReturnValue([]), get: vi.fn().mockReturnValue(undefined), run: vi.fn() }
+    })
+
+    const dashboard = await getDashboard(null)
+
+    expect(dashboard.wallets[0]).toMatchObject({
+      id: 'wallet-funded',
+      totalUsd: 45,
+      tokenCount: 1,
+    })
+    expect(dashboard.activeWallet?.holdings[0]).toMatchObject({
+      symbol: 'SOL',
+      amount: 0.3,
+      valueUsd: 45,
     })
   })
 
@@ -540,7 +595,7 @@ describe('transferToken — validation', () => {
       expect.anything(),
       expect.anything(),
       [fakeKeypair],
-      { computeUnitLimit: 80_000 },
+      { computeUnitLimit: 80_000, guardSource: 'transferToken' },
     )
   })
 
@@ -583,8 +638,83 @@ describe('transferToken — validation', () => {
       expect.anything(),
       expect.anything(),
       [fakeKeypair],
-      { computeUnitLimit: 140_000 },
+      { computeUnitLimit: 140_000, guardSource: 'transferToken' },
     )
+  })
+
+  it('converts tiny decimal token sends without exponent notation drift', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain())
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 9 } },
+        },
+      },
+    })
+    mockGetAssociatedTokenAddress
+      .mockResolvedValueOnce('from-ata')
+      .mockResolvedValueOnce('to-ata')
+    mockGetAccount
+      .mockResolvedValueOnce({ amount: 10n })
+      .mockResolvedValueOnce({ amount: 1n })
+    mockCreateTransferInstruction.mockReturnValue({})
+    mockCreateAssociatedTokenAccountInstruction.mockReturnValue({})
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await transferToken(
+      'w1',
+      'So11111111111111111111111111111111111111112',
+      'So11111111111111111111111111111111111111112',
+      0.000000001,
+    )
+
+    expect(mockCreateTransferInstruction).toHaveBeenCalledWith(
+      'from-ata',
+      'to-ata',
+      fakeKeypair.publicKey,
+      1n,
+    )
+  })
+
+  it('rejects token amounts below the mint precision', async () => {
+    mockPrepare.mockImplementation(makeWalletDbChain())
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 9 } },
+        },
+      },
+    })
+    mockGetAssociatedTokenAddress.mockResolvedValue('from-ata')
+    mockGetAccount.mockResolvedValue({ amount: 10n })
+
+    const fakeKeypair = {
+      publicKey: { toBase58: () => 'FakeKey', toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+
+    await expect(
+      transferToken(
+        'w1',
+        'So11111111111111111111111111111111111111112',
+        'So11111111111111111111111111111111111111112',
+        0.0000000001,
+      )
+    ).rejects.toThrow(/token precision/i)
+
+    expect(mockCreateTransferInstruction).not.toHaveBeenCalled()
   })
 })
 
@@ -609,6 +739,83 @@ describe('Jupiter swap — Swap API V2', () => {
         keypair_path: null,
       },
     }))
+  })
+
+  it('searches Jupiter Tokens V2 with the stored API key and exposes safety metadata', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ([{
+        id: outputMint,
+        name: 'USD Coin',
+        symbol: 'USDC',
+        icon: 'https://static.jup.ag/usdc/icon.png',
+        decimals: 6,
+        usdPrice: 0.9999,
+        liquidity: 1_000_000,
+        holderCount: 1000,
+        organicScore: 98.5,
+        audit: { isSus: false, verified: true },
+        tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+      }]),
+      text: async () => '',
+    })
+
+    const results = await searchJupiterTokens('usdc')
+
+    const [url, init] = mockFetch.mock.calls[0]
+    expect(String(url)).toContain('https://api.jup.ag/tokens/v2/search')
+    expect(String(url)).toContain('query=usdc')
+    expect(init).toEqual({ headers: { 'x-api-key': 'jup-key' } })
+    expect(results).toEqual([{
+      mint: outputMint,
+      name: 'USD Coin',
+      symbol: 'USDC',
+      icon: 'https://static.jup.ag/usdc/icon.png',
+      decimals: 6,
+      usdPrice: 0.9999,
+      liquidity: 1_000_000,
+      holderCount: 1000,
+      organicScore: 98.5,
+      isSus: false,
+      verified: true,
+      tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+    }])
+  })
+
+  it('rejects invalid slippage before requesting a Jupiter order', async () => {
+    await expect(
+      getSwapQuote('w1', inputMint, outputMint, 0.1, 0)
+    ).rejects.toThrow(/slippage/i)
+
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
+  it('coalesces and caches repeated Jupiter token searches', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ([{
+        id: outputMint,
+        name: 'Bonk',
+        symbol: 'BONK',
+        decimals: 5,
+        audit: { isSus: false, verified: true },
+      }]),
+      text: async () => '',
+    })
+
+    const [first, second] = await Promise.all([
+      searchJupiterTokens('bonk'),
+      searchJupiterTokens('bonk'),
+    ])
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    expect(first).toEqual(second)
+
+    mockFetch.mockClear()
+    const cached = await searchJupiterTokens('BONK')
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(cached).toEqual(first)
   })
 
   it('requests an executable V2 order with the wallet taker and validates the response shape', async () => {

@@ -23,7 +23,12 @@ interface EnvironmentBarProps {
 
 export function EnvironmentBar({ info, validator, mcps, toolchain }: EnvironmentBarProps) {
   if (!info || !info.isSolanaProject) {
-    return <div className="solana-env-none">No Solana project detected</div>
+    return (
+      <div className="solana-env-none" role="status">
+        <span>No Solana project detected</span>
+        <span>Open an Anchor/native project or scaffold one from Start.</span>
+      </div>
+    )
   }
 
   const label = FRAMEWORK_LABELS[info.framework ?? ''] ?? 'SOLANA'

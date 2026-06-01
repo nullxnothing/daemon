@@ -14,7 +14,7 @@
 
 .pf-tab {
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   color: var(--t3);
   cursor: pointer;
@@ -25,7 +25,7 @@
 }
 
 .pf-tab:hover { color: var(--t2); }
-.pf-tab.active { color: var(--t1); border-bottom-color: var(--green); }
+.pf-tab.active { color: var(--tab-active-color); border-bottom-color: var(--tab-active-border); }
 
 .pf-content {
   flex: 1;
@@ -39,7 +39,7 @@
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--s3);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
@@ -49,7 +49,7 @@
   border: 1px solid var(--s3);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 3px 6px;
   font-family: var(--font-ui);
 }
@@ -62,7 +62,7 @@
 }
 
 .pf-import-btn {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--green);
   cursor: pointer;
   padding: 2px 6px;
@@ -80,7 +80,7 @@
 
 .pf-label {
   display: block;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -93,7 +93,7 @@
   border: 1px solid var(--s3);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 6px 8px;
   font-family: var(--font-ui);
 }
@@ -109,7 +109,7 @@
   border: 1px solid var(--s3);
   border-radius: var(--radius-sm);
   color: var(--t1);
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 6px 8px;
   font-family: var(--font-ui);
   resize: vertical;
@@ -123,7 +123,7 @@
 
 .pf-btn {
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -163,7 +163,7 @@
 }
 
 .pf-toggle-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--t2);
 }
 
@@ -175,7 +175,7 @@
 
 .pf-slippage-btn {
   padding: 3px 8px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   background: var(--s2);
   color: var(--t2);
   border: 1px solid var(--s3);
@@ -212,11 +212,11 @@
   display: flex;
   justify-content: space-between;
   padding: 3px 0;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .pf-curve-label { color: var(--t3); }
-.pf-curve-value { color: var(--t1); font-family: var(--font-code); font-size: 11px; }
+.pf-curve-value { color: var(--t1); font-family: var(--font-code); font-size: var(--fs-11); }
 
 /* Graduation bar */
 .pf-grad-bar {
@@ -235,7 +235,7 @@
 }
 
 .pf-grad-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--t3);
   text-align: right;
 }
@@ -252,7 +252,7 @@
 .pf-action-toggle button {
   flex: 1;
   padding: 5px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--t3);
   background: var(--s2);
@@ -290,13 +290,25 @@
   margin-top: 10px;
   padding: 8px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-11);
+  line-height: 1.45;
 }
 
 .pf-result.success {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   background: rgba(74, 140, 98, 0.1);
   border: 1px solid rgba(74, 140, 98, 0.3);
   color: var(--green);
+}
+
+.pf-result.warning {
+  background: rgba(240, 180, 41, 0.08);
+  border: 1px solid rgba(240, 180, 41, 0.22);
+  color: var(--t2);
 }
 
 .pf-result.error {
@@ -306,17 +318,24 @@
 }
 
 .pf-tx-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: var(--blue);
   cursor: pointer;
   text-decoration: underline;
   font-family: var(--font-code);
-  font-size: 10px;
+  font-size: var(--fs-10);
+  line-height: 1.45;
   word-break: break-all;
+  text-align: left;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .pf-empty {
   color: var(--t3);
-  font-size: 11px;
+  font-size: var(--fs-11);
   padding: 20px 0;
   text-align: center;
 }

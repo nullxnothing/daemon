@@ -100,4 +100,13 @@ describe('Solana ecosystem integrations', () => {
       for (const pkg of item.packages) expect(ready.items).toContain(pkg)
     }
   })
+
+  it('lists Solflare in the wallet catalog', () => {
+    const solflare = SOLANA_INTEGRATION_CATALOG.find((entry) => entry.id === 'solflare-wallet')
+
+    expect(solflare).toBeDefined()
+    expect(solflare?.label).toBe('Solflare')
+    expect(solflare?.area).toBe('Wallets')
+    expect(solflare?.docsUrl).toContain('docs.solflare.com')
+  })
 })

@@ -1,5 +1,6 @@
-import { useState } from 'react'
 import { useEmailStore } from '../../../store/email'
+import { useClipboard } from '../../../hooks/useClipboard'
+import { LiveRegion } from '../../../components/LiveRegion'
 
 export function AISidebar() {
   const aiSidebar = useEmailStore((s) => s.aiSidebar)
@@ -104,24 +105,19 @@ function ExtractionView({ extractions, messages, messageId }: ExtractionViewProp
 }
 
 function ExtractionBlock({ item }: { item: { type: string; content: string; language?: string; context: string } }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(item.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+  const { copied, copy } = useClipboard()
 
   return (
     <div className="email__ai-code-block">
       <div className="email__ai-code-header">
         <span className="email__ai-code-lang">{item.language ?? item.type}</span>
-        <button type="button" className="email__ai-code-copy" onClick={handleCopy}>
+        <button type="button" className="email__ai-code-copy" onClick={() => void copy(item.content)}>
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
       <pre className="email__ai-code-content">{item.content}</pre>
       {item.context && <div className="email__ai-code-context">{item.context}</div>}
+      <LiveRegion message={copied ? `${item.language ?? item.type} copied to clipboard` : ''} />
     </div>
   )
 }

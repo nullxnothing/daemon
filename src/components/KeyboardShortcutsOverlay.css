@@ -1,0 +1,66 @@
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
+  animation: shortcuts-fade var(--duration-normal) var(--ease-standard);
+}
+
+.shortcuts-modal {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  animation: shortcuts-rise var(--duration-normal) var(--ease-out-quint);
+}
+
+.shortcuts-modal-close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  z-index: 1;
+}
+
+.shortcuts-modal-close:hover {
+  background: var(--control-bg-hover);
+  color: var(--t1);
+}
+
+@keyframes shortcuts-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shortcuts-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shortcuts-overlay,
+  .shortcuts-modal {
+    animation: none;
+  }
+}

@@ -29,7 +29,7 @@ async function spawnAndShowAgent(projectId: string, prompt: string, taskLabel: s
 export async function scaffoldX402(projectId: string): Promise<void> {
   await spawnAndShowAgent(
     projectId,
-    'Add x402 payment middleware to this project using @payai/x402-express (or the appropriate framework variant for this project). Check package.json to determine the framework. Set up a basic paid endpoint example with USDC pricing via the PayAI facilitator.',
+    'Add x402 payment middleware to this project using @x402/express, @x402/hono, or @x402/next plus @payai/facilitator. Check package.json to determine the framework. Use v2 CAIP-2 network IDs, register the SVM exact scheme for Solana, and set up a basic paid endpoint example with USDC pricing via the PayAI facilitator.',
     'x402 Scaffold',
   )
 }

@@ -4,8 +4,8 @@
   display: flex;
   align-items: center;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--surface-flat));
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 84%, black 16%);
+    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--panel-bg));
+  border-bottom: 1px solid var(--panel-border);
   -webkit-app-region: no-drag;
   user-select: none;
   flex-shrink: 0;
@@ -44,19 +44,19 @@
 }
 
 .titlebar-title {
-  font-size: var(--fs-11);
+  font-size: var(--fs-13);
   font-weight: var(--fw-semibold);
-  color: var(--green);
-  letter-spacing: var(--ls-eyebrow);
-  text-transform: uppercase;
+  color: var(--t1);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
-.titlebar-beta {
+.titlebar-version {
   font-size: var(--fs-9);
   font-weight: var(--fw-bold);
-  color: var(--bg);
-  background: var(--t1);
-  padding: 1px 6px;
+  color: var(--t1);
+  background: transparent;
+  padding: 1px 0;
   border-radius: var(--radius-sm);
   letter-spacing: var(--ls-caps);
   margin-left: var(--space-xs);
@@ -68,7 +68,7 @@
   flex: 0 1 auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   padding: 0 var(--space-md);
   overflow: visible;
   min-width: 0;
@@ -77,6 +77,27 @@
 }
 
 .project-tabs::-webkit-scrollbar { height: 0; }
+
+.project-tab-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--card-bg) 54%, transparent);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  -webkit-app-region: no-drag;
+}
+
+.project-tab-wrap:hover {
+  background: var(--card-bg-hover);
+}
+
+.project-tab-wrap.active {
+  background: var(--tab-active-bg);
+  border-color: var(--tab-active-border);
+}
 
 .project-tab {
   display: flex;
@@ -87,25 +108,18 @@
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   color: var(--t2);
-  background: color-mix(in srgb, var(--surface-raised) 54%, transparent);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   white-space: nowrap;
-  flex-shrink: 0;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: color var(--transition-fast);
   -webkit-app-region: no-drag;
   max-width: 220px;
 }
 
-.project-tab:hover {
-  background: var(--surface-floating);
-  color: var(--t1);
-}
-
+.project-tab-wrap:hover .project-tab,
 .project-tab.active {
-  background: color-mix(in srgb, var(--green-glow) 32%, var(--surface-raised) 68%);
-  color: var(--t1);
-  border-color: var(--border);
+  color: var(--tab-active-color);
 }
 
 .project-tab-dot {
@@ -116,19 +130,26 @@
   flex-shrink: 0;
 }
 
-.project-tab-dot.live { background: var(--green); }
+.project-tab-dot.live { background: var(--t2); }
 
 .project-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 22px;
+  padding: 0;
   font-size: var(--fs-13);
   color: var(--t3);
-  margin-left: var(--space-xs);
   line-height: 1;
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
-.project-tab:hover .project-tab-close,
-.project-tab.active .project-tab-close { opacity: 1; }
+.project-tab-wrap:hover .project-tab-close,
+.project-tab-wrap.active .project-tab-close { opacity: 1; }
 
 .project-tab-close:hover { color: var(--t1); }
 
@@ -160,9 +181,9 @@
 }
 
 .project-tab-add.active {
-  background: var(--green-glow);
-  color: var(--green);
-  border-color: color-mix(in srgb, var(--green) 30%, var(--border));
+  background: var(--tab-active-bg);
+  color: var(--tab-active-color);
+  border-color: var(--tab-active-border);
 }
 
 .project-add-wrap {
@@ -235,8 +256,8 @@
   gap: var(--space-xs);
   padding: 0 var(--space-md);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
   color: var(--t2);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
@@ -248,9 +269,9 @@
 .titlebar-portfolio:hover,
 .titlebar-mode-toggle:hover,
 .titlebar-switcher-toggle:hover {
-  background: var(--s3);
+  background: var(--control-bg-hover);
   color: var(--t1);
-  border-color: var(--border-hover);
+  border-color: var(--control-border-hover);
 }
 
 .titlebar-portfolio-total { font-weight: var(--fw-semibold); }
@@ -271,12 +292,12 @@
 .titlebar-mode-toggle--icon-only svg:last-child { display: none; }
 
 .titlebar-mode-toggle.grind {
-  background: var(--green-glow);
-  color: var(--green);
-  border-color: color-mix(in srgb, var(--green) 30%, var(--border));
+  background: var(--tab-active-bg);
+  color: var(--tab-active-color);
+  border-color: var(--tab-active-border);
 }
 .titlebar-mode-toggle.grind:hover {
-  background: color-mix(in srgb, var(--green) 18%, transparent);
+  background: var(--control-bg-hover);
 }
 
 .titlebar-switcher {
@@ -348,8 +369,8 @@
 
 .titlebar-switcher-item.active,
 .titlebar-overflow-item.active {
-  color: var(--green);
-  background: var(--green-glow);
+  color: var(--tab-active-color);
+  background: var(--tab-active-bg);
 }
 
 .titlebar-switcher-item-label {
@@ -407,7 +428,7 @@
 }
 
 .titlebar-btn:hover {
-  background: var(--surface-floating);
+  background: var(--card-bg-hover);
   color: var(--t1);
 }
 
@@ -416,10 +437,10 @@
   color: var(--on-accent);
 }
 
-.titlebar-btn-browser.active { color: var(--green); }
+.titlebar-btn-browser.active { color: var(--t1); }
 .titlebar-btn-browser.active:hover {
-  color: var(--green);
-  background: var(--green-glow);
+  color: var(--t1);
+  background: var(--surface-raised);
 }
 
 /* Responsive tightening */

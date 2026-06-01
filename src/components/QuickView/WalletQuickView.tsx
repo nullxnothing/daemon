@@ -6,6 +6,9 @@ import { formatCompactUsd } from '../../utils/format'
 import { QuickView } from './QuickView'
 import { TransactionPreviewCard } from '../../panels/WalletPanel/TransactionPreviewCard'
 import { Stat } from '../Panel'
+import { useClipboard } from '../../hooks/useClipboard'
+import { LiveRegion } from '../LiveRegion'
+import { canOpenSolscan, getSolscanTxLabel, getSolscanTxUrl } from '../../lib/solanaExplorer'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -45,12 +48,13 @@ function SubviewHeader({ title, onBack }: { title: string; onBack: () => void })
 
 // ─── Send Sub-View ───
 
-function SendView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
+function SendView({ walletId, holdings, onBack, executionLabel, signerLabel, cluster }: {
   walletId: string
   holdings: Array<{ mint: string; symbol: string; amount: number }>
   onBack: () => void
   executionLabel: string
   signerLabel: string
+  cluster: WalletInfrastructureSettings['cluster']
 }) {
   const [selectedMint, setSelectedMint] = useState(SOL_MINT)
   const [amount, setAmount] = useState('')
@@ -209,6 +213,7 @@ function SendView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
             <TransactionPreviewCard
               title={preview?.title ?? 'Review Send'}
               backendLabel={preview?.backendLabel ?? executionLabel}
+              networkLabel={preview?.networkLabel ?? cluster}
               signerLabel={preview?.signerLabel ?? signerLabel}
               destinationLabel={preview?.targetLabel ?? shortAddr(pendingSend.recipient)}
               amountLabel={preview?.amountLabel ?? `${pendingSend.amount} ${pendingSend.mode === 'sol' ? 'SOL' : selectedToken?.symbol ?? 'token'}`}
@@ -225,7 +230,7 @@ function SendView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
               disabled={loading}
               onClick={handleSend}
             >
-              {loading ? 'Sending...' : 'Send Now'}
+              {loading ? 'Broadcasting...' : 'Sign and Send'}
             </button>
             <button
               className="qv-secondary-btn"
@@ -239,7 +244,20 @@ function SendView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
         {error && <div className="qv-feedback qv-feedback--error">{error}</div>}
         {result && (
           <div className="qv-feedback qv-feedback--success">
-            Sent! Sig: {result.slice(0, 8)}...{result.slice(-8)}
+            <span>Sent: {result.slice(0, 8)}...{result.slice(-8)}</span>
+            <button
+              type="button"
+              className="qv-secondary-btn"
+              onClick={() => {
+                if (canOpenSolscan(cluster)) {
+                  void window.daemon.shell.openExternal(getSolscanTxUrl(result, cluster))
+                } else {
+                  void window.daemon.env.copyValue(result)
+                }
+              }}
+            >
+              {getSolscanTxLabel(cluster)}
+            </button>
           </div>
         )}
       </div>
@@ -257,12 +275,13 @@ interface SwapQuote {
   rawQuoteResponse: unknown
 }
 
-function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
+function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel, cluster }: {
   walletId: string
   holdings: Array<{ mint: string; symbol: string; amount: number }>
   onBack: () => void
   executionLabel: string
   signerLabel: string
+  cluster: WalletInfrastructureSettings['cluster']
 }) {
   const [inputMint, setInputMint] = useState(SOL_MINT)
   const [outputMint, setOutputMint] = useState(USDC_MINT)
@@ -502,6 +521,7 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
             <TransactionPreviewCard
               title={preview?.title ?? 'Review Swap'}
               backendLabel={preview?.backendLabel ?? executionLabel}
+              networkLabel={preview?.networkLabel ?? cluster}
               signerLabel={preview?.signerLabel ?? signerLabel}
               destinationLabel={preview?.targetLabel ?? `${inputToken?.symbol ?? '?'} -> ${outputToken?.symbol ?? '?'}`}
               amountLabel={preview?.amountLabel ?? `${formatAmount(parseFloat(quote.inAmount))} -> ${formatAmount(parseFloat(quote.outAmount))}`}
@@ -528,7 +548,7 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
               disabled={swapLoading || (pendingSwap.impactPct >= 5 && !pendingSwap.acknowledgedImpact)}
               onClick={handleSwap}
             >
-              {swapLoading ? 'Swapping...' : 'Execute Swap'}
+              {swapLoading ? 'Broadcasting...' : 'Sign and Swap'}
             </button>
             <button
               className="qv-secondary-btn"
@@ -542,7 +562,20 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel }: {
         {error && <div className="qv-feedback qv-feedback--error">{error}</div>}
         {result && (
           <div className="qv-feedback qv-feedback--success">
-            Swap confirmed! Sig: {result.slice(0, 8)}...{result.slice(-8)}
+            <span>Swap confirmed: {result.slice(0, 8)}...{result.slice(-8)}</span>
+            <button
+              type="button"
+              className="qv-secondary-btn"
+              onClick={() => {
+                if (canOpenSolscan(cluster)) {
+                  void window.daemon.shell.openExternal(getSolscanTxUrl(result, cluster))
+                } else {
+                  void window.daemon.env.copyValue(result)
+                }
+              }}
+            >
+              {getSolscanTxLabel(cluster)}
+            </button>
           </div>
         )}
       </div>
@@ -556,22 +589,7 @@ function ReceiveView({ address, onBack }: {
   address: string
   onBack: () => void
 }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(address)
-    } catch {
-      const el = document.createElement('textarea')
-      el.value = address
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [address])
+  const { copied, copy } = useClipboard({ resetMs: 2000 })
 
   return (
     <div className="qv-subview">
@@ -581,9 +599,10 @@ function ReceiveView({ address, onBack }: {
         <div className="qv-receive-address" title={address}>
           {address}
         </div>
-        <button type="button" className="qv-primary-btn" onClick={handleCopy}>
-          {copied ? 'Copied' : 'Copy Address'}
+        <button type="button" className="qv-primary-btn" onClick={() => void copy(address)}>
+          {copied ? 'Copied ✓' : 'Copy Address'}
         </button>
+        <LiveRegion message={copied ? 'Wallet address copied to clipboard' : ''} />
       </div>
     </div>
   )
@@ -666,6 +685,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
 
   const isPositive = (portfolio?.delta24hUsd ?? 0) >= 0
   const executionLabel = runtime?.executionBackend.label ?? 'Shared RPC executor'
+  const cluster = runtime?.cluster ?? 'devnet'
   const signerLabel = walletAddress ? shortAddr(walletAddress) : walletName
 
   // Reset mode when popout closes
@@ -684,6 +704,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
             onBack={goBack}
             executionLabel={executionLabel}
             signerLabel={signerLabel}
+            cluster={cluster}
           />
         )
       case 'swap':
@@ -694,6 +715,7 @@ export function WalletQuickView({ triggerRef }: WalletQuickViewProps) {
             onBack={goBack}
             executionLabel={executionLabel}
             signerLabel={signerLabel}
+            cluster={cluster}
           />
         )
       case 'receive':

@@ -5,15 +5,40 @@ import { useWalletStore } from '../../store/wallet'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
+import { PanelHeader } from '../../components/Panel'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { KeyboardShortcuts } from '../../components/KeyboardShortcuts'
 import { NavigationGuide } from '../../components/NavigationGuide'
 import { isToolDisableable } from '../../constants/toolRegistry'
-import type { WorkspaceProfileName } from '../../../electron/shared/types'
+import {
+  readRightSidebarWidgetConfig,
+  RIGHT_SIDEBAR_WIDGET_EVENT,
+  RIGHT_SIDEBAR_WIDGETS,
+  setRightSidebarWidgetEnabled,
+  writeRightSidebarWidgetConfig,
+  type RightSidebarWidgetConfig,
+} from '../RightPanel/sidebarAgentWidgetConfig'
+import type { VoightPrivacyLevel, VoightStatus, WorkspaceProfileName } from '../../../electron/shared/types'
 import './SettingsPanel.css'
 
 
-type SettingsTab = 'keys' | 'integrations' | 'agents' | 'tools' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
+type SettingsTab = 'keys' | 'integrations' | 'aiProviders' | 'agents' | 'tools' | 'sidePanels' | 'display' | 'setup' | 'shortcuts' | 'help' | 'crashes'
+
+// Single-word labels so the tab row stays on one line at every responsive tier.
+const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
+  keys: 'Keys',
+  integrations: 'Integrations',
+  aiProviders: 'Providers',
+  agents: 'Agents',
+  tools: 'Tools',
+  sidePanels: 'Panels',
+  display: 'Display',
+  setup: 'Setup',
+  shortcuts: 'Shortcuts',
+  help: 'Help',
+  crashes: 'Crashes',
+}
+
 interface AppMeta {
   version: string
   electronVersion: string
@@ -42,10 +67,12 @@ interface AgentRow {
 // Lookup table mapping common search keywords to the tab they live in
 const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'keys', keywords: ['key', 'api', 'token', 'secret', 'helius', 'openai', 'anthropic', 'birdeye', 'gemini'] },
-  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
+  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'voight', 'observability', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
+  { tab: 'aiProviders', keywords: ['ai provider', 'provider', 'default provider', 'aria', 'daemon ai', 'codex', 'claude', 'model'] },
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
-  { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market'] },
+  { tab: 'sidePanels', keywords: ['side panel', 'side panels', 'right panel', 'right sidebar', 'widget', 'widgets', 'spawn agent', 'wallet snapshot'] },
+  { tab: 'display', keywords: ['display', 'theme', 'color', 'font', 'titlebar', 'wallet', 'tape', 'market', 'performance', 'low power', 'polling', 'animations'] },
   { tab: 'setup', keywords: ['setup', 'wizard', 'onboarding'] },
   { tab: 'shortcuts', keywords: ['shortcut', 'keyboard', 'hotkey', 'keybind', 'ctrl', 'cmd', 'key binding'] },
   { tab: 'help', keywords: ['help', 'guide', 'navigation', 'how to', 'sidebar', 'drawer', 'palette'] },
@@ -74,27 +101,31 @@ export function SettingsPanel() {
 
   return (
     <div className="settings-center">
-      <div className="settings-header">
-        <h2 className="settings-title">Settings</h2>
-        <input
-          type="text"
-          className="settings-search"
-          placeholder="Search settings..."
-          value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          aria-label="Search settings"
-        />
-      </div>
+      <PanelHeader
+        title="Settings"
+        actions={
+          <input
+            type="text"
+            className="settings-search"
+            placeholder="Search settings..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            aria-label="Search settings"
+          />
+        }
+      />
 
-      <div className="settings-tabs">
-        {(['keys', 'integrations', 'agents', 'tools', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
+      <div className="settings-tabs" role="tablist">
+        {(['keys', 'integrations', 'aiProviders', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
           <button
             key={t}
+            role="tab"
+            aria-selected={tab === t}
             data-tab={t}
             className={`settings-tab ${tab === t ? 'active' : ''}`}
             onClick={(e) => { e.stopPropagation(); setTab(t) }}
           >
-            {t === 'keys' ? 'API Keys' : t === 'integrations' ? 'Integrations' : t === 'agents' ? 'Agents' : t === 'tools' ? 'Tools' : t === 'display' ? 'Display' : t === 'setup' ? 'Setup' : t === 'shortcuts' ? 'Shortcuts' : t === 'help' ? 'Help' : 'Crash Log'}
+            {SETTINGS_TAB_LABELS[t]}
           </button>
         ))}
       </div>
@@ -102,8 +133,10 @@ export function SettingsPanel() {
       <div className="settings-body">
         {tab === 'keys' && <KeysSection />}
         {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
+        {tab === 'aiProviders' && <AIProvidersSection />}
         {tab === 'agents' && <AgentsSection />}
         {tab === 'tools' && <ToolVisibilitySection />}
+        {tab === 'sidePanels' && <SidePanelsSection />}
         {tab === 'display' && <DisplaySection />}
         {tab === 'setup' && <SetupSection />}
         {tab === 'shortcuts' && <KeyboardShortcuts />}
@@ -333,6 +366,10 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
       <div className="settings-divider" />
 
+      <VoightIntegrationCard />
+
+      <div className="settings-divider" />
+
       {/* MCP Servers */}
       <div className="settings-section-label">MCP Servers</div>
       {!projectPath && <div className="settings-empty">Select a project to manage MCPs</div>}
@@ -345,6 +382,134 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function VoightIntegrationCard() {
+  const [status, setStatus] = useState<VoightStatus | null>(null)
+  const [keyInput, setKeyInput] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    const res = await window.daemon.voight.status()
+    if (res.ok && res.data) setStatus(res.data)
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const saveKey = async () => {
+    if (!keyInput.trim()) return
+    setBusy('save')
+    setMessage(null)
+    const res = await window.daemon.voight.storeKey(keyInput.trim())
+    setBusy(null)
+    if (res.ok && res.data) {
+      setStatus(res.data)
+      setKeyInput('')
+      setMessage('Voight key saved')
+    } else {
+      setMessage(res.error ?? 'Could not save Voight key')
+    }
+  }
+
+  const deleteKey = async () => {
+    setBusy('delete')
+    setMessage(null)
+    const res = await window.daemon.voight.deleteKey()
+    setBusy(null)
+    if (res.ok && res.data) {
+      setStatus(res.data)
+      setMessage('Voight key removed')
+    } else {
+      setMessage(res.error ?? 'Could not remove Voight key')
+    }
+  }
+
+  const testEvent = async () => {
+    setBusy('test')
+    setMessage(null)
+    const res = await window.daemon.voight.testEvent()
+    setBusy(null)
+    if (res.ok && res.data) {
+      setMessage(`Test event accepted (${res.data.status})`)
+      await refresh()
+    } else {
+      setMessage(res.error ?? 'Voight test event failed')
+    }
+  }
+
+  const setPrivacy = async (privacyLevel: VoightPrivacyLevel) => {
+    setBusy('privacy')
+    const res = await window.daemon.voight.setPrivacyLevel(privacyLevel)
+    setBusy(null)
+    if (res.ok && res.data) setStatus(res.data)
+    else setMessage(res.error ?? 'Could not update privacy level')
+  }
+
+  const connected = status?.configured === true
+  const privacyLevel = status?.privacyLevel ?? 'standard'
+
+  return (
+    <>
+      <div className="settings-section-label">Voight Observability</div>
+      <div className="settings-section-desc">
+        Stream DAEMON agent runs, tools, terminal activity, file actions, transactions, and errors into Voight.
+      </div>
+
+      <div className="settings-integration-row">
+        <div className={`settings-integration-dot ${connected ? 'green' : ''}`} />
+        <span className="settings-integration-name">Status</span>
+        <span className="settings-integration-status">
+          {connected ? `Connected via ${status?.keySource}` : 'Not configured'}
+        </span>
+      </div>
+
+      <div className="settings-display-row settings-provider-pref-row">
+        <span className="settings-display-label">Privacy</span>
+        <span className="settings-display-hint">Sender-side scrubbing before events are queued or posted.</span>
+        <select
+          className="settings-provider-select"
+          value={privacyLevel}
+          disabled={busy === 'privacy'}
+          onChange={(event) => setPrivacy(event.target.value as VoightPrivacyLevel)}
+        >
+          <option value="minimal">minimal</option>
+          <option value="standard">standard</option>
+          <option value="full">full</option>
+        </select>
+      </div>
+
+      <div className="settings-inline-row">
+        <input
+          className="settings-input"
+          type="password"
+          placeholder="vk_..."
+          value={keyInput}
+          onChange={(e) => setKeyInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+        />
+        <button type="button" className="settings-btn primary" onClick={saveKey} disabled={busy === 'save' || !keyInput.trim()}>
+          {busy === 'save' ? 'Saving...' : 'Save Key'}
+        </button>
+        <button type="button" className="settings-btn" onClick={testEvent} disabled={busy === 'test' || !connected}>
+          {busy === 'test' ? 'Sending...' : 'Test Event'}
+        </button>
+        <button type="button" className="settings-btn danger" onClick={deleteKey} disabled={busy === 'delete' || !connected}>
+          Remove
+        </button>
+      </div>
+
+      {status && (
+        <div className="settings-section-desc tight">
+          Queue: {status.pending} pending, {status.sent} sent, {status.failed} failed.
+          {status.lastError ? ` Last error: ${status.lastError}` : ''}
+        </div>
+      )}
+      {message && <div className="settings-section-desc tight">{message}</div>}
+    </>
   )
 }
 
@@ -426,6 +591,191 @@ function DefaultProviderSection() {
   )
 }
 
+function isProviderConnected(connection: ProviderConnectionMap[keyof ProviderConnectionMap]): boolean {
+  return Boolean(connection && (connection.isAuthenticated || connection.authMode !== 'none'))
+}
+
+function AIProvidersSection() {
+  const [preferences, setPreferences] = useState<ProviderPreferences | null>(null)
+  const [conns, setConns] = useState<ProviderConnectionMap | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    const [prefsRes, connRes] = await Promise.all([
+      window.daemon.provider.getPreferences(),
+      window.daemon.provider.verifyAll(),
+    ])
+    if (prefsRes.ok && prefsRes.data) setPreferences(prefsRes.data)
+    if (connRes.ok && connRes.data) setConns(connRes.data)
+    setError(prefsRes.ok && connRes.ok ? null : prefsRes.error ?? connRes.error ?? 'Failed to load provider settings')
+  }, [])
+
+  useEffect(() => { void refresh() }, [refresh])
+
+  const save = async (next: ProviderPreferences) => {
+    setSaving(true)
+    setError(null)
+    const res = await window.daemon.provider.setPreferences(next)
+    setSaving(false)
+    if (res.ok && res.data) {
+      setPreferences(res.data)
+    } else {
+      setError(res.error ?? 'Failed to save provider settings')
+    }
+  }
+
+  const update = (mutate: (current: ProviderPreferences) => ProviderPreferences) => {
+    if (!preferences) return
+    void save(mutate(preferences))
+  }
+
+  if (!preferences || !conns) return <div className="settings-section"><div className="settings-empty">Checking providers...</div></div>
+
+  const connected = {
+    claude: isProviderConnected(conns.claude),
+    codex: isProviderConnected(conns.codex),
+  }
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Choose which provider powers each AI surface. These choices affect new requests and new agent sessions.
+      </div>
+
+      <div className="settings-provider-status-grid">
+        {(['claude', 'codex'] as ProviderId[]).map((id) => (
+          <div key={id} className="settings-provider-status-card">
+            <span className={`settings-provider-dot${connected[id] ? ' connected' : ''}`} />
+            <span className="settings-display-label">{id}</span>
+            <span className="settings-display-hint">{connected[id] ? conns[id]?.authMode : 'Not connected'}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="settings-divider" />
+
+      <ProviderPreferenceRow
+        label="Aria"
+        hint="Small side assistant for navigation, quick answers, and action chips."
+        value={preferences.aria.provider}
+        connected={connected}
+        onChange={(provider) => update((current) => ({ ...current, aria: { ...current.aria, provider } }))}
+      />
+      <SelectPreferenceRow
+        label="Aria model"
+        hint="Fast is best for short UI orchestration; standard/reasoning use stronger models."
+        value={preferences.aria.model}
+        options={['fast', 'standard', 'reasoning']}
+        onChange={(model) => update((current) => ({ ...current, aria: { ...current.aria, model: model as ProviderPreferences['aria']['model'] } }))}
+      />
+
+      <div className="settings-divider" />
+
+      <SelectPreferenceRow
+        label="DAEMON AI access"
+        hint="Auto uses hosted when available and falls back to BYOK."
+        value={preferences.daemonAi.accessMode}
+        options={['auto', 'hosted', 'byok']}
+        onChange={(accessMode) => update((current) => ({ ...current, daemonAi: { ...current.daemonAi, accessMode: accessMode as ProviderPreferences['daemonAi']['accessMode'] } }))}
+      />
+      <ProviderPreferenceRow
+        label="DAEMON AI BYOK"
+        hint="Provider used when DAEMON AI runs locally through your own account."
+        value={preferences.daemonAi.byokProvider}
+        connected={connected}
+        onChange={(byokProvider) => update((current) => ({ ...current, daemonAi: { ...current.daemonAi, byokProvider } }))}
+      />
+      <SelectPreferenceRow
+        label="DAEMON AI lane"
+        hint="Default lane for project-aware chat."
+        value={preferences.daemonAi.modelLane}
+        options={['auto', 'fast', 'standard', 'reasoning', 'premium']}
+        onChange={(modelLane) => update((current) => ({ ...current, daemonAi: { ...current.daemonAi, modelLane: modelLane as ProviderPreferences['daemonAi']['modelLane'] } }))}
+      />
+
+      <div className="settings-divider" />
+
+      <ProviderPreferenceRow
+        label="Auto agents"
+        hint="Default provider for agents configured as auto."
+        value={preferences.agents.defaultProvider}
+        connected={connected}
+        onChange={(defaultProvider) => update((current) => ({ ...current, agents: { defaultProvider } }))}
+      />
+      <ProviderPreferenceRow
+        label="Provider terminal"
+        hint="Default provider for future quick terminal shortcuts."
+        value={preferences.terminal.defaultProvider}
+        connected={connected}
+        onChange={(defaultProvider) => update((current) => ({ ...current, terminal: { defaultProvider } }))}
+      />
+
+      {saving && <div className="settings-section-desc settings-inline-note">Saving...</div>}
+      {error && <div className="settings-section-desc settings-inline-note error">{error}</div>}
+    </div>
+  )
+}
+
+function ProviderPreferenceRow({
+  label,
+  hint,
+  value,
+  connected,
+  onChange,
+}: {
+  label: string
+  hint: string
+  value: ProviderId
+  connected: Record<ProviderId, boolean>
+  onChange: (provider: ProviderId) => void
+}) {
+  return (
+    <div className="settings-display-row settings-provider-pref-row">
+      <span className="settings-display-label">{label}</span>
+      <span className="settings-display-hint">{hint}</span>
+      <div className="settings-provider-toggle">
+        {(['claude', 'codex'] as ProviderId[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={`settings-provider-mini${value === id ? ' active' : ''}`}
+            disabled={!connected[id]}
+            onClick={() => onChange(id)}
+            title={!connected[id] ? `Connect ${id} first` : id}
+          >
+            {id}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SelectPreferenceRow({
+  label,
+  hint,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  hint: string
+  value: string
+  options: string[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="settings-display-row settings-provider-pref-row">
+      <span className="settings-display-label">{label}</span>
+      <span className="settings-display-hint">{hint}</span>
+      <select className="settings-provider-select" value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </label>
+  )
+}
+
 function AgentsSection() {
   const [agents, setAgents] = useState<AgentRow[]>([])
 
@@ -439,11 +789,8 @@ function AgentsSection() {
 
   return (
     <div className="settings-section">
-      <DefaultProviderSection />
-      <div className="settings-divider" />
-
       <div className="settings-section-desc">
-        Registered agents and model preferences. Use the Agent Launcher (Ctrl+Shift+A) to create or edit agents.
+        Registered agents and model preferences. Use the Agent Launcher (Ctrl+Shift+A) to create or edit agents. Provider defaults live in AI Providers.
       </div>
 
       <div className="settings-agent-list">
@@ -584,7 +931,14 @@ function SetupSection() {
   }, [])
 
   const handleRerunWizard = async () => {
-    const freshProgress = { profile: 'pending' as const, claude: 'pending' as const, gmail: 'pending' as const, vercel: 'pending' as const, railway: 'pending' as const, tour: 'pending' as const }
+    const freshProgress = {
+      profile: 'pending' as const,
+      project: 'pending' as const,
+      runtime: 'pending' as const,
+      ai: 'pending' as const,
+      firstRun: 'pending' as const,
+      tour: 'pending' as const,
+    }
     await window.daemon.settings.setOnboardingComplete(false)
     await window.daemon.settings.setOnboardingProgress(freshProgress)
     // Reset in-memory progress before opening so progress dots start clean
@@ -682,14 +1036,106 @@ const PROFILE_OPTIONS: { name: WorkspaceProfileName; label: string }[] = [
   { name: 'custom', label: 'Custom' },
 ]
 
+function SidePanelsSection() {
+  const [config, setConfig] = useState<RightSidebarWidgetConfig>(readRightSidebarWidgetConfig)
+
+  useEffect(() => {
+    const refresh = () => setConfig(readRightSidebarWidgetConfig())
+    window.addEventListener(RIGHT_SIDEBAR_WIDGET_EVENT, refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener(RIGHT_SIDEBAR_WIDGET_EVENT, refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
+  const toggleWidget = (widgetId: keyof RightSidebarWidgetConfig['enabled'], enabled: boolean) => {
+    setRightSidebarWidgetEnabled(widgetId, enabled)
+    setConfig(readRightSidebarWidgetConfig())
+  }
+
+  const enableSuggested = () => {
+    writeRightSidebarWidgetConfig({
+      ...config,
+      enabled: {
+        ...config.enabled,
+        'project-status': true,
+        'wallet-snapshot': true,
+        'solana-readiness': true,
+        'token-watch': true,
+        'zauth': true,
+        'meterflow': true,
+        'ai-status': true,
+      },
+    })
+    setConfig(readRightSidebarWidgetConfig())
+  }
+
+  const disableAll = () => {
+    writeRightSidebarWidgetConfig({
+      ...config,
+      enabled: {
+        'project-status': false,
+        'wallet-snapshot': false,
+        'solana-readiness': false,
+        'token-watch': false,
+        'zauth': false,
+        'meterflow': false,
+        'ai-status': false,
+        'spawn-agent': false,
+      },
+    })
+    setConfig(readRightSidebarWidgetConfig())
+  }
+
+  return (
+    <div className="settings-section">
+      <div className="settings-section-desc">
+        Configure the widget stack that appears between the Claude/Codex toggles and ARIA in the right sidebar.
+      </div>
+
+      <div className="settings-side-actions">
+        <button type="button" className="settings-btn primary" onClick={enableSuggested}>
+          Enable Suggested
+        </button>
+        <button type="button" className="settings-btn" onClick={disableAll}>
+          Clear Sidebar
+        </button>
+      </div>
+
+      <div className="settings-side-list">
+        {RIGHT_SIDEBAR_WIDGETS.map((widget) => (
+          <div key={widget.id} className="settings-side-row">
+            <div className="settings-side-copy">
+              <span className="settings-display-label">{widget.name}</span>
+              <span className="settings-display-hint">{widget.description}</span>
+              {widget.id === 'spawn-agent' && config.spawnAgentId && (
+                <span className="settings-side-meta">Pinned agent: {config.spawnAgentId}</span>
+              )}
+            </div>
+            <Toggle checked={config.enabled[widget.id]} onChange={(v) => toggleWidget(widget.id, v)} />
+          </div>
+        ))}
+      </div>
+
+      <div className="settings-section-desc tight">
+        The Spawn Agent widget can be pinned from a SpawnAgents detail page. If enabled without a pinned agent, it shows the first owned agent it can load.
+      </div>
+    </div>
+  )
+}
+
 function DisplaySection() {
   const showMarketTape = useWalletStore((s) => s.showMarketTape)
   const showTitlebarWallet = useWalletStore((s) => s.showTitlebarWallet)
+  const lowPowerMode = useWalletStore((s) => s.lowPowerMode)
   const setShowMarketTape = useWalletStore((s) => s.setShowMarketTape)
   const setShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
+  const setLowPowerMode = useWalletStore((s) => s.setLowPowerMode)
 
   const handleToggleMarketTape = (enabled: boolean) => { void setShowMarketTape(enabled) }
   const handleToggleTitlebarWallet = (enabled: boolean) => { void setShowTitlebarWallet(enabled) }
+  const handleToggleLowPowerMode = (enabled: boolean) => { void setLowPowerMode(enabled) }
 
   return (
     <div className="settings-section">
@@ -707,6 +1153,14 @@ function DisplaySection() {
         <span className="settings-display-label">Titlebar wallet balance</span>
         <span className="settings-display-hint">Show portfolio value in the titlebar</span>
         <Toggle checked={showTitlebarWallet} onChange={handleToggleTitlebarWallet} />
+      </div>
+
+      <div className="settings-divider" />
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Low power mode</span>
+        <span className="settings-display-hint">Reduce panel preloads, background polling, and UI motion for slower computers</span>
+        <Toggle checked={lowPowerMode} onChange={handleToggleLowPowerMode} />
       </div>
     </div>
   )

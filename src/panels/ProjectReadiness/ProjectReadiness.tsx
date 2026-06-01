@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useUIStore } from '../../store/ui'
+import { useGitProject, useGitStore } from '../../store/git'
+import { useNotificationsStore } from '../../store/notifications'
 import { useSolanaToolboxStore, type SolanaToolchainStatus } from '../../store/solanaToolbox'
 import type { EnvFile, WalletListEntry } from '../../types/daemon'
 import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
 import { INTEGRATION_REGISTRY } from '../IntegrationCommandCenter/registry'
 import { resolveIntegrationStatus, summarizeRegistry, type IntegrationContext } from '../IntegrationCommandCenter/status'
 import { parsePackageInfo, SENDAI_FIRST_AGENT_ENTRY, type PackageInfo } from '../IntegrationCommandCenter/sendaiSetup'
-import { Banner, ProgressRing } from '../../components/Panel'
+import { confirm } from '../../store/confirm'
+import { Button } from '../../components/Button'
+import { Badge, Banner, Card, DataRow, MetricCard, ProgressRing, StatusDot } from '../../components/Panel'
+import { classifyActivity, formatTime, groupActivity, type ActivityIssueGroup } from '../ActivityTimeline/activityModel'
+import { middleEllipsisPath } from '../../utils/textDisplay'
+import type { GitFile } from '../../../electron/shared/types'
 import './ProjectReadiness.css'
 
 const EMPTY_PACKAGE_INFO: PackageInfo = { packages: new Set(), scripts: new Set(), packageManagerHint: null }
 
 const DEFAULT_WALLET_INFRASTRUCTURE: WalletInfrastructureSettings = {
+  cluster: 'devnet',
   rpcProvider: 'helius',
   quicknodeRpcUrl: '',
   customRpcUrl: '',
@@ -41,6 +49,36 @@ interface QuickSetupAction {
   run: () => Promise<void> | void
 }
 
+interface SecureKeyEntry {
+  key_name: string
+  hint: string
+}
+
+type ProviderConnections = Partial<Record<'claude' | 'codex', {
+  hasApiKey?: boolean
+  isAuthenticated?: boolean
+  authMode?: string
+  cliPath?: string
+} | null>>
+
+const WORKBENCH_SECTIONS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'wallet', label: 'Wallet' },
+  { id: 'integrations', label: 'Integrations' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'git', label: 'Git' },
+  { id: 'providers', label: 'Providers' },
+  { id: 'tools', label: 'Tools' },
+] as const
+
+const WORKFLOW_TOOL_GROUPS = [
+  { group: 'Build', tools: [{ id: 'starter', label: 'New Project' }, { id: 'solana-toolbox', label: 'Solana Workflow' }, { id: 'env', label: 'Env' }] },
+  { group: 'Ship', tools: [{ id: 'git', label: 'Git' }, { id: 'deploy', label: 'Deploy' }, { id: 'activity', label: 'Activity' }] },
+  { group: 'Launch / Trade', tools: [{ id: 'wallet', label: 'Wallet' }, { id: 'token-launch', label: 'Token Launch' }, { id: 'dashboard', label: 'Dashboard' }] },
+  { group: 'Monitor', tools: [{ id: 'block-scanner', label: 'Block Scanner' }, { id: 'replay-engine', label: 'Replay' }, { id: 'sessions', label: 'Sessions' }] },
+  { group: 'Account / Security', tools: [{ id: 'settings', label: 'Settings' }, { id: 'zauth', label: 'Zauth' }, { id: 'daemon-ai', label: 'DAEMON AI' }] },
+]
+
 function joinProjectPath(projectPath: string, child: string): string {
   return `${projectPath.replace(/[\\/]+$/, '')}/${child}`
 }
@@ -66,7 +104,11 @@ function isRpcReady(settings: WalletInfrastructureSettings, heliusReady: boolean
 function getWritableRpcUrl(settings: WalletInfrastructureSettings): string | null {
   if (settings.rpcProvider === 'quicknode' && settings.quicknodeRpcUrl.trim()) return settings.quicknodeRpcUrl.trim()
   if (settings.rpcProvider === 'custom' && settings.customRpcUrl.trim()) return settings.customRpcUrl.trim()
-  if (settings.rpcProvider === 'public') return 'https://api.mainnet-beta.solana.com'
+  if (settings.rpcProvider === 'public') return settings.cluster === 'mainnet-beta'
+    ? 'https://api.mainnet-beta.solana.com'
+    : settings.cluster === 'localnet'
+      ? 'http://127.0.0.1:8899'
+      : 'https://api.devnet.solana.com'
   return null
 }
 
@@ -74,6 +116,49 @@ function compactPath(path: string | null): string {
   if (!path) return 'No project open'
   const parts = path.split(/[\\/]/).filter(Boolean)
   return parts.slice(-2).join('/')
+}
+
+function formatShortAddress(address?: string | null): string {
+  if (!address) return 'No wallet'
+  if (address.length <= 14) return address
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
+function getGitFileDisplay(file: GitFile) {
+  if (file.staged) return { label: 'Staged', tone: 'success' as const }
+  if (file.deleted) return { label: 'Deleted', tone: 'danger' as const }
+  if (file.untracked) return { label: 'Untracked', tone: 'info' as const }
+  return { label: 'Modified', tone: 'warning' as const }
+}
+
+function splitGitPath(path: string) {
+  const normalized = path.replace(/\\/g, '/')
+  const sep = normalized.lastIndexOf('/')
+  const folder = sep > 0 ? normalized.slice(0, sep) : '.'
+  const name = sep > 0 ? normalized.slice(sep + 1) : normalized
+  return { folder, name, folderLabel: folder === '.' ? 'root' : middleEllipsisPath(folder) }
+}
+
+function groupFilesByFolder(files: GitFile[]) {
+  const folders = new Map<string, GitFile[]>()
+  for (const file of files) {
+    const { folder } = splitGitPath(file.path)
+    folders.set(folder, [...(folders.get(folder) ?? []), file])
+  }
+  return [...folders.entries()].map(([folder, folderFiles]) => ({ folder, files: folderFiles }))
+}
+
+function keyHint(keys: SecureKeyEntry[], keyName: string): string | null {
+  return keys.find((entry) => entry.key_name === keyName)?.hint ?? null
+}
+
+function providerConnected(connections: ProviderConnections | null, provider: 'claude' | 'codex'): boolean {
+  const connection = connections?.[provider]
+  return Boolean(connection && (connection.isAuthenticated || connection.authMode !== 'none' || connection.hasApiKey))
+}
+
+function isGitAvailable(): boolean {
+  return typeof window !== 'undefined' && Boolean((window as unknown as { daemon?: { git?: unknown } }).daemon?.git)
 }
 
 function formatToolchain(toolchain: SolanaToolchainStatus | null): string {
@@ -91,8 +176,12 @@ function formatToolchain(toolchain: SolanaToolchainStatus | null): string {
 export function ProjectReadiness() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const projects = useUIStore((s) => s.projects)
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
   const setIntegrationCommandSelectionId = useUIStore((s) => s.setIntegrationCommandSelectionId)
+  const gitState = useGitProject(activeProjectPath)
+  const activity = useNotificationsStore((s) => s.activity)
+  const loadActivity = useNotificationsStore((s) => s.loadActivity)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
   const projectInfo = useSolanaToolboxStore((s) => s.projectInfo)
   const toolchain = useSolanaToolboxStore((s) => s.toolchain)
@@ -102,6 +191,7 @@ export function ProjectReadiness() {
   const loadToolchain = useSolanaToolboxStore((s) => s.loadToolchain)
 
   const [loading, setLoading] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
@@ -111,18 +201,27 @@ export function ProjectReadiness() {
   const [walletSignerReady, setWalletSignerReady] = useState<Record<string, boolean>>({})
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings>(DEFAULT_WALLET_INFRASTRUCTURE)
   const [secureKeys, setSecureKeys] = useState<Record<string, boolean>>({})
+  const [keyEntries, setKeyEntries] = useState<SecureKeyEntry[]>([])
+  const [providerConnections, setProviderConnections] = useState<ProviderConnections | null>(null)
   const [hasFirstAgent, setHasFirstAgent] = useState(false)
+  const [commitMsg, setCommitMsg] = useState('')
+  const [gitBusy, setGitBusy] = useState<string | null>(null)
+  const [gitError, setGitError] = useState<string | null>(null)
 
   const loadReadiness = useCallback(async (isCancelled: () => boolean = () => false) => {
       setLoading(true)
       setError(null)
 
       try {
-        const [walletRes, heliusRes, jupiterRes, infraRes] = await Promise.all([
+        const listKeys = (daemon.claude as unknown as { listKeys?: () => Promise<{ ok: boolean; data?: SecureKeyEntry[] }> }).listKeys
+        const verifyProviders = (daemon as unknown as { provider?: { verifyAll?: () => Promise<{ ok: boolean; data?: ProviderConnections }> } }).provider?.verifyAll
+        const [walletRes, heliusRes, jupiterRes, infraRes, keysRes, providersRes] = await Promise.all([
           daemon.wallet.list(),
           daemon.wallet.hasHeliusKey(),
           daemon.wallet.hasJupiterKey(),
           daemon.settings.getWalletInfrastructureSettings(),
+          listKeys ? listKeys() : Promise.resolve({ ok: false, data: [] }),
+          verifyProviders ? verifyProviders() : Promise.resolve({ ok: false, data: null }),
         ])
 
         if (isCancelled()) return
@@ -134,6 +233,8 @@ export function ProjectReadiness() {
           HELIUS_API_KEY: Boolean(heliusRes.ok && heliusRes.data),
           JUPITER_API_KEY: Boolean(jupiterRes.ok && jupiterRes.data),
         })
+        setKeyEntries(keysRes.ok && keysRes.data ? keysRes.data : [])
+        setProviderConnections(providersRes.ok && providersRes.data ? providersRes.data : null)
 
         const signerEntries = await Promise.all(nextWallets.map(async (wallet) => {
           const signerRes = await daemon.wallet.hasKeypair(wallet.id)
@@ -171,7 +272,10 @@ export function ProjectReadiness() {
           setError(loadError instanceof Error ? loadError.message : 'Could not load Solana readiness.')
         }
       } finally {
-        if (!isCancelled()) setLoading(false)
+        if (!isCancelled()) {
+          setHasLoaded(true)
+          setLoading(false)
+        }
       }
   }, [activeProjectPath, detectProject, loadMcps, loadToolchain])
 
@@ -180,6 +284,15 @@ export function ProjectReadiness() {
     void loadReadiness(() => cancelled)
     return () => { cancelled = true }
   }, [loadReadiness])
+
+  useEffect(() => {
+    void loadActivity().catch(() => {})
+  }, [loadActivity])
+
+  useEffect(() => {
+    if (!activeProjectPath || !isGitAvailable()) return
+    void useGitStore.getState().refreshIfStale(activeProjectPath)
+  }, [activeProjectPath])
 
   const defaultWallet = wallets.find((wallet) => wallet.is_default === 1) ?? wallets[0] ?? null
   const defaultWalletSignerReady = defaultWallet ? walletSignerReady[defaultWallet.id] === true : false
@@ -333,7 +446,7 @@ export function ProjectReadiness() {
         : activeProjectPath
           ? 'This project is open, but DAEMON has not detected Anchor, Solana, or client indicators yet.'
           : 'Open a project before DAEMON can detect Solana framework details.',
-      actionLabel: 'Open Solana Toolbox',
+      actionLabel: 'Open Solana Workflow',
       action: () => openWorkspaceTool('solana-toolbox'),
     },
     {
@@ -407,29 +520,213 @@ export function ProjectReadiness() {
   const nextItem = items.find((item) => !item.ready) ?? {
     id: 'first-action',
     label: 'Run first safe action',
-    detail: 'The project route is ready. Pick a read-only wallet read, Jupiter quote, metadata draft, or token-launch preflight.',
+    detail: 'The project route is ready. Pick a read-only wallet read, Jupiter quote, Metaplex Core/DAS check, or token-launch preflight.',
     ready: false,
     actionLabel: 'Open Integrations',
     action: () => openWorkspaceTool('integrations'),
   }
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? null
+  const stagedFiles = gitState.files.filter((file) => file.staged)
+  const unstagedFiles = gitState.files.filter((file) => file.unstaged || file.untracked)
+  const gitChangeCount = stagedFiles.length + unstagedFiles.length
+  const gitFolders = groupFilesByFolder(unstagedFiles).slice(0, 4)
+  const activityGroups = useMemo(() => groupActivity(activity), [activity])
+  const issueGroups = useMemo(() => {
+    const seen = new Set<string>()
+    return activityGroups
+      .flatMap((group) => group.issueGroups)
+      .filter((issue) => {
+        if (seen.has(issue.fingerprint)) return false
+        seen.add(issue.fingerprint)
+        return true
+      })
+      .sort((a, b) => b.latestAt - a.latestAt)
+      .slice(0, 4)
+  }, [activityGroups])
+  const latestEvents = activity.slice(0, 4)
+  const enabledIntegrationCount = integrationSummary.ready + integrationSummary.partial
+  const missingRuntimeCount = toolchain
+    ? [toolchain.solanaCli, toolchain.anchor, toolchain.testValidator, toolchain.surfpool].filter((entry) => !entry.installed).length
+    : 0
+  const providerRows = [
+    {
+      id: 'helius',
+      label: 'Helius',
+      detail: secureKeys.HELIUS_API_KEY ? keyHint(keyEntries, 'HELIUS_API_KEY') ?? 'Configured' : 'Missing key',
+      ready: Boolean(secureKeys.HELIUS_API_KEY),
+      tone: secureKeys.HELIUS_API_KEY ? 'success' as const : 'warning' as const,
+      action: () => openWorkspaceTool('env'),
+      actionLabel: secureKeys.HELIUS_API_KEY ? 'Update' : 'Add',
+    },
+    {
+      id: 'claude',
+      label: 'Claude',
+      detail: providerConnected(providerConnections, 'claude') ? providerConnections?.claude?.authMode ?? 'Connected' : keyHint(keyEntries, 'ANTHROPIC_API_KEY') ?? 'Not connected',
+      ready: providerConnected(providerConnections, 'claude') || Boolean(keyHint(keyEntries, 'ANTHROPIC_API_KEY')),
+      tone: providerConnected(providerConnections, 'claude') || keyHint(keyEntries, 'ANTHROPIC_API_KEY') ? 'success' as const : 'warning' as const,
+      action: () => openWorkspaceTool('settings'),
+      actionLabel: 'Manage',
+    },
+    {
+      id: 'openai',
+      label: 'OpenAI',
+      detail: keyHint(keyEntries, 'OPENAI_API_KEY') ?? 'Missing key',
+      ready: Boolean(keyHint(keyEntries, 'OPENAI_API_KEY')),
+      tone: keyHint(keyEntries, 'OPENAI_API_KEY') ? 'success' as const : 'neutral' as const,
+      action: () => openWorkspaceTool('settings'),
+      actionLabel: keyHint(keyEntries, 'OPENAI_API_KEY') ? 'Update' : 'Add',
+    },
+    {
+      id: 'gmail',
+      label: 'Gmail',
+      detail: keyHint(keyEntries, 'GMAIL_API_KEY') ?? keyHint(keyEntries, 'GOOGLE_CLIENT_ID') ?? 'Not configured',
+      ready: Boolean(keyHint(keyEntries, 'GMAIL_API_KEY') || keyHint(keyEntries, 'GOOGLE_CLIENT_ID')),
+      tone: keyHint(keyEntries, 'GMAIL_API_KEY') || keyHint(keyEntries, 'GOOGLE_CLIENT_ID') ? 'success' as const : 'neutral' as const,
+      action: () => openWorkspaceTool('settings'),
+      actionLabel: 'Manage',
+    },
+    {
+      id: 'gemini',
+      label: 'Gemini',
+      detail: keyHint(keyEntries, 'GEMINI_API_KEY') ?? 'Missing key',
+      ready: Boolean(keyHint(keyEntries, 'GEMINI_API_KEY')),
+      tone: keyHint(keyEntries, 'GEMINI_API_KEY') ? 'success' as const : 'neutral' as const,
+      action: () => openWorkspaceTool('settings'),
+      actionLabel: keyHint(keyEntries, 'GEMINI_API_KEY') ? 'Update' : 'Add',
+    },
+  ]
+  const primaryAction = !secureKeys.HELIUS_API_KEY
+    ? { label: 'Add Helius key', detail: 'Indexed RPC and DAS reads need a configured Helius key.', tone: 'warning' as const, onClick: () => openWorkspaceTool('env') }
+    : !defaultWallet
+      ? { label: 'Use wallet for current project', detail: 'Create or import one wallet before Solana actions.', tone: 'warning' as const, onClick: () => openWorkspaceTool('wallet') }
+      : !defaultWalletAssignedToProject
+        ? { label: 'Use wallet for current project', detail: 'Assign the default wallet so DAEMON does not guess.', tone: 'warning' as const, onClick: () => { void assignDefaultWalletToProject() } }
+        : issueGroups.length > 0
+          ? { label: 'Fix runtime issue', detail: issueGroups[0].title, tone: issueGroups[0].kind === 'error' ? 'danger' as const : 'warning' as const, onClick: () => openWorkspaceTool('activity') }
+          : stagedFiles.length > 0
+            ? { label: 'Commit staged changes', detail: `${stagedFiles.length} staged file${stagedFiles.length === 1 ? '' : 's'} ready.`, tone: 'info' as const, onClick: () => document.getElementById('workbench-git')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+            : { label: 'Launch agent', detail: 'Project, wallet, and RPC basics are ready.', tone: 'feature' as const, onClick: () => openWorkspaceTool('daemon-ai') }
+
+  const refreshGit = async () => {
+    if (!activeProjectPath || !isGitAvailable()) return
+    await useGitStore.getState().refresh(activeProjectPath)
+  }
+
+  const runGitAction = async (id: string, action: () => Promise<void>) => {
+    setGitBusy(id)
+    setGitError(null)
+    try {
+      await action()
+      await refreshGit()
+    } catch (error) {
+      setGitError(error instanceof Error ? error.message : 'Git action failed')
+    } finally {
+      setGitBusy(null)
+    }
+  }
+
+  const stageFile = (filePath: string) => runGitAction(`stage:${filePath}`, async () => {
+    if (!activeProjectPath) return
+    const result = await window.daemon.git.stage(activeProjectPath, [filePath])
+    if (!result.ok) throw new Error(result.error ?? 'Stage failed')
+  })
+
+  const stageAll = () => runGitAction('stage-all', async () => {
+    if (!activeProjectPath) return
+    const paths = unstagedFiles.map((file) => file.path)
+    if (paths.length === 0) return
+    const result = await window.daemon.git.stage(activeProjectPath, paths)
+    if (!result.ok) throw new Error(result.error ?? 'Stage all failed')
+  })
+
+  const unstageFile = (filePath: string) => runGitAction(`unstage:${filePath}`, async () => {
+    if (!activeProjectPath) return
+    const result = await window.daemon.git.unstage(activeProjectPath, [filePath])
+    if (!result.ok) throw new Error(result.error ?? 'Unstage failed')
+  })
+
+  const discardFile = async (filePath: string) => {
+    if (!activeProjectPath) return
+    const fileName = filePath.split(/[\\/]/).pop() ?? filePath
+    const ok = await confirm({
+      title: `Discard changes to ${fileName}?`,
+      body: 'This permanently reverts uncommitted changes and cannot be undone.',
+      danger: true,
+      confirmLabel: 'Discard',
+    })
+    if (!ok) return
+    await runGitAction(`discard:${filePath}`, async () => {
+      const result = await window.daemon.git.discard(activeProjectPath, filePath)
+      if (!result.ok) throw new Error(result.error ?? 'Discard failed')
+    })
+  }
+
+  const commitStaged = () => runGitAction('commit', async () => {
+    if (!activeProjectPath || !commitMsg.trim()) return
+    const result = await window.daemon.git.commit(activeProjectPath, commitMsg.trim())
+    if (!result.ok) throw new Error(result.error ?? 'Commit failed')
+    setCommitMsg('')
+  })
+
+  if (!hasLoaded && loading) {
+    return (
+      <div className="project-readiness">
+        <section className="project-readiness-hero">
+          <div className="project-readiness-hero-copy">
+            <span className="project-readiness-kicker">Solana Start</span>
+            <h1>Checking Solana project status</h1>
+            <p>
+              DAEMON is checking the active project, {walletInfrastructure.cluster} RPC path, wallet route, MCPs, and local toolchain before showing next steps.
+            </p>
+          </div>
+        </section>
+        <section className="project-readiness-initial-loading" aria-live="polite">
+          <div className="project-readiness-loading-row"><span /> Project and package metadata</div>
+          <div className="project-readiness-loading-row"><span /> Wallet, signer, and RPC readiness</div>
+          <div className="project-readiness-loading-row"><span /> Solana CLI, Anchor, MCP, and runtime checks</div>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="project-readiness">
-      <section className="project-readiness-hero">
+      <section id="workbench-overview" className="project-readiness-hero">
         <div className="project-readiness-hero-copy">
-          <span className="project-readiness-kicker">Project Readiness</span>
-          <h1>Solana project status</h1>
+          <span className="project-readiness-kicker">DAEMON Workbench</span>
+          <h1>Solana operator command center</h1>
           <p>
-            Active project, wallet route, RPC path, MCPs, and first-action integrations.
+            Inspect wallet readiness, integrations, runtime issues, Git state, and setup from one place.
           </p>
+          <div className="workbench-legacy-row">
+            <span>Solana Start</span>
+            <span>Solana project status</span>
+          </div>
         </div>
-        <div className="project-readiness-score">
-          <ProgressRing value={readinessPct} label="Solana readiness score" />
-          <small>{readyCount}/{items.length} ready</small>
-        </div>
+
+        <Card className={`workbench-primary-card ${primaryAction.tone}`} padding="md">
+          <span className="project-readiness-mini">Primary action</span>
+          <strong>{primaryAction.label}</strong>
+          <p>{primaryAction.detail}</p>
+          <Button variant="primary" size="md" onClick={primaryAction.onClick}>
+            {primaryAction.label}
+          </Button>
+        </Card>
       </section>
 
-      {error ? <Banner className="project-readiness-error" tone="danger">{error}</Banner> : null}
+      <div className="workbench-context-strip" aria-label="Workbench context">
+        <span><strong>Project</strong>{activeProject?.name ?? compactPath(activeProjectPath)}</span>
+        <span><strong>Cluster</strong>{walletInfrastructure.cluster}</span>
+        <span><strong>Wallet</strong><code>{formatShortAddress(defaultWallet?.address)}</code></span>
+        <span><strong>RPC</strong>{rpcReady ? rpcLabel : `${rpcLabel} missing`}</span>
+        <span><strong>Signer</strong>{defaultWalletSignerReady ? 'Ready' : 'Not ready'}</span>
+      </div>
+
+      {error ? (
+        <Banner className="project-readiness-error" tone="danger">
+          Could not refresh readiness. Last known checks are still shown. {error}
+        </Banner>
+      ) : null}
       {actionMessage ? (
         <Banner
           className={`project-readiness-action-message ${actionMessage.type}`}
@@ -439,16 +736,35 @@ export function ProjectReadiness() {
         </Banner>
       ) : null}
 
+      <section className="workbench-summary" aria-label="Operational summary">
+        <MetricCard label="Project ready" value={`${readyCount}/${items.length}`} detail="Readiness checks" tone={readinessPct >= 80 ? 'success' : 'warn'} size="compact" />
+        <MetricCard label="Wallet" value={defaultWallet ? 'Ready' : 'Missing'} detail={defaultWallet ? formatShortAddress(defaultWallet.address) : 'No route'} tone={defaultWallet ? 'success' : 'warn'} size="compact" />
+        <MetricCard label="RPC / data" value={secureKeys.HELIUS_API_KEY ? 'Helius ready' : 'Helius missing'} detail={rpcLabel} tone={secureKeys.HELIUS_API_KEY ? 'success' : 'warn'} size="compact" />
+        <MetricCard label="Runtime issues" value={issueGroups.length === 0 ? 'Quiet' : issueGroups.length} detail={missingRuntimeCount > 0 ? `${missingRuntimeCount} tool checks missing` : 'No grouped issues'} tone={issueGroups.length === 0 ? 'default' : 'warn'} size="compact" />
+        <MetricCard label="Git changes" value={gitChangeCount} detail={`${stagedFiles.length} staged`} tone={gitChangeCount > 0 ? 'info' : 'default'} size="compact" />
+        <MetricCard label="Integrations" value={enabledIntegrationCount} detail={`${integrationSummary.missing} setup needed`} tone={integrationSummary.missing > 0 ? 'warn' : 'success'} size="compact" />
+      </section>
+
+      <nav className="workbench-section-nav" aria-label="Workbench sections">
+        {WORKBENCH_SECTIONS.map((section) => (
+          <a key={section.id} href={`#workbench-${section.id}`}>{section.label}</a>
+        ))}
+      </nav>
+
       <section className="project-readiness-next">
+        <div className="project-readiness-score">
+          <ProgressRing value={readinessPct} label="Solana readiness score" />
+          <small>{readyCount}/{items.length} ready</small>
+        </div>
         <div>
           <span className="project-readiness-mini">Next best step</span>
           <strong>{nextItem.label}</strong>
           <p>{nextItem.detail}</p>
         </div>
         {nextItem.action && nextItem.actionLabel ? (
-          <button type="button" className="project-readiness-primary" onClick={nextItem.action}>
+          <Button variant="secondary" size="md" onClick={nextItem.action}>
             {nextItem.actionLabel}
-          </button>
+          </Button>
         ) : null}
       </section>
 
@@ -500,7 +816,60 @@ export function ProjectReadiness() {
         ))}
       </section>
 
-      <section className="project-readiness-section">
+      <section id="workbench-wallet" className="project-readiness-section workbench-module">
+        <div className="project-readiness-section-head">
+          <div>
+            <span className="project-readiness-mini">Wallet</span>
+            <h2>Wallet readiness first</h2>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => openWorkspaceTool('wallet')}>Open wallet</Button>
+        </div>
+        <div className="workbench-two-column">
+          <Card className="workbench-feature-card" padding="md">
+            <div className="workbench-card-head">
+              <div>
+                <span className="project-readiness-mini">Readiness</span>
+                <strong>{walletRoute.headline}</strong>
+              </div>
+              <Badge tone={defaultWallet && defaultWalletSignerReady ? 'success' : 'warning'}>
+                {defaultWallet && defaultWalletSignerReady ? 'Ready' : 'Needs setup'}
+              </Badge>
+            </div>
+            <div className="workbench-readiness-list">
+              {items.filter((item) => ['wallet', 'signer', 'project-wallet', 'provider'].includes(item.id)).map((item) => {
+                const label = item.id === 'provider' ? 'RPC route' : item.label
+                return (
+                  <DataRow
+                    key={item.id}
+                    density="compact"
+                    leading={<StatusDot tone={item.ready ? 'success' : 'warning'} label={item.ready ? `${label} ready` : `${label} needs setup`} />}
+                    title={label}
+                    detail={item.detail}
+                    actions={!item.ready && item.action && item.actionLabel ? <Button variant="ghost" size="sm" onClick={item.action}>{item.actionLabel}</Button> : null}
+                  />
+                )
+              })}
+            </div>
+          </Card>
+          <Card className="workbench-feature-card" padding="md">
+            <div className="workbench-card-head">
+              <div>
+                <span className="project-readiness-mini">Route</span>
+                <strong>{defaultWallet?.name ?? 'No active wallet'}</strong>
+              </div>
+              <Badge tone={walletInfrastructure.cluster === 'mainnet-beta' ? 'warning' : 'info'}>{walletInfrastructure.cluster}</Badge>
+            </div>
+            <div className="workbench-fact-grid">
+              <div><span>Address</span><code>{formatShortAddress(defaultWallet?.address)}</code></div>
+              <div><span>RPC</span><strong>{rpcLabel}</strong></div>
+              <div><span>Signer</span><strong>{defaultWalletSignerReady ? 'Ready' : 'Missing'}</strong></div>
+              <div><span>Recent activity</span><strong>Secondary</strong></div>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      <section id="workbench-integrations" className="project-readiness-section workbench-module">
         <div className="project-readiness-section-head">
           <div>
             <span className="project-readiness-mini">First safe actions</span>
@@ -526,6 +895,158 @@ export function ProjectReadiness() {
         </div>
       </section>
 
+      <section id="workbench-activity" className="project-readiness-section workbench-module">
+        <div className="project-readiness-section-head">
+          <div>
+            <span className="project-readiness-mini">Activity</span>
+            <h2>Important issues</h2>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => openWorkspaceTool('activity')}>Open activity</Button>
+        </div>
+        <div className="workbench-activity-grid">
+          <Card padding="md" className="workbench-feature-card">
+            {issueGroups.length === 0 ? (
+              <div className="workbench-empty-state">
+                <Badge tone="neutral">Activity</Badge>
+                <strong>No grouped issues</strong>
+                <p>Runtime and toolchain activity will surface here when it needs review.</p>
+              </div>
+            ) : (
+              <div className="workbench-row-stack">
+                {issueGroups.map((issue) => (
+                  <IssueRow key={issue.id} issue={issue} />
+                ))}
+              </div>
+            )}
+          </Card>
+          <Card padding="md" className="workbench-feature-card quiet">
+            <div className="workbench-card-head">
+              <div>
+                <span className="project-readiness-mini">Latest</span>
+                <strong>Recent events</strong>
+              </div>
+            </div>
+            <div className="workbench-row-stack">
+              {latestEvents.length === 0 ? (
+                <div className="workbench-muted-line">No activity recorded yet.</div>
+              ) : latestEvents.map((entry) => (
+                <DataRow
+                  key={entry.id}
+                  density="compact"
+                  leading={<StatusDot tone={entry.kind === 'success' ? 'success' : entry.kind === 'error' ? 'danger' : entry.kind === 'warning' ? 'warning' : 'info'} label={entry.kind} />}
+                  title={entry.context ?? classifyActivity(entry)}
+                  meta={<time>{formatTime(entry.createdAt)}</time>}
+                  detail={entry.message}
+                />
+              ))}
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      <section id="workbench-git" className="project-readiness-section workbench-module">
+        <div className="project-readiness-section-head">
+          <div>
+            <span className="project-readiness-mini">Git</span>
+            <h2>Compact source control</h2>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => openWorkspaceTool('git')}>Open Git</Button>
+        </div>
+        <div className="workbench-git-metrics">
+          <MetricCard label="Branch" value={gitState.branch ?? '—'} size="compact" />
+          <MetricCard label="Working tree" value={`${gitChangeCount} changes`} size="compact" tone={gitChangeCount > 0 ? 'info' : 'default'} />
+          <MetricCard label="Ready to commit" value={`${stagedFiles.length} staged`} size="compact" tone={stagedFiles.length > 0 ? 'success' : 'default'} />
+          <MetricCard label="Deploy link" value="No linked deploy" size="compact" />
+        </div>
+        {gitError ? <Banner tone="danger" className="project-readiness-error">{gitError}</Banner> : null}
+        <Card padding="md" className="workbench-feature-card">
+          <div className="workbench-commit-row">
+            <input
+              className="workbench-commit-input"
+              placeholder="Commit message..."
+              value={commitMsg}
+              onChange={(event) => setCommitMsg(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && void commitStaged()}
+            />
+            <Button variant="secondary" size="md" onClick={() => void stageAll()} disabled={unstagedFiles.length === 0 || gitBusy === 'stage-all' || !isGitAvailable()}>
+              Stage all
+            </Button>
+            <Button variant="primary" size="md" onClick={() => void commitStaged()} disabled={stagedFiles.length === 0 || !commitMsg.trim() || gitBusy === 'commit' || !isGitAvailable()}>
+              {gitBusy === 'commit' ? 'Committing...' : 'Commit'}
+            </Button>
+          </div>
+          {gitChangeCount === 0 ? (
+            <div className="workbench-empty-state compact">
+              <Badge tone="neutral">Git</Badge>
+              <strong>Working tree clean</strong>
+            </div>
+          ) : (
+            <div className="workbench-row-stack">
+              {stagedFiles.slice(0, 6).map((file) => (
+                <GitChangeRow key={file.path} file={file} onStage={stageFile} onUnstage={unstageFile} onDiscard={discardFile} busy={gitBusy} />
+              ))}
+              {gitFolders.map(({ folder, files: folderFiles }) => (
+                <div key={folder} className="workbench-folder-group">
+                  <div className="workbench-folder-header">
+                    <span title={folder}>{folder === '.' ? 'root' : `${middleEllipsisPath(folder)}/`}</span>
+                    <Badge tone="neutral">{folderFiles.length} {folderFiles.length === 1 ? 'file' : 'files'}</Badge>
+                  </div>
+                  {folderFiles.slice(0, 6).map((file) => (
+                    <GitChangeRow key={file.path} file={file} onStage={stageFile} onUnstage={unstageFile} onDiscard={discardFile} busy={gitBusy} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </section>
+
+      <section id="workbench-providers" className="project-readiness-section workbench-module">
+        <div className="project-readiness-section-head">
+          <div>
+            <span className="project-readiness-mini">Providers</span>
+            <h2>API keys and provider state</h2>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => openWorkspaceTool('settings')}>Open settings</Button>
+        </div>
+        <div className="workbench-provider-grid">
+          {providerRows.map((provider) => (
+            <DataRow
+              key={provider.id}
+              density="spacious"
+              leading={<StatusDot tone={provider.ready ? 'success' : provider.tone === 'warning' ? 'warning' : 'neutral'} label={`${provider.label}: ${provider.ready ? 'configured' : 'missing'}`} />}
+              title={provider.label}
+              meta={<Badge tone={provider.ready ? 'success' : provider.tone === 'warning' ? 'warning' : 'neutral'}>{provider.ready ? 'Configured' : provider.tone === 'warning' ? 'Missing key' : 'Not configured'}</Badge>}
+              detail={<span className="workbench-masked-value">{provider.detail}</span>}
+              actions={<Button variant="ghost" size="sm" onClick={provider.action}>{provider.actionLabel}</Button>}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section id="workbench-tools" className="project-readiness-section workbench-module">
+        <div className="project-readiness-section-head">
+          <div>
+            <span className="project-readiness-mini">Tools</span>
+            <h2>Workflow groups</h2>
+          </div>
+        </div>
+        <div className="workbench-tool-grid">
+          {WORKFLOW_TOOL_GROUPS.map((group) => (
+            <Card key={group.group} padding="md" className="workbench-tool-group">
+              <span className="project-readiness-mini">{group.group}</span>
+              <div className="workbench-tool-list">
+                {group.tools.map((tool) => (
+                  <button key={tool.id} type="button" onClick={() => openWorkspaceTool(tool.id)}>
+                    {tool.label}
+                  </button>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
       <section className="project-readiness-strip">
         <div>
           <span className="project-readiness-mini">Runtime</span>
@@ -541,17 +1062,74 @@ export function ProjectReadiness() {
         </div>
       </section>
 
-      <section className="project-readiness-shortcuts" aria-label="Project readiness shortcuts">
-        <button type="button" onClick={() => openWorkspaceTool('starter')}>New Project</button>
-        <button type="button" onClick={() => openWorkspaceTool('wallet')}>Wallet</button>
-        <button type="button" onClick={() => openWorkspaceTool('env')}>Env</button>
-        <button type="button" onClick={() => openWorkspaceTool('solana-toolbox')}>Solana Toolbox</button>
-        <button type="button" onClick={() => openWorkspaceTool('token-launch')}>Token Launch</button>
-      </section>
-
-      {loading ? <Banner className="project-readiness-loading" tone="info">Refreshing readiness...</Banner> : null}
+      {loading ? <Banner className="project-readiness-loading" tone="info">Checking project, wallet, RPC, MCP, and integration setup...</Banner> : null}
     </div>
   )
 }
 
 export default ProjectReadiness
+
+function IssueRow({ issue }: { issue: ActivityIssueGroup }) {
+  const tone = issue.kind === 'error' ? 'danger' : 'warning'
+  const seenLabel = issue.entries.length === 1
+    ? `1 seen · ${formatTime(issue.latestAt)}`
+    : `${issue.entries.length} seen · latest ${formatTime(issue.latestAt)}`
+
+  return (
+    <DataRow
+      density="spacious"
+      leading={<StatusDot tone={tone} label={`${issue.kind}: ${issue.title}`} />}
+      title={issue.title}
+      meta={(
+        <>
+          <Badge tone={tone}>{issue.category}</Badge>
+          <time>{seenLabel}</time>
+        </>
+      )}
+      detail={issue.context ?? 'Runtime'}
+    />
+  )
+}
+
+function GitChangeRow({
+  file,
+  onStage,
+  onUnstage,
+  onDiscard,
+  busy,
+}: {
+  file: GitFile
+  onStage: (filePath: string) => Promise<void>
+  onUnstage: (filePath: string) => Promise<void>
+  onDiscard: (filePath: string) => Promise<void>
+  busy: string | null
+}) {
+  const display = getGitFileDisplay(file)
+  const path = splitGitPath(file.path)
+  const isBusy = busy?.endsWith(file.path) ?? false
+
+  return (
+    <DataRow
+      className="workbench-git-file-row"
+      density="compact"
+      leading={<Badge tone={display.tone}>{display.label}</Badge>}
+      title={<span className="workbench-git-file-name" title={file.path}>{path.name}</span>}
+      meta={<span>{file.staged ? 'Ready to commit' : 'Needs review'}</span>}
+      detail={<span className="workbench-git-folder" title={path.folder}>{path.folderLabel}</span>}
+      actions={file.staged ? (
+        <Button variant="ghost" size="sm" onClick={() => void onUnstage(file.path)} disabled={isBusy || !isGitAvailable()}>
+          Unstage
+        </Button>
+      ) : (
+        <>
+          <Button variant="destructive" size="sm" onClick={() => void onDiscard(file.path)} disabled={isBusy || !isGitAvailable()}>
+            Discard
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => void onStage(file.path)} disabled={isBusy || !isGitAvailable()}>
+            Stage
+          </Button>
+        </>
+      )}
+    />
+  )
+}

@@ -90,6 +90,7 @@ async function seedAppState(page) {
   await page.evaluate(async ({ projectPath, projectName }) => {
     await window.daemon.settings.setOnboardingComplete(true)
     await window.daemon.settings.setShowTitlebarWallet(true)
+    await window.daemon.settings.setLowPowerMode(false)
     await window.daemon.settings.setWorkspaceProfile({
       name: 'custom',
       toolVisibility: {},
@@ -133,6 +134,21 @@ async function openTool(page, toolName, readySelector) {
   await page.waitForSelector(readySelector, { timeout: 30000 })
 }
 
+async function ensureRightPanelVisible(page) {
+  const rightPanelVisible = await page.locator('.right-panel').isVisible().catch(() => false)
+  if (rightPanelVisible) return
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'b',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    }))
+  })
+  await page.waitForSelector('.right-panel-content', { timeout: 30000 })
+}
+
 async function openWalletQuickView(page) {
   const trigger = page.locator('.titlebar-portfolio').first()
   const hasTrigger = await trigger.waitFor({ state: 'visible', timeout: 5000 })
@@ -149,6 +165,11 @@ async function openWalletQuickView(page) {
 }
 
 async function openTerminalLauncher(page) {
+  const terminalVisible = await page.locator('.terminal-panel').isVisible().catch(() => false)
+  if (!terminalVisible) {
+    await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+    await page.waitForSelector('.terminal-panel', { timeout: 30000 })
+  }
   await page.getByRole('button', { name: 'New tab options' }).click()
   await page.waitForSelector('.terminal-launcher-menu', { timeout: 30000 })
 }
@@ -317,10 +338,12 @@ async function run() {
   await openDrawerGrid(page)
   const drawerSnapshot = await readLayoutSnapshot(page)
   await openTool(page, 'Settings', '.settings-center')
+  await ensureRightPanelVisible(page)
   const settingsSnapshot = await readLayoutSnapshot(page)
   await openTool(page, 'Wallet', '.wallet-panel')
+  await page.waitForSelector('.wallet-tab', { timeout: 30000 })
   const walletSnapshot = await readLayoutSnapshot(page)
-  await openTool(page, 'Solana', '.solana-toolbox')
+  await openTool(page, 'Solana Workflow', '.solana-toolbox')
   const solanaSnapshot = await readLayoutSnapshot(page)
   const quickviewAvailable = await openWalletQuickView(page)
   const quickviewSnapshot = quickviewAvailable ? await readLayoutSnapshot(page) : null

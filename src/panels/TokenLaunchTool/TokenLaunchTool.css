@@ -1,102 +1,475 @@
+/* ──────────────────────────────────────────────────────────────
+   TokenLaunchTool — panel surface
+   Scoped to .token-launch-tool — overrides shared toolbox styles
+   ────────────────────────────────────────────────────────────── */
+
 .token-launch-tool {
   display: flex;
   flex-direction: column;
   min-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--bg);
+  background:
+    radial-gradient(80% 60% at 50% 0%, color-mix(in srgb, var(--green) 4%, transparent), transparent 55%),
+    var(--bg);
   color: var(--t2);
 }
 
 .token-launch-tool-body {
   display: flex;
   flex-direction: column;
-  gap: var(--panel-section-gap);
+  gap: 24px;
   width: 100%;
-  max-width: var(--panel-content-max);
+  max-width: 1200px;
   margin: 0 auto;
-  padding: var(--panel-pad-y) var(--panel-pad-x) var(--space-xl);
+  padding: 20px var(--panel-pad-x) 48px;
 }
 
+/* ── Highlight grid (Primary path / Post-launch / Launchpads) ── */
 .token-launch-tool-highlight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
+  gap: 12px;
 }
 
+/* MetricCard inside the highlight grid — premium feel */
+.token-launch-tool-highlight-grid > * {
+  position: relative;
+  padding: 18px 20px !important;
+  background:
+    linear-gradient(180deg, var(--surface-card), color-mix(in srgb, var(--surface-card) 92%, transparent)) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  transition: border-color var(--dur-base) var(--ease-out-quint),
+              transform var(--dur-base) var(--ease-out-quint),
+              box-shadow var(--dur-base) var(--ease-out-quint);
+  overflow: hidden;
+}
+
+.token-launch-tool-highlight-grid > *::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--green) 5%, transparent), transparent 55%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out-quint);
+}
+
+.token-launch-tool-highlight-grid > *:hover {
+  border-color: var(--border-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.token-launch-tool-highlight-grid > *:hover::before { opacity: 1; }
+
+/* ── Zone cards (Step 1, Step 2) ── */
 .token-launch-tool-zone {
+  position: relative;
+  padding: 24px !important;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 3%, transparent), transparent 50%),
+    var(--surface-card) !important;
+  border: 1px solid var(--border-medium) !important;
+  border-radius: var(--radius-xl) !important;
   min-width: 0;
-}
-
-.token-launch-tool .solana-launchpad-settings,
-.token-launch-tool .solana-launchpad-settings-compact-head,
-.token-launch-tool .solana-launchpad-settings-header {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.token-launch-tool .solana-launchpad-settings-compact-head,
-.token-launch-tool .solana-launchpad-settings-header {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.token-launch-tool .solana-token-launch-actions {
-  width: 100%;
-  min-width: 0;
-  justify-content: flex-start;
-}
-
-.token-launch-tool .solana-token-launch-actions .sol-btn {
-  min-width: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .token-launch-tool-zone-head {
-  padding-bottom: var(--space-lg);
+  padding-bottom: 20px;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 20px;
 }
 
 .token-launch-tool-zone-kicker {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--green-glow);
+  color: var(--green);
   font-size: var(--fs-10);
   font-weight: var(--fw-bold);
-  color: var(--t4);
-  text-transform: uppercase;
   letter-spacing: var(--ls-eyebrow);
-  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--green) 26%, transparent);
+  margin-bottom: 12px;
 }
 
 .token-launch-tool-zone-title {
   color: var(--t1);
-  font-size: var(--fs-16);
+  font-size: 22px;
   font-weight: var(--fw-semibold);
-  line-height: var(--lh-snug);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 .token-launch-tool-zone-copy {
-  margin: var(--space-sm) 0 0;
+  margin: 8px 0 0;
   color: var(--t3);
-  font-size: var(--fs-12);
-  line-height: var(--lh-normal);
-  max-width: 62ch;
+  font-size: var(--fs-13);
+  line-height: 1.55;
+  max-width: 72ch;
 }
 
+/* ── Inner solana-token-launch (embedded section) ── */
+.token-launch-tool .solana-token-launch.embedded { gap: 18px; }
+
+.token-launch-tool .solana-token-launch-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.token-launch-tool .solana-token-launch-card {
+  position: relative;
+  background: var(--surface-sunken) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  padding: 18px 20px !important;
+  min-width: 0;
+}
+
+.token-launch-tool .solana-token-launch-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-direction: row !important;
+}
+
+.token-launch-tool .solana-token-launch-card-title {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-bold);
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-eyebrow);
+}
+
+.token-launch-tool .solana-token-launch-card-copy {
+  margin-top: 6px;
+  max-width: 64ch;
+  font-size: var(--fs-12);
+  line-height: 1.55;
+  color: var(--t4);
+}
+
+/* ── Launchpad rows + recent launches + pulse rows ── */
+.token-launch-tool .solana-launchpad-list,
+.token-launch-tool .solana-launch-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.token-launch-tool .solana-launchpad-row,
+.token-launch-tool .solana-launch-history-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between;
+  flex-direction: row !important;
+  gap: 16px;
+  padding: 14px 16px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface-card) !important;
+  min-width: 0;
+  transition:
+    border-color var(--dur-base) var(--ease-out-quint),
+    background var(--dur-base) var(--ease-out-quint),
+    transform var(--dur-base) var(--ease-out-quint);
+}
+
+.token-launch-tool .solana-launchpad-row:hover,
+.token-launch-tool .solana-launch-history-row:hover {
+  border-color: var(--border-hover) !important;
+  background: var(--surface-card-hover) !important;
+}
+
+.token-launch-tool .solana-launchpad-row.enabled {
+  border-color: color-mix(in srgb, var(--green) 22%, transparent) !important;
+  background:
+    radial-gradient(120% 80% at 0% 0%, var(--green-glow), transparent 60%),
+    var(--surface-card) !important;
+}
+
+.token-launch-tool .solana-launchpad-row.enabled:hover {
+  border-color: color-mix(in srgb, var(--green) 36%, transparent) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--green) 30%, transparent);
+}
+
+.token-launch-tool .solana-launchpad-row-main,
+.token-launch-tool .solana-launch-history-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.token-launch-tool .solana-launchpad-row-title,
+.token-launch-tool .solana-launch-history-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+  letter-spacing: -0.005em;
+}
+
+.token-launch-tool .solana-launchpad-row-desc,
+.token-launch-tool .solana-launch-history-meta,
+.token-launch-tool .solana-launch-history-name {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+.token-launch-tool .solana-launchpad-row-desc {
+  margin-top: 6px;
+  line-height: 1.55;
+  max-width: 68ch;
+}
+
+.token-launch-tool .solana-launchpad-badge,
+.token-launch-tool .solana-launch-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px !important;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-9);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+.token-launch-tool .solana-launchpad-badge.enabled,
+.token-launch-tool .solana-launch-status.active {
+  color: var(--green) !important;
+  background: var(--green-glow) !important;
+  border: 1px solid color-mix(in srgb, var(--green) 28%, transparent) !important;
+}
+
+.token-launch-tool .solana-launchpad-badge.enabled::before,
+.token-launch-tool .solana-launch-status.active::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent);
+  animation: tlt-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tlt-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+.token-launch-tool .solana-launchpad-badge.planned {
+  color: var(--amber) !important;
+  background: var(--amber-glow) !important;
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent) !important;
+}
+
+.token-launch-tool .solana-launch-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.token-launch-tool .solana-launch-history-meta > span {
+  padding: 2px 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-10);
+  color: var(--t3);
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.token-launch-tool .solana-launch-history-mint {
+  margin-top: 8px;
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+  color: var(--t4);
+  word-break: break-all;
+}
+
+/* ── KEY FIX: stop the full-width-button cascade ── */
+.token-launch-tool .solana-launchpad-row .sol-btn,
+.token-launch-tool .solana-launch-history-row .sol-btn,
+.token-launch-tool .solana-token-launch-card-head .sol-btn,
+.token-launch-tool .solana-token-launch-actions .sol-btn {
+  width: auto !important;
+  min-width: 88px;
+  flex-shrink: 0;
+}
+
+/* ── sol-btn polish inside this panel ── */
+.token-launch-tool .sol-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-ui);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-control);
+  color: var(--t1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all var(--dur-instant) var(--ease-standard);
+}
+
+.token-launch-tool .sol-btn:hover:not(:disabled) {
+  background: var(--surface-control-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.token-launch-tool .sol-btn:active:not(:disabled) { transform: translateY(0); }
+
+.token-launch-tool .sol-btn.green {
+  background: linear-gradient(180deg, var(--green), var(--green-dim));
+  border-color: var(--green);
+  color: var(--bg-app);
+  box-shadow:
+    var(--glow-green-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.token-launch-tool .sol-btn.green:hover:not(:disabled) {
+  box-shadow:
+    var(--glow-green-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 20px -8px var(--green);
+}
+
+.token-launch-tool .sol-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Header (PanelHeader) actions ── */
+.token-launch-tool .solana-token-launch-header {
+  flex-direction: row !important;
+  align-items: flex-start !important;
+}
+
+.token-launch-tool .solana-token-launch-actions {
+  flex-direction: row !important;
+  width: auto !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Pulse tabs ── */
+.token-launch-tool .solana-pulse-tabs {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  gap: 2px;
+}
+
+.token-launch-tool .solana-pulse-tab {
+  background: transparent;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  color: var(--t3);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: all var(--dur-instant) var(--ease-standard);
+}
+
+.token-launch-tool .solana-pulse-tab:hover:not(.active) {
+  color: var(--t1);
+  background: var(--hover-overlay);
+}
+
+.token-launch-tool .solana-pulse-tab.active {
+  background: var(--surface-card);
+  color: var(--t1);
+  font-weight: var(--fw-semibold);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Empty / state banners ── */
+.token-launch-tool .solana-empty {
+  padding: 24px;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--t3);
+  font-size: var(--fs-12);
+  text-align: center;
+  line-height: 1.55;
+}
+
+.token-launch-tool .solana-launch-state {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-12);
+  line-height: 1.55;
+}
+
+.token-launch-tool .solana-launch-state.warning {
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
+  background: var(--amber-glow);
+  color: var(--amber);
+}
+
+/* ── Note card (Recommended flow) ── */
 .token-launch-tool-note-title {
   color: var(--t1);
   font-size: var(--fs-11);
   font-weight: var(--fw-bold);
   text-transform: uppercase;
-  letter-spacing: var(--ls-caps);
+  letter-spacing: var(--ls-eyebrow);
+  margin-bottom: 10px;
 }
 
 .token-launch-tool-note-list {
   margin: 0;
   padding-left: var(--space-lg);
   color: var(--t3);
-  font-size: var(--fs-12);
-  line-height: var(--lh-normal);
+  font-size: var(--fs-13);
+  line-height: 1.6;
 }
 
+.token-launch-tool-note-list li { padding-left: 4px; }
+.token-launch-tool-note-list li::marker { color: var(--green); font-weight: var(--fw-bold); }
+
+/* ── Settings section (Step 2) gets a sunken inner surface ── */
+.token-launch-tool-zone .solana-launchpad-settings { background: transparent; }
+
+/* ── Responsive ── */
 @media (max-width: 900px) {
-  .token-launch-tool-highlight-grid {
-    grid-template-columns: 1fr;
+  .token-launch-tool-highlight-grid { grid-template-columns: 1fr; }
+  .token-launch-tool .solana-launchpad-row,
+  .token-launch-tool .solana-launch-history-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
+  .token-launch-tool .solana-launchpad-row .sol-btn,
+  .token-launch-tool .solana-launch-history-row .sol-btn {
+    width: 100% !important;
+  }
+  .token-launch-tool-zone { padding: 18px !important; }
+  .token-launch-tool-zone-title { font-size: 18px; }
 }
