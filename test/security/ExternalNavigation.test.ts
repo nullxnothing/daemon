@@ -21,12 +21,14 @@ describe('external navigation security policy', () => {
     await expect(openSafeExternalUrl('javascript:alert(1)')).resolves.toBe(false)
   })
 
-  it('keeps webviews on network URLs and rejects privileged schemes or credentials', async () => {
+  it('allows https and loopback http webviews, rejects remote http, credentials, and privileged schemes', async () => {
     const { isAllowedWebviewUrl } = await import('../../electron/security/externalNavigation')
 
     expect(isAllowedWebviewUrl('https://docs.daemon.test')).toBe(true)
     expect(isAllowedWebviewUrl('http://localhost:5173')).toBe(true)
-    expect(isAllowedWebviewUrl('http://example.com')).toBe(true)
+    expect(isAllowedWebviewUrl('http://127.0.0.1:5173')).toBe(true)
+    // Remote cleartext http is no longer embeddable.
+    expect(isAllowedWebviewUrl('http://example.com')).toBe(false)
     expect(isAllowedWebviewUrl('https://user:pass@example.com')).toBe(false)
     expect(isAllowedWebviewUrl('javascript:alert(1)')).toBe(false)
     expect(isAllowedWebviewUrl('file:///C:/secret.txt')).toBe(false)

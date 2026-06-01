@@ -9,6 +9,8 @@ export interface RelaySnapshot {
 export interface RelayClientOptions {
   relayUrl: string
   sessionCode: string
+  /** Per-session bearer token from the pairing deep link. Required by the relay. */
+  accessToken?: string | null
 }
 
 function normalizeRelayUrl(relayUrl: string) {
@@ -16,14 +18,20 @@ function normalizeRelayUrl(relayUrl: string) {
   return trimmed.length > 0 ? trimmed : null
 }
 
-export async function postRelayEvent({ relayUrl, sessionCode }: RelayClientOptions, event: Omit<RelayEvent, 'sessionCode'>) {
+function authHeaders(accessToken?: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'content-type': 'application/json' }
+  if (accessToken) headers['authorization'] = `Bearer ${accessToken}`
+  return headers
+}
+
+export async function postRelayEvent({ relayUrl, sessionCode, accessToken }: RelayClientOptions, event: Omit<RelayEvent, 'sessionCode'>) {
   const base = normalizeRelayUrl(relayUrl)
   if (!base) return { ok: false, error: 'Missing relay URL' }
 
   try {
     const res = await fetch(`${base}/api/seeker/events`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authHeaders(accessToken),
       body: JSON.stringify({ ...event, sessionCode }),
     })
 
@@ -34,12 +42,14 @@ export async function postRelayEvent({ relayUrl, sessionCode }: RelayClientOptio
   }
 }
 
-export async function fetchRelaySnapshot({ relayUrl, sessionCode }: RelayClientOptions) {
+export async function fetchRelaySnapshot({ relayUrl, sessionCode, accessToken }: RelayClientOptions) {
   const base = normalizeRelayUrl(relayUrl)
   if (!base) return { ok: false, error: 'Missing relay URL', data: null as RelaySnapshot | null }
 
   try {
-    const res = await fetch(`${base}/api/seeker/session/${encodeURIComponent(sessionCode)}`)
+    const res = await fetch(`${base}/api/seeker/session/${encodeURIComponent(sessionCode)}`, {
+      headers: authHeaders(accessToken),
+    })
     if (!res.ok) return { ok: false, error: `Relay returned ${res.status}`, data: null }
     const data = await res.json() as RelaySnapshot
     return { ok: true, data, error: null }
