@@ -49,4 +49,7 @@ pub enum RegistryError {
 
     #[msg("Invalid agent count: must be between 1 and the session model capacity")]
     InvalidAgentCount,
+
+    #[msg("Invalid party: verifier and agent must be set and distinct from each other")]
+    InvalidTaskParty,
 }

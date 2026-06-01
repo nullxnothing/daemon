@@ -37,6 +37,12 @@ pub fn handler(
     let now = Clock::get()?.unix_timestamp;
     require!(deadline_ts > now, RegistryError::InvalidDeadline);
 
+    // Verifier and agent must be real, distinct parties. A zeroed verifier would
+    // brick approval; a zeroed agent would brick the task; verifier == agent
+    // would let the worker approve their own work. (Owner-as-verifier stays
+    // allowed — approve_work/reject_work intentionally accept the owner.)
+    require!(task_parties_valid(&verifier, &agent), RegistryError::InvalidTaskParty);
+
     let task = &mut ctx.accounts.task;
     task.owner = ctx.accounts.owner.key();
     task.verifier = verifier;
@@ -67,4 +73,39 @@ pub fn handler(
     )?;
 
     Ok(())
+}
+
+/// Returns true when verifier and agent are both set (non-default) and distinct.
+/// Pure helper so the escrow-party invariant is unit-testable without a validator.
+pub fn task_parties_valid(verifier: &Pubkey, agent: &Pubkey) -> bool {
+    *verifier != Pubkey::default() && *agent != Pubkey::default() && verifier != agent
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(byte: u8) -> Pubkey {
+        Pubkey::new_from_array([byte; 32])
+    }
+
+    #[test]
+    fn accepts_distinct_nonzero_parties() {
+        assert!(task_parties_valid(&key(1), &key(2)));
+    }
+
+    #[test]
+    fn rejects_zeroed_verifier() {
+        assert!(!task_parties_valid(&Pubkey::default(), &key(2)));
+    }
+
+    #[test]
+    fn rejects_zeroed_agent() {
+        assert!(!task_parties_valid(&key(1), &Pubkey::default()));
+    }
+
+    #[test]
+    fn rejects_verifier_equals_agent() {
+        assert!(!task_parties_valid(&key(3), &key(3)));
+    }
 }
