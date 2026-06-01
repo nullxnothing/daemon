@@ -45,6 +45,17 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-venum-key') {
+    const ready = Boolean(context.secureKeys.VENUM_API_KEY)
+    return {
+      title: 'Venum key',
+      status: ready ? 'success' : 'info',
+      detail: ready
+        ? 'DAEMON has a Venum key stored.'
+        : 'No Venum key is stored yet. Grab a free key at app.venum.dev and add it before RPC, price, or swap flows.',
+    }
+  }
+
   if (actionId === 'check-jupiter-key') {
     const ready = Boolean(context.secureKeys.JUPITER_API_KEY)
     return {

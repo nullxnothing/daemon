@@ -50,6 +50,7 @@ const VALIDATION_PATTERNS: Record<string, { pattern: RegExp; label: string; hint
 }
 
 const ENV_TEMPLATES = [
+  { key: 'VENUM_API_KEY', placeholder: 'your-venum-api-key', category: 'Solana', hint: 'Free RPC, prices & swaps — app.venum.dev' },
   { key: 'HELIUS_API_KEY', placeholder: 'your-helius-api-key', category: 'Solana', hint: 'RPC & indexing' },
   { key: 'SOLANA_RPC_URL', placeholder: 'https://api.mainnet-beta.solana.com', category: 'Solana', hint: 'RPC endpoint' },
   { key: 'OPENAI_API_KEY', placeholder: 'sk-...', category: 'AI', hint: 'OpenAI API' },

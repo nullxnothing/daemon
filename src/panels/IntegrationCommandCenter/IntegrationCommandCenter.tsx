@@ -1211,6 +1211,7 @@ function IntegrationCard({
 function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'streamlock') return 'streamlock'
   if (integrationId === 'helius') return 'helius'
+  if (integrationId === 'venum') return 'venum'
   if (integrationId === 'sendai-agent-kit') return 'sendai'
   if (integrationId === 'spawnagents') return 'spawnagents'
   if (integrationId === 'phantom') return 'phantom'
@@ -1284,10 +1285,11 @@ export function IntegrationCommandCenter() {
       setActionResult(null)
 
       try {
-        const [walletRes, heliusRes, jupiterRes, infraRes] = await Promise.all([
+        const [walletRes, heliusRes, jupiterRes, secureKeysRes, infraRes] = await Promise.all([
           daemon.wallet.list(),
           daemon.wallet.hasHeliusKey(),
           daemon.wallet.hasJupiterKey(),
+          daemon.claude.listKeys(),
           daemon.settings.getWalletInfrastructureSettings(),
         ])
 
@@ -1296,9 +1298,13 @@ export function IntegrationCommandCenter() {
         const nextWallets = walletRes.ok && walletRes.data ? walletRes.data : []
         setWallets(nextWallets)
         setWalletInfrastructure(infraRes.ok && infraRes.data ? infraRes.data : DEFAULT_WALLET_INFRASTRUCTURE)
+        const storedKeyNames = new Set(
+          secureKeysRes.ok && secureKeysRes.data ? secureKeysRes.data.map((entry) => entry.key_name) : [],
+        )
         setSecureKeys({
           HELIUS_API_KEY: Boolean(heliusRes.ok && heliusRes.data),
           JUPITER_API_KEY: Boolean(jupiterRes.ok && jupiterRes.data),
+          VENUM_API_KEY: storedKeyNames.has('VENUM_API_KEY'),
         })
 
         if (nextWallets.length > 0) {
@@ -1526,6 +1532,7 @@ export function IntegrationCommandCenter() {
       else if (action.id === 'open-wallet') openWorkspaceTool('wallet')
       else if (action.id === 'open-token-launch') openWorkspaceTool('token-launch')
       else if (action.id === 'open-spawnagents-panel') openWorkspaceTool('spawnagents')
+      else if (action.id === 'open-venum-signup') void daemon.shell.openExternal('https://app.venum.dev/?ref=daemon')
       else openWorkspaceTool('solana-toolbox')
       return
     }

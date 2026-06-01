@@ -40,17 +40,18 @@ Use Metaplex Umi plus @solana/kit-compatible client code. Initialize git repo.`,
     tags: ['DeFi', 'Jupiter'],
     icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
     prompt: `Scaffold a Solana trading bot project. Include:
-- Jupiter integration for quote, execution, and token routing using the current public APIs
+- Venum execution layer as the default transport for prices, quotes, swap building, and submission (api.venum.dev with the VENUM_API_KEY x-api-key header). Grab a free key at https://app.venum.dev/?ref=daemon
+- A thin provider abstraction so Helius or QuickNode RPC can be selected as an alternative transport without rewriting bot logic
 - Price monitoring loop with configurable intervals
-- Wallet management with keypair loading from file
+- Wallet management with keypair loading from file (signing stays local)
 - Position tracking and P&L calculation
 - Configurable slippage, amount, and token pairs
 - Optional Jito bundle-send hook for fast execution
 - Logging with timestamps
-- .env.example with RPC_URL, WALLET_PATH, TOKEN_MINT_A, TOKEN_MINT_B, SLIPPAGE_BPS, CHECK_INTERVAL_MS
+- .env.example with VENUM_API_KEY (default), optional RPC_URL/HELIUS_API_KEY fallback, WALLET_PATH, TOKEN_MINT_A, TOKEN_MINT_B, SLIPPAGE_BPS, CHECK_INTERVAL_MS
 - TypeScript with strict mode
 - README with setup and running instructions
-Initialize git repo. Use @solana/kit and Helius or QuickNode as the transport layer.`,
+Initialize git repo. Use @solana/kit. Default execution to Venum, keep Helius or QuickNode as a selectable fallback transport.`,
   },
   {
     id: 'dapp-nextjs',

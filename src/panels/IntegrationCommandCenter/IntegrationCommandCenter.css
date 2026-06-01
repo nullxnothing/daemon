@@ -294,6 +294,50 @@
   color: rgba(255, 222, 198, 0.9);
 }
 
+.icc-card--venum {
+  min-height: 136px;
+  border-color: rgba(124, 240, 92, 0.24);
+  background: #05070a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.icc-card--venum::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(124, 240, 92, 0.16) 0%, rgba(3, 5, 8, 0) 52%),
+    linear-gradient(90deg, rgba(3, 5, 8, 0.92) 0%, rgba(3, 5, 8, 0.42) 100%);
+  opacity: 0.96;
+}
+
+.icc-card--venum:hover,
+.icc-card--venum.selected {
+  border-color: rgba(124, 240, 92, 0.46);
+  background: #05070a;
+}
+
+.icc-card--venum .icc-status-dot,
+.icc-card--venum .icc-card-main {
+  position: relative;
+  z-index: 1;
+}
+
+.icc-card--venum .icc-status-dot {
+  background: #7cf05c;
+  box-shadow: 0 0 0 3px rgba(124, 240, 92, 0.14), 0 0 18px rgba(124, 240, 92, 0.22);
+}
+
+.icc-card--venum .icc-card-name {
+  color: #fff;
+}
+
+.icc-card--venum .icc-status-badge {
+  border-color: rgba(124, 240, 92, 0.38);
+  background: rgba(124, 240, 92, 0.1);
+  color: rgba(214, 255, 198, 0.9);
+}
+
 .icc-card--sendai {
   min-height: 136px;
   align-items: center;
