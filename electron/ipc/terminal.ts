@@ -8,6 +8,7 @@ import { getDb } from '../db/db'
 import { buildCommand, cleanupContextFile } from '../services/ClaudeRouter'
 import { registerPort } from '../services/PortService'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { isTrustedSender } from '../security/ipcSender'
 import { LogService } from '../services/LogService'
 import * as SessionTracker from '../services/SessionTracker'
 import * as ShiplineService from '../services/ShiplineService'
@@ -375,6 +376,8 @@ export function registerTerminalHandlers() {
   }))
 
   ipcMain.on('terminal:write', (_event, id: string, data: string) => {
+    // PTY input is a privileged channel — only the trusted top frame may drive it.
+    if (!isTrustedSender(_event)) return
     const session = sessions.get(id)
     session?.pty.write(data)
     if (session) {
@@ -394,12 +397,14 @@ export function registerTerminalHandlers() {
   })
 
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) => {
+    if (!isTrustedSender(_event)) return
     try { sessions.get(id)?.pty.resize(cols, rows) } catch (err) {
       LogService.warn('Terminal', `Failed to resize terminal ${id}`, { error: (err as Error).message })
     }
   })
 
   ipcMain.on('terminal:ready', (_event, id: string, cols?: number, rows?: number) => {
+    if (!isTrustedSender(_event)) return
     const session = sessions.get(id)
     if (!session) return
     if (Number.isFinite(cols) && Number.isFinite(rows) && cols! > 1 && rows! > 0) {
