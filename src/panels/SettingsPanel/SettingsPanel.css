@@ -6,22 +6,6 @@
   overflow: hidden;
 }
 
-.settings-header {
-  padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.settings-title {
-  font-size: var(--fs-16);
-  font-weight: 600;
-  color: var(--t1);
-  margin: 0;
-  flex-shrink: 0;
-}
-
 .settings-search {
   flex: 1;
   max-width: 280px;
@@ -592,11 +576,6 @@
 }
 
 @media (max-width: 900px) {
-  .settings-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .settings-search {
     max-width: none;
   }

@@ -5,7 +5,6 @@
   color: var(--t1);
 }
 
-.subscriptions-header,
 .subscriptions-section-head,
 .subscriptions-tier-top,
 .subscriptions-lane,
@@ -14,17 +13,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-}
-
-.subscriptions-header {
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--s4);
-}
-
-.subscriptions-title {
-  margin: 4px 0 0;
-  font-size: var(--fs-18);
-  line-height: 1.25;
 }
 
 .subscriptions-status,
@@ -350,7 +338,6 @@
 }
 
 @media (max-width: 780px) {
-  .subscriptions-header,
   .subscriptions-section-head,
   .subscriptions-lane,
   .subscriptions-holder-tier {

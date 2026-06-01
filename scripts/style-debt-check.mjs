@@ -3,11 +3,14 @@ import path from 'node:path'
 
 const ROOT = process.cwd()
 const TARGETS = ['src/panels', 'src/components']
+// Ratchet only — lower these as debt is paid down, never raise. Set to the current
+// actuals so any new literal fails CI and pushes contributors to tokens/primitives.
 const BASELINE = {
-  literalFontSize: 993,
-  literalRadius: 383,
-  hexColors: 245,
+  literalFontSize: 29,
+  literalRadius: 231,
+  hexColors: 128,
   inlineShadow: 62,
+  handRolledHeaders: 4,
 }
 
 const RULES = [
@@ -20,6 +23,13 @@ const RULES = [
 const INCLUDE = new Set(['.css', '.tsx'])
 const counts = Object.fromEntries(RULES.map(([key]) => [key, 0]))
 
+// Header consistency: panel .tsx files that hand-roll a top-level header
+// (<header className="*-header"> or "*-panel-header") instead of the shared
+// PanelHeader primitive. Ratchet down as panels migrate. A few legitimately use a
+// bespoke control-header (e.g. a token selector) — those keep the count > 0 for now.
+const HAND_ROLLED_HEADER = /<header className="[a-z-]*-header"|className="[a-z-]*-panel-header"/
+const handRolledHeaderFiles = []
+
 for (const target of TARGETS) {
   walk(path.join(ROOT, target), (filePath) => {
     if (!INCLUDE.has(path.extname(filePath))) return
@@ -27,8 +37,18 @@ for (const target of TARGETS) {
     for (const [key, pattern] of RULES) {
       counts[key] += source.match(pattern)?.length ?? 0
     }
+    if (
+      filePath.includes(`${path.sep}panels${path.sep}`) &&
+      filePath.endsWith('.tsx') &&
+      HAND_ROLLED_HEADER.test(source) &&
+      !source.includes('PanelHeader')
+    ) {
+      handRolledHeaderFiles.push(path.relative(ROOT, filePath))
+    }
   })
 }
+
+counts.handRolledHeaders = handRolledHeaderFiles.length
 
 let failed = false
 for (const [key, value] of Object.entries(counts)) {
@@ -36,6 +56,11 @@ for (const [key, value] of Object.entries(counts)) {
   const status = value <= baseline ? 'ok' : 'regressed'
   console.log(`${key}: ${value}/${baseline} ${status}`)
   if (value > baseline) failed = true
+}
+
+if (counts.handRolledHeaders > BASELINE.handRolledHeaders) {
+  console.error('Hand-rolled panel headers detected. Use the shared PanelHeader primitive:')
+  for (const file of handRolledHeaderFiles) console.error(`  - ${file}`)
 }
 
 if (failed) {

@@ -1,9 +1,35 @@
 import { rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import pkg from './package.json'
+
+// CJS Solana/crypto deps (bn.js, noble-hashes) embed `require("buffer")` and read
+// `.Buffer` off the result. In the ESM renderer that bare `require` is undefined and
+// crashes the page (blank screen). renderChunk rewrites those calls to read the global
+// Buffer, and tags the standalone buffer chunk to register that global on load (it is
+// imported by — and therefore evaluated before — the consuming crypto chunks).
+function bufferRequireShim() {
+  const REQUIRE_BUFFER = /require\(\s*["']buffer["']\s*\)/g
+  return {
+    name: 'daemon-buffer-require-shim',
+    renderChunk(code: string, chunk: { fileName: string }) {
+      if (chunk.fileName.includes('buffer-polyfill')) {
+        const ns = /export\s*\{\s*([\w$]+)\s+as\s+\w+\s*\}\s*;?\s*$/.exec(code.trim())?.[1]
+        if (!ns) return null
+        return { code: `${code}\ntry{globalThis.Buffer=globalThis.Buffer||${ns}.Buffer;globalThis.global=globalThis;}catch(e){}`, map: null }
+      }
+      if (!REQUIRE_BUFFER.test(code)) return null
+      REQUIRE_BUFFER.lastIndex = 0
+      return {
+        code: code.replace(REQUIRE_BUFFER, '(globalThis.__daemonBuffer||(globalThis.__daemonBuffer={Buffer:globalThis.Buffer,SlowBuffer:globalThis.Buffer,default:globalThis.Buffer}))'),
+        map: null,
+      }
+    },
+  }
+}
 
 function rendererManualChunks(id: string) {
   if (!id.includes('node_modules')) return undefined
@@ -20,6 +46,15 @@ function rendererManualChunks(id: string) {
   if (id.includes('@xterm')) return 'xterm'
   if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
   if (id.includes('zustand')) return 'state-vendor'
+  // Isolate the buffer polyfill AND its deps (base64-js, ieee754) so the chunk is
+  // self-contained — otherwise its deps land in `vendor`, creating a circular import
+  // that defeats the load-order guarantee. It is imported (and evaluated) before the
+  // crypto deps that read globalThis.Buffer.
+  if (
+    id.includes('/node_modules/buffer/') || id.includes('\\node_modules\\buffer\\') ||
+    id.includes('/node_modules/base64-js/') || id.includes('\\node_modules\\base64-js\\') ||
+    id.includes('/node_modules/ieee754/') || id.includes('\\node_modules\\ieee754\\')
+  ) return 'buffer-polyfill'
 
   return 'vendor'
 }
@@ -38,9 +73,15 @@ export default defineConfig(({ command }) => {
     resolve: {
       alias: {
         '@': path.join(__dirname, 'src'),
+        // CJS Solana/crypto deps (bn.js, noble-hashes) `require("buffer")`. By default
+        // Vite resolves the `buffer` builtin to an empty stub in the renderer, so Buffer
+        // is undefined and the renderer crashes (blank screen). Point it at the real
+        // browser polyfill so the commonjs interop resolves a working Buffer.
+        buffer: createRequire(import.meta.url).resolve('buffer/'),
       },
     },
     plugins: [
+      bufferRequireShim(),
       react(),
       electron({
         main: {
@@ -87,9 +128,15 @@ export default defineConfig(({ command }) => {
       }
     })(),
     clearScreen: false,
+    // Crypto deps and the buffer polyfill reference `global`; map it to globalThis.
+    define: {
+      global: 'globalThis',
+    },
     // Monaco bundles web workers internally — esbuild cannot pre-bundle it
     optimizeDeps: {
       exclude: ['monaco-editor'],
+      // Pre-bundle the buffer polyfill so its CJS `require("buffer")` consumers resolve.
+      include: ['buffer'],
     },
     worker: {
       format: 'es' as const,

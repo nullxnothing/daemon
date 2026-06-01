@@ -113,6 +113,17 @@ async function waitForAppReady(page) {
   await page.waitForSelector('.titlebar', { timeout: 30000 })
   await page.waitForSelector('.main-layout', { timeout: 30000 })
   await page.waitForSelector('.app[data-app-ready="true"]', { timeout: 30000 })
+
+  // Guard against a blank-screen regression: a crashed renderer (e.g. a bundling
+  // issue that throws before React mounts) leaves #root empty even though the
+  // window exists. Assert the root actually rendered substantial content.
+  const rootContentLength = await page.evaluate(
+    () => document.getElementById('root')?.innerHTML.length ?? 0,
+  )
+  assert(
+    rootContentLength > 200,
+    `renderer mounted but #root is effectively empty (innerHTML length ${rootContentLength}) — likely a blank-screen/bundle crash`,
+  )
 }
 
 async function openToolFromLauncher(page, toolName, readySelector = null) {

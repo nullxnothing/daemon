@@ -5,6 +5,7 @@ import { useNotificationsStore } from '../../store/notifications'
 import { AgentForm } from './AgentForm'
 import { DaemonAgentRow, ClaudeAgentRow } from './AgentRow'
 import { FocusTrap } from '../../components/FocusTrap'
+import { EmptyState } from '../../components/EmptyState'
 import './AgentLauncher.css'
 
 interface Props {
@@ -312,9 +313,11 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
                 )
               })}
               {filtered.length === 0 && filteredClaude.length === 0 && (
-                <div className="agent-launcher-empty">
-                  {agents.length === 0 && claudeAgents.length === 0 ? 'No agents configured' : 'No matches'}
-                </div>
+                <EmptyState
+                  className="agent-launcher-empty"
+                  title={agents.length === 0 && claudeAgents.length === 0 ? 'No agents configured' : 'No matches'}
+                  description={agents.length === 0 && claudeAgents.length === 0 ? 'Create an agent to get started.' : 'Try a different search.'}
+                />
               )}
             </div>
             <button type="button" className="agent-create-btn" onClick={() => setShowForm(true)}>

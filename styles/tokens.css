@@ -51,7 +51,7 @@
   --t3: var(--text-muted);
   --t4: var(--text-faint);
 
-  /* Legacy semantic aliases used by older panels */
+  /* @deprecated legacy alias — use --t3. Kept until panels migrate. */
   --text-tertiary:  var(--t3);
 
   /* Accent aliases. Green stays reserved for primary/healthy/live/ready/success. */
@@ -162,7 +162,7 @@
   --type-eyebrow-size: 11px;
   --type-eyebrow-line: 16px;
 
-  /* Legacy aliases — existing components reference these, keep them mapped */
+  /* @deprecated legacy aliases — prefer --fs-* or the type role tokens. Kept until panels migrate. */
   --font-xs:   var(--fs-10);
   --font-sm:   var(--fs-11);
   --font-base: var(--fs-12);
@@ -197,7 +197,7 @@
   --statusbar-h: 24px;
 
   /* Spacing scale */
-  --space-2xs: 4px;
+  --space-2xs: 4px;   /* @deprecated duplicate of --space-xs; use --space-xs */
   --space-xs:  4px;
   --space-sm:  8px;
   --space-md:  12px;

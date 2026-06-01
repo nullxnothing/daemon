@@ -4,6 +4,9 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
+import { EmptyState } from '../../components/EmptyState'
+import { MetricCard } from '../../components/Panel'
+import { Button } from '../../components/Button'
 import './Dashboard.css'
 
 function formatPrice(price: number): string {
@@ -298,43 +301,34 @@ export function DashboardCanvas() {
   if (tokens.length === 0 && !showImport) {
     return (
       <div className="dash-canvas">
-        <div className="dash-canvas-empty">
-          <div className="dash-empty-art" aria-hidden="true">
-            <div className="dash-empty-glow" />
+        <EmptyState
+          className="dash-canvas-empty"
+          icon={
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09Z" />
               <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z" />
               <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
               <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
             </svg>
-          </div>
-          <span className="dash-empty-eyebrow">Launch hub</span>
-          <h2 className="dash-canvas-empty-title">Launch your first token</h2>
-          <p className="dash-canvas-empty-sub">
-            Launch one and this canvas goes live — price, holders, volume, and fees, updating as they move.
-          </p>
-          <div className="dash-empty-actions">
-            <button className="dash-btn dash-btn-primary dash-btn-lg" type="button" onClick={openTokenLaunch}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m4.5 16.5-2 5 5-2M13 7l4 4M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z" />
-              </svg>
-              Launch Token
-            </button>
-            {activeWalletId && (
-              <button type="button" className="dash-btn dash-btn-outline-full" onClick={() => setShowImport(true)}>
-                Import existing
-              </button>
-            )}
-          </div>
-          <div className="dash-empty-preview" aria-hidden="true">
-            {['Live price', 'Holders', '24h volume', 'Fee earnings'].map((label) => (
-              <span key={label} className="dash-empty-preview-chip">
-                <span className="dash-empty-preview-dot" />
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
+          }
+          title="Launch your first token"
+          description="Launch one and this canvas goes live — price, holders, volume, and fees, updating as they move."
+          action={
+            <div className="dash-empty-actions">
+              <Button variant="primary" size="lg" onClick={openTokenLaunch}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m4.5 16.5-2 5 5-2M13 7l4 4M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z" />
+                </svg>
+                Launch Token
+              </Button>
+              {activeWalletId && (
+                <Button variant="ghost" size="lg" onClick={() => setShowImport(true)}>
+                  Import existing
+                </Button>
+              )}
+            </div>
+          }
+        />
       </div>
     )
   }
@@ -399,28 +393,18 @@ export function DashboardCanvas() {
       {activeMint && (
         <>
           <div className="dash-metrics-row">
-            <div className="dash-metric-card">
-              <span className="dash-metric-card-label">Price</span>
-              <span className="dash-metric-card-value" style={{ color: priceColor }}>
-                {price !== null ? `$${formatPrice(price)}` : '—'}
-              </span>
-            </div>
-            <div className="dash-metric-card">
-              <span className="dash-metric-card-label">24h Change</span>
-              <span className={`dash-metric-card-value ${isPositive === true ? 'positive' : isPositive === false ? 'negative' : ''}`}>
-                {priceChange !== null ? `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%` : '—'}
-              </span>
-            </div>
-            <div className="dash-metric-card">
-              <span className="dash-metric-card-label">Holders</span>
-              <span className="dash-metric-card-value">
-                {holders ? holders.count.toLocaleString() : '—'}
-              </span>
-            </div>
-            <div className="dash-metric-card">
-              <span className="dash-metric-card-label">Market Cap</span>
-              <span className="dash-metric-card-value">{mcapText}</span>
-            </div>
+            <MetricCard
+              label="Price"
+              value={price !== null ? `$${formatPrice(price)}` : '—'}
+              tone={isPositive === false ? 'danger' : isPositive === true ? 'success' : 'default'}
+            />
+            <MetricCard
+              label="24h Change"
+              value={priceChange !== null ? `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%` : '—'}
+              tone={isPositive === true ? 'success' : isPositive === false ? 'danger' : 'default'}
+            />
+            <MetricCard label="Holders" value={holders ? holders.count.toLocaleString() : '—'} />
+            <MetricCard label="Market Cap" value={mcapText} />
           </div>
 
           <div className="dash-chart-section">

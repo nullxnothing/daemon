@@ -7,38 +7,13 @@
   overflow: hidden;
 }
 
-.pro-panel-header,
 .pro-panel-footer {
   flex-shrink: 0;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--s4);
-}
-
-.pro-panel-footer {
-  border-bottom: 0;
   border-top: 1px solid var(--s4);
   background: var(--s1);
 }
 
-.pro-panel-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pro-panel-kicker {
-  font-size: var(--fs-11);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--amber);
-}
-
-.pro-panel-title {
-  font-size: var(--fs-18);
-  font-weight: 600;
-}
-
-.pro-panel-subtitle,
 .pro-disclaimer {
   font-size: var(--fs-12);
   color: var(--t3);
