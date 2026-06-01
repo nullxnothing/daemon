@@ -2,20 +2,20 @@ import { useCallback, useState } from 'react'
 import type { RelayEvent } from '../types'
 import { fetchRelaySnapshot, postRelayEvent, type RelaySnapshot } from '../services/desktopRelay'
 
-export function useDesktopRelay(relayUrl: string, sessionCode: string) {
+export function useDesktopRelay(relayUrl: string, sessionCode: string, accessToken?: string | null) {
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(null)
   const [lastError, setLastError] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<RelaySnapshot | null>(null)
 
   const sendRelayEvent = useCallback(async (event: Omit<RelayEvent, 'sessionCode'>) => {
-    const result = await postRelayEvent({ relayUrl, sessionCode }, event)
+    const result = await postRelayEvent({ relayUrl, sessionCode, accessToken }, event)
     if (!result.ok) setLastError(result.error ?? 'Relay event failed')
     else setLastError(null)
     return result
-  }, [relayUrl, sessionCode])
+  }, [relayUrl, sessionCode, accessToken])
 
   const syncRelaySnapshot = useCallback(async () => {
-    const result = await fetchRelaySnapshot({ relayUrl, sessionCode })
+    const result = await fetchRelaySnapshot({ relayUrl, sessionCode, accessToken })
     if (result.ok) {
       setSnapshot(result.data)
       setLastError(null)
@@ -24,7 +24,7 @@ export function useDesktopRelay(relayUrl: string, sessionCode: string) {
       setLastError(result.error)
     }
     return result
-  }, [relayUrl, sessionCode])
+  }, [relayUrl, sessionCode, accessToken])
 
   return {
     snapshot,

@@ -16,6 +16,7 @@ function parsePairingUrl(url: string | null) {
   try {
     const parsed = new URL(url)
     const pairingCode = parsed.searchParams.get('code') ?? parsed.searchParams.get('pair')
+    const accessToken = parsed.searchParams.get('token')
     const relayUrl = parsed.searchParams.get('relay') ?? parsed.searchParams.get('relayUrl')
     const desktopId = parsed.searchParams.get('desktopId') ?? parsed.searchParams.get('desktop')
     const projectName = parsed.searchParams.get('project') ?? parsed.searchParams.get('projectName')
@@ -24,6 +25,7 @@ function parsePairingUrl(url: string | null) {
 
     return {
       pairingCode: pairingCode ?? createPairingCode(),
+      accessToken: accessToken ?? null,
       relayUrl: relayUrl ?? '',
       desktopId: desktopId ?? null,
       projectName: projectName ?? 'Daemon Project',
@@ -38,6 +40,7 @@ export function usePairingSession(initialRelayUrl = '') {
   const [session, setSession] = useState<PairingSession>(() => ({
     status: 'idle',
     pairingCode: createPairingCode(),
+    accessToken: null,
     relayUrl: initialRelayUrl,
     desktopId: null,
     projectName: 'Daemon Project',
@@ -60,10 +63,11 @@ export function usePairingSession(initialRelayUrl = '') {
     return nextSession
   }, [])
 
-  const pairManually = useCallback((pairingCode: string, relayUrl: string) => {
+  const pairManually = useCallback((pairingCode: string, relayUrl: string, accessToken?: string) => {
     const next = {
       status: 'paired' as const,
       pairingCode: pairingCode.trim() || createPairingCode(),
+      accessToken: accessToken?.trim() || null,
       relayUrl: relayUrl.trim(),
       desktopId: 'manual-desktop',
     }
@@ -86,6 +90,7 @@ export function usePairingSession(initialRelayUrl = '') {
     updateSession({
       status: 'idle',
       pairingCode: createPairingCode(),
+      accessToken: null,
       relayUrl: initialRelayUrl,
       desktopId: null,
       projectName: 'Daemon Project',
