@@ -233,6 +233,7 @@ contextBridge.exposeInMainWorld('daemon', {
         'process:changed',
         'port:changed',
         'wallet:changed',
+        'secure-key:degraded',
       ])
       if (!allowed.has(channel)) {
         console.warn(`[preload] events.on rejected unknown channel: ${channel}`)

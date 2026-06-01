@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockEncryptString, mockDecryptString, mockIsEncryptionAvailable } = vi.hoisted(() => ({
+const { mockEncryptString, mockDecryptString, mockIsEncryptionAvailable, mockGetSelectedStorageBackend } = vi.hoisted(() => ({
   mockEncryptString: vi.fn((s: string) => Buffer.from(s)),
   mockDecryptString: vi.fn((b: Buffer) => b.toString()),
   mockIsEncryptionAvailable: vi.fn(() => true),
+  // Returns null to emulate macOS/Windows (no backend selector); a string emulates Linux.
+  mockGetSelectedStorageBackend: vi.fn<() => string | null>(() => null),
 }))
 
 vi.mock('electron', () => ({
@@ -11,6 +13,12 @@ vi.mock('electron', () => ({
     encryptString: mockEncryptString,
     decryptString: mockDecryptString,
     isEncryptionAvailable: mockIsEncryptionAvailable,
+    getSelectedStorageBackend: () => {
+      const value = mockGetSelectedStorageBackend()
+      // Emulate platforms without the selector by throwing the "not a function"
+      // condition: the service guards typeof, so returning null is enough here.
+      return value as string
+    },
   },
 }))
 
@@ -23,7 +31,15 @@ vi.mock('../../electron/db/db', () => ({
   getDb: () => ({ prepare: mockPrepare }),
 }))
 
-import { storeKey, getKey, deleteKey, listKeys, isEncryptionAvailable } from '../../electron/services/SecureKeyService'
+import {
+  storeKey,
+  getKey,
+  deleteKey,
+  listKeys,
+  isEncryptionAvailable,
+  isKeyEncryptionTrustworthy,
+  getKeyEncryptionWarning,
+} from '../../electron/services/SecureKeyService'
 
 describe('isEncryptionAvailable', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -173,5 +189,71 @@ describe('listKeys', () => {
   it('returns empty array when no keys are stored', () => {
     mockPrepare.mockReturnValue({ all: vi.fn().mockReturnValue([]) })
     expect(listKeys()).toEqual([])
+  })
+})
+
+describe('safeStorage backend degradation (CVE-class: silent plaintext fallback)', () => {
+  const WALLET_KEY = 'WALLET_KEYPAIR_abc'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockIsEncryptionAvailable.mockReturnValue(true)
+    mockGetSelectedStorageBackend.mockReturnValue(null)
+  })
+
+  it('treats macOS/Windows (null backend) as trustworthy', () => {
+    mockGetSelectedStorageBackend.mockReturnValue(null)
+    expect(isKeyEncryptionTrustworthy()).toBe(true)
+    expect(getKeyEncryptionWarning()).toBeNull()
+  })
+
+  it('treats Linux gnome_libsecret as trustworthy', () => {
+    mockGetSelectedStorageBackend.mockReturnValue('gnome_libsecret')
+    expect(isKeyEncryptionTrustworthy()).toBe(true)
+    expect(getKeyEncryptionWarning()).toBeNull()
+  })
+
+  it('flags basic_text as degraded', () => {
+    mockGetSelectedStorageBackend.mockReturnValue('basic_text')
+    expect(isKeyEncryptionTrustworthy()).toBe(false)
+    expect(getKeyEncryptionWarning()).toMatch(/degraded/i)
+  })
+
+  it('flags an unavailable keyring', () => {
+    mockIsEncryptionAvailable.mockReturnValue(false)
+    expect(isKeyEncryptionTrustworthy()).toBe(false)
+    expect(getKeyEncryptionWarning()).toMatch(/unavailable/i)
+  })
+
+  it('refuses to STORE a wallet key on basic_text instead of writing plaintext', () => {
+    mockPrepare.mockReturnValue({ run: mockRun, get: mockGet, all: mockAll })
+    mockGetSelectedStorageBackend.mockReturnValue('basic_text')
+    expect(() => storeKey(WALLET_KEY, 'secret-bytes')).toThrow(/degraded/i)
+    expect(mockRun).not.toHaveBeenCalled()
+  })
+
+  it('still stores API keys on basic_text (lenient, non-private)', () => {
+    mockPrepare.mockReturnValue({ run: mockRun, get: mockGet, all: mockAll })
+    mockGetSelectedStorageBackend.mockReturnValue('basic_text')
+    expect(() => storeKey('HELIUS_API_KEY', 'helius-xyz')).not.toThrow()
+    expect(mockRun).toHaveBeenCalled()
+  })
+
+  it('THROWS (does not return null) reading a wallet key on a degraded backend', () => {
+    mockGetSelectedStorageBackend.mockReturnValue('basic_text')
+    mockPrepare.mockReturnValue({ get: vi.fn().mockReturnValue({ encrypted_value: Buffer.from('x') }) })
+    expect(() => getKey(WALLET_KEY)).toThrow(/degraded/i)
+  })
+
+  it('THROWS reading a wallet key with no keyring available', () => {
+    mockIsEncryptionAvailable.mockReturnValue(false)
+    expect(() => getKey(WALLET_KEY)).toThrow(/unavailable/i)
+  })
+
+  it('reads a wallet key normally on a healthy backend', () => {
+    mockGetSelectedStorageBackend.mockReturnValue('gnome_libsecret')
+    mockDecryptString.mockReturnValue('secret-bytes')
+    mockPrepare.mockReturnValue({ get: vi.fn().mockReturnValue({ encrypted_value: Buffer.from('x') }) })
+    expect(getKey(WALLET_KEY)).toBe('secret-bytes')
   })
 })

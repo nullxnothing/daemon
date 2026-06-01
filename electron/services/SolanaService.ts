@@ -4,6 +4,7 @@ import { getDb } from '../db/db'
 import { getWalletInfrastructureSettings } from './SettingsService'
 import { LogService } from './LogService'
 import * as Voight from './VoightService'
+import { assertTransactionAllowed } from './SignerGuardService'
 import bs58 from 'bs58'
 import fs from 'node:fs'
 
@@ -282,10 +283,15 @@ export async function executeTransaction(
     computeUnitLimit?: number
     computeUnitPriceMicroLamports?: number
     confirmationStrategy?: BlockheightConfirmationStrategy
+    /** Hash-bound human approval token (propose/commit) for the signer guard. */
+    approvalHash?: string
+    /** Caller label for signer-guard audit. */
+    guardSource?: string
   },
 ): Promise<TransactionExecutionResult> {
   const { mode } = getTransactionSubmissionSettings()
   let confirmationStrategy = options?.confirmationStrategy
+  const guardOptions = { approvalHash: options?.approvalHash, source: options?.guardSource }
 
   if (transaction instanceof Transaction) {
     const latest = await connection.getLatestBlockhash('confirmed')
@@ -294,6 +300,8 @@ export async function executeTransaction(
     transaction.recentBlockhash = latest.blockhash
     confirmationStrategy = latest
     if (signers.length > 0) {
+      // Guard runs on the FINAL message (blockhash + feePayer set) immediately before signing.
+      assertTransactionAllowed(transaction, signers, guardOptions)
       transaction.sign(...signers)
     }
   } else if (signers.length > 0) {
@@ -302,6 +310,7 @@ export async function executeTransaction(
       blockhash: transaction.message.recentBlockhash,
       lastValidBlockHeight: latest.lastValidBlockHeight,
     }
+    assertTransactionAllowed(transaction, signers, guardOptions)
     transaction.sign(signers)
   } else {
     const latest = await connection.getLatestBlockhash('confirmed')
@@ -355,6 +364,8 @@ export async function executeInstructions(
     addComputeBudget?: boolean
     computeUnitLimit?: number
     computeUnitPriceMicroLamports?: number
+    approvalHash?: string
+    guardSource?: string
   },
 ): Promise<TransactionExecutionResult> {
   if (instructions.length === 0) {
@@ -379,6 +390,8 @@ export async function executeInstructions(
     feePayer: payer,
     addComputeBudget: false,
     confirmationStrategy: latest,
+    approvalHash: options?.approvalHash,
+    guardSource: options?.guardSource,
   })
 }
 
