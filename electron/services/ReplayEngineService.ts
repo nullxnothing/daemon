@@ -442,7 +442,11 @@ export function createAgentHandoff(projectPath: string, trace: ReplayTrace): Rep
     ...handoff,
     contextPath,
     promptText,
-    startupCommand: `claude --dangerously-skip-permissions -p ${quoteForPowerShell(promptText)}`,
+    // No --dangerously-skip-permissions: the replay audit runs in the user's
+    // repo with shell + filesystem access (and possible keypairs). Claude's
+    // normal per-tool approval must stay on so an injected instruction in the
+    // replayed transaction context can't silently drive signing or key reads.
+    startupCommand: `claude -p ${quoteForPowerShell(promptText)}`,
   }
 }
 
