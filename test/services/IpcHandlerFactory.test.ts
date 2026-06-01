@@ -2,8 +2,10 @@ import { describe, it, expect, vi } from 'vitest'
 import { ipcHandler, withValidation, unwrapResponse } from '../../electron/services/IpcHandlerFactory'
 import type { IpcMainInvokeEvent } from 'electron'
 
-// Minimal fake event — ipcHandler passes it through but never inspects it in tests
-const fakeEvent = {} as IpcMainInvokeEvent
+// Trusted top-frame sender. ipcHandler now rejects untrusted sender frames, so
+// tests of the success/error/validation paths must present a valid top frame.
+// No trusted origin is configured in this suite, so any top frame is accepted.
+const fakeEvent = { senderFrame: { url: 'file:///app/index.html', parent: null } } as unknown as IpcMainInvokeEvent
 
 describe('ipcHandler — success path', () => {
   it('wraps synchronous return value in { ok: true, data }', async () => {
@@ -94,6 +96,26 @@ describe('withValidation', () => {
     const handler = ipcHandler(wrapped)
     await handler(fakeEvent, 'a', 'b')
     expect(validator).toHaveBeenCalledWith('a', 'b')
+  })
+})
+
+describe('ipcHandler — sender frame validation', () => {
+  it('rejects an event with no sender frame', async () => {
+    const innerFn = vi.fn().mockResolvedValue('ok')
+    const handler = ipcHandler(innerFn)
+    const result = await handler({} as IpcMainInvokeEvent)
+    expect(result).toEqual({ ok: false, error: 'IPC request rejected: untrusted sender frame' })
+    expect(innerFn).not.toHaveBeenCalled()
+  })
+
+  it('rejects a sub-frame sender (iframe/webview document)', async () => {
+    const innerFn = vi.fn().mockResolvedValue('ok')
+    const handler = ipcHandler(innerFn)
+    const top = { url: 'file:///app/index.html', parent: null }
+    const subFrameEvent = { senderFrame: { url: 'https://embedded.example.com/', parent: top } } as unknown as IpcMainInvokeEvent
+    const result = await handler(subFrameEvent)
+    expect(result).toEqual({ ok: false, error: 'IPC request rejected: untrusted sender frame' })
+    expect(innerFn).not.toHaveBeenCalled()
   })
 })
 

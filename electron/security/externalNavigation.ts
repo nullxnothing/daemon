@@ -36,10 +36,8 @@ export function isAllowedWebviewUrl(input: unknown): boolean {
   if (!url) return false
   if (url.username || url.password) return false
 
-  if (url.protocol === 'https:') return true
-  if (isLocalHttpUrl(url)) return true
-
-  // Browser and tool preview webviews may need plain HTTP during local
-  // development, but only after rejecting credentialed and non-network schemes.
-  return url.protocol === 'http:'
+  // Only https, or plain http to loopback (local dev/tool previews). Remote
+  // http is rejected — an embedded cleartext page is both downgradeable and a
+  // needless RCE/credential-leak surface.
+  return url.protocol === 'https:' || isLocalHttpUrl(url)
 }
