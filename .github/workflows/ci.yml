@@ -29,9 +29,13 @@ jobs:
       - name: Install Linux UI test dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb
       # Disable lifecycle scripts on install (Shai-Hulud-class supply-chain
-      # defense); native modules are rebuilt explicitly afterward.
+      # defense); native modules and the Electron binary are set up explicitly.
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run rebuild:native
+      # --ignore-scripts skips electron's postinstall binary download; run only
+      # electron's own install (not arbitrary lifecycle scripts) so tests that
+      # import electron can load.
+      - run: node node_modules/electron/install.js
       - name: OSV supply-chain scan (lockfile)
         uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
         with:
@@ -73,6 +77,7 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run rebuild:native
+      - run: node node_modules/electron/install.js
       - run: pnpm run build
       - run: pnpm run test:visual
       - run: pnpm exec electron-builder --publish never
@@ -101,6 +106,7 @@ jobs:
             electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run rebuild:native
+      - run: node node_modules/electron/install.js
       - run: pnpm run build
       - name: Pre-cache Electron binary
         shell: bash
