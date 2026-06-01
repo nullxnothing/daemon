@@ -60,8 +60,10 @@ import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
 import { flushQueue as flushVoightQueue } from '../services/VoightService'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
+import { getKeyEncryptionWarning, getStorageBackend } from '../services/SecureKeyService'
 import { shutdownAllLspSessions } from '../services/LspService'
 import { isAllowedWebviewUrl, isSafeExternalUrl, openSafeExternalUrl } from '../security/externalNavigation'
+import { isTrustedSender, setTrustedIpcOrigin } from '../security/ipcSender'
 import pkg from 'electron-updater'
 const { autoUpdater } = pkg
 
@@ -337,17 +339,20 @@ function registerAllIpc() {
   registerLspHandlers()
   registerVoightHandlers()
 
-  // Window controls
-  ipcMain.on('window:minimize', () => win?.minimize())
-  ipcMain.on('window:maximize', () => {
+  // Window controls — raw channels (not wrapped by ipcHandler), so guard the
+  // sender frame inline. Embedded/cross-origin frames must not drive the window.
+  ipcMain.on('window:minimize', (event) => { if (isTrustedSender(event)) win?.minimize() })
+  ipcMain.on('window:maximize', (event) => {
+    if (!isTrustedSender(event)) return
     if (win?.isMaximized()) {
       win.unmaximize()
     } else {
       win?.maximize()
     }
   })
-  ipcMain.on('window:close', () => shutdownApp())
-  ipcMain.on('window:reload', () => {
+  ipcMain.on('window:close', (event) => { if (isTrustedSender(event)) shutdownApp() })
+  ipcMain.on('window:reload', (event) => {
+    if (!isTrustedSender(event)) return
     if (!win) return
     if (VITE_DEV_SERVER_URL) {
       win.webContents.reloadIgnoringCache()
@@ -355,10 +360,11 @@ function registerAllIpc() {
       win.reload()
     }
   })
-  ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
+  ipcMain.handle('window:isMaximized', (event) => (isTrustedSender(event) ? (win?.isMaximized() ?? false) : false))
 
-  ipcMain.handle('agentops:get-pending-open-request', () => pendingAgentOpsOpenRequest)
-  ipcMain.handle('agentops:ack-open-request', (_event, receivedAt: string) => {
+  ipcMain.handle('agentops:get-pending-open-request', (event) => (isTrustedSender(event) ? pendingAgentOpsOpenRequest : null))
+  ipcMain.handle('agentops:ack-open-request', (event, receivedAt: string) => {
+    if (!isTrustedSender(event)) return false
     if (pendingAgentOpsOpenRequest?.receivedAt === receivedAt) {
       pendingAgentOpsOpenRequest = null
     }
@@ -366,13 +372,17 @@ function registerAllIpc() {
   })
 
   // Shell utilities
-  ipcMain.handle('shell:open-external', async (_event, url: string) => {
+  ipcMain.handle('shell:open-external', async (event, url: string) => {
+    if (!isTrustedSender(event)) return
     await openSafeExternalUrl(url)
   })
 }
 
 async function createWindow() {
   if (SMOKE_TEST_MODE) console.log('[smoke] createWindow:start')
+  // Trusted IPC origin: the Vite dev server in development, the file:// bundle in
+  // production. IPC handlers reject senders whose top frame is not this origin.
+  setTrustedIpcOrigin(VITE_DEV_SERVER_URL ? new URL(VITE_DEV_SERVER_URL).origin : 'file://')
   registerAllIpc()
 
   // CSP headers only in production — in dev, Vite serves /@react-refresh and
@@ -609,8 +619,24 @@ app.whenReady().then(() => {
     }
   }
   initTelemetry(app.getVersion() || '3.0.8')
+
+  // Key-encryption health: if the OS keyring is unavailable or degraded to a
+  // plaintext-equivalent backend, surface a blocking warning. SecureKeyService
+  // independently refuses to store/decrypt private keys in this state.
+  const keyEncryptionWarning = getKeyEncryptionWarning()
+  if (keyEncryptionWarning) {
+    console.warn('[secure-key]', keyEncryptionWarning, '(backend:', getStorageBackend(), ')')
+    recordAppCrash('key-encryption-degraded', keyEncryptionWarning, `backend=${getStorageBackend() ?? 'n/a'}`)
+  }
+
   createWindow().catch((err) => {
     console.error('[smoke] createWindow:error', err)
+  }).then(() => {
+    if (keyEncryptionWarning && win && !win.isDestroyed()) {
+      win.webContents.once('did-finish-load', () => {
+        win?.webContents.send('secure-key:degraded', keyEncryptionWarning)
+      })
+    }
   })
   dispatchInitialAgentOpsOpenRequest()
   setTimeout(() => {

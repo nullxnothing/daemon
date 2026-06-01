@@ -1,5 +1,6 @@
 import { IpcMainInvokeEvent } from 'electron'
 import { sanitizeErrorMessage } from '../security/PrivacyGuard'
+import { isTrustedSender } from '../security/ipcSender'
 import * as Voight from './VoightService'
 
 export type IpcResponse<T = unknown> = 
@@ -37,6 +38,11 @@ export function ipcHandler<R = unknown>(
   onError?: (err: unknown) => string | null | undefined
 ): (event: IpcMainInvokeEvent, ...args: any[]) => Promise<IpcResponse<R>> {
   return async (event: IpcMainInvokeEvent, ...args: any[]) => {
+    if (!isTrustedSender(event)) {
+      const message = 'IPC request rejected: untrusted sender frame'
+      trackIpcError(message)
+      return { ok: false, error: message }
+    }
     try {
       const result = await handler(event, ...args)
       return { ok: true, data: result }
