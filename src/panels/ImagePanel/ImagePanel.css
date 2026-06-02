@@ -1,4 +1,6 @@
 .image-panel {
+  --image-selection-ring: 0 0 0 1px var(--green);
+
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -46,7 +48,7 @@
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
@@ -105,7 +107,7 @@
   color: var(--t1);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
 }
 
 .image-key-input:focus-visible {
@@ -125,7 +127,7 @@
   font-weight: 600;
   color: var(--on-accent-dark);
   background: var(--green);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -183,7 +185,7 @@
   color: var(--t1);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   resize: none;
   overflow-y: auto;
   line-height: 1.5;
@@ -214,7 +216,7 @@
   gap: 0;
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
@@ -281,7 +283,7 @@
   font-weight: 600;
   color: var(--on-accent-dark);
   background: var(--green);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   margin-left: auto;
   white-space: nowrap;
@@ -355,7 +357,7 @@
   justify-content: center;
   color: var(--t3);
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   margin-left: auto;
 }
 
@@ -381,7 +383,7 @@
 .image-grid-item {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   background: var(--s2);
   border: 1px solid var(--border);
@@ -395,7 +397,7 @@
 
 .image-grid-item.selected {
   border-color: var(--green);
-  box-shadow: 0 0 0 1px var(--green);
+  box-shadow: var(--image-selection-ring);
 }
 
 .image-grid-item img {
@@ -446,7 +448,7 @@
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
@@ -477,7 +479,7 @@
 .image-detail-preview {
   width: 200px;
   min-width: 200px;
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   background: var(--s2);
   border: 1px solid var(--border);
@@ -550,7 +552,7 @@
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   white-space: nowrap;
 }

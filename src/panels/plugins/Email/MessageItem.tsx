@@ -33,13 +33,6 @@ function decodeHtmlEntities(text: string): string {
     '&nbsp;': ' ',
     '&#x2F;': '/',
     '&apos;': "'",
-    '&#8217;': '\u2019',
-    '&#8216;': '\u2018',
-    '&#8220;': '\u201C',
-    '&#8221;': '\u201D',
-    '&#8230;': '\u2026',
-    '&#8211;': '\u2013',
-    '&#8212;': '\u2014',
   }
   let decoded = text
   for (const [entity, char] of Object.entries(entities)) {
