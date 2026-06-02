@@ -10,6 +10,7 @@ import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/Comman
 import { KeyboardShortcuts } from '../../components/KeyboardShortcuts'
 import { NavigationGuide } from '../../components/NavigationGuide'
 import { isToolDisableable } from '../../constants/toolRegistry'
+import { daemon } from '../../lib/daemonBridge'
 import {
   readRightSidebarWidgetConfig,
   RIGHT_SIDEBAR_WIDGET_EVENT,
@@ -154,7 +155,7 @@ function KeysSection() {
   const [saving, setSaving] = useState(false)
 
   const load = useCallback((isCancelled: () => boolean = () => false) => {
-    window.daemon.claude.listKeys().then((res) => {
+    daemon.claude.listKeys().then((res) => {
       if (!isCancelled() && res.ok && res.data) setKeys(res.data)
     })
   }, [])
@@ -168,7 +169,7 @@ function KeysSection() {
   const handleSave = async () => {
     if (!newKeyName.trim() || !newKeyValue.trim()) return
     setSaving(true)
-    await window.daemon.claude.storeKey(newKeyName.trim(), newKeyValue.trim())
+    await daemon.claude.storeKey(newKeyName.trim(), newKeyValue.trim())
     setNewKeyName('')
     setNewKeyValue('')
     setSaving(false)
@@ -176,7 +177,7 @@ function KeysSection() {
   }
 
   const handleDelete = async (name: string) => {
-    await window.daemon.claude.deleteKey(name)
+    await daemon.claude.deleteKey(name)
     load()
   }
 
@@ -234,11 +235,11 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
   const load = useCallback((isCancelled: () => boolean = () => false) => {
     if (projectPath) {
-      window.daemon.claude.projectMcpAll(projectPath).then((res) => {
+      daemon.claude.projectMcpAll(projectPath).then((res) => {
         if (!isCancelled() && res.ok && res.data) setMcps(res.data)
       })
     }
-    window.daemon.claude.verifyConnection().then((res) => {
+    daemon.claude.verifyConnection().then((res) => {
       if (!isCancelled() && res.ok && res.data) setConnection(res.data)
     })
   }, [projectPath])
@@ -251,7 +252,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
   const toggleMcp = async (name: string, enabled: boolean) => {
     if (!projectPath) return
-    await window.daemon.claude.projectMcpToggle(projectPath, name, enabled)
+    await daemon.claude.projectMcpToggle(projectPath, name, enabled)
     load()
     useUIStore.getState().bumpMcpVersion()
     useUIStore.getState().setMcpDirty(true)
@@ -259,7 +260,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
   const handleDisconnect = async () => {
     setDisconnecting(true)
-    await window.daemon.claude.disconnect()
+    await daemon.claude.disconnect()
     setDisconnecting(false)
     setConnection(null)
     setShowApiInput(false)
@@ -279,7 +280,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
       )
     }, 30000)
     try {
-      await window.daemon.claude.authLogin()
+      await daemon.claude.authLogin()
     } catch (err) {
       useNotificationsStore.getState().pushError(err, 'Claude sign-in')
     } finally {
@@ -292,7 +293,7 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
   const handleSaveApiKey = async () => {
     if (!apiKeyInput.trim()) return
     setSavingKey(true)
-    await window.daemon.claude.storeKey('ANTHROPIC_API_KEY', apiKeyInput.trim())
+    await daemon.claude.storeKey('ANTHROPIC_API_KEY', apiKeyInput.trim())
     setSavingKey(false)
     setApiKeyInput('')
     setShowApiInput(false)
@@ -392,7 +393,7 @@ function VoightIntegrationCard() {
   const [message, setMessage] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    const res = await window.daemon.voight.status()
+    const res = await daemon.voight.status()
     if (res.ok && res.data) setStatus(res.data)
   }, [])
 
@@ -404,7 +405,7 @@ function VoightIntegrationCard() {
     if (!keyInput.trim()) return
     setBusy('save')
     setMessage(null)
-    const res = await window.daemon.voight.storeKey(keyInput.trim())
+    const res = await daemon.voight.storeKey(keyInput.trim())
     setBusy(null)
     if (res.ok && res.data) {
       setStatus(res.data)
@@ -418,7 +419,7 @@ function VoightIntegrationCard() {
   const deleteKey = async () => {
     setBusy('delete')
     setMessage(null)
-    const res = await window.daemon.voight.deleteKey()
+    const res = await daemon.voight.deleteKey()
     setBusy(null)
     if (res.ok && res.data) {
       setStatus(res.data)
@@ -431,7 +432,7 @@ function VoightIntegrationCard() {
   const testEvent = async () => {
     setBusy('test')
     setMessage(null)
-    const res = await window.daemon.voight.testEvent()
+    const res = await daemon.voight.testEvent()
     setBusy(null)
     if (res.ok && res.data) {
       setMessage(`Test event accepted (${res.data.status})`)
@@ -443,7 +444,7 @@ function VoightIntegrationCard() {
 
   const setPrivacy = async (privacyLevel: VoightPrivacyLevel) => {
     setBusy('privacy')
-    const res = await window.daemon.voight.setPrivacyLevel(privacyLevel)
+    const res = await daemon.voight.setPrivacyLevel(privacyLevel)
     setBusy(null)
     if (res.ok && res.data) setStatus(res.data)
     else setMessage(res.error ?? 'Could not update privacy level')
@@ -521,8 +522,8 @@ function DefaultProviderSection() {
 
   const refresh = useCallback(async () => {
     const [defRes, connRes] = await Promise.all([
-      window.daemon.provider.getDefault(),
-      window.daemon.provider.verifyAll(),
+      daemon.provider.getDefault(),
+      daemon.provider.verifyAll(),
     ])
     if (defRes.ok && defRes.data) setDefaultId(defRes.data as 'claude' | 'codex')
     if (connRes.ok && connRes.data) {
@@ -538,7 +539,7 @@ function DefaultProviderSection() {
 
   const handlePick = async (id: 'claude' | 'codex') => {
     setError(null)
-    const res = await window.daemon.provider.setDefault(id)
+    const res = await daemon.provider.setDefault(id)
     if (res.ok) {
       setDefaultId(id)
     } else {
@@ -603,8 +604,8 @@ function AIProvidersSection() {
 
   const refresh = useCallback(async () => {
     const [prefsRes, connRes] = await Promise.all([
-      window.daemon.provider.getPreferences(),
-      window.daemon.provider.verifyAll(),
+      daemon.provider.getPreferences(),
+      daemon.provider.verifyAll(),
     ])
     if (prefsRes.ok && prefsRes.data) setPreferences(prefsRes.data)
     if (connRes.ok && connRes.data) setConns(connRes.data)
@@ -616,7 +617,7 @@ function AIProvidersSection() {
   const save = async (next: ProviderPreferences) => {
     setSaving(true)
     setError(null)
-    const res = await window.daemon.provider.setPreferences(next)
+    const res = await daemon.provider.setPreferences(next)
     setSaving(false)
     if (res.ok && res.data) {
       setPreferences(res.data)
@@ -781,7 +782,7 @@ function AgentsSection() {
 
   useEffect(() => {
     let cancelled = false
-    window.daemon.agents.list().then((res) => {
+    daemon.agents.list().then((res) => {
       if (!cancelled && res.ok && res.data) setAgents(res.data)
     })
     return () => { cancelled = true }
@@ -831,7 +832,7 @@ function CrashesSection() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = useCallback((isCancelled: () => boolean = () => false) => {
-    window.daemon.settings.getCrashes().then((res) => {
+    daemon.settings.getCrashes().then((res) => {
       if (!isCancelled() && res.ok && res.data) setCrashes(res.data)
     })
   }, [])
@@ -843,7 +844,7 @@ function CrashesSection() {
   }, [load])
 
   const handleClear = async () => {
-    await window.daemon.settings.clearCrashes()
+    await daemon.settings.clearCrashes()
     setCrashes([])
   }
 
@@ -924,7 +925,7 @@ function SetupSection() {
 
   useEffect(() => {
     let cancelled = false
-    window.daemon.settings.getAppMeta().then((res) => {
+    daemon.settings.getAppMeta().then((res) => {
       if (!cancelled && res.ok && res.data) setAppMeta(res.data)
     }).catch(() => {})
     return () => { cancelled = true }
@@ -939,8 +940,8 @@ function SetupSection() {
       firstRun: 'pending' as const,
       tour: 'pending' as const,
     }
-    await window.daemon.settings.setOnboardingComplete(false)
-    await window.daemon.settings.setOnboardingProgress(freshProgress)
+    await daemon.settings.setOnboardingComplete(false)
+    await daemon.settings.setOnboardingProgress(freshProgress)
     // Reset in-memory progress before opening so progress dots start clean
     useOnboardingStore.setState({ progress: freshProgress })
     useOnboardingStore.getState().openWizard()
@@ -953,7 +954,7 @@ function SetupSection() {
   const handleResetLayout = async () => {
     setResettingLayout(true)
     try {
-      const res = await window.daemon.settings.recoverUiState()
+      const res = await daemon.settings.recoverUiState()
       if (!res.ok) throw new Error(res.error ?? 'Failed to reset UI layout')
       useNotificationsStore.getState().pushToast({
         kind: 'warning',
@@ -961,7 +962,7 @@ function SetupSection() {
         ttlMs: 5000,
         message: 'UI layout reset. Reloading workspace...',
       })
-      window.daemon.window.reload()
+      daemon.window.reload()
     } catch (err) {
       useNotificationsStore.getState().pushError(err, 'Reset UI layout')
       setResettingLayout(false)
@@ -998,7 +999,7 @@ function SetupSection() {
           </div>
 
           <div className="settings-meta-actions">
-            <button type="button" className="settings-btn" onClick={() => window.daemon.feedback.openUrl(appMeta.releaseUrl)}>
+            <button type="button" className="settings-btn" onClick={() => daemon.feedback.openUrl(appMeta.releaseUrl)}>
               Open Latest Release
             </button>
           </div>
@@ -1136,11 +1137,43 @@ function DisplaySection() {
   const handleToggleMarketTape = (enabled: boolean) => { void setShowMarketTape(enabled) }
   const handleToggleTitlebarWallet = (enabled: boolean) => { void setShowTitlebarWallet(enabled) }
   const handleToggleLowPowerMode = (enabled: boolean) => { void setLowPowerMode(enabled) }
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (
+    document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+  ))
+
+  const handleThemeChange = (nextTheme: 'dark' | 'light') => {
+    setTheme(nextTheme)
+    document.documentElement.dataset.theme = nextTheme
+    window.localStorage.setItem('daemon-theme', nextTheme)
+  }
 
   return (
     <div className="settings-section">
       <div className="settings-section-desc">
         UI display preferences.
+      </div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Theme</span>
+        <span className="settings-display-hint">Switch between the default dark workspace and the light inspection theme</span>
+        <div className="settings-theme-segment" role="group" aria-label="Theme">
+          <button
+            type="button"
+            className={`settings-theme-option${theme === 'dark' ? ' active' : ''}`}
+            aria-pressed={theme === 'dark'}
+            onClick={() => handleThemeChange('dark')}
+          >
+            Dark
+          </button>
+          <button
+            type="button"
+            className={`settings-theme-option${theme === 'light' ? ' active' : ''}`}
+            aria-pressed={theme === 'light'}
+            onClick={() => handleThemeChange('light')}
+          >
+            Light
+          </button>
+        </div>
       </div>
 
       <div className="settings-display-row">

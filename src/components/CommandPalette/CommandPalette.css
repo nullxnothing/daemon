@@ -16,7 +16,7 @@
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-modal), var(--glow-green-ambient);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
   height: fit-content;
 }
@@ -67,6 +67,7 @@
   padding: var(--space-sm) var(--space-lg) var(--space-2xs);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
+  font-family: var(--font-code);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: var(--ls-caps);

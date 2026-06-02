@@ -1,5 +1,5 @@
 export const DAEMON_SOLANA_LOGO_COLORS = {
-  green: '#42f0ad',
+  green: '#3ecf8e',
   purple: '#9945FF',
   magenta: '#DC1FFF',
 } as const
@@ -8,11 +8,11 @@ export const DAEMON_ICON_GRADIENTS = {
   explorer: ['#7bc4ff', '#60a5fa'],
   launcher: ['#a78bfa', '#38bdf8'],
   hackathon: ['#ffd84d', '#f59e0b'],
-  tools: ['#42f0ad', '#2dd4bf'],
+  tools: ['#3ecf8e', '#2aa978'],
 } as const
 
-export const DAEMON_TOOL_ACCENT_FALLBACK = '#42f0ad'
-export const DAEMON_SIDEBAR_ACCENT_FALLBACK = '#8f98a8'
+export const DAEMON_TOOL_ACCENT_FALLBACK = '#3ecf8e'
+export const DAEMON_SIDEBAR_ACCENT_FALLBACK = '#85827a'
 
 export const DAEMON_TOOL_COLORS: Record<string, string> = {
   starter: '#7dd3fc',
@@ -26,7 +26,7 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
   processes: '#f87171',
   settings: '#a3aab8',
   'image-editor': '#d8b4fe',
-  'solana-toolbox': '#42f0ad',
+  'solana-toolbox': '#3ecf8e',
   integrations: '#5eead4',
   'metaplex-demo': '#5cff9d',
   zauth: '#e5e7eb',
@@ -39,7 +39,7 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
   dashboard: '#22c55e',
   sessions: '#38bdf8',
   hackathon: '#facc15',
-  'daemon-ai': '#42f0ad',
+  'daemon-ai': '#3ecf8e',
   plugins: '#cbd5e1',
   recovery: '#fb7185',
   pro: '#fde047',
@@ -51,12 +51,12 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
 }
 
 export const DAEMON_XTERM_THEME = {
-  background: '#090b0f',
-  foreground: '#f0f5f8',
-  cursor: '#f0f5f8',
-  selectionBackground: '#1f2630',
-  black: '#090b0f',
-  brightBlack: '#4d5967',
+  background: '#080808',
+  foreground: '#f4f3ef',
+  cursor: '#f4f3ef',
+  selectionBackground: '#252521',
+  black: '#080808',
+  brightBlack: '#5f5c55',
   red: '#8c4a4a',
   brightRed: '#a65c5c',
   green: '#4a8c62',
@@ -69,7 +69,7 @@ export const DAEMON_XTERM_THEME = {
   brightMagenta: '#925ca6',
   cyan: '#4a8c8c',
   brightCyan: '#5ca6a6',
-  white: '#f0f5f8',
+  white: '#f4f3ef',
   brightWhite: '#ffffff',
 } as const
 
@@ -81,20 +81,20 @@ export const DAEMON_XTERM_MINIMAL_THEME = {
 } as const
 
 export const DAEMON_MONACO_THEME_COLORS = {
-  'editor.background': '#090b0f',
-  'editor.foreground': '#f0f5f8',
-  'editorLineNumber.foreground': '#4d5967',
-  'editorLineNumber.activeForeground': '#9aa8b8',
-  'editor.selectionBackground': '#1f2630',
-  'editor.lineHighlightBackground': '#10141a',
-  'editorCursor.foreground': '#f0f5f8',
-  'editorWidget.background': '#10141a',
-  'editorWidget.border': '#29313c',
-  'input.background': '#151a22',
-  'input.border': '#29313c',
-  'dropdown.background': '#10141a',
-  'list.hoverBackground': '#171d26',
-  'list.activeSelectionBackground': '#1f2630',
+  'editor.background': '#080808',
+  'editor.foreground': '#f4f3ef',
+  'editorLineNumber.foreground': '#5f5c55',
+  'editorLineNumber.activeForeground': '#b7b5ad',
+  'editor.selectionBackground': '#252521',
+  'editor.lineHighlightBackground': '#111110',
+  'editorCursor.foreground': '#f4f3ef',
+  'editorWidget.background': '#111110',
+  'editorWidget.border': '#2a2925',
+  'input.background': '#0c0c0b',
+  'input.border': '#2a2925',
+  'dropdown.background': '#111110',
+  'list.hoverBackground': '#171716',
+  'list.activeSelectionBackground': '#252521',
 } as const
 
 export const EDITOR_WELCOME_TEMPLATE_COLORS = {
@@ -110,17 +110,17 @@ export const SPAWN_AGENT_PNL_COLORS = {
 } as const
 
 export const PUMP_FUN_CURVE_COLORS = {
-  bg: '#11151c',
-  curveLine: '#42f0ad',
+  bg: '#111110',
+  curveLine: '#3ecf8e',
   curveLineTop: '#60a5fa',
   fillBottom: 'rgba(66, 240, 173, 0.06)',
   fillTop: 'rgba(96, 165, 250, 0.04)',
-  dot: '#42f0ad',
-  dotGlow: 'rgba(66, 240, 173, 0.25)',
-  impactBuy: 'rgba(66, 240, 173, 0.12)',
+  dot: '#3ecf8e',
+  dotGlow: 'rgba(62, 207, 142, 0.25)',
+  impactBuy: 'rgba(62, 207, 142, 0.12)',
   impactSell: 'rgba(239, 83, 80, 0.12)',
-  gradLine: '#29313c',
-  gradLabel: '#7d8a99',
+  gradLine: '#2a2925',
+  gradLabel: '#85827a',
   priceLine: 'rgba(136, 136, 136, 0.25)',
   priceLabel: '#888888',
 } as const

@@ -287,7 +287,8 @@
 
 /* Display */
 .settings-display-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(142px, 0.28fr) minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 8px 0;
@@ -299,9 +300,56 @@
 }
 
 .settings-display-hint {
-  flex: 1;
+  min-width: 0;
   font-size: var(--fs-10);
   color: var(--t3);
+}
+
+.settings-theme-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+}
+
+.settings-theme-option {
+  height: 26px;
+  min-width: 54px;
+  padding: 0 var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--t3);
+  font-family: var(--font-code);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-theme-option:hover {
+  color: var(--t1);
+  background: var(--hover-bg);
+}
+
+.settings-theme-option.active {
+  color: var(--t1);
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
+}
+
+@media (max-width: 720px) {
+  .settings-display-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-xs) var(--space-md);
+  }
+
+  .settings-display-hint {
+    grid-column: 1 / -1;
+  }
 }
 
 .settings-side-actions {

@@ -6,6 +6,7 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { BUILTIN_TOOLS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { DAEMON_ICON_GRADIENTS, DAEMON_SIDEBAR_ACCENT_FALLBACK } from '../../styles/daemonTheme'
+import { daemon } from '../../lib/daemonBridge'
 import './IconSidebar.css'
 
 interface IconSidebarProps {
@@ -348,7 +349,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       <button
         type="button"
         className="sidebar-icon sidebar-icon--social"
-        onClick={() => void window.daemon.shell.openExternal('https://x.com/DaemonTerminal')}
+        onClick={() => void daemon.shell.openExternal('https://x.com/DaemonTerminal')}
         title="Follow on X"
         aria-label="Follow on X"
       >
@@ -357,7 +358,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       <button
         type="button"
         className="sidebar-icon sidebar-icon--social sidebar-icon--discord"
-        onClick={() => void window.daemon.shell.openExternal('https://discord.gg/uyCJtcEBxA')}
+        onClick={() => void daemon.shell.openExternal('https://discord.gg/uyCJtcEBxA')}
         title="Join Discord"
         aria-label="Join Discord"
       >

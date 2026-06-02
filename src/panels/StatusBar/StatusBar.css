@@ -5,16 +5,17 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-md);
-  background: var(--panel-bg);
+  background: color-mix(in srgb, var(--panel-bg) 92%, var(--surface-flat) 8%);
   border-top: 1px solid var(--panel-border);
   flex-shrink: 0;
+  font-family: var(--font-code);
 }
 
 .statusbar-left,
 .statusbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-md);
   min-width: 0;
   flex: 1;
 }
@@ -56,7 +57,7 @@
 .market-tape {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .market-tape-item {
