@@ -42,6 +42,7 @@ import { registerLaunchHandlers } from '../ipc/launch'
 import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerForensicsHandlers } from '../ipc/forensics'
 import { registerRegistryHandlers } from '../ipc/registry'
+import { registerSaidHandlers } from '../ipc/said'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
 import { registerMeterflowHandlers } from '../ipc/meterflow'
@@ -325,6 +326,7 @@ function registerAllIpc() {
   registerDashboardHandlers()
   registerForensicsHandlers()
   registerRegistryHandlers()
+  registerSaidHandlers()
   registerColosseumHandlers()
   registerIdleHandlers()
   registerMeterflowHandlers()

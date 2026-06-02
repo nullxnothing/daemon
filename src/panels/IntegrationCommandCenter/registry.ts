@@ -323,6 +323,27 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
       { id: 'preview-squads-vault', label: 'Preview vault', description: 'Planned: multisig and vault preview before proposal creation or execution.', kind: 'planned', risk: 'read-only' },
     ],
   },
+  {
+    id: 'said-protocol',
+    name: 'SAID Protocol',
+    tagline: 'On-chain identity + trust for AI agents',
+    description: 'Give agents a verifiable Solana identity with a verification badge, a 0–100 trust score, and on-chain reputation. Resolve agents by wallet/name/DID across 10 chains and discover them in a public directory. Complements the DAEMON work registry: SAID proves who an agent is, the registry proves what it did.',
+    category: 'agent',
+    docsUrl: 'https://www.saidprotocol.com/docs',
+    installCommand: 'pnpm add @said-protocol/agent said-sdk',
+    recommendedFor: ['agent identity', 'agent verification', 'trust scores', 'agent reputation', 'agent discovery', 'A2A messaging'],
+    requirements: [
+      { type: 'package', key: '@said-protocol/agent', label: '@said-protocol/agent package', optional: true },
+      { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet (for register/verify signing)' },
+      { type: 'external-url', key: 'https://www.saidprotocol.com/agents', label: 'SAID agent directory' },
+    ],
+    actions: [
+      { id: 'check-said-identity', label: 'Check identity', description: 'Look up the default wallet on SAID and show its agent identity, verification badge, and trust score.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'open-said-directory', label: 'Browse directory', description: 'Open the SAID public agent directory in your browser.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-said-docs', label: 'Open docs', description: 'Open the SAID docs in your browser.', kind: 'setup', risk: 'read-only' },
+      { id: 'preview-said-register', label: 'Preview registration', description: 'Review the register → verify flow and on-chain costs before any signing is enabled.', kind: 'planned', risk: 'requires-confirmation' },
+    ],
+  },
 ]
 
 export function getIntegration(id: string): IntegrationDefinition | undefined {

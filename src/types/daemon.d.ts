@@ -25,6 +25,8 @@ import type {
   ForensicsGraphData,
   ForensicsGraphNode,
   RicoMapsEmbedStatus,
+  SaidIdentity,
+  SaidTrustScore,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -178,6 +180,8 @@ export type {
   ForensicsGraphData,
   ForensicsGraphNode,
   RicoMapsEmbedStatus,
+  SaidIdentity,
+  SaidTrustScore,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -1607,6 +1611,7 @@ declare global {
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     forensics: DaemonForensics
+    said: DaemonSaid
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
@@ -1745,6 +1750,11 @@ declare global {
     pollHolders: (mint: string) => Promise<IpcResponse<ForensicsHolderPollResult>>
     ricoMapsStatus: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
     startRicoMaps: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
+  }
+
+  interface DaemonSaid {
+    getIdentity: (wallet: string) => Promise<IpcResponse<SaidIdentity>>
+    getTrust: (wallet: string) => Promise<IpcResponse<SaidTrustScore>>
   }
 
   interface DaemonBrowser {

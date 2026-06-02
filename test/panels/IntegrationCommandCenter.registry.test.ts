@@ -1,7 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { INTEGRATION_REGISTRY } from '../../src/panels/IntegrationCommandCenter/registry'
 import { runIntegrationAction } from '../../src/panels/IntegrationCommandCenter/actionRunner'
 import { resolveIntegrationStatus, type IntegrationContext } from '../../src/panels/IntegrationCommandCenter/status'
+
+function stubDaemon(said: { getIdentity?: unknown; getTrust?: unknown }) {
+  const daemon = {
+    said: {
+      getIdentity: said.getIdentity ?? vi.fn(),
+      getTrust: said.getTrust ?? vi.fn(),
+    },
+    shell: { openExternal: vi.fn() },
+  }
+  vi.stubGlobal('window', { daemon })
+}
 
 describe('Integration Command Center registry', () => {
   it('keeps integration ids, actions, and docs valid', () => {
@@ -215,5 +226,87 @@ describe('Integration Command Center registry', () => {
     expect(routeStack.status).toBe('success')
     expect(routeStack.title).toBe('IDLE execution prerequisites ready')
     expect(routeStack.items).toContain('x402 payment tooling available')
+  })
+
+  describe('SAID Protocol integration', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    const baseContext: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(),
+      walletReady: true,
+      defaultWallet: { id: 'wallet-1', name: 'Main Wallet', address: 'So11111111111111111111111111111111111111112', is_default: 1, created_at: 1, assigned_project_ids: [] },
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    it('registers SAID as an agent identity integration', () => {
+      const said = INTEGRATION_REGISTRY.find((integration) => integration.id === 'said-protocol')
+      expect(said).toBeDefined()
+      expect(said!.category).toBe('agent')
+      expect(said!.docsUrl).toBe('https://www.saidprotocol.com/docs')
+      expect(said!.installCommand).toContain('@said-protocol/agent')
+      expect(said!.requirements).toContainEqual({
+        type: 'wallet',
+        key: 'default-wallet',
+        label: 'Default DAEMON wallet (for register/verify signing)',
+      })
+      expect(said!.actions.map((action) => action.id)).toEqual([
+        'check-said-identity',
+        'open-said-directory',
+        'open-said-docs',
+        'preview-said-register',
+      ])
+      // register/verify/stake must stay gated behind confirmation, never auto-executed
+      const register = said!.actions.find((action) => action.id === 'preview-said-register')
+      expect(register!.kind).toBe('planned')
+      expect(register!.risk).toBe('requires-confirmation')
+    })
+
+    it('reports a registered, verified identity with its trust score', async () => {
+      stubDaemon({
+        getIdentity: vi.fn(async () => ({
+          ok: true,
+          data: { registered: true, name: 'DAEMON Agent', isVerified: true, pda: 'PdA1', trustScore: 80, feedbackCount: 2 },
+        })),
+        getTrust: vi.fn(async () => ({ ok: true, data: { score: 88, verified: true, staked: true, reputation: 10 } })),
+      })
+
+      const result = await runIntegrationAction('check-said-identity', baseContext)
+      expect(result.status).toBe('success')
+      expect(result.title).toBe('SAID: DAEMON Agent')
+      expect(result.detail).toContain('88/100')
+      expect(result.detail).toContain('verified')
+      expect(result.detail).toContain('staked')
+      expect(result.items).toContain('PDA PdA1')
+    })
+
+    it('treats an unregistered wallet as actionable info, not an error', async () => {
+      stubDaemon({
+        getIdentity: vi.fn(async () => ({ ok: true, data: { registered: false, wallet: baseContext.defaultWallet!.address } })),
+      })
+      const result = await runIntegrationAction('check-said-identity', baseContext)
+      expect(result.status).toBe('info')
+      expect(result.title).toBe('Not registered on SAID')
+    })
+
+    it('surfaces lookup failures as errors', async () => {
+      stubDaemon({
+        getIdentity: vi.fn(async () => ({ ok: false, error: 'network down' })),
+      })
+      const result = await runIntegrationAction('check-said-identity', baseContext)
+      expect(result.status).toBe('error')
+      expect(result.detail).toBe('network down')
+    })
+
+    it('warns when no default wallet is set', async () => {
+      stubDaemon({})
+      const result = await runIntegrationAction('check-said-identity', { ...baseContext, defaultWallet: null, walletReady: false })
+      expect(result.status).toBe('warning')
+      expect(result.title).toBe('No wallet selected')
+    })
   })
 })

@@ -601,6 +601,11 @@ contextBridge.exposeInMainWorld('daemon', {
     importToken: (mint: string, walletId: string) => ipcRenderer.invoke('dashboard:import-token', mint, walletId),
   },
 
+  said: {
+    getIdentity: (wallet: string) => ipcRenderer.invoke('said:get-identity', wallet),
+    getTrust: (wallet: string) => ipcRenderer.invoke('said:get-trust', wallet),
+  },
+
   forensics: {
     scan: (input: object) => ipcRenderer.invoke('forensics:scan', input),
     expand: (input: object) => ipcRenderer.invoke('forensics:expand', input),

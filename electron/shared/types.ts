@@ -1111,6 +1111,32 @@ export interface RicoMapsEmbedStatus {
   error: string | null
 }
 
+export interface SaidTrustScore {
+  score: number
+  verified: boolean
+  staked: boolean
+  reputation: number | null
+}
+
+export interface SaidIdentity {
+  wallet: string
+  pda: string | null
+  owner: string | null
+  name: string | null
+  description: string | null
+  isVerified: boolean
+  image: string | null
+  twitter: string | null
+  website: string | null
+  serviceTypes: string[]
+  skills: string[]
+  reputationScore: number | null
+  feedbackCount: number | null
+  trustScore: number | null
+  passportMint: string | null
+  registered: boolean
+}
+
 export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'
 
 export interface SolanaTransactionPreviewInput {

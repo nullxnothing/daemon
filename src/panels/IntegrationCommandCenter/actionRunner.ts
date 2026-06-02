@@ -295,6 +295,71 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-said-identity') {
+    const wallet = context.defaultWallet
+    if (!wallet) {
+      return {
+        title: 'No wallet selected',
+        status: 'warning',
+        detail: 'Set a default wallet in the Wallet panel before checking its SAID identity.',
+      }
+    }
+
+    const identity = await daemon.said.getIdentity(wallet.address)
+    if (!identity.ok || !identity.data) {
+      return {
+        title: 'SAID lookup failed',
+        status: 'error',
+        detail: identity.error ?? 'DAEMON could not reach the SAID directory.',
+        items: [wallet.address],
+      }
+    }
+
+    if (!identity.data.registered) {
+      return {
+        title: 'Not registered on SAID',
+        status: 'info',
+        detail: `${wallet.name} has no SAID identity yet. Register it to earn a verifiable trust score and appear in the directory.`,
+        items: [wallet.address],
+      }
+    }
+
+    const trustRes = await daemon.said.getTrust(wallet.address)
+    const score = trustRes.ok && trustRes.data ? trustRes.data.score : identity.data.trustScore
+    const badges = [
+      identity.data.isVerified ? 'verified' : 'unverified',
+      trustRes.ok && trustRes.data?.staked ? 'staked' : 'no stake',
+    ]
+    return {
+      title: identity.data.name ? `SAID: ${identity.data.name}` : 'SAID identity found',
+      status: 'success',
+      detail: `Trust score ${score ?? 'n/a'}/100 (${badges.join(', ')}).`,
+      items: [
+        wallet.address,
+        ...(identity.data.pda ? [`PDA ${identity.data.pda}`] : []),
+        ...(typeof identity.data.feedbackCount === 'number' ? [`${identity.data.feedbackCount} feedback`] : []),
+      ],
+    }
+  }
+
+  if (actionId === 'open-said-directory') {
+    void daemon.shell.openExternal('https://www.saidprotocol.com/agents')
+    return {
+      title: 'Opening SAID directory',
+      status: 'success',
+      detail: 'Launched the SAID public agent directory in your browser.',
+    }
+  }
+
+  if (actionId === 'open-said-docs') {
+    void daemon.shell.openExternal('https://www.saidprotocol.com/docs')
+    return {
+      title: 'Opening SAID docs',
+      status: 'success',
+      detail: 'Launched the SAID docs in your browser.',
+    }
+  }
+
   return {
     title: 'Preview only',
     status: 'info',
