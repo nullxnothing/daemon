@@ -14,16 +14,16 @@ interface LayoutNode extends ForensicsGraphNode {
   cluster: number
 }
 
-const COLORS: Record<string, string> = {
-  target: '#00ff41',
-  token: '#f59e0b',
-  holder: '#1a7a3a',
-  funder: '#64b5f6',
-  funded: '#8b8bff',
-  connected: '#ff9f43',
-  'cabal-funder': '#ff3366',
-  sniper: '#00ffcc',
-  bundled: '#c084fc',
+const COLOR_TOKENS: Record<string, string> = {
+  target: '--green',
+  token: '--amber',
+  holder: '--success',
+  funder: '--blue',
+  funded: '--solana',
+  connected: '--warning',
+  'cabal-funder': '--red',
+  sniper: '--info',
+  bundled: '--solana',
 }
 
 function buildClusters(data: ForensicsGraphData): Map<string, number> {
@@ -123,12 +123,23 @@ export function RicoMapsGraph({ data, selectedId, onSelect }: RicoMapsGraphProps
     canvas.style.height = `${size.height}px`
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
+    const styles = getComputedStyle(document.documentElement)
+    const tokenColor = (token: string) => styles.getPropertyValue(token).trim() || 'white'
+    const palette = Object.fromEntries(
+      Object.entries(COLOR_TOKENS).map(([type, token]) => [type, tokenColor(token)]),
+    )
+    const surfaceColor = tokenColor('--surface-flat')
+    const suspiciousColor = tokenColor('--red')
+    const liveColor = tokenColor('--green')
+    const labelColor = tokenColor('--t1')
+    const fallbackNodeColor = tokenColor('--t3')
+
     let frame = 0
     let raf = 0
     const draw = () => {
       frame += 1
       ctx.clearRect(0, 0, size.width, size.height)
-      ctx.fillStyle = '#000'
+      ctx.fillStyle = surfaceColor
       ctx.fillRect(0, 0, size.width, size.height)
 
       const nodeMap = new Map(nodesRef.current.map((node) => [node.id, node]))
@@ -138,8 +149,8 @@ export function RicoMapsGraph({ data, selectedId, onSelect }: RicoMapsGraphProps
         if (!source || !target) continue
         const isHot = hovered === source.id || hovered === target.id || selectedId === source.id || selectedId === target.id
         ctx.strokeStyle = link.suspicious
-          ? `rgba(255,51,102,${isHot ? 0.78 : 0.42})`
-          : `rgba(0,255,65,${isHot ? 0.34 : 0.15})`
+          ? toRgba(suspiciousColor, isHot ? 0.78 : 0.42)
+          : toRgba(liveColor, isHot ? 0.34 : 0.15)
         ctx.lineWidth = link.suspicious ? 1.4 : 1
         ctx.beginPath()
         ctx.moveTo(source.x, source.y)
@@ -150,7 +161,7 @@ export function RicoMapsGraph({ data, selectedId, onSelect }: RicoMapsGraphProps
           const t = ((frame % 150) / 150)
           const px = source.x + (target.x - source.x) * t
           const py = source.y + (target.y - source.y) * t
-          ctx.fillStyle = link.suspicious ? '#ff3366' : '#00ff41'
+          ctx.fillStyle = link.suspicious ? suspiciousColor : liveColor
           ctx.beginPath()
           ctx.arc(px, py, 2.2, 0, Math.PI * 2)
           ctx.fill()
@@ -158,22 +169,22 @@ export function RicoMapsGraph({ data, selectedId, onSelect }: RicoMapsGraphProps
       }
 
       for (const node of nodesRef.current) {
-        const color = COLORS[node.type] ?? '#94a3b8'
+        const color = palette[node.type] ?? fallbackNodeColor
         const active = selectedId === node.id || hovered === node.id
         ctx.beginPath()
         ctx.arc(node.x, node.y, node.r + (active ? 8 : 4), 0, Math.PI * 2)
-        ctx.fillStyle = `${color}${active ? '30' : '14'}`
+        ctx.fillStyle = toRgba(color, active ? 0.18 : 0.08)
         ctx.fill()
         ctx.beginPath()
         ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2)
-        ctx.fillStyle = `${color}22`
+        ctx.fillStyle = toRgba(color, 0.14)
         ctx.fill()
         ctx.lineWidth = active ? 2.4 : 1.2
-        ctx.strokeStyle = active ? color : `${color}aa`
+        ctx.strokeStyle = active ? color : toRgba(color, 0.66)
         ctx.stroke()
         if (node.r > 18) {
-          ctx.fillStyle = '#f0f0f0'
-          ctx.font = '10px JetBrains Mono, monospace'
+          ctx.fillStyle = labelColor
+          ctx.font = '10px Geist Mono, JetBrains Mono, monospace'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(node.type === 'token' ? (node.label || 'TOKEN').slice(0, 8) : amountLabel(node), node.x, node.y)
@@ -224,4 +235,26 @@ function amountLabel(node: ForensicsGraphNode): string {
   if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`
   if (value >= 1) return value.toFixed(1)
   return '<1'
+}
+
+function toRgba(color: string, alpha: number): string {
+  const value = color.trim()
+  if (value.startsWith('#')) {
+    const hex = value.slice(1)
+    const normalized = hex.length === 3
+      ? hex.split('').map((char) => char + char).join('')
+      : hex.padEnd(6, '0').slice(0, 6)
+    const red = Number.parseInt(normalized.slice(0, 2), 16)
+    const green = Number.parseInt(normalized.slice(2, 4), 16)
+    const blue = Number.parseInt(normalized.slice(4, 6), 16)
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+  }
+
+  const match = value.match(/rgba?\(([^)]+)\)/)
+  if (match) {
+    const [red, green, blue] = match[1].split(',').map((part) => part.trim())
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+  }
+
+  return value
 }

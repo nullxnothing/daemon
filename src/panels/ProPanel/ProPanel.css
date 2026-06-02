@@ -321,8 +321,8 @@
 .pro-arena-contest {
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
   padding: 20px;
-  border: 1px solid rgba(255, 215, 0, 0.14);
-  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 18%, var(--border));
+  border-radius: var(--radius-card);
   background: var(--s1);
 }
 

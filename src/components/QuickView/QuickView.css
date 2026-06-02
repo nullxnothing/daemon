@@ -298,10 +298,10 @@
 .quickview-token-icon {
   width: 30px;
   height: 30px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   flex-shrink: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
 }
 
 .quickview-token-icon img {
@@ -872,8 +872,8 @@
   line-height: 1.5;
   padding: 10px 12px;
   background: color-mix(in srgb, var(--s2) 88%, black 12%);
-  border: 1px solid color-mix(in srgb, var(--border) 74%, rgba(255, 255, 255, 0.06) 26%);
-  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 74%, var(--t1) 6%);
+  border-radius: var(--radius-card);
   width: 100%;
   user-select: all;
   margin-bottom: 8px;

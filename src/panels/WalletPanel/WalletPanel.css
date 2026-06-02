@@ -146,7 +146,7 @@
   .wallet-action-btn {
     height: 40px;
     font-size: var(--fs-13);
-    border-radius: 10px;
+    border-radius: var(--radius-control);
   }
 
   .wallet-feed-row,
@@ -313,7 +313,7 @@
   gap: 5px;
   padding: 12px;
   border: 1px solid var(--s4);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: var(--s2);
 }
 
@@ -654,8 +654,8 @@
 
 .wallet-transaction-preview {
   border: 1px solid var(--s5);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -1010,9 +1010,9 @@
   gap: 8px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .wallet-runtime-summary-label {
@@ -1103,13 +1103,13 @@
 .wallet-row-card {
   padding: 14px;
   border: 1px solid var(--s4);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .wallet-row-card:hover {
   border-color: var(--s5);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--card-bg-hover);
 }
 
 .wallet-row-main-top {

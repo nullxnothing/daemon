@@ -235,7 +235,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--s5);
   background: var(--s1);
   color: var(--t3);

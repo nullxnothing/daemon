@@ -3,10 +3,10 @@
   min-height: 0;
   overflow: auto;
   padding: 24px;
-  color: var(--text-primary, #f4f1e8);
+  color: var(--t1);
   background:
-    linear-gradient(180deg, rgba(249, 115, 22, 0.08), transparent 180px),
-    #090b0f;
+    linear-gradient(180deg, color-mix(in srgb, var(--amber) 8%, transparent), transparent 180px),
+    var(--surface-flat);
 }
 
 .proof-pool-header-actions,
@@ -47,11 +47,11 @@
 }
 
 .proof-pool-section {
-  border: 1px solid rgba(244, 241, 232, 0.12);
-  background: rgba(13, 16, 22, 0.88);
-  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
   padding: 16px;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .proof-pool-sidebar {
@@ -70,21 +70,21 @@
 
 .proof-pool-section__header h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: 0;
-  color: #f4f1e8;
+  color: var(--t1);
 }
 
 .proof-pool-alert {
   margin-top: 12px;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.1);
-  color: #fecaca;
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red);
+  border-radius: var(--radius-card);
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .proof-pool-list {
@@ -102,22 +102,22 @@
 }
 
 .proof-pool-filters button {
-  border: 1px solid rgba(244, 241, 232, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #9aa4b2;
-  border-radius: 7px;
+  border: 1px solid var(--control-border);
+  background: var(--surface-control);
+  color: var(--t3);
+  border-radius: var(--radius-control);
   padding: 6px 8px;
   font: inherit;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 800;
   cursor: pointer;
 }
 
 .proof-pool-filters button:hover,
 .proof-pool-filters button.is-active {
-  border-color: rgba(249, 115, 22, 0.55);
-  color: #f4f1e8;
-  background: rgba(249, 115, 22, 0.1);
+  border-color: color-mix(in srgb, var(--amber) 55%, transparent);
+  color: var(--t1);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
 }
 
 .proof-pool-list-item {
@@ -127,10 +127,10 @@
   gap: 12px;
   min-height: 58px;
   width: 100%;
-  border: 1px solid rgba(244, 241, 232, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
   color: inherit;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   padding: 10px;
   text-align: left;
   cursor: pointer;
@@ -138,8 +138,8 @@
 
 .proof-pool-list-item:hover,
 .proof-pool-list-item.is-selected {
-  border-color: rgba(249, 115, 22, 0.55);
-  background: rgba(249, 115, 22, 0.08);
+  border-color: color-mix(in srgb, var(--amber) 55%, transparent);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
 }
 
 .proof-pool-list-item span {
@@ -156,12 +156,12 @@
 }
 
 .proof-pool-list-item strong {
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .proof-pool-list-item small {
-  color: #9aa4b2;
-  font-size: 11px;
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .proof-pool-form {
@@ -180,8 +180,8 @@
   display: grid;
   gap: 5px;
   min-width: 0;
-  color: #9aa4b2;
-  font-size: 11px;
+  color: var(--t3);
+  font-size: var(--fs-11);
   font-weight: 700;
 }
 
@@ -199,13 +199,13 @@
 .proof-pool-image-row input {
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(244, 241, 232, 0.12);
-  background: rgba(0, 0, 0, 0.26);
-  color: #f4f1e8;
-  border-radius: 7px;
+  border: 1px solid var(--control-border);
+  background: var(--surface-control);
+  color: var(--t1);
+  border-radius: var(--radius-control);
   padding: 9px 10px;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   outline: none;
 }
 
@@ -217,7 +217,7 @@
 .proof-pool-form textarea:focus,
 .proof-pool-backing-form input:focus,
 .proof-pool-image-row input:focus {
-  border-color: rgba(249, 115, 22, 0.72);
+  border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
 
@@ -234,8 +234,8 @@
 .proof-pool-progress {
   height: 9px;
   overflow: hidden;
-  border-radius: 999px;
-  background: rgba(244, 241, 232, 0.08);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--t1) 8%, transparent);
   margin: 14px 0;
 }
 
@@ -243,7 +243,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #f97316, #42f0ad);
+  background: linear-gradient(90deg, var(--amber), var(--green));
 }
 
 .proof-pool-actions {
@@ -265,8 +265,8 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 12px;
-  color: #9aa4b2;
-  font-size: 11px;
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .proof-pool-addresses button,
@@ -274,7 +274,7 @@
 .proof-pool-events button {
   border: 0;
   background: transparent;
-  color: #7dd3fc;
+  color: var(--blue);
   padding: 0;
   font: inherit;
   cursor: pointer;
@@ -306,10 +306,10 @@
   gap: 10px;
   align-items: center;
   min-width: 900px;
-  border: 1px solid rgba(244, 241, 232, 0.08);
-  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .proof-pool-row-actions {
@@ -325,9 +325,9 @@
 }
 
 .proof-pool-table-row.is-head {
-  color: #9aa4b2;
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 10px;
+  color: var(--t3);
+  background: var(--surface-raised);
+  font-size: var(--fs-10);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -349,11 +349,11 @@
   gap: 10px;
   align-items: center;
   min-width: 0;
-  border: 1px solid rgba(244, 241, 232, 0.08);
-  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
   padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 12px;
+  background: var(--card-bg);
+  font-size: var(--fs-12);
 }
 
 .proof-pool-session-item span {
@@ -370,7 +370,7 @@
 }
 
 .proof-pool-session-item small {
-  color: #9aa4b2;
+  color: var(--t3);
 }
 
 .proof-pool-events {
@@ -386,10 +386,10 @@
   gap: 10px;
   align-items: center;
   width: 100%;
-  border: 1px solid rgba(244, 241, 232, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #d8dee8;
-  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--t2);
+  border-radius: var(--radius-card);
   padding: 9px 10px;
   text-align: left;
 }
@@ -399,8 +399,8 @@
 }
 
 .proof-pool-events span {
-  color: #f97316;
-  font-size: 10px;
+  color: var(--amber);
+  font-size: var(--fs-10);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -413,22 +413,22 @@
 }
 
 .proof-pool-events strong {
-  color: #f4f1e8;
-  font-size: 12px;
+  color: var(--t1);
+  font-size: var(--fs-12);
 }
 
 .proof-pool-events small {
-  color: #9aa4b2;
-  font-size: 11px;
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .proof-pool-empty {
-  border: 1px dashed rgba(244, 241, 232, 0.14);
-  border-radius: 8px;
+  border: 1px dashed color-mix(in srgb, var(--t1) 14%, transparent);
+  border-radius: var(--radius-card);
   padding: 18px;
-  color: #9aa4b2;
+  color: var(--t3);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 @media (max-width: 1100px) {

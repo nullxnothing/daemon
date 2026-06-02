@@ -43,8 +43,8 @@
   gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--s5);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .env-stat-label {
