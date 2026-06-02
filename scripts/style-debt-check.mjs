@@ -6,11 +6,11 @@ const TARGETS = ['src/panels', 'src/components']
 // Ratchet only — lower these as debt is paid down, never raise. Set to the current
 // actuals so any new literal fails CI and pushes contributors to tokens/primitives.
 const BASELINE = {
-  literalFontSize: 29,
-  literalRadius: 222,
+  literalFontSize: 28,
+  literalRadius: 220,
   hexColors: 128,
   inlineShadow: 57,
-  handRolledHeaders: 4,
+  handRolledHeaders: 0,
 }
 
 const RULES = [
@@ -25,8 +25,7 @@ const counts = Object.fromEntries(RULES.map(([key]) => [key, 0]))
 
 // Header consistency: panel .tsx files that hand-roll a top-level header
 // (<header className="*-header"> or "*-panel-header") instead of the shared
-// PanelHeader primitive. Ratchet down as panels migrate. A few legitimately use a
-// bespoke control-header (e.g. a token selector) — those keep the count > 0 for now.
+// PanelHeader primitive. Ratchet down as panels migrate; this should now stay at 0.
 const HAND_ROLLED_HEADER = /<header className="[a-z-]*-header"|className="[a-z-]*-panel-header"/
 const handRolledHeaderFiles = []
 

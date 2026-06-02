@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useImageStore } from '../../store/images'
+import { PanelHeader } from '../../components/Panel'
 import './ImagePanel.css'
 
 const MODELS = [
@@ -192,9 +193,12 @@ export function ImagePanel() {
   if (!hasApiKey || showKeyInput) {
     return (
       <div className="image-panel">
-        <div className="image-panel-header">
-          <h2 className="image-panel-title">Images</h2>
-        </div>
+        <PanelHeader
+          className="image-panel-header"
+          kicker="Media lab"
+          title="Images"
+          subtitle="Add your Gemini key before generating or reviewing image work."
+        />
         <div className="image-no-key">
           <div className="image-no-key-text">
             {isKeyError
@@ -229,28 +233,35 @@ export function ImagePanel() {
 
   return (
     <div className="image-panel">
-      {/* Header */}
-      <div className="image-panel-header">
-        <h2 className="image-panel-title">Images</h2>
-        <div className="image-session-stats">
-          <span className="image-session-stat">
-            Generated: <span className="image-session-stat-value">{sessionCount}</span>
-          </span>
-          <span className="image-session-stat">
-            Cost: <span className="image-session-stat-value">{formatCost(sessionCost)}</span>
-          </span>
-        </div>
-        <button
-          className="image-watcher-toggle"
-          onClick={toggleWatcher}
-          role="switch"
-          aria-checked={watcherRunning}
-          aria-label={`Screenshot watcher ${watcherRunning ? 'on' : 'off'}`}
-        >
-          <span className={`image-watcher-dot ${watcherRunning ? 'running' : 'stopped'}`} />
-          Watcher {watcherRunning ? 'On' : 'Off'}
-        </button>
-      </div>
+      <PanelHeader
+        className="image-panel-header"
+        actionsClassName="image-panel-header-actions"
+        kicker="Media lab"
+        title="Images"
+        subtitle="Generate, inspect, and reuse project image assets without leaving the workspace."
+        actions={
+          <>
+            <div className="image-session-stats">
+              <span className="image-session-stat">
+                Generated: <span className="image-session-stat-value">{sessionCount}</span>
+              </span>
+              <span className="image-session-stat">
+                Cost: <span className="image-session-stat-value">{formatCost(sessionCost)}</span>
+              </span>
+            </div>
+            <button
+              className="image-watcher-toggle"
+              onClick={toggleWatcher}
+              role="switch"
+              aria-checked={watcherRunning}
+              aria-label={`Screenshot watcher ${watcherRunning ? 'on' : 'off'}`}
+            >
+              <span className={`image-watcher-dot ${watcherRunning ? 'running' : 'stopped'}`} />
+              Watcher {watcherRunning ? 'On' : 'Off'}
+            </button>
+          </>
+        }
+      />
 
       {/* Prompt */}
       <div className="image-prompt-area">

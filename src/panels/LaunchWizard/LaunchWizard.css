@@ -31,15 +31,10 @@
   position: relative;
   width: min(980px, 100%);
   max-height: calc(100vh - 48px);
-  background:
-    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--green) 5%, transparent), transparent 45%),
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 96%, transparent), var(--s1));
+  background: var(--surface-panel);
   border: 1px solid var(--border-medium);
-  border-radius: 20px;
-  box-shadow:
-    var(--shadow-modal),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
-    0 0 80px -20px color-mix(in srgb, var(--green) 18%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -67,44 +62,13 @@
 
 /* ── Header ── */
 .lw-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 28px 32px 18px;
-  flex-shrink: 0;
+  padding: var(--space-xl) var(--space-2xl) var(--space-lg);
+  border-bottom: 0;
 }
 
-.lw-header-left { flex: 1; min-width: 0; }
-
-.lw-kicker {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--green-glow);
-  color: var(--green);
-  font-size: var(--fs-10);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-eyebrow);
-  text-transform: uppercase;
-  border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
-  margin-bottom: 12px;
-}
-
-.lw-title {
-  margin: 0;
-  font-size: 26px;
+.lw-header h1 {
+  font-size: var(--fs-26);
   font-weight: var(--fw-semibold);
-  color: var(--t1);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.lw-subtitle {
-  margin: 6px 0 0;
-  font-size: var(--fs-13);
-  color: var(--t3);
-  line-height: 1.5;
 }
 
 .lw-close {
@@ -1238,12 +1202,10 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-preview-card {
   position: relative;
   padding: 20px;
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 8%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--surface-card), var(--surface-sunken));
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
   border: 1px solid var(--border-medium);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
   overflow: hidden;
 }
 

@@ -8,27 +8,21 @@
 
 /* ── Header ── */
 .image-panel-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
+  padding: var(--space-md) var(--panel-pad-x);
 }
 
-.image-panel-title {
-  font-size: var(--fs-16);
-  font-weight: 600;
-  color: var(--t1);
-  margin: 0;
+.image-panel-header-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .image-session-stats {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   font-size: var(--fs-11);
   color: var(--t3);
-  margin-left: auto;
 }
 
 .image-session-stat {

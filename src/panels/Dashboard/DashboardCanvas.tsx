@@ -5,7 +5,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
 import { EmptyState } from '../../components/EmptyState'
-import { MetricCard } from '../../components/Panel'
+import { MetricCard, PanelHeader } from '../../components/Panel'
 import { Button } from '../../components/Button'
 import './Dashboard.css'
 
@@ -335,43 +335,47 @@ export function DashboardCanvas() {
 
   return (
     <div className="dash-canvas">
-      <div className="dash-canvas-header">
-        <div className="dash-canvas-header-left">
-          {metadata?.image && (
-            <img className="dash-token-image" src={metadata.image} alt={metadata.symbol} />
-          )}
-          <div className="dash-canvas-title-group">
-            <span className="dash-canvas-token-name">{metadata?.name ?? '—'}</span>
-            <span className="dash-canvas-token-symbol">{metadata?.symbol ?? ''}</span>
-          </div>
-          <select
-            className="dash-select"
-            value={activeMint ?? ''}
-            onChange={(e) => setActiveMint(e.target.value || null)}
-          >
-            <option value="">Select token</option>
-            {tokens.map((t) => (
-              <option key={t.mint} value={t.mint}>
-                {t.symbol} — {truncateAddress(t.mint, 4)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="dash-canvas-header-right">
-          {activeWalletId && (
-            <button
-              type="button"
-              className="dash-btn dash-btn-muted"
-              onClick={() => setShowImport((v) => !v)}
+      <PanelHeader
+        className="dash-canvas-header"
+        actionsClassName="dash-canvas-header-actions"
+        kicker="Token dashboard"
+        brandKicker
+        title={metadata?.name ?? 'Select a token'}
+        subtitle={metadata?.symbol
+          ? `${metadata.symbol}${activeMint ? ` · ${truncateAddress(activeMint, 4)}` : ''}`
+          : 'Inspect market movement, holders, and launch actions from one workspace.'}
+        actions={
+          <>
+            {metadata?.image && (
+              <img className="dash-token-image" src={metadata.image} alt={metadata.symbol} />
+            )}
+            <select
+              className="dash-select"
+              value={activeMint ?? ''}
+              onChange={(e) => setActiveMint(e.target.value || null)}
             >
-              {showImport ? 'Cancel' : 'Import Token'}
+              <option value="">Select token</option>
+              {tokens.map((t) => (
+                <option key={t.mint} value={t.mint}>
+                  {t.symbol} — {truncateAddress(t.mint, 4)}
+                </option>
+              ))}
+            </select>
+            {activeWalletId && (
+              <button
+                type="button"
+                className="dash-btn dash-btn-muted"
+                onClick={() => setShowImport((v) => !v)}
+              >
+                {showImport ? 'Cancel' : 'Import Token'}
+              </button>
+            )}
+            <button type="button" className="dash-btn dash-btn-primary" onClick={openTokenLaunch}>
+              Open Token Launch
             </button>
-          )}
-          <button type="button" className="dash-btn dash-btn-primary" onClick={openTokenLaunch}>
-            Open Token Launch
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {showImport && activeWalletId && (
         <ImportPanel

@@ -6,6 +6,7 @@ import { CodexPanel } from '../CodexPanel/CodexPanel'
 import { AriaChat } from '../ClaudePanel/AriaChat'
 import { MeterflowPanel } from '../Meterflow/MeterflowPanel'
 import { RightSidebarWidgets } from './RightSidebarWidgets'
+import { PanelHeader } from '../../components/Panel'
 import './RightPanel.css'
 
 function useClaudeStatus(): 'live' | 'unknown' {
@@ -104,11 +105,11 @@ export function RightPanel() {
 
   return (
     <div className="right-panel-wrap">
-      <div className="right-panel-header" aria-hidden="true">
-        <div className="right-panel-header-copy">
-          <span className="right-panel-kicker">Console</span>
-        </div>
-      </div>
+      <PanelHeader
+        className="right-panel-header"
+        kicker="Console"
+        title="Agents"
+      />
 
       <div className="right-panel-tabs" role="tablist">
         <button
