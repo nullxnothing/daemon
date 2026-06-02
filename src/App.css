@@ -5,10 +5,26 @@
   height: 100vh;
   width: 100vw;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg) 96%, white 4%), var(--bg) 180px);
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--border) 18%, transparent) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(180deg, color-mix(in srgb, var(--border) 12%, transparent) 0 1px, transparent 1px 72px),
+    var(--surface-flat);
   color: var(--t1);
   overflow: hidden;
   isolation: isolate;
+}
+
+.app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(135deg, color-mix(in srgb, var(--t1) 2%, transparent) 25%, transparent 25%),
+    linear-gradient(315deg, color-mix(in srgb, var(--t1) 1.5%, transparent) 25%, transparent 25%);
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
+  opacity: 0.18;
+  z-index: 0;
 }
 
 .app--compact {
@@ -102,6 +118,8 @@
   position: relative;
   display: flex;
   flex: 1;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
   overflow: hidden;
   min-height: 0;
   z-index: 1;
@@ -118,7 +136,8 @@
   min-width: 140px;
   max-width: 350px;
   background: var(--panel-bg);
-  border-right: 1px solid var(--panel-border);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -151,6 +170,7 @@
   border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
   background: var(--panel-header-bg);
+  font-family: var(--font-code);
 }
 
 .panel-header-action {
@@ -182,6 +202,8 @@
   overflow: hidden;
   min-width: 200px;
   position: relative;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--border) 13%, transparent) 1px, transparent 1px),
     linear-gradient(180deg, color-mix(in srgb, var(--border) 9%, transparent) 1px, transparent 1px),
@@ -265,8 +287,8 @@
 }
 
 .splitter {
-  height: 5px;
-  background: color-mix(in srgb, var(--surface-flat) 78%, var(--border) 22%);
+  height: 3px;
+  background: color-mix(in srgb, var(--surface-flat) 74%, var(--border) 26%);
   cursor: row-resize;
   flex-shrink: 0;
   transition: background var(--transition-normal);
@@ -279,8 +301,7 @@
   top: 2px;
   left: 50%;
   width: 64px;
-  height: 2px;
-  border-radius: var(--radius-pill);
+  height: 1px;
   transform: translateX(-50%);
   background: color-mix(in srgb, var(--t4) 58%, transparent);
 }
@@ -308,8 +329,9 @@
   width: var(--right-panel-w);
   min-width: 200px;
   max-width: 400px;
-  background: var(--surface-flat);
-  border-left: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
   overflow: hidden;
   resize: horizontal;
@@ -351,10 +373,11 @@
 /* Plugin Overlay */
 .plugin-overlay {
   position: fixed;
-  inset: var(--titlebar-h) 0 var(--statusbar-h) 0;
+  inset: calc(var(--titlebar-h) + var(--space-sm)) var(--space-sm) calc(var(--statusbar-h) + var(--space-sm)) var(--space-sm);
   z-index: 100;
-  background: var(--bg);
+  background: var(--panel-bg);
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--border-glass);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-float);
 }

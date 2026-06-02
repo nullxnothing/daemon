@@ -3,7 +3,8 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.88);
+  background: color-mix(in srgb, var(--scrim-bg) 92%, var(--bg-app) 8%);
+  backdrop-filter: var(--glass-blur-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,9 +12,10 @@
 
 /* Card */
 .wizard-card {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-float);
   padding: 22px;
   width: 420px;
   max-width: 90vw;
@@ -35,8 +37,9 @@
 }
 
 .wizard-title {
+  font-family: var(--font-code);
   font-size: var(--fs-13);
-  letter-spacing: 0;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t1);
   text-align: center;
@@ -95,8 +98,9 @@
 
 /* Step label */
 .wizard-step-label {
+  font-family: var(--font-code);
   font-size: var(--fs-10);
-  letter-spacing: 0;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t3);
   text-align: center;
@@ -122,7 +126,7 @@
   gap: 0;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -160,7 +164,7 @@
 .wizard-check-status {
   font-size: var(--fs-10);
   color: var(--t2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
 }
 
 .wizard-check-status.error {
@@ -192,7 +196,7 @@
 .wizard-btn {
   width: 100%;
   height: 34px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   font-size: var(--fs-12);
   font-weight: 500;
   cursor: pointer;
@@ -203,7 +207,7 @@
 .wizard-btn.primary {
   background: var(--success);
   border-color: var(--success);
-  color: var(--t1);
+  color: var(--on-accent);
 }
 
 .wizard-btn.primary:hover { opacity: 0.9; }
@@ -257,7 +261,7 @@
   margin-bottom: 14px;
   padding: 10px 12px;
   background: var(--s2);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   border: 1px solid var(--border);
 }
 
@@ -286,10 +290,10 @@
   height: 30px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
   padding: 0 10px;
   outline: none;
 }
@@ -321,10 +325,10 @@
   height: 30px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
   padding: 0 10px;
   outline: none;
 }
@@ -355,7 +359,7 @@
 }
 
 .wizard-hint code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
   background: var(--s2);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
@@ -385,14 +389,15 @@
 .wizard-step-counter {
   font-size: var(--fs-10);
   color: var(--t4);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
 }
 
 /* Tour offer dialog */
 .tour-offer-card {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-float);
   padding: 20px;
   width: 320px;
   text-align: center;
@@ -441,7 +446,7 @@
   padding: 12px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   cursor: pointer;
   text-align: left;
   transition: border-color var(--transition-fast), background var(--transition-fast);
@@ -512,7 +517,7 @@
 .resume-banner-btn {
   height: 24px;
   padding: 0 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   font-size: var(--fs-11);
   cursor: pointer;
   border: 1px solid var(--border);
@@ -521,7 +526,7 @@
 .resume-banner-btn.primary {
   background: var(--success);
   border-color: var(--success);
-  color: var(--t1);
+  color: var(--on-accent);
 }
 
 .resume-banner-btn.secondary {

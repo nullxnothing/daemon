@@ -4,9 +4,9 @@ The single source of truth for how DAEMON looks, feels, and behaves. If you are
 building or changing UI, read this first. The goal is **one app** — every panel
 should feel like it was built by the same hand on the same day.
 
-> **Bar:** Cursor-grade. We chase four things — interaction polish, command-driven
-> flow, visual cohesion, and professional information density — on top of DAEMON's
-> dark + green Solana identity.
+> **Bar:** shipped, not pitched. The 2026 UI is a compact agent workbench:
+> sharp panes, hairline structure, textured workspace void, and green used only
+> when something is primary, live, ready, or successful.
 
 ---
 
@@ -16,20 +16,23 @@ should feel like it was built by the same hand on the same day.
    easing comes from `styles/tokens.css`. No raw hex, no `font-size: 14px`, no
    `border-radius: 6px` in panels. `pnpm run lint:styles` enforces this and only
    ratchets down.
-2. **Green is reserved.** `--accent-green` means primary / healthy / live / ready /
-   success. Do not use green for decoration. Use `--amber` (warning), `--red`
+2. **Green is reserved.** `--accent-green` is `#3ecf8e` and means primary /
+   healthy / live / ready / success. Do not use green for decoration. Use `--amber` (warning), `--red`
    (error/destructive), `--blue` (info), `--solana` purple (Solana-affinity panels only).
-3. **One header, one card, one state view.** Use the shared `PanelHeader`,
+3. **Sharp containers, small controls.** Panels and cards are square. Controls and
+   floating menus may use only small 3-6px radii. Avoid pill buttons unless the
+   component is semantically a badge, chip, or dot.
+4. **One header, one card, one state view.** Use the shared `PanelHeader`,
    `Card`/`Surface`, and `StateView` primitives. Do not hand-roll panel chrome.
-4. **Every async surface has four states.** loading → error → empty → ready, via
+5. **Every async surface has four states.** loading → error → empty → ready, via
    `StateView`. No blank panels, no content that pops in with no intermediate state.
-5. **Motion is functional.** Transitions clarify state change (panel switch, drawer,
+6. **Motion is functional.** Transitions clarify state change (panel switch, drawer,
    toast). Use `--dur-*` + `--ease-*` tokens only. Always honor `prefers-reduced-motion`
    (tokens collapse durations automatically).
-6. **Keyboard-first.** Every action reachable from the command palette
+7. **Keyboard-first.** Every action reachable from the command palette
    (`Ctrl+Shift+P`); every interactive element has a visible `:focus-visible` ring;
    shortcuts are surfaced in the keyboard overlay.
-7. **Density is intentional.** Tabular data uses the `--row-h-*` scale. Align to the
+8. **Density is intentional.** Tabular data uses the `--row-h-*` scale. Align to the
    spacing grid — no off-by-4px paddings.
 
 ---
@@ -38,6 +41,9 @@ should feel like it was built by the same hand on the same day.
 
 Defined in [`styles/tokens.css`](styles/tokens.css). Reach for the **semantic** token,
 not the raw scale value.
+
+Dark is the default theme. Light mode is activated by `data-theme="light"` on the
+document root and must be verified whenever global tokens or shared primitives change.
 
 ### Surfaces (dark → light)
 | Token | Use |
@@ -69,16 +75,19 @@ Focus rings (pick by intent): `--focus-ring` (green, inputs) · `--focus-ring-ne
 · `--space-2xl` 32 · `--space-3xl` 40 · `--space-4xl` 48. Panel padding: `--panel-pad-x/y`.
 
 ### Radius
-`--radius-sm` 4 · `--radius-md` 8 · `--radius-lg` 12 · `--radius-xl` 16 ·
-`--radius-pill` 999. Semantic: `--radius-card`, `--radius-control`.
+`--radius-sm` 3 · `--radius-md` 4 · `--radius-lg` 6 · `--radius-xl` 6 ·
+`--radius-pill` 999. Semantic: `--radius-card` is square (`0px`),
+`--radius-control` is 4px.
 
 ### Elevation
-`--shadow-xs…--shadow-xl` (bottom shadow + top edge highlight bundled).
-Semantic: `--shadow-lifted`, `--shadow-modal`, `--shadow-float`. Never write a raw
-`box-shadow: 0 …` in a panel.
+`--shadow-xs…--shadow-xl` (directional depth + top edge highlight bundled).
+Semantic: `--shadow-lifted`, `--shadow-modal`, `--shadow-float`. Use shadows for
+floating overlays and shell panes; ordinary content structure should come from
+hairline borders.
 
 ### Type
-Families: `--font-ui` (Plus Jakarta Sans), `--font-code` (JetBrains Mono).
+Families: `--font-ui` (Plus Jakarta Sans), `--font-code` (Geist Mono, with JetBrains
+Mono fallback). Mono labels are uppercase and tracked.
 Size scale: `--fs-8…--fs-84` (use the role tokens below, not bare sizes).
 Roles: `--type-page-title-*`, `--type-section-title-*`, `--type-item-title-*`,
 `--type-metadata-*`, `--type-mono-*`, `--type-body-*`, `--type-eyebrow-*`.

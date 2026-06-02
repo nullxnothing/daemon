@@ -5,6 +5,7 @@ import { useShellLayout } from '../../hooks/useShellLayout'
 import { formatCompactUsd } from '../../utils/format'
 import { WalletQuickView } from '../../components/QuickView/WalletQuickView'
 import { DaemonMark } from '../../components/DaemonMark'
+import { daemon } from '../../lib/daemonBridge'
 import './Titlebar.css'
 
 interface TitlebarProps {
@@ -74,7 +75,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
           />
         )}
         {showDevReloadInline && import.meta.env.DEV && (
-          <button type="button" className="titlebar-btn" onClick={() => window.daemon.window.reload()} title="Reload App (Ctrl+Shift+R)">
+          <button type="button" className="titlebar-btn" onClick={() => daemon.window.reload()} title="Reload App (Ctrl+Shift+R)">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
               <polyline points="21 3 21 9 15 9"/>
@@ -92,7 +93,7 @@ function TitlebarBrand({ showText }: { showText: boolean }) {
 
   useEffect(() => {
     let cancelled = false
-    window.daemon.settings.getAppMeta().then((res) => {
+    daemon.settings.getAppMeta().then((res) => {
       if (!cancelled && res.ok && res.data?.version) setVersion(res.data.version)
     }).catch(() => {})
     return () => { cancelled = true }
@@ -362,7 +363,7 @@ function TitlebarOverflowMenu({
               className="titlebar-overflow-item"
               role="menuitem"
               onClick={() => {
-                window.daemon.window.reload()
+                daemon.window.reload()
                 setIsOpen(false)
               }}
             >
@@ -436,13 +437,13 @@ function TitlebarPortfolioSummary() {
 function WindowControls() {
   return (
     <>
-      <button type="button" className="titlebar-btn" onClick={() => window.daemon.window.minimize()} aria-label="Minimize">
+      <button type="button" className="titlebar-btn" onClick={() => daemon.window.minimize()} aria-label="Minimize">
         <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
       </button>
-      <button type="button" className="titlebar-btn" onClick={() => window.daemon.window.maximize()} aria-label="Maximize">
+      <button type="button" className="titlebar-btn" onClick={() => daemon.window.maximize()} aria-label="Maximize">
         <svg width="10" height="10" viewBox="0 0 10 10"><rect width="10" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1"/></svg>
       </button>
-      <button type="button" className="titlebar-btn titlebar-btn-close" onClick={() => window.daemon.window.close()} aria-label="Close">
+      <button type="button" className="titlebar-btn titlebar-btn-close" onClick={() => daemon.window.close()} aria-label="Close">
         <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1"/></svg>
       </button>
     </>

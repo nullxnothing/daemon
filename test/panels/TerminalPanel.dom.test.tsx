@@ -94,9 +94,19 @@ function resetStores() {
   })
 }
 
+function clearLocalStorage() {
+  if (typeof window.localStorage.clear === 'function') {
+    window.localStorage.clear()
+    return
+  }
+  const keys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index))
+    .filter((key): key is string => Boolean(key))
+  keys.forEach((key) => window.localStorage.removeItem(key))
+}
+
 describe('TerminalPanel DOM behavior', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    clearLocalStorage()
     resetStores()
   })
 

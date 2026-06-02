@@ -106,8 +106,8 @@
   min-height: 46px;
   padding: 8px 10px;
   background: var(--s1);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
+  border-radius: var(--radius-card);
   flex-shrink: 0;
 }
 
@@ -207,7 +207,7 @@
   width: 100%;
   height: 100%;
   border: 0;
-  background: #ffffff;
+  background: var(--on-accent);
 }
 
 @media (max-width: 980px) {

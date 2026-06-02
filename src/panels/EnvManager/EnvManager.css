@@ -43,8 +43,8 @@
   gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--s5);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .env-stat-label {
@@ -72,7 +72,7 @@
   font-size: var(--fs-13);
   background: var(--s1);
   border: 1px solid var(--s5);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--t1);
   box-shadow: var(--shadow-lifted);
 }
@@ -142,7 +142,7 @@
 
 .env-row-group.expanded {
   background: var(--s1);
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   margin: 2px 0;
 }
 
@@ -269,7 +269,7 @@
   font-size: var(--fs-10);
   color: var(--t2);
   background: var(--s2);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   white-space: nowrap;
 }
 
@@ -410,7 +410,7 @@
   color: var(--t3);
   padding: 1px 3px;
   border: 1px solid var(--s5);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -419,7 +419,7 @@
 .env-add-row {
   background: var(--s1);
   border: 1px solid var(--green);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   margin: 4px 0;
 }
 
@@ -532,7 +532,7 @@
   font-family: var(--font-code);
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t1);
 }
 
@@ -542,7 +542,7 @@
   max-height: 250px;
   overflow-y: auto;
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   background: var(--s2);
 }
 
@@ -643,7 +643,7 @@
   padding: 8px 12px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: all var(--transition-normal);
 }

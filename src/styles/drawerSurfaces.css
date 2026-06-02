@@ -9,7 +9,7 @@
   --drawer-section-pad: var(--space-lg);
   --drawer-card-gap: var(--space-md);
   --drawer-card-radius: var(--radius-card);
-  --drawer-control-radius: var(--radius-lg);
+  --drawer-control-radius: var(--radius-control);
   --drawer-rail-shell-pad: var(--space-sm);
   --drawer-rail-card-gap: var(--space-sm);
 }
@@ -138,7 +138,7 @@
 .wallet-panel .wallet-expand-btn {
   width: var(--btn-h-md);
   height: var(--btn-h-md);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   margin-right: 0;
   color: var(--t3);
   border: 1px solid transparent;
@@ -152,7 +152,7 @@
 
 .solana-toolbox .solana-view-tab {
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-control);
   background: var(--card-bg);
 }
 

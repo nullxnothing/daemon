@@ -1,8 +1,9 @@
 /* Icon Sidebar */
 .icon-sidebar {
   width: var(--sidebar-w);
-  background: var(--surface-flat);
-  border-right: 1px solid color-mix(in srgb, var(--border) 86%, black 14%);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -16,13 +17,13 @@
 
 .sidebar-icon {
   --tool-accent: var(--t3);
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--t3);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-control);
   position: relative;
   border: 1px solid transparent;
   background: transparent;
@@ -75,7 +76,6 @@
   bottom: 10px;
   width: 1px;
   background: color-mix(in srgb, var(--tool-accent) 58%, var(--t2) 42%);
-  border-radius: var(--radius-pill);
 }
 
 .sidebar-icon.sidebar-toggle.active {
@@ -107,7 +107,7 @@
 .sidebar-drop-zone {
   width: var(--btn-h-md);
   height: var(--btn-h-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   margin: var(--space-xs) auto;
   transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
   border: 1px dashed var(--s5);
@@ -201,10 +201,10 @@
   min-width: 180px;
   padding: var(--space-sm);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--s1) 98%, black 2%);
   backdrop-filter: none;
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.58);
+  box-shadow: var(--shadow-float);
   z-index: 1200;
 }
 
@@ -229,7 +229,7 @@
   font-size: var(--fs-12);
   color: var(--t2);
   background: transparent;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   padding: 7px var(--space-sm);
 }
 

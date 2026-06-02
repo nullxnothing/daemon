@@ -32,7 +32,7 @@
   padding: 7px 10px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t1);
   font-size: var(--fs-11);
   font-family: inherit;
@@ -51,7 +51,7 @@
   padding: 8px 0;
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t1);
   font-size: var(--fs-12);
   font-family: inherit;
@@ -88,7 +88,7 @@
   padding: 5px 8px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t1);
   font-size: var(--fs-11);
   font-family: inherit;
@@ -234,7 +234,7 @@
   padding: 5px 10px;
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--t2);
   font-size: var(--fs-10);
   cursor: pointer;
@@ -261,7 +261,7 @@
 .gmail__extraction {
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   padding: 8px 10px;
 }
 
@@ -311,7 +311,7 @@
   padding: 8px 10px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   white-space: pre-wrap;
 }
 
@@ -336,7 +336,7 @@
   padding: 6px 8px;
   background: var(--s2);
   border: 1px solid var(--red);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   margin: 8px 12px;
 }
 

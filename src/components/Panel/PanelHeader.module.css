@@ -3,7 +3,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-lg);
-  padding: var(--space-lg) var(--panel-pad-x) var(--space-md);
+  padding: var(--space-md) var(--panel-pad-x);
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel-header-bg);
   flex-shrink: 0;
@@ -27,6 +27,7 @@
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
   color: var(--text-muted);
+  font-family: var(--font-code);
 }
 
 .kicker--brand {
@@ -37,7 +38,7 @@
   content: '';
   width: 5px;
   height: 5px;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 0 3px var(--green-glow);
 }

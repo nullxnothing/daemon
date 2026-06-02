@@ -7,26 +7,13 @@
 }
 
 .right-panel-header {
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-md);
-  border-bottom: 1px solid var(--panel-border);
-  background: var(--panel-header-bg);
+  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
 }
 
-.right-panel-header-copy {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-}
-
-.right-panel-kicker {
-  font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-eyebrow);
-  text-transform: uppercase;
-  color: var(--text-muted);
+.right-panel-header h1 {
+  font-size: var(--type-item-title-size);
+  line-height: var(--type-item-title-line);
 }
 
 .right-panel-tabs {

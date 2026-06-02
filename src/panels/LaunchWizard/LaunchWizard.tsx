@@ -5,6 +5,7 @@ import { useNotificationsStore } from '../../store/notifications'
 import { useTokenLaunch } from './useTokenLaunch'
 import type { LaunchParams } from './useTokenLaunch'
 import { getSolscanTxUrl } from '../../lib/solanaExplorer'
+import { PanelHeader } from '../../components/Panel'
 import basedbidLogo from '../../assets/basedbid-logo.svg'
 import './LaunchWizard.css'
 
@@ -483,28 +484,29 @@ export function LaunchWizard() {
   const previewSymbol = (s1.symbol.trim() || 'TKN').toUpperCase()
   const previewAvatarChar = previewSymbol.charAt(0)
   const previewName = s1.name.trim() || 'Your Token'
+  const headerTitle = step <= 3 ? STEP_META[step as 1 | 2 | 3].title : 'Launch in progress'
+  const headerSubtitle = step <= 3
+    ? STEP_META[step as 1 | 2 | 3].subtitle
+    : 'Broadcasting, verifying, and writing the launch result.'
 
   return (
     <div className="lw-overlay" ref={overlayRef}>
       <div className="lw-modal">
-        {/* ── Header ── */}
-        <header className="lw-header">
-          <div className="lw-header-left">
-            <span className="lw-kicker">Token Launch</span>
-            {step <= 3 && (
-              <>
-                <h1 className="lw-title">{STEP_META[step as 1 | 2 | 3].title}</h1>
-                <p className="lw-subtitle">{STEP_META[step as 1 | 2 | 3].subtitle}</p>
-              </>
-            )}
-          </div>
-          <button type="button" className="lw-close" onClick={closeLaunchWizard} aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </header>
+        <PanelHeader
+          className="lw-header"
+          kicker="Token Launch"
+          brandKicker
+          title={headerTitle}
+          subtitle={headerSubtitle}
+          actions={
+            <button type="button" className="lw-close" onClick={closeLaunchWizard} aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          }
+        />
 
         {/* ── Stepper ── */}
         {step <= 3 && (

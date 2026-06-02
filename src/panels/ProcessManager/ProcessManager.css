@@ -3,16 +3,12 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
+  background: var(--surface-flat);
 }
 
 .process-panel-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
-  border-bottom: 1px solid var(--s4);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+  padding: var(--space-md) var(--panel-pad-x);
+  background: var(--panel-header-bg);
 }
 
 .process-section-kicker {
@@ -26,26 +22,26 @@
 .process-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px 28px;
+  padding: var(--space-lg) var(--panel-pad-x) var(--space-xl);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-lg);
 }
 
 .process-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .process-stat-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--s4);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .process-stat-card.warn {
@@ -73,7 +69,7 @@
 .process-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .process-section-head {
@@ -99,7 +95,7 @@
 .process-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .process-row-card,
@@ -107,11 +103,11 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px;
-  border: 1px solid var(--s4);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
 }
 
 .process-row-card.orphan {
@@ -184,7 +180,7 @@
 
 .process-model {
   border: 1px solid var(--s5);
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-raised);
   color: var(--t3);
 }
 
@@ -241,7 +237,7 @@
 }
 
 .process-btn.danger:hover {
-  background: rgba(239, 83, 80, 0.1);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
 }
 
 @media (max-width: 980px) {

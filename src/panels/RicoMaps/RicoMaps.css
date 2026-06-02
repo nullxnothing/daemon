@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: #000;
+  background: var(--surface-flat);
   color: var(--t1);
 }
 
@@ -31,7 +31,7 @@
   justify-content: center;
   height: 28px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--t2);
   font-size: var(--fs-11);
@@ -41,7 +41,6 @@
 
 .ricomaps-nav button {
   width: 28px;
-  border-radius: 999px;
 }
 
 .ricomaps-home,
@@ -82,10 +81,10 @@
   height: 28px;
   padding: 6px 10px;
   border: 1px solid var(--s4);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--s2);
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
   font-size: var(--fs-11);
 }
 
@@ -94,7 +93,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #000;
+  background: var(--surface-flat);
 }
 
 .ricomaps-webview {
@@ -113,7 +112,7 @@
   width: min(380px, calc(100% - 32px));
   padding: 12px;
   border: 1px solid var(--s4);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: var(--s1);
   box-shadow: var(--shadow-lg);
 }
@@ -126,7 +125,7 @@
 
 .ricomaps-overlay small {
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
   font-size: var(--fs-11);
   line-height: 1.4;
   overflow-wrap: anywhere;

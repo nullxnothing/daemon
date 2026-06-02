@@ -1,7 +1,8 @@
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15,18 +16,18 @@
 }
 
 .confirm-dialog {
-  background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
   padding: 20px;
   min-width: 360px;
   max-width: 480px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-float);
   animation: confirm-pop 0.14s ease-out;
 }
 
 .confirm-dialog.danger {
-  border-color: rgba(239, 83, 80, 0.4);
+  border-color: color-mix(in srgb, var(--red) 42%, var(--border));
 }
 
 @keyframes confirm-pop {
@@ -73,7 +74,7 @@
   background: var(--s1);
   color: var(--t1);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 6px 8px;
   font-family: var(--mono);
   font-size: var(--fs-12);
@@ -95,7 +96,7 @@
   background: var(--s3);
   color: var(--t1);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 6px 14px;
   font-size: var(--fs-12);
   cursor: pointer;
@@ -111,13 +112,13 @@
 }
 
 .confirm-btn-confirm.danger {
-  background: rgba(239, 83, 80, 0.15);
+  background: var(--red-glow);
   color: var(--red);
-  border-color: rgba(239, 83, 80, 0.4);
+  border-color: color-mix(in srgb, var(--red) 42%, var(--border));
 }
 
 .confirm-btn-confirm.danger:hover:not(:disabled) {
-  background: rgba(239, 83, 80, 0.25);
+  background: color-mix(in srgb, var(--red) 22%, transparent);
 }
 
 .confirm-btn-confirm:disabled {

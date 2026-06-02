@@ -266,25 +266,16 @@
 }
 
 .dash-canvas-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--s4);
-  background: var(--s1);
-  flex-shrink: 0;
+  padding: var(--space-md) var(--panel-pad-x);
+  background: var(--panel-header-bg);
 }
 
-.dash-canvas-header-left {
+.dash-canvas-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.dash-canvas-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .dash-token-image {
@@ -294,27 +285,6 @@
   object-fit: cover;
   border: 1px solid var(--s5);
   flex-shrink: 0;
-}
-
-.dash-canvas-title-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.dash-canvas-token-name {
-  font-size: var(--fs-13);
-  color: var(--t1);
-  font-family: var(--font-ui);
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.dash-canvas-token-symbol {
-  font-size: var(--fs-10);
-  color: var(--t3);
-  font-family: var(--font-code);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .dash-canvas-loading,

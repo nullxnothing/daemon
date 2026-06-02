@@ -4,6 +4,17 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import '../styles/base.css'
 
+function getStoredTheme() {
+  try {
+    return window.localStorage?.getItem('daemon-theme') ?? null
+  } catch {
+    return null
+  }
+}
+
+const storedTheme = getStoredTheme()
+document.documentElement.dataset.theme = storedTheme === 'light' ? 'light' : 'dark'
+
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: Error | null }
