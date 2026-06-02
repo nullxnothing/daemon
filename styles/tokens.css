@@ -286,6 +286,15 @@
   --brand-spawnagents: #c41e3a;
   --brand-kausalayer: #0f766e;
   --brand-kausalayer-warm: #d97706;
+  --brand-idle: #2d5f4c;
+  --brand-idle-rgb: 45 95 76;
+  --brand-idle-paper: #f2ebdd;
+  --brand-idle-paper-rgb: 242 235 221;
+  --brand-idle-paper-strong: #fbfaf6;
+  --brand-idle-paper-muted: #dfe2d5;
+  --brand-idle-ink: #1a1a1a;
+  --brand-idle-ink-rgb: 26 26 26;
+  --brand-idle-on-accent: #ffffff;
   --brand-discord: #5865f2;
   --brand-spawnagents-deep: #1d080d;
   --brand-spawnagents-glow: rgba(196, 30, 58, 0.5);

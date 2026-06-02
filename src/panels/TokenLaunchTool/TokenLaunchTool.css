@@ -4,6 +4,10 @@
    ────────────────────────────────────────────────────────────── */
 
 .token-launch-tool {
+  --token-launch-hover-glow: 0 8px 24px -10px color-mix(in srgb, var(--green) 30%, transparent);
+  --token-launch-pulse-ring: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent);
+  --token-launch-tab-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.2);
+
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -99,10 +103,10 @@
 
 .token-launch-tool-zone-title {
   color: var(--t1);
-  font-size: 22px;
+  font-size: var(--fs-22);
   font-weight: var(--fw-semibold);
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   margin: 0;
 }
 
@@ -200,7 +204,7 @@
 .token-launch-tool .solana-launchpad-row.enabled:hover {
   border-color: color-mix(in srgb, var(--green) 36%, transparent) !important;
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--green) 30%, transparent);
+  box-shadow: var(--token-launch-hover-glow);
 }
 
 .token-launch-tool .solana-launchpad-row-main,
@@ -218,7 +222,7 @@
   font-size: var(--fs-14);
   font-weight: var(--fw-semibold);
   color: var(--t1);
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
 }
 
 .token-launch-tool .solana-launchpad-row-desc,
@@ -261,7 +265,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent);
+  box-shadow: var(--token-launch-pulse-ring);
   animation: tlt-pulse 1.6s ease-in-out infinite;
 }
 
@@ -389,7 +393,7 @@
   background: transparent;
   border: none;
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--t3);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
@@ -406,7 +410,7 @@
   background: var(--surface-card);
   color: var(--t1);
   font-weight: var(--fw-semibold);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--token-launch-tab-shadow);
 }
 
 /* ── Empty / state banners ── */
@@ -471,5 +475,5 @@
     width: 100% !important;
   }
   .token-launch-tool-zone { padding: 18px !important; }
-  .token-launch-tool-zone-title { font-size: 18px; }
+  .token-launch-tool-zone-title { font-size: var(--fs-18); }
 }
