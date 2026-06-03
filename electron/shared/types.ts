@@ -1448,6 +1448,10 @@ export interface SubmitExternalSignedTransactionInput {
   id: string
   publicKey: string
   signedTransactionBase64: string
+  // Which Daemon Wallet Adapter provider signed (e.g. 'solflare'); drives perk
+  // attribution in the settlement event. Defaults to 'solflare' for the legacy
+  // path when omitted.
+  signerProvider?: string
 }
 
 export interface TransferTokenInput {

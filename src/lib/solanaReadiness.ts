@@ -60,7 +60,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
       ready: input.walletPresent && input.signerReady,
       detail: input.walletPresent
         ? input.signerReady
-          ? 'This wallet has a local signer for follow-up sends, swaps, launches, and transaction previews.'
+          ? 'This wallet route can sign follow-up sends, swaps, launches, and transaction previews.'
           : 'This wallet is watch-only. Import or generate the signer before expecting wallet-backed actions to work.'
         : 'Create a wallet first; signer readiness is checked after the wallet route exists.',
     },
@@ -76,7 +76,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
     },
     {
       key: 'provider',
-      label: 'RPC and Phantom path',
+      label: 'RPC + wallet default',
       ready: input.rpcReady && preferredWalletReady,
       detail: `${input.rpcLabel} • ${input.executionMode === 'jito' ? 'Jito relay' : 'Standard RPC'} • ${preferredWalletDetail}`,
     },
@@ -163,7 +163,7 @@ export function buildSolanaRouteReadiness(input: BuildSolanaRouteReadinessInput)
 
 function getPreferredWalletLabel(preferredWallet: WalletInfrastructureSettings['preferredWallet']): string {
   if (preferredWallet === 'solflare') return 'Solflare'
-  if (preferredWallet === 'wallet-standard') return 'Wallet Standard'
+  if (preferredWallet === 'wallet-standard') return 'DAEMON Wallet Adapter'
   return 'Phantom-first'
 }
 
@@ -173,7 +173,7 @@ function getPreferredWalletDetail(preferredWallet: WalletInfrastructureSettings[
   }
 
   if (preferredWallet === 'wallet-standard') {
-    return 'Local signer is active; generated app defaults prefer Wallet Standard.'
+    return 'DAEMON Wallet Adapter is active for external signing (any wallet, Solflare recommended); local signers remain available for internal execution.'
   }
 
   return 'Local signer is active; generated app defaults prefer Phantom.'

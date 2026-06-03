@@ -1,6 +1,7 @@
 import type Solflare from '@solflare-wallet/sdk'
-import { Transaction, type SendOptions, type VersionedTransaction } from '@solana/web3.js'
+import { Transaction, VersionedTransaction } from '@solana/web3.js'
 import bs58 from 'bs58'
+import { base64ToBytes, bytesToBase64, deserializeTransaction } from './walletAdapter/serialization'
 
 export type SolflareSupportedCluster = Exclude<WalletInfrastructureSettings['cluster'], 'localnet'>
 export type SolflareTransaction = Transaction | VersionedTransaction
@@ -120,19 +121,12 @@ export async function signSerializedSolflareTransaction(transactionBase64: strin
   const publicKey = activeWallet.publicKey?.toBase58()
   if (!publicKey) throw new Error('Connect Solflare before signing a transaction')
 
-  const transaction = Transaction.from(base64ToBytes(transactionBase64))
+  const transaction = deserializeTransaction(base64ToBytes(transactionBase64))
   const signedTransaction = await activeWallet.signTransaction(transaction)
   return {
     publicKey,
     signedTransactionBase64: bytesToBase64(signedTransaction.serialize()),
   }
-}
-
-export async function signAndSendSolflareTransaction(transaction: SolflareTransaction, options?: SendOptions): Promise<string> {
-  const activeWallet = requireConnectedWallet()
-  const signature = await activeWallet.signAndSendTransaction(transaction, options)
-  setState({ ...state, status: 'connected', error: null, lastSignature: signature })
-  return signature
 }
 
 async function getWallet(network: SolflareSupportedCluster): Promise<Solflare> {
@@ -182,20 +176,3 @@ function describeSolflareError(error: unknown): string {
   return 'Solflare request failed'
 }
 
-function base64ToBytes(value: string): Uint8Array {
-  const binary = window.atob(value)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return bytes
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  const chunkSize = 0x8000
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
-  }
-  return window.btoa(binary)
-}
