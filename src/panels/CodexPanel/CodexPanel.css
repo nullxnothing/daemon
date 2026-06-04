@@ -138,7 +138,7 @@
 
 .codex-agents-editor {
   width: 100%;
-  background: var(--s1);
+  background: var(--field-bg);
   color: var(--t1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -151,7 +151,7 @@
 
 .codex-agents-editor:focus {
   outline: none;
-  border-color: var(--s5);
+  border-color: var(--accent-line);
 }
 
 .codex-agents-preview {
@@ -161,7 +161,7 @@
   margin: 6px 0;
   max-height: 220px;
   overflow: auto;
-  background: var(--s1);
+  background: var(--field-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-sm);
@@ -256,5 +256,5 @@
 .codex-agents-preview {
   border-radius: var(--drawer-control-radius);
   border-color: var(--border);
-  background: var(--s1);
+  background: var(--field-bg);
 }
