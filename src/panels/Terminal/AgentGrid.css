@@ -16,7 +16,7 @@
   height: 30px;
   padding: 0 8px;
   background: var(--s1);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .agent-grid-page-tab-close:hover {
-  color: var(--error);
+  color: var(--red);
 }
 
 .agent-grid-page-add {
@@ -121,7 +121,7 @@
   gap: 1px;
   flex: 1;
   min-height: 0;
-  background: var(--border);
+  background: var(--line);
 }
 
 .agent-grid-cell {
@@ -151,7 +151,7 @@
   padding: 4px 10px;
   height: 26px;
   background: var(--s1);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
   cursor: grab;
   transition: background var(--duration-fast);
@@ -212,7 +212,7 @@
 }
 
 .agent-grid-cell-dot.idle {
-  background: var(--t3);
+  background: var(--t4);
 }
 
 .agent-grid-cell-activate {
@@ -246,8 +246,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-panel);
-  border: 1px solid var(--s5);
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
   background: var(--s1);
   color: var(--t3);
   transition: all var(--duration-normal);
@@ -280,12 +280,11 @@
   padding: 0 12px;
   font-size: var(--fs-11);
   color: var(--t2);
-  background: var(--s1);
-  border: 1px solid var(--border);
+  background: var(--s2);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: var(--shadow-md);
 }
 
 .agent-grid-reopen-btn:hover {
