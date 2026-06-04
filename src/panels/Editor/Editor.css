@@ -292,12 +292,14 @@
 }
 
 .editor-tab.active {
-  background: var(--s2);
+  position: relative;
+  background: var(--bg);
   color: var(--t1);
+  box-shadow: inset 0 2px 0 var(--green);
 }
 
 .editor-tab.saved {
-  background: var(--accent-fill);
+  background: var(--s2);
 }
 
 .editor-tab-close {
@@ -447,30 +449,39 @@
 .editor-lsp-status {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   height: 20px;
   max-width: 140px;
-  padding: 0 7px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
   color: var(--t3);
   background: var(--s2);
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-caps);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.editor-lsp-status.active {
-  border-color: color-mix(in srgb, var(--green) 42%, var(--border));
-  color: var(--green);
-  background: var(--green-glow);
+.editor-lsp-status::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--t4);
 }
 
-.editor-lsp-status.inactive {
-  border-color: color-mix(in srgb, var(--warning) 35%, var(--border));
-  color: var(--warning);
-  background: var(--amber-glow);
+.editor-lsp-status.active::before {
+  background: var(--green);
+}
+
+.editor-lsp-status.inactive::before {
+  background: var(--amber);
 }
 
 .editor-tidy-hint {
@@ -514,9 +525,9 @@
   width: 32px;
   height: 32px;
   border-radius: var(--r);
-  border: 1px solid var(--accent-line);
-  background: var(--accent-fill);
-  color: var(--green);
+  border: 1px solid var(--line-2);
+  background: var(--s2);
+  color: var(--t3);
   font-size: var(--fs-14);
   display: grid;
   place-items: center;
@@ -524,8 +535,9 @@
 }
 
 .editor-wand-fab:hover:enabled {
-  border-color: var(--green);
-  background: color-mix(in srgb, var(--green) 14%, transparent);
+  border-color: var(--line-strong);
+  background: var(--s3);
+  color: var(--green);
 }
 
 .editor-wand-fab:disabled {

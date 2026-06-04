@@ -235,28 +235,26 @@
   margin-left: auto;
   min-width: 14px;
   height: 14px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-9);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
+  background: transparent;
 }
 
 .file-git-status.staged {
-  color: var(--success);
-  background: var(--green-glow);
+  color: var(--green);
 }
 
 .file-git-status.modified {
-  color: var(--warning);
-  background: var(--amber-glow);
+  color: var(--amber);
 }
 
 .file-git-status.untracked {
-  color: var(--info);
-  background: var(--blue-glow);
+  color: var(--green-dim);
 }
 
 .file-node.directory .file-node-name {
