@@ -159,12 +159,14 @@ function ActionableIssueCard({ issue }: { issue: ActivityIssueGroup }) {
     <div className={`activity-issue-card ${issue.kind}`}>
       <StatusDot tone={tone} label={`${issue.kind}: ${issue.title}`} className="activity-dot" />
       <div className="activity-issue-main">
-        <div className="activity-entry-top">
-          <span className="activity-entry-context">{issue.context ?? issue.category}</span>
-          <Badge tone={tone} className="activity-entry-category">{issue.category}</Badge>
-          <time>{occurrenceLabel}</time>
-        </div>
         <div className="activity-entry-message">{issue.title}</div>
+        <div className="activity-entry-meta">
+          <span className="activity-entry-context">{issue.context ?? issue.category}</span>
+          <span className="activity-entry-sep">·</span>
+          <span>{issue.category}</span>
+          <span className="activity-entry-sep">·</span>
+          <span>{occurrenceLabel}</span>
+        </div>
       </div>
     </div>
   )
@@ -176,14 +178,15 @@ function EventRow({ entry }: { entry: ActivityEntry }) {
 
   return (
     <div className={`activity-entry ${entry.kind}`}>
+      <time className="activity-entry-time">{formatTime(entry.createdAt)}</time>
       <StatusDot tone={tone} className="activity-dot" />
       <div className="activity-entry-main">
-        <div className="activity-entry-top">
-          <span className="activity-entry-context">{entry.context ?? category}</span>
-          <Badge tone="info" className="activity-entry-category">{category}</Badge>
-          <time>{formatTime(entry.createdAt)}</time>
-        </div>
         <div className="activity-entry-message">{entry.message}</div>
+        <div className="activity-entry-meta">
+          <span className="activity-entry-context">{entry.context ?? category}</span>
+          <span className="activity-entry-sep">·</span>
+          <span>{category}</span>
+        </div>
       </div>
     </div>
   )
