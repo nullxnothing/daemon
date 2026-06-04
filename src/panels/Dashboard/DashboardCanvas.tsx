@@ -413,7 +413,8 @@ export function DashboardCanvas() {
 
           <div className="dash-chart-section">
             <div className="dash-chart-header">
-              <span className="dash-chart-label">Price — last {priceHistory.length} samples (30s interval)</span>
+              <span className="label">Price · 30s interval</span>
+              <span className="dash-chart-meta">{priceHistory.length} samples</span>
             </div>
             <div className="dash-chart-area">
               <Sparkline
@@ -421,7 +422,8 @@ export function DashboardCanvas() {
                 width={600}
                 height={120}
                 color={priceColor}
-                strokeWidth={2}
+                strokeWidth={1.5}
+                axes
               />
             </div>
           </div>
