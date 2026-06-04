@@ -9,14 +9,14 @@
 .env-panel-header {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-lg);
+  gap: 16px;
   padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
 }
 
 .env-secrets-toggle {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: 6px;
   font-size: var(--fs-11);
   color: var(--t2);
   cursor: pointer;
@@ -25,49 +25,50 @@
 .env-header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .env-stats-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
-  padding: var(--space-lg) var(--space-xl) 0;
+  gap: 8px;
+  padding: 12px 24px 0;
 }
 
-.env-stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-md) 14px; /* TODO: 14px token */
+/* Compact stat: value and label on one line so the card hugs its content
+   instead of leaving a tall empty well below a tiny number. Overrides the
+   shared Stat module (column layout + 88px min-height) at the env scope. */
+.env-stats-row .env-stat-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 12px;
   border: 1px solid var(--s5);
   border-radius: var(--r-panel);
   background: var(--wash);
 }
 
-.env-stat-label {
+.env-stats-row .env-stat-card > span {
   font-size: var(--fs-10);
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: var(--ls-caps);
 }
 
-.env-stat-value {
-  font-size: var(--fs-22);
-  font-weight: var(--fw-bold);
-  color: var(--t1);
+.env-stats-row .env-stat-card > strong {
+  font-size: var(--fs-16);
+  line-height: 1.2;
+  margin-left: auto;
 }
 
 /* Search */
 .env-search-bar {
-  padding: var(--space-md) var(--space-xl);
+  padding: 12px 24px;
 }
 
 .env-search-input {
   width: 100%;
-  height: var(--btn-h-lg);
-  padding: 0 var(--space-md);
+  height: 32px;
+  padding: 0 12px;
   font-size: var(--fs-13);
   background: var(--s1);
   border: 1px solid var(--s5);
@@ -81,7 +82,7 @@
 
 /* Banner */
 .env-banner {
-  padding: 6px var(--space-xl); /* TODO: 6px token */
+  padding: 6px 24px;
   font-size: var(--fs-11);
 }
 
@@ -97,18 +98,18 @@
 .env-table {
   flex: 1;
   overflow-y: auto;
-  padding: 0 var(--space-xl) var(--space-xl);
+  padding: 0 24px 24px;
 }
 
 .env-table-header {
   display: flex;
   align-items: center;
-  padding: var(--space-sm) var(--space-md);
+  padding: 8px 12px;
   font-size: var(--fs-10);
-  font-weight: var(--fw-semibold);
+  font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.5px; /* TODO: token */
+  letter-spacing: 0.5px;
   border-bottom: 1px solid var(--s5);
   position: sticky;
   top: 0;
@@ -120,10 +121,10 @@
 .env-col-key { flex: 2; min-width: 0; }
 .env-col-dev { flex: 2.5; min-width: 0; }
 .env-col-prod { flex: 2.5; min-width: 0; }
-.env-col-actions { width: 180px; flex-shrink: 0; display: flex; gap: var(--space-xs); justify-content: flex-end; }
+.env-col-actions { width: 180px; flex-shrink: 0; display: flex; gap: 4px; justify-content: flex-end; }
 
 .env-loading {
-  padding: 40px 0; /* TODO: 40px token */
+  padding: 40px 0;
   text-align: center;
   font-size: var(--fs-12);
   color: var(--t3);
@@ -142,25 +143,24 @@
 .env-row-group.expanded {
   background: var(--s1);
   border-radius: var(--r-panel);
-  margin: 2px 0; /* TODO: token */
+  margin: 2px 0;
 }
 
 /* Main row */
 .env-row {
   display: flex;
   align-items: center;
-  padding: 10px 12px; /* TODO: 10px token */
+  padding: 10px 12px;
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
 .env-row:hover { background: var(--s2); }
-.env-row:active { background: var(--s3); }
 
 .env-row .env-col-key {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: 6px;
   overflow: hidden;
 }
 
@@ -175,7 +175,7 @@
   font-family: var(--font-code);
   font-size: var(--fs-12);
   color: var(--t1);
-  font-weight: var(--fw-medium);
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -186,7 +186,7 @@
 .env-col-prod {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: 6px;
   min-width: 0;
 }
 
@@ -237,7 +237,7 @@
 .env-secret-badge {
   font-size: var(--fs-9);
   color: var(--amber);
-  padding: 1px var(--space-xs); /* TODO: 1px token */
+  padding: 1px 4px;
   background: var(--amber-glow);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
@@ -246,10 +246,10 @@
 /* Validation badges */
 .env-validation-badge {
   font-size: var(--fs-9);
-  padding: 1px 5px; /* TODO: 1px/5px tokens */
+  padding: 1px 5px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  font-weight: var(--fw-medium);
+  font-weight: 500;
 }
 
 .env-validation-badge.valid {
@@ -264,17 +264,16 @@
 
 /* Buttons */
 .env-btn {
-  height: 24px; /* TODO: token */
-  padding: 0 10px; /* TODO: 10px token */
+  height: 24px;
+  padding: 0 10px;
   font-size: var(--fs-10);
   color: var(--t2);
   background: var(--s2);
-  border-radius: var(--r);
+  border-radius: 4px;
   white-space: nowrap;
 }
 
 .env-btn:hover { background: var(--s3); color: var(--t1); }
-.env-btn:active { background: var(--s4); }
 
 .env-btn-green {
   color: var(--green);
@@ -309,20 +308,19 @@
 }
 
 .env-btn-sm {
-  height: 20px; /* TODO: token */
-  padding: 0 6px; /* TODO: 6px token */
+  height: 20px;
+  padding: 0 6px;
   font-size: var(--fs-9);
   color: var(--t3);
   border-radius: var(--radius-sm);
 }
 
 .env-btn-sm:hover { color: var(--t1); background: var(--s3); }
-.env-btn-sm:active { background: var(--s4); }
 
 .env-add-btn {
   color: var(--green);
   background: var(--green-glow);
-  margin-left: var(--space-sm);
+  margin-left: 8px;
 }
 
 .env-add-btn:hover {
@@ -332,8 +330,8 @@
 /* Inline edit */
 .env-inline-edit {
   flex: 1;
-  height: 22px; /* TODO: token */
-  padding: 0 6px; /* TODO: 6px token */
+  height: 22px;
+  padding: 0 6px;
   font-size: var(--fs-11);
   font-family: var(--font-code);
   background: var(--s2);
@@ -345,33 +343,33 @@
 
 /* Expanded per-project rows */
 .env-expanded {
-  padding: 0 var(--space-md) var(--space-sm) 28px; /* TODO: 28px token */
+  padding: 0 12px 8px 28px;
 }
 
 .env-expanded-section {
-  margin-bottom: var(--space-sm);
+  margin-bottom: 8px;
 }
 
 .env-expanded-label {
   font-size: var(--fs-9);
-  font-weight: var(--fw-semibold);
+  font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.5px; /* TODO: token */
-  padding: var(--space-xs) 0 2px; /* TODO: 2px token */
+  letter-spacing: 0.5px;
+  padding: 4px 0 2px;
 }
 
 .env-expanded-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) 0;
+  gap: 8px;
+  padding: 4px 0;
   font-size: var(--fs-11);
 }
 
 .env-expanded-project {
   color: var(--t2);
-  width: 100px; /* TODO: token */
+  width: 100px;
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -381,7 +379,7 @@
 .env-expanded-file {
   font-size: var(--fs-9);
   color: var(--t3);
-  width: 60px; /* TODO: token */
+  width: 60px;
   flex-shrink: 0;
 }
 
@@ -397,37 +395,37 @@
 
 .env-expanded-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: 4px;
   flex-shrink: 0;
   align-items: center;
 }
 
 .env-target-badges {
   display: flex;
-  gap: 2px; /* TODO: token */
+  gap: 2px;
 }
 
 .env-target-badge {
   font-size: var(--fs-8);
   color: var(--t3);
-  padding: 1px 3px; /* TODO: 1px/3px tokens */
+  padding: 1px 3px;
   border: 1px solid var(--s5);
-  border-radius: 2px; /* TODO: token */
+  border-radius: 2px;
   text-transform: uppercase;
-  letter-spacing: 0.3px; /* TODO: token */
+  letter-spacing: 0.3px;
 }
 
 /* In-grid add row */
 .env-add-row {
   background: var(--s1);
   border: 1px solid var(--green);
-  border-radius: var(--r);
-  margin: var(--space-xs) 0;
+  border-radius: 4px;
+  margin: 4px 0;
 }
 
 .env-add-input {
-  height: 26px; /* TODO: token */
-  padding: 0 var(--space-sm);
+  height: 26px;
+  padding: 0 8px;
   font-size: var(--fs-12);
   background: var(--s2);
   border: 1px solid var(--s5);
@@ -443,7 +441,7 @@
 
 .env-add-key {
   font-family: var(--font-code);
-  font-weight: var(--fw-medium);
+  font-weight: 500;
   text-transform: uppercase;
 }
 
@@ -479,13 +477,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg) 20px; /* TODO: 20px token */
+  padding: 16px 20px;
   border-bottom: 1px solid var(--s5);
 }
 
 .env-modal-header h3 {
   font-size: var(--fs-14);
-  font-weight: var(--fw-semibold);
+  font-weight: 600;
   color: var(--t1);
   margin: 0;
 }
@@ -502,40 +500,39 @@
 }
 
 .env-modal-close:hover { color: var(--t1); }
-.env-modal-close:active { color: var(--t2); }
 
 .env-modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-lg) 20px; /* TODO: 20px token */
+  padding: 16px 20px;
 }
 
 .env-modal-field {
-  margin-bottom: var(--space-lg);
+  margin-bottom: 16px;
 }
 
 .env-modal-field label {
   display: block;
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-bottom: 6px; /* TODO: token */
-  font-weight: var(--fw-medium);
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .env-modal-input-row {
   display: flex;
-  gap: 6px; /* TODO: token */
+  gap: 6px;
 }
 
 .env-modal-input {
   flex: 1;
-  height: var(--btn-h-lg);
-  padding: 0 10px; /* TODO: 10px token */
+  height: 32px;
+  padding: 0 10px;
   font-size: var(--fs-12);
   font-family: var(--font-code);
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: var(--r);
+  border-radius: 4px;
   color: var(--t1);
 }
 
@@ -545,15 +542,15 @@
   max-height: 250px;
   overflow-y: auto;
   border: 1px solid var(--s5);
-  border-radius: var(--r);
+  border-radius: 4px;
   background: var(--s2);
 }
 
 .env-modal-project-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 6px 10px; /* TODO: 6px/10px tokens */
+  gap: 8px;
+  padding: 6px 10px;
   font-size: var(--fs-12);
   cursor: pointer;
   border-bottom: 1px solid var(--s5);
@@ -561,7 +558,6 @@
 
 .env-modal-project-row:last-child { border-bottom: none; }
 .env-modal-project-row:hover { background: var(--s3); }
-.env-modal-project-row:active { background: var(--s4); }
 
 .env-modal-project-name {
   flex: 1;
@@ -570,7 +566,7 @@
 
 .env-modal-project-status {
   font-size: var(--fs-10);
-  padding: 1px 6px; /* TODO: 1px/6px tokens */
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
 }
 
@@ -585,35 +581,35 @@
 
 .env-modal-footer {
   display: flex;
-  gap: var(--space-sm);
+  gap: 8px;
   justify-content: flex-end;
-  padding: var(--space-md) 20px; /* TODO: 20px token */
+  padding: 12px 20px;
   border-top: 1px solid var(--s5);
 }
 
 /* Empty state with templates */
 .env-empty-state {
-  padding: 40px var(--space-xl); /* TODO: 40px token */
+  padding: 40px 24px;
   text-align: center;
 }
 
 .env-empty-title {
   font-size: var(--fs-14);
-  font-weight: var(--fw-semibold);
+  font-weight: 600;
   color: var(--t1);
-  margin-bottom: 6px; /* TODO: token */
+  margin-bottom: 6px;
 }
 
 .env-empty-subtitle {
   font-size: var(--fs-12);
   color: var(--t3);
-  margin-bottom: var(--space-xl);
+  margin-bottom: 24px;
 }
 
 .env-templates {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 16px;
   text-align: left;
   max-width: 400px;
   margin: 0 auto;
@@ -622,32 +618,32 @@
 .env-template-group {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token */
+  gap: 6px;
 }
 
 .env-template-category {
   font-size: var(--fs-10);
-  font-weight: var(--fw-semibold);
+  font-weight: 600;
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.5px; /* TODO: token */
-  padding-left: 2px; /* TODO: token */
+  letter-spacing: 0.5px;
+  padding-left: 2px;
 }
 
 .env-template-items {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: 4px;
 }
 
 .env-template-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-sm) var(--space-md);
+  padding: 8px 12px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: var(--r);
+  border-radius: 4px;
   cursor: pointer;
   transition: all var(--transition-normal);
 }
@@ -657,15 +653,11 @@
   border-color: var(--green);
 }
 
-.env-template-btn:active {
-  background: var(--s4);
-}
-
 .env-template-key {
   font-family: var(--font-code);
   font-size: var(--fs-11);
   color: var(--t1);
-  font-weight: var(--fw-medium);
+  font-weight: 500;
 }
 
 .env-template-hint {

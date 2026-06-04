@@ -170,7 +170,7 @@ function PnlRow({ holding, onSwapHolding, onCopyMint }: {
               {formatPnl(holding.unrealizedPnlUsd)} {formatPct(holding.unrealizedPnlPct)}
             </span>
           ) : (
-            holding.currentPriceUsd >= 0.01 ? <span>${formatUsd(holding.currentPriceUsd)}</span> : null
+            holding.currentPriceUsd >= 0.01 ? <span className="pnl-price">@ ${formatUsd(holding.currentPriceUsd)}</span> : null
           )}
         </>
       )}
@@ -192,7 +192,7 @@ function FallbackRow({ holding, onSwapHolding, onCopyMint }: {
       detail={(
         <>
           <span>${formatUsd(holding.valueUsd)}</span>
-          {holding.priceUsd >= 0.01 ? <span>${formatUsd(holding.priceUsd)}</span> : null}
+          {holding.priceUsd >= 0.01 ? <span className="pnl-price">@ ${formatUsd(holding.priceUsd)}</span> : null}
         </>
       )}
       actions={<HoldingActions mint={holding.mint} symbol={holding.symbol} onSwapHolding={onSwapHolding} onCopyMint={onCopyMint} />}

@@ -659,13 +659,17 @@ function EnvRow({
           ) : hasProd ? (
             <span
               className={`env-value-text ${isProdRevealed ? 'env-plain' : 'env-obscured'} env-clickable`}
-              onMouseEnter={() => toggleReveal(`${m.key}:prod`)}
-              onMouseLeave={() => toggleReveal(`${m.key}:prod`)}
               onClick={(e) => {
                 e.stopPropagation()
-                if (m.prodVarId && activeProjectId) onStartEditProd(m.key, m.prodVarId, m.prodValue!)
+                // Single click toggles reveal; double-click opens the editor.
+                // Never reveal on hover — a secret must not echo on cursor pass.
+                if (e.detail === 2 && m.prodVarId && activeProjectId) {
+                  onStartEditProd(m.key, m.prodVarId, m.prodValue!)
+                } else {
+                  toggleReveal(`${m.key}:prod`)
+                }
               }}
-              title={isProdRevealed ? m.prodValue! : 'Hover to reveal, click to edit'}
+              title={isProdRevealed ? 'Click to hide, double-click to edit' : 'Click to reveal, double-click to edit'}
             >
               {isProdRevealed ? truncate(m.prodValue!, 28) : obscure(m.prodValue!)}
             </span>
