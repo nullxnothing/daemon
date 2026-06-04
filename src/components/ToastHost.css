@@ -73,7 +73,7 @@
 .toast-action {
   background: var(--s4);
   color: var(--t1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 3px var(--space-sm); /* TODO: token (off-grid 3px vertical) */
   font-size: var(--fs-11);
@@ -84,7 +84,7 @@
 }
 
 .toast-action:hover {
-  background: var(--s5, var(--s4));
+  background: var(--line-2);
 }
 
 .toast-action:active {

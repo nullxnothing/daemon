@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px; /* TODO: token */
-  border-bottom: 1px solid var(--s3);
+  border-bottom: 1px solid var(--line);
 }
 
 .title {
@@ -45,7 +45,7 @@
   color: var(--t3);
   cursor: pointer;
   padding: var(--space-xs);
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,8 +81,8 @@
 .input,
 .textarea {
   background: var(--bg);
-  border: 1px solid var(--s4);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
   padding: 8px 10px; /* TODO: token */
   color: var(--t1);
   font-size: var(--fs-13);
@@ -121,7 +121,7 @@
   padding: 8px 10px; /* TODO: token */
   background: color-mix(in srgb, var(--red) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
 }
 
 .actions {
@@ -134,7 +134,7 @@
 .primaryBtn,
 .secondaryBtn {
   padding: 7px 14px; /* TODO: token */
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   cursor: pointer;
@@ -159,12 +159,12 @@
 .secondaryBtn {
   background: transparent;
   color: var(--t2);
-  border-color: var(--s4);
+  border-color: var(--line-2);
 }
 
 .secondaryBtn:hover:not(:disabled) {
   color: var(--t1);
-  border-color: var(--s5);
+  border-color: var(--line-strong);
 }
 
 .successBlock {

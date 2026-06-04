@@ -72,7 +72,7 @@
 .confirm-typed-input {
   background: var(--s1);
   color: var(--t1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 6px var(--space-sm); /* TODO: token (off-grid 6px vertical) */
   font-family: var(--mono);
@@ -81,7 +81,7 @@
 
 .confirm-typed-input:focus {
   outline: none;
-  border-color: var(--s5, var(--s4));
+  border-color: var(--line-2);
 }
 
 .confirm-actions {
@@ -94,7 +94,7 @@
 .confirm-btn-confirm {
   background: var(--s3);
   color: var(--t1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 6px 14px; /* TODO: token (off-grid 6/14px) */
   font-size: var(--fs-12);

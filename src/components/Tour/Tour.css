@@ -23,7 +23,7 @@
   position: fixed;
   z-index: 10001;
   background: var(--s2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
   padding: 14px 16px; /* TODO: token */
   width: 280px;
@@ -42,7 +42,7 @@
   width: 8px;
   height: 8px;
   background: var(--s2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   transform: rotate(45deg);
 }
 
@@ -95,7 +95,7 @@
 .tour-tooltip-counter {
   font-size: var(--fs-10);
   color: var(--t4);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--mono);
 }
 
 .tour-tooltip-body {
@@ -115,10 +115,10 @@
 .tour-tooltip-btn {
   height: 26px;
   padding: 0 10px; /* TODO: token */
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
   font-size: var(--fs-11);
   cursor: pointer;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   transition: opacity var(--transition-fast);
 }
 

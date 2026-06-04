@@ -14,7 +14,7 @@
   max-width: 600px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r);
   box-shadow: var(--shadow-modal);
   overflow: hidden;
@@ -30,7 +30,7 @@
   background: var(--s2);
   color: var(--t1);
   border: none;
-  border-bottom: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--line-strong);
   outline: none;
   box-sizing: border-box;
   transition: box-shadow var(--transition-fast);
