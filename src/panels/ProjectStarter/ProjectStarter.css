@@ -14,7 +14,7 @@
   text-align: left;
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .starter-title {
@@ -295,7 +295,7 @@
   font-weight: 600;
   color: var(--t1);
   background: var(--s3);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-sm);
   padding: 8px 14px;
   cursor: pointer;
@@ -305,7 +305,7 @@
 
 .starter-browse-btn:hover {
   background: var(--s4);
-  border-color: var(--s6);
+  border-color: var(--line-strong);
 }
 
 .starter-browse-btn--active {
@@ -327,7 +327,7 @@
   margin-bottom: 16px;
   padding: 12px;
   background: var(--s2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
 }
 
@@ -356,7 +356,7 @@
 .starter-meme-config {
   margin-bottom: 16px;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--s2);
 }

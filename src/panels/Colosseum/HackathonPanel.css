@@ -67,7 +67,7 @@
   font-family: var(--font-code);
   color: var(--t1);
   background: var(--s1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   outline: none;
   transition: border-color var(--transition-fast);

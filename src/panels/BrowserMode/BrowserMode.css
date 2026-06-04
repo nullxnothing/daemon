@@ -36,7 +36,7 @@
   justify-content: center;
   height: 28px; /* TODO: token */
   padding: 0 var(--space-md);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   background: var(--s2);
   color: var(--t1);
@@ -133,7 +133,7 @@
   height: 32px;
   padding: 0 10px;
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   color: var(--t1);
   font-size: var(--fs-12);
@@ -157,7 +157,7 @@
   width: 32px;
   height: 32px;
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   color: var(--t2);
   cursor: pointer;

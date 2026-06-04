@@ -34,7 +34,7 @@
 
 .replay-tab {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   color: var(--t2);
   font-size: var(--fs-12);
@@ -45,7 +45,7 @@
 
 .replay-tab:hover {
   color: var(--t1);
-  border-color: var(--border-hover);
+  border-color: var(--line-2);
 }
 
 .replay-tab.is-active {
@@ -63,7 +63,7 @@
 .replay-input {
   flex: 1;
   background: var(--s1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   color: var(--t1);
   font-family: var(--mono);
@@ -101,12 +101,12 @@
 .replay-button--ghost {
   background: transparent;
   color: var(--t2);
-  border-color: var(--border);
+  border-color: var(--line);
 }
 
 .replay-button--ghost:hover:not(:disabled) {
   color: var(--t1);
-  border-color: var(--border-hover);
+  border-color: var(--line-2);
 }
 
 .replay-button--accent {
@@ -150,7 +150,7 @@
 
 .replay-summary {
   background: var(--s1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   padding: 14px var(--space-lg);
   display: flex;
@@ -228,7 +228,7 @@
 
 .replay-verify-card {
   background: var(--s1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   padding: 14px var(--space-lg);
   display: flex;

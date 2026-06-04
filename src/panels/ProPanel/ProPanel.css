@@ -92,7 +92,7 @@
 
 .pro-btn:hover:not(:disabled) {
   background: var(--s3);
-  border-color: var(--s5);
+  border-color: var(--line-2);
 }
 
 .pro-btn:active:not(:disabled) {
@@ -480,7 +480,7 @@
 }
 
 .pro-arena-filter:hover:not(.active) {
-  border-color: var(--s5);
+  border-color: var(--line-2);
   color: var(--t1);
 }
 
@@ -540,7 +540,7 @@
 
 .pro-arena-vote:hover:not(.voted) {
   background: var(--s3);
-  border-color: var(--s5);
+  border-color: var(--line-2);
 }
 
 .pro-arena-vote.voted {

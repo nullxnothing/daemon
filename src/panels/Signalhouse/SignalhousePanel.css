@@ -4,7 +4,7 @@
   --sh-accent-2: var(--brand-signalhouse-violet);
   --sh-warn: var(--brand-signalhouse-warn);
   --sh-accent-soft: color-mix(in srgb, var(--sh-accent) 14%, transparent);
-  --sh-border: color-mix(in srgb, var(--sh-accent) 16%, var(--border));
+  --sh-border: color-mix(in srgb, var(--sh-accent) 16%, var(--line));
   --sh-mono: var(--font-code);
 
   display: flex;
@@ -188,7 +188,7 @@
 .sh-detail {
   margin-top: var(--space-md);
   padding: var(--space-md);
-  background: var(--surface-raised);
+  background: var(--s2);
   border: 1px solid var(--sh-border);
   border-radius: var(--radius-card);
 }

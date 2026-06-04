@@ -33,7 +33,7 @@
   gap: var(--space-sm);
   min-height: 38px;
   padding: 0 0 var(--space-sm);
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--line);
 }
 
 .meterflow-brand {
@@ -280,7 +280,7 @@
 .meterflow-detail pre {
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
-  background: var(--surface-sunken);
+  background: var(--field-bg);
   color: var(--t2);
   font-family: var(--font-code);
   font-size: var(--fs-11);
@@ -492,7 +492,7 @@
   padding: var(--space-sm);
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
-  background: var(--surface-sunken);
+  background: var(--field-bg);
 }
 
 .meterflow-row-grid strong,
