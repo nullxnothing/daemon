@@ -28,7 +28,7 @@ const toolChecks = [
   { name: 'New Project', readySelector: '.starter-panel', expectedText: 'Project Templates' },
   { name: 'Git', readySelector: '.git-center', expectedText: 'Git workflow' },
   { name: 'Env', readySelector: '.env-center', expectedText: 'Environment' },
-  { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Wallet workspace' },
+  { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Add wallet' },
   { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Launch Center' },
   { name: 'Proof Pool', readySelector: '.proof-pool-panel', expectedText: 'Hosted partner launches and advanced Proof Pool custody' },
   { name: 'Solana Start', readySelector: '.project-readiness', expectedText: 'Solana project status' },

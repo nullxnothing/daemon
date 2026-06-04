@@ -320,7 +320,7 @@ export function WalletWorkspace({ onRefresh }: Props) {
         <main className={styles.main}>
           {selectedId ? (
             <>
-              <div className={styles.hero}>
+              <div className={styles.hero} data-testid="wallet-hero">
                 <div className={styles.heroTop}>
                   <div className={styles.heroId}>
                     <span className={`${styles.label} ${styles.heroEyebrow}`}>
@@ -396,7 +396,7 @@ export function WalletWorkspace({ onRefresh }: Props) {
                 </div>
               </div>
 
-              <div className={styles.tabs}>
+              <div className={styles.tabs} data-testid="wallet-tabs">
                 <button className={`${styles.tab}${tab === 'holdings' ? ' ' + styles.tabOn : ''}`} onClick={() => setTab('holdings')}>
                   Holdings <span className={`${styles.mono} ${styles.tcount}`}>{holdings.length}</span>
                 </button>

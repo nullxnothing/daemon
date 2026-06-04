@@ -56,17 +56,18 @@ const scenarios = [
     maxChangedPixels: 500,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
-      await page.waitForSelector('.wallet-workspace-metrics', { timeout: 30000 })
+      await page.waitForSelector('[data-testid="wallet-hero"]', { timeout: 30000 })
     },
-    selector: '.wallet-panel-header',
+    selector: '[data-testid="wallet-hero"]',
   },
   {
     name: 'wallet-tabs',
     maxChangedPixels: 100,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
+      await page.waitForSelector('[data-testid="wallet-tabs"]', { timeout: 30000 })
     },
-    selector: '.wallet-tabs',
+    selector: '[data-testid="wallet-tabs"]',
   },
   {
     name: 'wallet-quickview',
