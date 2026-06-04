@@ -604,7 +604,7 @@ function ReceiveView({ address, onBack }: {
           {address}
         </div>
         <button type="button" className="qv-primary-btn" onClick={() => void copy(address)}>
-          {copied ? 'Copied ✓' : 'Copy Address'}
+          {copied ? 'Copied' : 'Copy Address'}
         </button>
         <LiveRegion message={copied ? 'Wallet address copied to clipboard' : ''} />
       </div>
