@@ -30,8 +30,22 @@
 /* Header KPI strip — fused hairline grid via the shared KpiGrid primitive.
    Constrain width so it doesn't span the whole header. */
 .wallet-workspace-metrics {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  max-width: 420px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 300px;
+}
+
+/* These two grids carry short status text (transport, execution path, signer
+   state), not big numerics. The shared KpiGrid value slot is 28px mono and
+   wraps long words onto 3 lines — clamp it to item-title scale on a single
+   line so status tiles stay legible. Inner KpiGrid classes are CSS-module
+   hashed, so target the stable structural elements. */
+.wallet-workspace-metrics > div > strong,
+.wallet-portfolio-grid > div > strong {
+  font-size: var(--fs-15);
+  line-height: var(--lh-snug);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Tabs ── */
@@ -2190,6 +2204,14 @@
 
 .pnl-inline.profit { color: var(--green); }
 .pnl-inline.loss { color: var(--red); }
+
+/* Unit price beside a holding's value — muted + mono so it reads as the
+   per-token price ("@ $69.88"), not a second portfolio figure. */
+.pnl-price {
+  color: var(--t4);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
 
 .pnl-pct-sm {
   font-size: var(--fs-10);

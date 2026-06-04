@@ -27,7 +27,9 @@ export function WalletPanel() {
   const activeWalletId = dashboard?.activeWallet?.id ?? null
   const activeWalletName = dashboard?.activeWallet?.name ?? 'No active wallet'
   const walletCount = dashboard?.portfolio.walletCount ?? 0
-  const transportLabel = dashboard?.heliusConfigured ? 'Helius connected' : 'Helius key missing'
+  const heliusConfigured = dashboard?.heliusConfigured ?? false
+  const transportLabel = heliusConfigured ? 'Helius' : 'No key'
+  const transportMeta = heliusConfigured ? 'RPC connected' : 'Helius key missing'
 
   useEffect(() => { void load() }, [load])
   useEffect(() => useWalletStore.getState().subscribeFastPoll(), [])
@@ -90,9 +92,8 @@ export function WalletPanel() {
           <KpiGrid
             className="wallet-workspace-metrics"
             cells={[
-              { label: 'Tracked', value: walletCount },
-              { label: 'Transport', value: transportLabel },
-              { label: 'Tab', value: activeTab === 'wallet' ? 'Wallet' : 'Agents' },
+              { label: 'Tracked', value: walletCount, meta: `${walletCount === 1 ? 'wallet' : 'wallets'}` },
+              { label: 'Transport', value: transportLabel, meta: transportMeta, tone: heliusConfigured ? 'success' : 'warning' },
             ]}
           />
         }

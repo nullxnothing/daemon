@@ -131,7 +131,8 @@ export function WalletTab({ onRefresh }: Props) {
   const trackedWallets = dashboard.wallets
   const walletIdsFingerprint = useMemo(() => trackedWallets.map((wallet) => wallet.id).join('|'), [trackedWallets])
   const holdingsPreview = activeWallet?.holdings.slice(0, 4) ?? []
-  const executionLabel = walletInfrastructure.executionMode === 'jito' ? 'Jito path' : 'Standard RPC'
+  const executionLabel = walletInfrastructure.executionMode === 'jito' ? 'Jito' : 'Standard'
+  const executionMeta = walletInfrastructure.executionMode === 'jito' ? 'Jito bundle path' : 'Direct RPC path'
   const explorerCluster = walletInfrastructure.cluster
   const recipientWalletOptions = useMemo(() => (
     activeWallet
@@ -255,10 +256,20 @@ export function WalletTab({ onRefresh }: Props) {
     if (!activeWallet) return []
     return [
       { label: 'Active wallet', value: activeWallet.name, meta: truncateAddress(activeWallet.address) },
-      { label: 'Execution', value: executionLabel, meta: dashboard.heliusConfigured ? 'Helius connected' : 'Helius key missing' },
-      { label: 'Can sign', value: canSolflareSign ? 'Solflare' : hasKeypair ? 'Ready' : 'Watch-only', meta: canSolflareSign ? 'External SOL approvals' : hasKeypair ? 'Send, swap, export, receive' : 'Import, generate, or connect Solflare to act' },
+      {
+        label: 'Execution',
+        value: executionLabel,
+        meta: executionMeta,
+        tone: dashboard.heliusConfigured ? 'default' : 'warning',
+      } as const,
+      {
+        label: 'Can sign',
+        value: canSolflareSign ? 'Solflare' : hasKeypair ? 'Ready' : 'Watch-only',
+        meta: canSolflareSign ? 'External SOL approvals' : hasKeypair ? 'Send, swap, export' : 'Import or connect to act',
+        tone: (canSolflareSign || hasKeypair ? 'success' : 'warning'),
+      } as const,
     ]
-  }, [activeWallet, canSolflareSign, dashboard.heliusConfigured, executionLabel, hasKeypair])
+  }, [activeWallet, canSolflareSign, dashboard.heliusConfigured, executionLabel, executionMeta, hasKeypair])
 
   const resetSendState = () => {
     setSendDest('')
@@ -816,7 +827,7 @@ export function WalletTab({ onRefresh }: Props) {
           {walletActionCards.length > 0 && (
             <KpiGrid
               className="wallet-portfolio-grid"
-              cells={walletActionCards.map((card) => ({ label: card.label, value: card.value, meta: card.meta }))}
+              cells={walletActionCards}
             />
           )}
         </div>
@@ -1088,7 +1099,7 @@ export function WalletTab({ onRefresh }: Props) {
                         {wallet.isDefault && <Badge tone="feature">default</Badge>}
                         <Badge tone={keypairCache[wallet.id] ? 'success' : 'neutral'}>{keypairCache[wallet.id] ? 'Signer' : 'Watch-only'}</Badge>
                         <span>{truncateAddress(wallet.address)}</span>
-                        <span>{wallet.tokenCount} assets</span>
+                        <span>{wallet.tokenCount} asset{wallet.tokenCount === 1 ? '' : 's'}</span>
                       </>
                     )}
                     actions={<span className="wallet-value wallet-value-strong">${formatUsd(wallet.totalUsd)}</span>}
