@@ -33,12 +33,6 @@
   color: var(--t3);
 }
 
-.agent-wb-title {
-  font-size: var(--fs-13);
-  font-weight: var(--fw-semibold);
-  color: var(--t1);
-}
-
 .agent-wb-spacer { flex: 1; }
 
 .agent-wb-model { flex: none; }
@@ -54,45 +48,6 @@
   cursor: pointer;
 }
 .agent-wb-clear:hover { background: var(--s3); color: var(--t1); }
-
-/* ---------------- context chips ---------------- */
-.agent-wb-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px var(--space-md);
-  border-bottom: 1px solid var(--line);
-  flex: none;
-}
-
-.agent-wb-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  background: transparent;
-  color: var(--t3);
-  font-size: var(--fs-12);
-  cursor: pointer;
-}
-.agent-wb-chip:hover { border-color: var(--line-2); color: var(--t1); }
-.agent-wb-chip.on { border-color: var(--accent-line); background: var(--accent-fill); color: var(--t1); }
-
-.agent-wb-chip-box {
-  width: 14px;
-  height: 14px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  font-size: var(--fs-9);
-  line-height: 1;
-  color: var(--bg);
-}
-.agent-wb-chip.on .agent-wb-chip-box { border-color: var(--green); background: var(--green); }
 
 /* ---------------- transcript ---------------- */
 .agent-wb-transcript {
@@ -181,7 +136,7 @@
   height: 30px;
   border: 1px solid var(--line-2);
   border-radius: var(--r);
-  background: var(--bg);
+  background: var(--field-bg);
   color: var(--t1);
   font-family: var(--mono);
   font-size: var(--fs-12);
