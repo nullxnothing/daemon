@@ -5,10 +5,10 @@
   --dt-bg: var(--brand-degentools-bg);
   --dt-card: var(--brand-degentools-card);
   --dt-card-2: var(--brand-degentools-card-2);
-  --dt-border: color-mix(in srgb, var(--dt-acid) 17%, #1b221f);
-  --dt-border-strong: color-mix(in srgb, var(--dt-gold) 36%, #1b221f);
-  --dt-text: #eef6ef;
-  --dt-muted: #8a9b8d;
+  --dt-border: color-mix(in srgb, var(--dt-acid) 17%, var(--s2));
+  --dt-border-strong: color-mix(in srgb, var(--dt-gold) 36%, var(--s2));
+  --dt-text: var(--t1);
+  --dt-muted: var(--t3);
   --dt-soft: color-mix(in srgb, var(--dt-acid) 12%, transparent);
 
   display: flex;
@@ -217,20 +217,20 @@
   opacity: 0.62;
 }
 .dt-btn--primary {
-  border-color: color-mix(in srgb, var(--dt-acid) 60%, #17331f);
+  border-color: color-mix(in srgb, var(--dt-acid) 60%, var(--s1));
   background: var(--dt-acid);
-  color: #061209;
+  color: var(--bg);
 }
 .dt-btn--secondary {
   margin-bottom: var(--space-md);
-  border-color: color-mix(in srgb, var(--dt-teal) 42%, #1b221f);
+  border-color: color-mix(in srgb, var(--dt-teal) 42%, var(--s2));
 }
 .dt-btn--launch {
   width: 100%;
   margin-bottom: var(--space-md);
-  border-color: color-mix(in srgb, var(--dt-gold) 62%, #33270b);
+  border-color: color-mix(in srgb, var(--dt-gold) 62%, var(--s1));
   background: var(--dt-gold);
-  color: #171104;
+  color: var(--bg);
 }
 .dt-btn--ghost {
   background: transparent;
@@ -256,7 +256,7 @@
   overflow: auto;
   border: 1px solid var(--dt-border);
   border-radius: var(--radius-md);
-  background: #050806;
+  background: var(--code-bg);
 }
 .dt-result--tall {
   min-height: 150px;
@@ -265,7 +265,7 @@
 .dt-result pre {
   margin: 0;
   padding: var(--space-md);
-  color: #dce9de;
+  color: var(--t1);
   font-family: var(--font-code);
   font-size: var(--fs-12);
   line-height: 1.55; /* TODO: token */
