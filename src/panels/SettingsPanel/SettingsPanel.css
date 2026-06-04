@@ -149,7 +149,7 @@
   flex-direction: column;
   gap: 0;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: var(--r);
   overflow: hidden;
   background: var(--s1);
 }
@@ -157,8 +157,8 @@
 .settings-key-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -171,11 +171,15 @@
   font-size: var(--fs-12);
   color: var(--t1);
   font-weight: 500;
-  min-width: 200px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-key-hint {
-  flex: 1;
+  flex: none;
   font-size: var(--fs-10);
   color: var(--t3);
   font-family: var(--font-code);
@@ -184,7 +188,75 @@
 .settings-key-add {
   display: flex;
   gap: 8px;
-  margin-top: 4px;
+  align-items: stretch;
+}
+
+.settings-key-name-input {
+  max-width: 240px;
+}
+
+.settings-key-add-foot {
+  min-height: 16px;
+}
+
+.settings-saved-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-10);
+  color: var(--green);
+}
+
+.settings-saved-note code {
+  font-family: var(--font-code);
+  color: var(--t2);
+}
+
+/* Masked secret field — input + inline reveal toggle */
+.settings-secret-field {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+}
+
+.settings-secret-field .settings-input {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.settings-secret-reveal {
+  flex: none;
+  width: 52px;
+  height: 32px;
+  font-size: var(--fs-10);
+  color: var(--t2);
+  background: var(--s2);
+  border: 1px solid var(--line-2);
+  border-top-right-radius: var(--r);
+  border-bottom-right-radius: var(--r);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.settings-secret-reveal:hover:not(:disabled) {
+  background: var(--s3);
+  color: var(--t1);
+  border-color: var(--line-strong);
+}
+
+.settings-secret-reveal[aria-pressed="true"] {
+  color: var(--green);
+  border-color: var(--accent-line);
+}
+
+.settings-secret-reveal:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .settings-input {
@@ -245,17 +317,40 @@
   color: var(--red);
 }
 
+/* Quiet destructive — reads as a neutral secondary until intent (hover/focus),
+   then reveals its danger color. Keeps Remove/Clear from shouting on the page. */
+.settings-btn.quiet-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--t3);
+}
+
+.settings-btn.quiet-danger:hover:not(:disabled),
+.settings-btn.quiet-danger:focus-visible {
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  border-color: color-mix(in srgb, var(--red) 42%, transparent);
+  color: var(--red);
+}
+
 .settings-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Integrations */
+/* Integrations — key→value rows: dot + name on the left, value right-aligned.
+   Name takes a fixed column so the value sits in a predictable place instead of
+   floating against the far edge with a dead gap. */
 .settings-integration-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-height: 36px;
   padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-integration-row:last-child {
+  border-bottom: none;
 }
 
 .settings-integration-dot {
@@ -271,15 +366,23 @@
 }
 
 .settings-integration-name {
+  width: 132px;
+  flex: none;
   font-size: var(--fs-12);
   color: var(--t1);
-  flex: 1;
 }
 
+/* Value sits directly after the name as a tight key→value pair (left-aligned),
+   not stranded at the far edge. Trailing controls (toggles) use margin-left:auto. */
 .settings-integration-status {
-  font-size: var(--fs-10);
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-11);
   color: var(--t2);
   font-family: var(--font-code);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-integration-status.path {
@@ -287,8 +390,15 @@
 }
 
 .settings-integration-source {
-  font-size: var(--fs-9);
+  margin-left: auto;
+  flex: none;
+  font-size: var(--fs-10);
   color: var(--t3);
+}
+
+/* Toggle on integration rows pins to the right edge */
+.settings-integration-row > [role="switch"] {
+  margin-left: auto;
 }
 
 /* Agents */
@@ -711,10 +821,22 @@
   align-items: center;
   gap: 8px;
   min-height: 40px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
+}
+
+.settings-provider-status-card .settings-display-label {
+  width: auto;
+  text-transform: capitalize;
+}
+
+.settings-provider-status-auth {
+  margin-left: auto;
+  font-size: var(--fs-10);
+  font-family: var(--font-code);
+  color: var(--t3);
 }
 
 .settings-provider-pref-row {

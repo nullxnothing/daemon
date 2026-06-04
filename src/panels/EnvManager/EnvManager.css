@@ -32,31 +32,32 @@
 .env-stats-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  padding: 16px 24px 0;
+  gap: 8px;
+  padding: 12px 24px 0;
 }
 
-.env-stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+/* Compact stat: value and label on one line so the card hugs its content
+   instead of leaving a tall empty well below a tiny number. Overrides the
+   shared Stat module (column layout + 88px min-height) at the env scope. */
+.env-stats-row .env-stat-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 12px;
   border: 1px solid var(--s5);
   border-radius: var(--r-panel);
   background: var(--wash);
 }
 
-.env-stat-label {
+.env-stats-row .env-stat-card > span {
   font-size: var(--fs-10);
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
-.env-stat-value {
-  font-size: var(--fs-22);
-  font-weight: 700;
-  color: var(--t1);
+.env-stats-row .env-stat-card > strong {
+  font-size: var(--fs-16);
+  line-height: 1.2;
+  margin-left: auto;
 }
 
 /* Search */

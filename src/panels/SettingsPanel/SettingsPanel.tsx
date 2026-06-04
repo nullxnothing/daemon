@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { confirm } from '../../store/confirm'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useWalletStore } from '../../store/wallet'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
@@ -94,6 +95,56 @@ function findTabForQuery(query: string): SettingsTab | null {
   return null
 }
 
+// Collapse the middle of long technical values so both ends stay readable.
+function middleEllipsis(value: string, head = 14, tail = 6): string {
+  if (value.length <= head + tail + 1) return value
+  return `${value.slice(0, head)}…${value.slice(-tail)}`
+}
+
+// Masked secret field with reveal-on-intent. Plaintext is only shown while the
+// reveal toggle is on; it never echoes on hover or focus.
+function SecretInput({
+  value,
+  placeholder,
+  onChange,
+  onEnter,
+  ariaLabel,
+}: {
+  value: string
+  placeholder: string
+  onChange: (value: string) => void
+  onEnter?: () => void
+  ariaLabel: string
+}) {
+  const [revealed, setRevealed] = useState(false)
+  return (
+    <div className="settings-secret-field">
+      <input
+        className="settings-input"
+        type={revealed ? 'text' : 'password'}
+        placeholder={placeholder}
+        value={value}
+        aria-label={ariaLabel}
+        autoComplete="off"
+        spellCheck={false}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && onEnter?.()}
+      />
+      <button
+        type="button"
+        className="settings-secret-reveal"
+        aria-pressed={revealed}
+        aria-label={revealed ? 'Hide value' : 'Reveal value'}
+        title={revealed ? 'Hide value' : 'Reveal value'}
+        onClick={() => setRevealed((r) => !r)}
+        disabled={!value}
+      >
+        {revealed ? 'Hide' : 'Show'}
+      </button>
+    </div>
+  )
+}
+
 export function SettingsPanel() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const [tab, setTab] = useState<SettingsTab>('setup')
@@ -165,6 +216,7 @@ function KeysSection() {
   const [newKeyName, setNewKeyName] = useState('')
   const [newKeyValue, setNewKeyValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [savedName, setSavedName] = useState<string | null>(null)
 
   const load = useCallback((isCancelled: () => boolean = () => false) => {
     window.daemon.claude.listKeys().then((res) => {
@@ -180,15 +232,25 @@ function KeysSection() {
 
   const handleSave = async () => {
     if (!newKeyName.trim() || !newKeyValue.trim()) return
+    const name = newKeyName.trim()
     setSaving(true)
-    await window.daemon.claude.storeKey(newKeyName.trim(), newKeyValue.trim())
+    await window.daemon.claude.storeKey(name, newKeyValue.trim())
     setNewKeyName('')
     setNewKeyValue('')
     setSaving(false)
+    setSavedName(name)
+    window.setTimeout(() => setSavedName((current) => (current === name ? null : current)), 2400)
     load()
   }
 
   const handleDelete = async (name: string) => {
+    const ok = await confirm({
+      title: `Remove ${name}?`,
+      body: 'This deletes the stored credential from your OS keychain. Agents and integrations using it will stop working until you add it again.',
+      danger: true,
+      confirmLabel: 'Remove key',
+    })
+    if (!ok) return
     await window.daemon.claude.deleteKey(name)
     load()
   }
@@ -199,38 +261,50 @@ function KeysSection() {
         Encrypted credentials stored locally via OS keychain. Used by agents and integrations.
       </div>
 
+      <div className="settings-section-label">Stored keys</div>
       <div className="settings-key-list">
         {keys.map((k) => (
           <div key={k.key_name} className="settings-key-row">
-            <code className="settings-key-name">{k.key_name}</code>
-            <span className="settings-key-hint">{k.hint}</span>
-            <button type="button" className="settings-btn danger" onClick={() => handleDelete(k.key_name)}>Remove</button>
+            <div className="settings-integration-dot green" />
+            <code className="settings-key-name" title={k.key_name}>{middleEllipsis(k.key_name, 26, 8)}</code>
+            <span className="settings-key-hint" title={k.hint}>ends ·{k.hint.replace(/^[.·…\s]+/, '')}</span>
+            <button type="button" className="settings-btn quiet-danger" onClick={() => handleDelete(k.key_name)}>Remove</button>
           </div>
         ))}
-        {keys.length === 0 && <div className="settings-empty">No keys stored</div>}
+        {keys.length === 0 && <div className="settings-empty">No keys stored yet</div>}
       </div>
 
+      <div className="settings-section-label">Add a key</div>
       <div className="settings-key-add">
         <input
-          className="settings-input"
+          className="settings-input settings-key-name-input"
           placeholder="KEY_NAME"
+          aria-label="Key name"
           value={newKeyName}
           onChange={(e) => setNewKeyName(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))}
         />
-        <input
-          className="settings-input"
-          type="password"
-          placeholder="Value"
+        <SecretInput
           value={newKeyValue}
-          onChange={(e) => setNewKeyValue(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          placeholder="Value"
+          ariaLabel="Key value"
+          onChange={setNewKeyValue}
+          onEnter={handleSave}
         />
         <button type="button" className="settings-btn primary" onClick={handleSave} disabled={saving || !newKeyName.trim() || !newKeyValue.trim()}>
-          {saving ? 'Saving...' : 'Add Key'}
+          {saving ? 'Saving…' : 'Add Key'}
         </button>
       </div>
-      <div className="settings-section-desc tight">
-        Key names: uppercase letters, numbers, and underscores only.
+      <div className="settings-key-add-foot">
+        {savedName ? (
+          <span className="settings-saved-note">
+            <span className="settings-integration-dot green" />
+            Saved <code>{middleEllipsis(savedName, 22, 6)}</code>
+          </span>
+        ) : (
+          <span className="settings-section-desc tight">
+            Key names: uppercase letters, numbers, and underscores only.
+          </span>
+        )}
       </div>
     </div>
   )
@@ -338,8 +412,8 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
         <div className="settings-integration-row">
           <div className="settings-integration-dot green" />
           <span className="settings-integration-name">CLI Path</span>
-          <span className="settings-integration-status path">
-            {connection.claudePath}
+          <span className="settings-integration-status path" title={connection.claudePath}>
+            {middleEllipsis(connection.claudePath, 28, 18)}
           </span>
         </div>
       )}
@@ -363,16 +437,15 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
 
       {showApiInput && !isConnected && (
         <div className="settings-inline-row">
-          <input
-            className="settings-input"
-            type="password"
-            placeholder="sk-ant-api03-..."
+          <SecretInput
             value={apiKeyInput}
-            onChange={(e) => setApiKeyInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
+            placeholder="sk-ant-api03-…"
+            ariaLabel="Anthropic API key"
+            onChange={setApiKeyInput}
+            onEnter={handleSaveApiKey}
           />
           <button type="button" className="settings-btn primary" onClick={handleSaveApiKey} disabled={savingKey || !apiKeyInput.trim()}>
-            {savingKey ? '...' : 'Save'}
+            {savingKey ? 'Saving…' : 'Save'}
           </button>
         </div>
       )}
@@ -496,21 +569,20 @@ function VoightIntegrationCard() {
       </div>
 
       <div className="settings-inline-row">
-        <input
-          className="settings-input"
-          type="password"
-          placeholder="vk_..."
+        <SecretInput
           value={keyInput}
-          onChange={(e) => setKeyInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+          placeholder="vk_…"
+          ariaLabel="Voight key"
+          onChange={setKeyInput}
+          onEnter={saveKey}
         />
         <button type="button" className="settings-btn primary" onClick={saveKey} disabled={busy === 'save' || !keyInput.trim()}>
-          {busy === 'save' ? 'Saving...' : 'Save Key'}
+          {busy === 'save' ? 'Saving…' : 'Save Key'}
         </button>
         <button type="button" className="settings-btn" onClick={testEvent} disabled={busy === 'test' || !connected}>
-          {busy === 'test' ? 'Sending...' : 'Test Event'}
+          {busy === 'test' ? 'Sending…' : 'Test Event'}
         </button>
-        <button type="button" className="settings-btn danger" onClick={deleteKey} disabled={busy === 'delete' || !connected}>
+        <button type="button" className="settings-btn quiet-danger" onClick={deleteKey} disabled={busy === 'delete' || !connected}>
           Remove
         </button>
       </div>
@@ -656,18 +728,20 @@ function AIProvidersSection() {
         Choose which provider powers each AI surface. These choices affect new requests and new agent sessions.
       </div>
 
+      <div className="settings-section-label">Connections</div>
       <div className="settings-provider-status-grid">
         {(['claude', 'codex'] as ProviderId[]).map((id) => (
           <div key={id} className="settings-provider-status-card">
             <span className={`settings-provider-dot${connected[id] ? ' connected' : ''}`} />
             <span className="settings-display-label">{id}</span>
-            <span className="settings-display-hint">{connected[id] ? conns[id]?.authMode : 'Not connected'}</span>
+            <span className="settings-provider-status-auth">{connected[id] ? conns[id]?.authMode : 'Not connected'}</span>
           </div>
         ))}
       </div>
 
       <div className="settings-divider" />
 
+      <div className="settings-section-label">Aria</div>
       <ProviderPreferenceRow
         label="Aria"
         hint="Small side assistant for navigation, quick answers, and action chips."
@@ -685,6 +759,7 @@ function AIProvidersSection() {
 
       <div className="settings-divider" />
 
+      <div className="settings-section-label">DAEMON AI</div>
       <SelectPreferenceRow
         label="DAEMON AI access"
         hint="Auto uses hosted when available and falls back to BYOK."
@@ -709,6 +784,7 @@ function AIProvidersSection() {
 
       <div className="settings-divider" />
 
+      <div className="settings-section-label">Defaults</div>
       <ProviderPreferenceRow
         label="Auto agents"
         hint="Default provider for agents configured as auto."
@@ -879,7 +955,7 @@ function CrashesSection() {
           <span className="settings-crash-stat-value">{count7d}</span>
           <span className="settings-crash-stat-label">Last 7 days</span>
         </div>
-        <button type="button" className="settings-btn danger" onClick={handleClear} disabled={crashes.length === 0}>
+        <button type="button" className="settings-btn quiet-danger" onClick={handleClear} disabled={crashes.length === 0}>
           Clear History
         </button>
       </div>
@@ -964,6 +1040,13 @@ function SetupSection() {
   }
 
   const handleResetLayout = async () => {
+    const ok = await confirm({
+      title: 'Reset UI layout?',
+      body: 'Clears saved panel/layout state and stale sessions, then reloads DAEMON. Project, wallet, key, and history data stay intact.',
+      danger: true,
+      confirmLabel: 'Reset layout',
+    })
+    if (!ok) return
     setResettingLayout(true)
     try {
       const res = await window.daemon.settings.recoverUiState()
@@ -1028,8 +1111,8 @@ function SetupSection() {
           <button type="button" className="settings-btn" onClick={handleStartTour}>
             Take App Tour
           </button>
-        <button type="button" className="settings-btn danger" onClick={handleResetLayout} disabled={resettingLayout}>
-          {resettingLayout ? 'Resetting...' : 'Reset UI Layout'}
+        <button type="button" className="settings-btn quiet-danger" onClick={handleResetLayout} disabled={resettingLayout}>
+          {resettingLayout ? 'Resetting…' : 'Reset UI Layout'}
         </button>
       </div>
       <div className="settings-section-desc settings-inline-note">
@@ -1186,13 +1269,7 @@ function ToolVisibilitySection() {
         Disable extra tools from the sidebar and command drawer. Core navigation and Settings stay available.
       </div>
 
-      <div className="settings-divider" />
-
       <div className="settings-section-label">Workspace Profile</div>
-      <div className="settings-section-desc">
-        Control which tools are visible in the sidebar and tool drawer.
-      </div>
-
       <div className="settings-profile-selector">
         {PROFILE_OPTIONS.map(({ name, label }) => (
           <button
