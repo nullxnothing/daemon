@@ -7,9 +7,9 @@ const TARGETS = ['src/panels', 'src/components']
 // actuals so any new literal fails CI and pushes contributors to tokens/primitives.
 const BASELINE = {
   literalFontSize: 11,
-  literalRadius: 124,
-  hexColors: 82,
-  inlineShadow: 13,
+  literalRadius: 32,
+  hexColors: 68,
+  inlineShadow: 10,
   handRolledHeaders: 3,
 }
 
