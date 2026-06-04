@@ -3,16 +3,14 @@
   overflow: auto;
   padding: var(--space-xl);
   color: var(--t1);
-  background: var(--surface-sunken);
+  background: var(--bg);
 }
 
 .agentops-card {
   display: grid;
   min-height: calc(100vh - 96px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-panel);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+  background: var(--s1);
 }
 
 .agentops-card-head {
@@ -21,7 +19,7 @@
   gap: var(--space-lg);
   align-items: end;
   padding: var(--space-xl);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .agentops-card-head span,
@@ -29,14 +27,16 @@
 .agentops-rail-section label span {
   display: block;
   color: var(--t3);
+  font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
 }
 
 .agentops-card-head h2 {
   margin: var(--space-sm) 0 0;
+  font-family: var(--font-ui);
   font-size: var(--fs-28);
   font-weight: var(--fw-semibold);
   line-height: 1;
@@ -44,36 +44,41 @@
 }
 
 .agentops-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
   justify-self: end;
   max-width: 360px;
   padding: 9px var(--space-md);
-  border: 1px solid var(--border-hover);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
   color: var(--t2);
-  background: var(--surface-raised);
+  background: var(--field-bg);
+  font-family: var(--mono);
   font-size: var(--fs-12);
   overflow-wrap: anywhere;
-}
-
-.agentops-status-pill[data-ready="true"] {
-  border-color: color-mix(in srgb, var(--green) 46%, transparent);
-  color: var(--green);
 }
 
 .agentops-tabs {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .agentops-tabs button {
   min-height: 44px;
   border: 0;
-  border-right: 1px solid var(--border);
-  background: var(--surface-panel);
+  border-right: 1px solid var(--line);
+  border-bottom: 2px solid transparent;
+  background: var(--s1);
   color: var(--t3);
+  font-family: var(--font-ui);
   cursor: pointer;
   text-transform: capitalize;
+}
+
+.agentops-tabs button:hover {
+  color: var(--t1);
 }
 
 .agentops-tabs button:last-child {
@@ -82,8 +87,8 @@
 
 .agentops-tabs button[data-active="true"] {
   color: var(--t1);
-  background: var(--tab-active-bg);
-  box-shadow: inset 0 -2px 0 var(--green);
+  background: var(--accent-fill);
+  border-bottom-color: var(--green);
 }
 
 .agentops-card-grid {
@@ -100,7 +105,7 @@
 .agentops-card-rail {
   display: grid;
   align-content: start;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--line);
 }
 
 .agentops-section-stack,
@@ -111,11 +116,12 @@
 
 .agentops-rail-section {
   padding: var(--space-lg);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .agentops-rail-section h3 {
   margin: 0;
+  font-family: var(--font-ui);
   font-size: var(--fs-15);
   font-weight: var(--fw-semibold);
   letter-spacing: 0;
@@ -143,11 +149,30 @@
 .agentops-rail-section button {
   width: 100%;
   min-height: 38px;
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-md);
-  background: var(--control-bg);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--field-bg);
   color: var(--t1);
   padding: var(--space-sm) 10px;
+}
+
+.agentops-card-main input,
+.agentops-card-main select,
+.agentops-card-main textarea,
+.agentops-rail-section input,
+.agentops-rail-section select,
+.agentops-rail-section textarea {
+  font-family: var(--mono);
+}
+
+.agentops-card-main input:focus,
+.agentops-card-main select:focus,
+.agentops-card-main textarea:focus,
+.agentops-rail-section input:focus,
+.agentops-rail-section select:focus,
+.agentops-rail-section textarea:focus {
+  outline: none;
+  border-color: var(--accent-line);
 }
 
 .agentops-card-main input,
@@ -158,7 +183,7 @@
 .agentops-inline-plan span,
 .agentops-log code,
 .agentops-record-list code {
-  font-family: var(--font-code);
+  font-family: var(--mono);
 }
 
 .agentops-card-main textarea {
@@ -170,9 +195,9 @@
   width: 100%;
   min-height: 86px;
   resize: vertical;
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-md);
-  background: var(--control-bg);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--field-bg);
   color: var(--t1);
   padding: var(--space-sm) 10px;
 }
@@ -181,6 +206,12 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-sm);
+}
+
+.agentops-actions button,
+.agentops-rail-section button {
+  background: var(--s2);
+  font-family: var(--font-ui);
 }
 
 .agentops-actions button,
@@ -194,7 +225,7 @@
 .agentops-rail-section button:hover,
 .agentops-record-list button:hover,
 .agentops-receipts button:hover {
-  border-color: var(--green);
+  border-color: var(--line-strong);
 }
 
 .agentops-actions button:disabled,
@@ -206,8 +237,7 @@
 .agentops-data-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -216,9 +246,9 @@
   gap: 6px;
   min-width: 0;
   padding: var(--space-md);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-card);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--s1);
 }
 
 .agentops-data-row:nth-child(2n) {
@@ -241,16 +271,14 @@
   display: grid;
   gap: 6px;
   padding: var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
 
 .agentops-step-list {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -261,8 +289,8 @@
   min-height: 150px;
   min-width: 0;
   padding: var(--space-md);
-  border-right: 1px solid var(--border);
-  background: var(--surface-card);
+  border-right: 1px solid var(--line);
+  background: var(--s1);
 }
 
 .agentops-step-card:last-child {
@@ -270,13 +298,14 @@
 }
 
 .agentops-step-card span {
-  color: var(--green);
-  font-family: var(--font-code);
+  color: var(--t3);
+  font-family: var(--mono);
   font-size: var(--fs-11);
 }
 
 .agentops-step-card strong {
   color: var(--t1);
+  font-family: var(--font-ui);
   font-size: var(--fs-13);
   font-weight: var(--fw-semibold);
 }
@@ -296,14 +325,13 @@
 
 .agentops-ack-list {
   padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
 
 .agentops-ack-list code {
   color: var(--t3);
-  font-family: var(--font-code);
+  font-family: var(--mono);
   font-size: var(--fs-11);
   overflow-wrap: anywhere;
 }
@@ -329,10 +357,9 @@
   gap: var(--space-sm);
   max-height: 360px;
   overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
   padding: 10px;
-  background: var(--surface-sunken);
+  background: var(--field-bg);
 }
 
 .agentops-log div {
@@ -343,9 +370,14 @@
 }
 
 .agentops-log div > span {
-  color: var(--green);
+  color: var(--t3);
+  font-family: var(--mono);
   font-size: var(--fs-11);
   text-transform: uppercase;
+}
+
+.agentops-log div[data-direction="out"] > span {
+  color: var(--green);
 }
 
 .agentops-log div[data-direction="in"] > span {
@@ -369,11 +401,12 @@
   width: 100%;
   min-width: 0;
   padding: 10px;
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-md);
-  background: var(--control-bg);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--field-bg);
   color: var(--t1);
   text-align: left;
+  font-family: var(--font-ui);
 }
 
 .agentops-receipts button {
@@ -401,14 +434,14 @@
 
   .agentops-card-rail {
     border-left: 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--line);
   }
 
   .agentops-data-row,
   .agentops-data-row:nth-child(2n),
   .agentops-data-row:nth-last-child(-n + 2) {
     border-right: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--line);
   }
 
   .agentops-data-row:last-child {
@@ -418,7 +451,7 @@
   .agentops-step-card {
     min-height: auto;
     border-right: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--line);
   }
 
   .agentops-step-card:last-child {

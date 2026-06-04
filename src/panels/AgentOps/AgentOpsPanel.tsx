@@ -5,6 +5,7 @@ import { useAgentOpsStore } from '../../store/agentops'
 import { useUIStore } from '../../store/ui'
 import { useClipboard } from '../../hooks/useClipboard'
 import { LiveRegion } from '../../components/LiveRegion'
+import { StatusDot } from '../../components/Panel/StatusDot'
 import './AgentOpsPanel.css'
 
 type AgentOpsNetwork = 'devnet' | 'mainnet-beta'
@@ -624,7 +625,8 @@ export function AgentOpsPanel() {
             <span>Metaplex AgentOps by DAEMON</span>
             <h2>{draft.name || 'AgentOps'}</h2>
           </div>
-          <div className="agentops-status-pill" data-ready={hasAsset ? 'true' : 'false'}>
+          <div className="agentops-status-pill">
+            <StatusDot tone={hasAsset ? 'success' : 'neutral'} pulse={hasAsset} />
             {status}
           </div>
         </header>
