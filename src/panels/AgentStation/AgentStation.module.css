@@ -10,33 +10,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px 10px;
-  border-bottom: 1px solid var(--s3);
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .headerTitle {
   font-size: var(--fs-13);
   font-weight: var(--fw-semibold);
   color: var(--t1);
-  letter-spacing: 0.01em;
+  letter-spacing: var(--ls-tight);
 }
 
 .headerBadge {
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: var(--fw-semibold);
-  color: var(--t2);
-  background: color-mix(in srgb, var(--green) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+  font-weight: var(--fw-medium);
+  color: var(--t3);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 1px 6px;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
 
@@ -44,23 +44,27 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  background: var(--t2);
-  color: var(--on-accent);
-  border: none;
-  border-radius: var(--r-panel);
+  height: var(--btn-h-md);
+  padding: 0 var(--space-md);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: opacity var(--duration-fast);
+  transition: background var(--duration-fast), border-color var(--duration-fast);
 }
-.newBtn:hover { opacity: 0.85; }
+.newBtn:hover {
+  background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg));
+  border-color: var(--green);
+}
 
 /* Body */
 .body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px;
+  padding: var(--space-md) var(--space-lg);
 }
 
 /* Empty state */
@@ -69,13 +73,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 60px 24px;
+  gap: var(--space-md);
+  padding: 60px var(--space-xl); /* TODO: 60px token */
   text-align: center;
 }
 
 .emptyIcon {
-  opacity: 0.25;
+  color: var(--t4);
 }
 
 .emptyTitle {
@@ -87,27 +91,27 @@
 .emptyDesc {
   font-size: var(--fs-12);
   color: var(--t3);
-  line-height: 1.6;
-  max-width: 280px;
+  line-height: var(--lh-normal);
+  max-width: 280px; /* TODO: token */
 }
 
 .emptyAction {
   margin-top: var(--space-xs);
   height: var(--btn-h-md);
   padding: 0 var(--space-md);
-  border: 1px solid var(--control-border);
-  border-radius: var(--radius-control);
-  background: var(--control-bg);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--s2);
   color: var(--t1);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--duration-fast), border-color var(--duration-fast);
 }
 
 .emptyAction:hover {
-  background: var(--control-bg-hover);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: var(--s3);
+  border-color: var(--line-strong);
 }
 
 .srOnly {
@@ -126,24 +130,24 @@
 .cardList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .card {
-  background: var(--s1);
-  border: 1px solid var(--s3);
+  background: var(--field-bg);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 12px 14px;
+  padding: var(--space-md) var(--space-md);
   transition: border-color var(--duration-fast);
 }
-.card:hover { border-color: var(--s5); }
+.card:hover { border-color: var(--line-strong); }
 
 .cardHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
 
 .cardName {
@@ -156,7 +160,7 @@
 .statusDot {
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
   margin-top: 5px;
 }
@@ -167,44 +171,45 @@
 .cardMeta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-sm);
 }
 
 .metaChip {
+  font-family: var(--mono);
   font-size: var(--fs-10);
   font-weight: var(--fw-medium);
   color: var(--t3);
   background: var(--s2);
-  border: 1px solid var(--s4);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 1px 7px;
-  letter-spacing: 0.02em;
-  text-transform: capitalize;
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
 }
 
 .metaChipAccent {
   color: var(--t2);
-  background: color-mix(in srgb, var(--green) 8%, transparent);
-  border-color: color-mix(in srgb, var(--green) 20%, transparent);
+  background: var(--s2);
+  border-color: var(--line-2);
 }
 
 .cardDesc {
   font-size: var(--fs-11);
   color: var(--t3);
-  line-height: 1.5;
-  margin-bottom: 10px;
+  line-height: var(--lh-normal);
+  margin-bottom: var(--space-sm);
 }
 
 .cardPath {
   font-size: var(--fs-10);
   color: var(--t4);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-sm);
 }
 
 .cardActions {
@@ -217,50 +222,74 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
+  height: var(--btn-h-md);
+  padding: 0 10px; /* TODO: 10px token */
+  border-radius: var(--r);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: opacity var(--duration-fast), background var(--duration-fast);
+  border: 1px solid var(--line-2);
+  background: var(--s2);
+  color: var(--t2);
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+}
+.actionBtn:not(:disabled):hover {
+  background: var(--s3);
+  border-color: var(--line-strong);
+  color: var(--t1);
 }
 .actionBtn:disabled { opacity: 0.4; cursor: default; }
 
 .runBtn {
-  background: color-mix(in srgb, var(--green) 12%, transparent);
-  border-color: color-mix(in srgb, var(--green) 25%, transparent);
-  color: var(--green);
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
 }
-.runBtn:not(:disabled):hover { background: color-mix(in srgb, var(--green) 20%, transparent); }
+.runBtn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg));
+  border-color: var(--green);
+  color: var(--btn-pri-text);
+}
 
 .stopBtn {
-  background: color-mix(in srgb, var(--red) 10%, transparent);
-  border-color: color-mix(in srgb, var(--red) 20%, transparent);
-  color: var(--red);
+  background: var(--s2);
+  border-color: var(--line-2);
+  color: var(--t2);
 }
-.stopBtn:not(:disabled):hover { background: color-mix(in srgb, var(--red) 18%, transparent); }
+.stopBtn:not(:disabled):hover {
+  background: var(--s3);
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--line-strong));
+  color: var(--amber);
+}
 
 .scaffoldBtn {
-  background: color-mix(in srgb, var(--blue) 10%, transparent);
-  border-color: color-mix(in srgb, var(--blue) 20%, transparent);
-  color: var(--blue);
+  background: var(--s2);
+  border-color: var(--line-2);
+  color: var(--t2);
 }
-.scaffoldBtn:not(:disabled):hover { background: color-mix(in srgb, var(--blue) 18%, transparent); }
+.scaffoldBtn:not(:disabled):hover {
+  background: var(--s3);
+  border-color: var(--line-strong);
+  color: var(--t1);
+}
 
 .deleteBtn {
   background: transparent;
-  border-color: var(--s4);
+  border-color: var(--line);
   color: var(--t4);
   margin-left: auto;
 }
-.deleteBtn:not(:disabled):hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 30%, transparent); }
+.deleteBtn:not(:disabled):hover {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 40%, var(--line-strong));
+  background: transparent;
+}
 
 /* Create form */
 .formPanel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .formTitle {
@@ -268,8 +297,8 @@
   font-weight: var(--fw-semibold);
   color: var(--t1);
   padding-bottom: 2px;
-  border-bottom: 1px solid var(--s3);
-  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-xs);
 }
 
 .field {
@@ -279,34 +308,36 @@
 }
 
 .label {
-  font-size: var(--fs-11);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
   font-weight: var(--fw-medium);
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--ls-eyebrow);
 }
 
 .input, .select, .textarea {
-  background: var(--s1);
-  border: 1px solid var(--s4);
-  border-radius: var(--r-panel);
+  background: var(--field-bg);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
   color: var(--t1);
   font-size: var(--fs-12);
-  padding: 7px 10px;
+  padding: 7px 10px; /* TODO: tokens */
   outline: none;
   transition: border-color var(--duration-fast);
   font-family: inherit;
   width: 100%;
   box-sizing: border-box;
 }
-.input:focus, .select:focus, .textarea:focus {
-  border-color: var(--t2);
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
 }
 
 .textarea {
   resize: vertical;
-  min-height: 64px;
-  line-height: 1.5;
+  min-height: 64px; /* TODO: token */
+  line-height: var(--lh-normal);
 }
 
 .select {
@@ -317,21 +348,22 @@
 .templateGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .templateCard {
-  padding: 10px 12px;
-  background: var(--s1);
-  border: 1px solid var(--s4);
-  border-radius: var(--r-panel);
+  padding: 10px var(--space-md); /* TODO: 10px token */
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
   cursor: pointer;
+  text-align: left;
   transition: border-color var(--duration-fast), background var(--duration-fast);
 }
-.templateCard:hover { background: var(--s2); }
+.templateCard:hover { border-color: var(--line-strong); }
 .templateCardSelected {
-  border-color: var(--t2);
-  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
 }
 
 .templateCardName {
@@ -344,7 +376,7 @@
 .templateCardDesc {
   font-size: var(--fs-10);
   color: var(--t3);
-  line-height: 1.4;
+  line-height: var(--lh-snug);
 }
 
 .pluginsRow {
@@ -354,58 +386,64 @@
 }
 
 .pluginToggle {
-  padding: 3px 10px;
+  padding: 3px 10px; /* TODO: 10px token */
   border-radius: var(--r);
+  font-family: var(--mono);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  border: 1px solid var(--s4);
-  background: var(--s1);
+  border: 1px solid var(--line-2);
+  background: var(--s2);
   color: var(--t3);
-  transition: all var(--duration-fast);
-  text-transform: capitalize;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-caps);
 }
-.pluginToggle:hover { border-color: var(--s6); color: var(--t2); }
+.pluginToggle:hover { border-color: var(--line-strong); color: var(--t2); }
 .pluginToggleActive {
-  background: color-mix(in srgb, var(--green) 10%, transparent);
-  border-color: color-mix(in srgb, var(--green) 35%, transparent);
-  color: var(--t2);
+  background: var(--accent-fill);
+  border-color: var(--accent-line);
+  color: var(--t1);
 }
 
 .formActions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-top: 4px;
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
 }
 
 .submitBtn {
   flex: 1;
-  padding: 8px;
-  background: var(--t2);
-  color: var(--on-accent);
-  border: none;
-  border-radius: var(--r-panel);
+  height: var(--btn-h-lg);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: opacity var(--duration-fast);
+  transition: background var(--duration-fast), border-color var(--duration-fast);
 }
-.submitBtn:hover { opacity: 0.85; }
+.submitBtn:hover {
+  background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg));
+  border-color: var(--green);
+}
 .submitBtn:disabled { opacity: 0.45; cursor: default; }
 
 .cancelBtn {
-  padding: 8px 16px;
+  height: var(--btn-h-lg);
+  padding: 0 var(--space-lg);
   background: transparent;
   color: var(--t3);
-  border: 1px solid var(--s4);
-  border-radius: var(--r-panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: border-color var(--duration-fast);
+  transition: border-color var(--duration-fast), color var(--duration-fast);
 }
-.cancelBtn:hover { border-color: var(--s6); color: var(--t2); }
+.cancelBtn:hover { border-color: var(--line-strong); color: var(--t2); }
 
 /* Error / info */
 .errorMsg {
@@ -413,25 +451,25 @@
   color: var(--red);
   background: color-mix(in srgb, var(--red) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
-  border-radius: var(--radius-md);
-  padding: 7px 10px;
+  border-radius: var(--r);
+  padding: 7px 10px; /* TODO: tokens */
 }
 
 .infoMsg {
   font-size: var(--fs-11);
   color: var(--t3);
-  background: var(--s1);
-  border: 1px solid var(--s3);
-  border-radius: var(--radius-md);
-  padding: 7px 10px;
-  line-height: 1.5;
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 7px 10px; /* TODO: tokens */
+  line-height: var(--lh-normal);
 }
 
 .successMsg {
   font-size: var(--fs-11);
   color: var(--green);
   background: color-mix(in srgb, var(--green) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
-  border-radius: var(--radius-md);
-  padding: 7px 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r);
+  padding: 7px 10px; /* TODO: tokens */
 }
