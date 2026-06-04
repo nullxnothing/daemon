@@ -381,9 +381,8 @@
 .claude-section {
   margin: 0 0 var(--drawer-rail-card-gap);
   border: 1px solid var(--border);
-  border-radius: var(--drawer-control-radius);
+  border-radius: var(--radius-card);
   background: var(--s2);
-  box-shadow: none;
 }
 
 .status-badge {

@@ -14,10 +14,15 @@
 .aria-eye {
   border-radius: 50%;
   background: var(--green);
+  /* Contained, token-driven presence glow — Aria's signature. Expressed as a
+     tight drop-shadow (not a chrome box-shadow) so it lifts the eye without
+     bleeding into surrounding chrome. Green here is signal: Aria is live. */
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--green) 45%, transparent));
   transition:
     opacity 0.3s ease,
     transform 0.15s ease,
     background 0.3s ease,
+    filter 0.3s ease,
     width 0.3s ease,
     height 0.3s ease;
 }
@@ -97,6 +102,7 @@
 
 .aria-face-error .aria-eye {
   background: var(--red);
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--red) 45%, transparent));
   animation: ariaErrorFlash 0.4s ease-out;
 }
 
@@ -113,7 +119,8 @@
 
 .aria-face-sleeping .aria-eye {
   opacity: 0.15;
-  transition: opacity 1.5s ease, gap 1.5s ease;
+  filter: none;
+  transition: opacity 1.5s ease, filter 1.5s ease, gap 1.5s ease;
 }
 
 /* ── State: peek — rise from below ── */
