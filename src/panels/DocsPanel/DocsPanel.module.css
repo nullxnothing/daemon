@@ -10,7 +10,7 @@
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 
 .sidebar {
-  width: 200px;
+  width: 200px; /* TODO: token */
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   background: var(--s1);
@@ -25,10 +25,10 @@
 }
 
 .sidebarSectionTitle {
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   font-family: var(--font-ui);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.06em; /* TODO: token */
   text-transform: uppercase;
   color: var(--t4);
   padding: var(--space-xs) var(--space-md);
@@ -39,8 +39,8 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: 5px var(--space-md);
-  font-size: var(--font-base);
+  padding: 5px var(--space-md); /* TODO: 5px token */
+  font-size: var(--fs-12);
   font-family: var(--font-ui);
   color: var(--t2);
   background: none;
@@ -56,6 +56,10 @@
 .sidebarItem:hover {
   background: var(--hover-overlay);
   color: var(--t1);
+}
+
+.sidebarItem:active {
+  background: var(--active-overlay);
 }
 
 .sidebarItemActive {
@@ -74,7 +78,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-xl) 28px;
+  padding: var(--space-xl) 28px; /* TODO: 28px token */
 }
 
 /* ── Doc pagination ─────────────────────────────────────────────────────── */
@@ -82,7 +86,7 @@
 .pagination {
   display: flex;
   justify-content: space-between;
-  margin-top: 40px;
+  margin-top: 40px; /* TODO: 40px token */
   padding-top: var(--space-lg);
   border-top: 1px solid var(--border);
   gap: var(--space-md);
@@ -91,7 +95,7 @@
 .paginationBtn {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 3px; /* TODO: token */
   padding: var(--space-sm) var(--space-md);
   background: var(--s1);
   border: 1px solid var(--border);
@@ -99,12 +103,16 @@
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast);
   text-align: left;
-  max-width: 200px;
+  max-width: 200px; /* TODO: token */
 }
 
 .paginationBtn:hover {
   border-color: var(--border-hover);
   background: var(--s2);
+}
+
+.paginationBtn:active {
+  background: var(--s3);
 }
 
 .paginationBtnNext {
@@ -113,15 +121,15 @@
 }
 
 .paginationLabel {
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   font-family: var(--font-ui);
   color: var(--t4);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.06em; /* TODO: token */
 }
 
 .paginationTitle {
-  font-size: var(--font-base);
+  font-size: var(--fs-12);
   font-family: var(--font-ui);
   color: var(--t1);
 }
@@ -131,28 +139,28 @@
 .docHeading {
   font-size: var(--fs-22);
   font-family: var(--font-ui);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.02em; /* TODO: token */
   color: var(--t1);
   margin: 0 0 var(--space-sm);
-  line-height: 1.2;
+  line-height: 1.2; /* TODO: token */
 }
 
 .docSubheading {
-  font-size: var(--font-lg);
+  font-size: var(--fs-16);
   font-family: var(--font-ui);
   color: var(--t3);
-  margin: 0 0 28px;
-  line-height: 1.5;
+  margin: 0 0 28px; /* TODO: 28px token */
+  line-height: var(--lh-normal);
 }
 
 .h2 {
-  font-size: var(--font-xl);
+  font-size: var(--fs-16);
   font-family: var(--font-ui);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--t1);
-  margin: 28px 0 var(--space-sm);
-  letter-spacing: -0.01em;
+  margin: 28px 0 var(--space-sm); /* TODO: 28px token */
+  letter-spacing: -0.01em; /* TODO: token */
 }
 
 .h2:first-of-type {
@@ -160,24 +168,24 @@
 }
 
 .h3 {
-  font-size: var(--font-lg);
+  font-size: var(--fs-16);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
-  margin: 18px 0 var(--space-sm);
+  margin: 18px 0 var(--space-sm); /* TODO: 18px token */
 }
 
 .paragraph {
-  font-size: var(--font-lg);
+  font-size: var(--fs-16);
   font-family: var(--font-ui);
   color: var(--t2);
-  line-height: 1.65;
+  line-height: 1.65; /* TODO: token */
   margin: 0 0 var(--space-md);
 }
 
 .paragraph strong {
   color: var(--t1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .paragraph a {
@@ -196,7 +204,7 @@
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 1px 5px;
+  padding: 1px 5px; /* TODO: 1px/5px tokens */
 }
 
 .codeBlock {
@@ -210,7 +218,7 @@
   padding: var(--space-xs) var(--space-md);
   background: var(--s2);
   border-bottom: 1px solid var(--border);
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   font-family: var(--font-code);
   color: var(--t3);
 }
@@ -226,7 +234,7 @@
   font-family: var(--font-code);
   font-size: var(--fs-12);
   color: var(--t2);
-  line-height: 1.6;
+  line-height: 1.6; /* TODO: token */
   white-space: pre;
 }
 
@@ -241,7 +249,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-lg);
+  font-size: var(--fs-16);
 }
 
 .tableHead {
@@ -252,12 +260,12 @@
 .th {
   text-align: left;
   padding: var(--space-sm) var(--space-md);
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.06em; /* TODO: token */
   white-space: nowrap;
 }
 
@@ -286,7 +294,7 @@
 
 .td strong {
   color: var(--t1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .infoCard {
@@ -298,19 +306,19 @@
 }
 
 .infoCardTitle {
-  font-size: var(--font-md);
+  font-size: var(--fs-13);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   margin: 0 0 var(--space-xs);
 }
 
 .infoCardBody {
-  font-size: var(--font-base);
+  font-size: var(--fs-12);
   font-family: var(--font-ui);
   color: var(--t2);
   margin: 0;
-  line-height: 1.55;
+  line-height: 1.55; /* TODO: token */
 }
 
 .cardGrid {
@@ -325,13 +333,13 @@
   border-radius: var(--radius-lg);
   border: 1px solid;
   padding: var(--space-sm) var(--space-md);
-  font-size: var(--font-base);
+  font-size: var(--fs-12);
   font-family: var(--font-ui);
-  line-height: 1.55;
+  line-height: 1.55; /* TODO: token */
 }
 
 .hint strong {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .hintInfo {
@@ -365,15 +373,15 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-sm);
-  font-size: var(--font-lg);
+  font-size: var(--fs-16);
   font-family: var(--font-ui);
   color: var(--t2);
-  line-height: 1.55;
+  line-height: 1.55; /* TODO: token */
 }
 
 .listItem strong {
   color: var(--t1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .listItem a {
@@ -388,14 +396,14 @@
 .listBullet {
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--green);
   flex-shrink: 0;
-  margin-top: 6px;
+  margin-top: 6px; /* TODO: token */
 }
 
 .divider {
-  margin: 28px 0;
+  margin: 28px 0; /* TODO: 28px token */
   border: none;
   border-top: 1px solid var(--border);
 }

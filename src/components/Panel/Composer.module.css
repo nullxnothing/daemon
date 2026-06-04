@@ -1,12 +1,12 @@
 .composer {
   display: flex;
   flex-direction: column;
-  gap: var(--gut, 8px);
+  gap: var(--gut);
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--field-bg);
-  padding: 10px;
+  padding: var(--space-sm);
 }
 
 .input {
@@ -20,7 +20,7 @@
   font: inherit;
   font-size: var(--fs-13);
   line-height: 1.45;
-  padding: 9px 10px;
+  padding: var(--space-sm) var(--space-sm);
   outline: none;
 }
 
@@ -31,7 +31,7 @@
 .footer {
   display: flex;
   align-items: center;
-  gap: var(--gut, 8px);
+  gap: var(--gut);
   min-width: 0;
 }
 
@@ -39,7 +39,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 6px; /* TODO: token (no 6px space token) */
   min-width: 0;
 }
 
@@ -62,8 +62,9 @@
   color: var(--t3);
   font-family: var(--mono);
   font-size: var(--fs-10);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   white-space: nowrap;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .contextChip:hover {
@@ -71,20 +72,36 @@
   color: var(--t1);
 }
 
+.contextChip:active {
+  background: var(--press-overlay);
+}
+
 .send {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   height: var(--btn-h-md);
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border: 1px solid var(--accent-line);
   border-radius: var(--r);
   background: var(--btn-pri-bg);
   color: var(--btn-pri-text);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.send:hover {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg));
+}
+
+.send:active {
+  background: color-mix(in srgb, var(--press-overlay), var(--btn-pri-bg));
 }
 
 .send:disabled {
   opacity: 0.45;
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
 }

@@ -76,7 +76,7 @@
   font-weight: var(--fw-regular);
   color: var(--t3);
   background: var(--s4);
-  padding: 2px 6px;
+  padding: 2px 6px; /* TODO: token */
   border-radius: var(--radius-sm);
 }
 
@@ -102,7 +102,7 @@
 .nav-guide-tip {
   padding: var(--space-md);
   background: var(--green-glow);
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--green); /* TODO: token */
   border-radius: var(--radius-sm);
   font-size: var(--fs-13);
   color: var(--t2);

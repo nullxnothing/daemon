@@ -40,7 +40,7 @@
   font-size: var(--fs-12);
   padding: 6px 14px;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
 }
 
 .replay-tab:hover {
@@ -70,7 +70,7 @@
   font-size: var(--fs-12);
   padding: var(--space-sm) var(--space-md);
   outline: none;
-  transition: border-color 0.12s ease;
+  transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
 .replay-input:focus {
@@ -90,7 +90,7 @@
   font-weight: var(--fw-semibold);
   padding: var(--space-sm) var(--space-lg);
   cursor: pointer;
-  transition: opacity 0.12s ease;
+  transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .replay-button:disabled {
@@ -376,7 +376,7 @@
 .replay-section-head h2 {
   margin: 0;
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -429,7 +429,7 @@
   text-align: center;
   color: var(--t3);
   font-size: var(--fs-10);
-  transition: transform 0.12s ease;
+  transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 .replay-instr-caret--open {
@@ -445,7 +445,7 @@
 }
 
 .replay-instr-program {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t1);
 }
 
@@ -481,7 +481,7 @@
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--s4);
-  border-radius: 4px;
+  border-radius: var(--r);
   padding: 8px 10px;
   max-height: 220px;
   overflow: auto;
@@ -507,7 +507,7 @@
   min-width: 20px;
   text-align: center;
   font-size: var(--fs-9);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   background: var(--s3);
   border-radius: var(--radius-sm);
@@ -577,7 +577,7 @@
 
 .replay-flag-w {
   font-size: var(--fs-9);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 8%, transparent);
   padding: 1px 4px;
@@ -602,7 +602,7 @@
 }
 
 .replay-diff-delta {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .replay-diff-empty {
@@ -652,7 +652,7 @@
   text-align: left;
   padding: 10px 16px;
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background var(--duration-fast) var(--ease-standard);
 }
 
 .replay-program-item:first-child {
@@ -690,7 +690,7 @@
 
 .replay-placeholder h2 {
   font-size: var(--fs-18);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   margin: 0 0 12px;
   letter-spacing: -0.01em;

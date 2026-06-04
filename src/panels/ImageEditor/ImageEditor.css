@@ -8,24 +8,25 @@
 .image-editor-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: var(--space-sm);
+  padding: 6px var(--space-md); /* TODO: 6px token */
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .ie-btn {
-  padding: 4px 10px;
+  padding: var(--space-xs) 10px; /* TODO: 10px token */
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-sm);
   cursor: pointer;
   background: var(--s3);
   color: var(--t1);
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .ie-btn:hover { background: var(--s4); }
+.ie-btn:active { background: var(--active-overlay); }
 
 .ie-btn-primary {
   background: var(--green);
@@ -33,6 +34,7 @@
 }
 
 .ie-btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.ie-btn-primary:active:not(:disabled) { opacity: 0.7; }
 .ie-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .ie-filepath {

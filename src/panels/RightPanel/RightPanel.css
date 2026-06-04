@@ -42,10 +42,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   min-width: 0;
   height: 32px;
-  padding: 0 8px;
+  padding: 0 8px; /* TODO: token */
   background: transparent;
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
@@ -214,7 +214,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .rp-side-widget-title-group {
@@ -229,12 +229,12 @@
 }
 
 .rp-side-widget-line {
-  margin-top: 9px;
+  margin-top: 9px; /* TODO: token */
   overflow: hidden;
   color: var(--t3);
   font-family: var(--font-code);
   font-size: var(--fs-10);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.04em; /* TODO: token */
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -246,17 +246,17 @@
 .rp-side-status-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 6px; /* TODO: token */
+  margin-top: 10px; /* TODO: token */
 }
 
 .rp-side-status-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
+  gap: 7px; /* TODO: token */
   min-height: 26px;
-  padding: 0 8px;
+  padding: 0 8px; /* TODO: token */
   border: 1px solid var(--card-border);
   background: var(--surface-sunken);
   color: var(--t2);
@@ -269,7 +269,7 @@
   color: var(--t3);
   font-family: var(--font-code);
   font-size: var(--fs-9);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-caps);
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -298,7 +298,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
   background: var(--card-bg);
 }
 
@@ -346,7 +346,7 @@
 
 .rp-agent-widget-title,
 .rp-side-widget-title {
-  margin-top: 3px;
+  margin-top: 3px; /* TODO: token */
   overflow: hidden;
   color: var(--t1);
   font-family: var(--font-ui);
@@ -366,7 +366,7 @@
   color: var(--t2);
   cursor: pointer;
   font-size: var(--fs-10);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
 
@@ -380,7 +380,7 @@
 .rp-agent-widget-action,
 .rp-agent-widget-actions button {
   height: 24px;
-  padding: 0 8px;
+  padding: 0 8px; /* TODO: token */
 }
 
 .rp-agent-widget-close:hover,
@@ -392,22 +392,22 @@
 }
 
 .rp-agent-widget-pnl {
-  margin-top: 10px;
+  margin-top: 10px; /* TODO: token */
   font-family: var(--font-code);
   font-size: var(--fs-16);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .rp-agent-widget-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 10px;
+  gap: 6px; /* TODO: token */
+  margin-top: 10px; /* TODO: token */
 }
 
 .rp-agent-widget-grid div {
   min-width: 0;
-  padding: 7px;
+  padding: 7px; /* TODO: token */
   border: 1px solid color-mix(in srgb, var(--green) 14%, var(--border));
   background: var(--surface-sunken);
 }
@@ -418,13 +418,13 @@
   color: var(--t3);
   font-family: var(--font-code);
   font-size: var(--fs-9);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.1em; /* TODO: token */
   text-transform: uppercase;
 }
 
 .rp-agent-widget-grid span {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .rp-agent-widget-grid strong {
@@ -437,31 +437,31 @@
 
 .rp-agent-widget-meta {
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .rp-agent-widget-actions {
-  gap: 6px;
-  margin-top: 10px;
+  gap: 6px; /* TODO: token */
+  margin-top: 10px; /* TODO: token */
 }
 
 .rp-agent-widget-empty {
-  margin-top: 10px;
+  margin-top: 10px; /* TODO: token */
   line-height: 1.5;
 }
 
 .rp-token-watch-input-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 6px; /* TODO: token */
+  margin-top: 10px; /* TODO: token */
 }
 
 .rp-token-watch-input {
   min-width: 0;
   height: 24px;
-  padding: 0 7px;
+  padding: 0 7px; /* TODO: token */
   border: 1px solid var(--control-border);
   background: var(--control-bg);
   color: var(--t1);
@@ -478,8 +478,8 @@
 .rp-token-watch-headline {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: var(--space-sm);
+  margin-top: 10px; /* TODO: token */
 }
 
 .rp-token-watch-headline img {
@@ -502,7 +502,7 @@
 }
 
 .rp-token-watch-headline span {
-  margin-top: 2px;
+  margin-top: 2px; /* TODO: token */
   color: var(--green);
   font-size: var(--fs-10);
 }
@@ -543,7 +543,7 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 7px; /* TODO: token */
   height: 30px;
   padding: 0 var(--space-md);
   border: 0;

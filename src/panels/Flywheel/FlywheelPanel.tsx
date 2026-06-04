@@ -237,11 +237,11 @@ function LedgerRow({
   const burnedAbbr = abbreviateCount(state?.totalBurnedTokens ?? '0')
 
   const buybackResultMsg = (status?: string, burnSig?: string | null): string => {
-    const burned = burnSig ? ' · burned existing $DAEMON ✓' : ''
-    if (status === 'no-jupiter-key') return '⚠ Buyback SKIPPED — JUPITER_API_KEY not set (Wallet → Infra).'
-    if (status === 'nothing-to-swap') return burnSig ? 'Burned $DAEMON ✓ (no new SOL to swap).' : 'Nothing to swap or burn.'
-    if (status === 'swap-failed') return `⚠ Swap failed (signer guard blocked the route)${burned}.`
-    if (status === 'swapped') return burnSig ? 'Swapped & burned $DAEMON ✓.' : 'Swapped to $DAEMON (burn did not run).'
+    const burned = burnSig ? ' · burned existing $DAEMON' : ''
+    if (status === 'no-jupiter-key') return 'Buyback SKIPPED — JUPITER_API_KEY not set (Wallet → Infra).'
+    if (status === 'nothing-to-swap') return burnSig ? 'Burned $DAEMON (no new SOL to swap).' : 'Nothing to swap or burn.'
+    if (status === 'swap-failed') return `Swap failed (signer guard blocked the route)${burned}.`
+    if (status === 'swapped') return burnSig ? 'Swapped & burned $DAEMON.' : 'Swapped to $DAEMON (burn did not run).'
     return 'Buyback ran.'
   }
 
@@ -257,7 +257,7 @@ function LedgerRow({
     parts.push(claimed > 0 ? `claimed ${claimed.toFixed(4)} SOL` : 'no new fees in vault')
     if (d?.payoutSignature) parts.push('split sent')
     if (d?.status === 'swapped') parts.push(d.burnSignature ? 'bought back & burned' : 'bought back (burn pending)')
-    else if (d?.status === 'no-jupiter-key') parts.push('⚠ buyback SKIPPED — set JUPITER_API_KEY in Wallet → Infra')
+    else if (d?.status === 'no-jupiter-key') parts.push('buyback SKIPPED — set JUPITER_API_KEY in Wallet → Infra')
     else parts.push('nothing to buy back')
     onAnnounce(`Flywheel: ${parts.join(' · ')}`)
     onReload()

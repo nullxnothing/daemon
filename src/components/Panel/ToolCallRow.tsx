@@ -31,9 +31,7 @@ export function ToolCallRow({ kind, label, meta, status = 'done', details, defau
         <span className={styles.kind}>{kind}</span>
         <span className={styles.label}>{label}</span>
         {meta ? <span className={styles.meta}>{meta}</span> : null}
-        {status === 'done'
-          ? <span className={styles.check} aria-hidden="true">✓</span>
-          : <span className={styles.state} aria-hidden="true" />}
+        <span className={styles.state} aria-hidden="true" />
       </button>
       {details && isOpen ? <div className={styles.details}>{details}</div> : null}
     </div>

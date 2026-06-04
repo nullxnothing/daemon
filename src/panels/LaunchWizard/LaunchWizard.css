@@ -15,8 +15,8 @@
   -webkit-backdrop-filter: var(--glass-blur-scrim);
   display: grid;
   place-items: center;
-  padding: 24px;
-  animation: lw-fade 180ms var(--ease-out-quint);
+  padding: var(--space-xl);
+  animation: lw-fade var(--duration-normal) var(--ease-out-quint);
 }
 
 @keyframes lw-fade {
@@ -36,7 +36,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: lw-rise 260ms var(--ease-out-quint);
+  animation: lw-rise var(--duration-slow) var(--ease-out-quint);
 }
 
 @keyframes lw-rise {
@@ -53,7 +53,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
   padding: 28px 32px 18px;
   flex-shrink: 0;
 }
@@ -71,7 +71,7 @@
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
   border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .lw-title {
@@ -114,7 +114,7 @@
 .lw-stepper {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-md);
   padding: 0 32px 22px;
   flex-shrink: 0;
 }
@@ -206,7 +206,7 @@
 
 .lw-takeover {
   grid-column: 1 / -1;
-  padding: 32px;
+  padding: var(--space-2xl);
   overflow-y: auto;
 }
 
@@ -218,7 +218,7 @@
 .lw-main::-webkit-scrollbar-thumb,
 .lw-rail::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .lw-main::-webkit-scrollbar-thumb:hover,
 .lw-rail::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
@@ -269,7 +269,7 @@
 .lw-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   min-width: 0;
 }
 
@@ -277,7 +277,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .lw-field-label {
@@ -304,7 +304,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .lw-field-error {
@@ -315,7 +315,14 @@
   gap: 6px;
 }
 
-.lw-field-error::before { content: '⚠'; }
+.lw-field-error::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--red);
+  flex-shrink: 0;
+}
 
 .lw-field.has-error .lw-input,
 .lw-field.has-error .lw-textarea {
@@ -559,7 +566,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-pad {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-md);
   padding: 14px 16px;
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -633,8 +640,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   color: var(--t1);
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
 }
 
 .lw-pad-live,
@@ -785,7 +792,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-plan-detail {
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 
 .lw-plan-price {
@@ -802,8 +809,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -826,7 +833,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-wallet-addr {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-11);
   color: var(--t3);
   font-family: var(--font-code);
@@ -836,7 +843,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-wallet-status {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -868,7 +875,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-toggle-row {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-md);
   padding: 12px 14px;
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -914,7 +921,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-summary-row {
   display: flex;
-  gap: 16px;
+  gap: var(--space-lg);
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   align-items: baseline;
@@ -960,7 +967,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 /* ── Cost ── */
 .lw-cost {
-  padding: 16px;
+  padding: var(--space-lg);
   background:
     var(--surface-card);
   border: 1px solid var(--border-medium);
@@ -1029,14 +1036,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 /* ── Banners ── */
 .lw-banner {
-  margin-top: 12px;
+  margin-top: var(--space-md);
   padding: 12px 14px;
   border-radius: var(--radius-md);
   font-size: var(--fs-12);
   line-height: 1.55;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .lw-banner.error {
@@ -1045,7 +1052,15 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   border: 1px solid color-mix(in srgb, var(--red) 32%, transparent);
 }
 
-.lw-banner.error::before { content: '⚠'; flex-shrink: 0; }
+.lw-banner.error::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--red);
+  flex-shrink: 0;
+}
 
 /* ── Preflight ── */
 .lw-preflight-row {
@@ -1081,7 +1096,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   font-size: var(--fs-12);
   color: var(--t1);
   font-weight: var(--fw-medium);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .lw-preflight-detail {
@@ -1123,8 +1138,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-confirm {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-md);
+  padding: var(--space-lg);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -1160,7 +1175,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: block;
   font-size: var(--fs-11);
   color: var(--t3);
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   line-height: 1.5;
 }
 
@@ -1295,7 +1310,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-preview-stats strong {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-13);
   color: var(--t1);
   font-family: var(--font-code);
@@ -1309,7 +1324,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   justify-content: space-between;
   align-items: center;
   padding: 12px 14px;
-  margin-top: 12px;
+  margin-top: var(--space-md);
   background: var(--green-glow);
   border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
   border-radius: var(--radius-md);
@@ -1334,7 +1349,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   margin-top: 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   padding: 10px 12px;
   border-radius: var(--radius-md);
   font-size: var(--fs-11);
@@ -1391,7 +1406,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   padding: 7px 12px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-11);
@@ -1428,7 +1443,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-commit-actions {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 /* ── Buttons ── */
@@ -1444,7 +1459,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   transition: all var(--dur-instant) var(--ease-standard);
   border: 1px solid;
 }
@@ -1533,7 +1548,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   background:
     var(--surface-card);
   border: 1.5px solid var(--green);
-  animation: lw-pop 360ms var(--ease-spring);
+  animation: lw-pop 360ms var(--ease-spring); /* TODO: token (360ms no exact duration) */
 }
 
 .lw-finale.error .lw-finale-icon {
@@ -1590,7 +1605,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale-phases {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   width: 100%;
   max-width: 320px;
 }
@@ -1598,7 +1613,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale-phase {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   padding: 10px 12px;
   background: var(--surface-card);
   border: 1px solid var(--border);

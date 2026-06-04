@@ -26,7 +26,7 @@
   height: 26px;
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t2);
   cursor: pointer;
   font-size: var(--fs-12);
@@ -37,6 +37,10 @@
 .remotion-nav-btn:hover {
   background: var(--s4);
   color: var(--t1);
+}
+
+.remotion-nav-btn:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 .remotion-nav-btn:disabled {
@@ -54,10 +58,10 @@
   height: 26px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--mono);
   padding: 0 8px;
   outline: none;
   min-width: 0;
@@ -122,16 +126,16 @@
 .remotion-placeholder-title {
   color: var(--t1);
   font-size: var(--fs-13);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .remotion-placeholder-hint {
   color: var(--t3);
   font-size: var(--fs-11);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--mono);
   background: var(--s2);
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--s5);
 }
 
@@ -140,7 +144,7 @@
   padding: 0 14px;
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
   cursor: pointer;
@@ -149,4 +153,8 @@
 
 .remotion-retry-btn:hover {
   background: var(--s4);
+}
+
+.remotion-retry-btn:active {
+  background: var(--active-overlay);
 }

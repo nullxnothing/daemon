@@ -238,7 +238,16 @@ export function AgentGrid() {
               {grindPageCount > 1 && (
                 <span
                   className="agent-grid-page-tab-close"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Close page ${i + 1}`}
                   onClick={(e) => { e.stopPropagation(); handleRemovePage(i) }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation()
+                      handleRemovePage(i)
+                    }
+                  }}
                 >
                   &times;
                 </span>

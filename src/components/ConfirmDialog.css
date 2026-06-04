@@ -1,12 +1,12 @@
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  animation: confirm-fade-in 0.12s ease-out;
+  animation: confirm-fade-in var(--duration-fast) var(--ease-standard);
 }
 
 @keyframes confirm-fade-in {
@@ -18,11 +18,11 @@
   background: var(--s2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r);
-  padding: 20px;
+  padding: 20px; /* TODO: token (off-grid 20px) */
   min-width: 360px;
   max-width: 480px;
   box-shadow: var(--shadow-modal);
-  animation: confirm-pop 0.14s ease-out;
+  animation: confirm-pop var(--duration-fast) var(--ease-standard);
 }
 
 .confirm-dialog.danger {
@@ -36,24 +36,24 @@
 
 .confirm-title {
   font-size: var(--fs-14);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .confirm-body {
   font-size: var(--fs-12);
   color: var(--t2);
   line-height: 1.5;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg);
   word-break: break-word;
 }
 
 .confirm-typed-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 6px; /* TODO: token (off-grid 6px) */
+  margin-bottom: var(--space-lg);
 }
 
 .confirm-typed-label {
@@ -63,7 +63,7 @@
 
 .confirm-typed-label code {
   background: var(--s3);
-  padding: 1px 5px;
+  padding: 1px 5px; /* TODO: token (off-grid 1/5px) */
   border-radius: var(--r);
   font-family: var(--mono);
   color: var(--t1);
@@ -74,7 +74,7 @@
   color: var(--t1);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 6px 8px;
+  padding: 6px var(--space-sm); /* TODO: token (off-grid 6px vertical) */
   font-family: var(--mono);
   font-size: var(--fs-12);
 }
@@ -86,7 +86,7 @@
 
 .confirm-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   justify-content: flex-end;
 }
 
@@ -96,18 +96,26 @@
   color: var(--t1);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 6px 14px;
+  padding: 6px 14px; /* TODO: token (off-grid 6/14px) */
   font-size: var(--fs-12);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .confirm-btn-cancel:hover {
   background: var(--s4);
 }
 
+.confirm-btn-cancel:active {
+  background: color-mix(in srgb, var(--press-overlay), var(--s4));
+}
+
 .confirm-btn-confirm:hover:not(:disabled) {
   background: var(--s4);
+}
+
+.confirm-btn-confirm:active:not(:disabled) {
+  background: color-mix(in srgb, var(--press-overlay), var(--s4));
 }
 
 .confirm-btn-confirm.danger {

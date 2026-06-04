@@ -82,7 +82,7 @@
   color: var(--t2);
   background: var(--s2);
   border-radius: var(--radius-md);
-  transition: background 0.1s;
+  transition: background var(--duration-fast);
 }
 
 .restart-btn:hover {
@@ -140,7 +140,7 @@
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s;
+  transition: background var(--duration-fast);
 }
 
 .toggle-switch.on {
@@ -156,7 +156,7 @@
   height: 12px;
   background: var(--t1);
   border-radius: var(--radius-pill);
-  transition: transform 0.15s;
+  transition: transform var(--duration-fast);
 }
 
 .toggle-switch.on::after {

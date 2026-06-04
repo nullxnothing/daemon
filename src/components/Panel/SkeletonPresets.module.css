@@ -27,7 +27,7 @@
 .rowBody {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 6px; /* TODO: token (off-grid 6px) */
   flex: 1;
   min-width: 0;
 }
@@ -50,5 +50,5 @@
 
 .cardIcon {
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-2xs);
+  margin-bottom: var(--space-xs);
 }

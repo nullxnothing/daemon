@@ -13,9 +13,9 @@
 }
 
 .pf-tab {
-  padding: 6px 12px;
+  padding: 6px var(--space-md); /* TODO: token (off-grid 6) */
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t3);
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -25,19 +25,20 @@
 }
 
 .pf-tab:hover { color: var(--t2); }
+.pf-tab:active { color: var(--t1); }
 .pf-tab.active { color: var(--tab-active-color); border-bottom-color: var(--tab-active-border); }
 
 .pf-content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .pf-wallet-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s3);
   font-size: var(--fs-11);
   color: var(--t2);
@@ -50,7 +51,7 @@
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
-  padding: 3px 6px;
+  padding: 3px 6px; /* TODO: token (off-grid 3/6) */
   font-family: var(--font-ui);
 }
 
@@ -65,17 +66,18 @@
   font-size: var(--fs-10);
   color: var(--green);
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 6px; /* TODO: token (off-grid 2/6) */
   border-radius: var(--radius-sm);
   border: 1px solid var(--green);
   opacity: 0.7;
   transition: opacity var(--transition-fast);
 }
 .pf-import-btn:hover { opacity: 1; }
+.pf-import-btn:active { background: color-mix(in srgb, var(--green) 12%, transparent); }
 
 /* Form elements */
 .pf-field {
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* TODO: token (off-grid 10) */
 }
 
 .pf-label {
@@ -94,13 +96,14 @@
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-12);
-  padding: 6px 8px;
+  padding: 6px var(--space-sm); /* TODO: token (off-grid 6) */
   font-family: var(--font-ui);
 }
 
 .pf-input:focus-visible {
   border-color: var(--green);
   outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .pf-textarea {
@@ -110,7 +113,7 @@
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-12);
-  padding: 6px 8px;
+  padding: 6px var(--space-sm); /* TODO: token (off-grid 6) */
   font-family: var(--font-ui);
   resize: vertical;
   min-height: 60px;
@@ -119,12 +122,13 @@
 .pf-textarea:focus-visible {
   border-color: var(--green);
   outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .pf-btn {
-  padding: 6px 12px;
+  padding: 6px var(--space-md); /* TODO: token (off-grid 6) */
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: opacity var(--transition-fast);
@@ -141,6 +145,7 @@
 }
 
 .pf-btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.pf-btn-primary:active:not(:disabled) { opacity: 0.7; }
 
 .pf-btn-danger {
   background: var(--red);
@@ -148,18 +153,22 @@
 }
 
 .pf-btn-danger:hover:not(:disabled) { opacity: 0.85; }
+.pf-btn-danger:active:not(:disabled) { opacity: 0.7; }
 
 .pf-btn-secondary {
   background: var(--s3);
   color: var(--t1);
 }
 
+.pf-btn-secondary:hover:not(:disabled) { background: var(--s4); }
+.pf-btn-secondary:active:not(:disabled) { background: var(--active-overlay); }
+
 /* Toggle row */
 .pf-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
 }
 
 .pf-toggle-label {
@@ -170,17 +179,27 @@
 /* Slippage selector */
 .pf-slippage {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .pf-slippage-btn {
-  padding: 3px 8px;
+  padding: 3px var(--space-sm); /* TODO: token (off-grid 3) */
   font-size: var(--fs-10);
   background: var(--s2);
   color: var(--t2);
   border: 1px solid var(--s3);
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.pf-slippage-btn:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.pf-slippage-btn:active {
+  background: var(--s4);
 }
 
 .pf-slippage-btn.active {
@@ -195,7 +214,7 @@
   height: 120px;
   display: block;
   border-radius: var(--radius-sm);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
   background: var(--s1);
 }
 
@@ -204,14 +223,14 @@
   background: var(--s2);
   border: 1px solid var(--s3);
   border-radius: var(--radius-md);
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: 10px; /* TODO: token (off-grid 10) */
+  margin-bottom: 10px; /* TODO: token (off-grid 10) */
 }
 
 .pf-curve-row {
   display: flex;
   justify-content: space-between;
-  padding: 3px 0;
+  padding: 3px 0; /* TODO: token (off-grid 3) */
   font-size: var(--fs-11);
 }
 
@@ -222,16 +241,16 @@
 .pf-grad-bar {
   height: 4px;
   background: var(--s3);
-  border-radius: 2px;
-  margin: 8px 0 4px;
+  border-radius: var(--radius-sm);
+  margin: var(--space-sm) 0 var(--space-xs);
   overflow: hidden;
 }
 
 .pf-grad-fill {
   height: 100%;
   background: var(--green);
-  border-radius: 2px;
-  transition: width 0.3s ease;
+  border-radius: var(--radius-sm);
+  transition: width var(--duration-slow) var(--ease-standard);
 }
 
 .pf-grad-label {
@@ -246,18 +265,22 @@
   border: 1px solid var(--s3);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* TODO: token (off-grid 10) */
 }
 
 .pf-action-toggle button {
   flex: 1;
-  padding: 5px;
+  padding: var(--space-xs); /* TODO: token (off-grid 5 → 4) */
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   background: var(--s2);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.pf-action-toggle button:hover {
+  color: var(--t2);
 }
 
 .pf-action-toggle button.active-buy {
@@ -274,7 +297,7 @@
 .pf-image-picker {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .pf-image-preview {
@@ -287,8 +310,8 @@
 
 /* Result */
 .pf-result {
-  margin-top: 10px;
-  padding: 8px;
+  margin-top: 10px; /* TODO: token (off-grid 10) */
+  padding: var(--space-sm);
   border-radius: var(--radius-sm);
   font-size: var(--fs-11);
   line-height: 1.45;
@@ -298,7 +321,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
   background: color-mix(in srgb, var(--green) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
@@ -345,15 +368,15 @@
    16px gap body, hairline pfields, seg toggle, green curve,
    kv rows, one green primary, status-only LIVE drow list.
    ============================================================ */
-.pf-launch { display: flex; flex-direction: column; gap: 16px; }
+.pf-launch { display: flex; flex-direction: column; gap: var(--space-lg); }
 
-.pf-spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pf-spread { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
 .pf-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token (off-grid 6) */
   height: 22px;
-  padding: 0 9px;
+  padding: 0 9px; /* TODO: token (off-grid 9) */
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   font-size: var(--fs-11);
@@ -361,10 +384,10 @@
 }
 .pf-net { font-size: var(--fs-11); color: var(--t3); }
 
-.pf-psec { display: flex; flex-direction: column; gap: 9px; }
+.pf-psec { display: flex; flex-direction: column; gap: 9px; /* TODO: token (off-grid 9) */ }
 
 .pf-pfield {
-  height: 30px;
+  height: var(--input-h);
   width: 100%;
   background: var(--field-bg);
   border: 1px solid var(--line-2);
@@ -372,14 +395,15 @@
   color: var(--t1);
   font-family: var(--font-ui);
   font-size: var(--fs-12);
-  padding: 0 9px;
+  padding: 0 9px; /* TODO: token (off-grid 9) */
   outline: none;
 }
 .pf-pfield:focus { border-color: var(--accent-line); }
+.pf-pfield:focus-visible { border-color: var(--accent-line); box-shadow: var(--focus-ring); }
 .pf-pfield::placeholder { color: var(--t3); }
 .pf-pfield--mono { font-family: var(--mono); }
 
-.pf-prow2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pf-prow2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
 
 /* segmented linear|exponential toggle (mockup .seg) */
 .pf-seg {
@@ -391,7 +415,7 @@
 }
 .pf-seg button {
   flex: 1;
-  height: 30px;
+  height: var(--input-h);
   background: var(--s2);
   border: 0;
   border-right: 1px solid var(--line);
@@ -399,8 +423,11 @@
   font-family: var(--font-ui);
   font-size: var(--fs-12);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 .pf-seg button:last-child { border-right: 0; }
+.pf-seg button:hover { color: var(--t1); }
+.pf-seg button:active { background: var(--s3); }
 .pf-seg button.on { background: var(--accent-fill); color: var(--t1); }
 
 .pf-curve {
@@ -421,7 +448,7 @@
   font-size: var(--fs-11);
   color: var(--t3);
 }
-.pf-kv b { color: var(--t1); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.pf-kv b { color: var(--t1); font-weight: var(--fw-medium); display: inline-flex; align-items: center; gap: var(--space-xs); }
 .pf-kv-input {
   width: 56px;
   border: 0;
@@ -433,16 +460,18 @@
   outline: none;
 }
 
-.pf-launch-btn { width: 100%; justify-content: center; margin-top: 2px; padding: 9px; }
+.pf-kv-input:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.pf-launch-btn { width: 100%; justify-content: center; margin-top: 2px; padding: 9px; /* TODO: token (off-grid 2/9) */ }
 
 /* LIVE list (mockup .card / .drow) — status only */
 .pf-livecard { border: 1px solid var(--line); }
 .pf-drow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   height: 36px;
-  padding: 0 14px;
+  padding: 0 14px; /* TODO: token (off-grid 14) */
   border-bottom: 1px solid var(--line);
 }
 .pf-drow:last-child { border-bottom: 0; }
@@ -455,15 +484,15 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 13px;
+  gap: 9px; /* TODO: token (off-grid 9) */
+  padding: 0 13px; /* TODO: token (off-grid 13) */
   border-bottom: 1px solid var(--line);
 }
 .pf-plugin-badge {
   display: inline-flex;
   align-items: center;
   height: 20px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--r);
   font-family: var(--mono);

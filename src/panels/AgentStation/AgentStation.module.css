@@ -23,18 +23,18 @@
 
 .headerTitle {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   letter-spacing: 0.01em;
 }
 
 .headerBadge {
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t2);
   background: color-mix(in srgb, var(--green) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
-  border-radius: 4px;
+  border-radius: var(--r);
   padding: 1px 6px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -50,9 +50,9 @@
   border: none;
   border-radius: var(--r-panel);
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--duration-fast);
 }
 .newBtn:hover { opacity: 0.85; }
 
@@ -80,7 +80,7 @@
 
 .emptyTitle {
   font-size: var(--fs-14);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t2);
 }
 
@@ -134,7 +134,7 @@
   border: 1px solid var(--s3);
   border-radius: var(--radius-lg);
   padding: 12px 14px;
-  transition: border-color 0.15s;
+  transition: border-color var(--duration-fast);
 }
 .card:hover { border-color: var(--s5); }
 
@@ -148,7 +148,7 @@
 
 .cardName {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   flex: 1;
 }
@@ -174,11 +174,11 @@
 
 .metaChip {
   font-size: var(--fs-10);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t3);
   background: var(--s2);
   border: 1px solid var(--s4);
-  border-radius: 4px;
+  border-radius: var(--r);
   padding: 1px 7px;
   letter-spacing: 0.02em;
   text-transform: capitalize;
@@ -220,10 +220,10 @@
   padding: 4px 10px;
   border-radius: var(--radius-md);
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: opacity 0.15s, background 0.15s;
+  transition: opacity var(--duration-fast), background var(--duration-fast);
 }
 .actionBtn:disabled { opacity: 0.4; cursor: default; }
 
@@ -265,7 +265,7 @@
 
 .formTitle {
   font-size: var(--fs-14);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   padding-bottom: 2px;
   border-bottom: 1px solid var(--s3);
@@ -280,7 +280,7 @@
 
 .label {
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -294,7 +294,7 @@
   font-size: var(--fs-12);
   padding: 7px 10px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--duration-fast);
   font-family: inherit;
   width: 100%;
   box-sizing: border-box;
@@ -324,9 +324,9 @@
   padding: 10px 12px;
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 7px;
+  border-radius: var(--r-panel);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--duration-fast), background var(--duration-fast);
 }
 .templateCard:hover { background: var(--s2); }
 .templateCardSelected {
@@ -336,7 +336,7 @@
 
 .templateCardName {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   margin-bottom: 3px;
 }
@@ -355,14 +355,14 @@
 
 .pluginToggle {
   padding: 3px 10px;
-  border-radius: 4px;
+  border-radius: var(--r);
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
   border: 1px solid var(--s4);
   background: var(--s1);
   color: var(--t3);
-  transition: all 0.15s;
+  transition: all var(--duration-fast);
   text-transform: capitalize;
 }
 .pluginToggle:hover { border-color: var(--s6); color: var(--t2); }
@@ -387,9 +387,9 @@
   border: none;
   border-radius: var(--r-panel);
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--duration-fast);
 }
 .submitBtn:hover { opacity: 0.85; }
 .submitBtn:disabled { opacity: 0.45; cursor: default; }
@@ -401,9 +401,9 @@
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color var(--duration-fast);
 }
 .cancelBtn:hover { border-color: var(--s6); color: var(--t2); }
 

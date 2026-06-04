@@ -180,7 +180,7 @@
 }
 .fw-token-mint { font-size: var(--fs-11); }
 
-.fw-cell-split { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fw-cell-split { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
 .fw-splitbar {
   display: flex;
   width: 84px;

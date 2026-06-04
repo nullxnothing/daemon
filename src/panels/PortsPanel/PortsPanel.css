@@ -9,7 +9,7 @@
 .ports-panel-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
   padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
   border-bottom: 1px solid var(--s4);
   background: var(--wash);
@@ -17,8 +17,8 @@
 
 .ports-section-kicker {
   font-size: var(--fs-10);
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.16em; /* TODO: token */
   text-transform: uppercase;
   color: var(--green);
 }
@@ -26,23 +26,23 @@
 .ports-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px 28px;
+  padding: 18px 20px 28px; /* TODO: 18px/20px/28px tokens */
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 18px; /* TODO: token */
 }
 
 .ports-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .ports-stat-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
+  gap: 6px; /* TODO: token */
+  padding: 14px; /* TODO: token */
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--wash);
@@ -54,14 +54,14 @@
 
 .ports-stat-label {
   font-size: var(--fs-10);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t4);
 }
 
 .ports-stat-value {
   font-size: var(--fs-26);
-  line-height: 1;
+  line-height: 1; /* TODO: token */
   color: var(--t1);
 }
 
@@ -73,20 +73,20 @@
 .ports-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .ports-section-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .ports-section-title {
-  margin: 4px 0 0;
+  margin: var(--space-xs) 0 0;
   font-size: var(--fs-20);
-  line-height: 1.1;
+  line-height: var(--lh-tight);
   color: var(--t1);
 }
 
@@ -99,7 +99,7 @@
 .ports-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .ports-row-card,
@@ -107,8 +107,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px;
+  gap: 14px; /* TODO: token */
+  padding: 14px; /* TODO: token */
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--wash);
@@ -121,20 +121,20 @@
 .ports-empty-card {
   color: var(--t3);
   font-size: var(--fs-12);
-  line-height: 1.55;
+  line-height: 1.55; /* TODO: token */
 }
 
 .ports-row-main {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   min-width: 0;
 }
 
 .ports-row-titleline {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
   flex-wrap: wrap;
 }
 
@@ -146,7 +146,7 @@
 
 .ports-row-meta {
   display: flex;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
   flex-wrap: wrap;
   font-size: var(--fs-11);
   color: var(--t3);
@@ -155,13 +155,13 @@
 .ports-service-pill {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 8px;
+  min-height: 22px; /* TODO: token */
+  padding: 0 var(--space-sm);
   border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--green) 22%, var(--s4));
   background: color-mix(in srgb, var(--green) 9%, transparent);
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--green);
 }
 
@@ -174,7 +174,7 @@
 .ports-status-dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
 
@@ -185,7 +185,7 @@
 .ports-row-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-shrink: 0;
 }
 
@@ -196,8 +196,8 @@
 }
 
 .ports-btn {
-  height: 32px;
-  padding: 0 14px;
+  height: var(--btn-h-lg);
+  padding: 0 14px; /* TODO: 14px token */
   border-radius: var(--radius-lg);
   font-size: var(--fs-12);
   color: var(--t2);
@@ -211,12 +211,25 @@
   color: var(--t1);
 }
 
+.ports-btn:active {
+  background: var(--s4);
+}
+
+.ports-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .ports-btn.danger {
   color: var(--red);
 }
 
 .ports-btn.danger:hover {
   background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+
+.ports-btn.danger:active {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
 }
 
 @media (max-width: 980px) {

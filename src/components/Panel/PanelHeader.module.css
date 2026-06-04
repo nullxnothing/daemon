@@ -3,7 +3,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--space-md);
-  min-height: 38px;
+  min-height: var(--panel-header-h);
   padding: 0 var(--panel-pad-x);
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel-header-bg);

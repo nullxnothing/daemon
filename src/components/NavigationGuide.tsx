@@ -82,7 +82,7 @@ export function NavigationGuide() {
       </div>
 
       <div className="nav-guide-tip">
-        <strong>💡 Pro tip:</strong> Pin your 3-5 most-used tools to the sidebar, use Command Drawer for occasional tools, and Command Palette for quick actions.
+        <strong>Pro tip:</strong> Pin your 3-5 most-used tools to the sidebar, use Command Drawer for occasional tools, and Command Palette for quick actions.
       </div>
     </div>
   )

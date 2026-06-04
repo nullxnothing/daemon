@@ -15,7 +15,7 @@
 }
 
 .tour-svg rect {
-  transition: all 150ms ease;
+  transition: all var(--duration-normal) ease;
 }
 
 /* Tooltip */
@@ -25,7 +25,7 @@
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--r-panel);
-  padding: 14px 16px;
+  padding: 14px 16px; /* TODO: token */
   width: 280px;
   box-shadow: var(--shadow-lifted);
   animation: tour-fade-in 150ms ease;
@@ -49,7 +49,7 @@
 .tour-tooltip-arrow.right {
   left: -5px;
   top: 50%;
-  margin-top: -4px;
+  margin-top: -4px; /* TODO: token */
   border-right: none;
   border-top: none;
 }
@@ -57,7 +57,7 @@
 .tour-tooltip-arrow.left {
   right: -5px;
   top: 50%;
-  margin-top: -4px;
+  margin-top: -4px; /* TODO: token */
   border-left: none;
   border-bottom: none;
 }
@@ -65,7 +65,7 @@
 .tour-tooltip-arrow.bottom {
   top: -5px;
   left: 50%;
-  margin-left: -4px;
+  margin-left: -4px; /* TODO: token */
   border-bottom: none;
   border-right: none;
 }
@@ -73,7 +73,7 @@
 .tour-tooltip-arrow.top {
   bottom: -5px;
   left: 50%;
-  margin-left: -4px;
+  margin-left: -4px; /* TODO: token */
   border-top: none;
   border-left: none;
 }
@@ -83,12 +83,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 6px; /* TODO: token */
 }
 
 .tour-tooltip-title {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -102,20 +102,20 @@
   font-size: var(--fs-11);
   color: var(--t2);
   line-height: 1.5;
-  margin: 0 0 12px;
+  margin: 0 0 12px; /* TODO: token */
 }
 
 /* Actions */
 .tour-tooltip-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .tour-tooltip-btn {
   height: 26px;
-  padding: 0 10px;
-  border-radius: 4px;
+  padding: 0 10px; /* TODO: token */
+  border-radius: var(--radius-md);
   font-size: var(--fs-11);
   cursor: pointer;
   border: 1px solid var(--border);
@@ -142,7 +142,7 @@
   border: none;
   color: var(--t3);
   margin-left: auto;
-  padding: 0 4px;
+  padding: 0 4px; /* TODO: token */
 }
 
 .tour-tooltip-btn.skip:hover { color: var(--t1); }

@@ -6,7 +6,7 @@
   min-width: 0;
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line-2);
-  border-radius: 0;
+  border-radius: var(--radius-card);
   background: var(--s1);
   color: var(--t2);
   font-size: var(--fs-12);

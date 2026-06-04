@@ -440,7 +440,7 @@ function OverviewActive({
       <div className="pro-active-features">
         {visibleFeatures.map((feature) => (
           <div key={feature} className="pro-active-feature">
-            <span className="pro-active-check">✓</span> {featureLabel(feature)}
+            <span className="dot live pro-active-check" aria-hidden="true" /> {featureLabel(feature)}
           </div>
         ))}
       </div>

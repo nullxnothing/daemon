@@ -1,21 +1,30 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 7px; /* TODO: token (off-grid 7px) */
   height: var(--btn-h-md);
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token (off-grid 10px) */
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: transparent;
   color: var(--t3);
   font-size: var(--fs-12);
   white-space: nowrap;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
 
 .chip:hover:not(:disabled) {
   border-color: var(--line-2);
   background: var(--s2);
   color: var(--t1);
+}
+
+.chip:active:not(:disabled) {
+  background: var(--active-overlay);
+}
+
+.chip:disabled {
+  opacity: 0.5;
 }
 
 .checked {
@@ -30,7 +39,7 @@
   display: grid;
   place-items: center;
   border: 1px solid var(--line-2);
-  border-radius: 2px;
+  border-radius: var(--r);
   color: var(--bg);
   background: transparent;
   font-family: var(--mono);

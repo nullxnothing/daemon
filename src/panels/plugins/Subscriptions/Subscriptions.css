@@ -12,13 +12,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .subscriptions-status,
 .subscriptions-plan-badge {
   flex-shrink: 0;
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--s4);
   border-radius: var(--radius-pill);
   color: var(--t3);
@@ -60,7 +60,7 @@
 }
 
 .subscriptions-summary {
-  padding: 16px;
+  padding: var(--space-lg);
   border: 1px solid var(--s4);
   border-radius: var(--radius-lg);
   background: var(--s1);
@@ -69,12 +69,13 @@
 .subscriptions-summary-main {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
 }
 
 .subscriptions-summary-main strong {
   font-size: var(--fs-24);
+  font-weight: var(--fw-semibold);
 }
 
 .subscriptions-summary-main span:last-child,
@@ -154,7 +155,7 @@
 .subscriptions-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .subscriptions-section-head h3 {
@@ -163,13 +164,14 @@
 }
 
 .subscriptions-link-button {
-  padding: 5px 9px;
+  padding: var(--space-xs) 9px; /* TODO: token (off-grid 5/9) */
   border: 1px solid var(--s4);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--s1);
   color: var(--t2);
   cursor: pointer;
   font-size: var(--fs-11);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .subscriptions-link-button:hover {
@@ -177,10 +179,14 @@
   color: var(--green);
 }
 
+.subscriptions-link-button:active {
+  background: var(--accent-fill);
+}
+
 .subscriptions-tier-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .subscriptions-tier,
@@ -220,7 +226,7 @@
 .subscriptions-price span {
   color: var(--green);
   font-size: var(--fs-26);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .subscriptions-tier-meta {

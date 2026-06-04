@@ -3,14 +3,15 @@
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 150px;
-  padding: 16px;
+  padding: var(--space-lg);
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: var(--radius-card);
   background: var(--s1);
   color: var(--t1);
   text-align: left;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .card::before {
@@ -24,6 +25,14 @@
 .card:hover:not(:disabled) {
   border-color: var(--line-strong);
   background: var(--s2);
+}
+
+.card:active:not(:disabled) {
+  background: var(--active-overlay);
+}
+
+.card:disabled {
+  opacity: 0.5;
 }
 
 .selected {
@@ -48,7 +57,7 @@
 .body {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
@@ -56,13 +65,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
 .title {
   display: grid;
-  gap: 3px;
+  gap: 3px; /* TODO: token (off-grid 3px) */
   min-width: 0;
 }
 
@@ -88,7 +97,7 @@
 .badge {
   flex: 0 0 auto;
   min-height: 20px;
-  padding: 3px 7px;
+  padding: 3px 7px; /* TODO: token (off-grid 3/7px) */
   border: 1px solid var(--line);
   border-radius: var(--r);
 }

@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
   padding: 12px 14px;
   border-bottom: 1px solid var(--s5);
   background: color-mix(in srgb, var(--s2) 72%, transparent);
@@ -21,7 +21,7 @@
 .zauth-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
@@ -43,8 +43,8 @@
 .zauth-title-block h2 {
   margin: 0;
   font-size: var(--fs-18);
-  line-height: 1.1;
-  font-weight: 700;
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-bold);
   letter-spacing: 0;
 }
 
@@ -62,17 +62,22 @@
   height: 30px;
   padding: 0 12px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--r);
   color: var(--t2);
   background: transparent;
   font: inherit;
   font-size: var(--fs-12);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .zauth-segment-btn:hover {
   color: var(--t1);
   background: var(--s3);
+}
+
+.zauth-segment-btn:active {
+  background: var(--s4);
 }
 
 .zauth-segment-btn.active {
@@ -109,7 +114,7 @@
 .zauth-nav {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .zauth-nav button {
@@ -122,11 +127,16 @@
   color: var(--t2);
   background: var(--s1);
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .zauth-nav button:hover:not(:disabled) {
   color: var(--t1);
   background: var(--s3);
+}
+
+.zauth-nav button:active:not(:disabled) {
+  background: var(--s4);
 }
 
 .zauth-nav button:disabled {
@@ -148,7 +158,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 34px;
   padding: 0 14px;
   border-bottom: 1px solid var(--s5);
@@ -161,7 +171,7 @@
   max-width: 58%;
   overflow: hidden;
   color: var(--t2);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-code);
   font-size: var(--fs-10);
   text-overflow: ellipsis;
   white-space: nowrap;

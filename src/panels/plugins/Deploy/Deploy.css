@@ -16,7 +16,7 @@
 
 .deploy-title {
   font-size: var(--fs-16);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   margin: 0;
 }
@@ -33,7 +33,7 @@
 .deploy-section-label {
   font-size: var(--fs-10);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   letter-spacing: 0.5px;
   margin-bottom: 8px;
@@ -78,7 +78,7 @@
 
 .deploy-pname {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -105,7 +105,7 @@
 
 .deploy-gbtn {
   height: 28px;
-  padding: 0 11px;
+  padding: 0 11px; /* TODO: token (off-grid 11) */
   border-radius: var(--r);
   font-family: var(--font-ui);
   font-size: var(--fs-12);
@@ -113,12 +113,17 @@
   border: 1px solid transparent;
   color: var(--t3);
   cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .deploy-gbtn:hover {
   color: var(--t1);
   background: var(--s2);
   border-color: var(--line-2);
+}
+
+.deploy-gbtn:active:not(:disabled) {
+  background: var(--s3);
 }
 
 .deploy-gbtn.hair {
@@ -182,6 +187,10 @@
 .deploy-btn:hover {
   border-color: var(--line-strong);
   background: var(--s3);
+}
+
+.deploy-btn:active:not(:disabled) {
+  background: var(--s4);
 }
 
 .deploy-btn:disabled {
@@ -291,7 +300,7 @@
 .deploy-status {
   font-size: var(--fs-9);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   padding: 1px 6px;
   border-radius: var(--radius-pill);
   flex-shrink: 0;

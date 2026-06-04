@@ -30,6 +30,10 @@
   color: var(--t1);
 }
 
+.btn--secondary:active:not(:disabled) {
+  background: var(--active-overlay);
+}
+
 .btn--primary {
   background: var(--btn-pri-bg);
   border-color: var(--accent-line);
@@ -41,6 +45,10 @@
   border-color: color-mix(in srgb, var(--green) 50%, transparent);
 }
 
+.btn--primary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--press-overlay), var(--btn-pri-bg));
+}
+
 .btn--destructive {
   background: var(--red-glow);
   border-color: color-mix(in srgb, var(--accent-red) 30%, var(--border));
@@ -50,6 +58,10 @@
 .btn--destructive:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent-red) 14%, transparent);
   border-color: color-mix(in srgb, var(--accent-red) 44%, var(--border));
+}
+
+.btn--destructive:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-red) 22%, transparent);
 }
 
 .btn--destructive:focus-visible {
@@ -65,6 +77,10 @@
 .btn--ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--control-bg) 62%, transparent);
   color: var(--t1);
+}
+
+.btn--ghost:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 /* Sizes */

@@ -84,7 +84,7 @@ export const StatusBar = memo(function StatusBar() {
               title={pathCopied ? 'Copied to clipboard' : 'Copy path to clipboard'}
               aria-label={pathCopied ? 'Project path copied' : `Copy project path ${activeProjectPath}`}
             >
-              {pathCopied ? 'Copied ✓' : middleEllipsisPath(activeProjectPath)}
+              {pathCopied ? 'Copied' : middleEllipsisPath(activeProjectPath)}
             </button>
             <LiveRegion message={pathCopied ? 'Project path copied to clipboard' : ''} />
           </div>
@@ -210,10 +210,12 @@ function WalletRuntimeStatus() {
     : `Wallet runtime: ${clusterLabel}. No active wallet selected.`
 
   return (
-    <span
-      className={`${styles.item} ${styles.clickable} ${styles.walletRuntime} ${statusClass}`}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.clickable} ${styles.linkButton} ${styles.walletRuntime} ${statusClass}`}
       onClick={() => useUIStore.getState().openWorkspaceTool('wallet')}
       title={title}
+      aria-label={title}
     >
       <StatusDot
         tone={!dashboardLoaded || !activeWallet ? 'neutral' : rpcReady && signerReady === true ? 'success' : 'warning'}
@@ -225,7 +227,7 @@ function WalletRuntimeStatus() {
           {clusterLabel} · {walletLabel}
         </span>
       )}
-    </span>
+    </button>
   )
 }
 
@@ -249,13 +251,15 @@ function GitBranch() {
 
   if (!branch) return null
   return (
-    <span
-      className={`${styles.item} ${styles.branch} ${styles.clickable}`}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.branch} ${styles.clickable} ${styles.linkButton}`}
       onClick={() => useUIStore.getState().openWorkspaceTool('git')}
       title="Open Git panel"
+      aria-label={`Git branch ${branch}. Open Git panel`}
     >
       {branch}
-    </span>
+    </button>
   )
 }
 
@@ -338,14 +342,16 @@ function ClaudeStatus() {
   const label = isConnected ? 'Claude connected' : 'Claude disconnected'
 
   return (
-    <span
-      className={`${styles.item} ${styles.claudeStatus}`}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.linkButton} ${styles.claudeStatus}`}
       onClick={() => { if (!isConnected) { useOnboardingStore.getState().openWizard() } }}
       title={label}
+      aria-label={label}
     >
       <StatusDot tone={isConnected ? 'success' : 'danger'} label={label} className={styles.inlineDot} />
       {!isSmall && <span className={styles.claudeLabel}>Claude</span>}
-    </span>
+    </button>
   )
 }
 

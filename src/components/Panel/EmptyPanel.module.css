@@ -1,9 +1,9 @@
 .empty {
   display: grid;
   place-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 104px;
-  padding: 18px;
+  padding: 18px; /* TODO: token (off-grid 18px) */
   border: 1px solid var(--line);
   background: var(--field-bg);
   color: var(--t3);
@@ -37,6 +37,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
 }

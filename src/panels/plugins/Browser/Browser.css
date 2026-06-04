@@ -25,10 +25,10 @@
   padding: 6px 10px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--mono);
   outline: none;
 }
 
@@ -44,17 +44,21 @@
   padding: 6px 12px;
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t2);
   font-size: var(--fs-11);
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-normal), color var(--transition-normal);
 }
 
 .browser__go-btn:hover {
   background: var(--s4);
   color: var(--t1);
+}
+
+.browser__go-btn:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 .browser__go-btn:disabled {
@@ -74,7 +78,7 @@
 .browser__page-title {
   font-size: var(--fs-12);
   color: var(--t1);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -99,16 +103,20 @@
   padding: 5px 10px;
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t2);
   font-size: var(--fs-10);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-normal), color var(--transition-normal);
 }
 
 .browser__action-btn:hover {
   background: var(--s4);
   color: var(--t1);
+}
+
+.browser__action-btn:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 .browser__action-btn:disabled {
@@ -117,9 +125,9 @@
 }
 
 .browser__action-btn--active {
-  background: var(--s4);
+  background: var(--active-overlay);
   color: var(--t1);
-  border-color: var(--focus); box-shadow: var(--focus-ring);
+  border-color: var(--green-dim);
 }
 
 /* Content area */
@@ -160,7 +168,7 @@
   padding: 10px 12px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .browser__findings {
@@ -200,9 +208,9 @@
   padding: 6px 8px;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .browser__history-item:hover {
@@ -212,7 +220,7 @@
 .browser__history-url {
   font-size: var(--fs-10);
   color: var(--t1);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -261,7 +269,7 @@
   padding: 6px 8px;
   background: var(--s2);
   border: 1px solid var(--red);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin: 8px 12px;
 }
 
@@ -283,7 +291,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color var(--transition-normal);
 }
 
 .browser__tab:hover {

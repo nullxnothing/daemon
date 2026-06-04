@@ -3,23 +3,23 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: #000;
+  background: var(--void);
   color: var(--t1);
 }
 
 .ricomaps-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-shrink: 0;
-  padding: 6px 10px;
+  padding: 6px 10px; /* TODO: 6px/10px tokens */
   border-bottom: 1px solid var(--s3);
   background: var(--s1);
 }
 
 .ricomaps-nav {
   display: flex;
-  gap: 2px;
+  gap: 2px; /* TODO: token */
 }
 
 .ricomaps-nav button,
@@ -29,25 +29,25 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
+  height: 28px; /* TODO: token */
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--t2);
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   cursor: pointer;
 }
 
 .ricomaps-nav button {
-  width: 28px;
-  border-radius: 999px;
+  width: 28px; /* TODO: token */
+  border-radius: var(--radius-pill);
 }
 
 .ricomaps-home,
 .ricomaps-start,
 .ricomaps-overlay button {
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border-color: var(--s4);
   background: var(--s2);
 }
@@ -65,6 +65,21 @@
   color: var(--t1);
 }
 
+.ricomaps-nav button:active:not(:disabled),
+.ricomaps-home:active,
+.ricomaps-start:active:not(:disabled),
+.ricomaps-overlay button:active:not(:disabled) {
+  background: var(--s4);
+}
+
+.ricomaps-nav button:focus-visible,
+.ricomaps-home:focus-visible,
+.ricomaps-start:focus-visible,
+.ricomaps-overlay button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 .ricomaps-nav button:disabled,
 .ricomaps-start:disabled,
 .ricomaps-overlay button:disabled {
@@ -79,13 +94,13 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  height: 28px;
-  padding: 6px 10px;
+  height: 28px; /* TODO: token */
+  padding: 6px 10px; /* TODO: 6px/10px tokens */
   border: 1px solid var(--s4);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--s2);
   color: var(--t3);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-code);
   font-size: var(--fs-11);
 }
 
@@ -94,7 +109,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #000;
+  background: var(--void);
 }
 
 .ricomaps-webview {
@@ -104,14 +119,14 @@
 
 .ricomaps-overlay {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  right: var(--space-lg);
+  bottom: var(--space-lg);
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   width: min(380px, calc(100% - 32px));
-  padding: 12px;
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--s1);
@@ -121,18 +136,18 @@
 .ricomaps-overlay span {
   color: var(--t1);
   font-size: var(--fs-12);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .ricomaps-overlay small {
   color: var(--t3);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-code);
   font-size: var(--fs-11);
-  line-height: 1.4;
+  line-height: 1.4; /* TODO: token */
   overflow-wrap: anywhere;
 }
 
 .ricomaps-overlay div {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }

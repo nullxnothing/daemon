@@ -10,9 +10,9 @@
   background-image:
     radial-gradient(rgba(var(--tex-c), calc(var(--tex-a) * var(--tex-k))) 1px, transparent 1px);
   background-size: 22px 22px;
-  gap: 28px;
+  gap: 28px; /* TODO: token */
   /* Fade out on exit */
-  transition: opacity 0.4s ease, visibility 0.4s ease;
+  transition: opacity var(--dur-deliberate) ease, visibility var(--dur-deliberate) ease;
 }
 
 .bootloader--hidden {
@@ -43,7 +43,7 @@
 .bootloader__ring {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: transparent;
   box-shadow: none;
@@ -56,7 +56,7 @@
   content: '';
   position: absolute;
   inset: -1.5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   border-top-color: var(--green);
   border-right-color: var(--accent-line);
@@ -66,7 +66,7 @@
 /* ── Text: DAEMON letter wave ── */
 .bootloader__text {
   display: flex;
-  gap: 2px;
+  gap: 2px; /* TODO: token */
   opacity: 0;
   animation: boot-fade-in 0.5s ease 0.35s forwards;
 }
@@ -75,7 +75,7 @@
   font-family: var(--font-ui);
   font-size: var(--fs-22);
   font-weight: var(--fw-semibold);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.12em; /* TODO: token */
   color: var(--t1);
   display: inline-block;
 }
@@ -92,7 +92,7 @@
 .bootloader__status {
   font-family: var(--mono);
   font-size: var(--fs-10);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-caps);
   color: var(--t4);
   opacity: 0;
   animation: boot-fade-in 0.5s ease 0.5s forwards;
@@ -104,7 +104,7 @@
   width: 160px;
   height: 1px;
   background: var(--s3);
-  border-radius: 1px;
+  border-radius: 1px; /* TODO: token */
   overflow: hidden;
   opacity: 0;
   animation: boot-fade-in 0.5s ease 0.6s forwards;
@@ -114,7 +114,7 @@
   height: 100%;
   background: var(--green);
   box-shadow: none;
-  border-radius: 1px;
+  border-radius: 1px; /* TODO: token */
   animation: progress-sweep 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   transform-origin: left;
 }

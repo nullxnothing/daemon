@@ -48,7 +48,7 @@
 .email-companion__extraction-col {
   width: 340px;
   border-left: 1px solid var(--s5);
-  padding: 16px;
+  padding: var(--space-lg);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -79,24 +79,24 @@
 .email-companion__subject {
   font-size: var(--fs-15);
   color: var(--t1);
-  font-weight: 500;
-  margin-bottom: 8px;
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--space-sm);
 }
 
 .email-companion__meta {
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg);
 }
 
 /* Extraction section title */
 .email-companion__section-title {
   font-size: var(--fs-11);
   color: var(--t2);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .email-companion__empty {

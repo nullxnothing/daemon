@@ -114,7 +114,7 @@
   color: var(--text-muted);
   font-size: var(--fs-12);
   cursor: pointer;
-  transition: color 120ms ease;
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .editor-empty-hint:hover {
@@ -158,7 +158,7 @@
   border-radius: var(--radius-md);
   background: var(--surface-raised);
   color: var(--t2);
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease, transform 120ms ease;
+  transition: border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
 }
 
 .editor-empty-btn {
@@ -193,7 +193,7 @@
 .editor-empty-starter-label {
   color: var(--t3);
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 1.4px;
   text-transform: uppercase;
 }
@@ -210,7 +210,7 @@
   padding: 0 var(--space-md);
   overflow: hidden;
   font-size: var(--type-item-title-size);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -277,14 +277,18 @@
   font-size: var(--fs-11);
   color: var(--t2);
   background: transparent;
-  border-radius: 4px;
-  transition: background 0.15s;
+  border-radius: var(--r);
+  transition: background var(--duration-fast);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .editor-tab:hover {
   background: var(--hover-bg);
+}
+
+.editor-tab:active {
+  background: var(--active-bg);
 }
 
 .editor-tab.active {
@@ -325,7 +329,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: width 0.12s, height 0.12s, border-radius 0.12s;
+  transition: width var(--duration-fast), height var(--duration-fast), border-radius var(--duration-fast);
 }
 
 .editor-tab:hover .editor-tab-dirty {
@@ -404,7 +408,7 @@
 .editor-breadcrumb-item {
   height: 20px;
   padding: 0 6px;
-  border-radius: 4px;
+  border-radius: var(--r);
   font-size: var(--fs-11);
   color: var(--t2);
   background: transparent;
@@ -413,6 +417,10 @@
 .editor-breadcrumb-item:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.editor-breadcrumb-item:active {
+  background: var(--active-bg);
 }
 
 .editor-breadcrumb-item.is-file {
@@ -447,7 +455,7 @@
   color: var(--t3);
   background: var(--s2);
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -478,7 +486,7 @@
   background: var(--s2);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .editor-tidy-markdown-btn:hover:enabled {
@@ -546,7 +554,7 @@
 .editor-tidy-preview-title {
   font-size: var(--fs-12);
   color: var(--t1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .editor-tidy-preview-actions {
@@ -560,7 +568,7 @@
   border-radius: var(--r-panel);
   padding: 0 10px;
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .editor-tidy-preview-btn.subtle {

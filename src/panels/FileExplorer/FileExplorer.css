@@ -109,6 +109,15 @@
   border-color: var(--border-hover);
 }
 
+.file-explorer-action:active {
+  background: var(--active-overlay);
+}
+
+.file-explorer-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .file-explorer-action:focus-visible {
   outline: none;
   border-color: var(--focus);
@@ -122,8 +131,8 @@
 .file-search-results {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 4px 6px;
+  gap: 2px; /* TODO: token */
+  padding: 0 var(--space-xs) 6px; /* TODO: 6px token */
 }
 
 .file-search-result {
@@ -131,14 +140,24 @@
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
+  gap: 2px; /* TODO: token */
+  padding: 6px var(--space-sm); /* TODO: 6px token */
   border-radius: var(--radius-md);
   background: transparent;
 }
 
 .file-search-result:hover {
   background: var(--hover-bg);
+}
+
+.file-search-result:active {
+  background: var(--active-overlay);
+}
+
+.file-search-result:focus-visible {
+  outline: none;
+  background: var(--hover-bg);
+  box-shadow: var(--focus-ring);
 }
 
 .file-search-result-name {
@@ -152,13 +171,13 @@
 }
 
 .file-search-empty {
-  padding: 12px 10px;
+  padding: var(--space-md) 10px; /* TODO: 10px token */
   font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .file-explorer-empty {
-  padding: 16px 12px;
+  padding: var(--space-lg) var(--space-md);
   font-size: var(--fs-11);
   color: var(--t3);
 }
@@ -166,8 +185,8 @@
 .file-node {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 24px;
+  gap: 6px; /* TODO: token */
+  height: 24px; /* TODO: token */
   padding-right: var(--space-sm);
   font-size: var(--fs-12);
   color: var(--t2);
@@ -222,7 +241,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .file-git-status.staged {
@@ -242,7 +261,7 @@
 
 .file-node.directory .file-node-name {
   color: color-mix(in srgb, var(--t1) 90%, var(--t2) 10%);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .file-svg {
@@ -410,15 +429,15 @@
   background: color-mix(in srgb, var(--s1) 96%, black 4%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 4px;
+  padding: var(--space-xs);
   box-shadow: var(--shadow-float);
 }
 
 .context-menu-item {
-  height: 28px;
+  height: 28px; /* TODO: token */
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-13);
   color: var(--t2);
   border-radius: var(--radius-sm);
@@ -437,6 +456,17 @@
   color: var(--t1);
 }
 
+.context-menu-item:active {
+  background: var(--active-overlay);
+}
+
+.context-menu-item:focus-visible {
+  outline: none;
+  background: var(--hover-bg);
+  color: var(--t1);
+  box-shadow: var(--focus-ring);
+}
+
 .context-menu-item.danger:hover {
   background: color-mix(in srgb, var(--red) 20%, transparent);
   color: var(--red);
@@ -445,7 +475,7 @@
 .context-menu-sep {
   height: 1px;
   background: var(--border);
-  margin: 4px 0;
+  margin: var(--space-xs) 0;
 }
 
 /* Inline Rename / Create Input */
@@ -457,7 +487,7 @@
   border: 1px solid var(--focus);
   box-shadow: var(--focus-ring);
   border-radius: var(--radius-sm);
-  padding: 0 6px;
+  padding: 0 6px; /* TODO: 6px token */
   outline: none;
   width: 100%;
   font-family: var(--font-ui);

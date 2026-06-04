@@ -1,10 +1,10 @@
 .toast-host {
   position: fixed;
-  bottom: 16px;
-  right: 16px;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   z-index: 9999;
   max-width: 380px;
   pointer-events: none;
@@ -13,8 +13,8 @@
 .toast {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px var(--space-md);
+  gap: 10px; /* TODO: token (off-grid 10px) */
+  padding: 10px var(--space-md); /* TODO: token (off-grid 10px vertical) */
   background: var(--s1);
   border: 1px solid var(--line);
   border-radius: var(--r);
@@ -75,15 +75,20 @@
   color: var(--t1);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 3px 8px;
+  padding: 3px var(--space-sm); /* TODO: token (off-grid 3px vertical) */
   font-size: var(--fs-11);
   cursor: pointer;
   flex-shrink: 0;
   align-self: center;
+  transition: background var(--transition-fast);
 }
 
 .toast-action:hover {
   background: var(--s5, var(--s4));
+}
+
+.toast-action:active {
+  background: color-mix(in srgb, var(--press-overlay), var(--s4));
 }
 
 .toast-close {
@@ -93,10 +98,15 @@
   cursor: pointer;
   font-size: var(--fs-16);
   line-height: 1;
-  padding: 0 2px;
+  padding: 0 2px; /* TODO: token (off-grid 2px) */
   flex-shrink: 0;
+  transition: color var(--transition-fast);
 }
 
 .toast-close:hover {
   color: var(--t1);
+}
+
+.toast-close:active {
+  color: var(--t2);
 }

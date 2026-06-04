@@ -40,13 +40,13 @@
 /* Skip navigation links — visible only on focus */
 .skip-link {
   position: absolute;
-  top: -40px;
+  top: calc(-1 * var(--titlebar-h));
   left: 0;
-  padding: 8px 16px;
+  padding: var(--space-sm) var(--space-lg);
   background: var(--green);
   color: var(--bg);
-  font-size: var(--font-base);
-  font-weight: 600;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
   z-index: 10000;
   text-decoration: none;
   transition: top var(--transition-fast);
@@ -60,9 +60,9 @@
 .crash-warning-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: rgba(239, 83, 80, 0.1);
+  gap: var(--space-sm);
+  padding: 6px var(--space-lg); /* TODO: token (off-grid 6px vertical) */
+  background: var(--red-glow);
   border-bottom: 1px solid var(--red);
   font-size: var(--fs-11);
   color: var(--red);
@@ -88,12 +88,17 @@
   border: none;
   color: var(--t3);
   cursor: pointer;
-  padding: 2px;
+  padding: 2px; /* TODO: token (off-grid 2px) */
   display: flex;
+  transition: color var(--transition-fast);
 }
 
 .crash-warning-dismiss:hover {
   color: var(--t1);
+}
+
+.crash-warning-dismiss:active {
+  color: var(--t2);
 }
 
 /* Main Layout */
@@ -104,8 +109,8 @@
   overflow: hidden;
   min-height: 0;
   z-index: 1;
-  gap: 10px;
-  padding: 10px;
+  gap: 10px; /* TODO: token (off-grid 10px) */
+  padding: 10px; /* TODO: token (off-grid 10px) */
   background:
     radial-gradient(rgba(var(--tex-c), calc(var(--tex-a) * var(--tex-k))) 1px, transparent 1px),
     var(--void);
@@ -142,12 +147,12 @@
 }
 
 .panel-header {
-  height: 38px;
+  height: var(--panel-header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 12px;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
   font-size: var(--type-eyebrow-size);
   font-family: var(--mono);
   font-weight: var(--fw-medium);
@@ -179,6 +184,10 @@
   background: var(--control-bg-hover);
   color: var(--t1);
   border-color: var(--control-border);
+}
+
+.panel-header-action:active {
+  background: var(--active-overlay);
 }
 
 /* Center Area */
@@ -216,14 +225,14 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 18px;
-  padding: 32px;
+  gap: 18px; /* TODO: token (off-grid 18px) */
+  padding: var(--space-2xl);
   text-align: center;
   color: var(--t2);
 }
 
 .low-power-editor-start h1 {
-  margin: 8px 0 8px;
+  margin: var(--space-sm) 0;
   font-size: var(--type-page-title-size);
   font-weight: var(--type-page-title-weight);
   line-height: var(--type-page-title-line);
@@ -250,12 +259,12 @@
 
 .low-power-editor-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .low-power-editor-actions button {
-  height: 30px;
-  padding: 0 12px;
+  height: var(--input-h);
+  padding: 0 var(--space-md);
   border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   background: var(--control-bg);
@@ -263,11 +272,16 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token (off-grid 6px) */
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .low-power-editor-actions button:hover {
   border-color: color-mix(in srgb, var(--green) 55%, var(--border));
+}
+
+.low-power-editor-actions button:active {
+  background: var(--active-overlay);
 }
 
 .splitter {
@@ -282,11 +296,11 @@
 .splitter::after {
   content: '';
   position: absolute;
-  top: 4px;
+  top: var(--space-xs);
   left: 50%;
   width: 64px;
   height: 1px;
-  border-radius: 0;
+  border-radius: var(--radius-card);
   transform: translateX(-50%);
   background: color-mix(in srgb, var(--t4) 58%, transparent);
 }
@@ -307,7 +321,7 @@
   z-index: 1;
   background: var(--s1);
   border-top: 1px solid var(--panel-border);
-  transition: height var(--transition-normal, 160ms) ease;
+  transition: height var(--transition-normal);
 }
 
 /* Suppress the height transition while dragging the splitter so resizing stays
@@ -357,7 +371,7 @@
 }
 
 .right-panel-placeholder {
-  padding: 16px 12px;
+  padding: var(--space-lg) var(--space-md);
   font-size: var(--fs-11);
   color: var(--t3);
 }

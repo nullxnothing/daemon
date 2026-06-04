@@ -7,7 +7,7 @@
 }
 
 .spinner svg {
-  animation: spinner-rotate 0.7s linear infinite;
+  animation: spinner-rotate 0.7s linear infinite; /* TODO: token (no spin-loop duration token) */
 }
 
 @keyframes spinner-rotate {

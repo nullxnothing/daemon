@@ -212,6 +212,7 @@
 
   /* Layout dimensions */
   --titlebar-h: 40px;
+  --panel-header-h: 38px;
   --sidebar-w: 48px;
   --left-panel-w: 210px;
   --right-panel-w: 284px;

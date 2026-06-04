@@ -10,20 +10,29 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 14px;
+  gap: var(--space-sm);
+  height: var(--panel-header-h);
+  padding: 0 14px; /* TODO: token (off-grid 14px) */
   border: 0;
   background: transparent;
   color: var(--t3);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
   white-space: nowrap;
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
 .tab:hover:not(:disabled) {
   color: var(--t1);
   background: var(--s2);
+}
+
+.tab:active:not(:disabled) {
+  background: var(--active-overlay);
+}
+
+.tab:disabled {
+  opacity: 0.5;
 }
 
 .active {

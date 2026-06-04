@@ -39,6 +39,14 @@
   border-color: var(--border-hover);
 }
 
+.pill:active {
+  background: var(--active-overlay);
+}
+
+.pill:disabled {
+  opacity: 0.5;
+}
+
 .active {
   background: var(--accent-fill);
   color: var(--tab-active-color);

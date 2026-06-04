@@ -38,12 +38,16 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
 
 .agent-grid-page-tab:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.agent-grid-page-tab:active {
+  background: var(--active-bg);
 }
 
 .agent-grid-page-tab.active {
@@ -56,7 +60,7 @@
   color: var(--t3);
   line-height: 1;
   opacity: 0;
-  transition: opacity 0.1s;
+  transition: opacity var(--duration-fast);
 }
 
 .agent-grid-page-tab:hover .agent-grid-page-tab-close {
@@ -84,6 +88,10 @@
   color: var(--t1);
 }
 
+.agent-grid-page-add:active {
+  background: var(--active-bg);
+}
+
 .agent-grid-add-cell {
   display: flex;
   align-items: center;
@@ -94,12 +102,16 @@
   color: var(--t3);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
 
 .agent-grid-add-cell:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.agent-grid-add-cell:active {
+  background: var(--active-bg);
 }
 
 .agent-grid {
@@ -117,7 +129,7 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
-  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  transition: transform var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .agent-grid-cell.dragging {
@@ -142,7 +154,7 @@
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   cursor: grab;
-  transition: background 0.1s;
+  transition: background var(--duration-fast);
 }
 
 .agent-grid-cell-header:hover {
@@ -165,7 +177,7 @@
 .agent-grid-cell-label {
   font-size: var(--fs-11);
   color: var(--t2);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   flex: 1;
 }
 
@@ -211,7 +223,7 @@
   height: 100%;
   gap: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--duration-normal);
 }
 
 .agent-grid-cell-activate:hover {
@@ -238,14 +250,14 @@
   border: 1px solid var(--s5);
   background: var(--s1);
   color: var(--t3);
-  transition: all 0.2s;
+  transition: all var(--duration-normal);
 }
 
 .activate-label {
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t2);
-  transition: color 0.15s;
+  transition: color var(--duration-fast);
 }
 
 .activate-hint {
@@ -270,7 +282,7 @@
   color: var(--t2);
   background: var(--s1);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--r);
   cursor: pointer;
   white-space: nowrap;
   box-shadow: var(--shadow-md);

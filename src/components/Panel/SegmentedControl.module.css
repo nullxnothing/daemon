@@ -10,13 +10,14 @@
 .item {
   min-width: 0;
   height: var(--btn-h-md);
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border: 0;
   border-right: 1px solid var(--line);
   background: transparent;
   color: var(--t3);
   font-size: var(--fs-12);
   white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .item:last-child {
@@ -26,6 +27,14 @@
 .item:hover:not(:disabled) {
   background: var(--s2);
   color: var(--t1);
+}
+
+.item:active:not(:disabled) {
+  background: var(--active-overlay);
+}
+
+.item:disabled {
+  opacity: 0.5;
 }
 
 .active {

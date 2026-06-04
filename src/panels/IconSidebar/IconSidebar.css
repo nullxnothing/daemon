@@ -113,7 +113,10 @@
   height: var(--btn-h-md);
   border-radius: var(--r);
   margin: var(--space-xs) auto;
-  transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
+  transition: height var(--duration-normal) var(--ease-standard),
+    background var(--duration-normal) var(--ease-standard),
+    border-color var(--duration-normal) var(--ease-standard),
+    opacity var(--duration-normal) var(--ease-standard);
   border: 1px dashed var(--s5);
   opacity: 0.5;
   display: flex;
@@ -129,7 +132,7 @@
 
 .sidebar-drop-zone::before {
   content: '+';
-  font-weight: 300;
+  font-weight: var(--fw-regular);
 }
 
 .sidebar-drop-zone:hover {
@@ -155,9 +158,9 @@
 
 /* ─── Zone Dividers ─── */
 .sidebar-divider {
-  width: 22px;
+  width: 22px; /* TODO: token */
   height: 1px;
-  background: color-mix(in srgb, var(--border) 72%, transparent);
+  background: var(--divider-hairline);
   margin: var(--space-sm) auto;
   flex-shrink: 0;
 }
@@ -213,7 +216,7 @@
 }
 
 .sidebar-submenu--tools {
-  top: -4px;
+  top: -4px; /* TODO: token */
   max-height: min(420px, calc(100vh - 120px));
   width: 220px;
   overflow-y: auto;
@@ -221,10 +224,10 @@
 
 .sidebar-submenu-group {
   font-size: var(--fs-10);
-  letter-spacing: 0.4px;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t3);
-  padding: var(--space-2xs) var(--space-sm) 6px;
+  padding: var(--space-xs) var(--space-sm) 6px; /* TODO: token (6px) */
 }
 
 .sidebar-submenu-item {
@@ -234,12 +237,17 @@
   color: var(--t2);
   background: transparent;
   border-radius: var(--radius-lg);
-  padding: 7px var(--space-sm);
+  padding: 7px var(--space-sm); /* TODO: token (7px) */
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .sidebar-submenu-item:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.sidebar-submenu-item:active {
+  background: var(--active-overlay);
 }
 
 .sidebar-submenu-item--tool {

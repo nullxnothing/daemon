@@ -60,7 +60,7 @@
   font-weight: var(--fw-medium);
   color: var(--t3);
   background: transparent;
-  padding: 1px 0;
+  padding: 1px 0; /* TODO: token */
   border-radius: var(--radius-sm);
   letter-spacing: var(--ls-caps);
   margin-left: var(--space-xs);
@@ -135,9 +135,9 @@
 }
 
 .project-tab-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+  width: 5px; /* TODO: token */
+  height: 5px; /* TODO: token */
+  border-radius: var(--radius-pill);
   background: var(--t4);
   flex-shrink: 0;
 }
@@ -246,7 +246,7 @@
   -webkit-app-region: no-drag;
   align-items: center;
   flex-shrink: 0;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
 .titlebar-drag-fill {
@@ -305,7 +305,7 @@
   font-family: var(--mono);
   font-size: var(--fs-10);
   color: var(--t3);
-  padding: 1px 6px;
+  padding: 1px 6px; /* TODO: token */
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--s1);
@@ -337,6 +337,12 @@
   background: var(--control-bg-hover);
   color: var(--t1);
   border-color: var(--control-border-hover);
+}
+
+.titlebar-portfolio:active,
+.titlebar-mode-toggle:active,
+.titlebar-switcher-toggle:active {
+  background: var(--active-overlay);
 }
 
 .titlebar-portfolio-total { font-weight: var(--fw-semibold); }
@@ -469,7 +475,7 @@
   border-top: 1px solid var(--border);
 }
 
-.titlebar-overflow { position: relative; margin-right: var(--space-2xs); }
+.titlebar-overflow { position: relative; margin-right: var(--space-xs); }
 .titlebar-btn-overflow { width: 30px; }
 .titlebar-overflow-menu {
   left: auto;
@@ -495,6 +501,10 @@
 .titlebar-btn:hover {
   background: var(--card-bg-hover);
   color: var(--t1);
+}
+
+.titlebar-btn:active {
+  background: var(--active-overlay);
 }
 
 .titlebar-btn-close:hover {

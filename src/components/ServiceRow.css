@@ -22,6 +22,10 @@
   padding: var(--space-xs) var(--space-md);
 }
 
+.service-row.clickable:active {
+  background: var(--active-overlay);
+}
+
 .service-row-info {
   flex: 1;
   min-width: 0;
@@ -34,8 +38,8 @@
 }
 
 .service-row-name {
-  font-size: var(--font-md);
-  font-weight: 500;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
@@ -45,21 +49,21 @@
 .service-row-tag {
   display: inline-flex;
   align-items: center;
-  padding: 1px 5px;
+  padding: 1px 5px; /* TODO: token (off-grid 1/5px) */
   border-radius: var(--radius-sm);
   background: var(--s3);
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   color: var(--t4);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: var(--ls-caps);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .service-row-desc {
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--t4);
-  margin-top: 1px;
+  margin-top: 1px; /* TODO: token (off-grid 1px) */
 }
 
 .service-row-action {

@@ -12,7 +12,7 @@
   background: var(--field-bg);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
-  padding: 7px 12px;
+  padding: 7px 12px; /* TODO: token */
   font-size: var(--fs-12);
   color: var(--t1);
   outline: none;
@@ -41,31 +41,31 @@
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  padding: 12px 8px;
-  gap: 2px;
+  padding: var(--space-md) var(--space-sm);
+  gap: 2px; /* TODO: token */
   overflow-y: auto;
 }
 
 .settings-snav-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 2px; /* TODO: token */
 }
 
 .settings-snav-group + .settings-snav-group {
-  margin-top: 10px;
+  margin-top: 10px; /* TODO: token */
 }
 
 .settings-snav-label {
-  padding: 8px 8px 6px;
+  padding: 8px 8px 6px; /* TODO: token */
 }
 
 .settings-snav-item {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 9px; /* TODO: token */
   height: 30px;
-  padding: 0 9px;
+  padding: 0 9px; /* TODO: token */
   border: 0;
   border-radius: var(--r);
   background: transparent;
@@ -102,7 +102,7 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 22px 26px;
+  padding: 22px 26px; /* TODO: token */
 }
 
 .settings-section {
@@ -115,32 +115,32 @@
   font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.5;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .settings-section-desc.tight {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-10);
 }
 
 .settings-section-label {
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px; /* TODO: token */
 }
 
 .settings-divider {
   height: 1px;
   background: var(--panel-border);
-  margin: 12px 0;
+  margin: 12px 0; /* TODO: token */
 }
 
 .settings-empty {
   font-size: var(--fs-11);
   color: var(--t3);
-  padding: 12px 0;
+  padding: 12px 0; /* TODO: token */
 }
 
 /* Keys */
@@ -157,8 +157,8 @@
 .settings-key-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 10px; /* TODO: token */
+  padding: 10px 14px; /* TODO: token */
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -170,7 +170,7 @@
   font-family: var(--font-code);
   font-size: var(--fs-12);
   color: var(--t1);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   min-width: 200px;
 }
 
@@ -183,14 +183,14 @@
 
 .settings-key-add {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
 }
 
 .settings-input {
   flex: 1;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   font-size: var(--fs-12);
   font-family: var(--font-code);
   background: var(--field-bg);
@@ -207,7 +207,7 @@
 
 .settings-btn {
   height: 30px;
-  padding: 0 14px;
+  padding: 0 14px; /* TODO: token */
   font-size: var(--fs-12);
   border-radius: var(--r);
   cursor: pointer;
@@ -254,14 +254,14 @@
 .settings-integration-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: 10px; /* TODO: token */
+  padding: 8px 0; /* TODO: token */
 }
 
 .settings-integration-dot {
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--t3);
   flex-shrink: 0;
 }
@@ -305,7 +305,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 10px 14px; /* TODO: token */
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -328,8 +328,8 @@
 .settings-display-row {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 0;
+  gap: 20px; /* TODO: token */
+  padding: 14px 0; /* TODO: token */
   border-bottom: 1px solid var(--line);
 }
 
@@ -356,7 +356,7 @@
 .settings-side-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .settings-side-list {
@@ -371,9 +371,9 @@
 .settings-side-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 14px; /* TODO: token */
   min-height: 64px;
-  padding: 12px 14px;
+  padding: 12px 14px; /* TODO: token */
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -386,7 +386,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .settings-side-meta {
@@ -401,8 +401,8 @@
 .settings-setup-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: 14px; /* TODO: token */
+  padding: var(--space-lg);
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
@@ -412,34 +412,34 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .settings-version-pill {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--green) 22%, var(--s4));
   background: color-mix(in srgb, var(--green) 9%, transparent);
   font-size: var(--fs-10);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
   color: var(--green);
 }
 
 .settings-setup-meta-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 10px; /* TODO: token */
 }
 
 .settings-setup-meta {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 12px;
+  gap: 5px; /* TODO: token */
+  padding: var(--space-md);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-card);
   background: var(--surface-sunken);
@@ -449,7 +449,7 @@
   font-size: var(--fs-9);
   color: var(--t4);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-caps);
 }
 
 .settings-setup-meta strong {
@@ -461,19 +461,19 @@
 .settings-crash-stats {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 8px 0;
+  gap: 20px; /* TODO: token */
+  padding: 8px 0; /* TODO: token */
 }
 
 .settings-crash-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 2px; /* TODO: token */
 }
 
 .settings-crash-stat-value {
   font-size: var(--fs-18);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   font-family: var(--font-code);
 }
@@ -482,7 +482,7 @@
   font-size: var(--fs-9);
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px; /* TODO: token */
 }
 
 .settings-crash-list {
@@ -505,8 +505,8 @@
 .settings-crash-summary {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: 10px; /* TODO: token */
+  padding: 8px 14px; /* TODO: token */
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -518,10 +518,10 @@
 .settings-crash-type {
   font-family: var(--font-code);
   font-size: var(--fs-9);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 2px 6px;
+  letter-spacing: 0.3px; /* TODO: token */
+  padding: 2px 6px; /* TODO: token */
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
@@ -562,7 +562,7 @@
 }
 
 .settings-crash-stack {
-  padding: 10px 14px;
+  padding: 10px 14px; /* TODO: token */
   margin: 0;
   font-family: var(--font-code);
   font-size: var(--fs-10);
@@ -577,13 +577,13 @@
 }
 
 .settings-crash-stack.spaced {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 /* Workspace profile selector */
 .settings-profile-selector {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .settings-profile-btn {
@@ -613,8 +613,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-md);
+  padding: 10px 12px; /* TODO: token */
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
@@ -638,21 +638,21 @@
 
 .settings-actions-row {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .settings-inline-row {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .settings-provider-grid {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 6px; /* TODO: token */
+  margin-top: var(--space-sm);
 }
 
 .settings-provider-btn {
@@ -660,9 +660,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   min-height: 36px;
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--drawer-control-radius);
   border: 1px solid var(--control-border);
   background: var(--control-bg);
@@ -692,7 +692,7 @@
 .settings-provider-dot {
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--t4);
 }
 
@@ -703,15 +703,15 @@
 .settings-provider-status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .settings-provider-status-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 40px;
-  padding: 8px 10px;
+  padding: 8px 10px; /* TODO: token */
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
@@ -724,7 +724,7 @@
 .settings-provider-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -740,7 +740,7 @@
 
 .settings-provider-mini {
   min-width: 62px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   text-transform: capitalize;
 }
 
@@ -757,12 +757,12 @@
 
 .settings-provider-select {
   min-width: 132px;
-  padding: 0 8px;
+  padding: 0 8px; /* TODO: token */
   text-transform: capitalize;
 }
 
 .settings-inline-note {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 
 .settings-inline-note.warn {
@@ -775,13 +775,13 @@
 
 .settings-meta-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .settings-copy-stack-btn {
-  margin-top: 6px;
-  padding: 3px 8px;
+  margin-top: 6px; /* TODO: token */
+  padding: 3px 8px; /* TODO: token */
   font-size: var(--fs-10);
   background: var(--s3);
   color: var(--t2);
@@ -796,5 +796,5 @@
 }
 
 .settings-tools-label {
-  margin-top: 16px;
+  margin-top: var(--space-lg);
 }

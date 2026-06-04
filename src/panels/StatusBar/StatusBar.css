@@ -14,7 +14,7 @@
 .statusbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
   min-width: 0;
   flex: 1;
 }
@@ -57,13 +57,13 @@
 .market-tape {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm); /* TODO: token (was 10px) */
 }
 
 .market-tape-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   font-size: var(--fs-11);
 }
 

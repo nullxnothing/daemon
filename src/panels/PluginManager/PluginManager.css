@@ -52,7 +52,7 @@
 }
 
 .plugin-add-subtitle {
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
   color: var(--t3);
   font-size: var(--fs-11);
 }
@@ -85,8 +85,9 @@
   outline: none;
 }
 
-.plugin-add-grid input:focus {
+.plugin-add-grid input:focus-visible {
   border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
 }
 
 .plugin-add-wide {
@@ -111,7 +112,7 @@
 }
 
 .plugin-status-dot {
-  margin-top: 7px;
+  margin-top: 7px; /* TODO: token */
 }
 
 .plugin-card-info {
@@ -136,7 +137,7 @@
 }
 
 .plugin-badge {
-  padding: var(--space-2xs) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   flex-shrink: 0;
 }
 

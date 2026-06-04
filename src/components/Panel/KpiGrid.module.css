@@ -12,7 +12,7 @@
   gap: var(--space-sm);
   min-width: 0;
   min-height: 88px;
-  padding: 16px 18px;
+  padding: var(--space-lg) 18px; /* TODO: token (off-grid 18px) */
   background: var(--bg);
 }
 

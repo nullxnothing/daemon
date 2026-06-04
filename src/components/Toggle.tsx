@@ -49,7 +49,7 @@ export function Toggle({ checked, onChange, size = 'sm', disabled = false }: Tog
         position: 'relative',
         cursor: disabled ? 'not-allowed' : 'pointer',
         flexShrink: 0,
-        transition: 'background 0.15s',
+        transition: 'background var(--transition-fast)',
         opacity: disabled ? 0.5 : 1,
       }}
     >
@@ -62,7 +62,7 @@ export function Toggle({ checked, onChange, size = 'sm', disabled = false }: Tog
           height: s.knob,
           background: 'var(--t1)',
           borderRadius: '50%',
-          transition: 'transform 0.15s',
+          transition: 'transform var(--transition-fast)',
           transform: checked ? `translateX(${s.travel}px)` : 'translateX(0)',
         }}
       />

@@ -17,6 +17,10 @@
   border-radius: var(--radius-sm);
 }
 
+.section-header.collapsible:active {
+  background: var(--active-overlay);
+}
+
 .section-header-chevron {
   color: var(--t4);
   flex-shrink: 0;
@@ -38,7 +42,7 @@
 }
 
 .section-header-count {
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   color: var(--t4);
   margin-left: auto;
 }

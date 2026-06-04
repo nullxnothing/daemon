@@ -87,7 +87,7 @@
   display: grid;
   place-items: center;
   border: 1px solid var(--line-2);
-  border-radius: 2px;
+  border-radius: var(--r);
   font-size: var(--fs-9);
   line-height: 1;
   color: var(--bg);

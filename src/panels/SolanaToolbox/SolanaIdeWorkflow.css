@@ -1,24 +1,24 @@
 .solana-ide-surface {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px 20px;
+  gap: 14px; /* TODO: token */
+  padding: 18px 20px 20px; /* TODO: token */
 }
 
 .solana-ide-hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 18px; /* TODO: token */
   border: 1px solid var(--accent-line);
   border-radius: var(--radius-lg);
   background: var(--accent-fill);
-  padding: 18px;
+  padding: 18px; /* TODO: token */
 }
 
 .solana-ide-hero-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
   justify-content: flex-end;
   flex-shrink: 0;
@@ -27,7 +27,7 @@
 .solana-ide-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-ide-grid.three {
@@ -39,7 +39,7 @@
   border: 1px solid var(--s5);
   border-radius: var(--radius-lg);
   background: var(--wash);
-  padding: 14px;
+  padding: 14px; /* TODO: token */
   min-width: 0;
 }
 
@@ -58,7 +58,7 @@
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--red) 8%, transparent);
   color: var(--red);
-  padding: 10px 12px;
+  padding: 10px var(--space-md); /* TODO: token */
   font-size: var(--fs-12);
   line-height: var(--lh-normal);
 }
@@ -69,33 +69,33 @@
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--amber) 4%, transparent);
   color: var(--t3);
-  padding: 12px;
-  font-size: var(--font-sm);
+  padding: var(--space-md);
+  font-size: var(--fs-11);
   line-height: 1.5;
 }
 
 .solana-ide-empty-panel h3 {
   margin: 0;
   color: var(--t1);
-  font-size: var(--font-md);
+  font-size: var(--fs-13);
   line-height: 1.25;
 }
 
 .solana-ide-empty-panel p {
-  margin: 6px 0 0;
+  margin: 6px 0 0; /* TODO: token */
 }
 
 .solana-ide-card-title,
 .solana-ide-panel-title {
-  font-size: var(--font-md);
-  font-weight: 750;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .solana-ide-card-copy,
 .solana-ide-panel-copy {
-  margin-top: 8px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--fs-11);
   line-height: 1.5;
   color: var(--t3);
 }
@@ -103,18 +103,18 @@
 .solana-ide-card-actions,
 .solana-ide-panel-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: var(--space-md);
 }
 
 .solana-ide-command {
   display: block;
-  margin-top: 10px;
-  padding: 8px 10px;
+  margin-top: 10px; /* TODO: token */
+  padding: var(--space-sm) 10px; /* TODO: token */
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--surface-sunken);
   color: var(--t2);
   font-family: var(--font-code);
   font-size: var(--fs-11);
@@ -125,14 +125,14 @@
 .solana-ide-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  gap: 10px; /* TODO: token */
+  margin-top: var(--space-md);
 }
 
 .solana-ide-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   min-width: 0;
 }
 
@@ -142,7 +142,7 @@
 
 .solana-ide-label {
   font-size: var(--fs-10);
-  font-weight: 800;
+  font-weight: var(--fw-bold);
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--t4);
@@ -162,12 +162,12 @@
 
 .solana-ide-input {
   height: 34px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
 }
 
 .solana-ide-textarea {
   min-height: 132px;
-  padding: 10px;
+  padding: 10px; /* TODO: token */
   resize: vertical;
   line-height: 1.5;
 }
@@ -181,15 +181,15 @@
 .solana-ide-checklist {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 10px; /* TODO: token */
+  margin-top: var(--space-md);
 }
 
 .solana-ide-check {
   display: flex;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
   align-items: flex-start;
-  padding: 10px;
+  padding: 10px; /* TODO: token */
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--wash);
@@ -199,7 +199,7 @@
   width: 7px;
   height: 7px;
   border-radius: var(--radius-pill);
-  margin-top: 6px;
+  margin-top: 6px; /* TODO: token */
   background: var(--green);
   flex-shrink: 0;
 }
@@ -209,14 +209,14 @@
 }
 
 .solana-ide-check-title {
-  font-size: var(--font-sm);
-  font-weight: 700;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .solana-ide-check-detail {
-  margin-top: 4px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-xs);
+  font-size: var(--fs-11);
   line-height: 1.45;
   color: var(--t3);
 }
@@ -224,29 +224,29 @@
 .solana-ide-analysis-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 .solana-ide-analysis-item {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--wash);
-  padding: 10px;
+  padding: 10px; /* TODO: token */
 }
 
 .solana-ide-analysis-label {
   font-size: var(--fs-10);
-  font-weight: 800;
+  font-weight: var(--fw-bold);
   letter-spacing: 1.1px;
   text-transform: uppercase;
   color: var(--t4);
 }
 
 .solana-ide-analysis-value {
-  margin-top: 6px;
+  margin-top: 6px; /* TODO: token */
   color: var(--t2);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.45;
   word-break: break-word;
 }
@@ -259,24 +259,24 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 14px; /* TODO: token */
 }
 
 .shipline-run-meta,
 .shipline-artifacts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: var(--space-sm);
+  margin-top: 10px; /* TODO: token */
 }
 
 .shipline-proof-strip {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-top: 12px;
-  padding: 9px 10px;
+  margin-top: var(--space-md);
+  padding: 9px 10px; /* TODO: token */
   border: 1px solid color-mix(in srgb, var(--green) 12%, transparent);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--green) 4%, transparent);
@@ -290,13 +290,13 @@
 
 .shipline-proof-strip span {
   color: var(--t4);
-  font-weight: 800;
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
 }
 
 .shipline-proof-strip strong {
   color: var(--t2);
-  padding: 4px 7px;
+  padding: var(--space-xs) 7px; /* TODO: token */
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--wash);
@@ -308,14 +308,14 @@
   background: var(--wash);
   color: var(--t3);
   font-size: var(--fs-11);
-  padding: 5px 8px;
+  padding: 5px var(--space-sm); /* TODO: token */
 }
 
 .shipline-program-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  gap: 10px; /* TODO: token */
+  margin-top: var(--space-md);
 }
 
 .shipline-program-card {
@@ -323,25 +323,25 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--wash);
-  padding: 10px;
+  padding: 10px; /* TODO: token */
 }
 
 .shipline-step-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 10px; /* TODO: token */
+  margin-top: var(--space-md);
 }
 
 .shipline-step {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--space-md);
   align-items: flex-start;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--wash);
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .shipline-step.ready,
@@ -369,27 +369,27 @@
   background: color-mix(in srgb, var(--green) 8%, transparent);
   color: var(--green);
   font-size: var(--fs-11);
-  font-weight: 800;
+  font-weight: var(--fw-bold);
 }
 
 .shipline-step-title-row {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
   align-items: center;
 }
 
 .shipline-step-title {
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--t1);
-  font-weight: 750;
+  font-weight: var(--fw-bold);
 }
 
 .shipline-step-actions {
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   max-width: 178px;
 }
 
@@ -401,21 +401,21 @@
 .shipline-mini-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 6px; /* TODO: token */
+  margin-top: 10px; /* TODO: token */
 }
 
 .shipline-mini-list span {
   color: var(--t3);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.45;
 }
 
 .shipline-evidence {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
+  gap: 7px; /* TODO: token */
+  margin-top: 10px; /* TODO: token */
 }
 
 .shipline-evidence span {
@@ -427,34 +427,44 @@
   color: var(--t3);
   font-size: var(--fs-11);
   line-height: 1.35;
-  padding: 5px 7px;
+  padding: 5px 7px; /* TODO: token */
   overflow-wrap: anywhere;
 }
 
 .shipline-evidence strong {
   color: var(--t2);
-  font-weight: 800;
-  margin-right: 5px;
+  font-weight: var(--fw-bold);
+  margin-right: 5px; /* TODO: token */
 }
 
 .shipline-link {
   width: max-content;
-  margin-top: 10px;
+  margin-top: 10px; /* TODO: token */
   border: 0;
   background: transparent;
   color: var(--green);
   font-size: var(--fs-11);
-  font-weight: 800;
+  font-weight: var(--fw-bold);
   cursor: pointer;
 }
 
 .shipline-evidence .shipline-link {
   margin-top: 0;
-  padding: 5px 0;
+  padding: 5px 0; /* TODO: token */
 }
 
 .shipline-link:hover:not(:disabled) {
   color: var(--t1);
+}
+
+.shipline-link:active:not(:disabled) {
+  color: var(--green-dim);
+}
+
+.shipline-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-neutral);
+  border-radius: var(--r);
 }
 
 .shipline-link:disabled {
@@ -463,9 +473,9 @@
 }
 
 .shipline-empty {
-  margin-top: 12px;
+  margin-top: var(--space-md);
   color: var(--t4);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
 }
 
 @media (max-width: 1100px) {

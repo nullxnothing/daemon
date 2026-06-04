@@ -464,7 +464,7 @@ function App() {
           >
             View crash log
           </button>
-          <button type="button" className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)}>
+          <button type="button" className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)} aria-label="Dismiss crash warning">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -540,7 +540,7 @@ function App() {
         </div>
 
         {shouldShowRightPanel && !isTablet && !isSmall && (
-          <aside className="right-panel" data-tour="right-panel">
+          <aside className="right-panel" data-tour="right-panel" aria-label="Context panel">
             <Suspense fallback={<PanelSkeleton className="right-panel" />}>
               <RightPanel />
             </Suspense>

@@ -31,11 +31,11 @@
 }
 
 .quickview-card--enter {
-  animation: quickview-enter 150ms ease-out forwards;
+  animation: quickview-enter var(--duration-normal) var(--ease-standard) forwards;
 }
 
 .quickview-card--exit {
-  animation: quickview-exit 100ms ease-in forwards;
+  animation: quickview-exit var(--duration-fast) var(--ease-in-quad) forwards;
 }
 
 @keyframes quickview-enter {
@@ -69,15 +69,15 @@
 /* ─── Header ─── */
 
 .quickview-header {
-  padding: 10px 18px 12px;
+  padding: 10px 18px 12px; /* TODO: token */
 }
 
 .quickview-wallet-meta {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px 0;
+  gap: var(--space-md);
+  padding: 16px 18px 0; /* TODO: token */
 }
 
 .quickview-wallet-meta-copy {
@@ -86,16 +86,16 @@
 
 .quickview-wallet-eyebrow {
   font-size: var(--fs-9);
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
   color: color-mix(in srgb, var(--green) 80%, white 20%);
 }
 
 .quickview-wallet-name {
-  margin-top: 6px;
+  margin-top: 6px; /* TODO: token */
   font-size: var(--fs-14);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
@@ -109,13 +109,13 @@
 
 .quickview-top-link {
   height: 30px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--border) 76%, var(--line-2) 24%);
   background: color-mix(in srgb, var(--s2) 86%, black 14%);
   color: var(--t2);
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   white-space: nowrap;
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
@@ -130,7 +130,7 @@
 .quickview-balance {
   font-family: var(--font-ui);
   font-size: var(--fs-28);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--t1);
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -139,10 +139,10 @@
 .quickview-delta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   margin-top: 4px;
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .quickview-delta--up {
@@ -156,23 +156,23 @@
 .quickview-delta-timeframe {
   color: var(--t3);
   font-size: var(--fs-9);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-left: 6px;
+  letter-spacing: var(--ls-caps);
+  margin-left: 6px; /* TODO: token */
 }
 
 .quickview-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0 18px 14px;
+  gap: 10px; /* TODO: token */
+  padding: 0 18px 14px; /* TODO: token */
 }
 
 .quickview-stat-grid .quickview-stat-card {
   min-width: 0;
   gap: 0;
-  padding: 10px 11px;
+  padding: 10px 11px; /* TODO: token */
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--s2);
@@ -181,23 +181,23 @@
 
 .quickview-stat-card .quickview-stat-label {
   font-size: var(--fs-9);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t4);
 }
 
 .quickview-stat-card .quickview-stat-value {
-  margin-top: 6px;
+  margin-top: 6px; /* TODO: token */
   font-size: var(--fs-14);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   line-height: 1.2;
   color: var(--t1);
 }
 
 .quickview-stat-card .quickview-stat-value--sm {
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t2);
 }
 
@@ -205,8 +205,8 @@
 
 .quickview-actions {
   display: flex;
-  gap: 10px;
-  padding: 0 18px 14px;
+  gap: 10px; /* TODO: token */
+  padding: 0 18px 14px; /* TODO: token */
 }
 
 .quickview-action-btn {
@@ -216,7 +216,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -245,7 +245,7 @@
 
 .quickview-action-label {
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t2);
   font-family: var(--font-ui);
   transition: color var(--transition-fast);
@@ -263,7 +263,7 @@
 
 .quickview-list {
   overflow-y: auto;
-  padding: 4px 10px 8px;
+  padding: 4px 10px 8px; /* TODO: token */
   flex: 1;
   min-height: 0;
 }
@@ -282,7 +282,7 @@
   margin: 0 8px 8px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
   border: 1px solid var(--border);
@@ -293,6 +293,10 @@
 .quickview-token-row:hover {
   background: var(--s3);
   border-color: var(--border-hover);
+}
+
+.quickview-token-row:active {
+  background: var(--s4);
 }
 
 .quickview-token-icon {
@@ -317,7 +321,7 @@
   background: var(--s3);
   color: var(--t2);
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-family: var(--font-ui);
 }
 
@@ -328,7 +332,7 @@
 
 .quickview-token-symbol {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -350,7 +354,7 @@
 
 .quickview-token-amount {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   font-family: var(--font-code);
 }
@@ -365,7 +369,7 @@
 
 .quickview-empty {
   text-align: center;
-  padding: 28px 18px;
+  padding: 28px 18px; /* TODO: token */
   font-size: var(--fs-12);
   color: var(--t3);
 }
@@ -374,11 +378,11 @@
 
 .quickview-footer {
   min-height: 42px;
-  padding: 0 18px 14px;
+  padding: 0 18px 14px; /* TODO: token */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--s1);
@@ -394,7 +398,7 @@
   padding: 0 12px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--green);
   cursor: pointer;
   background: color-mix(in srgb, var(--green) 8%, transparent);
@@ -426,7 +430,7 @@
 
 .quickview-email-header-title {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -437,17 +441,17 @@
 
 .quickview-email-header-right {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .quickview-email-btn {
-  padding: 4px 10px;
+  padding: 4px 10px; /* TODO: token */
   border-radius: var(--radius-md);
   font-size: var(--fs-10);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   font-family: var(--font-ui);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
@@ -474,7 +478,7 @@
 }
 
 .quickview-email-row {
-  padding: 10px 16px;
+  padding: 10px 16px; /* TODO: token */
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background var(--transition-fast);
@@ -489,6 +493,10 @@
   background: var(--hover-bg);
 }
 
+.quickview-email-row:active {
+  background: var(--active-overlay);
+}
+
 .quickview-email-row--unread {
   padding-left: 16px;
 }
@@ -499,7 +507,7 @@
   top: 16px;
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--green);
 }
 
@@ -510,7 +518,7 @@
 
 .quickview-email-sender {
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t2);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -519,7 +527,7 @@
 }
 
 .quickview-email-row--unread .quickview-email-sender {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -532,7 +540,7 @@
 
 .quickview-email-subject {
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t2);
   margin-top: 2px;
   overflow: hidden;
@@ -561,8 +569,8 @@
 .qv-subview-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 18px;
+  gap: var(--space-sm);
+  padding: 14px 18px; /* TODO: token */
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--s1);
@@ -595,34 +603,34 @@
 
 .qv-subview-title {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   font-family: var(--font-ui);
 }
 
 .qv-subview-body {
-  padding: 14px 18px 18px;
+  padding: 14px 18px 18px; /* TODO: token */
   overflow-y: auto;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .qv-field-label {
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: var(--ls-caps);
   font-family: var(--font-ui);
 }
 
 .qv-select {
   width: 100%;
   height: 36px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -642,7 +650,7 @@
 .qv-input {
   width: 100%;
   height: 36px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -667,7 +675,7 @@
 
 .qv-input-row {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .qv-input-row .qv-input {
@@ -677,13 +685,13 @@
 
 .qv-max-btn {
   height: 36px;
-  padding: 0 10px;
+  padding: 0 10px; /* TODO: token */
   background: var(--s3);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--t2);
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-family: var(--font-ui);
   cursor: pointer;
   flex-shrink: 0;
@@ -703,7 +711,7 @@
   border-radius: var(--radius-lg);
   color: var(--on-accent-dark);
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-family: var(--font-ui);
   cursor: pointer;
   transition: background var(--transition-fast), opacity var(--transition-fast);
@@ -726,7 +734,7 @@
   border-radius: var(--radius-md);
   color: var(--t2);
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   font-family: var(--font-ui);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -739,7 +747,7 @@
 
 .qv-feedback {
   font-size: var(--fs-11);
-  padding: 8px 10px;
+  padding: 8px 10px; /* TODO: token */
   border-radius: var(--radius-md);
   font-family: var(--font-code);
   word-break: break-all;
@@ -778,7 +786,7 @@
   justify-content: center;
   background: var(--s3);
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   color: var(--t2);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
@@ -792,7 +800,7 @@
 .qv-slippage-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .qv-slippage-label {
@@ -805,7 +813,7 @@
 .qv-slippage-input {
   width: 52px;
   height: 28px;
-  padding: 0 6px;
+  padding: 0 6px; /* TODO: token */
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -830,15 +838,15 @@
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 12px;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .qv-quote-rate {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   font-family: var(--font-code);
 }
@@ -854,7 +862,7 @@
 .qv-receive-body {
   align-items: center;
   text-align: center;
-  padding-top: 28px;
+  padding-top: 28px; /* TODO: token */
 }
 
 .qv-receive-label {
@@ -870,7 +878,7 @@
   color: var(--t1);
   word-break: break-all;
   line-height: 1.5;
-  padding: 10px 12px;
+  padding: 10px 12px; /* TODO: token */
   background: color-mix(in srgb, var(--s2) 88%, black 12%);
   border: 1px solid color-mix(in srgb, var(--border) 74%, var(--line) 26%);
   border-radius: var(--r-panel);

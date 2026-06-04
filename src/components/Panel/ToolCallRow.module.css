@@ -11,12 +11,13 @@
   min-height: 32px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: var(--space-sm);
+  padding: 6px 10px; /* TODO: token (off-grid 6/10px) */
   border: 0;
   background: transparent;
   color: var(--t2);
   text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .head:not(:disabled):hover {
@@ -24,11 +25,15 @@
   color: var(--t1);
 }
 
+.head:not(:disabled):active {
+  background: var(--active-overlay);
+}
+
 .kind {
   flex: 0 0 auto;
   min-width: 36px;
-  padding: 2px 5px;
-  border-radius: 2px;
+  padding: 2px 5px; /* TODO: token (off-grid 2/5px) */
+  border-radius: var(--r);
   font-family: var(--mono);
   font-size: var(--fs-9);
   font-weight: var(--fw-medium);
@@ -82,13 +87,6 @@
 .running .state { background: var(--green); animation: daemon-dot-pulse 2.6s ease-out infinite; }
 .error .state { background: var(--red); }
 
-.check {
-  flex: 0 0 auto;
-  color: var(--green);
-  font-size: var(--fs-11);
-  line-height: 1;
-}
-
 .details {
   border-top: 1px solid var(--line);
   background: var(--diff-bg);
@@ -97,5 +95,5 @@
   font-size: var(--fs-11);
   line-height: 1.6;
   overflow-x: auto;
-  padding: 8px 10px;
+  padding: var(--space-sm) 10px; /* TODO: token (off-grid 10px) */
 }

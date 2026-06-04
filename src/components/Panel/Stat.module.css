@@ -26,7 +26,7 @@
 }
 
 .tick {
-  animation: numberTick 240ms var(--ease-out-quint);
+  animation: numberTick var(--duration-slow) var(--ease-out-quint);
 }
 
 .detail {

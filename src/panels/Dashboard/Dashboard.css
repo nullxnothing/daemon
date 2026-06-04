@@ -7,11 +7,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px 10px;
+  gap: var(--space-xs);
+  padding: 5px 10px; /* TODO: token */
   font-size: var(--fs-11);
   font-family: var(--font-ui);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
@@ -55,7 +55,7 @@
   color: var(--t1);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--fs-11);
   font-family: var(--font-ui);
   cursor: pointer;
@@ -81,9 +81,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-md);
   flex: 1;
-  padding: 16px;
+  padding: var(--space-lg);
 }
 
 .dash-mini-empty-label {
@@ -96,16 +96,16 @@
 .dash-mini-toolbar {
   display: flex;
   justify-content: flex-end;
-  padding: 4px 6px;
+  padding: 4px 6px; /* TODO: token */
   border-bottom: 1px solid var(--s3);
 }
 
 .dash-mini-header {
-  padding: 8px 6px 6px 10px;
+  padding: 8px 6px 6px 10px; /* TODO: token */
   border-bottom: 1px solid var(--s4);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .dash-mini-header .dash-select {
@@ -122,11 +122,11 @@
   height: 22px;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--t3);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--duration-normal), color var(--duration-normal);
 }
 
 .dash-mini-expand-btn:hover {
@@ -138,16 +138,16 @@
   font-size: var(--fs-11);
   color: var(--t4);
   font-family: var(--font-ui);
-  padding: 16px 10px;
+  padding: 16px 10px; /* TODO: token */
   text-align: center;
   flex: 1;
 }
 
 .dash-mini-price-row {
-  padding: 10px 10px 6px;
+  padding: 10px 10px 6px; /* TODO: token */
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 3px; /* TODO: token */
 }
 
 .dash-price-label {
@@ -155,48 +155,48 @@
   color: var(--t3);
   font-family: var(--font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.06em; /* TODO: token */
 }
 
 .dash-price-values {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .dash-price-main {
   font-size: var(--fs-18);
   font-family: var(--font-code);
   color: var(--t1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   letter-spacing: -0.02em;
 }
 
 .dash-price-change {
   font-size: var(--fs-11);
   font-family: var(--font-code);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .dash-mini-chart {
-  padding: 4px 8px 6px;
+  padding: 4px 8px 6px; /* TODO: token */
 }
 
 .dash-mini-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
+  gap: 1px; /* TODO: token */
   background: var(--s4);
   border-top: 1px solid var(--s4);
   border-bottom: 1px solid var(--s4);
-  margin: 0 0 8px;
+  margin: 0 0 8px; /* TODO: token */
 }
 
 .dash-metric-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
+  gap: 2px; /* TODO: token */
+  padding: 8px 10px; /* TODO: token */
   background: var(--s2);
 }
 
@@ -205,20 +205,20 @@
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.07em; /* TODO: token */
 }
 
 .dash-metric-value {
   font-size: var(--fs-13);
   color: var(--t1);
   font-family: var(--font-code);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .dash-mini-actions {
   display: flex;
-  gap: 6px;
-  padding: 0 10px 8px;
+  gap: 6px; /* TODO: token */
+  padding: 0 10px 8px; /* TODO: token */
 }
 
 .dash-mini-actions .dash-btn {
@@ -227,7 +227,7 @@
 
 .dash-mini-footer {
   margin-top: auto;
-  padding: 8px 10px;
+  padding: 8px 10px; /* TODO: token */
   border-top: 1px solid var(--s4);
 }
 
@@ -268,7 +268,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 12px 20px; /* TODO: token */
   border-bottom: 1px solid var(--s4);
   background: var(--s1);
   flex-shrink: 0;
@@ -277,19 +277,19 @@
 .dash-canvas-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 10px; /* TODO: token */
 }
 
 .dash-canvas-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .dash-token-image {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   object-fit: cover;
   border: 1px solid var(--s5);
   flex-shrink: 0;
@@ -304,7 +304,7 @@
   font-size: var(--fs-13);
   color: var(--t1);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   line-height: 1.2;
 }
 
@@ -313,24 +313,24 @@
   color: var(--t3);
   font-family: var(--font-code);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--ls-caps);
 }
 
 .dash-canvas-loading,
 .dash-canvas-hint {
-  padding: 16px 20px;
+  padding: 16px 20px; /* TODO: token */
   font-size: var(--fs-12);
   color: var(--t4);
   font-family: var(--font-ui);
 }
 
 .dash-canvas-error {
-  padding: 10px 20px;
+  padding: 10px 20px; /* TODO: token */
   font-size: var(--fs-11);
   color: var(--red);
   font-family: var(--font-ui);
   background: var(--red-glow);
-  margin: 8px 20px;
+  margin: 8px 20px; /* TODO: token */
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
 }
@@ -345,12 +345,12 @@
 /* Chart */
 .dash-chart-section {
   flex-shrink: 0;
-  padding: 12px 20px;
+  padding: 12px 20px; /* TODO: token */
   border-bottom: 1px solid var(--s4);
 }
 
 .dash-chart-header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .dash-chart-label {
@@ -358,14 +358,14 @@
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.06em; /* TODO: token */
 }
 
 .dash-chart-area {
   background: var(--s1);
   border: 1px solid var(--s4);
   border-radius: 0;
-  padding: 12px;
+  padding: var(--space-md);
   overflow: hidden;
   box-shadow: none;
 }
@@ -379,7 +379,7 @@
 .dash-bottom-row {
   display: grid;
   grid-template-columns: 1fr 260px;
-  gap: 1px;
+  gap: 1px; /* TODO: token */
   background: var(--s4);
   flex: 1;
   min-height: 0;
@@ -388,7 +388,7 @@
 .dash-holders-table,
 .dash-actions-panel {
   background: var(--s1);
-  padding: 14px 16px;
+  padding: 14px 16px; /* TODO: token */
   overflow: auto;
 }
 
@@ -396,10 +396,10 @@
   font-size: var(--fs-11);
   color: var(--t2);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 10px;
+  letter-spacing: 0.06em; /* TODO: token */
+  margin-bottom: 10px; /* TODO: token */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -407,7 +407,7 @@
 
 .dash-refresh-btn {
   font-size: var(--fs-10);
-  padding: 2px 7px;
+  padding: 2px 7px; /* TODO: token */
   background: var(--s3);
   color: var(--t3);
   border: 1px solid var(--s5);
@@ -428,17 +428,17 @@
 
 .dash-table th {
   text-align: left;
-  padding: 4px 6px;
+  padding: 4px 6px; /* TODO: token */
   color: var(--t4);
   font-size: var(--fs-10);
   font-family: var(--font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.06em; /* TODO: token */
   border-bottom: 1px solid var(--s4);
 }
 
 .dash-table td {
-  padding: 5px 6px;
+  padding: 5px 6px; /* TODO: token */
   color: var(--t2);
   border-bottom: 1px solid var(--s3);
 }
@@ -460,16 +460,16 @@
 .dash-actions-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 6px; /* TODO: token */
+  margin-bottom: 14px; /* TODO: token */
 }
 
 .dash-mint-display {
   border-top: 1px solid var(--s4);
-  padding-top: 10px;
+  padding-top: 10px; /* TODO: token */
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 3px; /* TODO: token */
 }
 
 .dash-mint-label {
@@ -477,7 +477,7 @@
   color: var(--t4);
   font-family: var(--font-ui);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.07em; /* TODO: token */
 }
 
 .dash-mint-addr {
@@ -492,21 +492,21 @@
    IMPORT TOKEN UI
 ══════════════════════════════════════ */
 .dash-mini-import-section {
-  padding: 8px 10px;
+  padding: 8px 10px; /* TODO: token */
   border-top: 1px solid var(--s4);
 }
 
 .dash-mini-footer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 /* Canvas import panel */
 .dash-import-panel {
   background: var(--s2);
   border-bottom: 1px solid var(--s4);
-  padding: 12px 20px 14px;
+  padding: 12px 20px 14px; /* TODO: token */
   flex-shrink: 0;
 }
 
@@ -514,16 +514,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* TODO: token */
 }
 
 .dash-import-panel-title {
   font-size: var(--fs-12);
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.06em; /* TODO: token */
 }
 
 .dash-import-close-btn {
@@ -533,19 +533,19 @@
   cursor: pointer;
   font-size: var(--fs-13);
   line-height: 1;
-  padding: 2px 6px;
+  padding: 2px 6px; /* TODO: token */
   border-radius: var(--radius-sm);
 }
 .dash-import-close-btn:hover { background: var(--s4); color: var(--t2); }
 
 .dash-import-mode-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: var(--space-xs);
+  margin-bottom: 10px; /* TODO: token */
 }
 
 .dash-import-tab {
-  padding: 4px 10px;
+  padding: 4px 10px; /* TODO: token */
   font-size: var(--fs-11);
   font-family: var(--font-ui);
   background: var(--s3);
@@ -565,7 +565,7 @@
 .dash-import-manual,
 .dash-import-form {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
   align-items: flex-start;
   flex-wrap: wrap;
 }
@@ -576,7 +576,7 @@
   background: var(--s1);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
-  padding: 5px 8px;
+  padding: 5px 8px; /* TODO: token */
   font-size: var(--fs-11);
   font-family: var(--font-code);
   color: var(--t1);
@@ -591,14 +591,14 @@
   font-size: var(--fs-11);
   color: var(--red);
   font-family: var(--font-ui);
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 
 /* Scan results */
 .dash-import-scan {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .dash-import-scanning {
@@ -608,13 +608,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }
 
 .dash-scan-results {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 2px; /* TODO: token */
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid var(--s4);
@@ -625,8 +625,8 @@
 .dash-scan-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
+  gap: var(--space-sm);
+  padding: 7px 10px; /* TODO: token */
   cursor: pointer;
   border-bottom: 1px solid var(--s3);
   font-family: var(--font-ui);
@@ -642,7 +642,7 @@
 .dash-scan-img {
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   object-fit: cover;
   flex-shrink: 0;
   border: 1px solid var(--s5);
@@ -667,5 +667,5 @@
 
 .dash-scan-actions {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* TODO: token */
 }

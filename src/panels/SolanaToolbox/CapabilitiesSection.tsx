@@ -121,14 +121,15 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
             <div className="solana-skill-group-label">{group.label}</div>
             <div className="solana-skills-grid">
               {group.skills.map((skill) => (
-                <span
+                <button
                   key={skill}
+                  type="button"
                   className={`solana-skill-chip ${copiedSkill === skill ? 'copied' : ''}`}
                   onClick={() => handleCopySkill(skill)}
                   title={`Copy ${skill}`}
                 >
                   {skill}
-                </span>
+                </button>
               ))}
             </div>
           </div>

@@ -17,11 +17,12 @@
   color: var(--t3);
   font-family: var(--mono);
   font-size: var(--fs-10);
-  padding: 0 22px 0 8px;
+  padding: 0 22px 0 var(--space-sm); /* TODO: token (off-grid 22px right for caret) */
   cursor: pointer;
   outline: none;
   min-width: 0;
   text-overflow: ellipsis;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .select:hover {

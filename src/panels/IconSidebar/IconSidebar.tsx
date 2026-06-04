@@ -238,7 +238,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   } as CSSProperties)
 
   return (
-    <aside className="icon-sidebar" data-tour="sidebar">
+    <nav className="icon-sidebar" data-tour="sidebar" aria-label="Tool sidebar">
       {/* Files */}
       <button
         className={`sidebar-icon sidebar-toggle sidebar-icon--explorer ${showExplorer ? 'active' : ''}`}
@@ -380,6 +380,6 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       >
         <ToolsGlyph />
       </button>
-    </aside>
+    </nav>
   )
 }
