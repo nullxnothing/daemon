@@ -291,7 +291,7 @@
   gap: 2px; /* TODO: token */
   margin-left: var(--space-sm);
   padding-left: var(--space-sm);
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--line);
 }
 
 .panelToggle {
@@ -309,7 +309,7 @@
 
 .panelToggle:hover {
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 .panelToggle:active {

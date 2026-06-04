@@ -57,7 +57,7 @@
 
 .sidebar-icon:hover {
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
   border-color: var(--control-border);
 }
 
@@ -83,7 +83,7 @@
 }
 
 .sidebar-icon.sidebar-toggle.active {
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 .sidebar-icon.sidebar-toggle.active::before {
@@ -117,7 +117,7 @@
     background var(--duration-normal) var(--ease-standard),
     border-color var(--duration-normal) var(--ease-standard),
     opacity var(--duration-normal) var(--ease-standard);
-  border: 1px dashed var(--s5);
+  border: 1px dashed var(--line-2);
   opacity: 0.5;
   display: flex;
   align-items: center;
@@ -141,16 +141,16 @@
 
 .sidebar-drop-zone.active {
   opacity: 0.9;
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 .sidebar-drop-zone--active {
   height: 36px;
   width: 36px;
-  background: var(--surface-raised);
-  border-color: var(--border-strong);
+  background: var(--s2);
+  border-color: var(--line-strong);
   border-style: solid;
   opacity: 1;
   color: var(--t1);
@@ -192,7 +192,7 @@
 
 .sidebar-icon--discord:hover {
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 /* Submenu (kept for agent launcher flyout) */

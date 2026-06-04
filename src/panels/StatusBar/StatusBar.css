@@ -6,7 +6,7 @@
   align-items: center;
   padding: 0 var(--space-md);
   background: var(--s1);
-  border-top: 1px solid var(--panel-border);
+  border-top: 1px solid var(--line);
   flex-shrink: 0;
 }
 

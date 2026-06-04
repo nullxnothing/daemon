@@ -127,8 +127,8 @@
   width: var(--left-panel-w);
   min-width: 140px;
   max-width: 350px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  background: var(--s1);
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
   flex-shrink: 0;
   display: flex;
@@ -160,9 +160,9 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: var(--ls-eyebrow);
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
-  background: var(--panel-header-bg);
+  background: var(--s1);
 }
 
 .panel-header-action {
@@ -277,7 +277,7 @@
 }
 
 .low-power-editor-actions button:hover {
-  border-color: color-mix(in srgb, var(--green) 55%, var(--border));
+  border-color: color-mix(in srgb, var(--green) 55%, var(--line));
 }
 
 .low-power-editor-actions button:active {
@@ -320,7 +320,7 @@
   position: relative;
   z-index: 1;
   background: var(--s1);
-  border-top: 1px solid var(--panel-border);
+  border-top: 1px solid var(--line);
   transition: height var(--transition-normal);
 }
 
@@ -336,7 +336,7 @@
   min-width: 200px;
   max-width: 400px;
   background: var(--s1);
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
   flex-shrink: 0;
   overflow: hidden;
