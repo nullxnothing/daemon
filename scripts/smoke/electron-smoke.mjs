@@ -271,9 +271,23 @@ async function run() {
   await page.waitForSelector('.project-tab.active', { timeout: 30000 })
 
   logStep('creating terminal')
-  await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+  // Boot can briefly resettle activeProjectId to null; pin the seeded project
+  // active so terminal creation (gated on canLaunchInProject) is enabled.
+  await page.locator('.project-tab.active').first().click().catch(() => {})
+  // The terminal panel is open by default; only toggle when hidden so the click
+  // reliably ends in an open state regardless of the seeded default.
+  const terminalAlreadyOpen = await page.locator('.terminal-panel').isVisible().catch(() => false)
+  if (!terminalAlreadyOpen) {
+    await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+  }
   await page.waitForSelector('.terminal-panel', { timeout: 30000 })
   await page.getByTitle('New tab options').click()
+  // "Standard Terminal" is disabled until a project is active; wait for it to be
+  // enabled so the click actually creates a terminal instead of no-opping.
+  await page.waitForFunction(() => {
+    const btn = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Standard Terminal')
+    return !!btn && !btn.disabled
+  }, { timeout: 30000 })
   await page.getByRole('button', { name: 'Standard Terminal' }).click()
   await page.waitForSelector('.terminal-tab.active', { timeout: 30000 })
 
