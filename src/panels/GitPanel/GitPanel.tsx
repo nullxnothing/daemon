@@ -10,9 +10,18 @@ import { middleEllipsisPath } from '../../utils/textDisplay'
 import type { DeployStatus, GitFile } from '../../../electron/shared/types'
 import './GitPanel.css'
 
+function resolveRepoPath(projectPath: string, repoRelative: string) {
+  const usesBackslashes = projectPath.includes('\\')
+  const base = projectPath.replace(/[\\/]+$/, '')
+  const rel = repoRelative.replace(/^[/\\]+/, '')
+  const joined = `${base}/${rel}`
+  return usesBackslashes ? joined.replace(/\//g, '\\') : joined
+}
+
 export function GitPanel() {
   const projectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const openFile = useUIStore((s) => s.openFile)
   const gitState = useGitProject(projectPath)
   const { branch, branches, files, commits, stashCount, latestStashMessage, error: storeError } = gitState
   const [commitMsg, setCommitMsg] = useState('')
@@ -296,7 +305,7 @@ export function GitPanel() {
     load()
   }
 
-  const handleFileClick = async (filePath: string) => {
+  const handleToggleDiff = async (filePath: string) => {
     if (!projectPath) return
     if (selectedDiffFile === filePath) {
       setSelectedDiffFile(null)
@@ -310,6 +319,16 @@ export function GitPanel() {
     setLoadingDiff(false)
     if (res.ok && res.data) setDiffContent(res.data)
     else setDiffContent(null)
+  }
+
+  const handleOpenFile = async (file: GitFile) => {
+    if (!projectPath || !activeProjectId) return
+    if (file.deleted) return
+    const absolutePath = resolveRepoPath(projectPath, file.path)
+    const res = await window.daemon.fs.readFile(absolutePath)
+    if (!res.ok || !res.data) return
+    const name = file.path.replace(/^.*[/\\]/, '')
+    openFile({ path: absolutePath, name, content: res.data.content, projectId: activeProjectId })
   }
 
   const handleDiscard = async (filePath: string) => {
@@ -572,7 +591,8 @@ export function GitPanel() {
                 key={f.path}
                 file={f}
                 isSelected={selectedDiffFile === f.path}
-                onOpenDiff={handleFileClick}
+                onOpenFile={handleOpenFile}
+                onToggleDiff={handleToggleDiff}
                 onStage={handleStage}
                 onUnstage={handleUnstage}
                 onDiscard={handleDiscard}
@@ -593,7 +613,8 @@ export function GitPanel() {
                 key={f.path}
                 file={f}
                 isSelected={selectedDiffFile === f.path}
-                onOpenDiff={handleFileClick}
+                onOpenFile={handleOpenFile}
+                onToggleDiff={handleToggleDiff}
                 onStage={handleStage}
                 onUnstage={handleUnstage}
                 onDiscard={handleDiscard}
@@ -664,24 +685,39 @@ function getDeployTone(deployStatus: DeployStatus) {
 interface GitFileRowProps {
   file: GitFile
   isSelected: boolean
-  onOpenDiff: (filePath: string) => void
+  onOpenFile: (file: GitFile) => void
+  onToggleDiff: (filePath: string) => void
   onStage: (filePath: string) => void
   onUnstage: (filePath: string) => void
   onDiscard: (filePath: string) => void
 }
 
-function GitFileRow({ file, isSelected, onOpenDiff, onStage, onUnstage, onDiscard }: GitFileRowProps) {
+function GitFileRow({ file, isSelected, onOpenFile, onToggleDiff, onStage, onUnstage, onDiscard }: GitFileRowProps) {
   const display = getGitFileDisplay(file)
   const pathParts = splitGitPath(file.path)
 
   return (
     <div className={`git-crow${isSelected ? ' diff-active' : ''}`}>
       <span className={`git-st ${display.stClass}`}>{display.code}</span>
-      <button type="button" className="git-fn" title={file.path} onClick={() => onOpenDiff(file.path)}>
+      <button
+        type="button"
+        className="git-fn"
+        title={file.deleted ? file.path : `Open ${file.path}`}
+        onClick={() => onOpenFile(file)}
+        disabled={file.deleted}
+      >
         {pathParts.name}
       </button>
       <span className="git-tag">{display.label}</span>
       <span className="git-ra">
+        <button
+          type="button"
+          className={`git-gbtn diff${isSelected ? ' on' : ''}`}
+          aria-pressed={isSelected}
+          onClick={() => onToggleDiff(file.path)}
+        >
+          Diff
+        </button>
         {file.staged ? (
           <button type="button" className="git-gbtn stage" onClick={() => onUnstage(file.path)}>Unstage</button>
         ) : (
