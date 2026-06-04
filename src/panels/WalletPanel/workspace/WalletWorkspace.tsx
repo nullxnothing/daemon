@@ -129,10 +129,14 @@ export function WalletWorkspace({ onRefresh }: Props) {
     }).catch(() => {})
   }, [])
 
-  // Default selection follows the dashboard's active wallet on first load.
+  // Default selection follows the dashboard's active wallet, falling back to the
+  // first tracked wallet (or agent) so the workspace shows a wallet whenever one
+  // exists — even if none is marked active/default yet.
   useEffect(() => {
-    if (!selectedId && dashboard.activeWallet?.id) setSelectedId(dashboard.activeWallet.id)
-  }, [dashboard.activeWallet?.id, selectedId])
+    if (selectedId) return
+    const fallback = dashboard.activeWallet?.id ?? walletList[0]?.id ?? agentList[0]?.id ?? null
+    if (fallback) setSelectedId(fallback)
+  }, [dashboard.activeWallet?.id, selectedId, walletList, agentList])
 
   const walletIdsFingerprint = useMemo(
     () => [...walletList, ...agentList].map((w) => w.id).join('|'),
