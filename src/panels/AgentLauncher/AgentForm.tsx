@@ -69,7 +69,7 @@ export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
           placeholder="Agent name"
           autoFocus
         />
-        {nameError && <span className="agent-form-error" style={{ fontSize: 11, color: 'var(--red)' }}>{nameError}</span>}
+        {nameError && <span className="agent-form-error">{nameError}</span>}
       </div>
       <div className="agent-form-field">
         <label>Provider</label>
@@ -93,7 +93,7 @@ export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
           ))}
         </select>
         {provider === 'auto' && (
-          <span style={{ fontSize: 10, color: 'var(--t4)', marginTop: 4 }}>
+          <span className="agent-form-hint">
             Auto picks Claude when available; on Codex, Opus/Sonnet map to GPT-5.4 and Haiku maps to o4-mini.
           </span>
         )}
