@@ -4,6 +4,7 @@ import { useWalletStore } from '../../../store/wallet'
 import { useNotificationsStore } from '../../../store/notifications'
 import { useWorkflowShellStore } from '../../../store/workflowShell'
 import { Icon } from './icons'
+import { StatusDot } from '../../../components/Panel/StatusDot'
 import { fmtUsd, fmtUsdCompact, fmtPct, fmtAmount, shortAddr, TokGlyph } from './helpers'
 import { SendSheet } from './sheets/SendSheet'
 import { ReceiveSheet } from './sheets/ReceiveSheet'
@@ -340,9 +341,9 @@ export function WalletWorkspace({ onRefresh }: Props) {
                       </button>
                       <span className={styles.heroMetaSep}>·</span>
                       {canSign ? (
-                        <span className={styles.cansign}><span className={`${styles.dot} ${styles.dotLive}`} />Can sign</span>
+                        <span className={styles.cansign}><StatusDot tone="success" pulse />Can sign</span>
                       ) : (
-                        <span className={`${styles.cansign} ${styles.cansignWatch}`}><span className={`${styles.dot} ${styles.dotIdle}`} />Watch only</span>
+                        <span className={`${styles.cansign} ${styles.cansignWatch}`}><StatusDot tone="neutral" />Watch only</span>
                       )}
                     </div>
                   </div>
