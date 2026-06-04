@@ -27,32 +27,6 @@
   cursor: not-allowed;
 }
 
-.daemon-ai-status-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-
-.daemon-ai-stat {
-  background: var(--bg);
-  padding: 10px;
-}
-
-.daemon-ai-stat span {
-  display: block;
-  color: var(--text-muted);
-  font-size: var(--fs-11);
-}
-
-.daemon-ai-stat strong {
-  display: block;
-  margin-top: 4px;
-  font-size: var(--fs-13);
-  overflow-wrap: anywhere;
-}
-
 .daemon-ai-controls {
   display: grid;
   grid-template-columns: auto minmax(130px, 1fr);
@@ -60,71 +34,21 @@
   align-items: center;
 }
 
-.daemon-ai-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.daemon-ai-tabs button,
 .daemon-ai-primary-btn {
-  border: 1px solid var(--line-2);
-  background: var(--s2);
-  color: var(--text-secondary);
+  border: 1px solid var(--accent-line);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
   border-radius: var(--r);
   padding: 8px 10px;
   cursor: pointer;
   font: inherit;
   font-size: var(--fs-12);
-}
-
-.daemon-ai-tabs button:hover {
-  border-color: var(--line-strong);
-  color: var(--t1);
-}
-
-.daemon-ai-tabs button.active {
-  border-color: var(--tab-active-border);
-  background: var(--tab-active-bg);
-  color: var(--tab-active-color);
-}
-
-.daemon-ai-primary-btn {
-  background: var(--btn-pri-bg);
-  border-color: var(--accent-line);
-  color: var(--btn-pri-text);
   font-weight: var(--fw-medium);
 }
 
-.daemon-ai-primary-btn:disabled,
-.daemon-ai-tabs button:disabled {
+.daemon-ai-primary-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.daemon-ai-segment {
-  display: inline-flex;
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  overflow: hidden;
-}
-
-.daemon-ai-segment button {
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: var(--s2);
-  color: var(--text-secondary);
-  padding: 8px 10px;
-  cursor: pointer;
-}
-
-.daemon-ai-segment button:last-child {
-  border-right: 0;
-}
-
-.daemon-ai-segment button.active {
-  background: var(--accent-fill);
-  color: var(--green);
 }
 
 .daemon-ai-select {
@@ -157,18 +81,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.daemon-ai-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 28px;
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  padding: 0 11px;
-  color: var(--t2);
-  font-size: var(--fs-12);
 }
 
 .daemon-ai-chat {
@@ -229,6 +141,7 @@
 
 .daemon-ai-card-meta {
   color: var(--text-muted);
+  font-family: var(--mono);
   font-size: var(--fs-11);
 }
 
@@ -237,11 +150,13 @@
   align-items: center;
   justify-content: center;
   padding: 3px 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--r);
   border: 1px solid var(--line);
   color: var(--text-muted);
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
 
@@ -284,10 +199,11 @@
 .daemon-ai-finding-list span,
 .daemon-ai-receipt-grid span {
   border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
+  border-radius: var(--r);
   color: var(--text-secondary);
   background: var(--s2);
   padding: 4px 8px;
+  font-family: var(--mono);
   font-size: var(--fs-11);
 }
 
@@ -331,7 +247,7 @@
   background: var(--field-bg);
   color: var(--text-secondary);
   padding: 10px;
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   font-size: var(--fs-11);
   line-height: 1.45;
   white-space: pre-wrap;
@@ -339,22 +255,6 @@
 
 .daemon-ai-diff {
   max-height: 320px;
-}
-
-.daemon-ai-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-2xl) var(--space-lg);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--field-bg);
-  color: var(--text-muted);
-  font-size: var(--fs-12);
-  line-height: 1.55;
-  text-align: center;
 }
 
 .daemon-ai-thinking {
@@ -377,14 +277,15 @@
 }
 
 .daemon-ai-message.user {
-  border-color: var(--accent-line);
+  border-color: var(--line-strong);
 }
 
 .daemon-ai-message-role {
   margin-bottom: 6px;
   color: var(--text-muted);
+  font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
@@ -413,10 +314,8 @@
 }
 
 @media (max-width: 820px) {
-  .daemon-ai-status-grid,
   .daemon-ai-controls,
-  .daemon-ai-run-grid,
-  .daemon-ai-composer {
+  .daemon-ai-run-grid {
     grid-template-columns: 1fr;
   }
 }
