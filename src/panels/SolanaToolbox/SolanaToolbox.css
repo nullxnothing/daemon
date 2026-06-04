@@ -15,7 +15,7 @@
 }
 
 .solana-toolbox::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--s5) 78%, color-mix(in srgb, var(--t1) 8%, transparent));
+  background: color-mix(in srgb, var(--line-2) 78%, color-mix(in srgb, var(--t1) 8%, transparent));
   border: 2px solid transparent;
   border-radius: var(--radius-pill);
   background-clip: padding-box;
@@ -117,7 +117,7 @@
   gap: 7px; /* TODO: token */
   min-height: 112px;
   padding: 10px; /* TODO: token */
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--t1) 2%, transparent);
   color: inherit;
@@ -220,7 +220,7 @@
   align-items: center;
   height: var(--btn-h-md);
   padding: 0 var(--space-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--drawer-card-radius);
   background: var(--drawer-surface-card);
   color: var(--t3);
@@ -366,7 +366,7 @@
 
 .solana-launchpad-settings-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   padding: 14px; /* TODO: token */
   display: flex;
@@ -446,7 +446,7 @@
   font-size: var(--fs-12);
   font-family: var(--font-code);
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--r-panel);
   color: var(--t1);
   outline: none;
@@ -534,7 +534,7 @@
 
 .solana-token-launch-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   padding: 14px; /* TODO: token */
   min-width: 0;
@@ -752,7 +752,7 @@
 }
 
 .solana-daemon-runtime-card {
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   background: var(--s1);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
@@ -1362,7 +1362,7 @@
 /* ── Validator hero card ── */
 .solana-validator-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   padding: 14px; /* TODO: token */
   transition: all var(--transition-normal);
@@ -1401,7 +1401,7 @@
 .solana-seg-toggle {
   display: flex;
   background: var(--bg);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-md);
   padding: 3px; /* TODO: token */
   gap: 3px; /* TODO: token */
@@ -1593,7 +1593,7 @@
 }
 
 .solana-toggle:hover:not(:disabled) {
-  background: var(--s5);
+  background: var(--line-2);
 }
 
 .solana-toggle.on {
@@ -1648,7 +1648,7 @@
   font-weight: var(--fw-semibold);
   color: var(--t2);
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -1657,7 +1657,7 @@
 .sol-btn:hover:not(:disabled) {
   background: var(--s3);
   color: var(--t1);
-  border-color: var(--s6);
+  border-color: var(--line-strong);
 }
 
 .sol-btn:active:not(:disabled) {
@@ -1863,7 +1863,7 @@
 
 .solana-ecosystem-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   padding: 14px; /* TODO: token */
   display: flex;

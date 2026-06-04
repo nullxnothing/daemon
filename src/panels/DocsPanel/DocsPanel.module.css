@@ -12,7 +12,7 @@
 .sidebar {
   width: 200px; /* TODO: token */
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--line);
   background: var(--s1);
   display: flex;
   flex-direction: column;
@@ -88,7 +88,7 @@
   justify-content: space-between;
   margin-top: 40px; /* TODO: 40px token */
   padding-top: var(--space-lg);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   gap: var(--space-md);
 }
 
@@ -98,7 +98,7 @@
   gap: 3px; /* TODO: token */
   padding: var(--space-sm) var(--space-md);
   background: var(--s1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast);
@@ -107,7 +107,7 @@
 }
 
 .paginationBtn:hover {
-  border-color: var(--border-hover);
+  border-color: var(--line-2);
   background: var(--s2);
 }
 
@@ -202,14 +202,14 @@
   font-size: var(--fs-12);
   color: var(--green);
   background: var(--s2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 1px 5px; /* TODO: 1px/5px tokens */
 }
 
 .codeBlock {
   margin: var(--space-md) 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -217,7 +217,7 @@
 .codeBlockTitle {
   padding: var(--space-xs) var(--space-md);
   background: var(--s2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   font-size: var(--fs-10);
   font-family: var(--font-code);
   color: var(--t3);
@@ -240,7 +240,7 @@
 
 .tableWrap {
   margin: var(--space-md) 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   overflow: hidden;
   overflow-x: auto;
@@ -253,7 +253,7 @@
 }
 
 .tableHead {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   background: var(--s2);
 }
 
@@ -270,7 +270,7 @@
 }
 
 .tr {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .tr:last-child {
@@ -298,7 +298,7 @@
 }
 
 .infoCard {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--s1);
   padding: var(--space-md);
@@ -405,5 +405,5 @@
 .divider {
   margin: 28px 0; /* TODO: 28px token */
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }

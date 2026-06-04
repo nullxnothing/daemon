@@ -55,7 +55,7 @@
 .solana-project-fingerprint-card,
 .solana-project-panel,
 .solana-project-loop {
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   background: var(--wash);
   padding: 14px; /* TODO: token */
@@ -163,7 +163,7 @@
   padding: var(--space-sm) 10px; /* TODO: token */
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: var(--surface-sunken);
+  background: var(--field-bg);
   color: var(--t2);
   font-size: var(--fs-11);
   line-height: 1.4;
