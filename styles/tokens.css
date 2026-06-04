@@ -134,6 +134,8 @@
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-code: 'Geist Mono', 'Berkeley Mono', 'Spline Sans Mono', 'Space Mono', ui-monospace, monospace;
   --mono: var(--font-code);
+  /* design-handoff alias for the UI family (a few panels reference --ui directly) */
+  --ui: var(--font-ui);
 
   /* Typography — size scale (single source of truth, no panel may set font-size in px) */
   --fs-8:    8px;
