@@ -108,6 +108,42 @@ async function seedAppState(page) {
   }, { projectPath, projectName })
 }
 
+async function createStandardTerminalWithRetry(page, { attempts = 8, settleMs = 1500 } = {}) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    // Already have a terminal from a prior attempt? Done.
+    if (await page.locator('.terminal-tab.active').count() > 0) return
+
+    // Clicking the project tab re-runs setActiveProject(id, path) — this is what
+    // populates activeProjectPath, which the launcher threads into terminal.create.
+    // After the post-seed reload that path can be stale/null, so refresh it each
+    // attempt before launching.
+    await page.locator('.project-tab.active').first().click().catch(() => {})
+    await page.waitForTimeout(150)
+
+    await page.getByTitle('New tab options').click()
+    // Wait for the launcher's Standard Terminal item to be present + enabled.
+    await page.waitForFunction(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Standard Terminal')
+      return !!btn && !btn.disabled
+    }, { timeout: 30000 })
+    await page.getByRole('button', { name: 'Standard Terminal' }).click()
+
+    // The create call is async and can silently reject if the project path is
+    // not yet usable. Give it a moment, then check for the tab.
+    try {
+      await page.waitForSelector('.terminal-tab.active', { timeout: settleMs })
+      return
+    } catch {
+      // No tab yet — close any open menu and let the active-project path settle
+      // before retrying.
+      await page.keyboard.press('Escape').catch(() => {})
+      await page.waitForTimeout(700)
+    }
+  }
+  // Final wait surfaces a clear timeout error if creation never succeeded.
+  await page.waitForSelector('.terminal-tab.active', { timeout: 30000 })
+}
+
 async function waitForAppReady(page) {
   await page.waitForFunction(() => !!window.daemon, { timeout: 30000 })
   await page.waitForSelector('.titlebar', { timeout: 30000 })
@@ -271,25 +307,22 @@ async function run() {
   await page.waitForSelector('.project-tab.active', { timeout: 30000 })
 
   logStep('creating terminal')
-  // Boot can briefly resettle activeProjectId to null; pin the seeded project
-  // active so terminal creation (gated on canLaunchInProject) is enabled.
-  await page.locator('.project-tab.active').first().click().catch(() => {})
-  // The terminal panel is open by default; only toggle when hidden so the click
-  // reliably ends in an open state regardless of the seeded default.
+  // The terminal panel is open by default; only toggle when hidden so we always
+  // end in an open state regardless of the seeded default.
   const terminalAlreadyOpen = await page.locator('.terminal-panel').isVisible().catch(() => false)
   if (!terminalAlreadyOpen) {
     await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
   }
   await page.waitForSelector('.terminal-panel', { timeout: 30000 })
-  await page.getByTitle('New tab options').click()
-  // "Standard Terminal" is disabled until a project is active; wait for it to be
-  // enabled so the click actually creates a terminal instead of no-opping.
-  await page.waitForFunction(() => {
-    const btn = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Standard Terminal')
-    return !!btn && !btn.disabled
-  }, { timeout: 30000 })
-  await page.getByRole('button', { name: 'Standard Terminal' }).click()
-  await page.waitForSelector('.terminal-tab.active', { timeout: 30000 })
+
+  // Terminal creation goes through the launcher, which spawns at the active
+  // project's path. On a fresh profile that path can lag behind activeProjectId
+  // settling after the post-seed reload, so the launcher's `terminal.create`
+  // call rejects ("cwd required" / "not within a registered project") and the
+  // click silently no-ops — no tab appears. Detection of success is the only
+  // reliable signal we have from the renderer, so retry the Standard Terminal
+  // click until a tab actually materializes (or we exhaust the budget).
+  await createStandardTerminalWithRetry(page)
 
   const terminalView = page.locator('.terminal-view').first()
   await terminalView.click()
