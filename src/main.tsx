@@ -84,6 +84,9 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled renderer rejection:', event.reason)
 })
 
+document.documentElement.dataset.platform = window.daemon?.platform
+  ?? (navigator.userAgent.toLowerCase().includes('mac') ? 'darwin' : 'win32')
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RootErrorBoundary>

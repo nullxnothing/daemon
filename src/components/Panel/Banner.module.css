@@ -5,9 +5,9 @@
   gap: var(--space-md);
   min-width: 0;
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface-raised);
+  border: 1px solid var(--line-2);
+  border-radius: 0;
+  background: var(--s1);
   color: var(--t2);
   font-size: var(--fs-12);
   line-height: var(--lh-normal);
@@ -31,15 +31,15 @@
 
 .success {
   border-color: color-mix(in srgb, var(--green) 28%, var(--border));
-  color: var(--green);
+  color: var(--t2);
 }
 
 .warn {
   border-color: color-mix(in srgb, var(--amber) 30%, var(--border));
-  color: var(--amber);
+  color: var(--t2);
 }
 
 .danger {
   border-color: color-mix(in srgb, var(--red) 30%, var(--border));
-  color: var(--red);
+  color: var(--t2);
 }

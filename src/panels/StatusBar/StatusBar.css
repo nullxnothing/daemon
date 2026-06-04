@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-md);
-  background: var(--panel-bg);
+  background: var(--s1);
   border-top: 1px solid var(--panel-border);
   flex-shrink: 0;
 }
@@ -38,12 +38,13 @@
 }
 
 .statusbar-item {
+  font-family: var(--mono);
   font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .statusbar-branch {
-  color: var(--success);
+  color: var(--t2);
 }
 
 .statusbar-path {
@@ -68,10 +69,12 @@
 
 .market-symbol {
   color: var(--t2);
-  font-weight: 600;
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
 }
 
 .market-price {
+  font-family: var(--mono);
   color: var(--t1);
 }
 

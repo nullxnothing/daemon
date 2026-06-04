@@ -122,7 +122,7 @@
   gap: 0;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -160,7 +160,7 @@
 .wizard-check-status {
   font-size: var(--fs-10);
   color: var(--t2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
 }
 
 .wizard-check-status.error {
@@ -289,7 +289,7 @@
   border-radius: 4px;
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   padding: 0 10px;
   outline: none;
 }
@@ -324,7 +324,7 @@
   border-radius: 4px;
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   padding: 0 10px;
   outline: none;
 }
@@ -355,7 +355,7 @@
 }
 
 .wizard-hint code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   background: var(--s2);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
@@ -385,7 +385,7 @@
 .wizard-step-counter {
   font-size: var(--fs-10);
   color: var(--t4);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
 }
 
 /* Tour offer dialog */
@@ -441,7 +441,7 @@
   padding: 12px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   cursor: pointer;
   text-align: left;
   transition: border-color var(--transition-fast), background var(--transition-fast);

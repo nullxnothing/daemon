@@ -4,8 +4,7 @@ import { useGitStore, useGitProject } from '../../store/git'
 import { useOnboardingStore } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
-import { Badge, DataRow, MetricCard, StatusDot } from '../../components/Panel'
-import { Button } from '../../components/Button'
+import { StatusDot } from '../../components/Panel'
 import { EmptyState } from '../../components/EmptyState'
 import { middleEllipsisPath } from '../../utils/textDisplay'
 import type { DeployStatus, GitFile } from '../../../electron/shared/types'
@@ -353,7 +352,6 @@ export function GitPanel() {
   const staged = files.filter((f) => f.staged)
   const unstaged = files.filter((f) => f.unstaged || f.untracked)
   const isWorkingInCopy = !!branch && branch !== 'main' && branch !== 'master'
-  const workingTreeLabel = `${unstaged.length} ${unstaged.length === 1 ? 'change' : 'changes'}`
   const unstagedFolders = groupFilesByFolder(unstaged)
   const deployLabel = deployStatus ? `${deployStatus.platform === 'vercel' ? 'Vercel' : 'Railway'} ${deployStatus.latestStatus ?? 'Linked'}` : 'No linked deploy'
 
@@ -523,11 +521,11 @@ export function GitPanel() {
           </div>
         </div>
 
-        <div className="git-workflow-metrics">
-          <MetricCard label="Branch" value={branch ?? ''} size="compact" />
-          <MetricCard label="Working tree" value={workingTreeLabel} size="compact" />
-          <MetricCard label="Ready to commit" value={`${staged.length} staged`} size="compact" />
-          <MetricCard label="Deploy link" value={deployLabel} size="compact" />
+        <div className="git-kstrip">
+          <div className="git-kcell"><span className="git-k">Branch</span><span className="git-v">{branch ?? ''}</span></div>
+          <div className="git-kcell"><span className="git-k">Working tree</span><span className="git-v"><span className="git-n">{unstaged.length}</span> {unstaged.length === 1 ? 'change' : 'changes'}</span></div>
+          <div className="git-kcell"><span className="git-k">Ready to commit</span><span className="git-v"><span className="git-n">{staged.length}</span> staged</span></div>
+          <div className="git-kcell"><span className="git-k">Deploy link</span><span className={`git-v${deployStatus ? '' : ' muted'}`}>{deployLabel}</span></div>
         </div>
       </section>
 
@@ -553,8 +551,8 @@ export function GitPanel() {
           onChange={(e) => setCommitMsg(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCommit()}
         />
-        <button type="button" className="git-wand-btn" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0} title="Generate AI commit message" aria-label="Generate AI commit message">
-          {generatingCommitMsg ? '...' : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>}
+        <button type="button" className="git-iconbtn-sq" onClick={handleGenerateCommitMsg} disabled={generatingCommitMsg || staged.length === 0} title="Generate AI commit message" aria-label="Generate AI commit message">
+          {generatingCommitMsg ? '...' : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>}
         </button>
         <button type="button" className="git-commit-btn" onClick={handleCommit} disabled={staged.length === 0 || !commitMsg.trim() || committing}>
           {committing ? 'Committing…' : 'Commit'}
@@ -564,11 +562,11 @@ export function GitPanel() {
       {/* Changed files */}
       <div className="git-files">
         {staged.length > 0 && (
-          <div className="git-file-section">
-            <div className="git-file-section-header">
-              <span>Staged ({staged.length})</span>
+          <div className="git-cgroup">
+            <div className="git-cghead">
+              <span className="git-fld">Staged</span>
+              <span className="git-cnt">{staged.length} {staged.length === 1 ? 'file' : 'files'}</span>
             </div>
-            <div className="git-file-section-subtext">Select files to stage for this commit.</div>
             {staged.map((f) => (
               <GitFileRow
                 key={f.path}
@@ -583,43 +581,26 @@ export function GitPanel() {
           </div>
         )}
 
-        {unstaged.length > 0 && (
-          <div className="git-file-section">
-            <div className="git-file-section-header">
-              <span>Changes ({unstaged.length})</span>
-              <Button variant="secondary" size="sm" onClick={handleStageAll}>Stage all</Button>
+        {unstagedFolders.map(({ folder, files: folderFiles }) => (
+          <div key={folder} className="git-cgroup">
+            <div className="git-cghead">
+              <span className="git-fld" title={folder}>{folder === '.' ? 'root' : `${middleEllipsisPath(folder)}/`}</span>
+              <span className="git-cnt">{folderFiles.length} {folderFiles.length === 1 ? 'file' : 'files'}</span>
+              <button type="button" className="git-stage-all" onClick={() => folder === '.' ? handleStageAll() : handleStageFolder(folder)}>Stage all</button>
             </div>
-            <div className="git-file-section-subtext">Select files to stage for this commit.</div>
-            {unstagedFolders.map(({ folder, files: folderFiles }) => (
-              <div key={folder} className="git-folder-group">
-                {unstagedFolders.length > 1 && (
-                  <div className="git-folder-header">
-                    <div className="git-folder-meta">
-                      <span className="git-folder-name" title={folder}>{folder === '.' ? 'root' : `${middleEllipsisPath(folder)}/`}</span>
-                      <Badge tone="neutral" className="git-folder-count">
-                        {folderFiles.length} {folderFiles.length === 1 ? 'file' : 'files'}
-                      </Badge>
-                    </div>
-                    <Button variant="secondary" size="sm" onClick={() => handleStageFolder(folder === '.' ? '' : folder)}>
-                      Stage
-                    </Button>
-                  </div>
-                )}
-                {folderFiles.map((f) => (
-                  <GitFileRow
-                    key={f.path}
-                    file={f}
-                    isSelected={selectedDiffFile === f.path}
-                    onOpenDiff={handleFileClick}
-                    onStage={handleStage}
-                    onUnstage={handleUnstage}
-                    onDiscard={handleDiscard}
-                  />
-                ))}
-              </div>
+            {folderFiles.map((f) => (
+              <GitFileRow
+                key={f.path}
+                file={f}
+                isSelected={selectedDiffFile === f.path}
+                onOpenDiff={handleFileClick}
+                onStage={handleStage}
+                onUnstage={handleUnstage}
+                onDiscard={handleDiscard}
+              />
             ))}
           </div>
-        )}
+        ))}
 
         {files.length === 0 && (
           <div className="git-empty-files">Working tree clean</div>
@@ -694,35 +675,23 @@ function GitFileRow({ file, isSelected, onOpenDiff, onStage, onUnstage, onDiscar
   const pathParts = splitGitPath(file.path)
 
   return (
-    <DataRow
-      className={`git-file-row${file.staged ? ' staged' : ''}${isSelected ? ' diff-active' : ''}`}
-      density="compact"
-      leading={<Badge tone={display.tone} className={`git-file-status ${display.className}`}>{display.code}</Badge>}
-      title={(
-        <button
-          type="button"
-          className="git-file-path git-file-path--clickable"
-          title={file.path}
-          onClick={() => onOpenDiff(file.path)}
-        >
-          {pathParts.name}
-        </button>
-      )}
-      meta={<span className="git-file-state">{display.label}</span>}
-      detail={<span className="git-file-folder" title={pathParts.folder}>{pathParts.folderLabel}</span>}
-      actions={(
-        <>
-          {file.staged ? (
-            <Button variant="ghost" size="sm" onClick={() => onUnstage(file.path)}>Unstage</Button>
-          ) : (
-            <>
-              <Button variant="destructive" size="sm" onClick={() => onDiscard(file.path)}>Discard</Button>
-              <Button variant="secondary" size="sm" onClick={() => onStage(file.path)}>Stage</Button>
-            </>
-          )}
-        </>
-      )}
-    />
+    <div className={`git-crow${isSelected ? ' diff-active' : ''}`}>
+      <span className={`git-st ${display.stClass}`}>{display.code}</span>
+      <button type="button" className="git-fn" title={file.path} onClick={() => onOpenDiff(file.path)}>
+        {pathParts.name}
+      </button>
+      <span className="git-tag">{display.label}</span>
+      <span className="git-ra">
+        {file.staged ? (
+          <button type="button" className="git-gbtn stage" onClick={() => onUnstage(file.path)}>Unstage</button>
+        ) : (
+          <>
+            <button type="button" className="git-gbtn discard" onClick={() => onDiscard(file.path)}>Discard</button>
+            <button type="button" className="git-gbtn stage" onClick={() => onStage(file.path)}>Stage</button>
+          </>
+        )}
+      </span>
+    </div>
   )
 }
 
@@ -752,13 +721,13 @@ function splitGitPath(path: string) {
 
 function getGitFileDisplay(file: GitFile) {
   if (file.staged) {
-    return { code: 'S', label: 'staged', tone: 'success' as const, className: 'staged' }
+    return { code: 'A', label: 'staged', tone: 'success' as const, className: 'staged', stClass: 'a' }
   }
   if (file.deleted) {
-    return { code: 'D', label: 'deleted', tone: 'danger' as const, className: 'deleted' }
+    return { code: 'D', label: 'deleted', tone: 'danger' as const, className: 'deleted', stClass: 'd' }
   }
   if (file.untracked) {
-    return { code: 'U', label: 'untracked', tone: 'info' as const, className: 'untracked' }
+    return { code: 'U', label: 'untracked', tone: 'info' as const, className: 'untracked', stClass: 'u' }
   }
-  return { code: 'M', label: 'modified', tone: 'warning' as const, className: 'modified' }
+  return { code: 'M', label: 'modified', tone: 'warning' as const, className: 'modified', stClass: 'm' }
 }

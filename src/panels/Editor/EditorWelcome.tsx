@@ -10,6 +10,13 @@ interface EditorWelcomeProps {
   activeProjectId: string | null
 }
 
+/** Abbreviate an absolute path with ~ and forward slashes for display. */
+function formatHomePath(path: string | null): string | null {
+  if (!path) return null
+  const normalized = path.replace(/\\/g, '/')
+  return normalized.replace(/^([A-Za-z]:)?\/Users\/[^/]+/, '~')
+}
+
 const QUICK_TEMPLATES = [
   { id: 'anchor-program', name: 'Anchor Program', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', color: EDITOR_WELCOME_TEMPLATE_COLORS.blue },
   { id: 'trading-bot', name: 'Trading Bot', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: EDITOR_WELCOME_TEMPLATE_COLORS.amber },
@@ -28,6 +35,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
 
   const activeProject = projects.find((p) => p.id === activeProjectId)
   const terminalCount = terminals.filter((t) => t.projectId === activeProjectId).length
+  const displayPath = formatHomePath(activeProjectPath) ?? activeProject?.name ?? 'Project'
 
   // Load git branch for context
   useEffect(() => {
@@ -127,8 +135,10 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
         <>
           {/* Dynamic project context */}
           <span className="editor-empty-tagline">
-            {activeProject?.name ?? 'Project'}
+            {displayPath}
             {gitBranch && <span className="editor-empty-branch"> ({gitBranch})</span>}
+            <span className="editor-empty-tagline-sep"> · </span>
+            <span className="editor-empty-tagline-muted">no file open</span>
           </span>
 
           <div className="editor-empty-actions">
@@ -196,6 +206,18 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
               More templates -&gt;
             </Button>
           </Surface>
+
+          <div className="editor-empty-hints">
+            <button type="button" className="editor-empty-hint" onClick={() => useAppActions.getState().openFilePalette()}>
+              <kbd>⌘K</kbd> Commands
+            </button>
+            <button type="button" className="editor-empty-hint" onClick={handleOpenFileExplorer}>
+              <kbd>⌘P</kbd> Go to file
+            </button>
+            <button type="button" className="editor-empty-hint" onClick={handleOpenTerminal}>
+              <kbd>⌘J</kbd> Terminal
+            </button>
+          </div>
         </>
       ) : (
         <>

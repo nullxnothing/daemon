@@ -24,6 +24,7 @@
     }
   ],
   "mac": {
+    "icon": "build/Daemon.icon",
     "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
     "artifactName": "${productName}-${arch}.${ext}",

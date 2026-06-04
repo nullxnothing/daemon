@@ -5,7 +5,7 @@ import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
 import { EmptyState } from '../../components/EmptyState'
-import { MetricCard } from '../../components/Panel'
+import { KpiGrid } from '../../components/Panel'
 import { Button } from '../../components/Button'
 import './Dashboard.css'
 
@@ -393,18 +393,22 @@ export function DashboardCanvas() {
       {activeMint && (
         <>
           <div className="dash-metrics-row">
-            <MetricCard
-              label="Price"
-              value={price !== null ? `$${formatPrice(price)}` : '—'}
-              tone={isPositive === false ? 'danger' : isPositive === true ? 'success' : 'default'}
+            <KpiGrid
+              cells={[
+                {
+                  label: 'Price',
+                  value: price !== null ? `$${formatPrice(price)}` : '-',
+                  tone: isPositive === false ? 'danger' : isPositive === true ? 'success' : 'default',
+                },
+                {
+                  label: '24h Change',
+                  value: priceChange !== null ? `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%` : '-',
+                  tone: isPositive === true ? 'success' : isPositive === false ? 'danger' : 'default',
+                },
+                { label: 'Holders', value: holders ? holders.count.toLocaleString() : '-' },
+                { label: 'Market Cap', value: mcapText },
+              ]}
             />
-            <MetricCard
-              label="24h Change"
-              value={priceChange !== null ? `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%` : '—'}
-              tone={isPositive === true ? 'success' : isPositive === false ? 'danger' : 'default'}
-            />
-            <MetricCard label="Holders" value={holders ? holders.count.toLocaleString() : '—'} />
-            <MetricCard label="Market Cap" value={mcapText} />
           </div>
 
           <div className="dash-chart-section">

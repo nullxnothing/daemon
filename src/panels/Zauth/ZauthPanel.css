@@ -54,7 +54,7 @@
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--s5);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   background: var(--s1);
 }
 
@@ -118,7 +118,7 @@
   width: 30px;
   height: 30px;
   border: 1px solid var(--s5);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   color: var(--t2);
   background: var(--s1);
   cursor: pointer;
@@ -161,7 +161,7 @@
   max-width: 58%;
   overflow: hidden;
   color: var(--t2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   font-size: var(--fs-10);
   text-overflow: ellipsis;
   white-space: nowrap;

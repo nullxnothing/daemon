@@ -4,7 +4,7 @@ import { useAppActions } from '../../store/appActions'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { Button } from '../../components/Button'
-import { Badge, Card, MetricCard, StatusDot } from '../../components/Panel'
+import { Badge, KpiGrid, StatusDot, VendorCard } from '../../components/Panel'
 import type { EnvFile, WalletListEntry } from '../../types/daemon'
 import type { IdlePaidCallReceipt, IdleRegistryStatus, IdleResource } from '../../../electron/shared/types'
 import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
@@ -600,7 +600,7 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
   return (
     <div className="icc-requirements">
       {summary.requirements.map((requirement) => (
-        <Card key={`${requirement.type}:${requirement.key}`} className={`icc-requirement ${requirement.ready ? 'ready' : ''}`}>
+        <div key={`${requirement.type}:${requirement.key}`} className={`icc-requirement ${requirement.ready ? 'ready' : ''}`}>
           <StatusDot
             tone={requirement.ready ? 'success' : 'warning'}
             label={`${requirement.label}: ${requirement.ready ? 'ready' : 'needs setup'}`}
@@ -613,7 +613,7 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
             </span>
             <span className="icc-requirement-detail">{requirement.detail}</span>
           </div>
-        </Card>
+        </div>
       ))}
     </div>
   )
@@ -1536,36 +1536,27 @@ function IntegrationCard({
 }) {
   const brandClass = getBrandedIntegrationClass(integration.id)
   const statusDisplay = getIntegrationStatusDisplay(enabled, summary)
+  const vendorStatus = !enabled
+    ? 'off'
+    : statusDisplay.status === 'ready'
+      ? 'ready'
+      : statusDisplay.status === 'partial'
+        ? 'partial'
+        : 'setup'
 
   return (
-    <button
-      type="button"
-      className={`icc-card ${enabled ? '' : 'icc-card--off'} ${selected ? 'selected' : ''}`}
-      data-brand={brandClass || undefined}
-      aria-pressed={selected}
+    <VendorCard
+      className={`icc-card ${enabled ? '' : 'icc-card--off'}`}
+      name={integration.name}
+      category={categoryLabel(integration.category)}
+      description={integration.tagline}
+      monogram={integration.name.slice(0, 2)}
+      accent={getVendorAccent(brandClass)}
+      status={vendorStatus}
+      selected={selected}
+      action={statusDisplay.actionLabel}
       onClick={onSelect}
-    >
-      <StatusDot
-        tone={statusDisplay.dotTone}
-        label={`${integration.name}: ${statusDisplay.badgeLabel}`}
-        className={`icc-status-dot ${statusDisplay.status}`}
-      />
-      <div className="icc-card-main">
-        <div className="icc-card-top">
-          <span className="icc-card-title-wrap">
-            <span className="icc-card-name">{integration.name}</span>
-            <span className="icc-card-category">{categoryLabel(integration.category)}</span>
-          </span>
-          <Badge tone={statusDisplay.badgeTone} className={`icc-status-badge ${statusDisplay.status}`}>
-            {enabled ? statusDisplay.badgeLabel : statusDisplay.actionLabel}
-          </Badge>
-        </div>
-        <span className="icc-card-tagline">{integration.tagline}</span>
-        <span className="icc-card-desc">{integration.description}</span>
-        <span className={`icc-card-setup ${statusDisplay.hasMissingRequired ? 'warning' : ''}`}>{statusDisplay.setupSummary}</span>
-        <span className="icc-card-action">{statusDisplay.actionLabel}</span>
-      </div>
-    </button>
+    />
   )
 }
 
@@ -1579,7 +1570,8 @@ function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'idle-protocol') return 'idle'
   if (integrationId === 'helius') return 'helius'
   if (integrationId === 'sendai-agent-kit') return 'sendai'
-  if (integrationId === 'spawnagents') return 'spawnagents'
+  if (integrationId === 'clawpump') return 'clawpump'
+  if (integrationId === 'degentools') return 'degentools'
   if (integrationId === 'kausalayer') return 'kausalayer'
   if (integrationId === 'phantom') return 'phantom'
   if (integrationId === 'jupiter') return 'jupiter'
@@ -1589,6 +1581,13 @@ function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'debridge') return 'debridge'
   if (integrationId === 'squads') return 'squads'
   return ''
+}
+
+function getVendorAccent(brandClass: string): string | undefined {
+  if (!brandClass) return undefined
+  if (brandClass === 'idle') return 'var(--green-dim)'
+  if (brandClass === 'streamlock' || brandClass === 'zauth' || brandClass === 'debridge' || brandClass === 'squads') return 'var(--t2)'
+  return `var(--brand-${brandClass})`
 }
 
 export function IntegrationCommandCenter() {
@@ -2025,7 +2024,8 @@ export function IntegrationCommandCenter() {
       if (action.id === 'open-env') openWorkspaceTool('env')
       else if (action.id === 'open-wallet') openWorkspaceTool('wallet')
       else if (action.id === 'open-token-launch') openWorkspaceTool('token-launch')
-      else if (action.id === 'open-spawnagents-panel') openWorkspaceTool('spawnagents')
+      else if (action.id === 'open-clawpump-panel') openWorkspaceTool('clawpump')
+      else if (action.id === 'open-degentools-panel') openWorkspaceTool('degentools')
       else if (action.id === 'open-zauth-database' || action.id === 'open-zauth-provider-hub') {
         const pageId = action.id === 'open-zauth-provider-hub' ? 'provider-hub' : 'database'
         try {
@@ -3323,12 +3323,15 @@ Please inspect the project, apply the safe setup work you can complete, and summ
         </p>
       </header>
 
-      <section className="icc-metrics" aria-label="Integration readiness summary">
-        <MetricCard label="Enabled" value={enabledIntegrationIds.size} size="compact" />
-        <MetricCard label="Ready" value={registrySummary.ready} tone="success" size="compact" />
-        <MetricCard label="Partial" value={registrySummary.partial} tone="warn" size="compact" />
-        <MetricCard label="Safe checks" value={registrySummary.safeActions} tone="info" size="compact" />
-      </section>
+      <KpiGrid
+        className="icc-metrics"
+        cells={[
+          { label: 'Enabled', value: enabledIntegrationIds.size },
+          { label: 'Ready', value: registrySummary.ready, tone: 'success' },
+          { label: 'Partial', value: registrySummary.partial, tone: 'warning' },
+          { label: 'Safe checks', value: registrySummary.safeActions },
+        ]}
+      />
 
       <div className="icc-toolbar">
         <input

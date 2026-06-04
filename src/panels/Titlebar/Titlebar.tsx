@@ -11,9 +11,11 @@ interface TitlebarProps {
   projects: Project[]
   onAddProject: () => void
   onRemoveProject: (projectId: string) => void
+  onOpenSearch?: () => void
 }
 
-export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarProps) {
+export function Titlebar({ projects, onAddProject, onRemoveProject, onOpenSearch }: TitlebarProps) {
+  const isMac = window.daemon?.platform === 'darwin'
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
   const centerMode = useUIStore((s) => s.centerMode)
@@ -35,7 +37,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
   const showDevReloadInline = isDesktop
 
   return (
-    <div className={`titlebar titlebar--${tier}`}>
+    <div className={`titlebar titlebar--${tier}${isMac ? ' titlebar--mac' : ''}`}>
       <TitlebarBrand showText={showBrandText} />
 
       {showProjectTabs ? (
@@ -56,6 +58,16 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
           onRemoveProject={onRemoveProject}
           onSelectProject={setActiveProject}
         />
+      )}
+
+      <div className="titlebar-drag-fill" aria-hidden="true" />
+
+      {onOpenSearch && (isDesktop || isCompact) && (
+        <button type="button" className="titlebar-search" onClick={onOpenSearch} aria-label="Search files or run commands">
+          <span className="titlebar-search-icon" aria-hidden="true">⌕</span>
+          <span className="titlebar-search-label">Search files · run commands</span>
+          <kbd className="titlebar-search-kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+        </button>
       )}
 
       <div className="titlebar-drag-fill" aria-hidden="true" />
@@ -81,7 +93,7 @@ export function Titlebar({ projects, onAddProject, onRemoveProject }: TitlebarPr
             </svg>
           </button>
         )}
-        <WindowControls />
+        {!isMac && <WindowControls />}
       </div>
     </div>
   )
@@ -91,6 +103,7 @@ function TitlebarBrand({ showText }: { showText: boolean }) {
   const [version, setVersion] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!window.daemon?.settings) return
     let cancelled = false
     window.daemon.settings.getAppMeta().then((res) => {
       if (!cancelled && res.ok && res.data?.version) setVersion(res.data.version)
@@ -440,7 +453,7 @@ function WindowControls() {
         <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
       </button>
       <button type="button" className="titlebar-btn" onClick={() => window.daemon.window.maximize()} aria-label="Maximize">
-        <svg width="10" height="10" viewBox="0 0 10 10"><rect width="10" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1"/></svg>
+        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1"/></svg>
       </button>
       <button type="button" className="titlebar-btn titlebar-btn-close" onClick={() => window.daemon.window.close()} aria-label="Close">
         <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1"/></svg>

@@ -1,0 +1,369 @@
+/**
+ * ARIA agentic operator loop (main process). Replaces the old single-shot
+ * AriaService.sendMessage with a tool-calling loop: the model picks tools,
+ * read-only tools auto-run, write/sensitive tools pause for renderer approval,
+ * and the transcript streams to the renderer via the injected transport.
+ *
+ * Transport (emit / requestApproval / runUiEffect) is injected by the IPC layer
+ * (electron/ipc/aria.ts) so this service stays testable and process-agnostic.
+ */
+import crypto from 'node:crypto'
+import { getDb } from '../db/db'
+import { runClaudeAgentTurn } from './providers/ClaudeProvider'
+import * as ProviderRegistry from './providers/ProviderRegistry'
+import { recordLocalAiUsage } from './DaemonAIService'
+import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
+import { assembleSystemPrompt } from './aria/contextAssembler'
+import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiEffect } from './aria/AriaTool'
+import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
+import type { AgentMessage } from './providers/agentTurn'
+import type {
+  AriaMessage, AriaResponse, AriaToolCallRecord, AriaToolEvent,
+  AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane,
+} from '../shared/types'
+
+const MAX_ITERATIONS = 8
+const AGENT_DEADLINE_MS = 120_000
+const MAX_HISTORY = 40
+const DEFAULT_LANE: DaemonAiModelLane = 'auto'
+
+export interface AriaTransport {
+  /** Stream a transcript event to the renderer. */
+  emit: (event: AriaToolEvent) => void
+  /** Pause for a write/sensitive tool; resolves true on approval. */
+  requestApproval: (req: {
+    callId: string
+    name: string
+    risk: AriaTool['risk']
+    summary: string
+    input: unknown
+  }) => Promise<boolean>
+  /** Pause for a proposed patch; resolves with the user's keep/run-tests/discard decision. */
+  requestPatchDecision: (proposal: AriaPatchProposalLite) => Promise<AriaPatchAction>
+  /** Run a renderer-only effect; resolves with posted-back data when awaitData. */
+  runUiEffect: (effect: AriaUiEffect, awaitData: boolean) => Promise<unknown>
+}
+
+type ConversationEntry = { role: 'user' | 'assistant'; content: string }
+const conversations = new Map<string, AgentMessage[]>()
+const textHistory = new Map<string, ConversationEntry[]>()
+
+/**
+ * Trim old turns without orphaning a tool_use/tool_result pair: drop from the
+ * front, then ensure the first remaining message isn't a tool_result-only user
+ * turn (which the Anthropic API rejects as a dangling result).
+ */
+function trimHistory(messages: AgentMessage[]): void {
+  if (messages.length <= MAX_HISTORY) return
+  messages.splice(0, messages.length - MAX_HISTORY)
+  while (messages.length > 0 && isToolResultTurn(messages[0])) {
+    messages.shift()
+  }
+}
+
+function isToolResultTurn(msg: AgentMessage): boolean {
+  return (
+    msg.role === 'user' &&
+    Array.isArray(msg.content) &&
+    msg.content.some((b) => (b as { type?: string }).type === 'tool_result')
+  )
+}
+
+function persistMessage(msg: Omit<AriaMessage, 'id' | 'created_at'>): string {
+  const db = getDb()
+  const id = crypto.randomUUID()
+  db.prepare(
+    'INSERT INTO aria_messages (id, role, content, metadata, session_id) VALUES (?,?,?,?,?)'
+  ).run(id, msg.role, msg.content, msg.metadata, msg.session_id)
+  return id
+}
+
+/**
+ * Run a full agentic turn for a user message. Returns the final assistant
+ * response (text + the tool calls that ran) once the loop settles.
+ */
+export async function sendMessage(
+  sessionId: string,
+  userMessage: string,
+  snapshot: AriaContextSnapshot,
+  transport: AriaTransport,
+  modelLane: DaemonAiModelLane = DEFAULT_LANE,
+): Promise<AriaResponse> {
+  const model = laneToClaudeModel(modelLane)
+  const messages = conversations.get(sessionId) ?? []
+  conversations.set(sessionId, messages)
+  const text = textHistory.get(sessionId) ?? []
+  textHistory.set(sessionId, text)
+
+  messages.push({ role: 'user', content: userMessage })
+  text.push({ role: 'user', content: userMessage })
+  trimHistory(messages)
+  persistMessage({ role: 'user', content: userMessage, metadata: '{}', session_id: sessionId })
+
+  // Agentic mode is Claude-API only. Fall back to a plain answer otherwise.
+  const provider = ProviderRegistry.getFeatureProvider('aria')
+  if (provider.id !== 'claude') {
+    return legacyAnswer(sessionId, userMessage, provider, text, transport)
+  }
+
+  const tools = toAnthropicTools(ARIA_TOOLS)
+  const system = await assembleSystemPrompt(snapshot)
+  // Mutable plan/patch state the special-cased tools fill in as the loop runs.
+  const turnState: TurnState = { plan: [], patch: null }
+  const ctx = { sessionId, snapshot, runUiEffect: transport.runUiEffect }
+
+  const toolCalls: AriaToolCallRecord[] = []
+  let finalText = ''
+  const deadline = Date.now() + AGENT_DEADLINE_MS
+  let promptForUsage = userMessage
+
+  try {
+    for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+      if (Date.now() > deadline) {
+        finalText ||= 'Stopped: hit the time limit before finishing.'
+        break
+      }
+
+      const turn = await runClaudeAgentTurn({ messages, system, model, tools, maxTokens: 2048 })
+      promptForUsage = system
+      if (turn.text) {
+        finalText = turn.text
+        transport.emit({ kind: 'assistant-text', messageId: sessionId, text: turn.text })
+      }
+
+      if (turn.toolUses.length === 0) break
+
+      // Record the assistant turn (with its tool_use blocks) verbatim.
+      messages.push({
+        role: 'assistant',
+        content: [
+          ...(turn.text ? [{ type: 'text', text: turn.text }] : []),
+          ...turn.toolUses.map((u) => ({ type: 'tool_use', id: u.id, name: u.name, input: u.input })),
+        ],
+      })
+
+      const toolResults: unknown[] = []
+      for (const use of turn.toolUses) {
+        const record = await executeTool(use, ctx, transport, turnState)
+        toolCalls.push(record)
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: use.id,
+          content: typeof record.result === 'string' ? record.result : JSON.stringify(record.result ?? record.summary),
+          is_error: record.status === 'error' || record.status === 'rejected',
+        })
+      }
+      messages.push({ role: 'user', content: toolResults })
+    }
+  } catch (err) {
+    finalText = `Error: ${(err as Error).message}`
+  }
+
+  // Any plan steps left un-flipped are done once the loop settles.
+  markRemainingPlanDone(turnState, transport, sessionId)
+
+  trimHistory(messages)
+  text.push({ role: 'assistant', content: finalText })
+
+  recordLocalAiUsage({
+    feature: 'aria-operator',
+    provider: 'anthropic',
+    model,
+    inputText: promptForUsage,
+    outputText: finalText,
+  })
+
+  persistMessage({
+    role: 'assistant',
+    content: finalText,
+    metadata: JSON.stringify({
+      toolCalls,
+      ...(turnState.plan.length ? { plan: turnState.plan } : {}),
+      ...(turnState.patch ? { patch: turnState.patch } : {}),
+    }),
+    session_id: sessionId,
+  })
+
+  transport.emit({ kind: 'done', messageId: sessionId, text: finalText })
+  return { text: finalText, actions: [], toolCalls }
+}
+
+/** Per-turn plan/patch state mutated by the special-cased tools. */
+interface TurnState {
+  plan: AriaPlanStep[]
+  patch: AriaPatchProposalLite | null
+}
+
+/** Mark the next pending plan step active, the previous active one done, and re-emit. */
+function advancePlan(state: TurnState, transport: AriaTransport, sessionId: string): void {
+  if (state.plan.length === 0) return
+  let changed = false
+  const active = state.plan.find((s) => s.status === 'active')
+  if (active) { active.status = 'done'; changed = true }
+  const next = state.plan.find((s) => s.status === 'pending')
+  if (next) { next.status = 'active'; changed = true }
+  if (changed) transport.emit({ kind: 'plan', messageId: sessionId, steps: state.plan.map((s) => ({ ...s })) })
+}
+
+function markRemainingPlanDone(state: TurnState, transport: AriaTransport, sessionId: string): void {
+  if (state.plan.length === 0) return
+  let changed = false
+  for (const step of state.plan) {
+    if (step.status !== 'done') { step.status = 'done'; changed = true }
+  }
+  if (changed) transport.emit({ kind: 'plan', messageId: sessionId, steps: state.plan.map((s) => ({ ...s })) })
+}
+
+async function executeTool(
+  use: { id: string; name: string; input: Record<string, unknown> },
+  ctx: { sessionId: string; snapshot: AriaContextSnapshot; runUiEffect: AriaTransport['runUiEffect'] },
+  transport: AriaTransport,
+  turnState: TurnState,
+): Promise<AriaToolCallRecord> {
+  // Intercept the planning + patch tools: they drive transcript UI, not side effects.
+  if (use.name === 'present_plan') return handlePresentPlan(use, transport, turnState)
+  if (use.name === 'propose_patch') return handleProposePatch(use, ctx, transport, turnState)
+
+  const tool = getTool(use.name)
+  const base: AriaToolCallRecord = {
+    callId: use.id,
+    name: use.name,
+    toolKind: tool?.kind ?? 'run',
+    risk: tool?.risk ?? 'write',
+    status: 'done',
+    summary: '',
+    input: use.input,
+  }
+
+  if (!tool) {
+    transport.emit({ kind: 'tool-call', callId: use.id, name: use.name, label: use.name, toolKind: 'run', risk: 'write', status: 'error' })
+    return { ...base, status: 'error', summary: `Unknown tool "${use.name}".` }
+  }
+
+  transport.emit({ kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk, status: 'pending' })
+
+  // Each real tool that runs advances the plan one step.
+  advancePlan(turnState, transport, ctx.sessionId)
+
+  // Risk gate: write/sensitive pause for approval.
+  if (tool.risk !== 'read') {
+    const approved = await transport.requestApproval({
+      callId: use.id,
+      name: tool.name,
+      risk: tool.risk,
+      summary: describeIntent(tool, use.input),
+      input: use.input,
+    })
+    if (!approved) {
+      transport.emit({ kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk, status: 'error', meta: 'rejected' })
+      return { ...base, status: 'rejected', summary: 'User rejected this action.' }
+    }
+  }
+
+  transport.emit({ kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk, status: 'running' })
+  try {
+    const result = await tool.handler(use.input, ctx)
+    transport.emit({
+      kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk,
+      status: result.ok ? 'done' : 'error', meta: result.summary,
+    })
+    return { ...base, status: result.ok ? 'done' : 'error', summary: result.summary, result: result.data ?? result.summary }
+  } catch (err) {
+    const message = (err as Error).message
+    transport.emit({ kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk, status: 'error', meta: message })
+    return { ...base, status: 'error', summary: message }
+  }
+}
+
+/** present_plan: register the plan, emit it, and mark the first step active. */
+function handlePresentPlan(
+  use: { id: string; name: string; input: Record<string, unknown> },
+  transport: AriaTransport,
+  turnState: TurnState,
+): AriaToolCallRecord {
+  const rawSteps = Array.isArray(use.input.steps) ? (use.input.steps as Array<{ title?: unknown }>) : []
+  turnState.plan = buildPlanSteps(rawSteps.map((s) => String(s?.title ?? '')))
+  if (turnState.plan.length > 0) {
+    turnState.plan[0].status = 'active'
+    transport.emit({ kind: 'plan', messageId: use.id, steps: turnState.plan.map((s) => ({ ...s })) })
+  }
+  return {
+    callId: use.id, name: use.name, toolKind: 'read', risk: 'read',
+    status: 'done', summary: `Planned ${turnState.plan.length} steps.`, input: use.input,
+    result: `Plan registered with ${turnState.plan.length} steps.`,
+  }
+}
+
+/** propose_patch: build the proposal, pause for the user's decision, gate the write. */
+async function handleProposePatch(
+  use: { id: string; name: string; input: Record<string, unknown> },
+  ctx: { sessionId: string },
+  transport: AriaTransport,
+  turnState: TurnState,
+): Promise<AriaToolCallRecord> {
+  const proposal = buildPatchProposal(use.input)
+  turnState.patch = proposal
+  advancePlan(turnState, transport, ctx.sessionId)
+
+  const action = await transport.requestPatchDecision(proposal)
+  const applied = action === 'keep'
+  proposal.status = applied ? 'applied' : action === 'discard' ? 'rejected' : 'proposed'
+
+  transport.emit({
+    kind: 'action-result',
+    proposalId: proposal.id,
+    action,
+    status: applied ? 'applied' : 'rejected',
+    meta: applied ? `${proposal.additions} additions, ${proposal.deletions} deletions` : undefined,
+  })
+
+  const summary = applied
+    ? `User kept the patch "${proposal.title}".`
+    : action === 'run-tests'
+      ? `User asked to run tests on "${proposal.title}" (patch not yet applied).`
+      : `User discarded the patch "${proposal.title}".`
+  return {
+    callId: use.id, name: use.name, toolKind: 'edit', risk: 'write',
+    status: applied ? 'done' : 'rejected', summary, input: use.input, result: summary,
+  }
+}
+
+function describeIntent(tool: AriaTool, input: Record<string, unknown>): string {
+  const arg = Object.values(input)[0]
+  return `${tool.name}${arg !== undefined ? `: ${String(arg).slice(0, 80)}` : ''}`
+}
+
+/** Non-Claude providers: single-shot text answer, no tools. */
+async function legacyAnswer(
+  sessionId: string,
+  userMessage: string,
+  provider: ReturnType<typeof ProviderRegistry.getFeatureProvider>,
+  text: ConversationEntry[],
+  transport: AriaTransport,
+): Promise<AriaResponse> {
+  const prompt = [
+    'ARIA side-panel conversation:',
+    ...text.slice(-MAX_HISTORY).map((e) => `${e.role.toUpperCase()}: ${e.content}`),
+    '',
+    'Respond as ARIA, concise and direct.',
+  ].join('\n')
+  const out = await provider.runPrompt({ prompt, model: 'sonnet', effort: 'low', maxTokens: 1024, timeoutMs: 60_000 })
+  text.push({ role: 'assistant', content: out })
+  persistMessage({ role: 'assistant', content: out, metadata: '{}', session_id: sessionId })
+  transport.emit({ kind: 'done', messageId: sessionId, text: out })
+  return { text: out, actions: [], toolCalls: [] }
+}
+
+export function getHistory(sessionId: string, limit = 50): AriaMessage[] {
+  const db = getDb()
+  return db.prepare(
+    'SELECT * FROM aria_messages WHERE session_id = ? ORDER BY created_at ASC LIMIT ?'
+  ).all(sessionId, limit) as AriaMessage[]
+}
+
+export function clearSession(sessionId: string): void {
+  const db = getDb()
+  db.prepare('DELETE FROM aria_messages WHERE session_id = ?').run(sessionId)
+  conversations.delete(sessionId)
+  textHistory.delete(sessionId)
+}

@@ -9,6 +9,7 @@ import { TIMEOUTS } from '../../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from '../McpConfig'
 import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
+import type { RunAgentTurnOpts, AgentTurnResult, AgentToolUse } from './agentTurn'
 
 // --- In-memory cache ---
 
@@ -337,6 +338,45 @@ async function runPromptViaApi(
   const block = response.content[0]
   if (block.type !== 'text') throw new Error('Unexpected response type from API')
   return block.text
+}
+
+/**
+ * Run one agentic turn with tool-calling via the Anthropic API. Used by ARIA's
+ * operator loop (Claude-only — the CLI path cannot emit structured tool_use).
+ * Mirrors runPromptViaApi's key/model resolution but passes `tools` and returns
+ * any `tool_use` blocks for the caller to execute.
+ */
+export async function runClaudeAgentTurn(opts: RunAgentTurnOpts): Promise<AgentTurnResult> {
+  const apiKey = SecureKey.getKey('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('Agentic mode needs an Anthropic API key. Add ANTHROPIC_API_KEY in settings.')
+
+  const resolvedModel = resolveModelName(opts.model)
+  const { default: Anthropic } = await import('@anthropic-ai/sdk')
+  const client = new Anthropic({ apiKey })
+
+  const response = await client.messages.create({
+    model: resolvedModel,
+    max_tokens: opts.maxTokens ?? 4096,
+    system: [{ type: 'text', text: opts.system, cache_control: { type: 'ephemeral' } }],
+    tools: opts.tools as Parameters<typeof client.messages.create>[0]['tools'],
+    messages: opts.messages as Parameters<typeof client.messages.create>[0]['messages'],
+  })
+
+  let text = ''
+  const toolUses: AgentToolUse[] = []
+  for (const block of response.content) {
+    if (block.type === 'text') {
+      text += block.text
+    } else if (block.type === 'tool_use') {
+      toolUses.push({
+        id: block.id,
+        name: block.name,
+        input: (block.input ?? {}) as Record<string, unknown>,
+      })
+    }
+  }
+
+  return { text, toolUses, stopReason: response.stop_reason ?? 'end_turn' }
 }
 
 async function runPromptViaCli(

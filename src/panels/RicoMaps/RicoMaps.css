@@ -85,7 +85,7 @@
   border-radius: 999px;
   background: var(--s2);
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   font-size: var(--fs-11);
 }
 
@@ -113,7 +113,7 @@
   width: min(380px, calc(100% - 32px));
   padding: 12px;
   border: 1px solid var(--s4);
-  border-radius: 12px;
+  border-radius: var(--r-panel);
   background: var(--s1);
   box-shadow: var(--shadow-lg);
 }
@@ -126,7 +126,7 @@
 
 .ricomaps-overlay small {
   color: var(--t3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   font-size: var(--fs-11);
   line-height: 1.4;
   overflow-wrap: anywhere;

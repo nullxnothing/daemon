@@ -5,6 +5,7 @@ const STATUS_COLORS: Record<string, string> = {
   starting: 'amber',
   running: 'green',
   error: 'red',
+  stopping: 'amber',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -12,6 +13,7 @@ const STATUS_LABELS: Record<string, string> = {
   starting: 'Starting...',
   running: 'Running',
   error: 'Error',
+  stopping: 'Stopping...',
 }
 
 function getValidatorHelpText(validator: ValidatorState): string {
@@ -19,10 +21,13 @@ function getValidatorHelpText(validator: ValidatorState): string {
     return `Local RPC is ready at http://localhost:${validator.port}.`
   }
   if (validator.status === 'starting') {
-    return 'Starting the local runtime. Check terminal logs if this takes more than a few seconds.'
+    return 'Starting the local runtime and waiting for JSON-RPC health at http://127.0.0.1:8899.'
+  }
+  if (validator.status === 'stopping') {
+    return 'Stopping the local validator process.'
   }
   if (validator.status === 'error') {
-    return 'Validator did not start. Check missing CLI tools, port conflicts, or terminal logs, then retry.'
+    return validator.error ?? 'Validator did not start. Check missing CLI tools, port conflicts, or terminal logs, then retry.'
   }
   return 'Start a local runtime before relying on local transaction tests or localnet explorer links.'
 }
@@ -49,14 +54,14 @@ export function ValidatorCard() {
         <button
           className={`solana-seg-btn ${validator.type === 'surfpool' ? 'active' : ''}`}
           onClick={() => startValidator('surfpool')}
-          disabled={validator.status === 'starting'}
+          disabled={validator.status === 'starting' || validator.status === 'stopping'}
         >
           Surfpool
         </button>
         <button
           className={`solana-seg-btn ${validator.type === 'test-validator' ? 'active' : ''}`}
           onClick={() => startValidator('test-validator')}
-          disabled={validator.status === 'starting'}
+          disabled={validator.status === 'starting' || validator.status === 'stopping'}
         >
           Test Validator
         </button>
@@ -81,6 +86,10 @@ export function ValidatorCard() {
             Stop
           </button>
         </div>
+      )}
+
+      {validator.status === 'error' && validator.outputExcerpt && (
+        <pre className="solana-validator-output">{validator.outputExcerpt}</pre>
       )}
 
       {validator.status === 'stopped' && (

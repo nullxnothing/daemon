@@ -51,7 +51,7 @@ export function MarkdownTidyPreview({
             readOnly: true,
             renderSideBySide: true,
             minimap: { enabled: false },
-            fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+            fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
             fontSize: 13,
             lineHeight: 20,
             wordWrap: 'on',

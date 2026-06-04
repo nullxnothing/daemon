@@ -59,7 +59,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 80, 80, 0.1);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
   border: 1px solid var(--red);
   border-radius: 4px;
   color: var(--red-dim);
@@ -139,22 +139,22 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--t3);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--wash);
 }
 
 .pro-staking-pill.eligible,
 .pro-staking-pill.live {
-  border-color: rgba(62, 207, 142, 0.42);
+  border-color: color-mix(in srgb, var(--green) 42%, transparent);
   color: var(--green);
 }
 
 .pro-staking-pill.planned {
-  border-color: rgba(241, 207, 117, 0.32);
+  border-color: color-mix(in srgb, var(--amber) 32%, transparent);
   color: var(--amber);
 }
 
 .pro-staking-pill-live {
-  border-color: rgba(96, 165, 250, 0.35);
+  border-color: color-mix(in srgb, var(--blue) 35%, transparent);
   color: var(--blue);
 }
 
@@ -230,7 +230,7 @@
   padding: 14px;
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
 }
 
 .pro-feature-title,
@@ -246,12 +246,12 @@
 .pro-holder-banner {
   padding: 14px 16px;
   background: var(--s1);
-  border: 1px solid rgba(62, 207, 142, 0.18);
-  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--green) 18%, transparent);
+  border-radius: var(--r-panel);
 }
 
 .pro-holder-banner.eligible {
-  border-color: rgba(62, 207, 142, 0.42);
+  border-color: color-mix(in srgb, var(--green) 42%, transparent);
 }
 
 .pro-holder-banner-title,
@@ -321,8 +321,8 @@
 .pro-arena-contest {
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
   padding: 20px;
-  border: 1px solid rgba(255, 215, 0, 0.14);
-  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 14%, transparent);
+  border-radius: var(--r-panel);
   background: var(--s1);
 }
 
@@ -343,7 +343,7 @@
 .pro-arena-trigger-card {
   margin-top: 16px;
   padding: 14px;
-  border: 1px solid rgba(62, 207, 142, 0.16);
+  border: 1px solid color-mix(in srgb, var(--green) 16%, transparent);
   border-radius: var(--radius-lg);
   background: rgba(10, 14, 12, 0.56);
 }
@@ -397,14 +397,14 @@
   width: 100%;
   height: 10px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--s3);
   overflow: hidden;
 }
 
 .pro-arena-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgba(62, 207, 142, 0.75), rgba(241, 207, 117, 0.95));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--green) 75%, transparent), color-mix(in srgb, var(--amber) 95%, transparent));
   transition: width 0.35s ease;
 }
 
@@ -418,8 +418,8 @@
 .pro-arena-prize-card {
   padding: 14px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-2);
+  background: var(--wash);
 }
 
 .pro-arena-prize-value {
@@ -491,7 +491,7 @@
 
 .pro-arena-status.pro-status-winner,
 .pro-arena-theme {
-  border: 1px solid rgba(241, 207, 117, 0.5);
+  border: 1px solid color-mix(in srgb, var(--amber) 50%, transparent);
   color: var(--amber);
 }
 

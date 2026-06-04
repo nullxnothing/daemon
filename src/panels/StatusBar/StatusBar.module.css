@@ -5,8 +5,8 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-md);
-  background: var(--surface-flat);
-  border-top: 1px solid color-mix(in srgb, var(--border) 88%, black 12%);
+  background: var(--s1);
+  border-top: 1px solid var(--line);
   flex-shrink: 0;
   min-width: 0;
   gap: var(--space-md);
@@ -215,12 +215,12 @@
 .marketPrice {
   color: var(--t1);
   font-family: var(--font-code);
-  font-size: 10.5px;
+  font-size: var(--fs-10);
 }
 
 .marketChange {
   font-family: var(--font-code);
-  font-size: 10.5px;
+  font-size: var(--fs-10);
 }
 
 .up {
@@ -242,12 +242,12 @@
 }
 
 @keyframes pulseGreen {
-  0% { text-shadow: 0 0 6px rgba(62, 207, 142, 0.4); }
+  0% { text-shadow: 0 0 6px color-mix(in srgb, var(--green) 40%, transparent); }
   100% { text-shadow: none; }
 }
 
 @keyframes pulseRed {
-  0% { text-shadow: 0 0 6px rgba(239, 83, 80, 0.4); }
+  0% { text-shadow: 0 0 6px color-mix(in srgb, var(--red) 40%, transparent); }
   100% { text-shadow: none; }
 }
 

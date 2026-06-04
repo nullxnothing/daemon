@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Transaction } from '@solana/web3.js'
 
-const { withKeypairMock, getConnectionStrictMock } = vi.hoisted(() => ({
+const { withKeypairMock, getConnectionStrictMock, executeTransactionMock, executeInstructionsMock } = vi.hoisted(() => ({
   withKeypairMock: vi.fn(async (_walletId: string, fn: (kp: { publicKey: { toBase58: () => string } }) => Promise<unknown>) => {
     return fn({ publicKey: { toBase58: () => 'creator-public-key' } })
   }),
@@ -10,11 +11,15 @@ const { withKeypairMock, getConnectionStrictMock } = vi.hoisted(() => ({
     confirmTransaction: vi.fn(),
     getAccountInfo: vi.fn(async () => ({ lamports: 1 })),
   })),
+  executeTransactionMock: vi.fn(async () => ({ signature: 'executor-sig-123', transport: 'rpc' })),
+  executeInstructionsMock: vi.fn(async () => ({ signature: 'instructions-sig-123', transport: 'rpc' })),
 }))
 
 vi.mock('../../electron/services/SolanaService', () => ({
   withKeypair: withKeypairMock,
   getConnectionStrict: getConnectionStrictMock,
+  executeTransaction: executeTransactionMock,
+  executeInstructions: executeInstructionsMock,
 }))
 
 import { createRaydiumLaunchLabAdapter } from '../../electron/services/token-launch/adapters/RaydiumLaunchLabAdapter'
@@ -28,6 +33,8 @@ describe('RaydiumLaunchLabAdapter', () => {
       confirmTransaction: vi.fn(),
       getAccountInfo: vi.fn(async () => ({ lamports: 1 })),
     })
+    executeTransactionMock.mockResolvedValue({ signature: 'executor-sig-123', transport: 'rpc' })
+    executeInstructionsMock.mockResolvedValue({ signature: 'instructions-sig-123', transport: 'rpc' })
   })
 
   it('stays disabled until config is present', () => {
@@ -161,6 +168,58 @@ describe('RaydiumLaunchLabAdapter', () => {
     expect(execute).toHaveBeenCalled()
     expect(result.signature).toBe('raydium-sig-123')
     expect(result.poolAddress).toContain('raydium-pool')
+    expect(result.protocolReceipts.execution).toEqual(expect.objectContaining({
+      transport: 'sdk-adapter',
+      managedBy: 'raydium-launchlab-sdk',
+      sharedExecutor: false,
+      signerGuard: false,
+    }))
+  })
+
+  it('prefers returned transactions over SDK execute fallback', async () => {
+    const execute = vi.fn(async () => ({ signature: 'raydium-sdk-sig' }))
+    const createLaunchpad = vi.fn(async () => ({
+      transaction: new Transaction(),
+      execute,
+      poolId: 'raydium-pool-123456789012345678901',
+    }))
+    const load = vi.fn(async () => ({ launchpad: { createLaunchpad } }))
+
+    const adapter = createRaydiumLaunchLabAdapter({
+      env: {
+        RAYDIUM_LAUNCHLAB_CONFIG: '11111111111111111111111111111111',
+      } as NodeJS.ProcessEnv,
+      loadSdk: () => ({ Raydium: { load } }),
+      uploadMetadata: vi.fn(async () => ({ metadataUri: 'https://meta.example/raydium.json' })),
+    })
+
+    const result = await adapter.createLaunch({
+      launchpad: 'raydium',
+      walletId: 'wallet-1',
+      name: 'Ray Token',
+      symbol: 'RAYX',
+      description: 'LaunchLab token',
+      imagePath: null,
+      initialBuySol: 0.25,
+      slippageBps: 800,
+      priorityFeeSol: 0.005,
+    })
+
+    expect(execute).not.toHaveBeenCalled()
+    expect(executeTransactionMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Transaction),
+      expect.any(Array),
+      expect.objectContaining({ guardSource: 'token-launch:raydium' }),
+    )
+    expect(result.signature).toBe('executor-sig-123')
+    expect(result.protocolReceipts.execution).toEqual(expect.objectContaining({
+      transport: 'rpc',
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:raydium',
+    }))
   })
 
   it('blocks direct launch when the configured LaunchLab config is not on-chain', async () => {

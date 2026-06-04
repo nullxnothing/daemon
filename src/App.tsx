@@ -50,7 +50,8 @@ const STARTUP_PRELOAD_SKIP = new Set([
   'block-scanner',
   'replay-engine',
   'wallet',
-  'spawnagents',
+  'clawpump',
+  'degentools',
   'agent-station',
   'agent-work',
 ])
@@ -157,7 +158,7 @@ function App() {
   const [appReady, setAppReady] = useState(false)
   const [bootStatus, setBootStatus] = useState('initializing workspace...')
 
-  const [showTerminal, setShowTerminal] = useState(false)
+  const [showTerminal, setShowTerminal] = useState(true)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const { tier, isCompact, isTablet, isSmall } = useShellLayout()
 
@@ -170,7 +171,7 @@ function App() {
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal, setShowShortcuts })
 
   const centerRef = useRef<HTMLDivElement>(null)
-  const { size: terminalHeight, splitterProps } = useSplitter({
+  const { size: terminalHeight, isDragging: isTerminalDragging, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
     max: 99999,
@@ -475,6 +476,7 @@ function App() {
         projects={projects}
         onAddProject={addProject}
         onRemoveProject={removeProject}
+        onOpenSearch={() => setPaletteMode('files')}
       />
 
       <div className={`main-layout main-layout--${tier}`}>
@@ -522,7 +524,7 @@ function App() {
           {centerMode === 'canvas' && canShowTerminal && !drawerOpen && (
             <div
               id="terminal-area"
-              className="terminal-area"
+              className={`terminal-area${isTerminalDragging ? ' terminal-area--dragging' : ''}`}
               data-tour="terminal"
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
@@ -530,7 +532,7 @@ function App() {
               }}
             >
               <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
-                <TerminalPanel />
+                <TerminalPanel onCollapse={() => setShowTerminal(false)} />
               </Suspense>
             </div>
           )}

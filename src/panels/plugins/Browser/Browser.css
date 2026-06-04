@@ -28,7 +28,7 @@
   border-radius: 4px;
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   outline: none;
 }
 
@@ -212,7 +212,7 @@
 .browser__history-url {
   font-size: var(--fs-10);
   color: var(--t1);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

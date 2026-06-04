@@ -1175,3 +1175,63 @@ CREATE TABLE IF NOT EXISTS forensic_bundle_wallet_index (
 CREATE INDEX IF NOT EXISTS idx_forensic_bundle_wallet
   ON forensic_bundle_wallet_index(wallet);
 `
+
+// DAEMON Flywheel Protocol: the dev/creator wallet claims a token's pump.fun creator
+// fees, then DAEMON splits them off-chain (default 80% payout / 20% buyback) and the
+// buyback leg swaps SOL into a target mint (e.g. $DAEMON) and burns it. One config row
+// per token mint; flywheel_events is the public claim/swap/burn audit trail.
+export const SCHEMA_V45 = `
+CREATE TABLE IF NOT EXISTS flywheel_configs (
+  id TEXT PRIMARY KEY,
+  token_mint TEXT NOT NULL UNIQUE,
+  label TEXT,
+  creator_wallet_id TEXT NOT NULL,
+  payout_wallet TEXT NOT NULL,
+  buyback_wallet_id TEXT NOT NULL,
+  buyback_wallet TEXT NOT NULL,
+  payout_bps INTEGER NOT NULL,
+  buyback_bps INTEGER NOT NULL,
+  buyback_target_mint TEXT NOT NULL,
+  burn INTEGER NOT NULL DEFAULT 1,
+  configure_signature TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_flywheel_configs_target
+  ON flywheel_configs(buyback_target_mint);
+
+CREATE TABLE IF NOT EXISTS flywheel_events (
+  id TEXT PRIMARY KEY,
+  config_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  signature TEXT,
+  sol_amount TEXT,
+  token_amount TEXT,
+  token_mint TEXT,
+  note TEXT,
+  at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_flywheel_events_config
+  ON flywheel_events(config_id, at DESC);
+`
+
+// Crash-safe settlement ledger for the flywheel. Each "Run flywheel" claim creates one
+// row keyed by the claim signature; the payout and buyback transfer legs record their
+// own signatures as they land. On re-run, a row still in 'claimed'/'distributed' state
+// is resumed (completed legs skipped) so a mid-run crash never double-pays or strands
+// claimed fees. flywheel_events stays the human audit trail; this is the integrity record.
+export const SCHEMA_V46 = `
+CREATE TABLE IF NOT EXISTS flywheel_settlements (
+  id TEXT PRIMARY KEY,
+  config_id TEXT NOT NULL,
+  claim_signature TEXT NOT NULL UNIQUE,
+  claimed_lamports INTEGER NOT NULL,
+  payout_lamports INTEGER NOT NULL DEFAULT 0,
+  buyback_lamports INTEGER NOT NULL DEFAULT 0,
+  payout_signature TEXT,
+  buyback_signature TEXT,
+  status TEXT NOT NULL DEFAULT 'claimed',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_flywheel_settlements_pending
+  ON flywheel_settlements(config_id, status);
+`

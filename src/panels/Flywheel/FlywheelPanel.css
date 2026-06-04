@@ -1,0 +1,336 @@
+/* ============================================================
+   Fee Flywheel — dense ledger. Fused 1px hairline grids, square
+   corners (radius only on interactive controls), mono numbers,
+   exactly one green primary. All values resolve to tokens.
+   ============================================================ */
+
+.fw-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden auto;
+  background: var(--bg);
+  color: var(--t1);
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 22px 28px 64px;
+}
+
+.fw-link {
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--green);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fw-link:hover { text-decoration: underline; }
+
+/* hairline secondary button (the default); one green primary only */
+.fw-btn {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  padding: 5px 10px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--t1);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fw-btn:hover:not(:disabled) { border-color: var(--accent-line); color: var(--t1); background: var(--s1); }
+.fw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.fw-btn--primary {
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
+  border-color: var(--accent-line);
+}
+.fw-btn--primary:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
+
+/* 1 · header --------------------------------------------------------- */
+.fw-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+.fw-head-copy { display: flex; flex-direction: column; gap: 5px; }
+.fw-title {
+  margin: 0;
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  color: var(--t1);
+}
+.fw-sub { margin: 0; font-size: var(--fs-13); color: var(--t3); }
+.fw-head-actions { margin-left: auto; display: flex; gap: var(--space-sm); flex-shrink: 0; }
+
+/* 2 · aggregate KPI strip (fused hairline grid, square) -------------- */
+.fw-agg {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.fw-agg-cell { background: var(--bg); padding: 15px 17px; min-width: 0; }
+.fw-agg-k {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin-bottom: 10px;
+}
+.fw-agg-v {
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-24);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+}
+.fw-agg-v--green { color: var(--green); }
+.fw-agg-u { font-size: var(--fs-12); color: var(--t3); margin-left: 4px; }
+.fw-agg-m {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t3);
+  margin-top: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 3 · flywheel line -------------------------------------------------- */
+.fw-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.fw-line-kicker {
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  white-space: nowrap;
+}
+.fw-line-copy {
+  font-size: var(--fs-13);
+  color: var(--t2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fw-line-mint { margin-left: auto; }
+
+/* 4 · ledger --------------------------------------------------------- */
+.fw-ledger-label { display: block; }
+.fw-empty { color: var(--t3); font-size: var(--fs-13); padding: var(--space-lg); text-align: center; border: 1px solid var(--line); }
+
+.fw-ledger { border: 1px solid var(--line); }
+
+.fw-lhead,
+.fw-lrow {
+  display: grid;
+  grid-template-columns: 2.1fr 1.5fr 1fr 1fr 1fr 1.2fr 1fr 1.5fr;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+}
+.fw-lhead {
+  height: 34px;
+  background: var(--s1);
+  border-bottom: 1px solid var(--line);
+}
+.fw-lhead span {
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.fw-lhead .fw-num,
+.fw-num-cell { text-align: right; justify-self: end; }
+
+.fw-lrow {
+  min-height: 54px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.fw-lrow:last-child { border-bottom: 0; }
+.fw-lrow:hover { background: var(--s1); }
+.fw-lrow.open { background: var(--accent-fill); }
+.fw-lrow:focus-visible { outline: none; box-shadow: inset 2px 0 0 var(--green); }
+
+.fw-cell-token { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fw-token-name {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fw-token-mint { font-size: var(--fs-11); }
+
+.fw-cell-split { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fw-splitbar {
+  display: flex;
+  width: 84px;
+  height: 5px;
+  flex-shrink: 0;
+  gap: 1px;
+  background: var(--line);
+}
+.fw-splitbar-c { background: color-mix(in srgb, var(--green) 30%, var(--s3)); }
+.fw-splitbar-b { flex: 1; background: var(--green); }
+.fw-split-num { font-family: var(--mono); font-size: var(--fs-11); color: var(--t3); }
+
+.fw-num-cell {
+  font-family: var(--mono);
+  font-size: var(--fs-13);
+  color: var(--t1);
+}
+.fw-num-cell.zero { color: var(--t3); }
+.fw-num-u { font-size: var(--fs-10); color: var(--t3); margin-left: 3px; }
+
+.fw-cell-status { min-width: 0; }
+.fw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.04em;
+  color: var(--t2);
+}
+.fw-badge--routing { color: var(--green); border-color: var(--accent-line); background: var(--accent-fill); }
+
+.fw-cell-action { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.fw-chevron {
+  color: var(--t4);
+  font-size: var(--fs-15);
+  line-height: 1;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+.fw-chevron.open { transform: rotate(90deg); color: var(--green); }
+
+/* 5 · expanded row detail ------------------------------------------- */
+.fw-ldetail {
+  border-bottom: 1px solid var(--line);
+  background: var(--field-bg);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 22px;
+}
+.fw-ldetail:last-child { border-bottom: 0; }
+.fw-ldetail-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.fw-dist { display: flex; gap: 8px; align-items: center; }
+.fw-field {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  outline: none;
+}
+.fw-field:focus { border-color: var(--accent-line); }
+.fw-field::placeholder { color: var(--t3); }
+
+.fw-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fw-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-12);
+  color: var(--t2);
+  min-width: 0;
+}
+.fw-swatch { width: 9px; height: 9px; flex-shrink: 0; }
+.fw-swatch--c { background: color-mix(in srgb, var(--green) 30%, var(--s3)); }
+.fw-swatch--b { background: var(--green); }
+.fw-legend-pct { font-family: var(--mono); color: var(--t1); }
+.fw-legend-addr { font-family: var(--mono); color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.fw-ldetail-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fw-activity-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.fw-activity-empty { font-size: var(--fs-12); color: var(--t3); padding: 4px 0; }
+
+.fw-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.fw-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 29px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  min-width: 0;
+}
+.fw-feed-row:last-child { border-bottom: 0; }
+.fw-feed-kind {
+  flex: 0 0 70px;
+  font-size: var(--fs-9);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.fw-feed-row--claim .fw-feed-kind { color: var(--blue); }
+.fw-feed-row--swap .fw-feed-kind { color: var(--green); }
+.fw-feed-row--burn .fw-feed-kind { color: var(--red); }
+.fw-feed-note { flex: 1; color: var(--t2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fw-feed-tx { flex-shrink: 0; color: var(--t3); }
+.fw-feed-tx:hover { color: var(--green); }
+
+/* modal (kept; literals replaced with tokens) ----------------------- */
+.fw-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay, color-mix(in srgb, black 60%, transparent));
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+.fw-modal {
+  width: min(520px, 92vw);
+  max-height: 88vh;
+  overflow: auto;
+  background: var(--s1);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  padding: var(--space-lg);
+}
+.fw-modal-title { margin: 0 0 var(--space-md); font-size: var(--fs-17); }
+.fw-form { display: flex; flex-direction: column; gap: var(--space-sm); }
+.fw-form label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-12); color: var(--t3); }
+.fw-form input, .fw-form select {
+  padding: 6px 9px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--field-bg);
+  color: var(--t1);
+  font-size: var(--fs-13);
+}
+.fw-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); margin-top: var(--space-sm); }
+.fw-error { color: var(--red); font-size: var(--fs-12); margin: 0; }
+.fw-confirm-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.fw-confirm-list li { font-size: var(--fs-14); }
+.fw-confirm-pct { font-weight: var(--fw-semibold); color: var(--green); }
+.fw-confirm-note { font-size: var(--fs-11); color: var(--t3); margin: 0 0 var(--space-2xs); }

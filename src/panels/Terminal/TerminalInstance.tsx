@@ -244,7 +244,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     disposedRef.current = false
 
     const term = new XTerm({
-      fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+      fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
       fontSize: 13,
       lineHeight: 1.3,
       cursorBlink: true,

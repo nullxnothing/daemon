@@ -27,6 +27,8 @@ import {
   resetSignerGuardState,
   setSignerGuardPolicy,
   isAllowedProgram,
+  collectProgramIds,
+  safeCollectProgramIds,
 } from '../../electron/services/SignerGuardService'
 
 const payer = Keypair.generate()
@@ -90,6 +92,37 @@ describe('program allow-list', () => {
     expect(() => assertTransactionAllowed(tx, [payer], { approvalHash: hash })).not.toThrow()
     // second use: approval already consumed
     expect(() => assertTransactionAllowed(tx, [payer], { approvalHash: hash })).toThrow(/non-allowlisted/i)
+  })
+
+  it('permits a program scoped via allowProgramIds for that transaction only', () => {
+    const tx = unknownProgramTx()
+    expect(() =>
+      assertTransactionAllowed(tx, [payer], { allowProgramIds: ['9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin'] }),
+    ).not.toThrow()
+  })
+
+  it('hash approval admits a reviewed assembled tx without widening program policy', () => {
+    const tx = unknownProgramTx()
+    const messageHash = hashTransactionMessage(tx)
+    approveTransactionHash(messageHash)
+    expect(() => assertTransactionAllowed(tx, [payer], { approvalHash: messageHash })).not.toThrow()
+  })
+
+  it('does not admit a different program than the one scoped', () => {
+    const tx = unknownProgramTx()
+    expect(() =>
+      assertTransactionAllowed(tx, [payer], { allowProgramIds: ['So11111111111111111111111111111111111111112'] }),
+    ).toThrow(/non-allowlisted/i)
+  })
+
+  it('scoped allowProgramIds does not bypass the per-transaction SOL cap', () => {
+    setSignerGuardPolicy({ perTxSolCap: 1 })
+    // A bare SOL transfer over the cap, even with an (irrelevant) scoped program allowance.
+    expect(() =>
+      assertTransactionAllowed(solTransferTx(5 * 1e9), [payer], {
+        allowProgramIds: ['9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin'],
+      }),
+    ).toThrow(/SOL cap/i)
   })
 })
 
@@ -174,5 +207,35 @@ describe('uninspectable transactions', () => {
     clusterRef.value = 'devnet'
     const broken = {} as unknown as Parameters<typeof assertTransactionAllowed>[0]
     expect(() => assertTransactionAllowed(broken, [payer])).not.toThrow()
+  })
+
+  it('returns a safe inspection failure instead of throwing TypeError for malformed versioned messages', () => {
+    const broken = { message: {} }
+
+    expect(safeCollectProgramIds(broken)).toEqual({
+      ok: false,
+      reason: expect.stringMatching(/static account keys are missing/i),
+    })
+    expect(() => collectProgramIds(broken as Parameters<typeof collectProgramIds>[0])).toThrow(/signer guard/i)
+    expect(() => assertTransactionAllowed(broken as Parameters<typeof assertTransactionAllowed>[0], [payer]))
+      .toThrow(/static account keys are missing/i)
+  })
+
+  it('rejects versioned transactions with unresolved lookup table program accounts', () => {
+    const unresolved = {
+      message: {
+        staticAccountKeys: [],
+        compiledInstructions: [{ programIdIndex: 2, data: new Uint8Array() }],
+        addressTableLookups: [{ accountKey: recipient }],
+        serialize: () => Buffer.from('unresolved-message'),
+      },
+    }
+
+    expect(safeCollectProgramIds(unresolved)).toEqual({
+      ok: false,
+      reason: expect.stringMatching(/unresolved address lookup table/i),
+    })
+    expect(() => assertTransactionAllowed(unresolved as Parameters<typeof assertTransactionAllowed>[0], [payer]))
+      .toThrow(/unresolved address lookup table/i)
   })
 })

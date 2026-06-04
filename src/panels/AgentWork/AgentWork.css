@@ -89,7 +89,7 @@
 .agent-work textarea {
   width: 100%;
   border: 1px solid var(--s4);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   background: var(--s2);
   color: var(--t1);
   font: inherit;
@@ -118,7 +118,7 @@
 .agent-work-primary,
 .agent-work-actions button {
   border: 1px solid color-mix(in srgb, var(--green) 42%, var(--s4));
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   background: color-mix(in srgb, var(--green) 14%, var(--s2));
   color: var(--t1);
   font-size: var(--fs-11);

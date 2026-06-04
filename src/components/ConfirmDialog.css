@@ -16,22 +16,22 @@
 
 .confirm-dialog {
   background: var(--s2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r);
   padding: 20px;
   min-width: 360px;
   max-width: 480px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-modal);
   animation: confirm-pop 0.14s ease-out;
 }
 
 .confirm-dialog.danger {
-  border-color: rgba(239, 83, 80, 0.4);
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
 }
 
 @keyframes confirm-pop {
-  from { transform: scale(0.96); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .confirm-title {
@@ -64,7 +64,7 @@
 .confirm-typed-label code {
   background: var(--s3);
   padding: 1px 5px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r);
   font-family: var(--mono);
   color: var(--t1);
 }
@@ -73,7 +73,7 @@
   background: var(--s1);
   color: var(--t1);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--r);
   padding: 6px 8px;
   font-family: var(--mono);
   font-size: var(--fs-12);
@@ -95,7 +95,7 @@
   background: var(--s3);
   color: var(--t1);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--r);
   padding: 6px 14px;
   font-size: var(--fs-12);
   cursor: pointer;
@@ -111,13 +111,13 @@
 }
 
 .confirm-btn-confirm.danger {
-  background: rgba(239, 83, 80, 0.15);
+  background: color-mix(in srgb, var(--red) 15%, transparent);
   color: var(--red);
-  border-color: rgba(239, 83, 80, 0.4);
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
 }
 
 .confirm-btn-confirm.danger:hover:not(:disabled) {
-  background: rgba(239, 83, 80, 0.25);
+  background: color-mix(in srgb, var(--red) 25%, transparent);
 }
 
 .confirm-btn-confirm:disabled {

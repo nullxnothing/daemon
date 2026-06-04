@@ -9,7 +9,7 @@
   --drawer-section-pad: var(--space-lg);
   --drawer-card-gap: var(--space-md);
   --drawer-card-radius: var(--radius-card);
-  --drawer-control-radius: var(--radius-lg);
+  --drawer-control-radius: var(--r);
   --drawer-rail-shell-pad: var(--space-sm);
   --drawer-rail-card-gap: var(--space-sm);
 }

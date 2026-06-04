@@ -19,8 +19,7 @@
     transform 0.15s ease,
     background 0.3s ease,
     width 0.3s ease,
-    height 0.3s ease,
-    box-shadow 0.3s ease;
+    height 0.3s ease;
 }
 
 /* ── Size variants ── */
@@ -41,7 +40,6 @@
 .aria-face-large .aria-eye {
   width: 5px;
   height: 5px;
-  box-shadow: 0 0 8px var(--green-glow), 0 0 16px var(--green-glow);
 }
 
 /* ── Blink — scaleY crush ── */
@@ -69,7 +67,6 @@
 
 .aria-face-listening .aria-eye {
   opacity: 1;
-  box-shadow: 0 0 6px var(--green-glow);
 }
 
 /* ── State: thinking — asymmetric pulse ── */
@@ -87,7 +84,6 @@
 .aria-face-success .aria-eye {
   background: var(--green);
   opacity: 1;
-  box-shadow: 0 0 10px var(--green-glow), 0 0 20px var(--green-glow);
   transform: translateY(-1px);
   animation: ariaSuccessFlash 0.6s ease-out;
 }
@@ -101,7 +97,6 @@
 
 .aria-face-error .aria-eye {
   background: var(--red);
-  box-shadow: 0 0 8px rgba(239, 83, 80, 0.3);
   animation: ariaErrorFlash 0.4s ease-out;
 }
 

@@ -6,11 +6,11 @@ const TARGETS = ['src/panels', 'src/components']
 // Ratchet only — lower these as debt is paid down, never raise. Set to the current
 // actuals so any new literal fails CI and pushes contributors to tokens/primitives.
 const BASELINE = {
-  literalFontSize: 29,
-  literalRadius: 231,
-  hexColors: 128,
-  inlineShadow: 62,
-  handRolledHeaders: 4,
+  literalFontSize: 11,
+  literalRadius: 124,
+  hexColors: 82,
+  inlineShadow: 13,
+  handRolledHeaders: 3,
 }
 
 const RULES = [

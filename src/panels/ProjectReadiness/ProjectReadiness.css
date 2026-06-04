@@ -49,9 +49,10 @@
 .project-readiness-mini {
   display: inline-flex;
   align-items: center;
-  color: var(--text-muted);
+  color: var(--t3);
+  font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
@@ -285,9 +286,14 @@
 
 .project-readiness-grid,
 .project-readiness-action-grid,
-.project-readiness-strip,
 .workbench-git-metrics {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Strip fuses on a hairline rather than spacing cells with a gap. */
+.project-readiness-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
 }
 
 .workbench-provider-grid {
@@ -303,10 +309,10 @@
 .project-readiness-action,
 .project-readiness-strip > div {
   min-width: 0;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-card);
-  background: var(--card-bg);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--field-bg);
+  box-shadow: none;
 }
 
 .project-readiness-quick-card {
@@ -349,7 +355,7 @@
 
 .project-readiness-dot.ready {
   background: var(--green);
-  box-shadow: 0 0 0 4px var(--green-glow);
+  box-shadow: var(--focus-ring);
 }
 
 .project-readiness-primary,
@@ -461,31 +467,36 @@
   gap: var(--space-sm);
 }
 
+/* Fused hairline fact grid — the 1px gap is the shared border. */
 .workbench-fact-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-md);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
 
 .workbench-fact-grid div {
   min-width: 0;
   display: grid;
   gap: var(--space-xs);
-  padding: var(--space-md);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-card);
-  background: var(--bg-well);
+  padding: 16px 18px;
+  background: var(--bg);
 }
 
 .workbench-fact-grid span {
-  color: var(--t4);
-  font-size: var(--fs-11);
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
 }
 
 .workbench-fact-grid strong,
 .workbench-fact-grid code {
   min-width: 0;
   color: var(--t1);
+  font-family: var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -579,18 +590,26 @@
   background: var(--control-bg-hover);
 }
 
+/* Summary metric strip — fused hairline grid; cells share the 1px border. */
 .project-readiness-strip {
-  padding: var(--space-3xl) var(--space-2xl) var(--space-4xl);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin: 0 var(--space-2xl) var(--space-2xl);
 }
 
 .project-readiness-strip > div {
-  padding: var(--space-lg);
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+  padding: 16px 18px;
 }
 
 .project-readiness-strip strong {
   display: block;
   margin-top: var(--space-sm);
-  color: var(--t2);
+  color: var(--t1);
+  font-family: var(--mono);
   font-size: var(--fs-12);
   line-height: var(--lh-normal);
 }

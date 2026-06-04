@@ -1,3 +1,11 @@
+/* ============================================================
+   Integration Command Center — operator-console rework.
+   Hairline structure, fused grids, flat recessed rows, mono
+   numbers, one green per view. Vendor hue is contained to the
+   monogram tile + 2px card accent only (driven by VendorCard).
+   Every value resolves to a token. No decorative shadows.
+   ============================================================ */
+
 .icc-shell {
   display: flex;
   flex-direction: column;
@@ -11,52 +19,52 @@
   color: var(--t1);
 }
 
+/* ---------------- header ---------------- */
 .icc-header {
   flex-shrink: 0;
   display: grid;
   gap: 6px;
-  padding: 8px var(--drawer-space-inline) var(--drawer-space-block);
+  padding: 10px var(--drawer-space-inline) var(--drawer-space-block);
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel-header-bg);
 }
 
 .icc-header-kicker {
-  color: var(--text-muted);
-  font-size: var(--fs-10);
-  font-weight: var(--fw-bold);
-  letter-spacing: 0;
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
+  color: var(--t3);
 }
 
 .icc-header-title {
-  max-width: 700px;
-  margin: 0;
+  font-size: var(--type-section-title-size);
+  font-weight: var(--fw-semibold);
+  line-height: var(--type-section-title-line);
   color: var(--t1);
-  font-size: var(--fs-16);
-  font-weight: var(--fw-bold);
-  line-height: 1.2;
 }
 
 .icc-header-subtitle {
-  max-width: 780px;
-  margin: 0;
-  color: var(--t3);
+  max-width: 620px;
   font-size: var(--fs-12);
-  line-height: 1.5;
+  line-height: var(--lh-normal);
+  color: var(--t3);
 }
 
+/* ---------------- metrics (KpiGrid) ---------------- */
 .icc-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr));
-  gap: var(--space-sm);
-  padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: var(--drawer-space-block) var(--drawer-space-inline);
   flex-shrink: 0;
 }
 
+/* ---------------- toolbar: search + category chips ---------------- */
 .icc-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 0.85fr) minmax(0, 1.15fr);
   gap: 12px;
+  align-items: center;
   padding: 0 var(--drawer-space-inline) var(--drawer-space-block);
   flex-shrink: 0;
 }
@@ -64,19 +72,21 @@
 .icc-search {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--control-border);
-  border-radius: var(--drawer-control-radius);
-  background: var(--control-bg);
+  height: 36px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--field-bg);
   color: var(--t1);
   font: inherit;
-  font-size: var(--fs-12);
+  font-size: var(--fs-13);
   outline: none;
-  padding: 10px 12px;
+  padding: 0 12px;
 }
 
+.icc-search::placeholder { color: var(--t3); }
+
 .icc-search:focus {
-  border-color: var(--focus);
-  box-shadow: var(--focus-ring);
+  border-color: var(--accent-line);
 }
 
 .icc-filter-row {
@@ -85,26 +95,34 @@
   gap: 6px;
   min-width: 0;
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .icc-filter {
   flex: 0 0 auto;
-  border: 1px solid var(--control-border);
-  border-radius: var(--drawer-control-radius);
-  background: var(--control-bg);
-  color: var(--t3);
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--t2);
   cursor: pointer;
-  font: inherit;
+  font-family: var(--mono);
   font-size: var(--fs-11);
-  padding: 8px 10px;
+  padding: 0 12px;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
+.icc-filter:hover { border-color: var(--line-2); color: var(--t1); }
+
 .icc-filter.active {
-  border-color: var(--tab-active-border);
-  background: var(--tab-active-bg);
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
   color: var(--t1);
 }
 
+/* ---------------- layout: list | detail ---------------- */
 .icc-layout {
   flex: 1 1 auto;
   display: grid;
@@ -123,2149 +141,638 @@
   scrollbar-gutter: stable;
 }
 
+/* list = stacked category groups, each fusing its cards on a hairline grid */
 .icc-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 22px;
   padding-right: 2px;
 }
 
-/* ============================================================
-   Integration list cards — branded art driver
-   Every card (enabled OR off) gets its partner art. OFF cards
-   are veiled & desaturated with an "Enable" CTA badge — they
-   read as "available, click to enable", never as broken stubs.
-   ============================================================ */
-
-.icc-card {
-  position: relative;
+.icc-list-group {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-sm);
-  width: 100%;
-  min-height: 156px;
-  align-items: start;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  background: var(--card-bg);
-  color: inherit;
-  cursor: pointer;
-  padding: var(--space-md);
-  text-align: left;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    box-shadow var(--dur-base) var(--ease-out-quint);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
 
-.icc-card:hover {
-  border-color: color-mix(in srgb, var(--ic-accent, var(--green)) 42%, var(--card-border));
-  box-shadow: var(--shadow-md);
-}
-
-.icc-card.selected {
-  border-color: color-mix(in srgb, var(--ic-accent, var(--green)) 64%, var(--card-border));
-  box-shadow: var(--shadow-md), inset 3px 0 0 var(--ic-accent, var(--green));
-}
-
-.icc-card:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .icc-card:hover { transition: none; }
-}
-
-/* ---- Generic branded card driver (consumes --ic-* tokens) ---- */
-.icc-card[data-brand] {
-  align-items: center;
-  border-color: color-mix(in srgb, var(--ic-accent) 32%, var(--card-border));
-  background: var(--ic-surface, var(--card-bg));
-}
-
-.icc-card[data-brand]::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg,
-      rgba(var(--ic-scrim), 0.96) 0%,
-      rgba(var(--ic-scrim), 0.72) 45%,
-      rgba(var(--ic-scrim), var(--ic-scrim-edge, 0.3)) 100%),
-    linear-gradient(0deg,
-      rgba(var(--ic-scrim), 0.9) 0%,
-      rgba(var(--ic-scrim), 0.16) 58%,
-      rgba(var(--ic-scrim), 0.64) 100%),
-    var(--ic-image);
-  background-position: var(--ic-image-pos, center right);
-  background-size: var(--ic-image-size, cover);
-  background-repeat: no-repeat;
-  opacity: 0.96;
-  transition: opacity var(--dur-base) var(--ease-out-quint), filter var(--dur-base) var(--ease-out-quint);
-}
-
-.icc-card[data-brand] .icc-status-dot,
-.icc-card[data-brand] .icc-card-main {
-  position: relative;
-  z-index: 1;
-}
-
-.icc-card[data-brand] .icc-status-dot {
-  background: var(--ic-dot, var(--ic-accent));
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--ic-accent) 16%, transparent),
-    0 0 18px color-mix(in srgb, var(--ic-accent) 24%, transparent);
-}
-
-.icc-card[data-brand] .icc-card-name {
-  color: var(--ic-name, var(--on-accent));
-}
-
-.icc-card[data-brand] .icc-card-tagline {
-  max-width: 260px;
-  color: var(--ic-text, rgba(255, 255, 255, 0.82));
-}
-
-.icc-card[data-brand] .icc-card-desc {
-  max-width: 320px;
-  color: var(--ic-muted, rgba(255, 255, 255, 0.7));
-}
-
-.icc-card[data-brand] .icc-status-badge:not(.off):not(.partial):not(.missing) {
-  border-color: var(--ic-badge-border, color-mix(in srgb, var(--ic-accent) 42%, var(--card-border)));
-  background: var(--ic-badge-bg, color-mix(in srgb, var(--ic-accent) 14%, transparent));
-  color: var(--ic-badge-color, rgba(255, 255, 255, 0.94));
-  backdrop-filter: blur(6px);
-}
-
-.icc-card[data-brand]:hover,
-.icc-card[data-brand].selected {
-  border-color: color-mix(in srgb, var(--ic-accent) 66%, var(--card-border));
-}
-
-/* Special art: kausalayer — radial glow + offset SVG mark */
-.icc-card[data-brand='kausalayer'] .icc-status-dot {
-  background: linear-gradient(135deg, var(--brand-kausalayer), var(--brand-kausalayer-warm));
-}
-
-.icc-card[data-brand='kausalayer']::before {
-  background:
-    radial-gradient(circle at 84% 38%, color-mix(in srgb, var(--brand-kausalayer-warm) 28%, transparent) 0 11%, transparent 30%),
-    radial-gradient(circle at 76% 68%, color-mix(in srgb, var(--brand-kausalayer) 30%, transparent) 0 12%, transparent 34%),
-    linear-gradient(90deg, rgba(3, 17, 15, 0.96) 0%, rgba(3, 17, 15, 0.76) 45%, rgba(3, 17, 15, 0.3) 100%),
-    linear-gradient(0deg, rgba(3, 17, 15, 0.9) 0%, rgba(3, 17, 15, 0.14) 58%, rgba(3, 17, 15, 0.64) 100%),
-    url('/kausalayer.svg');
-  background-position: center, center, center, center, right 24px center;
-  background-repeat: no-repeat;
-  background-size: auto, auto, auto, auto, auto 76%;
-}
-
-/* Special art: phantom — lighter veil to show the purple art */
-.icc-card[data-brand='phantom']::before {
-  background:
-    linear-gradient(90deg, rgba(18, 13, 36, 0.9) 0%, rgba(18, 13, 36, 0.66) 45%, rgba(18, 13, 36, 0.28) 100%),
-    linear-gradient(0deg, rgba(18, 13, 36, 0.78) 0%, rgba(18, 13, 36, 0.2) 58%, rgba(18, 13, 36, 0.42) 100%),
-    url('/phantom.png');
-  background-position: center right;
-  background-size: cover;
-  background-repeat: no-repeat;
-}
-
-/* Special theme: idle-protocol — light "paper" treatment */
-.icc-card[data-brand='idle'] {
-  border-color: rgba(45, 95, 76, 0.42);
-  background: #f2ebdd;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), var(--shadow-sm);
-}
-
-.icc-card[data-brand='idle']::before {
-  background:
-    linear-gradient(90deg, rgba(242, 235, 221, 0.98) 0%, rgba(242, 235, 221, 0.9) 44%, rgba(242, 235, 221, 0.68) 100%),
-    repeating-linear-gradient(0deg, rgba(45, 95, 76, 0.08) 0 1px, transparent 1px 27px),
-    repeating-linear-gradient(90deg, rgba(45, 95, 76, 0.07) 0 1px, transparent 1px 32px),
-    linear-gradient(135deg, #fbfaf6 0%, #f2ebdd 52%, #dfe2d5 100%);
-}
-
-.icc-card[data-brand='idle']::after {
-  content: 'x402  /  5 min  /  paid endpoints';
-  position: absolute;
-  right: 14px;
-  bottom: 11px;
-  z-index: 1;
-  max-width: 42%;
-  overflow: hidden;
-  color: rgba(45, 95, 76, 0.72);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: var(--fs-9);
-  font-weight: 700;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.icc-card[data-brand='idle']:hover,
-.icc-card[data-brand='idle'].selected {
-  border-color: rgba(45, 95, 76, 0.7);
-}
-
-.icc-card[data-brand='idle'] .icc-status-dot {
-  background: #2d5f4c;
-  box-shadow: 0 0 0 3px rgba(45, 95, 76, 0.16), 0 0 18px rgba(45, 95, 76, 0.18);
-}
-
-.icc-card[data-brand='idle'] .icc-card-name {
-  color: #1a1a1a;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--fs-16);
-}
-
-.icc-card[data-brand='idle'] .icc-card-tagline {
-  max-width: 260px;
-  color: rgba(26, 26, 26, 0.72);
-}
-
-.icc-card[data-brand='idle'] .icc-card-desc {
-  max-width: 320px;
-  color: rgba(26, 26, 26, 0.6);
-}
-
-.icc-card[data-brand='idle'] .icc-status-badge {
-  border-color: rgba(45, 95, 76, 0.28);
-  background: rgba(45, 95, 76, 0.1);
-  color: #2d5f4c;
-}
-
-/* ============================================================
-   OFF state — premium: art still visible but veiled & desaturated.
-   Badge becomes an "Enable" CTA. Hovering brightens the art.
-   Reads as "available", never "broken".
-   ============================================================ */
-.icc-card.icc-card--off {
-  background: color-mix(in srgb, var(--card-bg) 88%, var(--s0));
-}
-
-.icc-card--off[data-brand]::before {
-  filter: saturate(0.35) brightness(0.78);
-  opacity: 0.62;
-}
-
-.icc-card--off[data-brand] .icc-card-name {
-  color: color-mix(in srgb, var(--ic-name, var(--on-accent)) 78%, transparent);
-}
-
-.icc-card--off[data-brand] .icc-card-tagline {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.icc-card--off[data-brand] .icc-card-desc {
-  color: rgba(255, 255, 255, 0.42);
-}
-
-.icc-card--off[data-brand] .icc-status-dot {
-  background: rgba(255, 255, 255, 0.32);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
-}
-
-.icc-card--off .icc-status-badge.off {
-  border-color: color-mix(in srgb, var(--border-strong) 72%, transparent);
-  background: color-mix(in srgb, var(--bg-card) 68%, transparent);
-  color: var(--text-secondary);
-  backdrop-filter: blur(8px);
-}
-
-.icc-card--off:hover[data-brand]::before {
-  filter: saturate(0.85) brightness(0.95);
-  opacity: 0.92;
-}
-
-.icc-card--off:hover .icc-status-badge.off,
-.icc-card--off.selected .icc-status-badge.off {
-  border-color: var(--border-strong);
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-}
-
-/* Idle OFF uses paper colors, not white-on-dark */
-.icc-card--off[data-brand='idle']::before { filter: saturate(0.6) brightness(0.96); opacity: 0.86; }
-.icc-card--off[data-brand='idle'] .icc-card-name { color: rgba(26, 26, 26, 0.7); }
-.icc-card--off[data-brand='idle'] .icc-card-tagline { color: rgba(26, 26, 26, 0.5); }
-.icc-card--off[data-brand='idle'] .icc-card-desc { color: rgba(26, 26, 26, 0.42); }
-.icc-card--off[data-brand='idle']::after { color: rgba(45, 95, 76, 0.42); }
-.icc-card--off[data-brand='idle'] .icc-status-badge.off {
-  border-color: rgba(45, 95, 76, 0.28);
-  background: rgba(255, 255, 255, 0.5);
-  color: rgba(26, 26, 26, 0.64);
-}
-.icc-card--off[data-brand='idle']:hover .icc-status-badge.off,
-.icc-card--off[data-brand='idle'].selected .icc-status-badge.off {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(45, 95, 76, 0.4);
-  color: #1a1a1a;
-}
-
-/* ---- Per-brand tokens (shared by card + detail header) ---- */
-[data-brand='streamlock'] {
-  --ic-accent: rgba(255, 255, 255, 0.82);
-  --ic-surface: var(--integration-surface-neutral);
-  --ic-image: url('/streamlock.png');
-  --ic-scrim: 5, 6, 7;
-  --ic-scrim-edge: 0.34;
-  --ic-dot: rgba(255, 255, 255, 0.86);
-}
-
-[data-brand='zauth'] {
-  --ic-accent: rgba(255, 255, 255, 0.86);
-  --ic-surface: var(--integration-surface-neutral-strong);
-  --ic-image: url('/zauth.png');
-  --ic-scrim: 6, 6, 6;
-  --ic-scrim-edge: 0.18;
-  --ic-dot: rgba(255, 255, 255, 0.88);
-}
-
-[data-brand='helius'] {
-  --ic-accent: var(--brand-helius);
-  --ic-surface: var(--integration-surface-helius);
-  --ic-image: url('/helius.png');
-  --ic-image-pos: right 38%;
-  --ic-image-size: auto 122%;
-  --ic-detail-image-pos: right 36%;
-  --ic-detail-image-size: auto 124%;
-  --ic-scrim: 3, 5, 8;
-  --ic-scrim-edge: 0.32;
-}
-
-[data-brand='sendai'] {
-  --ic-accent: var(--brand-sendai);
-  --ic-surface: var(--integration-surface-sendai);
-  --ic-image: url('/sendai.png');
-  --ic-scrim: 3, 7, 18;
-  --ic-scrim-edge: 0.34;
-}
-
-[data-brand='spawnagents'] {
-  --ic-accent: var(--brand-spawnagents);
-  --ic-surface: var(--integration-surface-spawnagents);
-  --ic-image: url('/spawnagents.png');
-  --ic-detail-image: url('/spawnagents.jpg');
-  --ic-scrim: 10, 6, 8;
-  --ic-scrim-edge: 0.28;
-  --ic-badge-color: rgba(255, 220, 226, 0.94);
-}
-
-[data-brand='jupiter'] {
-  --ic-accent: var(--brand-jupiter);
-  --ic-surface: var(--integration-surface-jupiter);
-  --ic-image: url('/jupiter.png');
-  --ic-scrim: 3, 10, 16;
-  --ic-scrim-edge: 0.28;
-  --ic-badge-color: rgba(211, 255, 236, 0.9);
-}
-
-[data-brand='metaplex'] {
-  --ic-accent: var(--brand-metaplex);
-  --ic-surface: var(--integration-surface-jupiter);
-  --ic-image: url('/metaplex.png');
-  --ic-scrim: 3, 8, 12;
-  --ic-scrim-edge: 0.28;
-  --ic-badge-color: rgba(220, 255, 232, 0.9);
-}
-
-[data-brand='light'] {
-  --ic-accent: var(--brand-light);
-  --ic-surface: var(--integration-surface-light);
-  --ic-image: url('/lightprotocol.png');
-  --ic-scrim: 2, 8, 12;
-  --ic-scrim-edge: 0.28;
-  --ic-badge-color: rgba(211, 255, 250, 0.9);
-}
-
-[data-brand='magicblock'] {
-  --ic-accent: var(--brand-magicblock);
-  --ic-surface: var(--integration-surface-magicblock);
-  --ic-image: url('/majicblock.png');
-  --ic-scrim: 4, 7, 18;
-  --ic-scrim-edge: 0.18;
-  --ic-badge-color: rgba(216, 231, 255, 0.9);
-}
-
-[data-brand='debridge'] {
-  --ic-accent: rgba(255, 255, 255, 0.84);
-  --ic-surface: var(--integration-surface-debridge);
-  --ic-image: url('/debrige.png');
-  --ic-scrim: 5, 5, 6;
-  --ic-scrim-edge: 0.26;
-  --ic-dot: rgba(255, 255, 255, 0.86);
-}
-
-[data-brand='squads'] {
-  --ic-accent: rgba(255, 255, 255, 0.84);
-  --ic-surface: var(--integration-surface-squads);
-  --ic-image: url('/squads.png');
-  --ic-scrim: 4, 4, 5;
-  --ic-scrim-edge: 0.24;
-  --ic-dot: rgba(255, 255, 255, 0.86);
-}
-
-[data-brand='kausalayer'] {
-  --ic-accent: var(--brand-kausalayer);
-  --ic-surface: var(--integration-surface-kausalayer);
-  --ic-scrim: 3, 17, 15;
-  --ic-scrim-edge: 0.3;
-  --ic-badge-color: rgba(227, 255, 249, 0.92);
-}
-
-/* phantom token block */
-[data-brand='phantom'] {
-  --ic-accent: var(--brand-phantom);
-  --ic-surface: var(--integration-surface-phantom);
-  --ic-image: url('/phantom.png');
-  --ic-scrim: 18, 13, 36;
-  --ic-badge-color: rgba(244, 239, 255, 0.92);
-}
-
-/* idle-protocol has no partner art — monogram glyph keeps its leaf-green accent */
-[data-brand='idle'] {
-  --ic-accent: #2d5f4c;
-}
-
-
-.icc-status-dot {
-  margin-top: 6px;
-}
-
-.icc-status-dot.ready { background: var(--green); }
-.icc-status-dot.partial { background: var(--amber); }
-.icc-status-dot.missing { background: var(--t3); }
-.icc-status-dot.off { background: color-mix(in srgb, var(--t4) 58%, transparent); }
-
-.icc-card-main {
+.icc-list-group-header {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  min-width: 0;
-  overflow: hidden;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
 
-.icc-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-.icc-card-name {
-  font-size: var(--fs-13);
-  font-weight: 750;
-  color: var(--t1);
-}
-
-.icc-card-title-wrap {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.icc-card-category {
-  color: var(--t4);
-  font-size: var(--fs-10);
-  font-weight: 700;
+.icc-list-group-label {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-}
-
-.icc-card-tagline {
-  font-size: var(--fs-11);
   color: var(--t3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.icc-card-desc {
-  font-size: var(--fs-11);
-  line-height: 1.45;
-  color: var(--t4);
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.icc-card-setup {
-  margin-top: 2px;
-  color: var(--text-secondary);
-  font-size: var(--fs-11);
-  line-height: 1.35;
-}
-
-.icc-card-setup.warning {
-  color: var(--accent-amber);
-}
-
-.icc-card-action {
-  width: fit-content;
-  margin-top: var(--space-xs);
-  color: var(--text-secondary);
-  font-size: var(--fs-11);
-  font-weight: 700;
-}
-
-.icc-status-badge {
-  flex: 0 0 auto;
-  border-radius: var(--radius-pill);
-}
-
-.icc-status-badge.ready {
-  border-color: rgba(20, 241, 149, 0.3);
-  color: var(--green);
-}
-
-.icc-status-badge.partial {
-  border-color: rgba(245, 158, 11, 0.35);
-  color: var(--amber);
-}
-
-.icc-status-badge.off {
-  border-color: color-mix(in srgb, var(--card-border) 82%, transparent);
-  background: color-mix(in srgb, var(--s1) 70%, transparent);
+.icc-list-group-count {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
   color: var(--t4);
 }
 
+/* cards: VendorCard renders chrome; here we only strip its border so the
+   1px grid gap becomes the shared hairline, and put cells on the void. */
+.icc-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--bg) !important;
+  min-height: 150px;
+}
+
+.icc-card:hover:not(:disabled) {
+  background: var(--s1) !important;
+}
+
+.icc-card--off { opacity: 0.78; }
+.icc-card--off:hover:not(:disabled) { opacity: 1; }
+
+/* ---------------- detail pane ---------------- */
 .icc-detail {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border: 1px solid var(--s5);
-  border-radius: var(--radius-lg);
-  background: var(--s2);
-  padding: 12px;
-}
-
-.icc-detail-pin {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  max-height: 0;
-  margin: 0;
-  padding: 0 10px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--ic-accent, var(--green)) 18%, var(--card-border));
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--s1) 94%, transparent);
-  box-shadow: var(--shadow-sm);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-6px);
-  transition:
-    max-height var(--transition-fast),
-    padding var(--transition-fast),
-    opacity var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.icc-detail-pin.visible {
-  max-height: 52px;
-  padding: 8px 10px;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.icc-detail-pin-glyph {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--ic-accent, var(--green)) 12%, var(--s2));
-  color: color-mix(in srgb, var(--ic-accent, var(--green)) 48%, var(--t1));
-  font-size: var(--fs-12);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.icc-detail-pin-copy {
-  display: grid;
-  min-width: 0;
-}
-
-.icc-detail-pin-kicker,
-.icc-detail-pin-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.icc-detail-pin-kicker {
-  color: var(--t4);
-  font-size: var(--fs-9);
-  font-weight: var(--fw-bold);
-  text-transform: uppercase;
-}
-
-.icc-detail-pin-name {
-  color: var(--t1);
-  font-size: var(--fs-12);
-  font-weight: var(--fw-bold);
-}
-
-.icc-detail-kicker,
-.icc-section-title,
-.icc-install span {
-  display: block;
-  color: var(--t4);
-  font-size: var(--fs-10);
-  font-weight: 750;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.icc-detail h2 {
-  margin: 4px 0 0;
-  font-size: var(--fs-16);
-  line-height: 1.2;
+  gap: 20px;
+  border: 1px solid var(--line);
+  background: var(--s1);
+  padding: 18px 20px;
 }
 
 .icc-detail-heading {
   display: grid;
-  gap: 4px;
-  padding: 2px 2px 6px;
+  gap: 7px;
+}
+
+.icc-detail-kicker {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.icc-detail-heading h2 {
+  font-size: var(--fs-18);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  color: var(--t1);
 }
 
 .icc-detail-heading p {
-  max-width: 68ch;
+  max-width: 640px;
+  font-size: var(--fs-13);
+  line-height: 1.6;
+  color: var(--t2);
 }
 
-.icc-detail p {
-  margin: 8px 0 0;
-  color: var(--t3);
-  font-size: var(--fs-12);
-  line-height: 1.5;
-}
-
-.icc-detail-section {
+/* pinned mini-header that appears on scroll */
+.icc-detail-pin {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 10px;
+  margin: -18px -20px 0;
+  padding: 10px 20px;
+  background: color-mix(in srgb, var(--s1) 92%, transparent);
+  border-bottom: 1px solid var(--line);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
 }
 
-.icc-integration-off {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--s1) 82%, transparent);
+.icc-detail-pin.visible { opacity: 1; pointer-events: auto; }
+
+.icc-detail-pin-glyph {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--t2);
+}
+
+.icc-detail-pin-copy { display: grid; gap: 1px; }
+.icc-detail-pin-kicker {
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.icc-detail-pin-name { font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-detail-pin .icc-status-badge { margin-left: auto; }
+
+.icc-detail-section { display: grid; gap: 10px; }
+
+.icc-section-title {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
 }
 
 .icc-integration-off p {
-  margin: 0;
+  font-size: var(--fs-13);
+  line-height: 1.6;
+  color: var(--t2);
 }
 
-.icc-detail-section--compact {
-  gap: 8px;
+/* "Best for" tag chips */
+.icc-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.icc-tags span {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--wash-2);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--t2);
 }
 
-.icc-requirements,
-.icc-actions,
-.icc-result-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* install command block — recessed mono on code-bg */
+.icc-install {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
+.icc-install span {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.icc-install code {
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  color: var(--t2);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* ---------------- requirements (setup rows) ---------------- */
+.icc-requirements { display: flex; flex-direction: column; gap: 8px; }
 
 .icc-requirement {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--space-sm);
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
 
-.icc-requirement.ready {
-  border-color: rgba(20, 241, 149, 0.14);
-}
+.icc-requirement.ready { border-color: var(--accent-line); }
 
-.icc-requirement-dot {
-  margin-top: 4px;
-}
-
-.icc-requirement-label,
-.icc-requirement-detail {
-  display: block;
-}
+.icc-requirement-dot { margin-top: 0; }
 
 .icc-requirement-label {
-  color: var(--t2);
-  font-size: var(--fs-12);
-  font-weight: 700;
+  display: block;
+  color: var(--t1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+}
+
+.icc-requirement-detail {
+  display: block;
+  margin-top: 3px;
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
 }
 
 .icc-optional {
-  color: var(--t4);
-  font-size: var(--fs-10);
-  font-weight: 600;
-}
-
-.icc-requirement-detail {
-  margin-top: 2px;
-  color: var(--t4);
-  font-size: var(--fs-11);
-}
-
-.icc-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.icc-tags span {
-  border: 1px solid var(--s5);
-  border-radius: var(--radius-sm);
-  color: var(--t3);
-  font-size: var(--fs-11);
-  padding: 6px 8px;
-}
-
-.icc-install {
-  display: grid;
-  gap: 7px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--s1);
-}
-
-.icc-install code,
-.icc-result-items code {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--t2);
-  font-size: var(--fs-11);
-}
-
-.icc-setup-workflow {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--s2);
-}
-
-.icc-setup-workflow--secondary {
-  border-color: var(--border);
-  background: var(--s2);
-}
-
-.icc-idle-workflow {
-  border-color: rgba(45, 95, 76, 0.28);
-  background:
-    repeating-linear-gradient(0deg, rgba(45, 95, 76, 0.055) 0 1px, transparent 1px 30px),
-    linear-gradient(180deg, #fbfaf6 0%, #f2ebdd 100%);
-  color: #1a1a1a;
-}
-
-.icc-idle-workflow .icc-setup-head h3,
-.icc-idle-workflow .icc-step-main strong,
-.icc-idle-workflow .icc-result-title {
-  color: #1a1a1a;
-}
-
-.icc-idle-workflow .icc-setup-head p,
-.icc-idle-workflow .icc-step-main p,
-.icc-idle-workflow .icc-result p,
-.icc-idle-workflow .icc-inline-note {
-  color: rgba(26, 26, 26, 0.64);
-}
-
-.icc-idle-head h3 {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: var(--fs-18);
-}
-
-.icc-idle-kicker {
-  color: #2d5f4c;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: var(--fs-10);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.icc-idle-status {
-  flex: 0 0 auto;
-  border: 1px solid rgba(45, 95, 76, 0.18);
-  border-radius: var(--radius-pill);
-  background: rgba(45, 95, 76, 0.08);
-  color: #2d5f4c;
+  margin-left: 6px;
+  font-family: var(--mono);
   font-size: var(--fs-9);
-  font-weight: 800;
-  padding: 6px 9px;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
+  color: var(--t4);
 }
 
-.icc-idle-status.partial {
-  border-color: rgba(26, 26, 26, 0.14);
-  background: rgba(255, 255, 255, 0.54);
-  color: rgba(26, 26, 26, 0.56);
+/* ---------------- status badge (mono hairline pill) ---------------- */
+.icc-status-badge {
+  flex: 0 0 auto;
+  font-family: var(--mono);
 }
+.icc-status-badge.ready { border-color: var(--accent-line); color: var(--green); }
+.icc-status-badge.partial,
+.icc-status-badge.missing { border-color: color-mix(in srgb, var(--amber) 36%, transparent); color: var(--amber); }
+.icc-status-badge.off { border-color: var(--line); color: var(--t3); }
 
-.icc-idle-pipeline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 8px;
-  border: 1px solid rgba(45, 95, 76, 0.18);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.52);
-}
-
-.icc-idle-pipeline span {
+/* ---------------- risk pill ---------------- */
+.icc-risk {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #1a1a1a;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: var(--fs-10);
-  font-weight: 800;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
+  color: var(--t3);
 }
+.icc-risk--read-only { border-color: var(--accent-line); color: var(--green); }
+.icc-risk--requires-confirmation { border-color: color-mix(in srgb, var(--amber) 36%, transparent); color: var(--amber); }
+.icc-risk--transaction { border-color: color-mix(in srgb, var(--red) 36%, transparent); color: var(--red); }
 
-.icc-idle-pipeline small {
-  color: rgba(45, 95, 76, 0.5);
-  font-size: var(--fs-10);
-}
-
-.icc-idle-resource-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.icc-idle-resource-card {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid rgba(26, 26, 26, 0.1);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 1px 2px rgba(26, 26, 26, 0.05);
-}
-
-.icc-idle-resource-top {
+/* ---------------- AI setup callout ---------------- */
+.icc-ai-setup {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 14px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
-
-.icc-idle-resource-top span,
-.icc-idle-settlement span {
-  color: rgba(45, 95, 76, 0.78);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
-  font-size: var(--fs-9);
-  font-weight: 800;
+.icc-ai-setup-copy { display: grid; gap: 4px; min-width: 0; }
+.icc-ai-setup-copy strong { font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-ai-setup-copy p { font-size: var(--fs-12); line-height: 1.5; color: var(--t3); }
+.icc-ai-setup-copy small { font-family: var(--mono); font-size: var(--fs-10); color: var(--t4); }
+.icc-mini-title {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
+  color: var(--t3);
 }
 
-.icc-idle-resource-top strong {
-  color: #2d5f4c;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+/* ---------------- buttons (primary / secondary / step / ai) ---------------- */
+.icc-primary,
+.icc-secondary,
+.icc-step-action,
+.icc-ai-setup-button {
+  flex: 0 0 auto;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  font-family: var(--ui);
   font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.icc-idle-resource-card h4 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: var(--fs-13);
-  font-weight: var(--fw-bold);
-  line-height: 1.2;
+.icc-secondary,
+.icc-step-action,
+.icc-ai-setup-button {
+  background: var(--s2);
+  color: var(--t1);
 }
+.icc-secondary:hover:not(:disabled),
+.icc-step-action:hover:not(:disabled),
+.icc-ai-setup-button:hover:not(:disabled) { background: var(--s3); border-color: var(--line-strong); }
 
-.icc-idle-resource-card p,
-.icc-idle-resource-card code {
-  margin: 0;
-  color: rgba(26, 26, 26, 0.56);
-  font-size: var(--fs-11);
+/* the one green primary per view */
+.icc-primary {
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
 }
+.icc-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
 
-.icc-idle-resource-card code {
-  color: #2d5f4c;
-}
+.icc-primary:disabled,
+.icc-secondary:disabled,
+.icc-step-action:disabled,
+.icc-ai-setup-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.icc-idle-settlement {
+/* ---------------- guided workflow chrome ---------------- */
+.icc-setup-workflow {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid rgba(45, 95, 76, 0.16);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.48);
-}
-
-.icc-idle-settlement div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px;
-  border-right: 1px solid rgba(45, 95, 76, 0.12);
-}
-
-.icc-idle-settlement div:last-child {
-  border-right: 0;
-}
-
-.icc-idle-settlement strong {
-  color: #1a1a1a;
-  font-size: var(--fs-12);
-  font-weight: 760;
-}
-
-.icc-idle-workflow .icc-ai-setup {
-  border-color: rgba(45, 95, 76, 0.22);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.icc-idle-workflow .icc-ai-setup-copy strong {
-  color: #1a1a1a;
-}
-
-.icc-idle-workflow .icc-ai-setup-copy p {
-  color: rgba(26, 26, 26, 0.62);
-}
-
-.icc-idle-workflow .icc-ai-setup-copy small {
-  color: #2d5f4c;
-}
-
-.icc-idle-workflow .icc-ai-setup-button,
-.icc-idle-workflow .icc-primary {
-  border-color: #1a1a1a;
-  background: #1a1a1a;
-  color: #f2ebdd;
-}
-
-.icc-idle-workflow .icc-ai-setup-button:hover:not(:disabled),
-.icc-idle-workflow .icc-primary:hover:not(:disabled) {
-  border-color: #2d5f4c;
-  background: #2d5f4c;
-  color: #ffffff;
-}
-
-.icc-idle-workflow .icc-secondary {
-  border-color: rgba(26, 26, 26, 0.14);
-  background: rgba(255, 255, 255, 0.66);
-  color: #1a1a1a;
-}
-
-.icc-idle-workflow .icc-secondary:hover:not(:disabled) {
-  border-color: rgba(45, 95, 76, 0.3);
-  background: rgba(255, 255, 255, 0.88);
-  color: #2d5f4c;
-}
-
-.icc-idle-workflow .icc-step,
-.icc-idle-workflow .icc-result,
-.icc-idle-workflow .icc-inline-note {
-  border-color: rgba(26, 26, 26, 0.1);
-  background: rgba(255, 255, 255, 0.56);
-}
-
-.icc-idle-workflow .icc-step-index {
-  border-color: rgba(45, 95, 76, 0.2);
-  background: rgba(45, 95, 76, 0.08);
-  color: #2d5f4c;
-}
-
-.icc-idle-workflow .icc-result-items code {
-  color: #2d5f4c;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--s1);
 }
 
 .icc-setup-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
-
 .icc-setup-head h3 {
-  margin: 5px 0 0;
-  color: var(--t1);
+  margin-top: 2px;
   font-size: var(--fs-15);
-  line-height: 1.25;
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
 }
-
 .icc-setup-head p {
-  margin: 5px 0 0;
+  margin-top: 4px;
+  max-width: 560px;
+  font-size: var(--fs-12);
+  line-height: 1.55;
   color: var(--t3);
-  font-size: var(--fs-11);
-  line-height: 1.45;
 }
 
+/* next-step / guided-next box */
 .icc-guided-next {
   display: grid;
-  gap: 6px;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--s1);
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
+.icc-guided-next strong { font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-guided-next p { font-size: var(--fs-12); line-height: 1.5; color: var(--t3); }
+.icc-guided-next--quiet { background: var(--wash-2); }
 
-.icc-guided-next--quiet {
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.icc-guided-next strong {
-  color: var(--t1);
-  font-size: var(--fs-14);
-  font-weight: var(--fw-bold);
-  line-height: 1.2;
-}
-
-.icc-guided-next p {
-  margin: 0;
-  color: var(--t3);
-  font-size: var(--fs-11);
-  line-height: 1.45;
-}
-
-.icc-ai-setup {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  padding: 13px;
-  border: 1px solid rgba(20, 241, 149, 0.3);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgba(20, 241, 149, 0.12), rgba(255, 255, 255, 0.03));
-}
-
-.icc-ai-setup-copy {
-  min-width: 0;
-}
-
-.icc-ai-setup-copy strong {
-  display: block;
-  margin-top: 4px;
-  color: var(--t1);
-  font-size: var(--fs-15);
-  line-height: 1.2;
-}
-
-.icc-ai-setup-copy p {
-  margin: 5px 0 0;
-  color: var(--t3);
-  font-size: var(--fs-11);
-  line-height: 1.45;
-}
-
-.icc-ai-setup-copy small {
-  display: block;
-  margin-top: 6px;
-  color: var(--green);
-  font-size: var(--fs-10);
-  font-weight: 750;
-}
-
-.icc-ai-setup-button {
-  min-height: 40px;
-  border: 1px solid rgba(20, 241, 149, 0.45);
-  border-radius: var(--drawer-control-radius);
-  background: var(--green);
-  color: var(--bg);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-12);
-  font-weight: 800;
-  padding: 0 14px;
-  white-space: nowrap;
-}
-
-.icc-ai-setup-button:hover:not(:disabled) {
-  background: var(--green-dim);
-  border-color: var(--green-dim);
-}
-
-.icc-ai-setup-button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.icc-quick-wallet {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
-  gap: 12px;
-  align-items: end;
-  padding: 12px;
-  border: 1px solid rgba(167, 139, 250, 0.28);
-  border-radius: var(--radius-md);
-  background: rgba(167, 139, 250, 0.08);
-}
-
-.icc-quick-wallet-copy {
-  min-width: 0;
-}
-
-.icc-quick-wallet-copy strong {
-  display: block;
-  margin-top: 4px;
-  color: var(--t1);
-  font-size: var(--fs-14);
-  line-height: 1.2;
-}
-
-.icc-quick-wallet-copy p {
-  margin: 5px 0 0;
-  color: var(--t3);
-  font-size: var(--fs-11);
-  line-height: 1.45;
-}
-
-.icc-quick-wallet-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.icc-quick-rpc-form {
-  display: grid;
-  grid-template-columns: minmax(118px, 0.5fr) minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.icc-quick-wallet-input {
-  width: 100%;
-  min-width: 0;
-  height: 36px;
-  border: 1px solid var(--border);
-  border-radius: var(--drawer-control-radius);
-  background: var(--s2);
-  color: var(--t1);
-  font: inherit;
-  font-size: var(--fs-12);
-  outline: none;
-  padding: 0 10px;
-}
-
-.icc-quick-wallet-input:focus {
-  border-color: rgba(167, 139, 250, 0.5);
-  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.12);
-}
-
-.icc-step-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+/* step list */
+.icc-step-list { display: grid; gap: 8px; }
 .icc-step {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: flex-start;
-  gap: 10px;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--s1);
-}
-
-.icc-step.active {
-  border-color: rgba(20, 241, 149, 0.2);
-  background: rgba(20, 241, 149, 0.045);
-}
-
-.icc-step.ready {
-  border-color: rgba(20, 241, 149, 0.14);
-}
-
-.icc-step-index {
-  display: inline-flex;
+  gap: 11px;
   align-items: center;
-  justify-content: center;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+}
+.icc-step.ready { border-color: var(--accent-line); }
+.icc-step-index {
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--t2);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  font-family: var(--mono);
   font-size: var(--fs-11);
-  font-weight: var(--fw-bold);
-  background: var(--s2);
+  color: var(--t3);
 }
+.icc-step.ready .icc-step-index { border-color: var(--accent-line); color: var(--green); }
+.icc-step-main { min-width: 0; }
+.icc-step-main strong { display: block; font-size: var(--fs-13); font-weight: var(--fw-medium); color: var(--t1); }
+.icc-step-main p { margin-top: 2px; font-size: var(--fs-11); line-height: 1.5; color: var(--t3); }
+.icc-step-side { display: flex; align-items: center; gap: 8px; }
 
-.icc-step.active .icc-step-index,
-.icc-step.ready .icc-step-index {
-  border-color: rgba(20, 241, 149, 0.22);
-  color: var(--green);
-}
-
-.icc-step-main {
-  min-width: 0;
-}
-
-.icc-step-main strong {
-  display: block;
-  color: var(--t1);
-  font-size: var(--fs-12);
-  font-weight: 760;
-}
-
-.icc-step-main p {
-  margin: 4px 0 0;
-  color: var(--t4);
-  font-size: var(--fs-11);
-  line-height: 1.4;
-}
-
-.icc-step-main code {
-  color: var(--t2);
-  font-size: var(--fs-11);
-}
-
-.icc-step-side {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.icc-step-action {
-  flex: 0 0 auto;
-  border: 1px solid rgba(20, 241, 149, 0.24);
-  border-radius: var(--drawer-control-radius);
-  background: rgba(20, 241, 149, 0.075);
-  color: var(--t1);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-10);
-  font-weight: 760;
-  line-height: 1;
-  padding: 7px 8px;
-  white-space: nowrap;
-}
-
-.icc-step-action:hover:not(:disabled) {
-  border-color: rgba(20, 241, 149, 0.42);
-  background: rgba(20, 241, 149, 0.12);
-}
-
-.icc-step-action:disabled {
-  border-color: var(--s5);
-  background: var(--s2);
-  color: var(--t4);
-  cursor: default;
-}
-
+/* plan cards (label + mono code) — fused hairline grid */
 .icc-plan-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
-
 .icc-plan-card {
   display: grid;
   gap: 6px;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--s1);
+  padding: 12px 14px;
+  background: var(--bg);
 }
-
-.icc-plan-card span,
-.icc-mini-title {
-  color: var(--t4);
-  font-size: var(--fs-10);
-  font-weight: 750;
-  letter-spacing: 0;
+.icc-plan-card span {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-}
-
-.icc-plan-card code {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--t2);
-  font-size: var(--fs-11);
-}
-
-.icc-plan-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.icc-check-list,
-.icc-safety-notes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.icc-check-list span,
-.icc-safety-notes span {
   color: var(--t3);
-  font-size: var(--fs-11);
-  line-height: 1.35;
+}
+.icc-plan-card code {
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  color: var(--t1);
+  overflow-wrap: anywhere;
 }
 
-.icc-check-list span::before {
-  content: '+';
-  margin-right: 6px;
-  color: var(--green);
-}
+.icc-plan-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 
-.icc-safety-notes {
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.055);
+.icc-check-list { display: grid; gap: 6px; }
+.icc-check-list > * {
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  color: var(--t2);
 }
 
 .icc-inline-note {
-  padding: 10px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  border-radius: var(--radius-md);
-  background: var(--s1);
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  font-size: var(--fs-12);
+  line-height: 1.55;
   color: var(--t3);
+}
+
+/* result box */
+.icc-result {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+}
+.icc-result.success { border-color: var(--accent-line); }
+.icc-result.warning { border-color: color-mix(in srgb, var(--amber) 36%, transparent); }
+.icc-result.error { border-color: color-mix(in srgb, var(--red) 36%, transparent); }
+.icc-result-title { font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-result p { font-size: var(--fs-12); line-height: 1.55; color: var(--t2); }
+.icc-result-items { display: grid; gap: 4px; }
+.icc-result-items code,
+.icc-result-items > * {
+  font-family: var(--mono);
   font-size: var(--fs-11);
-  line-height: 1.45;
+  color: var(--t3);
 }
 
-.icc-safety-notes span::before {
-  content: 'safe';
-  display: inline-block;
-  margin-right: 7px;
-  color: var(--green);
-  font-size: var(--fs-9);
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
+.icc-setup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.icc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.icc-footer-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; }
 
-.icc-apply-setup {
-  align-self: flex-end;
-}
-
-.icc-setup-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
+/* generic action row (action-main wrapper) */
 .icc-action {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 11px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+}
+.icc-action-main { display: grid; gap: 3px; min-width: 0; }
+.icc-action-main strong { font-size: var(--fs-13); font-weight: var(--fw-medium); color: var(--t1); }
+.icc-action-main p { font-size: var(--fs-11); line-height: 1.5; color: var(--t3); }
+
+/* ---------------- quick wallet / RPC setup forms ---------------- */
+.icc-quick-wallet,
+.icc-quick-rpc {
+  display: grid;
   gap: 12px;
-  border: 1px solid var(--s5);
-  border-radius: var(--radius-md);
-  background: var(--s1);
-  color: inherit;
-  cursor: pointer;
-  padding: 10px;
-  text-align: left;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
 }
-
-.icc-action:hover {
-  border-color: rgba(20, 241, 149, 0.24);
-}
-
-.icc-action:disabled {
-  cursor: progress;
-  opacity: 0.65;
-}
-
-.icc-action-main {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.icc-quick-wallet-copy { display: grid; gap: 4px; }
+.icc-quick-wallet-copy strong { font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-quick-wallet-copy p { font-size: var(--fs-12); line-height: 1.5; color: var(--t3); }
+.icc-quick-wallet-form,
+.icc-quick-rpc-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.icc-quick-wallet-input {
+  flex: 1 1 180px;
   min-width: 0;
-}
-
-.icc-action-main span {
+  height: 30px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--bg);
   color: var(--t1);
-  font-size: var(--fs-12);
-  font-weight: 750;
-}
-
-.icc-action-main small {
-  color: var(--t4);
-  font-size: var(--fs-11);
-  line-height: 1.35;
-}
-
-.icc-risk {
-  flex: 0 0 auto;
-  border: 1px solid var(--s5);
-  border-radius: var(--radius-sm);
-  color: var(--t4);
-  font-size: var(--fs-9);
-  font-weight: 750;
-  letter-spacing: 0;
-  padding: 5px 7px;
-  text-transform: uppercase;
-}
-
-.icc-risk--read-only {
-  border-color: rgba(20, 241, 149, 0.25);
-  color: var(--green);
-}
-
-.icc-risk--requires-confirmation,
-.icc-risk--transaction {
-  border-color: rgba(245, 158, 11, 0.35);
-  color: var(--amber);
-}
-
-.icc-result {
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  padding: 10px;
-  background: var(--card-bg);
-}
-
-.icc-result.success {
-  border-color: color-mix(in srgb, var(--green) 24%, var(--card-border));
-}
-
-.icc-result.warning,
-.icc-result.info {
-  border-color: color-mix(in srgb, var(--amber) 25%, var(--card-border));
-}
-
-.icc-result.error {
-  border-color: color-mix(in srgb, var(--red) 30%, var(--card-border));
-}
-
-.icc-result-title {
-  color: var(--t1);
-  font-size: var(--fs-12);
-  font-weight: 750;
-}
-
-.icc-footer-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.icc-primary,
-.icc-secondary {
-  border-radius: var(--drawer-control-radius);
-  cursor: pointer;
   font: inherit;
   font-size: var(--fs-12);
-  font-weight: 750;
-  padding: 9px 11px;
+  padding: 0 10px;
+  outline: none;
 }
+.icc-quick-wallet-input:focus { border-color: var(--accent-line); }
 
-.icc-primary {
-  border: 1px solid color-mix(in srgb, var(--green) 35%, var(--control-border));
-  background: var(--green-glow);
-  color: var(--t1);
-}
-
-.icc-secondary {
-  border: 1px solid var(--control-border);
-  background: var(--control-bg);
+/* ---------------- IDLE protocol workflow ---------------- */
+.icc-idle-head { align-items: flex-start; }
+.icc-idle-kicker {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
   color: var(--t3);
 }
-
-/* DAEMON frame consolidation: partner visuals stay branded inside these rules. */
-.icc-detail,
-.icc-setup-workflow,
-.icc-requirement,
-.icc-install,
-.icc-guided-next,
-.icc-step,
-.icc-plan-card,
-.icc-action,
-.icc-result {
-  box-shadow: var(--shadow-sm);
+.icc-idle-head h3 { margin-top: 6px; font-size: var(--fs-15); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-idle-head p { margin-top: 4px; font-size: var(--fs-12); line-height: 1.55; color: var(--t3); }
+.icc-idle-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--t2);
 }
+.icc-idle-status.ready { border-color: var(--accent-line); color: var(--green); }
+.icc-idle-status.partial { border-color: color-mix(in srgb, var(--amber) 36%, transparent); color: var(--amber); }
 
-.icc-requirement,
-.icc-install,
-.icc-guided-next,
-.icc-step,
-.icc-plan-card,
-.icc-action {
-  border-color: var(--card-border);
-  background: var(--card-bg);
+.icc-idle-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--t2);
 }
+.icc-idle-pipeline small { color: var(--t4); }
 
-.icc-primary,
-.icc-secondary,
-.icc-filter,
-.icc-search,
-.icc-ai-setup-button,
-.icc-step-action,
-.icc-quick-wallet-input {
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast),
-    box-shadow var(--transition-fast);
+.icc-idle-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
-
-.icc-secondary:hover,
-.icc-filter:hover,
-.icc-action:hover {
-  border-color: var(--control-border-hover);
-  background: var(--control-bg-hover);
-  color: var(--t1);
+.icc-idle-resource-card { display: grid; gap: 6px; padding: 12px 14px; background: var(--bg); }
+.icc-idle-resource-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t3);
 }
+.icc-idle-resource-top strong { font-size: var(--fs-15); color: var(--t1); }
+.icc-idle-resource-card h4 { font-size: var(--fs-13); font-weight: var(--fw-semibold); color: var(--t1); }
+.icc-idle-resource-card p { font-family: var(--mono); font-size: var(--fs-11); color: var(--t3); overflow-wrap: anywhere; }
+.icc-idle-resource-card code { font-family: var(--mono); font-size: var(--fs-11); color: var(--t2); }
 
-.icc-status-dot,
-.icc-requirement-dot,
-.icc-step-index {
-  border-radius: var(--radius-pill);
+.icc-idle-settlement {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
 }
+.icc-idle-settlement > div { display: grid; gap: 4px; padding: 11px 13px; background: var(--bg); }
+.icc-idle-settlement span {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.icc-idle-settlement strong { font-family: var(--mono); font-size: var(--fs-13); color: var(--t1); }
 
-.icc-loading,
-.icc-empty {
-  color: var(--t4);
+/* ---------------- empty / loading ---------------- */
+.icc-empty,
+.icc-loading {
+  padding: 18px 14px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  color: var(--t3);
   font-size: var(--fs-12);
-  padding: 14px;
   text-align: center;
 }
 
-@container (max-width: 1080px) {
-  .icc-toolbar {
-    grid-template-columns: 1fr;
-  }
+/* ---------------- narrow layout: stack detail under list ---------------- */
+@container icc (max-width: 1080px) {
+  .icc-toolbar { grid-template-columns: 1fr; }
 
   .icc-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(108px, auto) minmax(0, 1fr);
-    overflow: hidden;
+    grid-template-rows: minmax(120px, auto) minmax(0, 1fr);
   }
 
+  /* list collapses to one horizontal strip of fused cards */
   .icc-list {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(216px, 260px);
     grid-template-rows: 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 0 0 8px;
-    scrollbar-gutter: auto;
+    padding: 0;
   }
-
-  .icc-list-group {
-    display: contents;
-  }
-
-  .icc-list-group-header {
-    display: none;
-  }
-
-  .icc-detail {
-    overflow-y: auto;
-  }
-
-  .icc-card,
-  .icc-card[data-brand] {
-    height: 100%;
-    min-height: 108px;
-  }
-
-  .icc-card-desc {
-    -webkit-line-clamp: 2;
-  }
-
-  .icc-card[data-brand=idle] {
-    min-height: 108px;
-  }
+  .icc-list-group { display: contents; }
+  .icc-list-group-header { display: none; }
+  .icc-card { min-height: 108px; }
 }
 
-@container (max-width: 760px) {
-  .icc-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .icc-card-top,
-  .icc-setup-head,
-  .icc-footer-actions,
-  .icc-action,
-  .icc-step {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .icc-plan-grid,
-  .icc-plan-columns,
-  .icc-idle-resource-grid,
-  .icc-idle-settlement,
-  .icc-ai-setup,
-  .icc-quick-wallet,
-  .icc-quick-wallet-form,
-  .icc-quick-rpc-form {
-    grid-template-columns: 1fr;
-  }
-
-  .icc-setup-actions,
-  .icc-footer-actions {
-    justify-content: stretch;
-  }
-
-  .icc-step {
-    display: flex;
-  }
-
-  .icc-step-side {
-    justify-content: space-between;
-  }
-
-  .icc-step-action {
-    width: auto;
-  }
-
-  .icc-list .icc-card-top {
-    align-items: flex-start;
-    flex-direction: row;
-  }
-
-  .icc-list .icc-status-badge {
-    align-self: flex-start;
-  }
-
-  .icc-primary,
-  .icc-secondary {
-    width: 100%;
-  }
-}
-
-@container (max-width: 560px) {
-  .icc-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .icc-header {
-    gap: 5px;
-    padding-top: 2px;
-  }
-
-  .icc-toolbar {
-    gap: 10px;
-  }
-
-  .icc-header-title {
-    font-size: var(--fs-18);
-    line-height: 1.12;
-  }
-
-  .icc-header-subtitle {
-    font-size: var(--fs-11);
-  }
-}
-
-@container (min-width: 561px) and (max-width: 760px) {
-  .icc-metrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-}
-
-@container icc (max-height: 760px) {
-  .icc-layout {
-    grid-template-rows: minmax(96px, auto) minmax(0, 1fr);
-  }
-
-  .icc-list {
-    grid-auto-columns: minmax(200px, 238px);
-  }
-
-  .icc-card,
-  .icc-card[data-brand] {
-    min-height: 96px;
-    padding: 9px 10px;
-  }
-
-  .icc-card[data-brand=idle] {
-    min-height: 96px;
-  }
-}
-
-@container icc (max-height: 620px) {
-  .icc-header {
-    gap: 4px;
-    padding-top: 6px;
-    padding-bottom: 8px;
-  }
-
-  .icc-header-title {
-    font-size: var(--fs-15);
-  }
-
-  .icc-header-subtitle {
-    display: none;
-  }
-
-  .icc-metrics {
-    gap: 6px;
-    padding-bottom: 8px;
-  }
-
-  .icc-toolbar {
-    grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.3fr);
-    gap: 8px;
-    padding-bottom: 8px;
-  }
-
-  .icc-search {
-    height: 34px;
-    padding: 0 10px;
-  }
-
-  .icc-filter {
-    padding: 7px 9px;
-  }
-
-  .icc-layout {
-    gap: 8px;
-  }
-
-  .icc-list {
-    grid-auto-columns: minmax(210px, 240px);
-    gap: 8px;
-    padding-bottom: 6px;
-  }
-
-  .icc-card,
-  .icc-card[data-brand] {
-    min-height: 88px;
-    padding: 8px;
-  }
-
-  .icc-card-main {
-    gap: 4px;
-  }
-
-  .icc-card-desc {
-    line-height: 1.35;
-    -webkit-line-clamp: 2;
-  }
-
-  .icc-card[data-brand=idle] {
-    min-height: 88px;
-    padding: 8px;
-  }
-
-  .icc-detail {
-    gap: 8px;
-    padding: 10px;
-  }
-
-}
-
-@container icc (max-height: 500px) {
-  .icc-metrics {
-    display: none;
-  }
-
-  .icc-header {
-    padding-top: 5px;
-    padding-bottom: 7px;
-  }
-
-  .icc-header-title {
-    font-size: var(--fs-14);
-  }
-
-  .icc-toolbar {
-    padding-bottom: 7px;
-  }
-
-  .icc-search {
-    height: 32px;
-  }
-
-  .icc-filter {
-    padding: 6px 8px;
-  }
-
-  .icc-layout {
-    padding-bottom: 8px;
-  }
-
-  .icc-list {
-    grid-auto-columns: minmax(190px, 220px);
-  }
-
-  .icc-card,
-  .icc-card[data-brand] {
-    min-height: 70px;
-  }
-
-  .icc-card-tagline {
-    display: none;
-  }
-
-  .icc-card-desc {
-    -webkit-line-clamp: 1;
-  }
-
-  .icc-card[data-brand=idle] {
-    min-height: 70px;
-  }
-
-  .icc-card[data-brand=idle]::after {
-    display: none;
-  }
-}
-
-@container icc (max-height: 420px) {
-  .icc-header {
-    grid-template-columns: 1fr;
-    padding-bottom: 6px;
-  }
-
-  .icc-header-kicker {
-    display: none;
-  }
-
-  .icc-toolbar {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .icc-filter {
-    min-height: 28px;
-  }
-
-  .icc-layout {
-    gap: 6px;
-  }
-
-  .icc-list {
-    grid-auto-columns: minmax(178px, 204px);
-    gap: 6px;
-    padding-bottom: 4px;
-  }
-
-  .icc-card,
-  .icc-card[data-brand] {
-    min-height: 62px;
-    padding: 7px;
-  }
-
-  .icc-card-desc {
-    display: none;
-  }
-
-  .icc-card[data-brand=idle] {
-    min-height: 62px;
-    padding: 7px;
-  }
-
-  .icc-detail {
-    padding: 8px;
-  }
-
-}
-
-@media (max-height: 780px) {
-  .icc-header {
-    gap: 4px;
-    padding-top: 6px;
-    padding-bottom: 8px;
-  }
-
-  .icc-header-title {
-    font-size: var(--fs-15);
-  }
-
-  .icc-header-subtitle {
-    display: none;
-  }
-
-  .icc-metrics {
-    gap: 8px;
-    padding-bottom: 8px;
-  }
-
-  .icc-toolbar {
-    gap: 8px;
-    padding-bottom: 8px;
-  }
-
-  .icc-filter {
-    padding: 7px 9px;
-  }
-
-  .icc-card,
-  .icc-card[data-brand] {
-    min-height: 100px;
-  }
-
-  .icc-card[data-brand=idle] {
-    min-height: 100px;
-  }
-
-  .icc-detail {
-    gap: 8px;
-    padding: 10px;
-  }
-
-  .icc-setup-workflow {
-    gap: 9px;
-    padding: 9px;
-  }
-}
-
-
-/* ============================================================
-   Tier 2 polish — elevation rhythm, selected state, hover lift,
-   KPI tiles, section-title accents. Uses existing design tokens.
-   ============================================================ */
-
-/* Card hover/selected/focus + reduced-motion now live in the
-   branded card driver above. Kept here: KPI tiles, section ticks,
-   elevation rhythm, detail head v2. */
-
-/* Elevation rhythm: promote primary section containers above sub-items */
-.icc-detail--brand,
-.icc-setup-workflow {
-  box-shadow: var(--shadow-md);
-}
-
-/* Section titles: accent tick + one step up in legibility */
-.icc-section-title,
-.icc-mini-title {
-  position: relative;
-  padding-left: 11px;
-  font-size: var(--fs-11);
-}
-
-.icc-section-title::before,
-.icc-mini-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 3px;
-  height: 11px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--green) 70%, transparent);
-  transform: translateY(-50%);
-}
-
-/* Idle "paper" theme keeps its own accent hue for the tick */
-.icc-idle-workflow .icc-section-title::before,
-.icc-idle-workflow .icc-mini-title::before {
-  background: color-mix(in srgb, #2d5f4c 70%, transparent);
-}
-
-/* ---- Requirements: premium status rhythm ---- */
-.icc-requirement {
-  position: relative;
-  align-items: center;
-  padding: 12px 14px 12px 16px;
-  border-color: color-mix(in srgb, var(--card-border) 80%, transparent);
-  background: color-mix(in srgb, var(--s1) 92%, var(--s2));
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast),
-    transform var(--dur-base) var(--ease-out-quint);
-  box-shadow: var(--shadow-sm), inset 3px 0 0 color-mix(in srgb, var(--t4) 50%, transparent);
-}
-
-.icc-requirement.ready {
-  border-color: color-mix(in srgb, var(--green) 28%, var(--card-border));
-  background: color-mix(in srgb, var(--green) 5%, var(--s1));
-  box-shadow: var(--shadow-sm), inset 3px 0 0 var(--green);
-}
-
-.icc-requirement-dot {
-  width: 9px;
-  height: 9px;
-  margin-top: 0;
-  background: color-mix(in srgb, var(--t3) 70%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--t3) 14%, transparent);
-}
-
-.icc-requirement-dot.ready {
-  background: var(--green);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent),
-              0 0 12px color-mix(in srgb, var(--green) 26%, transparent);
-}
-
-.icc-requirement-label {
-  color: var(--t1);
-  font-size: var(--fs-13);
-  letter-spacing: -0.005em;
-}
-
-.icc-requirement-detail {
-  margin-top: 3px;
-  color: var(--t3);
-  font-size: var(--fs-11);
-}
-
-.icc-optional {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border: 1px solid color-mix(in srgb, var(--t4) 50%, var(--card-border));
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--t4) 12%, transparent);
-  color: var(--t3);
-  font-size: var(--fs-9);
-  font-weight: 700;
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-}
-
-/* ---- Tags: brand-tinted when inside a branded detail ---- */
-.icc-tags span {
-  padding: 6px 10px;
-  border-color: color-mix(in srgb, var(--card-border) 90%, transparent);
-  background: color-mix(in srgb, var(--s1) 80%, transparent);
-  color: var(--t2);
-  font-weight: 600;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-}
-
-.icc-detail[data-brand] .icc-tags span {
-  border-color: color-mix(in srgb, var(--ic-accent) 22%, var(--card-border));
-  color: color-mix(in srgb, var(--ic-accent) 35%, var(--t1));
-  background: color-mix(in srgb, var(--ic-accent) 6%, var(--s1));
-}
-
-.icc-tags span:hover {
-  border-color: color-mix(in srgb, var(--ic-accent, var(--green)) 50%, var(--card-border));
-  color: var(--t1);
-}
-
-/* ============================================================
-   Brand identity carries through the detail body.
-   When a non-idle branded integration is selected, the workflow
-   accent (steps, AI setup, check ticks, ready states, primary
-   button) swaps from generic DAEMON green to var(--ic-accent).
-   Idle keeps its bespoke paper-green theme.
-   ============================================================ */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-section-title::before,
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-mini-title::before {
-  background: color-mix(in srgb, var(--ic-accent) 72%, transparent);
-}
-
-/* Requirement ready state */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-requirement.ready {
-  border-color: color-mix(in srgb, var(--ic-accent) 32%, var(--card-border));
-  background: color-mix(in srgb, var(--ic-accent) 6%, var(--s1));
-  box-shadow: var(--shadow-sm), inset 3px 0 0 var(--ic-accent);
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-requirement-dot.ready {
-  background: var(--ic-accent);
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--ic-accent) 18%, transparent),
-    0 0 12px color-mix(in srgb, var(--ic-accent) 26%, transparent);
-}
-
-/* Status badges inside the detail body */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-status-badge.ready {
-  border-color: color-mix(in srgb, var(--ic-accent) 38%, var(--card-border));
-  color: color-mix(in srgb, var(--ic-accent) 42%, var(--t1));
-}
-
-/* Step list — active / ready / index pill / action button */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.active {
-  border-color: color-mix(in srgb, var(--ic-accent) 24%, var(--card-border));
-  background: color-mix(in srgb, var(--ic-accent) 5%, var(--s1));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.ready {
-  border-color: color-mix(in srgb, var(--ic-accent) 18%, var(--card-border));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.active .icc-step-index,
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-step.ready .icc-step-index {
-  border-color: color-mix(in srgb, var(--ic-accent) 30%, var(--card-border));
-  color: color-mix(in srgb, var(--ic-accent) 45%, var(--t1));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-step-action {
-  border-color: color-mix(in srgb, var(--ic-accent) 28%, var(--card-border));
-  background: color-mix(in srgb, var(--ic-accent) 8%, transparent);
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-step-action:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--ic-accent) 48%, var(--card-border));
-  background: color-mix(in srgb, var(--ic-accent) 14%, transparent);
-}
-
-/* AI setup card — featured CTA in brand color */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup {
-  border-color: color-mix(in srgb, var(--ic-accent) 32%, var(--card-border));
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--ic-accent) 14%, transparent),
-    rgba(255, 255, 255, 0.025));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup-copy small {
-  color: color-mix(in srgb, var(--ic-accent) 50%, var(--t1));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup-button {
-  border-color: color-mix(in srgb, var(--ic-accent) 48%, transparent);
-  background: var(--ic-accent);
-  color: var(--bg);
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-ai-setup-button:hover:not(:disabled) {
-  border-color: var(--ic-accent);
-  background: color-mix(in srgb, var(--ic-accent) 82%, var(--bg));
-}
-
-/* Check ticks + safety badges + actions */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-check-list span::before {
-  color: var(--ic-accent);
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-safety-notes span::before {
-  color: var(--ic-accent);
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-action:hover {
-  border-color: color-mix(in srgb, var(--ic-accent) 28%, var(--card-border));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-risk--read-only {
-  border-color: color-mix(in srgb, var(--ic-accent) 28%, var(--card-border));
-  color: color-mix(in srgb, var(--ic-accent) 50%, var(--t1));
-}
-
-/* Primary button picks up the brand */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-primary {
-  border-color: color-mix(in srgb, var(--ic-accent) 38%, var(--control-border));
-  background: color-mix(in srgb, var(--ic-accent) 12%, transparent);
-  color: color-mix(in srgb, var(--ic-accent) 30%, var(--t1));
-}
-
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-primary:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--ic-accent) 60%, var(--control-border));
-  background: color-mix(in srgb, var(--ic-accent) 22%, transparent);
-  color: var(--t1);
-}
-
-/* Result success border */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-result.success {
-  border-color: color-mix(in srgb, var(--ic-accent) 26%, var(--card-border));
-}
-
-/* Guided next + step-action ready indicators */
-.icc-detail[data-brand]:not([data-brand='idle']) .icc-guided-next {
-  border-color: color-mix(in srgb, var(--ic-accent) 14%, var(--card-border));
+@container icc (max-width: 760px) {
+  .icc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

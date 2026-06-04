@@ -3,16 +3,6 @@
   min-width: 0;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
-  box-shadow: var(--shadow-sm);
-}
-
-.surface::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
 }
 
 .variant-card {
@@ -24,10 +14,9 @@
 }
 
 .variant-well {
-  border-color: color-mix(in srgb, var(--border-soft) 72%, transparent);
+  border-color: var(--line);
   border-radius: var(--radius-card);
-  background: var(--bg-well);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 4%, transparent);
+  background: var(--field-bg);
 }
 
 .padding-sm {
@@ -50,7 +39,7 @@
 .tone-warning { border-color: color-mix(in srgb, var(--accent-amber) 32%, var(--card-border)); }
 .tone-danger { border-color: color-mix(in srgb, var(--accent-red) 32%, var(--card-border)); }
 .tone-info { border-color: color-mix(in srgb, var(--accent-blue) 32%, var(--card-border)); }
-.tone-feature { border-color: color-mix(in srgb, var(--accent-purple) 28%, var(--card-border)); }
+.tone-feature { border-color: var(--line-2); }
 
 .interactive {
   cursor: pointer;
@@ -61,17 +50,17 @@
 
 .interactive:hover {
   border-color: var(--control-border-hover);
-  background: var(--card-bg-hover);
+  background: var(--s2);
 }
 
 .interactive:active {
   border-color: var(--border-strong);
-  background: color-mix(in srgb, var(--card-bg-hover) 82%, var(--bg-well));
+  background: var(--s3);
 }
 
 .selected {
-  border-color: var(--accent-green);
-  background: color-mix(in srgb, var(--accent-green) 6%, var(--card-bg));
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -173,7 +173,7 @@ export function RicoMapsGraph({ data, selectedId, onSelect }: RicoMapsGraphProps
         ctx.stroke()
         if (node.r > 18) {
           ctx.fillStyle = '#f0f0f0'
-          ctx.font = '10px JetBrains Mono, monospace'
+          ctx.font = '10px Geist Mono, monospace'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(node.type === 'token' ? (node.label || 'TOKEN').slice(0, 8) : amountLabel(node), node.x, node.y)

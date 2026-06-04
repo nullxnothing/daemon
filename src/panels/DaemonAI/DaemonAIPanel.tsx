@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAiStore } from '../../store/aiStore'
 import { useUIStore } from '../../store/ui'
-import { PanelHeader, Spinner } from '../../components/Panel'
+import {
+  CheckboxChip,
+  Composer,
+  EmptyPanel,
+  KpiGrid,
+  PanelHeader,
+  SegmentedControl,
+  Spinner,
+  ToolCallRow,
+  UnderlineTabs,
+} from '../../components/Panel'
 import { Button } from '../../components/Button'
 import './DaemonAIPanel.css'
 
 type ContextKey = keyof NonNullable<DaemonAiChatRequest['context']>
+type RunMode = NonNullable<DaemonAiAgentRunInput['mode']>
 type WorkbenchTab = 'chat' | 'runs' | 'approvals' | 'patches' | 'receipts'
 
 const CONTEXT_OPTIONS: Array<{ key: ContextKey; label: string }> = [
@@ -18,6 +29,21 @@ const CONTEXT_OPTIONS: Array<{ key: ContextKey; label: string }> = [
 
 const DEFAULT_ALLOWED_TOOLS = 'read_file, search_files, list_project_tree, get_git_status, get_git_diff, write_patch, run_tests'
 const MAX_ACTIVE_FILE_CONTENT_CHARS = 120_000
+
+const WORKBENCH_TABS: Array<{ id: WorkbenchTab; label: string; getCount?: (counts: WorkbenchCounts) => number }> = [
+  { id: 'chat', label: 'Chat' },
+  { id: 'runs', label: 'Runs', getCount: (counts) => counts.runs },
+  { id: 'approvals', label: 'Approvals', getCount: (counts) => counts.approvals },
+  { id: 'patches', label: 'Patches', getCount: (counts) => counts.patches },
+  { id: 'receipts', label: 'Receipts', getCount: (counts) => counts.receipts },
+]
+
+type WorkbenchCounts = {
+  runs: number
+  approvals: number
+  patches: number
+  receipts: number
+}
 
 export function DaemonAIPanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -54,7 +80,7 @@ export function DaemonAIPanel() {
   const [allowedTools, setAllowedTools] = useState(DEFAULT_ALLOWED_TOOLS)
   const [accessMode, setAccessMode] = useState<'auto' | 'byok' | 'hosted'>('auto')
   const [mode, setMode] = useState<'ask' | 'plan'>('ask')
-  const [runMode, setRunMode] = useState<DaemonAiAgentRunInput['mode']>('patch')
+  const [runMode, setRunMode] = useState<RunMode>('patch')
   const [approvalPolicy, setApprovalPolicy] = useState<DaemonAiAgentRunInput['approvalPolicy']>('require_for_write_and_terminal')
   const [modelPreference, setModelPreference] = useState<DaemonAiChatRequest['modelPreference']>('auto')
   const [context, setContext] = useState<NonNullable<DaemonAiChatRequest['context']>>({
@@ -75,6 +101,16 @@ export function DaemonAIPanel() {
   const canCreateRun = runTask.trim().length > 0 && !workbenchLoading
   const pendingApprovals = approvals.filter((approval) => approval.status === 'pending')
   const proposedPatches = patchProposals.filter((proposal) => proposal.status === 'proposed')
+  const workbenchCounts = useMemo<WorkbenchCounts>(() => ({
+    runs: agentRuns.length,
+    approvals: pendingApprovals.length,
+    patches: proposedPatches.length,
+    receipts: agentRuns.length,
+  }), [agentRuns.length, pendingApprovals.length, proposedPatches.length])
+  const activeModel = models.find((item) => item.lane === modelPreference)
+  const activeContextItems = CONTEXT_OPTIONS
+    .filter((option) => context[option.key])
+    .map((option) => ({ id: option.key, label: option.label }))
 
   const remainingLabel = useMemo(() => {
     if (!usage) return 'No usage loaded'
@@ -86,8 +122,7 @@ export function DaemonAIPanel() {
     setContext((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const handleSend = async () => {
     if (!canSend) return
     const nextMessage = message.trim()
     setMessage('')
@@ -105,8 +140,12 @@ export function DaemonAIPanel() {
     if (!ok) setMessage(nextMessage)
   }
 
-  const handleCreateRun = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    await handleSend()
+  }
+
+  const handleQueueRun = async () => {
     if (!canCreateRun) return
     const tools = allowedTools.split(',').map((tool) => tool.trim()).filter(Boolean)
     const ok = await createRun({
@@ -128,6 +167,11 @@ export function DaemonAIPanel() {
     }
   }
 
+  const handleCreateRun = async (event: React.FormEvent) => {
+    event.preventDefault()
+    await handleQueueRun()
+  }
+
   return (
     <section className="daemon-ai-panel">
       <PanelHeader
@@ -140,42 +184,35 @@ export function DaemonAIPanel() {
         }
       />
 
-      <div className="daemon-ai-status-grid">
-        <div className="daemon-ai-stat">
-          <span>Plan</span>
-          <strong>{usage?.plan ?? 'light'}</strong>
-        </div>
-        <div className="daemon-ai-stat">
-          <span>Usage</span>
-          <strong>{remainingLabel}</strong>
-        </div>
-        <div className="daemon-ai-stat">
-          <span>Safety Queue</span>
-          <strong>{pendingApprovals.length} approvals · {proposedPatches.length} patches</strong>
-        </div>
-      </div>
+      <KpiGrid
+        cells={[
+          { label: 'Plan', value: usage?.plan ?? 'light', meta: accessMode.toUpperCase() },
+          { label: 'Usage', value: remainingLabel, meta: usage?.monthlyCredits ? 'monthly credits' : 'local provider' },
+          { label: 'Safety Queue', value: pendingApprovals.length + proposedPatches.length, meta: `${pendingApprovals.length} approvals / ${proposedPatches.length} patches`, tone: pendingApprovals.length || proposedPatches.length ? 'warning' : 'success' },
+        ]}
+      />
 
-      <div className="daemon-ai-tabs" role="tablist" aria-label="DAEMON AI workbench">
-        {(['chat', 'runs', 'approvals', 'patches', 'receipts'] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            className={activeTab === tab ? 'active' : ''}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tabLabel(tab)}
-          </button>
-        ))}
-      </div>
+      <UnderlineTabs
+        tabs={WORKBENCH_TABS.map((tab) => ({
+          id: tab.id,
+          label: tab.label,
+          count: tab.getCount?.(workbenchCounts),
+        }))}
+        activeId={activeTab}
+        onChange={setActiveTab}
+      />
 
       <div className="daemon-ai-controls">
-        <div className="daemon-ai-segment">
-          <button type="button" className={accessMode === 'auto' ? 'active' : ''} onClick={() => setAccessMode('auto')}>Auto</button>
-          <button type="button" className={accessMode === 'byok' ? 'active' : ''} onClick={() => setAccessMode('byok')}>BYOK</button>
-          <button type="button" className={accessMode === 'hosted' ? 'active' : ''} onClick={() => setAccessMode('hosted')}>Hosted</button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Access mode"
+          value={accessMode}
+          onChange={setAccessMode}
+          items={[
+            { id: 'auto', label: 'Auto' },
+            { id: 'byok', label: 'BYOK' },
+            { id: 'hosted', label: 'Hosted' },
+          ]}
+        />
         <select className="daemon-ai-select" value={modelPreference} onChange={(e) => setModelPreference(e.target.value as DaemonAiChatRequest['modelPreference'])}>
           {models.map((model) => (
             <option key={model.lane} value={model.lane}>{model.label}</option>
@@ -191,20 +228,24 @@ export function DaemonAIPanel() {
 
       <div className="daemon-ai-context">
         {CONTEXT_OPTIONS.map((option) => (
-          <label key={option.key} className="daemon-ai-check">
-            <input type="checkbox" checked={Boolean(context[option.key])} onChange={() => handleToggleContext(option.key)} />
-            <span>{option.label}</span>
-          </label>
+          <CheckboxChip key={option.key} checked={Boolean(context[option.key])} onChange={() => handleToggleContext(option.key)}>
+            {option.label}
+          </CheckboxChip>
         ))}
       </div>
 
       {activeTab === 'chat' && (
         <>
           <div className="daemon-ai-chat-mode">
-            <div className="daemon-ai-segment">
-              <button type="button" className={mode === 'ask' ? 'active' : ''} onClick={() => setMode('ask')}>Ask</button>
-              <button type="button" className={mode === 'plan' ? 'active' : ''} onClick={() => setMode('plan')}>Plan</button>
-            </div>
+            <SegmentedControl
+              ariaLabel="Chat mode"
+              value={mode}
+              onChange={setMode}
+              items={[
+                { id: 'ask', label: 'Ask' },
+                { id: 'plan', label: 'Plan' },
+              ]}
+            />
             <button type="button" className="daemon-ai-ghost-btn" onClick={clear} disabled={loading || messages.length === 0}>
               Clear Chat
             </button>
@@ -212,15 +253,16 @@ export function DaemonAIPanel() {
           <ChatSurface messages={messages} loading={loading} />
           {error && <div className="daemon-ai-error">{error}</div>}
           <form className="daemon-ai-composer" onSubmit={handleSubmit}>
-            <textarea
+            <Composer
               value={message}
-              onChange={(event) => setMessage(event.target.value)}
+              onChange={setMessage}
+              onSend={() => void handleSend()}
               placeholder="Ask DAEMON AI about this project..."
-              rows={3}
+              disabled={loading}
+              model={activeModel?.label ?? modelPreference}
+              context={activeContextItems}
+              onRemoveContext={(key) => handleToggleContext(key as ContextKey)}
             />
-            <button type="submit" disabled={!canSend}>
-              Send
-            </button>
           </form>
         </>
       )}
@@ -228,18 +270,28 @@ export function DaemonAIPanel() {
       {activeTab === 'runs' && (
         <div className="daemon-ai-workbench">
           <form className="daemon-ai-run-form" onSubmit={handleCreateRun}>
-            <textarea
+            <Composer
               value={runTask}
-              onChange={(event) => setRunTask(event.target.value)}
+              onChange={setRunTask}
+              onSend={() => void handleQueueRun()}
               placeholder="Describe the agent run or patch proposal..."
-              rows={3}
+              sendLabel="Queue Run"
+              disabled={workbenchLoading}
+              model={runModeLabel(runMode)}
+              context={activeContextItems}
+              onRemoveContext={(key) => handleToggleContext(key as ContextKey)}
+            />
+            <SegmentedControl
+              ariaLabel="Run mode"
+              value={runMode}
+              onChange={setRunMode}
+              items={[
+                { id: 'patch', label: 'Patch' },
+                { id: 'agent', label: 'Agent' },
+                { id: 'background', label: 'Background' },
+              ]}
             />
             <div className="daemon-ai-run-grid">
-              <select className="daemon-ai-select" value={runMode} onChange={(e) => setRunMode(e.target.value as DaemonAiAgentRunInput['mode'])}>
-                <option value="patch">Patch proposal</option>
-                <option value="agent">Agent run</option>
-                <option value="background">Background run</option>
-              </select>
               <select className="daemon-ai-select" value={approvalPolicy} onChange={(e) => setApprovalPolicy(e.target.value as DaemonAiAgentRunInput['approvalPolicy'])}>
                 <option value="require_for_write_and_terminal">Approve write and terminal tools</option>
                 <option value="require_for_all_tools">Approve every tool</option>
@@ -301,9 +353,11 @@ function ChatSurface({ messages, loading }: { messages: Array<{ id: string; role
   return (
     <div className="daemon-ai-chat">
       {messages.length === 0 ? (
-        <div className="daemon-ai-empty">
-          Ask about the current project, a failing Solana build, a file, or a release plan.
-        </div>
+        <EmptyPanel
+          label="Chat"
+          title="No messages"
+          description="Ask about the current project, a failing Solana build, a file, or a release plan."
+        />
       ) : (
         messages.map((item) => (
           <article key={item.id} className={`daemon-ai-message ${item.role}`}>
@@ -323,7 +377,15 @@ function ChatSurface({ messages, loading }: { messages: Array<{ id: string; role
 }
 
 function RunList({ runs, onCancel }: { runs: DaemonAiAgentRun[]; onCancel: (runId: string) => void }) {
-  if (runs.length === 0) return <div className="daemon-ai-empty">No runs yet. Queue a read-only run or a patch proposal to get started.</div>
+  if (runs.length === 0) {
+    return (
+      <EmptyPanel
+        label="Runs"
+        title="No runs yet"
+        description="Queue a read-only run or a patch proposal to get started."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {runs.map((run) => (
@@ -337,7 +399,15 @@ function RunList({ runs, onCancel }: { runs: DaemonAiAgentRun[]; onCancel: (runI
           </div>
           <p>{run.task}</p>
           <div className="daemon-ai-tool-list">
-            {run.allowedTools.slice(0, 8).map((tool) => <span key={`${run.id}-${tool}`}>{tool}</span>)}
+            {run.allowedTools.slice(0, 8).map((tool) => (
+              <ToolCallRow
+                key={`${run.id}-${tool}`}
+                kind={toolCallKind(tool)}
+                label={tool}
+                meta={run.mode}
+                status={toolCallStatus(run.status)}
+              />
+            ))}
           </div>
           {run.error && <div className="daemon-ai-error">{run.error}</div>}
           <button type="button" className="daemon-ai-ghost-btn" disabled={['completed', 'failed', 'cancelled'].includes(run.status)} onClick={() => onCancel(run.id)}>
@@ -353,7 +423,15 @@ function ApprovalList({ approvals, onDecision }: {
   approvals: DaemonAiToolApprovalRequest[]
   onDecision: (approval: DaemonAiToolApprovalRequest, decision: DaemonAiToolApprovalDecisionInput['decision']) => void
 }) {
-  if (approvals.length === 0) return <div className="daemon-ai-empty">No tool approvals yet. Risky tools will appear here before they run.</div>
+  if (approvals.length === 0) {
+    return (
+      <EmptyPanel
+        label="Approvals"
+        title="No tool approvals"
+        description="Risky tools will appear here before they run."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {approvals.map((approval) => (
@@ -366,7 +444,13 @@ function ApprovalList({ approvals, onDecision }: {
             <span className={`daemon-ai-badge ${approval.riskLevel}`}>{approval.riskLevel}</span>
           </div>
           <p>{approval.summary}</p>
-          <pre className="daemon-ai-json">{jsonPreview(approval.argumentsPreview)}</pre>
+          <ToolCallRow
+            kind={toolCallKind(approval.toolName)}
+            label={approval.toolName}
+            meta={`run ${shortId(approval.runId)}`}
+            status={approval.status === 'pending' ? 'pending' : approval.status === 'rejected' ? 'error' : 'done'}
+            details={<pre className="daemon-ai-json">{jsonPreview(approval.argumentsPreview)}</pre>}
+          />
           <div className="daemon-ai-card-actions">
             <button type="button" className="daemon-ai-primary-btn" disabled={approval.status !== 'pending' || approval.riskLevel === 'blocked'} onClick={() => onDecision(approval, 'approve')}>
               Approve
@@ -388,7 +472,15 @@ function PatchList({ proposals, onDecision, onApply }: {
   onApply: (proposal: DaemonAiPatchProposal) => void
 }) {
   const [expandedPatchId, setExpandedPatchId] = useState<string | null>(null)
-  if (proposals.length === 0) return <div className="daemon-ai-empty">No patch proposals yet. Generated code changes will appear here before apply.</div>
+  if (proposals.length === 0) {
+    return (
+      <EmptyPanel
+        label="Patches"
+        title="No patch proposals"
+        description="Generated code changes will appear here before apply."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {proposals.map((proposal) => {
@@ -446,7 +538,15 @@ function ReceiptList({ runs, approvals, proposals }: {
     approvals: approvals.filter((approval) => approval.runId === run.id),
     proposals: proposals.filter((proposal) => proposal.runId === run.id),
   }))
-  if (rows.length === 0) return <div className="daemon-ai-empty">Receipts will appear after chat, agent runs, approvals, and patches are created.</div>
+  if (rows.length === 0) {
+    return (
+      <EmptyPanel
+        label="Receipts"
+        title="No receipts"
+        description="Receipts will appear after chat, agent runs, approvals, and patches are created."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {rows.map(({ run, approvals: runApprovals, proposals: runProposals }) => (
@@ -475,12 +575,24 @@ function ReceiptList({ runs, approvals, proposals }: {
   )
 }
 
-function tabLabel(tab: WorkbenchTab): string {
-  if (tab === 'chat') return 'Chat'
-  if (tab === 'runs') return 'Runs'
-  if (tab === 'approvals') return 'Approvals'
-  if (tab === 'patches') return 'Patches'
-  return 'Receipts'
+function runModeLabel(mode: RunMode): string {
+  if (mode === 'patch') return 'Patch proposal'
+  if (mode === 'agent') return 'Agent run'
+  return 'Background run'
+}
+
+function toolCallKind(name: string): 'read' | 'edit' | 'run' {
+  const lower = name.toLowerCase()
+  if (lower.includes('write') || lower.includes('patch') || lower.includes('edit')) return 'edit'
+  if (lower.includes('run') || lower.includes('test') || lower.includes('terminal') || lower.includes('exec')) return 'run'
+  return 'read'
+}
+
+function toolCallStatus(status: string): 'pending' | 'running' | 'done' | 'error' {
+  if (status === 'queued' || status === 'awaiting_approval') return 'pending'
+  if (status === 'running') return 'running'
+  if (status === 'failed' || status === 'cancelled' || status === 'rejected') return 'error'
+  return 'done'
 }
 
 function jsonPreview(value: unknown): string {

@@ -8,20 +8,8 @@ import { useWalletStore } from '../../src/store/wallet'
 import { useWorkspaceProfileStore } from '../../src/store/workspaceProfile'
 import { useOnboardingStore } from '../../src/store/onboarding'
 
-vi.mock('../../src/panels/ClaudePanel/ClaudePanel', () => ({
-  ClaudePanel: () => <div data-testid="claude-panel">Claude Panel</div>,
-}))
-
-vi.mock('../../src/panels/CodexPanel/CodexPanel', () => ({
-  CodexPanel: () => <div data-testid="codex-panel">Codex Panel</div>,
-}))
-
-vi.mock('../../src/panels/Meterflow/MeterflowPanel', () => ({
-  MeterflowPanel: () => <div data-testid="meterflow-panel">Meterflow Panel</div>,
-}))
-
-vi.mock('../../src/panels/ClaudePanel/AriaChat', () => ({
-  AriaChat: () => <div data-testid="aria-chat">ARIA</div>,
+vi.mock('../../src/panels/AgentWorkbench/AgentWorkbench', () => ({
+  AgentWorkbench: () => <div data-testid="agent-workbench">Agent Workbench</div>,
 }))
 
 vi.mock('../../src/components/QuickView/WalletQuickView', () => ({
@@ -220,24 +208,13 @@ describe('Shell chrome DOM coverage', () => {
     resetStores()
   })
 
-  it('switches assistant tabs in the right rail and keeps ARIA mounted', async () => {
+  it('renders a single AGENT panel in the right rail with no assistant tablist', async () => {
     render(<RightPanel />)
 
-    expect(await screen.findByTestId('claude-panel')).toBeInTheDocument()
-    expect(screen.getByTestId('aria-chat')).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Claude' })).toHaveAttribute('aria-selected', 'true')
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Codex' }))
-
-    expect(screen.getByRole('tab', { name: 'Codex' })).toHaveAttribute('aria-selected', 'true')
-    expect(useUIStore.getState().rightPanelTab).toBe('codex')
-    expect(screen.getByTestId('codex-panel')).toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Meterflow' }))
-
-    expect(screen.getByRole('tab', { name: 'Meterflow' })).toHaveAttribute('aria-selected', 'true')
-    expect(useUIStore.getState().rightPanelTab).toBe('meterflow')
-    expect(screen.getByTestId('meterflow-panel')).toBeInTheDocument()
+    expect(await screen.findByTestId('agent-workbench')).toBeInTheDocument()
+    // The former Claude/Codex/Meter tablist was collapsed into one AGENT panel.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Codex' })).not.toBeInTheDocument()
   })
 
   it('opens the titlebar wallet quick view from the portfolio chip', async () => {
@@ -306,7 +283,7 @@ describe('Shell chrome DOM coverage', () => {
 
     await userEvent.type(screen.getByLabelText('Search settings'), 'titlebar')
 
-    expect(screen.getByRole('tab', { name: 'Display' })).toHaveClass('active')
+    expect(screen.getByRole('tab', { name: 'Display' })).toHaveAttribute('aria-selected', 'true')
     expect(await screen.findByText('Titlebar wallet balance')).toBeInTheDocument()
 
     const titlebarRow = screen.getByText('Titlebar wallet balance').closest('.settings-display-row')

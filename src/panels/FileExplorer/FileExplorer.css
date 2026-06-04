@@ -166,8 +166,9 @@
 .file-node {
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 27px;
+  gap: 6px;
+  height: 24px;
+  padding-right: var(--space-sm);
   font-size: var(--fs-12);
   color: var(--t2);
   cursor: pointer;
@@ -258,63 +259,63 @@
 }
 
 .file-svg.file .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.default .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.ts .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.js .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.json .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.md .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.css .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.html .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.image .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.yaml .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.env .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.shell .file-fill-primary,
 .file-svg.file.node .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg .file-fold {
-  stroke: rgba(255, 255, 255, 0.22);
+  stroke: color-mix(in srgb, var(--t1) 22%, transparent);
   stroke-width: 1.1;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .file-svg .file-glyph {
-  stroke: rgba(255, 255, 255, 0.88);
+  stroke: color-mix(in srgb, var(--t1) 88%, transparent);
   stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -367,15 +368,15 @@
 }
 
 .file-svg.folder .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.04);
+  fill: var(--s2);
 }
 
 .file-svg.folder.open .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.06);
+  fill: var(--s2);
 }
 
 .file-svg.folder .file-stroke {
-  stroke: rgba(255, 255, 255, 0.3);
+  stroke: color-mix(in srgb, var(--t1) 30%, transparent);
   stroke-width: 1.1;
   stroke-linecap: round;
 }
@@ -393,11 +394,11 @@
 }
 
 .file-svg.folder.accent-muted .file-stroke {
-  stroke: rgba(255, 255, 255, 0.18);
+  stroke: color-mix(in srgb, var(--t1) 18%, transparent);
 }
 
 .file-svg.folder.accent-neutral .file-stroke {
-  stroke: rgba(255, 255, 255, 0.28);
+  stroke: color-mix(in srgb, var(--t1) 28%, transparent);
 }
 
 /* Context Menu */
@@ -437,7 +438,7 @@
 }
 
 .context-menu-item.danger:hover {
-  background: rgba(140, 74, 74, 0.2);
+  background: color-mix(in srgb, var(--red) 20%, transparent);
   color: var(--red);
 }
 

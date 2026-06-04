@@ -32,8 +32,8 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
 }
 
 ::-webkit-scrollbar-track {
@@ -41,12 +41,15 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--s5) 72%, transparent);
-  border-radius: 3px;
+  background: var(--scroll);
+  border: 2px solid transparent;
+  border-radius: 0;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--s6);
+  background: var(--scroll-h);
+  background-clip: padding-box;
 }
 
 input, button, textarea {
@@ -98,7 +101,7 @@ button:disabled {
 }
 
 code, pre {
-  font-family: var(--font-code);
+  font-family: var(--mono);
 }
 
 a {

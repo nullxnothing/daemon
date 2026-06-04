@@ -30,8 +30,8 @@ import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
 import { registerProofPoolHandlers } from '../ipc/proofPool'
-import { registerSpawnAgentsHandlers } from '../ipc/spawnagents'
-import { stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
+import { registerClawpumpHandlers } from '../ipc/clawpump'
+import { registerDegenToolsHandlers } from '../ipc/degentools'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
 import { registerShiplineHandlers } from '../ipc/shipline'
@@ -43,6 +43,9 @@ import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerForensicsHandlers } from '../ipc/forensics'
 import { registerRegistryHandlers } from '../ipc/registry'
 import { registerSaidHandlers } from '../ipc/said'
+import { registerAllowanceHandlers } from '../ipc/allowances'
+import { registerSignalhouseHandlers } from '../ipc/signalhouse'
+import { registerFlywheelHandlers } from '../ipc/flywheel'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
 import { registerMeterflowHandlers } from '../ipc/meterflow'
@@ -191,7 +194,6 @@ let pendingAgentOpsOpenRequest: AgentOpsOpenRequest | null = null
 function cleanupRuntimeState() {
   killAllSessions()
   shutdownAllLspSessions()
-  stopSpawnAgentsEventStream()
   clearLoadedWallets()
   closeDb()
 }
@@ -315,7 +317,8 @@ function registerAllIpc() {
   registerToolHandlers()
   registerPumpFunHandlers()
   registerProofPoolHandlers()
-  registerSpawnAgentsHandlers()
+  registerClawpumpHandlers()
+  registerDegenToolsHandlers()
   registerBrowserHandlers()
   registerDeployHandlers()
   registerShiplineHandlers()
@@ -327,6 +330,9 @@ function registerAllIpc() {
   registerForensicsHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
+  registerAllowanceHandlers()
+  registerSignalhouseHandlers()
+  registerFlywheelHandlers()
   registerColosseumHandlers()
   registerIdleHandlers()
   registerMeterflowHandlers()
@@ -471,8 +477,14 @@ async function createWindow() {
     minHeight: 600,
     show: false,
     paintWhenInitiallyHidden: true,
+    // Frameless on every platform: the in-app Titlebar draws window controls
+    // (custom on Win/Linux, hiddenInset traffic lights on mac). A native frame
+    // here would stack a second OS title bar on top of ours.
     frame: false,
-    ...(process.platform === 'darwin' ? { titleBarStyle: 'hidden' as const } : {}),
+    ...(process.platform === 'darwin' ? {
+      titleBarStyle: 'hiddenInset' as const,
+      trafficLightPosition: { x: 14, y: 13 },
+    } : {}),
     ...(process.platform === 'win32' ? { roundedCorners: false } : {}),
     backgroundColor: '#0a0a0a',
     icon: path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'),
@@ -613,7 +625,7 @@ async function createWindow() {
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
   registerDaemonProtocolClient()
-  if (process.platform === 'darwin' && app.dock) {
+  if (process.platform === 'darwin' && app.dock && !app.isPackaged) {
     try {
       app.dock.setIcon(path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'))
     } catch (err) {

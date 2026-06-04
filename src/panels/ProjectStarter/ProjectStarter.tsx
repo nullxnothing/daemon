@@ -2116,16 +2116,28 @@ export function ProjectStarter() {
       <div className="starter-panel">
         <div className="starter-hero">
           <h2 className="starter-title">Project Templates</h2>
-          <input
-            className="starter-filter"
-            placeholder="Filter templates"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
+          <div className="starter-filter-wrap">
+            <svg className="starter-filter-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4-4" />
+            </svg>
+            <input
+              className="starter-filter"
+              placeholder="Filter templates"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          </div>
         </div>
         <div className="starter-grid">
           {filteredTemplates.map((t) => (
-            <button type="button" key={t.id} className="starter-card" onClick={() => selectTemplate(t)}>
+            <button
+              type="button"
+              key={t.id}
+              className={`starter-card${t.id === 'anchor-program' ? ' starter' : ''}`}
+              onClick={() => selectTemplate(t)}
+            >
+              {t.id === 'anchor-program' && <span className="starter-badge">Starter</span>}
               <div className="starter-card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d={t.icon} />

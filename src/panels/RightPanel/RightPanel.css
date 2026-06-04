@@ -140,20 +140,18 @@
   padding: var(--space-md);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-card);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, white 2%, transparent), transparent),
-    var(--card-bg);
+  background: var(--card-bg);
   color: var(--t1);
   flex-shrink: 0;
 }
 
-.rp-agent-widget--spawnagents {
-  border-color: color-mix(in srgb, var(--brand-spawnagents) 28%, var(--card-border));
+.rp-agent-widget--clawpump {
+  border-color: color-mix(in srgb, var(--brand-clawpump) 28%, var(--card-border));
 }
 
 .rp-zauth-widget {
   overflow: hidden;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--line-strong);
   background: var(--integration-surface-neutral-strong);
 }
 
@@ -181,7 +179,7 @@
 }
 
 .rp-zauth-widget .rp-agent-widget-kicker {
-  color: rgba(255, 255, 255, 0.72);
+  color: color-mix(in srgb, var(--t1) 72%, transparent);
 }
 
 .rp-zauth-widget .rp-side-widget-title {
@@ -189,27 +187,26 @@
 }
 
 .rp-zauth-widget .rp-side-status-row {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--line-2);
   background: rgba(0, 0, 0, 0.34);
 }
 
 .rp-zauth-widget .rp-side-status-row strong {
-  color: rgba(255, 255, 255, 0.72);
+  color: color-mix(in srgb, var(--t1) 72%, transparent);
 }
 
 .rp-zauth-widget .rp-side-status-dot.live {
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.22);
+  background: var(--s3);
 }
 
 .rp-zauth-widget .rp-agent-widget-actions button {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.76);
+  border-color: var(--line-strong);
+  background: var(--s3);
+  color: color-mix(in srgb, var(--t1) 76%, transparent);
 }
 
 .rp-zauth-widget .rp-agent-widget-actions button:hover {
-  border-color: rgba(255, 255, 255, 0.34);
+  border-color: var(--line-strong);
   color: var(--on-accent);
 }
 
@@ -287,7 +284,6 @@
 
 .rp-side-status-dot.live {
   background: var(--green);
-  box-shadow: 0 0 8px var(--green-glow);
 }
 
 .rp-side-status-dot.offline {
@@ -514,3 +510,50 @@
 .rp-token-watch-headline span.down {
   color: var(--red);
 }
+
+/* ---- Chat-first Claude tab: ARIA operator primary + collapsible console ---- */
+.right-panel-claude-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.right-panel-claude-primary {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.right-panel-claude-primary > * { flex: 1; min-height: 0; }
+
+.right-panel-console {
+  flex: none;
+  border-top: 1px solid var(--line);
+  background: var(--s1);
+}
+
+.right-panel-console.open {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.right-panel-console-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 var(--space-md);
+  border: 0;
+  background: transparent;
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.right-panel-console-toggle:hover { color: var(--t1); }
+.right-panel-console-caret { color: var(--t4); }

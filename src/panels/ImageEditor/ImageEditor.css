@@ -12,7 +12,6 @@
   padding: 6px 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background-image: var(--surface-gradient-subtle);
 }
 
 .ie-btn {

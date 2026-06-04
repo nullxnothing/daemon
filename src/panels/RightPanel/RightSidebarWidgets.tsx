@@ -5,7 +5,7 @@ import { useWalletStore } from '../../store/wallet'
 import type { WalletDashboard } from '../../types/daemon'
 import { compactPathLabel } from '../../utils/textDisplay'
 import { RightRailSection } from './RightRailSection'
-import { SpawnAgentSidebarWidget } from './SpawnAgentSidebarWidget'
+import { ClawpumpGlyph } from '../../lib/ClawpumpGlyph'
 import { SolanaReadinessSidebarWidget, TokenWatchSidebarWidget } from './SolanaSidebarWidgets'
 import {
   readRightSidebarWidgetConfig,
@@ -228,6 +228,68 @@ function MeterflowSidebarWidget() {
   )
 }
 
+function ClawpumpSidebarWidget() {
+  const [configured, setConfigured] = useState<boolean | null>(null)
+  const [agentCount, setAgentCount] = useState<number | null>(null)
+  const [liveCount, setLiveCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function refresh() {
+      const cfg = await daemon.clawpump.isConfigured()
+      if (cancelled) return
+      const isConfigured = cfg.ok && Boolean(cfg.data)
+      setConfigured(isConfigured)
+      if (!isConfigured) { setAgentCount(null); setLiveCount(0); return }
+      const list = await daemon.clawpump.list()
+      if (cancelled) return
+      const agents = list.ok ? (list.data ?? []) : []
+      setAgentCount(list.ok ? agents.length : null)
+      setLiveCount(agents.filter((a) => {
+        const s = String(a.status ?? '').toLowerCase()
+        return s === 'running' || s === 'active' || s === 'alive'
+      }).length)
+    }
+    void refresh()
+    const interval = window.setInterval(() => void refresh(), 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [])
+
+  const title = configured === null
+    ? 'Checking'
+    : configured
+      ? (agentCount == null ? 'Connected' : `${agentCount} agent${agentCount === 1 ? '' : 's'}`)
+      : 'Setup'
+
+  return (
+    <RightRailSection
+      kicker="ClawPump"
+      title={title}
+      className="rp-agent-widget--clawpump"
+      media={<ClawpumpGlyph size={22} />}
+      action={<button type="button" className="rp-agent-widget-action" onClick={() => useUIStore.getState().openWorkspaceTool('clawpump')}>Open</button>}
+    >
+      <div className="rp-side-status-list">
+        <div className="rp-side-status-row">
+          <span className={`rp-side-status-dot ${configured ? 'live' : ''}`} />
+          <span>API key</span>
+          <strong>{configured === null ? '…' : configured ? 'Connected' : 'Missing'}</strong>
+        </div>
+        {configured && (
+          <div className="rp-side-status-row">
+            <span className={`rp-side-status-dot ${liveCount > 0 ? 'live' : ''}`} />
+            <span>Running</span>
+            <strong>{agentCount == null ? '—' : `${liveCount}/${agentCount}`}</strong>
+          </div>
+        )}
+      </div>
+    </RightRailSection>
+  )
+}
+
 export function RightSidebarWidgets() {
   const config = useRightSidebarWidgetConfig()
 
@@ -240,7 +302,7 @@ export function RightSidebarWidgets() {
       {config.enabled['zauth'] && <ZauthSidebarWidget />}
       {config.enabled['meterflow'] && <MeterflowSidebarWidget />}
       {config.enabled['ai-status'] && <AiStatusWidget />}
-      <SpawnAgentSidebarWidget />
+      {config.enabled['clawpump'] && <ClawpumpSidebarWidget />}
     </>
   )
 }

@@ -874,7 +874,7 @@ export function EditorPanel() {
                   onMount={handleEditorMount}
                   onChange={handleChange}
                   options={{
-                    fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+                    fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
                     fontSize: 13,
                     lineHeight: 20,
                     minimap: { enabled: false },

@@ -335,20 +335,20 @@
 }
 
 .hintInfo {
-  border-color: rgba(62, 207, 142, 0.25);
-  background: rgba(62, 207, 142, 0.05);
+  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+  background: color-mix(in srgb, var(--green) 5%, transparent);
   color: var(--green);
 }
 
 .hintWarning {
-  border-color: rgba(240, 180, 41, 0.25);
-  background: rgba(240, 180, 41, 0.05);
+  border-color: color-mix(in srgb, var(--amber) 25%, transparent);
+  background: color-mix(in srgb, var(--amber) 5%, transparent);
   color: var(--amber);
 }
 
 .hintSuccess {
-  border-color: rgba(62, 207, 142, 0.25);
-  background: rgba(62, 207, 142, 0.05);
+  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+  background: color-mix(in srgb, var(--green) 5%, transparent);
   color: var(--green);
 }
 

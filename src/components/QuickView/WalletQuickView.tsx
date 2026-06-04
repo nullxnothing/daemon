@@ -270,6 +270,8 @@ function SendView({ walletId, holdings, onBack, executionLabel, signerLabel, clu
 interface SwapQuote {
   inAmount: string
   outAmount: string
+  quoteId: string
+  messageHash: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   rawQuoteResponse: unknown
@@ -367,6 +369,8 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel, clu
       amount: parseFloat(amount),
       slippageBps,
       priceImpactPct: quote.priceImpactPct,
+      quoteId: quote.quoteId,
+      messageHash: quote.messageHash,
     }).then((res) => {
       if (cancelled || !res.ok || !res.data) return
       setPreview(res.data)

@@ -1,0 +1,44 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--btn-h-md);
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--t3);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--line-2);
+  background: var(--s2);
+  color: var(--t1);
+}
+
+.checked {
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
+  color: var(--t1);
+}
+
+.box {
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: 2px;
+  color: var(--bg);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  line-height: 1;
+}
+
+.checked .box {
+  border-color: var(--green);
+  background: var(--green);
+}

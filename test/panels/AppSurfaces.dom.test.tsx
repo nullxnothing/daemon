@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUIStore } from '../../src/store/ui'
@@ -1033,6 +1033,12 @@ describe('App surface DOM coverage', () => {
     render(<SolanaToolbox />)
 
     expect(await screen.findByText('Solana Workspace')).toBeInTheDocument()
+    const readiness = screen.getByLabelText('Solana readiness')
+    expect(within(readiness).getByText('Project')).toBeInTheDocument()
+    expect(await within(readiness).findByText('Main Wallet')).toBeInTheDocument()
+    expect(within(readiness).getByText('Signer')).toBeInTheDocument()
+    expect(within(readiness).getByText('Missing key')).toBeInTheDocument()
+    expect(within(readiness).getByText('Stopped')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('tab', { name: /Connect/ }))
     expect(screen.getByRole('tab', { name: /Connect/ })).toHaveAttribute('aria-selected', 'true')
@@ -1054,7 +1060,7 @@ describe('App surface DOM coverage', () => {
     render(<DeployPanel />)
 
     expect(await screen.findByRole('heading', { name: 'Deploy' })).toBeInTheDocument()
-    await userEvent.click(await screen.findByRole('button', { name: 'Link Project' }))
+    await userEvent.click(await screen.findByRole('button', { name: /Link project/i }))
     await userEvent.selectOptions(await screen.findByRole('combobox'), 'vercel-project-1')
     await userEvent.click(screen.getByRole('button', { name: 'Link' }))
 
@@ -1084,9 +1090,10 @@ describe('App surface DOM coverage', () => {
     render(<TokenLaunchTool />)
 
     expect(screen.getByRole('heading', { name: 'Token Launch' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Configure adapters' }))
     expect(await screen.findByText('Launchpad config')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open Streamlock' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Refresh Data' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Refresh' }).length).toBeGreaterThan(0)
     expect(screen.getAllByText('Raydium LaunchLab').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Meteora DBC').length).toBeGreaterThan(0)
 

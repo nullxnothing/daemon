@@ -11,6 +11,7 @@ interface UseSplitterOptions {
 
 interface UseSplitterReturn {
   size: number
+  isDragging: boolean
   splitterProps: {
     onPointerDown: (e: React.PointerEvent) => void
   }
@@ -18,6 +19,7 @@ interface UseSplitterReturn {
 
 export function useSplitter({ direction, min, max, initial, containerRef }: UseSplitterOptions): UseSplitterReturn {
   const [size, setSize] = useState(initial)
+  const [isDraggingState, setIsDraggingState] = useState(false)
   const isDragging = useRef(false)
   const startPos = useRef(0)
   const startSize = useRef(0)
@@ -37,6 +39,7 @@ export function useSplitter({ direction, min, max, initial, containerRef }: UseS
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     isDragging.current = true
+    setIsDraggingState(true)
     startPos.current = direction === 'vertical' ? e.clientY : e.clientX
     startSize.current = sizeRef.current
     document.body.style.cursor = direction === 'vertical' ? 'row-resize' : 'col-resize'
@@ -58,6 +61,7 @@ export function useSplitter({ direction, min, max, initial, containerRef }: UseS
     const handlePointerUp = () => {
       if (isDragging.current) {
         isDragging.current = false
+        setIsDraggingState(false)
         document.body.style.cursor = ''
         document.body.style.userSelect = ''
       }
@@ -73,6 +77,7 @@ export function useSplitter({ direction, min, max, initial, containerRef }: UseS
 
   return {
     size,
+    isDragging: isDraggingState,
     splitterProps: { onPointerDown: handlePointerDown },
   }
 }

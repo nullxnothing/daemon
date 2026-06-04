@@ -57,7 +57,7 @@
   border-radius: 4px;
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   padding: 0 8px;
   outline: none;
   min-width: 0;
@@ -128,7 +128,7 @@
 .remotion-placeholder-hint {
   color: var(--t3);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   background: var(--s2);
   padding: 6px 10px;
   border-radius: 4px;

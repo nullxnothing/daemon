@@ -11,8 +11,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.01);
+  border-bottom: 1px solid var(--line);
+  background: var(--wash-2);
 }
 
 .browser-toolbar-row {
@@ -49,13 +49,13 @@
 .browser-local-refresh:hover,
 .browser-local-target:hover {
   background: var(--s3);
-  border-color: rgba(62, 207, 142, 0.2);
+  border-color: color-mix(in srgb, var(--green) 20%, transparent);
 }
 
 .browser-local-target.active {
   color: var(--green);
-  border-color: rgba(62, 207, 142, 0.32);
-  background: rgba(62, 207, 142, 0.1);
+  border-color: color-mix(in srgb, var(--green) 32%, transparent);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
 }
 
 .browser-inspect-strip {
@@ -106,8 +106,8 @@
   min-height: 46px;
   padding: 8px 10px;
   background: var(--s1);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
   flex-shrink: 0;
 }
 

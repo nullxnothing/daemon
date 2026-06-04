@@ -3,8 +3,7 @@
   height: var(--titlebar-h);
   display: flex;
   align-items: center;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--panel-bg));
+  background: var(--s1);
   border-bottom: 1px solid var(--panel-border);
   -webkit-app-region: no-drag;
   user-select: none;
@@ -13,11 +12,15 @@
   min-width: 0;
 }
 
+.titlebar--mac {
+  padding-left: 76px;
+}
+
 .titlebar-left {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 var(--space-lg) 0 var(--space-md);
+  padding: 0 var(--space-md);
   flex-shrink: 0;
   min-width: 0;
   -webkit-app-region: drag;
@@ -53,8 +56,9 @@
 
 .titlebar-version {
   font-size: var(--fs-9);
-  font-weight: var(--fw-bold);
-  color: var(--t1);
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
+  color: var(--t3);
   background: transparent;
   padding: 1px 0;
   border-radius: var(--radius-sm);
@@ -83,7 +87,7 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--card-bg) 54%, transparent);
+  background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   transition: background var(--transition-fast), border-color var(--transition-fast);
@@ -91,12 +95,20 @@
 }
 
 .project-tab-wrap:hover {
-  background: var(--card-bg-hover);
+  background: var(--s2);
 }
 
 .project-tab-wrap.active {
   background: var(--tab-active-bg);
-  border-color: var(--tab-active-border);
+  border-color: var(--line);
+}
+
+.project-tab-wrap.active::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--green);
 }
 
 .project-tab {
@@ -131,6 +143,11 @@
 }
 
 .project-tab-dot.live { background: var(--t2); }
+
+.project-tab-wrap.active .project-tab-dot,
+.titlebar-switcher-toggle .project-tab-dot.live {
+  background: var(--green);
+}
 
 .project-tab-close {
   display: inline-flex;
@@ -246,17 +263,65 @@
   -webkit-app-region: no-drag;
 }
 
+/* Centered command/search trigger (opens the command palette) */
+.titlebar-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 28px;
+  width: min(40vw, 460px);
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--t3);
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.titlebar-search:hover {
+  border-color: var(--border-hover);
+  color: var(--t2);
+  background: var(--hover-bg);
+}
+
+.titlebar-search-icon {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+.titlebar-search-label {
+  flex: 1;
+  text-align: left;
+  font-size: var(--fs-12);
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-search-kbd {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t3);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--s1);
+}
+
 /* Inline pill controls (portfolio, mode toggle, project switcher) */
 .titlebar-portfolio,
 .titlebar-mode-toggle,
 .titlebar-switcher-toggle {
-  height: 28px;
+  height: var(--btn-h-md);
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--control-bg);
+  border-radius: var(--r);
+  background: var(--s2);
   border: 1px solid var(--control-border);
   color: var(--t2);
   font-size: var(--fs-11);
@@ -292,9 +357,9 @@
 .titlebar-mode-toggle--icon-only svg:last-child { display: none; }
 
 .titlebar-mode-toggle.grind {
-  background: var(--tab-active-bg);
+  background: var(--accent-fill);
   color: var(--tab-active-color);
-  border-color: var(--tab-active-border);
+  border-color: var(--accent-line);
 }
 .titlebar-mode-toggle.grind:hover {
   background: var(--control-bg-hover);
@@ -328,7 +393,7 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-card);
+  border-radius: var(--r);
   box-shadow: var(--shadow-float);
   z-index: 50;
   -webkit-app-region: no-drag;
@@ -370,7 +435,7 @@
 .titlebar-switcher-item.active,
 .titlebar-overflow-item.active {
   color: var(--tab-active-color);
-  background: var(--tab-active-bg);
+  background: var(--accent-fill);
 }
 
 .titlebar-switcher-item-label {

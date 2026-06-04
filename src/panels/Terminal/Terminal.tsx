@@ -1,11 +1,16 @@
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
-import { TerminalTabs } from './TerminalTabs'
 import { TerminalInstance } from './TerminalInstance'
+import { TerminalLauncher } from './TerminalLauncher'
+import { TerminalViewTabs, type TerminalView } from './TerminalViewTabs'
+import { TerminalSessions } from './TerminalSessions'
+import { TerminalProblems, useDiagnostics } from './TerminalProblems'
 import { readTerminalLaunchRecents, addToRecents, type TerminalLaunchRecent } from './RecentsManager'
 import './Terminal.css'
+
+const PortsPanel = lazy(() => import('../PortsPanel/PortsPanel').then((m) => ({ default: m.PortsPanel })))
 
 const SOLANA_AGENT_DB_ID = 'solana-agent'
 const IS_SMOKE_TEST = new URLSearchParams(window.location.search).get('smoke') === '1'
@@ -15,7 +20,9 @@ type SplitLayout = {
   secondaryId: string
 }
 
-export function TerminalPanel() {
+export function TerminalPanel({ onCollapse }: { onCollapse?: () => void } = {}) {
+  const [activeView, setActiveView] = useState<TerminalView>('terminal')
+  const { files: diagnosticFiles, total: problemCount } = useDiagnostics()
   const terminals = useUIStore((s) => s.terminals)
   const addTerminal = useUIStore((s) => s.addTerminal)
   const removeTerminal = useUIStore((s) => s.removeTerminal)
@@ -314,71 +321,119 @@ export function TerminalPanel() {
       }}
       onDrop={handleFolderDrop}
     >
-      <TerminalTabs
-        visibleTerminals={visibleTerminals}
-        activeTerminalId={activeTerminalId}
-        activeProjectId={activeProjectId}
-        canLaunchInProject={Boolean(activeProjectId) || projects.length > 0}
-        centerMode={centerMode}
-        splitLayout={splitLayout}
-        launchRecents={launchRecents}
-        onSelectTerminal={(id) => activeProjectId && setActiveTerminal(activeProjectId, id)}
-        onCloseTerminal={handleCloseTerminal}
-        onToggleGrindMode={() => setCenterMode(centerMode === 'grind' ? 'canvas' : 'grind')}
-        onSplit={handleSplit}
-        onUnsplit={handleUnsplit}
-        onStartShell={handleStartShell}
-        onStartClaudeChat={handleStartClaudeChat}
-        onStartSpettro={handleStartSpettro}
-        onStartSolanaAgent={handleStartSolanaAgent}
-        onLaunchAgent={handleLaunchAgent}
-        onLaunchCommand={handleLaunchCommand}
+      <TerminalViewTabs
+        activeView={activeView}
+        onSelectView={setActiveView}
+        problemCount={problemCount}
+        onCollapse={onCollapse}
+        trailing={activeView === 'terminal' ? (
+          <>
+            <TerminalLauncher
+              activeProjectId={activeProjectId}
+              canLaunchInProject={Boolean(activeProjectId) || projects.length > 0}
+              launchRecents={launchRecents}
+              onStartShell={handleStartShell}
+              onStartClaudeChat={handleStartClaudeChat}
+              onStartSpettro={handleStartSpettro}
+              onStartSolanaAgent={handleStartSolanaAgent}
+              onLaunchAgent={handleLaunchAgent}
+              onLaunchCommand={handleLaunchCommand}
+            />
+            <button type="button" className="terminal-view-action" onClick={() => void handleSplit('vertical')} title="Split vertical" aria-label="Split vertical">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            </button>
+            <button type="button" className="terminal-view-action" onClick={() => void handleSplit('horizontal')} title="Split horizontal" aria-label="Split horizontal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+            </button>
+            {splitLayout && (
+              <button type="button" className="terminal-view-action" onClick={handleUnsplit} title="Unsplit" aria-label="Unsplit terminal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            )}
+          </>
+        ) : undefined}
       />
-      <div className="terminal-views">
-        {visibleTerminals.length === 0 ? (
-          <div
-            className="terminal-empty-state"
-            role="button"
-            tabIndex={0}
-            onClick={handleStartShell}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleStartShell() } }}
-          >
-            <span className="terminal-empty-icon">&gt;_</span>
-            <span className="terminal-empty-label">Click to start a terminal</span>
-            <span className="terminal-empty-hint">or press Ctrl+`</span>
-            {launchError && <span className="terminal-empty-error">{launchError}</span>}
-          </div>
-        ) : paneIds.length <= 1 ? (
-          /* Render ALL terminal instances to avoid unmount/remount on tab switch.
-             Only the active one is visible — the rest are hidden via isVisible=false.
-             This prevents xterm's Viewport.syncScrollArea "dimensions" crash that
-             occurs when the terminal is disposed while internal observers are pending. */
-          visibleTerminals.map((tab) => (
-            <TerminalInstance key={tab.id} id={tab.id} isVisible={tab.id === activeTerminalId} />
-          ))
-        ) : (
-          <div className={`terminal-split ${splitLayout?.direction ?? 'vertical'}`}>
-            {paneIds.map((id) => (
-              <div key={id} className="terminal-pane">
-                <div className="terminal-pane-header">
-                  <button
-                    className={`terminal-pane-title ${activeTerminalId === id ? 'active' : ''}`}
-                    onClick={() => activeProjectId && setActiveTerminal(activeProjectId, id)}
-                  >
-                    {terminalById.get(id)?.label ?? 'Terminal'}
-                  </button>
-                  {splitLayout?.secondaryId === id && (
-                    <button type="button" className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">&times;</button>
-                  )}
+
+      {activeView === 'terminal' && (
+        <>
+          <div className="terminal-body">
+            <div className="terminal-views">
+              {visibleTerminals.length === 0 ? (
+                <div
+                  className="terminal-empty-state"
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleStartShell}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleStartShell() } }}
+                >
+                  <span className="terminal-empty-icon">&gt;_</span>
+                  <span className="terminal-empty-label">Click to start a terminal</span>
+                  <span className="terminal-empty-hint">or press Ctrl+`</span>
+                  {launchError && <span className="terminal-empty-error">{launchError}</span>}
                 </div>
-                <div className="terminal-pane-body">
-                  <TerminalInstance id={id} isVisible />
+              ) : paneIds.length <= 1 ? (
+                /* Render ALL terminal instances to avoid unmount/remount on tab switch.
+                   Only the active one is visible — the rest are hidden via isVisible=false.
+                   This prevents xterm's Viewport.syncScrollArea "dimensions" crash that
+                   occurs when the terminal is disposed while internal observers are pending. */
+                visibleTerminals.map((tab) => (
+                  <TerminalInstance key={tab.id} id={tab.id} isVisible={tab.id === activeTerminalId} />
+                ))
+              ) : (
+                <div className={`terminal-split ${splitLayout?.direction ?? 'vertical'}`}>
+                  {paneIds.map((id) => (
+                    <div key={id} className="terminal-pane">
+                      <div className="terminal-pane-header">
+                        <button
+                          className={`terminal-pane-title ${activeTerminalId === id ? 'active' : ''}`}
+                          onClick={() => activeProjectId && setActiveTerminal(activeProjectId, id)}
+                        >
+                          {terminalById.get(id)?.label ?? 'Terminal'}
+                        </button>
+                        {splitLayout?.secondaryId === id && (
+                          <button type="button" className="terminal-pane-close" onClick={() => handleUnsplit()} title="Close split pane">&times;</button>
+                        )}
+                      </div>
+                      <div className="terminal-pane-body">
+                        <TerminalInstance id={id} isVisible />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
+
+            {visibleTerminals.length > 0 && (
+              <TerminalSessions
+                sessions={visibleTerminals}
+                activeSessionId={activeTerminalId}
+                onSelect={(id) => activeProjectId && setActiveTerminal(activeProjectId, id)}
+                onClose={handleCloseTerminal}
+              />
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {activeView === 'problems' && (
+        <div className="terminal-altview">
+          <TerminalProblems files={diagnosticFiles} />
+        </div>
+      )}
+
+      {activeView === 'output' && (
+        <div className="terminal-altview">
+          <div className="terminal-pane-empty">Output streams from running tasks will appear here.</div>
+        </div>
+      )}
+
+      {activeView === 'ports' && (
+        <div className="terminal-altview">
+          <Suspense fallback={<div className="terminal-pane-empty">Loading ports…</div>}>
+            <PortsPanel />
+          </Suspense>
+        </div>
+      )}
     </div>
   )
 }

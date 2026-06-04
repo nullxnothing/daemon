@@ -4,15 +4,27 @@
   align-items: center;
   gap: var(--space-md);
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--row);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Flush rows fuse inside a single bordered list container: no card border,
+   no fill, edge-aligned padding, last row drops its hairline. */
+.flush {
+  padding: 0 var(--space-md);
+  background: transparent;
+}
+
+.flush:last-child {
+  border-bottom: 0;
 }
 
 .compact {
-  min-height: 36px;
+  min-height: var(--row-compact);
 }
 
 .spacious {
-  min-height: 52px;
+  min-height: var(--row-comfy);
 }
 
 .leading {
@@ -50,6 +62,7 @@
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
+  font-family: var(--mono);
   color: var(--t3);
   font-size: var(--fs-12);
 }
@@ -61,6 +74,7 @@
   min-width: 0;
   margin-top: var(--space-xs);
   color: var(--t3);
+  font-family: var(--mono);
   font-size: var(--fs-12);
   line-height: var(--lh-normal);
   flex-wrap: wrap;

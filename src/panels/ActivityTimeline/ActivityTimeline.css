@@ -134,9 +134,9 @@
   grid-template-columns: 14px minmax(0, 1fr);
   gap: var(--space-md);
   padding: var(--space-md);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-card);
-  background: var(--bg-well);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--field-bg);
 }
 
 .activity-issue-card.warning {
@@ -155,8 +155,8 @@
   display: grid;
   grid-template-columns: 14px minmax(0, 1fr);
   gap: var(--space-md);
-  padding: var(--space-md) 0;
-  border-top: 1px solid var(--border-soft);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--line);
   background: transparent;
 }
 
@@ -166,11 +166,11 @@
 }
 
 .activity-entry.error {
-  border-top-color: color-mix(in srgb, var(--red) 32%, var(--border-soft));
+  border-top-color: color-mix(in srgb, var(--red) 32%, var(--line));
 }
 
 .activity-entry.warning {
-  border-top-color: color-mix(in srgb, var(--amber) 32%, var(--border-soft));
+  border-top-color: color-mix(in srgb, var(--amber) 32%, var(--line));
 }
 
 .activity-dot {
@@ -182,16 +182,25 @@
   align-items: center;
   gap: var(--space-sm);
   color: var(--t3);
+  font-family: var(--mono);
   font-size: var(--fs-11);
 }
 
+/* mono runtime/context tag in a blue tint (mockup .act runtime tag) */
 .activity-entry-context {
-  color: var(--t1);
-  font-weight: var(--fw-bold);
+  color: var(--blue);
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
 }
 
 .activity-entry-category {
   text-transform: capitalize;
+}
+
+.activity-entry-top time {
+  margin-left: auto;
+  font-family: var(--mono);
+  color: var(--t4);
 }
 
 .activity-entry-message {

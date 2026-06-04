@@ -119,8 +119,8 @@
   color: var(--red);
   margin: 0;
   padding: 8px 10px;
-  background: rgba(239, 83, 80, 0.08);
-  border: 1px solid rgba(239, 83, 80, 0.25);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
   border-radius: 4px;
 }
 

@@ -8,17 +8,8 @@ import { useWalletStore } from '../../src/store/wallet'
 import { useWorkspaceProfileStore } from '../../src/store/workspaceProfile'
 import { useOnboardingStore } from '../../src/store/onboarding'
 
-vi.mock('../../src/panels/ClaudePanel/ClaudePanel', () => ({
-  ClaudePanel: () => <div data-testid="claude-panel">Claude Panel</div>,
-}))
-vi.mock('../../src/panels/CodexPanel/CodexPanel', () => ({
-  CodexPanel: () => <div data-testid="codex-panel">Codex Panel</div>,
-}))
-vi.mock('../../src/panels/Meterflow/MeterflowPanel', () => ({
-  MeterflowPanel: () => <div data-testid="meterflow-panel">Meterflow Panel</div>,
-}))
-vi.mock('../../src/panels/ClaudePanel/AriaChat', () => ({
-  AriaChat: () => <div data-testid="aria-chat">ARIA</div>,
+vi.mock('../../src/panels/AgentWorkbench/AgentWorkbench', () => ({
+  AgentWorkbench: () => <div data-testid="agent-workbench">Agent Workbench</div>,
 }))
 vi.mock('../../src/components/QuickView/WalletQuickView', () => ({
   WalletQuickView: () => <div data-testid="wallet-quickview">Wallet Quick View</div>,

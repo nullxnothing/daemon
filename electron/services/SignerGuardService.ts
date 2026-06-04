@@ -165,6 +165,34 @@ interface TxInspection {
   outboundLamports: number
 }
 
+export type ProgramInspectionResult =
+  | { ok: true; programIds: string[] }
+  | { ok: false; reason: string }
+
+type InspectableCompiledInstruction = {
+  programIdIndex: number
+  data?: Uint8Array | number[] | Buffer
+}
+
+type InspectableVersionedMessage = {
+  staticAccountKeys?: PublicKey[]
+  compiledInstructions?: InspectableCompiledInstruction[]
+  addressTableLookups?: unknown[]
+}
+
+function assertInspectableVersionedMessage(message: unknown): asserts message is InspectableVersionedMessage {
+  if (!message || typeof message !== 'object') {
+    throw new Error('versioned transaction message is missing')
+  }
+  const candidate = message as InspectableVersionedMessage
+  if (!Array.isArray(candidate.staticAccountKeys)) {
+    throw new Error('versioned transaction static account keys are missing')
+  }
+  if (!Array.isArray(candidate.compiledInstructions)) {
+    throw new Error('versioned transaction compiled instructions are missing')
+  }
+}
+
 function collectInstructions(transaction: Transaction | VersionedTransaction): { programIds: string[]; transfers: number } {
   let outboundLamports = 0
   const programIds: string[] = []
@@ -176,17 +204,28 @@ function collectInstructions(transaction: Transaction | VersionedTransaction): {
         outboundLamports += decodeSystemTransferLamports(ix.data)
       }
     }
-  } else {
+  } else if ('message' in Object(transaction)) {
     const message = transaction.message
+    assertInspectableVersionedMessage(message)
     const keys = message.staticAccountKeys
     for (const ci of message.compiledInstructions) {
+      if (typeof ci.programIdIndex !== 'number') {
+        throw new Error('versioned transaction contains a malformed instruction program index')
+      }
       const programId = keys[ci.programIdIndex]
-      if (!programId) continue
+      if (!programId) {
+        if ((message.addressTableLookups?.length ?? 0) > 0) {
+          throw new Error('versioned transaction uses unresolved address lookup table account keys')
+        }
+        throw new Error('versioned transaction instruction references an unknown program account')
+      }
       programIds.push(programId.toBase58())
       if (programId.equals(SystemProgram.programId)) {
-        outboundLamports += decodeSystemTransferLamports(Buffer.from(ci.data))
+        outboundLamports += decodeSystemTransferLamports(Buffer.from(ci.data ?? []))
       }
     }
+  } else {
+    throw new Error('transaction type is not inspectable')
   }
 
   return { programIds, transfers: outboundLamports }
@@ -216,6 +255,28 @@ function inspect(transaction: Transaction | VersionedTransaction): TxInspection 
   return { programIds: [...new Set(programIds)], outboundLamports: transfers }
 }
 
+/**
+ * Deduped program IDs a transaction invokes, using the SAME extraction the guard
+ * enforces with. Lets a caller that received a transaction from a trusted assembler
+ * (e.g. a Jupiter swap order) scope a per-tx `allowProgramIds` to exactly the programs
+ * that transaction contains — without widening the global allow-list. The SOL caps and
+ * rate limit in `assertTransactionAllowed` still apply.
+ */
+export function collectProgramIds(transaction: Transaction | VersionedTransaction): string[] {
+  const result = safeCollectProgramIds(transaction)
+  if (!result.ok) throw new Error(`Signer guard: ${result.reason}`)
+  return result.programIds
+}
+
+export function safeCollectProgramIds(transaction: unknown): ProgramInspectionResult {
+  try {
+    return { ok: true, programIds: inspect(transaction as Transaction | VersionedTransaction).programIds }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    return { ok: false, reason: `transaction could not be inspected: ${reason}` }
+  }
+}
+
 // ----------------------------------------------------------------- enforce ---
 
 export interface SignerGuardOptions {
@@ -225,6 +286,13 @@ export interface SignerGuardOptions {
   source?: string
   /** Signer pubkey when the transaction is already externally signed (signers array is empty). */
   signerOverride?: string
+  /**
+   * Programs this specific, code-authored flow legitimately invokes — admitted for
+   * THIS transaction only, without widening the global default allow-list. Use for
+   * vetted protocol programs a feature must touch (e.g. the PumpFees program in the
+   * Flywheel configure/claim flows). Does not bypass the SOL caps or rate limits.
+   */
+  allowProgramIds?: string[]
 }
 
 function fail(policy: SignerGuardPolicy, signer: string, reason: string, detail: Record<string, unknown>): void {
@@ -266,8 +334,9 @@ export function assertTransactionAllowed(
   } catch (err) {
     // A transaction we cannot inspect cannot be vetted. Reject when enforcing,
     // otherwise log and allow (devnet/test).
-    fail(policy, signer, 'transaction could not be inspected for the signer guard', {
-      error: err instanceof Error ? err.message : String(err),
+    const error = err instanceof Error ? err.message : String(err)
+    fail(policy, signer, `transaction could not be inspected for the signer guard: ${error}`, {
+      error,
       source: options.source,
     })
     return
@@ -276,8 +345,12 @@ export function assertTransactionAllowed(
   const outboundSol = outboundLamports / LAMPORTS_PER_SOL
   const hasApproval = options.approvalHash === messageHash && consumeApproval(messageHash)
 
-  // 1) Program allow-list — non-allowlisted programs require a hash-bound approval.
-  const unknownPrograms = programIds.filter((id) => !policy.allowedProgramIds.has(id))
+  // 1) Program allow-list — non-allowlisted programs require a hash-bound approval,
+  //    unless the calling flow scoped an explicit per-transaction allowance for them.
+  const callScopedAllow = new Set(options.allowProgramIds ?? [])
+  const unknownPrograms = programIds.filter(
+    (id) => !policy.allowedProgramIds.has(id) && !callScopedAllow.has(id),
+  )
   if (unknownPrograms.length > 0 && !hasApproval) {
     fail(policy, signer, 'transaction touches non-allowlisted program(s) without approval', {
       unknownPrograms,

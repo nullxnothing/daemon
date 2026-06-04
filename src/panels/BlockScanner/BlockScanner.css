@@ -90,7 +90,7 @@
   border-radius: 4px;
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   outline: none;
   min-width: 0;
   transition: border-color 0.12s ease;
@@ -145,7 +145,7 @@
   padding: 12px;
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   box-shadow: var(--shadow-lg);
   color: var(--t2);
   z-index: 2;

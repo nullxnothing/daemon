@@ -39,6 +39,12 @@ const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   crashes: 'Crashes',
 }
 
+const SETTINGS_TAB_GROUPS: { label: string; tabs: SettingsTab[] }[] = [
+  { label: 'Connections', tabs: ['keys', 'integrations', 'aiProviders'] },
+  { label: 'Workspace', tabs: ['agents', 'tools', 'sidePanels', 'display'] },
+  { label: 'System', tabs: ['setup', 'shortcuts', 'help', 'crashes'] },
+]
+
 interface AppMeta {
   version: string
   electronVersion: string
@@ -115,33 +121,40 @@ export function SettingsPanel() {
         }
       />
 
-      <div className="settings-tabs" role="tablist">
-        {(['keys', 'integrations', 'aiProviders', 'agents', 'tools', 'sidePanels', 'display', 'setup', 'shortcuts', 'help', 'crashes'] as SettingsTab[]).map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            data-tab={t}
-            className={`settings-tab ${tab === t ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setTab(t) }}
-          >
-            {SETTINGS_TAB_LABELS[t]}
-          </button>
-        ))}
-      </div>
+      <div className="settings-shell">
+        <nav className="settings-snav" role="tablist" aria-label="Settings sections">
+          {SETTINGS_TAB_GROUPS.map((group) => (
+            <div key={group.label} className="settings-snav-group">
+              <div className="label settings-snav-label">{group.label}</div>
+              {group.tabs.map((t) => (
+                <button
+                  key={t}
+                  role="tab"
+                  aria-selected={tab === t}
+                  data-tab={t}
+                  className={`settings-snav-item ${tab === t ? 'on' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setTab(t) }}
+                >
+                  {SETTINGS_TAB_LABELS[t]}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
 
-      <div className="settings-body">
-        {tab === 'keys' && <KeysSection />}
-        {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
-        {tab === 'aiProviders' && <AIProvidersSection />}
-        {tab === 'agents' && <AgentsSection />}
-        {tab === 'tools' && <ToolVisibilitySection />}
-        {tab === 'sidePanels' && <SidePanelsSection />}
-        {tab === 'display' && <DisplaySection />}
-        {tab === 'setup' && <SetupSection />}
-        {tab === 'shortcuts' && <KeyboardShortcuts />}
-        {tab === 'help' && <NavigationGuide />}
-        {tab === 'crashes' && <CrashesSection />}
+        <div className="settings-body">
+          {tab === 'keys' && <KeysSection />}
+          {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
+          {tab === 'aiProviders' && <AIProvidersSection />}
+          {tab === 'agents' && <AgentsSection />}
+          {tab === 'tools' && <ToolVisibilitySection />}
+          {tab === 'sidePanels' && <SidePanelsSection />}
+          {tab === 'display' && <DisplaySection />}
+          {tab === 'setup' && <SetupSection />}
+          {tab === 'shortcuts' && <KeyboardShortcuts />}
+          {tab === 'help' && <NavigationGuide />}
+          {tab === 'crashes' && <CrashesSection />}
+        </div>
       </div>
     </div>
   )
@@ -1082,7 +1095,7 @@ function SidePanelsSection() {
         'zauth': false,
         'meterflow': false,
         'ai-status': false,
-        'spawn-agent': false,
+        'clawpump': false,
       },
     })
     setConfig(readRightSidebarWidgetConfig())
@@ -1109,17 +1122,10 @@ function SidePanelsSection() {
             <div className="settings-side-copy">
               <span className="settings-display-label">{widget.name}</span>
               <span className="settings-display-hint">{widget.description}</span>
-              {widget.id === 'spawn-agent' && config.spawnAgentId && (
-                <span className="settings-side-meta">Pinned agent: {config.spawnAgentId}</span>
-              )}
             </div>
             <Toggle checked={config.enabled[widget.id]} onChange={(v) => toggleWidget(widget.id, v)} />
           </div>
         ))}
-      </div>
-
-      <div className="settings-section-desc tight">
-        The Spawn Agent widget can be pinned from a SpawnAgents detail page. If enabled without a pinned agent, it shows the first owned agent it can load.
       </div>
     </div>
   )

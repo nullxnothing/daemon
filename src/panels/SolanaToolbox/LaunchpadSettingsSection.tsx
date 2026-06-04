@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNotificationsStore } from '../../store/notifications'
+import { Badge } from '../../components/Panel'
 import basedbidLogo from '../../assets/basedbid-logo.svg'
+import '../_solana/solanaSurface.css'
 
 const EMPTY_SETTINGS: TokenLaunchSettings = {
   raydium: {
@@ -80,9 +82,9 @@ function toMap(definitions: LaunchpadDefinition[]): LaunchpadMap {
 function LaunchpadStatusBadge({ definition }: { definition?: LaunchpadDefinition }) {
   if (!definition) return null
   return (
-    <span className={`solana-launchpad-badge ${definition.enabled ? 'enabled' : 'planned'}`}>
+    <Badge tone={definition.enabled ? 'success' : 'warning'}>
       {definition.enabled ? 'Live' : 'Planned'}
-    </span>
+    </Badge>
   )
 }
 
@@ -160,9 +162,9 @@ export function LaunchpadSettingsSection({
               Store protocol config once, keep env fallback in place, and let the unified Token Launch tool resolve readiness from DAEMON state.
             </p>
           </div>
-          <div className="solana-token-launch-actions">
+          <div className="sol-actions">
             <button type="button" className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-            <button type="button" className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+            <button type="button" className="sol-btn sol-btn--primary" onClick={handleSave} disabled={loading || saving || !isDirty}>
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
@@ -177,9 +179,9 @@ export function LaunchpadSettingsSection({
               Save the protocol config once here and the launch flow will pick it up automatically.
             </div>
           </div>
-          <div className="solana-token-launch-actions">
+          <div className="sol-actions">
             <button type="button" className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-            <button type="button" className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+            <button type="button" className="sol-btn sol-btn--primary" onClick={handleSave} disabled={loading || saving || !isDirty}>
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>

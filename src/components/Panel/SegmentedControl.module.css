@@ -1,0 +1,34 @@
+.control {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, auto);
+  width: fit-content;
+  border: 1px solid var(--line);
+  background: var(--s1);
+}
+
+.item {
+  min-width: 0;
+  height: var(--btn-h-md);
+  padding: 0 12px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--t3);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+}
+
+.item:last-child {
+  border-right: 0;
+}
+
+.item:hover:not(:disabled) {
+  background: var(--s2);
+  color: var(--t1);
+}
+
+.active {
+  background: var(--accent-fill);
+  color: var(--t1);
+}

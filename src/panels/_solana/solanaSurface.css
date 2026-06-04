@@ -1,0 +1,292 @@
+/* ============================================================
+   Shared Solana panel grammar.
+   One source of truth for Wallet / Solana Workflow / Token
+   Launch so the three tools read identically. Flat hairline:
+   square surfaces, 1px borders, mono numbers, one green
+   primary, .sol-eyebrow labels. Token-driven only — no magic
+   px, no gradients/shadows (tokens.css ships --shadow-*: none).
+
+   Responsive via the `solpanel` container so a panel adapts to
+   the right drawer (~284px) and fullscreen alike, regardless of
+   viewport. Import once per panel root.
+   ============================================================ */
+
+.sol-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg);
+  color: var(--t1);
+  container-type: inline-size;
+  container-name: solpanel;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scroll body shared by every Solana panel. Centers content at
+   fullscreen, stacks sections with one consistent rhythm. */
+.sol-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll) transparent;
+}
+
+.sol-scroll-inner {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-lg) var(--space-4xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+}
+
+/* ── Eyebrow / section ────────────────────────────────────── */
+
+.sol-eyebrow {
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--t3);
+  white-space: nowrap;
+}
+
+.sol-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.sol-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.sol-section-title {
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-section-title-line);
+  font-weight: var(--type-section-title-weight);
+  color: var(--t1);
+}
+
+.sol-section-sub {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--fs-12);
+  color: var(--t3);
+  line-height: var(--lh-normal);
+  max-width: 68ch;
+}
+
+/* ── Fused KPI strip ──────────────────────────────────────── */
+
+.sol-kstrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.sol-kcell {
+  background: var(--bg);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sol-kk {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--t3);
+  margin-bottom: var(--space-sm);
+}
+
+.sol-kv {
+  font-family: var(--mono);
+  font-size: var(--fs-18);
+  font-weight: var(--fw-medium);
+  color: var(--t1);
+  line-height: var(--lh-tight);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sol-kv--amber { color: var(--amber); }
+.sol-kv--green { color: var(--green); }
+
+.sol-km {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t3);
+  margin-top: var(--space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── List container (DataRow flush rows fuse inside) ──────── */
+
+.sol-list {
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── Buttons — one set across all three panels ────────────────
+   Named .solx-btn to avoid colliding with the long-established
+   SolanaToolbox `.sol-btn` (34 call sites); kept visually identical
+   to it so Wallet / Token Launch / Toolbox read the same. */
+
+.solx-btn {
+  height: var(--btn-h-lg);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.solx-btn:hover:not(:disabled) {
+  background: var(--s1);
+  border-color: var(--line-strong);
+}
+
+.solx-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-neutral);
+}
+
+.solx-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.solx-btn--ghost {
+  border-color: transparent;
+  color: var(--t2);
+}
+
+.solx-btn--primary {
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
+}
+
+.solx-btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg));
+  border-color: var(--accent-line);
+}
+
+.solx-btn--primary:focus-visible { box-shadow: var(--focus-ring); }
+
+.solx-btn--danger {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 28%, transparent);
+}
+
+.solx-btn--danger:hover:not(:disabled) {
+  background: var(--red-glow);
+  border-color: color-mix(in srgb, var(--red) 48%, transparent);
+}
+
+.solx-btn--sm { height: var(--btn-h-sm); padding: 0 var(--space-sm); font-size: var(--fs-11); }
+.solx-btn--block { width: 100%; }
+
+/* Inline text link used inside rows (Copy mint, Sell, etc.) */
+.sol-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--t2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sol-link:hover { color: var(--green); }
+
+/* ── Action row (button cluster) ──────────────────────────── */
+
+.sol-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* ── Inputs reused across forms ───────────────────────────── */
+
+.sol-input {
+  width: 100%;
+  height: var(--input-h);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--field-bg);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+}
+
+.sol-input:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+textarea.sol-input {
+  height: auto;
+  min-height: 64px;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  resize: vertical;
+}
+
+/* ── Empty / state ────────────────────────────────────────── */
+
+.sol-empty {
+  padding: var(--space-xl);
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  color: var(--t3);
+  font-size: var(--fs-12);
+  text-align: center;
+  line-height: var(--lh-normal);
+}
+
+/* ── Responsive (container-driven) ────────────────────────── */
+
+@container solpanel (max-width: 720px) {
+  .sol-kstrip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sol-scroll-inner { padding: var(--space-md) var(--space-md) var(--space-3xl); }
+}
+
+@container solpanel (max-width: 380px) {
+  .sol-kstrip { grid-template-columns: 1fr; }
+}

@@ -3,7 +3,6 @@
   flex-direction: column;
   height: 100%;
   background: var(--bg);
-  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
@@ -43,8 +42,8 @@
   gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--s5);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  border-radius: var(--r-panel);
+  background: var(--wash);
 }
 
 .env-stat-label {
@@ -72,7 +71,7 @@
   font-size: var(--fs-13);
   background: var(--s1);
   border: 1px solid var(--s5);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   color: var(--t1);
   box-shadow: var(--shadow-lifted);
 }
@@ -142,7 +141,7 @@
 
 .env-row-group.expanded {
   background: var(--s1);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   margin: 2px 0;
 }
 
@@ -281,7 +280,7 @@
 }
 
 .env-btn-green:hover {
-  background: rgba(74, 140, 98, 0.2);
+  background: color-mix(in srgb, var(--green) 20%, transparent);
 }
 
 .env-btn-push {
@@ -290,7 +289,7 @@
 }
 
 .env-btn-push:hover {
-  background: rgba(96, 165, 250, 0.2);
+  background: color-mix(in srgb, var(--blue) 20%, transparent);
 }
 
 .env-btn-pull {
@@ -299,7 +298,7 @@
 }
 
 .env-btn-pull:hover {
-  background: rgba(240, 180, 41, 0.2);
+  background: color-mix(in srgb, var(--amber) 20%, transparent);
 }
 
 .env-btn:disabled {
@@ -324,7 +323,7 @@
 }
 
 .env-add-btn:hover {
-  background: rgba(74, 140, 98, 0.2);
+  background: color-mix(in srgb, var(--green) 20%, transparent);
 }
 
 /* Inline edit */

@@ -29,16 +29,16 @@
 .dash-btn-green {
   background: var(--green-glow);
   color: var(--green);
-  border-color: rgba(62, 207, 142, 0.25);
+  border-color: var(--accent-line);
 }
-.dash-btn-green:hover { background: rgba(62, 207, 142, 0.2); }
+.dash-btn-green:hover { background: color-mix(in srgb, var(--green) 20%, transparent); }
 
 .dash-btn-red {
   background: var(--red-glow);
   color: var(--red);
-  border-color: rgba(239, 83, 80, 0.25);
+  border-color: color-mix(in srgb, var(--red) 25%, transparent);
 }
-.dash-btn-red:hover { background: rgba(239, 83, 80, 0.2); }
+.dash-btn-red:hover { background: color-mix(in srgb, var(--red) 20%, transparent); }
 
 .dash-btn-muted {
   background: var(--s3);
@@ -73,7 +73,6 @@
   flex-direction: column;
   height: 100%;
   background: var(--s1);
-  background-image: var(--surface-gradient-subtle);
   overflow: hidden;
 }
 
@@ -333,14 +332,11 @@
   background: var(--red-glow);
   margin: 8px 20px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(239, 83, 80, 0.2);
+  border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
 }
 
 /* Metrics row */
 .dash-metrics-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-sm);
   padding: var(--space-md) var(--space-xl);
   border-bottom: 1px solid var(--s4);
   flex-shrink: 0;
@@ -368,10 +364,10 @@
 .dash-chart-area {
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow-lifted);
+  box-shadow: none;
 }
 
 .dash-chart-area svg {

@@ -4,8 +4,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg) 96%, white 4%), var(--bg) 180px);
+  background: var(--void);
   color: var(--t1);
   overflow: hidden;
   isolation: isolate;
@@ -105,6 +104,12 @@
   overflow: hidden;
   min-height: 0;
   z-index: 1;
+  gap: 10px;
+  padding: 10px;
+  background:
+    radial-gradient(rgba(var(--tex-c), calc(var(--tex-a) * var(--tex-k))) 1px, transparent 1px),
+    var(--void);
+  background-size: 16px 16px;
 }
 
 .main-layout--tablet,
@@ -118,7 +123,8 @@
   min-width: 140px;
   max-width: 350px;
   background: var(--panel-bg);
-  border-right: 1px solid var(--panel-border);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--r-panel);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -136,14 +142,15 @@
 }
 
 .panel-header {
-  height: 34px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
   line-height: var(--type-eyebrow-line);
   color: var(--text-muted);
   text-transform: uppercase;
@@ -182,11 +189,9 @@
   overflow: hidden;
   min-width: 200px;
   position: relative;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--border) 13%, transparent) 1px, transparent 1px),
-    linear-gradient(180deg, color-mix(in srgb, var(--border) 9%, transparent) 1px, transparent 1px),
-    var(--surface-sunken);
-  background-size: 128px 128px;
+  background: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
 }
 
 .center-area--compact {
@@ -236,7 +241,8 @@
 .low-power-editor-kicker {
   color: var(--text-muted);
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
   line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
@@ -265,8 +271,8 @@
 }
 
 .splitter {
-  height: 5px;
-  background: color-mix(in srgb, var(--surface-flat) 78%, var(--border) 22%);
+  height: 10px;
+  background: var(--void);
   cursor: row-resize;
   flex-shrink: 0;
   transition: background var(--transition-normal);
@@ -276,11 +282,11 @@
 .splitter::after {
   content: '';
   position: absolute;
-  top: 2px;
+  top: 4px;
   left: 50%;
   width: 64px;
-  height: 2px;
-  border-radius: var(--radius-pill);
+  height: 1px;
+  border-radius: 0;
   transform: translateX(-50%);
   background: color-mix(in srgb, var(--t4) 58%, transparent);
 }
@@ -296,11 +302,18 @@
 .terminal-area {
   min-height: 0;
   flex-shrink: 0;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
-  z-index: 20;
-  background: var(--surface-sunken);
+  z-index: 1;
+  background: var(--s1);
   border-top: 1px solid var(--panel-border);
+  transition: height var(--transition-normal, 160ms) ease;
+}
+
+/* Suppress the height transition while dragging the splitter so resizing stays
+   1:1 with the pointer instead of lagging behind the animation. */
+.terminal-area--dragging {
+  transition: none;
 }
 
 /* Right Panel — resizable via min/max */
@@ -308,8 +321,9 @@
   width: var(--right-panel-w);
   min-width: 200px;
   max-width: 400px;
-  background: var(--surface-flat);
-  border-left: 1px solid var(--panel-border);
+  background: var(--s1);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--r-panel);
   flex-shrink: 0;
   overflow: hidden;
   resize: horizontal;

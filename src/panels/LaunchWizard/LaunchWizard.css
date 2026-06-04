@@ -5,16 +5,14 @@
 
 /* ── Overlay ── */
 .lw-overlay {
-  --lw-green-ring: 0 0 0 1px var(--green-glow);
+  --lw-green-ring: 0 0 0 1px var(--accent-line);
 
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--green) 6%, transparent), transparent 55%),
-    rgba(2, 4, 6, 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
+  -webkit-backdrop-filter: var(--glass-blur-scrim);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -31,15 +29,10 @@
   position: relative;
   width: min(980px, 100%);
   max-height: calc(100vh - 48px);
-  background:
-    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--green) 5%, transparent), transparent 45%),
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 96%, transparent), var(--s1));
-  border: 1px solid var(--border-medium);
-  border-radius: 20px;
-  box-shadow:
-    var(--shadow-modal),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
-    0 0 80px -20px color-mix(in srgb, var(--green) 18%, transparent);
+  background: var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -52,17 +45,7 @@
 }
 
 .lw-modal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 30%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  display: none;
 }
 
 /* ── Header ── */
@@ -93,7 +76,7 @@
 
 .lw-title {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--fs-26);
   font-weight: var(--fw-semibold);
   color: var(--t1);
   letter-spacing: -0.02em;
@@ -150,11 +133,8 @@
 }
 
 .lw-step.active {
-  background:
-    radial-gradient(120% 80% at 0% 0%, var(--green-glow), transparent 60%),
-    var(--surface-card);
-  border-color: color-mix(in srgb, var(--green) 38%, transparent);
-  box-shadow: var(--lw-green-ring);
+  background: var(--accent-fill);
+  border-color: var(--accent-line);
 }
 
 .lw-step.complete {
@@ -182,7 +162,6 @@
   background: var(--green);
   border-color: var(--green);
   color: var(--bg-app);
-  box-shadow: 0 0 0 4px var(--green-glow);
 }
 
 .lw-step.complete .lw-step-dot {
@@ -260,10 +239,8 @@
 
 .lw-section.accent {
   padding: 18px;
-  background:
-    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--green) 5%, transparent), transparent 55%),
-    var(--surface-card);
-  border: 1px solid var(--border-medium);
+  background: var(--accent-fill);
+  border: 1px solid var(--accent-line);
   border-radius: var(--radius-card);
 }
 
@@ -343,7 +320,7 @@
 .lw-field.has-error .lw-input,
 .lw-field.has-error .lw-textarea {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px var(--red-glow);
+  box-shadow: var(--focus-ring-red);
 }
 
 /* ── Inputs ── */
@@ -604,10 +581,9 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-pad.selected {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 55%),
     var(--surface-card);
   border-color: var(--green);
-  box-shadow: 0 0 0 1px var(--green-glow), 0 8px 24px -8px color-mix(in srgb, var(--green) 30%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 .lw-pad.disabled {
@@ -647,7 +623,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   inset: 3px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: var(--glow-green-soft);
 }
 
 .lw-pad-body { flex: 1; min-width: 0; }
@@ -743,7 +718,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   padding: 0 12px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   color: var(--t3);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
@@ -760,7 +735,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-seg-opt.active {
   background: var(--surface-card);
   color: var(--t1);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
   font-weight: var(--fw-semibold);
 }
 
@@ -795,7 +770,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-plan.active {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 60%),
     var(--surface-card);
   border-color: var(--green);
   box-shadow: var(--lw-green-ring);
@@ -838,7 +812,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-wallet-card.active {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 55%),
     var(--surface-card);
   border-color: color-mix(in srgb, var(--green) 38%, transparent);
   box-shadow: var(--lw-green-ring);
@@ -989,7 +962,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-cost {
   padding: 16px;
   background:
-    radial-gradient(120% 80% at 100% 100%, var(--green-glow), transparent 60%),
     var(--surface-card);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-card);
@@ -1164,7 +1136,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-confirm.checked {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 60%),
     var(--surface-card);
   border-color: color-mix(in srgb, var(--green) 38%, transparent);
 }
@@ -1238,21 +1209,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-preview-card {
   position: relative;
   padding: 20px;
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 8%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--surface-card), var(--surface-sunken));
-  border: 1px solid var(--border-medium);
-  box-shadow: var(--shadow-md);
+  border-radius: var(--r-panel);
+  background: var(--s2);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
 .lw-preview-glow {
-  position: absolute;
-  inset: -40%;
-  background: radial-gradient(circle at 20% 20%, var(--green-glow), transparent 50%);
-  pointer-events: none;
-  opacity: 0.6;
+  display: none;
 }
 
 .lw-preview-row {
@@ -1269,16 +1233,13 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--green), var(--green-dim));
-  color: var(--bg-app);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
   display: grid;
   place-items: center;
   font-size: var(--fs-22);
   font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
-  box-shadow:
-    var(--glow-green-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1489,20 +1450,13 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-btn-primary {
-  background: linear-gradient(180deg, var(--green), var(--green-dim));
-  border-color: var(--green);
-  color: var(--bg-app);
-  box-shadow:
-    var(--glow-green-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
 }
 
 .lw-btn-primary:hover:not(:disabled) {
-  box-shadow:
-    var(--glow-green-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 8px 24px -8px var(--green);
-  transform: translateY(-1px);
+  border-color: var(--green);
 }
 
 .lw-btn-primary:active:not(:disabled) { transform: translateY(0); }
@@ -1515,7 +1469,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-btn-primary:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring), var(--glow-green-soft);
+  box-shadow: var(--focus-ring);
 }
 
 .lw-btn-secondary {
@@ -1577,17 +1531,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale.success .lw-finale-icon {
   color: var(--green);
   background:
-    radial-gradient(circle, var(--green-glow), transparent 70%),
     var(--surface-card);
   border: 1.5px solid var(--green);
-  box-shadow: var(--glow-green-ambient);
   animation: lw-pop 360ms var(--ease-spring);
 }
 
 .lw-finale.error .lw-finale-icon {
   color: var(--red);
   background:
-    radial-gradient(circle, var(--red-glow), transparent 70%),
     var(--surface-card);
   border: 1.5px solid var(--red);
 }
@@ -1630,7 +1581,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   border-top-color: var(--green);
   border-right-color: color-mix(in srgb, var(--green) 35%, transparent);
   animation: lw-spin 1.2s linear infinite;
-  box-shadow: var(--glow-green-soft);
 }
 
 @keyframes lw-spin {
@@ -1680,13 +1630,13 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-finale-phase.active .lw-finale-phase-dot {
   background: var(--amber);
-  box-shadow: 0 0 0 4px var(--amber-glow);
+  box-shadow: var(--focus-ring-amber);
   animation: lw-pulse 1.2s ease-in-out infinite;
 }
 
 .lw-finale-phase.done .lw-finale-phase-dot {
   background: var(--green);
-  box-shadow: 0 0 0 3px var(--green-glow);
+  box-shadow: var(--focus-ring);
 }
 
 /* ── Responsive ── */

@@ -84,14 +84,14 @@
   align-items: center;
   justify-content: center;
   background: var(--s2);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   color: var(--t2);
   flex-shrink: 0;
 }
 
 .plugin-card-v2--active .plugin-card-v2-icon {
   color: var(--success);
-  background: rgba(74, 140, 98, 0.1);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
 }
 
 .plugin-card-v2--disabled .plugin-card-v2-icon {
@@ -166,7 +166,7 @@
 }
 
 .plugin-card-v2-btn--active {
-  background: rgba(74, 140, 98, 0.12);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
   color: var(--success);
   cursor: default;
   pointer-events: none;

@@ -15,9 +15,14 @@ export interface SolanaMcpEntry {
 
 export interface ValidatorState {
   type: 'surfpool' | 'test-validator' | null
-  status: 'stopped' | 'starting' | 'running' | 'error'
+  status: 'stopped' | 'starting' | 'running' | 'error' | 'stopping'
   terminalId: string | null
   port: number | null
+  pid?: number | null
+  startedAt?: number | null
+  lastHealthCheckAt?: number | null
+  error?: string | null
+  outputExcerpt?: string | null
 }
 
 export type SolanaDiagnosticStatus = 'ready' | 'warning' | 'missing'
@@ -97,7 +102,7 @@ function getActiveProjectActivityContext() {
 
 export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   mcps: [],
-  validator: { type: null, status: 'stopped', terminalId: null, port: null },
+  validator: { type: null, status: 'stopped', terminalId: null, port: null, error: null, outputExcerpt: null },
   projectInfo: null,
   toolchain: null,
   loading: false,
@@ -142,7 +147,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
   },
 
   startValidator: async (type) => {
-    set({ validator: { type, status: 'starting', terminalId: null, port: null } })
+    set({ validator: { type, status: 'starting', terminalId: null, port: 8899, error: null, outputExcerpt: null } })
     const projectContext = getActiveProjectActivityContext()
     useNotificationsStore.getState().addActivity({
       kind: 'info',
@@ -153,7 +158,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     try {
       const res = await daemon.validator.start(type)
       if (res.ok && res.data) {
-        set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899 } })
+        set({ validator: { type, status: 'running', terminalId: res.data.terminalId, port: res.data.port ?? 8899, error: null } })
         useNotificationsStore.getState().addActivity({
           kind: 'success',
           context: 'Runtime',
@@ -161,7 +166,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
           ...projectContext,
         })
       } else {
-        set({ validator: { type, status: 'error', terminalId: null, port: null } })
+        set({ validator: { type, status: 'error', terminalId: null, port: 8899, error: res.error ?? `${type} validator failed to start` } })
         useNotificationsStore.getState().addActivity({
           kind: 'error',
           context: 'Runtime',
@@ -170,11 +175,12 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
         })
       }
     } catch (err) {
-      set({ validator: { type, status: 'error', terminalId: null, port: null } })
+      const message = err instanceof Error ? err.message : `${type} validator failed to start`
+      set({ validator: { type, status: 'error', terminalId: null, port: 8899, error: message } })
       useNotificationsStore.getState().addActivity({
         kind: 'error',
         context: 'Runtime',
-        message: err instanceof Error ? err.message : `${type} validator failed to start`,
+        message,
         ...projectContext,
       })
     }
@@ -184,6 +190,7 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
     const { validator } = get()
     const projectContext = getActiveProjectActivityContext()
     if (validator.terminalId) {
+      set({ validator: { ...validator, status: 'stopping' } })
       try {
         await daemon.validator.stop()
         useNotificationsStore.getState().addActivity({
@@ -192,9 +199,16 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
           message: `Stopped ${validator.type ?? 'local'} validator`,
           ...projectContext,
         })
-      } catch { /* ignore */ }
+      } catch (err) {
+        useNotificationsStore.getState().addActivity({
+          kind: 'error',
+          context: 'Runtime',
+          message: err instanceof Error ? err.message : 'Validator stop failed',
+          ...projectContext,
+        })
+      }
     }
-    set({ validator: { type: null, status: 'stopped', terminalId: null, port: null } })
+    set({ validator: { type: null, status: 'stopped', terminalId: null, port: null, error: null, outputExcerpt: null } })
   },
 
   refreshValidatorStatus: async () => {
@@ -203,10 +217,15 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
       if (res.ok && res.data) {
         set({
           validator: {
-            type: res.data.type as 'surfpool' | 'test-validator' | null,
-            status: res.data.status as ValidatorState['status'],
+            type: res.data.type,
+            status: res.data.status,
             terminalId: res.data.terminalId ?? null,
             port: res.data.port ?? null,
+            pid: res.data.pid ?? null,
+            startedAt: res.data.startedAt ?? null,
+            lastHealthCheckAt: res.data.lastHealthCheckAt ?? null,
+            error: res.data.error ?? null,
+            outputExcerpt: res.data.outputExcerpt ?? null,
           },
         })
       }

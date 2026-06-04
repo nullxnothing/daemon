@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Transaction } from '@solana/web3.js'
 
-const { withKeypairMock, getConnectionStrictMock } = vi.hoisted(() => ({
+const { withKeypairMock, getConnectionStrictMock, executeTransactionMock, executeInstructionsMock } = vi.hoisted(() => ({
   withKeypairMock: vi.fn(async (_walletId: string, fn: (kp: { publicKey: { toBase58: () => string } }) => Promise<unknown>) => {
     return fn({ publicKey: { toBase58: () => 'creator-public-key' } })
   }),
@@ -10,11 +11,15 @@ const { withKeypairMock, getConnectionStrictMock } = vi.hoisted(() => ({
     confirmTransaction: vi.fn(),
     getAccountInfo: vi.fn(async () => ({ lamports: 1 })),
   })),
+  executeTransactionMock: vi.fn(async () => ({ signature: 'executor-sig-123', transport: 'rpc' })),
+  executeInstructionsMock: vi.fn(async () => ({ signature: 'instructions-sig-123', transport: 'rpc' })),
 }))
 
 vi.mock('../../electron/services/SolanaService', () => ({
   withKeypair: withKeypairMock,
   getConnectionStrict: getConnectionStrictMock,
+  executeTransaction: executeTransactionMock,
+  executeInstructions: executeInstructionsMock,
 }))
 
 import { createMeteoraDbcLaunchAdapter } from '../../electron/services/token-launch/adapters/MeteoraDbcLaunchAdapter'
@@ -28,6 +33,8 @@ describe('MeteoraDbcLaunchAdapter', () => {
       confirmTransaction: vi.fn(),
       getAccountInfo: vi.fn(async () => ({ lamports: 1 })),
     })
+    executeTransactionMock.mockResolvedValue({ signature: 'executor-sig-123', transport: 'rpc' })
+    executeInstructionsMock.mockResolvedValue({ signature: 'instructions-sig-123', transport: 'rpc' })
   })
 
   it('stays disabled until config is present', () => {
@@ -162,6 +169,62 @@ describe('MeteoraDbcLaunchAdapter', () => {
     expect(execute).toHaveBeenCalled()
     expect(result.signature).toBe('meteora-sig-123')
     expect(result.poolAddress).toContain('meteora-pool')
+    expect(result.protocolReceipts.execution).toEqual(expect.objectContaining({
+      transport: 'sdk-adapter',
+      managedBy: 'meteora-dbc-sdk',
+      sharedExecutor: false,
+      signerGuard: false,
+    }))
+  })
+
+  it('prefers returned transactions over SDK execute fallback', async () => {
+    const execute = vi.fn(async () => ({ txId: 'meteora-sdk-sig' }))
+    const createPool = vi.fn(async () => ({
+      transaction: new Transaction(),
+      execute,
+      poolAddress: 'meteora-pool-123456789012345678901',
+    }))
+
+    class FakeDynamicBondingCurve {
+      createPool = createPool
+      constructor(_connection: unknown, _commitment: string) {}
+    }
+
+    const adapter = createMeteoraDbcLaunchAdapter({
+      env: {
+        METEORA_DBC_CONFIG: '11111111111111111111111111111111',
+      } as NodeJS.ProcessEnv,
+      loadSdk: () => ({ DynamicBondingCurve: FakeDynamicBondingCurve }),
+      uploadMetadata: vi.fn(async () => ({ metadataUri: 'https://meta.example/meteora.json' })),
+    })
+
+    const result = await adapter.createLaunch({
+      launchpad: 'meteora',
+      walletId: 'wallet-1',
+      name: 'Meteora Token',
+      symbol: 'METX',
+      description: 'DBC token',
+      imagePath: null,
+      initialBuySol: 0.2,
+      slippageBps: 900,
+      priorityFeeSol: 0.005,
+    })
+
+    expect(execute).not.toHaveBeenCalled()
+    expect(executeTransactionMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Transaction),
+      expect.any(Array),
+      expect.objectContaining({ guardSource: 'token-launch:meteora' }),
+    )
+    expect(result.signature).toBe('executor-sig-123')
+    expect(result.protocolReceipts.execution).toEqual(expect.objectContaining({
+      transport: 'rpc',
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:meteora',
+    }))
   })
 
   it('blocks direct launch when the configured DBC config is not on-chain', async () => {

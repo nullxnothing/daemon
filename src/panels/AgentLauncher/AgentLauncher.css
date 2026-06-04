@@ -11,13 +11,13 @@
 .agent-launcher {
   width: 480px;
   max-height: 420px;
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-float);
 }
 
 .agent-launcher-input {
@@ -46,7 +46,7 @@
 
 .agent-launcher-item {
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: var(--r);
   cursor: pointer;
   position: relative;
 }
@@ -60,7 +60,17 @@
 }
 
 .agent-launcher-item.selected {
-  background: var(--hover-bg);
+  background: var(--accent-fill);
+}
+
+.agent-launcher-item.selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--green);
 }
 
 .agent-launcher-item-main {
@@ -125,7 +135,7 @@
   padding: 8px 16px;
   font-size: var(--fs-12);
   color: var(--error);
-  background: rgba(140, 74, 74, 0.1);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
   border-bottom: 1px solid var(--border);
 }
 
@@ -164,7 +174,7 @@
 }
 
 .agent-edit-btn:hover { color: var(--t1); background: var(--active-bg); }
-.agent-delete-btn:hover { color: var(--error); background: rgba(140, 74, 74, 0.2); }
+.agent-delete-btn:hover { color: var(--error); background: color-mix(in srgb, var(--red) 20%, transparent); }
 
 /* Create button */
 .agent-create-btn {
@@ -197,7 +207,7 @@
   height: 16px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
-  background: rgba(72, 118, 195, 0.2);
+  background: color-mix(in srgb, var(--blue) 20%, transparent);
   color: var(--blue);
   font-size: var(--fs-10);
   font-weight: 600;

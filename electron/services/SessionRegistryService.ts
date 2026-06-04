@@ -1,6 +1,7 @@
 import * as crypto from 'node:crypto'
-import { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction } from '@solana/web3.js'
+import { Connection, PublicKey, TransactionInstruction, SystemProgram } from '@solana/web3.js'
 import type { Keypair } from '@solana/web3.js'
+import { executeInstructions } from './SolanaExecutionService'
 
 const PROGRAM_ID = new PublicKey('3nu6sppjDtAKNoBbUAhvFJ35B2JsxpRY6G4Cg72MCJRc')
 const REGISTRY_RPC_ENDPOINT = process.env.DAEMON_REGISTRY_RPC_URL || 'https://api.devnet.solana.com'
@@ -112,8 +113,21 @@ async function ensureProfileExists(keypair: Keypair): Promise<void> {
     data,
   })
 
-  const tx = new Transaction().add(ix)
-  await sendAndConfirmTransaction(connection, tx, [keypair])
+  await executeRegistryInstruction(connection, ix, keypair, 'session-registry:initialize-profile')
+}
+
+async function executeRegistryInstruction(
+  connection: Connection,
+  instruction: TransactionInstruction,
+  signer: Keypair,
+  guardSource: string,
+): Promise<string> {
+  const result = await executeInstructions(connection, [instruction], [signer], {
+    payer: signer.publicKey,
+    guardSource,
+    guardAllowProgramIds: [PROGRAM_ID.toBase58()],
+  })
+  return result.signature
 }
 
 export async function publishStartSession(params: {
@@ -170,9 +184,7 @@ export async function publishStartSession(params: {
     data,
   })
 
-  const tx = new Transaction().add(ix)
-  const signature = await sendAndConfirmTransaction(connection, tx, [walletKeypair])
-  return signature
+  return executeRegistryInstruction(connection, ix, walletKeypair, 'session-registry:start-session')
 }
 
 export async function publishEndSession(params: {
@@ -211,9 +223,7 @@ export async function publishEndSession(params: {
     data,
   })
 
-  const tx = new Transaction().add(ix)
-  const signature = await sendAndConfirmTransaction(connection, tx, [walletKeypair])
-  return signature
+  return executeRegistryInstruction(connection, ix, walletKeypair, 'session-registry:end-session')
 }
 
 export async function publishCreateTask(params: {
@@ -255,8 +265,7 @@ export async function publishCreateTask(params: {
     data,
   })
 
-  const tx = new Transaction().add(ix)
-  return sendAndConfirmTransaction(connection, tx, [params.walletKeypair])
+  return executeRegistryInstruction(connection, ix, params.walletKeypair, 'session-registry:create-task')
 }
 
 export async function publishStartTaskSession(params: {
@@ -277,8 +286,7 @@ export async function publishStartTaskSession(params: {
     data: DISC_START_TASK_SESSION,
   })
 
-  const tx = new Transaction().add(ix)
-  return sendAndConfirmTransaction(connection, tx, [params.agentKeypair])
+  return executeRegistryInstruction(connection, ix, params.agentKeypair, 'session-registry:start-task-session')
 }
 
 export async function publishSubmitWorkReceipt(params: {
@@ -314,8 +322,7 @@ export async function publishSubmitWorkReceipt(params: {
     data,
   })
 
-  const tx = new Transaction().add(ix)
-  return sendAndConfirmTransaction(connection, tx, [params.agentKeypair])
+  return executeRegistryInstruction(connection, ix, params.agentKeypair, 'session-registry:submit-work-receipt')
 }
 
 export async function publishApproveWork(params: {
@@ -355,8 +362,7 @@ async function publishReviewWork(params: {
     data: params.discriminator,
   })
 
-  const tx = new Transaction().add(ix)
-  return sendAndConfirmTransaction(connection, tx, [params.verifierKeypair])
+  return executeRegistryInstruction(connection, ix, params.verifierKeypair, 'session-registry:review-work')
 }
 
 export async function publishSettleTask(params: {
@@ -381,8 +387,7 @@ export async function publishSettleTask(params: {
     data: DISC_SETTLE_TASK,
   })
 
-  const tx = new Transaction().add(ix)
-  return sendAndConfirmTransaction(connection, tx, [params.authorityKeypair])
+  return executeRegistryInstruction(connection, ix, params.authorityKeypair, 'session-registry:settle-task')
 }
 
 export async function publishExpireTask(params: {
@@ -404,8 +409,7 @@ export async function publishExpireTask(params: {
     data: DISC_EXPIRE_TASK,
   })
 
-  const tx = new Transaction().add(ix)
-  return sendAndConfirmTransaction(connection, tx, [params.authorityKeypair])
+  return executeRegistryInstruction(connection, ix, params.authorityKeypair, 'session-registry:expire-task')
 }
 
 // Build a deterministic tools merkle root from an array of tool names

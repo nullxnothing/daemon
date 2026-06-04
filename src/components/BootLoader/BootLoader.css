@@ -7,6 +7,9 @@
   align-items: center;
   justify-content: center;
   background: var(--bg);
+  background-image:
+    radial-gradient(rgba(var(--tex-c), calc(var(--tex-a) * var(--tex-k))) 1px, transparent 1px);
+  background-size: 22px 22px;
   gap: 28px;
   /* Fade out on exit */
   transition: opacity 0.4s ease, visibility 0.4s ease;
@@ -41,12 +44,9 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 1.5px solid transparent;
+  border: 1px solid var(--line);
   background: transparent;
-  box-shadow:
-    inset 0 0 0 1.5px rgba(62, 207, 142, 0.12),
-    inset 0 0 12px rgba(62, 207, 142, 0.08),
-    0 0 16px rgba(62, 207, 142, 0.06);
+  box-shadow: none;
   animation: ring-spin 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   position: relative;
 }
@@ -57,10 +57,10 @@
   position: absolute;
   inset: -1.5px;
   border-radius: 50%;
-  border: 1.5px solid transparent;
+  border: 1px solid transparent;
   border-top-color: var(--green);
-  border-right-color: rgba(62, 207, 142, 0.4);
-  box-shadow: 0 0 8px rgba(62, 207, 142, 0.35), 0 0 20px rgba(62, 207, 142, 0.12);
+  border-right-color: var(--accent-line);
+  box-shadow: none;
 }
 
 /* ── Text: DAEMON letter wave ── */
@@ -74,11 +74,10 @@
 .bootloader__letter {
   font-family: var(--font-ui);
   font-size: var(--fs-22);
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
   letter-spacing: 0.12em;
   color: var(--t1);
   display: inline-block;
-  animation: letter-pulse 2.8s ease-in-out infinite;
 }
 
 /* Stagger each letter */
@@ -91,7 +90,7 @@
 
 /* ── Status line ── */
 .bootloader__status {
-  font-family: var(--font-code);
+  font-family: var(--mono);
   font-size: var(--fs-10);
   letter-spacing: 0.08em;
   color: var(--t4);
@@ -113,8 +112,8 @@
 
 .bootloader__progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--green-dim), var(--green));
-  box-shadow: 0 0 6px rgba(62, 207, 142, 0.5);
+  background: var(--green);
+  box-shadow: none;
   border-radius: 1px;
   animation: progress-sweep 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   transform-origin: left;
@@ -133,17 +132,6 @@
   to   { transform: rotate(360deg); }
 }
 
-@keyframes letter-pulse {
-  0%, 60%, 100% {
-    color: var(--t1);
-    text-shadow: none;
-  }
-  30% {
-    color: var(--green);
-    text-shadow: 0 0 12px rgba(62, 207, 142, 0.5);
-  }
-}
-
 @keyframes progress-sweep {
   0%   { width: 0%;   margin-left: 0%; }
   50%  { width: 60%;  margin-left: 20%; }
@@ -158,9 +146,6 @@
   .bootloader__ring::before {
     border-top-color: var(--green);
     border-right-color: transparent;
-  }
-  .bootloader__letter {
-    animation: none;
   }
   .bootloader__progress-fill {
     animation: none;

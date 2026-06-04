@@ -217,7 +217,7 @@ export function createRaydiumLaunchLabAdapter(deps: RaydiumDeps = {}): TokenLaun
           priorityFeeLamports: Math.floor(input.priorityFeeSol * 1e9),
         })
 
-        const signature = await executeRaydiumLaunch({
+        const execution = await executeRaydiumLaunch({
           connection,
           keypair,
           mintKeypair,
@@ -225,7 +225,7 @@ export function createRaydiumLaunchLabAdapter(deps: RaydiumDeps = {}): TokenLaun
         })
 
         return {
-          signature,
+          signature: execution.signature,
           mint: mintKeypair.publicKey.toBase58(),
           metadataUri: metadata.metadataUri,
           poolAddress: extractAddress(createResult, ['poolAddress', 'poolId', 'launchpadAddress']),
@@ -235,6 +235,7 @@ export function createRaydiumLaunchLabAdapter(deps: RaydiumDeps = {}): TokenLaun
             configId: configId.toBase58(),
             quoteMint: quoteMint.toBase58(),
             rawKeys: Object.keys(createResult ?? {}),
+            execution,
           },
         }
       })
@@ -247,32 +248,71 @@ async function executeRaydiumLaunch(input: {
   keypair: Keypair
   mintKeypair: Keypair
   createResult: any
-}) {
+}): Promise<Record<string, unknown> & { signature: string }> {
   const { connection, keypair, mintKeypair, createResult } = input
-
-  if (typeof createResult?.execute === 'function') {
-    const executed = await createResult.execute({ sendAndConfirm: true })
-    const signature = executed?.txId ?? executed?.signature
-    if (typeof signature === 'string') return signature
-  }
 
   const transaction = createResult?.transaction ?? createResult?.tx ?? createResult?.transactions?.[0]
   if (transaction instanceof VersionedTransaction) {
-    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair])
-    return result.signature
+    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair], {
+      guardSource: 'token-launch:raydium',
+    })
+    return {
+      signature: result.signature,
+      transport: result.transport,
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:raydium',
+    }
   }
 
   if (transaction instanceof Transaction) {
-    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair])
-    return result.signature
+    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair], {
+      guardSource: 'token-launch:raydium',
+    })
+    return {
+      signature: result.signature,
+      transport: result.transport,
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:raydium',
+    }
   }
 
   const instructions = createResult?.instructions as TransactionInstruction[] | undefined
   if (Array.isArray(instructions) && instructions.length > 0) {
     const result = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
       payer: keypair.publicKey,
+      guardSource: 'token-launch:raydium',
     })
-    return result.signature
+    return {
+      signature: result.signature,
+      transport: result.transport,
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:raydium',
+    }
+  }
+
+  if (typeof createResult?.execute === 'function') {
+    const startedAt = Date.now()
+    const executed = await createResult.execute({ sendAndConfirm: true })
+    const signature = executed?.txId ?? executed?.signature
+    if (typeof signature === 'string') {
+      return {
+        signature,
+        transport: 'sdk-adapter',
+        managedBy: 'raydium-launchlab-sdk',
+        method: 'createResult.execute',
+        sendAndConfirm: true,
+        sharedExecutor: false,
+        signerGuard: false,
+        elapsedMs: Date.now() - startedAt,
+        warning: 'SDK-managed execution; DAEMON cannot fully inspect final transaction.',
+      }
+    }
   }
 
   throw new Error('Raydium LaunchLab adapter could not find an executable transaction result')

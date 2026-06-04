@@ -276,7 +276,7 @@
 .gmail__extraction-content {
   font-size: var(--fs-11);
   color: var(--t1);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   white-space: pre-wrap;
   word-break: break-all;
 }

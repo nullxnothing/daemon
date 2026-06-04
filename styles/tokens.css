@@ -1,47 +1,67 @@
 :root {
-  /* Premium dark foundation */
-  --bg-app: hsl(220 16% 5%);
-  --bg-workspace: hsl(220 15% 6%);
-  --bg-panel: hsl(220 14% 8%);
-  --bg-card: hsl(220 13% 10%);
-  --bg-card-hover: hsl(220 13% 13%);
-  --bg-well: hsl(220 16% 7%);
-  --bg-overlay: hsl(220 15% 9% / 0.92);
+  /* 2026 dark foundation */
+  --bg-app: #0a0a0a;
+  --bg-workspace: #060707;
+  --bg-panel: #121414;
+  --bg-card: #171919;
+  --bg-card-hover: #1d1f1f;
+  --bg-well: #0d0f0f;
+  --bg-overlay: #171919;
+  --void: #060707;
+  --code-bg: #0a0a0a;
+  --diff-bg: #0c0e0e;
+  --field-bg: #0d0f0f;
+  --wash: rgba(255, 255, 255, 0.02);
+  --wash-2: rgba(255, 255, 255, 0.015);
+  --scroll: rgba(255, 255, 255, 0.09);
+  --scroll-h: rgba(255, 255, 255, 0.18);
+  --tex-c: 255, 255, 255;
+  --tex-a: 0.045;
+  --tex-k: 1;
+  --noise-a: 0.18;
+  --noise-k: 1;
+  --noise-blend: overlay;
+  --shadow-c: 255, 255, 255;
+  --shadow-a: 0.5;
+  --shadow-b1: 0.12;
+  --shadow-b2: 0.08;
+  color-scheme: dark;
 
   /* Text ladder */
-  --text-primary: hsl(210 30% 96%);
-  --text-secondary: hsl(215 18% 72%);
-  --text-muted: hsl(215 13% 55%);
-  --text-faint: hsl(215 11% 40%);
-  --text-disabled: hsl(215 10% 30%);
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #6e706f;
+  --text-faint: #4a4c4b;
+  --text-disabled: #4a4c4b;
 
   /* Border ladder */
-  --border-soft: hsl(220 13% 18% / 0.78);
-  --border-medium: hsl(220 12% 23% / 0.9);
-  --border-strong: hsl(220 11% 31%);
+  --border-soft: rgba(255, 255, 255, 0.07);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --line: var(--border-soft);
+  --line-2: var(--border-medium);
+  --line-strong: var(--border-strong);
 
   /* Semantic accents */
-  --accent-green: hsl(158 88% 58%);
-  --accent-green-dim: hsl(158 62% 42%);
-  --accent-green-glow: hsl(158 88% 58% / 0.12);
-  --accent-amber: hsl(39 88% 67%);
-  --accent-amber-dim: hsl(39 62% 48%);
-  --accent-amber-glow: hsl(39 88% 67% / 0.15);
-  --accent-red: hsl(348 88% 67%);
-  --accent-red-dim: hsl(348 62% 50%);
-  --accent-red-glow: hsl(348 88% 67% / 0.15);
-  --accent-blue: hsl(214 92% 70%);
-  --accent-blue-dim: hsl(214 64% 55%);
-  --accent-blue-glow: hsl(214 92% 70% / 0.15);
-  --accent-purple: hsl(256 86% 74%);
-  --accent-purple-glow: hsl(256 86% 74% / 0.18);
+  --accent-green: #3ecf8e;
+  --accent-green-dim: #2a9d6c;
+  --accent-green-glow: color-mix(in srgb, var(--accent-green) 8%, transparent);
+  --accent-amber: #f0b429;
+  --accent-amber-dim: color-mix(in srgb, var(--accent-amber) 68%, var(--bg));
+  --accent-amber-glow: color-mix(in srgb, var(--accent-amber) 10%, transparent);
+  --accent-red: #ef5350;
+  --accent-red-dim: color-mix(in srgb, var(--accent-red) 70%, var(--bg));
+  --accent-red-glow: color-mix(in srgb, var(--accent-red) 10%, transparent);
+  --accent-blue: #60a5fa;
+  --accent-blue-dim: color-mix(in srgb, var(--accent-blue) 70%, var(--bg));
+  --accent-blue-glow: color-mix(in srgb, var(--accent-blue) 10%, transparent);
 
   /* Background scale aliases (darkest to lightest) */
   --bg: var(--bg-app);
   --s1: var(--bg-panel);
   --s2: var(--bg-card);
   --s3: var(--bg-card-hover);
-  --s4: hsl(220 12% 16%);
+  --s4: #262928;
   --s5: var(--border-medium);
   --s6: var(--border-strong);
 
@@ -71,20 +91,21 @@
   --blue-dim:    var(--accent-blue-dim);
   --blue-glow:   var(--accent-blue-glow);
 
-  /* Solana brand purple — used by AgentStation/Solana-affinity panels only */
-  --solana:      var(--accent-purple);
-  --solana-glow: var(--accent-purple-glow);
+  --accent-fill: color-mix(in srgb, var(--green) 8%, transparent);
+  --accent-line: color-mix(in srgb, var(--green) 28%, transparent);
 
   /* Foreground on saturated accent fill (white text on amber/red CTA pills) */
-  --on-accent:   #ffffff;
+  --on-accent:   #d9ffe9;
   --on-accent-dark: var(--bg-app);
+  --btn-pri-text: #d9ffe9;
+  --btn-pri-bg: #1d3329;
 
   /* Semantic tokens */
   --border:        var(--border-soft);
   --border-hover:  var(--border-medium);
-  --border-focus:  var(--green);
+  --border-focus:  var(--accent-line);
   --focus:         var(--green);
-  --focus-glow:    var(--green-glow);
+  --focus-glow:    var(--accent-line);
   
   --success:     var(--green);
   --warning:     var(--amber);
@@ -93,25 +114,25 @@
   --accent:      var(--green);
 
   /* Interactive state overlays — three intensities + press */
-  --hover-overlay-subtle: rgba(255, 255, 255, 0.025);
-  --hover-overlay:        rgba(255, 255, 255, 0.045);
-  --hover-overlay-strong: rgba(255, 255, 255, 0.075);
-  --active-overlay:       rgba(255, 255, 255, 0.08);
+  --hover-overlay-subtle: color-mix(in srgb, var(--s2) 45%, transparent);
+  --hover-overlay:        var(--s2);
+  --hover-overlay-strong: var(--s3);
+  --active-overlay:       var(--s4);
   --press-overlay:        rgba(0, 0, 0, 0.18);
   --hover-bg:             var(--hover-overlay);
   --active-bg:            var(--active-overlay);
 
   /* Focus rings — green stays for inputs, neutral default for buttons,
      accent variants for destructive/info actions */
-  --focus-ring:         0 0 0 2px var(--focus-glow), 0 0 0 1px var(--focus);
-  --focus-ring-neutral: 0 0 0 2px rgba(255, 255, 255, 0.10), 0 0 0 1px var(--t2);
-  --focus-ring-amber:   0 0 0 2px var(--amber-glow), 0 0 0 1px var(--amber);
-  --focus-ring-red:     0 0 0 2px var(--red-glow),   0 0 0 1px var(--red);
-  --focus-ring-blue:    0 0 0 2px var(--blue-glow),  0 0 0 1px var(--blue);
+  --focus-ring:         0 0 0 1px var(--accent-line);
+  --focus-ring-neutral: 0 0 0 1px var(--line-strong);
+  --focus-ring-amber:   0 0 0 1px color-mix(in srgb, var(--amber) 48%, transparent);
+  --focus-ring-red:     0 0 0 1px color-mix(in srgb, var(--red) 48%, transparent);
+  --focus-ring-blue:    0 0 0 1px color-mix(in srgb, var(--blue) 48%, transparent);
 
   /* Typography — families */
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-code: 'Geist Mono', 'Berkeley Mono', 'Spline Sans Mono', 'Space Mono', ui-monospace, monospace;
   --mono: var(--font-code);
 
   /* Typography — size scale (single source of truth, no panel may set font-size in px) */
@@ -140,12 +161,12 @@
   --fs-display: 40px;
 
   /* Typography roles */
-  --type-page-title-size: 28px;
-  --type-page-title-line: 32px;
+  --type-page-title-size: 16px;
+  --type-page-title-line: 22px;
   --type-page-title-weight: var(--fw-semibold);
   --type-page-title-tracking: 0;
-  --type-section-title-size: 16px;
-  --type-section-title-line: 22px;
+  --type-section-title-size: 14px;
+  --type-section-title-line: 18px;
   --type-section-title-weight: var(--fw-medium);
   --type-item-title-size: 14px;
   --type-item-title-line: 20px;
@@ -155,11 +176,11 @@
   --type-metadata-weight: var(--fw-regular);
   --type-mono-size: 13px;
   --type-mono-line: 18px;
-  --type-body-size: 15px;
-  --type-body-line: 1.55;
+  --type-body-size: 13px;
+  --type-body-line: 1.5;
   --type-list-size: 13px;
   --type-list-line: 1.4;
-  --type-eyebrow-size: 11px;
+  --type-eyebrow-size: 10.5px;
   --type-eyebrow-line: 16px;
 
   /* @deprecated legacy aliases — prefer --fs-* or the type role tokens. Kept until panels migrate. */
@@ -186,7 +207,7 @@
   /* Typography — letter spacing */
   --ls-tight:    0;
   --ls-normal:   0;
-  --ls-eyebrow:  0.16em;   /* uppercase kicker / label */
+  --ls-eyebrow:  0.14em;   /* uppercase kicker / label */
   --ls-caps:     0.08em;   /* small uppercase headings */
 
   /* Layout dimensions */
@@ -208,49 +229,46 @@
   --space-4xl: 48px;
 
   /* Panel layout (used by PanelHeader, panel bodies) */
-  --panel-pad-x:        var(--space-lg);
+  --panel-pad-x:        var(--space-md);
   --panel-pad-y:        var(--space-md);
   --panel-section-gap:  var(--space-lg);
   --panel-content-max:  1280px;
 
   /* Border radius — keep small set, alias card/pill semantics */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-card: 12px;
-  --radius-feature: 16px;
-  --radius-control: var(--radius-md);
+  --r: 3px;
+  --r-panel: 6px;
+  --radius-sm:   var(--r);
+  --radius-md:   var(--r);
+  --radius-lg:   0;
+  --radius-xl:   0;
+  --radius-card: 0;
+  --radius-feature: 0;
+  --radius-control: var(--r);
   --radius-pill: 999px;
 
   /* Control sizing */
   --btn-h-sm: 24px;
-  --btn-h-md: 32px;
-  --btn-h-lg: 40px;
-  --input-h:  32px;
-
-  /* Edge highlights — bake into shadows for the lifted-card texture */
-  --edge-highlight:        inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --edge-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --inset-well:            inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  --btn-h-md: 26px;
+  --btn-h-lg: 32px;
+  --input-h:  30px;
 
   /* Elevation — five-stop scale; bottom shadow + top edge highlight bundled */
-  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.24);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.18), var(--edge-highlight);
-  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.22), var(--edge-highlight);
-  --shadow-lg: 0 16px 34px rgba(0, 0, 0, 0.30), var(--edge-highlight-strong);
-  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.38), var(--edge-highlight-strong);
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: 0 24px 80px -12px rgba(0, 0, 0, 0.70);
   --shadow-lifted: var(--shadow-md);
   --shadow-modal: var(--shadow-xl);
 
   /* Surface roles — semantic; prefer these over bare s1/s2/s3 in panel CSS */
-  --surface-flat:     var(--bg-workspace);
-  --surface-sunken:   var(--bg-well);
-  --surface-raised:   var(--bg-card);
-  --surface-floating: var(--bg-card-hover);
-  --surface-overlay:  var(--bg-overlay);
-  --surface-panel:    var(--bg-panel);
-  --surface-card:     var(--bg-card);
+  --surface-flat:     var(--void);
+  --surface-sunken:   var(--field-bg);
+  --surface-raised:   var(--s2);
+  --surface-floating: var(--s3);
+  --surface-overlay:  var(--s2);
+  --surface-panel:    var(--s1);
+  --surface-card:     var(--s1);
   --surface-card-hover: var(--bg-card-hover);
   --surface-control:  var(--s2);
   --surface-control-hover: var(--s3);
@@ -259,7 +277,7 @@
   /* Shared component semantics */
   --panel-bg: var(--surface-panel);
   --panel-border: var(--border);
-  --panel-header-bg: color-mix(in srgb, var(--surface-flat) 92%, var(--s2) 8%);
+  --panel-header-bg: var(--s1);
   --card-bg: var(--surface-card);
   --card-bg-hover: var(--surface-card-hover);
   --card-border: var(--border);
@@ -267,9 +285,9 @@
   --control-bg-hover: var(--surface-control-hover);
   --control-border: var(--border);
   --control-border-hover: var(--border-hover);
-  --tab-active-bg: var(--surface-raised);
+  --tab-active-bg: var(--bg);
   --tab-active-color: var(--text-primary);
-  --tab-active-border: var(--border-strong);
+  --tab-active-border: var(--green);
   --tab-hover-bg: var(--hover-bg);
   --selection-bg: color-mix(in srgb, var(--green) 26%, transparent);
 
@@ -281,28 +299,36 @@
   --brand-metaplex: #22c55e;
   --brand-light: #2dd4bf;
   --brand-magicblock: #3b82f6;
-  --brand-spawnagents: #c41e3a;
+  --brand-clawpump: #22e06b;
   --brand-kausalayer: #0f766e;
   --brand-kausalayer-warm: #d97706;
   --brand-discord: #5865f2;
-  --brand-spawnagents-deep: #1d080d;
-  --brand-spawnagents-glow: rgba(196, 30, 58, 0.5);
-  --brand-spawnagents-success: #3fb950;
-  --brand-spawnagents-surface: #0a0608;
-  --brand-spawnagents-surface-2: #0c080a;
-  --brand-spawnagents-surface-3: #0d0a0c;
-  --brand-spawnagents-border: #1c181a;
-  --brand-spawnagents-border-strong: #2a2226;
-  --brand-spawnagents-text: #ede8ea;
-  --brand-spawnagents-muted: #6b5f63;
-  --brand-spawnagents-muted-strong: #8a7d82;
+  --brand-clawpump-surface: #050807;
+  --brand-clawpump-bright: #3fe27f;
+  --brand-clawpump-ink: #04130b;
+  --brand-clawpump-bg: #050807;
+  --brand-clawpump-card: #0a0f0c;
+  --brand-clawpump-card-2: #0c130f;
+  --brand-clawpump-border-base: #15201a;
+  --brand-clawpump-text: #e6f0ea;
+  --brand-clawpump-muted: #6f8479;
+  --brand-degentools: #b8ff3d;
+  --brand-degentools-gold: #f5c34f;
+  --brand-degentools-teal: #27e0b2;
+  --brand-degentools-bg: #060806;
+  --brand-degentools-card: #0b100b;
+  --brand-degentools-card-2: #0f170f;
+  --brand-signalhouse: #3aa0ff;
+  --brand-signalhouse-violet: #a875ff;
+  --brand-signalhouse-warn: #ffb454;
 
   /* Integration image-card surfaces. Use these instead of raw brand-dark hex in panel CSS. */
   --integration-surface-neutral: var(--bg-well);
   --integration-surface-neutral-strong: var(--bg-app);
   --integration-surface-helius: var(--bg-well);
   --integration-surface-sendai: var(--bg-well);
-  --integration-surface-spawnagents: var(--brand-spawnagents-surface);
+  --integration-surface-clawpump: var(--brand-clawpump-surface);
+  --integration-surface-degentools: var(--brand-degentools-bg);
   --integration-surface-phantom: #130d24;
   --integration-surface-jupiter: #04100d;
   --integration-surface-light: #04100f;
@@ -311,24 +337,16 @@
   --integration-surface-squads: var(--bg-app);
   --integration-surface-kausalayer: #03110f;
 
-  /* File explorer glyph accents */
-  --file-accent-ts: #7cc7ff;
-  --file-accent-js: #f4c95d;
-  --file-accent-json: #d4b4ff;
-  --file-accent-md: #8de2b0;
-  --file-accent-css: #8fd9df;
-  --file-accent-html: #ffb17d;
-  --file-accent-image: #d7b3ff;
-  --file-accent-yaml: #ffd27a;
-  --file-accent-runtime: #9fe39f;
-
-  /* Hero gradients — for panel headers that earn weight (rare) */
-  --surface-hero:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 6%, transparent), transparent 55%),
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1));
-  --surface-hero-amber:
-    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--amber) 7%, transparent), transparent 50%),
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 70%, transparent), var(--s1));
+  /* File explorer glyph accents collapse to the stone ramp. */
+  --file-accent-ts: var(--t2);
+  --file-accent-js: var(--t2);
+  --file-accent-json: var(--t2);
+  --file-accent-md: var(--t2);
+  --file-accent-css: var(--t2);
+  --file-accent-html: var(--t2);
+  --file-accent-image: var(--t2);
+  --file-accent-yaml: var(--t2);
+  --file-accent-runtime: var(--green);
 
   /* Divider weights */
   --divider-hairline: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
@@ -336,28 +354,23 @@
   --divider-emphasis: 1px solid var(--border-hover);
 
   /* Numeric/density — for tabular data rows */
-  --row-h-compact: 28px;
-  --row-h-default: 36px;
-  --row-h-comfy:   44px;
-
-  /* Glow accents — referenced by existing Button.css */
-  --glow-green-soft:    0 0 0 1px var(--green-glow), 0 0 12px var(--green-glow);
-  --glow-amber-soft:    0 0 0 1px var(--amber-glow), 0 0 12px var(--amber-glow);
-  --glow-red-soft:      0 0 0 1px var(--red-glow),   0 0 12px var(--red-glow);
-  --glow-blue-soft:     0 0 0 1px var(--blue-glow),  0 0 12px var(--blue-glow);
-  --glow-green-ambient: 0 0 24px var(--green-glow);
+  --row: 26px;
+  --row-compact: 23px;
+  --row-comfy: 30px;
+  --pad: 12px;
+  --gut: 8px;
+  --row-h-compact: var(--row-compact);
+  --row-h-default: var(--row);
+  --row-h-comfy:   var(--row-comfy);
 
   /* Glass surfaces (popovers, command palette, dropdown menus) */
-  --glass-bg:        color-mix(in srgb, var(--bg-overlay) 92%, transparent);
-  --glass-blur:      blur(18px);    /* default — popovers / dropdowns / sticky bars */
-  --glass-blur-soft: blur(8px);     /* inline tray, terminal session menus */
-  --glass-blur-scrim: blur(4px);    /* modal/lightbox scrims */
+  --glass-bg:        var(--s2);
+  --glass-blur:      none;
+  --glass-blur-soft: none;
+  --glass-blur-scrim: blur(2px);
   --scrim-bg:        rgba(0, 0, 0, 0.55);
-  --border-glass:    color-mix(in srgb, var(--border) 70%, rgba(255, 255, 255, 0.06));
-  --shadow-float:    0 16px 48px rgba(0, 0, 0, 0.36);
-
-  /* Shared surface layer retained for compatibility while panels migrate. */
-  --surface-gradient-subtle: none;
+  --border-glass:    var(--line-strong);
+  --shadow-float:    0 24px 80px -12px rgba(0, 0, 0, 0.70);
 
   /* Motion — durations + easing curves (ease replaced with named curves) */
   --duration-fast: 120ms;
@@ -369,15 +382,83 @@
   --dur-emphasized: var(--duration-slow);
   --dur-deliberate: 420ms;
 
-  --ease-standard:  cubic-bezier(0.2, 0, 0, 1);
-  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-quad:   cubic-bezier(0.55, 0.085, 0.68, 0.53);
-  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring:    var(--ease-standard);
 
   /* Legacy transition aliases — now resolve to named curves */
   --transition-fast:   var(--dur-instant)    var(--ease-standard);
   --transition-normal: var(--dur-base)       var(--ease-out-quint);
   --transition-slow:   var(--dur-emphasized) var(--ease-out-quint);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-feature-settings: "ss01", "cv01";
+}
+
+.label {
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dot {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--t4);
+}
+
+.dot.live {
+  background: var(--green);
+  animation: daemon-dot-pulse 2.6s ease-out infinite;
+}
+
+.dot.warn { background: var(--amber); }
+.dot.err { background: var(--red); }
+.dot.idle { background: var(--t4); }
+
+.chip,
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--wash-2);
+  color: var(--t2);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.chip {
+  gap: 6px;
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: var(--fs-11);
+}
+
+.kbd {
+  min-height: 18px;
+  padding: 1px 5px;
+  background: var(--wash);
+  color: var(--t3);
+  font-size: var(--fs-10);
+  line-height: 1.4;
+}
+
+@keyframes daemon-dot-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); }
+  70% { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -22,6 +22,8 @@ interface TerminalTabsProps {
   centerMode: CenterMode
   splitLayout: SplitLayout
   launchRecents: TerminalLaunchRecent[]
+  /** When true the per-session pills are hidden (sessions live in the sidebar). */
+  hideSessions?: boolean
   onSelectTerminal: (id: string) => void
   onCloseTerminal: (id: string) => void
   onToggleGrindMode: () => void
@@ -43,6 +45,7 @@ export function TerminalTabs({
   centerMode,
   splitLayout,
   launchRecents,
+  hideSessions = false,
   onSelectTerminal,
   onCloseTerminal,
   onToggleGrindMode,
@@ -63,7 +66,7 @@ export function TerminalTabs({
       </div>
 
       <div className="terminal-tabs-scroll">
-        {visibleTerminals.map((tab) => (
+        {!hideSessions && visibleTerminals.map((tab) => (
           <button
             key={tab.id}
             className={`terminal-tab ${activeTerminalId === tab.id ? 'active' : ''}`}

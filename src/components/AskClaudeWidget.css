@@ -5,8 +5,8 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
-  box-shadow: var(--shadow-float), var(--glow-green-ambient);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-float);
   overflow: hidden;
 }
 

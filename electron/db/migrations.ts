@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37, SCHEMA_V38, SCHEMA_V39, SCHEMA_V40, SCHEMA_V41, SCHEMA_V42, SCHEMA_V43, SCHEMA_V44 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37, SCHEMA_V38, SCHEMA_V39, SCHEMA_V40, SCHEMA_V41, SCHEMA_V42, SCHEMA_V43, SCHEMA_V44, SCHEMA_V45, SCHEMA_V46 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -526,6 +526,32 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 45) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V45.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(45)
+    })()
+  }
+
+  if (currentVersion < 46) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V46.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(46)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -701,17 +727,12 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
     console.warn('[Migrations] kausalayer registry seed check failed:', (err as Error).message)
   }
 
-  // Ensure all registry plugins have DB rows (handles plugins added after initial migration)
+  // Remove the legacy 'pumpfun' plugin row. It has no manifest in PLUGIN_REGISTRY,
+  // so it surfaced as a raw lowercase "pumpfun" entry in the tools list.
   try {
-    const newPlugins = [
-      { id: 'pumpfun', order: 9 },
-    ]
-    const insert = db.prepare('INSERT OR IGNORE INTO plugins (id, enabled, sort_order, config) VALUES (?,?,?,?)')
-    for (const p of newPlugins) {
-      insert.run(p.id, 1, p.order, '{}')
-    }
+    db.prepare("DELETE FROM plugins WHERE id = 'pumpfun'").run()
   } catch (err) {
-    console.warn('[Migrations] plugin seed check failed:', (err as Error).message)
+    console.warn('[Migrations] pumpfun plugin cleanup failed:', (err as Error).message)
   }
 
   // Clean stale sessions from previous crashed runs — PTY processes are dead after restart

@@ -1,0 +1,44 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.select {
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--s1);
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  padding: 0 22px 0 8px;
+  cursor: pointer;
+  outline: none;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.select:hover {
+  border-color: var(--line-2);
+  color: var(--t1);
+}
+
+.select:focus {
+  border-color: var(--accent-line);
+}
+
+.caret {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--t3);
+  font-size: var(--fs-9);
+}

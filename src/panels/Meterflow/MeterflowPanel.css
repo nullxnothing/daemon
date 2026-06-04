@@ -193,7 +193,6 @@
 
 .meterflow-status.live span {
   background: var(--green);
-  box-shadow: 0 0 8px var(--green-glow);
 }
 
 .meterflow-status strong,

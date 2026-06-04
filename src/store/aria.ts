@@ -1,94 +1,212 @@
 import { create } from 'zustand'
-import type { AriaMessage, AriaResponse, AriaAction } from '../../electron/shared/types'
+import type {
+  AriaMessage, AriaToolCallRecord, AriaToolEvent, AriaUiEffect,
+  AriaPlanStep, AriaPatchProposalLite, AriaPatchAction,
+  DaemonAiModelInfo, DaemonAiModelLane,
+} from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
+import { buildAriaSnapshot } from '../lib/ariaContext'
+import { applyUiEffect, runUiEffectWithData } from '../lib/ariaUiEffects'
+
+/** A pending write/sensitive tool awaiting the user's decision. */
+export interface AriaApproval {
+  callId: string
+  name: string
+  risk: 'read' | 'write' | 'sensitive'
+  summary: string
+  input: unknown
+}
+
+/** A live tool-call row inside an assistant turn. */
+export interface AriaToolCallLive {
+  callId: string
+  name: string
+  label: string
+  toolKind: 'read' | 'edit' | 'run'
+  risk: 'read' | 'write' | 'sensitive'
+  status: 'pending' | 'running' | 'done' | 'error' | 'rejected'
+  meta?: string
+}
+
+/** Where a turn's proposed patch stands in the keep/run/discard flow. */
+export type AriaActionState = 'idle' | 'deciding' | 'applied' | 'rejected' | 'failed'
+
+export interface AriaTurn {
+  id: string
+  role: 'user' | 'assistant'
+  text: string
+  createdAt: number
+  toolCalls: AriaToolCallLive[]
+  approvals: AriaApproval[]
+  plan?: AriaPlanStep[]
+  patch?: AriaPatchProposalLite
+  patchDecision?: AriaPatchAction
+  actionState?: AriaActionState
+}
+
+const DEFAULT_LANE: DaemonAiModelLane = 'auto'
 
 interface AriaState {
-  messages: AriaMessage[]
+  turns: AriaTurn[]
   isLoading: boolean
   sessionId: string
+  selectedLane: DaemonAiModelLane
+  availableModels: DaemonAiModelInfo[]
 
-  addUserMessage: (content: string) => void
-  addAssistantMessage: (id: string, content: string, actions: AriaAction[]) => void
-  setLoading: (loading: boolean) => void
+  sendMessage: (content: string) => Promise<void>
+  approve: (callId: string, approved: boolean) => void
+  decidePatch: (proposalId: string, action: AriaPatchAction) => void
+  setLane: (lane: DaemonAiModelLane) => void
+  loadModels: () => Promise<void>
   clearMessages: () => void
   loadHistory: () => Promise<void>
-  sendMessage: (content: string) => Promise<AriaResponse | null>
+  subscribe: () => () => void
+}
+
+let activeAssistantId: string | null = null
+
+function newTurn(role: 'user' | 'assistant', text = ''): AriaTurn {
+  return { id: crypto.randomUUID(), role, text, createdAt: Date.now(), toolCalls: [], approvals: [] }
+}
+
+function patchActive(set: (fn: (s: AriaState) => Partial<AriaState>) => void, fn: (t: AriaTurn) => AriaTurn): void {
+  set((s) => ({ turns: s.turns.map((t) => (t.id === activeAssistantId ? fn(t) : t)) }))
 }
 
 export const useAriaStore = create<AriaState>((set, get) => ({
-  messages: [],
+  turns: [],
   isLoading: false,
   sessionId: 'global',
+  selectedLane: DEFAULT_LANE,
+  availableModels: [],
 
-  addUserMessage: (content) => set((state) => ({
-    messages: [
-      ...state.messages,
-      {
-        id: crypto.randomUUID(),
-        role: 'user' as const,
-        content,
-        metadata: '{}',
-        session_id: state.sessionId,
-        created_at: Date.now(),
-      },
-    ],
-  })),
+  sendMessage: async (content) => {
+    const trimmed = content.trim()
+    if (!trimmed) return
+    const { sessionId, selectedLane } = get()
+    const assistant = newTurn('assistant')
+    activeAssistantId = assistant.id
+    set((s) => ({ turns: [...s.turns, newTurn('user', trimmed), assistant], isLoading: true }))
 
-  addAssistantMessage: (id, content, actions) => set((state) => ({
-    messages: [
-      ...state.messages,
-      {
-        id,
-        role: 'assistant' as const,
-        content,
-        metadata: JSON.stringify({ actions }),
-        session_id: state.sessionId,
-        created_at: Date.now(),
-      },
-    ],
-  })),
+    try {
+      await daemon.aria.send(sessionId, trimmed, buildAriaSnapshot(), selectedLane)
+    } catch (err) {
+      patchActive(set, (t) => ({ ...t, text: `Error: ${(err as Error).message}` }))
+    } finally {
+      activeAssistantId = null
+      set({ isLoading: false })
+    }
+  },
 
-  setLoading: (isLoading) => set({ isLoading }),
+  approve: (callId, approved) => {
+    daemon.aria.approve(callId, approved)
+    set((s) => ({ turns: s.turns.map((t) => ({ ...t, approvals: t.approvals.filter((a) => a.callId !== callId) })) }))
+  },
+
+  decidePatch: (proposalId, action) => {
+    daemon.aria.patchDecision(proposalId, action)
+    set((s) => ({
+      turns: s.turns.map((t) =>
+        t.patch?.id === proposalId ? { ...t, patchDecision: action, actionState: 'deciding' } : t),
+    }))
+  },
+
+  setLane: (lane) => set({ selectedLane: lane }),
+
+  loadModels: async () => {
+    const res = await daemon.aria.models()
+    if (res.ok && res.data) set({ availableModels: res.data as DaemonAiModelInfo[] })
+  },
 
   clearMessages: () => {
     const { sessionId } = get()
-    set({ messages: [] })
+    set({ turns: [] })
     daemon.aria.clear(sessionId).catch(() => {})
   },
 
   loadHistory: async () => {
     const { sessionId } = get()
     const res = await daemon.aria.history(sessionId, 50)
-    if (res.ok && res.data) {
-      set({ messages: res.data })
-    }
+    if (!res.ok || !res.data) return
+    const turns: AriaTurn[] = (res.data as AriaMessage[]).map((m) => {
+      let toolCalls: AriaToolCallLive[] = []
+      let plan: AriaPlanStep[] | undefined
+      let patch: AriaPatchProposalLite | undefined
+      try {
+        const meta = JSON.parse(m.metadata || '{}') as {
+          toolCalls?: AriaToolCallRecord[]; plan?: AriaPlanStep[]; patch?: AriaPatchProposalLite
+        }
+        toolCalls = (meta.toolCalls ?? []).map((tc) => ({
+          callId: tc.callId, name: tc.name, label: tc.name, toolKind: tc.toolKind, risk: tc.risk, status: tc.status, meta: tc.summary,
+        }))
+        plan = meta.plan
+        patch = meta.patch
+      } catch { /* ignore malformed metadata */ }
+      const actionState = patch
+        ? patch.status === 'applied' ? 'applied' : patch.status === 'rejected' ? 'rejected' : 'idle'
+        : undefined
+      return {
+        id: m.id, role: m.role as 'user' | 'assistant', text: m.content, createdAt: m.created_at,
+        toolCalls, approvals: [], plan, patch, actionState,
+      }
+    })
+    set({ turns })
   },
 
-  sendMessage: async (content) => {
-    const { sessionId } = get()
-    get().addUserMessage(content)
-    set({ isLoading: true })
-
-    try {
-      const res = await daemon.aria.send(sessionId, content)
-      if (res.ok && res.data) {
-        get().addAssistantMessage(
-          crypto.randomUUID(),
-          res.data.text,
-          res.data.actions,
-        )
-        return res.data
+  subscribe: () => {
+    const offEvent = daemon.aria.onToolEvent((raw) => applyEvent(set, raw as AriaToolEvent))
+    const offEffect = daemon.aria.onUiEffect(({ callId, effect, awaitData }) => {
+      const fx = effect as AriaUiEffect
+      if (awaitData) {
+        void runUiEffectWithData(fx).then((data) => daemon.aria.toolEffectResult(callId, data))
+      } else {
+        applyUiEffect(fx)
       }
-      return null
-    } catch (err) {
-      get().addAssistantMessage(
-        crypto.randomUUID(),
-        `Error: ${(err as Error).message}`,
-        [],
-      )
-      return null
-    } finally {
-      set({ isLoading: false })
-    }
+    })
+    return () => { offEvent(); offEffect() }
   },
 }))
+
+function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev: AriaToolEvent): void {
+  switch (ev.kind) {
+    case 'assistant-text':
+    case 'done':
+      patchActive(set, (t) => ({ ...t, text: ev.text || t.text }))
+      break
+    case 'tool-call':
+      patchActive(set, (t) => {
+        const row: AriaToolCallLive = {
+          callId: ev.callId, name: ev.name, label: ev.label, toolKind: ev.toolKind, risk: ev.risk, status: ev.status, meta: ev.meta,
+        }
+        const exists = t.toolCalls.some((c) => c.callId === ev.callId)
+        return exists
+          ? { ...t, toolCalls: t.toolCalls.map((c) => (c.callId === ev.callId ? { ...c, ...row } : c)) }
+          : { ...t, toolCalls: [...t.toolCalls, row] }
+      })
+      break
+    case 'approval-request':
+      patchActive(set, (t) => ({
+        ...t,
+        approvals: [...t.approvals, { callId: ev.callId, name: ev.name, risk: ev.risk, summary: ev.summary, input: ev.input }],
+      }))
+      break
+    case 'plan':
+      patchActive(set, (t) => ({ ...t, plan: ev.steps }))
+      break
+    case 'patch-proposal':
+      patchActive(set, (t) => ({ ...t, patch: ev.proposal, actionState: 'deciding' }))
+      break
+    case 'action-result':
+      set((s) => ({
+        turns: s.turns.map((t) =>
+          t.patch?.id === ev.proposalId
+            ? {
+                ...t,
+                actionState: ev.status,
+                patch: { ...t.patch, status: ev.status === 'applied' ? 'applied' : 'rejected' },
+              }
+            : t),
+      }))
+      break
+  }
+}

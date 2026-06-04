@@ -24,7 +24,7 @@
   z-index: 10001;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   padding: 14px 16px;
   width: 280px;
   box-shadow: var(--shadow-lifted);
@@ -95,7 +95,7 @@
 .tour-tooltip-counter {
   font-size: var(--fs-10);
   color: var(--t4);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
 }
 
 .tour-tooltip-body {
@@ -123,12 +123,12 @@
 }
 
 .tour-tooltip-btn.primary {
-  background: var(--success);
-  border-color: var(--success);
-  color: var(--t1);
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
 }
 
-.tour-tooltip-btn.primary:hover { opacity: 0.9; }
+.tour-tooltip-btn.primary:hover { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
 
 .tour-tooltip-btn.secondary {
   background: var(--hover-bg);

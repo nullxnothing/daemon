@@ -7,16 +7,18 @@
 }
 
 .label {
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-caps);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: var(--t4);
+  color: var(--t3);
 }
 
 .value {
-  font-size: var(--fs-24);
-  font-weight: var(--fw-bold);
+  font-family: var(--mono);
+  font-size: var(--fs-28);
+  font-weight: var(--fw-medium);
   line-height: 1;
   color: var(--t1);
   font-variant-numeric: tabular-nums;
@@ -28,6 +30,7 @@
 }
 
 .detail {
+  font-family: var(--mono);
   font-size: var(--fs-12);
   line-height: var(--lh-normal);
   color: var(--t3);

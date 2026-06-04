@@ -15,8 +15,10 @@ import { ProjectDiagnosticsPanel } from './ProjectDiagnosticsPanel'
 import { ProgramMonitorPanel } from './ProgramMonitorPanel'
 import { BuildDeployPanel } from './BuildDeployPanel'
 import { TransactionInspector } from './TransactionInspector'
+import { SolanaReadinessStrip } from './SolanaReadinessStrip'
 import { scaffoldX402, scaffoldMpp, scaffoldLightProtocol, scaffoldMagicBlock, scaffoldDebridge, scaffoldSquads } from './scaffolding'
 import { getSolanaProjectEmptyCopy, getSolanaProjectEmptyTitle } from './solanaToolboxCopy'
+import type { SolanaReadinessActionTarget } from '../../lib/solanaReadiness'
 import './SolanaToolbox.css'
 
 const SOLANA_VIEWS = [
@@ -109,9 +111,43 @@ export function SolanaToolbox() {
     if (activeProjectId) void scaffoldSquads(activeProjectId)
   }
 
+  const handleReadinessAction = (target: SolanaReadinessActionTarget) => {
+    if (target === 'wallet' || target === 'settings') {
+      openWorkspaceTool('wallet')
+      return
+    }
+
+    if (target === 'validator') {
+      setActiveView('start')
+      return
+    }
+
+    if (target === 'debug') {
+      setActiveView('debug')
+      return
+    }
+
+    if (target === 'connect') {
+      setActiveView('connect')
+      return
+    }
+
+    openWorkspaceTool('starter')
+  }
+
   return (
     <div className="solana-toolbox">
       <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} toolchain={toolchain} />
+
+      <SolanaReadinessStrip
+        activeProjectPath={activeProjectPath}
+        activeProjectId={activeProjectId}
+        projectInfo={projectInfo}
+        toolchain={toolchain}
+        validator={validator}
+        mcps={mcps}
+        onAction={handleReadinessAction}
+      />
 
       <section className="solana-workflow-shell">
         <div className="solana-workflow-header">

@@ -3,7 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { Button } from '../../components/Button'
-import { PanelHeader, Stat, TabPill, Skeleton } from '../../components/Panel'
+import { PanelHeader, KpiGrid, TabPill, Skeleton } from '../../components/Panel'
 import { EmptyState } from '../../components/EmptyState'
 import { WalletTab } from './tabs/WalletTab'
 import { AgentsTab } from './tabs/AgentsTab'
@@ -87,29 +87,14 @@ export function WalletPanel() {
         subtitle={`${activeProject ? activeProject.name : 'No active project'} · ${activeWalletName}`}
         actionsClassName="wallet-workspace-actions"
         actions={
-          <div className="wallet-workspace-metrics">
-            <Stat
-              className="wallet-workspace-metric"
-              label="Tracked"
-              labelClassName="wallet-workspace-metric-label"
-              value={walletCount}
-              valueClassName="wallet-workspace-metric-value"
-            />
-            <Stat
-              className="wallet-workspace-metric"
-              label="Transport"
-              labelClassName="wallet-workspace-metric-label"
-              value={transportLabel}
-              valueClassName="wallet-workspace-metric-value"
-            />
-            <Stat
-              className="wallet-workspace-metric"
-              label="Tab"
-              labelClassName="wallet-workspace-metric-label"
-              value={activeTab === 'wallet' ? 'Wallet' : 'Agents'}
-              valueClassName="wallet-workspace-metric-value"
-            />
-          </div>
+          <KpiGrid
+            className="wallet-workspace-metrics"
+            cells={[
+              { label: 'Tracked', value: walletCount },
+              { label: 'Transport', value: transportLabel },
+              { label: 'Tab', value: activeTab === 'wallet' ? 'Wallet' : 'Agents' },
+            ]}
+          />
         }
       />
 

@@ -12,7 +12,7 @@
   gap: 16px;
   padding: var(--panel-pad-x) var(--panel-pad-x) var(--space-md);
   border-bottom: 1px solid var(--s4);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+  background: var(--wash);
 }
 
 .process-section-kicker {
@@ -44,8 +44,8 @@
   gap: 6px;
   padding: 14px;
   border: 1px solid var(--s4);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+  border-radius: var(--r-panel);
+  background: var(--wash);
 }
 
 .process-stat-card.warn {
@@ -110,8 +110,8 @@
   gap: 14px;
   padding: 14px;
   border: 1px solid var(--s4);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: var(--r-panel);
+  background: var(--wash);
 }
 
 .process-row-card.orphan {
@@ -184,7 +184,7 @@
 
 .process-model {
   border: 1px solid var(--s5);
-  background: rgba(255,255,255,0.03);
+  background: var(--wash);
   color: var(--t3);
 }
 
@@ -241,7 +241,7 @@
 }
 
 .process-btn.danger:hover {
-  background: rgba(239, 83, 80, 0.1);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
 }
 
 @media (max-width: 980px) {

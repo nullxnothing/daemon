@@ -15,10 +15,10 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px var(--space-md);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  background: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: none;
   pointer-events: auto;
   animation: toast-slide-in var(--duration-normal) var(--ease-out-quint);
   font-size: var(--fs-12);
@@ -33,7 +33,7 @@
 .toast-dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
   margin-top: 5px;
 }
@@ -58,6 +58,7 @@
 
 .toast-context {
   font-size: var(--fs-10);
+  font-family: var(--mono);
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: var(--ls-caps);
@@ -73,7 +74,7 @@
   background: var(--s4);
   color: var(--t1);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r);
   padding: 3px 8px;
   font-size: var(--fs-11);
   cursor: pointer;

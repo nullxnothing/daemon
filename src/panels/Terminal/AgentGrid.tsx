@@ -525,7 +525,7 @@ function AgentGridTerminal({ id }: { id: string }) {
     disposedRef.current = false
 
     const term = new XTerm({
-      fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+      fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
       fontSize: 12,
       lineHeight: 1.3,
       cursorBlink: true,
