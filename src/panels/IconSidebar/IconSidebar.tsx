@@ -3,7 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useWorkflowShellStore } from '../../store/workflowShell'
-import { BUILTIN_TOOLS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
+import { BUILTIN_TOOLS, FOLDED_TOOL_IDS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { DAEMON_ICON_GRADIENTS, DAEMON_SIDEBAR_ACCENT_FALLBACK } from '../../styles/daemonTheme'
 import './IconSidebar.css'
@@ -117,6 +117,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     return [...BUILTIN_TOOLS.map((tool) => ({ id: tool.id, name: tool.name })), ...pluginTools]
       .filter((tool) => tool.id !== 'browser')
       .filter((tool) => tool.id !== 'settings')
+      .filter((tool) => !FOLDED_TOOL_IDS.has(tool.id))
       .filter((tool) => !pinnedTools.includes(tool.id))
       .filter((tool) => isToolVisible(tool.id))
   }, [isToolVisible, toolVisibility, pinnedTools, plugins])
@@ -235,7 +236,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     useUIStore.getState().unpinTool(toolId)
   }, [])
 
-  const visiblePinned = pinnedTools.filter((id) => id !== 'settings' && isToolVisible(id))
+  const visiblePinned = pinnedTools.filter((id) => id !== 'settings' && !FOLDED_TOOL_IDS.has(id) && isToolVisible(id))
   const SettingsIcon = TOOL_ICONS.settings
   const toolStyle = (toolId: string): CSSProperties => ({
     '--tool-accent': TOOL_COLORS[toolId] ?? DAEMON_SIDEBAR_ACCENT_FALLBACK,

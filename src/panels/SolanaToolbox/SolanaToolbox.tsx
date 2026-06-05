@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
 import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
+
+const BlockScanner = lazy(() => import('../BlockScanner/BlockScanner'))
+const ReplayEngine = lazy(() => import('../ReplayEngine/ReplayEngine').then((m) => ({ default: m.ReplayEngine })))
+const MetaplexDemoPanel = lazy(() => import('../MetaplexDemo/MetaplexDemoPanel').then((m) => ({ default: m.MetaplexDemoPanel })))
 import { EnvironmentBar } from './EnvironmentBar'
 import { ValidatorCard } from './ValidatorCard'
 import { ConnectedServices } from './ConnectedServices'
@@ -55,11 +59,30 @@ const SOLANA_VIEWS = [
     summary: 'Transactions, programs, and receipts',
   },
   {
+    id: 'scanner',
+    label: 'Scanner',
+    summary: 'Solana block and account explorer',
+  },
+  {
+    id: 'replay',
+    label: 'Replay',
+    summary: 'Replay any transaction with on-chain context',
+  },
+  {
+    id: 'metaplex',
+    label: 'Metaplex',
+    summary: 'Core, DAS, and Agent Registry demo',
+  },
+  {
     id: 'debug',
     label: 'Debug',
     summary: 'Toolchain readiness and environment checks',
   },
 ] as const
+
+// Views that render a full self-contained panel and should bypass the
+// project-empty wrapper / loading state.
+const EMBEDDED_VIEWS = new Set(['integrations', 'scanner', 'replay', 'metaplex'])
 
 export function SolanaToolbox() {
   const [activeView, setActiveView] = useState<(typeof SOLANA_VIEWS)[number]['id']>('start')
@@ -97,10 +120,12 @@ export function SolanaToolbox() {
     void refreshValidatorStatus()
   }, [refreshValidatorStatus])
 
-  // Honor a deep-link sub-view (e.g. the legacy 'integrations' tool aliased here).
+  // Honor a deep-link sub-view (folded tools like block-scanner/replay/metaplex
+  // and the legacy 'integrations' tool alias here).
   useEffect(() => {
-    if (pendingSubView === 'integrations') {
-      setActiveView('integrations')
+    if (!pendingSubView) return
+    if (SOLANA_VIEWS.some((view) => view.id === pendingSubView)) {
+      setActiveView(pendingSubView as (typeof SOLANA_VIEWS)[number]['id'])
       setPendingSubView(null)
     }
   }, [pendingSubView, setPendingSubView])
@@ -195,7 +220,7 @@ export function SolanaToolbox() {
         </div>
 
         <div className="solana-view-panel">
-          {activeView !== 'integrations' && (!activeProjectPath || (projectInfo && !projectInfo.isSolanaProject)) && (
+          {!EMBEDDED_VIEWS.has(activeView) && (!activeProjectPath || (projectInfo && !projectInfo.isSolanaProject)) && (
             <section className="solana-project-empty-card">
               <div>
                 <div className="solana-token-launch-kicker">{activeProjectPath ? 'Project context' : 'No project selected'}</div>
@@ -213,9 +238,33 @@ export function SolanaToolbox() {
             </section>
           )}
 
-          {activeProjectPath && loading && (
+          {!EMBEDDED_VIEWS.has(activeView) && activeProjectPath && loading && (
             <div className="solana-loading-state" role="status">
               Checking Solana project files, MCPs, and toolchain status...
+            </div>
+          )}
+
+          {activeView === 'scanner' && (
+            <div className="solana-integrations-view">
+              <Suspense fallback={<div className="solana-loading-state" role="status">Loading scanner…</div>}>
+                <BlockScanner />
+              </Suspense>
+            </div>
+          )}
+
+          {activeView === 'replay' && (
+            <div className="solana-integrations-view">
+              <Suspense fallback={<div className="solana-loading-state" role="status">Loading replay…</div>}>
+                <ReplayEngine />
+              </Suspense>
+            </div>
+          )}
+
+          {activeView === 'metaplex' && (
+            <div className="solana-integrations-view">
+              <Suspense fallback={<div className="solana-loading-state" role="status">Loading Metaplex…</div>}>
+                <MetaplexDemoPanel />
+              </Suspense>
             </div>
           )}
 

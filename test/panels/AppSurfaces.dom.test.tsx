@@ -572,13 +572,16 @@ describe('App surface DOM coverage', () => {
 
     render(<CommandDrawer />)
 
+    // Host tools remain in the drawer…
     expect(screen.getByText('New Project')).toBeInTheDocument()
     expect(screen.getByText('Token Launch')).toBeInTheDocument()
     expect(screen.getByText('Solana Workflow')).toBeInTheDocument()
-    expect(screen.getByText('Integrations')).toBeInTheDocument()
-    expect(screen.getByText('Metaplex Demo')).toBeInTheDocument()
-    expect(screen.getByText('Solana Start')).toBeInTheDocument()
     expect(screen.getByText('Activity')).toBeInTheDocument()
+    // …while folded tools no longer appear as top-level drawer entries (they
+    // live inside their pack host panel as sub-views).
+    expect(screen.queryByText('Integrations')).not.toBeInTheDocument()
+    expect(screen.queryByText('Metaplex Demo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Solana Start')).not.toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText('Search tools...'), 'solana')
     await userEvent.click(screen.getByText('Solana Workflow').closest('button')!)

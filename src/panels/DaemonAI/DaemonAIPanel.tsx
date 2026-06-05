@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useAiStore } from '../../store/aiStore'
 import { useUIStore } from '../../store/ui'
 import {
@@ -19,6 +19,18 @@ import {
   queueSurfaceHandoff,
 } from '../../lib/surfaceHandoffs'
 import './DaemonAIPanel.css'
+
+const AgentStationPanel = lazy(() => import('../AgentStation/AgentStation').then((m) => ({ default: m.AgentStation })))
+const AgentWorkPanel = lazy(() => import('../AgentWork/AgentWork').then((m) => ({ default: m.AgentWork })))
+const AgentOpsPanel = lazy(() => import('../AgentOps/AgentOpsPanel').then((m) => ({ default: m.AgentOpsPanel })))
+
+const AGENT_PACK_TABS = [
+  { id: 'ai', label: 'AI Workbench' },
+  { id: 'station', label: 'Station' },
+  { id: 'work', label: 'Work' },
+  { id: 'ops', label: 'Ops' },
+] as const
+type AgentPackView = (typeof AGENT_PACK_TABS)[number]['id']
 
 type ContextKey = keyof NonNullable<DaemonAiChatRequest['context']>
 type RunMode = NonNullable<DaemonAiAgentRunInput['mode']>
@@ -56,6 +68,17 @@ export function DaemonAIPanel() {
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const openFiles = useUIStore((s) => s.openFiles)
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const pendingSubView = useUIStore((s) => s.pendingSubView)
+  const setPendingSubView = useUIStore((s) => s.setPendingSubView)
+  const [packView, setPackView] = useState<AgentPackView>('ai')
+
+  useEffect(() => {
+    if (!pendingSubView) return
+    if (AGENT_PACK_TABS.some((t) => t.id === pendingSubView)) {
+      setPackView(pendingSubView as AgentPackView)
+      setPendingSubView(null)
+    }
+  }, [pendingSubView, setPendingSubView])
   const activeFilePath = useUIStore((s) => activeProjectId ? s.activeFilePathByProject[activeProjectId] ?? null : null)
   const activeFile = openFiles.find((file) => file.path === activeFilePath) ?? null
   const activeFileContent = activeFile?.content.slice(0, MAX_ACTIVE_FILE_CONTENT_CHARS) ?? null
@@ -208,6 +231,33 @@ export function DaemonAIPanel() {
   }
 
   return (
+    <div className="agent-pack-host">
+      <div className="agent-pack-tabs" role="tablist" aria-label="Agent views">
+        {AGENT_PACK_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={packView === t.id}
+            className={`agent-pack-tab${packView === t.id ? ' active' : ''}`}
+            onClick={() => setPackView(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {packView === 'station' && (
+        <Suspense fallback={<div className="agent-pack-body" />}><AgentStationPanel /></Suspense>
+      )}
+      {packView === 'work' && (
+        <Suspense fallback={<div className="agent-pack-body" />}><AgentWorkPanel /></Suspense>
+      )}
+      {packView === 'ops' && (
+        <Suspense fallback={<div className="agent-pack-body" />}><AgentOpsPanel /></Suspense>
+      )}
+
+      {packView === 'ai' && (
     <section className="daemon-ai-panel">
       <PanelHeader
         kicker="DAEMON AI"
@@ -390,6 +440,8 @@ export function DaemonAIPanel() {
       {workbenchError && <div className="daemon-ai-error">{workbenchError}</div>}
       {workbenchLoading && <div className="daemon-ai-thinking">Refreshing workbench...</div>}
     </section>
+      )}
+    </div>
   )
 }
 

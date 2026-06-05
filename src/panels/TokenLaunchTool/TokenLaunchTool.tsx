@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
 import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLauncher } from '../../components/TokenLauncher/TokenLauncher'
@@ -6,6 +6,20 @@ import { Surface } from '../../components/Panel'
 import { useUIStore } from '../../store/ui'
 import '../_solana/solanaSurface.css'
 import './TokenLaunchTool.css'
+
+const ProofPoolPanel = lazy(() => import('../ProofPool/ProofPoolPanel').then((m) => ({ default: m.ProofPoolPanel })))
+const ClawpumpPanel = lazy(() => import('../Clawpump/ClawpumpPanel').then((m) => ({ default: m.ClawpumpPanel })))
+const FlywheelPanel = lazy(() => import('../Flywheel/FlywheelPanel').then((m) => ({ default: m.FlywheelPanel })))
+const DegenToolsPanel = lazy(() => import('../DegenTools/DegenToolsPanel').then((m) => ({ default: m.DegenToolsPanel })))
+
+const LAUNCH_TABS = [
+  { id: 'launch', label: 'Launch' },
+  { id: 'proof-pool', label: 'Proof Pool' },
+  { id: 'clawpump', label: 'ClawPump' },
+  { id: 'flywheel', label: 'Flywheel' },
+  { id: 'degentools', label: 'DegenTools' },
+] as const
+type LaunchView = (typeof LAUNCH_TABS)[number]['id']
 
 const STREAMLOCK_URL = 'https://app.streamlock.fun/'
 
@@ -15,6 +29,17 @@ export function TokenLaunchTool() {
   const [cluster, setCluster] = useState<WalletInfrastructureSettings['cluster']>('devnet')
   const [recentCount, setRecentCount] = useState(0)
   const [showConfig, setShowConfig] = useState(false)
+  const [view, setView] = useState<LaunchView>('launch')
+  const pendingSubView = useUIStore((state) => state.pendingSubView)
+  const setPendingSubView = useUIStore((state) => state.setPendingSubView)
+
+  useEffect(() => {
+    if (!pendingSubView) return
+    if (LAUNCH_TABS.some((t) => t.id === pendingSubView)) {
+      setView(pendingSubView as LaunchView)
+      setPendingSubView(null)
+    }
+  }, [pendingSubView, setPendingSubView])
 
   const openStreamlock = useCallback(() => { void window.daemon.shell.openExternal(STREAMLOCK_URL) }, [])
   const openWorkspaceTool = useUIStore((state) => state.openWorkspaceTool)
@@ -41,6 +66,22 @@ export function TokenLaunchTool() {
 
   return (
     <div className="sol-panel token-launch-tool">
+      <div className="launch-pack-tabs" role="tablist" aria-label="Launch views">
+        {LAUNCH_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={view === t.id}
+            className={`launch-pack-tab${view === t.id ? ' active' : ''}`}
+            onClick={() => setView(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'launch' && (
       <div className="sol-scroll">
         <div className="sol-scroll-inner">
           {/* header */}
@@ -112,6 +153,20 @@ export function TokenLaunchTool() {
           </section>
         </div>
       </div>
+      )}
+
+      {view === 'proof-pool' && (
+        <Suspense fallback={<div className="sol-scroll" />}><ProofPoolPanel /></Suspense>
+      )}
+      {view === 'clawpump' && (
+        <Suspense fallback={<div className="sol-scroll" />}><ClawpumpPanel /></Suspense>
+      )}
+      {view === 'flywheel' && (
+        <Suspense fallback={<div className="sol-scroll" />}><FlywheelPanel /></Suspense>
+      )}
+      {view === 'degentools' && (
+        <Suspense fallback={<div className="sol-scroll" />}><DegenToolsPanel /></Suspense>
+      )}
     </div>
   )
 }

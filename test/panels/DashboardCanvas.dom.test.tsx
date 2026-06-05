@@ -79,12 +79,14 @@ describe('DashboardCanvas', () => {
 
     expect(await screen.findByText('Forensics')).toBeInTheDocument()
 
+    // Block Scanner and Replay are folded into the Solana pack; their tool ids
+    // alias to solana-toolbox while the mint handoff still flows through.
     await userEvent.click(screen.getByRole('button', { name: 'Inspect in Block Scanner' }))
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('block-scanner')
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(window.localStorage.getItem(BLOCK_SCANNER_HANDOFF_KEY)).toContain(MINT)
 
     await userEvent.click(screen.getByRole('button', { name: 'Replay recent activity' }))
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('replay-engine')
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(window.localStorage.getItem(REPLAY_HANDOFF_KEY)).toContain(MINT)
   })
 })
