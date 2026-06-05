@@ -265,6 +265,9 @@ export const CodexProvider: ProviderInterface = {
       '--model', resolvedModel,
       '--ephemeral',
       '--sandbox', 'read-only',
+      // codex refuses to run in a cwd it doesn't consider a trusted git repo unless
+      // told to skip the check; DAEMON drives it headless from arbitrary dirs.
+      '--skip-git-repo-check',
       '-o', outputFile,
     ]
 
