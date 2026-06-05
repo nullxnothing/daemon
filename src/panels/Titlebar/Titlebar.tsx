@@ -63,10 +63,10 @@ export function Titlebar({ projects, onAddProject, onRemoveProject, onOpenSearch
       <div className="titlebar-drag-fill" aria-hidden="true" />
 
       {onOpenSearch && (isDesktop || isCompact) && (
-        <button type="button" className="titlebar-search" onClick={onOpenSearch} aria-label="Search files or run commands">
+        <button type="button" className="titlebar-search" onClick={onOpenSearch} aria-label="Search files">
           <span className="titlebar-search-icon" aria-hidden="true">⌕</span>
-          <span className="titlebar-search-label">Search files · run commands</span>
-          <kbd className="titlebar-search-kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+          <span className="titlebar-search-label">Search files</span>
+          <kbd className="titlebar-search-kbd">{isMac ? '⌘P' : 'Ctrl P'}</kbd>
         </button>
       )}
 

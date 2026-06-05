@@ -3,6 +3,7 @@ import type { DaemonPlanId, ProSubscriptionState } from '../../../../electron/sh
 import { useProStore } from '../../../store/pro'
 import { useUIStore } from '../../../store/ui'
 import { PanelHeader } from '../../../components/Panel'
+import { ProductSurfaceStrip } from '../../../components/ProductSurfaceStrip'
 import '../plugin.css'
 import './Subscriptions.css'
 
@@ -202,6 +203,15 @@ export default function Subscriptions() {
 
       {error && <div className="subscriptions-alert">{error}</div>}
 
+      <ProductSurfaceStrip
+        surfaceId="subscriptions"
+        stateLabel={subscription.active ? 'Active' : activeTier.name}
+        setupLabel={subscription.active ? 'Hosted access' : holderStatus.enabled ? 'Holder route' : 'Plan route'}
+        tone={subscription.active ? 'success' : holderStatus.enabled ? 'info' : 'warning'}
+        primaryLabel={subscription.active ? 'Open DAEMON AI' : holderStatus.eligible ? 'Open holder claim' : 'Open Pro'}
+        primaryToolId={subscription.active ? 'daemon-ai' : 'pro'}
+      />
+
       <section className="subscriptions-summary">
         <div className="subscriptions-summary-main">
           <span className="subscriptions-eyebrow">Current plan</span>
@@ -249,6 +259,7 @@ export default function Subscriptions() {
         <div className="subscriptions-lane-list">
           {LANES.map((lane) => {
             const unlocked = subscription.active && isPlanAtLeast(subscription.plan, lane.requiredPlan)
+            const hasLiveUnlockAction = !subscription.active && lane.requiredPlan === 'pro'
             return (
               <div key={lane.id} className={`subscriptions-lane ${unlocked ? 'subscriptions-lane--unlocked' : ''}`}>
                 <div>
@@ -257,7 +268,20 @@ export default function Subscriptions() {
                 </div>
                 <div className="subscriptions-lane-meta">
                   <span>{lane.requiredPlan}+ required</span>
-                  <b>{unlocked ? 'Unlocked' : 'Locked'}</b>
+                  {unlocked ? (
+                    <b>Unlocked</b>
+                  ) : (
+                    <>
+                      <b>Locked</b>
+                      {hasLiveUnlockAction ? (
+                        <button type="button" className="subscriptions-mini-action" onClick={() => openWorkspaceTool('pro')}>
+                          Open Pro
+                        </button>
+                      ) : (
+                        <span className="subscriptions-lane-note">Upgrade path planned</span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             )
@@ -268,8 +292,8 @@ export default function Subscriptions() {
       <section className="subscriptions-section subscriptions-holder">
         <div className="subscriptions-section-head">
           <h3>Holder access</h3>
-          <button type="button" className="subscriptions-link-button" onClick={() => openWorkspaceTool('docs')}>
-            Open docs
+          <button type="button" className="subscriptions-link-button" onClick={() => openWorkspaceTool('pro')}>
+            Open holder claim
           </button>
         </div>
         <div className="subscriptions-holder-status">

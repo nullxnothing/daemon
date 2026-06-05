@@ -74,7 +74,9 @@ CREATE TABLE IF NOT EXISTS projects (
   aliases TEXT DEFAULT '[]',
   wallet_id TEXT,
   created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
-  last_active INTEGER
+  last_active INTEGER,
+  pinned INTEGER NOT NULL DEFAULT 0,
+  branch TEXT
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (
@@ -1234,4 +1236,53 @@ CREATE TABLE IF NOT EXISTS flywheel_settlements (
 );
 CREATE INDEX IF NOT EXISTS idx_flywheel_settlements_pending
   ON flywheel_settlements(config_id, status);
+`
+
+export const SCHEMA_V47 = `
+CREATE TABLE IF NOT EXISTS aria_sessions (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  project_id TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  archived INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_aria_sessions_proj
+  ON aria_sessions(project_id, archived, updated_at DESC);
+INSERT OR IGNORE INTO aria_sessions (id, title, created_at, updated_at)
+  SELECT 'global', 'Earlier conversation', MIN(created_at), MAX(created_at)
+  FROM aria_messages WHERE session_id IS NOT NULL;
+`
+
+export const SCHEMA_V48 = `
+CREATE TABLE IF NOT EXISTS swarm_runs (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  project_id TEXT,
+  project_path TEXT NOT NULL,
+  base_branch TEXT,
+  status TEXT NOT NULL DEFAULT 'running',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE TABLE IF NOT EXISTS swarm_lanes (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  task TEXT NOT NULL,
+  worktree_path TEXT NOT NULL,
+  branch TEXT NOT NULL,
+  pid INTEGER,
+  status TEXT NOT NULL DEFAULT 'pending',
+  results_path TEXT,
+  exit_code INTEGER,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_swarm_lanes_run ON swarm_lanes(run_id, status);
+`
+
+export const SCHEMA_V49 = `
+ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE projects ADD COLUMN branch TEXT;
+CREATE INDEX IF NOT EXISTS idx_projects_pinned ON projects(pinned DESC, last_active DESC);
 `

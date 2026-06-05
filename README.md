@@ -99,6 +99,10 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 **Agent Launcher** — Spawn Claude Code agents with custom system prompts, model selection, and per-project MCP configurations. Agents run as real CLI sessions in dedicated terminal tabs.
 
+**Operator Console** — The right-panel AI operator drives the whole IDE from natural language. Per-project chat sessions (new / switch / rename / archive / delete) with memory that survives restarts. It can run DAEMON itself — create an agent wallet for the codebase, spin up a Clawpump agent, preflight and launch a token, configure the Flywheel, commit changes — through a tool catalog with typed confirmation for sensitive on-chain actions (and a `[MAINNET]` guard). It never pushes to git autonomously.
+
+**Agent Swarms** — From the operator, launch several tasks to run in parallel, each in its own isolated git worktree and branch, driven by a separate Claude agent. The Swarms tab shows live run/lane status; each lane writes a `RESULTS.md`. Concurrency is capped and worktrees are cleaned up automatically — merging stays a manual, reviewed step.
+
 **MCP Management** — Toggle project-level and global MCP servers from the sidebar. Changes write directly to `.claude/settings.json` and `.mcp.json` with a restart indicator when configs change.
 
 **Git** — Branch switching, per-file and folder-level staging, commit, push, stash save/pop, branch creation, and tag management.

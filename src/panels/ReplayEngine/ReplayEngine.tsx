@@ -2,6 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReplayTrace, ReplayInstruction, ReplayProgramSummary, ReplayVerificationResult } from '../../../electron/shared/types'
 import { Dot } from '../../components/Dot'
 import { PanelHeader } from '../../components/Panel'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import {
+  REPLAY_HANDOFF_EVENT,
+  REPLAY_HANDOFF_KEY,
+  consumeSurfaceHandoff,
+  type ReplayHandoff,
+} from '../../lib/surfaceHandoffs'
 import { useUIStore } from '../../store/ui'
 import './ReplayEngine.css'
 
@@ -142,6 +149,7 @@ export function ReplayEngine() {
   const [verification, setVerification] = useState<ReplayVerificationResult | null>(null)
   const [verifying, setVerifying] = useState(false)
   const sigRef = useRef<HTMLInputElement | null>(null)
+  const programRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -193,6 +201,32 @@ export function ReplayEngine() {
       setLoading(false)
     }
   }, [])
+
+  const applyReplayHandoff = useCallback((handoff: ReplayHandoff | null) => {
+    const signature = handoff?.signature?.trim()
+    if (signature) {
+      setMode('signature')
+      setSignatureInput(signature)
+      void fetchSignature(signature)
+      return
+    }
+
+    const address = (handoff?.address ?? handoff?.programId)?.trim()
+    if (!address) return
+    setMode('program')
+    setProgramInput(address)
+    void fetchProgram(address)
+  }, [fetchProgram, fetchSignature])
+
+  useEffect(() => {
+    applyReplayHandoff(consumeSurfaceHandoff<ReplayHandoff>(REPLAY_HANDOFF_KEY))
+
+    const onHandoff = (event: Event) => {
+      applyReplayHandoff((event as CustomEvent<ReplayHandoff>).detail)
+    }
+    window.addEventListener(REPLAY_HANDOFF_EVENT, onHandoff)
+    return () => window.removeEventListener(REPLAY_HANDOFF_EVENT, onHandoff)
+  }, [applyReplayHandoff])
 
   const handleHandoff = useCallback(async () => {
     if (!trace) return
@@ -265,6 +299,25 @@ export function ReplayEngine() {
     void fetchProgram(programInput)
   }, [fetchProgram, programInput])
 
+  const handleStripPrimary = useCallback(() => {
+    if (mode === 'signature') {
+      if (signatureInput.trim()) {
+        void fetchSignature(signatureInput)
+        return
+      }
+      sigRef.current?.focus()
+      setError('Paste a Solana transaction signature to replay.')
+      return
+    }
+
+    if (programInput.trim()) {
+      void fetchProgram(programInput)
+      return
+    }
+    programRef.current?.focus()
+    setError('Paste a program ID, token mint, or account address to inspect recent transactions.')
+  }, [fetchProgram, fetchSignature, mode, programInput, signatureInput])
+
   const writableDiffs = useMemo(() => {
     if (!trace) return []
     return trace.accountDiffs.filter((d) => d.isWritable && (d.lamportsDelta !== 0 || d.tokenMint))
@@ -283,6 +336,20 @@ export function ReplayEngine() {
         }
       />
 
+      <ProductSurfaceStrip
+        surfaceId="replay-engine"
+        stateLabel={trace ? 'Trace loaded' : program ? 'Program mode' : 'Needs input'}
+        setupLabel={activeProjectId ? 'Project context' : 'No project'}
+        tone={trace || program ? 'success' : 'info'}
+        detail={mode === 'signature'
+          ? 'Paste a transaction signature from Block Scanner or an explorer to build trace context for handoff.'
+          : 'Paste a program or account address to pull recent transactions, then select one to replay.'}
+        primaryLabel={mode === 'signature'
+          ? signatureInput.trim() ? 'Replay signature' : 'Focus signature'
+          : programInput.trim() ? 'Fetch activity' : 'Focus address'}
+        onPrimary={handleStripPrimary}
+      />
+
       <div className="replay-mode-tabs">
         <button
           type="button"
@@ -296,7 +363,7 @@ export function ReplayEngine() {
           className={`replay-tab ${mode === 'program' ? 'is-active' : ''}`}
           onClick={() => setMode('program')}
         >
-          Program
+          Program / Account
         </button>
       </div>
 
@@ -307,7 +374,10 @@ export function ReplayEngine() {
             type="text"
             placeholder="Paste a Solana transaction signature"
             value={signatureInput}
-            onChange={(e) => setSignatureInput(e.target.value)}
+            onChange={(e) => {
+              setSignatureInput(e.target.value)
+              setError(null)
+            }}
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="off"
@@ -320,10 +390,14 @@ export function ReplayEngine() {
       ) : (
         <form className="replay-input-row" onSubmit={handleProgramSubmit}>
           <input
+            ref={programRef}
             type="text"
-            placeholder="Paste a program ID to inspect recent transactions"
+            placeholder="Paste a program ID, token mint, or account address"
             value={programInput}
-            onChange={(e) => setProgramInput(e.target.value)}
+            onChange={(e) => {
+              setProgramInput(e.target.value)
+              setError(null)
+            }}
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="off"
@@ -537,13 +611,12 @@ export function ReplayEngine() {
 
       {!trace && !program && !loading && !error ? (
         <div className="replay-placeholder">
-          <h2>Forensics for any Solana transaction.</h2>
-          <p>Paste a signature to see the parsed instruction trace, writable account diffs, decoded Anchor errors, and full program logs in one view. Send the full context to a Claude agent to propose a fix.</p>
+          <h2>Start with the transaction that needs explaining.</h2>
+          <p>Paste a signature from Block Scanner or a Solana explorer. Replay turns it into instruction trace, writable account diffs, Anchor errors, logs, and a Claude-ready handoff.</p>
           <ul className="replay-placeholder-list">
-            <li>· Decoded instruction tree with inner instructions</li>
-            <li>· Writable-account lamport and SPL token diffs</li>
-            <li>· Anchor error code, account, and program decoded from logs</li>
-            <li>· Context handoff to Claude</li>
+            <li>1. Replay the signature</li>
+            <li>2. Review changed writable accounts and decoded errors</li>
+            <li>3. Copy context or launch the fix loop</li>
           </ul>
         </div>
       ) : null}

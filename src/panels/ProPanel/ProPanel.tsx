@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProStore } from '../../store/pro'
 import { useWalletStore } from '../../store/wallet'
+import { useUIStore } from '../../store/ui'
 import type { ProFeature, ProSubscriptionState, ProPriceInfo } from '../../../electron/shared/types'
 import { Banner, PanelHeader, Stat } from '../../components/Panel'
 import { Button } from '../../components/Button'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
 import { ArenaView } from './ArenaView'
 import './ProPanel.css'
 
@@ -71,6 +73,7 @@ export function ProPanel() {
   const quota = useProStore((state) => state.quota)
   const loadQuota = useProStore((state) => state.loadQuota)
   const wallets = useWalletStore((state) => state.dashboard?.wallets ?? EMPTY_WALLETS)
+  const openWorkspaceTool = useUIStore((state) => state.openWorkspaceTool)
 
   const [activeTab, setActiveTab] = useState<ProTab>('overview')
   const [selectedWalletId, setSelectedWalletId] = useState('')
@@ -118,6 +121,22 @@ export function ProPanel() {
   }
 
   const isActive = subscription.active
+  const isHolderEligible = subscription.holderStatus.enabled && subscription.holderStatus.eligible
+  const setupLabel = isActive
+    ? subscription.accessSource === 'holder' ? 'Holder access' : 'Pro active'
+    : isHolderEligible ? 'Holder eligible' : selectedWalletId ? 'Wallet selected' : 'Wallet needed'
+
+  const handleSurfacePrimary = () => {
+    if (isActive) {
+      openWorkspaceTool('daemon-ai')
+      return
+    }
+    if (isHolderEligible && selectedWalletId) {
+      void handleClaimHolderAccess()
+      return
+    }
+    setActiveTab(isHolderEligible ? 'staking' : 'overview')
+  }
 
   return (
     <section className="pro-panel">
@@ -126,6 +145,15 @@ export function ProPanel() {
         title={isActive ? 'Plan active' : 'Unlock DAEMON Pro'}
         subtitle={isActive && daysRemaining !== null ? `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining` : undefined}
         actions={isActive ? <Button variant="ghost" onClick={() => { void signOut() }}>Sign out</Button> : undefined}
+      />
+
+      <ProductSurfaceStrip
+        surfaceId="pro"
+        stateLabel={isActive ? 'Active' : 'Needs unlock'}
+        setupLabel={setupLabel}
+        tone={isActive ? 'success' : isHolderEligible ? 'info' : 'warning'}
+        primaryLabel={isActive ? 'Open DAEMON AI' : isHolderEligible && selectedWalletId ? 'Claim holder access' : 'Review unlock path'}
+        onPrimary={handleSurfacePrimary}
       />
 
       {error && (
@@ -153,6 +181,7 @@ export function ProPanel() {
             subscribing={subscribing}
             onSubscribe={handleSubscribe}
             onClaimHolderAccess={handleClaimHolderAccess}
+            onOpenWallet={() => openWorkspaceTool('wallet')}
             holderStatus={subscription.holderStatus}
             accessSource={subscription.accessSource}
           />
@@ -325,6 +354,7 @@ function OverviewSubscribe({
   subscribing,
   onSubscribe,
   onClaimHolderAccess,
+  onOpenWallet,
   holderStatus,
   accessSource,
 }: {
@@ -335,6 +365,7 @@ function OverviewSubscribe({
   subscribing: boolean
   onSubscribe: () => void
   onClaimHolderAccess: () => void
+  onOpenWallet: () => void
   holderStatus: ProSubscriptionState['holderStatus']
   accessSource: ProSubscriptionState['accessSource']
 }) {
@@ -379,7 +410,10 @@ function OverviewSubscribe({
       <div className="pro-subscribe-box">
         <div className="pro-subscribe-title">{isHolderEligible ? 'Claim access' : 'Subscribe'}</div>
         {wallets.length === 0 ? (
-          <div className="pro-subscribe-empty">You need a wallet to subscribe. Create one from the Wallet panel first.</div>
+          <div className="pro-subscribe-empty pro-subscribe-empty-action">
+            <span>You need a wallet to subscribe. Create one from the Wallet panel first.</span>
+            <button type="button" className="pro-btn" onClick={onOpenWallet}>Open Wallet</button>
+          </div>
         ) : (
           <>
             <div className="pro-form-row">

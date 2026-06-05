@@ -25,6 +25,11 @@ function npmCommand(): string {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm'
 }
 
+function failStart(message: string): never {
+  lastError = message
+  throw new Error(message)
+}
+
 async function isRicoMapsRunning(): Promise<boolean> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 1_500)
@@ -53,11 +58,11 @@ export async function getRicoMapsEmbedStatus(): Promise<RicoMapsEmbedStatus> {
 
 export async function startRicoMapsEmbed(): Promise<RicoMapsEmbedStatus> {
   if (await isRicoMapsRunning()) return getRicoMapsEmbedStatus()
-  if (!existsSync(packagePath())) throw new Error(`RicoMaps app not found at ${RICOMAPS_PROJECT_PATH}`)
-  if (!existsSync(depsPath())) throw new Error(`RicoMaps dependencies are not installed at ${RICOMAPS_PROJECT_PATH}`)
+  if (!existsSync(packagePath())) failStart(`RicoMaps app not found at ${RICOMAPS_PROJECT_PATH}`)
+  if (!existsSync(depsPath())) failStart(`RicoMaps dependencies are not installed at ${RICOMAPS_PROJECT_PATH}`)
 
   const heliusApiKey = getHeliusApiKey()
-  if (!heliusApiKey) throw new Error('Helius API key not configured')
+  if (!heliusApiKey) failStart('Helius API key not configured')
 
   lastError = null
   const command = npmCommand()
@@ -88,5 +93,5 @@ export async function startRicoMapsEmbed(): Promise<RicoMapsEmbedStatus> {
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
 
-  throw new Error(lastError ?? 'RicoMaps did not start before the timeout')
+  failStart(lastError ?? 'RicoMaps did not start before the timeout')
 }

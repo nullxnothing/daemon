@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PublicKey } from '@solana/web3.js'
 import { Sheet, type SheetWallet } from './Sheet'
 import { TransactionPreviewCard } from '../../TransactionPreviewCard'
 import { Icon } from '../icons'
@@ -17,6 +18,7 @@ interface PendingSend {
   mint: string
   dest: string
   amount: number
+  sendMax: boolean
 }
 
 export function SendSheet({
@@ -42,9 +44,12 @@ export function SendSheet({
   const [amount, setAmount] = useState('')
   const [pending, setPending] = useState<PendingSend | null>(null)
   const [preview, setPreview] = useState<SolanaTransactionPreview | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
+  const [sendMax, setSendMax] = useState(false)
 
   const selectedAsset = assets.find((a) => a.mint === mint) ?? assets[0]
   const isSol = mint === SOL_MINT
@@ -55,7 +60,9 @@ export function SendSheet({
   useEffect(() => {
     let cancelled = false
     setPreview(null)
+    setPreviewError(null)
     if (!pending) return
+    setPreviewLoading(true)
     void window.daemon.wallet.transactionPreview({
       kind: pending.mode === 'sol' ? 'send-sol' : 'send-token',
       walletId: wallet.id,
@@ -63,9 +70,19 @@ export function SendSheet({
       amount: pending.amount,
       mint: pending.mint,
       tokenSymbol: selectedAsset?.symbol,
+      sendMax: pending.sendMax,
     }).then((res) => {
-      if (!cancelled && res.ok && res.data) setPreview(res.data)
-    }).catch(() => {})
+      if (cancelled) return
+      if (res.ok && res.data) {
+        setPreview(res.data)
+        return
+      }
+      setPreviewError(res.error ?? 'Transaction preview failed')
+    }).catch((err) => {
+      if (!cancelled) setPreviewError(err instanceof Error ? err.message : 'Transaction preview failed')
+    }).finally(() => {
+      if (!cancelled) setPreviewLoading(false)
+    })
     return () => { cancelled = true }
   }, [pending, wallet.id, selectedAsset?.symbol])
 
@@ -73,22 +90,28 @@ export function SendSheet({
     setError(null)
     const parsed = parseFloat(amount)
     if (isNaN(parsed) || parsed <= 0) { setError('Enter a valid amount'); return }
-    if (!dest || dest.length < 32) { setError('Choose a valid recipient'); return }
-    setPending({ mode: isSol ? 'sol' : 'token', mint, dest, amount: parsed })
+    if (!isValidSolanaAddress(dest)) { setError('Choose a valid Solana recipient'); return }
+    if (!isSol && !isValidSolanaAddress(mint)) { setError('Selected token mint is invalid'); return }
+    setPending({ mode: isSol ? 'sol' : 'token', mint, dest, amount: parsed, sendMax })
   }
 
   const handleSend = async () => {
     if (!pending) return
+    if (!preview || previewError) {
+      setError('Transaction preview must succeed before signing.')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
       const res = pending.mode === 'sol'
-        ? await window.daemon.wallet.sendSol({ fromWalletId: wallet.id, toAddress: pending.dest, amountSol: pending.amount })
-        : await window.daemon.wallet.sendToken({ fromWalletId: wallet.id, toAddress: pending.dest, mint: pending.mint, amount: pending.amount })
+        ? await window.daemon.wallet.sendSol({ fromWalletId: wallet.id, toAddress: pending.dest, amountSol: pending.amount, sendMax: pending.sendMax })
+        : await window.daemon.wallet.sendToken({ fromWalletId: wallet.id, toAddress: pending.dest, mint: pending.mint, amount: pending.amount, sendMax: pending.sendMax })
       if (res.ok && res.data) {
         setResult(res.data.signature)
         setPending(null)
         setAmount('')
+        setSendMax(false)
         await onDone()
       } else {
         setError(res.error ?? 'Send failed')
@@ -105,8 +128,8 @@ export function SendSheet({
       Review send
     </button>
   ) : (
-    <button className={`${styles.btn} ${styles.primary} ${styles.big}`} onClick={() => void handleSend()} disabled={loading}>
-      {loading ? 'Broadcasting…' : 'Sign and send'}
+    <button className={`${styles.btn} ${styles.primary} ${styles.big}`} onClick={() => void handleSend()} disabled={loading || previewLoading || !preview || Boolean(previewError)}>
+      {loading ? 'Broadcasting…' : previewLoading ? 'Building preview…' : 'Sign and send'}
     </button>
   )
 
@@ -120,7 +143,7 @@ export function SendSheet({
             <button
               key={a.mint}
               className={`${styles.pillbtn}${mint === a.mint ? ' ' + styles.pillbtnOn : ''}`}
-              onClick={() => { setMint(a.mint); setPending(null) }}
+              onClick={() => { setMint(a.mint); setSendMax(false); setPending(null) }}
             >
               <TokGlyph symbol={a.symbol} small />
               {a.symbol} <span className={`${styles.mono} ${styles.dim}`}>{fmtAmount(a.amount)}</span>
@@ -168,7 +191,7 @@ export function SendSheet({
       <div className={styles.fieldBlock}>
         <div className={styles.fieldHead}>
           <span className={styles.label}>Amount</span>
-          <button className={styles.linkbtn} onClick={() => setAmount(String(selectedAsset?.amount ?? 0))}>
+          <button className={styles.linkbtn} onClick={() => { setAmount(String(selectedAsset?.amount ?? 0)); setSendMax(true); setPending(null) }}>
             Available {fmtAmount(selectedAsset?.amount ?? 0)} {selectedAsset?.symbol} · Max
           </button>
         </div>
@@ -178,25 +201,27 @@ export function SendSheet({
             placeholder="0.00"
             inputMode="decimal"
             value={amount}
-            onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.]/g, '')); setPending(null) }}
+            onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.]/g, '')); setSendMax(false); setPending(null) }}
           />
           <span className={`${styles.amtSuffix} ${styles.mono}`}>{selectedAsset?.symbol}</span>
         </div>
       </div>
 
-      {pending && (
+      {pending && preview && (
         <TransactionPreviewCard
           title={preview?.title ?? 'Review send'}
           backendLabel={preview?.backendLabel ?? executionLabel}
           networkLabel={preview?.networkLabel ?? cluster}
           signerLabel={preview?.signerLabel ?? shortAddr(wallet.address)}
           destinationLabel={preview?.targetLabel ?? shortAddr(pending.dest)}
-          amountLabel={preview?.amountLabel ?? `${pending.amount} ${selectedAsset?.symbol}`}
-          feeLabel={preview?.feeLabel}
-          warnings={preview?.warnings}
-          notes={preview?.notes ?? ['Uses the shared DAEMON transaction pipeline.']}
+          amountLabel={preview.amountLabel}
+          feeLabel={preview.feeLabel}
+          warnings={preview.warnings}
+          notes={preview.notes}
         />
       )}
+      {pending && previewLoading && <div className={styles.feedback}>Building transaction preview…</div>}
+      {pending && previewError && <div className={`${styles.feedback} ${styles.feedbackError}`}>{previewError}</div>}
 
       {error && <div className={`${styles.feedback} ${styles.feedbackError}`}>{error}</div>}
       {result && (
@@ -215,6 +240,15 @@ export function SendSheet({
       )}
     </Sheet>
   )
+}
+
+function isValidSolanaAddress(value: string): boolean {
+  try {
+    new PublicKey(value)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function solBalance(wallet: SheetWallet): number {

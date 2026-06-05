@@ -224,6 +224,8 @@ export interface Project {
   wallet_id: string | null
   created_at: number
   last_active: number | null
+  pinned: number
+  branch: string | null
 }
 
 export interface Agent {
@@ -1135,6 +1137,77 @@ export interface SaidIdentity {
   trustScore: number | null
   passportMint: string | null
   registered: boolean
+}
+
+export type SynapseSapCluster = 'devnet' | 'mainnet-beta'
+
+export interface SynapseSapStatus {
+  programId: string
+  cluster: SynapseSapCluster
+  rpcUrl: string
+  explorerUrl: string
+}
+
+export interface SynapseSapCapability {
+  id: string
+  description: string | null
+  protocolId: string | null
+  version: string | null
+}
+
+export interface SynapseSapAgent {
+  pda: string
+  wallet: string
+  name: string
+  description: string
+  agentId: string | null
+  agentUri: string | null
+  x402Endpoint: string | null
+  isActive: boolean
+  reputationScore: number | null
+  totalCallsServed: string | null
+  avgLatencyMs: number | null
+  uptimePercent: number | null
+  capabilities: SynapseSapCapability[]
+  protocols: string[]
+  pricingCount: number
+  createdAt: number | null
+  updatedAt: number | null
+}
+
+export interface SynapseSapDiscoveryInput {
+  cluster?: SynapseSapCluster
+  capabilityId?: string
+  protocolId?: string
+  limit?: number
+}
+
+export interface SynapseSapDiscoveryResult {
+  cluster: SynapseSapCluster
+  indexPda: string
+  query: string
+  total: number
+  agents: SynapseSapAgent[]
+}
+
+export interface SynapseSapRegisterInput {
+  walletId: string
+  agentStationId: string
+  cluster?: SynapseSapCluster
+  capabilityIds?: string[]
+  protocolIds?: string[]
+  agentUri?: string | null
+  x402Endpoint?: string | null
+}
+
+export interface SynapseSapRegisterResult {
+  cluster: SynapseSapCluster
+  wallet: string
+  agentPda: string
+  signature: string
+  explorerUrl: string
+  capabilities: string[]
+  protocols: string[]
 }
 
 // Native Solana spend permission (SPL/Token-2022 delegation) read off a wallet's token account.
@@ -2485,6 +2558,15 @@ export interface AriaMessage {
   metadata: string
   session_id: string
   created_at: number
+}
+
+export interface AriaSession {
+  id: string
+  title: string | null
+  project_id: string | null
+  created_at: number
+  updated_at: number
+  archived: number
 }
 
 export interface AriaResponse {

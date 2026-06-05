@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Copy, ImageSquare, MagnifyingGlass, PaperPlaneTilt, RocketLaunch, Sparkle } from '@phosphor-icons/react'
 import { daemon } from '../../lib/daemonBridge'
 import { LiveRegion } from '../../components/LiveRegion'
 import { PanelHeader } from '../../components/Panel'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
 import type {
   DegenToolsCopyType,
   DegenToolsMemeType,
@@ -34,10 +35,15 @@ function readString(value: unknown, keys: string[]): string {
 export function DegenToolsPanel() {
   const [configured, setConfigured] = useState<boolean | null>(null)
   const [announce, setAnnounce] = useState('')
+  const keyInputRef = useRef<HTMLInputElement>(null)
 
   const checkConfigured = useCallback(async () => {
     const res = await daemon.degentools.isConfigured()
     setConfigured(res.ok ? Boolean(res.data) : false)
+  }, [])
+
+  const focusKeyInput = useCallback(() => {
+    keyInputRef.current?.focus()
   }, [])
 
   useEffect(() => { void checkConfigured() }, [checkConfigured])
@@ -62,14 +68,31 @@ export function DegenToolsPanel() {
 
       <LiveRegion message={announce} />
 
+      <ProductSurfaceStrip
+        surfaceId="degentools"
+        stateLabel={configured ? 'Connected' : 'Needs key'}
+        setupLabel={configured ? 'Asset lane ready' : 'API key required'}
+        tone={configured ? 'success' : 'warning'}
+        primaryLabel={configured ? 'Generate assets' : 'Paste key'}
+        onPrimary={configured ? undefined : focusKeyInput}
+      />
+
       {configured
         ? <DegenToolsConsole onAnnounce={setAnnounce} onResetKey={() => setConfigured(false)} />
-        : <SetupGate onSaved={() => { void checkConfigured() }} onAnnounce={setAnnounce} />}
+        : <SetupGate inputRef={keyInputRef} onSaved={() => { void checkConfigured() }} onAnnounce={setAnnounce} />}
     </div>
   )
 }
 
-function SetupGate({ onSaved, onAnnounce }: { onSaved: () => void; onAnnounce: (message: string) => void }) {
+function SetupGate({
+  inputRef,
+  onSaved,
+  onAnnounce,
+}: {
+  inputRef: RefObject<HTMLInputElement | null>
+  onSaved: () => void
+  onAnnounce: (message: string) => void
+}) {
   const [key, setKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -91,11 +114,12 @@ function SetupGate({ onSaved, onAnnounce }: { onSaved: () => void; onAnnounce: (
     <section className="dt-setup">
       <h2 className="dt-section-title">Connect DegenTools</h2>
       <p className="dt-setup-copy">
-        Paste a DegenTools API key. DAEMON stores it with the OS keyring and sends it only as
+        Open the API dashboard, copy a DegenTools key, then paste it here. DAEMON stores it with the OS keyring and sends it only as
         <code>X-DegenTools-API-Key</code>.
       </p>
       <div className="dt-setup-row">
         <input
+          ref={inputRef}
           className="dt-input"
           type="password"
           placeholder="dgt_..."

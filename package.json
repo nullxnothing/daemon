@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "4.1.3",
+  "version": "4.2.0",
   "main": "dist-electron/main/index.js",
   "description": "Solana-native agent workbench for verifiable AI development",
   "author": "nullxnothing",
@@ -82,6 +82,7 @@
     "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
     "@meteora-ag/dynamic-bonding-curve-sdk": "1.5.7",
     "@nirholas/pump-sdk": "1.30.0",
+    "@oobe-protocol-labs/synapse-sap-sdk": "0.19.8",
     "@payai/facilitator": "^2.3.6",
     "@phosphor-icons/react": "^2.1.10",
     "@raydium-io/raydium-sdk-v2": "0.2.49-alpha",
@@ -132,6 +133,7 @@
     "@xterm/addon-web-links": "^0.12.0",
     "@xterm/xterm": "^5.5.0",
     "axe-core": "^4.11.4",
+    "buffer": "^6.0.3",
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
     "electron-builder-squirrel-windows": "^26.8.1",
@@ -147,8 +149,7 @@
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.7",
     "vitest": "^3.2.4",
-    "zustand": "^5.0.3",
-    "buffer": "^6.0.3"
+    "zustand": "^5.0.3"
   },
   "pnpm": {
     "overrides": {
@@ -179,6 +180,10 @@
       "ignoreGhsas": [
         "GHSA-5xrq-8626-4rwp"
       ]
+    },
+    "patchedDependencies": {
+      "node-pty@1.1.0": "patches/node-pty@1.1.0.patch",
+      "@oobe-protocol-labs/synapse-sap-sdk@0.19.8": "patches/@oobe-protocol-labs__synapse-sap-sdk@0.19.8.patch"
     }
   }
 }

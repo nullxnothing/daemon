@@ -34,6 +34,10 @@
   color: var(--green);
 }
 
+.subscriptions-panel > .product-surface-strip {
+  margin: var(--space-lg) var(--space-lg) 0;
+}
+
 .subscriptions-plan-badge--planned {
   border-color: color-mix(in srgb, var(--amber) 34%, transparent);
   color: var(--amber);
@@ -183,6 +187,22 @@
   background: var(--accent-fill);
 }
 
+.subscriptions-mini-action {
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  background: var(--s2);
+  color: var(--t2);
+  cursor: pointer;
+  font-size: var(--fs-11);
+}
+
+.subscriptions-mini-action:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
 .subscriptions-tier-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -319,6 +339,12 @@
 
 .subscriptions-lane:not(.subscriptions-lane--unlocked) .subscriptions-lane-meta b {
   color: var(--t4);
+}
+
+.subscriptions-lane-note {
+  margin-top: var(--space-xs);
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .subscriptions-holder {

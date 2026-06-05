@@ -51,7 +51,9 @@ const VALIDATION_PATTERNS: Record<string, { pattern: RegExp; label: string; hint
 
 const ENV_TEMPLATES = [
   { key: 'HELIUS_API_KEY', placeholder: 'your-helius-api-key', category: 'Solana', hint: 'RPC & indexing' },
+  { key: 'RPC_URL', placeholder: 'https://api.devnet.solana.com', category: 'Solana', hint: 'Agent RPC' },
   { key: 'SOLANA_RPC_URL', placeholder: 'https://api.mainnet-beta.solana.com', category: 'Solana', hint: 'RPC endpoint' },
+  { key: 'SOLANA_PRIVATE_KEY', placeholder: 'replace_with_devnet_wallet_private_key', category: 'Solana', hint: 'Agent signer secret' },
   { key: 'OPENAI_API_KEY', placeholder: 'sk-...', category: 'AI', hint: 'OpenAI API' },
   { key: 'ANTHROPIC_API_KEY', placeholder: 'sk-ant-...', category: 'AI', hint: 'Claude API' },
   { key: 'DATABASE_URL', placeholder: 'postgres://user:pass@host:5432/db', category: 'Database', hint: 'Connection string' },
@@ -171,6 +173,7 @@ export function EnvManager() {
   const [addingNew, setAddingNew] = useState(false)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
+  const [newValuePlaceholder, setNewValuePlaceholder] = useState('')
   const [pushingKeys, setPushingKeys] = useState<Set<string>>(new Set())
   const [pullingKeys, setPullingKeys] = useState<Set<string>>(new Set())
 
@@ -270,14 +273,28 @@ export function EnvManager() {
     if (!editing) return
     try {
       if (editing.target === 'dev' && editing.filePath) {
-        await window.daemon.env.updateVar(editing.filePath, editing.key, editValue)
+        const res = await window.daemon.env.updateVar(editing.filePath, editing.key, editValue)
+        if (!res.ok) throw new Error(res.error ?? 'Failed to update local env value')
       } else if (editing.target === 'prod' && editing.varId && activeProjectId) {
-        await window.daemon.env.vercelUpdateVar(activeProjectId, editing.varId, editValue)
+        const current = merged.find((entry) => entry.key === editing.key)?.prodValue ?? ''
+        const ok = await confirm({
+          title: `Update production ${editing.key}?`,
+          body: current === editValue
+            ? 'The production value is unchanged.'
+            : 'This changes the Vercel production value. Type the variable name to confirm.',
+          danger: current !== editValue,
+          confirmLabel: 'Update production',
+          typedConfirmation: current === editValue ? undefined : editing.key,
+        })
+        if (!ok) return
+        const res = await window.daemon.env.vercelUpdateVar(activeProjectId, editing.varId, editValue)
+        if (!res.ok) throw new Error(res.error ?? 'Failed to update production env value')
       }
-    } finally {
       setEditing(null)
       loadLocal()
       loadVercel()
+    } catch (error) {
+      useNotificationsStore.getState().pushError(error, 'Env update')
     }
   }
 
@@ -331,18 +348,28 @@ export function EnvManager() {
 
   const handleAddNew = async () => {
     if (!newKey.trim() || !activeProjectId) return
+    if (ENV_TEMPLATES.some((template) => template.placeholder && newValue.trim() === template.placeholder)) {
+      useNotificationsStore.getState().pushError('Replace the template placeholder before saving.', 'Env')
+      return
+    }
     const project = projects.find(p => p.id === activeProjectId)
     if (!project) return
-    await window.daemon.env.updateVar(`${project.path}/.env`, newKey.trim(), newValue)
+    const res = await window.daemon.env.updateVar(`${project.path}/.env`, newKey.trim(), newValue)
+    if (!res.ok) {
+      useNotificationsStore.getState().pushError(res.error ?? 'Failed to add env value', 'Env')
+      return
+    }
     setNewKey('')
     setNewValue('')
+    setNewValuePlaceholder('')
     setAddingNew(false)
     loadLocal()
   }
 
   const handleTemplateClick = (template: typeof ENV_TEMPLATES[0]) => {
     setNewKey(template.key)
-    setNewValue(template.placeholder)
+    setNewValue('')
+    setNewValuePlaceholder(template.placeholder)
     setAddingNew(true)
   }
 
@@ -417,7 +444,7 @@ export function EnvManager() {
                 onChange={(e) => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleAddNew()
-                  if (e.key === 'Escape') { setAddingNew(false); setNewKey(''); setNewValue('') }
+                  if (e.key === 'Escape') { setAddingNew(false); setNewKey(''); setNewValue(''); setNewValuePlaceholder('') }
                 }}
                 autoFocus
               />
@@ -425,18 +452,18 @@ export function EnvManager() {
             <span className="env-col-dev">
               <input
                 className="env-add-input env-add-value"
-                placeholder="value"
+                placeholder={newValuePlaceholder || 'value'}
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleAddNew()
-                  if (e.key === 'Escape') { setAddingNew(false); setNewKey(''); setNewValue('') }
+                  if (e.key === 'Escape') { setAddingNew(false); setNewKey(''); setNewValue(''); setNewValuePlaceholder('') }
                 }}
               />
             </span>
             <span className="env-col-prod"></span>
             <span className="env-col-actions">
-              <button type="button" className="env-btn" onClick={() => { setAddingNew(false); setNewKey(''); setNewValue('') }}>Cancel</button>
+              <button type="button" className="env-btn" onClick={() => { setAddingNew(false); setNewKey(''); setNewValue(''); setNewValuePlaceholder('') }}>Cancel</button>
               <button type="button" className="env-btn env-btn-green" onClick={handleAddNew} disabled={!newKey.trim()}>Add</button>
             </span>
           </div>
@@ -612,6 +639,7 @@ function EnvRow({
               }}
               onBlur={onSaveEdit}
               autoFocus
+              title="Enter to save, Escape to cancel"
               onClick={(e) => e.stopPropagation()}
             />
           ) : hasDev ? (
@@ -652,8 +680,8 @@ function EnvRow({
                 if (e.key === 'Enter') onSaveEdit()
                 if (e.key === 'Escape') onCancelEdit()
               }}
-              onBlur={onSaveEdit}
               autoFocus
+              title="Enter to review production update, Escape to cancel"
               onClick={(e) => e.stopPropagation()}
             />
           ) : hasProd ? (
@@ -719,7 +747,7 @@ function EnvRow({
                 <div key={i} className="env-expanded-row">
                   <span className="env-expanded-project">{p.projectName}</span>
                   <span className="env-expanded-file">{p.filePath.split(/[\\/]/).pop()}</span>
-                  <span className="env-expanded-value">{p.value || '(empty)'}</span>
+                  <span className="env-expanded-value">{m.isSecret ? obscure(p.value) : p.value || '(empty)'}</span>
                   <div className="env-expanded-actions">
                     <button type="button" className="env-btn-sm" onClick={() => onCopyValue(p.value)}>Copy</button>
                     <button type="button" className="env-btn-sm" onClick={() => onOpenFile(p.filePath)}>Open</button>
@@ -734,7 +762,7 @@ function EnvRow({
               <div className="env-expanded-row">
                 <span className="env-expanded-project">Production</span>
                 <span className="env-expanded-file">{m.prodType}</span>
-                <span className="env-expanded-value">{m.prodValue}</span>
+                <span className="env-expanded-value">{m.isSecret ? obscure(m.prodValue!) : m.prodValue}</span>
                 <div className="env-expanded-actions">
                   <span className="env-target-badges">
                     {m.prodTarget.map(t => (

@@ -392,6 +392,18 @@ function installDaemonBridge(options: {
         checkPolicy: vi.fn().mockResolvedValue({ ok: true, data: { allowed: false, reasons: [], resource: null, spentThisTaskUsdc: 0, remainingTaskBudgetUsdc: 0 } }),
         executePaidCall: vi.fn().mockResolvedValue({ ok: false, error: 'not implemented in test' }),
       },
+      clawpump: {
+        isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
+      },
+      degentools: {
+        isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
+      },
+      meterflow: {
+        status: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: false, executionReady: false, blockers: [], receipts: 0 },
+        }),
+      },
       validator: {
         detectProject: vi.fn().mockResolvedValue({
           ok: true,
@@ -480,6 +492,7 @@ function installDaemonBridge(options: {
 }
 
 function resetStores() {
+  window.localStorage.removeItem('daemon:integration-command-center:enabled')
   usePluginStore.setState({ plugins: [], loaded: true, activePluginId: null })
   useWorkflowShellStore.setState({
     drawerTool: null,
@@ -695,12 +708,16 @@ describe('App surface DOM coverage', () => {
     expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
     expect(screen.getAllByText(/safe checks/i).length).toBeGreaterThan(0)
+    expect(screen.getByText('After enable')).toBeInTheDocument()
+    expect(screen.getByText('Run starter check in Terminal')).toBeInTheDocument()
     await enableSelectedIntegration()
     expect(screen.getByText('Get this project to a first working SendAI agent')).toBeInTheDocument()
     expect(screen.getAllByText('Next step').length).toBeGreaterThan(0)
     expect(await screen.findByText(/pnpm add @solana-agent-kit\/plugin-token/)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Apply project setup' }))
+    const applySetup = screen.getByRole('button', { name: 'Apply project setup' })
+    expect(applySetup).toHaveClass('icc-primary')
+    await userEvent.click(applySetup)
 
     expect(await screen.findByText('SendAI setup started')).toBeInTheDocument()
     expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(

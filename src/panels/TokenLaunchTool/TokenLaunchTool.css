@@ -39,6 +39,35 @@
   max-width: 420px;
 }
 
+.tlt-journey {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+}
+
+.tlt-journey-copy {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.tlt-journey-copy strong {
+  color: var(--t1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+}
+
+.tlt-journey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
 /* disclosure toggle for adapter config */
 .tlt-disclosure {
   display: flex;
@@ -62,4 +91,9 @@
 @container solpanel (max-width: 540px) {
   .tlt-head { flex-direction: column; }
   .tlt-head .sol-actions { margin-left: 0; }
+  .tlt-journey {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .tlt-journey-actions { margin-left: 0; }
 }

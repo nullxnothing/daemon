@@ -22,6 +22,7 @@ import {
   PuzzlePiece,
   Robot,
   RocketLaunch,
+  Receipt,
   Scan,
   ShareNetwork,
   ShieldStar,
@@ -120,6 +121,7 @@ const DaemonAIIcon = createPhosphorIcon(Robot)
 const ActivityIcon = createPhosphorIcon(Sparkle)
 const AgentStationIcon = createPhosphorIcon(DesktopTower)
 const AgentWorkIcon = createPhosphorIcon(Briefcase)
+const MeterflowIcon = createPhosphorIcon(Receipt)
 const ClawpumpIcon = ClawpumpGlyph
 const DegenToolsIcon = createPhosphorIcon(Sparkle)
 const SignalhouseIcon = SignalhouseGlyph
@@ -135,6 +137,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   'daemon-ai': DaemonAIIcon,
   'agent-station': AgentStationIcon,
   'agent-work': AgentWorkIcon,
+  meterflow: MeterflowIcon,
   'clawpump': ClawpumpIcon,
   'degentools': DegenToolsIcon,
   'signalhouse': SignalhouseIcon,
@@ -178,6 +181,7 @@ const loadActivityTimeline = () => import('../../panels/ActivityTimeline/Activit
 const loadAgentStation = () => import('../../panels/AgentStation/AgentStation')
 const loadReplayEngine = () => import('../../panels/ReplayEngine/ReplayEngine')
 const loadAgentWork = () => import('../../panels/AgentWork/AgentWork')
+const loadMeterflow = () => import('../../panels/Meterflow/MeterflowPanel')
 const loadClawpump = () => import('../../panels/Clawpump/ClawpumpPanel')
 const loadDegenTools = () => import('../../panels/DegenTools/DegenToolsPanel')
 const loadSignalhouse = () => import('../../panels/Signalhouse/SignalhousePanel')
@@ -215,6 +219,7 @@ const ActivityTimeline = lazyNamedWithReload('activity-timeline', loadActivityTi
 const AgentStationPanel = lazyNamedWithReload('agent-station', loadAgentStation, (m) => m.AgentStation)
 const ReplayEngine = lazyNamedWithReload('replay-engine', loadReplayEngine, (m) => m.ReplayEngine)
 const AgentWork = lazyNamedWithReload('agent-work', loadAgentWork, (m) => m.AgentWork)
+const MeterflowPanel = lazyNamedWithReload('meterflow', loadMeterflow, (m) => m.MeterflowPanel)
 const ClawpumpPanel = lazyNamedWithReload('clawpump', loadClawpump, (m) => m.ClawpumpPanel)
 const DegenToolsPanel = lazyNamedWithReload('degentools', loadDegenTools, (m) => m.DegenToolsPanel)
 const SignalhousePanel = lazyNamedWithReload('signalhouse', loadSignalhouse, (m) => m.SignalhousePanel)
@@ -250,6 +255,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'docs', name: 'Docs', description: 'DAEMON documentation', icon: DocsIcon, component: DocsPanel, preload: () => { void loadDocsPanel() }, category: 'system' },
   { id: 'dashboard', name: 'Dashboard', description: 'Market data and watchlist', icon: DashboardIcon, component: DashboardCanvas, preload: () => { void loadDashboardCanvas() }, category: 'markets' },
   { id: 'agent-work', name: 'Agent Work', description: 'Wallet-funded agent jobs, receipts, verification, and settlement', icon: AgentWorkIcon, component: AgentWork, preload: () => { void loadAgentWork() }, category: 'agents' },
+  { id: 'meterflow', name: 'Meterflow', description: 'x402 receipts, meters, budgets, and paid agent call readiness', icon: MeterflowIcon, component: MeterflowPanel, preload: () => { void loadMeterflow() }, category: 'agents' },
   { id: 'sessions', name: 'Sessions', description: 'Agent session history', icon: SessionsIcon, component: SessionHistory, preload: () => { void loadSessionHistory() }, category: 'dev' },
   { id: 'hackathon', name: 'Hackathon', description: 'Colosseum tracker', icon: HackathonIcon, component: HackathonPanel, preload: () => { void loadHackathonPanel() }, category: 'markets' },
   { id: 'daemon-ai', name: 'Daemon AI', description: 'AI workbench for chat, runs, approvals, patches, and receipts', icon: DaemonAIIcon, component: DaemonAIPanel, preload: () => { void loadDaemonAIPanel() }, category: 'agents' },

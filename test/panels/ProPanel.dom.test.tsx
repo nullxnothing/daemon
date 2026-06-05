@@ -6,6 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProPanel } from '../../src/panels/ProPanel/ProPanel'
 import { useProStore } from '../../src/store/pro'
 import { useWalletStore } from '../../src/store/wallet'
+import { useUIStore } from '../../src/store/ui'
+
+const defaultOpenWorkspaceTool = useUIStore.getState().openWorkspaceTool
 
 function installDaemonBridge(statusOverride?: any) {
   const statusData = statusOverride ?? {
@@ -91,6 +94,11 @@ describe('ProPanel Arena status', () => {
       error: null,
     })
     useWalletStore.setState({ dashboard: { wallets: [] } as any })
+    useUIStore.setState({
+      workspaceToolTabs: [],
+      activeWorkspaceToolId: null,
+      openWorkspaceTool: defaultOpenWorkspaceTool,
+    } as any)
   })
 
   it('opens Arena and shows locked status when Pro is inactive', async () => {
@@ -109,6 +117,7 @@ describe('ProPanel Arena status', () => {
 
     expect(await screen.findByText('Unlock DAEMON Pro')).toBeInTheDocument()
     expect(screen.getByText('You need a wallet to subscribe. Create one from the Wallet panel first.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open Wallet' })).toBeInTheDocument()
   })
 
   it('shows holder utility tiers and live holder status', async () => {
@@ -151,5 +160,38 @@ describe('ProPanel Arena status', () => {
     expect(screen.getByText('Holder Operator')).toBeInTheDocument()
     expect(screen.getByText('Holder Ultra')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activate holder access' })).toBeInTheDocument()
+  })
+
+  it('sends active Pro users to DAEMON AI from the surface action', async () => {
+    const activeState = {
+      active: true,
+      plan: 'pro',
+      walletId: 'wallet-1',
+      walletAddress: '7Y12wallet9AbC',
+      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      features: ['daemon-ai', 'arena', 'pro-skills', 'mcp-sync', 'priority-api'],
+      tier: 'pro',
+      accessSource: 'payment',
+      holderStatus: {
+        enabled: false,
+        eligible: false,
+        mint: null,
+        minAmount: null,
+        currentAmount: null,
+        symbol: 'DAEMON',
+      },
+      priceUsdc: 20,
+      durationDays: 30,
+    }
+    const openWorkspaceTool = vi.fn()
+    installDaemonBridge(activeState)
+    useProStore.setState({ subscription: activeState as any, quota: { quota: 2000, used: 100, remaining: 1900 } })
+    useUIStore.setState({ openWorkspaceTool } as any)
+
+    render(<ProPanel />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Open DAEMON AI' }))
+
+    expect(openWorkspaceTool).toHaveBeenCalledWith('daemon-ai')
   })
 })

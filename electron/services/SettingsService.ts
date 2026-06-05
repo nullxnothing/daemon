@@ -2,6 +2,7 @@ import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
 import os from 'node:os'
 import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
+import * as SecureKey from './SecureKeyService'
 
 export interface RaydiumLaunchpadSettings {
   configId: string
@@ -17,6 +18,10 @@ export interface MeteoraLaunchpadSettings {
 export interface PrintrLaunchpadSettings {
   apiBaseUrl: string
   apiKey: string
+  apiKeyConfigured?: boolean
+  apiKeyHint?: string
+  apiKeySource?: 'secure' | 'env' | 'none'
+  apiKeyAction?: 'keep' | 'replace' | 'clear'
   quotePath: string
   createPath: string
   chain: string
@@ -268,6 +273,7 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
 
 const BASEDBID_MIN_MARKET_CAP = 11_000
 const BASEDBID_MAX_MARKET_CAP = 10_000_000
+const PRINTR_API_KEY_NAME = 'PRINTR_API_KEY'
 
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
   cluster: 'devnet',
@@ -287,6 +293,52 @@ function normalizePreferredWallet(value: unknown): WalletInfrastructureSettings[
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function getSecureKeyHint(keyName: string): string {
+  try {
+    return SecureKey.listKeys().find((entry) => entry.key_name === keyName)?.hint ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function getOptionalSecureKey(keyName: string): string {
+  try {
+    return SecureKey.getKey(keyName)?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function getPrintrApiKey(): string {
+  return getOptionalSecureKey(PRINTR_API_KEY_NAME) || normalizeText(process.env.PRINTR_API_KEY)
+}
+
+function getPrintrApiKeyMeta(): Pick<PrintrLaunchpadSettings, 'apiKeyConfigured' | 'apiKeyHint' | 'apiKeySource'> {
+  const secureKey = getOptionalSecureKey(PRINTR_API_KEY_NAME)
+  if (secureKey) {
+    return {
+      apiKeyConfigured: true,
+      apiKeyHint: getSecureKeyHint(PRINTR_API_KEY_NAME),
+      apiKeySource: 'secure',
+    }
+  }
+
+  const envKey = normalizeText(process.env.PRINTR_API_KEY)
+  if (envKey) {
+    return {
+      apiKeyConfigured: true,
+      apiKeyHint: 'env',
+      apiKeySource: 'env',
+    }
+  }
+
+  return {
+    apiKeyConfigured: false,
+    apiKeyHint: '',
+    apiKeySource: 'none',
+  }
 }
 
 function assertPublicKey(value: string, fieldName: string): void {
@@ -351,6 +403,24 @@ function validateOptionalHttpsUrlExceptLocal(value: string, fieldName: string): 
 
 export function getTokenLaunchSettings(): TokenLaunchSettings {
   const value = getJsonSetting<TokenLaunchSettings>('token_launch_settings', DEFAULT_TOKEN_LAUNCH_SETTINGS)
+  const legacyPrintrApiKey = normalizeText(value?.printr?.apiKey)
+  if (legacyPrintrApiKey) {
+    try {
+      SecureKey.storeKey(PRINTR_API_KEY_NAME, legacyPrintrApiKey)
+    } catch {
+      // Scrub legacy plaintext even when the OS keyring is unavailable.
+    }
+    setTokenLaunchSettings({
+      ...value,
+      printr: {
+        ...value.printr,
+        apiKey: '',
+        apiKeyAction: 'keep',
+      },
+    })
+  }
+
+  const apiKeyMeta = getPrintrApiKeyMeta()
   return {
     raydium: {
       configId: normalizeText(value?.raydium?.configId),
@@ -363,7 +433,8 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
     },
     printr: {
       apiBaseUrl: normalizeText(value?.printr?.apiBaseUrl),
-      apiKey: normalizeText(value?.printr?.apiKey),
+      apiKey: '',
+      ...apiKeyMeta,
       quotePath: normalizeText(value?.printr?.quotePath),
       createPath: normalizeText(value?.printr?.createPath),
       chain: normalizeText(value?.printr?.chain),
@@ -386,7 +457,26 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
   }
 }
 
+export function getTokenLaunchRuntimeSettings(): TokenLaunchSettings {
+  const settings = getTokenLaunchSettings()
+  return {
+    ...settings,
+    printr: {
+      ...settings.printr,
+      apiKey: getPrintrApiKey(),
+    },
+  }
+}
+
 export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
+  const printrApiKey = normalizeText(settings?.printr?.apiKey)
+  const printrApiKeyAction = settings?.printr?.apiKeyAction
+  if (printrApiKeyAction === 'clear') {
+    SecureKey.deleteKey(PRINTR_API_KEY_NAME)
+  } else if (printrApiKey) {
+    SecureKey.storeKey(PRINTR_API_KEY_NAME, printrApiKey)
+  }
+
   const next = {
     raydium: {
       configId: normalizeText(settings?.raydium?.configId),
@@ -399,7 +489,7 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
     },
     printr: {
       apiBaseUrl: normalizeText(settings?.printr?.apiBaseUrl),
-      apiKey: normalizeText(settings?.printr?.apiKey),
+      apiKey: '',
       quotePath: normalizeText(settings?.printr?.quotePath),
       createPath: normalizeText(settings?.printr?.createPath),
       chain: normalizeText(settings?.printr?.chain),

@@ -472,6 +472,15 @@
   gap: 3px; /* TODO: token */
 }
 
+.dash-forensics-actions {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
 .dash-mint-label {
   font-size: var(--fs-9);
   color: var(--t4);

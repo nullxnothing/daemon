@@ -234,13 +234,19 @@ function KeysSection() {
     if (!newKeyName.trim() || !newKeyValue.trim()) return
     const name = newKeyName.trim()
     setSaving(true)
-    await window.daemon.claude.storeKey(name, newKeyValue.trim())
-    setNewKeyName('')
-    setNewKeyValue('')
-    setSaving(false)
-    setSavedName(name)
-    window.setTimeout(() => setSavedName((current) => (current === name ? null : current)), 2400)
-    load()
+    try {
+      const res = await window.daemon.claude.storeKey(name, newKeyValue.trim())
+      if (!res.ok) throw new Error(res.error ?? 'Failed to store key')
+      setNewKeyName('')
+      setNewKeyValue('')
+      setSavedName(name)
+      window.setTimeout(() => setSavedName((current) => (current === name ? null : current)), 2400)
+      load()
+    } catch (error) {
+      useNotificationsStore.getState().pushError(error, 'Key storage')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (name: string) => {
@@ -251,7 +257,11 @@ function KeysSection() {
       confirmLabel: 'Remove key',
     })
     if (!ok) return
-    await window.daemon.claude.deleteKey(name)
+    const res = await window.daemon.claude.deleteKey(name)
+    if (!res.ok) {
+      useNotificationsStore.getState().pushError(res.error ?? 'Failed to remove key', 'Key storage')
+      return
+    }
     load()
   }
 
@@ -379,11 +389,17 @@ function IntegrationsSection({ projectPath }: { projectPath: string | null }) {
   const handleSaveApiKey = async () => {
     if (!apiKeyInput.trim()) return
     setSavingKey(true)
-    await window.daemon.claude.storeKey('ANTHROPIC_API_KEY', apiKeyInput.trim())
-    setSavingKey(false)
-    setApiKeyInput('')
-    setShowApiInput(false)
-    load()
+    try {
+      const res = await window.daemon.claude.storeKey('ANTHROPIC_API_KEY', apiKeyInput.trim())
+      if (!res.ok) throw new Error(res.error ?? 'Failed to save API key')
+      setApiKeyInput('')
+      setShowApiInput(false)
+      load()
+    } catch (error) {
+      useNotificationsStore.getState().pushError(error, 'Claude API key')
+    } finally {
+      setSavingKey(false)
+    }
   }
 
   const isConnected = connection && connection.authMode !== 'none'

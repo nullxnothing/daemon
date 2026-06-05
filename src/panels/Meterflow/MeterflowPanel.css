@@ -562,6 +562,10 @@
   line-height: 1.5;
 }
 
+.meterflow-empty .meterflow-button {
+  margin-top: var(--space-xs);
+}
+
 .meterflow-loading.slim {
   min-height: 36px;
   padding: var(--space-sm);

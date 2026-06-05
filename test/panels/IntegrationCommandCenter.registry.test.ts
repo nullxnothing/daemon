@@ -36,6 +36,12 @@ describe('Integration Command Center registry', () => {
         actionIds.add(action.id)
         expect(action.risk).toMatch(/^(read-only|requires-confirmation|transaction)$/)
       }
+
+      if (integration.primaryActionId) {
+        const primary = integration.actions.find((action) => action.id === integration.primaryActionId)
+        expect(primary, integration.id).toBeDefined()
+        expect(primary!.kind, integration.id).not.toBe('planned')
+      }
     }
   })
 

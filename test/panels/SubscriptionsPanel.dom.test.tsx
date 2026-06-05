@@ -95,6 +95,7 @@ describe('Subscriptions panel', () => {
     expect(screen.getAllByText('Operator').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Ultra').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Locked')).toHaveLength(3)
+    expect(screen.getAllByText('Upgrade path planned')).toHaveLength(2)
     expect(screen.getByText('Holder Pro')).toBeInTheDocument()
   })
 

@@ -131,7 +131,55 @@
 
 /* 4 · ledger --------------------------------------------------------- */
 .fw-ledger-label { display: block; }
-.fw-empty { color: var(--t3); font-size: var(--fs-13); padding: var(--space-lg); text-align: center; border: 1px solid var(--line); }
+.fw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  color: var(--t3);
+  font-size: var(--fs-13);
+  padding: var(--space-lg);
+  text-align: center;
+  border: 1px solid var(--line);
+}
+
+.fw-empty p {
+  max-width: 640px;
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+.fw-empty-prereqs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fw-empty-prereqs li {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--field-bg);
+  color: var(--t2);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+.fw-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+}
 
 .fw-ledger { border: 1px solid var(--line); }
 

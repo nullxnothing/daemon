@@ -1805,6 +1805,7 @@ export function ProjectStarter() {
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [walletInfrastructure, setWalletInfrastructure] = useState<WalletInfrastructureSettings | null>(null)
+  const [runtimeLoadState, setRuntimeLoadState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const nameRef = useRef<HTMLInputElement>(null)
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? null
   const currentProjectTarget = activeProjectId && activeProjectPath
@@ -1825,9 +1826,16 @@ export function ProjectStarter() {
   useEffect(() => {
     let cancelled = false
     void window.daemon.settings.getWalletInfrastructureSettings().then((res) => {
-      if (cancelled || !res.ok || !res.data) return
+      if (cancelled) return
+      if (!res.ok || !res.data) {
+        setRuntimeLoadState('unavailable')
+        return
+      }
       setWalletInfrastructure(res.data)
-    }).catch(() => {})
+      setRuntimeLoadState('ready')
+    }).catch(() => {
+      if (!cancelled) setRuntimeLoadState('unavailable')
+    })
 
     return () => {
       cancelled = true
@@ -2177,7 +2185,12 @@ export function ProjectStarter() {
     ] : []
     const isMemeTemplate = isMemeCoinWebsiteTemplate(wizard.template.id)
     const assetLabel = (assetPath: string, fallback: string) => assetPath.split(/[\\/]/).pop() || fallback
-    const canBuild = Boolean(wizard.savePath && (wizard.targetMode === 'current' || wizard.projectName.trim()))
+    const buildBlockedReason = !wizard.savePath
+      ? 'Choose a save location to enable scaffolding.'
+      : wizard.targetMode === 'new' && !wizard.projectName.trim()
+        ? 'Enter a project name to enable scaffolding.'
+        : null
+    const canBuild = !buildBlockedReason
 
     return (
       <div className="starter-panel">
@@ -2335,7 +2348,7 @@ export function ProjectStarter() {
             </div>
           )}
 
-          {runtimeSummary.length > 0 && (
+          {runtimeSummary.length > 0 ? (
             <div className="starter-runtime-card">
               <div className="starter-runtime-title">Solana Runtime Preset</div>
               <div className="starter-runtime-copy">
@@ -2347,9 +2360,24 @@ export function ProjectStarter() {
                 ))}
               </div>
             </div>
+          ) : (
+            <div className="starter-runtime-card starter-runtime-card--muted">
+              <div className="starter-runtime-title">Solana Runtime Preset</div>
+              <div className="starter-runtime-copy">
+                {runtimeLoadState === 'loading'
+                  ? 'Loading current wallet and RPC preferences before writing daemon.solana-runtime.json.'
+                  : 'Runtime preset unavailable. Scaffold can continue after required fields, but configure Solana Start before the first wallet or RPC action.'}
+              </div>
+              {runtimeLoadState === 'unavailable' && (
+                <button type="button" className="starter-inline-action" onClick={() => setActiveWorkspaceTool('project-readiness')}>
+                  Open Solana Start
+                </button>
+              )}
+            </div>
           )}
 
           {error && <div className="starter-error">{error}</div>}
+          {buildBlockedReason && <div className="starter-build-hint">{buildBlockedReason}</div>}
 
           <button
             className="starter-build-btn"

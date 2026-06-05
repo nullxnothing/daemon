@@ -113,6 +113,21 @@
   color: var(--t4);
 }
 
+.scanner-input-status {
+  padding: 6px var(--panel-pad-x);
+  border-bottom: 1px solid var(--s3);
+  background: var(--s1);
+  color: var(--green);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+  line-height: 1.35;
+}
+
+.scanner-input-status--error {
+  color: var(--red);
+  background: var(--red-glow);
+}
+
 .scanner-go {
   padding: 5px 10px; /* TODO: 5px/10px tokens */
   background: var(--s3);

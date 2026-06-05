@@ -3,6 +3,7 @@ import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLauncher } from '../../components/TokenLauncher/TokenLauncher'
 import { Surface } from '../../components/Panel'
+import { useUIStore } from '../../store/ui'
 import '../_solana/solanaSurface.css'
 import './TokenLaunchTool.css'
 
@@ -16,6 +17,7 @@ export function TokenLaunchTool() {
   const [showConfig, setShowConfig] = useState(false)
 
   const openStreamlock = useCallback(() => { void window.daemon.shell.openExternal(STREAMLOCK_URL) }, [])
+  const openWorkspaceTool = useUIStore((state) => state.openWorkspaceTool)
   const refresh = useCallback(() => setLaunchpadRefreshNonce((n) => n + 1), [])
 
   useEffect(() => {
@@ -61,6 +63,19 @@ export function TokenLaunchTool() {
             <div className="sol-kcell"><span className="sol-kk">Recent launches</span><span className="sol-kv">{recentCount}</span><span className="sol-km">wallet-linked history</span></div>
             <div className="sol-kcell"><span className="sol-kk">Protocol config</span><span className="sol-kv sol-kv--amber">Planned</span><span className="sol-km">2 adapters need setup</span></div>
           </div>
+
+          <nav className="tlt-journey" aria-label="Launch journey">
+            <div className="tlt-journey-copy">
+              <span className="sol-eyebrow">First 60 seconds</span>
+              <strong>Launch, build assets, wire fees, then watch the token.</strong>
+            </div>
+            <div className="tlt-journey-actions">
+              <button type="button" className="solx-btn solx-btn--ghost" onClick={() => openWorkspaceTool('degentools')}>DegenTools</button>
+              <button type="button" className="solx-btn solx-btn--ghost" onClick={() => openWorkspaceTool('flywheel')}>Flywheel</button>
+              <button type="button" className="solx-btn solx-btn--ghost" onClick={() => openWorkspaceTool('dashboard')}>Dashboard</button>
+              <button type="button" className="solx-btn solx-btn--ghost" onClick={() => openWorkspaceTool('project-readiness')}>Solana Start</button>
+            </div>
+          </nav>
 
           {/* quick pump.fun launcher */}
           <section className="sol-section">

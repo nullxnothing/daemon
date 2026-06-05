@@ -38,11 +38,15 @@ import { registerShiplineHandlers } from '../ipc/shipline'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
+import { registerSwarmHandlers } from '../ipc/swarm'
+import { killAll as killAllSwarmLanes, } from '../services/SwarmOrchestrator'
+import { reconcileOnBoot as reconcileSwarmOnBoot } from '../services/WorktreeService'
 import { registerLaunchHandlers } from '../ipc/launch'
 import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerForensicsHandlers } from '../ipc/forensics'
 import { registerRegistryHandlers } from '../ipc/registry'
 import { registerSaidHandlers } from '../ipc/said'
+import { registerSynapseHandlers } from '../ipc/synapse'
 import { registerAllowanceHandlers } from '../ipc/allowances'
 import { registerSignalhouseHandlers } from '../ipc/signalhouse'
 import { registerFlywheelHandlers } from '../ipc/flywheel'
@@ -193,6 +197,7 @@ let pendingAgentOpsOpenRequest: AgentOpsOpenRequest | null = null
 
 function cleanupRuntimeState() {
   killAllSessions()
+  killAllSwarmLanes()
   shutdownAllLspSessions()
   clearLoadedWallets()
   closeDb()
@@ -325,11 +330,13 @@ function registerAllIpc() {
   registerEmailHandlers()
   registerImageHandlers()
   registerAriaHandlers()
+  registerSwarmHandlers()
   registerLaunchHandlers()
   registerDashboardHandlers()
   registerForensicsHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
+  registerSynapseHandlers()
   registerAllowanceHandlers()
   registerSignalhouseHandlers()
   registerFlywheelHandlers()
@@ -346,6 +353,9 @@ function registerAllIpc() {
   registerReplayHandlers()
   registerLspHandlers()
   registerVoightHandlers()
+
+  // Clean up any swarm worktrees left over from a crash/forced quit.
+  void reconcileSwarmOnBoot().catch(() => {})
 
   // Window controls — raw channels (not wrapped by ipcHandler), so guard the
   // sender frame inline. Embedded/cross-origin frames must not drive the window.

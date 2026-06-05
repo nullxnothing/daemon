@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
 import './ZauthPanel.css'
 
 type ZauthPageId = 'database' | 'provider-hub'
@@ -218,6 +219,15 @@ export function ZauthPanel() {
           </div>
         </div>
       </header>
+
+      <ProductSurfaceStrip
+        surfaceId="zauth"
+        stateLabel={loadStatus}
+        setupLabel={activePage.label}
+        tone={loadStatus === 'ready' ? 'success' : loadStatus === 'error' ? 'danger' : 'info'}
+        detail={activePage.meta}
+        primaryLabel={`Open ${activePage.label}`}
+      />
 
       <div className="zauth-meta-row">
         <span>{activePage.meta}</span>

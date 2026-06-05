@@ -27,7 +27,7 @@ export function GitPanel() {
   const [commitMsg, setCommitMsg] = useState('')
   const [pushing, setPushing] = useState(false)
   const [committing, setCommitting] = useState(false)
-  const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null)
+  const [selectedDiff, setSelectedDiff] = useState<{ path: string; staged: boolean } | null>(null)
   const [diffContent, setDiffContent] = useState<string | null>(null)
   const [loadingDiff, setLoadingDiff] = useState(false)
   const [generatingCommitMsg, setGeneratingCommitMsg] = useState(false)
@@ -305,17 +305,22 @@ export function GitPanel() {
     load()
   }
 
-  const handleToggleDiff = async (filePath: string) => {
+  const selectedDiffKey = selectedDiff ? getDiffKey(selectedDiff.path, selectedDiff.staged) : null
+
+  const handleToggleDiff = async (file: GitFile) => {
     if (!projectPath) return
-    if (selectedDiffFile === filePath) {
-      setSelectedDiffFile(null)
+    const nextKey = getDiffKey(file.path, file.staged)
+    if (selectedDiffKey === nextKey) {
+      setSelectedDiff(null)
       setDiffContent(null)
       return
     }
-    setSelectedDiffFile(filePath)
+    setSelectedDiff({ path: file.path, staged: file.staged })
     setLoadingDiff(true)
     setDiffContent(null)
-    const res = await window.daemon.git.diff(projectPath, filePath)
+    const res = file.staged
+      ? await window.daemon.git.diffStaged(projectPath, file.path)
+      : await window.daemon.git.diff(projectPath, file.path)
     setLoadingDiff(false)
     if (res.ok && res.data) setDiffContent(res.data)
     else setDiffContent(null)
@@ -350,8 +355,8 @@ export function GitPanel() {
       return
     }
     useNotificationsStore.getState().pushSuccess(`Discarded ${fileName}`, 'Git')
-    if (selectedDiffFile === filePath) {
-      setSelectedDiffFile(null)
+    if (selectedDiff?.path === filePath) {
+      setSelectedDiff(null)
       setDiffContent(null)
     }
     load()
@@ -590,7 +595,7 @@ export function GitPanel() {
               <GitFileRow
                 key={f.path}
                 file={f}
-                isSelected={selectedDiffFile === f.path}
+                isSelected={selectedDiffKey === getDiffKey(f.path, f.staged)}
                 onOpenFile={handleOpenFile}
                 onToggleDiff={handleToggleDiff}
                 onStage={handleStage}
@@ -612,7 +617,7 @@ export function GitPanel() {
               <GitFileRow
                 key={f.path}
                 file={f}
-                isSelected={selectedDiffFile === f.path}
+                isSelected={selectedDiffKey === getDiffKey(f.path, f.staged)}
                 onOpenFile={handleOpenFile}
                 onToggleDiff={handleToggleDiff}
                 onStage={handleStage}
@@ -629,11 +634,11 @@ export function GitPanel() {
       </div>
 
       {/* Inline diff viewer */}
-      {selectedDiffFile && (
+      {selectedDiff && (
         <div className="git-diff-viewer">
           <div className="git-diff-header">
-            <span className="git-diff-filename">{selectedDiffFile}</span>
-            <button type="button" className="git-diff-close" onClick={() => { setSelectedDiffFile(null); setDiffContent(null) }}>x</button>
+            <span className="git-diff-filename">{selectedDiff.staged ? 'Staged: ' : ''}{selectedDiff.path}</span>
+            <button type="button" className="git-diff-close" onClick={() => { setSelectedDiff(null); setDiffContent(null) }}>x</button>
           </div>
           {loadingDiff && <div className="git-diff-loading">Loading diff...</div>}
           {!loadingDiff && diffContent && (
@@ -686,7 +691,7 @@ interface GitFileRowProps {
   file: GitFile
   isSelected: boolean
   onOpenFile: (file: GitFile) => void
-  onToggleDiff: (filePath: string) => void
+  onToggleDiff: (file: GitFile) => void
   onStage: (filePath: string) => void
   onUnstage: (filePath: string) => void
   onDiscard: (filePath: string) => void
@@ -714,7 +719,7 @@ function GitFileRow({ file, isSelected, onOpenFile, onToggleDiff, onStage, onUns
           type="button"
           className={`git-gbtn diff${isSelected ? ' on' : ''}`}
           aria-pressed={isSelected}
-          onClick={() => onToggleDiff(file.path)}
+          onClick={() => onToggleDiff(file)}
         >
           Diff
         </button>
@@ -757,7 +762,7 @@ function splitGitPath(path: string) {
 
 function getGitFileDisplay(file: GitFile) {
   if (file.staged) {
-    return { code: 'A', label: 'staged', tone: 'success' as const, className: 'staged', stClass: 'a' }
+    return { code: 'S', label: 'staged', tone: 'success' as const, className: 'staged', stClass: 'a' }
   }
   if (file.deleted) {
     return { code: 'D', label: 'deleted', tone: 'danger' as const, className: 'deleted', stClass: 'd' }
@@ -766,4 +771,8 @@ function getGitFileDisplay(file: GitFile) {
     return { code: 'U', label: 'untracked', tone: 'info' as const, className: 'untracked', stClass: 'u' }
   }
   return { code: 'M', label: 'modified', tone: 'warning' as const, className: 'modified', stClass: 'm' }
+}
+
+function getDiffKey(path: string, staged: boolean) {
+  return `${staged ? 'staged' : 'worktree'}:${path}`
 }

@@ -32,6 +32,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'docs', name: 'Docs', moduleClass: 'addon', surface: 'drawer' },
   { id: 'dashboard', name: 'Dashboard', moduleClass: 'addon', surface: 'drawer' },
   { id: 'agent-work', name: 'Agent Work', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'meterflow', name: 'Meterflow', moduleClass: 'addon', surface: 'drawer' },
   { id: 'sessions', name: 'Sessions', moduleClass: 'addon', surface: 'drawer' },
   { id: 'hackathon', name: 'Hackathon', moduleClass: 'addon', surface: 'drawer' },
   { id: 'daemon-ai', name: 'Daemon AI', moduleClass: 'addon', surface: 'drawer' },
@@ -43,6 +44,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'clawpump', name: 'ClawPump', moduleClass: 'addon', surface: 'drawer' },
   { id: 'degentools', name: 'DegenTools', moduleClass: 'addon', surface: 'drawer' },
   { id: 'signalhouse', name: 'Signalhouse', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'flywheel', name: 'Fee Flywheel', moduleClass: 'addon', surface: 'drawer' },
   { id: 'ricomaps', name: 'RicoMaps', moduleClass: 'addon', surface: 'drawer' },
   { id: 'browser', name: 'Browser', moduleClass: 'addon', surface: 'tab' },
 ] as const

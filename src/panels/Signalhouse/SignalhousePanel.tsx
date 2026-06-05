@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { LiveRegion } from '../../components/LiveRegion'
 import { PanelHeader } from '../../components/Panel'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
 import { SignalhouseGlyph } from '../../lib/SignalhouseGlyph'
 import type {
   SignalhouseHealth,
@@ -68,6 +69,14 @@ export function SignalhousePanel() {
       />
 
       <LiveRegion message={announce} />
+
+      <ProductSurfaceStrip
+        surfaceId="signalhouse"
+        stateLabel="Read-only"
+        setupLabel="API checked below"
+        tone="info"
+        primaryLabel="Browse strategies"
+      />
 
       <StatusBadge />
 

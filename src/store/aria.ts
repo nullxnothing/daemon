@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import type {
-  AriaMessage, AriaToolCallRecord, AriaToolEvent, AriaUiEffect,
+  AriaMessage, AriaSession, AriaToolCallRecord, AriaToolEvent, AriaUiEffect,
   AriaPlanStep, AriaPatchProposalLite, AriaPatchAction,
   DaemonAiModelInfo, DaemonAiModelLane,
 } from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
 import { buildAriaSnapshot } from '../lib/ariaContext'
 import { applyUiEffect, runUiEffectWithData } from '../lib/ariaUiEffects'
+import { useUIStore } from './ui'
 
 /** A pending write/sensitive tool awaiting the user's decision. */
 export interface AriaApproval {
@@ -50,6 +51,7 @@ interface AriaState {
   turns: AriaTurn[]
   isLoading: boolean
   sessionId: string
+  sessions: AriaSession[]
   selectedLane: DaemonAiModelLane
   availableModels: DaemonAiModelInfo[]
 
@@ -61,6 +63,19 @@ interface AriaState {
   clearMessages: () => void
   loadHistory: () => Promise<void>
   subscribe: () => () => void
+
+  /** Refresh the session list for the active project and pick/create an active session. */
+  initSessions: () => Promise<void>
+  loadSessions: () => Promise<void>
+  newChat: () => Promise<void>
+  switchSession: (sessionId: string) => Promise<void>
+  renameSession: (sessionId: string, title: string) => Promise<void>
+  archiveSession: (sessionId: string) => Promise<void>
+  deleteSession: (sessionId: string) => Promise<void>
+}
+
+function activeProjectId(): string | null {
+  return useUIStore.getState().activeProjectId ?? null
 }
 
 let activeAssistantId: string | null = null
@@ -77,6 +92,7 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   turns: [],
   isLoading: false,
   sessionId: 'global',
+  sessions: [],
   selectedLane: DEFAULT_LANE,
   availableModels: [],
 
@@ -122,6 +138,61 @@ export const useAriaStore = create<AriaState>((set, get) => ({
     const { sessionId } = get()
     set({ turns: [] })
     daemon.aria.clear(sessionId).catch(() => {})
+  },
+
+  initSessions: async () => {
+    const projectId = activeProjectId()
+    const res = await daemon.aria.sessions.list(projectId)
+    let sessions = res.ok && res.data ? res.data : []
+    if (sessions.length === 0) {
+      const created = await daemon.aria.sessions.create(projectId)
+      if (created.ok && created.data) sessions = [created.data]
+    }
+    const active = sessions[0]
+    set({ sessions, sessionId: active?.id ?? 'global' })
+    await get().loadHistory()
+  },
+
+  loadSessions: async () => {
+    const res = await daemon.aria.sessions.list(activeProjectId())
+    if (res.ok && res.data) set({ sessions: res.data })
+  },
+
+  newChat: async () => {
+    const res = await daemon.aria.sessions.create(activeProjectId())
+    if (!res.ok || !res.data) return
+    set((s) => ({ sessions: [res.data as AriaSession, ...s.sessions], sessionId: (res.data as AriaSession).id, turns: [] }))
+  },
+
+  switchSession: async (sessionId) => {
+    if (sessionId === get().sessionId) return
+    set({ sessionId, turns: [] })
+    await get().loadHistory()
+  },
+
+  renameSession: async (sessionId, title) => {
+    await daemon.aria.sessions.rename(sessionId, title)
+    set((s) => ({ sessions: s.sessions.map((x) => (x.id === sessionId ? { ...x, title } : x)) }))
+  },
+
+  archiveSession: async (sessionId) => {
+    await daemon.aria.sessions.archive(sessionId)
+    const remaining = get().sessions.filter((x) => x.id !== sessionId)
+    set({ sessions: remaining })
+    if (get().sessionId === sessionId) {
+      if (remaining[0]) await get().switchSession(remaining[0].id)
+      else await get().newChat()
+    }
+  },
+
+  deleteSession: async (sessionId) => {
+    await daemon.aria.sessions.delete(sessionId)
+    const remaining = get().sessions.filter((x) => x.id !== sessionId)
+    set({ sessions: remaining })
+    if (get().sessionId === sessionId) {
+      if (remaining[0]) await get().switchSession(remaining[0].id)
+      else await get().newChat()
+    }
   },
 
   loadHistory: async () => {

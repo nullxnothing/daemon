@@ -24,6 +24,9 @@ export interface IntegrationDefinition {
   description: string
   category: IntegrationCategory
   docsUrl: string
+  toolId?: string
+  availability?: 'live' | 'partial' | 'planned'
+  primaryActionId?: string
   installCommand?: string
   recommendedFor: string[]
   requirements: IntegrationRequirement[]
@@ -69,6 +72,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Manage x402 provider endpoints, discovery, verification, monitoring, and Provider Hub workflows from inside DAEMON.',
     category: 'infra',
     docsUrl: 'https://zauth.inc/provider-hub',
+    toolId: 'zauth',
+    availability: 'partial',
+    primaryActionId: 'open-zauth-database',
     recommendedFor: ['x402 providers', 'paid APIs', 'endpoint discovery', 'payment telemetry', 'provider monitoring'],
     requirements: [
       { type: 'external-url', key: 'https://zauth.inc/database', label: 'Zauth x402 Database' },
@@ -86,6 +92,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Discover IDLE resources, score them for agent readiness, and wrap safe calls with Meterflow/x402 payments, receipts, budgets, and provider revenue routing.',
     category: 'infra',
     docsUrl: 'https://earnidle.com/docs',
+    toolId: 'meterflow',
+    availability: 'partial',
+    primaryActionId: 'preview-idle-router',
     recommendedFor: ['idle resources', 'paid API endpoints', 'agent resource routing', 'x402 pay-per-call', 'resource reputation', 'provider revenue'],
     requirements: [
       { type: 'env', key: 'IDLE_REGISTRY_URL|PAYAI_DISCOVERY_URL', label: 'IDLE or PayAI discovery URL' },
@@ -107,6 +116,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use SendAI action plugins alongside the Solana MCP tool boundary for token, NFT, DeFi, Blink, price, staking, bridge, account, and docs workflows.',
     category: 'agent',
     docsUrl: 'https://github.com/sendaifun/solana-agent-kit',
+    toolId: 'agent-station',
+    availability: 'partial',
+    primaryActionId: 'open-mcp-setup',
     installCommand: 'pnpm add solana-agent-kit @solana-agent-kit/plugin-token @solana-agent-kit/plugin-defi @solana-agent-kit/plugin-nft @solana-agent-kit/plugin-misc @solana-agent-kit/plugin-blinks @solana/web3.js bs58',
     recommendedFor: ['agent workflows', 'guided Solana actions', 'protocol automation', 'MCP tools', 'agent-readable Solana actions'],
     requirements: [
@@ -131,6 +143,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Launch and manage hosted ClawPump AI trading agents from inside DAEMON. Create agents with a strategy preset, start/stop them, and chat with them. Authenticated with a ClawPump API key (cpk_...).',
     category: 'agent',
     docsUrl: 'https://clawpump.tech/developers',
+    toolId: 'clawpump',
+    availability: 'live',
+    primaryActionId: 'open-clawpump-panel',
     recommendedFor: ['agent launches', 'autonomous trading', 'hosted trading agents', 'Solana agent experiments', 'agent chat'],
     requirements: [
       { type: 'secure-key', key: 'CLAWPUMP_API_KEY', label: 'ClawPump API key (cpk_...)' },
@@ -147,6 +162,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Generate meme images, shill copy, token market data, and Bags.fm launch requests from DAEMON through the DegenTools MCP-compatible API.',
     category: 'launch',
     docsUrl: 'https://degentools.co/docs',
+    toolId: 'degentools',
+    availability: 'live',
+    primaryActionId: 'open-degentools-panel',
     installCommand: 'npm install -g degentools',
     recommendedFor: ['meme coin launch assets', 'shill copy', 'Bags.fm launches', 'token data lookup', 'MCP tool calls'],
     requirements: [
@@ -186,6 +204,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Helius for production RPC, asset metadata, wallet data, transaction parsing, priority fee estimates, and real-time Solana streams.',
     category: 'rpc',
     docsUrl: 'https://docs.helius.dev/',
+    toolId: 'env',
+    availability: 'live',
+    primaryActionId: 'check-helius-key',
     recommendedFor: ['RPC reliability', 'DAS asset queries', 'priority fees', 'webhooks'],
     requirements: [
       { type: 'secure-key', key: 'HELIUS_API_KEY', label: 'Helius API key' },
@@ -203,6 +224,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Phantom as the clear front-end path for user signing, mobile wallet UX, token-gated flows, and safe transaction review.',
     category: 'wallet',
     docsUrl: 'https://docs.phantom.com/',
+    toolId: 'wallet',
+    availability: 'live',
+    primaryActionId: 'open-wallet',
     recommendedFor: ['wallet connect', 'user signing', 'transaction UX'],
     requirements: [
       { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet' },
@@ -238,6 +262,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Jupiter for quote previews, swap routing, token metadata, recurring orders, lend, perps, and wallet portfolio flows.',
     category: 'defi',
     docsUrl: 'https://dev.jup.ag/',
+    toolId: 'wallet',
+    availability: 'partial',
+    primaryActionId: 'check-jupiter-key',
     installCommand: 'pnpm add @solana/kit',
     recommendedFor: ['swap previews', 'token routing', 'DeFi app UX'],
     requirements: [
@@ -256,6 +283,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Metaplex for Core assets, DAS reads, token metadata, Core Candy Machine drops, Bubblegum, Genesis, and agent identity workflows.',
     category: 'nft',
     docsUrl: 'https://www.metaplex.com/docs',
+    toolId: 'metaplex-demo',
+    availability: 'live',
+    primaryActionId: 'check-nft-packages',
     installCommand: 'pnpm add @metaplex-foundation/umi @metaplex-foundation/umi-bundle-defaults @metaplex-foundation/mpl-core @metaplex-foundation/mpl-token-metadata @metaplex-foundation/digital-asset-standard-api',
     recommendedFor: ['Core NFTs', 'DAS reads', 'metadata', 'collections', 'agent identity'],
     requirements: [
@@ -348,6 +378,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Give agents a verifiable Solana identity with a verification badge, a 0–100 trust score, and on-chain reputation. Resolve agents by wallet/name/DID across 10 chains and discover them in a public directory. Complements the DAEMON work registry: SAID proves who an agent is, the registry proves what it did.',
     category: 'agent',
     docsUrl: 'https://www.saidprotocol.com/docs',
+    toolId: 'agentops',
+    availability: 'partial',
+    primaryActionId: 'check-said-identity',
     installCommand: 'pnpm add @said-protocol/agent said-sdk',
     recommendedFor: ['agent identity', 'agent verification', 'trust scores', 'agent reputation', 'agent discovery', 'A2A messaging'],
     requirements: [
@@ -369,6 +402,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Use Solana’s native Subscriptions & Allowances primitive to fund agents and recurring billing without handing over a hot key. Inspect a wallet’s current delegate and spending cap, check whether it is enrolled in the native Subscriptions Delegation Program, and preview the grant/revoke flow. Read-only today — signing stays gated behind a transaction preview.',
     category: 'wallet',
     docsUrl: 'https://solana.com/docs/payments/subscriptions/overview',
+    toolId: 'subscriptions',
+    availability: 'partial',
+    primaryActionId: 'check-allowance-state',
     recommendedFor: ['agent funding', 'recurring billing', 'spend permissions', 'delegated spending', 'subscription payments', 'capped allowances'],
     requirements: [
       { type: 'wallet', key: 'default-wallet', label: 'Default DAEMON wallet (to inspect allowances)' },
@@ -389,6 +425,9 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     description: 'Non-custodial copy-trading and a fail-closed risk/trust layer for Drift perps. Browse the strategy leaderboard, ProofOfEdge rankings, equity history, and live copy-risk verdicts. Read-only today — follow/copy and Drift delegation are money-affecting and stay gated behind a transaction preview.',
     category: 'defi',
     docsUrl: 'https://github.com/nullxnothing/Signalhouse',
+    toolId: 'signalhouse',
+    availability: 'partial',
+    primaryActionId: 'open-signalhouse-panel',
     recommendedFor: ['copy trading', 'strategy discovery', 'perps', 'Drift', 'risk monitoring'],
     requirements: [
       { type: 'external-url', key: 'https://signalhouse-api.onrender.com', label: 'Signalhouse API' },
@@ -402,12 +441,34 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'ricomaps',
+    name: 'RicoMaps',
+    tagline: 'Token and wallet forensic graphing',
+    description: 'Run the local RicoMaps graph explorer from inside DAEMON to inspect token, wallet, holder, and relationship graphs before deeper forensics work.',
+    category: 'infra',
+    docsUrl: 'https://github.com/nullxnothing/ricomaps',
+    toolId: 'ricomaps',
+    availability: 'partial',
+    primaryActionId: 'open-ricomaps-panel',
+    recommendedFor: ['wallet forensics', 'token graphing', 'holder relationships', 'local graph explorer', 'risk review'],
+    requirements: [
+      { type: 'external-url', key: 'http://localhost:3600', label: 'Local RicoMaps service' },
+    ],
+    actions: [
+      { id: 'open-ricomaps-panel', label: 'Open RicoMaps', description: 'Open the embedded RicoMaps graph explorer in DAEMON.', kind: 'setup', risk: 'read-only' },
+      { id: 'start-ricomaps-service', label: 'Start service', description: 'Start or check the local RicoMaps service before using the graph webview.', kind: 'safe-check', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'flywheel',
     name: 'Fee Flywheel',
     tagline: 'On-chain creator-fee splits that buy back and burn $DAEMON',
     description: 'The DAEMON Flywheel Protocol configures a pump.fun token\'s creator-fee sharing on-chain (default 80% creator / 20% buyback) and routes the buyback leg into $DAEMON: it claims accrued fees, swaps the buyback share to $DAEMON via Jupiter, and burns it. The split is enforced by pump.fun and publicly verifiable; the on-chain config is permanent once written, so configuration is gated behind a preview-and-confirm step.',
     category: 'defi',
     docsUrl: 'https://pump.fun/docs/fees',
+    toolId: 'flywheel',
+    availability: 'partial',
+    primaryActionId: 'open-flywheel-panel',
     recommendedFor: ['token launches', 'fee sharing', 'buyback and burn', '$DAEMON', 'creator fees'],
     requirements: [
       { type: 'env', key: 'HELIUS_API_KEY', label: 'Helius RPC (claims + on-chain reads)' },

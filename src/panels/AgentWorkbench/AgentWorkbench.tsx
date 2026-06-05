@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
+import { useUIStore } from '../../store/ui'
 import { Composer, ModelDropdown } from '../../components/Panel'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
 import { AgentTranscript } from './AgentTranscript'
+import { AriaSessionList } from './AriaSessionList'
+import { SwarmMonitor } from './SwarmMonitor'
 import './AgentWorkbench.css'
 
 type ChipId = keyof ReturnType<typeof getAriaChips>
@@ -19,19 +22,26 @@ export function AgentWorkbench() {
   const turns = useAriaStore((s) => s.turns)
   const isLoading = useAriaStore((s) => s.isLoading)
   const sendMessage = useAriaStore((s) => s.sendMessage)
-  const clearMessages = useAriaStore((s) => s.clearMessages)
+  const newChat = useAriaStore((s) => s.newChat)
   const subscribe = useAriaStore((s) => s.subscribe)
-  const loadHistory = useAriaStore((s) => s.loadHistory)
+  const initSessions = useAriaStore((s) => s.initSessions)
+  const loadSessions = useAriaStore((s) => s.loadSessions)
   const loadModels = useAriaStore((s) => s.loadModels)
+  const activeProjectId = useUIStore((s) => s.activeProjectId)
 
   const [input, setInput] = useState('')
   const [chips, setChips] = useState(getAriaChips())
+  const [view, setView] = useState<'chat' | 'swarms'>('chat')
 
   useEffect(() => {
-    void loadHistory()
     void loadModels()
     return subscribe()
-  }, [subscribe, loadHistory, loadModels])
+  }, [subscribe, loadModels])
+
+  // Sessions are per-project: re-init the list whenever the active project changes.
+  useEffect(() => {
+    void initSessions()
+  }, [initSessions, activeProjectId])
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -48,49 +58,63 @@ export function AgentWorkbench() {
     const value = input.trim()
     if (!value || isLoading) return
     setInput('')
-    void sendMessage(value)
+    // Refresh the session list after the turn so an auto-titled session and its
+    // updated_at ordering show up in the switcher.
+    void sendMessage(value).then(() => loadSessions())
   }
 
-  // Enabled chips show as removable context items; "+ Add context" re-enables the next one.
+  // Enabled chips show as removable context items; the "+" menu toggles all options.
   const activeContext = CONTEXT_CHIPS.filter((c) => chips[c.id]).map((c) => ({ id: c.id, label: c.label }))
-  const nextDisabled = CONTEXT_CHIPS.find((c) => !chips[c.id])
 
   const hasTurns = turns.length > 0
 
   return (
     <div className="agent-workbench">
       <header className="agent-wb-head">
-        <span className="agent-wb-kicker">Agent</span>
+        <div className="agent-wb-tabs">
+          <button type="button" className={`agent-wb-tab${view === 'chat' ? ' active' : ''}`} onClick={() => setView('chat')}>Chat</button>
+          <button type="button" className={`agent-wb-tab${view === 'swarms' ? ' active' : ''}`} onClick={() => setView('swarms')}>Swarms</button>
+        </div>
         <span className="agent-wb-spacer" />
-        <ModelDropdown className="agent-wb-model" />
-        {hasTurns ? (
-          <button type="button" className="agent-wb-clear" onClick={clearMessages}>Clear</button>
+        {view === 'chat' ? (
+          <button type="button" className="agent-wb-newchat" onClick={() => void newChat()}>+ New Chat</button>
         ) : null}
       </header>
 
-      <div className="agent-wb-transcript" ref={scrollRef}>
-        {hasTurns ? (
-          <AgentTranscript turns={turns} isLoading={isLoading} />
-        ) : (
-          <div className="agent-wb-empty">
-            Ask Claude to build, refactor, or explain. It has the whole workspace.
-          </div>
-        )}
-      </div>
+      {view === 'swarms' ? (
+        <div className="agent-wb-swarms">
+          <SwarmMonitor />
+        </div>
+      ) : (
+        <>
+          <AriaSessionList />
 
-      <Composer
-        className="agent-wb-composer"
-        value={input}
-        onChange={setInput}
-        onSend={handleSend}
-        disabled={isLoading}
-        placeholder="Ask Claude to build, refactor, or explain. It has the whole workspace."
-        sendLabel="Send"
-        model={<ModelDropdown />}
-        context={activeContext}
-        onRemoveContext={(id) => setChip(id as ChipId, false)}
-        onAddContext={nextDisabled ? () => setChip(nextDisabled.id, true) : undefined}
-      />
+          <div className="agent-wb-transcript" ref={scrollRef}>
+            {hasTurns ? (
+              <AgentTranscript turns={turns} isLoading={isLoading} />
+            ) : (
+              <div className="agent-wb-empty">
+                Start a chat — the operator can drive the whole workspace.
+              </div>
+            )}
+          </div>
+
+          <Composer
+            className="agent-wb-composer"
+            value={input}
+            onChange={setInput}
+            onSend={handleSend}
+            disabled={isLoading}
+            placeholder="Ask Claude to build, refactor, or explain…"
+            sendIcon
+            model={<ModelDropdown />}
+            context={activeContext}
+            onRemoveContext={(id) => setChip(id as ChipId, false)}
+            contextMenu={CONTEXT_CHIPS.map((c) => ({ id: c.id, label: c.label, active: chips[c.id] }))}
+            onToggleContext={(id, active) => setChip(id as ChipId, active)}
+          />
+        </>
+      )}
     </div>
   )
 }

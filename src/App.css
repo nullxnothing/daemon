@@ -333,7 +333,10 @@
 /* Right Panel — resizable via min/max */
 .right-panel {
   width: var(--right-panel-w);
-  min-width: 200px;
+  /* Floor where the operator console header (CHAT / SWARMS … + New Chat) and
+     session rows still render without clipping. Below this the panel stops
+     being usable, so we don't allow the resize handle to go narrower. */
+  min-width: 260px;
   max-width: 400px;
   background: var(--s1);
   border: 1px solid var(--line);
@@ -345,7 +348,7 @@
 }
 
 .app--compact .right-panel {
-  min-width: 208px;
+  min-width: 260px;
 }
 
 .app--tablet .right-panel,

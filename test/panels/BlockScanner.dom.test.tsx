@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import BlockScanner from '../../src/panels/BlockScanner/BlockScanner'
+import { BLOCK_SCANNER_HANDOFF_KEY } from '../../src/lib/surfaceHandoffs'
 
 function getWebview(container: HTMLElement): Element {
   const webview = container.querySelector('webview')
@@ -31,10 +32,36 @@ describe('BlockScanner', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Devnet' }))
     expect(webview.getAttribute('src')).toBe('https://orbmarkets.io/?cluster=devnet')
 
-    await userEvent.type(screen.getByPlaceholderText('Address or tx signature...'), '11111111111111111111111111111111')
+    await userEvent.type(screen.getByPlaceholderText('Wallet, mint, program ID, tx signature, or explorer URL'), '11111111111111111111111111111111')
     await userEvent.click(screen.getByRole('button', { name: 'Search' }))
 
     expect(webview.getAttribute('src')).toBe('https://orbmarkets.io/account/11111111111111111111111111111111?cluster=devnet')
+  })
+
+  it('blocks malformed scanner input before navigating', async () => {
+    const { container } = render(<BlockScanner />)
+    const webview = getWebview(container)
+
+    await userEvent.type(screen.getByPlaceholderText('Wallet, mint, program ID, tx signature, or explorer URL'), 'not a signature')
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Paste a base58 Solana address, token mint, program ID, or transaction signature.')
+    expect(webview.getAttribute('src')).toBe('https://orbmarkets.io')
+  })
+
+  it('consumes a queued dashboard handoff', async () => {
+    window.localStorage.setItem(BLOCK_SCANNER_HANDOFF_KEY, JSON.stringify({
+      value: '11111111111111111111111111111111',
+      cluster: 'devnet',
+    }))
+
+    const { container } = render(<BlockScanner />)
+    const webview = getWebview(container)
+
+    await waitFor(() => {
+      expect(webview.getAttribute('src')).toBe('https://orbmarkets.io/account/11111111111111111111111111111111?cluster=devnet')
+    })
+    expect(window.localStorage.getItem(BLOCK_SCANNER_HANDOFF_KEY)).toBeNull()
   })
 
   it('ignores aborted Electron webview loads but reports real failures', () => {

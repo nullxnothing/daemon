@@ -3,6 +3,7 @@ import { daemon } from '../../lib/daemonBridge'
 import { SkeletonRows } from '../../components/Panel'
 import { useAppActions } from '../../store/appActions'
 import { useUIStore } from '../../store/ui'
+import type { SynapseSapAgent, SynapseSapCluster, SynapseSapDiscoveryResult, WalletListEntry } from '../../types/daemon'
 import css from './AgentStation.module.css'
 
 const TEMPLATES: Array<{ id: AgentTemplate; name: string; desc: string; defaultPlugins: string[] }> = [
@@ -14,6 +15,17 @@ const TEMPLATES: Array<{ id: AgentTemplate; name: string; desc: string; defaultP
 ]
 
 const ALL_PLUGINS = ['token', 'defi', 'nft', 'misc', 'blinks']
+const SAP_CLUSTER: SynapseSapCluster = 'devnet'
+const DEFAULT_PROTOCOL_IDS = ['daemon', 'solana-agent-kit']
+const DEFAULT_DISCOVERY_QUERY = 'daemon:agent'
+
+const PLUGIN_CAPABILITIES: Record<string, string> = {
+  token: 'daemon:token',
+  defi: 'daemon:defi',
+  nft: 'daemon:nft',
+  misc: 'daemon:tools',
+  blinks: 'daemon:blinks',
+}
 
 function StatusDot({ status }: { status: AgentStationStatus }) {
   return (
@@ -29,6 +41,18 @@ function StatusDot({ status }: { status: AgentStationStatus }) {
 
 function formatPath(p: string) {
   return p.length > 48 ? '...' + p.slice(-45) : p
+}
+
+function shortAddress(value: string) {
+  return value.length > 14 ? `${value.slice(0, 6)}...${value.slice(-6)}` : value
+}
+
+function defaultCapabilityIds(config: AgentStationConfig, plugins: string[]) {
+  return [
+    DEFAULT_DISCOVERY_QUERY,
+    `daemon:${config.template}`,
+    ...plugins.map((plugin) => PLUGIN_CAPABILITIES[plugin]).filter(Boolean),
+  ]
 }
 
 // ---- Create Form ----
@@ -174,15 +198,21 @@ function CreateForm({ onCreated, onCancel }: CreateFormProps) {
 
 interface AgentCardProps {
   config: AgentStationConfig
+  wallets: WalletListEntry[]
   onDeleted: (id: string) => void
   onStatusChange: (id: string, status: AgentStationStatus) => void
 }
 
-function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
+function AgentCard({ config, wallets, onDeleted, onStatusChange }: AgentCardProps) {
   const [scaffolding, setScaffolding] = useState(false)
   const [scaffoldMsg, setScaffoldMsg] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [running, setRunning] = useState(false)
+  const [walletId, setWalletId] = useState(config.wallet_id ?? '')
+  const [sapAgent, setSapAgent] = useState<SynapseSapAgent | null>(null)
+  const [sapLoading, setSapLoading] = useState(false)
+  const [sapPublishing, setSapPublishing] = useState(false)
+  const [sapMsg, setSapMsg] = useState<string | null>(null)
   const projects = useUIStore((s) => s.projects)
   const setProjects = useUIStore((s) => s.setProjects)
   const setActiveProject = useUIStore((s) => s.setActiveProject)
@@ -192,6 +222,31 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
   const focusTerminal = useAppActions((s) => s.focusTerminal)
 
   const plugins: string[] = (() => { try { return JSON.parse(config.plugins) } catch { return [] } })()
+  const selectedWallet = wallets.find((wallet) => wallet.id === walletId)
+
+  useEffect(() => {
+    if (walletId || wallets.length === 0) return
+    const defaultWallet = wallets.find((wallet) => wallet.is_default) ?? wallets[0]
+    setWalletId(defaultWallet.id)
+  }, [walletId, wallets])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadSapAgent() {
+      if (!selectedWallet) {
+        setSapAgent(null)
+        return
+      }
+      setSapLoading(true)
+      const res = await daemon.synapse.getAgent(selectedWallet.address, { cluster: SAP_CLUSTER })
+      if (!cancelled) {
+        setSapAgent(res.ok ? res.data ?? null : null)
+        setSapLoading(false)
+      }
+    }
+    void loadSapAgent()
+    return () => { cancelled = true }
+  }, [selectedWallet])
 
   async function handleScaffold() {
     setScaffolding(true)
@@ -248,6 +303,32 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
     onDeleted(config.id)
   }
 
+  async function handlePublishSap() {
+    if (!walletId) {
+      setSapMsg('Select a signing wallet first')
+      return
+    }
+    setSapPublishing(true)
+    setSapMsg(null)
+    const res = await daemon.synapse.registerAgent({
+      walletId,
+      agentStationId: config.id,
+      cluster: SAP_CLUSTER,
+      capabilityIds: defaultCapabilityIds(config, plugins),
+      protocolIds: DEFAULT_PROTOCOL_IDS,
+    })
+    setSapPublishing(false)
+    if (!res.ok || !res.data) {
+      setSapMsg('SAP error: ' + (res.error ?? 'publish failed'))
+      return
+    }
+    setSapMsg(`SAP published: ${shortAddress(res.data.signature)}`)
+    if (selectedWallet) {
+      const agentRes = await daemon.synapse.getAgent(selectedWallet.address, { cluster: SAP_CLUSTER })
+      if (agentRes.ok) setSapAgent(agentRes.data ?? null)
+    }
+  }
+
   const templateLabel = TEMPLATES.find((t) => t.id === config.template)?.name ?? config.template
 
   return (
@@ -263,6 +344,9 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
           <span key={p} className={css.metaChip}>{p}</span>
         ))}
         <span className={css.metaChip}>{config.model}</span>
+        <span className={`${css.metaChip} ${sapAgent ? css.metaChipSuccess : ''}`}>
+          SAP {sapLoading ? 'checking' : sapAgent ? 'published' : 'devnet'}
+        </span>
       </div>
 
       {config.description && (
@@ -276,6 +360,32 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
       {scaffoldMsg && (
         <div className={scaffoldMsg.startsWith('Error') ? css.errorMsg : css.successMsg} style={{ marginBottom: 8 }}>
           {scaffoldMsg}
+        </div>
+      )}
+
+      <div className={css.sapBox}>
+        <select className={css.sapSelect} value={walletId} onChange={(event) => setWalletId(event.target.value)}>
+          <option value="">Select wallet</option>
+          {wallets.map((wallet) => (
+            <option key={wallet.id} value={wallet.id}>
+              {wallet.name} - {shortAddress(wallet.address)}
+            </option>
+          ))}
+        </select>
+        {sapAgent && <span className={css.sapPda}>SAP {shortAddress(sapAgent.pda)}</span>}
+        <button
+          type="button"
+          className={`${css.actionBtn} ${css.sapBtn}`}
+          onClick={handlePublishSap}
+          disabled={sapPublishing || sapLoading || !!sapAgent || wallets.length === 0}
+        >
+          {sapPublishing ? 'Publishing...' : sapAgent ? 'Published' : 'Publish to SAP'}
+        </button>
+      </div>
+
+      {sapMsg && (
+        <div className={sapMsg.startsWith('SAP error') ? css.errorMsg : css.successMsg} style={{ marginBottom: 8 }}>
+          {sapMsg}
         </div>
       )}
 
@@ -308,16 +418,86 @@ function AgentCard({ config, onDeleted, onStatusChange }: AgentCardProps) {
   )
 }
 
+function SynapseDiscoveryPanel() {
+  const [mode, setMode] = useState<'capability' | 'protocol'>('capability')
+  const [query, setQuery] = useState(DEFAULT_DISCOVERY_QUERY)
+  const [result, setResult] = useState<SynapseSapDiscoveryResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSearch() {
+    if (!query.trim()) return
+    setLoading(true)
+    setError(null)
+    const input = { cluster: SAP_CLUSTER, limit: 10, capabilityId: query.trim(), protocolId: query.trim() }
+    const res = mode === 'capability'
+      ? await daemon.synapse.discoverByCapability(input)
+      : await daemon.synapse.discoverByProtocol(input)
+    setLoading(false)
+    if (!res.ok || !res.data) {
+      setResult(null)
+      setError(res.error ?? 'SAP discovery failed')
+      return
+    }
+    setResult(res.data)
+  }
+
+  return (
+    <div className={css.discoveryPanel}>
+      <div className={css.discoveryTop}>
+        <div>
+          <div className={css.discoveryTitle}>SAP Discovery</div>
+          <div className={css.discoveryMeta}>{SAP_CLUSTER}</div>
+        </div>
+        <div className={css.discoveryModes}>
+          <button type="button" className={mode === 'capability' ? css.discoveryModeActive : ''} onClick={() => setMode('capability')}>Capability</button>
+          <button type="button" className={mode === 'protocol' ? css.discoveryModeActive : ''} onClick={() => setMode('protocol')}>Protocol</button>
+        </div>
+      </div>
+      <div className={css.discoverySearch}>
+        <input
+          className={css.input}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={mode === 'capability' ? DEFAULT_DISCOVERY_QUERY : 'daemon'}
+        />
+        <button type="button" className={css.actionBtn} onClick={handleSearch} disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </div>
+      {error && <div className={css.errorMsg}>{error}</div>}
+      {result && (
+        <div className={css.discoveryResults}>
+          <div className={css.discoveryCount}>{result.total} indexed / {result.agents.length} loaded</div>
+          {result.agents.map((agent) => (
+            <div key={agent.pda} className={css.discoveryAgent}>
+              <span>{agent.name}</span>
+              <span>{shortAddress(agent.wallet)}</span>
+              <span>{agent.protocols.slice(0, 2).join(', ') || 'no protocol'}</span>
+            </div>
+          ))}
+          {result.agents.length === 0 && <div className={css.infoMsg}>No SAP agents found for this query.</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---- Main Panel ----
 
 export function AgentStation() {
   const [configs, setConfigs] = useState<AgentStationConfig[]>([])
+  const [wallets, setWallets] = useState<WalletListEntry[]>([])
   const [view, setView] = useState<'list' | 'create'>('list')
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const res = await daemon.agentStation.list()
-    if (res.ok && res.data) setConfigs(res.data)
+    const [agentsRes, walletsRes] = await Promise.all([
+      daemon.agentStation.list(),
+      daemon.wallet.list(),
+    ])
+    if (agentsRes.ok && agentsRes.data) setConfigs(agentsRes.data)
+    if (walletsRes.ok && walletsRes.data) setWallets(walletsRes.data)
     setLoading(false)
   }, [])
 
@@ -376,15 +556,19 @@ export function AgentStation() {
             </button>
           </div>
         ) : (
-          <div className={`${css.cardList} motion-stagger`}>
-            {configs.map((config) => (
-              <AgentCard
-                key={config.id}
-                config={config}
-                onDeleted={handleDeleted}
-                onStatusChange={handleStatusChange}
-              />
-            ))}
+          <div className={css.listStack}>
+            <SynapseDiscoveryPanel />
+            <div className={`${css.cardList} motion-stagger`}>
+              {configs.map((config) => (
+                <AgentCard
+                  key={config.id}
+                  config={config}
+                  wallets={wallets}
+                  onDeleted={handleDeleted}
+                  onStatusChange={handleStatusChange}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

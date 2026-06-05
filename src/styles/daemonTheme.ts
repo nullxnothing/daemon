@@ -46,8 +46,11 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
   activity: '#a0a0a0',
   'agent-station': '#a0a0a0',
   'agent-work': '#a0a0a0',
+  meterflow: '#3ecf8e',
   clawpump: '#3ecf8e',
   degentools: '#a0a0a0',
+  signalhouse: '#3aa0ff',
+  flywheel: '#3ecf8e',
   ricomaps: '#3ecf8e',
 }
 

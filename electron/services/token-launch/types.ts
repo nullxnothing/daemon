@@ -15,6 +15,10 @@ export interface MeteoraLaunchpadConfig {
 export interface PrintrLaunchpadConfig {
   apiBaseUrl?: string
   apiKey?: string
+  apiKeyConfigured?: boolean
+  apiKeyHint?: string
+  apiKeySource?: 'secure' | 'env' | 'none'
+  apiKeyAction?: 'keep' | 'replace' | 'clear'
   quotePath?: string
   createPath?: string
   chain?: string

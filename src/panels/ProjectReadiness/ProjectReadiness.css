@@ -24,6 +24,7 @@
 .project-readiness-hero,
 .workbench-context-strip,
 .workbench-summary,
+.workbench-action-queue,
 .workbench-section-nav,
 .project-readiness-next,
 .project-readiness-section,
@@ -177,6 +178,101 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--space-lg);
   padding: 0 var(--space-2xl) var(--space-xl);
+}
+
+.workbench-action-queue {
+  display: grid;
+  gap: var(--space-md);
+  padding: 0 var(--space-2xl) var(--space-xl);
+}
+
+.workbench-queue-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.workbench-queue-list {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.workbench-queue-card {
+  display: grid;
+  grid-template-columns: var(--btn-h-md) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-lg);
+  min-width: 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg);
+}
+
+.workbench-queue-card.warning {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--amber) 7%, var(--bg)), var(--bg) 44%);
+}
+
+.workbench-queue-card.danger {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--red) 8%, var(--bg)), var(--bg) 44%);
+}
+
+.workbench-queue-card.info {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--blue) 7%, var(--bg)), var(--bg) 44%);
+}
+
+.workbench-queue-card.success {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--green) 7%, var(--bg)), var(--bg) 44%);
+}
+
+.workbench-queue-card.feature {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, var(--bg)), var(--bg) 44%);
+}
+
+.workbench-queue-index {
+  width: var(--btn-h-md);
+  height: var(--btn-h-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-pill);
+  color: var(--t3);
+  background: var(--control-bg);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+}
+
+.workbench-queue-main {
+  min-width: 0;
+}
+
+.workbench-queue-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.workbench-queue-title-row strong {
+  min-width: 0;
+  color: var(--t1);
+  font-size: var(--type-item-title-size);
+  font-weight: var(--type-item-title-weight);
+  line-height: var(--type-item-title-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-queue-title-row > span:last-child {
+  flex: 0 0 auto;
+}
+
+.workbench-queue-card p {
+  margin-top: var(--space-2xs);
 }
 
 .workbench-section-nav {
@@ -649,6 +745,7 @@
   .project-readiness-hero,
   .workbench-context-strip,
   .workbench-summary,
+  .workbench-action-queue,
   .workbench-section-nav,
   .project-readiness-next,
   .project-readiness-section,
@@ -677,12 +774,22 @@
   .project-readiness-hero,
   .project-readiness-next,
   .project-readiness-section-head,
-  .workbench-commit-row {
+  .workbench-commit-row,
+  .workbench-queue-head,
+  .workbench-queue-card {
     grid-template-columns: 1fr;
   }
 
   .project-readiness-section-head {
     display: grid;
+  }
+
+  .workbench-queue-head {
+    display: grid;
+  }
+
+  .workbench-queue-card {
+    justify-items: flex-start;
   }
 
   .workbench-summary,
@@ -712,6 +819,7 @@
   .project-readiness-hero,
   .workbench-context-strip,
   .workbench-summary,
+  .workbench-action-queue,
   .workbench-section-nav,
   .project-readiness-next,
   .project-readiness-section,

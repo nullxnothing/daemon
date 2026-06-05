@@ -27,6 +27,13 @@ import type {
   RicoMapsEmbedStatus,
   SaidIdentity,
   SaidTrustScore,
+  SynapseSapAgent,
+  SynapseSapCluster,
+  SynapseSapDiscoveryInput,
+  SynapseSapDiscoveryResult,
+  SynapseSapRegisterInput,
+  SynapseSapRegisterResult,
+  SynapseSapStatus,
   AllowanceState,
   SubscriptionEnrollment,
   SignalhouseHealth,
@@ -104,6 +111,7 @@ import type {
   ImageModelTier,
   ImageAspectRatio,
   AriaMessage,
+  AriaSession,
   AriaResponse,
   AriaAction,
   OnboardingProgress,
@@ -195,6 +203,13 @@ export type {
   RicoMapsEmbedStatus,
   SaidIdentity,
   SaidTrustScore,
+  SynapseSapAgent,
+  SynapseSapCluster,
+  SynapseSapDiscoveryInput,
+  SynapseSapDiscoveryResult,
+  SynapseSapRegisterInput,
+  SynapseSapRegisterResult,
+  SynapseSapStatus,
   AllowanceState,
   SubscriptionEnrollment,
   SignalhouseHealth,
@@ -269,6 +284,7 @@ export type {
   ImageModelTier,
   ImageAspectRatio,
   AriaMessage,
+  AriaSession,
   AriaResponse,
   AriaAction,
   OnboardingProgress,
@@ -352,6 +368,10 @@ declare global {
     printr: {
       apiBaseUrl: string
       apiKey: string
+      apiKeyConfigured?: boolean
+      apiKeyHint?: string
+      apiKeySource?: 'secure' | 'env' | 'none'
+      apiKeyAction?: 'keep' | 'replace' | 'clear'
       quotePath: string
       createPath: string
       chain: string
@@ -592,7 +612,7 @@ declare global {
     push: (cwd: string) => Promise<IpcResponse<string>>
     log: (cwd: string, count?: number) => Promise<IpcResponse<GitCommit[]>>
     diff: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
-    diffStaged: (cwd: string) => Promise<IpcResponse<string>>
+    diffStaged: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
     checkout: (cwd: string, branch: string) => Promise<IpcResponse>
     createBranch: (cwd: string, branchName: string) => Promise<IpcResponse<{ branch: string }>>
     fetch: (cwd: string) => Promise<IpcResponse>
@@ -602,6 +622,10 @@ declare global {
     stashPop: (cwd: string) => Promise<IpcResponse>
     stashList: (cwd: string) => Promise<IpcResponse<Array<{ hash: string; message: string }>>>
     discard: (cwd: string, filePath: string) => Promise<IpcResponse>
+    worktreeAdd: (cwd: string, worktreePath: string, branch: string, base?: string) => Promise<IpcResponse<{ worktreePath: string; branch: string }>>
+    worktreeList: (cwd: string) => Promise<IpcResponse<Array<{ path: string; branch: string | null; head: string | null }>>>
+    worktreeRemove: (cwd: string, worktreePath: string) => Promise<IpcResponse>
+    worktreePrune: (cwd: string) => Promise<IpcResponse>
   }
 
   interface DaemonPorts {
@@ -672,6 +696,7 @@ declare global {
     create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
+    setPinned: (input: { id: string; pinned: boolean }) => Promise<IpcResponse<Project>>
   }
 
   interface AgentOpsOpenRequest {
@@ -1034,11 +1059,60 @@ declare global {
     history: (sessionId: string, limit?: number) => Promise<IpcResponse<AriaMessage[]>>
     clear: (sessionId: string) => Promise<IpcResponse<void>>
     models: () => Promise<IpcResponse<DaemonAiModelInfo[]>>
+    sessions: {
+      list: (projectId?: string | null) => Promise<IpcResponse<AriaSession[]>>
+      create: (projectId?: string | null, title?: string | null) => Promise<IpcResponse<AriaSession>>
+      rename: (sessionId: string, title: string) => Promise<IpcResponse<void>>
+      archive: (sessionId: string) => Promise<IpcResponse<void>>
+      delete: (sessionId: string) => Promise<IpcResponse<void>>
+    }
     approve: (callId: string, approved: boolean) => void
     patchDecision: (proposalId: string, action: AriaPatchAction) => void
     toolEffectResult: (callId: string, data: unknown) => void
     onToolEvent: (handler: (event: AriaToolEvent) => void) => () => void
     onUiEffect: (handler: (payload: { callId: string; effect: AriaUiEffectPayload; awaitData: boolean }) => void) => () => void
+  }
+
+  interface SwarmRun {
+    id: string
+    session_id: string | null
+    project_id: string | null
+    project_path: string
+    base_branch: string | null
+    status: 'running' | 'done' | 'failed' | 'cancelled'
+    created_at: number
+    updated_at: number
+  }
+
+  interface SwarmLane {
+    id: string
+    run_id: string
+    task: string
+    worktree_path: string
+    branch: string
+    pid: number | null
+    status: 'pending' | 'spawning' | 'running' | 'done' | 'failed' | 'cancelled'
+    results_path: string | null
+    exit_code: number | null
+    created_at: number
+    updated_at: number
+    results?: string | null
+  }
+
+  interface SwarmLaunchRequest {
+    sessionId?: string | null
+    projectId?: string | null
+    projectPath: string
+    baseBranch?: string | null
+    tasks: string[]
+  }
+
+  interface DaemonSwarm {
+    launch: (req: SwarmLaunchRequest) => Promise<IpcResponse<{ runId: string }>>
+    list: (limit?: number) => Promise<IpcResponse<SwarmRun[]>>
+    runDetail: (runId: string) => Promise<IpcResponse<{ run: SwarmRun; lanes: SwarmLane[] }>>
+    cancel: (runId: string) => Promise<IpcResponse<void>>
+    onUpdate: (handler: (payload: { runId: string; laneId?: string; status?: string; pid?: number | null; exitCode?: number | null }) => void) => () => void
   }
 
   interface LaunchedToken {
@@ -1649,10 +1723,12 @@ declare global {
     email: DaemonEmail
     images: DaemonImages
     aria: DaemonAria
+    swarm: DaemonSwarm
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     forensics: DaemonForensics
     said: DaemonSaid
+    synapse: DaemonSynapse
     allowances: DaemonAllowances
     signalhouse: DaemonSignalhouse
     flywheel: DaemonFlywheel
@@ -1816,6 +1892,14 @@ declare global {
   interface DaemonSaid {
     getIdentity: (wallet: string) => Promise<IpcResponse<SaidIdentity>>
     getTrust: (wallet: string) => Promise<IpcResponse<SaidTrustScore>>
+  }
+
+  interface DaemonSynapse {
+    status: (input?: { cluster?: SynapseSapCluster }) => Promise<IpcResponse<SynapseSapStatus>>
+    getAgent: (wallet: string, input?: { cluster?: SynapseSapCluster }) => Promise<IpcResponse<SynapseSapAgent | null>>
+    discoverByCapability: (input: SynapseSapDiscoveryInput) => Promise<IpcResponse<SynapseSapDiscoveryResult>>
+    discoverByProtocol: (input: SynapseSapDiscoveryInput) => Promise<IpcResponse<SynapseSapDiscoveryResult>>
+    registerAgent: (input: SynapseSapRegisterInput) => Promise<IpcResponse<SynapseSapRegisterResult>>
   }
 
   interface DaemonAllowances {

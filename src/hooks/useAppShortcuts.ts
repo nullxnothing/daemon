@@ -42,8 +42,8 @@ export function useAppShortcuts({
         setPaletteMode((v) => (v === 'commands' ? null : 'commands'))
         return
       }
-      // Quick Open: Ctrl+P or Ctrl+K (titlebar search)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'p' || e.key === 'k')) {
+      // Quick Open: Ctrl+P
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'p') {
         e.preventDefault()
         setPaletteMode((v) => (v === 'files' ? null : 'files'))
         return

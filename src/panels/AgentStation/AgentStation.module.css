@@ -195,6 +195,11 @@
   border-color: var(--line-2);
 }
 
+.metaChipSuccess {
+  color: var(--green);
+  border-color: var(--accent-line);
+}
+
 .cardDesc {
   font-size: var(--fs-11);
   color: var(--t3);
@@ -210,6 +215,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: var(--space-sm);
+}
+
+.sapBox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.sapSelect {
+  min-width: 0;
+  height: var(--btn-h-md);
+  background: var(--field-bg);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  color: var(--t2);
+  font-size: var(--fs-11);
+  padding: 0 var(--space-sm);
+  outline: none;
+}
+
+.sapSelect:focus-visible {
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+.sapPda {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t4);
+  white-space: nowrap;
 }
 
 .cardActions {
@@ -283,6 +320,115 @@
   color: var(--red);
   border-color: color-mix(in srgb, var(--red) 40%, var(--line-strong));
   background: transparent;
+}
+
+.sapBtn:not(:disabled):hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.listStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.discoveryPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+
+.discoveryTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.discoveryTitle {
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+}
+
+.discoveryMeta {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t4);
+  text-transform: uppercase;
+}
+
+.discoveryModes {
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  background: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+
+.discoveryModes button {
+  height: 24px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: calc(var(--r) - 1px);
+  background: transparent;
+  color: var(--t3);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.discoveryModes .discoveryModeActive {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.discoverySearch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+}
+
+.discoveryResults {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.discoveryCount {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t4);
+}
+
+.discoveryAgent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(80px, auto);
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font-size: var(--fs-11);
+  color: var(--t3);
+}
+
+.discoveryAgent span:first-child {
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discoveryAgent span:not(:first-child) {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  white-space: nowrap;
 }
 
 /* Create form */

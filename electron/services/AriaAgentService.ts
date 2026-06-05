@@ -18,7 +18,7 @@ import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiE
 import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
 import type { AgentMessage } from './providers/agentTurn'
 import type {
-  AriaMessage, AriaResponse, AriaToolCallRecord, AriaToolEvent,
+  AriaMessage, AriaSession, AriaResponse, AriaToolCallRecord, AriaToolEvent,
   AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane,
 } from '../shared/types'
 
@@ -90,15 +90,20 @@ export async function sendMessage(
   modelLane: DaemonAiModelLane = DEFAULT_LANE,
 ): Promise<AriaResponse> {
   const model = laneToClaudeModel(modelLane)
-  const messages = conversations.get(sessionId) ?? []
+  ensureSession(sessionId)
+  // Rehydrate from DB on a cold session so the model regains conversational
+  // memory after an app restart or a session switch (the in-memory maps are
+  // process-local and lost on restart).
+  const messages = conversations.get(sessionId) ?? rehydrateConversation(sessionId)
   conversations.set(sessionId, messages)
-  const text = textHistory.get(sessionId) ?? []
+  const text = textHistory.get(sessionId) ?? rehydrateText(sessionId)
   textHistory.set(sessionId, text)
 
   messages.push({ role: 'user', content: userMessage })
   text.push({ role: 'user', content: userMessage })
   trimHistory(messages)
   persistMessage({ role: 'user', content: userMessage, metadata: '{}', session_id: sessionId })
+  touchSession(sessionId, userMessage)
 
   // Agentic mode is Claude-API only. Fall back to a plain answer otherwise.
   const provider = ProviderRegistry.getFeatureProvider('aria')
@@ -183,6 +188,7 @@ export async function sendMessage(
     }),
     session_id: sessionId,
   })
+  touchSession(sessionId)
 
   transport.emit({ kind: 'done', messageId: sessionId, text: finalText })
   return { text: finalText, actions: [], toolCalls }
@@ -361,9 +367,94 @@ export function getHistory(sessionId: string, limit = 50): AriaMessage[] {
   ).all(sessionId, limit) as AriaMessage[]
 }
 
+/** Clear a session's messages only (in-memory + DB). The session row stays. */
 export function clearSession(sessionId: string): void {
   const db = getDb()
   db.prepare('DELETE FROM aria_messages WHERE session_id = ?').run(sessionId)
   conversations.delete(sessionId)
   textHistory.delete(sessionId)
+}
+
+// ---------------- session CRUD ----------------
+
+/** Make sure a session row exists; lazily adopt ad-hoc ids (e.g. legacy 'global'). */
+function ensureSession(sessionId: string, projectId: string | null = null): void {
+  const db = getDb()
+  db.prepare(
+    'INSERT OR IGNORE INTO aria_sessions (id, project_id) VALUES (?, ?)'
+  ).run(sessionId, projectId)
+}
+
+/** Bump updated_at and, if the session is still untitled, auto-title from the first message. */
+function touchSession(sessionId: string, firstUserMessage?: string): void {
+  const db = getDb()
+  const now = Date.now()
+  db.prepare('UPDATE aria_sessions SET updated_at = ? WHERE id = ?').run(now, sessionId)
+  if (firstUserMessage) {
+    const row = db.prepare('SELECT title FROM aria_sessions WHERE id = ?').get(sessionId) as
+      | { title: string | null }
+      | undefined
+    if (row && !row.title) {
+      const title = firstUserMessage.trim().replace(/\s+/g, ' ').slice(0, 60)
+      db.prepare('UPDATE aria_sessions SET title = ? WHERE id = ?').run(title, sessionId)
+    }
+  }
+}
+
+export function createSession(projectId: string | null = null, title: string | null = null): AriaSession {
+  const db = getDb()
+  const id = crypto.randomUUID()
+  db.prepare('INSERT INTO aria_sessions (id, title, project_id) VALUES (?,?,?)').run(id, title, projectId)
+  return db.prepare('SELECT * FROM aria_sessions WHERE id = ?').get(id) as AriaSession
+}
+
+export function listSessions(projectId: string | null = null): AriaSession[] {
+  const db = getDb()
+  if (projectId) {
+    return db.prepare(
+      'SELECT * FROM aria_sessions WHERE archived = 0 AND project_id IS ? ORDER BY updated_at DESC'
+    ).all(projectId) as AriaSession[]
+  }
+  return db.prepare(
+    'SELECT * FROM aria_sessions WHERE archived = 0 ORDER BY updated_at DESC'
+  ).all() as AriaSession[]
+}
+
+export function renameSession(sessionId: string, title: string): void {
+  getDb().prepare('UPDATE aria_sessions SET title = ?, updated_at = ? WHERE id = ?')
+    .run(title.trim().slice(0, 120), Date.now(), sessionId)
+}
+
+export function archiveSession(sessionId: string): void {
+  getDb().prepare('UPDATE aria_sessions SET archived = 1, updated_at = ? WHERE id = ?')
+    .run(Date.now(), sessionId)
+}
+
+/** Permanently delete a session: its messages, its row, and any in-memory state. */
+export function deleteSession(sessionId: string): void {
+  const db = getDb()
+  db.prepare('DELETE FROM aria_messages WHERE session_id = ?').run(sessionId)
+  db.prepare('DELETE FROM aria_sessions WHERE id = ?').run(sessionId)
+  conversations.delete(sessionId)
+  textHistory.delete(sessionId)
+}
+
+// ---------------- rehydration ----------------
+
+/**
+ * Rebuild an in-memory conversation from DB as plain alternating text turns.
+ * We deliberately do NOT reconstruct tool_use/tool_result pairs from metadata:
+ * partial/dangling pairs are rejected by the Anthropic API (the reason
+ * trimHistory/isToolResultTurn exist). Plain text restores conversational
+ * memory without the pairing hazard.
+ */
+function rehydrateConversation(sessionId: string): AgentMessage[] {
+  const rows = getHistory(sessionId, MAX_HISTORY)
+  const messages: AgentMessage[] = rows.map((m) => ({ role: m.role, content: m.content }))
+  trimHistory(messages)
+  return messages
+}
+
+function rehydrateText(sessionId: string): ConversationEntry[] {
+  return getHistory(sessionId, MAX_HISTORY).map((m) => ({ role: m.role, content: m.content }))
 }

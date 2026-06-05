@@ -583,6 +583,42 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'open-ricomaps-panel') {
+    return {
+      title: 'RicoMaps',
+      status: 'info',
+      detail: 'Open the RicoMaps panel from the sidebar to start the local graph explorer and inspect token or wallet relationships.',
+    }
+  }
+
+  if (actionId === 'start-ricomaps-service') {
+    const current = await daemon.forensics.ricoMapsStatus()
+    if (current.ok && current.data?.running) {
+      return {
+        title: 'RicoMaps running',
+        status: 'success',
+        detail: `Local RicoMaps is already available on port ${current.data.port}.`,
+        items: [current.data.url, current.data.projectPath],
+      }
+    }
+
+    const started = await daemon.forensics.startRicoMaps()
+    if (!started.ok || !started.data) {
+      return {
+        title: 'RicoMaps start failed',
+        status: 'error',
+        detail: started.error ?? 'DAEMON could not start the local RicoMaps service.',
+      }
+    }
+
+    return {
+      title: started.data.running ? 'RicoMaps ready' : 'RicoMaps not ready',
+      status: started.data.running ? 'success' : 'warning',
+      detail: started.data.error ?? `Local RicoMaps is available at ${started.data.url}.`,
+      items: [started.data.url, started.data.projectPath],
+    }
+  }
+
   if (actionId === 'open-flywheel-panel') {
     return {
       title: 'Fee Flywheel',

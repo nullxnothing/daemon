@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { type RefObject, useState, useEffect, useCallback, useRef } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { LiveRegion } from '../../components/LiveRegion'
 import { PanelHeader } from '../../components/Panel'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
 import { ClawpumpGlyph } from '../../lib/ClawpumpGlyph'
 import { TokenLauncher } from '../../components/TokenLauncher/TokenLauncher'
 import type { ClawpumpAgent, ClawpumpSkill, ClawpumpMessage } from '../../../electron/services/ClawpumpService'
@@ -26,10 +27,15 @@ function statusDot(status: string | undefined): string {
 export function ClawpumpPanel() {
   const [configured, setConfigured] = useState<boolean | null>(null)
   const [announce, setAnnounce] = useState('')
+  const keyInputRef = useRef<HTMLInputElement>(null)
 
   const checkConfigured = useCallback(async () => {
     const res = await daemon.clawpump.isConfigured()
     setConfigured(res.ok ? Boolean(res.data) : false)
+  }, [])
+
+  const focusKeyInput = useCallback(() => {
+    keyInputRef.current?.focus()
   }, [])
 
   useEffect(() => { void checkConfigured() }, [checkConfigured])
@@ -54,16 +60,33 @@ export function ClawpumpPanel() {
 
       <LiveRegion message={announce} />
 
+      <ProductSurfaceStrip
+        surfaceId="clawpump"
+        stateLabel={configured ? 'Connected' : 'Needs key'}
+        setupLabel={configured ? 'Agent lane ready' : 'API key required'}
+        tone={configured ? 'success' : 'warning'}
+        primaryLabel={configured ? 'Agent console' : 'Paste key'}
+        onPrimary={configured ? undefined : focusKeyInput}
+      />
+
       {configured
         ? <AgentConsole onAnnounce={setAnnounce} onResetKey={() => { setConfigured(false) }} />
-        : <SetupGate onSaved={() => { void checkConfigured() }} onAnnounce={setAnnounce} />}
+        : <SetupGate inputRef={keyInputRef} onSaved={() => { void checkConfigured() }} onAnnounce={setAnnounce} />}
     </div>
   )
 }
 
 // ------------------------------------------------------------- setup gate ---
 
-function SetupGate({ onSaved, onAnnounce }: { onSaved: () => void; onAnnounce: (m: string) => void }) {
+function SetupGate({
+  inputRef,
+  onSaved,
+  onAnnounce,
+}: {
+  inputRef: RefObject<HTMLInputElement | null>
+  onSaved: () => void
+  onAnnounce: (m: string) => void
+}) {
   const [key, setKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -91,6 +114,7 @@ function SetupGate({ onSaved, onAnnounce }: { onSaved: () => void; onAnnounce: (
         </p>
         <div className="cp-setup-row">
           <input
+            ref={inputRef}
             className="cp-input"
             type="password"
             placeholder="cpk_…"

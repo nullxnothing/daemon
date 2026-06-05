@@ -69,6 +69,26 @@ export function registerAriaHandlers() {
     AriaAgentService.clearSession(sessionId)
   }))
 
+  ipcMain.handle('aria:sessions:list', ipcHandler(async (_event, projectId?: string | null) => {
+    return AriaAgentService.listSessions(projectId ?? null)
+  }))
+
+  ipcMain.handle('aria:sessions:create', ipcHandler(async (_event, projectId?: string | null, title?: string | null) => {
+    return AriaAgentService.createSession(projectId ?? null, title ?? null)
+  }))
+
+  ipcMain.handle('aria:sessions:rename', ipcHandler(async (_event, sessionId: string, title: string) => {
+    AriaAgentService.renameSession(sessionId, title)
+  }))
+
+  ipcMain.handle('aria:sessions:archive', ipcHandler(async (_event, sessionId: string) => {
+    AriaAgentService.archiveSession(sessionId)
+  }))
+
+  ipcMain.handle('aria:sessions:delete', ipcHandler(async (_event, sessionId: string) => {
+    AriaAgentService.deleteSession(sessionId)
+  }))
+
   // Renderer resolves a pending approval.
   ipcMain.on('aria:approve', (_event, callId: string, approved: boolean) => {
     const resolve = pendingApprovals.get(callId)

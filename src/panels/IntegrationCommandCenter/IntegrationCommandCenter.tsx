@@ -5,6 +5,7 @@ import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { Button } from '../../components/Button'
 import { Badge, KpiGrid, StatusDot, VendorCard } from '../../components/Panel'
+import { getProductSurface, getSurfacesForIntegration, type ProductSurfaceDefinition } from '../../constants/productSurfaces'
 import type { EnvFile, WalletListEntry } from '../../types/daemon'
 import type { IdlePaidCallReceipt, IdleRegistryStatus, IdleResource } from '../../../electron/shared/types'
 import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
@@ -619,6 +620,91 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
   )
 }
 
+function IntegrationSurfaceRouter({
+  integration,
+  surfaces,
+  statusDisplay,
+  enabled,
+  onOpen,
+}: {
+  integration: IntegrationDefinition
+  surfaces: ProductSurfaceDefinition[]
+  statusDisplay: ReturnType<typeof getIntegrationStatusDisplay>
+  enabled: boolean
+  onOpen: (toolId: string) => void
+}) {
+  if (surfaces.length === 0) return null
+  const primarySurface = surfaces[0]
+  const liveAction = integration.actions.find((action) => action.id === integration.primaryActionId && action.kind !== 'planned')
+
+  return (
+    <div className="icc-surface-router">
+      <div className="icc-surface-router-copy">
+        <span className="icc-section-title">DAEMON surface</span>
+        <strong>{primarySurface.name}</strong>
+        <p>{primarySurface.purpose}</p>
+      </div>
+      <div className="icc-surface-router-meta">
+        <span className={`icc-surface-chip icc-surface-chip--${primarySurface.availability}`}>{primarySurface.availability}</span>
+        <span className={`icc-surface-chip icc-surface-chip--${statusDisplay.status}`}>{enabled ? statusDisplay.badgeLabel : 'off'}</span>
+      </div>
+      <div className="icc-surface-actions">
+        <button type="button" className="icc-secondary" onClick={() => onOpen(primarySurface.primaryAction.toolId)}>
+          {primarySurface.primaryAction.label}
+        </button>
+        {liveAction ? (
+          <span className="icc-surface-next">{liveAction.label}: {liveAction.description}</span>
+        ) : (
+          <span className="icc-surface-next">{primarySurface.primaryAction.detail}</span>
+        )}
+      </div>
+      {surfaces.length > 1 ? (
+        <div className="icc-surface-related">
+          {surfaces.slice(1).map((surface) => (
+            <button key={surface.id} type="button" onClick={() => onOpen(surface.primaryAction.toolId)}>
+              {surface.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+interface DisabledPreviewStep {
+  label: string
+  detail: string
+}
+
+function summarizeRequirementPreview(integration: IntegrationDefinition): string {
+  const required = integration.requirements.filter((requirement) => !requirement.optional)
+  if (required.length === 0) return 'No required project config before the first read-only action.'
+
+  const labels = required.slice(0, 3).map((requirement) => requirement.label)
+  const remaining = required.length - labels.length
+  return `${labels.join(', ')}${remaining > 0 ? `, +${remaining} more` : ''}`
+}
+
+function buildDisabledPreviewSteps(integration: IntegrationDefinition, surfaces: ProductSurfaceDefinition[]): DisabledPreviewStep[] {
+  if (integration.id === 'sendai-agent-kit') {
+    return [
+      { label: 'Apply project setup', detail: 'Install missing Solana Agent Kit packages and add RPC_URL, model key, and dev-wallet placeholders.' },
+      { label: 'Create starter files', detail: `Write ${SENDAI_FIRST_AGENT_ENTRY}, README, and a package.json run script.` },
+      { label: 'Run starter check in Terminal', detail: 'Boot the first read-only Solana agent check in a visible terminal.' },
+    ]
+  }
+
+  const liveAction = integration.actions.find((action) => action.kind !== 'planned')
+  const primarySurface = surfaces[0]
+  return [
+    { label: 'Load setup state', detail: 'Read project env, packages, wallet, MCP, and stored key readiness.' },
+    { label: 'Resolve setup', detail: summarizeRequirementPreview(integration) },
+    liveAction
+      ? { label: 'Run first safe action', detail: `${liveAction.label}: ${liveAction.description}` }
+      : { label: 'Open DAEMON surface', detail: primarySurface?.primaryAction.detail ?? 'Use the matching DAEMON workspace when this integration is ready.' },
+  ]
+}
+
 function AiSetupCallout({
   title,
   detail,
@@ -826,7 +912,7 @@ function SendAiAgentLaunchpad({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-secondary" onClick={nextAction.action} disabled={nextAction.disabled}>
+        <button type="button" className="icc-primary" onClick={nextAction.action} disabled={nextAction.disabled}>
           {nextAction.label}
         </button>
       </div>
@@ -1028,7 +1114,7 @@ function IntegrationFirstWinWorkflow({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-secondary" onClick={onPrimary} disabled={busy}>
+        <button type="button" className="icc-primary" onClick={onPrimary} disabled={busy}>
           {busy ? primaryBusyLabel : primaryLabel}
         </button>
         {secondaryLabel && onSecondary ? (
@@ -1576,6 +1662,7 @@ function getBrandedIntegrationClass(integrationId: string): string {
   if (integrationId === 'phantom') return 'phantom'
   if (integrationId === 'jupiter') return 'jupiter'
   if (integrationId === 'metaplex') return 'metaplex'
+  if (integrationId === 'signalhouse') return 'signalhouse'
   if (integrationId === 'light-protocol') return 'light'
   if (integrationId === 'magicblock') return 'magicblock'
   if (integrationId === 'debridge') return 'debridge'
@@ -1688,10 +1775,13 @@ export function IntegrationCommandCenter() {
       setActionResult(null)
 
       try {
-        const [walletRes, heliusRes, jupiterRes, infraRes] = await Promise.all([
+        const [walletRes, heliusRes, jupiterRes, clawpumpRes, degentoolsRes, meterflowRes, infraRes] = await Promise.all([
           daemon.wallet.list(),
           daemon.wallet.hasHeliusKey(),
           daemon.wallet.hasJupiterKey(),
+          daemon.clawpump.isConfigured(),
+          daemon.degentools.isConfigured(),
+          daemon.meterflow.status(),
           daemon.settings.getWalletInfrastructureSettings(),
         ])
 
@@ -1703,6 +1793,9 @@ export function IntegrationCommandCenter() {
         setSecureKeys({
           HELIUS_API_KEY: Boolean(heliusRes.ok && heliusRes.data),
           JUPITER_API_KEY: Boolean(jupiterRes.ok && jupiterRes.data),
+          CLAWPUMP_API_KEY: Boolean(clawpumpRes.ok && clawpumpRes.data),
+          DEGENTOOLS_API_KEY: Boolean(degentoolsRes.ok && degentoolsRes.data),
+          METERFLOW_API_KEY: Boolean(meterflowRes.ok && meterflowRes.data?.configured),
         })
 
         if (nextWallets.length > 0) {
@@ -1912,6 +2005,16 @@ export function IntegrationCommandCenter() {
     : EMPTY_INTEGRATION_STATUS
   const selectedBrandClass = selectedIntegrationEnabled ? getBrandedIntegrationClass(selectedIntegration.id) : ''
   const selectedStatusDisplay = getIntegrationStatusDisplay(selectedIntegrationEnabled, selectedSummary)
+  const selectedSurfaces = useMemo(() => {
+    const surfaces = getSurfacesForIntegration(selectedIntegration.id)
+    const directSurface = selectedIntegration.toolId ? getProductSurface(selectedIntegration.toolId) : null
+    if (!directSurface || surfaces.some((surface) => surface.id === directSurface.id)) return surfaces
+    return [directSurface, ...surfaces]
+  }, [selectedIntegration.id, selectedIntegration.toolId])
+  const disabledPreviewSteps = useMemo(
+    () => buildDisabledPreviewSteps(selectedIntegration, selectedSurfaces),
+    [selectedIntegration, selectedSurfaces],
+  )
 
   const detailScrollRef = useRef<HTMLElement | null>(null)
   const heroRef = useRef<HTMLDivElement | null>(null)
@@ -2026,6 +2129,9 @@ export function IntegrationCommandCenter() {
       else if (action.id === 'open-token-launch') openWorkspaceTool('token-launch')
       else if (action.id === 'open-clawpump-panel') openWorkspaceTool('clawpump')
       else if (action.id === 'open-degentools-panel') openWorkspaceTool('degentools')
+      else if (action.id === 'open-signalhouse-panel') openWorkspaceTool('signalhouse')
+      else if (action.id === 'open-flywheel-panel') openWorkspaceTool('flywheel')
+      else if (action.id === 'open-ricomaps-panel') openWorkspaceTool('ricomaps')
       else if (action.id === 'open-zauth-database' || action.id === 'open-zauth-provider-hub') {
         const pageId = action.id === 'open-zauth-provider-hub' ? 'provider-hub' : 'database'
         try {
@@ -2068,6 +2174,7 @@ export function IntegrationCommandCenter() {
           setRunningActionId(null)
         }
       }
+      else if (selectedIntegration.toolId) openWorkspaceTool(selectedIntegration.toolId)
       else openWorkspaceTool('solana-toolbox')
       return
     }
@@ -3414,8 +3521,23 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             <div className="icc-detail-section icc-integration-off" ref={heroRef}>
               <div className="icc-section-title">Disabled</div>
               <p>
-                This integration is available but off by default. Enable it when this project actually needs the setup checks, MCP route, or partner-specific actions.
+                This integration is available but off by default. Enable it to load project setup state and reveal the first safe action path.
               </p>
+              <div className="icc-disabled-preview" aria-label="Integration setup preview">
+                <span className="icc-mini-title">After enable</span>
+                <div className="icc-step-list icc-step-list--compact">
+                  {disabledPreviewSteps.map((step, index) => (
+                    <div key={step.label} className="icc-step icc-step--preview">
+                      <span className="icc-step-index">{index + 1}</span>
+                      <div className="icc-step-main">
+                        <strong>{step.label}</strong>
+                        <p>{step.detail}</p>
+                      </div>
+                      <span className="icc-status-badge off">preview</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <Button type="button" variant="primary" size="md" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
                 Enable integration
               </Button>
@@ -3426,6 +3548,14 @@ Please inspect the project, apply the safe setup work you can complete, and summ
               <RequirementList summary={selectedSummary} />
             </div>
           )}
+
+          <IntegrationSurfaceRouter
+            integration={selectedIntegration}
+            surfaces={selectedSurfaces}
+            statusDisplay={selectedStatusDisplay}
+            enabled={selectedIntegrationEnabled}
+            onOpen={openWorkspaceTool}
+          />
 
           <div className="icc-detail-section">
             <div className="icc-section-title">Best for</div>
@@ -3888,7 +4018,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
                 onSetup={() => void handleSelectedAiSetup()}
               />
               <div className="icc-actions">
-                {selectedIntegration.actions.map((action) => (
+                {selectedIntegration.actions.filter((action) => action.kind !== 'planned').map((action) => (
                   <button
                     key={action.id}
                     type="button"
@@ -3904,6 +4034,26 @@ Please inspect the project, apply the safe setup work you can complete, and summ
                   </button>
                 ))}
               </div>
+              {selectedIntegration.actions.some((action) => action.kind === 'planned') ? (
+                <div className="icc-planned-actions">
+                  <span className="icc-section-title">Preview only</span>
+                  {selectedIntegration.actions.filter((action) => action.kind === 'planned').map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      className="icc-action icc-action--planned"
+                      onClick={() => void handleRunAction(action.id)}
+                      disabled={runningActionId === action.id}
+                    >
+                      <span className="icc-action-main">
+                        <span>{runningActionId === action.id ? 'Running...' : action.label}</span>
+                        <small><span className="icc-preview-label">Preview only</span>{action.description}</small>
+                      </span>
+                      <RiskPill risk={action.risk} />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
 

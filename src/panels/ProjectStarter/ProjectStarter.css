@@ -331,6 +331,10 @@
   border-radius: var(--radius-md);
 }
 
+.starter-runtime-card--muted {
+  border-style: dashed;
+}
+
 .starter-runtime-title {
   font-size: var(--fs-11);
   font-weight: 600;
@@ -351,6 +355,32 @@
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 10px;
+}
+
+.starter-inline-action {
+  margin-top: 10px;
+  min-height: var(--btn-h-sm);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-pill);
+  background: var(--control-bg);
+  color: var(--t2);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.starter-inline-action:hover {
+  color: var(--t1);
+  border-color: var(--border-medium);
+  background: var(--control-bg-hover);
+}
+
+.starter-build-hint {
+  margin-bottom: 10px;
+  color: var(--t3);
+  font-size: var(--fs-11);
+  line-height: 1.4;
 }
 
 .starter-meme-config {

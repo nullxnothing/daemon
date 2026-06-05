@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { LiveRegion } from '../../components/LiveRegion'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import { useUIStore } from '../../store/ui'
 import type {
   FlywheelConfig,
   FlywheelPreview,
@@ -56,6 +58,7 @@ export function FlywheelPanel() {
   const [runningAll, setRunningAll] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const openWorkspaceTool = useUIStore((state) => state.openWorkspaceTool)
 
   const busyRef = useRef(false)
   busyRef.current = busyId !== null || runningAll
@@ -133,6 +136,16 @@ export function FlywheelPanel() {
 
       <LiveRegion message={announce} />
 
+      <ProductSurfaceStrip
+        surfaceId="flywheel"
+        stateLabel={configs.length > 0 ? 'Configured' : 'Needs split'}
+        setupLabel="Preview required"
+        tone={configs.length > 0 ? 'success' : 'warning'}
+        detail="Permanent fee-share config stays behind the split preview and confirmation modal."
+        primaryLabel={configs.length > 0 ? 'Configure another' : 'Configure split'}
+        onPrimary={() => setShowConfig(true)}
+      />
+
       {/* 2 · aggregate KPI strip */}
       <div className="fw-agg">
         <AggCell k="Tokens routing" v={String(routingCount)} green m="buyback & burn → $DAEMON" />
@@ -159,9 +172,20 @@ export function FlywheelPanel() {
       {/* 4 · ledger */}
       <span className="label fw-ledger-label">Tokens</span>
       {configs.length === 0 ? (
-        <p className="fw-empty">
-          No flywheels configured yet. Configure a split to route a token's creator fees 80% → creator, 20% → $DAEMON buyback &amp; burn.
-        </p>
+        <div className="fw-empty">
+          <p>No flywheels configured yet. Start with a launched or imported token, the creator wallet that can claim fees, and a buyback wallet.</p>
+          <ul className="fw-empty-prereqs">
+            <li>Token mint</li>
+            <li>Creator wallet</li>
+            <li>Payout wallet</li>
+            <li>Buyback wallet</li>
+          </ul>
+          <div className="fw-empty-actions">
+            <button className="fw-btn fw-btn--primary" type="button" onClick={() => setShowConfig(true)}>Configure split</button>
+            <button className="fw-btn" type="button" onClick={() => openWorkspaceTool('token-launch')}>Open Token Launch</button>
+            <button className="fw-btn" type="button" onClick={() => openWorkspaceTool('dashboard')}>Open Dashboard</button>
+          </div>
+        </div>
       ) : (
         <div className="fw-ledger">
           <div className="fw-lhead">

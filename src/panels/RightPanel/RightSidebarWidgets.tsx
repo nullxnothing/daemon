@@ -181,7 +181,7 @@ function ZauthSidebarWidget() {
 }
 
 function MeterflowSidebarWidget() {
-  const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
   const [overview, setOverview] = useState<MeterflowOverview | null>(null)
   const [configured, setConfigured] = useState<boolean | null>(null)
 
@@ -217,7 +217,7 @@ function MeterflowSidebarWidget() {
       kicker="Meterflow"
       title={configured ? money(gross) : 'Setup'}
       className="rp-meterflow-widget"
-      action={<button type="button" className="rp-agent-widget-action" onClick={() => setRightPanelTab('meterflow')}>Open</button>}
+      action={<button type="button" className="rp-agent-widget-action" onClick={() => openWorkspaceTool('meterflow')}>Open</button>}
     >
       <div className="rp-side-widget-line">{latestStatus}</div>
       <div className="rp-agent-widget-grid rp-side-widget-grid">

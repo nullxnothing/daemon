@@ -207,6 +207,49 @@
   font-size: var(--fs-11);
 }
 
+.daemon-ai-receipt-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.daemon-ai-receipt-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  padding: var(--space-md);
+}
+
+.daemon-ai-receipt-section-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.daemon-ai-receipt-section-head strong {
+  color: var(--text-primary);
+  font-size: var(--fs-13);
+}
+
+.daemon-ai-receipt-section-head span {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+}
+
+.daemon-ai-meterflow-receipt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.daemon-ai-meterflow-receipt .daemon-ai-primary-btn {
+  align-self: flex-start;
+}
+
 .daemon-ai-run-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
