@@ -642,6 +642,19 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  memory: {
+    list: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:list', projectId, opts),
+    suggest: (input: unknown) => ipcRenderer.invoke('memory:suggest', input),
+    approve: (id: string, approvedBy?: string) => ipcRenderer.invoke('memory:approve', id, approvedBy),
+    update: (id: string, patch: unknown) => ipcRenderer.invoke('memory:update', id, patch),
+    reject: (id: string) => ipcRenderer.invoke('memory:reject', id),
+    delete: (id: string) => ipcRenderer.invoke('memory:delete', id),
+    extract: (projectPath: string, projectId: string | null) => ipcRenderer.invoke('memory:extract', projectPath, projectId),
+    buildContextBundle: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:buildContextBundle', projectId, opts),
+    discoverChecks: (projectPath: string) => ipcRenderer.invoke('checks:discover', projectPath),
+    runCheck: (projectPath: string, check: unknown) => ipcRenderer.invoke('checks:run', projectPath, check),
+  },
+
   dashboard: {
     tokenPrice: (mint: string) => ipcRenderer.invoke('dashboard:token-price', mint),
     tokenMetadata: (mint: string) => ipcRenderer.invoke('dashboard:token-metadata', mint),

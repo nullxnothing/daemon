@@ -172,6 +172,14 @@ import type {
   VoightPrivacyLevel,
   VoightStatus,
   VoightTestResult,
+  ProjectMemory,
+  MemoryStatus,
+  MemoryKind,
+  MemorySuggestionInput,
+  MemoryUpdateInput,
+  MemoryContextBundle,
+  CheckDefinition,
+  CheckResult,
 } from '../../electron/shared/types'
 
 export type {
@@ -1115,6 +1123,19 @@ declare global {
     onUpdate: (handler: (payload: { runId: string; laneId?: string; status?: string; pid?: number | null; exitCode?: number | null }) => void) => () => void
   }
 
+  interface DaemonMemory {
+    list: (projectId: string | null, opts?: { status?: MemoryStatus; kind?: MemoryKind }) => Promise<IpcResponse<ProjectMemory[]>>
+    suggest: (input: MemorySuggestionInput) => Promise<IpcResponse<ProjectMemory>>
+    approve: (id: string, approvedBy?: string) => Promise<IpcResponse<ProjectMemory>>
+    update: (id: string, patch: MemoryUpdateInput) => Promise<IpcResponse<ProjectMemory>>
+    reject: (id: string) => Promise<IpcResponse<ProjectMemory>>
+    delete: (id: string) => Promise<IpcResponse<void>>
+    extract: (projectPath: string, projectId: string | null) => Promise<IpcResponse<ProjectMemory[]>>
+    buildContextBundle: (projectId: string | null, opts?: { charBudget?: number; sessionRef?: string | null }) => Promise<IpcResponse<MemoryContextBundle>>
+    discoverChecks: (projectPath: string) => Promise<IpcResponse<CheckDefinition[]>>
+    runCheck: (projectPath: string, check: CheckDefinition) => Promise<IpcResponse<CheckResult>>
+  }
+
   interface LaunchedToken {
     id: string
     project_id: string | null
@@ -1724,6 +1745,7 @@ declare global {
     images: DaemonImages
     aria: DaemonAria
     swarm: DaemonSwarm
+    memory: DaemonMemory
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     forensics: DaemonForensics

@@ -39,6 +39,7 @@ import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
 import { registerSwarmHandlers } from '../ipc/swarm'
+import { registerMemoryHandlers } from '../ipc/memory'
 import { killAll as killAllSwarmLanes, } from '../services/SwarmOrchestrator'
 import { reconcileOnBoot as reconcileSwarmOnBoot } from '../services/WorktreeService'
 import { registerLaunchHandlers } from '../ipc/launch'
@@ -331,6 +332,7 @@ function registerAllIpc() {
   registerImageHandlers()
   registerAriaHandlers()
   registerSwarmHandlers()
+  registerMemoryHandlers()
   registerLaunchHandlers()
   registerDashboardHandlers()
   registerForensicsHandlers()
