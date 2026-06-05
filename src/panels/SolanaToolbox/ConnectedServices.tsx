@@ -20,34 +20,38 @@ export function ConnectedServices({ mcps, projectPath, onToggle }: ConnectedServ
 
   return (
     <div className="solana-split-panel">
-      <div className="solana-split-header">
-        <span className="solana-split-title">Services</span>
-        <span className="solana-split-count">{activeCount}/{mcps.length}</span>
-      </div>
       <div className="solana-split-body">
-        {mcps.map((mcp) => (
-          <div key={mcp.name} className="solana-service-row">
-            <span className={`sol-dot ${mcp.enabled ? 'green' : 'grey'}`} />
-            <div className="solana-service-info">
-              <div className="solana-service-title">
-                <span className="solana-service-name">{mcp.label}</span>
-                <span className="solana-service-tag">{MCP_TAGS[mcp.name] ?? 'MCP'}</span>
-              </div>
-              <span className="solana-service-description">{mcp.description}</span>
-              {mcp.docsUrl && (
-                <a className="solana-service-docs" href={mcp.docsUrl} target="_blank" rel="noreferrer">
-                  Docs
-                </a>
-              )}
-            </div>
-            <button
-              className={`solana-toggle ${mcp.enabled ? 'on' : ''}`}
-              onClick={() => projectPath && onToggle(projectPath, mcp.name, !mcp.enabled)}
-              disabled={!projectPath}
-              title={mcp.enabled ? 'Disable' : 'Enable'}
-            />
+        <div className="ds-pack-section">
+          <div className="ds-pack-section-head">
+            <span className="ds-eyebrow">Services</span>
+            <span className="ds-pack-section-count">{activeCount}/{mcps.length}</span>
           </div>
-        ))}
+          <div className="ds-card-grid">
+            {mcps.map((mcp) => (
+              <div key={mcp.name} className="ds-card">
+                <span className={`sol-dot ${mcp.enabled ? 'green' : 'grey'}`} style={{ marginTop: 5 }} />
+                <div className="ds-card-body">
+                  <div className="ds-card-title-row">
+                    <span className="ds-card-title">{mcp.label}</span>
+                    <span className="solana-service-tag">{MCP_TAGS[mcp.name] ?? 'MCP'}</span>
+                  </div>
+                  <span className="ds-card-desc">{mcp.description}</span>
+                  {mcp.docsUrl && (
+                    <a className="solana-service-docs" href={mcp.docsUrl} target="_blank" rel="noreferrer">
+                      Docs
+                    </a>
+                  )}
+                </div>
+                <button
+                  className={`solana-toggle ${mcp.enabled ? 'on' : ''}`}
+                  onClick={() => projectPath && onToggle(projectPath, mcp.name, !mcp.enabled)}
+                  disabled={!projectPath}
+                  title={mcp.enabled ? 'Disable' : 'Enable'}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

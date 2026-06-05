@@ -16,7 +16,7 @@
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 22px 28px 64px;
+  padding: var(--space-lg) var(--space-xl) var(--space-3xl);
 }
 
 .fw-link {
@@ -55,7 +55,7 @@
   align-items: flex-start;
   gap: var(--space-md);
 }
-.fw-head-copy { display: flex; flex-direction: column; gap: 5px; }
+.fw-head-copy { display: flex; flex-direction: column; gap: var(--space-2xs); }
 .fw-title {
   margin: 0;
   font-size: var(--fs-20);
@@ -67,43 +67,6 @@
 .fw-head-actions { margin-left: auto; display: flex; gap: var(--space-sm); flex-shrink: 0; }
 
 /* 2 · aggregate KPI strip (fused hairline grid, square) -------------- */
-.fw-agg {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-}
-.fw-agg-cell { background: var(--bg); padding: 15px 17px; min-width: 0; }
-.fw-agg-k {
-  font-family: var(--mono);
-  font-size: var(--fs-10);
-  font-weight: var(--fw-medium);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--t3);
-  margin-bottom: 10px;
-}
-.fw-agg-v {
-  font-family: var(--mono);
-  font-weight: var(--fw-medium);
-  font-size: var(--fs-24);
-  line-height: 1;
-  letter-spacing: -0.01em;
-  color: var(--t1);
-}
-.fw-agg-v--green { color: var(--green); }
-.fw-agg-u { font-size: var(--fs-12); color: var(--t3); margin-left: 4px; }
-.fw-agg-m {
-  font-family: var(--mono);
-  font-size: var(--fs-10);
-  color: var(--t3);
-  margin-top: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* 3 · flywheel line -------------------------------------------------- */
 .fw-line {
   display: flex;
@@ -188,8 +151,8 @@
   display: grid;
   grid-template-columns: 2.1fr 1.5fr 1fr 1fr 1fr 1.2fr 1fr 1.5fr;
   align-items: center;
-  gap: 14px;
-  padding: 0 16px;
+  gap: var(--space-md);
+  padding: 0 var(--space-lg);
 }
 .fw-lhead {
   height: 34px;
@@ -278,10 +241,10 @@
 .fw-ldetail {
   border-bottom: 1px solid var(--line);
   background: var(--field-bg);
-  padding: 16px;
+  padding: var(--space-lg);
   display: grid;
   grid-template-columns: 1fr 1.1fr;
-  gap: 22px;
+  gap: var(--space-xl);
 }
 .fw-ldetail:last-child { border-bottom: 0; }
 .fw-ldetail-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

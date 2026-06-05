@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { LiveRegion } from '../../components/LiveRegion'
 import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import { KpiGrid } from '../../components/Panel'
 import { useUIStore } from '../../store/ui'
 import type {
   FlywheelConfig,
@@ -147,13 +148,15 @@ export function FlywheelPanel() {
       />
 
       {/* 2 · aggregate KPI strip */}
-      <div className="fw-agg">
-        <AggCell k="Tokens routing" v={String(routingCount)} green m="buyback & burn → $DAEMON" />
-        <AggCell k="Unclaimed fees" v={fmtSol(agg.unclaimed)} u="SOL" m={`across ${configs.length} token${configs.length === 1 ? '' : 's'}`} />
-        <AggCell k="Buyback wallet" v={fmtSol(agg.buyback)} u="SOL" m="awaiting swap" />
-        <AggCell k="SOL swapped" v={fmtSol(agg.swapped)} m={`lifetime → ${shortAddr(DAEMON_MINT)}`} />
-        <AggCell k="$DAEMON burned" v={burnedAbbr.short} u={burnedAbbr.unit} m={`${Math.round(agg.burned).toLocaleString()} tokens`} />
-      </div>
+      <KpiGrid
+        cells={[
+          { label: 'Tokens routing', value: String(routingCount), tone: 'success', meta: 'buyback & burn → $DAEMON' },
+          { label: 'Unclaimed fees', value: fmtSol(agg.unclaimed), unit: 'SOL', meta: `across ${configs.length} token${configs.length === 1 ? '' : 's'}` },
+          { label: 'Buyback wallet', value: fmtSol(agg.buyback), unit: 'SOL', meta: 'awaiting swap' },
+          { label: 'SOL swapped', value: fmtSol(agg.swapped), meta: `lifetime → ${shortAddr(DAEMON_MINT)}` },
+          { label: '$DAEMON burned', value: burnedAbbr.short, unit: burnedAbbr.unit, meta: `${Math.round(agg.burned).toLocaleString()} tokens` },
+        ]}
+      />
 
       {/* 3 · flywheel line */}
       <div className="fw-line">
@@ -225,19 +228,6 @@ export function FlywheelPanel() {
   )
 }
 
-// ------------------------------------------------------------- KPI cell ---
-
-function AggCell({ k, v, u, m, green }: { k: string; v: string; u?: string; m?: string; green?: boolean }) {
-  return (
-    <div className="fw-agg-cell">
-      <div className="fw-agg-k">{k}</div>
-      <div className={`fw-agg-v${green ? ' fw-agg-v--green' : ''}`}>
-        {v}{u ? <span className="fw-agg-u">{u}</span> : null}
-      </div>
-      {m ? <div className="fw-agg-m">{m}</div> : null}
-    </div>
-  )
-}
 
 // ------------------------------------------------------------ ledger row ---
 

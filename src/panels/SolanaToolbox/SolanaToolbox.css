@@ -1421,56 +1421,6 @@
 }
 
 /* ── Compact service rows (MCP + integrations) ── */
-.solana-services-label {
-  font-size: var(--fs-10);
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  padding: 14px 0 6px; /* TODO: token */
-  font-weight: var(--fw-semibold);
-}
-
-.solana-service-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px; /* TODO: token */
-  min-height: 40px;
-  padding: 10px var(--space-sm); /* TODO: token */
-  margin: 0 -8px; /* TODO: token */
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.solana-service-row + .solana-service-row {
-  border-top: 1px solid color-mix(in srgb, var(--t1) 2%, transparent);
-}
-
-.solana-service-row:hover {
-  background: color-mix(in srgb, var(--t1) 2%, transparent);
-}
-
-.solana-service-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-xs);
-  flex: 1;
-  min-width: 0;
-}
-
-.solana-service-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.solana-service-name {
-  font-size: var(--fs-13);
-  color: var(--t1);
-  font-weight: var(--fw-medium);
-}
-
 .solana-service-tag {
   display: inline-flex;
   align-items: center;
@@ -1484,12 +1434,6 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-}
-
-.solana-service-description {
-  font-size: var(--fs-11);
-  color: var(--t4);
-  line-height: 1.35;
 }
 
 .solana-service-docs {
@@ -1621,55 +1565,6 @@
 }
 
 /* ── Integration rows (payment protocols) ── */
-.solana-integration-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.solana-integration-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-}
-
-.solana-integration-row:hover {
-  border-color: var(--line-2);
-  background: var(--bg-card-hover);
-}
-
-.solana-integration-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.solana-integration-name {
-  font-size: var(--fs-13);
-  font-weight: var(--fw-semibold);
-  color: var(--t1);
-}
-
-.solana-integration-desc {
-  font-size: var(--fs-11);
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin-top: var(--space-2xs);
-}
-
-.solana-integration-actions {
-  display: flex;
-  gap: var(--space-xs);
-  margin-top: var(--space-sm);
-}
-
 /* ── Skills section ── */
 .solana-skill-group {
   margin-bottom: 10px; /* TODO: token */
