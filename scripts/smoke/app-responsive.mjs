@@ -34,7 +34,9 @@ const toolChecks = [
   { name: 'Solana Start', readySelector: '.project-readiness', expectedText: 'Solana project status' },
   { name: 'Solana Workflow', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
   { name: 'Settings', readySelector: '.settings-center', expectedText: 'Settings' },
-  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Launch your first token' },
+  // Dashboard empty state branches on whether a wallet is active; the CI seed has
+  // none, so it renders the "Connect a launch wallet" copy.
+  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Connect a launch wallet' },
   { name: 'Sessions', readySelector: '.session-history', expectedText: 'Sessions' },
   { name: 'Recovery', readySelector: '.recovery-panel', expectedText: 'Wallets' },
 ]
