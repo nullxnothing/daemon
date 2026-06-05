@@ -14,11 +14,11 @@ interface RecentProject {
   id: string
   name: string
   path: string
-  /** Git branch for the branch chip. TODO: branch is not yet stored on Project —
-   *  derive it (e.g. via window.daemon.git.branch on workspace open) and persist it. */
+  /** Current git branch (cached server-side, refreshed by projects:list). */
   branch: string | null
   /** Epoch ms of last activity; drives ordering and the "last opened" label. */
   lastActive: number | null
+  pinned: boolean
 }
 
 /** Abbreviate an absolute path with ~ and forward slashes for display. */
@@ -58,9 +58,6 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
   const projects = useUIStore((s) => s.projects)
   const [isEmptyDragOver, setIsEmptyDragOver] = useState(false)
   const [gitBranch, setGitBranch] = useState<string | null>(null)
-  // Pinned project ids. TODO: persist favorites (e.g. projects:pin IPC + DB column)
-  // so sticky order survives reloads; local state keeps them sticky this session.
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => new Set())
   const emptyDragDepthRef = useRef(0)
 
   const activeProject = projects.find((p) => p.id === activeProjectId)
@@ -78,20 +75,19 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
     id: p.id,
     name: p.name,
     path: p.path,
-    branch: null, // TODO: surface real branch once stored on Project
+    branch: p.branch,
     lastActive: p.last_active ?? p.created_at,
+    pinned: p.pinned === 1,
   }), [])
 
   // Recents: pinned first (sticky), then most-recently-active, truncated for the canvas.
   const recents = useMemo<RecentProject[]>(() => {
     const sorted = [...projects].sort((a, b) => {
-      const aPinned = pinnedIds.has(a.id)
-      const bPinned = pinnedIds.has(b.id)
-      if (aPinned !== bPinned) return aPinned ? -1 : 1
+      if ((a.pinned === 1) !== (b.pinned === 1)) return a.pinned === 1 ? -1 : 1
       return (b.last_active ?? b.created_at) - (a.last_active ?? a.created_at)
     })
     return sorted.slice(0, RECENTS_LIMIT).map(toRecent)
-  }, [projects, pinnedIds, toRecent])
+  }, [projects, toRecent])
 
   const handleEmptyDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
@@ -156,13 +152,13 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
     useUIStore.getState().openWorkspaceTool('starter')
   }, [])
 
-  const handleTogglePin = useCallback((id: string) => {
-    setPinnedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+  const handleTogglePin = useCallback(async (id: string, pinned: boolean) => {
+    const res = await window.daemon.projects.setPinned({ id, pinned })
+    if (!res.ok || !res.data) return
+    const updated = res.data
+    useUIStore.getState().setProjects(
+      useUIStore.getState().projects.map((p) => (p.id === id ? updated : p))
+    )
   }, [])
 
   const handleOpenTerminal = useCallback(() => {
@@ -242,7 +238,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
               </div>
               <ul className="editor-empty-recents-list">
                 {recents.map((project) => {
-                  const isPinned = pinnedIds.has(project.id)
+                  const isPinned = project.pinned
                   return (
                     <li key={project.id} className={`editor-empty-recent-row ${isPinned ? 'is-pinned' : ''}`}>
                       <button
@@ -272,7 +268,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
                         className="editor-empty-recent-pin"
                         aria-label={isPinned ? `Unpin ${project.name}` : `Pin ${project.name}`}
                         aria-pressed={isPinned}
-                        onClick={() => handleTogglePin(project.id)}
+                        onClick={() => handleTogglePin(project.id, !isPinned)}
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M12 17v5M9 10.76V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5.76l2 3.24H7z" />

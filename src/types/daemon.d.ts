@@ -634,6 +634,7 @@ declare global {
     create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
+    setPinned: (input: { id: string; pinned: boolean }) => Promise<IpcResponse<Project>>
   }
 
   interface AgentOpsOpenRequest {

@@ -224,6 +224,8 @@ export interface Project {
   wallet_id: string | null
   created_at: number
   last_active: number | null
+  pinned: number
+  branch: string | null
 }
 
 export interface Agent {
