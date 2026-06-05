@@ -517,9 +517,17 @@ async function runVisuals(page) {
 
   const failures = []
 
+  // Optional comma-separated allowlist for targeted baseline regen, e.g.
+  // DAEMON_VISUAL_ONLY=agent-panel-header,agent-panel-composer
+  const onlyScenarios = (process.env.DAEMON_VISUAL_ONLY ?? '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+
   for (const profile of profiles) {
     for (const scenario of scenarios) {
       if (scenario.profiles && !scenario.profiles.includes(profile.name)) {
+        continue
+      }
+      if (onlyScenarios.length > 0 && !onlyScenarios.includes(scenario.name)) {
         continue
       }
 
