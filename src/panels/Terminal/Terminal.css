@@ -640,6 +640,9 @@
 .terminal-pane-body {
   flex: 1;
   min-height: 0;
+  /* Positioning context for the absolutely-positioned terminal view so a split
+     pane's xterm fits the pane width instead of escaping to the full panel. */
+  position: relative;
 }
 
 .terminal-view-wrap {
