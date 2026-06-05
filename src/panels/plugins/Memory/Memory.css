@@ -1,0 +1,110 @@
+.mem-panel {
+  overflow: hidden;
+}
+
+.mem-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+}
+
+.mem-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.mem-heading {
+  margin: 0;
+  font-size: var(--fs-11);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+.mem-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.mem-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.mem-dot {
+  margin-top: 5px;
+}
+
+.mem-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mem-kind {
+  font-size: var(--fs-10);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--t3);
+}
+
+.mem-value {
+  font-size: var(--fs-12);
+  color: var(--t1);
+  word-break: break-word;
+}
+
+.mem-source {
+  font-size: var(--fs-10);
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+.mem-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.mem-btn {
+  font-size: var(--fs-11);
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--s1);
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.mem-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--t1);
+}
+
+.mem-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mem-btn.approve:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.mem-btn.reject:hover {
+  border-color: var(--red);
+  color: var(--red);
+}

@@ -41,6 +41,15 @@ function RemotionIcon({ size = 18 }: { size?: number }) {
   )
 }
 
+function MemoryIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="12" height="12" rx="2" />
+      <path d="M3 7h12M3 11h12M7 3v12" />
+    </svg>
+  )
+}
+
 function BrowserIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -128,6 +137,7 @@ export const PLUGIN_REGISTRY: Record<string, PluginManifest> = {
   // 'email' — moved to native panel (sidebar icon + center panel)
   // 'telegram': { id: 'telegram', name: 'Telegram', description: 'Full Telegram client', mountPosition: 'right-panel-tab', icon: TelegramIcon, component: lazy(() => import('../panels/plugins/Telegram/Telegram')) },
   'subscriptions': { id: 'subscriptions', name: 'Subscriptions', description: 'DAEMON plans, holder access, and hosted AI lane status', mountPosition: 'right-panel-tab', icon: SubscriptionsIcon, component: lazy(() => import('../panels/plugins/Subscriptions/Subscriptions')) },
+  'memory': { id: 'memory', name: 'Memory', description: 'Approved, source-backed project facts injected into agent prompts', mountPosition: 'right-panel-tab', icon: MemoryIcon, component: lazy(() => import('../panels/plugins/Memory/Memory')) },
   // 'morning-briefing': { id: 'morning-briefing', name: 'Morning Briefing', description: 'Overnight report overlay', mountPosition: 'overlay', icon: BriefingIcon, component: lazy(() => import('../panels/plugins/MorningBriefing/MorningBriefing')) },
   // 'services': { id: 'services', name: 'Services', description: 'Manage background services', mountPosition: 'right-panel-tab', icon: ServicesIcon, component: lazy(() => import('../panels/plugins/Services/Services')) },
   'deploy': {
