@@ -499,6 +499,7 @@ contextBridge.exposeInMainWorld('daemon', {
     create: (project: { name: string; path: string }) => ipcRenderer.invoke('projects:create', project),
     delete: (id: string) => ipcRenderer.invoke('projects:delete', id),
     openDialog: () => ipcRenderer.invoke('projects:openDialog'),
+    setPinned: (input: { id: string; pinned: boolean }) => ipcRenderer.invoke('projects:setPinned', input),
   },
 
   shell: {

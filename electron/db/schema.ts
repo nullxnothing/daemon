@@ -74,7 +74,9 @@ CREATE TABLE IF NOT EXISTS projects (
   aliases TEXT DEFAULT '[]',
   wallet_id TEXT,
   created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
-  last_active INTEGER
+  last_active INTEGER,
+  pinned INTEGER NOT NULL DEFAULT 0,
+  branch TEXT
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (
@@ -1174,4 +1176,10 @@ CREATE TABLE IF NOT EXISTS forensic_bundle_wallet_index (
 );
 CREATE INDEX IF NOT EXISTS idx_forensic_bundle_wallet
   ON forensic_bundle_wallet_index(wallet);
+`
+
+export const SCHEMA_V45 = `
+ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE projects ADD COLUMN branch TEXT;
+CREATE INDEX IF NOT EXISTS idx_projects_pinned ON projects(pinned DESC, last_active DESC);
 `

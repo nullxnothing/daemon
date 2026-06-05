@@ -1,13 +1,45 @@
 import { ipcMain, dialog } from 'electron'
+import simpleGit from 'simple-git'
 import { getDb } from '../db/db'
 import { invalidatePathCache } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
-import type { ProjectCreateInput } from '../shared/types'
+import type { Project, ProjectCreateInput } from '../shared/types'
+
+/** Best-effort current branch; null when the path isn't a git repo or is gone. */
+async function resolveBranch(path: string): Promise<string | null> {
+  try {
+    const branch = await simpleGit(path).revparse(['--abbrev-ref', 'HEAD'])
+    return branch.trim() || null
+  } catch {
+    return null
+  }
+}
 
 export function registerProjectHandlers() {
   ipcMain.handle('projects:list', ipcHandler(async () => {
     const db = getDb()
-    return db.prepare('SELECT * FROM projects ORDER BY last_active DESC, created_at DESC').all()
+    const rows = db
+      .prepare('SELECT * FROM projects ORDER BY pinned DESC, last_active DESC, created_at DESC')
+      .all() as Project[]
+
+    // Refresh the cached branch for each project so the recents list stays accurate.
+    const updateBranch = db.prepare('UPDATE projects SET branch = ? WHERE id = ?')
+    await Promise.all(
+      rows.map(async (row) => {
+        const branch = await resolveBranch(row.path)
+        if (branch !== row.branch) {
+          updateBranch.run(branch, row.id)
+          row.branch = branch
+        }
+      })
+    )
+    return rows
+  }))
+
+  ipcMain.handle('projects:setPinned', ipcHandler(async (_event, input: { id: string; pinned: boolean }) => {
+    const db = getDb()
+    db.prepare('UPDATE projects SET pinned = ? WHERE id = ?').run(input.pinned ? 1 : 0, input.id)
+    return db.prepare('SELECT * FROM projects WHERE id = ?').get(input.id) as Project
   }))
 
   ipcMain.handle('projects:create', ipcHandler(async (_event, project: ProjectCreateInput) => {
