@@ -27,6 +27,11 @@ export const TOOL_ALIASES: Record<string, ToolAlias> = {
   'agent-station': { toolId: 'daemon-ai', subView: 'station' },
   'agent-work': { toolId: 'daemon-ai', subView: 'work' },
   agentops: { toolId: 'daemon-ai', subView: 'ops' },
+
+  // Markets pack → Signalhouse host tabs
+  hackathon: { toolId: 'signalhouse', subView: 'hackathon' },
+  meterflow: { toolId: 'signalhouse', subView: 'meterflow' },
+  zauth: { toolId: 'signalhouse', subView: 'zauth' },
 }
 
 export function resolveToolAlias(toolId: string): ToolAlias {

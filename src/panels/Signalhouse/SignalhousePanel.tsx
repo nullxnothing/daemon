@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { daemon } from '../../lib/daemonBridge'
+import { useUIStore } from '../../store/ui'
 import { LiveRegion } from '../../components/LiveRegion'
 import { PanelHeader } from '../../components/Panel'
 import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
@@ -51,10 +52,54 @@ function verifyClass(status: string | null): string {
   }
 }
 
+const HackathonPanel = lazy(() => import('../Colosseum/HackathonPanel').then((m) => ({ default: m.HackathonPanel })))
+const MeterflowPanel = lazy(() => import('../Meterflow/MeterflowPanel').then((m) => ({ default: m.MeterflowPanel })))
+const ZauthPanel = lazy(() => import('../Zauth/ZauthPanel').then((m) => ({ default: m.ZauthPanel })))
+
+const MARKETS_TABS = [
+  { id: 'signals', label: 'Signals' },
+  { id: 'hackathon', label: 'Hackathon' },
+  { id: 'meterflow', label: 'Meterflow' },
+  { id: 'zauth', label: 'Zauth' },
+] as const
+type MarketsView = (typeof MARKETS_TABS)[number]['id']
+
 export function SignalhousePanel() {
   const [announce, setAnnounce] = useState('')
+  const [view, setView] = useState<MarketsView>('signals')
+  const pendingSubView = useUIStore((s) => s.pendingSubView)
+  const setPendingSubView = useUIStore((s) => s.setPendingSubView)
+
+  useEffect(() => {
+    if (!pendingSubView) return
+    if (MARKETS_TABS.some((t) => t.id === pendingSubView)) {
+      setView(pendingSubView as MarketsView)
+      setPendingSubView(null)
+    }
+  }, [pendingSubView, setPendingSubView])
 
   return (
+    <div className="markets-pack-host">
+      <div className="markets-pack-tabs" role="tablist" aria-label="Markets views">
+        {MARKETS_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={view === t.id}
+            className={`markets-pack-tab${view === t.id ? ' active' : ''}`}
+            onClick={() => setView(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'hackathon' && <Suspense fallback={<div className="markets-pack-body" />}><HackathonPanel /></Suspense>}
+      {view === 'meterflow' && <Suspense fallback={<div className="markets-pack-body" />}><MeterflowPanel /></Suspense>}
+      {view === 'zauth' && <Suspense fallback={<div className="markets-pack-body" />}><ZauthPanel /></Suspense>}
+
+      {view === 'signals' && (
     <div className="sh-panel" data-brand="signalhouse">
       <PanelHeader
         kicker="Signalhouse"
@@ -84,6 +129,8 @@ export function SignalhousePanel() {
         <Leaderboard onAnnounce={setAnnounce} />
         <ActivityFeeds />
       </div>
+    </div>
+      )}
     </div>
   )
 }

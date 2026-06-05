@@ -105,7 +105,9 @@ describe('DaemonAIPanel', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open in Meterflow' }))
 
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('meterflow')
+    // Meterflow is folded into the Markets pack; its id aliases to the
+    // signalhouse host while the receipt handoff still flows through.
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('signalhouse')
     expect(window.localStorage.getItem(METERFLOW_RECEIPT_HANDOFF_KEY)).toContain('rcpt_paid')
   })
 })
