@@ -1,33 +1,70 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useAppActions } from '../../store/appActions'
-import { Button } from '../../components/Button'
 import { DaemonMark } from '../../components/DaemonMark'
-import { Surface } from '../../components/Panel/Surface'
 import { EDITOR_WELCOME_TEMPLATE_COLORS } from '../../styles/daemonTheme'
+import type { Project } from '../../../electron/shared/types'
 
 interface EditorWelcomeProps {
   activeProjectId: string | null
 }
 
+/** A project surfaced in the RECENT PROJECTS list on the default canvas. */
+interface RecentProject {
+  id: string
+  name: string
+  path: string
+  /** Git branch for the branch chip. TODO: branch is not yet stored on Project —
+   *  derive it (e.g. via window.daemon.git.branch on workspace open) and persist it. */
+  branch: string | null
+  /** Epoch ms of last activity; drives ordering and the "last opened" label. */
+  lastActive: number | null
+}
+
+/** Abbreviate an absolute path with ~ and forward slashes for display. */
+function formatHomePath(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  return normalized.replace(/^([A-Za-z]:)?\/Users\/[^/]+/, '~')
+}
+
+/** Compact relative "last opened" label (e.g. "3d", "2h", "just now"). */
+function formatLastOpened(epochMs: number | null): string {
+  if (!epochMs) return ''
+  const diff = Date.now() - epochMs
+  if (diff < 60_000) return 'just now'
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d`
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) return `${weeks}w`
+  return `${Math.floor(days / 30)}mo`
+}
+
+const RECENTS_LIMIT = 5
+
 const QUICK_TEMPLATES = [
-  { id: 'anchor-program', name: 'Anchor Program', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', color: EDITOR_WELCOME_TEMPLATE_COLORS.blue },
-  { id: 'trading-bot', name: 'Trading Bot', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: EDITOR_WELCOME_TEMPLATE_COLORS.amber },
+  { id: 'anchor-program', name: 'Anchor program', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4', color: EDITOR_WELCOME_TEMPLATE_COLORS.blue },
+  { id: 'trading-bot', name: 'Trading bot', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', color: EDITOR_WELCOME_TEMPLATE_COLORS.amber },
   { id: 'dapp-nextjs', name: 'dApp', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9', color: EDITOR_WELCOME_TEMPLATE_COLORS.violet },
-  { id: 'meme-coin-website', name: 'Meme Website', icon: 'M12 2l2.4 6.2L21 9l-5 4.1L17.5 20 12 16.4 6.5 20 8 13.1 3 9l6.6-.8L12 2z', color: EDITOR_WELCOME_TEMPLATE_COLORS.pink },
+  { id: 'meme-coin-website', name: 'Meme site', icon: 'M12 2l2.4 6.2L21 9l-5 4.1L17.5 20 12 16.4 6.5 20 8 13.1 3 9l6.6-.8L12 2z', color: EDITOR_WELCOME_TEMPLATE_COLORS.pink },
 ]
 
 export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
   const addTerminal = useUIStore((s) => s.addTerminal)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const projects = useUIStore((s) => s.projects)
-  const terminals = useUIStore((s) => s.terminals)
   const [isEmptyDragOver, setIsEmptyDragOver] = useState(false)
   const [gitBranch, setGitBranch] = useState<string | null>(null)
+  // Pinned project ids. TODO: persist favorites (e.g. projects:pin IPC + DB column)
+  // so sticky order survives reloads; local state keeps them sticky this session.
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => new Set())
   const emptyDragDepthRef = useRef(0)
 
   const activeProject = projects.find((p) => p.id === activeProjectId)
-  const terminalCount = terminals.filter((t) => t.projectId === activeProjectId).length
+  const displayPath = activeProjectPath ? formatHomePath(activeProjectPath) : activeProject?.name ?? 'Project'
 
   // Load git branch for context
   useEffect(() => {
@@ -36,6 +73,25 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
       setGitBranch(res.ok ? res.data as string : null)
     })
   }, [activeProjectPath])
+
+  const toRecent = useCallback((p: Project): RecentProject => ({
+    id: p.id,
+    name: p.name,
+    path: p.path,
+    branch: null, // TODO: surface real branch once stored on Project
+    lastActive: p.last_active ?? p.created_at,
+  }), [])
+
+  // Recents: pinned first (sticky), then most-recently-active, truncated for the canvas.
+  const recents = useMemo<RecentProject[]>(() => {
+    const sorted = [...projects].sort((a, b) => {
+      const aPinned = pinnedIds.has(a.id)
+      const bPinned = pinnedIds.has(b.id)
+      if (aPinned !== bPinned) return aPinned ? -1 : 1
+      return (b.last_active ?? b.created_at) - (a.last_active ?? a.created_at)
+    })
+    return sorted.slice(0, RECENTS_LIMIT).map(toRecent)
+  }, [projects, pinnedIds, toRecent])
 
   const handleEmptyDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
@@ -88,8 +144,25 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
     }
   }, [])
 
-  const handleOpenAgentStation = useCallback(() => {
-    useUIStore.getState().openWorkspaceTool('agent-station')
+  const handleCloneRepo = useCallback(() => {
+    useUIStore.getState().openWorkspaceTool('starter')
+  }, [])
+
+  const handleOpenRecent = useCallback((project: RecentProject) => {
+    useUIStore.getState().setActiveProject(project.id, project.path)
+  }, [])
+
+  const handleViewAll = useCallback(() => {
+    useUIStore.getState().openWorkspaceTool('starter')
+  }, [])
+
+  const handleTogglePin = useCallback((id: string) => {
+    setPinnedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }, [])
 
   const handleOpenTerminal = useCallback(() => {
@@ -119,140 +192,136 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
       <div className="editor-empty-glow" />
       <DaemonMark className="editor-empty-logo" />
       <span className="editor-empty-eyebrow">Operator workbench</span>
-      <h1 className="editor-empty-title">DAEMON</h1>
+      <h1 className="editor-empty-title">daemon</h1>
+
+      <span className="editor-empty-tagline">
+        {activeProjectId ? displayPath : 'No workspace'}
+        {activeProjectId && gitBranch && <span className="editor-empty-branch"> ({gitBranch})</span>}
+        <span className="editor-empty-tagline-sep"> · </span>
+        <span className="editor-empty-tagline-muted">no file open</span>
+      </span>
 
       {isEmptyDragOver ? (
         <span className="editor-empty-drop-hint">Drop folder to open terminal</span>
-      ) : activeProjectId ? (
-        <>
-          {/* Dynamic project context */}
-          <span className="editor-empty-tagline">
-            {activeProject?.name ?? 'Project'}
-            {gitBranch && <span className="editor-empty-branch"> ({gitBranch})</span>}
-          </span>
-
-          <div className="editor-empty-actions">
-            <Button className="editor-empty-btn" variant="secondary" size="lg" onClick={handleOpenFileExplorer}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
-                <polyline points="13 2 13 9 20 9"/>
-              </svg>
-              Open File
-            </Button>
-            <Button className="editor-empty-btn" variant="primary" size="lg" onClick={handleLaunchAgent}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9"/>
-                <line x1="12" y1="8" x2="12" y2="16"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-              </svg>
-              Launch Agent
-            </Button>
-            {terminalCount > 0 ? (
-              <Button className="editor-empty-btn" variant="secondary" size="lg" onClick={handleOpenTerminal}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-                </svg>
-                {terminalCount} Terminal{terminalCount !== 1 ? 's' : ''}
-              </Button>
-            ) : (
-              <Button className="editor-empty-btn" variant="secondary" size="lg" onClick={() => useUIStore.getState().openWorkspaceTool('settings')}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-                Settings
-              </Button>
-            )}
-          </div>
-
-          <Surface variant="feature" padding="md" className="editor-empty-starter">
-            <span className="editor-empty-starter-label">Start building</span>
-            <div className="editor-empty-templates">
-              {QUICK_TEMPLATES.map((t) => (
-                <button
-                  type="button"
-                  key={t.id}
-                  className="editor-empty-template"
-                  style={{ '--tmpl-color': t.color, '--tmpl-glow': `${t.color}15` } as React.CSSProperties}
-                  onClick={handleNewProject}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={t.color}
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d={t.icon} />
-                  </svg>
-                  {t.name}
-                </button>
-              ))}
-            </div>
-            <Button className="editor-empty-more" variant="ghost" size="sm" onClick={handleNewProject}>
-              More templates -&gt;
-            </Button>
-          </Surface>
-        </>
       ) : (
         <>
-          <span className="editor-empty-tagline">Create a project, open a folder, or start from a scaffold.</span>
-
-          <div className="editor-empty-actions">
-            <Button className="editor-empty-btn" variant="secondary" size="lg" onClick={handleOpenProject}>
+          {/* Fused 3-up action row: shared border, hairline gaps. */}
+          <div className="editor-empty-actionrow" role="group" aria-label="Workspace actions">
+            <button type="button" className="editor-empty-action" onClick={handleOpenProject}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h6l2 3h8v13H4z" />
               </svg>
-              Open Project
-            </Button>
-            <Button className="editor-empty-btn" variant="primary" size="lg" onClick={handleNewProject}>
+              <span className="editor-empty-action-label">Open folder</span>
+              <kbd className="editor-empty-action-kbd">⌘O</kbd>
+            </button>
+            <button type="button" className="editor-empty-action editor-empty-action--primary" onClick={handleLaunchAgent}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14" />
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
               </svg>
-              New Project
-            </Button>
-            <Button className="editor-empty-btn" variant="secondary" size="lg" onClick={handleOpenAgentStation}>
+              <span className="editor-empty-action-label">Launch agent</span>
+            </button>
+            <button type="button" className="editor-empty-action" onClick={handleCloneRepo}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 8h12M6 16h12M8 4h8v16H8z" />
+                <path d="M6 3v12" /><circle cx="6" cy="18" r="3" /><circle cx="6" cy="3" r="0.5" />
+                <circle cx="18" cy="6" r="3" /><path d="M18 9a9 9 0 0 1-9 9" />
               </svg>
-              Agent Station
-            </Button>
+              <span className="editor-empty-action-label">Clone repo</span>
+            </button>
           </div>
 
-          <Surface variant="feature" padding="md" className="editor-empty-starter">
-            <span className="editor-empty-starter-label">Scaffold</span>
-            <div className="editor-empty-templates">
+          {/* RECENT PROJECTS — the anchor of the canvas. */}
+          {recents.length > 0 && (
+            <section className="editor-empty-recents" aria-label="Recent projects">
+              <div className="editor-empty-recents-head">
+                <span className="editor-empty-recents-label">Recent projects</span>
+                <button type="button" className="editor-empty-recents-viewall" onClick={handleViewAll}>
+                  View all ({projects.length}) <span aria-hidden="true">→</span>
+                </button>
+              </div>
+              <ul className="editor-empty-recents-list">
+                {recents.map((project) => {
+                  const isPinned = pinnedIds.has(project.id)
+                  return (
+                    <li key={project.id} className={`editor-empty-recent-row ${isPinned ? 'is-pinned' : ''}`}>
+                      <button
+                        type="button"
+                        className="editor-empty-recent-open"
+                        onClick={() => handleOpenRecent(project)}
+                      >
+                        <svg className="editor-empty-recent-folder" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 4h6l2 3h8v13H4z" />
+                        </svg>
+                        <span className="editor-empty-recent-name">{project.name}</span>
+                        {project.branch && (
+                          <span className="editor-empty-recent-branch">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" />
+                              <path d="M6 9v6M18 9a9 9 0 0 1-9 9" />
+                            </svg>
+                            {project.branch}
+                          </span>
+                        )}
+                        <span className="editor-empty-recent-spacer" />
+                        <span className="editor-empty-recent-path">{formatHomePath(project.path)}</span>
+                        <span className="editor-empty-recent-time">{formatLastOpened(project.lastActive)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="editor-empty-recent-pin"
+                        aria-label={isPinned ? `Unpin ${project.name}` : `Pin ${project.name}`}
+                        aria-pressed={isPinned}
+                        onClick={() => handleTogglePin(project.id)}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 17v5M9 10.76V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5.76l2 3.24H7z" />
+                        </svg>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
+
+          {/* START BUILDING — demoted scaffold strip. */}
+          <div className="editor-empty-start">
+            <div className="editor-empty-start-head">
+              <span className="editor-empty-starter-label">Start building</span>
+              <button type="button" className="editor-empty-start-more" onClick={handleNewProject}>
+                More templates <span aria-hidden="true">→</span>
+              </button>
+            </div>
+            <div className="editor-empty-start-chips">
               {QUICK_TEMPLATES.map((t) => (
                 <button
                   type="button"
                   key={t.id}
-                  className="editor-empty-template"
+                  className="editor-empty-chip"
                   style={{ '--tmpl-color': t.color, '--tmpl-glow': `${t.color}15` } as React.CSSProperties}
                   onClick={handleNewProject}
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={t.color}
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={t.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d={t.icon} />
                   </svg>
                   {t.name}
                 </button>
               ))}
             </div>
-            <Button className="editor-empty-more" variant="ghost" size="sm" onClick={handleNewProject}>
-              More templates -&gt;
-            </Button>
-          </Surface>
+          </div>
+
+          <div className="editor-empty-hints">
+            <button type="button" className="editor-empty-hint" onClick={() => useAppActions.getState().openFilePalette()}>
+              <kbd>⌘K</kbd> Commands
+            </button>
+            <button type="button" className="editor-empty-hint" onClick={handleOpenFileExplorer}>
+              <kbd>⌘P</kbd> Go to file
+            </button>
+            <button type="button" className="editor-empty-hint" onClick={handleOpenTerminal}>
+              <kbd>⌘J</kbd> Terminal
+            </button>
+          </div>
         </>
       )}
     </div>
