@@ -5,6 +5,7 @@
  */
 import * as SettingsService from '../SettingsService'
 import * as WalletService from '../WalletService'
+import { buildContextBundle } from '../MemoryInjectionService'
 import type { AriaContextSnapshot } from './AriaTool'
 
 const ARIA_AGENT_SYSTEM = `You are ARIA, the operator agent for the DAEMON Solana development workbench. You DRIVE the app for the user by calling tools, not by describing steps.
@@ -51,5 +52,15 @@ export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promi
     } catch { /* wallet unavailable */ }
   }
 
-  return `${ARIA_AGENT_SYSTEM}\n\n${lines.join('\n')}`
+  // Approved, source-backed project memory — gated behind the projectMemory chip so it
+  // stays off until the user has reviewed memories. Never breaks launch if unavailable.
+  let memoryBlock = ''
+  if (snapshot.chips.projectMemory && snapshot.activeProjectId) {
+    try {
+      const bundle = buildContextBundle(snapshot.activeProjectId, { usedIn: 'aria_prompt' })
+      if (bundle.block) memoryBlock = `\n\n${bundle.block}`
+    } catch { /* memory unavailable */ }
+  }
+
+  return `${ARIA_AGENT_SYSTEM}\n\n${lines.join('\n')}${memoryBlock}`
 }

@@ -16,6 +16,7 @@ const CONTEXT_CHIPS: { id: ChipId; label: string }[] = [
   { id: 'gitDiff', label: 'Git diff' },
   { id: 'terminalLogs', label: 'Terminal logs' },
   { id: 'walletContext', label: 'Wallet context' },
+  { id: 'projectMemory', label: 'Project Memory' },
 ]
 
 export function AgentWorkbench() {
@@ -110,7 +111,7 @@ export function AgentWorkbench() {
             model={<ModelDropdown />}
             context={activeContext}
             onRemoveContext={(id) => setChip(id as ChipId, false)}
-            contextMenu={CONTEXT_CHIPS.map((c) => ({ id: c.id, label: c.label, active: chips[c.id] }))}
+            contextMenu={CONTEXT_CHIPS.map((c) => ({ id: c.id, label: c.label, active: chips[c.id] ?? false }))}
             onToggleContext={(id, active) => setChip(id as ChipId, active)}
           />
         </>

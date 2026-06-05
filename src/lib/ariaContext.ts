@@ -8,6 +8,8 @@ let chips: AriaContextSnapshot['chips'] = {
   gitDiff: false,
   terminalLogs: false,
   walletContext: false,
+  // On by default: only approved, non-secret memories are ever injected.
+  projectMemory: true,
 }
 
 export function setAriaChips(next: Partial<AriaContextSnapshot['chips']>): void {
