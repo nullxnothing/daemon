@@ -10,11 +10,13 @@ import styles from './CapabilityManager.module.css'
 type Tab = 'packs' | 'plugins'
 
 function PackCard({ pack }: { pack: CapabilityPack }) {
-  const isPackEnabled = useCapabilityPacksStore((s) => s.isPackEnabled)
   const setPackEnabled = useCapabilityPacksStore((s) => s.setPackEnabled)
+  // Subscribe to the pack's enabled state directly so the toggle re-renders when
+  // it flips (isPackEnabled is a stable function ref and would not trigger one).
+  const enabledFlag = useCapabilityPacksStore((s) => s.enabledPacks[pack.id])
 
   const isCore = pack.status === 'core'
-  const enabled = isPackEnabled(pack.id)
+  const enabled = isCore || enabledFlag !== false
   const memberCount = pack.toolIds.length + pack.pluginIds.length
 
   return (

@@ -94,6 +94,10 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
+  // Subscribe to the visibility map itself so the sidebar re-renders when a
+  // capability pack toggles its member tools on/off (isToolVisible is a stable
+  // function ref and would not trigger a re-render on its own).
+  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
   const plugins = usePluginStore((s) => s.plugins)
 
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -115,7 +119,7 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       .filter((tool) => tool.id !== 'settings')
       .filter((tool) => !pinnedTools.includes(tool.id))
       .filter((tool) => isToolVisible(tool.id))
-  }, [isToolVisible, pinnedTools, plugins])
+  }, [isToolVisible, toolVisibility, pinnedTools, plugins])
 
   useEffect(() => {
     if (!toolMenuOpen) return

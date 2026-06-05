@@ -326,7 +326,10 @@ export function CommandDrawer() {
 
   const plugins = usePluginStore((s) => s.plugins)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
-  const rawTools = useMemo(() => getDrawerTools(isToolVisible, plugins), [plugins, isToolVisible])
+  // Track the visibility map so the drawer grid recomputes when a capability
+  // pack toggles its tools (isToolVisible alone is a stable ref).
+  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
+  const rawTools = useMemo(() => getDrawerTools(isToolVisible, plugins), [plugins, isToolVisible, toolVisibility])
 
   // Apply custom ordering if set
   const allTools = useMemo(() => {
