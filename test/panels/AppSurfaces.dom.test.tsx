@@ -995,7 +995,8 @@ describe('App surface DOM coverage', () => {
 
     await userEvent.click(screen.getByText('SendAI Agent Kit').closest('button')!)
 
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('integrations')
+    // 'integrations' is aliased to 'solana-toolbox' via TOOL_ALIASES
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(useUIStore.getState().integrationCommandSelectionId).toBe('sendai-agent-kit')
   })
 
@@ -1071,7 +1072,8 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByRole('tab', { name: /Launch/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Onboard ecosystem integrations deliberately')).toBeInTheDocument()
     await userEvent.click(screen.getAllByRole('button', { name: 'Open Integration' })[0]!)
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('integrations')
+    // 'integrations' is aliased to 'solana-toolbox' via TOOL_ALIASES
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(useUIStore.getState().integrationCommandSelectionId).toBe('jupiter')
 
     await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))

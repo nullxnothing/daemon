@@ -1681,7 +1681,13 @@ function categoryLabel(category: IntegrationCategory): string {
   return INTEGRATION_CATEGORIES.find((item) => item.id === category)?.label ?? category
 }
 
-export function IntegrationCommandCenter() {
+export interface IntegrationCommandCenterProps {
+  /** Restrict the surface to a subset of integrations (per-pack sub-view). */
+  filter?: IntegrationDefinition[]
+}
+
+export function IntegrationCommandCenter({ filter }: IntegrationCommandCenterProps = {}) {
+  const baseRegistry = filter ?? INTEGRATION_REGISTRY
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const integrationCommandSelectionId = useUIStore((s) => s.integrationCommandSelectionId)
@@ -1908,8 +1914,8 @@ export function IntegrationCommandCenter() {
   }), [envFiles, mcps, packageInfo, defaultWallet, secureKeys, toolchain])
 
   const enabledIntegrations = useMemo(
-    () => INTEGRATION_REGISTRY.filter((integration) => enabledIntegrationIds.has(integration.id)),
-    [enabledIntegrationIds],
+    () => baseRegistry.filter((integration) => enabledIntegrationIds.has(integration.id)),
+    [baseRegistry, enabledIntegrationIds],
   )
   const enabledStatusById = useMemo(() => {
     const statuses = new Map<string, IntegrationStatusSummary>()
@@ -1962,7 +1968,7 @@ export function IntegrationCommandCenter() {
 
   const visibleIntegrations = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return INTEGRATION_REGISTRY.filter((integration) => {
+    return baseRegistry.filter((integration) => {
       const matchesCategory = category === 'all' || integration.category === category
       const matchesSearch = !query || [
         integration.name,
@@ -1973,7 +1979,7 @@ export function IntegrationCommandCenter() {
       ].some((value) => value.toLowerCase().includes(query))
       return matchesCategory && matchesSearch
     })
-  }, [category, search])
+  }, [baseRegistry, category, search])
 
   const groupedVisible = useMemo(() => {
     if (category !== 'all') {
@@ -2001,7 +2007,7 @@ export function IntegrationCommandCenter() {
   // Category counts honor the active search so the rail reflects what is browseable.
   const categoryCounts = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const matches = INTEGRATION_REGISTRY.filter((integration) => !query || [
+    const matches = baseRegistry.filter((integration) => !query || [
       integration.name,
       integration.tagline,
       integration.description,
@@ -2014,14 +2020,14 @@ export function IntegrationCommandCenter() {
       counts.set(integration.category, (counts.get(integration.category) ?? 0) + 1)
     }
     return counts
-  }, [search])
+  }, [baseRegistry, search])
 
   // Status legend counts. "Off" = not enabled; ready/needs-setup come from enabled status.
   const statusCounts = useMemo(() => {
     let ready = 0
     let setup = 0
     let off = 0
-    for (const integration of INTEGRATION_REGISTRY) {
+    for (const integration of baseRegistry) {
       if (!enabledIntegrationIds.has(integration.id)) {
         off += 1
         continue
@@ -2031,7 +2037,7 @@ export function IntegrationCommandCenter() {
       else setup += 1
     }
     return { ready, setup, off }
-  }, [enabledIntegrationIds, enabledStatusById])
+  }, [baseRegistry, enabledIntegrationIds, enabledStatusById])
 
   function toggleOpenRow(id: string) {
     setSelectedId(id)
@@ -2042,7 +2048,7 @@ export function IntegrationCommandCenter() {
   useEffect(() => {
     if (!integrationCommandSelectionId) return
     const targetId = INTEGRATION_SELECTION_ALIASES.get(integrationCommandSelectionId) ?? integrationCommandSelectionId
-    const target = INTEGRATION_REGISTRY.find((integration) => integration.id === targetId)
+    const target = baseRegistry.find((integration) => integration.id === targetId)
     if (target) {
       setCategory('all')
       setSearch('')
@@ -2051,11 +2057,12 @@ export function IntegrationCommandCenter() {
       setActionResult(null)
     }
     setIntegrationCommandSelectionId(null)
-  }, [integrationCommandSelectionId, setIntegrationCommandSelectionId])
+  }, [integrationCommandSelectionId, setIntegrationCommandSelectionId, baseRegistry])
 
   const activeId = openId ?? selectedId
-  const selectedIntegration = INTEGRATION_REGISTRY.find((integration) => integration.id === activeId)
+  const selectedIntegration = baseRegistry.find((integration) => integration.id === activeId)
     ?? visibleIntegrations[0]
+    ?? baseRegistry[0]
     ?? INTEGRATION_REGISTRY[0]
   const selectedIntegrationEnabled = enabledIntegrationIds.has(selectedIntegration.id)
   const selectedSummary = selectedIntegrationEnabled

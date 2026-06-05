@@ -175,6 +175,7 @@ const loadSessionHistory = () => import('../../panels/SessionRegistry/SessionHis
 const loadHackathonPanel = () => import('../../panels/Colosseum/HackathonPanel')
 const loadDaemonAIPanel = () => import('../../panels/DaemonAI/DaemonAIPanel')
 const loadPluginManager = () => import('../../panels/PluginManager/PluginManager')
+const loadCapabilityManager = () => import('../../panels/CapabilityManager/CapabilityManager')
 const loadRecoveryPanel = () => import('../../panels/RecoveryPanel/RecoveryPanel')
 const loadProPanel = () => import('../../panels/ProPanel/ProPanel')
 const loadActivityTimeline = () => import('../../panels/ActivityTimeline/ActivityTimeline')
@@ -213,6 +214,7 @@ const SessionHistory = lazyNamedWithReload('session-history', loadSessionHistory
 const HackathonPanel = lazyNamedWithReload('hackathon-panel', loadHackathonPanel, (m) => m.HackathonPanel)
 const DaemonAIPanel = lazyNamedWithReload('daemon-ai-panel', loadDaemonAIPanel, (m) => m.DaemonAIPanel)
 const PluginManager = lazyNamedWithReload('plugin-manager', loadPluginManager, (m) => m.PluginManager)
+const CapabilityManager = lazyNamedWithReload('capability-manager', loadCapabilityManager, (m) => m.CapabilityManager)
 const RecoveryPanel = lazyNamedWithReload('recovery-panel', loadRecoveryPanel, (m) => m.RecoveryPanel)
 const ProPanel = lazyNamedWithReload('pro-panel', loadProPanel, (m) => m.ProPanel)
 const ActivityTimeline = lazyNamedWithReload('activity-timeline', loadActivityTimeline, (m) => m.ActivityTimeline)
@@ -261,7 +263,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'daemon-ai', name: 'Daemon AI', description: 'AI workbench for chat, runs, approvals, patches, and receipts', icon: DaemonAIIcon, component: DaemonAIPanel, preload: () => { void loadDaemonAIPanel() }, category: 'agents' },
   { id: 'pro', name: 'Daemon Pro', description: 'Arena, Pro skills, MCP sync, and priority API', icon: ProIcon, component: ProPanel, preload: () => { void loadProPanel() }, category: 'agents' },
   { id: 'activity', name: 'Activity', description: 'Flight recorder for Solana development', icon: ActivityIcon, component: ActivityTimeline, preload: () => { void loadActivityTimeline() }, category: 'system' },
-  { id: 'plugins', name: 'Plugins', description: 'Manage plugins', icon: PluginsIcon, component: PluginManager, preload: () => { void loadPluginManager() }, category: 'system' },
+  { id: 'plugins', name: 'Capability Manager', description: 'Enable or disable capability packs and plugins', icon: PluginsIcon, component: CapabilityManager, preload: () => { void loadCapabilityManager() }, category: 'system' },
   { id: 'recovery', name: 'Recovery', description: 'Crash recovery and snapshots', icon: RecoveryIcon, component: RecoveryPanel, preload: () => { void loadRecoveryPanel() }, category: 'system' },
   { id: 'agent-station', name: 'Agent Station', description: 'Scaffold and run Solana AI agents powered by SAK', icon: AgentStationIcon, component: AgentStationPanel, preload: () => { void loadAgentStation() }, category: 'agents' },
   { id: 'clawpump', name: 'ClawPump', description: 'Launch and manage hosted ClawPump AI trading agents on Solana', icon: ClawpumpIcon, component: ClawpumpPanel, preload: () => { void loadClawpump() }, category: 'partners' },

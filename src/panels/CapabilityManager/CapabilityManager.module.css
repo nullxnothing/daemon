@@ -1,0 +1,112 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  padding: var(--space-sm) var(--space-md);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabActive {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-blue);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+.packList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.packCard {
+  padding: var(--space-md);
+}
+
+.packHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.packDot {
+  margin-top: var(--space-2xs);
+  flex-shrink: 0;
+}
+
+.packInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.packNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.packName {
+  color: var(--text-primary);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semibold);
+}
+
+.packBadgeCore,
+.packBadgeCount {
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-xs);
+}
+
+.packBadgeCore {
+  color: var(--accent-green);
+  background: var(--accent-green-dim);
+}
+
+.packBadgeCount {
+  color: var(--text-muted);
+  background: var(--bg-well);
+}
+
+.packDesc {
+  color: var(--text-secondary);
+  font-size: var(--fs-12);
+  margin-top: var(--space-2xs);
+  line-height: 1.4;
+}
+
+.packPerfNote {
+  color: var(--text-faint);
+  font-size: var(--fs-11);
+  margin-top: var(--space-2xs);
+}

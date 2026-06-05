@@ -3,6 +3,7 @@ import { daemon } from '../lib/daemonBridge'
 import { updateRecord, deleteFromRecord, filterRecord, mapRecord } from './stateHelpers'
 import { useWorkflowShellStore } from './workflowShell'
 import { canActivateTool } from '../lib/toolVisibilityGuard'
+import { resolveToolAlias } from '../constants/toolAliases'
 
 interface OpenFile {
   path: string
@@ -46,6 +47,7 @@ interface UIState {
   workspaceToolTabs: string[]
   activeWorkspaceToolId: string | null
   integrationCommandSelectionId: string | null
+  pendingSubView: string | null
   rightPanelTab: RightPanelTab
   dashboardTabOpen: boolean
   dashboardTabActive: boolean
@@ -82,6 +84,7 @@ interface UIState {
   closeWorkspaceTool: (toolId: string) => void
   setActiveWorkspaceTool: (toolId: string | null) => void
   setIntegrationCommandSelectionId: (integrationId: string | null) => void
+  setPendingSubView: (subView: string | null) => void
   toggleWorkspaceTool: (toolId: string) => void
   setRightPanelTab: (tab: RightPanelTab) => void
   toggleDashboardTab: () => void
@@ -139,6 +142,7 @@ export const useUIStore = create<UIState>((set) => ({
   workspaceToolTabs: [],
   activeWorkspaceToolId: null,
   integrationCommandSelectionId: null,
+  pendingSubView: null,
   rightPanelTab: 'claude' as RightPanelTab,
   dashboardTabOpen: false,
   dashboardTabActive: false,
@@ -284,6 +288,11 @@ export const useUIStore = create<UIState>((set) => ({
       : { browserTabActive: false })
   },
   openWorkspaceTool: (toolId) => {
+    const alias = resolveToolAlias(toolId)
+    if (alias.toolId !== toolId) {
+      if (alias.subView) set({ pendingSubView: alias.subView })
+      toolId = alias.toolId
+    }
     if (!canActivateTool(toolId)) return
     if (toolId === 'browser') {
       useUIStore.getState().openBrowserTab()
@@ -333,6 +342,7 @@ export const useUIStore = create<UIState>((set) => ({
       : { activeWorkspaceToolId: null })
   },
   setIntegrationCommandSelectionId: (integrationId) => set({ integrationCommandSelectionId: integrationId }),
+  setPendingSubView: (subView) => set({ pendingSubView: subView }),
   toggleWorkspaceTool: (toolId) => set((state) => {
     if (!canActivateTool(toolId)) return {}
     if (toolId === 'browser') {
