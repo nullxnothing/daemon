@@ -105,7 +105,13 @@ export const useAriaStore = create<AriaState>((set, get) => ({
     set((s) => ({ turns: [...s.turns, newTurn('user', trimmed), assistant], isLoading: true }))
 
     try {
-      await daemon.aria.send(sessionId, trimmed, buildAriaSnapshot(), selectedLane)
+      // The final text also arrives via a streamed 'done' event, but that event can
+      // race the IPC resolution (e.g. the codex/legacy single-shot path), leaving the
+      // turn stuck on "Working…". Use the IPC return value as the authoritative fallback
+      // and write it before clearing the active id.
+      const res = await daemon.aria.send(sessionId, trimmed, buildAriaSnapshot(), selectedLane)
+      const finalText = (res as { ok?: boolean; data?: { text?: string } })?.data?.text
+      if (finalText) patchActive(set, (t) => ({ ...t, text: t.text || finalText }))
     } catch (err) {
       patchActive(set, (t) => ({ ...t, text: `Error: ${(err as Error).message}` }))
     } finally {

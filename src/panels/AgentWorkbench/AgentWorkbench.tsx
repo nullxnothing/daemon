@@ -106,7 +106,7 @@ export function AgentWorkbench() {
             onChange={setInput}
             onSend={handleSend}
             disabled={isLoading}
-            placeholder="Ask Claude to build, refactor, or explain…"
+            placeholder="Ask the operator to build, refactor, or explain…"
             sendIcon
             model={<ModelDropdown />}
             context={activeContext}

@@ -13,7 +13,7 @@ export function AgentTranscript({ turns, isLoading }: { turns: AriaTurn[]; isLoa
     <div className="agent-tr">
       {turns.map((turn) => (
         <article key={turn.id} className={`agent-tr-turn ${turn.role}`}>
-          <div className="agent-tr-role">{turn.role === 'user' ? 'You' : 'Claude'}</div>
+          <div className="agent-tr-role">{turn.role === 'user' ? 'You' : 'ARIA'}</div>
 
           {turn.plan && turn.plan.length > 0 && <PlanList steps={turn.plan} />}
 
