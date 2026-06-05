@@ -37,6 +37,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
       </div>
       <div className="solana-split-body">
         {/* Payment integrations */}
+        <div className="solana-integration-grid">
         <div className="solana-integration-row">
           <span className={`sol-dot ${paymentEnabled ? 'green' : 'grey'}`} style={{ marginTop: 5 }} />
           <div className="solana-integration-info">
@@ -60,7 +61,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
         </div>
 
         <div className="solana-integration-row">
-          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <span className="sol-dot grey" style={{ marginTop: 5 }} />
           <div className="solana-integration-info">
             <div className="solana-integration-name">MPP</div>
             <div className="solana-integration-desc">Agent-to-agent payments</div>
@@ -71,7 +72,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
         </div>
 
         <div className="solana-integration-row">
-          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <span className="sol-dot grey" style={{ marginTop: 5 }} />
           <div className="solana-integration-info">
             <div className="solana-integration-name">Light Protocol</div>
             <div className="solana-integration-desc">ZK Compression + compressed tokens</div>
@@ -82,7 +83,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
         </div>
 
         <div className="solana-integration-row">
-          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <span className="sol-dot grey" style={{ marginTop: 5 }} />
           <div className="solana-integration-info">
             <div className="solana-integration-name">MagicBlock</div>
             <div className="solana-integration-desc">Ephemeral Rollups + Magic Router</div>
@@ -93,7 +94,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
         </div>
 
         <div className="solana-integration-row">
-          <span className="sol-dot green" style={{ marginTop: 5 }} />
+          <span className="sol-dot grey" style={{ marginTop: 5 }} />
           <div className="solana-integration-info">
             <div className="solana-integration-name">deBridge</div>
             <div className="solana-integration-desc">Cross-chain DLN route previews</div>
@@ -104,7 +105,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
         </div>
 
         <div className="solana-integration-row">
-          <span className="sol-dot blue" style={{ marginTop: 5 }} />
+          <span className="sol-dot grey" style={{ marginTop: 5 }} />
           <div className="solana-integration-info">
             <div className="solana-integration-name">Squads</div>
             <div className="solana-integration-desc">V4 multisig + vault inspection</div>
@@ -112,6 +113,7 @@ export function CapabilitiesSection({ mcps, projectPath, onToggle, onScaffoldX40
               <button type="button" className="sol-btn" onClick={onScaffoldSquads} disabled={!projectPath}>Scaffold</button>
             </div>
           </div>
+        </div>
         </div>
 
         {/* Skills by group */}

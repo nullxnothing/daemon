@@ -1621,25 +1621,32 @@
 }
 
 /* ── Integration rows (payment protocols) ── */
+.solana-integration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
 .solana-integration-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px; /* TODO: token */
-  padding: var(--space-md) 10px; /* TODO: token */
-  margin: 0 -10px; /* TODO: token */
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  transition: background var(--transition-fast);
-}
-
-.solana-integration-row + .solana-integration-row {
-  border-top: 1px solid color-mix(in srgb, var(--t1) 2%, transparent);
+  background: var(--bg-card);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .solana-integration-row:hover {
-  background: color-mix(in srgb, var(--t1) 1.5%, transparent);
+  border-color: var(--line-2);
+  background: var(--bg-card-hover);
 }
 
 .solana-integration-info {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
 }
@@ -1648,21 +1655,18 @@
   font-size: var(--fs-13);
   font-weight: var(--fw-semibold);
   color: var(--t1);
-  display: flex;
-  align-items: center;
-  gap: 6px; /* TODO: token */
 }
 
 .solana-integration-desc {
   font-size: var(--fs-11);
-  color: var(--t4);
+  color: var(--text-muted);
   line-height: 1.4;
-  margin-top: 3px; /* TODO: token */
+  margin-top: var(--space-2xs);
 }
 
 .solana-integration-actions {
   display: flex;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-xs);
   margin-top: var(--space-sm);
 }
 

@@ -520,6 +520,7 @@ function resetStores() {
     workspaceToolTabs: [],
     activeWorkspaceToolId: null,
     integrationCommandSelectionId: null,
+    pendingSubView: null,
     browserTabOpen: false,
     browserTabActive: false,
     dashboardTabOpen: false,
