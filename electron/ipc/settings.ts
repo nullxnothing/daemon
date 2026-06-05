@@ -113,6 +113,15 @@ export function registerSettingsHandlers() {
     Settings.setWorkspaceProfile(profile)
   }))
 
+  ipcMain.handle('settings:get-enabled-packs', ipcHandler(async () => {
+    return Settings.getEnabledPacks()
+  }))
+
+  ipcMain.handle('settings:set-enabled-packs', ipcHandler(async (_event, packs: Record<string, boolean>) => {
+    if (!packs || typeof packs !== 'object') throw new Error('Invalid enabled packs')
+    Settings.setEnabledPacks(packs)
+  }))
+
   ipcMain.handle('settings:get-token-launch-settings', ipcHandler(async () => {
     return Settings.getTokenLaunchSettings()
   }))

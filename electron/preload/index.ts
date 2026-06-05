@@ -421,6 +421,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setDrawerToolOrder: (order: string[]) => ipcRenderer.invoke('settings:set-drawer-tool-order', order),
     getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
+    getEnabledPacks: () => ipcRenderer.invoke('settings:get-enabled-packs'),
+    setEnabledPacks: (packs: Record<string, boolean>) => ipcRenderer.invoke('settings:set-enabled-packs', packs),
     getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
     setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
     getWalletInfrastructureSettings: () => ipcRenderer.invoke('settings:get-wallet-infrastructure-settings'),

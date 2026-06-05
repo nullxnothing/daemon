@@ -817,6 +817,8 @@ declare global {
     setDrawerToolOrder: (order: string[]) => Promise<IpcResponse>
     getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
+    getEnabledPacks: () => Promise<IpcResponse<Record<string, boolean>>>
+    setEnabledPacks: (packs: Record<string, boolean>) => Promise<IpcResponse>
     getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
     setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
     getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>

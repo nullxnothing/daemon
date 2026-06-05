@@ -2,6 +2,7 @@ import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
 import os from 'node:os'
 import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
+import { defaultEnabledPacks, CORE_PACK_IDS } from '../shared/packManifest'
 import * as SecureKey from './SecureKeyService'
 
 export interface RaydiumLaunchpadSettings {
@@ -191,6 +192,30 @@ export function setWorkspaceProfile(profile: WorkspaceProfile): void {
   const safe = sanitizeWorkspaceProfile(profile)
   if (!safe) throw new Error('Invalid workspace profile')
   setJsonSetting('workspace_profile', safe)
+}
+
+export function getEnabledPacks(): Record<string, boolean> {
+  const stored = getJsonSetting<Record<string, boolean> | null>('enabled_packs', null)
+  const defaults = defaultEnabledPacks()
+  if (!stored || typeof stored !== 'object') return defaults
+  // Merge over defaults so newly added packs default to enabled.
+  const merged: Record<string, boolean> = { ...defaults }
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === 'boolean') merged[key] = value
+  }
+  // Core packs are always enabled regardless of stored state.
+  for (const packId of CORE_PACK_IDS) merged[packId] = true
+  return merged
+}
+
+export function setEnabledPacks(packs: Record<string, boolean>): void {
+  if (!packs || typeof packs !== 'object') throw new Error('Invalid enabled packs')
+  const safe: Record<string, boolean> = {}
+  for (const [key, value] of Object.entries(packs)) {
+    if (typeof value === 'boolean') safe[key] = value
+  }
+  for (const packId of CORE_PACK_IDS) safe[packId] = true
+  setJsonSetting('enabled_packs', safe)
 }
 
 export function getPinnedTools(): string[] {
