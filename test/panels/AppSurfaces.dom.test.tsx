@@ -1072,9 +1072,13 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByRole('tab', { name: /Launch/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Onboard ecosystem integrations deliberately')).toBeInTheDocument()
     await userEvent.click(screen.getAllByRole('button', { name: 'Open Integration' })[0]!)
-    // 'integrations' is aliased to 'solana-toolbox' via TOOL_ALIASES
+    // 'integrations' is aliased to the Solana toolbox's Integrations sub-view via
+    // TOOL_ALIASES. Since this panel is already mounted, the embedded
+    // IntegrationCommandCenter consumes the selection and switches the view in place.
     expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
-    expect(useUIStore.getState().integrationCommandSelectionId).toBe('jupiter')
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /Integrations/ })).toHaveAttribute('aria-selected', 'true'),
+    )
 
     await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))
     expect(screen.getByRole('tab', { name: /Debug/ })).toHaveAttribute('aria-selected', 'true')

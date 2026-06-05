@@ -323,6 +323,13 @@ export const useUIStore = create<UIState>((set) => ({
     }
   }),
   setActiveWorkspaceTool: (toolId) => {
+    if (toolId) {
+      const alias = resolveToolAlias(toolId)
+      if (alias.toolId !== toolId) {
+        if (alias.subView) set({ pendingSubView: alias.subView })
+        toolId = alias.toolId
+      }
+    }
     if (toolId && !canActivateTool(toolId)) return
     if (toolId === 'browser') {
       useUIStore.getState().setBrowserTabActive(true)
@@ -344,6 +351,11 @@ export const useUIStore = create<UIState>((set) => ({
   setIntegrationCommandSelectionId: (integrationId) => set({ integrationCommandSelectionId: integrationId }),
   setPendingSubView: (subView) => set({ pendingSubView: subView }),
   toggleWorkspaceTool: (toolId) => set((state) => {
+    const alias = resolveToolAlias(toolId)
+    if (alias.toolId !== toolId) {
+      if (alias.subView) set({ pendingSubView: alias.subView })
+      toolId = alias.toolId
+    }
     if (!canActivateTool(toolId)) return {}
     if (toolId === 'browser') {
       if (state.browserTabActive) {

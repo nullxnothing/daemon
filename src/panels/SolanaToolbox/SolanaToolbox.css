@@ -269,6 +269,14 @@
   flex-direction: column;
 }
 
+/* Embedded Integration Command Center fills the remaining view height. */
+.solana-integrations-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .solana-project-empty-card {
   display: flex;
   align-items: flex-start;

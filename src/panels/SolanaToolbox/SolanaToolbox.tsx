@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
+import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
 import { EnvironmentBar } from './EnvironmentBar'
 import { ValidatorCard } from './ValidatorCard'
 import { ConnectedServices } from './ConnectedServices'
@@ -33,6 +35,11 @@ const SOLANA_VIEWS = [
     summary: 'Wallet, RPC, providers, and MCPs',
   },
   {
+    id: 'integrations',
+    label: 'Integrations',
+    summary: 'Browse and wire Solana RPC, NFT, and DeFi integrations',
+  },
+  {
     id: 'build',
     label: 'Build',
     summary: 'Build, test, deploy, Shipline proof',
@@ -56,6 +63,9 @@ const SOLANA_VIEWS = [
 
 export function SolanaToolbox() {
   const [activeView, setActiveView] = useState<(typeof SOLANA_VIEWS)[number]['id']>('start')
+  const pendingSubView = useUIStore((s) => s.pendingSubView)
+  const setPendingSubView = useUIStore((s) => s.setPendingSubView)
+  const solanaIntegrations = useMemo(() => integrationsForPackId('solana'), [])
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const mcps = useSolanaToolboxStore((s) => s.mcps)
@@ -86,6 +96,14 @@ export function SolanaToolbox() {
   useEffect(() => {
     void refreshValidatorStatus()
   }, [refreshValidatorStatus])
+
+  // Honor a deep-link sub-view (e.g. the legacy 'integrations' tool aliased here).
+  useEffect(() => {
+    if (pendingSubView === 'integrations') {
+      setActiveView('integrations')
+      setPendingSubView(null)
+    }
+  }, [pendingSubView, setPendingSubView])
 
   const handleScaffoldX402 = () => {
     if (activeProjectId) void scaffoldX402(activeProjectId)
@@ -177,7 +195,7 @@ export function SolanaToolbox() {
         </div>
 
         <div className="solana-view-panel">
-          {(!activeProjectPath || (projectInfo && !projectInfo.isSolanaProject)) && (
+          {activeView !== 'integrations' && (!activeProjectPath || (projectInfo && !projectInfo.isSolanaProject)) && (
             <section className="solana-project-empty-card">
               <div>
                 <div className="solana-token-launch-kicker">{activeProjectPath ? 'Project context' : 'No project selected'}</div>
@@ -236,6 +254,12 @@ export function SolanaToolbox() {
                 />
               </div>
             </>
+          )}
+
+          {activeView === 'integrations' && (
+            <div className="solana-integrations-view">
+              <IntegrationCommandCenter filter={solanaIntegrations} />
+            </div>
           )}
 
           {activeView === 'connect' && (
