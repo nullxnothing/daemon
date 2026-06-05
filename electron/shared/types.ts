@@ -2625,6 +2625,8 @@ export interface AriaPatchProposalLite {
   additions: number
   deletions: number
   riskLevel: DaemonAiPatchRiskLevel
+  /** Deterministic Guard findings from ProjectSafetyService/PatchProposalService. */
+  guardFindings: DaemonAiPatchSafetyFinding[]
   status: DaemonAiPatchProposalStatus
 }
 
@@ -2640,6 +2642,8 @@ export interface AriaContextSnapshot {
     gitDiff: boolean
     terminalLogs: boolean
     walletContext: boolean
+    /** Inject approved DAEMON Memory facts into the agent prompt. Default off. */
+    projectMemory?: boolean
   }
 }
 
@@ -2811,4 +2815,121 @@ export interface ReplayVerificationResult {
   completedAt: number
   durationMs: number
   resultPath: string
+}
+
+// ---------------------------------------------------------------------------
+// DAEMON Memory v1 — structured, source-backed, user-approved project facts.
+// privacy_class reuses PrivacyDataClass from security/PrivacyGuard so Memory and
+// ProjectSafetyService share one notion of "secret"; secret classes are never injected.
+// ---------------------------------------------------------------------------
+
+export type MemoryKind =
+  | 'project_summary'
+  | 'stack'
+  | 'package_manager'
+  | 'command'
+  | 'test_command'
+  | 'build_command'
+  | 'dev_command'
+  | 'mcp_config'
+  | 'wallet_context'
+  | 'rpc_context'
+  | 'decision'
+  | 'constraint'
+  | 'do_not_touch'
+  | 'prior_failure'
+  | 'prior_fix'
+  | 'deployment_target'
+  | 'security_note'
+  | 'style_preference'
+
+export type MemoryStatus = 'suggested' | 'approved' | 'rejected' | 'archived'
+export type MemoryScope = 'project' | 'global' | 'session' | 'team'
+export type MemoryAuthor = 'user' | 'agent' | 'guard' | 'extractor' | 'check_runner'
+
+export type MemoryPrivacyClass = MemoryDataClass
+
+// Local alias kept in sync with PrivacyDataClass (security/PrivacyGuard). Declared here to
+// avoid a renderer importing from electron/security; the MemoryService cross-checks at runtime.
+export type MemoryDataClass =
+  | 'public'
+  | 'project_code'
+  | 'env_secret'
+  | 'wallet_secret'
+  | 'email_body'
+  | 'browser_content'
+  | 'personal_data'
+  | 'financial_tx'
+  | 'onchain_receipt'
+
+export interface ProjectMemory {
+  id: string
+  projectId: string | null
+  scope: MemoryScope
+  kind: MemoryKind
+  title: string
+  value: string
+  sourceType: string
+  sourceRef: string
+  confidence: number
+  status: MemoryStatus
+  privacyClass: MemoryPrivacyClass
+  tags: string[]
+  createdBy: MemoryAuthor
+  approvedBy: string | null
+  lastUsedAt: number | null
+  expiresAt: number | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface MemorySuggestionInput {
+  projectId: string | null
+  scope?: MemoryScope
+  kind: MemoryKind
+  title: string
+  value: string
+  sourceType: string
+  sourceRef: string
+  confidence?: number
+  privacyClass?: MemoryPrivacyClass
+  tags?: string[]
+  createdBy?: MemoryAuthor
+}
+
+export interface MemoryUpdateInput {
+  title?: string
+  value?: string
+  kind?: MemoryKind
+  confidence?: number
+  tags?: string[]
+}
+
+export interface MemoryContextBundle {
+  block: string
+  usedMemoryIds: string[]
+  totalChars: number
+}
+
+// ---------------------------------------------------------------------------
+// CheckRunner — discovered project checks (typecheck/test/build). Never deploy.
+// ---------------------------------------------------------------------------
+
+export type CheckKind = 'typecheck' | 'test' | 'build' | 'lint' | 'other'
+
+export interface CheckDefinition {
+  id: string
+  kind: CheckKind
+  label: string
+  command: string
+  source: 'package_script' | 'framework_default' | 'memory'
+  memoryKind: Extract<MemoryKind, 'test_command' | 'build_command'> | null
+}
+
+export interface CheckResult {
+  check: CheckDefinition
+  status: 'passed' | 'failed'
+  exitCode: number | null
+  durationMs: number
+  output: string
 }

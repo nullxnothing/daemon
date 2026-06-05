@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SCHEMA_V41, SCHEMA_V43 } from '../../electron/db/schema'
+import { SCHEMA_V41, SCHEMA_V43, SCHEMA_V50 } from '../../electron/db/schema'
 
 describe('database migration schemas', () => {
   it('defines ProofPool custody hardening fields for fresh and upgraded databases', () => {
@@ -26,5 +26,15 @@ describe('database migration schemas', () => {
     expect(SCHEMA_V43).toContain('CREATE UNIQUE INDEX IF NOT EXISTS idx_proof_payout_intents_backing_kind')
     expect(SCHEMA_V43).toContain('CREATE TABLE IF NOT EXISTS proof_webhook_receipts')
     expect(SCHEMA_V43).toContain('receipt_hash TEXT NOT NULL UNIQUE')
+  })
+
+  it('defines Memory v1 tables in V50', () => {
+    expect(SCHEMA_V50).toContain('CREATE TABLE IF NOT EXISTS project_memories')
+    expect(SCHEMA_V50).toContain('CREATE TABLE IF NOT EXISTS memory_usage_events')
+    expect(SCHEMA_V50).toContain('privacy_class TEXT NOT NULL DEFAULT')
+    expect(SCHEMA_V50).toContain('status TEXT NOT NULL DEFAULT')
+    expect(SCHEMA_V50).toContain('idx_project_memories_lookup')
+    // Uses CREATE TABLE IF NOT EXISTS so the migration block is idempotent on re-run.
+    expect(SCHEMA_V50).not.toContain('CREATE TABLE project_memories')
   })
 })
