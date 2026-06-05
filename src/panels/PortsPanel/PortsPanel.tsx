@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { confirm } from '../../store/confirm'
 import { useNotificationsStore } from '../../store/notifications'
-import { PanelHeader, Stat } from '../../components/Panel'
+import { PanelHeader } from '../../components/Panel'
 import './PortsPanel.css'
 
 interface RegisteredPort {
@@ -89,7 +89,12 @@ export const PortsPanel = memo(function PortsPanel() {
   )
 
   const livePorts = dedupedRegistered.filter((p) => p.isListening)
-  const attachedProjects = new Set(registered.map((p) => p.projectId)).size
+  const killableGhosts = useMemo(
+    () => safeGhosts.filter((ghost) => (
+      DEV_PROCESS_PATTERN.test(ghost.processName ?? '') && !PROTECTED_PROCESS_PATTERN.test(ghost.processName ?? '')
+    )).length,
+    [safeGhosts],
+  )
 
   return (
     <div className="ports-panel">
@@ -107,55 +112,63 @@ export const PortsPanel = memo(function PortsPanel() {
       />
 
       <div className="ports-body">
-        <div className="ports-summary-grid">
-          <Stat className="ports-stat-card" label="Tracked ports" value={dedupedRegistered.length} detail={`${livePorts.length} responding`} />
-          <Stat className="ports-stat-card" label="Active projects" value={attachedProjects} detail="with registered services" />
-          <Stat
-            className="ports-stat-card"
-            label="Ghost listeners"
-            value={safeGhosts.length}
-            detail={safeGhosts.length > 0 ? 'reviewable' : 'all clear'}
-            tone={safeGhosts.length > 0 ? 'warn' : 'default'}
-          />
+        {/* fused summary strip — counts only, no big stat cards */}
+        <div className="ports-summary">
+          <span className="ports-summary-cell">
+            <span className="ports-summary-value">{dedupedRegistered.length}</span>
+            <span className="ports-summary-label">Tracked ports</span>
+          </span>
+          <span className="ports-summary-cell">
+            <span className="ports-summary-value ports-summary-value--ok">{livePorts.length}</span>
+            <span className="ports-summary-label">Responding</span>
+          </span>
+          <span className="ports-summary-cell">
+            <span className={`ports-summary-value ${safeGhosts.length > 0 ? 'ports-summary-value--warn' : ''}`}>{safeGhosts.length}</span>
+            <span className="ports-summary-label">Ghost listeners</span>
+          </span>
         </div>
 
         <section className="ports-section">
           <div className="ports-section-head">
-            <div>
-              <div className="ports-section-kicker">Registered</div>
-              <h3 className="ports-section-title">Tracked app endpoints</h3>
-            </div>
+            <span className="ports-section-kicker">Registered</span>
+            <h3 className="ports-section-title">Tracked app endpoints</h3>
             <span className="ports-section-count">{dedupedRegistered.length}</span>
           </div>
 
           {dedupedRegistered.length === 0 ? (
-            <div className="ports-empty-card">
+            <div className="ports-empty">
               No tracked ports yet. Start a local app through DAEMON or register a service to keep it in the browser workflow.
             </div>
           ) : (
-            <div className="ports-list">
+            <div className="ports-table" role="table" aria-label="Tracked app endpoints">
+              <div className="ports-thead" role="row">
+                <span role="columnheader">Port</span>
+                <span role="columnheader">Service</span>
+                <span role="columnheader">Address</span>
+                <span role="columnheader">PID</span>
+                <span role="columnheader">State</span>
+                <span aria-hidden="true" />
+              </div>
               {dedupedRegistered.map((port) => (
-                <article key={`${port.port}-${port.projectId}`} className="ports-row-card">
-                  <div className="ports-row-main">
-                    <div className="ports-row-titleline">
-                      <span className={`ports-status-dot ${port.isListening ? 'live' : 'dead'}`} />
-                      <strong>:{port.port}</strong>
-                      <span className="ports-service-pill">{port.serviceName}</span>
-                    </div>
-                    <div className="ports-row-meta">
-                      <span>{port.projectNames.join(', ') || port.projectName}</span>
-                      <span>{port.pid ? `PID ${port.pid}` : 'PID unknown'}</span>
-                      <span>{port.isListening ? 'Responding' : 'Not responding'}</span>
-                    </div>
-                  </div>
-                  <div className="ports-row-actions">
+                <div key={`${port.port}-${port.projectId}`} className="ports-trow" role="row">
+                  <span className="ports-cell-port" role="cell">
+                    <span className={`ports-dot ${port.isListening ? 'live' : 'dead'}`} aria-hidden="true" />
+                    :{port.port}
+                  </span>
+                  <span role="cell"><span className="ports-tag">{port.serviceName}</span></span>
+                  <span className="ports-cell-mono" role="cell">{port.projectNames.join(', ') || port.projectName || '127.0.0.1'}</span>
+                  <span className="ports-cell-mono ports-cell-dim" role="cell">{port.pid ? `PID ${port.pid}` : 'PID —'}</span>
+                  <span className={`ports-cell-state ${port.isListening ? 'live' : 'dead'}`} role="cell">
+                    {port.isListening ? 'Responding' : 'Not responding'}
+                  </span>
+                  <span className="ports-cell-action" role="cell">
                     {port.isListening && (
-                      <button type="button" className="ports-btn danger" onClick={() => handleKill(port.port)}>
+                      <button type="button" className="ports-btn danger sm" onClick={() => handleKill(port.port)}>
                         Kill
                       </button>
                     )}
-                  </div>
-                </article>
+                  </span>
+                </div>
               ))}
             </div>
           )}
@@ -163,48 +176,62 @@ export const PortsPanel = memo(function PortsPanel() {
 
         <section className="ports-section">
           <div className="ports-section-head">
-            <div>
-              <div className="ports-section-kicker">Untracked</div>
-              <h3 className="ports-section-title">Ghost listeners</h3>
-            </div>
-            <span className="ports-section-count">{safeGhosts.length}</span>
+            <span className="ports-section-kicker">Untracked</span>
+            <h3 className="ports-section-title">Ghost listeners</h3>
+            <span className="ports-section-count">
+              {safeGhosts.length}
+              {killableGhosts > 0 ? <span className="ports-section-sub"> · {killableGhosts} killable</span> : null}
+            </span>
           </div>
 
           {safeGhosts.length === 0 ? (
-            <div className="ports-empty-card">No user-actionable ghost listeners detected.</div>
+            <div className="ports-empty">No user-actionable ghost listeners detected.</div>
           ) : (
-            <div className="ports-list">
+            <div className="ports-table" role="table" aria-label="Ghost listeners">
+              <div className="ports-thead" role="row">
+                <span role="columnheader">Port</span>
+                <span role="columnheader">Process</span>
+                <span role="columnheader">Address</span>
+                <span role="columnheader">PID</span>
+                <span role="columnheader">State</span>
+                <span aria-hidden="true" />
+              </div>
               {safeGhosts.map((ghost) => {
                 const canKill = DEV_PROCESS_PATTERN.test(ghost.processName ?? '') && !PROTECTED_PROCESS_PATTERN.test(ghost.processName ?? '')
                 return (
-                <article key={ghost.port} className="ports-row-card ghost">
-                  <div className="ports-row-main">
-                    <div className="ports-row-titleline">
-                      <span className="ports-status-dot warning" />
-                      <strong>:{ghost.port}</strong>
-                      <span className="ports-service-pill muted">{ghost.processName ?? 'Unknown process'}</span>
-                    </div>
-                    <div className="ports-row-meta">
-                      <span>{ghost.address}</span>
-                      <span>PID {ghost.pid}</span>
-                      {!canKill && <span>review in Task Manager</span>}
-                    </div>
+                  <div key={ghost.port} className="ports-trow" role="row">
+                    <span className="ports-cell-port" role="cell">
+                      <span className="ports-dot warning" aria-hidden="true" />
+                      :{ghost.port}
+                    </span>
+                    <span role="cell"><span className="ports-tag muted">{ghost.processName ?? 'Unknown process'}</span></span>
+                    <span className="ports-cell-mono" role="cell">{ghost.address}</span>
+                    <span className="ports-cell-mono ports-cell-dim" role="cell">PID {ghost.pid}</span>
+                    <span className={`ports-cell-state ${canKill ? '' : 'protected'}`} role="cell">
+                      {canKill ? 'Listening' : 'Protected'}
+                    </span>
+                    <span className="ports-cell-action" role="cell">
+                      {canKill ? (
+                        <button type="button" className="ports-btn danger sm" onClick={() => handleKill(ghost.port)}>
+                          Kill
+                        </button>
+                      ) : null}
+                    </span>
                   </div>
-                  <div className="ports-row-actions">
-                    {canKill ? (
-                      <button type="button" className="ports-btn danger" onClick={() => handleKill(ghost.port)}>
-                        Kill
-                      </button>
-                    ) : (
-                      <span className="ports-row-note">Protected</span>
-                    )}
-                  </div>
-                </article>
-              )})}
+                )
+              })}
             </div>
           )}
         </section>
       </div>
+
+      <footer className="ports-footer">
+        <span className="ports-footer-left">
+          <span className={`ports-dot ${livePorts.length > 0 ? 'live' : 'dead'}`} aria-hidden="true" />
+          {livePorts.length} responding
+        </span>
+        <span className="ports-footer-right">{safeGhosts.length} ghost · {killableGhosts} killable</span>
+      </footer>
     </div>
   )
 })

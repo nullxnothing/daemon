@@ -537,9 +537,13 @@ function resetStores() {
 }
 
 async function selectIntegrationCard(name: string) {
-  const target = screen.getAllByText(name).find((element) => element.closest('.icc-card'))
+  const target = screen.getAllByText(name).find((element) => element.closest('.icc-row-head'))
   expect(target).toBeTruthy()
-  await userEvent.click(target!.closest('button')!)
+  const row = target!.closest('.icc-row')!
+  // Toggle the row open if it is not already expanded.
+  if (!row.classList.contains('icc-row--open')) {
+    await userEvent.click(target!.closest('button')!)
+  }
 }
 
 async function enableSelectedIntegration() {
@@ -704,10 +708,10 @@ describe('App surface DOM coverage', () => {
   it('renders Integration Command Center setup status and safe checks', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
     expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/safe checks/i).length).toBeGreaterThan(0)
+    expect(screen.getByText('Wire a protocol into DAEMON, then run a safe first check.')).toBeInTheDocument()
     expect(screen.getByText('After enable')).toBeInTheDocument()
     expect(screen.getByText('Run starter check in Terminal')).toBeInTheDocument()
     await enableSelectedIntegration()
@@ -762,8 +766,8 @@ describe('App surface DOM coverage', () => {
     expect(useUIStore.getState().terminals.some((terminal) => terminal.id === 'terminal-sendai-skills')).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'DeFi Protocols' }))
-    await enableSelectedIntegration()
-    expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()
+    await selectEnabledIntegrationCard('Jupiter')
+    expect(document.querySelector('.icc-row--open .icc-row-name')?.textContent).toBe('Jupiter')
 
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
     expect(screen.queryByText('Token Launch Stack')).not.toBeInTheDocument()
@@ -841,7 +845,9 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByRole('button', { name: 'Open env manager' })).toBeInTheDocument()
 
     useUIStore.getState().setIntegrationCommandSelectionId('metaplex')
-    expect(await screen.findByRole('heading', { name: 'Metaplex' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(document.querySelector('.icc-row--open .icc-row-name')?.textContent).toBe('Metaplex')
+    })
   })
 
   it('scaffolds integration starters into the active project directories', async () => {
@@ -874,7 +880,7 @@ describe('App surface DOM coverage', () => {
     })
 
     render(<IntegrationCommandCenter />)
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
     await selectEnabledIntegrationCard('Streamlock')
     await userEvent.click(screen.getByRole('button', { name: 'Create operator starter' }))
@@ -996,15 +1002,16 @@ describe('App surface DOM coverage', () => {
   it('resets hidden integration filters when another surface targets a workflow', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
-    await userEvent.type(screen.getByPlaceholderText('Search integrations, actions, protocols...'), 'phantom')
+    await userEvent.type(screen.getByPlaceholderText('Search integrations, protocols, best-for...'), 'phantom')
     expect(screen.getByDisplayValue('phantom')).toBeInTheDocument()
 
     useUIStore.getState().setIntegrationCommandSelectionId('sendai-solana-mcp')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'SendAI Agent Kit' })).toBeInTheDocument()
+      const openRow = document.querySelector('.icc-row--open .icc-row-name')
+      expect(openRow?.textContent).toBe('SendAI Agent Kit')
     })
     expect(screen.getByDisplayValue('')).toBeInTheDocument()
   })
@@ -1012,9 +1019,9 @@ describe('App surface DOM coverage', () => {
   it('opens MCP setup without leaving stale integration selection behind', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
-    await userEvent.click(screen.getAllByText('SendAI Agent Kit')[0].closest('button')!)
+    await selectIntegrationCard('SendAI Agent Kit')
     await enableSelectedIntegration()
     await userEvent.click(screen.getByRole('button', { name: 'Open MCP setup' }))
 
@@ -1026,7 +1033,7 @@ describe('App surface DOM coverage', () => {
   it('renders the IDLE resource-router integration flow', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
     await selectEnabledIntegrationCard('IDLE Protocol')
 
