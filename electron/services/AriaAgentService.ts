@@ -229,6 +229,7 @@ async function executeTool(
   // Intercept the planning + patch tools: they drive transcript UI, not side effects.
   if (use.name === 'present_plan') return handlePresentPlan(use, transport, turnState)
   if (use.name === 'propose_patch') return handleProposePatch(use, ctx, transport, turnState)
+  // (ctx carries snapshot.activeProjectPath for Guard scanning inside handleProposePatch)
 
   const tool = getTool(use.name)
   const base: AriaToolCallRecord = {
@@ -303,13 +304,23 @@ function handlePresentPlan(
 /** propose_patch: build the proposal, pause for the user's decision, gate the write. */
 async function handleProposePatch(
   use: { id: string; name: string; input: Record<string, unknown> },
-  ctx: { sessionId: string },
+  ctx: { sessionId: string; snapshot?: AriaContextSnapshot },
   transport: AriaTransport,
   turnState: TurnState,
 ): Promise<AriaToolCallRecord> {
-  const proposal = buildPatchProposal(use.input)
+  const proposal = buildPatchProposal(use.input, ctx.snapshot?.activeProjectPath ?? null)
   turnState.patch = proposal
   advancePlan(turnState, transport, ctx.sessionId)
+
+  // Surface Guard findings before the keep/discard decision so the user sees them on the card.
+  if (proposal.guardFindings.length > 0) {
+    const worst = proposal.guardFindings[0]
+    transport.emit({
+      kind: 'tool-call', callId: use.id, name: use.name, label: 'guard', toolKind: 'read', risk: 'read',
+      status: 'done',
+      meta: `Guard: ${proposal.guardFindings.length} finding(s) · ${worst.severity} · ${worst.message}`,
+    })
+  }
 
   const action = await transport.requestPatchDecision(proposal)
   const applied = action === 'keep'

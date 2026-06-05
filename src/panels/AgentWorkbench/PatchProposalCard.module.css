@@ -62,6 +62,41 @@
   font-size: var(--fs-10);
 }
 
+.guard {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.finding {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: var(--fs-11);
+  line-height: 1.45;
+}
+
+.gsev {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--t3);
+}
+
+.sevLow { color: var(--t3); }
+.sevMedium { color: var(--amber); }
+.sevHigh,
+.sevBlocked { color: var(--red); }
+
+.gmsg {
+  color: var(--t2);
+  word-break: break-word;
+}
+
 .actions {
   display: flex;
   gap: 8px;

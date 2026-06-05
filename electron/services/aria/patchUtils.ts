@@ -4,12 +4,21 @@
  * list / +/− line counts from a unified diff for the renderer patch card.
  */
 import crypto from 'node:crypto'
+import { validatePatchProposal } from '../PatchProposalService'
 import type {
   AriaPatchProposalLite,
   AriaPlanStep,
   DaemonAiModelLane,
   DaemonAiPatchRiskLevel,
+  DaemonAiPatchSafetyFinding,
 } from '../../shared/types'
+
+const RISK_ORDER: DaemonAiPatchRiskLevel[] = ['low', 'medium', 'high', 'blocked']
+
+/** Return the higher-severity of two risk levels. */
+function maxRisk(a: DaemonAiPatchRiskLevel, b: DaemonAiPatchRiskLevel): DaemonAiPatchRiskLevel {
+  return RISK_ORDER.indexOf(a) >= RISK_ORDER.indexOf(b) ? a : b
+}
 
 /**
  * ARIA runs Claude locally (BYOK), so the cloud lane taxonomy collapses to three
@@ -70,10 +79,30 @@ function inferRisk(files: string[], additions: number, deletions: number): Daemo
   return 'low'
 }
 
-/** Assemble the renderer-facing patch proposal from raw model output. */
-export function buildPatchProposal(input: { title?: unknown; summary?: unknown; unifiedDiff?: unknown }): AriaPatchProposalLite {
+/**
+ * Assemble the renderer-facing patch proposal from raw model output. Runs the
+ * deterministic Guard scan (ProjectSafetyService rules via validatePatchProposal):
+ * sensitive-path / secret / boundary findings raise the risk level above the size
+ * heuristic and are surfaced to the user before they keep or discard the patch.
+ */
+export function buildPatchProposal(
+  input: { title?: unknown; summary?: unknown; unifiedDiff?: unknown },
+  projectPath?: string | null,
+): AriaPatchProposalLite {
   const unifiedDiff = String(input.unifiedDiff ?? '')
   const { files, additions, deletions } = summarizeUnifiedDiff(unifiedDiff)
+  const heuristicRisk = inferRisk(files, additions, deletions)
+
+  let guardFindings: DaemonAiPatchSafetyFinding[] = []
+  let riskLevel = heuristicRisk
+  try {
+    const guard = validatePatchProposal({ unifiedDiff, projectPath: projectPath ?? null })
+    guardFindings = guard.safetyFindings
+    riskLevel = maxRisk(heuristicRisk, guard.riskLevel)
+  } catch {
+    // A malformed/oversized diff fails the scanner — keep the heuristic risk and no findings.
+  }
+
   return {
     id: crypto.randomUUID(),
     title: String(input.title ?? 'Proposed change').slice(0, 120),
@@ -82,7 +111,8 @@ export function buildPatchProposal(input: { title?: unknown; summary?: unknown; 
     unifiedDiff,
     additions,
     deletions,
-    riskLevel: inferRisk(files, additions, deletions),
+    riskLevel,
+    guardFindings,
     status: 'proposed',
   }
 }

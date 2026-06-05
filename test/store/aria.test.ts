@@ -42,6 +42,7 @@ const PROPOSAL: AriaPatchProposalLite = {
   additions: 11,
   deletions: 0,
   riskLevel: 'medium',
+  guardFindings: [],
   status: 'proposed',
 }
 

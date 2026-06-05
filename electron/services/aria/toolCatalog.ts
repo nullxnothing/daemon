@@ -7,6 +7,16 @@
  *
  * Risk gating (read = auto-run · write = inline approve · sensitive = typed
  * confirm) is enforced centrally in AriaAgentService.executeTool, not here.
+ *
+ * DESIGN BOUNDARY — no raw shell. ARIA tools are structured by intent: command-palette
+ * ids (run_command), named engine/integration actions, and unified-diff patches
+ * (propose_patch, Guard-scanned via PatchProposalService). There is deliberately no
+ * arbitrary-command-execution tool, so the agent can only do what is explicitly exposed.
+ * Untrusted/arbitrary command execution belongs in a sandboxed swarm lane (isolated
+ * worktree, push disabled, key stripped); "run my checks" belongs in CheckRunnerService
+ * (deploy-safe script discovery). If a raw-shell tool is ever added, it MUST be gated by
+ * a command-risk classifier before exec — reuse the dangerous-pattern set in
+ * ToolApprovalService.classifyToolRisk. Never ship the tool without the guard.
  */
 import type { AriaTool } from './AriaTool'
 import { navigationTools } from './tools/navigation'

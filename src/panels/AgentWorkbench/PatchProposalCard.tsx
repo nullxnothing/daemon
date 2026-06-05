@@ -8,6 +8,14 @@ const STATE_LABEL: Partial<Record<AriaActionState, string>> = {
   failed: 'Failed to apply',
 }
 
+// Guard finding severity → CSS-module class for the severity pill.
+const GUARD_SEV_CLASS: Record<string, string> = {
+  low: 'sevLow',
+  medium: 'sevMedium',
+  high: 'sevHigh',
+  blocked: 'sevBlocked',
+}
+
 export function PatchProposalCard({
   patch,
   actionState = 'idle',
@@ -37,6 +45,19 @@ export function PatchProposalCard({
             <span key={file} className={styles.file}>{file}</span>
           ))}
         </div>
+      ) : null}
+
+      {patch.guardFindings.length > 0 ? (
+        <ul className={styles.guard}>
+          {patch.guardFindings.map((f, i) => (
+            <li key={`${f.code}-${i}`} className={styles.finding}>
+              <span className={`${styles.gsev} ${GUARD_SEV_CLASS[f.severity] ? styles[GUARD_SEV_CLASS[f.severity]] : ''}`}>
+                {f.severity}
+              </span>
+              <span className={styles.gmsg}>{f.message}{f.filePath ? ` — ${f.filePath}` : ''}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
 
       {isTerminal ? (
