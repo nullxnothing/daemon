@@ -70,11 +70,8 @@ export const useCapabilityPacksStore = create<CapabilityPacksState>((set, get) =
       await plugins.toggle(pluginId, enabled).catch(() => {})
     }
 
-    // Notify the main process so it can start/stop gated IPC domains live.
-    // (No-op until the packs IPC bridge ships; guarded so PR1 stays standalone.)
-    const packsBridge = (daemon as { packs?: { setEnabled?: (id: string, enabled: boolean) => Promise<unknown> } }).packs
-    if (packsBridge?.setEnabled) {
-      await packsBridge.setEnabled(id, enabled).catch(() => {})
-    }
+    // Notify the main process so it can register a newly-enabled pack's IPC
+    // domains live (and persist canonical state main-side).
+    await daemon.packs.setEnabled(id, enabled).catch(() => {})
   },
 }))

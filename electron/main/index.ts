@@ -65,10 +65,12 @@ import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
 import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
 import { registerVoightHandlers } from '../ipc/voight'
+import { registerPackHandlers, setPackDomainRegistrar } from '../ipc/packs'
+import { enabledIpcDomains, type IpcDomainId } from '../shared/packManifest'
 import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
 import { flushQueue as flushVoightQueue } from '../services/VoightService'
 import { clearLoadedWallets } from '../services/RecoveryService'
-import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
+import { maybeRecoverUnstableUiState, getEnabledPacks, type UiRecoveryResult } from '../services/SettingsService'
 import { getKeyEncryptionWarning, getStorageBackend } from '../services/SecureKeyService'
 import { shutdownAllLspSessions } from '../services/LspService'
 import { isAllowedWebviewUrl, isSafeExternalUrl, openSafeExternalUrl } from '../security/externalNavigation'
@@ -178,6 +180,9 @@ if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let ipcRegistered = false
+// Pack-owned IPC domains already registered this session. Guards against double
+// ipcMain.handle (which throws) when a pack is enabled at runtime.
+const registeredPackDomains = new Set<IpcDomainId>()
 let startupUiRecovery: UiRecoveryResult | null = null
 let shutdownStarted = false
 let mainWindowShown = false
@@ -290,6 +295,44 @@ function registerDaemonProtocolClient() {
   }
 }
 
+// Registrar for each pack-owned IPC domain. Core domains are NOT here — they
+// register unconditionally in registerAllIpc(). Keys match IpcDomainId in
+// electron/shared/packManifest.ts.
+const PACK_DOMAIN_REGISTRARS: Record<IpcDomainId, () => void> = {
+  wallet: registerWalletHandlers,
+  pnl: registerPnlHandlers,
+  vault: registerVaultHandlers,
+  launch: registerLaunchHandlers,
+  pumpfun: registerPumpFunHandlers,
+  proofpool: registerProofPoolHandlers,
+  clawpump: registerClawpumpHandlers,
+  degentools: registerDegenToolsHandlers,
+  flywheel: registerFlywheelHandlers,
+  swarm: registerSwarmHandlers,
+  memory: registerMemoryHandlers,
+  deploy: registerDeployHandlers,
+  shipline: registerShiplineHandlers,
+  signalhouse: registerSignalhouseHandlers,
+  meterflow: registerMeterflowHandlers,
+  idle: registerIdleHandlers,
+  colosseum: registerColosseumHandlers,
+  metaplex: registerMetaplexHandlers,
+  forensics: registerForensicsHandlers,
+  replay: registerReplayHandlers,
+  agentStation: registerAgentStationHandlers,
+}
+
+// Register the IPC domains for every currently-enabled pack. Idempotent: a
+// domain registered once stays registered for the session (disabling a pack
+// flips renderer behaviour, not handler presence).
+function ensurePackDomainsRegistered(enabled: Record<string, boolean>): void {
+  for (const domain of enabledIpcDomains(enabled)) {
+    if (registeredPackDomains.has(domain)) continue
+    PACK_DOMAIN_REGISTRARS[domain]()
+    registeredPackDomains.add(domain)
+  }
+}
+
 function registerAllIpc() {
   if (ipcRegistered) return
   ipcRegistered = true
@@ -298,6 +341,7 @@ function registerAllIpc() {
   ProviderRegistry.register(ClaudeProvider)
   ProviderRegistry.register(CodexProvider)
 
+  // --- Core domains: always registered, never gated by capability packs ---
   registerTelemetryHandlers()
   registerTerminalHandlers()
   registerFilesystemHandlers()
@@ -312,52 +356,40 @@ function registerAllIpc() {
   registerProcessHandlers()
   registerEnvHandlers()
   registerPortHandlers()
-  registerWalletHandlers()
   registerProHandlers()
   registerDaemonAIHandlers()
   registerSettingsHandlers()
   registerPluginHandlers()
+  registerPackHandlers()
   registerTweetHandlers()
   registerRecoveryHandlers()
   registerEngineHandlers()
   registerToolHandlers()
-  registerPumpFunHandlers()
-  registerProofPoolHandlers()
-  registerClawpumpHandlers()
-  registerDegenToolsHandlers()
   registerBrowserHandlers()
-  registerDeployHandlers()
-  registerShiplineHandlers()
   registerEmailHandlers()
   registerImageHandlers()
   registerAriaHandlers()
-  registerSwarmHandlers()
-  registerMemoryHandlers()
-  registerLaunchHandlers()
   registerDashboardHandlers()
-  registerForensicsHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
   registerSynapseHandlers()
   registerAllowanceHandlers()
-  registerSignalhouseHandlers()
-  registerFlywheelHandlers()
-  registerColosseumHandlers()
-  registerIdleHandlers()
-  registerMeterflowHandlers()
-  registerMetaplexHandlers()
-  registerVaultHandlers()
   registerValidatorHandlers()
   registerSeekerHandlers()
-  registerPnlHandlers()
   registerFeedbackHandlers()
-  registerAgentStationHandlers()
-  registerReplayHandlers()
   registerLspHandlers()
   registerVoightHandlers()
 
-  // Clean up any swarm worktrees left over from a crash/forced quit.
-  void reconcileSwarmOnBoot().catch(() => {})
+  // --- Pack-owned domains: registered only when their capability pack is on ---
+  const enabled = getEnabledPacks()
+  setPackDomainRegistrar(ensurePackDomainsRegistered)
+  ensurePackDomainsRegistered(enabled)
+
+  // Swarm worktree cleanup is an Agent-pack boot side effect — skip the fs scan
+  // when the Agent pack is disabled.
+  if (enabled.agent !== false) {
+    void reconcileSwarmOnBoot().catch(() => {})
+  }
 
   // Window controls — raw channels (not wrapped by ipcHandler), so guard the
   // sender frame inline. Embedded/cross-origin frames must not drive the window.

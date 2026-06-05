@@ -450,6 +450,11 @@ contextBridge.exposeInMainWorld('daemon', {
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),
   },
 
+  packs: {
+    getEnabled: () => ipcRenderer.invoke('packs:get-enabled'),
+    setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('packs:set-enabled', id, enabled),
+  },
+
   browser: {
     navigate: (url: string) => ipcRenderer.invoke('browser:navigate', url),
     capture: (pageId: string, url: string, title: string, content: string) => ipcRenderer.invoke('browser:capture', pageId, url, title, content),

@@ -1008,6 +1008,11 @@ declare global {
     reorder: (orderedIds: string[]) => Promise<IpcResponse<void>>
   }
 
+  interface DaemonPacks {
+    getEnabled: () => Promise<IpcResponse<Record<string, boolean>>>
+    setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<Record<string, boolean>>>
+  }
+
   interface DaemonRecovery {
     importCsv: () => Promise<IpcResponse<{ count: number; path: string } | null>>
     scan: () => Promise<IpcResponse<RecoveryWalletInfo[]>>
@@ -1736,6 +1741,7 @@ declare global {
     voight: DaemonVoight
     tweets: DaemonTweets
     plugins: DaemonPlugins
+    packs: DaemonPacks
     browser: DaemonBrowser
     recovery: DaemonRecovery
     deploy: DaemonDeploy
