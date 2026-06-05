@@ -3,6 +3,7 @@ import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLauncher } from '../../components/TokenLauncher/TokenLauncher'
 import { Surface } from '../../components/Panel'
+import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
 import { useUIStore } from '../../store/ui'
 import '../_solana/solanaSurface.css'
 import './TokenLaunchTool.css'
@@ -65,37 +66,23 @@ export function TokenLaunchTool() {
   }, [launchpadRefreshNonce])
 
   return (
-    <div className="sol-panel token-launch-tool">
-      <div className="launch-pack-tabs" role="tablist" aria-label="Launch views">
-        {LAUNCH_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={view === t.id}
-            className={`launch-pack-tab${view === t.id ? ' active' : ''}`}
-            onClick={() => setView(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+    <PackHostShell
+      kicker="Launch pack"
+      title="Token Launch"
+      subtitle="Launch on live launchpads, pool backers, and wire creator-fee flywheels."
+      actions={view === 'launch' ? (
+        <>
+          <button className="solx-btn solx-btn--ghost" onClick={refresh}>Refresh</button>
+          <button className="solx-btn" onClick={openStreamlock}>Open Streamlock</button>
+        </>
+      ) : undefined}
+      tabs={LAUNCH_TABS.map((t) => ({ id: t.id, label: t.label }))}
+      activeId={view}
+      onChange={setView}
+    >
       {view === 'launch' && (
       <div className="sol-scroll">
         <div className="sol-scroll-inner">
-          {/* header */}
-          <div className="tlt-head">
-            <div>
-              <span className="sol-eyebrow">Launch Center</span>
-              <h1 className="tlt-title">Token Launch</h1>
-              <p className="tlt-sub">Launch through a live launchpad while DAEMON keeps adapters, launch history, and token feeds nearby.</p>
-            </div>
-            <div className="sol-actions">
-              <button className="solx-btn solx-btn--ghost" onClick={refresh}>Refresh</button>
-              <button className="solx-btn" onClick={openStreamlock}>Open Streamlock</button>
-            </div>
-          </div>
 
           {/* fused KPI strip */}
           <div className="sol-kstrip">
@@ -167,7 +154,7 @@ export function TokenLaunchTool() {
       {view === 'degentools' && (
         <Suspense fallback={<div className="sol-scroll" />}><DegenToolsPanel /></Suspense>
       )}
-    </div>
+    </PackHostShell>
   )
 }
 

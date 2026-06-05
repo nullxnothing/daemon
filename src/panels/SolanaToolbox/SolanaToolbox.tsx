@@ -3,6 +3,8 @@ import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
 import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
+import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
+import { UnderlineTabs } from '../../components/Panel'
 
 const BlockScanner = lazy(() => import('../BlockScanner/BlockScanner'))
 const ReplayEngine = lazy(() => import('../ReplayEngine/ReplayEngine').then((m) => ({ default: m.ReplayEngine })))
@@ -84,8 +86,79 @@ const SOLANA_VIEWS = [
 // project-empty wrapper / loading state.
 const EMBEDDED_VIEWS = new Set(['integrations', 'scanner', 'replay', 'metaplex'])
 
+type SolanaView = (typeof SOLANA_VIEWS)[number]['id']
+
+// Top-level pack tabs group the 10 views into 6 legible sections. Connect owns
+// its integrations sub-view; Explore owns the on-chain explorers.
+const SOLANA_TOP_TABS = [
+  { id: 'start', label: 'Start' },
+  { id: 'connect', label: 'Connect' },
+  { id: 'build', label: 'Build' },
+  { id: 'launch', label: 'Launch' },
+  { id: 'explore', label: 'Explore' },
+  { id: 'debug', label: 'Debug' },
+] as const
+type SolanaTopTab = (typeof SOLANA_TOP_TABS)[number]['id']
+
+// Secondary segments shown inside a top tab that owns multiple views.
+const CONNECT_SEGMENTS = [
+  { id: 'connect', label: 'Providers' },
+  { id: 'integrations', label: 'Integrations' },
+] as const
+const EXPLORE_SEGMENTS = [
+  { id: 'inspect', label: 'Inspect' },
+  { id: 'scanner', label: 'Scanner' },
+  { id: 'replay', label: 'Replay' },
+  { id: 'metaplex', label: 'Metaplex' },
+] as const
+
+// Map an internal view to the top tab that owns it.
+const VIEW_TO_TOP: Record<SolanaView, SolanaTopTab> = {
+  start: 'start',
+  connect: 'connect',
+  integrations: 'connect',
+  build: 'build',
+  launch: 'launch',
+  inspect: 'explore',
+  scanner: 'explore',
+  replay: 'explore',
+  metaplex: 'explore',
+  debug: 'debug',
+}
+
+// Default view to land on when a top tab is clicked.
+const TOP_TO_VIEW: Record<SolanaTopTab, SolanaView> = {
+  start: 'start',
+  connect: 'connect',
+  build: 'build',
+  launch: 'launch',
+  explore: 'inspect',
+  debug: 'debug',
+}
+
+// Secondary segment row for top tabs that own multiple views (Connect, Explore).
+function SolanaSegmentRow({
+  segments,
+  activeId,
+  onChange,
+}: {
+  segments: ReadonlyArray<{ id: SolanaView; label: string }>
+  activeId: SolanaView
+  onChange: (id: SolanaView) => void
+}) {
+  return (
+    <div className="solana-segment-row">
+      <UnderlineTabs
+        tabs={segments.map((s) => ({ id: s.id, label: s.label }))}
+        activeId={activeId}
+        onChange={onChange}
+      />
+    </div>
+  )
+}
+
 export function SolanaToolbox() {
-  const [activeView, setActiveView] = useState<(typeof SOLANA_VIEWS)[number]['id']>('start')
+  const [activeView, setActiveView] = useState<SolanaView>('start')
   const pendingSubView = useUIStore((s) => s.pendingSubView)
   const setPendingSubView = useUIStore((s) => s.setPendingSubView)
   const solanaIntegrations = useMemo(() => integrationsForPackId('solana'), [])
@@ -180,44 +253,43 @@ export function SolanaToolbox() {
 
   return (
     <div className="solana-toolbox">
-      <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} toolchain={toolchain} />
+      <PackHostShell
+        kicker="Solana pack"
+        title="Solana Workflow"
+        subtitle="Scaffold, connect, build, launch, and explore Solana — one AI-native flow."
+        tabs={SOLANA_TOP_TABS.map((t) => ({ id: t.id, label: t.label }))}
+        activeId={VIEW_TO_TOP[activeView]}
+        onChange={(top) => setActiveView(TOP_TO_VIEW[top])}
+      >
+        {!EMBEDDED_VIEWS.has(activeView) && (
+          <>
+            <EnvironmentBar info={projectInfo} validator={validator} mcps={mcps} toolchain={toolchain} />
+            <SolanaReadinessStrip
+              activeProjectPath={activeProjectPath}
+              activeProjectId={activeProjectId}
+              projectInfo={projectInfo}
+              toolchain={toolchain}
+              validator={validator}
+              mcps={mcps}
+              onAction={handleReadinessAction}
+            />
+          </>
+        )}
 
-      <SolanaReadinessStrip
-        activeProjectPath={activeProjectPath}
-        activeProjectId={activeProjectId}
-        projectInfo={projectInfo}
-        toolchain={toolchain}
-        validator={validator}
-        mcps={mcps}
-        onAction={handleReadinessAction}
-      />
-
-      <section className="solana-workflow-shell">
-        <div className="solana-workflow-header">
-          <div>
-            <div className="solana-token-launch-kicker">Solana Workspace</div>
-            <h1 className="solana-workflow-title">Ship Solana apps from one AI-native workspace</h1>
-            <p className="solana-workflow-copy">
-              Open or scaffold a project, connect wallet and RPC, use project-aware agents, build safely, and keep deploy proof in one focused flow.
-            </p>
-          </div>
-        </div>
-
-        <div className="solana-view-tabs" role="tablist" aria-label="Solana workflow views">
-          {SOLANA_VIEWS.map((view) => (
-            <button
-              key={view.id}
-              type="button"
-              role="tab"
-              aria-selected={activeView === view.id}
-              className={`solana-view-tab${activeView === view.id ? ' active' : ''}`}
-              onClick={() => setActiveView(view.id)}
-            >
-              <span className="solana-view-tab-label">{view.label}</span>
-              <span className="solana-view-tab-summary">{view.summary}</span>
-            </button>
-          ))}
-        </div>
+        {VIEW_TO_TOP[activeView] === 'connect' && (
+          <SolanaSegmentRow
+            segments={CONNECT_SEGMENTS}
+            activeId={activeView}
+            onChange={setActiveView}
+          />
+        )}
+        {VIEW_TO_TOP[activeView] === 'explore' && (
+          <SolanaSegmentRow
+            segments={EXPLORE_SEGMENTS}
+            activeId={activeView}
+            onChange={setActiveView}
+          />
+        )}
 
         <div className="solana-view-panel">
           {!EMBEDDED_VIEWS.has(activeView) && (!activeProjectPath || (projectInfo && !projectInfo.isSolanaProject)) && (
@@ -386,7 +458,7 @@ export function SolanaToolbox() {
             </>
           )}
         </div>
-      </section>
+      </PackHostShell>
     </div>
   )
 }

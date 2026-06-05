@@ -3,11 +3,17 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   gap: 0;
   background: var(--bg);
-  scrollbar-gutter: stable;
+}
+
+/* Secondary segment row (Connect → Providers/Integrations, Explore → …). */
+.solana-segment-row {
+  flex-shrink: 0;
+  padding: 0 var(--panel-pad-x);
+  background: var(--bg-well);
+  border-bottom: 1px solid var(--line);
 }
 
 .solana-toolbox::-webkit-scrollbar {
@@ -23,35 +29,6 @@
 
 .solana-toolbox::-webkit-scrollbar-track {
   background: transparent;
-}
-
-.solana-workflow-shell {
-  --solana-workflow-pad-x: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.solana-workflow-header {
-  padding: var(--solana-workflow-pad-x) var(--solana-workflow-pad-x) var(--space-md);
-  border-bottom: 1px solid color-mix(in srgb, var(--green) 6%, transparent);
-}
-
-.solana-workflow-title {
-  margin: 0;
-  font-size: var(--type-page-title-size);
-  font-weight: var(--type-page-title-weight);
-  line-height: var(--type-page-title-line);
-  letter-spacing: var(--type-page-title-tracking);
-  color: var(--t1);
-}
-
-.solana-workflow-copy {
-  margin: 10px 0 0; /* TODO: token */
-  max-width: 72ch;
-  color: var(--t3);
-  font-size: var(--fs-13);
-  line-height: 1.5;
 }
 
 .solana-readiness-strip {
@@ -202,66 +179,6 @@
   font-size: var(--fs-11);
   line-height: 1.35;
   overflow-wrap: anywhere;
-}
-
-.solana-view-tabs {
-  display: flex;
-  gap: var(--space-sm);
-  padding: 0 var(--solana-workflow-pad-x) var(--space-md);
-  margin: 0;
-  border-bottom: 1px solid var(--drawer-surface-divider);
-  background: var(--s1);
-  align-self: stretch;
-  flex-wrap: wrap;
-}
-
-.solana-view-tab {
-  display: inline-flex;
-  align-items: center;
-  height: var(--btn-h-md);
-  padding: 0 var(--space-md);
-  border: 1px solid var(--line);
-  border-radius: var(--drawer-card-radius);
-  background: var(--drawer-surface-card);
-  color: var(--t3);
-  text-align: left;
-  cursor: pointer;
-  font-size: var(--fs-12);
-  font-weight: var(--fw-medium);
-  transition: color var(--transition-fast), background var(--transition-fast);
-  white-space: nowrap;
-}
-
-.solana-view-tab:hover {
-  color: var(--t1);
-  border-color: var(--control-border-hover);
-  background: var(--tab-hover-bg);
-}
-
-.solana-view-tab:active {
-  background: var(--press-overlay);
-}
-
-.solana-view-tab:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.solana-view-tab.active {
-  color: var(--tab-active-color);
-  border-color: var(--tab-active-border);
-  background: var(--tab-active-bg);
-  box-shadow: none;
-}
-
-.solana-view-tab-label {
-  font-size: var(--fs-12);
-  font-weight: var(--fw-semibold);
-  color: inherit;
-}
-
-.solana-view-tab-summary {
-  display: none;
 }
 
 .solana-view-panel {

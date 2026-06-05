@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useAiStore } from '../../store/aiStore'
 import { useUIStore } from '../../store/ui'
+import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
 import {
   CheckboxChip,
   Composer,
@@ -231,22 +232,14 @@ export function DaemonAIPanel() {
   }
 
   return (
-    <div className="agent-pack-host">
-      <div className="agent-pack-tabs" role="tablist" aria-label="Agent views">
-        {AGENT_PACK_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={packView === t.id}
-            className={`agent-pack-tab${packView === t.id ? ' active' : ''}`}
-            onClick={() => setPackView(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+    <PackHostShell
+      kicker="Agent pack"
+      title="Daemon AI"
+      subtitle="AI workbench, agent station, wallet-funded work, and ops handoff."
+      tabs={AGENT_PACK_TABS.map((t) => ({ id: t.id, label: t.label }))}
+      activeId={packView}
+      onChange={setPackView}
+    >
       {packView === 'station' && (
         <Suspense fallback={<div className="agent-pack-body" />}><AgentStationPanel /></Suspense>
       )}
@@ -441,7 +434,7 @@ export function DaemonAIPanel() {
       {workbenchLoading && <div className="daemon-ai-thinking">Refreshing workbench...</div>}
     </section>
       )}
-    </div>
+    </PackHostShell>
   )
 }
 

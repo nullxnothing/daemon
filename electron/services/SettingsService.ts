@@ -135,8 +135,12 @@ export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
 }
 
-const DEFAULT_PINNED_TOOLS = ['git', 'settings', 'activity']
+// The 5 capability-pack host panels — pinned by default so they're one click
+// away in the activity bar after consolidation.
+const PACK_HOST_PINS = ['solana-toolbox', 'wallet', 'token-launch', 'daemon-ai', 'signalhouse']
+const DEFAULT_PINNED_TOOLS = ['git', ...PACK_HOST_PINS, 'activity', 'settings']
 const PRO_PIN_MIGRATION_KEY = 'pinned_tools_pro_default_added'
+const PACK_HOST_PIN_MIGRATION_KEY = 'pinned_tools_pack_hosts_added'
 const UI_RECOVERY_KEYS = [
   'layout_center_mode',
   'layout_right_panel_tab',
@@ -219,10 +223,22 @@ export function setEnabledPacks(packs: Record<string, boolean>): void {
 }
 
 export function getPinnedTools(): string[] {
-  const pinnedTools = sanitizePinnedTools(getJsonSetting<unknown>('pinned_tools', DEFAULT_PINNED_TOOLS))
-  if (getBooleanSetting(PRO_PIN_MIGRATION_KEY, false)) return pinnedTools
+  let pinnedTools = sanitizePinnedTools(getJsonSetting<unknown>('pinned_tools', DEFAULT_PINNED_TOOLS))
 
-  setBooleanSetting(PRO_PIN_MIGRATION_KEY, true)
+  // One-time, non-destructive: add the pack-host pins to existing users so the
+  // consolidated panels are discoverable without wiping their custom pins.
+  if (!getBooleanSetting(PACK_HOST_PIN_MIGRATION_KEY, false)) {
+    const missing = PACK_HOST_PINS.filter((id) => !pinnedTools.includes(id))
+    if (missing.length > 0) {
+      pinnedTools = [...pinnedTools, ...missing]
+      setJsonSetting('pinned_tools', pinnedTools)
+    }
+    setBooleanSetting(PACK_HOST_PIN_MIGRATION_KEY, true)
+  }
+
+  if (!getBooleanSetting(PRO_PIN_MIGRATION_KEY, false)) {
+    setBooleanSetting(PRO_PIN_MIGRATION_KEY, true)
+  }
   return pinnedTools
 }
 

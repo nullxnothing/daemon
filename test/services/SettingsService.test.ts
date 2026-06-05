@@ -240,13 +240,18 @@ describe('SettingsService token launch settings', () => {
     )
   })
 
-  it('sanitizes pinned tools from storage without adding hidden default tools', () => {
+  it('sanitizes stored pins and appends the pack-host pins once', () => {
     mockGet.mockReturnValue({
       value: JSON.stringify(['git', '', 'browser', 'git', 42]),
     })
 
-    expect(getPinnedTools()).toEqual(['git', 'browser'])
-    expect(mockRun).toHaveBeenCalledWith('pinned_tools_pro_default_added', 'true', expect.any(Number))
+    // Sanitizes (dedupes, drops blanks/non-strings) then appends the 5 pack-host
+    // pins via the one-time migration.
+    expect(getPinnedTools()).toEqual([
+      'git', 'browser',
+      'solana-toolbox', 'wallet', 'token-launch', 'daemon-ai', 'signalhouse',
+    ])
+    expect(mockRun).toHaveBeenCalledWith('pinned_tools_pack_hosts_added', 'true', expect.any(Number))
   })
 
   it('allows an empty drawer tool order to preserve registry ordering', () => {

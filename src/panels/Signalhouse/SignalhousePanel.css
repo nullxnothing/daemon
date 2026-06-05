@@ -242,44 +242,9 @@
 .sh-side--long { color: var(--green); }
 .sh-side--short { color: var(--red); }
 
-/* Markets pack host: Signals / Hackathon / Meterflow / Zauth sub-views */
-.markets-pack-host {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.markets-pack-tabs {
-  display: flex;
-  gap: var(--space-xs);
-  padding: 0 var(--space-lg);
-  border-bottom: 1px solid var(--border-soft);
-  flex-shrink: 0;
-}
-
-.markets-pack-tab {
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: var(--fs-13);
-  font-weight: var(--fw-medium);
-  padding: var(--space-sm) var(--space-md);
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.markets-pack-tab:hover { color: var(--text-secondary); }
-
-.markets-pack-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-blue);
-}
-
-.markets-pack-host .sh-panel,
+/* Markets pack host sub-views (Signals / Hackathon / Meterflow / Zauth) fill
+   the PackHostShell scrolling body. */
+.sh-panel,
 .markets-pack-body {
   flex: 1;
   min-height: 0;

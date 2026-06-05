@@ -1,0 +1,39 @@
+.host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* PanelHeader and the tab row form the sticky band; they never scroll away. */
+.tabs {
+  flex-shrink: 0;
+  padding: 0 var(--panel-pad-x);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.managePacks {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  padding: var(--space-2xs) var(--space-sm);
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.managePacks:hover {
+  color: var(--text-secondary);
+  border-color: var(--line-2);
+}

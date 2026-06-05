@@ -1060,7 +1060,7 @@ describe('App surface DOM coverage', () => {
   it('renders Solana toolbox workflow tabs and switches views', async () => {
     render(<SolanaToolbox />)
 
-    expect(await screen.findByText('Solana Workspace')).toBeInTheDocument()
+    expect(await screen.findByText('Solana Workflow')).toBeInTheDocument()
     const readiness = screen.getByLabelText('Solana readiness')
     expect(within(readiness).getByText('Project')).toBeInTheDocument()
     expect(await within(readiness).findByText('Main Wallet')).toBeInTheDocument()

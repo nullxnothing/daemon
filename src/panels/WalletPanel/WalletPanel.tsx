@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
+import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
 import { WalletWorkspace } from './workspace/WalletWorkspace'
 import workspaceStyles from './workspace/WalletWorkspace.module.css'
 import './WalletPanel.css'
@@ -49,23 +50,6 @@ export function WalletPanel() {
     }
   }, [activeWalletId])
 
-  const tabBar = (
-    <div className="wallet-pack-tabs" role="tablist" aria-label="Wallet views">
-      {WALLET_TABS.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={view === t.id}
-          className={`wallet-pack-tab${view === t.id ? ' active' : ''}`}
-          onClick={() => setView(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  )
-
   const walletContent = () => {
     if (!dashboard && loading) {
       return (
@@ -90,9 +74,15 @@ export function WalletPanel() {
   }
 
   return (
-    <div className="wallet-panel">
-      {tabBar}
-      <div className="wallet-pack-body">
+    <PackHostShell
+      kicker="Wallet pack"
+      title="Wallet"
+      subtitle="Wallets, portfolio, and on-chain forensics."
+      tabs={WALLET_TABS.map((t) => ({ id: t.id, label: t.label }))}
+      activeId={view}
+      onChange={setView}
+    >
+      <div className="wallet-panel">
         {view === 'wallet' && walletContent()}
         {view === 'portfolio' && (
           <Suspense fallback={<div className={workspaceStyles.statusWrap}><div className={workspaceStyles.statusInner}><div className={workspaceStyles.statusTitle}>Loading portfolio…</div></div></div>}>
@@ -105,6 +95,6 @@ export function WalletPanel() {
           </Suspense>
         )}
       </div>
-    </div>
+    </PackHostShell>
   )
 }

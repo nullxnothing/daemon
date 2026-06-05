@@ -6,50 +6,13 @@
 .wallet-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background: var(--bg);
   color: var(--t1);
   -webkit-font-smoothing: antialiased;
   container-type: inline-size;
   container-name: wallet;
-}
-
-.wallet-pack-tabs {
-  display: flex;
-  gap: var(--space-xs);
-  padding: 0 var(--space-lg);
-  border-bottom: 1px solid var(--border-soft);
-  flex-shrink: 0;
-}
-
-.wallet-pack-tab {
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: var(--fs-13);
-  font-weight: var(--fw-medium);
-  padding: var(--space-sm) var(--space-md);
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.wallet-pack-tab:hover {
-  color: var(--text-secondary);
-}
-
-.wallet-pack-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-blue);
-}
-
-.wallet-pack-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .wallet-panel-header {

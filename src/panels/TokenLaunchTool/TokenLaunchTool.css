@@ -98,32 +98,3 @@
   .tlt-journey-actions { margin-left: 0; }
 }
 
-/* Launch pack sub-view tabs (Launch / Proof Pool / ClawPump / Flywheel / DegenTools) */
-.launch-pack-tabs {
-  display: flex;
-  gap: var(--space-xs);
-  padding: 0 var(--space-lg);
-  border-bottom: 1px solid var(--border-soft);
-  flex-shrink: 0;
-}
-
-.launch-pack-tab {
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: var(--fs-13);
-  font-weight: var(--fw-medium);
-  padding: var(--space-sm) var(--space-md);
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.launch-pack-tab:hover { color: var(--text-secondary); }
-
-.launch-pack-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-blue);
-}

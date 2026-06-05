@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useUIStore } from '../../store/ui'
 import { LiveRegion } from '../../components/LiveRegion'
-import { PanelHeader } from '../../components/Panel'
+import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
 import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
-import { SignalhouseGlyph } from '../../lib/SignalhouseGlyph'
 import type {
   SignalhouseHealth,
   SignalhouseStrategy,
@@ -79,59 +78,40 @@ export function SignalhousePanel() {
   }, [pendingSubView, setPendingSubView])
 
   return (
-    <div className="markets-pack-host">
-      <div className="markets-pack-tabs" role="tablist" aria-label="Markets views">
-        {MARKETS_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={view === t.id}
-            className={`markets-pack-tab${view === t.id ? ' active' : ''}`}
-            onClick={() => setView(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+    <PackHostShell
+      kicker="Markets pack"
+      title="Markets & Intel"
+      subtitle="Copy-trading signals, hackathon tracking, metered calls, and the provider hub."
+      actions={<a className="sh-docs-link" href={DOCS_URL} target="_blank" rel="noreferrer">Docs ↗</a>}
+      tabs={MARKETS_TABS.map((t) => ({ id: t.id, label: t.label }))}
+      activeId={view}
+      onChange={setView}
+    >
       {view === 'hackathon' && <Suspense fallback={<div className="markets-pack-body" />}><HackathonPanel /></Suspense>}
       {view === 'meterflow' && <Suspense fallback={<div className="markets-pack-body" />}><MeterflowPanel /></Suspense>}
       {view === 'zauth' && <Suspense fallback={<div className="markets-pack-body" />}><ZauthPanel /></Suspense>}
 
       {view === 'signals' && (
-    <div className="sh-panel" data-brand="signalhouse">
-      <PanelHeader
-        kicker="Signalhouse"
-        title="Copy-trading intelligence"
-        subtitle="Browse Drift copy-trading strategies, ProofOfEdge rankings, and live risk verdicts."
-        actions={
-          <>
-            <SignalhouseGlyph size={20} />
-            <a className="sh-docs-link" href={DOCS_URL} target="_blank" rel="noreferrer">Docs ↗</a>
-          </>
-        }
-      />
+        <div className="sh-panel" data-brand="signalhouse">
+          <LiveRegion message={announce} />
 
-      <LiveRegion message={announce} />
+          <ProductSurfaceStrip
+            surfaceId="signalhouse"
+            stateLabel="Read-only"
+            setupLabel="API checked below"
+            tone="info"
+            primaryLabel="Browse strategies"
+          />
 
-      <ProductSurfaceStrip
-        surfaceId="signalhouse"
-        stateLabel="Read-only"
-        setupLabel="API checked below"
-        tone="info"
-        primaryLabel="Browse strategies"
-      />
+          <StatusBadge />
 
-      <StatusBadge />
-
-      <div className="sh-body">
-        <Leaderboard onAnnounce={setAnnounce} />
-        <ActivityFeeds />
-      </div>
-    </div>
+          <div className="sh-body">
+            <Leaderboard onAnnounce={setAnnounce} />
+            <ActivityFeeds />
+          </div>
+        </div>
       )}
-    </div>
+    </PackHostShell>
   )
 }
 
