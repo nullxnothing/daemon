@@ -219,6 +219,7 @@
   --left-panel-w: 210px;
   --right-panel-w: 284px;
   --statusbar-h: 24px;
+  --shell-gutter: 10px;  /* outer chrome gutter between shell regions — deliberately off the 4px scale */
 
   /* Spacing scale */
   --space-2xs: 4px;   /* @deprecated duplicate of --space-xs; use --space-xs */

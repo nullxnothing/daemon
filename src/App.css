@@ -61,7 +61,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px var(--space-lg); /* TODO: token (off-grid 6px vertical) */
+  padding: var(--space-xs) var(--space-lg);
   background: var(--red-glow);
   border-bottom: 1px solid var(--red);
   font-size: var(--fs-11);
@@ -88,7 +88,7 @@
   border: none;
   color: var(--t3);
   cursor: pointer;
-  padding: 2px; /* TODO: token (off-grid 2px) */
+  padding: var(--space-xs);
   display: flex;
   transition: color var(--transition-fast);
 }
@@ -109,8 +109,8 @@
   overflow: hidden;
   min-height: 0;
   z-index: 1;
-  gap: 10px; /* TODO: token (off-grid 10px) */
-  padding: 10px; /* TODO: token (off-grid 10px) */
+  gap: var(--shell-gutter);
+  padding: var(--shell-gutter);
   background:
     radial-gradient(rgba(var(--tex-c), calc(var(--tex-a) * var(--tex-k))) 1px, transparent 1px),
     var(--void);
@@ -225,7 +225,7 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 18px; /* TODO: token (off-grid 18px) */
+  gap: var(--space-lg);
   padding: var(--space-2xl);
   text-align: center;
   color: var(--t2);
@@ -272,7 +272,7 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* TODO: token (off-grid 6px) */
+  gap: var(--space-sm);
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -328,6 +328,47 @@
    1:1 with the pointer instead of lagging behind the animation. */
 .terminal-area--dragging {
   transition: none;
+}
+
+/* Bottom dock: tab strip (Terminal / Console) shown when the Console is docked
+   to the bottom panel. The body fills the remaining height. */
+.terminal-area:has(.bottom-dock-tabs) {
+  display: flex;
+  flex-direction: column;
+}
+
+.bottom-dock-tabs {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  height: 28px;
+  background: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+
+.bottom-dock-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--t3);
+  font-size: var(--fs-11);
+  padding: 0 var(--space-md);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.bottom-dock-tab:hover { color: var(--t1); }
+
+.bottom-dock-tab.active {
+  color: var(--t1);
+  border-bottom-color: var(--accent);
+}
+
+.bottom-dock-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Right Panel — resizable via min/max */
