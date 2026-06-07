@@ -91,7 +91,7 @@
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.4",
     "@solflare-wallet/sdk": "^1.4.2",
-    "@x402/core": "^2.12.0",
+    "@x402/core": "^2.14.0",
     "@x402/express": "^2.12.0",
     "@x402/extensions": "^2.12.0",
     "@x402/svm": "^2.12.0",
