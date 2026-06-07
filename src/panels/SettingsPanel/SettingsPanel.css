@@ -12,7 +12,7 @@
   background: var(--field-bg);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
-  padding: 7px 12px;
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-12);
   color: var(--t1);
   outline: none;
@@ -41,7 +41,7 @@
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  padding: 12px 8px;
+  padding: var(--space-md) var(--space-sm);
   gap: 2px;
   overflow-y: auto;
 }
@@ -53,19 +53,19 @@
 }
 
 .settings-snav-group + .settings-snav-group {
-  margin-top: 10px;
+  margin-top: var(--space-md);
 }
 
 .settings-snav-label {
-  padding: 8px 8px 6px;
+  padding: var(--space-sm) var(--space-sm) 6px;
 }
 
 .settings-snav-item {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-md);
   height: 30px;
-  padding: 0 9px;
+  padding: 0 var(--space-md);
   border: 0;
   border-radius: var(--r);
   background: transparent;
@@ -102,7 +102,7 @@
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 22px 26px;
+  padding: var(--space-xl) var(--space-2xl);
 }
 
 .settings-section {
@@ -115,11 +115,11 @@
   font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.5;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .settings-section-desc.tight {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-10);
 }
 
@@ -134,13 +134,13 @@
 .settings-divider {
   height: 1px;
   background: var(--panel-border);
-  margin: 12px 0;
+  margin: var(--space-md) 0;
 }
 
 .settings-empty {
   font-size: var(--fs-11);
   color: var(--t3);
-  padding: 12px 0;
+  padding: var(--space-md) 0;
 }
 
 /* Keys */
@@ -157,8 +157,8 @@
 .settings-key-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -187,7 +187,7 @@
 
 .settings-key-add {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: stretch;
 }
 
@@ -202,7 +202,7 @@
 .settings-saved-note {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   font-size: var(--fs-10);
   color: var(--green);
 }
@@ -262,7 +262,7 @@
 .settings-input {
   flex: 1;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-12);
   font-family: var(--font-code);
   background: var(--field-bg);
@@ -279,7 +279,7 @@
 
 .settings-btn {
   height: 30px;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-12);
   border-radius: var(--r);
   cursor: pointer;
@@ -343,9 +343,9 @@
 .settings-integration-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 36px;
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -415,7 +415,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: var(--space-md) var(--space-md);
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -438,8 +438,8 @@
 .settings-display-row {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 0;
+  gap: var(--space-xl);
+  padding: var(--space-md) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -466,7 +466,7 @@
 .settings-side-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .settings-side-list {
@@ -481,9 +481,9 @@
 .settings-side-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-md);
   min-height: 64px;
-  padding: 12px 14px;
+  padding: var(--space-md) var(--space-md);
   border-bottom: 1px solid var(--panel-border);
 }
 
@@ -496,7 +496,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .settings-side-meta {
@@ -511,8 +511,8 @@
 .settings-setup-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: var(--space-md);
+  padding: var(--space-lg);
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
@@ -522,14 +522,14 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .settings-version-pill {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--green) 22%, var(--s4));
   background: color-mix(in srgb, var(--green) 9%, transparent);
@@ -542,14 +542,14 @@
 .settings-setup-meta-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .settings-setup-meta {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 12px;
+  gap: var(--space-xs);
+  padding: var(--space-md);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-card);
   background: var(--surface-sunken);
@@ -571,8 +571,8 @@
 .settings-crash-stats {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 8px 0;
+  gap: var(--space-xl);
+  padding: var(--space-sm) 0;
 }
 
 .settings-crash-stat {
@@ -615,8 +615,8 @@
 .settings-crash-summary {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -672,7 +672,7 @@
 }
 
 .settings-crash-stack {
-  padding: 10px 14px;
+  padding: var(--space-md) var(--space-md);
   margin: 0;
   font-family: var(--font-code);
   font-size: var(--fs-10);
@@ -687,13 +687,13 @@
 }
 
 .settings-crash-stack.spaced {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 /* Workspace profile selector */
 .settings-profile-selector {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .settings-profile-btn {
@@ -723,8 +723,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md);
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
@@ -748,21 +748,21 @@
 
 .settings-actions-row {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .settings-inline-row {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .settings-provider-grid {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .settings-provider-btn {
@@ -770,9 +770,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   min-height: 36px;
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--drawer-control-radius);
   border: 1px solid var(--control-border);
   background: var(--control-bg);
@@ -813,15 +813,15 @@
 .settings-provider-status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .settings-provider-status-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 40px;
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--card-border);
   border-radius: var(--drawer-card-radius);
   background: var(--card-bg);
@@ -846,7 +846,7 @@
 .settings-provider-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -862,7 +862,7 @@
 
 .settings-provider-mini {
   min-width: 62px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   text-transform: capitalize;
 }
 
@@ -879,12 +879,12 @@
 
 .settings-provider-select {
   min-width: 132px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   text-transform: capitalize;
 }
 
 .settings-inline-note {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 
 .settings-inline-note.warn {
@@ -897,13 +897,13 @@
 
 .settings-meta-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .settings-copy-stack-btn {
-  margin-top: 6px;
-  padding: 3px 8px;
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--fs-10);
   background: var(--s3);
   color: var(--t2);
@@ -918,5 +918,5 @@
 }
 
 .settings-tools-label {
-  margin-top: 16px;
+  margin-top: var(--space-lg);
 }
