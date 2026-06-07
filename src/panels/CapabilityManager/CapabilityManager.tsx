@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCapabilityPacksStore } from '../../store/capabilityPacks'
-import { CAPABILITY_PACKS } from '../../constants/capabilityPacks'
+import { CAPABILITY_PACKS, OPTIONAL_PACK_IDS } from '../../constants/capabilityPacks'
 import type { CapabilityPack } from '../../constants/capabilityPacks'
 import { Toggle } from '../../components/Toggle'
 import { Card, PanelHeader, StatusDot } from '../../components/Panel'
@@ -54,6 +54,43 @@ function PackCard({ pack }: { pack: CapabilityPack }) {
   )
 }
 
+function PerfSummary() {
+  // Subscribe to a derived primitive signature so the summary re-renders on every
+  // pack toggle (subscribing the whole map object can miss updates if a stale
+  // reference is held across HMR/keep-alive remounts).
+  const activeSignature = useCapabilityPacksStore((s) =>
+    OPTIONAL_PACK_IDS.map((id) => (s.enabledPacks[id] === false ? '0' : '1')).join(''),
+  )
+
+  const summary = useMemo(() => {
+    const flags = activeSignature.split('')
+    const active = flags.filter((f) => f === '1').length
+    const disabled = OPTIONAL_PACK_IDS
+      .filter((_, i) => flags[i] === '0')
+      .map((id) => CAPABILITY_PACKS.find((p) => p.id === id))
+      .filter((p): p is CapabilityPack => Boolean(p))
+    const gatedDomains = disabled.reduce((sum, p) => sum + p.ipcDomains.length, 0)
+    return {
+      activeCount: active,
+      totalCount: OPTIONAL_PACK_IDS.length,
+      gatedDomains,
+    }
+  }, [activeSignature])
+
+  return (
+    <div className={styles.perfSummary}>
+      <span className={styles.perfMetric}>
+        <strong>{summary.activeCount}/{summary.totalCount}</strong> packs active
+      </span>
+      {summary.gatedDomains > 0 && (
+        <span className={styles.perfMetric}>
+          <strong>{summary.gatedDomains}</strong> backend {summary.gatedDomains === 1 ? 'domain' : 'domains'} idle
+        </span>
+      )}
+    </div>
+  )
+}
+
 export function CapabilityManager() {
   const [activeTab, setActiveTab] = useState<Tab>('packs')
   const loaded = useCapabilityPacksStore((s) => s.loaded)
@@ -93,11 +130,14 @@ export function CapabilityManager() {
 
       <div className={styles.body}>
         {activeTab === 'packs' && (
-          <div className={styles.packList}>
-            {CAPABILITY_PACKS.map((pack) => (
-              <PackCard key={pack.id} pack={pack} />
-            ))}
-          </div>
+          <>
+            <PerfSummary />
+            <div className={styles.packList}>
+              {CAPABILITY_PACKS.map((pack) => (
+                <PackCard key={pack.id} pack={pack} />
+              ))}
+            </div>
+          </>
         )}
         {activeTab === 'plugins' && <PluginManager />}
       </div>

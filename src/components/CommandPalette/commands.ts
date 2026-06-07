@@ -28,6 +28,8 @@ interface CommandDeps {
   closeDrawer: VoidCallback
   toggleBrowserTab?: VoidCallback
   toggleDashboardTab?: VoidCallback
+  toggleConsoleDock?: VoidCallback
+  getConsoleDock?: () => string
   isToolVisible?: (toolId: string) => boolean
 }
 
@@ -43,6 +45,8 @@ export function buildCommands(deps: CommandDeps): Command[] {
     closeDrawer,
     toggleBrowserTab,
     toggleDashboardTab,
+    toggleConsoleDock,
+    getConsoleDock,
     isToolVisible,
   } = deps
 
@@ -140,6 +144,12 @@ export function buildCommands(deps: CommandDeps): Command[] {
       category: 'View',
       action: () => window.daemon.window.reload(),
     },
+    ...(toggleConsoleDock ? [{
+      id: 'view:move-console',
+      label: getConsoleDock?.() === 'bottom' ? 'Move Console to Right Rail' : 'Move Console to Bottom Panel',
+      category: 'View',
+      action: () => toggleConsoleDock(),
+    }] : []),
 
     // Agent
     {

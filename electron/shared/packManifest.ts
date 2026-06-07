@@ -11,6 +11,7 @@ export type PackId =
   | 'memory'
   | 'sites'
   | 'markets'
+  | 'create'
   | 'guard'
 
 // IPC domains that a pack owns. A disabled pack skips registration of these
@@ -38,6 +39,8 @@ export type IpcDomainId =
   | 'forensics'
   | 'replay'
   | 'agentStation'
+  | 'images'
+  | 'tweets'
 
 // Pack -> owned IPC domains. The single source of truth for backend gating.
 // The renderer pack model (src/constants/capabilityPacks.ts) re-exports this so
@@ -50,6 +53,7 @@ export const PACK_IPC_DOMAINS: Record<PackId, IpcDomainId[]> = {
   memory: ['memory'],
   sites: ['deploy', 'shipline'],
   markets: ['signalhouse', 'meterflow', 'idle', 'colosseum'],
+  create: ['images', 'tweets'],
   guard: [],
 }
 
@@ -67,6 +71,7 @@ export function defaultEnabledPacks(): Record<PackId, boolean> {
     memory: true,
     sites: true,
     markets: true,
+    create: true,
     guard: true,
   }
 }

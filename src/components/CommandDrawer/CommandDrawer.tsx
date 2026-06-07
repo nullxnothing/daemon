@@ -164,7 +164,6 @@ const loadPortsPanel = () => import('../../panels/PortsPanel/PortsPanel')
 const loadProcessManager = () => import('../../panels/ProcessManager/ProcessManager')
 const loadImageEditor = () => import('../../panels/ImageEditor/ImageEditor')
 const loadSolanaToolbox = () => import('../../panels/SolanaToolbox/SolanaToolbox')
-const loadIntegrationCommandCenter = () => import('../../panels/IntegrationCommandCenter/IntegrationCommandCenter')
 const loadMetaplexDemo = () => import('../../panels/MetaplexDemo/MetaplexDemoPanel')
 const loadAgentOps = () => import('../../panels/AgentOps/AgentOpsPanel')
 const loadZauthPanel = () => import('../../panels/Zauth/ZauthPanel')
@@ -203,7 +202,6 @@ const PortsPanel = lazyNamedWithReload('ports-panel', loadPortsPanel, (m) => m.P
 const ProcessManager = lazyNamedWithReload('process-manager', loadProcessManager, (m) => m.ProcessManager)
 const ImageEditor = lazyWithReload('image-editor', loadImageEditor)
 const SolanaToolbox = lazyWithReload('solana-toolbox', loadSolanaToolbox)
-const IntegrationCommandCenter = lazyWithReload('integration-command-center', loadIntegrationCommandCenter)
 const MetaplexDemoPanel = lazyNamedWithReload('metaplex-demo', loadMetaplexDemo, (m) => m.MetaplexDemoPanel)
 const AgentOpsPanel = lazyNamedWithReload('agentops', loadAgentOps, (m) => m.AgentOpsPanel)
 const ZauthPanel = lazyNamedWithReload('zauth-panel', loadZauthPanel, (m) => m.ZauthPanel)
@@ -252,7 +250,6 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'proof-pool', name: 'Proof Pool', description: 'Pooled Pump.fun launches with verified backer slots', icon: ProofPoolIcon, component: ProofPoolPanel, preload: () => { void loadProofPoolPanel() }, category: 'launch', folded: true },
   { id: 'project-readiness', name: 'Solana Start', description: 'Project, wallet, RPC, MCP, AI, and first safe action checklist', icon: ReadinessIcon, component: ProjectReadiness, preload: () => { void loadProjectReadiness() }, category: 'solana-core', folded: true },
   { id: 'solana-toolbox', name: 'Solana Workflow', description: 'Start, Connect, Build, Launch, Inspect, and Debug for Solana projects', icon: SolanaIcon, component: SolanaToolbox, preload: () => { void loadSolanaToolbox() }, category: 'solana-core' },
-  { id: 'integrations', name: 'Integrations', description: 'Guided Solana integration setup and safe checks', icon: IntegrationsIcon, component: IntegrationCommandCenter, preload: () => { void loadIntegrationCommandCenter() }, category: 'solana-core', folded: true },
   { id: 'agentops', name: 'AgentOps', description: 'Simple Metaplex agent control and website handoff', icon: AgentOpsIcon, component: AgentOpsPanel, preload: () => { void loadAgentOps() }, category: 'agents', folded: true },
   { id: 'metaplex-demo', name: 'Metaplex Demo', description: 'Native Core, DAS, launch, and Agent Registry demo', icon: IntegrationsIcon, component: MetaplexDemoPanel, preload: () => { void loadMetaplexDemo() }, category: 'solana-core', folded: true },
   { id: 'zauth', name: 'Zauth', description: 'x402 database and Provider Hub', icon: ZauthIcon, component: ZauthPanel, preload: () => { void loadZauthPanel() }, category: 'partners', folded: true },

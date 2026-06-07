@@ -824,8 +824,8 @@ declare global {
     getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>
     getSolanaRuntimeStatus: () => Promise<IpcResponse<SolanaRuntimeStatusSummary>>
     setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
-    getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
-    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
+    getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null; consoleDock: string | null }>>
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
     onUiRecoveryApplied: (callback: (result: UiRecoveryResult) => void) => () => void
   }

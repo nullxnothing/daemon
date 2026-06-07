@@ -29,6 +29,8 @@ interface TerminalTab {
 
 export type CenterMode = 'canvas' | 'grind'
 export type RightPanelTab = 'claude' | 'codex' | 'meterflow'
+/** Where the DAEMON Console lives: the right rail (default) or the bottom panel. */
+export type ConsoleDock = 'right' | 'bottom'
 
 interface UIState {
   activePanel: 'claude' | 'env' | 'git' | 'ports' | 'process' | 'wallet' | 'dispatch' | 'aria' | 'plugins' | 'recovery' | 'settings'
@@ -42,6 +44,7 @@ interface UIState {
   mcpDirty: boolean
   mcpVersion: number
   centerMode: CenterMode
+  consoleDock: ConsoleDock
   browserTabOpen: boolean
   browserTabActive: boolean
   workspaceToolTabs: string[]
@@ -76,6 +79,8 @@ interface UIState {
   setMcpDirty: (dirty: boolean) => void
   bumpMcpVersion: () => void
   setCenterMode: (mode: CenterMode) => void
+  setConsoleDock: (dock: ConsoleDock) => void
+  toggleConsoleDock: () => void
   toggleBrowserTab: () => void
   openBrowserTab: () => void
   closeBrowserTab: () => void
@@ -137,6 +142,7 @@ export const useUIStore = create<UIState>((set) => ({
   mcpDirty: false,
   mcpVersion: 0,
   centerMode: 'canvas' as CenterMode,
+  consoleDock: 'right' as ConsoleDock,
   browserTabOpen: false,
   browserTabActive: false,
   workspaceToolTabs: [],
@@ -253,6 +259,16 @@ export const useUIStore = create<UIState>((set) => ({
     if (typeof window !== 'undefined') {
       daemon.settings.setLayout({ centerMode: mode }).catch(() => {})
     }
+  },
+  setConsoleDock: (dock) => {
+    set({ consoleDock: dock })
+    if (typeof window !== 'undefined') {
+      daemon.settings.setLayout({ consoleDock: dock }).catch(() => {})
+    }
+  },
+  toggleConsoleDock: () => {
+    const next: ConsoleDock = useUIStore.getState().consoleDock === 'right' ? 'bottom' : 'right'
+    useUIStore.getState().setConsoleDock(next)
   },
   toggleBrowserTab: () => set((state) => {
     if (!canActivateTool('browser')) return {}
@@ -573,6 +589,9 @@ export const useUIStore = create<UIState>((set) => ({
         }
         if (layoutRes.data.rightPanelTab === 'claude' || layoutRes.data.rightPanelTab === 'codex' || layoutRes.data.rightPanelTab === 'meterflow') {
           updates.rightPanelTab = layoutRes.data.rightPanelTab
+        }
+        if (layoutRes.data.consoleDock === 'right' || layoutRes.data.consoleDock === 'bottom') {
+          updates.consoleDock = layoutRes.data.consoleDock
         }
       }
       if (Object.keys(updates).length > 0) set(updates)

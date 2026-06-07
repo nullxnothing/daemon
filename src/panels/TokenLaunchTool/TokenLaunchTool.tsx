@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { TokenLaunchSection } from '../SolanaToolbox/TokenLaunchSection'
 import { LaunchpadSettingsSection } from '../SolanaToolbox/LaunchpadSettingsSection'
 import { TokenLauncher } from '../../components/TokenLauncher/TokenLauncher'
 import { Surface } from '../../components/Panel'
 import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
+import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
+import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
 import { useUIStore } from '../../store/ui'
 import '../_solana/solanaSurface.css'
 import './TokenLaunchTool.css'
@@ -19,6 +21,7 @@ const LAUNCH_TABS = [
   { id: 'clawpump', label: 'ClawPump' },
   { id: 'flywheel', label: 'Flywheel' },
   { id: 'degentools', label: 'DegenTools' },
+  { id: 'integrations', label: 'Integrations' },
 ] as const
 type LaunchView = (typeof LAUNCH_TABS)[number]['id']
 
@@ -31,6 +34,7 @@ export function TokenLaunchTool() {
   const [recentCount, setRecentCount] = useState(0)
   const [showConfig, setShowConfig] = useState(false)
   const [view, setView] = useState<LaunchView>('launch')
+  const launchIntegrations = useMemo(() => integrationsForPackId('launch'), [])
   const pendingSubView = useUIStore((state) => state.pendingSubView)
   const setPendingSubView = useUIStore((state) => state.setPendingSubView)
 
@@ -153,6 +157,9 @@ export function TokenLaunchTool() {
       )}
       {view === 'degentools' && (
         <Suspense fallback={<div className="sol-scroll" />}><DegenToolsPanel /></Suspense>
+      )}
+      {view === 'integrations' && (
+        <IntegrationCommandCenter filter={launchIntegrations} />
       )}
     </PackHostShell>
   )

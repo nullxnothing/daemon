@@ -320,6 +320,8 @@ const PACK_DOMAIN_REGISTRARS: Record<IpcDomainId, () => void> = {
   forensics: registerForensicsHandlers,
   replay: registerReplayHandlers,
   agentStation: registerAgentStationHandlers,
+  images: registerImageHandlers,
+  tweets: registerTweetHandlers,
 }
 
 // Register the IPC domains for every currently-enabled pack. Idempotent: a
@@ -361,13 +363,11 @@ function registerAllIpc() {
   registerSettingsHandlers()
   registerPluginHandlers()
   registerPackHandlers()
-  registerTweetHandlers()
   registerRecoveryHandlers()
   registerEngineHandlers()
   registerToolHandlers()
   registerBrowserHandlers()
   registerEmailHandlers()
-  registerImageHandlers()
   registerAriaHandlers()
   registerDashboardHandlers()
   registerRegistryHandlers()

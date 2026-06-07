@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useUIStore } from '../../store/ui'
 import { useWalletStore } from '../../store/wallet'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
+import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
+import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
 import { WalletWorkspace } from './workspace/WalletWorkspace'
 import workspaceStyles from './workspace/WalletWorkspace.module.css'
 import './WalletPanel.css'
@@ -15,6 +17,7 @@ const WALLET_TABS = [
   { id: 'wallet', label: 'Wallet' },
   { id: 'portfolio', label: 'Portfolio' },
   { id: 'forensics', label: 'Forensics' },
+  { id: 'integrations', label: 'Integrations' },
 ] as const
 type WalletView = (typeof WALLET_TABS)[number]['id']
 
@@ -25,6 +28,7 @@ export function WalletPanel() {
   const pendingSubView = useUIStore((s) => s.pendingSubView)
   const setPendingSubView = useUIStore((s) => s.setPendingSubView)
   const [view, setView] = useState<WalletView>('wallet')
+  const walletIntegrations = useMemo(() => integrationsForPackId('wallet'), [])
 
   useEffect(() => {
     if (!pendingSubView) return
@@ -93,6 +97,9 @@ export function WalletPanel() {
           <Suspense fallback={<div className={workspaceStyles.statusWrap}><div className={workspaceStyles.statusInner}><div className={workspaceStyles.statusTitle}>Loading forensics…</div></div></div>}>
             <RicoMapsPanel />
           </Suspense>
+        )}
+        {view === 'integrations' && (
+          <IntegrationCommandCenter filter={walletIntegrations} />
         )}
       </div>
     </PackHostShell>

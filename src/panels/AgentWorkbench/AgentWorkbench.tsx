@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
 import { Composer, ModelDropdown } from '../../components/Panel'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
+import { getConsoleSuggestions, resolveConsoleCommand, isConsoleCommandInput, type ConsoleCommand } from '../../lib/console/consoleCommands'
 import { AgentTranscript } from './AgentTranscript'
 import { AriaSessionList } from './AriaSessionList'
 import { SwarmMonitor } from './SwarmMonitor'
@@ -23,12 +24,15 @@ export function AgentWorkbench() {
   const turns = useAriaStore((s) => s.turns)
   const isLoading = useAriaStore((s) => s.isLoading)
   const sendMessage = useAriaStore((s) => s.sendMessage)
+  const pushLocalTurn = useAriaStore((s) => s.pushLocalTurn)
   const newChat = useAriaStore((s) => s.newChat)
   const subscribe = useAriaStore((s) => s.subscribe)
   const initSessions = useAriaStore((s) => s.initSessions)
   const loadSessions = useAriaStore((s) => s.loadSessions)
   const loadModels = useAriaStore((s) => s.loadModels)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
+  const consoleDock = useUIStore((s) => s.consoleDock)
+  const toggleConsoleDock = useUIStore((s) => s.toggleConsoleDock)
 
   const [input, setInput] = useState('')
   const [chips, setChips] = useState(getAriaChips())
@@ -55,9 +59,40 @@ export function AgentWorkbench() {
     setAriaChips({ [id]: on })
   }
 
+  // `> @ /` accelerators. Chat-first: plain text falls through to ARIA; only a
+  // leading `>` or `/` surfaces the structured command list.
+  const suggestions = useMemo(() => getConsoleSuggestions(input), [input])
+  const showSuggestions = suggestions.length > 0
+
+  // Run a console command: navigation runs inline; result commands echo the
+  // command into the transcript and append the read-only result.
+  const executeCommand = (cmd: ConsoleCommand, raw: string) => {
+    setInput('')
+    if (cmd.result) {
+      const token = `${cmd.trigger}${cmd.id}`
+      void cmd.result()
+        .then((text) => pushLocalTurn(token, text))
+        .catch((err) => pushLocalTurn(token, `Error: ${(err as Error).message}`))
+      return
+    }
+    cmd.run?.()
+  }
+
+  const runSuggestion = (cmd: ConsoleCommand) => {
+    executeCommand(cmd, `${cmd.trigger}${cmd.id}`)
+  }
+
   const handleSend = () => {
     const value = input.trim()
     if (!value || isLoading) return
+    // A `>` or `/` command runs locally and never hits the agent.
+    if (isConsoleCommandInput(value)) {
+      const cmd = resolveConsoleCommand(value)
+      if (cmd) {
+        executeCommand(cmd, value)
+        return
+      }
+    }
     setInput('')
     // Refresh the session list after the turn so an auto-titled session and its
     // updated_at ordering show up in the switcher.
@@ -73,10 +108,19 @@ export function AgentWorkbench() {
     <div className="agent-workbench">
       <header className="agent-wb-head">
         <div className="agent-wb-tabs">
-          <button type="button" className={`agent-wb-tab${view === 'chat' ? ' active' : ''}`} onClick={() => setView('chat')}>Chat</button>
+          <button type="button" className={`agent-wb-tab${view === 'chat' ? ' active' : ''}`} onClick={() => setView('chat')}>Console</button>
           <button type="button" className={`agent-wb-tab${view === 'swarms' ? ' active' : ''}`} onClick={() => setView('swarms')}>Swarms</button>
         </div>
         <span className="agent-wb-spacer" />
+        <button
+          type="button"
+          className="agent-wb-dock-btn"
+          onClick={toggleConsoleDock}
+          title={consoleDock === 'right' ? 'Move Console to bottom panel' : 'Move Console to right rail'}
+          aria-label={consoleDock === 'right' ? 'Move Console to bottom panel' : 'Move Console to right rail'}
+        >
+          {consoleDock === 'right' ? 'Dock ↓' : 'Dock →'}
+        </button>
         {view === 'chat' ? (
           <button type="button" className="agent-wb-newchat" onClick={() => void newChat()}>+ New Chat</button>
         ) : null}
@@ -100,13 +144,32 @@ export function AgentWorkbench() {
             )}
           </div>
 
+          {showSuggestions && (
+            <div className="agent-wb-suggest" role="listbox" aria-label="Console commands">
+              {suggestions.slice(0, 8).map((cmd) => (
+                <button
+                  key={`${cmd.trigger}${cmd.id}`}
+                  type="button"
+                  className="agent-wb-suggest-item"
+                  role="option"
+                  aria-selected={false}
+                  onClick={() => runSuggestion(cmd)}
+                >
+                  <span className="agent-wb-suggest-token">{cmd.trigger}{cmd.id}</span>
+                  <span className="agent-wb-suggest-label">{cmd.label}</span>
+                  {cmd.hint && <span className="agent-wb-suggest-hint">{cmd.hint}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+
           <Composer
             className="agent-wb-composer"
             value={input}
             onChange={setInput}
             onSend={handleSend}
             disabled={isLoading}
-            placeholder="Ask the operator to build, refactor, or explain…"
+            placeholder="Ask the operator, or type / for commands…"
             sendIcon
             model={<ModelDropdown />}
             context={activeContext}

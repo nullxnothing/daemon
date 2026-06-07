@@ -5,6 +5,8 @@ import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useCapabilityPacksStore } from '../../store/capabilityPacks'
+import { OPTIONAL_PACK_IDS } from '../../constants/capabilityPacks'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useAppActions } from '../../store/appActions'
 import { useClipboard } from '../../hooks/useClipboard'
@@ -52,6 +54,7 @@ export const StatusBar = memo(function StatusBar() {
           <GitBranch />
           {showHackathon && <HackathonCountdown />}
           <TerminalCount />
+          <PackIndicator />
           <ValidatorStatus />
           <WalletRuntimeStatus />
         </div>
@@ -94,6 +97,26 @@ export const StatusBar = memo(function StatusBar() {
     </div>
   )
 })
+
+function PackIndicator() {
+  // Re-render on any pack toggle by subscribing to the map.
+  const enabledPacks = useCapabilityPacksStore((s) => s.enabledPacks)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const active = OPTIONAL_PACK_IDS.filter((id) => enabledPacks[id] !== false).length
+  const total = OPTIONAL_PACK_IDS.length
+
+  return (
+    <button
+      type="button"
+      className={`${styles.item} ${styles.clickable} ${styles.linkButton}`}
+      onClick={() => openWorkspaceTool('plugins')}
+      title="Manage capability packs"
+      aria-label={`${active} of ${total} capability packs active`}
+    >
+      {active}/{total} packs
+    </button>
+  )
+}
 
 function TerminalCount() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)

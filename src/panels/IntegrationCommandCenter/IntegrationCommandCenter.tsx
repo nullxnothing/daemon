@@ -2022,6 +2022,15 @@ export function IntegrationCommandCenter({ filter }: IntegrationCommandCenterPro
     return counts
   }, [baseRegistry, search])
 
+  // When the surface is filtered to a single pack, only show category rails that
+  // actually contain integrations in scope (plus "All"). The full registry shows
+  // every category.
+  const visibleCategories = useMemo(() => {
+    if (!filter) return INTEGRATION_CATEGORIES
+    const present = new Set(baseRegistry.map((integration) => integration.category))
+    return INTEGRATION_CATEGORIES.filter((item) => item.id === 'all' || present.has(item.id as IntegrationCategory))
+  }, [filter, baseRegistry])
+
   // Status legend counts. "Off" = not enabled; ready/needs-setup come from enabled status.
   const statusCounts = useMemo(() => {
     let ready = 0
@@ -3494,7 +3503,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
         </div>
 
         <nav className="icc-rail-nav">
-          {INTEGRATION_CATEGORIES.map((item) => (
+          {visibleCategories.map((item) => (
             <button
               key={item.id}
               type="button"

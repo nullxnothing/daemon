@@ -56,6 +56,8 @@ interface AriaState {
   availableModels: DaemonAiModelInfo[]
 
   sendMessage: (content: string) => Promise<void>
+  /** Append a local command echo + result to the transcript without invoking the agent. */
+  pushLocalTurn: (command: string, result: string) => void
   approve: (callId: string, approved: boolean) => void
   decidePatch: (proposalId: string, action: AriaPatchAction) => void
   setLane: (lane: DaemonAiModelLane) => void
@@ -118,6 +120,12 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       activeAssistantId = null
       set({ isLoading: false })
     }
+  },
+
+  pushLocalTurn: (command, result) => {
+    const user = newTurn('user', command)
+    const assistant = newTurn('assistant', result)
+    set((s) => ({ turns: [...s.turns, user, assistant] }))
   },
 
   approve: (callId, approved) => {

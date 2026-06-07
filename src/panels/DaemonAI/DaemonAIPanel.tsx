@@ -14,6 +14,8 @@ import {
   UnderlineTabs,
 } from '../../components/Panel'
 import { Button } from '../../components/Button'
+import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
+import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
 import {
   METERFLOW_RECEIPT_EVENT,
   METERFLOW_RECEIPT_HANDOFF_KEY,
@@ -30,6 +32,7 @@ const AGENT_PACK_TABS = [
   { id: 'station', label: 'Station' },
   { id: 'work', label: 'Work' },
   { id: 'ops', label: 'Ops' },
+  { id: 'integrations', label: 'Integrations' },
 ] as const
 type AgentPackView = (typeof AGENT_PACK_TABS)[number]['id']
 
@@ -72,6 +75,7 @@ export function DaemonAIPanel() {
   const pendingSubView = useUIStore((s) => s.pendingSubView)
   const setPendingSubView = useUIStore((s) => s.setPendingSubView)
   const [packView, setPackView] = useState<AgentPackView>('ai')
+  const agentIntegrations = useMemo(() => integrationsForPackId('agent'), [])
 
   useEffect(() => {
     if (!pendingSubView) return
@@ -248,6 +252,9 @@ export function DaemonAIPanel() {
       )}
       {packView === 'ops' && (
         <Suspense fallback={<div className="agent-pack-body" />}><AgentOpsPanel /></Suspense>
+      )}
+      {packView === 'integrations' && (
+        <IntegrationCommandCenter filter={agentIntegrations} />
       )}
 
       {packView === 'ai' && (

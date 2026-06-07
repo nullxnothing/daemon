@@ -7,11 +7,25 @@ export { PACK_IPC_DOMAINS, CORE_PACK_IDS, defaultEnabledPacks } from '../../elec
 
 export type PackStatus = 'core' | 'optional'
 
+/**
+ * Canonical Activity Bar slot a pack contributes. When the pack is enabled the
+ * IconSidebar renders this slot automatically (above the user's manual pins);
+ * disabling the pack removes it. `toolId` is the pack's primary host surface.
+ */
+export interface PackActivityBarSlot {
+  /** Primary host tool/plugin id the slot opens. */
+  toolId: string
+  /** Sort order among pack slots (lower = higher in the bar). */
+  order: number
+}
+
 export interface CapabilityPack {
   id: PackId
   name: string
   description: string
   status: PackStatus
+  /** Canonical Activity Bar slot. Omit for packs with no primary surface (e.g. guard). */
+  activityBar?: PackActivityBarSlot
   /** Members from TOOL_REGISTRY (addon ids). Disabling the pack hides these. */
   toolIds: string[]
   /** Members from PLUGIN_REGISTRY. Disabling the pack toggles these off. */
@@ -33,7 +47,8 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Solana',
     description: 'Solana dev workflow, project readiness, block scanner, replay, Metaplex, and RPC/NFT integrations.',
     status: 'optional',
-    toolIds: ['solana-toolbox', 'project-readiness', 'block-scanner', 'replay-engine', 'metaplex-demo', 'integrations'],
+    activityBar: { toolId: 'solana-toolbox', order: 10 },
+    toolIds: ['solana-toolbox', 'project-readiness', 'block-scanner', 'replay-engine', 'metaplex-demo'],
     pluginIds: [],
     ipcDomains: PACK_IPC_DOMAINS.solana,
     integrationCategories: ['rpc', 'nft'],
@@ -46,6 +61,7 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Wallet',
     description: 'Wallet management, portfolio, PnL, and forensic graphing with wallet provider integrations.',
     status: 'optional',
+    activityBar: { toolId: 'wallet', order: 20 },
     toolIds: ['wallet', 'ricomaps'],
     pluginIds: [],
     ipcDomains: PACK_IPC_DOMAINS.wallet,
@@ -58,6 +74,7 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Launch',
     description: 'Token launches across Pump.fun, Raydium, Meteora, OpenBid, proof pools, and the fee flywheel.',
     status: 'optional',
+    activityBar: { toolId: 'token-launch', order: 30 },
     toolIds: ['token-launch', 'proof-pool', 'clawpump', 'degentools', 'flywheel'],
     pluginIds: [],
     ipcDomains: PACK_IPC_DOMAINS.launch,
@@ -70,6 +87,7 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Agent',
     description: 'Agent station, agent work, AgentOps, DaemonAI, parallel swarms, and Pro features.',
     status: 'optional',
+    activityBar: { toolId: 'daemon-ai', order: 40 },
     toolIds: ['agentops', 'agent-work', 'agent-station', 'daemon-ai', 'pro'],
     pluginIds: [],
     ipcDomains: PACK_IPC_DOMAINS.agent,
@@ -82,6 +100,7 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Memory',
     description: 'Approved, source-backed project facts injected into agent prompts.',
     status: 'optional',
+    activityBar: { toolId: 'memory', order: 60 },
     toolIds: [],
     pluginIds: ['memory'],
     ipcDomains: PACK_IPC_DOMAINS.memory,
@@ -94,6 +113,7 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Sites',
     description: 'Vercel and Railway deployments plus on-chain program shipping.',
     status: 'optional',
+    activityBar: { toolId: 'deploy', order: 70 },
     toolIds: [],
     pluginIds: ['deploy'],
     ipcDomains: PACK_IPC_DOMAINS.sites,
@@ -106,6 +126,7 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     name: 'Markets & Intel',
     description: 'Signal House, hackathon tracker, Meterflow billing, and Zauth provider hub.',
     status: 'optional',
+    activityBar: { toolId: 'signalhouse', order: 50 },
     toolIds: ['signalhouse', 'hackathon', 'meterflow', 'zauth'],
     pluginIds: [],
     ipcDomains: PACK_IPC_DOMAINS.markets,
@@ -113,6 +134,19 @@ export const CAPABILITY_PACKS: CapabilityPack[] = [
     integrationIds: ['signalhouse', 'idle-protocol', 'zauth', 'streamlock'],
     ariaToolModules: [],
     perfNote: 'Skips the Meterflow receipt watcher when disabled.',
+  },
+  {
+    id: 'create',
+    name: 'Create',
+    description: 'Image editing, email, and content tools for launch and marketing assets.',
+    status: 'optional',
+    activityBar: { toolId: 'image-editor', order: 55 },
+    toolIds: ['image-editor', 'email'],
+    pluginIds: [],
+    ipcDomains: PACK_IPC_DOMAINS.create,
+    integrationCategories: [],
+    ariaToolModules: [],
+    perfNote: 'Skips image and tweet services when disabled.',
   },
   {
     id: 'guard',
@@ -139,6 +173,26 @@ export const OPTIONAL_PACK_IDS = CAPABILITY_PACKS
 export function isCorePack(packId: PackId): boolean {
   return CAPABILITY_PACKS_BY_ID[packId]?.status === 'core'
 }
+
+/** Reverse lookup: tool/plugin id → owning pack id (for perf gating). */
+export const TOOL_TO_PACK: Record<string, PackId> = (() => {
+  const map: Record<string, PackId> = {}
+  for (const pack of CAPABILITY_PACKS) {
+    for (const toolId of pack.toolIds) map[toolId] = pack.id
+    for (const pluginId of pack.pluginIds) map[pluginId] = pack.id
+  }
+  return map
+})()
+
+/** Packs that contribute an Activity Bar slot, in render order. */
+export const ACTIVITY_BAR_PACKS = CAPABILITY_PACKS
+  .filter((pack) => pack.activityBar)
+  .sort((a, b) => a.activityBar!.order - b.activityBar!.order)
+
+/** Every tool id that is the primary surface of a pack Activity Bar slot. */
+export const ACTIVITY_BAR_SLOT_TOOL_IDS = new Set(
+  ACTIVITY_BAR_PACKS.map((pack) => pack.activityBar!.toolId),
+)
 
 /** All addon tool ids owned by optional packs (used to derive profile presets). */
 export function packToolIds(packIds: PackId[]): string[] {

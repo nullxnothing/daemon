@@ -11,7 +11,23 @@ import {
   readRightSidebarWidgetConfig,
   RIGHT_SIDEBAR_WIDGET_EVENT,
   type RightSidebarWidgetConfig,
+  type RightSidebarWidgetId,
 } from './sidebarAgentWidgetConfig'
+import { useCapabilityPacksStore } from '../../store/capabilityPacks'
+import type { PackId } from '../../constants/capabilityPacks'
+
+// Each right-rail widget belongs to a capability pack. A widget polls on a timer
+// while mounted, so when its pack is disabled we unmount it to stop the poll and
+// avoid hitting a now-gated IPC domain. Widgets with no pack are always allowed.
+const WIDGET_PACK: Partial<Record<RightSidebarWidgetId, PackId>> = {
+  'wallet-snapshot': 'wallet',
+  'solana-readiness': 'solana',
+  'token-watch': 'wallet',
+  zauth: 'markets',
+  meterflow: 'markets',
+  'ai-status': 'agent',
+  clawpump: 'launch',
+}
 
 const EMPTY_WALLETS: WalletDashboard['wallets'] = []
 
@@ -292,17 +308,27 @@ function ClawpumpSidebarWidget() {
 
 export function RightSidebarWidgets() {
   const config = useRightSidebarWidgetConfig()
+  // Subscribe to enabledPacks so widgets unmount the moment their pack is toggled off.
+  const enabledPacks = useCapabilityPacksStore((s) => s.enabledPacks)
+  const isPackEnabled = useCapabilityPacksStore((s) => s.isPackEnabled)
+
+  const show = (id: RightSidebarWidgetId): boolean => {
+    if (!config.enabled[id]) return false
+    const pack = WIDGET_PACK[id]
+    return pack ? isPackEnabled(pack) : true
+  }
+  void enabledPacks // keep this reactive to pack toggles
 
   return (
     <>
-      {config.enabled['project-status'] && <ProjectStatusWidget />}
-      {config.enabled['wallet-snapshot'] && <WalletSnapshotWidget />}
-      {config.enabled['solana-readiness'] && <SolanaReadinessSidebarWidget />}
-      {config.enabled['token-watch'] && <TokenWatchSidebarWidget />}
-      {config.enabled['zauth'] && <ZauthSidebarWidget />}
-      {config.enabled['meterflow'] && <MeterflowSidebarWidget />}
-      {config.enabled['ai-status'] && <AiStatusWidget />}
-      {config.enabled['clawpump'] && <ClawpumpSidebarWidget />}
+      {show('project-status') && <ProjectStatusWidget />}
+      {show('wallet-snapshot') && <WalletSnapshotWidget />}
+      {show('solana-readiness') && <SolanaReadinessSidebarWidget />}
+      {show('token-watch') && <TokenWatchSidebarWidget />}
+      {show('zauth') && <ZauthSidebarWidget />}
+      {show('meterflow') && <MeterflowSidebarWidget />}
+      {show('ai-status') && <AiStatusWidget />}
+      {show('clawpump') && <ClawpumpSidebarWidget />}
     </>
   )
 }

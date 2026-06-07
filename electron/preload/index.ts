@@ -429,7 +429,7 @@ contextBridge.exposeInMainWorld('daemon', {
     getSolanaRuntimeStatus: () => ipcRenderer.invoke('settings:get-solana-runtime-status'),
     setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
-    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
     onCrashWarning: (callback: (count: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)
