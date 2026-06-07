@@ -25,7 +25,7 @@
   background: var(--s2);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
-  padding: 14px 16px; /* TODO: token */
+  padding: var(--space-md) var(--space-lg);
   width: 280px;
   box-shadow: var(--shadow-lifted);
   animation: tour-fade-in 150ms ease;
@@ -49,7 +49,7 @@
 .tour-tooltip-arrow.right {
   left: -5px;
   top: 50%;
-  margin-top: -4px; /* TODO: token */
+  margin-top: calc(-1 * var(--space-xs));
   border-right: none;
   border-top: none;
 }
@@ -57,7 +57,7 @@
 .tour-tooltip-arrow.left {
   right: -5px;
   top: 50%;
-  margin-top: -4px; /* TODO: token */
+  margin-top: calc(-1 * var(--space-xs));
   border-left: none;
   border-bottom: none;
 }
@@ -65,7 +65,7 @@
 .tour-tooltip-arrow.bottom {
   top: -5px;
   left: 50%;
-  margin-left: -4px; /* TODO: token */
+  margin-left: calc(-1 * var(--space-xs));
   border-bottom: none;
   border-right: none;
 }
@@ -73,7 +73,7 @@
 .tour-tooltip-arrow.top {
   bottom: -5px;
   left: 50%;
-  margin-left: -4px; /* TODO: token */
+  margin-left: calc(-1 * var(--space-xs));
   border-top: none;
   border-left: none;
 }
@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px; /* TODO: token */
+  margin-bottom: var(--space-sm);
 }
 
 .tour-tooltip-title {
@@ -102,19 +102,19 @@
   font-size: var(--fs-11);
   color: var(--t2);
   line-height: 1.5;
-  margin: 0 0 12px; /* TODO: token */
+  margin: 0 0 var(--space-md);
 }
 
 /* Actions */
 .tour-tooltip-actions {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
 }
 
 .tour-tooltip-btn {
   height: 26px;
-  padding: 0 10px; /* TODO: token */
+  padding: 0 var(--space-sm);
   border-radius: var(--r);
   font-size: var(--fs-11);
   cursor: pointer;
@@ -142,7 +142,7 @@
   border: none;
   color: var(--t3);
   margin-left: auto;
-  padding: 0 4px; /* TODO: token */
+  padding: 0 var(--space-xs);
 }
 
 .tour-tooltip-btn.skip:hover { color: var(--t1); }

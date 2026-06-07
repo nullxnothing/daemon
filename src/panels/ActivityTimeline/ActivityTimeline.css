@@ -185,7 +185,7 @@
 }
 
 .activity-dot {
-  margin-top: 5px;
+  margin-top: var(--space-xs);
 }
 
 .activity-entry-main {

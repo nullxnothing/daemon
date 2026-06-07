@@ -12,14 +12,14 @@
   align-items: center;
   gap: var(--space-sm);
   flex-shrink: 0;
-  padding: 6px 10px; /* TODO: 6px/10px tokens */
+  padding: var(--space-xs) var(--space-sm);
   border-bottom: 1px solid var(--s3);
   background: var(--s1);
 }
 
 .ricomaps-nav {
   display: flex;
-  gap: 2px; /* TODO: token */
+  gap: var(--space-xs);
 }
 
 .ricomaps-nav button,
@@ -95,7 +95,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   height: 28px; /* TODO: token */
-  padding: 6px 10px; /* TODO: 6px/10px tokens */
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--s4);
   border-radius: var(--radius-pill);
   background: var(--s2);

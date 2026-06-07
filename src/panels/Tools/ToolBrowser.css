@@ -81,7 +81,7 @@
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   transition: border-color var(--transition-fast);
 }
 
@@ -139,7 +139,7 @@
 
 .tool-card-actions {
   display: flex;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: auto;
 }
 
@@ -200,7 +200,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg) 20px; /* TODO: 20px token */
+  padding: var(--space-lg) var(--space-xl);
   border-bottom: 1px solid var(--border);
 }
 
@@ -223,16 +223,16 @@
 .tool-dialog-close:active { color: var(--t2); }
 
 .tool-dialog-body {
-  padding: var(--space-lg) 20px; /* TODO: 20px token */
+  padding: var(--space-lg) var(--space-xl);
   display: flex;
   flex-direction: column;
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
 }
 
 .tool-dialog-field {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   flex: 1;
 }
 
@@ -245,7 +245,7 @@
 .tool-dialog-input,
 .tool-dialog-select {
   height: var(--btn-h-lg);
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-sm);
   font-size: var(--fs-12);
   background: var(--s2);
   border: 1px solid var(--border);
@@ -278,6 +278,6 @@
   display: flex;
   gap: var(--space-sm);
   justify-content: flex-end;
-  padding: var(--space-md) 20px; /* TODO: 20px token */
+  padding: var(--space-md) var(--space-xl);
   border-top: 1px solid var(--border);
 }

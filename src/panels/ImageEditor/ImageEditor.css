@@ -9,13 +9,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px var(--space-md); /* TODO: 6px token */
+  padding: var(--space-xs) var(--space-md);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .ie-btn {
-  padding: var(--space-xs) 10px; /* TODO: 10px token */
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
   border-radius: var(--radius-sm);

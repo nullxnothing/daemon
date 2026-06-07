@@ -76,7 +76,7 @@
   font-weight: var(--fw-regular);
   color: var(--t3);
   background: var(--s4);
-  padding: 2px 6px; /* TODO: token */
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--r);
 }
 

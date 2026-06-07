@@ -112,7 +112,7 @@
 }
 
 .plugin-status-dot {
-  margin-top: 7px; /* TODO: token */
+  margin-top: var(--space-sm);
 }
 
 .plugin-card-info {

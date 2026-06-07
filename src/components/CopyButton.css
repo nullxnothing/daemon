@@ -1,7 +1,7 @@
 .copy-button {
   display: inline-flex;
   align-items: center;
-  gap: 5px; /* TODO: token (off-grid 5px) */
+  gap: var(--space-xs);
   height: var(--btn-h-sm);
   padding: 0 var(--space-sm);
   border: 1px solid transparent;

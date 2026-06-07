@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-lg);
-  padding: 12px 14px;
+  padding: var(--space-md) var(--space-md);
   border-bottom: 1px solid var(--s5);
   background: color-mix(in srgb, var(--s2) 72%, transparent);
 }
@@ -28,7 +28,7 @@
 .zauth-title-block {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xs);
   min-width: 112px;
 }
 
@@ -51,8 +51,8 @@
 .zauth-segment {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
   border: 1px solid var(--s5);
   border-radius: var(--r-panel);
   background: var(--s1);
@@ -60,7 +60,7 @@
 
 .zauth-segment-btn {
   height: 30px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border: 0;
   border-radius: var(--r);
   color: var(--t2);
@@ -88,7 +88,7 @@
 
 .zauth-status {
   min-width: 64px;
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--s5);
   border-radius: var(--radius-pill);
   color: var(--t2);
@@ -160,7 +160,7 @@
   justify-content: space-between;
   gap: var(--space-md);
   min-height: 34px;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--s5);
   color: var(--t3);
   background: var(--s1);
@@ -196,7 +196,7 @@
   .zauth-toolbar {
     align-items: stretch;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-sm);
   }
 
   .zauth-toolbar-left,
@@ -217,7 +217,7 @@
     align-items: flex-start;
     flex-direction: column;
     justify-content: center;
-    padding-block: 7px;
+    padding-block: var(--space-sm);
   }
 
   .zauth-meta-row code {

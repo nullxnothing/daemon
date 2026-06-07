@@ -1,13 +1,13 @@
 .category-group {
-  margin-bottom: 2px; /* TODO: token (off-grid 2px) */
+  margin-bottom: var(--space-xs);
 }
 
 .category-group-header {
   display: flex;
   align-items: center;
-  gap: 5px; /* TODO: token (off-grid 5px) */
+  gap: var(--space-xs);
   cursor: pointer;
-  padding: var(--space-xs) 0 var(--space-xs) 2px; /* TODO: token (off-grid 2px) */
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-xs);
   user-select: none;
   outline: none;
   border-radius: var(--radius-sm);

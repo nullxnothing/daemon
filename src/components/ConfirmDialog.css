@@ -18,7 +18,7 @@
   background: var(--s2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r);
-  padding: 20px; /* TODO: token (off-grid 20px) */
+  padding: var(--space-xl);
   min-width: 360px;
   max-width: 480px;
   box-shadow: var(--shadow-modal);
@@ -52,7 +52,7 @@
 .confirm-typed-row {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token (off-grid 6px) */
+  gap: var(--space-sm);
   margin-bottom: var(--space-lg);
 }
 
@@ -74,7 +74,7 @@
   color: var(--t1);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 6px var(--space-sm); /* TODO: token (off-grid 6px vertical) */
+  padding: var(--space-xs) var(--space-sm);
   font-family: var(--mono);
   font-size: var(--fs-12);
 }
@@ -96,7 +96,7 @@
   color: var(--t1);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 6px 14px; /* TODO: token (off-grid 6/14px) */
+  padding: var(--space-xs) var(--space-md);
   font-size: var(--fs-12);
   cursor: pointer;
   transition: background var(--transition-fast);

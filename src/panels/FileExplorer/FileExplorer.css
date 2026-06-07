@@ -131,8 +131,8 @@
 .file-search-results {
   display: flex;
   flex-direction: column;
-  gap: 2px; /* TODO: token */
-  padding: 0 var(--space-xs) 6px; /* TODO: 6px token */
+  gap: var(--space-xs);
+  padding: 0 var(--space-xs) var(--space-sm);
 }
 
 .file-search-result {
@@ -140,8 +140,8 @@
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 2px; /* TODO: token */
-  padding: 6px var(--space-sm); /* TODO: 6px token */
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-md);
   background: transparent;
 }
@@ -171,7 +171,7 @@
 }
 
 .file-search-empty {
-  padding: var(--space-md) 10px; /* TODO: 10px token */
+  padding: var(--space-md) var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t3);
 }
@@ -185,7 +185,7 @@
 .file-node {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   height: 24px; /* TODO: token */
   padding-right: var(--space-sm);
   font-size: var(--fs-12);
@@ -485,7 +485,7 @@
   border: 1px solid var(--focus);
   box-shadow: var(--focus-ring);
   border-radius: var(--radius-sm);
-  padding: 0 6px; /* TODO: 6px token */
+  padding: 0 var(--space-sm);
   outline: none;
   width: 100%;
   font-family: var(--font-ui);

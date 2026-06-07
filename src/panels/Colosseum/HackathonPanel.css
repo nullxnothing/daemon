@@ -169,7 +169,7 @@
 .hackathon-loading {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t4);
   padding: var(--space-sm) 0;

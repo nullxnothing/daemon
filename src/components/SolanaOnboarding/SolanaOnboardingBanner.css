@@ -2,8 +2,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px; /* TODO: token */
-  padding: 7px 14px; /* TODO: token */
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   background: color-mix(in srgb, var(--green-glow) 40%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--green) 10%, var(--border));
   font-size: var(--fs-11);
@@ -32,13 +32,13 @@
 
 .solana-onboarding-actions {
   display: flex;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   flex-shrink: 0;
 }
 
 .solana-onboarding-btn {
   height: 22px;
-  padding: 0 8px; /* TODO: token */
+  padding: 0 var(--space-sm);
   border-radius: var(--radius-sm);
   font-size: var(--fs-10);
   border: 1px solid color-mix(in srgb, var(--green) 18%, var(--border));

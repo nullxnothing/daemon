@@ -47,7 +47,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-sm);
-  padding: 10px 16px; /* TODO: token */
+  padding: var(--space-sm) var(--space-lg);
   background: var(--bg);
 }
 
@@ -209,7 +209,7 @@
 
 /* ---------------- empty ---------------- */
 .ports-empty {
-  padding: 16px var(--space-md); /* TODO: token */
+  padding: var(--space-lg) var(--space-md);
   border: 1px solid var(--line);
   background: var(--field-bg);
   color: var(--t3);

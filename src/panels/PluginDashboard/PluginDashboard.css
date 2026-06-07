@@ -9,7 +9,7 @@
 .plugin-dashboard-search {
   width: 180px; /* TODO: token */
   height: 28px; /* TODO: token */
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--border);
   border-radius: var(--r);
@@ -74,7 +74,7 @@
 .plugin-card-v2-header {
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
 }
 
 .plugin-card-v2-icon {
@@ -101,7 +101,7 @@
 .plugin-card-v2-title-row {
   display: flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   flex: 1;
   min-width: 0;
 }
@@ -135,7 +135,7 @@
 
 .plugin-card-v2-btn {
   height: 28px; /* TODO: token */
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
   border-radius: var(--r);

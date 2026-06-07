@@ -96,7 +96,7 @@
 .sh-btn:active { background: var(--surface-control-active); }
 .sh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .sh-btn--ghost { background: transparent; }
-.sh-btn--xs { font-size: var(--fs-11); padding: 2px var(--space-xs); /* TODO: 2px token */ }
+.sh-btn--xs { font-size: var(--fs-11); padding: var(--space-xs) var(--space-xs); }
 
 /* -------------------------------------------------------------- controls */
 
@@ -107,13 +107,13 @@
   margin-bottom: var(--space-sm);
   flex-wrap: wrap;
 }
-.sh-control-group { display: inline-flex; gap: 2px; /* TODO: 2px token */ }
+.sh-control-group { display: inline-flex; gap: var(--space-xs); }
 .sh-chip {
   font-size: var(--fs-11);
   border: 1px solid var(--sh-border);
   background: transparent;
   color: var(--text-secondary);
-  padding: 2px var(--space-sm); /* TODO: 2px token */
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -135,7 +135,7 @@
 
 /* -------------------------------------------------------------- leaderboard */
 
-.sh-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; /* TODO: 2px token */ }
+.sh-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .sh-row { margin: 0; }
 .sh-row-pick {
   width: 100%;
@@ -202,7 +202,7 @@
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
-.sh-stat { display: flex; flex-direction: column; gap: 2px; /* TODO: 2px token */ }
+.sh-stat { display: flex; flex-direction: column; gap: var(--space-xs); }
 .sh-stat-label { font-size: var(--fs-10); text-transform: uppercase; letter-spacing: var(--ls-eyebrow); color: var(--text-secondary); }
 .sh-stat-value { font-size: var(--fs-13); font-family: var(--sh-mono); }
 
@@ -210,7 +210,7 @@
 
 .sh-spark { margin-bottom: var(--space-sm); }
 .sh-spark-label { font-size: var(--fs-10); text-transform: uppercase; letter-spacing: var(--ls-eyebrow); color: var(--text-secondary); display: block; margin-bottom: var(--space-xs); }
-.sh-spark-bars { display: flex; align-items: flex-end; gap: 2px; height: 32px; /* TODO: 2px/32px tokens */ }
+.sh-spark-bars { display: flex; align-items: flex-end; gap: var(--space-xs); height: 32px; /* TODO: 32px token */ }
 .sh-spark-bar {
   flex: 1 1 0;
   min-width: 2px; /* TODO: token */
@@ -218,7 +218,7 @@
   background: linear-gradient(to top, var(--sh-accent), var(--sh-accent-2));
 }
 
-.sh-positions { display: flex; flex-direction: column; gap: 2px; /* TODO: 2px token */ }
+.sh-positions { display: flex; flex-direction: column; gap: var(--space-xs); }
 
 /* ------------------------------------------------------------- activity feeds */
 

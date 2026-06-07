@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 10px 12px; /* TODO: token */
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s5);
   background: var(--s2);
 }
@@ -48,7 +48,7 @@
   font-size: var(--fs-16);
   color: var(--t3);
   line-height: 1;
-  padding: 0 4px; /* TODO: token */
+  padding: 0 var(--space-xs);
 }
 
 .ask-claude-close:hover {
@@ -95,14 +95,14 @@
 
 .ask-claude-input-row {
   display: flex;
-  gap: 6px; /* TODO: token */
-  padding: 10px 12px; /* TODO: token */
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
 }
 
 .ask-claude-input {
   flex: 1;
   height: 30px;
-  padding: 0 10px; /* TODO: token */
+  padding: 0 var(--space-sm);
   font-size: var(--fs-12);
   background: var(--s2);
   border: 1px solid var(--s5);
@@ -121,7 +121,7 @@
 
 .ask-claude-send {
   height: 30px;
-  padding: 0 14px; /* TODO: token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
   color: var(--bg);
@@ -140,7 +140,7 @@
 }
 
 .ask-claude-warning {
-  padding: 6px 12px 10px; /* TODO: token */
+  padding: var(--space-xs) var(--space-md) var(--space-sm);
   font-size: var(--fs-10);
   color: var(--amber);
   text-align: center;

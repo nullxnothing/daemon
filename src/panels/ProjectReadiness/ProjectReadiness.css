@@ -576,7 +576,7 @@
   min-width: 0;
   display: grid;
   gap: var(--space-xs);
-  padding: 16px 18px;
+  padding: var(--space-lg) var(--space-lg);
   background: var(--bg);
 }
 
@@ -698,7 +698,7 @@
   border: 0;
   border-radius: 0;
   background: var(--bg);
-  padding: 16px 18px;
+  padding: var(--space-lg) var(--space-lg);
 }
 
 .project-readiness-strip strong {

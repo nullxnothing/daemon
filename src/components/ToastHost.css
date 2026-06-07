@@ -13,8 +13,8 @@
 .toast {
   display: flex;
   align-items: flex-start;
-  gap: 10px; /* TODO: token (off-grid 10px) */
-  padding: 10px var(--space-md); /* TODO: token (off-grid 10px vertical) */
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   background: var(--s1);
   border: 1px solid var(--line);
   border-radius: var(--r);
@@ -35,7 +35,7 @@
   height: 6px;
   border-radius: var(--radius-pill);
   flex-shrink: 0;
-  margin-top: 5px;
+  margin-top: var(--space-xs);
 }
 
 .toast-info .toast-dot { background: var(--blue); }
@@ -53,7 +53,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xs);
 }
 
 .toast-context {
@@ -75,7 +75,7 @@
   color: var(--t1);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 3px var(--space-sm); /* TODO: token (off-grid 3px vertical) */
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--fs-11);
   cursor: pointer;
   flex-shrink: 0;
@@ -98,7 +98,7 @@
   cursor: pointer;
   font-size: var(--fs-16);
   line-height: 1;
-  padding: 0 2px; /* TODO: token (off-grid 2px) */
+  padding: 0 var(--space-xs);
   flex-shrink: 0;
   transition: color var(--transition-fast);
 }

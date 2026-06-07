@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px 10px; /* TODO: 6px/10px tokens */
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s1);
   border-bottom: 1px solid var(--s3);
   flex-shrink: 0;
@@ -18,7 +18,7 @@
 
 .scanner-nav-btns {
   display: flex;
-  gap: 2px; /* TODO: token */
+  gap: var(--space-xs);
 }
 
 .scanner-nav-btn {
@@ -51,10 +51,10 @@
 /* Cluster switcher */
 .scanner-cluster-btns {
   display: flex;
-  gap: 2px; /* TODO: token */
+  gap: var(--space-xs);
   background: var(--s2);
   border-radius: var(--r);
-  padding: 2px; /* TODO: token */
+  padding: var(--space-xs);
 }
 
 .scanner-cluster-btn {
@@ -92,7 +92,7 @@
 
 .scanner-search {
   flex: 1;
-  padding: 5px 8px; /* TODO: 5px token */
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--s4);
   border-radius: var(--r);
@@ -114,7 +114,7 @@
 }
 
 .scanner-input-status {
-  padding: 6px var(--panel-pad-x);
+  padding: var(--space-xs) var(--panel-pad-x);
   border-bottom: 1px solid var(--s3);
   background: var(--s1);
   color: var(--green);
@@ -129,7 +129,7 @@
 }
 
 .scanner-go {
-  padding: 5px 10px; /* TODO: 5px/10px tokens */
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s3);
   border: 1px solid var(--s4);
   border-radius: var(--r);
@@ -168,7 +168,7 @@
   bottom: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   max-width: min(360px, calc(100% - 32px));
   padding: var(--space-md);
   background: var(--s1);
@@ -193,7 +193,7 @@
 
 .scanner-load-error button {
   align-self: flex-start;
-  padding: 5px 10px; /* TODO: 5px/10px tokens */
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s3);
   border: 1px solid var(--s4);
   border-radius: var(--r);

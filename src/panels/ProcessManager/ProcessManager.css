@@ -26,10 +26,10 @@
 .process-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px 28px; /* TODO: 18px/20px/28px tokens */
+  padding: var(--space-lg) var(--space-xl) var(--space-2xl);
   display: flex;
   flex-direction: column;
-  gap: 18px; /* TODO: token */
+  gap: var(--space-lg);
 }
 
 .process-summary-grid {
@@ -41,8 +41,8 @@
 .process-stat-card {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token */
-  padding: 14px; /* TODO: token */
+  gap: var(--space-sm);
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--wash);
@@ -107,8 +107,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px; /* TODO: token */
-  padding: 14px; /* TODO: token */
+  gap: var(--space-md);
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--wash);
@@ -135,7 +135,7 @@
 .process-row-titleline {
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
@@ -190,7 +190,7 @@
 
 .process-row-meta {
   display: flex;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   flex-wrap: wrap;
   font-size: var(--fs-11);
   color: var(--t3);
@@ -222,7 +222,7 @@
 
 .process-btn {
   height: var(--btn-h-lg);
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   border-radius: var(--radius-lg);
   font-size: var(--fs-12);
   color: var(--t2);

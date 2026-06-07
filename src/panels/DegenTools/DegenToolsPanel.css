@@ -101,7 +101,7 @@
 }
 .dt-toolbar strong {
   display: block;
-  margin-top: 2px; /* TODO: token */
+  margin-top: var(--space-xs);
   font-size: var(--fs-14);
 }
 .dt-label {
