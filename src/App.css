@@ -322,6 +322,10 @@
   background: var(--s1);
   border-top: 1px solid var(--line);
   transition: height var(--transition-normal);
+  /* Always a flex column so the always-present .bottom-dock-body fills the dock
+     height. The optional tab strip is flex:none; the body takes the rest. */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Suppress the height transition while dragging the splitter so resizing stays
@@ -332,11 +336,6 @@
 
 /* Bottom dock: tab strip (Terminal / Console) shown when the Console is docked
    to the bottom panel. The body fills the remaining height. */
-.terminal-area:has(.bottom-dock-tabs) {
-  display: flex;
-  flex-direction: column;
-}
-
 .bottom-dock-tabs {
   flex: none;
   display: flex;
