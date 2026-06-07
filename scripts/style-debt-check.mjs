@@ -10,6 +10,7 @@ const BASELINE = {
   literalRadius: 32,
   hexColors: 68,
   inlineShadow: 10,
+  literalSpacing: 1509,
   handRolledHeaders: 3,
 }
 
@@ -18,6 +19,9 @@ const RULES = [
   ['literalRadius', /border-radius:\s*[0-9]+px/g],
   ['hexColors', /#[0-9a-fA-F]{3,8}/g],
   ['inlineShadow', /box-shadow:\s*0/g],
+  // Hardcoded spacing: padding/margin/gap (and longhands) containing a px literal.
+  // Use --space-* scale tokens instead. Ratchet down as panels migrate.
+  ['literalSpacing', /(?:padding|margin|gap)(?:-(?:top|right|bottom|left|inline|block)(?:-start|-end)?)?:\s*[^;]*\b[0-9]+px/g],
 ]
 
 const INCLUDE = new Set(['.css', '.tsx'])
