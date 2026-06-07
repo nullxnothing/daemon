@@ -10,7 +10,7 @@ const BASELINE = {
   literalRadius: 32,
   hexColors: 68,
   inlineShadow: 10,
-  literalSpacing: 1509,
+  literalSpacing: 201,
   handRolledHeaders: 3,
 }
 
