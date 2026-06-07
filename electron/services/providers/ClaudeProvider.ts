@@ -346,13 +346,27 @@ async function runPromptViaApi(
  * Mirrors runPromptViaApi's key/model resolution but passes `tools` and returns
  * any `tool_use` blocks for the caller to execute.
  */
-export async function runClaudeAgentTurn(opts: RunAgentTurnOpts): Promise<AgentTurnResult> {
-  const apiKey = SecureKey.getKey('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
+/**
+ * Optional override so the same Anthropic tool-loop can run against an Anthropic-
+ * compatible endpoint (e.g. z.ai GLM at https://api.z.ai/api/anthropic). When omitted,
+ * uses the default Anthropic API + ANTHROPIC_API_KEY + Claude model resolution.
+ */
+export interface AgentTurnEndpoint {
+  apiKey: string
+  baseURL?: string
+  model?: string
+}
+
+export async function runClaudeAgentTurn(
+  opts: RunAgentTurnOpts,
+  endpoint?: AgentTurnEndpoint,
+): Promise<AgentTurnResult> {
+  const apiKey = endpoint?.apiKey || SecureKey.getKey('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('Agentic mode needs an Anthropic API key. Add ANTHROPIC_API_KEY in settings.')
 
-  const resolvedModel = resolveModelName(opts.model)
+  const resolvedModel = endpoint?.model ?? resolveModelName(opts.model)
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
-  const client = new Anthropic({ apiKey })
+  const client = new Anthropic(endpoint?.baseURL ? { apiKey, baseURL: endpoint.baseURL } : { apiKey })
 
   const response = await client.messages.create({
     model: resolvedModel,

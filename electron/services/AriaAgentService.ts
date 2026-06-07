@@ -11,6 +11,7 @@ import crypto from 'node:crypto'
 import { getDb } from '../db/db'
 import { runClaudeAgentTurn } from './providers/ClaudeProvider'
 import * as ProviderRegistry from './providers/ProviderRegistry'
+import { resolveOperatorBackend, getGlmEndpoint } from './providers/glmConfig'
 import { recordLocalAiUsage } from './DaemonAIService'
 import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
 import { assembleSystemPrompt } from './aria/contextAssembler'
@@ -105,11 +106,22 @@ export async function sendMessage(
   persistMessage({ role: 'user', content: userMessage, metadata: '{}', session_id: sessionId })
   touchSession(sessionId, userMessage)
 
-  // Agentic mode is Claude-API only. Fall back to a plain answer otherwise.
-  const provider = ProviderRegistry.getFeatureProvider('aria')
-  if (provider.id !== 'claude') {
+  // Pick the operator backend by what's actually usable (GLM preferred — cheapest).
+  // GLM and Claude both run the full Anthropic tool-loop; Codex is chat-only; none -> error.
+  const backend = resolveOperatorBackend()
+  if (!backend) {
+    const message = 'No AI provider is ready. Add a Z.AI (GLM) key or an Anthropic API key in Settings, or sign into Codex.'
+    transport.emit({ kind: 'done', messageId: sessionId, text: message })
+    text.push({ role: 'assistant', content: message })
+    persistMessage({ role: 'assistant', content: message, metadata: '{}', session_id: sessionId })
+    return { text: message, actions: [], toolCalls: [] }
+  }
+  if (backend === 'codex') {
+    const provider = ProviderRegistry.getFeatureProvider('aria')
     return legacyAnswer(sessionId, userMessage, provider, text, transport)
   }
+  // backend is 'glm' or 'claude' — both drive the tool-loop below.
+  const endpoint = backend === 'glm' ? getGlmEndpoint() ?? undefined : undefined
 
   const tools = toAnthropicTools(ARIA_TOOLS)
   const system = await assembleSystemPrompt(snapshot)
@@ -129,7 +141,7 @@ export async function sendMessage(
         break
       }
 
-      const turn = await runClaudeAgentTurn({ messages, system, model, tools, maxTokens: 2048 })
+      const turn = await runClaudeAgentTurn({ messages, system, model, tools, maxTokens: 2048 }, endpoint)
       promptForUsage = system
       if (turn.text) {
         finalText = turn.text
