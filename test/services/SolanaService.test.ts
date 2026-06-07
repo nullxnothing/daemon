@@ -5,10 +5,13 @@ import {
   SystemProgram,
   VersionedTransaction,
 } from '@solana/web3.js'
+import bs58 from 'bs58'
 
-const { mockGetWalletInfrastructureSettings, mockLogWarn } = vi.hoisted(() => ({
+const { mockGetWalletInfrastructureSettings, mockLogWarn, mockSecureGetKey, mockGetDb } = vi.hoisted(() => ({
   mockGetWalletInfrastructureSettings: vi.fn(),
   mockLogWarn: vi.fn(),
+  mockSecureGetKey: vi.fn(),
+  mockGetDb: vi.fn(),
 }))
 
 vi.mock('../../electron/services/SettingsService', () => ({
@@ -22,19 +25,20 @@ vi.mock('../../electron/services/LogService', () => ({
 }))
 
 vi.mock('../../electron/services/SecureKeyService', () => ({
-  getKey: vi.fn(() => null),
+  getKey: mockSecureGetKey,
   storeKey: vi.fn(),
   deleteKey: vi.fn(),
 }))
 
 vi.mock('../../electron/db/db', () => ({
-  getDb: vi.fn(),
+  getDb: mockGetDb,
 }))
 
 import {
   confirmSignature,
   executeInstructions,
   getRpcEndpoint,
+  loadKeypair,
 } from '../../electron/services/SolanaService'
 
 function mockInfrastructureSettings(overrides: Record<string, unknown> = {}) {
@@ -55,6 +59,10 @@ describe('SolanaService transaction execution', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockInfrastructureSettings()
+    mockSecureGetKey.mockReturnValue(null)
+    mockGetDb.mockReturnValue({
+      prepare: vi.fn(() => ({ get: vi.fn(), run: vi.fn(), all: vi.fn() })),
+    })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ result: { priorityFeeEstimate: 42_000 } }),
@@ -126,5 +134,18 @@ describe('SolanaService transaction execution', () => {
       expect.stringContaining('Using public Solana RPC fallback'),
       expect.objectContaining({ reason: 'Public Solana RPC is selected.' }),
     )
+  })
+
+  it('rejects stored keypairs that do not match the wallet row address', () => {
+    const storedKeypair = Keypair.generate()
+    const differentAddress = Keypair.generate().publicKey.toBase58()
+    mockSecureGetKey.mockReturnValue(bs58.encode(storedKeypair.secretKey))
+    mockGetDb.mockReturnValue({
+      prepare: vi.fn(() => ({
+        get: vi.fn().mockReturnValue({ address: differentAddress, keypair_path: null }),
+      })),
+    })
+
+    expect(() => loadKeypair('wallet-1')).toThrow(/does not match wallet address/i)
   })
 })

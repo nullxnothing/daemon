@@ -165,7 +165,7 @@ export default function Remotion() {
           className="remotion-nav-btn"
           onClick={handleOpenExternal}
           title="Open in browser"
-          style={{ fontSize: 10, width: 'auto', padding: '0 6px' }}
+          style={{ fontSize: 10, width: 'auto', padding: '0 var(--space-sm)' }}
         >
           External
         </button>

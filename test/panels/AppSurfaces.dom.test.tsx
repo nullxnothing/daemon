@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUIStore } from '../../src/store/ui'
@@ -392,6 +392,18 @@ function installDaemonBridge(options: {
         checkPolicy: vi.fn().mockResolvedValue({ ok: true, data: { allowed: false, reasons: [], resource: null, spentThisTaskUsdc: 0, remainingTaskBudgetUsdc: 0 } }),
         executePaidCall: vi.fn().mockResolvedValue({ ok: false, error: 'not implemented in test' }),
       },
+      clawpump: {
+        isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
+      },
+      degentools: {
+        isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
+      },
+      meterflow: {
+        status: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { configured: false, executionReady: false, blockers: [], receipts: 0 },
+        }),
+      },
       validator: {
         detectProject: vi.fn().mockResolvedValue({
           ok: true,
@@ -480,6 +492,7 @@ function installDaemonBridge(options: {
 }
 
 function resetStores() {
+  window.localStorage.removeItem('daemon:integration-command-center:enabled')
   usePluginStore.setState({ plugins: [], loaded: true, activePluginId: null })
   useWorkflowShellStore.setState({
     drawerTool: null,
@@ -507,6 +520,7 @@ function resetStores() {
     workspaceToolTabs: [],
     activeWorkspaceToolId: null,
     integrationCommandSelectionId: null,
+    pendingSubView: null,
     browserTabOpen: false,
     browserTabActive: false,
     dashboardTabOpen: false,
@@ -524,9 +538,13 @@ function resetStores() {
 }
 
 async function selectIntegrationCard(name: string) {
-  const target = screen.getAllByText(name).find((element) => element.closest('.icc-card'))
+  const target = screen.getAllByText(name).find((element) => element.closest('.icc-row-head'))
   expect(target).toBeTruthy()
-  await userEvent.click(target!.closest('button')!)
+  const row = target!.closest('.icc-row')!
+  // Toggle the row open if it is not already expanded.
+  if (!row.classList.contains('icc-row--open')) {
+    await userEvent.click(target!.closest('button')!)
+  }
 }
 
 async function enableSelectedIntegration() {
@@ -555,13 +573,16 @@ describe('App surface DOM coverage', () => {
 
     render(<CommandDrawer />)
 
+    // Host tools remain in the drawer…
     expect(screen.getByText('New Project')).toBeInTheDocument()
     expect(screen.getByText('Token Launch')).toBeInTheDocument()
     expect(screen.getByText('Solana Workflow')).toBeInTheDocument()
-    expect(screen.getByText('Integrations')).toBeInTheDocument()
-    expect(screen.getByText('Metaplex Demo')).toBeInTheDocument()
-    expect(screen.getByText('Solana Start')).toBeInTheDocument()
     expect(screen.getByText('Activity')).toBeInTheDocument()
+    // …while folded tools no longer appear as top-level drawer entries (they
+    // live inside their pack host panel as sub-views).
+    expect(screen.queryByText('Integrations')).not.toBeInTheDocument()
+    expect(screen.queryByText('Metaplex Demo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Solana Start')).not.toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText('Search tools...'), 'solana')
     await userEvent.click(screen.getByText('Solana Workflow').closest('button')!)
@@ -691,16 +712,20 @@ describe('App surface DOM coverage', () => {
   it('renders Integration Command Center setup status and safe checks', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
     expect(screen.getAllByText('SendAI Agent Kit').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Helius').length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/safe checks/i).length).toBeGreaterThan(0)
+    expect(screen.getByText('Wire a protocol into DAEMON, then run a safe first check.')).toBeInTheDocument()
+    expect(screen.getByText('After enable')).toBeInTheDocument()
+    expect(screen.getByText('Run starter check in Terminal')).toBeInTheDocument()
     await enableSelectedIntegration()
     expect(screen.getByText('Get this project to a first working SendAI agent')).toBeInTheDocument()
     expect(screen.getAllByText('Next step').length).toBeGreaterThan(0)
     expect(await screen.findByText(/pnpm add @solana-agent-kit\/plugin-token/)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Apply project setup' }))
+    const applySetup = screen.getByRole('button', { name: 'Apply project setup' })
+    expect(applySetup).toHaveClass('icc-primary')
+    await userEvent.click(applySetup)
 
     expect(await screen.findByText('SendAI setup started')).toBeInTheDocument()
     expect(window.daemon.fs.writeFile).toHaveBeenCalledWith(
@@ -745,8 +770,8 @@ describe('App surface DOM coverage', () => {
     expect(useUIStore.getState().terminals.some((terminal) => terminal.id === 'terminal-sendai-skills')).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: 'DeFi Protocols' }))
-    await enableSelectedIntegration()
-    expect(screen.getByRole('heading', { name: 'Jupiter' })).toBeInTheDocument()
+    await selectEnabledIntegrationCard('Jupiter')
+    expect(document.querySelector('.icc-row--open .icc-row-name')?.textContent).toBe('Jupiter')
 
     await userEvent.click(screen.getByRole('button', { name: 'All' }))
     expect(screen.queryByText('Token Launch Stack')).not.toBeInTheDocument()
@@ -824,7 +849,9 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByRole('button', { name: 'Open env manager' })).toBeInTheDocument()
 
     useUIStore.getState().setIntegrationCommandSelectionId('metaplex')
-    expect(await screen.findByRole('heading', { name: 'Metaplex' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(document.querySelector('.icc-row--open .icc-row-name')?.textContent).toBe('Metaplex')
+    })
   })
 
   it('scaffolds integration starters into the active project directories', async () => {
@@ -857,7 +884,7 @@ describe('App surface DOM coverage', () => {
     })
 
     render(<IntegrationCommandCenter />)
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
     await selectEnabledIntegrationCard('Streamlock')
     await userEvent.click(screen.getByRole('button', { name: 'Create operator starter' }))
@@ -972,22 +999,24 @@ describe('App surface DOM coverage', () => {
 
     await userEvent.click(screen.getByText('SendAI Agent Kit').closest('button')!)
 
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('integrations')
+    // 'integrations' is aliased to 'solana-toolbox' via TOOL_ALIASES
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
     expect(useUIStore.getState().integrationCommandSelectionId).toBe('sendai-agent-kit')
   })
 
   it('resets hidden integration filters when another surface targets a workflow', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
-    await userEvent.type(screen.getByPlaceholderText('Search integrations, actions, protocols...'), 'phantom')
+    await userEvent.type(screen.getByPlaceholderText('Search integrations, protocols, best-for...'), 'phantom')
     expect(screen.getByDisplayValue('phantom')).toBeInTheDocument()
 
     useUIStore.getState().setIntegrationCommandSelectionId('sendai-solana-mcp')
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'SendAI Agent Kit' })).toBeInTheDocument()
+      const openRow = document.querySelector('.icc-row--open .icc-row-name')
+      expect(openRow?.textContent).toBe('SendAI Agent Kit')
     })
     expect(screen.getByDisplayValue('')).toBeInTheDocument()
   })
@@ -995,9 +1024,9 @@ describe('App surface DOM coverage', () => {
   it('opens MCP setup without leaving stale integration selection behind', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
-    await userEvent.click(screen.getAllByText('SendAI Agent Kit')[0].closest('button')!)
+    await selectIntegrationCard('SendAI Agent Kit')
     await enableSelectedIntegration()
     await userEvent.click(screen.getByRole('button', { name: 'Open MCP setup' }))
 
@@ -1009,7 +1038,7 @@ describe('App surface DOM coverage', () => {
   it('renders the IDLE resource-router integration flow', async () => {
     render(<IntegrationCommandCenter />)
 
-    expect(await screen.findByText('Integration Command Center')).toBeInTheDocument()
+    expect(await screen.findByText('Browse & connect')).toBeInTheDocument()
 
     await selectEnabledIntegrationCard('IDLE Protocol')
 
@@ -1032,7 +1061,13 @@ describe('App surface DOM coverage', () => {
   it('renders Solana toolbox workflow tabs and switches views', async () => {
     render(<SolanaToolbox />)
 
-    expect(await screen.findByText('Solana Workspace')).toBeInTheDocument()
+    expect(await screen.findByText('Solana Workflow')).toBeInTheDocument()
+    const readiness = screen.getByLabelText('Solana readiness')
+    expect(within(readiness).getByText('Project')).toBeInTheDocument()
+    expect(await within(readiness).findByText('Main Wallet')).toBeInTheDocument()
+    expect(within(readiness).getByText('Signer')).toBeInTheDocument()
+    expect(within(readiness).getByText('Missing key')).toBeInTheDocument()
+    expect(within(readiness).getByText('Stopped')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('tab', { name: /Connect/ }))
     expect(screen.getByRole('tab', { name: /Connect/ })).toHaveAttribute('aria-selected', 'true')
@@ -1041,8 +1076,13 @@ describe('App surface DOM coverage', () => {
     expect(screen.getByRole('tab', { name: /Launch/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Onboard ecosystem integrations deliberately')).toBeInTheDocument()
     await userEvent.click(screen.getAllByRole('button', { name: 'Open Integration' })[0]!)
-    expect(useUIStore.getState().activeWorkspaceToolId).toBe('integrations')
-    expect(useUIStore.getState().integrationCommandSelectionId).toBe('jupiter')
+    // 'integrations' is aliased to the Solana toolbox's Integrations sub-view via
+    // TOOL_ALIASES. Since this panel is already mounted, the embedded
+    // IntegrationCommandCenter consumes the selection and switches the view in place.
+    expect(useUIStore.getState().activeWorkspaceToolId).toBe('solana-toolbox')
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /Integrations/ })).toHaveAttribute('aria-selected', 'true'),
+    )
 
     await userEvent.click(screen.getByRole('tab', { name: /Debug/ }))
     expect(screen.getByRole('tab', { name: /Debug/ })).toHaveAttribute('aria-selected', 'true')
@@ -1054,7 +1094,7 @@ describe('App surface DOM coverage', () => {
     render(<DeployPanel />)
 
     expect(await screen.findByRole('heading', { name: 'Deploy' })).toBeInTheDocument()
-    await userEvent.click(await screen.findByRole('button', { name: 'Link Project' }))
+    await userEvent.click(await screen.findByRole('button', { name: /Link project/i }))
     await userEvent.selectOptions(await screen.findByRole('combobox'), 'vercel-project-1')
     await userEvent.click(screen.getByRole('button', { name: 'Link' }))
 
@@ -1084,9 +1124,10 @@ describe('App surface DOM coverage', () => {
     render(<TokenLaunchTool />)
 
     expect(screen.getByRole('heading', { name: 'Token Launch' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Configure adapters' }))
     expect(await screen.findByText('Launchpad config')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open Streamlock' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Refresh Data' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Refresh' }).length).toBeGreaterThan(0)
     expect(screen.getAllByText('Raydium LaunchLab').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Meteora DBC').length).toBeGreaterThan(0)
 

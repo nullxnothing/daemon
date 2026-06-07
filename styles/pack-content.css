@@ -1,0 +1,87 @@
+/* Shared content primitives for pack-host panel views. Use these instead of
+   hand-rolling per-panel section headers, card grids, and cards so every pack
+   tab feels cohesive. Pair with the .ds-* typography helpers in typography.css
+   and the KpiGrid / Card / Badge / StatusDot components. */
+
+/* Vertical content section with consistent inter-section rhythm. */
+.ds-pack-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--panel-section-gap);
+}
+
+.ds-pack-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Section header: an eyebrow title on the left, optional muted count on the right. */
+.ds-pack-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.ds-pack-section-count {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--text-faint);
+}
+
+/* Responsive card grid — fills horizontal space instead of a sparse column. */
+.ds-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: var(--space-sm);
+}
+
+/* Bordered card surface with a subtle hover affordance. */
+.ds-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.ds-card:hover {
+  border-color: var(--line-2);
+  background: var(--bg-card-hover);
+}
+
+.ds-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.ds-card-title {
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  color: var(--t1);
+}
+
+.ds-card-desc {
+  font-size: var(--fs-11);
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: var(--space-2xs);
+}
+
+.ds-card-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}

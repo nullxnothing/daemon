@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 0a310b7c8537ade88b16f2c7c8eeaeca83deefcd..598fee99f1c4e7378213f3b3b460f570c6a227b1 100644
+--- a/package.json
++++ b/package.json
+@@ -94,7 +94,6 @@
+     }
+   },
+   "sideEffects": false,
+-  "type": "module",
+   "scripts": {
+     "build": "tsc -p tsconfig.esm.json && tsc -p tsconfig.cjs.json",
+     "postbuild": "node scripts/fix-esm-imports.js",

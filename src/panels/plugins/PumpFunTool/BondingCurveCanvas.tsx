@@ -59,7 +59,7 @@ export function BondingCurveCanvas({ curve, tradeAction, tradeAmountSol }: Props
     const vSol = Number(curve.virtualSolReserves)
     const vToken = Number(curve.virtualTokenReserves)
     if (!Number.isFinite(vSol) || !Number.isFinite(vToken) || vSol <= 0 || vToken <= 0) {
-      ctx.font = '10px "JetBrains Mono", monospace'
+      ctx.font = '10px "Geist Mono", monospace'
       ctx.fillStyle = COLORS.gradLabel
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -163,7 +163,7 @@ export function BondingCurveCanvas({ curve, tradeAction, tradeAmountSol }: Props
         ctx.stroke()
         ctx.setLineDash([])
 
-        ctx.font = '8px "JetBrains Mono", monospace'
+        ctx.font = '8px "Geist Mono", monospace'
         ctx.fillStyle = COLORS.gradLabel
         ctx.textAlign = 'center'
         ctx.fillText('grad', gradX, pt + plotH - 2)

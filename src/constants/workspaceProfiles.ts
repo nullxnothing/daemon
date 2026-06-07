@@ -1,4 +1,5 @@
 import { CORE_TOOL_IDS } from './toolRegistry'
+import { packToolIds } from './capabilityPacks'
 
 export type WorkspaceProfileName = 'web' | 'solana' | 'custom'
 
@@ -7,15 +8,25 @@ export interface WorkspaceProfile {
   toolVisibility: Record<string, boolean>
 }
 
+// Base web shell tools — not owned by any capability pack. The web profile is
+// exactly this set; the solana profile is this set plus every optional pack's
+// tools (derived below so packs stay the single source of membership truth).
 const WEB_TOOLS = [
   'starter', 'git', 'deploy', 'env', 'email', 'ports',
   'processes', 'settings', 'image-editor', 'docs',
   'sessions', 'plugins', 'recovery', 'activity', 'browser',
 ]
 
+// Shell tools the Solana profile shows that aren't owned by a capability pack
+// (the dashboard is a shell host surface, not a pack member).
+const SOLANA_SHELL_EXTRAS = ['dashboard']
+
+// Solana profile = web base + the tools of the Solana-facing packs. Derived
+// from CAPABILITY_PACKS so adding a tool to a pack surfaces it here automatically.
 const SOLANA_TOOLS = [
-  ...WEB_TOOLS, 'wallet', 'agent-work', 'token-launch', 'project-readiness', 'solana-toolbox', 'integrations', 'zauth', 'block-scanner',
-  'replay-engine', 'dashboard', 'hackathon', 'pro', 'agent-station', 'daemon-ai', 'spawnagents', 'agentops', 'metaplex-demo',
+  ...WEB_TOOLS,
+  ...packToolIds(['solana', 'wallet', 'launch', 'agent', 'markets']),
+  ...SOLANA_SHELL_EXTRAS,
 ]
 
 export const PROFILE_PRESETS: Record<WorkspaceProfileName, string[]> = {

@@ -3,9 +3,8 @@
   height: var(--titlebar-h);
   display: flex;
   align-items: center;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 82%, white 4%), var(--panel-bg));
-  border-bottom: 1px solid var(--panel-border);
+  background: var(--s1);
+  border-bottom: 1px solid var(--line);
   -webkit-app-region: no-drag;
   user-select: none;
   flex-shrink: 0;
@@ -13,11 +12,15 @@
   min-width: 0;
 }
 
+.titlebar--mac {
+  padding-left: 76px;
+}
+
 .titlebar-left {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 var(--space-lg) 0 var(--space-md);
+  padding: 0 var(--space-md);
   flex-shrink: 0;
   min-width: 0;
   -webkit-app-region: drag;
@@ -53,10 +56,11 @@
 
 .titlebar-version {
   font-size: var(--fs-9);
-  font-weight: var(--fw-bold);
-  color: var(--t1);
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
+  color: var(--t3);
   background: transparent;
-  padding: 1px 0;
+  padding: 1px 0; /* TODO: token */
   border-radius: var(--radius-sm);
   letter-spacing: var(--ls-caps);
   margin-left: var(--space-xs);
@@ -83,7 +87,7 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--card-bg) 54%, transparent);
+  background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   transition: background var(--transition-fast), border-color var(--transition-fast);
@@ -91,12 +95,20 @@
 }
 
 .project-tab-wrap:hover {
-  background: var(--card-bg-hover);
+  background: var(--s2);
 }
 
 .project-tab-wrap.active {
   background: var(--tab-active-bg);
-  border-color: var(--tab-active-border);
+  border-color: var(--line);
+}
+
+.project-tab-wrap.active::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--green);
 }
 
 .project-tab {
@@ -123,14 +135,19 @@
 }
 
 .project-tab-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+  width: 5px; /* TODO: token */
+  height: 5px; /* TODO: token */
+  border-radius: var(--radius-pill);
   background: var(--t4);
   flex-shrink: 0;
 }
 
 .project-tab-dot.live { background: var(--t2); }
+
+.project-tab-wrap.active .project-tab-dot,
+.titlebar-switcher-toggle .project-tab-dot.live {
+  background: var(--green);
+}
 
 .project-tab-close {
   display: inline-flex;
@@ -177,7 +194,7 @@
 .project-tab-add:hover {
   background: var(--hover-bg);
   color: var(--t1);
-  border-color: var(--border);
+  border-color: var(--line);
 }
 
 .project-tab-add.active {
@@ -229,7 +246,7 @@
   -webkit-app-region: no-drag;
   align-items: center;
   flex-shrink: 0;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
 .titlebar-drag-fill {
@@ -246,17 +263,65 @@
   -webkit-app-region: no-drag;
 }
 
+/* Centered command/search trigger (opens the command palette) */
+.titlebar-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 28px;
+  width: min(40vw, 460px);
+  padding: 0 var(--space-sm) 0 var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--field-bg);
+  color: var(--t3);
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.titlebar-search:hover {
+  border-color: var(--line-2);
+  color: var(--t2);
+  background: var(--hover-bg);
+}
+
+.titlebar-search-icon {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+.titlebar-search-label {
+  flex: 1;
+  text-align: left;
+  font-size: var(--fs-12);
+  color: var(--t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-search-kbd {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t3);
+  padding: 1px var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--s1);
+}
+
 /* Inline pill controls (portfolio, mode toggle, project switcher) */
 .titlebar-portfolio,
 .titlebar-mode-toggle,
 .titlebar-switcher-toggle {
-  height: 28px;
+  height: var(--btn-h-md);
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--control-bg);
+  border-radius: var(--r);
+  background: var(--s2);
   border: 1px solid var(--control-border);
   color: var(--t2);
   font-size: var(--fs-11);
@@ -272,6 +337,12 @@
   background: var(--control-bg-hover);
   color: var(--t1);
   border-color: var(--control-border-hover);
+}
+
+.titlebar-portfolio:active,
+.titlebar-mode-toggle:active,
+.titlebar-switcher-toggle:active {
+  background: var(--active-overlay);
 }
 
 .titlebar-portfolio-total { font-weight: var(--fw-semibold); }
@@ -292,9 +363,9 @@
 .titlebar-mode-toggle--icon-only svg:last-child { display: none; }
 
 .titlebar-mode-toggle.grind {
-  background: var(--tab-active-bg);
+  background: var(--accent-fill);
   color: var(--tab-active-color);
-  border-color: var(--tab-active-border);
+  border-color: var(--accent-line);
 }
 .titlebar-mode-toggle.grind:hover {
   background: var(--control-bg-hover);
@@ -328,7 +399,7 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-card);
+  border-radius: var(--r);
   box-shadow: var(--shadow-float);
   z-index: 50;
   -webkit-app-region: no-drag;
@@ -370,7 +441,7 @@
 .titlebar-switcher-item.active,
 .titlebar-overflow-item.active {
   color: var(--tab-active-color);
-  background: var(--tab-active-bg);
+  background: var(--accent-fill);
 }
 
 .titlebar-switcher-item-label {
@@ -401,10 +472,10 @@
 .titlebar-switcher-actions {
   margin-top: var(--space-xs);
   padding-top: var(--space-xs);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 
-.titlebar-overflow { position: relative; margin-right: var(--space-2xs); }
+.titlebar-overflow { position: relative; margin-right: var(--space-xs); }
 .titlebar-btn-overflow { width: 30px; }
 .titlebar-overflow-menu {
   left: auto;
@@ -432,6 +503,10 @@
   color: var(--t1);
 }
 
+.titlebar-btn:active {
+  background: var(--active-overlay);
+}
+
 .titlebar-btn-close:hover {
   background: var(--error);
   color: var(--on-accent);
@@ -440,7 +515,7 @@
 .titlebar-btn-browser.active { color: var(--t1); }
 .titlebar-btn-browser.active:hover {
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 /* Responsive tightening */

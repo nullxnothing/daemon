@@ -5,6 +5,7 @@ import { type TerminalLaunchRecent } from './RecentsManager'
 const LAUNCHER_MENU_WIDTH = 188
 const LAUNCHER_MENU_GUTTER = 8
 const LAUNCHER_MENU_OFFSET = 6
+const ESTIMATED_LAUNCHER_MENU_HEIGHT = 240 // fallback before the menu is measured
 
 interface TerminalLauncherProps {
   activeProjectId: string | null
@@ -79,9 +80,18 @@ export function TerminalLauncher({
       window.innerWidth - LAUNCHER_MENU_WIDTH - LAUNCHER_MENU_GUTTER,
     )
 
+    const menuHeight = menuRef.current?.offsetHeight ?? ESTIMATED_LAUNCHER_MENU_HEIGHT
+    const belowTop = rect.bottom + LAUNCHER_MENU_OFFSET
+    const wouldOverflowBottom = belowTop + menuHeight > window.innerHeight - LAUNCHER_MENU_GUTTER
+    // The launcher lives at the bottom of the window, so flip the menu above the
+    // button whenever dropping it down would push it off the viewport bottom.
+    const top = wouldOverflowBottom
+      ? Math.max(LAUNCHER_MENU_GUTTER, rect.top - LAUNCHER_MENU_OFFSET - menuHeight)
+      : belowTop
+
     setMenuPosition({
       left: Math.min(Math.max(rect.left, LAUNCHER_MENU_GUTTER), maxLeft),
-      top: rect.bottom + LAUNCHER_MENU_OFFSET,
+      top,
     })
   }, [])
 
@@ -91,10 +101,14 @@ export function TerminalLauncher({
       return
     }
 
+    // First pass positions with the estimated height; once the menu mounts the
+    // next frame re-measures with its real height so the upward flip lands precisely.
     updateMenuPosition()
+    const raf = requestAnimationFrame(updateMenuPosition)
     window.addEventListener('resize', updateMenuPosition)
     window.addEventListener('scroll', updateMenuPosition, true)
     return () => {
+      cancelAnimationFrame(raf)
       window.removeEventListener('resize', updateMenuPosition)
       window.removeEventListener('scroll', updateMenuPosition, true)
     }

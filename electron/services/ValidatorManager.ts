@@ -2,14 +2,30 @@ import { execSync } from 'node:child_process'
 import { BrowserWindow } from 'electron'
 import * as SolanaDetector from './SolanaDetector'
 
-interface ValidatorState {
+export interface ValidatorState {
   type: 'surfpool' | 'test-validator' | null
-  status: 'stopped' | 'starting' | 'running' | 'error'
+  status: 'stopped' | 'starting' | 'running' | 'error' | 'stopping'
   terminalId: string | null
   port: number | null
+  pid?: number | null
+  startedAt?: number | null
+  lastHealthCheckAt?: number | null
+  error?: string | null
+  outputExcerpt?: string | null
 }
 
-let state: ValidatorState = { type: null, status: 'stopped', terminalId: null, port: null }
+interface ValidatorHealthOptions {
+  timeoutMs?: number
+  intervalMs?: number
+  fetchImpl?: typeof fetch
+}
+
+const VALIDATOR_DEFAULT_PORT = 8899
+const VALIDATOR_HEALTH_TIMEOUT_MS = 15_000
+const VALIDATOR_HEALTH_INTERVAL_MS = 400
+const OUTPUT_EXCERPT_LIMIT = 2000
+
+let state: ValidatorState = { type: null, status: 'stopped', terminalId: null, port: null, error: null, outputExcerpt: null }
 
 /** Check if a binary is available on PATH */
 function hasBinary(name: string): boolean {
@@ -101,5 +117,68 @@ export function setState(newState: Partial<ValidatorState>): void {
 }
 
 export function reset(): void {
-  state = { type: null, status: 'stopped', terminalId: null, port: null }
+  state = { type: null, status: 'stopped', terminalId: null, port: null, pid: null, startedAt: null, lastHealthCheckAt: null, error: null, outputExcerpt: null }
+}
+
+export function appendOutput(chunk: string): void {
+  const output = `${state.outputExcerpt ?? ''}${chunk}`.replace(/\u001b\[[0-9;]*m/g, '')
+  state = { ...state, outputExcerpt: output.slice(-OUTPUT_EXCERPT_LIMIT) }
+}
+
+export async function waitForValidatorHealth(port = VALIDATOR_DEFAULT_PORT, options: ValidatorHealthOptions = {}): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? VALIDATOR_HEALTH_TIMEOUT_MS
+  const intervalMs = options.intervalMs ?? VALIDATOR_HEALTH_INTERVAL_MS
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch
+
+  if (!fetchImpl) {
+    throw new Error('Validator health probe requires fetch support')
+  }
+
+  const deadline = Date.now() + timeoutMs
+  let lastError = 'Validator RPC did not become healthy'
+
+  while (Date.now() <= deadline) {
+    try {
+      const res = await fetchImpl(`http://127.0.0.1:${port}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 'daemon-validator-health', method: 'getHealth' }),
+      })
+      const body = await readJson(res)
+      if (res.ok && body && typeof body === 'object' && 'result' in body && body.result === 'ok') {
+        setState({ lastHealthCheckAt: Date.now(), error: null })
+        return
+      }
+      lastError = getHealthFailure(body) ?? `Validator RPC returned HTTP ${res.status}`
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : 'Validator RPC health probe failed'
+    }
+
+    await delay(intervalMs)
+  }
+
+  throw new Error(lastError)
+}
+
+async function readJson(res: Response): Promise<Record<string, unknown> | null> {
+  try {
+    const body = await res.json()
+    return body && typeof body === 'object' ? body as Record<string, unknown> : null
+  } catch {
+    return null
+  }
+}
+
+function getHealthFailure(body: Record<string, unknown> | null): string | null {
+  const error = body?.error
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    return typeof message === 'string' ? message : null
+  }
+  return null
+}
+
+function delay(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve()
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

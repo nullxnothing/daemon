@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
 import type { RicoMapsEmbedStatus } from '../../types/daemon'
 import './RicoMaps.css'
 
@@ -49,7 +50,7 @@ export function RicoMapsPanel() {
     let cancelled = false
     async function boot() {
       const current = await refreshStatus()
-      if (cancelled || current?.running) return
+      if (cancelled || current?.running || current?.installed === false) return
       await startRicoMaps()
     }
     void boot()
@@ -107,6 +108,12 @@ export function RicoMapsPanel() {
   } as React.DetailedHTMLProps<React.WebViewHTMLAttributes<HTMLWebViewElement>, HTMLWebViewElement>
 
   const isReady = status?.running
+  const isMissingSetup = status?.installed === false
+  const canStart = !isStarting && !isReady && !isMissingSetup
+  const ricoMapsDetail = isMissingSetup
+    ? `Install RicoMaps dependencies at ${status?.projectPath ?? 'the configured RicoMaps project path'}`
+    : loadError ?? status?.error ?? status?.projectPath ?? 'Local graph explorer for wallet and token forensics.'
+  const setupLabel = isMissingSetup ? 'Setup needed' : isStarting ? 'Starting' : `Port ${status?.port ?? 3600}`
 
   return (
     <div className="ricomaps-panel">
@@ -129,19 +136,43 @@ export function RicoMapsPanel() {
 
         <div className="ricomaps-url" title={url}>{url}</div>
 
-        <button type="button" className="ricomaps-start" disabled={isStarting || isReady} onClick={() => void startRicoMaps()}>
+        <button
+          type="button"
+          className="ricomaps-start"
+          disabled={!canStart}
+          onClick={() => void startRicoMaps()}
+          title={isMissingSetup ? 'Install RicoMaps before starting the embedded service' : undefined}
+        >
           {isStarting ? 'Starting' : isReady ? 'Ready' : 'Start'}
         </button>
       </div>
+
+      <ProductSurfaceStrip
+        surfaceId="ricomaps"
+        stateLabel={isReady ? 'Running' : 'Needs service'}
+        setupLabel={setupLabel}
+        tone={isReady ? 'success' : loadError ? 'danger' : 'warning'}
+        detail={ricoMapsDetail}
+        primaryLabel={isMissingSetup ? 'Check status' : isReady ? 'Refresh status' : isStarting ? 'Starting' : 'Start service'}
+        onPrimary={() => {
+          if (isReady || isMissingSetup || isStarting) {
+            void refreshStatus()
+            return
+          }
+          void startRicoMaps()
+        }}
+      />
 
       <div className="ricomaps-webview-shell">
         {isReady && <webview {...webviewProps} />}
         {(!isReady || loadError) && (
           <div className="ricomaps-overlay" role="status">
-            <span>{isStarting ? 'Starting RicoMaps...' : 'RicoMaps is not ready.'}</span>
-            <small>{loadError ?? status?.error ?? status?.projectPath ?? 'http://localhost:3600'}</small>
+            <span>{isStarting ? 'Starting RicoMaps...' : isMissingSetup ? 'RicoMaps setup required.' : 'RicoMaps is not ready.'}</span>
+            <small>{ricoMapsDetail}</small>
             <div>
-              <button type="button" onClick={() => void startRicoMaps()} disabled={isStarting}>Start</button>
+              {!isMissingSetup && (
+                <button type="button" onClick={() => void startRicoMaps()} disabled={!canStart}>Start</button>
+              )}
               <button type="button" onClick={() => void refreshStatus()}>Retry</button>
             </div>
           </div>

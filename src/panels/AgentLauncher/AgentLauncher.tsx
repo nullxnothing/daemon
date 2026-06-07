@@ -17,7 +17,7 @@ function SectionLabel({ title, count }: { title: string; count: number }) {
   return (
     <div className="agent-section-label">
       <span>{title}</span>
-      <span>{count}</span>
+      <span className="agent-section-label-count">{count}</span>
     </div>
   )
 }

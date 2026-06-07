@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "4.1.2",
+  "version": "4.3.0",
   "main": "dist-electron/main/index.js",
   "description": "Solana-native agent workbench for verifiable AI development",
   "author": "nullxnothing",
@@ -43,12 +43,12 @@
     "test:a11y": "vitest run test/a11y",
     "test:keyboard": "vitest run test/keyboard",
     "test:wallet-tx": "vitest run test/services/WalletService.test.ts test/services/WalletService.swap.test.ts test/services/SolanaTransactionPreviewService.test.ts",
-    "test:solana-runtime": "vitest run test/services/SolanaService.test.ts test/services/SolanaRuntimeStatusService.test.ts test/security/BigIntBufferShim.test.ts",
+    "test:solana-runtime": "vitest run test/services/SolanaRuntimeConfigService.test.ts test/services/SolanaExecutionService.test.ts test/services/SolanaService.test.ts test/services/SolanaRuntimeStatusService.test.ts test/security/BigIntBufferShim.test.ts",
     "test:launch-adapters": "vitest run test/services/TokenLaunchService.test.ts test/services/PumpFunService.test.ts test/services/RaydiumLaunchLabAdapter.test.ts test/services/MeteoraDbcLaunchAdapter.test.ts test/services/OpenBidLaunchAdapter.test.ts",
     "test:x402": "vitest run test/services/IdlePaidCallService.test.ts test/services/ProService.test.ts test/services/DaemonSubscriptionGateway.test.ts",
     "test:metaplex-agentops": "vitest run test/panels/MetaplexOperatorPlan.test.ts",
     "test:deps:solana": "pnpm run security:audit && pnpm why bigint-buffer @solana/web3.js @solana/spl-token @metaplex-foundation/mpl-core @metaplex-foundation/mpl-agent-registry @x402/svm",
-    "test:solana": "vitest run test/services/SolanaService.test.ts test/services/SolanaRuntimeStatusService.test.ts test/services/SolanaTransactionPreviewService.test.ts test/services/WalletService.test.ts test/services/WalletService.swap.test.ts test/services/TokenLaunchService.test.ts test/services/PumpFunService.test.ts test/services/RaydiumLaunchLabAdapter.test.ts test/services/MeteoraDbcLaunchAdapter.test.ts test/services/IdlePaidCallService.test.ts test/panels/SolanaIntegrations.test.ts test/panels/MetaplexOperatorPlan.test.ts test/panels/IntegrationCommandCenter.registry.test.ts test/panels/IntegrationCommandCenter.sendaiSetup.test.ts test/security/BigIntBufferShim.test.ts",
+    "test:solana": "vitest run test/services/SolanaRuntimeConfigService.test.ts test/services/SolanaExecutionService.test.ts test/services/SolanaService.test.ts test/services/SolanaRuntimeStatusService.test.ts test/services/SolanaTransactionPreviewService.test.ts test/services/WalletService.test.ts test/services/WalletService.swap.test.ts test/services/RecoveryService.test.ts test/services/TokenLaunchService.test.ts test/services/PumpFunService.test.ts test/services/RaydiumLaunchLabAdapter.test.ts test/services/MeteoraDbcLaunchAdapter.test.ts test/services/IdlePaidCallService.test.ts test/services/ValidatorManager.test.ts test/panels/SolanaIntegrations.test.ts test/panels/MetaplexOperatorPlan.test.ts test/panels/IntegrationCommandCenter.registry.test.ts test/panels/IntegrationCommandCenter.sendaiSetup.test.ts test/security/BigIntBufferShim.test.ts",
     "test:security": "vitest run test/security test/services/SecureKeyService.test.ts test/services/ValidationService.test.ts test/services/ProjectSafetyService.test.ts",
     "test:smoke:core": "pnpm run test:smoke && pnpm run test:mcp-stress && pnpm run test:pro-entitlement",
     "test:smoke:ui": "pnpm run test:journeys && pnpm run test:responsive && pnpm run test:layout && pnpm run test:visual",
@@ -82,6 +82,7 @@
     "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
     "@meteora-ag/dynamic-bonding-curve-sdk": "1.5.7",
     "@nirholas/pump-sdk": "1.30.0",
+    "@oobe-protocol-labs/synapse-sap-sdk": "0.19.8",
     "@payai/facilitator": "^2.3.6",
     "@phosphor-icons/react": "^2.1.10",
     "@raydium-io/raydium-sdk-v2": "0.2.49-alpha",
@@ -132,6 +133,7 @@
     "@xterm/addon-web-links": "^0.12.0",
     "@xterm/xterm": "^5.5.0",
     "axe-core": "^4.11.4",
+    "buffer": "^6.0.3",
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
     "electron-builder-squirrel-windows": "^26.8.1",
@@ -147,8 +149,7 @@
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.7",
     "vitest": "^3.2.4",
-    "zustand": "^5.0.3",
-    "buffer": "^6.0.3"
+    "zustand": "^5.0.3"
   },
   "pnpm": {
     "overrides": {
@@ -159,7 +160,7 @@
       "brace-expansion": "5.0.6",
       "dompurify": "3.4.0",
       "esbuild": "0.25.12",
-      "hono": "4.12.18",
+      "hono": "4.12.21",
       "lodash": "4.18.1",
       "follow-redirects": "1.16.0",
       "postcss": "8.5.10",
@@ -179,6 +180,10 @@
       "ignoreGhsas": [
         "GHSA-5xrq-8626-4rwp"
       ]
+    },
+    "patchedDependencies": {
+      "node-pty@1.1.0": "patches/node-pty@1.1.0.patch",
+      "@oobe-protocol-labs/synapse-sap-sdk@0.19.8": "patches/@oobe-protocol-labs__synapse-sap-sdk@0.19.8.patch"
     }
   }
 }

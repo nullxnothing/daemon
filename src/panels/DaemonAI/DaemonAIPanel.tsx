@@ -1,11 +1,43 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useAiStore } from '../../store/aiStore'
 import { useUIStore } from '../../store/ui'
-import { PanelHeader, Spinner } from '../../components/Panel'
+import { PackHostShell } from '../../components/PackHostShell/PackHostShell'
+import {
+  CheckboxChip,
+  Composer,
+  EmptyPanel,
+  KpiGrid,
+  PanelHeader,
+  SegmentedControl,
+  Spinner,
+  ToolCallRow,
+  UnderlineTabs,
+} from '../../components/Panel'
 import { Button } from '../../components/Button'
+import { IntegrationCommandCenter } from '../IntegrationCommandCenter/IntegrationCommandCenter'
+import { integrationsForPackId } from '../IntegrationCommandCenter/packPartition'
+import {
+  METERFLOW_RECEIPT_EVENT,
+  METERFLOW_RECEIPT_HANDOFF_KEY,
+  queueSurfaceHandoff,
+} from '../../lib/surfaceHandoffs'
 import './DaemonAIPanel.css'
 
+const AgentStationPanel = lazy(() => import('../AgentStation/AgentStation').then((m) => ({ default: m.AgentStation })))
+const AgentWorkPanel = lazy(() => import('../AgentWork/AgentWork').then((m) => ({ default: m.AgentWork })))
+const AgentOpsPanel = lazy(() => import('../AgentOps/AgentOpsPanel').then((m) => ({ default: m.AgentOpsPanel })))
+
+const AGENT_PACK_TABS = [
+  { id: 'ai', label: 'AI Workbench' },
+  { id: 'station', label: 'Station' },
+  { id: 'work', label: 'Work' },
+  { id: 'ops', label: 'Ops' },
+  { id: 'integrations', label: 'Integrations' },
+] as const
+type AgentPackView = (typeof AGENT_PACK_TABS)[number]['id']
+
 type ContextKey = keyof NonNullable<DaemonAiChatRequest['context']>
+type RunMode = NonNullable<DaemonAiAgentRunInput['mode']>
 type WorkbenchTab = 'chat' | 'runs' | 'approvals' | 'patches' | 'receipts'
 
 const CONTEXT_OPTIONS: Array<{ key: ContextKey; label: string }> = [
@@ -18,11 +50,40 @@ const CONTEXT_OPTIONS: Array<{ key: ContextKey; label: string }> = [
 
 const DEFAULT_ALLOWED_TOOLS = 'read_file, search_files, list_project_tree, get_git_status, get_git_diff, write_patch, run_tests'
 const MAX_ACTIVE_FILE_CONTENT_CHARS = 120_000
+const METERFLOW_RECEIPT_LIMIT = 6
+
+const WORKBENCH_TABS: Array<{ id: WorkbenchTab; label: string; getCount?: (counts: WorkbenchCounts) => number }> = [
+  { id: 'chat', label: 'Chat' },
+  { id: 'runs', label: 'Runs', getCount: (counts) => counts.runs },
+  { id: 'approvals', label: 'Approvals', getCount: (counts) => counts.approvals },
+  { id: 'patches', label: 'Patches', getCount: (counts) => counts.patches },
+  { id: 'receipts', label: 'Receipts', getCount: (counts) => counts.receipts },
+]
+
+type WorkbenchCounts = {
+  runs: number
+  approvals: number
+  patches: number
+  receipts: number
+}
 
 export function DaemonAIPanel() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const openFiles = useUIStore((s) => s.openFiles)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const pendingSubView = useUIStore((s) => s.pendingSubView)
+  const setPendingSubView = useUIStore((s) => s.setPendingSubView)
+  const [packView, setPackView] = useState<AgentPackView>('ai')
+  const agentIntegrations = useMemo(() => integrationsForPackId('agent'), [])
+
+  useEffect(() => {
+    if (!pendingSubView) return
+    if (AGENT_PACK_TABS.some((t) => t.id === pendingSubView)) {
+      setPackView(pendingSubView as AgentPackView)
+      setPendingSubView(null)
+    }
+  }, [pendingSubView, setPendingSubView])
   const activeFilePath = useUIStore((s) => activeProjectId ? s.activeFilePathByProject[activeProjectId] ?? null : null)
   const activeFile = openFiles.find((file) => file.path === activeFilePath) ?? null
   const activeFileContent = activeFile?.content.slice(0, MAX_ACTIVE_FILE_CONTENT_CHARS) ?? null
@@ -54,9 +115,12 @@ export function DaemonAIPanel() {
   const [allowedTools, setAllowedTools] = useState(DEFAULT_ALLOWED_TOOLS)
   const [accessMode, setAccessMode] = useState<'auto' | 'byok' | 'hosted'>('auto')
   const [mode, setMode] = useState<'ask' | 'plan'>('ask')
-  const [runMode, setRunMode] = useState<DaemonAiAgentRunInput['mode']>('patch')
+  const [runMode, setRunMode] = useState<RunMode>('patch')
   const [approvalPolicy, setApprovalPolicy] = useState<DaemonAiAgentRunInput['approvalPolicy']>('require_for_write_and_terminal')
   const [modelPreference, setModelPreference] = useState<DaemonAiChatRequest['modelPreference']>('auto')
+  const [meterflowReceipts, setMeterflowReceipts] = useState<MeterflowReceipt[]>([])
+  const [meterflowLoading, setMeterflowLoading] = useState(false)
+  const [meterflowError, setMeterflowError] = useState<string | null>(null)
   const [context, setContext] = useState<NonNullable<DaemonAiChatRequest['context']>>({
     activeFile: true,
     projectTree: true,
@@ -65,16 +129,49 @@ export function DaemonAIPanel() {
     walletContext: false,
   })
 
+  const loadMeterflowReceipts = useCallback(async (silent = false) => {
+    if (!silent) setMeterflowLoading(true)
+    setMeterflowError(null)
+    try {
+      const res = await window.daemon.meterflow.listReceipts({ limit: METERFLOW_RECEIPT_LIMIT })
+      if (res.ok) {
+        setMeterflowReceipts(res.data ?? [])
+      } else {
+        setMeterflowError(res.error ?? 'Meterflow receipts unavailable')
+      }
+    } catch (err) {
+      setMeterflowError(err instanceof Error ? err.message : 'Meterflow receipts unavailable')
+    } finally {
+      if (!silent) setMeterflowLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void load()
     void loadWorkbench()
-  }, [load, loadWorkbench])
+    void loadMeterflowReceipts()
+  }, [load, loadWorkbench, loadMeterflowReceipts])
+
+  const handleOpenMeterflowReceipt = useCallback((receiptId: string) => {
+    queueSurfaceHandoff(METERFLOW_RECEIPT_HANDOFF_KEY, METERFLOW_RECEIPT_EVENT, { receiptId })
+    openWorkspaceTool('meterflow')
+  }, [openWorkspaceTool])
 
   const canUseHosted = Boolean(features?.hostedAvailable && features.backendConfigured)
   const canSend = message.trim().length > 0 && !loading && (accessMode === 'auto' || accessMode === 'byok' || canUseHosted)
   const canCreateRun = runTask.trim().length > 0 && !workbenchLoading
   const pendingApprovals = approvals.filter((approval) => approval.status === 'pending')
   const proposedPatches = patchProposals.filter((proposal) => proposal.status === 'proposed')
+  const workbenchCounts = useMemo<WorkbenchCounts>(() => ({
+    runs: agentRuns.length,
+    approvals: pendingApprovals.length,
+    patches: proposedPatches.length,
+    receipts: agentRuns.length + meterflowReceipts.length,
+  }), [agentRuns.length, meterflowReceipts.length, pendingApprovals.length, proposedPatches.length])
+  const activeModel = models.find((item) => item.lane === modelPreference)
+  const activeContextItems = CONTEXT_OPTIONS
+    .filter((option) => context[option.key])
+    .map((option) => ({ id: option.key, label: option.label }))
 
   const remainingLabel = useMemo(() => {
     if (!usage) return 'No usage loaded'
@@ -86,8 +183,7 @@ export function DaemonAIPanel() {
     setContext((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const handleSend = async () => {
     if (!canSend) return
     const nextMessage = message.trim()
     setMessage('')
@@ -103,10 +199,15 @@ export function DaemonAIPanel() {
       context,
     })
     if (!ok) setMessage(nextMessage)
+    else void loadMeterflowReceipts(true)
   }
 
-  const handleCreateRun = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    await handleSend()
+  }
+
+  const handleQueueRun = async () => {
     if (!canCreateRun) return
     const tools = allowedTools.split(',').map((tool) => tool.trim()).filter(Boolean)
     const ok = await createRun({
@@ -125,10 +226,38 @@ export function DaemonAIPanel() {
     if (ok) {
       setRunTask('')
       setActiveTab('runs')
+      void loadMeterflowReceipts(true)
     }
   }
 
+  const handleCreateRun = async (event: React.FormEvent) => {
+    event.preventDefault()
+    await handleQueueRun()
+  }
+
   return (
+    <PackHostShell
+      kicker="Agent pack"
+      title="Daemon AI"
+      subtitle="AI workbench, agent station, wallet-funded work, and ops handoff."
+      tabs={AGENT_PACK_TABS.map((t) => ({ id: t.id, label: t.label }))}
+      activeId={packView}
+      onChange={setPackView}
+    >
+      {packView === 'station' && (
+        <Suspense fallback={<div className="agent-pack-body" />}><AgentStationPanel /></Suspense>
+      )}
+      {packView === 'work' && (
+        <Suspense fallback={<div className="agent-pack-body" />}><AgentWorkPanel /></Suspense>
+      )}
+      {packView === 'ops' && (
+        <Suspense fallback={<div className="agent-pack-body" />}><AgentOpsPanel /></Suspense>
+      )}
+      {packView === 'integrations' && (
+        <IntegrationCommandCenter filter={agentIntegrations} />
+      )}
+
+      {packView === 'ai' && (
     <section className="daemon-ai-panel">
       <PanelHeader
         kicker="DAEMON AI"
@@ -140,42 +269,35 @@ export function DaemonAIPanel() {
         }
       />
 
-      <div className="daemon-ai-status-grid">
-        <div className="daemon-ai-stat">
-          <span>Plan</span>
-          <strong>{usage?.plan ?? 'light'}</strong>
-        </div>
-        <div className="daemon-ai-stat">
-          <span>Usage</span>
-          <strong>{remainingLabel}</strong>
-        </div>
-        <div className="daemon-ai-stat">
-          <span>Safety Queue</span>
-          <strong>{pendingApprovals.length} approvals · {proposedPatches.length} patches</strong>
-        </div>
-      </div>
+      <KpiGrid
+        cells={[
+          { label: 'Plan', value: usage?.plan ?? 'light', meta: accessMode.toUpperCase() },
+          { label: 'Usage', value: remainingLabel, meta: usage?.monthlyCredits ? 'monthly credits' : 'local provider' },
+          { label: 'Safety Queue', value: pendingApprovals.length + proposedPatches.length, meta: `${pendingApprovals.length} approvals / ${proposedPatches.length} patches`, tone: pendingApprovals.length || proposedPatches.length ? 'warning' : 'success' },
+        ]}
+      />
 
-      <div className="daemon-ai-tabs" role="tablist" aria-label="DAEMON AI workbench">
-        {(['chat', 'runs', 'approvals', 'patches', 'receipts'] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            className={activeTab === tab ? 'active' : ''}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tabLabel(tab)}
-          </button>
-        ))}
-      </div>
+      <UnderlineTabs
+        tabs={WORKBENCH_TABS.map((tab) => ({
+          id: tab.id,
+          label: tab.label,
+          count: tab.getCount?.(workbenchCounts),
+        }))}
+        activeId={activeTab}
+        onChange={setActiveTab}
+      />
 
       <div className="daemon-ai-controls">
-        <div className="daemon-ai-segment">
-          <button type="button" className={accessMode === 'auto' ? 'active' : ''} onClick={() => setAccessMode('auto')}>Auto</button>
-          <button type="button" className={accessMode === 'byok' ? 'active' : ''} onClick={() => setAccessMode('byok')}>BYOK</button>
-          <button type="button" className={accessMode === 'hosted' ? 'active' : ''} onClick={() => setAccessMode('hosted')}>Hosted</button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Access mode"
+          value={accessMode}
+          onChange={setAccessMode}
+          items={[
+            { id: 'auto', label: 'Auto' },
+            { id: 'byok', label: 'BYOK' },
+            { id: 'hosted', label: 'Hosted' },
+          ]}
+        />
         <select className="daemon-ai-select" value={modelPreference} onChange={(e) => setModelPreference(e.target.value as DaemonAiChatRequest['modelPreference'])}>
           {models.map((model) => (
             <option key={model.lane} value={model.lane}>{model.label}</option>
@@ -191,20 +313,24 @@ export function DaemonAIPanel() {
 
       <div className="daemon-ai-context">
         {CONTEXT_OPTIONS.map((option) => (
-          <label key={option.key} className="daemon-ai-check">
-            <input type="checkbox" checked={Boolean(context[option.key])} onChange={() => handleToggleContext(option.key)} />
-            <span>{option.label}</span>
-          </label>
+          <CheckboxChip key={option.key} checked={Boolean(context[option.key])} onChange={() => handleToggleContext(option.key)}>
+            {option.label}
+          </CheckboxChip>
         ))}
       </div>
 
       {activeTab === 'chat' && (
         <>
           <div className="daemon-ai-chat-mode">
-            <div className="daemon-ai-segment">
-              <button type="button" className={mode === 'ask' ? 'active' : ''} onClick={() => setMode('ask')}>Ask</button>
-              <button type="button" className={mode === 'plan' ? 'active' : ''} onClick={() => setMode('plan')}>Plan</button>
-            </div>
+            <SegmentedControl
+              ariaLabel="Chat mode"
+              value={mode}
+              onChange={setMode}
+              items={[
+                { id: 'ask', label: 'Ask' },
+                { id: 'plan', label: 'Plan' },
+              ]}
+            />
             <button type="button" className="daemon-ai-ghost-btn" onClick={clear} disabled={loading || messages.length === 0}>
               Clear Chat
             </button>
@@ -212,15 +338,16 @@ export function DaemonAIPanel() {
           <ChatSurface messages={messages} loading={loading} />
           {error && <div className="daemon-ai-error">{error}</div>}
           <form className="daemon-ai-composer" onSubmit={handleSubmit}>
-            <textarea
+            <Composer
               value={message}
-              onChange={(event) => setMessage(event.target.value)}
+              onChange={setMessage}
+              onSend={() => void handleSend()}
               placeholder="Ask DAEMON AI about this project..."
-              rows={3}
+              disabled={loading}
+              model={activeModel?.label ?? modelPreference}
+              context={activeContextItems}
+              onRemoveContext={(key) => handleToggleContext(key as ContextKey)}
             />
-            <button type="submit" disabled={!canSend}>
-              Send
-            </button>
           </form>
         </>
       )}
@@ -228,18 +355,28 @@ export function DaemonAIPanel() {
       {activeTab === 'runs' && (
         <div className="daemon-ai-workbench">
           <form className="daemon-ai-run-form" onSubmit={handleCreateRun}>
-            <textarea
+            <Composer
               value={runTask}
-              onChange={(event) => setRunTask(event.target.value)}
+              onChange={setRunTask}
+              onSend={() => void handleQueueRun()}
               placeholder="Describe the agent run or patch proposal..."
-              rows={3}
+              sendLabel="Queue Run"
+              disabled={workbenchLoading}
+              model={runModeLabel(runMode)}
+              context={activeContextItems}
+              onRemoveContext={(key) => handleToggleContext(key as ContextKey)}
+            />
+            <SegmentedControl
+              ariaLabel="Run mode"
+              value={runMode}
+              onChange={setRunMode}
+              items={[
+                { id: 'patch', label: 'Patch' },
+                { id: 'agent', label: 'Agent' },
+                { id: 'background', label: 'Background' },
+              ]}
             />
             <div className="daemon-ai-run-grid">
-              <select className="daemon-ai-select" value={runMode} onChange={(e) => setRunMode(e.target.value as DaemonAiAgentRunInput['mode'])}>
-                <option value="patch">Patch proposal</option>
-                <option value="agent">Agent run</option>
-                <option value="background">Background run</option>
-              </select>
               <select className="daemon-ai-select" value={approvalPolicy} onChange={(e) => setApprovalPolicy(e.target.value as DaemonAiAgentRunInput['approvalPolicy'])}>
                 <option value="require_for_write_and_terminal">Approve write and terminal tools</option>
                 <option value="require_for_all_tools">Approve every tool</option>
@@ -288,12 +425,23 @@ export function DaemonAIPanel() {
       )}
 
       {activeTab === 'receipts' && (
-        <ReceiptList runs={agentRuns} approvals={approvals} proposals={patchProposals} />
+        <ReceiptList
+          runs={agentRuns}
+          approvals={approvals}
+          proposals={patchProposals}
+          meterflowReceipts={meterflowReceipts}
+          meterflowLoading={meterflowLoading}
+          meterflowError={meterflowError}
+          onRefreshMeterflowReceipts={() => void loadMeterflowReceipts(true)}
+          onOpenMeterflowReceipt={handleOpenMeterflowReceipt}
+        />
       )}
 
       {workbenchError && <div className="daemon-ai-error">{workbenchError}</div>}
       {workbenchLoading && <div className="daemon-ai-thinking">Refreshing workbench...</div>}
     </section>
+      )}
+    </PackHostShell>
   )
 }
 
@@ -301,9 +449,11 @@ function ChatSurface({ messages, loading }: { messages: Array<{ id: string; role
   return (
     <div className="daemon-ai-chat">
       {messages.length === 0 ? (
-        <div className="daemon-ai-empty">
-          Ask about the current project, a failing Solana build, a file, or a release plan.
-        </div>
+        <EmptyPanel
+          label="Chat"
+          title="No messages"
+          description="Ask about the current project, a failing Solana build, a file, or a release plan."
+        />
       ) : (
         messages.map((item) => (
           <article key={item.id} className={`daemon-ai-message ${item.role}`}>
@@ -323,7 +473,15 @@ function ChatSurface({ messages, loading }: { messages: Array<{ id: string; role
 }
 
 function RunList({ runs, onCancel }: { runs: DaemonAiAgentRun[]; onCancel: (runId: string) => void }) {
-  if (runs.length === 0) return <div className="daemon-ai-empty">No runs yet. Queue a read-only run or a patch proposal to get started.</div>
+  if (runs.length === 0) {
+    return (
+      <EmptyPanel
+        label="Runs"
+        title="No runs yet"
+        description="Queue a read-only run or a patch proposal to get started."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {runs.map((run) => (
@@ -337,7 +495,15 @@ function RunList({ runs, onCancel }: { runs: DaemonAiAgentRun[]; onCancel: (runI
           </div>
           <p>{run.task}</p>
           <div className="daemon-ai-tool-list">
-            {run.allowedTools.slice(0, 8).map((tool) => <span key={`${run.id}-${tool}`}>{tool}</span>)}
+            {run.allowedTools.slice(0, 8).map((tool) => (
+              <ToolCallRow
+                key={`${run.id}-${tool}`}
+                kind={toolCallKind(tool)}
+                label={tool}
+                meta={run.mode}
+                status={toolCallStatus(run.status)}
+              />
+            ))}
           </div>
           {run.error && <div className="daemon-ai-error">{run.error}</div>}
           <button type="button" className="daemon-ai-ghost-btn" disabled={['completed', 'failed', 'cancelled'].includes(run.status)} onClick={() => onCancel(run.id)}>
@@ -353,7 +519,15 @@ function ApprovalList({ approvals, onDecision }: {
   approvals: DaemonAiToolApprovalRequest[]
   onDecision: (approval: DaemonAiToolApprovalRequest, decision: DaemonAiToolApprovalDecisionInput['decision']) => void
 }) {
-  if (approvals.length === 0) return <div className="daemon-ai-empty">No tool approvals yet. Risky tools will appear here before they run.</div>
+  if (approvals.length === 0) {
+    return (
+      <EmptyPanel
+        label="Approvals"
+        title="No tool approvals"
+        description="Risky tools will appear here before they run."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {approvals.map((approval) => (
@@ -366,7 +540,13 @@ function ApprovalList({ approvals, onDecision }: {
             <span className={`daemon-ai-badge ${approval.riskLevel}`}>{approval.riskLevel}</span>
           </div>
           <p>{approval.summary}</p>
-          <pre className="daemon-ai-json">{jsonPreview(approval.argumentsPreview)}</pre>
+          <ToolCallRow
+            kind={toolCallKind(approval.toolName)}
+            label={approval.toolName}
+            meta={`run ${shortId(approval.runId)}`}
+            status={approval.status === 'pending' ? 'pending' : approval.status === 'rejected' ? 'error' : 'done'}
+            details={<pre className="daemon-ai-json">{jsonPreview(approval.argumentsPreview)}</pre>}
+          />
           <div className="daemon-ai-card-actions">
             <button type="button" className="daemon-ai-primary-btn" disabled={approval.status !== 'pending' || approval.riskLevel === 'blocked'} onClick={() => onDecision(approval, 'approve')}>
               Approve
@@ -388,7 +568,15 @@ function PatchList({ proposals, onDecision, onApply }: {
   onApply: (proposal: DaemonAiPatchProposal) => void
 }) {
   const [expandedPatchId, setExpandedPatchId] = useState<string | null>(null)
-  if (proposals.length === 0) return <div className="daemon-ai-empty">No patch proposals yet. Generated code changes will appear here before apply.</div>
+  if (proposals.length === 0) {
+    return (
+      <EmptyPanel
+        label="Patches"
+        title="No patch proposals"
+        description="Generated code changes will appear here before apply."
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
       {proposals.map((proposal) => {
@@ -436,19 +624,77 @@ function PatchList({ proposals, onDecision, onApply }: {
   )
 }
 
-function ReceiptList({ runs, approvals, proposals }: {
+function ReceiptList({
+  runs,
+  approvals,
+  proposals,
+  meterflowReceipts,
+  meterflowLoading,
+  meterflowError,
+  onRefreshMeterflowReceipts,
+  onOpenMeterflowReceipt,
+}: {
   runs: DaemonAiAgentRun[]
   approvals: DaemonAiToolApprovalRequest[]
   proposals: DaemonAiPatchProposal[]
+  meterflowReceipts: MeterflowReceipt[]
+  meterflowLoading: boolean
+  meterflowError: string | null
+  onRefreshMeterflowReceipts: () => void
+  onOpenMeterflowReceipt: (receiptId: string) => void
 }) {
   const rows = runs.map((run) => ({
     run,
     approvals: approvals.filter((approval) => approval.runId === run.id),
     proposals: proposals.filter((proposal) => proposal.runId === run.id),
   }))
-  if (rows.length === 0) return <div className="daemon-ai-empty">Receipts will appear after chat, agent runs, approvals, and patches are created.</div>
+  if (rows.length === 0 && meterflowReceipts.length === 0 && !meterflowLoading) {
+    return (
+      <EmptyPanel
+        label="Receipts"
+        title="No receipts"
+        description="Receipts will appear after chat, agent runs, approvals, patches, or Meterflow paid calls are created."
+        actions={
+          <button type="button" className="daemon-ai-ghost-btn" onClick={onRefreshMeterflowReceipts}>
+            Check Meterflow
+          </button>
+        }
+      />
+    )
+  }
   return (
     <div className="daemon-ai-card-list motion-stagger">
+      <section className="daemon-ai-receipt-section">
+        <div className="daemon-ai-receipt-section-head">
+          <div>
+            <strong>Meterflow paid calls</strong>
+            <span>{meterflowReceipts.length ? `${meterflowReceipts.length} recent` : meterflowLoading ? 'Loading' : 'No receipts'}</span>
+          </div>
+          <button type="button" className="daemon-ai-ghost-btn" onClick={onRefreshMeterflowReceipts}>
+            Refresh
+          </button>
+        </div>
+        {meterflowError ? <div className="daemon-ai-error">{meterflowError}</div> : null}
+        {meterflowReceipts.map((receipt) => (
+          <article key={receipt.id} className="daemon-ai-card daemon-ai-meterflow-receipt">
+            <div className="daemon-ai-card-head">
+              <div>
+                <div className="daemon-ai-card-title">{meterflowRouteLabel(receipt)}</div>
+                <div className="daemon-ai-card-meta">{meterflowTimeLabel(receipt.createdAt)} · {shortId(receipt.id)}</div>
+              </div>
+              <span className={`daemon-ai-badge ${meterflowBadgeClass(receipt)}`}>{meterflowStatusLabel(receipt)}</span>
+            </div>
+            <div className="daemon-ai-receipt-grid">
+              <span>{meterflowAmountLabel(receipt)}</span>
+              <span>{receipt.agentName ?? receipt.agentId ?? 'DAEMON paid call'}</span>
+              <span>{receipt.txSignature ? `tx ${shortId(receipt.txSignature)}` : 'No tx'}</span>
+            </div>
+            <button type="button" className="daemon-ai-primary-btn" onClick={() => onOpenMeterflowReceipt(receipt.id)}>
+              Open in Meterflow
+            </button>
+          </article>
+        ))}
+      </section>
       {rows.map(({ run, approvals: runApprovals, proposals: runProposals }) => (
         <article key={run.id} className="daemon-ai-card">
           <div className="daemon-ai-card-head">
@@ -475,12 +721,24 @@ function ReceiptList({ runs, approvals, proposals }: {
   )
 }
 
-function tabLabel(tab: WorkbenchTab): string {
-  if (tab === 'chat') return 'Chat'
-  if (tab === 'runs') return 'Runs'
-  if (tab === 'approvals') return 'Approvals'
-  if (tab === 'patches') return 'Patches'
-  return 'Receipts'
+function runModeLabel(mode: RunMode): string {
+  if (mode === 'patch') return 'Patch proposal'
+  if (mode === 'agent') return 'Agent run'
+  return 'Background run'
+}
+
+function toolCallKind(name: string): 'read' | 'edit' | 'run' {
+  const lower = name.toLowerCase()
+  if (lower.includes('write') || lower.includes('patch') || lower.includes('edit')) return 'edit'
+  if (lower.includes('run') || lower.includes('test') || lower.includes('terminal') || lower.includes('exec')) return 'run'
+  return 'read'
+}
+
+function toolCallStatus(status: string): 'pending' | 'running' | 'done' | 'error' {
+  if (status === 'queued' || status === 'awaiting_approval') return 'pending'
+  if (status === 'running') return 'running'
+  if (status === 'failed' || status === 'cancelled' || status === 'rejected') return 'error'
+  return 'done'
 }
 
 function jsonPreview(value: unknown): string {
@@ -512,6 +770,36 @@ function keycardOpenUrl(run: DaemonAiAgentRun): string | null {
       : null
   const match = artifactUri?.match(/^keycard:\/\/([^#]+)/)
   return match?.[1] ? `https://keycardsol.xyz/open/${match[1]}` : null
+}
+
+function meterflowRouteLabel(receipt: MeterflowReceipt): string {
+  return String(receipt.route ?? receipt.providerRoute ?? receipt.meterId ?? 'Paid call')
+}
+
+function meterflowStatusLabel(receipt: MeterflowReceipt): string {
+  return String(receipt.paymentState ?? receipt.status ?? 'recorded').replace(/_/g, ' ')
+}
+
+function meterflowBadgeClass(receipt: MeterflowReceipt): string {
+  const status = meterflowStatusLabel(receipt).toLowerCase()
+  if (status.includes('fail') || status.includes('error') || status.includes('reject')) return 'failed'
+  if (status.includes('pending') || status.includes('quote') || status.includes('unsettled')) return 'running'
+  return 'completed'
+}
+
+function meterflowAmountLabel(receipt: MeterflowReceipt): string {
+  const raw = receipt.amountUsd ?? receipt.amountUSDC
+  if (raw === null || raw === undefined || raw === '') return receipt.asset ?? 'metered'
+  const amount = typeof raw === 'number' ? raw : Number(String(raw).replace(/^\$/, '').trim())
+  if (!Number.isFinite(amount)) return String(raw)
+  return `${amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${receipt.asset ?? 'USD'}`
+}
+
+function meterflowTimeLabel(value?: string | number | null): string {
+  if (!value) return 'unknown time'
+  const time = typeof value === 'number' ? value : Date.parse(value)
+  if (!Number.isFinite(time)) return 'unknown time'
+  return formatTime(time)
 }
 
 function formatTime(value: number): string {

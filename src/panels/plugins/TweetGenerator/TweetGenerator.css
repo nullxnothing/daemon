@@ -25,10 +25,10 @@
 
 .tweet-gen__pill {
   flex: 1;
-  padding: 5px 0;
+  padding: var(--space-xs) 0;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 100px;
+  border-radius: var(--radius-pill);
   color: var(--t3);
   font-size: var(--fs-11);
   font-family: inherit;
@@ -41,6 +41,10 @@
 .tweet-gen__pill:hover {
   background: var(--s3);
   color: var(--t2);
+}
+
+.tweet-gen__pill:active {
+  background: var(--s4);
 }
 
 .tweet-gen__pill--active {
@@ -60,7 +64,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  padding: var(--space-sm) 10px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--s1);
   border: 1px solid var(--s5);
   border-left: 3px solid var(--blue-dim);
@@ -69,7 +73,7 @@
 
 .tweet-gen__source-label {
   font-size: var(--fs-9);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--blue);
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -77,7 +81,7 @@
 
 .tweet-gen__source-input {
   width: 100%;
-  padding: 6px 8px;
+  padding: var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -106,7 +110,7 @@
 .tweet-gen__textarea {
   width: 100%;
   min-height: 60px;
-  padding: 8px 10px 20px 10px;
+  padding: var(--space-sm) var(--space-md) var(--space-xl) var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
@@ -139,7 +143,7 @@
 
 .tweet-gen__generate-btn {
   width: 100%;
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
   background: var(--s3);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
@@ -152,6 +156,10 @@
 
 .tweet-gen__generate-btn:hover:not(:disabled) {
   background: var(--s4);
+}
+
+.tweet-gen__generate-btn:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 .tweet-gen__generate-btn:disabled {
@@ -172,7 +180,7 @@
 
 .tweet-gen__section-label {
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -190,7 +198,7 @@
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -207,7 +215,7 @@
 .tweet-gen__card-edit {
   width: 100%;
   min-height: 48px;
-  padding: 6px 8px;
+  padding: var(--space-sm);
   background: var(--s1);
   border: 1px solid var(--t3);
   border-radius: var(--radius-sm);
@@ -227,9 +235,9 @@
 
 .tweet-gen__char-badge {
   font-size: var(--fs-10);
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 100px;
+  font-weight: var(--fw-semibold);
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-pill);
 }
 
 .tweet-gen__char-badge--ok {
@@ -249,11 +257,11 @@
 
 .tweet-gen__card-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .tweet-gen__card-btn {
-  padding: 3px 8px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s3);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -269,6 +277,10 @@
 .tweet-gen__card-btn:hover {
   background: var(--s4);
   color: var(--t1);
+}
+
+.tweet-gen__card-btn:active {
+  background: var(--active-overlay);
 }
 
 .tweet-gen__card-btn--copy {
@@ -295,17 +307,17 @@
 .tweet-gen__drafts {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .tweet-gen__draft {
-  padding: 8px 10px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .tweet-gen__draft-row {
@@ -318,7 +330,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  margin-top: 5px;
+  margin-top: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -353,7 +365,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 13px;
+  padding-left: var(--space-md);
 }
 
 .tweet-gen__draft-mode {
@@ -369,7 +381,7 @@
 }
 
 .tweet-gen__draft-btn {
-  padding: 2px 6px;
+  padding: var(--space-xs) var(--space-sm);
   background: transparent;
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -384,6 +396,10 @@
 .tweet-gen__draft-btn:hover {
   color: var(--t1);
   border-color: var(--t2);
+}
+
+.tweet-gen__draft-btn:active {
+  background: var(--s2);
 }
 
 .tweet-gen__draft-btn--danger:hover {
@@ -423,13 +439,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  padding-top: 6px;
+  padding-top: var(--space-sm);
 }
 
 .tweet-gen__voice-prompt {
   width: 100%;
   min-height: 80px;
-  padding: 8px 10px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
@@ -456,7 +472,7 @@
 
 .tweet-gen__voice-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   justify-content: flex-end;
 }
 
@@ -475,7 +491,7 @@
 
 .tweet-gen__example-row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -495,7 +511,7 @@
   color: var(--t3);
   font-size: var(--fs-12);
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
 }
 
 .tweet-gen__example-remove:hover {
@@ -504,12 +520,12 @@
 
 .tweet-gen__example-add {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .tweet-gen__example-input {
   flex: 1;
-  padding: 5px 8px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-md);
@@ -535,7 +551,7 @@
 .tweet-gen__error {
   font-size: var(--fs-11);
   color: var(--red);
-  padding: 6px 8px;
+  padding: var(--space-sm);
   background: var(--red-glow);
   border: 1px solid var(--red-dim);
   border-radius: var(--radius-md);

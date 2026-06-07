@@ -26,7 +26,7 @@
 
 .metaplex-demo-head h2,
 .metaplex-demo-detail h3 {
-  margin: var(--space-sm) 0 10px;
+  margin: var(--space-sm) 0 var(--space-md);
   letter-spacing: 0;
   line-height: 1;
 }
@@ -59,7 +59,7 @@
   background: var(--control-bg);
   color: var(--t1);
   min-height: 38px;
-  padding: var(--space-sm) 10px;
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
 }
 
@@ -80,7 +80,7 @@
 .metaplex-demo-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
   margin: var(--space-lg) 0;
 }
 
@@ -100,7 +100,7 @@
 }
 
 .metaplex-demo-metrics div {
-  padding: 14px;
+  padding: var(--space-md);
 }
 
 .metaplex-demo-metrics strong {
@@ -114,7 +114,7 @@
 }
 
 .metaplex-demo-notice {
-  padding: var(--space-md) 14px;
+  padding: var(--space-md) var(--space-md);
   margin-bottom: var(--space-lg);
   color: var(--green);
 }
@@ -122,7 +122,7 @@
 .metaplex-demo-operator {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.1fr) minmax(280px, 0.9fr) minmax(260px, 0.75fr);
-  gap: 14px;
+  gap: var(--space-md);
   align-items: start;
   padding-bottom: var(--space-lg);
   margin-bottom: var(--space-lg);
@@ -138,7 +138,7 @@
 }
 
 .metaplex-demo-operator-copy h3 {
-  margin: var(--space-sm) 0 10px;
+  margin: var(--space-sm) 0 var(--space-md);
   font-size: var(--fs-28);
   font-weight: var(--fw-semibold);
   line-height: 1;
@@ -157,7 +157,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
-  margin: 14px 0;
+  margin: var(--space-md) 0;
 }
 
 .metaplex-demo-operator-actions button,
@@ -174,7 +174,7 @@
   border-radius: var(--radius-md);
   background: var(--control-bg);
   color: var(--t1);
-  padding: var(--space-sm) 10px;
+  padding: var(--space-sm) var(--space-md);
 }
 
 .metaplex-demo-operator-actions button {
@@ -207,13 +207,13 @@
 
 .metaplex-demo-operator-warning strong {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-sm);
   color: var(--amber);
 }
 
 .metaplex-demo-live-write {
   display: grid;
-  gap: 10px;
+  gap: var(--space-md);
   padding: var(--space-md);
   margin-top: var(--space-md);
 }
@@ -224,7 +224,7 @@
 
 .metaplex-demo-live-write label {
   display: grid;
-  gap: 6px;
+  gap: var(--space-sm);
   color: var(--t3);
   font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
@@ -241,13 +241,13 @@
 .metaplex-demo-operator-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .metaplex-demo-operator-form label,
 .metaplex-demo-das-box label {
   display: grid;
-  gap: 6px;
+  gap: var(--space-sm);
   color: var(--t3);
   font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-bold);
@@ -281,16 +281,16 @@
 .metaplex-demo-operator-plan-head strong {
   border: 1px solid var(--green);
   border-radius: var(--radius-pill);
-  padding: 4px var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   color: var(--green);
 }
 
 .metaplex-demo-operator-stage {
   display: grid;
   grid-template-columns: 32px 1fr;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: start;
-  padding: 10px;
+  padding: var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-sunken);
@@ -308,11 +308,11 @@
 
 .metaplex-demo-operator-stage strong {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .metaplex-demo-das-status {
-  padding: 10px;
+  padding: var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-sunken);
@@ -321,7 +321,7 @@
 .metaplex-demo-grid {
   display: grid;
   grid-template-columns: 240px minmax(460px, 1.35fr) minmax(320px, 0.95fr);
-  gap: 14px;
+  gap: var(--space-md);
   align-items: start;
 }
 
@@ -333,7 +333,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  padding-bottom: 14px;
+  padding-bottom: var(--space-md);
   border-bottom: 1px solid var(--border);
 }
 
@@ -345,7 +345,7 @@
 .metaplex-demo-preview-list {
   display: grid;
   gap: var(--space-sm);
-  padding-top: 14px;
+  padding-top: var(--space-md);
 }
 
 .metaplex-demo-preview-list span {
@@ -369,7 +369,7 @@
 .metaplex-demo-workflows {
   display: grid;
   grid-template-columns: minmax(400px, 1.1fr) minmax(360px, 0.9fr);
-  gap: 14px;
+  gap: var(--space-md);
   margin-bottom: var(--space-lg);
   align-items: start;
 }
@@ -384,7 +384,7 @@
   display: grid;
   gap: var(--space-sm);
   min-height: 176px;
-  padding: 14px;
+  padding: var(--space-md);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -422,7 +422,7 @@
 }
 
 .metaplex-demo-workflow-detail h3 {
-  margin: var(--space-sm) 0 10px;
+  margin: var(--space-sm) 0 var(--space-md);
   font-size: var(--fs-26);
   font-weight: var(--fw-semibold);
   line-height: 1;
@@ -437,7 +437,7 @@
 .metaplex-demo-workflow-grid {
   display: grid;
   gap: var(--space-sm);
-  margin: 14px 0;
+  margin: var(--space-md) 0;
 }
 
 .metaplex-demo-workflow-grid > div {
@@ -463,7 +463,7 @@
   background: var(--control-bg);
   color: var(--t1);
   min-height: 34px;
-  padding: 7px 9px;
+  padding: var(--space-sm) var(--space-sm);
   cursor: pointer;
 }
 
@@ -515,7 +515,7 @@
   display: grid;
   gap: var(--space-sm);
   width: 100%;
-  padding: 14px;
+  padding: var(--space-md);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -552,7 +552,7 @@
   align-self: end;
   justify-self: start;
   border-radius: var(--radius-pill);
-  padding: 4px var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   background: var(--green);
   color: var(--on-accent-dark);
 }
@@ -570,7 +570,7 @@
 .metaplex-demo-detail-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: var(--space-md);
   margin: var(--space-lg) 0;
 }
 
@@ -587,8 +587,8 @@
 
 .metaplex-demo-package-box {
   display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .metaplex-demo-package-box code {
@@ -605,9 +605,9 @@
 .metaplex-demo-flow div {
   display: grid;
   grid-template-columns: 36px 1fr;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
-  padding: 10px;
+  padding: var(--space-md);
 }
 
 .metaplex-demo-flow span {
@@ -643,7 +643,7 @@
 
 @media (max-width: 720px) {
   .metaplex-demo-panel {
-    padding: 14px;
+    padding: var(--space-md);
   }
 
   .metaplex-demo-head h2 {

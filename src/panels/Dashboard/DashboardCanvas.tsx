@@ -5,8 +5,16 @@ import { useWalletStore } from '../../store/wallet'
 import { useDashboardData } from './useDashboardData'
 import { Sparkline } from './Sparkline'
 import { EmptyState } from '../../components/EmptyState'
-import { MetricCard } from '../../components/Panel'
+import { KpiGrid } from '../../components/Panel'
 import { Button } from '../../components/Button'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import {
+  BLOCK_SCANNER_HANDOFF_EVENT,
+  BLOCK_SCANNER_HANDOFF_KEY,
+  REPLAY_HANDOFF_EVENT,
+  REPLAY_HANDOFF_KEY,
+  queueSurfaceHandoff,
+} from '../../lib/surfaceHandoffs'
 import './Dashboard.css'
 
 function formatPrice(price: number): string {
@@ -78,7 +86,7 @@ function ImportPanel({
   onImported: () => void
   onClose: () => void
 }) {
-  const [mode, setMode] = useState<ImportPanelMode>('none')
+  const [mode, setMode] = useState<ImportPanelMode>('manual')
   const [mintInput, setMintInput] = useState('')
   const [manualStatus, setManualStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [manualError, setManualError] = useState('')
@@ -260,6 +268,19 @@ export function DashboardCanvas() {
   const openTokenLaunch = useCallback(() => {
     useUIStore.getState().openWorkspaceTool('token-launch')
   }, [])
+  const openSolanaStart = useCallback(() => {
+    useUIStore.getState().openWorkspaceTool('project-readiness')
+  }, [])
+  const openBlockScannerForMint = useCallback(() => {
+    if (!activeMint) return
+    queueSurfaceHandoff(BLOCK_SCANNER_HANDOFF_KEY, BLOCK_SCANNER_HANDOFF_EVENT, { value: activeMint })
+    useUIStore.getState().openWorkspaceTool('block-scanner')
+  }, [activeMint])
+  const openReplayForMint = useCallback(() => {
+    if (!activeMint) return
+    queueSurfaceHandoff(REPLAY_HANDOFF_KEY, REPLAY_HANDOFF_EVENT, { address: activeMint })
+    useUIStore.getState().openWorkspaceTool('replay-engine')
+  }, [activeMint])
 
   const dashboard = useWalletStore((s) => s.dashboard)
   const defaultWallet = dashboard?.wallets?.find((w) => w.isDefault) ?? null
@@ -301,6 +322,23 @@ export function DashboardCanvas() {
   if (tokens.length === 0 && !showImport) {
     return (
       <div className="dash-canvas">
+        <ProductSurfaceStrip
+          surfaceId="dashboard"
+          stateLabel={activeWalletId ? 'Wallet ready' : 'No wallet'}
+          setupLabel="No tokens"
+          tone="warning"
+          detail={activeWalletId
+            ? 'Import an existing mint, scan the active wallet, or launch a token before market data appears.'
+            : 'Create or assign a wallet in Solana Start before imports and scans can run.'}
+          primaryLabel={activeWalletId ? 'Import token' : 'Open Solana Start'}
+          onPrimary={() => {
+            if (!activeWalletId) {
+              openSolanaStart()
+              return
+            }
+            setShowImport(true)
+          }}
+        />
         <EmptyState
           className="dash-canvas-empty"
           icon={
@@ -311,16 +349,23 @@ export function DashboardCanvas() {
               <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
             </svg>
           }
-          title="Launch your first token"
-          description="Launch one and this canvas goes live — price, holders, volume, and fees, updating as they move."
+          title={activeWalletId ? 'Launch your first token' : 'Connect a launch wallet'}
+          description={activeWalletId
+            ? 'Launch one and this canvas goes live — price, holders, volume, and fees, updating as they move.'
+            : 'Create or assign a wallet, then import an existing mint or launch a new token.'}
           action={
             <div className="dash-empty-actions">
-              <Button variant="primary" size="lg" onClick={openTokenLaunch}>
+              <Button variant="primary" size="lg" onClick={activeWalletId ? openTokenLaunch : openSolanaStart}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="m4.5 16.5-2 5 5-2M13 7l4 4M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z" />
                 </svg>
-                Launch Token
+                {activeWalletId ? 'Launch Token' : 'Open Solana Start'}
               </Button>
+              {!activeWalletId && (
+                <Button variant="ghost" size="lg" onClick={openTokenLaunch}>
+                  Open Token Launch
+                </Button>
+              )}
               {activeWalletId && (
                 <Button variant="ghost" size="lg" onClick={() => setShowImport(true)}>
                   Import existing
@@ -335,6 +380,27 @@ export function DashboardCanvas() {
 
   return (
     <div className="dash-canvas">
+      <ProductSurfaceStrip
+        surfaceId="dashboard"
+        stateLabel={activeMint ? 'Token selected' : 'Needs token'}
+        setupLabel={activeWalletId ? 'Wallet route' : 'No wallet'}
+        tone={activeMint ? 'success' : 'info'}
+        detail={activeWalletId
+          ? 'Market data is linked to launch follow-up, wallet scans, and holder review.'
+          : 'Create or assign a wallet in Solana Start before importing dashboard tokens.'}
+        primaryLabel={!activeWalletId ? 'Open Solana Start' : activeMint ? 'Review token' : 'Import token'}
+        onPrimary={() => {
+          if (!activeWalletId) {
+            openSolanaStart()
+            return
+          }
+          if (activeMint) {
+            handleSell()
+            return
+          }
+          setShowImport(true)
+        }}
+      />
       <div className="dash-canvas-header">
         <div className="dash-canvas-header-left">
           {metadata?.image && (
@@ -393,23 +459,28 @@ export function DashboardCanvas() {
       {activeMint && (
         <>
           <div className="dash-metrics-row">
-            <MetricCard
-              label="Price"
-              value={price !== null ? `$${formatPrice(price)}` : '—'}
-              tone={isPositive === false ? 'danger' : isPositive === true ? 'success' : 'default'}
+            <KpiGrid
+              cells={[
+                {
+                  label: 'Price',
+                  value: price !== null ? `$${formatPrice(price)}` : '-',
+                  tone: isPositive === false ? 'danger' : isPositive === true ? 'success' : 'default',
+                },
+                {
+                  label: '24h Change',
+                  value: priceChange !== null ? `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%` : '-',
+                  tone: isPositive === true ? 'success' : isPositive === false ? 'danger' : 'default',
+                },
+                { label: 'Holders', value: holders ? holders.count.toLocaleString() : '-' },
+                { label: 'Market Cap', value: mcapText },
+              ]}
             />
-            <MetricCard
-              label="24h Change"
-              value={priceChange !== null ? `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(2)}%` : '—'}
-              tone={isPositive === true ? 'success' : isPositive === false ? 'danger' : 'default'}
-            />
-            <MetricCard label="Holders" value={holders ? holders.count.toLocaleString() : '—'} />
-            <MetricCard label="Market Cap" value={mcapText} />
           </div>
 
           <div className="dash-chart-section">
             <div className="dash-chart-header">
-              <span className="dash-chart-label">Price — last {priceHistory.length} samples (30s interval)</span>
+              <span className="label">Price · 30s interval</span>
+              <span className="dash-chart-meta">{priceHistory.length} samples</span>
             </div>
             <div className="dash-chart-area">
               <Sparkline
@@ -417,7 +488,8 @@ export function DashboardCanvas() {
                 width={600}
                 height={120}
                 color={priceColor}
-                strokeWidth={2}
+                strokeWidth={1.5}
+                axes
               />
             </div>
           </div>
@@ -473,6 +545,17 @@ export function DashboardCanvas() {
                 <div className="dash-mint-display">
                   <span className="dash-mint-label">Contract</span>
                   <span className="dash-mint-addr">{activeMint}</span>
+                </div>
+              )}
+              {activeMint && (
+                <div className="dash-forensics-actions">
+                  <span className="dash-mint-label">Forensics</span>
+                  <button type="button" className="dash-btn dash-btn-muted dash-btn-block" onClick={openBlockScannerForMint}>
+                    Inspect in Block Scanner
+                  </button>
+                  <button type="button" className="dash-btn dash-btn-muted dash-btn-block" onClick={openReplayForMint}>
+                    Replay recent activity
+                  </button>
                 </div>
               )}
             </div>

@@ -7,11 +7,12 @@
 }
 
 .label {
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
-  color: var(--t4);
+  color: var(--t3);
 }
 
 .valueRow {
@@ -22,15 +23,16 @@
 }
 
 .value {
-  font-size: var(--fs-24);
-  font-weight: var(--fw-semibold);
+  font-family: var(--mono);
+  font-size: var(--fs-28);
+  font-weight: var(--fw-medium);
   line-height: var(--lh-tight);
   color: var(--t1);
 }
 
 .value--display {
-  font-size: var(--fs-32);
-  font-weight: var(--fw-bold);
+  font-size: var(--fs-28);
+  font-weight: var(--fw-medium);
   letter-spacing: var(--ls-tight);
 }
 
@@ -39,11 +41,13 @@
 }
 
 .unit {
+  font-family: var(--mono);
   font-size: var(--fs-12);
   color: var(--t3);
 }
 
 .detail {
+  font-family: var(--mono);
   font-size: var(--fs-12);
   color: var(--t3);
   line-height: var(--lh-normal);

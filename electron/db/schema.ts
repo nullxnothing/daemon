@@ -74,7 +74,9 @@ CREATE TABLE IF NOT EXISTS projects (
   aliases TEXT DEFAULT '[]',
   wallet_id TEXT,
   created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
-  last_active INTEGER
+  last_active INTEGER,
+  pinned INTEGER NOT NULL DEFAULT 0,
+  branch TEXT
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (
@@ -1174,4 +1176,154 @@ CREATE TABLE IF NOT EXISTS forensic_bundle_wallet_index (
 );
 CREATE INDEX IF NOT EXISTS idx_forensic_bundle_wallet
   ON forensic_bundle_wallet_index(wallet);
+`
+
+// DAEMON Flywheel Protocol: the dev/creator wallet claims a token's pump.fun creator
+// fees, then DAEMON splits them off-chain (default 80% payout / 20% buyback) and the
+// buyback leg swaps SOL into a target mint (e.g. $DAEMON) and burns it. One config row
+// per token mint; flywheel_events is the public claim/swap/burn audit trail.
+export const SCHEMA_V45 = `
+CREATE TABLE IF NOT EXISTS flywheel_configs (
+  id TEXT PRIMARY KEY,
+  token_mint TEXT NOT NULL UNIQUE,
+  label TEXT,
+  creator_wallet_id TEXT NOT NULL,
+  payout_wallet TEXT NOT NULL,
+  buyback_wallet_id TEXT NOT NULL,
+  buyback_wallet TEXT NOT NULL,
+  payout_bps INTEGER NOT NULL,
+  buyback_bps INTEGER NOT NULL,
+  buyback_target_mint TEXT NOT NULL,
+  burn INTEGER NOT NULL DEFAULT 1,
+  configure_signature TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_flywheel_configs_target
+  ON flywheel_configs(buyback_target_mint);
+
+CREATE TABLE IF NOT EXISTS flywheel_events (
+  id TEXT PRIMARY KEY,
+  config_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  signature TEXT,
+  sol_amount TEXT,
+  token_amount TEXT,
+  token_mint TEXT,
+  note TEXT,
+  at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_flywheel_events_config
+  ON flywheel_events(config_id, at DESC);
+`
+
+// Crash-safe settlement ledger for the flywheel. Each "Run flywheel" claim creates one
+// row keyed by the claim signature; the payout and buyback transfer legs record their
+// own signatures as they land. On re-run, a row still in 'claimed'/'distributed' state
+// is resumed (completed legs skipped) so a mid-run crash never double-pays or strands
+// claimed fees. flywheel_events stays the human audit trail; this is the integrity record.
+export const SCHEMA_V46 = `
+CREATE TABLE IF NOT EXISTS flywheel_settlements (
+  id TEXT PRIMARY KEY,
+  config_id TEXT NOT NULL,
+  claim_signature TEXT NOT NULL UNIQUE,
+  claimed_lamports INTEGER NOT NULL,
+  payout_lamports INTEGER NOT NULL DEFAULT 0,
+  buyback_lamports INTEGER NOT NULL DEFAULT 0,
+  payout_signature TEXT,
+  buyback_signature TEXT,
+  status TEXT NOT NULL DEFAULT 'claimed',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_flywheel_settlements_pending
+  ON flywheel_settlements(config_id, status);
+`
+
+export const SCHEMA_V47 = `
+CREATE TABLE IF NOT EXISTS aria_sessions (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  project_id TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  archived INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_aria_sessions_proj
+  ON aria_sessions(project_id, archived, updated_at DESC);
+INSERT OR IGNORE INTO aria_sessions (id, title, created_at, updated_at)
+  SELECT 'global', 'Earlier conversation', MIN(created_at), MAX(created_at)
+  FROM aria_messages WHERE session_id IS NOT NULL;
+`
+
+export const SCHEMA_V48 = `
+CREATE TABLE IF NOT EXISTS swarm_runs (
+  id TEXT PRIMARY KEY,
+  session_id TEXT,
+  project_id TEXT,
+  project_path TEXT NOT NULL,
+  base_branch TEXT,
+  status TEXT NOT NULL DEFAULT 'running',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE TABLE IF NOT EXISTS swarm_lanes (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  task TEXT NOT NULL,
+  worktree_path TEXT NOT NULL,
+  branch TEXT NOT NULL,
+  pid INTEGER,
+  status TEXT NOT NULL DEFAULT 'pending',
+  results_path TEXT,
+  exit_code INTEGER,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_swarm_lanes_run ON swarm_lanes(run_id, status);
+`
+
+export const SCHEMA_V49 = `
+ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE projects ADD COLUMN branch TEXT;
+CREATE INDEX IF NOT EXISTS idx_projects_pinned ON projects(pinned DESC, last_active DESC);
+`
+
+// DAEMON Memory v1: structured, source-backed, user-approved project facts injected into
+// agent prompts. One row per fact, status-gated (suggested -> approved/rejected/archived);
+// privacy_class reuses the PrivacyDataClass taxonomy from security/PrivacyGuard so Memory
+// and ProjectSafetyService share one notion of "secret". memory_usage_events records which
+// approved memories influenced an agent prompt so receipts can later show provenance.
+export const SCHEMA_V50 = `
+CREATE TABLE IF NOT EXISTS project_memories (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  scope TEXT NOT NULL DEFAULT 'project',
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  value TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0.5,
+  status TEXT NOT NULL DEFAULT 'suggested',
+  privacy_class TEXT NOT NULL DEFAULT 'project_code',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  created_by TEXT NOT NULL,
+  approved_by TEXT,
+  last_used_at INTEGER,
+  expires_at INTEGER,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_project_memories_lookup
+  ON project_memories(project_id, status, kind);
+
+CREATE TABLE IF NOT EXISTS memory_usage_events (
+  id TEXT PRIMARY KEY,
+  memory_id TEXT NOT NULL,
+  project_id TEXT,
+  used_in TEXT NOT NULL,
+  session_ref TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_memory_usage_memory
+  ON memory_usage_events(memory_id, created_at DESC);
 `

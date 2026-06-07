@@ -276,7 +276,7 @@ export function StepClaude() {
           >
             {authLoading ? 'Waiting for sign-in...' : 'Sign in with Claude'}
           </button>
-          <span className="wizard-hint" style={{ display: 'block', textAlign: 'center', margin: '4px 0' }}>
+          <span className="wizard-hint" style={{ display: 'block', textAlign: 'center', margin: 'var(--space-xs) 0' }}>
             Recommended for Max / Pro subscribers
           </span>
 

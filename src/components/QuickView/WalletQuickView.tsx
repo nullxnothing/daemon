@@ -270,6 +270,8 @@ function SendView({ walletId, holdings, onBack, executionLabel, signerLabel, clu
 interface SwapQuote {
   inAmount: string
   outAmount: string
+  quoteId: string
+  messageHash: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   rawQuoteResponse: unknown
@@ -367,6 +369,8 @@ function SwapView({ walletId, holdings, onBack, executionLabel, signerLabel, clu
       amount: parseFloat(amount),
       slippageBps,
       priceImpactPct: quote.priceImpactPct,
+      quoteId: quote.quoteId,
+      messageHash: quote.messageHash,
     }).then((res) => {
       if (cancelled || !res.ok || !res.data) return
       setPreview(res.data)
@@ -600,7 +604,7 @@ function ReceiveView({ address, onBack }: {
           {address}
         </div>
         <button type="button" className="qv-primary-btn" onClick={() => void copy(address)}>
-          {copied ? 'Copied ✓' : 'Copy Address'}
+          {copied ? 'Copied' : 'Copy Address'}
         </button>
         <LiveRegion message={copied ? 'Wallet address copied to clipboard' : ''} />
       </div>

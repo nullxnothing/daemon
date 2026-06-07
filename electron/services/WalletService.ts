@@ -1,22 +1,24 @@
 import * as SecureKey from './SecureKeyService'
 import { getDb } from '../db/db'
 import { API_ENDPOINTS, RETRY_CONFIG } from '../config/constants'
-import { ComputeBudgetProgram, Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
+import { ComputeBudgetProgram, Keypair, Connection, PublicKey, Transaction, SystemProgram, VersionedTransaction, LAMPORTS_PER_SOL, type ParsedAccountData } from '@solana/web3.js'
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction, getAccount } from '@solana/spl-token'
 import bs58 from 'bs58'
 import nacl from 'tweetnacl'
 import { dialog } from 'electron'
 import fs from 'node:fs'
-import { createHmac } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
 import {
   confirmSignature,
   executeTransaction,
   getConnection,
+  getConnectionStrict,
   getHeliusApiKey,
   getJupiterApiKey,
   getPriorityFeeLamports,
   getPriorityFeeMicroLamports,
   getTransactionSubmissionSettings,
+  loadKeypair,
   submitRawTransaction,
   withKeypair,
   type TransactionExecutionResult,
@@ -1222,7 +1224,7 @@ export async function transferSOL(
   const walletRow = db.prepare('SELECT wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { wallet_type: string } | undefined
 
   return withKeypair(fromWalletId, async (keypair) => {
-    const connection = getConnection()
+    const connection = getConnectionStrict()
     const fromAddress = keypair.publicKey.toBase58()
 
     const balance = await connection.getBalance(keypair.publicKey)
@@ -1317,7 +1319,7 @@ export async function prepareExternalSolTransfer(
   const walletRow = db.prepare('SELECT address, wallet_type FROM wallets WHERE id = ?').get(fromWalletId) as { address: string; wallet_type: string } | undefined
   if (!walletRow) throw new Error('Wallet not found')
 
-  const connection = getConnection()
+  const connection = getConnectionStrict()
   const fromPubkey = new PublicKey(walletRow.address)
   const balance = await connection.getBalance(fromPubkey)
   const priorityFeeMicroLamports = await getPriorityFeeMicroLamports(connection)
@@ -1400,6 +1402,10 @@ export async function submitExternalSignedTransaction(
 
   const db = getDb()
   const submission = getTransactionSubmissionSettings()
+  // Default to solflare so the legacy Solflare-only path keeps its attribution
+  // when the renderer omits signerProvider.
+  const signerProvider = input.signerProvider || 'solflare'
+  const isPartnerSigner = signerProvider === 'solflare'
 
   try {
     const signedTransaction = Transaction.from(Buffer.from(input.signedTransactionBase64, 'base64'))
@@ -1423,7 +1429,7 @@ export async function submitExternalSignedTransaction(
       source: 'submitExternalSignedTransaction',
     })
 
-    const connection = getConnection()
+    const connection = getConnectionStrict()
     const signature = await submitRawTransaction(connection, signedTransaction.serialize(), {
       skipPreflight: submission.mode === 'jito',
       maxRetries: submission.mode === 'jito' ? 0 : 3,
@@ -1448,7 +1454,11 @@ export async function submitExternalSignedTransaction(
         fromAddress: pending.fromAddress,
         toAddress: pending.toAddress,
         transport: submission.mode,
-        signer: 'solflare',
+        signer: signerProvider,
+        signerProvider,
+        // Solflare is the launch partner; tag the perk so the Flywheel can
+        // attribute rebates/rewards once SOLFLARE_PERK_ENABLED ships the payout.
+        ...(isPartnerSigner ? { perk: 'solflare-partner' } : {}),
         action: 'send_sol',
       },
     })
@@ -1494,7 +1504,7 @@ export async function transferToken(
   // The SOL spend limit only applies to SOL transfers (see transferSOL).
 
   return withKeypair(fromWalletId, async (keypair) => {
-    const connection = getConnection()
+    const connection = getConnectionStrict()
     const fromAddress = keypair.publicKey.toBase58()
     const mintPubkey = new PublicKey(mint)
     const destPubkey = new PublicKey(toAddress)
@@ -1611,9 +1621,11 @@ const JUPITER_SWAP_EXECUTE_API = 'https://api.jup.ag/swap/v2/execute'
 const JUPITER_TOKENS_SEARCH_API = 'https://api.jup.ag/tokens/v2/search'
 const JUPITER_TOKEN_SEARCH_CACHE_TTL = 5 * 60_000
 const JUPITER_TOKEN_SEARCH_CACHE_MAX_ENTRIES = 100
+const JUPITER_SWAP_DRAFT_TTL_MS = 60_000
 const LAMPORTS_DECIMALS = 9
 const jupiterTokenSearchCache = new Map<string, { timestamp: number; results: JupiterTokenSearchResult[] }>()
 const jupiterTokenSearchInflight = new Map<string, Promise<JupiterTokenSearchResult[]>>()
+const jupiterSwapDrafts = new Map<string, JupiterSwapDraft>()
 
 interface JupiterRoutePlanItem {
   swapInfo?: {
@@ -1659,9 +1671,27 @@ interface SwapQuoteResult {
   inAmount: string
   outAmount: string
   requestId: string
+  quoteId: string
+  messageHash: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   rawQuoteResponse: unknown
+}
+
+interface JupiterSwapDraft {
+  quoteId: string
+  walletId: string
+  taker: string
+  inputMint: string
+  outputMint: string
+  rawAmount: string
+  slippageBps: number
+  inAmount: string
+  outAmount: string
+  requestId: string
+  transaction: string
+  messageHash: string
+  createdAt: number
 }
 
 export type { TransactionExecutionResult } from './SolanaService'
@@ -1746,6 +1776,86 @@ function parseJupiterSwapOrder(value: unknown): JupiterSwapOrderResponse {
     errorCode: typeof value.errorCode === 'number' ? value.errorCode : undefined,
     errorMessage: typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
     error: typeof value.error === 'string' ? value.error : undefined,
+  }
+}
+
+function getJupiterOrderMessageHash(order: JupiterSwapOrderResponse): string {
+  try {
+    const transaction = VersionedTransaction.deserialize(Buffer.from(order.transaction, 'base64'))
+    return hashTransactionMessage(transaction)
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    throw new Error(`Jupiter order transaction message could not be inspected: ${detail}`)
+  }
+}
+
+function rememberJupiterSwapDraft(input: Omit<JupiterSwapDraft, 'quoteId' | 'createdAt'>): JupiterSwapDraft {
+  pruneJupiterSwapDrafts()
+  const draft: JupiterSwapDraft = {
+    ...input,
+    quoteId: randomUUID(),
+    createdAt: Date.now(),
+  }
+  jupiterSwapDrafts.set(draft.quoteId, draft)
+  return draft
+}
+
+function pruneJupiterSwapDrafts(now = Date.now()): void {
+  for (const [quoteId, draft] of jupiterSwapDrafts) {
+    if (now - draft.createdAt > JUPITER_SWAP_DRAFT_TTL_MS) {
+      jupiterSwapDrafts.delete(quoteId)
+    }
+  }
+}
+
+function readStringField(value: unknown, key: string): string | null {
+  if (!isRecord(value)) return null
+  const field = value[key]
+  return typeof field === 'string' && field.length > 0 ? field : null
+}
+
+function getJupiterSwapDraft(quoteId: string): JupiterSwapDraft {
+  pruneJupiterSwapDrafts()
+  const draft = jupiterSwapDrafts.get(quoteId)
+  if (!draft) throw new Error('Jupiter quote expired or was not reviewed. Refresh the quote before swapping.')
+  return draft
+}
+
+function assertJupiterOrderMatchesDraft(
+  draft: JupiterSwapDraft,
+  order: JupiterSwapOrderResponse,
+  input: {
+    walletId: string
+    taker: string
+    inputMint: string
+    outputMint: string
+    rawAmount: bigint
+    slippageBps: number
+    messageHash: string
+  },
+): void {
+  if (draft.walletId !== input.walletId) throw new Error('Jupiter quote wallet mismatch. Refresh the quote before swapping.')
+  if (draft.taker !== input.taker) throw new Error('Jupiter quote taker mismatch. Refresh the quote before swapping.')
+  if (draft.inputMint !== input.inputMint || order.inputMint !== input.inputMint) {
+    throw new Error('Jupiter quote input mint changed. Refresh the quote before swapping.')
+  }
+  if (draft.outputMint !== input.outputMint || order.outputMint !== input.outputMint) {
+    throw new Error('Jupiter quote output mint changed. Refresh the quote before swapping.')
+  }
+  if (draft.rawAmount !== input.rawAmount.toString() || draft.inAmount !== order.inAmount) {
+    throw new Error('Jupiter quote input amount changed. Refresh the quote before swapping.')
+  }
+  if (draft.slippageBps !== input.slippageBps) {
+    throw new Error('Jupiter quote slippage changed. Refresh the quote before swapping.')
+  }
+  if (draft.outAmount !== order.outAmount) {
+    throw new Error('Jupiter quote output amount changed. Refresh the quote before swapping.')
+  }
+  if (draft.requestId !== order.requestId) {
+    throw new Error('Jupiter quote request changed. Refresh the quote before swapping.')
+  }
+  if (draft.transaction !== order.transaction || draft.messageHash !== input.messageHash) {
+    throw new Error('Jupiter quote transaction changed after review. Refresh the quote before swapping.')
   }
 }
 
@@ -1890,6 +2000,7 @@ async function requestJupiterSwapOrder(
   slippageBps: number,
   taker: string,
   jupiterApiKey: string,
+  options?: { restrictIntermediateTokens?: boolean },
 ): Promise<JupiterSwapOrderResponse> {
   const url = new URL(JUPITER_SWAP_ORDER_API)
   url.searchParams.set('inputMint', inputMint)
@@ -1898,6 +2009,9 @@ async function requestJupiterSwapOrder(
   url.searchParams.set('taker', taker)
   url.searchParams.set('swapMode', 'ExactIn')
   url.searchParams.set('slippageBps', String(slippageBps))
+  // Pruning illiquid multi-hop routes makes small swaps of low-liquidity tokens land
+  // more reliably (and often picks a single canonical AMM hop).
+  if (options?.restrictIntermediateTokens) url.searchParams.set('restrictIntermediateTokens', 'true')
 
   const response = await fetchWithTimeout(url.toString(), {
     headers: { 'x-api-key': jupiterApiKey },
@@ -1937,6 +2051,25 @@ export async function getSwapQuote(
   const outputDecimals = await getMintDecimals(outputMint)
   const humanInAmount = (Number(BigInt(data.inAmount)) / Math.pow(10, decimals)).toString()
   const humanOutAmount = (Number(BigInt(data.outAmount)) / Math.pow(10, outputDecimals)).toString()
+  const messageHash = getJupiterOrderMessageHash(data)
+  const draft = rememberJupiterSwapDraft({
+    walletId,
+    taker,
+    inputMint: data.inputMint,
+    outputMint: data.outputMint,
+    rawAmount: rawAmount.toString(),
+    slippageBps: normalizedSlippageBps,
+    inAmount: data.inAmount,
+    outAmount: data.outAmount,
+    requestId: data.requestId,
+    transaction: data.transaction,
+    messageHash,
+  })
+  const rawQuoteResponse = {
+    ...data,
+    quoteId: draft.quoteId,
+    messageHash,
+  }
 
   return {
     inputMint: data.inputMint,
@@ -1944,11 +2077,11 @@ export async function getSwapQuote(
     inAmount: humanInAmount,
     outAmount: humanOutAmount,
     requestId: data.requestId,
+    quoteId: draft.quoteId,
+    messageHash,
     priceImpactPct: normalizeJupiterPriceImpactPct(data),
     routePlan: normalizeJupiterRoutePlan(data.routePlan),
-    // The raw Jupiter response is passed back to executeSwap so it can use the
-    // exact executable order the user reviewed rather than fetching at a different price.
-    rawQuoteResponse: data,
+    rawQuoteResponse,
   }
 }
 
@@ -1959,6 +2092,7 @@ export async function executeSwap(
   amount: number,
   slippageBps: number,
   rawQuoteResponse?: unknown,
+  options?: { restrictIntermediateTokens?: boolean },
 ): Promise<TransactionExecutionResult> {
   if (!isValidSolanaAddress(inputMint)) throw new Error('Invalid input mint')
   if (!isValidSolanaAddress(outputMint)) throw new Error('Invalid output mint')
@@ -1971,7 +2105,7 @@ export async function executeSwap(
   const db = getDb()
 
   return withKeypair(walletId, async (keypair) => {
-    const connection = getConnection()
+    const connection = getConnectionStrict()
     const userPublicKey = keypair.publicKey.toBase58()
 
     // Balance check: verify the wallet holds enough of the input token before
@@ -2002,46 +2136,49 @@ export async function executeSwap(
       }
     }
 
-    // Use the executable order the user reviewed when provided. Fall back to
-    // fetching a fresh order only if no rawQuoteResponse was supplied.
     let orderData: JupiterSwapOrderResponse
     const rawRequested = toRawTokenAmount(amount, decimals)
-    if (rawQuoteResponse) {
-      const q = parseJupiterSwapOrder(rawQuoteResponse)
-      if (q.inputMint !== inputMint) {
-        throw new Error(`Jupiter order inputMint mismatch: expected ${inputMint}, got ${q.inputMint}`)
-      }
-      if (q.outputMint !== outputMint) {
-        throw new Error(`Jupiter order outputMint mismatch: expected ${outputMint}, got ${q.outputMint}`)
-      }
-      if (q.taker && q.taker !== userPublicKey) {
-        throw new Error(`Jupiter order taker mismatch: expected ${userPublicKey}, got ${q.taker}`)
-      }
-
-      // inAmount in the raw Jupiter quote is in lamports/raw units — compare against
-      // the raw amount derived from the same decimals used when the quote was fetched.
-      const quoteInAmount = BigInt(q.inAmount)
-      const driftRaw = quoteInAmount > rawRequested ? quoteInAmount - rawRequested : rawRequested - quoteInAmount
-      if (driftRaw * 100n > rawRequested) {
-        throw new Error(
-          `Quote inAmount ${quoteInAmount} deviates more than 1% from requested ${rawRequested}`
-        )
-      }
-
-      orderData = q
-    } else {
-      orderData = await requestJupiterSwapOrder(inputMint, outputMint, rawRequested, normalizedSlippageBps, userPublicKey, jupiterApiKey)
+    if (!rawQuoteResponse) {
+      throw new Error('Swap execution requires a reviewed Jupiter quote. Refresh the quote before swapping.')
     }
+    const quoteId = readStringField(rawQuoteResponse, 'quoteId')
+    const reviewedMessageHash = readStringField(rawQuoteResponse, 'messageHash')
+    if (!quoteId || !reviewedMessageHash) {
+      throw new Error('Jupiter quote is missing review metadata. Refresh the quote before swapping.')
+    }
+    const draft = getJupiterSwapDraft(quoteId)
+    const q = parseJupiterSwapOrder(rawQuoteResponse)
+    const messageHash = getJupiterOrderMessageHash(q)
+    if (reviewedMessageHash !== messageHash) {
+      throw new Error('Jupiter quote transaction hash changed after review. Refresh the quote before swapping.')
+    }
+    if (q.taker && q.taker !== userPublicKey) {
+      throw new Error(`Jupiter order taker mismatch: expected ${userPublicKey}, got ${q.taker}`)
+    }
+    assertJupiterOrderMatchesDraft(draft, q, {
+      walletId,
+      taker: userPublicKey,
+      inputMint,
+      outputMint,
+      rawAmount: rawRequested,
+      slippageBps: normalizedSlippageBps,
+      messageHash,
+    })
+    orderData = q
 
     // Deserialize and sign Jupiter's assembled V2 order transaction, then hand it
     // back to Jupiter's managed execution endpoint for landing.
-    const { VersionedTransaction: VTx } = await import('@solana/web3.js')
     const txBuf = Buffer.from(orderData.transaction, 'base64')
-    const transaction = VTx.deserialize(txBuf)
-    // Swaps are submitted via Jupiter's execute endpoint, bypassing
-    // executeTransaction — run the signer guard here before signing. Jupiter is
-    // allow-listed; the per-tx / rolling SOL caps and rate limit still apply.
-    assertTransactionAllowed(transaction, [keypair], { source: 'executeSwap' })
+    const transaction = VersionedTransaction.deserialize(txBuf)
+    const finalMessageHash = hashTransactionMessage(transaction)
+    if (finalMessageHash !== draft.messageHash) {
+      throw new Error('Jupiter final transaction does not match the reviewed quote. Refresh the quote before swapping.')
+    }
+    approveTransactionHash(finalMessageHash, 'jupiter-swap-preview')
+    assertTransactionAllowed(transaction, [keypair], {
+      source: 'executeSwap',
+      approvalHash: finalMessageHash,
+    })
     transaction.sign([keypair])
     const signedTransaction = Buffer.from(transaction.serialize()).toString('base64')
 
@@ -2109,7 +2246,7 @@ export async function executeSwap(
   })
 }
 
-async function getMintDecimals(mint: string, connection = getConnection()): Promise<number> {
+export async function getMintDecimals(mint: string, connection = getConnection()): Promise<number> {
   // SOL native mint
   if (mint === SOL_MINT) return LAMPORTS_DECIMALS
 
@@ -2181,9 +2318,13 @@ export function listAgentWallets(agentId?: string) {
 }
 
 export function hasKeypair(walletId: string): boolean {
-  const db = getDb()
-  const row = db.prepare('SELECT 1 FROM secure_keys WHERE key_name = ?').get(`WALLET_KEYPAIR_${walletId}`)
-  return !!row
+  try {
+    const keypair = loadKeypair(walletId)
+    keypair.secretKey.fill(0)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function signMessage(walletId: string, message: string): Promise<{ walletAddress: string; signatureBase58: string; message: string }> {

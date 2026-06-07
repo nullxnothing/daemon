@@ -3,12 +3,13 @@
   align-items: center;
   justify-content: center;
   width: fit-content;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
   color: var(--text-muted);
-  background: color-mix(in srgb, var(--bg-card) 72%, transparent);
+  background: var(--wash-2);
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   letter-spacing: var(--ls-caps);
   line-height: 1;
   text-transform: uppercase;
@@ -32,29 +33,29 @@
 .success {
   color: var(--accent-green);
   border-color: color-mix(in srgb, var(--accent-green) 32%, var(--border-soft));
-  background: var(--green-glow);
+  background: color-mix(in srgb, var(--accent-green) 10%, transparent);
 }
 
 .warning {
   color: var(--accent-amber);
-  border-color: color-mix(in srgb, var(--accent-amber) 32%, var(--border-soft));
-  background: var(--amber-glow);
+  border-color: color-mix(in srgb, var(--accent-amber) 34%, transparent);
+  background: transparent;
 }
 
 .danger {
   color: var(--accent-red);
-  border-color: color-mix(in srgb, var(--accent-red) 32%, var(--border-soft));
-  background: var(--red-glow);
+  border-color: color-mix(in srgb, var(--accent-red) 34%, transparent);
+  background: transparent;
 }
 
 .info {
   color: var(--accent-blue);
-  border-color: color-mix(in srgb, var(--accent-blue) 32%, var(--border-soft));
-  background: var(--blue-glow);
+  border-color: color-mix(in srgb, var(--accent-blue) 34%, transparent);
+  background: transparent;
 }
 
 .feature {
-  color: var(--accent-purple);
-  border-color: color-mix(in srgb, var(--accent-purple) 32%, var(--border-soft));
-  background: var(--accent-purple-glow);
+  color: var(--t2);
+  border-color: var(--line-2);
+  background: transparent;
 }

@@ -25,6 +25,28 @@ import type {
   ForensicsGraphData,
   ForensicsGraphNode,
   RicoMapsEmbedStatus,
+  SaidIdentity,
+  SaidTrustScore,
+  SynapseSapAgent,
+  SynapseSapCluster,
+  SynapseSapDiscoveryInput,
+  SynapseSapDiscoveryResult,
+  SynapseSapRegisterInput,
+  SynapseSapRegisterResult,
+  SynapseSapStatus,
+  AllowanceState,
+  SubscriptionEnrollment,
+  SignalhouseHealth,
+  SignalhouseStatus,
+  SignalhouseStrategy,
+  SignalhouseStrategyDetail,
+  SignalhouseEquityPoint,
+  SignalhouseVerdict,
+  SignalhousePosition,
+  FlywheelConfig,
+  FlywheelConfigureInput,
+  FlywheelPreview,
+  FlywheelState,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -89,6 +111,7 @@ import type {
   ImageModelTier,
   ImageAspectRatio,
   AriaMessage,
+  AriaSession,
   AriaResponse,
   AriaAction,
   OnboardingProgress,
@@ -149,6 +172,14 @@ import type {
   VoightPrivacyLevel,
   VoightStatus,
   VoightTestResult,
+  ProjectMemory,
+  MemoryStatus,
+  MemoryKind,
+  MemorySuggestionInput,
+  MemoryUpdateInput,
+  MemoryContextBundle,
+  CheckDefinition,
+  CheckResult,
 } from '../../electron/shared/types'
 
 export type {
@@ -178,6 +209,28 @@ export type {
   ForensicsGraphData,
   ForensicsGraphNode,
   RicoMapsEmbedStatus,
+  SaidIdentity,
+  SaidTrustScore,
+  SynapseSapAgent,
+  SynapseSapCluster,
+  SynapseSapDiscoveryInput,
+  SynapseSapDiscoveryResult,
+  SynapseSapRegisterInput,
+  SynapseSapRegisterResult,
+  SynapseSapStatus,
+  AllowanceState,
+  SubscriptionEnrollment,
+  SignalhouseHealth,
+  SignalhouseStatus,
+  SignalhouseStrategy,
+  SignalhouseStrategyDetail,
+  SignalhouseEquityPoint,
+  SignalhouseVerdict,
+  SignalhousePosition,
+  FlywheelConfig,
+  FlywheelConfigureInput,
+  FlywheelPreview,
+  FlywheelState,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -239,6 +292,7 @@ export type {
   ImageModelTier,
   ImageAspectRatio,
   AriaMessage,
+  AriaSession,
   AriaResponse,
   AriaAction,
   OnboardingProgress,
@@ -322,6 +376,10 @@ declare global {
     printr: {
       apiBaseUrl: string
       apiKey: string
+      apiKeyConfigured?: boolean
+      apiKeyHint?: string
+      apiKeySource?: 'secure' | 'env' | 'none'
+      apiKeyAction?: 'keep' | 'replace' | 'clear'
       quotePath: string
       createPath: string
       chain: string
@@ -475,6 +533,14 @@ declare global {
   type AriaMessage = import('../../electron/shared/types').AriaMessage
   type AriaResponse = import('../../electron/shared/types').AriaResponse
   type AriaAction = import('../../electron/shared/types').AriaAction
+  type AriaContextSnapshot = import('../../electron/shared/types').AriaContextSnapshot
+  type AriaToolEvent = import('../../electron/shared/types').AriaToolEvent
+  type AriaToolCallRecord = import('../../electron/shared/types').AriaToolCallRecord
+  type AriaUiEffectPayload = import('../../electron/shared/types').AriaUiEffect
+  type AriaPlanStep = import('../../electron/shared/types').AriaPlanStep
+  type AriaPatchProposalLite = import('../../electron/shared/types').AriaPatchProposalLite
+  type AriaPatchAction = import('../../electron/shared/types').AriaPatchAction
+  type DaemonAiModelLane = import('../../electron/shared/types').DaemonAiModelLane
   type OnboardingProgress = import('../../electron/shared/types').OnboardingProgress
   type OnboardingStepStatus = import('../../electron/shared/types').OnboardingStepStatus
   type WorkspaceProfile = import('../../electron/shared/types').WorkspaceProfile
@@ -554,7 +620,7 @@ declare global {
     push: (cwd: string) => Promise<IpcResponse<string>>
     log: (cwd: string, count?: number) => Promise<IpcResponse<GitCommit[]>>
     diff: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
-    diffStaged: (cwd: string) => Promise<IpcResponse<string>>
+    diffStaged: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
     checkout: (cwd: string, branch: string) => Promise<IpcResponse>
     createBranch: (cwd: string, branchName: string) => Promise<IpcResponse<{ branch: string }>>
     fetch: (cwd: string) => Promise<IpcResponse>
@@ -564,6 +630,10 @@ declare global {
     stashPop: (cwd: string) => Promise<IpcResponse>
     stashList: (cwd: string) => Promise<IpcResponse<Array<{ hash: string; message: string }>>>
     discard: (cwd: string, filePath: string) => Promise<IpcResponse>
+    worktreeAdd: (cwd: string, worktreePath: string, branch: string, base?: string) => Promise<IpcResponse<{ worktreePath: string; branch: string }>>
+    worktreeList: (cwd: string) => Promise<IpcResponse<Array<{ path: string; branch: string | null; head: string | null }>>>
+    worktreeRemove: (cwd: string, worktreePath: string) => Promise<IpcResponse>
+    worktreePrune: (cwd: string) => Promise<IpcResponse>
   }
 
   interface DaemonPorts {
@@ -634,6 +704,7 @@ declare global {
     create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
+    setPinned: (input: { id: string; pinned: boolean }) => Promise<IpcResponse<Project>>
   }
 
   interface AgentOpsOpenRequest {
@@ -685,7 +756,7 @@ declare global {
     sendToken: (input: { fromWalletId: string; toAddress: string; mint: string; amount?: number; sendMax?: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
     balance: (walletId: string) => Promise<IpcResponse<{ sol: number; lamports: number }>>
     holdings: (walletId: string) => Promise<IpcResponse<Array<{ mint: string; symbol: string; name: string; amount: number; priceUsd: number; valueUsd: number; logoUri: string | null }>>>
-    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; requestId: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
+    swapQuote: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number }) => Promise<IpcResponse<{ inputMint: string; outputMint: string; inAmount: string; outAmount: string; requestId: string; quoteId: string; messageHash: string; priceImpactPct: string; routePlan: Array<{ label: string; percent: number }>; rawQuoteResponse: unknown }>>
     searchJupiterTokens: (query: string) => Promise<IpcResponse<JupiterTokenSearchResult[]>>
     transactionPreview: (input: SolanaTransactionPreviewInput) => Promise<IpcResponse<SolanaTransactionPreview>>
     swapExecute: (input: { walletId: string; inputMint: string; outputMint: string; amount: number; slippageBps: number; rawQuoteResponse?: unknown; confirmedAt: number; acknowledgedImpact: boolean }) => Promise<IpcResponse<WalletExecutionResult>>
@@ -746,13 +817,15 @@ declare global {
     setDrawerToolOrder: (order: string[]) => Promise<IpcResponse>
     getWorkspaceProfile: () => Promise<IpcResponse<WorkspaceProfile | null>>
     setWorkspaceProfile: (profile: WorkspaceProfile) => Promise<IpcResponse>
+    getEnabledPacks: () => Promise<IpcResponse<Record<string, boolean>>>
+    setEnabledPacks: (packs: Record<string, boolean>) => Promise<IpcResponse>
     getTokenLaunchSettings: () => Promise<IpcResponse<TokenLaunchSettings>>
     setTokenLaunchSettings: (settings: TokenLaunchSettings) => Promise<IpcResponse>
     getWalletInfrastructureSettings: () => Promise<IpcResponse<WalletInfrastructureSettings>>
     getSolanaRuntimeStatus: () => Promise<IpcResponse<SolanaRuntimeStatusSummary>>
     setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
-    getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null }>>
-    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => Promise<IpcResponse>
+    getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null; consoleDock: string | null }>>
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => Promise<IpcResponse>
     onCrashWarning: (callback: (count: number) => void) => () => void
     onUiRecoveryApplied: (callback: (result: UiRecoveryResult) => void) => () => void
   }
@@ -935,6 +1008,11 @@ declare global {
     reorder: (orderedIds: string[]) => Promise<IpcResponse<void>>
   }
 
+  interface DaemonPacks {
+    getEnabled: () => Promise<IpcResponse<Record<string, boolean>>>
+    setEnabled: (id: string, enabled: boolean) => Promise<IpcResponse<Record<string, boolean>>>
+  }
+
   interface DaemonRecovery {
     importCsv: () => Promise<IpcResponse<{ count: number; path: string } | null>>
     scan: () => Promise<IpcResponse<RecoveryWalletInfo[]>>
@@ -992,9 +1070,77 @@ declare global {
   }
 
   interface DaemonAria {
-    send: (sessionId: string, message: string) => Promise<IpcResponse<AriaResponse>>
+    send: (sessionId: string, message: string, snapshot: AriaContextSnapshot, modelLane?: DaemonAiModelLane) => Promise<IpcResponse<AriaResponse>>
     history: (sessionId: string, limit?: number) => Promise<IpcResponse<AriaMessage[]>>
     clear: (sessionId: string) => Promise<IpcResponse<void>>
+    models: () => Promise<IpcResponse<DaemonAiModelInfo[]>>
+    sessions: {
+      list: (projectId?: string | null) => Promise<IpcResponse<AriaSession[]>>
+      create: (projectId?: string | null, title?: string | null) => Promise<IpcResponse<AriaSession>>
+      rename: (sessionId: string, title: string) => Promise<IpcResponse<void>>
+      archive: (sessionId: string) => Promise<IpcResponse<void>>
+      delete: (sessionId: string) => Promise<IpcResponse<void>>
+    }
+    approve: (callId: string, approved: boolean) => void
+    patchDecision: (proposalId: string, action: AriaPatchAction) => void
+    toolEffectResult: (callId: string, data: unknown) => void
+    onToolEvent: (handler: (event: AriaToolEvent) => void) => () => void
+    onUiEffect: (handler: (payload: { callId: string; effect: AriaUiEffectPayload; awaitData: boolean }) => void) => () => void
+  }
+
+  interface SwarmRun {
+    id: string
+    session_id: string | null
+    project_id: string | null
+    project_path: string
+    base_branch: string | null
+    status: 'running' | 'done' | 'failed' | 'cancelled'
+    created_at: number
+    updated_at: number
+  }
+
+  interface SwarmLane {
+    id: string
+    run_id: string
+    task: string
+    worktree_path: string
+    branch: string
+    pid: number | null
+    status: 'pending' | 'spawning' | 'running' | 'done' | 'failed' | 'cancelled'
+    results_path: string | null
+    exit_code: number | null
+    created_at: number
+    updated_at: number
+    results?: string | null
+  }
+
+  interface SwarmLaunchRequest {
+    sessionId?: string | null
+    projectId?: string | null
+    projectPath: string
+    baseBranch?: string | null
+    tasks: string[]
+  }
+
+  interface DaemonSwarm {
+    launch: (req: SwarmLaunchRequest) => Promise<IpcResponse<{ runId: string }>>
+    list: (limit?: number) => Promise<IpcResponse<SwarmRun[]>>
+    runDetail: (runId: string) => Promise<IpcResponse<{ run: SwarmRun; lanes: SwarmLane[] }>>
+    cancel: (runId: string) => Promise<IpcResponse<void>>
+    onUpdate: (handler: (payload: { runId: string; laneId?: string; status?: string; pid?: number | null; exitCode?: number | null }) => void) => () => void
+  }
+
+  interface DaemonMemory {
+    list: (projectId: string | null, opts?: { status?: MemoryStatus; kind?: MemoryKind }) => Promise<IpcResponse<ProjectMemory[]>>
+    suggest: (input: MemorySuggestionInput) => Promise<IpcResponse<ProjectMemory>>
+    approve: (id: string, approvedBy?: string) => Promise<IpcResponse<ProjectMemory>>
+    update: (id: string, patch: MemoryUpdateInput) => Promise<IpcResponse<ProjectMemory>>
+    reject: (id: string) => Promise<IpcResponse<ProjectMemory>>
+    delete: (id: string) => Promise<IpcResponse<void>>
+    extract: (projectPath: string, projectId: string | null) => Promise<IpcResponse<ProjectMemory[]>>
+    buildContextBundle: (projectId: string | null, opts?: { charBudget?: number; sessionRef?: string | null }) => Promise<IpcResponse<MemoryContextBundle>>
+    discoverChecks: (projectPath: string) => Promise<IpcResponse<CheckDefinition[]>>
+    runCheck: (projectPath: string, check: CheckDefinition) => Promise<IpcResponse<CheckResult>>
   }
 
   interface LaunchedToken {
@@ -1569,6 +1715,7 @@ declare global {
   }
 
   interface DaemonAPI {
+    platform: 'aix' | 'android' | 'darwin' | 'freebsd' | 'haiku' | 'linux' | 'openbsd' | 'sunos' | 'win32' | 'cygwin' | 'netbsd'
     getPathForFile: (file: File) => string
     window: DaemonWindow
     agentops: DaemonAgentOps
@@ -1594,6 +1741,7 @@ declare global {
     voight: DaemonVoight
     tweets: DaemonTweets
     plugins: DaemonPlugins
+    packs: DaemonPacks
     browser: DaemonBrowser
     recovery: DaemonRecovery
     deploy: DaemonDeploy
@@ -1604,9 +1752,16 @@ declare global {
     email: DaemonEmail
     images: DaemonImages
     aria: DaemonAria
+    swarm: DaemonSwarm
+    memory: DaemonMemory
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     forensics: DaemonForensics
+    said: DaemonSaid
+    synapse: DaemonSynapse
+    allowances: DaemonAllowances
+    signalhouse: DaemonSignalhouse
+    flywheel: DaemonFlywheel
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
@@ -1621,41 +1776,48 @@ declare global {
     feedback: DaemonFeedback
     agentStation: DaemonAgentStation
     replay: DaemonReplay
-    spawnAgents: DaemonSpawnAgents
+    clawpump: DaemonClawpump
+    degentools: DaemonDegenTools
   }
 
-  type SpawnAgentDna = import('../../electron/services/SpawnAgentsService').SpawnAgentDna
-  type SpawnAgentRecord = import('../../electron/services/SpawnAgentsService').SpawnAgentRecord
-  type SpawnDepositInstruction = import('../../electron/services/SpawnAgentsService').SpawnDepositInstruction
-  type SpawnStatusResult = import('../../electron/services/SpawnAgentsService').SpawnStatusResult
-  type SpawnTrade = import('../../electron/services/SpawnAgentsService').SpawnTrade
-  type SpawnAgentPositions = import('../../electron/services/SpawnAgentsService').SpawnAgentPositions
-  type SpawnAgentPublicProfile = import('../../electron/services/SpawnAgentsService').SpawnAgentPublicProfile
-  type SpawnAgentPublicPortfolio = import('../../electron/services/SpawnAgentsService').SpawnAgentPublicPortfolio
-  type SpawnEvent = import('../../electron/services/SpawnAgentsService').SpawnEvent
-  type SpawnEventsResult = import('../../electron/services/SpawnAgentsService').SpawnEventsResult
-  type SpawnInput = import('../../electron/services/SpawnAgentsService').SpawnInput
-  type SpawnChildInput = import('../../electron/services/SpawnAgentsService').SpawnChildInput
-  type SpawnAndFundResult = import('../../electron/services/SpawnAgentsService').SpawnAndFundResult
-  type WithdrawResult = import('../../electron/services/SpawnAgentsService').WithdrawResult
-  type KillResult = import('../../electron/services/SpawnAgentsService').KillResult
+  type ClawpumpSkill = import('../../electron/services/ClawpumpService').ClawpumpSkill
+  type ClawpumpAgent = import('../../electron/services/ClawpumpService').ClawpumpAgent
+  type ClawpumpMessage = import('../../electron/services/ClawpumpService').ClawpumpMessage
+  type ClawpumpChatReply = import('../../electron/services/ClawpumpService').ClawpumpChatReply
+  type CreateAgentInput = import('../../electron/services/ClawpumpService').CreateAgentInput
 
-  interface DaemonSpawnAgents {
-    list: (ownerPubkey: string) => Promise<IpcResponse<SpawnAgentRecord[]>>
-    get: (agentId: string) => Promise<IpcResponse<SpawnAgentRecord>>
-    trades: (agentId: string, limit?: number, offset?: number) => Promise<IpcResponse<{ trades: SpawnTrade[]; limit: number; offset: number }>>
-    positions: (agentId: string) => Promise<IpcResponse<SpawnAgentPositions>>
-    publicProfile: (agentId: string) => Promise<IpcResponse<SpawnAgentPublicProfile>>
-    publicPortfolio: (agentId: string) => Promise<IpcResponse<SpawnAgentPublicPortfolio>>
-    events: (since: number, agentId?: string, limit?: number) => Promise<IpcResponse<SpawnEventsResult>>
-    spawnStatus: (ref: string) => Promise<IpcResponse<SpawnStatusResult>>
-    initiateSpawn: (input: SpawnInput) => Promise<IpcResponse<SpawnDepositInstruction>>
-    initiateSpawnChild: (parentAgentId: string, walletId: string, input: SpawnChildInput) => Promise<IpcResponse<SpawnDepositInstruction>>
-    spawnAndFund: (walletId: string, input: SpawnInput) => Promise<IpcResponse<SpawnAndFundResult>>
-    spawnChildAndFund: (parentAgentId: string, walletId: string, input: SpawnChildInput) => Promise<IpcResponse<SpawnAndFundResult>>
-    withdraw: (agentId: string, walletId: string, amountSol: number) => Promise<IpcResponse<WithdrawResult>>
-    kill: (agentId: string, walletId: string) => Promise<IpcResponse<KillResult>>
-    onEvent: (callback: (ev: SpawnEvent) => void) => () => void
+  interface DaemonClawpump {
+    isConfigured: () => Promise<IpcResponse<boolean>>
+    storeKey: (key: string) => Promise<IpcResponse<{ ok: boolean }>>
+    clearKey: () => Promise<IpcResponse<{ ok: boolean }>>
+    skills: () => Promise<IpcResponse<ClawpumpSkill[]>>
+    list: () => Promise<IpcResponse<ClawpumpAgent[]>>
+    get: (agentId: string) => Promise<IpcResponse<ClawpumpAgent>>
+    messages: (agentId: string, limit?: number) => Promise<IpcResponse<ClawpumpMessage[]>>
+    create: (input: CreateAgentInput) => Promise<IpcResponse<ClawpumpAgent>>
+    start: (agentId: string) => Promise<IpcResponse<ClawpumpAgent>>
+    stop: (agentId: string) => Promise<IpcResponse<ClawpumpAgent>>
+    delete: (agentId: string) => Promise<IpcResponse<{ deleted: boolean }>>
+    chat: (agentId: string, message: string) => Promise<IpcResponse<ClawpumpChatReply>>
+  }
+
+  type DegenToolsToolResult = import('../../electron/services/DegenToolsService').DegenToolsToolResult
+  type GenerateMemeInput = import('../../electron/services/DegenToolsService').GenerateMemeInput
+  type GenerateShillCopyInput = import('../../electron/services/DegenToolsService').GenerateShillCopyInput
+  type GetTokenDataInput = import('../../electron/services/DegenToolsService').GetTokenDataInput
+  type LaunchTokenInput = import('../../electron/services/DegenToolsService').LaunchTokenInput
+
+  interface DaemonDegenTools {
+    isConfigured: () => Promise<IpcResponse<boolean>>
+    storeKey: (key: string) => Promise<IpcResponse<{ ok: boolean }>>
+    clearKey: () => Promise<IpcResponse<{ ok: boolean }>>
+    initialize: () => Promise<IpcResponse<unknown>>
+    tools: () => Promise<IpcResponse<unknown>>
+    callTool: (name: string, args: object) => Promise<IpcResponse<DegenToolsToolResult>>
+    generateMeme: (input: GenerateMemeInput) => Promise<IpcResponse<DegenToolsToolResult>>
+    generateShillCopy: (input: GenerateShillCopyInput) => Promise<IpcResponse<DegenToolsToolResult>>
+    getTokenData: (input: GetTokenDataInput) => Promise<IpcResponse<DegenToolsToolResult>>
+    launchToken: (input: LaunchTokenInput) => Promise<IpcResponse<DegenToolsToolResult>>
   }
 
   interface DaemonReplay {
@@ -1696,7 +1858,17 @@ declare global {
   interface DaemonValidator {
     start: (type: string) => Promise<IpcResponse<{ terminalId: string; port: number }>>
     stop: () => Promise<IpcResponse<{ stopped: boolean }>>
-    status: () => Promise<IpcResponse<{ type: string | null; status: string; terminalId: string | null; port: number | null }>>
+    status: () => Promise<IpcResponse<{
+      type: 'surfpool' | 'test-validator' | null
+      status: 'stopped' | 'starting' | 'running' | 'error' | 'stopping'
+      terminalId: string | null
+      port: number | null
+      pid?: number | null
+      startedAt?: number | null
+      lastHealthCheckAt?: number | null
+      error?: string | null
+      outputExcerpt?: string | null
+    }>>
     detect: () => Promise<IpcResponse<{ surfpool: boolean; testValidator: boolean }>>
     toolchainStatus: (projectPath?: string) => Promise<IpcResponse<{
       solanaCli: { installed: boolean; version: string | null }
@@ -1745,6 +1917,52 @@ declare global {
     pollHolders: (mint: string) => Promise<IpcResponse<ForensicsHolderPollResult>>
     ricoMapsStatus: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
     startRicoMaps: () => Promise<IpcResponse<RicoMapsEmbedStatus>>
+  }
+
+  interface DaemonSaid {
+    getIdentity: (wallet: string) => Promise<IpcResponse<SaidIdentity>>
+    getTrust: (wallet: string) => Promise<IpcResponse<SaidTrustScore>>
+  }
+
+  interface DaemonSynapse {
+    status: (input?: { cluster?: SynapseSapCluster }) => Promise<IpcResponse<SynapseSapStatus>>
+    getAgent: (wallet: string, input?: { cluster?: SynapseSapCluster }) => Promise<IpcResponse<SynapseSapAgent | null>>
+    discoverByCapability: (input: SynapseSapDiscoveryInput) => Promise<IpcResponse<SynapseSapDiscoveryResult>>
+    discoverByProtocol: (input: SynapseSapDiscoveryInput) => Promise<IpcResponse<SynapseSapDiscoveryResult>>
+    registerAgent: (input: SynapseSapRegisterInput) => Promise<IpcResponse<SynapseSapRegisterResult>>
+  }
+
+  interface DaemonAllowances {
+    getState: (wallet: string, mint: string) => Promise<IpcResponse<AllowanceState>>
+    getSubscription: (wallet: string, mint: string) => Promise<IpcResponse<SubscriptionEnrollment>>
+  }
+
+  interface DaemonSignalhouse {
+    getHealth: () => Promise<IpcResponse<SignalhouseHealth>>
+    getStatus: () => Promise<IpcResponse<SignalhouseStatus>>
+    getLeaderboard: (opts?: {
+      window?: '24h' | '7d' | '30d' | 'all'
+      sort?: 'proof_of_edge' | 'realized_pnl' | 'drawdown' | 'copy_safety' | 'stake'
+      market?: string
+      riskLevel?: string
+      limit?: number
+    }) => Promise<IpcResponse<SignalhouseStrategy[]>>
+    getStrategy: (id: string) => Promise<IpcResponse<SignalhouseStrategyDetail | null>>
+    getHistory: (id: string) => Promise<IpcResponse<SignalhouseEquityPoint[]>>
+    getVerdicts: (limit?: number) => Promise<IpcResponse<SignalhouseVerdict[]>>
+    getPositions: (limit?: number) => Promise<IpcResponse<SignalhousePosition[]>>
+  }
+
+  interface DaemonFlywheel {
+    preview: (input: FlywheelConfigureInput) => Promise<IpcResponse<FlywheelPreview>>
+    configure: (input: FlywheelConfigureInput) => Promise<IpcResponse<FlywheelConfig>>
+    state: (configId: string) => Promise<IpcResponse<FlywheelState>>
+    claim: (configId: string) => Promise<IpcResponse<{ signature: string; claimedLamports: number; settlementId: string }>>
+    distribute: (configId: string, amountSol: number) => Promise<IpcResponse<{ payoutSignature: string | null; buybackSignature: string | null; buybackLamports: number }>>
+    buyback: (configId: string, slippageBps?: number) => Promise<IpcResponse<{ swapSignature: string | null; burnSignature: string | null; status: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; swapError?: string }>>
+    run: (configId: string) => Promise<IpcResponse<{ claimSignature: string | null; claimedSol: number; payoutSignature: string | null; buybackTransferSignature: string | null; swapSignature: string | null; burnSignature: string | null; status: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; swapError?: string }>>
+    runAll: () => Promise<IpcResponse<Array<{ configId: string; label: string | null; ok: boolean; claimedSol?: number; status?: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; error?: string }>>>
+    list: () => Promise<IpcResponse<FlywheelConfig[]>>
   }
 
   interface DaemonBrowser {

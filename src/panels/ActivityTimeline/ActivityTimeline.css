@@ -53,17 +53,18 @@
 }
 
 .activity-mini-btn {
-  border-radius: var(--radius-pill);
+  border-radius: var(--r);
 }
 
 .activity-session-report {
   margin: 0;
   padding: var(--space-md);
   overflow: auto;
-  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--border));
-  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  border-left: 2px solid color-mix(in srgb, var(--green) 40%, transparent);
+  border-radius: 0;
   color: var(--t2);
-  background: var(--s1);
+  background: var(--code-bg);
   font-family: var(--font-code);
   font-size: var(--fs-11);
   line-height: var(--lh-normal);
@@ -81,10 +82,10 @@
   gap: var(--space-2xs);
   min-width: 136px;
   padding: var(--space-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  border-radius: 0;
   color: var(--t2);
-  background: var(--s1);
+  background: var(--field-bg);
   text-decoration: none;
 }
 
@@ -131,12 +132,12 @@
 
 .activity-issue-card {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  gap: var(--space-md);
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: var(--space-sm);
   padding: var(--space-md);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-card);
-  background: var(--bg-well);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--field-bg);
 }
 
 .activity-issue-card.warning {
@@ -151,12 +152,14 @@
   min-width: 0;
 }
 
+/* Event row: mono time column · status dot · body (message + mono meta).
+   Mirrors the dashboard .act pattern from the design handoff. */
 .activity-entry {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  gap: var(--space-md);
-  padding: var(--space-md) 0;
-  border-top: 1px solid var(--border-soft);
+  grid-template-columns: 68px 12px minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--line);
   background: transparent;
 }
 
@@ -166,38 +169,55 @@
 }
 
 .activity-entry.error {
-  border-top-color: color-mix(in srgb, var(--red) 32%, var(--border-soft));
+  border-top-color: color-mix(in srgb, var(--red) 32%, var(--line));
 }
 
 .activity-entry.warning {
-  border-top-color: color-mix(in srgb, var(--amber) 32%, var(--border-soft));
+  border-top-color: color-mix(in srgb, var(--amber) 32%, var(--line));
+}
+
+.activity-entry-time {
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--t4);
+  padding-top: 1px;
+  white-space: nowrap;
 }
 
 .activity-dot {
-  margin-top: 6px;
+  margin-top: var(--space-xs);
 }
 
-.activity-entry-top {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--t3);
-  font-size: var(--fs-11);
-}
-
-.activity-entry-context {
-  color: var(--t1);
-  font-weight: var(--fw-bold);
-}
-
-.activity-entry-category {
-  text-transform: capitalize;
+.activity-entry-main {
+  min-width: 0;
 }
 
 .activity-entry-message {
-  margin-top: var(--space-xs);
+  color: var(--t1);
+  font-size: var(--fs-13);
+  line-height: var(--lh-snug);
+  word-break: break-word;
+}
+
+.activity-entry-meta {
+  margin-top: var(--space-2xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--t3);
+}
+
+.activity-entry-sep {
+  color: var(--t4);
+}
+
+/* mono runtime/context tag (mockup .act runtime tag) */
+.activity-entry-context {
   color: var(--t2);
-  line-height: var(--lh-normal);
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
 }
 
 @media (max-width: 760px) {

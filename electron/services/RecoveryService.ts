@@ -3,16 +3,13 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  VersionedTransaction,
-  TransactionMessage,
   SystemProgram,
   ComputeBudgetProgram,
   TransactionInstruction,
 } from '@solana/web3.js'
 import bs58 from 'bs58'
 import * as fs from 'node:fs'
-import * as SecureKey from './SecureKeyService'
-import { executeTransaction, getHeliusApiKey } from './SolanaService'
+import { executeInstructionsWithReceipt, getConnectionStrict } from './SolanaService'
 import type { RecoveryWalletInfo, RecoveryProgressEvent, RecoveryStatus } from '../shared/types'
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -36,12 +33,6 @@ let loadedKeypairs: Map<string, Keypair> = new Map()
 let loadedPubkeys: string[] = []
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-
-function getConnection(): Connection {
-  const key = getHeliusApiKey()
-  if (!key) throw new Error('Helius API key not configured')
-  return new Connection(`https://mainnet.helius-rpc.com/?api-key=${key}`, 'confirmed')
-}
 
 function emit(win: BrowserWindow | null, event: RecoveryProgressEvent) {
   win?.webContents.send('recovery:progress', event)
@@ -68,21 +59,24 @@ async function getPriorityFee(conn: Connection, accountKeys: PublicKey[] = [TOKE
   }
 }
 
-async function sendAndConfirm(
-  conn: Connection, tx: VersionedTransaction, timeout = 15_000,
-): Promise<string | null> {
-  try {
-    const { signature } = await executeTransaction(conn, tx, [], {
-      timeoutMs: timeout,
-      sendOptions: {
-        skipPreflight: true,
-        maxRetries: 2,
-      },
-    })
-    return signature
-  } catch {
-    return null
+async function executeRecoveryInstructions(
+  conn: Connection,
+  instructions: TransactionInstruction[],
+  signers: Keypair[],
+  payer: PublicKey,
+  guardSource: string,
+  timeoutMs = 15_000,
+): Promise<string> {
+  const receipt = await executeInstructionsWithReceipt(conn, instructions, signers, {
+    payer,
+    timeoutMs,
+    addComputeBudget: false,
+    guardSource,
+  })
+  if (receipt.status !== 'success' || !receipt.signature) {
+    throw new Error(receipt.failureReason ?? `Recovery transaction ${receipt.status}`)
   }
+  return receipt.signature
 }
 
 // ─── CSV Import ────────────────────────────────────────────────────────────
@@ -143,7 +137,7 @@ export function loadCsvFile(csvPath: string): { count: number; path: string } {
 export async function scanWallets(win: BrowserWindow | null): Promise<RecoveryWalletInfo[]> {
   if (loadedPubkeys.length === 0) throw new Error('No wallets loaded. Import a CSV first.')
 
-  const conn = getConnection()
+  const conn = getConnectionStrict()
 
   currentStatus = {
     state: 'scanning', currentPhase: 0, totalRecovered: 0,
@@ -204,11 +198,11 @@ export async function executeRecovery(
 ): Promise<{ totalRecovered: number }> {
   if (loadedPubkeys.length === 0) throw new Error('No wallets loaded')
 
-  const conn = getConnection()
+  const conn = getConnectionStrict()
   const masterPubkey = new PublicKey(masterAddress)
 
   // Find master keypair (it must be in the loaded set or the wallet DB)
-  let masterKp = loadedKeypairs.get(masterAddress)
+  const masterKp = loadedKeypairs.get(masterAddress)
   if (!masterKp) {
     // Try to find it by checking if any loaded key matches
     throw new Error('Master wallet keypair not found in loaded wallets')
@@ -261,54 +255,13 @@ export async function executeRecovery(
 
       emit(win, { type: 'wallet-start', walletIndex: wi, pubkey: pub })
 
-      // Burn + close accounts with token balances
-      for (const ta of withBalance) {
-        if (isAborted()) break
-        try {
-          const burnData = Buffer.alloc(9)
-          burnData[0] = 8 // Burn opcode
-          burnData.writeBigUInt64LE(ta.amount, 1)
-
-          const burnIx = new TransactionInstruction({
-            programId: ta.programId,
-            keys: [
-              { pubkey: ta.pubkey, isSigner: false, isWritable: true },
-              { pubkey: ta.mint, isSigner: false, isWritable: true },
-              { pubkey: kp.publicKey, isSigner: true, isWritable: false },
-            ],
-            data: burnData,
-          })
-
-          const closeIx = new TransactionInstruction({
-            programId: ta.programId,
-            keys: [
-              { pubkey: ta.pubkey, isSigner: false, isWritable: true },
-              { pubkey: masterPubkey, isSigner: false, isWritable: true },
-              { pubkey: kp.publicKey, isSigner: true, isWritable: false },
-            ],
-            data: Buffer.from([9]),
-          })
-
-          const { blockhash } = await conn.getLatestBlockhash('finalized')
-          const msg = new TransactionMessage({
-            payerKey: masterPubkey,
-            recentBlockhash: blockhash,
-            instructions: [
-              ComputeBudgetProgram.setComputeUnitLimit({ units: 80_000 }),
-              ComputeBudgetProgram.setComputeUnitPrice({ microLamports: tokenPriorityFee }),
-              burnIx, closeIx,
-            ],
-          }).compileToV0Message()
-
-          const tx = new VersionedTransaction(msg)
-          tx.sign([masterKp, kp])
-          const sig = await sendAndConfirm(conn, tx)
-          if (sig) {
-            totalRecovered += 0.00203928
-            currentStatus.totalRecovered = totalRecovered
-            emit(win, { type: 'flow', walletIndex: wi, amount: 0.00203928, totalRecovered })
-          }
-        } catch { /* continue */ }
+      if (withBalance.length > 0) {
+        currentStatus.failed++
+        emit(win, {
+          type: 'wallet-error',
+          walletIndex: wi,
+          error: `Skipped ${withBalance.length} non-zero token account(s); burning balances requires explicit recovery approval.`,
+        })
       }
 
       // Batch close empty accounts
@@ -327,30 +280,28 @@ export async function executeRecovery(
         }))
 
         try {
-          const { blockhash } = await conn.getLatestBlockhash('finalized')
-          const msg = new TransactionMessage({
-            payerKey: masterPubkey,
-            recentBlockhash: blockhash,
-            instructions: [
+          const sig = await executeRecoveryInstructions(
+            conn,
+            [
               ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 * batch.length }),
               ComputeBudgetProgram.setComputeUnitPrice({ microLamports: tokenPriorityFee }),
               ...closeIxs,
             ],
-          }).compileToV0Message()
-
-          const tx = new VersionedTransaction(msg)
-          tx.sign([masterKp, kp])
-          const sig = await sendAndConfirm(conn, tx)
-          if (sig) {
-            const recovered = batch.length * 0.00203928
-            totalRecovered += recovered
-            currentStatus.totalRecovered = totalRecovered
-            emit(win, {
-              type: 'flow', walletIndex: wi, amount: recovered, totalRecovered,
-              message: `Closed ${batch.length} accounts from ${pub.slice(0, 12)}...`,
-            })
-          }
-        } catch { /* continue */ }
+            [kp, masterKp],
+            masterPubkey,
+            'recovery:close-empty-token-accounts',
+          )
+          const recovered = batch.length * 0.00203928
+          totalRecovered += recovered
+          currentStatus.totalRecovered = totalRecovered
+          emit(win, {
+            type: 'flow', walletIndex: wi, amount: recovered, totalRecovered,
+            message: `Closed ${batch.length} accounts from ${pub.slice(0, 12)}...`,
+          })
+        } catch (err) {
+          currentStatus.failed++
+          emit(win, { type: 'wallet-error', walletIndex: wi, error: (err as Error).message })
+        }
       }
 
       currentStatus.completed++
@@ -379,11 +330,9 @@ export async function executeRecovery(
       emit(win, { type: 'wallet-start', walletIndex: wi, pubkey: pub })
 
       const solPriorityFee = await getPriorityFee(conn, [kp.publicKey])
-      const { blockhash } = await conn.getLatestBlockhash('finalized')
-      const msg = new TransactionMessage({
-        payerKey: masterPubkey,
-        recentBlockhash: blockhash,
-        instructions: [
+      await executeRecoveryInstructions(
+        conn,
+        [
           ComputeBudgetProgram.setComputeUnitLimit({ units: 20_000 }),
           ComputeBudgetProgram.setComputeUnitPrice({ microLamports: solPriorityFee }),
           SystemProgram.transfer({
@@ -392,23 +341,20 @@ export async function executeRecovery(
             lamports: balance,
           }),
         ],
-      }).compileToV0Message()
+        [kp, masterKp],
+        masterPubkey,
+        'recovery:sweep-sol',
+      )
 
-      const tx = new VersionedTransaction(msg)
-      tx.sign([masterKp, kp])
-      const sig = await sendAndConfirm(conn, tx)
-
-      if (sig) {
-        const sol = balance / 1e9
-        totalRecovered += sol
-        currentStatus.totalRecovered = totalRecovered
-        currentStatus.completed++
-        emit(win, {
-          type: 'flow', walletIndex: wi, amount: sol, totalRecovered,
-          message: `Swept ${sol.toFixed(6)} SOL from ${pub.slice(0, 12)}...`,
-        })
-        emit(win, { type: 'wallet-complete', walletIndex: wi })
-      }
+      const sol = balance / 1e9
+      totalRecovered += sol
+      currentStatus.totalRecovered = totalRecovered
+      currentStatus.completed++
+      emit(win, {
+        type: 'flow', walletIndex: wi, amount: sol, totalRecovered,
+        message: `Swept ${sol.toFixed(6)} SOL from ${pub.slice(0, 12)}...`,
+      })
+      emit(win, { type: 'wallet-complete', walletIndex: wi })
     } catch (err) {
       currentStatus.failed++
       emit(win, { type: 'wallet-error', walletIndex: wi, error: (err as Error).message })

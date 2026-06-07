@@ -31,26 +31,26 @@
   font-display: swap;
 }
 
-/* JetBrains Mono — code/terminal font */
+/* Geist Mono — code/terminal font */
 @font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-400.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-500.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-700.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;

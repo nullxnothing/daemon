@@ -56,17 +56,18 @@ const scenarios = [
     maxChangedPixels: 500,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
-      await page.waitForSelector('.wallet-workspace-metrics', { timeout: 30000 })
+      await page.waitForSelector('[data-testid="wallet-hero"]', { timeout: 30000 })
     },
-    selector: '.wallet-panel-header',
+    selector: '[data-testid="wallet-hero"]',
   },
   {
     name: 'wallet-tabs',
     maxChangedPixels: 100,
     setup: async (page) => {
       await openTool(page, 'Wallet', '.wallet-panel')
+      await page.waitForSelector('[data-testid="wallet-tabs"]', { timeout: 30000 })
     },
-    selector: '.wallet-tabs',
+    selector: '[data-testid="wallet-tabs"]',
   },
   {
     name: 'wallet-quickview',
@@ -78,32 +79,26 @@ const scenarios = [
     selector: '.quickview-card--wallet',
   },
   {
-    name: 'right-panel-tabs',
+    name: 'agent-panel-header',
     setup: async (page) => {
       await ensureRightPanelVisible(page)
     },
-    selector: '.right-panel-tabs',
+    selector: '.agent-wb-head',
   },
   {
-    name: 'aria-chamber',
+    name: 'agent-panel-composer',
     setup: async (page) => {
       await ensureRightPanelVisible(page)
+      await normalizeAgentComposer(page)
     },
-    selector: '.aria-chamber',
-  },
-  {
-    name: 'aria-prompt',
-    setup: async (page) => {
-      await ensureRightPanelVisible(page)
-    },
-    selector: '.aria-prompt',
+    selector: '.agent-wb-composer',
   },
   {
     name: 'terminal-tabs',
     setup: async (page) => {
       await openTerminalPanel(page)
     },
-    selector: '.terminal-tabs',
+    selector: '.terminal-viewtabs',
   },
   {
     name: 'terminal-launcher-menu',
@@ -337,7 +332,7 @@ async function openTerminalPanel(page) {
     await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
     await page.waitForSelector('.terminal-panel', { timeout: 30000 })
   }
-  await page.waitForSelector('.terminal-tabs', { timeout: 30000 })
+  await page.waitForSelector('.terminal-viewtabs', { timeout: 30000 })
 }
 
 async function closeTransientUi(page) {
@@ -361,59 +356,19 @@ async function closeTransientUi(page) {
   }
 }
 
-async function normalizeAriaChamber(page) {
-  await page.evaluate(() => {
-    const face = document.querySelector('.aria-chamber .aria-face')
-    if (face instanceof HTMLElement) {
-      face.className = 'aria-face aria-face-idle aria-face-large'
-      face.style.transform = 'translateX(0)'
-      face.style.setProperty('--look-x', '0px')
-    }
-
-    const eyes = document.querySelectorAll('.aria-chamber .aria-eye')
-    eyes.forEach((eye) => {
-      if (eye instanceof HTMLElement) {
-        eye.style.animation = 'none'
-        eye.style.transition = 'none'
-        eye.style.transform = 'none'
-        eye.style.opacity = '0.8'
-      }
-    })
-  })
-}
-
-async function normalizeAriaPrompt(page) {
+async function normalizeAgentComposer(page) {
   await page.evaluate(() => {
     const active = document.activeElement
-    if (active instanceof HTMLElement) {
-      active.blur()
-    }
+    if (active instanceof HTMLElement) active.blur()
 
-    const prompt = document.querySelector('.aria-prompt')
-    if (prompt instanceof HTMLElement) {
-      prompt.style.transition = 'none'
-    }
-
-    const textarea = document.querySelector('.aria-prompt .aria-input')
+    const textarea = document.querySelector('.agent-wb-composer textarea')
     if (textarea instanceof HTMLTextAreaElement) {
       textarea.value = ''
-      textarea.style.height = '28px'
       textarea.style.transition = 'none'
       textarea.style.caretColor = 'transparent'
       textarea.scrollTop = 0
       textarea.scrollLeft = 0
       textarea.setSelectionRange(0, 0)
-    }
-
-    const caret = document.querySelector('.aria-prompt .aria-prompt-caret')
-    if (caret instanceof HTMLElement) {
-      caret.style.transition = 'none'
-      caret.style.animation = 'none'
-    }
-
-    const submit = document.querySelector('.aria-prompt .aria-submit')
-    if (submit instanceof HTMLElement) {
-      submit.style.transition = 'none'
     }
   })
 }
@@ -462,12 +417,8 @@ async function stabilizeScenario(page, scenario) {
     await normalizeSettingsMeta(page)
   }
 
-  if (scenario.name === 'aria-chamber') {
-    await normalizeAriaChamber(page)
-  }
-
-  if (scenario.name === 'aria-prompt') {
-    await normalizeAriaPrompt(page)
+  if (scenario.name === 'agent-panel-composer') {
+    await normalizeAgentComposer(page)
   }
 
   if (scenario.name === 'terminal-launcher-menu') {
@@ -566,9 +517,17 @@ async function runVisuals(page) {
 
   const failures = []
 
+  // Optional comma-separated allowlist for targeted baseline regen, e.g.
+  // DAEMON_VISUAL_ONLY=agent-panel-header,agent-panel-composer
+  const onlyScenarios = (process.env.DAEMON_VISUAL_ONLY ?? '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+
   for (const profile of profiles) {
     for (const scenario of scenarios) {
       if (scenario.profiles && !scenario.profiles.includes(profile.name)) {
+        continue
+      }
+      if (onlyScenarios.length > 0 && !onlyScenarios.includes(scenario.name)) {
         continue
       }
 

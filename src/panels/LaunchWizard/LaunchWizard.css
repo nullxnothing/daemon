@@ -5,20 +5,18 @@
 
 /* ── Overlay ── */
 .lw-overlay {
-  --lw-green-ring: 0 0 0 1px var(--green-glow);
+  --lw-green-ring: 0 0 0 1px var(--accent-line);
 
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--green) 6%, transparent), transparent 55%),
-    rgba(2, 4, 6, 0.82);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
+  -webkit-backdrop-filter: var(--glass-blur-scrim);
   display: grid;
   place-items: center;
-  padding: 24px;
-  animation: lw-fade 180ms var(--ease-out-quint);
+  padding: var(--space-xl);
+  animation: lw-fade var(--duration-normal) var(--ease-out-quint);
 }
 
 @keyframes lw-fade {
@@ -31,19 +29,14 @@
   position: relative;
   width: min(980px, 100%);
   max-height: calc(100vh - 48px);
-  background:
-    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--green) 5%, transparent), transparent 45%),
-    linear-gradient(180deg, color-mix(in srgb, var(--s2) 96%, transparent), var(--s1));
-  border: 1px solid var(--border-medium);
-  border-radius: 20px;
-  box-shadow:
-    var(--shadow-modal),
-    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
-    0 0 80px -20px color-mix(in srgb, var(--green) 18%, transparent);
+  background: var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: lw-rise 260ms var(--ease-out-quint);
+  animation: lw-rise var(--duration-slow) var(--ease-out-quint);
 }
 
 @keyframes lw-rise {
@@ -52,17 +45,7 @@
 }
 
 .lw-modal::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 30%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  display: none;
 }
 
 /* ── Header ── */
@@ -70,8 +53,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding: 28px 32px 18px;
+  gap: var(--space-lg);
+  padding: var(--space-2xl) var(--space-2xl) var(--space-lg);
   flex-shrink: 0;
 }
 
@@ -79,7 +62,7 @@
 
 .lw-kicker {
   display: inline-block;
-  padding: 4px 10px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
   background: var(--green-glow);
   color: var(--green);
@@ -88,12 +71,12 @@
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
   border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .lw-title {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--fs-26);
   font-weight: var(--fw-semibold);
   color: var(--t1);
   letter-spacing: -0.02em;
@@ -101,7 +84,7 @@
 }
 
 .lw-subtitle {
-  margin: 6px 0 0;
+  margin: var(--space-xs) 0 0;
   font-size: var(--fs-13);
   color: var(--t3);
   line-height: 1.5;
@@ -131,16 +114,16 @@
 .lw-stepper {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  padding: 0 32px 22px;
+  gap: var(--space-md);
+  padding: 0 var(--space-2xl) var(--space-xl);
   flex-shrink: 0;
 }
 
 .lw-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -150,11 +133,8 @@
 }
 
 .lw-step.active {
-  background:
-    radial-gradient(120% 80% at 0% 0%, var(--green-glow), transparent 60%),
-    var(--surface-card);
-  border-color: color-mix(in srgb, var(--green) 38%, transparent);
-  box-shadow: var(--lw-green-ring);
+  background: var(--accent-fill);
+  border-color: var(--accent-line);
 }
 
 .lw-step.complete {
@@ -182,7 +162,6 @@
   background: var(--green);
   border-color: var(--green);
   color: var(--bg-app);
-  box-shadow: 0 0 0 4px var(--green-glow);
 }
 
 .lw-step.complete .lw-step-dot {
@@ -214,7 +193,7 @@
 
 .lw-main {
   overflow-y: auto;
-  padding: 4px 32px 24px;
+  padding: var(--space-xs) var(--space-2xl) var(--space-xl);
   scrollbar-gutter: stable;
 }
 
@@ -222,12 +201,12 @@
   border-left: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-app) 50%, transparent);
   overflow-y: auto;
-  padding: 4px 24px 24px;
+  padding: var(--space-xs) var(--space-xl) var(--space-xl);
 }
 
 .lw-takeover {
   grid-column: 1 / -1;
-  padding: 32px;
+  padding: var(--space-2xl);
   overflow-y: auto;
 }
 
@@ -239,7 +218,7 @@
 .lw-main::-webkit-scrollbar-thumb,
 .lw-rail::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .lw-main::-webkit-scrollbar-thumb:hover,
 .lw-rail::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
@@ -248,22 +227,20 @@
 .lw-step-body {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: var(--space-xl);
 }
 
 /* ── Section ── */
 .lw-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .lw-section.accent {
-  padding: 18px;
-  background:
-    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--green) 5%, transparent), transparent 55%),
-    var(--surface-card);
-  border: 1px solid var(--border-medium);
+  padding: var(--space-lg);
+  background: var(--accent-fill);
+  border: 1px solid var(--accent-line);
   border-radius: var(--radius-card);
 }
 
@@ -276,7 +253,7 @@
 }
 
 .lw-section-head p {
-  margin: 4px 0 0;
+  margin: var(--space-xs) 0 0;
   font-size: var(--fs-12);
   color: var(--t3);
   line-height: 1.5;
@@ -285,14 +262,14 @@
 .lw-section-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 /* ── Field ── */
 .lw-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   min-width: 0;
 }
 
@@ -300,7 +277,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .lw-field-label {
@@ -313,7 +290,7 @@
 
 .lw-field-req {
   color: var(--green);
-  margin-left: 4px;
+  margin-left: var(--space-xs);
   font-weight: var(--fw-bold);
 }
 
@@ -327,7 +304,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .lw-field-error {
@@ -335,15 +312,22 @@
   color: var(--red);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
-.lw-field-error::before { content: '⚠'; }
+.lw-field-error::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--red);
+  flex-shrink: 0;
+}
 
 .lw-field.has-error .lw-input,
 .lw-field.has-error .lw-textarea {
   border-color: var(--red);
-  box-shadow: 0 0 0 3px var(--red-glow);
+  box-shadow: var(--focus-ring-red);
 }
 
 /* ── Inputs ── */
@@ -356,7 +340,7 @@
   color: var(--t1);
   font-size: var(--fs-13);
   font-family: var(--font-ui);
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   outline: none;
   box-sizing: border-box;
   transition:
@@ -369,7 +353,7 @@
 
 .lw-textarea {
   min-height: 88px;
-  padding: 12px 14px;
+  padding: var(--space-md) var(--space-md);
   line-height: 1.55;
   resize: vertical;
   font-family: var(--font-ui);
@@ -403,7 +387,7 @@
   opacity: 0.55;
 }
 
-select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
+select.lw-input { cursor: pointer; appearance: none; padding-right: var(--space-2xl);
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a8190' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
@@ -421,15 +405,15 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-count.warn { color: var(--amber); }
 
 /* ── Grid layouts ── */
-.lw-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.lw-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.lw-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+.lw-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); }
 
 /* ── Dropzone ── */
 .lw-dropzone {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--surface-card);
   border: 1px dashed var(--border-medium);
   border-radius: var(--radius-card);
@@ -482,18 +466,18 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-dropzone-hint {
   font-size: var(--fs-11);
   color: var(--t3);
-  margin-top: 2px;
+  margin-top: var(--space-xs);
 }
 
 /* ── Disclosure ── */
 .lw-disclosure {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 10px 14px;
+  padding: var(--space-sm) var(--space-md);
   color: var(--t2);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
@@ -529,8 +513,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-disclosure-body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -548,8 +532,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md);
   cursor: pointer;
   color: var(--t2);
   font-size: var(--fs-12);
@@ -562,28 +546,28 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-advanced[open] summary .lw-disclosure-chevron { transform: rotate(90deg); }
 
 .lw-advanced-body {
-  padding: 18px;
+  padding: var(--space-lg);
   border-top: 1px solid var(--border);
   background: var(--surface-sunken);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 /* ── Launchpads ── */
 .lw-pads {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
-.lw-pads.dim { opacity: 0.65; margin-top: 10px; }
+.lw-pads.dim { opacity: 0.65; margin-top: var(--space-sm); }
 
 .lw-pad {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -604,10 +588,9 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-pad.selected {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 55%),
     var(--surface-card);
   border-color: var(--green);
-  box-shadow: 0 0 0 1px var(--green-glow), 0 8px 24px -8px color-mix(in srgb, var(--green) 30%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 .lw-pad.disabled {
@@ -623,7 +606,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   background: var(--surface-sunken);
   flex-shrink: 0;
   position: relative;
-  margin-top: 2px;
+  margin-top: var(--space-xs);
   transition: all var(--dur-base) var(--ease-out-quint);
 }
 
@@ -647,7 +630,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   inset: 3px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: var(--glow-green-soft);
 }
 
 .lw-pad-body { flex: 1; min-width: 0; }
@@ -658,14 +640,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   color: var(--t1);
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
 }
 
 .lw-pad-live,
 .lw-pad-soon {
   font-size: var(--fs-9);
-  padding: 2px 7px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-pill);
   text-transform: uppercase;
   letter-spacing: var(--ls-eyebrow);
@@ -694,12 +676,12 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .lw-chip {
   height: 30px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   background: var(--surface-control);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -732,18 +714,18 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 2px;
+  padding: var(--space-xs);
+  gap: var(--space-xs);
   width: 100%;
 }
 
 .lw-seg-opt {
   flex: 1;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   color: var(--t3);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
@@ -760,7 +742,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-seg-opt.active {
   background: var(--surface-card);
   color: var(--t1);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
   font-weight: var(--fw-semibold);
 }
 
@@ -773,11 +755,11 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-plans {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .lw-plan {
-  padding: 14px;
+  padding: var(--space-md);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -795,7 +777,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-plan.active {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 60%),
     var(--surface-card);
   border-color: var(--green);
   box-shadow: var(--lw-green-ring);
@@ -811,14 +792,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-plan-detail {
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 
 .lw-plan-price {
   font-size: var(--fs-10);
   color: var(--t4);
   font-family: var(--font-code);
-  margin-top: 6px;
+  margin-top: var(--space-xs);
 }
 
 .lw-plan.active .lw-plan-price { color: var(--green); }
@@ -828,8 +809,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -838,7 +819,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-wallet-card.active {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 55%),
     var(--surface-card);
   border-color: color-mix(in srgb, var(--green) 38%, transparent);
   box-shadow: var(--lw-green-ring);
@@ -853,7 +833,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-wallet-addr {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-11);
   color: var(--t3);
   font-family: var(--font-code);
@@ -863,10 +843,10 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-wallet-status {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   font-size: var(--fs-10);
   text-transform: uppercase;
   letter-spacing: var(--ls-eyebrow);
@@ -887,7 +867,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-wallet-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -895,8 +875,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-toggle-row {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -910,7 +890,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   width: 18px;
   height: 18px;
   accent-color: var(--green);
-  margin-top: 2px;
+  margin-top: var(--space-xs);
   cursor: pointer;
 }
 
@@ -927,7 +907,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   font-size: var(--fs-11);
   color: var(--t3);
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-xs);
 }
 
 /* ── Summary (step 3) ── */
@@ -941,8 +921,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-summary-row {
   display: flex;
-  gap: 16px;
-  padding: 12px 16px;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--border);
   align-items: baseline;
 }
@@ -987,9 +967,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 /* ── Cost ── */
 .lw-cost {
-  padding: 16px;
+  padding: var(--space-lg);
   background:
-    radial-gradient(120% 80% at 100% 100%, var(--green-glow), transparent 60%),
     var(--surface-card);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-card);
@@ -999,7 +978,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
+  padding: var(--space-xs) 0;
 }
 
 .lw-cost-line span { font-size: var(--fs-12); color: var(--t2); }
@@ -1016,8 +995,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0 6px;
-  margin-top: 6px;
+  padding: var(--space-md) 0 var(--space-xs);
+  margin-top: var(--space-xs);
   border-top: 1px solid var(--border);
 }
 
@@ -1039,8 +1018,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
-  padding: 8px 0 0;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) 0 0;
   border-top: 1px dashed var(--border);
 }
 
@@ -1057,14 +1036,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 /* ── Banners ── */
 .lw-banner {
-  margin-top: 12px;
-  padding: 12px 14px;
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-md);
   border-radius: var(--radius-md);
   font-size: var(--fs-12);
   line-height: 1.55;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .lw-banner.error {
@@ -1073,15 +1052,23 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   border: 1px solid color-mix(in srgb, var(--red) 32%, transparent);
 }
 
-.lw-banner.error::before { content: '⚠'; flex-shrink: 0; }
+.lw-banner.error::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--red);
+  flex-shrink: 0;
+}
 
 /* ── Preflight ── */
 .lw-preflight-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  padding: 12px 14px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1109,7 +1096,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   font-size: var(--fs-12);
   color: var(--t1);
   font-weight: var(--fw-medium);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .lw-preflight-detail {
@@ -1120,7 +1107,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-preflight-pill {
   flex-shrink: 0;
-  padding: 4px 10px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
   font-size: var(--fs-10);
   font-weight: var(--fw-bold);
@@ -1151,8 +1138,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-confirm {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-md);
+  padding: var(--space-lg);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -1164,7 +1151,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-confirm.checked {
   background:
-    radial-gradient(140% 100% at 0% 0%, var(--green-glow), transparent 60%),
     var(--surface-card);
   border-color: color-mix(in srgb, var(--green) 38%, transparent);
 }
@@ -1189,7 +1175,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: block;
   font-size: var(--fs-11);
   color: var(--t3);
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   line-height: 1.5;
 }
 
@@ -1197,7 +1183,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-preview {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
   position: sticky;
   top: 4px;
 }
@@ -1224,7 +1210,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-preview-pill {
-  padding: 3px 9px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--surface-card);
   border: 1px solid var(--border);
@@ -1237,48 +1223,38 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-preview-card {
   position: relative;
-  padding: 20px;
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--green) 8%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--surface-card), var(--surface-sunken));
-  border: 1px solid var(--border-medium);
-  box-shadow: var(--shadow-md);
+  padding: var(--space-lg);
+  border-radius: var(--r-panel);
+  background: var(--s2);
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 
 .lw-preview-glow {
-  position: absolute;
-  inset: -40%;
-  background: radial-gradient(circle at 20% 20%, var(--green-glow), transparent 50%);
-  pointer-events: none;
-  opacity: 0.6;
+  display: none;
 }
 
 .lw-preview-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding-bottom: 18px;
+  gap: var(--space-md);
+  padding-bottom: var(--space-lg);
   border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg);
 }
 
 .lw-preview-avatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--green), var(--green-dim));
-  color: var(--bg-app);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
   display: grid;
   place-items: center;
   font-size: var(--fs-22);
   font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
-  box-shadow:
-    var(--glow-green-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1302,7 +1278,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 }
 
 .lw-preview-ticker {
-  margin-top: 2px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-12);
   color: var(--green);
   font-family: var(--font-code);
@@ -1313,11 +1289,11 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .lw-preview-stats > div {
-  padding: 10px 12px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1334,7 +1310,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-preview-stats strong {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   font-size: var(--fs-13);
   color: var(--t1);
   font-family: var(--font-code);
@@ -1347,8 +1323,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 14px;
-  margin-top: 12px;
+  padding: var(--space-md) var(--space-md);
+  margin-top: var(--space-md);
   background: var(--green-glow);
   border: 1px solid color-mix(in srgb, var(--green) 28%, transparent);
   border-radius: var(--radius-md);
@@ -1370,11 +1346,11 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-preview-status {
   position: relative;
-  margin-top: 14px;
+  margin-top: var(--space-md);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
@@ -1418,8 +1394,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-commit {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 32px;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-2xl);
   background: color-mix(in srgb, var(--bg-app) 65%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1430,8 +1406,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-pill);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
@@ -1467,7 +1443,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-commit-actions {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 /* ── Buttons ── */
@@ -1479,30 +1455,23 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   font-size: var(--fs-13);
   font-weight: var(--fw-semibold);
   font-family: var(--font-ui);
-  padding: 0 18px;
+  padding: 0 var(--space-lg);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   transition: all var(--dur-instant) var(--ease-standard);
   border: 1px solid;
 }
 
 .lw-btn-primary {
-  background: linear-gradient(180deg, var(--green), var(--green-dim));
-  border-color: var(--green);
-  color: var(--bg-app);
-  box-shadow:
-    var(--glow-green-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
 }
 
 .lw-btn-primary:hover:not(:disabled) {
-  box-shadow:
-    var(--glow-green-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 8px 24px -8px var(--green);
-  transform: translateY(-1px);
+  border-color: var(--green);
 }
 
 .lw-btn-primary:active:not(:disabled) { transform: translateY(0); }
@@ -1515,7 +1484,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-btn-primary:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring), var(--glow-green-soft);
+  box-shadow: var(--focus-ring);
 }
 
 .lw-btn-secondary {
@@ -1540,7 +1509,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   color: var(--t3);
   font-weight: var(--fw-medium);
   height: 36px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
 }
 
 .lw-ghost:hover {
@@ -1554,8 +1523,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 18px;
-  padding: 40px 24px;
+  gap: var(--space-lg);
+  padding: var(--space-3xl) var(--space-xl);
 }
 
 .lw-finale h2 {
@@ -1577,17 +1546,14 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale.success .lw-finale-icon {
   color: var(--green);
   background:
-    radial-gradient(circle, var(--green-glow), transparent 70%),
     var(--surface-card);
   border: 1.5px solid var(--green);
-  box-shadow: var(--glow-green-ambient);
-  animation: lw-pop 360ms var(--ease-spring);
+  animation: lw-pop 360ms var(--ease-spring); /* TODO: token (360ms no exact duration) */
 }
 
 .lw-finale.error .lw-finale-icon {
   color: var(--red);
   background:
-    radial-gradient(circle, var(--red-glow), transparent 70%),
     var(--surface-card);
   border: 1.5px solid var(--red);
 }
@@ -1601,7 +1567,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale-sig {
   display: block;
   max-width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-md) var(--space-lg);
   background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1620,7 +1586,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   line-height: 1.55;
 }
 
-.lw-finale-actions { display: flex; gap: 10px; margin-top: 4px; }
+.lw-finale-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-xs); }
 
 .lw-finale-spinner {
   width: 44px;
@@ -1630,7 +1596,6 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   border-top-color: var(--green);
   border-right-color: color-mix(in srgb, var(--green) 35%, transparent);
   animation: lw-spin 1.2s linear infinite;
-  box-shadow: var(--glow-green-soft);
 }
 
 @keyframes lw-spin {
@@ -1640,7 +1605,7 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale-phases {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   width: 100%;
   max-width: 320px;
 }
@@ -1648,8 +1613,8 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 .lw-finale-phase {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: var(--surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1680,13 +1645,13 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
 
 .lw-finale-phase.active .lw-finale-phase-dot {
   background: var(--amber);
-  box-shadow: 0 0 0 4px var(--amber-glow);
+  box-shadow: var(--focus-ring-amber);
   animation: lw-pulse 1.2s ease-in-out infinite;
 }
 
 .lw-finale-phase.done .lw-finale-phase-dot {
   background: var(--green);
-  box-shadow: 0 0 0 3px var(--green-glow);
+  box-shadow: var(--focus-ring);
 }
 
 /* ── Responsive ── */
@@ -1703,9 +1668,9 @@ select.lw-input { cursor: pointer; appearance: none; padding-right: 32px;
   .lw-plans { grid-template-columns: 1fr; }
   .lw-stepper { grid-template-columns: repeat(3, 1fr); }
   .lw-step-label { display: none; }
-  .lw-header { padding: 22px 22px 16px; }
-  .lw-main { padding: 4px 22px 22px; }
-  .lw-rail { padding: 4px 22px 22px; }
-  .lw-commit { padding: 14px 22px; }
+  .lw-header { padding: var(--space-xl) var(--space-xl) var(--space-lg); }
+  .lw-main { padding: var(--space-xs) var(--space-xl) var(--space-xl); }
+  .lw-rail { padding: var(--space-xs) var(--space-xl) var(--space-xl); }
+  .lw-commit { padding: var(--space-md) var(--space-xl); }
   .lw-status { display: none; }
 }

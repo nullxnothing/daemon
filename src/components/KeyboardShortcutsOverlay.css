@@ -19,8 +19,8 @@
   overflow-y: auto;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
   box-shadow: var(--shadow-modal);
   animation: shortcuts-rise var(--duration-normal) var(--ease-out-quint);
 }
@@ -35,7 +35,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--r);
   background: transparent;
   color: var(--t3);
   cursor: pointer;

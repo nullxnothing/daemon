@@ -45,7 +45,7 @@
   letter-spacing: var(--ls-caps);
   margin: 0;
   padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .keyboard-shortcuts-list {
@@ -74,7 +74,7 @@
 
 .keyboard-shortcuts-footer {
   padding-top: var(--space-md);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 
 .keyboard-shortcuts-note {

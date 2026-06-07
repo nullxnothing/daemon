@@ -8,13 +8,13 @@
   min-height: 200px;
   max-height: 70%;
   background: color-mix(in srgb, var(--panel-bg) 96%, black 4%);
-  border-top: 1px solid var(--panel-border);
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   z-index: 20;
   isolation: isolate;
   animation: drawerSlideUp var(--dur-emphasized) var(--ease-out-quint);
-  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.34), var(--edge-highlight-strong);
+  box-shadow: var(--shadow-float);
 }
 
 .command-drawer--fullscreen {
@@ -45,31 +45,28 @@
 .drawer-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   padding: var(--drawer-space-block) var(--drawer-space-inline);
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
-    var(--drawer-surface-bg);
+  background: var(--drawer-surface-bg);
 }
 
 .drawer-search {
   flex: 1;
   background: var(--control-bg);
-  border: 1px solid var(--control-border);
+  border: 1px solid var(--line);
   border-radius: var(--drawer-control-radius);
   color: var(--t1);
   font-size: var(--fs-12);
   height: 34px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-family: var(--font-ui);
   outline: none;
 }
 
 .drawer-search:focus {
   border-color: var(--green);
-  box-shadow: 0 0 0 2px var(--green-glow);
 }
 
 .drawer-search::placeholder {
@@ -78,10 +75,10 @@
 
 .drawer-title {
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px; /* TODO: token */
   flex: 1;
 }
 
@@ -93,7 +90,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r);
   color: var(--t3);
   cursor: pointer;
   transition: color var(--transition-fast), background var(--transition-fast);
@@ -116,19 +113,19 @@
 
 .drawer-loading {
   min-height: 160px;
-  padding: 24px;
+  padding: var(--space-xl);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-sm);
   text-align: center;
   color: var(--t3);
 }
 
 .drawer-loading-title {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -136,19 +133,34 @@
   font-size: var(--fs-11);
 }
 
-/* Tool Grid */
+/* Tool Grid — fixed 5-per-row. Cards own their hairline (border + -1px overlap)
+   so the borders fuse, and short rows leave genuinely transparent empty cells
+   (no grid background bleeding grey into the gaps). */
 .drawer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
-  justify-content: start;
-  gap: 10px;
-  padding: var(--drawer-space-block) var(--drawer-space-inline) var(--drawer-space-inline);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin: var(--drawer-space-block) var(--drawer-space-inline) var(--drawer-space-inline);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+@media (max-width: 1080px) {
+  .drawer-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 860px) {
+  .drawer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .drawer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .drawer-grid-categorized {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .drawer-category-section {
@@ -157,48 +169,41 @@
 }
 
 .drawer-category-section .drawer-grid {
-  padding: 8px var(--drawer-space-inline) var(--drawer-space-block);
+  margin: var(--space-sm) var(--drawer-space-inline) var(--drawer-space-block);
 }
 
 .drawer-category-header {
   font-size: var(--fs-10);
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.6px; /* TODO: token */
   color: var(--t4);
   padding: var(--drawer-space-block) var(--drawer-space-inline) 0;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .drawer-tool-card {
-  min-height: 96px;
+  position: relative;
+  min-height: 124px;
+  margin: -1px 0 0 -1px; /* TODO: token */
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
   justify-items: start;
-  align-content: stretch;
-  gap: 7px 11px;
-  padding: 12px;
-  background: color-mix(in srgb, var(--card-bg) 88%, var(--surface-sunken) 12%);
-  border: 1px solid var(--card-border);
-  border-radius: var(--drawer-card-radius);
+  align-content: start;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-lg) var(--space-lg);
+  background: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: 0;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-normal), transform var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
   text-align: left;
-  box-shadow:
-    0 8px 18px rgba(0, 0, 0, 0.10),
-    0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 .drawer-tool-card:hover {
-  background: color-mix(in srgb, var(--card-bg-hover) 94%, var(--tool-color, var(--green)) 6%);
-  border-color: color-mix(in srgb, var(--tool-color, var(--green)) 45%, var(--border) 55%);
-  box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.18),
-    0 0 0 1px color-mix(in srgb, var(--tool-color, var(--green)) 12%, transparent) inset;
-}
-
-.drawer-tool-card:active {
-  transform: scale(0.97);
+  background: var(--s3);
+  border-color: var(--line-2);
+  z-index: 1;
 }
 
 .drawer-tool-card--disabled {
@@ -209,54 +214,55 @@
 
 .drawer-tool-soon {
   font-size: var(--fs-8);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  letter-spacing: 0.5px; /* TODO: token */
+  margin-top: var(--space-xs);
 }
 
 .drawer-tool-icon {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--tool-color, var(--t2));
-  background: color-mix(in srgb, var(--tool-color, var(--green)) 11%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tool-color, var(--green)) 28%, transparent);
-  grid-row: 1 / 3;
-  border-radius: var(--radius-md);
-  opacity: 0.86;
-  transition: opacity var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  background: color-mix(in srgb, var(--tool-color, var(--t2)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tool-color, var(--t2)) 32%, var(--line));
+  grid-column: 1;
+  grid-row: 1 / 4;
+  border-radius: var(--r);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .drawer-tool-icon svg {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 .drawer-tool-card:hover .drawer-tool-icon {
-  opacity: 1;
-  background: color-mix(in srgb, var(--tool-color, var(--green)) 16%, transparent);
-  border-color: color-mix(in srgb, var(--tool-color, var(--green)) 48%, transparent);
+  background: color-mix(in srgb, var(--tool-color, var(--t2)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--tool-color, var(--t2)) 48%, transparent);
 }
 
 .drawer-tool-name {
+  grid-column: 2;
   max-width: 100%;
   min-height: 0;
   display: block;
-  font-size: var(--fs-12);
-  font-weight: 600;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .drawer-tool-desc {
+  grid-column: 2;
   max-width: 100%;
-  font-size: var(--fs-10);
+  font-size: var(--fs-11);
   color: color-mix(in srgb, var(--t3) 86%, var(--t2) 14%);
   line-height: 1.45;
   text-align: left;
@@ -273,22 +279,22 @@
 
 .drawer-tool-card--drop-target {
   border-color: var(--tool-color, var(--green)) !important;
-  box-shadow: 0 0 0 1px var(--tool-color, var(--green)), 0 0 12px var(--tool-glow, var(--green-glow));
+  box-shadow: 0 0 0 1px var(--tool-color, var(--green));
 }
 
 .drawer-hint {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 8px;
+  padding: var(--space-sm);
   font-size: var(--fs-10);
   color: var(--t4);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.3px; /* TODO: token */
 }
 
 .drawer-empty {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 24px var(--drawer-space-inline);
+  padding: var(--space-xl) var(--drawer-space-inline);
   font-size: var(--fs-11);
   color: var(--t3);
 }

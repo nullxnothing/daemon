@@ -1,172 +1,86 @@
 .daemon-ai-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
   height: 100%;
   min-height: 0;
-  padding: 18px;
+  padding: var(--space-xl);
   color: var(--text-primary);
 }
 
-.daemon-ai-ghost-btn,
-.daemon-ai-composer button {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+.daemon-ai-ghost-btn {
+  border: 1px solid var(--line-2);
+  background: var(--s2);
   color: var(--text-primary);
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-radius: var(--r);
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
 }
 
-.daemon-ai-composer button {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--on-accent-dark);
-  font-weight: 700;
+.daemon-ai-ghost-btn:hover {
+  border-color: var(--line-strong);
+  background: var(--s3);
 }
 
-.daemon-ai-ghost-btn:disabled,
-.daemon-ai-composer button:disabled {
+.daemon-ai-ghost-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.daemon-ai-status-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.daemon-ai-stat {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.035);
-  border-radius: var(--radius-lg);
-  padding: 10px;
-}
-
-.daemon-ai-stat span {
-  display: block;
-  color: var(--text-muted);
-  font-size: var(--fs-11);
-}
-
-.daemon-ai-stat strong {
-  display: block;
-  margin-top: 4px;
-  font-size: var(--fs-13);
-  overflow-wrap: anywhere;
 }
 
 .daemon-ai-controls {
   display: grid;
   grid-template-columns: auto minmax(130px, 1fr);
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
-.daemon-ai-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.daemon-ai-tabs button,
 .daemon-ai-primary-btn {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
-  border-radius: 6px;
-  padding: 8px 10px;
+  border: 1px solid var(--accent-line);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
+  border-radius: var(--r);
+  padding: var(--space-sm) var(--space-md);
   cursor: pointer;
   font: inherit;
   font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
 }
 
-.daemon-ai-tabs button.active {
-  border-color: var(--tab-active-border);
-  background: var(--tab-active-bg);
-  color: var(--tab-active-color);
-}
-
-.daemon-ai-primary-btn {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--on-accent-dark);
-  font-weight: 700;
-}
-
-.daemon-ai-primary-btn:disabled,
-.daemon-ai-tabs button:disabled {
+.daemon-ai-primary-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.daemon-ai-segment {
-  display: inline-flex;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
-  overflow: hidden;
-}
-
-.daemon-ai-segment button {
-  border: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary);
-  padding: 8px 10px;
-  cursor: pointer;
-}
-
-.daemon-ai-segment button:last-child {
-  border-right: 0;
-}
-
-.daemon-ai-segment button.active {
-  background: rgba(62, 207, 142, 0.16);
-  color: var(--green);
-}
-
 .daemon-ai-select {
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 10, 10, 0.85);
+  border: 1px solid var(--line-2);
+  background: var(--field-bg);
   color: var(--text-primary);
-  border-radius: 7px;
-  padding: 8px 10px;
+  border-radius: var(--r);
+  padding: var(--space-sm) var(--space-md);
 }
 
 .daemon-ai-gate,
 .daemon-ai-error {
-  border: 1px solid rgba(246, 199, 104, 0.35);
-  background: rgba(246, 199, 104, 0.08);
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
   color: color-mix(in srgb, var(--amber) 72%, var(--t1));
-  border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  border-radius: var(--r);
+  padding: var(--space-md) var(--space-md);
   font-size: var(--fs-12);
   line-height: 1.45;
 }
 
 .daemon-ai-error {
-  border-color: rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.08);
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
   color: color-mix(in srgb, var(--red) 36%, var(--t1));
 }
 
 .daemon-ai-context {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.daemon-ai-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
-  padding: 6px 9px;
-  color: var(--text-secondary);
-  font-size: var(--fs-12);
+  gap: var(--space-sm);
 }
 
 .daemon-ai-chat {
@@ -175,8 +89,8 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-right: 4px;
+  gap: var(--space-md);
+  padding-right: var(--space-xs);
 }
 
 .daemon-ai-chat-mode,
@@ -185,7 +99,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 
@@ -194,24 +108,24 @@
 .daemon-ai-run-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md);
   min-height: 0;
 }
 
 .daemon-ai-card-list {
   overflow: auto;
-  padding-right: 4px;
+  padding-right: var(--space-xs);
 }
 
 .daemon-ai-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: var(--space-lg);
+  background: var(--field-bg);
 }
 
 .daemon-ai-card p {
-  margin: 8px 0;
+  margin: var(--space-sm) 0;
   color: var(--text-secondary);
   font-size: var(--fs-12);
   line-height: 1.45;
@@ -220,13 +134,14 @@
 }
 
 .daemon-ai-card-title {
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   text-transform: capitalize;
 }
 
 .daemon-ai-card-meta {
   color: var(--text-muted);
+  font-family: var(--mono);
   font-size: var(--fs-11);
 }
 
@@ -234,12 +149,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--r);
+  border: 1px solid var(--line);
   color: var(--text-muted);
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
 
@@ -247,8 +164,8 @@
 .daemon-ai-badge.completed,
 .daemon-ai-badge.applied {
   color: var(--green);
-  background: rgba(62, 207, 142, 0.08);
-  border-color: rgba(62, 207, 142, 0.2);
+  background: var(--accent-fill);
+  border-color: var(--accent-line);
 }
 
 .daemon-ai-badge.medium,
@@ -257,8 +174,8 @@
 .daemon-ai-badge.proposed,
 .daemon-ai-badge.accepted {
   color: var(--amber);
-  background: rgba(246, 199, 104, 0.08);
-  border-color: rgba(246, 199, 104, 0.24);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 24%, transparent);
 }
 
 .daemon-ai-badge.high,
@@ -266,84 +183,121 @@
 .daemon-ai-badge.failed,
 .daemon-ai-badge.rejected {
   color: var(--red);
-  background: rgba(248, 113, 113, 0.08);
-  border-color: rgba(248, 113, 113, 0.24);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border-color: color-mix(in srgb, var(--red) 24%, transparent);
 }
 
 .daemon-ai-tool-list,
 .daemon-ai-finding-list,
 .daemon-ai-receipt-grid {
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin: 8px 0;
+  margin: var(--space-sm) 0;
 }
 
-.daemon-ai-tool-list span,
 .daemon-ai-finding-list span,
 .daemon-ai-receipt-grid span {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.035);
-  padding: 4px 8px;
+  background: var(--s2);
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--mono);
   font-size: var(--fs-11);
+}
+
+.daemon-ai-receipt-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.daemon-ai-receipt-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  padding: var(--space-md);
+}
+
+.daemon-ai-receipt-section-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.daemon-ai-receipt-section-head strong {
+  color: var(--text-primary);
+  font-size: var(--fs-13);
+}
+
+.daemon-ai-receipt-section-head span {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+}
+
+.daemon-ai-meterflow-receipt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.daemon-ai-meterflow-receipt .daemon-ai-primary-btn {
+  align-self: flex-start;
 }
 
 .daemon-ai-run-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .daemon-ai-input,
-.daemon-ai-run-form textarea {
+.daemon-ai-run-form > textarea {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--line-2);
+  background: var(--field-bg);
   color: var(--text-primary);
-  border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  border-radius: var(--r);
+  padding: var(--space-md) var(--space-md);
   font: inherit;
   min-width: 0;
 }
 
-.daemon-ai-run-form textarea {
+.daemon-ai-input:focus-visible,
+.daemon-ai-run-form > textarea:focus-visible,
+.daemon-ai-select:focus-visible {
+  outline: none;
+  border-color: var(--accent-line);
+  box-shadow: var(--focus-ring);
+}
+
+.daemon-ai-run-form > textarea {
   resize: vertical;
 }
 
 .daemon-ai-json,
 .daemon-ai-diff {
+  margin: 0;
   max-height: 220px;
   overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--field-bg);
   color: var(--text-secondary);
-  padding: 10px;
-  font: 11px/1.45 var(--font-mono);
+  padding: var(--space-md);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  line-height: 1.45;
   white-space: pre-wrap;
 }
 
 .daemon-ai-diff {
   max-height: 320px;
-}
-
-.daemon-ai-empty,
-.daemon-ai-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-2xl) var(--space-lg);
-  border: 1px dashed color-mix(in srgb, var(--border) 90%, transparent);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--surface-raised) 40%, transparent);
-  color: var(--text-muted);
-  font-size: var(--fs-12);
-  line-height: 1.55;
-  text-align: center;
 }
 
 .daemon-ai-thinking {
@@ -353,27 +307,28 @@
   gap: var(--space-sm);
   color: var(--text-muted);
   font-size: var(--fs-12);
-  border: 1px dashed color-mix(in srgb, var(--border) 90%, transparent);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  border-radius: 0;
   padding: var(--space-lg);
 }
 
 .daemon-ai-message {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-lg);
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: var(--space-md);
+  background: var(--field-bg);
 }
 
 .daemon-ai-message.user {
-  border-color: rgba(62, 207, 142, 0.18);
+  border-color: var(--line-strong);
 }
 
 .daemon-ai-message-role {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-sm);
   color: var(--text-muted);
+  font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-bold);
+  font-weight: var(--fw-medium);
   line-height: var(--type-eyebrow-line);
   letter-spacing: var(--ls-eyebrow);
   text-transform: uppercase;
@@ -386,29 +341,31 @@
 }
 
 .daemon-ai-composer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: end;
+  margin: 0;
 }
 
-.daemon-ai-composer textarea {
+.daemon-ai-composer > textarea {
   resize: vertical;
   min-height: 72px;
   max-height: 180px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--line-2);
+  background: var(--field-bg);
   color: var(--text-primary);
-  border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  border-radius: var(--r);
+  padding: var(--space-md) var(--space-md);
   font: inherit;
 }
 
 @media (max-width: 820px) {
-  .daemon-ai-status-grid,
   .daemon-ai-controls,
-  .daemon-ai-run-grid,
-  .daemon-ai-composer {
+  .daemon-ai-run-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.daemon-ai-panel,
+.agent-pack-body {
+  flex: 1;
+  min-height: 0;
 }

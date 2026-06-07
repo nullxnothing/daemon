@@ -30,18 +30,27 @@ import { registerEngineHandlers } from '../ipc/engine'
 import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
 import { registerProofPoolHandlers } from '../ipc/proofPool'
-import { registerSpawnAgentsHandlers } from '../ipc/spawnagents'
-import { stopEventStream as stopSpawnAgentsEventStream } from '../services/SpawnAgentsService'
+import { registerClawpumpHandlers } from '../ipc/clawpump'
+import { registerDegenToolsHandlers } from '../ipc/degentools'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
 import { registerShiplineHandlers } from '../ipc/shipline'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
+import { registerSwarmHandlers } from '../ipc/swarm'
+import { registerMemoryHandlers } from '../ipc/memory'
+import { killAll as killAllSwarmLanes, } from '../services/SwarmOrchestrator'
+import { reconcileOnBoot as reconcileSwarmOnBoot } from '../services/WorktreeService'
 import { registerLaunchHandlers } from '../ipc/launch'
 import { registerDashboardHandlers } from '../ipc/dashboard'
 import { registerForensicsHandlers } from '../ipc/forensics'
 import { registerRegistryHandlers } from '../ipc/registry'
+import { registerSaidHandlers } from '../ipc/said'
+import { registerSynapseHandlers } from '../ipc/synapse'
+import { registerAllowanceHandlers } from '../ipc/allowances'
+import { registerSignalhouseHandlers } from '../ipc/signalhouse'
+import { registerFlywheelHandlers } from '../ipc/flywheel'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
 import { registerMeterflowHandlers } from '../ipc/meterflow'
@@ -56,10 +65,12 @@ import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
 import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
 import { registerVoightHandlers } from '../ipc/voight'
+import { registerPackHandlers, setPackDomainRegistrar } from '../ipc/packs'
+import { enabledIpcDomains, type IpcDomainId } from '../shared/packManifest'
 import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
 import { flushQueue as flushVoightQueue } from '../services/VoightService'
 import { clearLoadedWallets } from '../services/RecoveryService'
-import { maybeRecoverUnstableUiState, type UiRecoveryResult } from '../services/SettingsService'
+import { maybeRecoverUnstableUiState, getEnabledPacks, type UiRecoveryResult } from '../services/SettingsService'
 import { getKeyEncryptionWarning, getStorageBackend } from '../services/SecureKeyService'
 import { shutdownAllLspSessions } from '../services/LspService'
 import { isAllowedWebviewUrl, isSafeExternalUrl, openSafeExternalUrl } from '../security/externalNavigation'
@@ -169,6 +180,9 @@ if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
 
 let win: BrowserWindow | null = null
 let ipcRegistered = false
+// Pack-owned IPC domains already registered this session. Guards against double
+// ipcMain.handle (which throws) when a pack is enabled at runtime.
+const registeredPackDomains = new Set<IpcDomainId>()
 let startupUiRecovery: UiRecoveryResult | null = null
 let shutdownStarted = false
 let mainWindowShown = false
@@ -189,8 +203,8 @@ let pendingAgentOpsOpenRequest: AgentOpsOpenRequest | null = null
 
 function cleanupRuntimeState() {
   killAllSessions()
+  killAllSwarmLanes()
   shutdownAllLspSessions()
-  stopSpawnAgentsEventStream()
   clearLoadedWallets()
   closeDb()
 }
@@ -281,6 +295,46 @@ function registerDaemonProtocolClient() {
   }
 }
 
+// Registrar for each pack-owned IPC domain. Core domains are NOT here — they
+// register unconditionally in registerAllIpc(). Keys match IpcDomainId in
+// electron/shared/packManifest.ts.
+const PACK_DOMAIN_REGISTRARS: Record<IpcDomainId, () => void> = {
+  wallet: registerWalletHandlers,
+  pnl: registerPnlHandlers,
+  vault: registerVaultHandlers,
+  launch: registerLaunchHandlers,
+  pumpfun: registerPumpFunHandlers,
+  proofpool: registerProofPoolHandlers,
+  clawpump: registerClawpumpHandlers,
+  degentools: registerDegenToolsHandlers,
+  flywheel: registerFlywheelHandlers,
+  swarm: registerSwarmHandlers,
+  memory: registerMemoryHandlers,
+  deploy: registerDeployHandlers,
+  shipline: registerShiplineHandlers,
+  signalhouse: registerSignalhouseHandlers,
+  meterflow: registerMeterflowHandlers,
+  idle: registerIdleHandlers,
+  colosseum: registerColosseumHandlers,
+  metaplex: registerMetaplexHandlers,
+  forensics: registerForensicsHandlers,
+  replay: registerReplayHandlers,
+  agentStation: registerAgentStationHandlers,
+  images: registerImageHandlers,
+  tweets: registerTweetHandlers,
+}
+
+// Register the IPC domains for every currently-enabled pack. Idempotent: a
+// domain registered once stays registered for the session (disabling a pack
+// flips renderer behaviour, not handler presence).
+function ensurePackDomainsRegistered(enabled: Record<string, boolean>): void {
+  for (const domain of enabledIpcDomains(enabled)) {
+    if (registeredPackDomains.has(domain)) continue
+    PACK_DOMAIN_REGISTRARS[domain]()
+    registeredPackDomains.add(domain)
+  }
+}
+
 function registerAllIpc() {
   if (ipcRegistered) return
   ipcRegistered = true
@@ -289,6 +343,7 @@ function registerAllIpc() {
   ProviderRegistry.register(ClaudeProvider)
   ProviderRegistry.register(CodexProvider)
 
+  // --- Core domains: always registered, never gated by capability packs ---
   registerTelemetryHandlers()
   registerTerminalHandlers()
   registerFilesystemHandlers()
@@ -303,41 +358,38 @@ function registerAllIpc() {
   registerProcessHandlers()
   registerEnvHandlers()
   registerPortHandlers()
-  registerWalletHandlers()
   registerProHandlers()
   registerDaemonAIHandlers()
   registerSettingsHandlers()
   registerPluginHandlers()
-  registerTweetHandlers()
+  registerPackHandlers()
   registerRecoveryHandlers()
   registerEngineHandlers()
   registerToolHandlers()
-  registerPumpFunHandlers()
-  registerProofPoolHandlers()
-  registerSpawnAgentsHandlers()
   registerBrowserHandlers()
-  registerDeployHandlers()
-  registerShiplineHandlers()
   registerEmailHandlers()
-  registerImageHandlers()
   registerAriaHandlers()
-  registerLaunchHandlers()
   registerDashboardHandlers()
-  registerForensicsHandlers()
   registerRegistryHandlers()
-  registerColosseumHandlers()
-  registerIdleHandlers()
-  registerMeterflowHandlers()
-  registerMetaplexHandlers()
-  registerVaultHandlers()
+  registerSaidHandlers()
+  registerSynapseHandlers()
+  registerAllowanceHandlers()
   registerValidatorHandlers()
   registerSeekerHandlers()
-  registerPnlHandlers()
   registerFeedbackHandlers()
-  registerAgentStationHandlers()
-  registerReplayHandlers()
   registerLspHandlers()
   registerVoightHandlers()
+
+  // --- Pack-owned domains: registered only when their capability pack is on ---
+  const enabled = getEnabledPacks()
+  setPackDomainRegistrar(ensurePackDomainsRegistered)
+  ensurePackDomainsRegistered(enabled)
+
+  // Swarm worktree cleanup is an Agent-pack boot side effect — skip the fs scan
+  // when the Agent pack is disabled.
+  if (enabled.agent !== false) {
+    void reconcileSwarmOnBoot().catch(() => {})
+  }
 
   // Window controls — raw channels (not wrapped by ipcHandler), so guard the
   // sender frame inline. Embedded/cross-origin frames must not drive the window.
@@ -469,8 +521,14 @@ async function createWindow() {
     minHeight: 600,
     show: false,
     paintWhenInitiallyHidden: true,
+    // Frameless on every platform: the in-app Titlebar draws window controls
+    // (custom on Win/Linux, hiddenInset traffic lights on mac). A native frame
+    // here would stack a second OS title bar on top of ours.
     frame: false,
-    ...(process.platform === 'darwin' ? { titleBarStyle: 'hidden' as const } : {}),
+    ...(process.platform === 'darwin' ? {
+      titleBarStyle: 'hiddenInset' as const,
+      trafficLightPosition: { x: 14, y: 13 },
+    } : {}),
     ...(process.platform === 'win32' ? { roundedCorners: false } : {}),
     backgroundColor: '#0a0a0a',
     icon: path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'),
@@ -611,7 +669,7 @@ async function createWindow() {
 app.whenReady().then(() => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
   registerDaemonProtocolClient()
-  if (process.platform === 'darwin' && app.dock) {
+  if (process.platform === 'darwin' && app.dock && !app.isPackaged) {
     try {
       app.dock.setIcon(path.join(process.env.VITE_PUBLIC, 'daemon-icon.png'))
     } catch (err) {

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNotificationsStore } from '../../store/notifications'
+import { Badge } from '../../components/Panel'
 import basedbidLogo from '../../assets/basedbid-logo.svg'
+import '../_solana/solanaSurface.css'
 
 const EMPTY_SETTINGS: TokenLaunchSettings = {
   raydium: {
@@ -70,6 +72,14 @@ function normalizeSettings(value: Partial<TokenLaunchSettings> | null | undefine
   }
 }
 
+function getPrintrKeyHint(settings: TokenLaunchSettings['printr']): string {
+  if (!settings.apiKeyConfigured) return 'Required unless `PRINTR_API_KEY` already exists in env.'
+  if (settings.apiKeySource === 'env') return 'Using `PRINTR_API_KEY` from env. Store a replacement here only when you want DAEMON to use the keyring value.'
+  return settings.apiKeyHint
+    ? `Stored in OS keyring (${settings.apiKeyHint}). Leave blank to keep it, enter a new key to replace it.`
+    : 'Stored in OS keyring. Leave blank to keep it, enter a new key to replace it.'
+}
+
 function toMap(definitions: LaunchpadDefinition[]): LaunchpadMap {
   return definitions.reduce((acc, definition) => {
     acc[definition.id] = definition
@@ -80,9 +90,9 @@ function toMap(definitions: LaunchpadDefinition[]): LaunchpadMap {
 function LaunchpadStatusBadge({ definition }: { definition?: LaunchpadDefinition }) {
   if (!definition) return null
   return (
-    <span className={`solana-launchpad-badge ${definition.enabled ? 'enabled' : 'planned'}`}>
+    <Badge tone={definition.enabled ? 'success' : 'warning'}>
       {definition.enabled ? 'Live' : 'Planned'}
-    </span>
+    </Badge>
   )
 }
 
@@ -135,11 +145,18 @@ export function LaunchpadSettingsSection({
     try {
       const res = await window.daemon.settings.setTokenLaunchSettings(draft)
       if (!res.ok) throw new Error(res.error || 'Failed to save token launch settings')
-      const launchpadsRes = await window.daemon.launch.listLaunchpads()
+      const [settingsRes, launchpadsRes] = await Promise.all([
+        window.daemon.settings.getTokenLaunchSettings(),
+        window.daemon.launch.listLaunchpads(),
+      ])
+      if (settingsRes.ok && settingsRes.data) {
+        const nextSettings = normalizeSettings(settingsRes.data)
+        setDraft(nextSettings)
+        setSaved(nextSettings)
+      }
       if (launchpadsRes.ok && launchpadsRes.data) {
         setDefinitions(toMap(launchpadsRes.data))
       }
-      setSaved(draft)
       pushSuccess('Launchpad settings saved', 'Token Launch')
       onSettingsSaved?.()
     } catch (error) {
@@ -160,9 +177,9 @@ export function LaunchpadSettingsSection({
               Store protocol config once, keep env fallback in place, and let the unified Token Launch tool resolve readiness from DAEMON state.
             </p>
           </div>
-          <div className="solana-token-launch-actions">
+          <div className="sol-actions">
             <button type="button" className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-            <button type="button" className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+            <button type="button" className="sol-btn sol-btn--primary" onClick={handleSave} disabled={loading || saving || !isDirty}>
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
@@ -177,9 +194,9 @@ export function LaunchpadSettingsSection({
               Save the protocol config once here and the launch flow will pick it up automatically.
             </div>
           </div>
-          <div className="solana-token-launch-actions">
+          <div className="sol-actions">
             <button type="button" className="sol-btn" onClick={() => { void load() }} disabled={loading || saving}>Reload</button>
-            <button type="button" className="sol-btn green" onClick={handleSave} disabled={loading || saving || !isDirty}>
+            <button type="button" className="sol-btn sol-btn--primary" onClick={handleSave} disabled={loading || saving || !isDirty}>
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
@@ -285,12 +302,44 @@ export function LaunchpadSettingsSection({
             <label className="solana-launchpad-field">
               <span className="solana-launchpad-label">API Key</span>
               <input
+                type="password"
+                autoComplete="off"
                 className="solana-launchpad-input"
                 value={draft.printr.apiKey}
-                onChange={(e) => setDraft((prev) => ({ ...prev, printr: { ...prev.printr, apiKey: e.target.value } }))}
-                placeholder="Partner API key"
+                onChange={(e) => {
+                  const apiKey = e.target.value
+                  setDraft((prev) => ({
+                    ...prev,
+                    printr: {
+                      ...prev.printr,
+                      apiKey,
+                      apiKeyAction: apiKey.trim() ? 'replace' : undefined,
+                    },
+                  }))
+                }}
+                placeholder={draft.printr.apiKeyConfigured ? 'Stored - enter replacement' : 'Partner API key'}
               />
-              <span className="solana-launchpad-field-hint">Required unless `PRINTR_API_KEY` already exists in env.</span>
+              <span className="solana-launchpad-field-hint">{getPrintrKeyHint(draft.printr)}</span>
+              {draft.printr.apiKeySource === 'secure' && (
+                <button
+                  type="button"
+                  className="sol-btn"
+                  disabled={saving}
+                  onClick={() => setDraft((prev) => ({
+                    ...prev,
+                    printr: {
+                      ...prev.printr,
+                      apiKey: '',
+                      apiKeyConfigured: false,
+                      apiKeyHint: '',
+                      apiKeySource: 'none',
+                      apiKeyAction: 'clear',
+                    },
+                  }))}
+                >
+                  Clear stored key
+                </button>
+              )}
             </label>
             <label className="solana-launchpad-field">
               <span className="solana-launchpad-label">Quote Path</span>

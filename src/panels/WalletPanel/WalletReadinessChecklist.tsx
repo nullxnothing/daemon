@@ -45,13 +45,13 @@ export function WalletReadinessChecklist({
 
       <div className="wallet-readiness-grid">
         {summaryItems.map((item) => (
-          <Card key={item.key} className="wallet-readiness-item">
+          <div key={item.key} className="wallet-readiness-item">
             <StatusDot tone={item.ready ? 'success' : 'neutral'} label={`${item.label}: ${item.ready ? 'ready' : 'needs setup'}`} />
             <div>
               <strong>{item.label}</strong>
               <p>{item.detail}</p>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>

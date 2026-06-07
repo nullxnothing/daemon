@@ -4,6 +4,35 @@ All notable changes to DAEMON are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows semantic-ish desktop release versioning.
 
+## [4.2.0] - 2026-06-05
+
+### Added
+- **Operator console** — the right-panel AI (ARIA) is now a full daemon operator. It drives
+  DAEMON from natural language via a registry-driven tool catalog (`electron/services/aria/tools/`)
+  spanning navigation, settings, wallet, Clawpump, AgentStation, token launches, Flywheel, and git.
+  Sensitive on-chain actions require typed confirmation and carry a `[MAINNET]` guard; the operator
+  never pushes to git autonomously.
+- **Per-project chat sessions** in the console — new chat (non-destructive), switch, rename, archive,
+  delete, with auto-titling and memory that rehydrates from the DB on restart (`aria_sessions`,
+  schema V47). Replaces the old single-thread console.
+- **Parallel agent swarms** — launch N tasks in parallel, each in its own isolated git worktree +
+  branch driven by a headless Claude agent (`WorktreeService` + `SwarmOrchestrator`, schema V48;
+  `swarm_runs`/`swarm_lanes`). Concurrency-capped, auto-cleaned worktrees, per-lane `RESULTS.md`,
+  and a Swarms tab in the workbench. Lanes never push — merging stays a manual step.
+- Git worktree IPC (`git:worktree-add|list|remove|prune`) and swarm IPC (`swarm:*`).
+- Composer `+` opens a context picker menu (toggle active file / project tree / git diff / terminal
+  logs / wallet) instead of cycling chips.
+
+### Changed
+- Broader UX/design-system polish pass across panels (settings, wallet, integrations, launches,
+  AgentStation, and more) and the in-flight Synapse SAP integration.
+- Right panel min-width raised so the operator console header/sessions never clip.
+- Schema advanced to V49 (`projects.pinned`/`branch`).
+
+### Docs
+- Documented the operator console, sessions, and swarms in the README, agent-context files
+  (`CLAUDE.md`/`AGENTS.md`), and the landing docs (new `operator-console.md`).
+
 ## [4.1.2] - 2026-06-01
 
 ### Fixed

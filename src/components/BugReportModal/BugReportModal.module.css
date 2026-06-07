@@ -1,42 +1,42 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
+  background: var(--scrim-bg);
+  backdrop-filter: var(--glass-blur-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  animation: fadeIn 120ms ease-out;
+  animation: fadeIn var(--dur-instant) var(--ease-standard);
 }
 
 .modal {
   width: min(560px, 92vw);
   max-height: 85vh;
-  background: var(--s1);
-  border: 1px solid var(--s4);
-  border-radius: var(--radius-lg);
+  background: var(--s2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  animation: slideUp 160ms ease-out;
+  box-shadow: var(--shadow-modal);
+  animation: slideUp var(--dur-base) var(--ease-out-quint);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--s3);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--line);
 }
 
 .title {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   margin: 0;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.2px; /* TODO: token */
 }
 
 .closeBtn {
@@ -44,12 +44,12 @@
   border: none;
   color: var(--t3);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: var(--space-xs);
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 120ms, background 120ms;
+  transition: color var(--duration-fast), background var(--duration-fast);
 }
 
 .closeBtn:hover {
@@ -58,37 +58,37 @@
 }
 
 .body {
-  padding: 18px 16px 16px;
+  padding: var(--space-lg) var(--space-lg) var(--space-lg);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .labelText {
   font-size: var(--fs-11);
   color: var(--t2);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px; /* TODO: token */
 }
 
 .input,
 .textarea {
   background: var(--bg);
-  border: 1px solid var(--s4);
-  border-radius: 4px;
-  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  padding: var(--space-sm) var(--space-sm);
   color: var(--t1);
   font-size: var(--fs-13);
   font-family: inherit;
   outline: none;
-  transition: border-color 120ms;
+  transition: border-color var(--duration-fast);
 }
 
 .input:focus,
@@ -118,28 +118,28 @@
   font-size: var(--fs-12);
   color: var(--red);
   margin: 0;
-  padding: 8px 10px;
-  background: rgba(239, 83, 80, 0.08);
-  border: 1px solid rgba(239, 83, 80, 0.25);
-  border-radius: 4px;
+  padding: var(--space-sm) var(--space-sm);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
+  border-radius: var(--r);
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
 }
 
 .primaryBtn,
 .secondaryBtn {
-  padding: 7px 14px;
-  border-radius: 4px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--r);
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 120ms;
+  transition: all var(--duration-fast);
 }
 
 .primaryBtn {
@@ -159,12 +159,12 @@
 .secondaryBtn {
   background: transparent;
   color: var(--t2);
-  border-color: var(--s4);
+  border-color: var(--line-2);
 }
 
 .secondaryBtn:hover:not(:disabled) {
   color: var(--t1);
-  border-color: var(--s5);
+  border-color: var(--line-strong);
 }
 
 .successBlock {
@@ -172,14 +172,14 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 14px;
-  padding: 12px 0;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
 }
 
 .successDot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--green);
   box-shadow: 0 0 12px var(--green);
 }

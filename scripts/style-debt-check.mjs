@@ -6,11 +6,12 @@ const TARGETS = ['src/panels', 'src/components']
 // Ratchet only — lower these as debt is paid down, never raise. Set to the current
 // actuals so any new literal fails CI and pushes contributors to tokens/primitives.
 const BASELINE = {
-  literalFontSize: 29,
-  literalRadius: 231,
-  hexColors: 128,
-  inlineShadow: 62,
-  handRolledHeaders: 4,
+  literalFontSize: 11,
+  literalRadius: 32,
+  hexColors: 68,
+  inlineShadow: 10,
+  literalSpacing: 201,
+  handRolledHeaders: 3,
 }
 
 const RULES = [
@@ -18,6 +19,9 @@ const RULES = [
   ['literalRadius', /border-radius:\s*[0-9]+px/g],
   ['hexColors', /#[0-9a-fA-F]{3,8}/g],
   ['inlineShadow', /box-shadow:\s*0/g],
+  // Hardcoded spacing: padding/margin/gap (and longhands) containing a px literal.
+  // Use --space-* scale tokens instead. Ratchet down as panels migrate.
+  ['literalSpacing', /(?:padding|margin|gap)(?:-(?:top|right|bottom|left|inline|block)(?:-start|-end)?)?:\s*[^;]*\b[0-9]+px/g],
 ]
 
 const INCLUDE = new Set(['.css', '.tsx'])

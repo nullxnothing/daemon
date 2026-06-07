@@ -21,6 +21,8 @@ interface SwapQuote {
   inAmount: string
   outAmount: string
   requestId: string
+  quoteId: string
+  messageHash: string
   priceImpactPct: string
   routePlan: Array<{ label: string; percent: number }>
   // Raw Jupiter quoteResponse, passed back to execute so the backend uses the
@@ -361,6 +363,8 @@ export function WalletSwapForm({ walletId, walletName, holdings, executionMode, 
       amount: parseFloat(amount),
       slippageBps: parseSlippageBps(slippageBps) ?? 0,
       priceImpactPct: pendingSwap.quote.priceImpactPct,
+      quoteId: pendingSwap.quote.quoteId,
+      messageHash: pendingSwap.quote.messageHash,
     }).then((res) => {
       if (cancelled) return
       if (!res.ok || !res.data) {

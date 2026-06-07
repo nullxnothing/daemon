@@ -24,6 +24,7 @@
     }
   ],
   "mac": {
+    "icon": "build/icon.icns",
     "target": ["dmg", "zip"],
     "category": "public.app-category.developer-tools",
     "artifactName": "${productName}-${arch}.${ext}",

@@ -1,8 +1,8 @@
 .codex-loading {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px var(--space-md);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-11);
   color: var(--t4);
   line-height: 1.4;
@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 10px var(--space-md);
+  padding: var(--space-md) var(--space-md);
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-12);
   color: var(--t2);
@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: 6px 0;
+  padding: var(--space-sm) 0;
 }
 
 .codex-mcp-name {
@@ -97,7 +97,7 @@
 }
 
 .codex-mcp-desc {
-  padding: 6px var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-11);
   color: var(--t4);
   line-height: 1.4;
@@ -108,8 +108,8 @@
 }
 
 .codex-statusbar {
-  margin: 6px var(--space-md) var(--space-sm);
-  padding: 5px var(--space-sm);
+  margin: var(--space-sm) var(--space-md) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--fs-11);
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -138,7 +138,7 @@
 
 .codex-agents-editor {
   width: 100%;
-  background: var(--s1);
+  background: var(--field-bg);
   color: var(--t1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -146,22 +146,22 @@
   font-family: var(--mono);
   font-size: var(--fs-11);
   resize: vertical;
-  margin: 6px 0;
+  margin: var(--space-sm) 0;
 }
 
 .codex-agents-editor:focus {
   outline: none;
-  border-color: var(--s5);
+  border-color: var(--accent-line);
 }
 
 .codex-agents-preview {
   font-size: var(--fs-11);
   color: var(--t2);
   white-space: pre-wrap;
-  margin: 6px 0;
+  margin: var(--space-sm) 0;
   max-height: 220px;
   overflow: auto;
-  background: var(--s1);
+  background: var(--field-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-sm);
@@ -202,18 +202,18 @@
 }
 
 .codex-panel .claude-section {
-  padding: 10px var(--drawer-space-inline-tight);
+  padding: var(--space-md) var(--drawer-space-inline-tight);
 }
 
 .codex-status-row,
 .codex-restart-row {
-  padding: 9px var(--drawer-space-inline-tight);
+  padding: var(--space-md) var(--drawer-space-inline-tight);
   border-bottom: none;
 }
 
 .codex-info-row {
   margin: 0;
-  padding: 7px var(--drawer-space-inline-tight);
+  padding: var(--space-sm) var(--drawer-space-inline-tight);
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
   background: var(--s2);
@@ -225,7 +225,7 @@
 
 .codex-actions-row {
   margin: 0 0 var(--drawer-rail-card-gap);
-  padding: 8px var(--drawer-space-inline-tight) 10px;
+  padding: var(--space-sm) var(--drawer-space-inline-tight) var(--space-md);
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--drawer-control-radius) var(--drawer-control-radius);
@@ -234,7 +234,7 @@
 
 .codex-mcp-item {
   min-height: 34px;
-  padding: 6px 0;
+  padding: var(--space-sm) 0;
 }
 
 .codex-mcp-item + .codex-mcp-item {
@@ -248,7 +248,7 @@
 }
 
 .codex-statusbar {
-  padding: 7px 9px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--drawer-control-radius);
 }
 
@@ -256,5 +256,5 @@
 .codex-agents-preview {
   border-radius: var(--drawer-control-radius);
   border-color: var(--border);
-  background: var(--s1);
+  background: var(--field-bg);
 }

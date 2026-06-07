@@ -82,7 +82,7 @@
   color: var(--t2);
   background: var(--s2);
   border-radius: var(--radius-md);
-  transition: background 0.1s;
+  transition: background var(--duration-fast);
 }
 
 .restart-btn:hover {
@@ -99,7 +99,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: var(--space-sm) 0;
 }
 
 .mcp-info {
@@ -124,7 +124,7 @@
 .mcp-badge {
   font-size: var(--fs-9);
   color: var(--t3);
-  margin-left: 6px;
+  margin-left: var(--space-sm);
   padding: 0 var(--space-xs);
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: var(--radius-sm);
@@ -140,7 +140,7 @@
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s;
+  transition: background var(--duration-fast);
 }
 
 .toggle-switch.on {
@@ -156,7 +156,7 @@
   height: 12px;
   background: var(--t1);
   border-radius: var(--radius-pill);
-  transition: transform 0.15s;
+  transition: transform var(--duration-fast);
 }
 
 .toggle-switch.on::after {
@@ -171,7 +171,7 @@
   color: var(--t3);
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
-  margin-top: 6px;
+  margin-top: var(--space-sm);
 }
 
 .mcp-add-btn:hover {
@@ -187,7 +187,7 @@
 }
 
 .usage-stat {
-  padding: 6px var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
   background: color-mix(in srgb, var(--surface-raised) 74%, transparent);
   border-radius: var(--radius-md);
 }
@@ -208,15 +208,15 @@
 .usage-period {
   font-size: var(--fs-10);
   color: var(--t3);
-  margin-top: 6px;
+  margin-top: var(--space-sm);
 }
 
 .usage-model-row {
   display: flex;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: 3px 0;
-  margin-top: 4px;
+  padding: var(--space-xs) 0;
+  margin-top: var(--space-xs);
 }
 
 .usage-model-name {
@@ -381,13 +381,12 @@
 .claude-section {
   margin: 0 0 var(--drawer-rail-card-gap);
   border: 1px solid var(--border);
-  border-radius: var(--drawer-control-radius);
+  border-radius: var(--radius-card);
   background: var(--s2);
-  box-shadow: none;
 }
 
 .status-badge {
-  padding: 9px var(--drawer-space-inline-tight);
+  padding: var(--space-md) var(--drawer-space-inline-tight);
   gap: var(--space-sm);
 }
 
@@ -397,7 +396,7 @@
 }
 
 .claude-section {
-  padding: 9px var(--drawer-space-inline-tight);
+  padding: var(--space-md) var(--drawer-space-inline-tight);
   border-bottom: none;
 }
 
@@ -425,7 +424,7 @@
 
 .mcp-row {
   min-height: 34px;
-  padding: 6px 0;
+  padding: var(--space-sm) 0;
   gap: var(--space-sm);
 }
 
@@ -445,11 +444,11 @@
 }
 
 .usage-grid {
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .usage-stat {
-  padding: 8px;
+  padding: var(--space-sm);
   border-radius: var(--drawer-control-radius);
   border-color: var(--border);
   background: var(--surface-sunken);

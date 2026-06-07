@@ -16,6 +16,12 @@ import {
 } from '@phosphor-icons/react'
 import { daemon } from '../../lib/daemonBridge'
 import { useUIStore } from '../../store/ui'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import {
+  METERFLOW_RECEIPT_EVENT,
+  METERFLOW_RECEIPT_HANDOFF_KEY,
+  consumeSurfaceHandoff,
+} from '../../lib/surfaceHandoffs'
 import './MeterflowPanel.css'
 
 type MeterflowTab = 'receipts' | 'meters' | 'budgets' | 'webhooks'
@@ -202,6 +208,9 @@ export function MeterflowPanel() {
     const gross = settled.reduce((sum, receipt) => sum + receiptAmount(receipt), 0)
     return { receipts, settled: settled.length, review: review.length, gross }
   }, [overview])
+  const emptyReceiptActionLabel = demoWallet
+    ? paymentRunning ? 'Paying' : 'Run x402 test'
+    : walletBusy ? 'Creating' : 'Create demo payer'
 
   const handleSaveKey = async () => {
     if (!apiKey.trim()) return
@@ -240,14 +249,14 @@ export function MeterflowPanel() {
     downloadCsv(res.data)
   }
 
-  const handleOpenReceipt = async (receipt: MeterflowReceipt) => {
+  const handleOpenReceiptById = useCallback(async (receiptId: string) => {
     setDetailLoading(true)
     setSelectedReceipt(null)
-    const detail = await daemon.meterflow.getReceipt(receipt.id)
+    const detail = await daemon.meterflow.getReceipt(receiptId)
     if (detail.ok && detail.data) {
       let graph = detail.data.graph
       if (!graph) {
-        const graphRes = await daemon.meterflow.getReceiptGraph(receipt.id)
+        const graphRes = await daemon.meterflow.getReceiptGraph(receiptId)
         graph = graphRes.ok && graphRes.data ? graphRes.data : null
       }
       setSelectedReceipt({ receipt: detail.data.receipt, graph })
@@ -255,7 +264,29 @@ export function MeterflowPanel() {
       setError(detail.error ?? 'Receipt detail failed')
     }
     setDetailLoading(false)
-  }
+  }, [])
+
+  const handleOpenReceipt = useCallback((receipt: MeterflowReceipt) => {
+    void handleOpenReceiptById(receipt.id)
+  }, [handleOpenReceiptById])
+
+  const applyReceiptHandoff = useCallback((detail: string | { id?: string; receiptId?: string } | null) => {
+    const receiptId = typeof detail === 'string' ? detail : detail?.receiptId ?? detail?.id
+    if (!receiptId?.trim()) return
+    setIsMinimized(false)
+    setActiveTab('receipts')
+    void handleOpenReceiptById(receiptId.trim())
+  }, [handleOpenReceiptById])
+
+  useEffect(() => {
+    applyReceiptHandoff(consumeSurfaceHandoff<string | { id?: string; receiptId?: string }>(METERFLOW_RECEIPT_HANDOFF_KEY))
+
+    const onOpenReceipt = (event: Event) => {
+      applyReceiptHandoff((event as CustomEvent<string | { id?: string; receiptId?: string }>).detail)
+    }
+    window.addEventListener(METERFLOW_RECEIPT_EVENT, onOpenReceipt)
+    return () => window.removeEventListener(METERFLOW_RECEIPT_EVENT, onOpenReceipt)
+  }, [applyReceiptHandoff])
 
   const handleCopy = async (value?: string | null, label = 'Value') => {
     if (!value) return
@@ -343,6 +374,22 @@ export function MeterflowPanel() {
         <em>{status?.tier ?? status?.keySource ?? 'secure'}</em>
       </div>
 
+      <ProductSurfaceStrip
+        surfaceId="meterflow"
+        stateLabel={status?.configured ? 'Connected' : 'Local ledger'}
+        setupLabel={demoWallet ? 'Demo payer ready' : 'Demo payer needed'}
+        tone={status?.configured ? 'success' : 'info'}
+        detail="Use Meterflow to prove paid agent calls with x402 receipts, budgets, and local audit trails."
+        primaryLabel={demoWallet ? 'Test paid call' : 'Create payer'}
+        onPrimary={() => {
+          if (demoWallet) {
+            void handlePaidTest()
+            return
+          }
+          void handleCreateDemoWallet()
+        }}
+      />
+
       {error && <div className="meterflow-error">{error}</div>}
       {status?.error && <div className="meterflow-error">{status.error}</div>}
       {overview?.errors.length ? <div className="meterflow-warning">{overview.errors.length} optional feed issue{overview.errors.length === 1 ? '' : 's'}</div> : null}
@@ -408,6 +455,9 @@ export function MeterflowPanel() {
             onCloseReceipt={() => setSelectedReceipt(null)}
             onCopy={handleCopy}
             onExport={handleExport}
+            emptyActionLabel={emptyReceiptActionLabel}
+            emptyActionDisabled={demoWallet ? paymentRunning : walletBusy}
+            onEmptyAction={demoWallet ? handlePaidTest : handleCreateDemoWallet}
           />
         )}
         {activeTab === 'meters' && (
@@ -440,12 +490,31 @@ function Metric({ label, value, tone = 'neutral' }: { label: string; value: stri
   )
 }
 
-function EmptyState({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
+function EmptyState({
+  icon,
+  title,
+  body,
+  actionLabel,
+  actionDisabled,
+  onAction,
+}: {
+  icon: ReactNode
+  title: string
+  body: string
+  actionLabel?: string
+  actionDisabled?: boolean
+  onAction?: () => void
+}) {
   return (
     <div className="meterflow-empty">
       <div>{icon}</div>
       <strong>{title}</strong>
       <span>{body}</span>
+      {actionLabel && onAction ? (
+        <button type="button" className="meterflow-button primary" onClick={onAction} disabled={actionDisabled}>
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -518,6 +587,9 @@ function ReceiptsView({
   onCloseReceipt,
   onCopy,
   onExport,
+  emptyActionLabel,
+  emptyActionDisabled,
+  onEmptyAction,
 }: {
   receipts: MeterflowReceipt[]
   selectedReceipt: MeterflowReceiptDetail | null
@@ -526,6 +598,9 @@ function ReceiptsView({
   onCloseReceipt: () => void
   onCopy: (value?: string | null, label?: string) => void
   onExport: () => void
+  emptyActionLabel: string
+  emptyActionDisabled: boolean
+  onEmptyAction: () => void
 }) {
   return (
     <section className="meterflow-section">
@@ -534,7 +609,7 @@ function ReceiptsView({
           <h3>Payment Ledger</h3>
           <span>{receipts.length.toLocaleString()} latest receipts</span>
         </div>
-        <button type="button" className="meterflow-button" onClick={onExport}>
+        <button type="button" className="meterflow-button" onClick={onExport} disabled={receipts.length === 0}>
           <DownloadSimple size={14} weight="bold" />
           CSV
         </button>
@@ -544,7 +619,10 @@ function ReceiptsView({
         <EmptyState
           icon={<Receipt size={24} weight="duotone" />}
           title="No receipts"
-          body="Live Meterflow receipts appear after metered requests settle."
+          body="Run the demo x402 payment to create the first local receipt, then verify it here."
+          actionLabel={emptyActionLabel}
+          actionDisabled={emptyActionDisabled}
+          onAction={onEmptyAction}
         />
       ) : (
         <div className="meterflow-receipt-feed">

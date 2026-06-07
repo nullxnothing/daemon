@@ -1,6 +1,8 @@
 import { ipcRenderer, contextBridge, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('daemon', {
+  platform: process.platform,
+
   // Electron 32+ removed File.path; webUtils.getPathForFile is the supported
   // way to resolve the absolute path of a dropped/selected File in the renderer.
   getPathForFile: (file: File): string => {
@@ -274,7 +276,7 @@ contextBridge.exposeInMainWorld('daemon', {
     push: (cwd: string) => ipcRenderer.invoke('git:push', cwd),
     log: (cwd: string, count?: number) => ipcRenderer.invoke('git:log', cwd, count),
     diff: (cwd: string, filePath?: string) => ipcRenderer.invoke('git:diff', cwd, filePath),
-    diffStaged: (cwd: string) => ipcRenderer.invoke('git:diff-staged', cwd),
+    diffStaged: (cwd: string, filePath?: string) => ipcRenderer.invoke('git:diff-staged', cwd, filePath),
     checkout: (cwd: string, branch: string) => ipcRenderer.invoke('git:checkout', cwd, branch),
     createBranch: (cwd: string, branchName: string) => ipcRenderer.invoke('git:create-branch', cwd, branchName),
     fetch: (cwd: string) => ipcRenderer.invoke('git:fetch', cwd),
@@ -284,6 +286,10 @@ contextBridge.exposeInMainWorld('daemon', {
     stashPop: (cwd: string) => ipcRenderer.invoke('git:stash-pop', cwd),
     stashList: (cwd: string) => ipcRenderer.invoke('git:stash-list', cwd),
     discard: (cwd: string, filePath: string) => ipcRenderer.invoke('git:discard', cwd, filePath),
+    worktreeAdd: (cwd: string, worktreePath: string, branch: string, base?: string) => ipcRenderer.invoke('git:worktree-add', cwd, worktreePath, branch, base),
+    worktreeList: (cwd: string) => ipcRenderer.invoke('git:worktree-list', cwd),
+    worktreeRemove: (cwd: string, worktreePath: string) => ipcRenderer.invoke('git:worktree-remove', cwd, worktreePath),
+    worktreePrune: (cwd: string) => ipcRenderer.invoke('git:worktree-prune', cwd),
   },
 
   ports: {
@@ -415,13 +421,15 @@ contextBridge.exposeInMainWorld('daemon', {
     setDrawerToolOrder: (order: string[]) => ipcRenderer.invoke('settings:set-drawer-tool-order', order),
     getWorkspaceProfile: () => ipcRenderer.invoke('settings:get-workspace-profile'),
     setWorkspaceProfile: (profile: object) => ipcRenderer.invoke('settings:set-workspace-profile', profile),
+    getEnabledPacks: () => ipcRenderer.invoke('settings:get-enabled-packs'),
+    setEnabledPacks: (packs: Record<string, boolean>) => ipcRenderer.invoke('settings:set-enabled-packs', packs),
     getTokenLaunchSettings: () => ipcRenderer.invoke('settings:get-token-launch-settings'),
     setTokenLaunchSettings: (settings: object) => ipcRenderer.invoke('settings:set-token-launch-settings', settings),
     getWalletInfrastructureSettings: () => ipcRenderer.invoke('settings:get-wallet-infrastructure-settings'),
     getSolanaRuntimeStatus: () => ipcRenderer.invoke('settings:get-solana-runtime-status'),
     setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
-    setLayout: (layout: { centerMode?: string; rightPanelTab?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
+    setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
     onCrashWarning: (callback: (count: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)
@@ -440,6 +448,11 @@ contextBridge.exposeInMainWorld('daemon', {
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('plugins:set-enabled', id, enabled),
     setConfig: (id: string, config: string) => ipcRenderer.invoke('plugins:set-config', id, config),
     reorder: (orderedIds: string[]) => ipcRenderer.invoke('plugins:reorder', orderedIds),
+  },
+
+  packs: {
+    getEnabled: () => ipcRenderer.invoke('packs:get-enabled'),
+    setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('packs:set-enabled', id, enabled),
   },
 
   browser: {
@@ -482,6 +495,14 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  synapse: {
+    status: (input?: object) => ipcRenderer.invoke('synapse:status', input),
+    getAgent: (wallet: string, input?: object) => ipcRenderer.invoke('synapse:get-agent', wallet, input),
+    discoverByCapability: (input: object) => ipcRenderer.invoke('synapse:discover-capability', input),
+    discoverByProtocol: (input: object) => ipcRenderer.invoke('synapse:discover-protocol', input),
+    registerAgent: (input: object) => ipcRenderer.invoke('synapse:register-agent', input),
+  },
+
   engine: {
     run: (action: { type: string; projectId?: string; payload?: Record<string, unknown> }) =>
       ipcRenderer.invoke('engine:run', action),
@@ -499,6 +520,7 @@ contextBridge.exposeInMainWorld('daemon', {
     create: (project: { name: string; path: string }) => ipcRenderer.invoke('projects:create', project),
     delete: (id: string) => ipcRenderer.invoke('projects:delete', id),
     openDialog: () => ipcRenderer.invoke('projects:openDialog'),
+    setPinned: (input: { id: string; pinned: boolean }) => ipcRenderer.invoke('projects:setPinned', input),
   },
 
   shell: {
@@ -542,36 +564,32 @@ contextBridge.exposeInMainWorld('daemon', {
     partnerPrefill: (sessionId: string) => ipcRenderer.invoke('proof:partner-prefill', sessionId),
   },
 
-  spawnAgents: {
-    list: (ownerPubkey: string) => ipcRenderer.invoke('spawnagents:list', ownerPubkey),
-    get: (agentId: string) => ipcRenderer.invoke('spawnagents:get', agentId),
-    trades: (agentId: string, limit?: number, offset?: number) => ipcRenderer.invoke('spawnagents:trades', agentId, limit, offset),
-    positions: (agentId: string) => ipcRenderer.invoke('spawnagents:positions', agentId),
-    publicProfile: (agentId: string) => ipcRenderer.invoke('spawnagents:public-profile', agentId),
-    publicPortfolio: (agentId: string) => ipcRenderer.invoke('spawnagents:public-portfolio', agentId),
-    events: (since: number, agentId?: string, limit?: number) => ipcRenderer.invoke('spawnagents:events', since, agentId, limit),
-    spawnStatus: (ref: string) => ipcRenderer.invoke('spawnagents:spawn-status', ref),
-    initiateSpawn: (input: import('../services/SpawnAgentsService').SpawnInput) => ipcRenderer.invoke('spawnagents:initiate-spawn', input),
-    initiateSpawnChild: (parentAgentId: string, walletId: string, input: import('../services/SpawnAgentsService').SpawnChildInput) => ipcRenderer.invoke('spawnagents:initiate-spawn-child', parentAgentId, walletId, input),
-    spawnAndFund: (walletId: string, input: import('../services/SpawnAgentsService').SpawnInput) => ipcRenderer.invoke('spawnagents:spawn-and-fund', walletId, input),
-    spawnChildAndFund: (parentAgentId: string, walletId: string, input: import('../services/SpawnAgentsService').SpawnChildInput) => ipcRenderer.invoke('spawnagents:spawn-child-and-fund', parentAgentId, walletId, input),
-    withdraw: (agentId: string, walletId: string, amountSol: number) => ipcRenderer.invoke('spawnagents:withdraw', agentId, walletId, amountSol),
-    kill: (agentId: string, walletId: string) => ipcRenderer.invoke('spawnagents:kill', agentId, walletId),
-    onEvent: (callback: (ev: import('../services/SpawnAgentsService').SpawnEvent) => void) => {
-      let disposed = false
-      const handler = (_e: unknown, ev: import('../services/SpawnAgentsService').SpawnEvent) => callback(ev)
-      ipcRenderer.on('spawnagents:event', handler)
-      void ipcRenderer.invoke('spawnagents:event-stream:start').then(() => {
-        if (disposed) void ipcRenderer.invoke('spawnagents:event-stream:stop')
-      }).catch(() => {
-        // Event streaming is best-effort; direct reads still work.
-      })
-      return () => {
-        disposed = true
-        ipcRenderer.off('spawnagents:event', handler)
-        void ipcRenderer.invoke('spawnagents:event-stream:stop').catch(() => {})
-      }
-    },
+  clawpump: {
+    isConfigured: () => ipcRenderer.invoke('clawpump:is-configured'),
+    storeKey: (key: string) => ipcRenderer.invoke('clawpump:store-key', key),
+    clearKey: () => ipcRenderer.invoke('clawpump:clear-key'),
+    skills: () => ipcRenderer.invoke('clawpump:skills'),
+    list: () => ipcRenderer.invoke('clawpump:list'),
+    get: (agentId: string) => ipcRenderer.invoke('clawpump:get', agentId),
+    messages: (agentId: string, limit?: number) => ipcRenderer.invoke('clawpump:messages', agentId, limit),
+    create: (input: import('../services/ClawpumpService').CreateAgentInput) => ipcRenderer.invoke('clawpump:create', input),
+    start: (agentId: string) => ipcRenderer.invoke('clawpump:start', agentId),
+    stop: (agentId: string) => ipcRenderer.invoke('clawpump:stop', agentId),
+    delete: (agentId: string) => ipcRenderer.invoke('clawpump:delete', agentId),
+    chat: (agentId: string, message: string) => ipcRenderer.invoke('clawpump:chat', agentId, message),
+  },
+
+  degentools: {
+    isConfigured: () => ipcRenderer.invoke('degentools:is-configured'),
+    storeKey: (key: string) => ipcRenderer.invoke('degentools:store-key', key),
+    clearKey: () => ipcRenderer.invoke('degentools:clear-key'),
+    initialize: () => ipcRenderer.invoke('degentools:initialize'),
+    tools: () => ipcRenderer.invoke('degentools:tools'),
+    callTool: (name: string, args: object) => ipcRenderer.invoke('degentools:call-tool', name, args),
+    generateMeme: (input: import('../services/DegenToolsService').GenerateMemeInput) => ipcRenderer.invoke('degentools:generate-meme', input),
+    generateShillCopy: (input: import('../services/DegenToolsService').GenerateShillCopyInput) => ipcRenderer.invoke('degentools:generate-shill-copy', input),
+    getTokenData: (input: import('../services/DegenToolsService').GetTokenDataInput) => ipcRenderer.invoke('degentools:get-token-data', input),
+    launchToken: (input: import('../services/DegenToolsService').LaunchTokenInput) => ipcRenderer.invoke('degentools:launch-token', input),
   },
 
   launch: {
@@ -588,9 +606,60 @@ contextBridge.exposeInMainWorld('daemon', {
   },
 
   aria: {
-    send: (sessionId: string, message: string) => ipcRenderer.invoke('aria:send', sessionId, message),
+    send: (sessionId: string, message: string, snapshot: unknown, modelLane?: string) => ipcRenderer.invoke('aria:send', sessionId, message, snapshot, modelLane),
     history: (sessionId: string, limit?: number) => ipcRenderer.invoke('aria:history', sessionId, limit),
     clear: (sessionId: string) => ipcRenderer.invoke('aria:clear', sessionId),
+    models: () => ipcRenderer.invoke('aria:models'),
+    sessions: {
+      list: (projectId?: string | null) => ipcRenderer.invoke('aria:sessions:list', projectId),
+      create: (projectId?: string | null, title?: string | null) => ipcRenderer.invoke('aria:sessions:create', projectId, title),
+      rename: (sessionId: string, title: string) => ipcRenderer.invoke('aria:sessions:rename', sessionId, title),
+      archive: (sessionId: string) => ipcRenderer.invoke('aria:sessions:archive', sessionId),
+      delete: (sessionId: string) => ipcRenderer.invoke('aria:sessions:delete', sessionId),
+    },
+    approve: (callId: string, approved: boolean) => ipcRenderer.send('aria:approve', callId, approved),
+    patchDecision: (proposalId: string, action: string) => ipcRenderer.send('aria:patch-decision', proposalId, action),
+    toolEffectResult: (callId: string, data: unknown) => ipcRenderer.send('aria:tool-effect-result', callId, data),
+    onToolEvent: (handler: (event: unknown) => void) => {
+      const listener = (_e: unknown, ev: unknown) => handler(ev)
+      ipcRenderer.on('aria:tool-event', listener)
+      return () => ipcRenderer.removeListener('aria:tool-event', listener)
+    },
+    onUiEffect: (handler: (payload: { callId: string; effect: unknown; awaitData: boolean }) => void) => {
+      const listener = (_e: unknown, payload: { callId: string; effect: unknown; awaitData: boolean }) => handler(payload)
+      ipcRenderer.on('aria:ui-effect', listener)
+      return () => ipcRenderer.removeListener('aria:ui-effect', listener)
+    },
+  },
+
+  swarm: {
+    launch: (req: unknown) => ipcRenderer.invoke('swarm:launch', req),
+    list: (limit?: number) => ipcRenderer.invoke('swarm:list', limit),
+    runDetail: (runId: string) => ipcRenderer.invoke('swarm:run-detail', runId),
+    cancel: (runId: string) => ipcRenderer.invoke('swarm:cancel', runId),
+    onUpdate: (handler: (payload: unknown) => void) => {
+      const laneListener = (_e: unknown, payload: unknown) => handler(payload)
+      const runListener = (_e: unknown, payload: unknown) => handler(payload)
+      ipcRenderer.on('swarm:lane-update', laneListener)
+      ipcRenderer.on('swarm:run-update', runListener)
+      return () => {
+        ipcRenderer.removeListener('swarm:lane-update', laneListener)
+        ipcRenderer.removeListener('swarm:run-update', runListener)
+      }
+    },
+  },
+
+  memory: {
+    list: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:list', projectId, opts),
+    suggest: (input: unknown) => ipcRenderer.invoke('memory:suggest', input),
+    approve: (id: string, approvedBy?: string) => ipcRenderer.invoke('memory:approve', id, approvedBy),
+    update: (id: string, patch: unknown) => ipcRenderer.invoke('memory:update', id, patch),
+    reject: (id: string) => ipcRenderer.invoke('memory:reject', id),
+    delete: (id: string) => ipcRenderer.invoke('memory:delete', id),
+    extract: (projectPath: string, projectId: string | null) => ipcRenderer.invoke('memory:extract', projectPath, projectId),
+    buildContextBundle: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:buildContextBundle', projectId, opts),
+    discoverChecks: (projectPath: string) => ipcRenderer.invoke('checks:discover', projectPath),
+    runCheck: (projectPath: string, check: unknown) => ipcRenderer.invoke('checks:run', projectPath, check),
   },
 
   dashboard: {
@@ -599,6 +668,38 @@ contextBridge.exposeInMainWorld('daemon', {
     tokenHolders: (mint: string) => ipcRenderer.invoke('dashboard:token-holders', mint),
     detectTokens: (walletAddress: string) => ipcRenderer.invoke('dashboard:detect-tokens', walletAddress),
     importToken: (mint: string, walletId: string) => ipcRenderer.invoke('dashboard:import-token', mint, walletId),
+  },
+
+  said: {
+    getIdentity: (wallet: string) => ipcRenderer.invoke('said:get-identity', wallet),
+    getTrust: (wallet: string) => ipcRenderer.invoke('said:get-trust', wallet),
+  },
+
+  allowances: {
+    getState: (wallet: string, mint: string) => ipcRenderer.invoke('allowances:get-state', wallet, mint),
+    getSubscription: (wallet: string, mint: string) => ipcRenderer.invoke('allowances:get-subscription', wallet, mint),
+  },
+
+  signalhouse: {
+    getHealth: () => ipcRenderer.invoke('signalhouse:health'),
+    getStatus: () => ipcRenderer.invoke('signalhouse:status'),
+    getLeaderboard: (opts?: unknown) => ipcRenderer.invoke('signalhouse:leaderboard', opts),
+    getStrategy: (id: string) => ipcRenderer.invoke('signalhouse:strategy', id),
+    getHistory: (id: string) => ipcRenderer.invoke('signalhouse:history', id),
+    getVerdicts: (limit?: number) => ipcRenderer.invoke('signalhouse:verdicts', limit),
+    getPositions: (limit?: number) => ipcRenderer.invoke('signalhouse:positions', limit),
+  },
+
+  flywheel: {
+    preview: (input: unknown) => ipcRenderer.invoke('flywheel:preview', input),
+    configure: (input: unknown) => ipcRenderer.invoke('flywheel:configure', input),
+    state: (configId: string) => ipcRenderer.invoke('flywheel:state', configId),
+    claim: (configId: string) => ipcRenderer.invoke('flywheel:claim', configId),
+    distribute: (configId: string, amountSol: number) => ipcRenderer.invoke('flywheel:distribute', configId, amountSol),
+    buyback: (configId: string, slippageBps?: number) => ipcRenderer.invoke('flywheel:buyback', configId, slippageBps),
+    run: (configId: string) => ipcRenderer.invoke('flywheel:run', configId),
+    runAll: () => ipcRenderer.invoke('flywheel:run-all'),
+    list: () => ipcRenderer.invoke('flywheel:list'),
   },
 
   forensics: {

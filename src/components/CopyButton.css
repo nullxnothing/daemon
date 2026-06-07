@@ -1,7 +1,7 @@
 .copy-button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-xs);
   height: var(--btn-h-sm);
   padding: 0 var(--space-sm);
   border: 1px solid transparent;
@@ -17,6 +17,15 @@
 .copy-button:hover {
   color: var(--t1);
   background: var(--hover-bg);
+}
+
+.copy-button:active {
+  background: var(--active-overlay);
+}
+
+.copy-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .copy-button--copied {

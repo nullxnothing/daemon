@@ -14,9 +14,9 @@
   align-items: center;
   justify-content: space-between;
   height: 30px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   background: var(--s1);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
@@ -29,21 +29,25 @@
 .agent-grid-page-tab {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: 22px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
   background: transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
 
 .agent-grid-page-tab:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.agent-grid-page-tab:active {
+  background: var(--active-bg);
 }
 
 .agent-grid-page-tab.active {
@@ -56,7 +60,7 @@
   color: var(--t3);
   line-height: 1;
   opacity: 0;
-  transition: opacity 0.1s;
+  transition: opacity var(--duration-fast);
 }
 
 .agent-grid-page-tab:hover .agent-grid-page-tab-close {
@@ -64,7 +68,7 @@
 }
 
 .agent-grid-page-tab-close:hover {
-  color: var(--error);
+  color: var(--red);
 }
 
 .agent-grid-page-add {
@@ -84,22 +88,30 @@
   color: var(--t1);
 }
 
+.agent-grid-page-add:active {
+  background: var(--active-bg);
+}
+
 .agent-grid-add-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: 22px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t3);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
 
 .agent-grid-add-cell:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.agent-grid-add-cell:active {
+  background: var(--active-bg);
 }
 
 .agent-grid {
@@ -109,7 +121,7 @@
   gap: 1px;
   flex: 1;
   min-height: 0;
-  background: var(--border);
+  background: var(--line);
 }
 
 .agent-grid-cell {
@@ -117,7 +129,7 @@
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
-  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  transition: transform var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .agent-grid-cell.dragging {
@@ -130,20 +142,19 @@
   outline-offset: -1px;
   background: var(--green-glow);
   transform: scale(1.01);
-  box-shadow: inset 0 0 16px var(--green-glow);
 }
 
 .agent-grid-cell-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
   height: 26px;
   background: var(--s1);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
   cursor: grab;
-  transition: background 0.1s;
+  transition: background var(--duration-fast);
 }
 
 .agent-grid-cell-header:hover {
@@ -166,7 +177,7 @@
 .agent-grid-cell-label {
   font-size: var(--fs-11);
   color: var(--t2);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   flex: 1;
 }
 
@@ -192,7 +203,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 4px 6px 4px 8px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-sm);
 }
 
 .agent-grid-terminal {
@@ -201,7 +212,7 @@
 }
 
 .agent-grid-cell-dot.idle {
-  background: var(--t3);
+  background: var(--t4);
 }
 
 .agent-grid-cell-activate {
@@ -210,9 +221,9 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 8px;
+  gap: var(--space-sm);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--duration-normal);
 }
 
 .agent-grid-cell-activate:hover {
@@ -220,7 +231,7 @@
 }
 
 .agent-grid-cell-activate:hover .activate-icon {
-  background: rgba(74, 140, 98, 0.2);
+  background: color-mix(in srgb, var(--green) 20%, transparent);
   border-color: var(--green);
   color: var(--green);
 }
@@ -235,18 +246,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  border: 1px solid var(--s5);
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
   background: var(--s1);
   color: var(--t3);
-  transition: all 0.2s;
+  transition: all var(--duration-normal);
 }
 
 .activate-label {
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t2);
-  transition: color 0.15s;
+  transition: color var(--duration-fast);
 }
 
 .activate-hint {
@@ -260,21 +271,20 @@
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   z-index: 5;
 }
 
 .agent-grid-reopen-btn {
   height: 26px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  background: var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: var(--shadow-md);
 }
 
 .agent-grid-reopen-btn:hover {

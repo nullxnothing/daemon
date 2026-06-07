@@ -84,6 +84,9 @@ export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): 
       amountLabel = `${formatAmount(input.inputAmount ?? input.amount)} ${inputSymbol} -> ${formatAmount(input.outputAmount)} ${outputSymbol}`
       notes.push(`Slippage: ${((input.slippageBps ?? 0) / 100).toFixed(2)}%.`)
       notes.push('Use the quote quickly; stale quotes should be refreshed before execution.')
+      if (input.messageHash) {
+        notes.push(`Review hash: ${input.messageHash.slice(0, 12)}...${input.messageHash.slice(-8)}.`)
+      }
       if (runtime.swapEngine.status !== 'live') {
         warnings.push(runtime.swapEngine.detail)
       }
@@ -120,5 +123,6 @@ export function previewSolanaTransaction(input: SolanaTransactionPreviewInput): 
     warnings,
     requiresAcknowledgement,
     acknowledgementLabel,
+    messageHash: input.messageHash,
   }
 }

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createHmac } from 'node:crypto'
+import { Keypair } from '@solana/web3.js'
+import bs58 from 'bs58'
 
 // --- Mock electron (not used by WalletService directly, but transitive deps may load it)
 vi.mock('electron', () => ({
@@ -40,6 +42,7 @@ import {
   buildMoonpayOnrampUrl,
   createWallet,
   deleteWallet,
+  hasKeypair,
   setDefaultWallet,
   storeMoonpayKeys,
 } from '../../electron/services/WalletService'
@@ -158,6 +161,28 @@ describe('MoonPay onramp URLs', () => {
       secretKey: 'sk_live_5678',
     })).toThrow('same environment')
     expect(SecureKey.storeKey).not.toHaveBeenCalled()
+  })
+})
+
+describe('hasKeypair', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('requires the stored keypair to match the wallet address', () => {
+    const keypair = Keypair.generate()
+    vi.mocked(SecureKey.getKey).mockReturnValue(bs58.encode(keypair.secretKey))
+    mockPrepare.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT address, keypair_path FROM wallets WHERE id')) {
+        return {
+          get: vi.fn().mockReturnValue({
+            address: Keypair.generate().publicKey.toBase58(),
+            keypair_path: null,
+          }),
+        }
+      }
+      return { run: vi.fn(), get: vi.fn(), all: vi.fn() }
+    })
+
+    expect(hasKeypair('wallet-1')).toBe(false)
   })
 })
 

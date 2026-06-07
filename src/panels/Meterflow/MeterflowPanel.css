@@ -33,7 +33,7 @@
   gap: var(--space-sm);
   min-height: 38px;
   padding: 0 0 var(--space-sm);
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--line);
 }
 
 .meterflow-brand {
@@ -46,7 +46,7 @@
   height: 22px;
   flex: 0 0 22px;
   object-fit: contain;
-  padding: 3px;
+  padding: var(--space-xs);
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
   background: var(--control-bg);
@@ -89,7 +89,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   min-width: 0;
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
@@ -103,7 +103,7 @@
 
 .meterflow-button {
   min-height: 30px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
 }
 
 .meterflow-icon-button {
@@ -140,7 +140,7 @@
   width: 100%;
   min-width: 0;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
   background: var(--control-bg);
@@ -178,10 +178,10 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 32px;
   margin: var(--space-sm) 0;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
 }
 
 .meterflow-status span {
@@ -193,7 +193,6 @@
 
 .meterflow-status.live span {
   background: var(--green);
-  box-shadow: 0 0 8px var(--green-glow);
 }
 
 .meterflow-status strong,
@@ -214,7 +213,7 @@
 .meterflow-warning,
 .meterflow-notice {
   margin-bottom: var(--space-sm);
-  padding: 9px 10px;
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-12);
   line-height: 1.45;
 }
@@ -232,8 +231,8 @@
 }
 
 .meterflow-warning.compact {
-  margin: 8px 0 0;
-  padding: 8px;
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm);
   font-size: var(--fs-11);
 }
 
@@ -281,7 +280,7 @@
 .meterflow-detail pre {
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
-  background: var(--surface-sunken);
+  background: var(--field-bg);
   color: var(--t2);
   font-family: var(--font-code);
   font-size: var(--fs-11);
@@ -290,7 +289,7 @@
 .meterflow-wallet-row code {
   min-width: 0;
   overflow: hidden;
-  padding: 8px;
+  padding: var(--space-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -315,13 +314,13 @@
 .meterflow-metric {
   min-width: 0;
   min-height: 64px;
-  padding: 10px;
+  padding: var(--space-md);
 }
 
 .meterflow-metric strong {
   display: block;
   min-width: 0;
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   overflow: hidden;
   color: var(--t1);
   font-family: var(--font-code);
@@ -349,7 +348,7 @@
 .meterflow-tabs button {
   min-width: 0;
   height: 32px;
-  padding: 0 6px;
+  padding: 0 var(--space-sm);
   overflow: hidden;
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
@@ -431,7 +430,7 @@
   justify-content: center;
   min-height: 22px;
   max-width: 70%;
-  padding: 3px 8px;
+  padding: var(--space-xs) var(--space-sm);
   overflow: hidden;
   border: 1px solid var(--control-border);
   border-radius: var(--radius-pill);
@@ -462,7 +461,7 @@
 }
 
 .meterflow-route {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   overflow-wrap: anywhere;
   color: var(--t2);
   font-family: var(--font-code);
@@ -471,7 +470,7 @@
 }
 
 .meterflow-card p {
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
   color: var(--t3);
   font-size: var(--fs-12);
   line-height: 1.5;
@@ -490,10 +489,10 @@
 .meterflow-detail-grid div,
 .meterflow-balance-grid div {
   min-width: 0;
-  padding: 8px;
+  padding: var(--space-sm);
   border: 1px solid var(--control-border);
   border-radius: var(--drawer-control-radius);
-  background: var(--surface-sunken);
+  background: var(--field-bg);
 }
 
 .meterflow-row-grid strong,
@@ -501,7 +500,7 @@
 .meterflow-balance-grid strong {
   display: block;
   min-width: 0;
-  margin: 5px 0 0;
+  margin: var(--space-xs) 0 0;
   overflow: hidden;
   color: var(--t1);
   font-family: var(--font-code);
@@ -533,7 +532,7 @@
   max-height: 240px;
   margin: var(--space-sm) 0 0;
   overflow: auto;
-  padding: 10px;
+  padding: var(--space-md);
   line-height: 1.45;
 }
 
@@ -563,9 +562,13 @@
   line-height: 1.5;
 }
 
+.meterflow-empty .meterflow-button {
+  margin-top: var(--space-xs);
+}
+
 .meterflow-loading.slim {
   min-height: 36px;
-  padding: 8px;
+  padding: var(--space-sm);
   font-family: var(--font-code);
   font-size: var(--fs-11);
 }
@@ -585,12 +588,12 @@
 .meterflow-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 8px;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 .meterflow-tags span {
-  padding: 3px 7px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--control-border);
   border-radius: var(--radius-pill);
   background: var(--control-bg);

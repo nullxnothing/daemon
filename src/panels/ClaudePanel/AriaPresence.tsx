@@ -15,7 +15,7 @@ interface AriaPresenceProps {
 
 export function AriaPresence({ isChatFocused, isChatExpanded, size = 'small' }: AriaPresenceProps) {
   const isLoading = useAriaStore((s) => s.isLoading)
-  const messages = useAriaStore((s) => s.messages)
+  const messages = useAriaStore((s) => s.turns)
 
   const [eyeState, setEyeState] = useState<AriaEyeState>('idle')
   const [flashState, setFlashState] = useState<'success' | 'error' | null>(null)
@@ -68,7 +68,7 @@ export function AriaPresence({ isChatFocused, isChatExpanded, size = 'small' }: 
     if (wasLoading && !isLoading) {
       // Response arrived — check if last message is an error
       const lastMsg = messages[messages.length - 1]
-      const isError = lastMsg?.content?.startsWith('Error:')
+      const isError = lastMsg?.text?.startsWith('Error:')
 
       setFlashState(isError ? 'error' : 'success')
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current)

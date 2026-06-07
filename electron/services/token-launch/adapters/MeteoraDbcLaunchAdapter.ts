@@ -213,7 +213,7 @@ export function createMeteoraDbcLaunchAdapter(deps: MeteoraDeps = {}): TokenLaun
           uri: metadata.metadataUri,
         })
 
-        const signature = await executeMeteoraLaunch({
+        const execution = await executeMeteoraLaunch({
           connection,
           keypair,
           mintKeypair,
@@ -221,7 +221,7 @@ export function createMeteoraDbcLaunchAdapter(deps: MeteoraDeps = {}): TokenLaun
         })
 
         return {
-          signature,
+          signature: execution.signature,
           mint: mintKeypair.publicKey.toBase58(),
           metadataUri: metadata.metadataUri,
           poolAddress: extractAddress(createResult, ['pool', 'poolAddress', 'poolId']),
@@ -232,6 +232,7 @@ export function createMeteoraDbcLaunchAdapter(deps: MeteoraDeps = {}): TokenLaun
             quoteMint: quoteMint.toBase58(),
             baseSupply: baseAmount.toString(),
             rawKeys: Object.keys(createResult ?? {}),
+            execution,
           },
         }
       })
@@ -244,32 +245,71 @@ async function executeMeteoraLaunch(input: {
   keypair: Keypair
   mintKeypair: Keypair
   createResult: any
-}) {
+}): Promise<Record<string, unknown> & { signature: string }> {
   const { connection, keypair, mintKeypair, createResult } = input
 
   const transaction = createResult?.transaction ?? createResult?.tx
   if (transaction instanceof VersionedTransaction) {
-    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair])
-    return result.signature
+    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair], {
+      guardSource: 'token-launch:meteora',
+    })
+    return {
+      signature: result.signature,
+      transport: result.transport,
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:meteora',
+    }
   }
 
   if (transaction instanceof Transaction) {
-    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair])
-    return result.signature
+    const result = await executeTransaction(connection, transaction, [keypair, mintKeypair], {
+      guardSource: 'token-launch:meteora',
+    })
+    return {
+      signature: result.signature,
+      transport: result.transport,
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:meteora',
+    }
   }
 
   const instructions = createResult?.instructions as TransactionInstruction[] | undefined
   if (Array.isArray(instructions) && instructions.length > 0) {
     const result = await executeInstructions(connection, instructions, [keypair, mintKeypair], {
       payer: keypair.publicKey,
+      guardSource: 'token-launch:meteora',
     })
-    return result.signature
+    return {
+      signature: result.signature,
+      transport: result.transport,
+      managedBy: 'daemon-executor',
+      sharedExecutor: true,
+      signerGuard: true,
+      guardSource: 'token-launch:meteora',
+    }
   }
 
   if (typeof createResult?.execute === 'function') {
+    const startedAt = Date.now()
     const executed = await createResult.execute({ sendAndConfirm: true })
     const signature = executed?.txId ?? executed?.signature
-    if (typeof signature === 'string') return signature
+    if (typeof signature === 'string') {
+      return {
+        signature,
+        transport: 'sdk-adapter',
+        managedBy: 'meteora-dbc-sdk',
+        method: 'createResult.execute',
+        sendAndConfirm: true,
+        sharedExecutor: false,
+        signerGuard: false,
+        elapsedMs: Date.now() - startedAt,
+        warning: 'SDK-managed execution; DAEMON cannot fully inspect final transaction.',
+      }
+    }
   }
 
   throw new Error('Meteora DBC adapter could not find an executable transaction result')

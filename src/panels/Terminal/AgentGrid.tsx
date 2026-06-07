@@ -238,7 +238,16 @@ export function AgentGrid() {
               {grindPageCount > 1 && (
                 <span
                   className="agent-grid-page-tab-close"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Close page ${i + 1}`}
                   onClick={(e) => { e.stopPropagation(); handleRemovePage(i) }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation()
+                      handleRemovePage(i)
+                    }
+                  }}
                 >
                   &times;
                 </span>
@@ -315,7 +324,7 @@ export function AgentGrid() {
                         className="agent-grid-activate"
                         onClick={() => activateCell(i)}
                         aria-label={`Launch ${PROVIDER_META[cells[i].providerId].label}`}
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', background: 'none', border: 'none' }}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-sm)', cursor: 'pointer', background: 'none', border: 'none' }}
                       >
                         <img
                           src={PROVIDER_META[cells[i].providerId].logo}
@@ -443,7 +452,7 @@ function ServicePicker({
       <div style={{ fontSize: 10, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: 1 }}>
         Pick Service
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, width: '100%', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', width: '100%', justifyContent: 'center' }}>
         {services.map(([id, service]) => (
           <button
             key={id}
@@ -496,14 +505,27 @@ function AgentGridTerminal({ id }: { id: string }) {
   const fitRef = useRef<FitAddon | null>(null)
   const disposedRef = useRef(false)
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fitRetryRef = useRef<number | null>(null)
 
-  const doFit = useCallback(() => {
+  const doFit = useCallback((attempt = 0) => {
     if (disposedRef.current) return
     const fit = fitRef.current
     const term = xtermRef.current
     if (!fit || !term || !containerRef.current) return
     const { clientWidth, clientHeight } = containerRef.current
-    if (clientWidth === 0 || clientHeight === 0) return
+    // Container can briefly measure 0 mid-layout (e.g. grid reflow); retry on the
+    // next frame (bounded) instead of bailing and leaving stale dimensions.
+    if (clientWidth === 0 || clientHeight === 0) {
+      if (fitRetryRef.current !== null) cancelAnimationFrame(fitRetryRef.current)
+      if (attempt < 10) {
+        fitRetryRef.current = requestAnimationFrame(() => doFit(attempt + 1))
+      }
+      return
+    }
+    if (fitRetryRef.current !== null) {
+      cancelAnimationFrame(fitRetryRef.current)
+      fitRetryRef.current = null
+    }
     let canUseFitAddon = true
     try {
       canUseFitAddon = Boolean((term as any)._core?._renderService?.dimensions)
@@ -525,7 +547,7 @@ function AgentGridTerminal({ id }: { id: string }) {
     disposedRef.current = false
 
     const term = new XTerm({
-      fontFamily: "'JetBrains Mono', 'Cascadia Code', monospace",
+      fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
       fontSize: 12,
       lineHeight: 1.3,
       cursorBlink: true,
@@ -561,7 +583,7 @@ function AgentGridTerminal({ id }: { id: string }) {
 
     const resizeObserver = new ResizeObserver(() => {
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
-      resizeTimerRef.current = setTimeout(doFit, 60)
+      resizeTimerRef.current = setTimeout(() => doFit(), 60)
     })
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current)
@@ -576,6 +598,7 @@ function AgentGridTerminal({ id }: { id: string }) {
       disposedRef.current = true
       clearTimeout(readyTimer)
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      if (fitRetryRef.current !== null) cancelAnimationFrame(fitRetryRef.current)
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()

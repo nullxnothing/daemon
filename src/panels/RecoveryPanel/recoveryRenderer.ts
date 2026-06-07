@@ -228,14 +228,14 @@ export class RecoveryRenderer {
     ctx.stroke()
 
     // SOL total text
-    ctx.font = '10px "JetBrains Mono", monospace'
+    ctx.font = '10px "Geist Mono", monospace'
     ctx.fillStyle = '#ebebeb'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(`${this.totalRecovered.toFixed(4)}`, this.cx, this.cy)
 
     // Label below
-    ctx.font = '8px "JetBrains Mono", monospace'
+    ctx.font = '8px "Geist Mono", monospace'
     ctx.fillStyle = '#3d3d3d'
     ctx.fillText('SOL', this.cx, this.cy + this.centerRadius + 10)
   }

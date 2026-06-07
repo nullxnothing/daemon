@@ -5,8 +5,8 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-md);
-  background: var(--panel-bg);
-  border-top: 1px solid var(--panel-border);
+  background: var(--s1);
+  border-top: 1px solid var(--line);
   flex-shrink: 0;
 }
 
@@ -14,7 +14,7 @@
 .statusbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
   min-width: 0;
   flex: 1;
 }
@@ -38,12 +38,13 @@
 }
 
 .statusbar-item {
+  font-family: var(--mono);
   font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .statusbar-branch {
-  color: var(--success);
+  color: var(--t2);
 }
 
 .statusbar-path {
@@ -56,22 +57,24 @@
 .market-tape {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm); /* TODO: token (was 10px) */
 }
 
 .market-tape-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   font-size: var(--fs-11);
 }
 
 .market-symbol {
   color: var(--t2);
-  font-weight: 600;
+  font-family: var(--mono);
+  font-weight: var(--fw-medium);
 }
 
 .market-price {
+  font-family: var(--mono);
   color: var(--t1);
 }
 

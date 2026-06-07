@@ -265,6 +265,9 @@ export const CodexProvider: ProviderInterface = {
       '--model', resolvedModel,
       '--ephemeral',
       '--sandbox', 'read-only',
+      // codex refuses to run in a cwd it doesn't consider a trusted git repo unless
+      // told to skip the check; DAEMON drives it headless from arbitrary dirs.
+      '--skip-git-repo-check',
       '-o', outputFile,
     ]
 
@@ -326,12 +329,29 @@ function buildCodexEnv(): NodeJS.ProcessEnv {
   return env
 }
 
+/**
+ * Quote an argument for a Windows cmd.exe shell invocation: wrap in double quotes,
+ * escape embedded double quotes, and neutralize %VAR% expansion (cmd expands even
+ * inside quotes; a lone % can't be escaped, so break the pair with "^").
+ */
+function quoteWinArg(arg: string): string {
+  const escaped = arg.replace(/"/g, '\\"').replace(/%/g, '%^')
+  return `"${escaped}"`
+}
+
 function runCliCommand(command: string, args: string[], cwd: string, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    // Node 20+ refuses to spawn a Windows .cmd/.bat without a shell (spawn EINVAL).
+    // Route those through a shell and quote each arg so prompt metacharacters pass verbatim.
+    const win = process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)
+    const spawnCommand = win ? quoteWinArg(command) : command
+    const spawnArgs = win ? args.map(quoteWinArg) : args
+    const child = spawn(spawnCommand, spawnArgs, {
       cwd,
       env: buildCodexEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: win,
+      windowsHide: true,
     })
 
     child.stdin.end()

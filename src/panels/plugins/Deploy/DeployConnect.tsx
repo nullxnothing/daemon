@@ -56,12 +56,8 @@ export function DeployConnect({ platform, onConnected }: DeployConnectProps) {
   }
 
   return (
-    <div className="deploy-connect-card">
-      <div className="deploy-connect-card-header">
-        <span className="deploy-dot disconnected" />
-        <span className="deploy-connect-card-title">{info.label}</span>
-      </div>
-      <div className="deploy-connect-form">
+    <div className="deploy-pconnect">
+      <div className="row">
         <input
           className="deploy-input"
           type="password"
@@ -72,7 +68,7 @@ export function DeployConnect({ platform, onConnected }: DeployConnectProps) {
           disabled={loading}
         />
         <button
-          className="deploy-btn primary"
+          className="deploy-gbtn hair"
           onClick={handleConnect}
           disabled={!token.trim() || loading}
         >
@@ -80,11 +76,9 @@ export function DeployConnect({ platform, onConnected }: DeployConnectProps) {
         </button>
       </div>
       {error && <div className="deploy-error">{error}</div>}
-      <div className="deploy-connect-hint">
-        <button type="button" className="deploy-connect-hint-link" onClick={handleOpenTokenPage}>
-          {info.tokenHint}
-        </button>
-      </div>
+      <button type="button" className="deploy-connect-hint-link help" onClick={handleOpenTokenPage}>
+        {info.tokenHint} ↗
+      </button>
     </div>
   )
 }

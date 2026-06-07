@@ -131,7 +131,7 @@ function getAdapters(settings: TokenLaunchSettings): Record<LaunchpadId, TokenLa
 }
 
 export function listLaunchpads(): LaunchpadDefinition[] {
-  const adapters = getAdapters(Settings.getTokenLaunchSettings())
+  const adapters = getAdapters(Settings.getTokenLaunchRuntimeSettings())
   return [
     adapters.pumpfun!.definition,
     adapters.raydium!.definition,
@@ -185,7 +185,7 @@ export async function preflightLaunch(input: TokenLaunchInput): Promise<TokenLau
   const isOpenBid = input.launchpad === 'openbid'
   const estimatedTotalSol = (isOpenBid ? 0 : input.initialBuySol) + input.priorityFeeSol + 0.02
   const checks: TokenLaunchCheck[] = []
-  const adapter = getAdapters(Settings.getTokenLaunchSettings())[input.launchpad]
+  const adapter = getAdapters(Settings.getTokenLaunchRuntimeSettings())[input.launchpad]
 
   const launchpad = listLaunchpads().find((entry) => entry.id === input.launchpad)
   if (!launchpad) {
@@ -326,7 +326,7 @@ export async function createLaunch(input: TokenLaunchInput): Promise<TokenLaunch
   const startedAt = Date.now()
   validateLaunchInput(input)
 
-  const adapter = getAdapters(Settings.getTokenLaunchSettings())[input.launchpad]
+  const adapter = getAdapters(Settings.getTokenLaunchRuntimeSettings())[input.launchpad]
   if (!adapter) {
     const definition = input.launchpad === 'bonk' ? bonkDefinition
       : input.launchpad === 'bags' ? bagsDefinition

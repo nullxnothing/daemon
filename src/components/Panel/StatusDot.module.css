@@ -4,7 +4,6 @@
   border-radius: var(--radius-pill);
   background: currentColor;
   color: var(--text-faint);
-  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 14%, transparent);
   flex: 0 0 auto;
 }
 
@@ -12,7 +11,7 @@
 .warning { color: var(--accent-amber); }
 .danger { color: var(--accent-red); }
 .info { color: var(--accent-blue); }
-.feature { color: var(--accent-purple); }
+.feature { color: var(--t2); }
 .neutral { color: var(--text-faint); }
 
 .pulse {

@@ -1,0 +1,88 @@
+.product-surface-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+}
+
+.product-surface-strip--success { border-color: var(--accent-line); }
+.product-surface-strip--warning { border-color: color-mix(in srgb, var(--amber) 36%, var(--line)); }
+.product-surface-strip--danger { border-color: color-mix(in srgb, var(--red) 36%, var(--line)); }
+.product-surface-strip--info { border-color: var(--line-2); }
+
+.product-surface-strip-copy {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.product-surface-strip-copy span,
+.product-surface-strip-state span {
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+.product-surface-strip-copy strong {
+  color: var(--t1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+}
+
+.product-surface-strip-copy p {
+  color: var(--t3);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+}
+
+.product-surface-strip-state,
+.product-surface-strip-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.product-surface-strip-state span {
+  min-height: var(--row-compact);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--wash-2);
+  color: var(--t2);
+}
+
+.product-surface-strip-actions button,
+.product-surface-strip-current {
+  min-height: var(--row);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--s2);
+  color: var(--t1);
+  cursor: pointer;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  padding: 0 var(--space-md);
+  white-space: nowrap;
+}
+
+.product-surface-strip-current {
+  display: inline-flex;
+  align-items: center;
+  border-color: var(--line);
+  background: var(--wash-2);
+  color: var(--t3);
+  cursor: default;
+}
+
+.product-surface-strip-actions button:hover {
+  border-color: var(--line-strong);
+  background: var(--s3);
+}

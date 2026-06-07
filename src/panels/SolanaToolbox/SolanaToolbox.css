@@ -4,10 +4,16 @@
   height: 100%;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
   gap: 0;
   background: var(--bg);
-  scrollbar-gutter: stable;
+}
+
+/* Secondary segment row (Connect → Providers/Integrations, Explore → …). */
+.solana-segment-row {
+  flex-shrink: 0;
+  padding: 0 var(--panel-pad-x);
+  background: var(--bg-well);
+  border-bottom: 1px solid var(--line);
 }
 
 .solana-toolbox::-webkit-scrollbar {
@@ -15,7 +21,7 @@
 }
 
 .solana-toolbox::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--s5) 78%, rgba(255, 255, 255, 0.08));
+  background: color-mix(in srgb, var(--line-2) 78%, color-mix(in srgb, var(--t1) 8%, transparent));
   border: 2px solid transparent;
   border-radius: var(--radius-pill);
   background-clip: padding-box;
@@ -25,84 +31,154 @@
   background: transparent;
 }
 
-.solana-workflow-shell {
-  --solana-workflow-pad-x: 20px;
+.solana-readiness-strip {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 8%, transparent);
+  background: color-mix(in srgb, var(--green) 1.5%, transparent);
 }
 
-.solana-workflow-header {
-  padding: var(--solana-workflow-pad-x) var(--solana-workflow-pad-x) var(--space-md);
-  border-bottom: 1px solid rgba(62, 207, 142, 0.06);
+.solana-readiness-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
 }
 
-.solana-workflow-title {
+.solana-readiness-title {
   margin: 0;
-  font-size: var(--type-page-title-size);
-  font-weight: var(--type-page-title-weight);
-  line-height: var(--type-page-title-line);
-  letter-spacing: var(--type-page-title-tracking);
+  font-size: var(--fs-18);
+  line-height: 1.2;
   color: var(--t1);
 }
 
-.solana-workflow-copy {
-  margin: 10px 0 0;
-  max-width: 72ch;
+.solana-readiness-copy {
+  margin: var(--space-xs) 0 0;
+  max-width: 78ch;
   color: var(--t3);
-  font-size: var(--font-md);
-  line-height: 1.5;
+  font-size: var(--fs-11);
+  line-height: 1.45;
 }
 
-.solana-view-tabs {
-  display: flex;
-  gap: var(--space-sm);
-  padding: 0 var(--solana-workflow-pad-x) var(--space-md);
-  margin: 0;
-  border-bottom: 1px solid var(--drawer-surface-divider);
-  background: var(--s1);
-  align-self: stretch;
-  flex-wrap: wrap;
-}
-
-.solana-view-tab {
+.solana-readiness-score {
   display: inline-flex;
-  align-items: center;
-  height: var(--btn-h-md);
-  padding: 0 var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: var(--drawer-card-radius);
-  background: var(--drawer-surface-card);
-  color: var(--t3);
-  text-align: left;
-  cursor: pointer;
-  font-size: var(--fs-12);
-  font-weight: var(--fw-medium);
-  transition: color var(--transition-fast), background var(--transition-fast);
+  align-items: baseline;
+  gap: var(--space-xs);
+  font-family: var(--mono);
+  color: var(--green);
   white-space: nowrap;
 }
 
-.solana-view-tab:hover {
-  color: var(--t1);
-  border-color: var(--control-border-hover);
-  background: var(--tab-hover-bg);
+.solana-readiness-score span:first-child {
+  font-size: var(--fs-24);
+  line-height: 1;
 }
 
-.solana-view-tab.active {
-  color: var(--tab-active-color);
-  border-color: var(--tab-active-border);
-  background: var(--tab-active-bg);
-  box-shadow: none;
-}
-
-.solana-view-tab-label {
+.solana-readiness-score span:not(:first-child) {
+  color: var(--t4);
   font-size: var(--fs-12);
-  font-weight: var(--fw-semibold);
-  color: inherit;
 }
 
-.solana-view-tab-summary {
-  display: none;
+.solana-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.solana-readiness-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 112px;
+  padding: var(--space-sm);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
+  color: inherit;
+  text-align: left;
+  min-width: 0;
+}
+
+.solana-readiness-item:disabled {
+  cursor: default;
+}
+
+.solana-readiness-item:not(:disabled) {
+  cursor: pointer;
+}
+
+.solana-readiness-item:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--green) 22%, transparent);
+  background: color-mix(in srgb, var(--green) 3%, transparent);
+}
+
+.solana-readiness-item:not(:disabled):active {
+  background: var(--press-overlay);
+}
+
+.solana-readiness-item.ready {
+  border-color: color-mix(in srgb, var(--green) 18%, transparent);
+}
+
+.solana-readiness-item.warning {
+  border-color: color-mix(in srgb, var(--amber) 18%, transparent);
+  background: color-mix(in srgb, var(--amber) 3.5%, transparent);
+}
+
+.solana-readiness-item.blocked,
+.solana-readiness-item.missing {
+  border-color: color-mix(in srgb, var(--red) 18%, transparent);
+  background: color-mix(in srgb, var(--red) 3.5%, transparent);
+}
+
+.solana-readiness-item.info {
+  border-color: color-mix(in srgb, var(--blue) 18%, transparent);
+}
+
+.solana-readiness-item-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.solana-readiness-label {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--t4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.solana-readiness-status {
+  margin-left: auto;
+  font-size: var(--fs-10);
+  font-family: var(--mono);
+  color: var(--t4);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.solana-readiness-value {
+  font-size: var(--fs-13);
+  font-weight: var(--fw-bold);
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.solana-readiness-detail {
+  color: var(--t3);
+  font-size: var(--fs-11);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .solana-view-panel {
@@ -110,16 +186,24 @@
   flex-direction: column;
 }
 
+/* Embedded Integration Command Center fills the remaining view height. */
+.solana-integrations-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .solana-project-empty-card {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin: 16px;
-  padding: 16px;
-  border: 1px solid rgba(240, 180, 41, 0.16);
+  gap: var(--space-lg);
+  margin: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid color-mix(in srgb, var(--amber) 16%, transparent);
   border-radius: var(--radius-lg);
-  background: rgba(240, 180, 41, 0.035);
+  background: color-mix(in srgb, var(--amber) 3.5%, transparent);
   min-width: 0;
 }
 
@@ -131,61 +215,61 @@
 }
 
 .solana-project-empty-card p {
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
   max-width: 78ch;
   color: var(--t3);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.5;
 }
 
 .solana-project-empty-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
   justify-content: flex-end;
   flex-shrink: 0;
 }
 
 .solana-loading-state {
-  margin: 0 16px 16px;
-  padding: 10px 12px;
-  border: 1px solid rgba(62, 207, 142, 0.12);
+  margin: 0 var(--space-lg) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--green) 12%, transparent);
   border-radius: var(--radius-md);
-  background: rgba(62, 207, 142, 0.035);
+  background: color-mix(in srgb, var(--green) 3.5%, transparent);
   color: var(--t3);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.45;
 }
 
 /* ── Validator zone (full width) ── */
 .solana-validator-zone {
-  padding: 16px;
-  border-bottom: 1px solid rgba(62, 207, 142, 0.06);
+  padding: var(--space-lg);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 6%, transparent);
 }
 
 .solana-token-launch-zone {
-  padding: 16px;
-  border-bottom: 1px solid rgba(62, 207, 142, 0.06);
+  padding: var(--space-lg);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 6%, transparent);
 }
 
 .solana-launchpad-settings {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .solana-launchpad-settings-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
   min-width: 0;
 }
 
 .solana-launchpad-settings-copy {
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
   max-width: 760px;
-  font-size: var(--font-md);
+  font-size: var(--fs-13);
   color: var(--t3);
   line-height: 1.5;
 }
@@ -193,7 +277,7 @@
 .solana-launchpad-settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
@@ -201,18 +285,18 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .solana-launchpad-settings-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
@@ -220,61 +304,61 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
 .solana-launchpad-settings-name {
   margin: 0;
-  font-size: var(--font-md);
-  font-weight: 700;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .solana-launchpad-brand-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .solana-launchpad-brand-mark {
   width: 24px;
   height: 22px;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(80, 210, 74, 0.28));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--green) 28%, transparent));
 }
 
 .solana-launchpad-settings-desc {
-  margin: 4px 0 0;
-  font-size: var(--font-sm);
+  margin: var(--space-xs) 0 0;
+  font-size: var(--fs-11);
   color: var(--t4);
   line-height: 1.45;
 }
 
 .solana-launchpad-settings-note {
-  padding: 10px 12px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  font-size: var(--font-sm);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
+  font-size: var(--fs-11);
   color: var(--t3);
   line-height: 1.45;
 }
 
 .solana-launchpad-settings-fields {
   display: grid;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .solana-launchpad-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .solana-launchpad-label {
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 1.1px;
   text-transform: uppercase;
   color: var(--t4);
@@ -283,12 +367,12 @@
 .solana-launchpad-input {
   width: 100%;
   height: 34px;
-  padding: 0 10px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-12);
   font-family: var(--font-code);
   background: var(--s2);
-  border: 1px solid var(--s5);
-  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-panel);
   color: var(--t1);
   outline: none;
 }
@@ -307,14 +391,14 @@
 .solana-token-launch {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .solana-token-launch-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
   min-width: 0;
 }
 
@@ -325,7 +409,7 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: var(--ls-eyebrow);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xs);
 }
 
 .solana-token-launch-title {
@@ -337,16 +421,16 @@
 }
 
 .solana-token-launch-copy {
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
   max-width: 760px;
-  font-size: var(--font-md);
+  font-size: var(--fs-13);
   color: var(--t3);
   line-height: 1.5;
 }
 
 .solana-token-launch-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -355,29 +439,29 @@
 .solana-token-launch-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
   min-width: 0;
 }
 
 .solana-launch-state {
   grid-column: 1 / -1;
-  padding: 10px 12px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.45;
 }
 
 .solana-launch-state.warning {
-  border: 1px solid rgba(240, 180, 41, 0.18);
-  background: rgba(240, 180, 41, 0.045);
+  border: 1px solid color-mix(in srgb, var(--amber) 18%, transparent);
+  background: color-mix(in srgb, var(--amber) 4.5%, transparent);
   color: var(--t2);
 }
 
 .solana-token-launch-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
   min-width: 0;
 }
 
@@ -385,22 +469,22 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .solana-token-launch-card-title {
-  font-size: var(--font-sm);
-  font-weight: 700;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-bold);
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 1.5px;
 }
 
 .solana-token-launch-card-copy {
-  margin-top: 6px;
+  margin-top: var(--space-xs);
   max-width: 52ch;
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.45;
   color: var(--t4);
 }
@@ -409,7 +493,7 @@
 .solana-launch-history {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
   min-width: 0;
 }
 
@@ -418,17 +502,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-md);
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
   min-width: 0;
 }
 
 .solana-launchpad-row.enabled {
-  border-color: rgba(62, 207, 142, 0.18);
-  background: rgba(62, 207, 142, 0.03);
+  border-color: color-mix(in srgb, var(--green) 18%, transparent);
+  background: color-mix(in srgb, var(--green) 3%, transparent);
 }
 
 .solana-launchpad-row-main,
@@ -441,10 +525,10 @@
 .solana-launch-history-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  font-size: var(--font-md);
-  font-weight: 600;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -453,13 +537,13 @@
 .solana-launch-history-meta,
 .solana-launch-history-mint,
 .solana-launch-history-name {
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--t4);
 }
 
 .solana-launchpad-row-desc,
 .solana-launchpad-row-note {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   line-height: 1.45;
 }
 
@@ -472,10 +556,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 8px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 0.9px;
   text-transform: uppercase;
 }
@@ -483,26 +567,26 @@
 .solana-launchpad-badge.enabled,
 .solana-launch-status.active {
   color: var(--green);
-  background: rgba(62, 207, 142, 0.08);
-  border: 1px solid rgba(62, 207, 142, 0.2);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
 }
 
 .solana-launchpad-badge.planned {
   color: var(--amber);
-  background: rgba(240, 180, 41, 0.08);
-  border: 1px solid rgba(240, 180, 41, 0.2);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent);
 }
 
 .solana-launch-history-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: var(--space-xs);
 }
 
 .solana-launch-history-mint {
-  margin-top: 6px;
+  margin-top: var(--space-xs);
   font-family: var(--font-code);
   word-break: break-all;
 }
@@ -542,113 +626,113 @@
 }
 
 .solana-runtime-stack {
-  padding: 18px 20px 20px;
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
 }
 
 .solana-daemon-runtime {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px 20px 20px;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
 }
 
 .solana-toolchain {
-  padding: 18px 20px 20px;
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
 }
 
 .solana-protocol-packs {
-  padding: 18px 20px 20px;
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
 }
 
 .solana-runtime-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-daemon-runtime-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-toolchain-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-protocol-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-runtime-card {
-  border: 1px solid rgba(62, 207, 142, 0.12);
-  background: rgba(62, 207, 142, 0.03);
+  border: 1px solid color-mix(in srgb, var(--green) 12%, transparent);
+  background: color-mix(in srgb, var(--green) 3%, transparent);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
   min-height: 148px;
 }
 
 .solana-daemon-runtime-card {
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   background: var(--s1);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: var(--space-lg);
   min-height: 212px;
   display: flex;
   flex-direction: column;
 }
 
 .solana-toolchain-card {
-  border: 1px solid rgba(62, 207, 142, 0.12);
-  background: rgba(62, 207, 142, 0.03);
+  border: 1px solid color-mix(in srgb, var(--green) 12%, transparent);
+  background: color-mix(in srgb, var(--green) 3%, transparent);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
   min-height: 138px;
 }
 
 .solana-protocol-card {
-  border: 1px solid rgba(62, 207, 142, 0.12);
-  background: rgba(62, 207, 142, 0.03);
+  border: 1px solid color-mix(in srgb, var(--green) 12%, transparent);
+  background: color-mix(in srgb, var(--green) 3%, transparent);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: var(--space-lg);
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-protocol-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-protocol-name {
   font-size: var(--fs-18);
   line-height: 1.15;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .solana-protocol-status-line {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 
 .solana-runtime-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .solana-runtime-label {
   font-size: var(--fs-11);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--t4);
@@ -658,43 +742,43 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
+  padding: 2px var(--space-xs);
+  border-radius: var(--r);
+  font-family: var(--mono);
   font-size: var(--fs-10);
-  font-weight: 700;
-  letter-spacing: 0.8px;
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--t3);
 }
 
 .solana-runtime-status.live {
   color: var(--green);
-  background: rgba(62, 207, 142, 0.08);
-  border-color: rgba(62, 207, 142, 0.18);
+  border-color: var(--accent-line);
 }
 
 .solana-runtime-status.partial {
   color: var(--amber);
-  background: rgba(240, 180, 41, 0.08);
-  border-color: rgba(240, 180, 41, 0.18);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
 .solana-runtime-status.setup {
   color: var(--t3);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--line-2);
 }
 
 .solana-runtime-value {
-  margin-top: 14px;
+  margin-top: var(--space-md);
   font-size: var(--fs-18);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .solana-runtime-detail {
-  margin-top: 10px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--fs-11);
   line-height: 1.5;
   color: var(--t3);
   word-break: break-word;
@@ -702,34 +786,34 @@
 
 .solana-daemon-runtime-owned {
   margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: var(--space-md);
+  border-top: 1px solid color-mix(in srgb, var(--t1) 5%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: var(--font-sm);
+  gap: var(--space-xs);
+  font-size: var(--fs-11);
   line-height: 1.45;
   color: var(--t3);
 }
 
 .solana-daemon-runtime-owned-label {
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--t4);
 }
 
 .solana-toolchain-version {
-  margin-top: 12px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-md);
+  font-size: var(--fs-11);
   color: var(--t2);
   font-family: var(--font-code);
   word-break: break-word;
 }
 
 .solana-protocol-hint {
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--t2);
   font-family: var(--font-code);
   word-break: break-word;
@@ -737,16 +821,16 @@
 }
 
 .solana-protocol-snippet {
-  padding: 12px;
+  padding: var(--space-md);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
 }
 
 .solana-protocol-snippet-label {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--t4);
@@ -754,7 +838,7 @@
 
 .solana-protocol-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
@@ -762,10 +846,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: var(--space-sm);
+  border-top: 1px solid color-mix(in srgb, var(--t1) 5%, transparent);
 }
 
 .solana-protocol-card .solana-runtime-detail {
@@ -778,8 +862,8 @@
 
 .solana-protocol-doc-link {
   color: var(--green);
-  font-size: var(--font-sm);
-  font-weight: 600;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
   text-decoration: none;
 }
 
@@ -798,33 +882,33 @@
 }
 
 .solana-runtime-troubleshooting {
-  margin-top: 14px;
-  border: 1px solid rgba(240, 180, 41, 0.16);
-  background: rgba(240, 180, 41, 0.04);
+  margin-top: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--amber) 16%, transparent);
+  background: color-mix(in srgb, var(--amber) 4%, transparent);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
 }
 
 .solana-runtime-coverage {
-  margin-top: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  margin-top: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
 }
 
 .solana-runtime-coverage-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .solana-runtime-coverage-row {
   border: 1px solid var(--s4);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 12px;
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
+  padding: var(--space-md);
 }
 
 .solana-runtime-coverage-main {
@@ -835,56 +919,56 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .solana-runtime-coverage-label {
-  font-size: var(--font-md);
-  font-weight: 600;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
 .solana-runtime-coverage-detail {
-  margin-top: 8px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--fs-11);
   line-height: 1.5;
   color: var(--t3);
 }
 
 .solana-daemon-runtime-next {
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 14px;
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
+  padding: var(--space-md);
 }
 
 .solana-daemon-runtime-next-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .solana-daemon-runtime-next-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  font-size: var(--font-sm);
+  gap: var(--space-sm);
+  font-size: var(--fs-11);
   line-height: 1.5;
   color: var(--t2);
 }
 
 .solana-runtime-title {
   font-size: var(--fs-11);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--amber);
 }
 
 .solana-runtime-warning {
-  margin-top: 8px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--fs-11);
   line-height: 1.5;
   color: var(--t2);
 }
@@ -892,6 +976,15 @@
 @media (max-width: 1100px) {
   .solana-view-tabs {
     flex-wrap: wrap;
+  }
+
+  .solana-readiness-summary {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .solana-readiness-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .solana-project-empty-card,
@@ -954,6 +1047,12 @@
   }
 }
 
+@media (max-width: 720px) {
+  .solana-readiness-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1320px) {
   .token-launch-tool .solana-token-launch-grid,
   .token-launch-tool .solana-launchpad-settings-grid {
@@ -985,9 +1084,9 @@
 .solana-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
+  gap: 1px; /* hairline divider — green bg bleeds through */
   min-height: 0;
-  background: rgba(62, 207, 142, 0.06);
+  background: color-mix(in srgb, var(--green) 6%, transparent);
 }
 
 .solana-split-panel {
@@ -1002,7 +1101,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px 8px;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   position: sticky;
   top: 0;
   background: var(--bg);
@@ -1019,13 +1118,13 @@
 }
 
 .solana-split-count {
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   color: var(--t4);
   font-family: var(--font-code);
 }
 
 .solana-split-body {
-  padding: 0 14px 14px;
+  padding: 0 var(--space-md) var(--space-md);
   flex: 1;
 }
 
@@ -1039,7 +1138,7 @@
 
 /* ── Zone headers ── */
 .solana-zone {
-  border-top: 1px solid rgba(62, 207, 142, 0.06);
+  border-top: 1px solid color-mix(in srgb, var(--green) 6%, transparent);
 }
 
 .solana-zone:first-child {
@@ -1050,13 +1149,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 8px;
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
   cursor: pointer;
   user-select: none;
 }
 
 .solana-zone-header:hover {
-  background: rgba(62, 207, 142, 0.02);
+  background: color-mix(in srgb, var(--green) 2%, transparent);
 }
 
 .solana-zone-label {
@@ -1069,10 +1168,10 @@
 }
 
 .solana-zone-summary {
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   color: var(--t4);
   margin-left: auto;
-  margin-right: 6px;
+  margin-right: var(--space-xs);
   font-family: var(--font-code);
 }
 
@@ -1089,7 +1188,7 @@
 }
 
 .solana-zone-body {
-  padding: 0 16px 16px;
+  padding: 0 var(--space-lg) var(--space-lg);
   overflow: hidden;
 }
 
@@ -1101,31 +1200,32 @@
 .solana-env-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
   min-height: 44px;
-  border-bottom: 1px solid rgba(62, 207, 142, 0.08);
-  background: rgba(62, 207, 142, 0.02);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 8%, transparent);
+  background: color-mix(in srgb, var(--green) 2%, transparent);
 }
 
 .solana-env-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(62, 207, 142, 0.2);
-  background: rgba(62, 207, 142, 0.06);
-  font-family: var(--font-code);
-  font-size: var(--font-sm);
-  font-weight: 600;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  border-radius: var(--r);
+  border: 1px solid var(--accent-line);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-medium);
   color: var(--green);
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 
 .solana-env-indicators {
-  font-size: var(--font-sm);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
   color: var(--t3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1141,26 +1241,26 @@
   flex-shrink: 0;
 }
 
-.solana-env-health.green { background: var(--green); color: rgba(62, 207, 142, 0.4); }
-.solana-env-health.amber { background: var(--amber); color: rgba(240, 180, 41, 0.4); }
-.solana-env-health.red { background: var(--red); color: rgba(239, 83, 80, 0.4); }
+.solana-env-health.green { background: var(--green); color: color-mix(in srgb, var(--green) 40%, transparent); }
+.solana-env-health.amber { background: var(--amber); color: color-mix(in srgb, var(--amber) 40%, transparent); }
+.solana-env-health.red { background: var(--red); color: color-mix(in srgb, var(--red) 40%, transparent); }
 .solana-env-health.grey { background: var(--t4); color: transparent; }
 
 .solana-env-none {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  font-size: var(--font-base);
+  gap: var(--space-sm);
+  font-size: var(--fs-12);
   color: var(--t4);
-  padding: 12px 16px;
+  padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--s4);
-  background: rgba(240, 180, 41, 0.025);
+  background: color-mix(in srgb, var(--amber) 2.5%, transparent);
 }
 
 .solana-env-none span:first-child {
   color: var(--t2);
-  font-weight: 650;
+  font-weight: var(--fw-semibold);
 }
 
 .solana-env-none span:last-child {
@@ -1187,38 +1287,38 @@
 /* ── Validator hero card ── */
 .solana-validator-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
 }
 
 .solana-validator-card.running {
-  border-color: rgba(62, 207, 142, 0.25);
+  border-color: color-mix(in srgb, var(--green) 25%, transparent);
 }
 
 .solana-validator-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-sm);
 }
 
 .solana-validator-title {
-  font-size: var(--font-lg);
-  font-weight: 600;
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   letter-spacing: 0.3px;
 }
 
 .solana-validator-status-text {
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--t3);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   font-family: var(--font-code);
 }
 
@@ -1226,18 +1326,18 @@
 .solana-seg-toggle {
   display: flex;
   background: var(--bg);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 3px;
-  margin-bottom: 10px;
+  padding: var(--space-xs);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
 }
 
 .solana-seg-btn {
   flex: 1;
   height: 28px;
-  font-size: var(--font-sm);
-  font-weight: 600;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
@@ -1248,12 +1348,16 @@
 
 .solana-seg-btn:hover:not(.active):not(:disabled) {
   color: var(--t2);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--t1) 3%, transparent);
+}
+
+.solana-seg-btn:active:not(.active):not(:disabled) {
+  background: var(--press-overlay);
 }
 
 .solana-seg-btn.active {
   background: var(--s2);
-  border-color: rgba(62, 207, 142, 0.3);
+  border-color: color-mix(in srgb, var(--green) 30%, transparent);
   color: var(--green);
 }
 
@@ -1264,117 +1368,76 @@
 
 .solana-validator-endpoint {
   font-family: var(--font-code);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--green);
-  padding: 6px 8px;
-  background: rgba(62, 207, 142, 0.04);
+  padding: var(--space-xs) var(--space-sm);
+  background: color-mix(in srgb, var(--green) 4%, transparent);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(62, 207, 142, 0.1);
-  margin-bottom: 4px;
+  border: 1px solid color-mix(in srgb, var(--green) 10%, transparent);
+  margin-bottom: var(--space-xs);
 }
 
 .solana-validator-help {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--t1) 6%, transparent);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.025);
+  background: color-mix(in srgb, var(--t1) 2.5%, transparent);
   color: var(--t3);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   line-height: 1.45;
 }
 
 .solana-validator-help.running {
-  border-color: rgba(62, 207, 142, 0.14);
-  background: rgba(62, 207, 142, 0.035);
+  border-color: color-mix(in srgb, var(--green) 14%, transparent);
+  background: color-mix(in srgb, var(--green) 3.5%, transparent);
 }
 
 .solana-validator-help.error {
-  border-color: rgba(239, 83, 80, 0.2);
-  background: rgba(239, 83, 80, 0.06);
+  border-color: color-mix(in srgb, var(--red) 20%, transparent);
+  background: color-mix(in srgb, var(--red) 6%, transparent);
   color: var(--t2);
+}
+
+.solana-validator-output {
+  max-height: 120px;
+  overflow: auto;
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--red) 18%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--red) 4%, transparent);
+  color: var(--t3);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+  line-height: 1.35;
+  white-space: pre-wrap;
 }
 
 .solana-validator-actions {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 /* ── Compact service rows (MCP + integrations) ── */
-.solana-services-label {
-  font-size: var(--font-xs);
-  color: var(--t4);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  padding: 14px 0 6px;
-  font-weight: 600;
-}
-
-.solana-service-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  min-height: 40px;
-  padding: 10px 8px;
-  margin: 0 -8px;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.solana-service-row + .solana-service-row {
-  border-top: 1px solid rgba(255, 255, 255, 0.02);
-}
-
-.solana-service-row:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.solana-service-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.solana-service-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.solana-service-name {
-  font-size: var(--font-md);
-  color: var(--t1);
-  font-weight: 500;
-}
-
 .solana-service-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
+  padding: 2px var(--space-xs);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--t1) 3%, transparent);
   border: 1px solid var(--s4);
   font-size: var(--fs-8);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
 
-.solana-service-description {
-  font-size: var(--font-sm);
-  color: var(--t4);
-  line-height: 1.35;
-}
-
 .solana-service-docs {
-  font-size: var(--font-xs);
+  font-size: var(--fs-10);
   color: var(--green);
   text-decoration: none;
   font-family: var(--font-code);
@@ -1389,7 +1452,7 @@
   position: relative;
   width: 30px;
   height: 16px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill);
   background: var(--s4);
   cursor: pointer;
   flex-shrink: 0;
@@ -1398,8 +1461,29 @@
   transition: all var(--transition-fast);
 }
 
+.solana-toggle:hover:not(:disabled) {
+  background: var(--line-2);
+}
+
 .solana-toggle.on {
   background: var(--green);
+}
+
+.solana-toggle.on:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--green) 85%, var(--t1));
+}
+
+.solana-toggle:active:not(:disabled)::after {
+  transform: scale(0.92);
+}
+
+.solana-toggle.on:active:not(:disabled)::after {
+  transform: translateX(14px) scale(0.92);
+}
+
+.solana-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-neutral);
 }
 
 .solana-toggle::after {
@@ -1427,13 +1511,13 @@
 /* ── Buttons ── */
 .sol-btn {
   height: var(--btn-h-sm);
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
-  font-size: var(--font-sm);
-  font-weight: 600;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
   color: var(--t2);
   background: var(--s2);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
@@ -1442,7 +1526,7 @@
 .sol-btn:hover:not(:disabled) {
   background: var(--s3);
   color: var(--t1);
-  border-color: var(--s6);
+  border-color: var(--line-strong);
 }
 
 .sol-btn:active:not(:disabled) {
@@ -1451,23 +1535,23 @@
 
 .sol-btn.green {
   color: var(--green);
-  background: rgba(62, 207, 142, 0.06);
-  border-color: rgba(62, 207, 142, 0.2);
+  background: color-mix(in srgb, var(--green) 6%, transparent);
+  border-color: color-mix(in srgb, var(--green) 20%, transparent);
 }
 
 .sol-btn.green:hover:not(:disabled) {
-  background: rgba(62, 207, 142, 0.12);
-  border-color: rgba(62, 207, 142, 0.4);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border-color: color-mix(in srgb, var(--green) 40%, transparent);
 }
 
 .sol-btn.red {
   color: var(--red);
-  border-color: rgba(239, 83, 80, 0.2);
+  border-color: color-mix(in srgb, var(--red) 20%, transparent);
 }
 
 .sol-btn.red:hover:not(:disabled) {
-  background: rgba(239, 83, 80, 0.08);
-  border-color: rgba(239, 83, 80, 0.3);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
 }
 
 .sol-btn:disabled {
@@ -1476,59 +1560,14 @@
 }
 
 .sol-btn:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring-neutral);
 }
 
 /* ── Integration rows (payment protocols) ── */
-.solana-integration-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 10px;
-  margin: 0 -10px;
-  border-radius: var(--radius-md);
-  transition: background var(--transition-fast);
-}
-
-.solana-integration-row + .solana-integration-row {
-  border-top: 1px solid rgba(255, 255, 255, 0.02);
-}
-
-.solana-integration-row:hover {
-  background: rgba(255, 255, 255, 0.015);
-}
-
-.solana-integration-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.solana-integration-name {
-  font-size: var(--font-md);
-  font-weight: 600;
-  color: var(--t1);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.solana-integration-desc {
-  font-size: var(--font-sm);
-  color: var(--t4);
-  line-height: 1.4;
-  margin-top: 3px;
-}
-
-.solana-integration-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
 /* ── Skills section ── */
 .solana-skill-group {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-sm);
 }
 
 .solana-skill-group:last-child {
@@ -1537,26 +1576,26 @@
 
 .solana-skill-group-label {
   font-size: var(--fs-8);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--t4);
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xs);
 }
 
 .solana-skills-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--space-xs);
 }
 
 .solana-skill-chip {
   display: inline-flex;
   align-items: center;
   height: 24px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border-radius: var(--radius-sm);
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   font-family: var(--font-code);
   color: var(--t3);
   background: var(--s1);
@@ -1566,16 +1605,25 @@
   user-select: none;
 }
 
-.solana-skill-chip:hover {
+.solana-skill-chip:hover:not(.dimmed) {
   background: var(--s2);
   color: var(--green);
-  border-color: rgba(62, 207, 142, 0.3);
+  border-color: color-mix(in srgb, var(--green) 30%, transparent);
+}
+
+.solana-skill-chip:active:not(.dimmed) {
+  background: var(--press-overlay);
+}
+
+.solana-skill-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-neutral);
 }
 
 .solana-skill-chip.copied {
   border-color: var(--green);
   color: var(--green);
-  background: rgba(62, 207, 142, 0.06);
+  background: color-mix(in srgb, var(--green) 6%, transparent);
 }
 
 .solana-skill-chip.dimmed {
@@ -1592,14 +1640,14 @@
 }
 
 .solana-skills-expand {
-  font-size: var(--font-sm);
+  font-size: var(--fs-11);
   color: var(--green);
   cursor: pointer;
-  padding: 6px 0;
+  padding: var(--space-xs) 0;
   background: none;
   border: none;
   font-family: var(--font-code);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   transition: opacity var(--transition-fast);
 }
 
@@ -1607,61 +1655,71 @@
   opacity: 0.8;
 }
 
+.solana-skills-expand:active {
+  opacity: 0.6;
+}
+
+.solana-skills-expand:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-neutral);
+  border-radius: var(--r);
+}
+
 /* ── Ecosystem coverage matrix ── */
 .solana-ecosystem {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .solana-ecosystem-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .solana-ecosystem-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-ecosystem-card {
   background: var(--s1);
-  border: 1px solid var(--s5);
+  border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .solana-ecosystem-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .solana-ecosystem-card-title {
   margin: 0;
-  font-size: var(--font-md);
-  font-weight: 700;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-bold);
   color: var(--t1);
 }
 
 .solana-ecosystem-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .solana-ecosystem-row {
-  padding: 12px;
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--t1) 2%, transparent);
 }
 
 .solana-ecosystem-main {
@@ -1671,10 +1729,10 @@
 .solana-ecosystem-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  font-size: var(--font-md);
-  font-weight: 600;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -1683,41 +1741,41 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 8px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
   font-size: var(--fs-10);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: 0.8px;
   text-transform: uppercase;
 }
 
 .solana-ecosystem-status.native {
   color: var(--green);
-  background: rgba(62, 207, 142, 0.08);
-  border: 1px solid rgba(62, 207, 142, 0.2);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
 }
 
 .solana-ecosystem-status.guided {
   color: var(--amber);
-  background: rgba(240, 180, 41, 0.08);
-  border: 1px solid rgba(240, 180, 41, 0.2);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 20%, transparent);
 }
 
 .solana-ecosystem-status.external {
   color: var(--t3);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--t1) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--t1) 8%, transparent);
 }
 
 .solana-ecosystem-kind {
   color: var(--t4);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--t1) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--t1) 8%, transparent);
 }
 
 .solana-ecosystem-desc {
-  margin-top: 6px;
-  font-size: var(--font-sm);
+  margin-top: var(--space-xs);
+  font-size: var(--fs-11);
   line-height: 1.45;
   color: var(--t4);
 }
@@ -1725,10 +1783,10 @@
 .solana-ecosystem-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
-  margin-top: 8px;
-  font-size: var(--font-xs);
+  margin-top: var(--space-sm);
+  font-size: var(--fs-10);
   color: var(--t3);
 }
 
@@ -1747,18 +1805,18 @@
   bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 6px 14px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-md);
-  background: rgba(62, 207, 142, 0.1);
-  border: 1px solid rgba(62, 207, 142, 0.3);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
   color: var(--green);
-  font-size: var(--font-base);
+  font-size: var(--fs-12);
   font-family: var(--font-code);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   pointer-events: none;
   z-index: 1000;
   box-shadow: var(--shadow-md);
-  animation: solana-toast-in 0.2s ease-out;
+  animation: solana-toast-in var(--duration-normal) var(--ease-standard);
 }
 
 @keyframes solana-toast-in {
@@ -1768,8 +1826,64 @@
 
 /* ── Empty state ── */
 .solana-empty {
-  font-size: var(--font-base);
+  font-size: var(--fs-12);
   color: var(--t4);
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
   line-height: 1.45;
 }
+
+/* ── design-grammar alignment: numbers in mono (added) ───────────────── */
+.solana-project-score-value,
+.solana-project-fingerprint-value,
+.solana-runtime-value {
+  font-family: var(--mono);
+  letter-spacing: -0.01em;
+}
+
+.solana-project-readiness-detail,
+.solana-project-action-command {
+  font-family: var(--mono);
+}
+
+/* ── readiness score → mockup .cc-ready (green big % + segmented checks) ── */
+.solana-project-control-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xl);
+}
+.solana-project-control-hero > div:first-child { flex: 1; min-width: 0; }
+
+.solana-project-score {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+.solana-project-score-value {
+  font-family: var(--mono);
+  font-size: var(--fs-28);
+  font-weight: var(--fw-medium);
+  color: var(--green);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.solana-project-score-value small { font-size: var(--fs-14); color: var(--t3); margin-left: 1px; /* hairline offset */ }
+
+.solana-project-score-meter { display: flex; flex-direction: column; gap: var(--space-sm); }
+.solana-project-score-cap {
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.solana-project-score-seg { display: flex; gap: var(--space-xs); }
+.solana-project-score-seg i {
+  width: 20px;
+  height: 6px;
+  border-radius: 1px; /* hairline segment radius */
+  background: var(--s3);
+  display: block;
+}
+.solana-project-score-seg i.on { background: var(--green); }
+.solana-project-score-seg i.off { background: transparent; border: 1px solid var(--line-2); }

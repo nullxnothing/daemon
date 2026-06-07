@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { useUIStore } from '../../../store/ui'
 import { useNotificationsStore, type ActivityArtifact } from '../../../store/notifications'
 import { SkeletonRows } from '../../../components/Panel'
@@ -13,12 +13,29 @@ interface PlatformProject {
   name: string
 }
 
-const STATUS_DOT_CLASS: Record<DeploymentStatus, string> = {
-  READY: 'connected',
-  BUILDING: 'building',
-  QUEUED: 'building',
-  ERROR: 'failed',
-  CANCELED: 'disconnected',
+const PLATFORM_ICON: Record<'vercel' | 'railway', ReactNode> = {
+  vercel: (
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="15" height="15"><path d="M12 4l8 14H4z" /></svg>
+  ),
+  railway: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+      <rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 8h8v8H8z" />
+    </svg>
+  ),
+}
+
+const DEPLOY_EMPTY_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="30" height="30">
+    <path d="M18 10a4 4 0 0 0-1-7.9A6 6 0 0 0 6 10a4 4 0 0 0 0 8h12a4 4 0 0 0 0-8z" />
+  </svg>
+)
+
+const DEPLOY_ROW_DOT: Record<DeploymentStatus, string> = {
+  READY: 'live',
+  BUILDING: 'warn',
+  QUEUED: 'warn',
+  ERROR: 'err',
+  CANCELED: 'idle',
 }
 
 const STATUS_LABEL_CLASS: Record<DeploymentStatus, string> = {
@@ -267,7 +284,7 @@ export default function DeployPanel() {
       <div className="deploy-header">
         <h2 className="deploy-title">Deploy</h2>
         <div className="deploy-header-spacer" />
-        <button type="button" className="deploy-btn" onClick={handleRefresh}>Refresh</button>
+        <button type="button" className="deploy-btn ghost" onClick={handleRefresh}>Refresh</button>
         {hasLinked && (
           <button
             className="deploy-btn primary"
@@ -292,55 +309,63 @@ export default function DeployPanel() {
       <div className="deploy-section">
         <div className="deploy-section-label">Platforms</div>
 
-        {(['vercel', 'railway'] as const).map((platform) => {
-          const auth = authStatus[platform]
-          const linked = statuses.find((s) => s.platform === platform && s.linked)
-          const isLinking = linkingPlatform === platform
+        <div className="deploy-plist">
+          {(['vercel', 'railway'] as const).map((platform) => {
+            const auth = authStatus[platform]
+            const linked = statuses.find((s) => s.platform === platform && s.linked)
+            const isLinking = linkingPlatform === platform
 
-          if (!auth.authenticated) {
+            if (!auth.authenticated) {
+              return (
+                <div key={platform} className="deploy-pwrap">
+                  <div className="deploy-prow">
+                    <span className="deploy-pi">{PLATFORM_ICON[platform]}</span>
+                    <div className="deploy-pmain">
+                      <span className="deploy-pname">{platform === 'vercel' ? 'Vercel' : 'Railway'}</span>
+                      <span className="deploy-pstat"><span className="dot idle" />Not connected</span>
+                    </div>
+                  </div>
+                  <DeployConnect platform={platform} onConnected={handleConnected} />
+                </div>
+              )
+            }
+
             return (
-              <div key={platform} style={{ marginBottom: 8 }}>
-                <DeployConnect platform={platform} onConnected={handleConnected} />
-              </div>
-            )
-          }
+              <div key={platform} className="deploy-pwrap">
+                <div className="deploy-prow">
+                  <span className="deploy-pi">{PLATFORM_ICON[platform]}</span>
+                  <div className="deploy-pmain">
+                    <span className="deploy-pname">{platform === 'vercel' ? 'Vercel' : 'Railway'}</span>
+                    <span className="deploy-pstat ok">
+                      <span className="dot live" />
+                      {linked ? `Connected · ${linked.projectName}` : 'Connected'}
+                      {auth.user ? ` · ${auth.user}` : ''}
+                    </span>
+                  </div>
 
-          return (
-            <div key={platform} style={{ marginBottom: 8 }}>
-              <div className="deploy-platform-row">
-                <span className="deploy-dot connected" />
-                <span className="deploy-platform-name">
-                  {platform === 'vercel' ? 'Vercel' : 'Railway'}
-                </span>
-                {auth.user && (
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>{auth.user}</span>
-                )}
+                  {linked ? (
+                    <div className="deploy-pacts">
+                      {linked.productionUrl && (
+                        <button className="deploy-gbtn" onClick={() => handleOpenUrl(linked.productionUrl!)}>Open</button>
+                      )}
+                      <button className="deploy-gbtn danger" onClick={() => handleUnlink(platform)}>Unlink</button>
+                    </div>
+                  ) : !isLinking ? (
+                    <div className="deploy-pacts">
+                      <button type="button" className="deploy-gbtn hair" onClick={() => handleStartLink(platform)}>Link project</button>
+                      <button className="deploy-gbtn danger" onClick={() => handleDisconnect(platform)}>Disconnect</button>
+                    </div>
+                  ) : null}
+                </div>
 
-                {linked ? (
-                  <>
-                    <span className="deploy-platform-url">{linked.projectName}</span>
-                    {linked.productionUrl && (
-                      <button
-                        className="deploy-link"
-                        onClick={() => handleOpenUrl(linked.productionUrl!)}
-                      >
-                        Open
-                      </button>
-                    )}
-                    <button
-                      className="deploy-btn danger"
-                      onClick={() => handleUnlink(platform)}
-                    >
-                      Unlink
-                    </button>
-                  </>
-                ) : isLinking ? (
-                  <div className="deploy-project-picker">
+                {isLinking && (
+                  <div className="deploy-pconnect">
                     {loadingProjects ? (
-                      <span style={{ fontSize: 10, color: 'var(--t3)' }}>Loading projects...</span>
+                      <span className="deploy-pconnect-note">Loading projects...</span>
                     ) : (
-                      <>
+                      <div className="row">
                         <select
+                          className="deploy-input"
                           value={selectedProjectId}
                           onChange={(e) => setSelectedProjectId(e.target.value)}
                         >
@@ -349,39 +374,21 @@ export default function DeployPanel() {
                             <option key={p.id} value={p.id}>{p.name}</option>
                           ))}
                         </select>
+                        <button className="deploy-gbtn hair" onClick={handleLink} disabled={!selectedProjectId}>Link</button>
                         <button
-                          className="deploy-btn primary"
-                          onClick={handleLink}
-                          disabled={!selectedProjectId}
-                        >
-                          Link
-                        </button>
-                        <button
-                          className="deploy-btn"
+                          className="deploy-gbtn"
                           onClick={() => { setLinkingPlatform(null); setPlatformProjects([]) }}
                         >
                           Cancel
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
-                ) : (
-                  <>
-                    <button type="button" className="deploy-btn" onClick={() => handleStartLink(platform)}>
-                      Link Project
-                    </button>
-                    <button
-                      className="deploy-btn danger"
-                      onClick={() => handleDisconnect(platform)}
-                    >
-                      Disconnect
-                    </button>
-                  </>
                 )}
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Deployments */}
@@ -395,33 +402,36 @@ export default function DeployPanel() {
         ) : deployments.length === 0 ? (
           <EmptyState
             className="deploy-empty"
+            icon={DEPLOY_EMPTY_ICON}
             title="No deployments yet"
             description="Push a commit or hit Deploy to ship your first build. Recent deployments will show up here."
           />
         ) : (
-          deployments.map((d) => (
-            <div key={d.id} className="deploy-row">
-              <span className={`deploy-dot ${STATUS_DOT_CLASS[d.status]}`} />
-              {d.commitSha && (
-                <span className="deploy-hash">{d.commitSha.slice(0, 7)}</span>
-              )}
-              {d.branch && (
-                <span className="deploy-branch">{d.branch}</span>
-              )}
-              <span className="deploy-msg">
-                {d.commitMessage || d.url || d.id.slice(0, 12)}
-              </span>
-              <span className={`deploy-status ${STATUS_LABEL_CLASS[d.status]}`}>
-                {d.status}
-              </span>
-              <span className="deploy-time">{relativeTime(d.createdAt)}</span>
-              {d.url && (
-                <button type="button" className="deploy-link" onClick={() => handleOpenUrl(d.url!)}>
-                  Open
-                </button>
-              )}
-            </div>
-          ))
+          <div className="deploy-plist">
+            {deployments.map((d) => (
+              <div key={d.id} className="deploy-row">
+                <span className={`dot ${DEPLOY_ROW_DOT[d.status]}`} />
+                {d.commitSha && (
+                  <span className="deploy-hash">{d.commitSha.slice(0, 7)}</span>
+                )}
+                {d.branch && (
+                  <span className="deploy-branch">{d.branch}</span>
+                )}
+                <span className="deploy-msg">
+                  {d.commitMessage || d.url || d.id.slice(0, 12)}
+                </span>
+                <span className={`deploy-status ${STATUS_LABEL_CLASS[d.status]}`}>
+                  {d.status}
+                </span>
+                <span className="deploy-time">{relativeTime(d.createdAt)}</span>
+                {d.url && (
+                  <button type="button" className="deploy-link" onClick={() => handleOpenUrl(d.url!)}>
+                    Open
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

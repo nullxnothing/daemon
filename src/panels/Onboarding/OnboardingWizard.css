@@ -14,7 +14,7 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: var(--space-xl);
   width: 420px;
   max-width: 90vw;
 }
@@ -24,8 +24,8 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .wizard-brand-mark {
@@ -49,7 +49,7 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .wizard-progress-item {
@@ -71,7 +71,7 @@
 .wizard-progress-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--s4);
   border: 1px solid var(--border);
   transition: all var(--transition-normal);
@@ -100,19 +100,19 @@
   text-transform: uppercase;
   color: var(--t3);
   text-align: center;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-xs);
 }
 
 .wizard-subtitle {
   font-size: var(--fs-12);
   color: var(--t2);
   text-align: center;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-md);
 }
 
 /* Step content */
 .wizard-step-content {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg);
 }
 
 /* Check list (shared across steps) */
@@ -122,16 +122,16 @@
   gap: 0;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   overflow: hidden;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-lg);
 }
 
 .wizard-check {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--border);
 }
 
@@ -149,7 +149,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xs);
 }
 
 .wizard-check-desc {
@@ -160,7 +160,7 @@
 .wizard-check-status {
   font-size: var(--fs-10);
   color: var(--t2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
 }
 
 .wizard-check-status.error {
@@ -171,7 +171,7 @@
 .wizard-dot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
   background: var(--t3);
 }
@@ -192,9 +192,9 @@
 .wizard-btn {
   width: 100%;
   height: 34px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: var(--fs-12);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
   transition: opacity var(--transition-fast);
   border: 1px solid var(--border);
@@ -218,7 +218,7 @@
 
 .wizard-btn.small {
   width: auto;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   height: 30px;
 }
 
@@ -229,7 +229,7 @@
 
 .wizard-btn-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .wizard-btn-row .wizard-btn {
@@ -244,7 +244,7 @@
   color: var(--t3);
   font-size: var(--fs-11);
   cursor: pointer;
-  padding: 8px 0 0;
+  padding: var(--space-sm) 0 0;
   text-align: center;
 }
 
@@ -253,11 +253,11 @@
 /* External tip (leaving the app) */
 .wizard-external-tip {
   display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 10px 12px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
 
@@ -277,8 +277,8 @@
 /* Token input */
 .wizard-token-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .wizard-token-input {
@@ -286,11 +286,11 @@
   height: 30px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
-  padding: 0 10px;
+  font-family: 'Geist Mono', monospace;
+  padding: 0 var(--space-sm);
   outline: none;
 }
 
@@ -303,7 +303,7 @@
 .wizard-api-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .wizard-api-label {
@@ -313,7 +313,7 @@
 
 .wizard-api-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .wizard-api-input {
@@ -321,11 +321,11 @@
   height: 30px;
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
-  padding: 0 10px;
+  font-family: 'Geist Mono', monospace;
+  padding: 0 var(--space-sm);
   outline: none;
 }
 
@@ -338,13 +338,13 @@
 .wizard-divider {
   height: 1px;
   background: var(--border);
-  margin: 16px 0;
+  margin: var(--space-lg) 0;
 }
 
 .wizard-error {
   font-size: var(--fs-11);
   color: var(--error);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
   line-height: 1.5;
 }
 
@@ -355,9 +355,9 @@
 }
 
 .wizard-hint code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   background: var(--s2);
-  padding: 1px 5px;
+  padding: 1px var(--space-xs);
   border-radius: var(--radius-sm);
   font-size: var(--fs-10);
 }
@@ -368,7 +368,7 @@
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--border);
-  padding-top: 14px;
+  padding-top: var(--space-md);
 }
 
 .wizard-skip-link {
@@ -385,7 +385,7 @@
 .wizard-step-counter {
   font-size: var(--fs-10);
   color: var(--t4);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
 }
 
 /* Tour offer dialog */
@@ -393,7 +393,7 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: var(--space-xl);
   width: 320px;
   text-align: center;
 }
@@ -401,19 +401,19 @@
 .tour-offer-title {
   font-size: var(--fs-12);
   color: var(--t1);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .tour-offer-desc {
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-xl);
   line-height: 1.5;
 }
 
 .tour-offer-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .tour-offer-actions .wizard-btn {
@@ -424,24 +424,24 @@
 .step-profile {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .step-profile-cards {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
 }
 
 .step-profile-card {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   cursor: pointer;
   text-align: left;
   transition: border-color var(--transition-fast), background var(--transition-fast);
@@ -475,9 +475,9 @@
 
 .step-profile-label {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
-  margin-bottom: 2px;
+  margin-bottom: var(--space-xs);
 }
 
 .step-profile-desc {
@@ -496,8 +496,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
   background: var(--s2);
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-12);
@@ -511,8 +511,8 @@
 
 .resume-banner-btn {
   height: 24px;
-  padding: 0 12px;
-  border-radius: 4px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
   font-size: var(--fs-11);
   cursor: pointer;
   border: 1px solid var(--border);

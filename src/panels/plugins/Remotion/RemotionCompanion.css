@@ -10,9 +10,9 @@
   align-items: center;
   justify-content: space-between;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -32,19 +32,19 @@
 .remotion-skills {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   border-bottom: 1px solid var(--s5);
 }
 
 .remotion-skill-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: 20px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-10);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--mono);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--s5);
@@ -62,31 +62,31 @@
 .remotion-actions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: var(--space-xs);
+  padding: var(--space-md);
   border-bottom: 1px solid var(--s5);
 }
 
 .remotion-actions-label {
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .remotion-action-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   height: 28px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: left;
 }
@@ -96,9 +96,13 @@
   color: var(--t1);
 }
 
+.remotion-action-btn:active {
+  background: var(--s4);
+}
+
 /* Agent status */
 .remotion-agent-section {
-  padding: 10px 12px;
+  padding: var(--space-md);
   border-bottom: 1px solid var(--s5);
 }
 
@@ -106,20 +110,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   width: 100%;
   height: 32px;
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t1);
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .remotion-launch-btn:hover {
   background: var(--s4);
+}
+
+.remotion-launch-btn:active {
+  background: var(--active-overlay);
 }
 
 .remotion-launch-btn[data-active="true"] {
@@ -130,8 +138,8 @@
 .remotion-agent-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
   font-size: var(--fs-10);
   color: var(--t3);
 }
@@ -154,15 +162,15 @@
 .remotion-prompt-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   flex: 1;
   min-height: 0;
 }
 
 .remotion-prompt-label {
   font-size: var(--fs-10);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -175,11 +183,11 @@
   resize: vertical;
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  padding: 8px 10px;
+  font-family: var(--font-ui);
+  padding: var(--space-sm) var(--space-md);
   outline: none;
   line-height: 1.5;
 }
@@ -198,17 +206,21 @@
   justify-content: center;
   height: 28px;
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--t1);
   background: var(--s3);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .remotion-send-btn:hover {
   background: var(--s4);
+}
+
+.remotion-send-btn:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 .remotion-send-btn:disabled {

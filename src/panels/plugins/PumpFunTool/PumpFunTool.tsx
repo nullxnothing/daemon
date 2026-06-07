@@ -86,6 +86,10 @@ export default function PumpFunTool() {
 
   return (
     <div className="pf-panel">
+      <header className="pf-plugin-head">
+        <span className="label">ClawPump</span>
+        <span className="pf-plugin-badge">Plugin</span>
+      </header>
       <div className="pf-wallet-bar">
         <span className="pf-wallet-dot" style={{ background: hasKeypair ? 'var(--green)' : 'var(--red)' }} />
         <select

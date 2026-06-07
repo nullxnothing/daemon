@@ -1,15 +1,15 @@
 import crypto from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@solana/web3.js', async () => {
-  const actual = await vi.importActual<typeof import('@solana/web3.js')>('@solana/web3.js')
-  return {
-    ...actual,
-    sendAndConfirmTransaction: vi.fn(async () => 'mock-signature'),
-  }
-})
+const { executeInstructionsMock } = vi.hoisted(() => ({
+  executeInstructionsMock: vi.fn(async () => ({ signature: 'mock-signature', transport: 'rpc' })),
+}))
 
-import { Keypair, PublicKey, sendAndConfirmTransaction } from '@solana/web3.js'
+vi.mock('../../electron/services/SolanaExecutionService', () => ({
+  executeInstructions: executeInstructionsMock,
+}))
+
+import { Keypair, PublicKey } from '@solana/web3.js'
 import { publishExpireTask, publishStartSession } from '../../electron/services/SessionRegistryService'
 
 function buildDiscriminator(name: string): Buffer {
@@ -18,7 +18,7 @@ function buildDiscriminator(name: string): Buffer {
 
 describe('SessionRegistryService', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    executeInstructionsMock.mockClear()
   })
 
   it('rejects session publications with agent counts above the on-chain model capacity', async () => {
@@ -57,13 +57,18 @@ describe('SessionRegistryService', () => {
       }),
     ).resolves.toBe('mock-signature')
 
-    expect(sendAndConfirmTransaction).toHaveBeenCalledTimes(1)
-    const [, tx, signers] = vi.mocked(sendAndConfirmTransaction).mock.calls[0]
+    expect(executeInstructionsMock).toHaveBeenCalledTimes(1)
+    const [, instructions, signers, options] = executeInstructionsMock.mock.calls[0]
     expect(signers).toEqual([authorityKeypair])
 
-    const ix = tx.instructions[0]
+    const ix = instructions[0]
     expect(ix.programId.toBase58()).toBe('3nu6sppjDtAKNoBbUAhvFJ35B2JsxpRY6G4Cg72MCJRc')
     expect(Buffer.from(ix.data)).toEqual(buildDiscriminator('expire_task'))
+    expect(options).toEqual(expect.objectContaining({
+      payer: authorityKeypair.publicKey,
+      guardSource: 'session-registry:expire-task',
+      guardAllowProgramIds: ['3nu6sppjDtAKNoBbUAhvFJ35B2JsxpRY6G4Cg72MCJRc'],
+    }))
 
     const taskSeed = Buffer.alloc(8)
     taskSeed.writeBigUInt64LE(42n)

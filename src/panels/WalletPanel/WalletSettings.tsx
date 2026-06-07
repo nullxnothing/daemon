@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Toggle } from '../../components/Toggle'
 import { SolflareWalletCard } from './SolflareWalletCard'
+import { WalletAdapterCard } from './WalletAdapterCard'
 import './WalletPanel.css'
 
 interface WalletSettingsProps {
@@ -82,6 +83,12 @@ export function WalletSettings({
     await onSaveInfrastructure(next)
   }
 
+  const preferWalletStandard = async () => {
+    const next = { ...draftInfra, preferredWallet: 'wallet-standard' as const }
+    setDraftInfra(next)
+    await onSaveInfrastructure(next)
+  }
+
   return (
     <section className="wallet-section wallet-settings-shell">
       <div className="wallet-section-header">
@@ -102,7 +109,7 @@ export function WalletSettings({
                 token launch execution, toolbox guidance, and the Solana runtime it will keep expanding.
               </div>
             </div>
-            <span className={`wallet-state-badge ${heliusConfigured ? 'live' : 'muted'}`}>
+            <span className={`wallet-state-badge ${rpcReady ? 'live' : 'muted'}`}>
               {rpcStatusLabel}
             </span>
           </div>
@@ -303,7 +310,7 @@ export function WalletSettings({
           >
             <option value="phantom">Local signer + Phantom app defaults</option>
             <option value="solflare">Solflare SDK + app defaults</option>
-            <option value="wallet-standard">Local signer + Wallet Standard app defaults</option>
+            <option value="wallet-standard">DAEMON Wallet Adapter (any wallet · Solflare recommended)</option>
           </select>
           <select
             className="wallet-input"
@@ -338,12 +345,21 @@ export function WalletSettings({
           </div>
         </div>
 
-        <SolflareWalletCard
-          cluster={draftInfra.cluster}
-          preferredWallet={draftInfra.preferredWallet}
-          onPreferSolflare={preferSolflare}
-          onTrackWallet={onTrackSolflareWallet}
-        />
+        {draftInfra.preferredWallet === 'wallet-standard' ? (
+          <WalletAdapterCard
+            cluster={draftInfra.cluster}
+            preferredWallet={draftInfra.preferredWallet}
+            onPreferWalletStandard={preferWalletStandard}
+            onTrackWallet={onTrackSolflareWallet}
+          />
+        ) : (
+          <SolflareWalletCard
+            cluster={draftInfra.cluster}
+            preferredWallet={draftInfra.preferredWallet}
+            onPreferSolflare={preferSolflare}
+            onTrackWallet={onTrackSolflareWallet}
+          />
+        )}
 
         <div className="wallet-settings-card">
           <div className="wallet-settings-card-head">

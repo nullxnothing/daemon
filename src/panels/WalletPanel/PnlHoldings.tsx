@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { PnlPortfolio, PnlHolding } from '../../types/daemon.d'
+import { DataRow } from '../../components/Panel'
+import '../_solana/solanaSurface.css'
 
 interface HoldingInput {
   mint: string
@@ -84,11 +86,12 @@ export function PnlHoldings({ walletAddress, holdings, onSwapHolding, onCopyMint
   const hasCostBasis = pnlHoldings.some((h: PnlHolding) => h.totalTrades > 0)
 
   return (
-    <section className="wallet-section">
-      <div className="wallet-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>Holdings</span>
+    <section className="sol-section">
+      <div className="sol-section-head">
+        <div className="sol-section-title">Holdings</div>
         <button
-          className="pnl-sync-btn"
+          type="button"
+          className="solx-btn solx-btn--sm"
           onClick={handleSync}
           disabled={syncing}
           title="Sync trade history from Helius"
@@ -97,9 +100,7 @@ export function PnlHoldings({ walletAddress, holdings, onSwapHolding, onCopyMint
         </button>
       </div>
 
-      {syncResult && (
-        <div className="pnl-sync-result">{syncResult}</div>
-      )}
+      {syncResult && <div className="pnl-sync-result">{syncResult}</div>}
 
       {portfolio && hasCostBasis && (
         <div className="pnl-summary">
@@ -121,7 +122,7 @@ export function PnlHoldings({ walletAddress, holdings, onSwapHolding, onCopyMint
         </div>
       )}
 
-        <div className="wallet-holdings">
+      <div className="sol-list">
         {pnlHoldings.length > 0 ? pnlHoldings.map((h: PnlHolding) => (
           <PnlRow key={h.mint} holding={h} onSwapHolding={onSwapHolding} onCopyMint={onCopyMint} />
         )) : holdings.map((h: HoldingInput) => (
@@ -132,41 +133,49 @@ export function PnlHoldings({ walletAddress, holdings, onSwapHolding, onCopyMint
   )
 }
 
+function HoldingActions({ mint, symbol, onSwapHolding, onCopyMint }: {
+  mint: string
+  symbol: string
+  onSwapHolding?: (mint: string) => void
+  onCopyMint?: (mint: string, symbol: string) => void
+}) {
+  return (
+    <>
+      {onSwapHolding && (
+        <button type="button" className="sol-link" onClick={() => onSwapHolding(mint)}>Sell / Swap</button>
+      )}
+      {onCopyMint && (
+        <button type="button" className="sol-link" onClick={() => onCopyMint(mint, symbol)}>Copy mint</button>
+      )}
+    </>
+  )
+}
+
 function PnlRow({ holding, onSwapHolding, onCopyMint }: {
   holding: PnlHolding
   onSwapHolding?: (mint: string) => void
   onCopyMint?: (mint: string, symbol: string) => void
 }) {
   const hasPnl = holding.totalTrades > 0
-
   return (
-    <div className="wallet-holding-row">
-      <div className="wallet-holding-main">
-        <div className="wallet-label">{holding.symbol}</div>
-        <div className="wallet-caption">{holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-        <div className="wallet-holding-actions">
-          {onSwapHolding && (
-            <button type="button" className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
+    <DataRow
+      flush
+      title={holding.symbol}
+      meta={holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+      detail={(
+        <>
+          <span>${formatUsd(holding.valueUsd)}</span>
+          {hasPnl ? (
+            <span className={`pnl-inline ${holding.unrealizedPnlUsd >= 0 ? 'profit' : 'loss'}`}>
+              {formatPnl(holding.unrealizedPnlUsd)} {formatPct(holding.unrealizedPnlPct)}
+            </span>
+          ) : (
+            holding.currentPriceUsd >= 0.01 ? <span className="pnl-price">@ ${formatUsd(holding.currentPriceUsd)}</span> : null
           )}
-          {onCopyMint && (
-            <button type="button" className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
-          )}
-        </div>
-      </div>
-      <div className="wallet-holding-value">
-        <div>${formatUsd(holding.valueUsd)}</div>
-        {hasPnl ? (
-          <div className={`pnl-inline ${holding.unrealizedPnlUsd >= 0 ? 'profit' : 'loss'}`}>
-            {formatPnl(holding.unrealizedPnlUsd)}
-            <span className="pnl-pct-sm">{formatPct(holding.unrealizedPnlPct)}</span>
-          </div>
-        ) : (
-          holding.currentPriceUsd >= 0.01 ? (
-            <div className="wallet-caption">${formatUsd(holding.currentPriceUsd)}</div>
-          ) : null
-        )}
-      </div>
-    </div>
+        </>
+      )}
+      actions={<HoldingActions mint={holding.mint} symbol={holding.symbol} onSwapHolding={onSwapHolding} onCopyMint={onCopyMint} />}
+    />
   )
 }
 
@@ -176,25 +185,17 @@ function FallbackRow({ holding, onSwapHolding, onCopyMint }: {
   onCopyMint?: (mint: string, symbol: string) => void
 }) {
   return (
-    <div className="wallet-holding-row">
-      <div className="wallet-holding-main">
-        <div className="wallet-label">{holding.symbol}</div>
-        <div className="wallet-caption">{holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-        <div className="wallet-holding-actions">
-          {onSwapHolding && (
-            <button type="button" className="wallet-inline-link" onClick={() => onSwapHolding(holding.mint)}>Sell / Swap</button>
-          )}
-          {onCopyMint && (
-            <button type="button" className="wallet-inline-link" onClick={() => onCopyMint(holding.mint, holding.symbol)}>Copy mint</button>
-          )}
-        </div>
-      </div>
-      <div className="wallet-holding-value">
-        <div>${formatUsd(holding.valueUsd)}</div>
-        {holding.priceUsd >= 0.01 ? (
-          <div className="wallet-caption">${formatUsd(holding.priceUsd)}</div>
-        ) : null}
-      </div>
-    </div>
+    <DataRow
+      flush
+      title={holding.symbol}
+      meta={holding.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+      detail={(
+        <>
+          <span>${formatUsd(holding.valueUsd)}</span>
+          {holding.priceUsd >= 0.01 ? <span className="pnl-price">@ ${formatUsd(holding.priceUsd)}</span> : null}
+        </>
+      )}
+      actions={<HoldingActions mint={holding.mint} symbol={holding.symbol} onSwapHolding={onSwapHolding} onCopyMint={onCopyMint} />}
+    />
   )
 }

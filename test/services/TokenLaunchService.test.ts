@@ -12,6 +12,7 @@ const {
   getBalanceMock,
   hasHeliusKeyMock,
   getTokenLaunchSettingsMock,
+  getTokenLaunchRuntimeSettingsMock,
   getWalletInfrastructureSettingsMock,
 } = vi.hoisted(() => ({
   mockRun: vi.fn(),
@@ -25,6 +26,7 @@ const {
   getBalanceMock: vi.fn(),
   hasHeliusKeyMock: vi.fn(),
   getTokenLaunchSettingsMock: vi.fn(),
+  getTokenLaunchRuntimeSettingsMock: vi.fn(),
   getWalletInfrastructureSettingsMock: vi.fn(),
 }))
 
@@ -49,6 +51,7 @@ vi.mock('../../electron/services/WalletService', () => ({
 
 vi.mock('../../electron/services/SettingsService', () => ({
   getTokenLaunchSettings: getTokenLaunchSettingsMock,
+  getTokenLaunchRuntimeSettings: getTokenLaunchRuntimeSettingsMock,
   getWalletInfrastructureSettings: getWalletInfrastructureSettingsMock,
 }))
 
@@ -79,6 +82,12 @@ describe('TokenLaunchService', () => {
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
       openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })
+    getTokenLaunchRuntimeSettingsMock.mockReturnValue({
+      raydium: { configId: '', quoteMint: '' },
+      meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })
     mockPrepare.mockImplementation((sql: string) => {
       if (sql.includes('INSERT INTO launched_tokens')) return { run: mockRun }
       if (sql.includes('SELECT * FROM launched_tokens WHERE id = ? OR mint = ? LIMIT 1')) {
@@ -98,7 +107,7 @@ describe('TokenLaunchService', () => {
   })
 
   it('enables configured launchpads from saved settings', () => {
-    getTokenLaunchSettingsMock.mockReturnValue({
+    getTokenLaunchRuntimeSettingsMock.mockReturnValue({
       raydium: { configId: '11111111111111111111111111111111', quoteMint: '' },
       meteora: { configId: '11111111111111111111111111111111', quoteMint: '', baseSupply: '' },
       printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },

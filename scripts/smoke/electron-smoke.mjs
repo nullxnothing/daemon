@@ -108,6 +108,22 @@ async function seedAppState(page) {
   }, { projectPath, projectName })
 }
 
+// The redesigned terminal renders an active session in the sidebar
+// (.terminal-session.active) and the live shell as .terminal-view/.terminal-mount —
+// there is no longer a .terminal-tab strip. Open a standard terminal via the
+// launcher and confirm a session appears.
+async function createStandardTerminal(page) {
+  await page.getByTitle('New tab options').click()
+  // "Standard Terminal" is disabled until a project is active; wait for it to be
+  // enabled so the click actually creates a terminal.
+  await page.waitForFunction(() => {
+    const btn = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Standard Terminal')
+    return !!btn && !btn.disabled
+  }, { timeout: 30000 })
+  await page.getByRole('button', { name: 'Standard Terminal' }).click()
+  await page.waitForSelector('.terminal-session.active', { timeout: 30000 })
+}
+
 async function waitForAppReady(page) {
   await page.waitForFunction(() => !!window.daemon, { timeout: 30000 })
   await page.waitForSelector('.titlebar', { timeout: 30000 })
@@ -271,11 +287,15 @@ async function run() {
   await page.waitForSelector('.project-tab.active', { timeout: 30000 })
 
   logStep('creating terminal')
-  await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+  // The terminal panel is open by default; only toggle when hidden so we always
+  // end in an open state regardless of the seeded default.
+  const terminalAlreadyOpen = await page.locator('.terminal-panel').isVisible().catch(() => false)
+  if (!terminalAlreadyOpen) {
+    await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
+  }
   await page.waitForSelector('.terminal-panel', { timeout: 30000 })
-  await page.getByTitle('New tab options').click()
-  await page.getByRole('button', { name: 'Standard Terminal' }).click()
-  await page.waitForSelector('.terminal-tab.active', { timeout: 30000 })
+
+  await createStandardTerminal(page)
 
   const terminalView = page.locator('.terminal-view').first()
   await terminalView.click()

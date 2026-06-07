@@ -117,7 +117,8 @@ export interface ChannelMap {
   'git:push': { input: string; output: string }
   'git:log': { input: [cwd: string, count?: number]; output: GitCommit[] }
   'git:diff': { input: [cwd: string, filePath?: string]; output: string }
-  'git:diff-staged': { input: string; output: string }
+  'git:diff-staged': { input: [cwd: string, filePath?: string]; output: string }
+  'git:discard': { input: [cwd: string, filePath: string]; output: void }
 
   // --- Claude ---
   'claude:project-mcp-all': { input: string; output: McpEntry[] }

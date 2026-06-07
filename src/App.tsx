@@ -18,6 +18,8 @@ import { useNotificationsStore } from './store/notifications'
 import { useAppActions } from './store/appActions'
 import { useOnboardingStore } from './store/onboarding'
 import { useWorkspaceProfileStore } from './store/workspaceProfile'
+import { useCapabilityPacksStore } from './store/capabilityPacks'
+import { TOOL_TO_PACK } from './constants/capabilityPacks'
 import { PanelErrorBoundary } from './components/ErrorBoundary'
 import { useUIStore } from './store/ui'
 import { useWalletStore } from './store/wallet'
@@ -43,14 +45,14 @@ const STARTUP_PRELOAD_SKIP = new Set([
   'browser',
   'dashboard',
   'image-editor',
-  'integrations',
   'zauth',
   'solana-toolbox',
   'token-launch',
   'block-scanner',
   'replay-engine',
   'wallet',
-  'spawnagents',
+  'clawpump',
+  'degentools',
   'agent-station',
   'agent-work',
 ])
@@ -58,6 +60,7 @@ const STARTUP_PRELOAD_SKIP = new Set([
 const EditorPanel = lazyNamedWithReload('editor-panel', () => import('./panels/Editor/Editor'), (module) => module.EditorPanel)
 const TerminalPanel = lazyNamedWithReload('terminal-panel', () => import('./panels/Terminal/Terminal'), (module) => module.TerminalPanel)
 const RightPanel = lazyNamedWithReload('right-panel', () => import('./panels/RightPanel/RightPanel'), (module) => module.RightPanel)
+const ConsoleDockPanel = lazyNamedWithReload('console-dock', () => import('./panels/AgentWorkbench/AgentWorkbench'), (module) => module.AgentWorkbench)
 const AgentGrid = lazyNamedWithReload('agent-grid', () => import('./panels/Terminal/AgentGrid'), (module) => module.AgentGrid)
 
 function scheduleIdleWork(callback: () => void, timeout = 2000): () => void {
@@ -141,6 +144,7 @@ function App() {
   const tourActive = useOnboardingStore((s) => s.tourActive)
   const showTourOffer = useOnboardingStore((s) => s.showTourOffer)
   const centerMode = useUIStore((s) => s.centerMode)
+  const consoleDock = useUIStore((s) => s.consoleDock)
   const drawerOpen = useWorkflowShellStore((s) => s.drawerOpen)
   const launchWizardOpen = useWorkflowShellStore((s) => s.launchWizardOpen)
   const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
@@ -157,7 +161,8 @@ function App() {
   const [appReady, setAppReady] = useState(false)
   const [bootStatus, setBootStatus] = useState('initializing workspace...')
 
-  const [showTerminal, setShowTerminal] = useState(false)
+  const [showTerminal, setShowTerminal] = useState(true)
+  const [bottomTab, setBottomTab] = useState<'terminal' | 'console'>('terminal')
   const [showShortcuts, setShowShortcuts] = useState(false)
   const { tier, isCompact, isTablet, isSmall } = useShellLayout()
 
@@ -170,7 +175,7 @@ function App() {
   useAppShortcuts({ setPaletteMode, setShowAgentLauncher, setShowExplorer: setShowExplorer, setShowRightPanel, setShowTerminal, setShowShortcuts })
 
   const centerRef = useRef<HTMLDivElement>(null)
-  const { size: terminalHeight, splitterProps } = useSplitter({
+  const { size: terminalHeight, isDragging: isTerminalDragging, splitterProps } = useSplitter({
     direction: 'vertical',
     min: 80,
     max: 99999,
@@ -178,7 +183,10 @@ function App() {
     containerRef: centerRef,
   })
 
-  const shouldShowRightPanel = showRightPanel
+  // When the Console is docked to the bottom panel the right rail collapses fully
+  // (VS Code "Move Panel" behavior) — the Console lives in the bottom dock instead.
+  const consoleAtBottom = consoleDock === 'bottom'
+  const shouldShowRightPanel = showRightPanel && !consoleAtBottom
   const canShowTerminal = showTerminal && (Boolean(activeProjectId) || projects.length > 0)
   const activeProjectName = useMemo(
     () => projects.find((project) => project.id === activeProjectId)?.name ?? null,
@@ -217,6 +225,7 @@ function App() {
         ['loading display settings...', useWalletStore.getState().loadUiSettings()],
         ['loading projects...', loadProjects(guard)],
         ['loading workspace profile...', useWorkspaceProfileStore.getState().load()],
+        ['loading capability packs...', useCapabilityPacksStore.getState().load()],
         ['restoring layout...', useUIStore.getState().loadPinnedState()],
       ]
 
@@ -392,10 +401,17 @@ function App() {
   useEffect(() => {
     if (!appReady) return
     if (lowPowerMode) return
+    const isPackEnabled = useCapabilityPacksStore.getState().isPackEnabled
     const pinnedTools = useUIStore.getState().pinnedTools
     const warmSet = [...new Set(pinnedTools)]
       .filter((toolId) => !STARTUP_PRELOAD_SKIP.has(toolId))
       .filter((toolId) => isToolVisible(toolId))
+      // Never warm a panel whose capability pack is disabled — its chunk would
+      // be fetched for a surface the user can't reach.
+      .filter((toolId) => {
+        const pack = TOOL_TO_PACK[toolId]
+        return !pack || isPackEnabled(pack)
+      })
       .slice(0, STARTUP_PRELOAD_LIMIT)
 
     const warmPanels = () => {
@@ -443,6 +459,8 @@ function App() {
         closeDrawer: () => useWorkflowShellStore.getState().closeDrawer(),
         toggleBrowserTab: () => useUIStore.getState().toggleBrowserTab(),
         toggleDashboardTab: () => useUIStore.getState().toggleDashboardTab(),
+        toggleConsoleDock: () => useUIStore.getState().toggleConsoleDock(),
+        getConsoleDock: () => useUIStore.getState().consoleDock,
         isToolVisible,
       }),
     [isToolVisible],
@@ -463,7 +481,7 @@ function App() {
           >
             View crash log
           </button>
-          <button type="button" className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)}>
+          <button type="button" className="crash-warning-dismiss" onClick={() => setCrashWarningCount(null)} aria-label="Dismiss crash warning">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -475,6 +493,7 @@ function App() {
         projects={projects}
         onAddProject={addProject}
         onRemoveProject={removeProject}
+        onOpenSearch={() => setPaletteMode('files')}
       />
 
       <div className={`main-layout main-layout--${tier}`}>
@@ -518,27 +537,58 @@ function App() {
               )}
             </div>
           )}
-          {centerMode === 'canvas' && canShowTerminal && !drawerOpen && <div className="splitter" {...splitterProps} />}
-          {centerMode === 'canvas' && canShowTerminal && !drawerOpen && (
+          {centerMode === 'canvas' && (canShowTerminal || consoleAtBottom) && !drawerOpen && <div className="splitter" {...splitterProps} />}
+          {centerMode === 'canvas' && (canShowTerminal || consoleAtBottom) && !drawerOpen && (
             <div
               id="terminal-area"
-              className="terminal-area"
+              className={`terminal-area${isTerminalDragging ? ' terminal-area--dragging' : ''}`}
               data-tour="terminal"
               style={{
                 height: isEditorCollapsed ? undefined : terminalHeight,
                 flex: isEditorCollapsed ? 1 : undefined,
               }}
             >
-              <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
-                <TerminalPanel />
-              </Suspense>
+              {consoleAtBottom && (
+                <div className="bottom-dock-tabs" role="tablist" aria-label="Bottom panel">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={bottomTab === 'terminal'}
+                    className={`bottom-dock-tab${bottomTab === 'terminal' ? ' active' : ''}`}
+                    onClick={() => setBottomTab('terminal')}
+                  >
+                    Terminal
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={bottomTab === 'console'}
+                    className={`bottom-dock-tab${bottomTab === 'console' ? ' active' : ''}`}
+                    onClick={() => setBottomTab('console')}
+                  >
+                    Console
+                  </button>
+                </div>
+              )}
+              <div className="bottom-dock-body">
+                {(!consoleAtBottom || bottomTab === 'terminal') && canShowTerminal && (
+                  <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
+                    <TerminalPanel onCollapse={() => setShowTerminal(false)} />
+                  </Suspense>
+                )}
+                {consoleAtBottom && bottomTab === 'console' && (
+                  <Suspense fallback={<PanelSkeleton className="terminal-panel" />}>
+                    <ConsoleDockPanel />
+                  </Suspense>
+                )}
+              </div>
             </div>
           )}
           <CommandDrawer />
         </div>
 
         {shouldShowRightPanel && !isTablet && !isSmall && (
-          <aside className="right-panel" data-tour="right-panel">
+          <aside className="right-panel" data-tour="right-panel" aria-label="Context panel">
             <Suspense fallback={<PanelSkeleton className="right-panel" />}>
               <RightPanel />
             </Suspense>

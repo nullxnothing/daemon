@@ -3,7 +3,9 @@ import { useUIStore } from '../../store/ui'
 import { usePluginStore } from '../../store/plugins'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useWorkflowShellStore } from '../../store/workflowShell'
-import { BUILTIN_TOOLS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
+import { useCapabilityPacksStore } from '../../store/capabilityPacks'
+import { ACTIVITY_BAR_PACKS, ACTIVITY_BAR_SLOT_TOOL_IDS } from '../../constants/capabilityPacks'
+import { BUILTIN_TOOLS, FOLDED_TOOL_IDS, TOOL_COLORS, TOOL_ICONS, TOOL_NAMES, TOOL_DND_MIME, preloadToolPanel } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
 import { DAEMON_ICON_GRADIENTS, DAEMON_SIDEBAR_ACCENT_FALLBACK } from '../../styles/daemonTheme'
 import './IconSidebar.css'
@@ -94,12 +96,31 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
   const activeWorkspaceToolId = useUIStore((s) => s.activeWorkspaceToolId)
   const pinnedTools = useUIStore((s) => s.pinnedTools)
   const isToolVisible = useWorkspaceProfileStore((s) => s.isToolVisible)
+  // Subscribe to the visibility map itself so the sidebar re-renders when a
+  // capability pack toggles its member tools on/off (isToolVisible is a stable
+  // function ref and would not trigger a re-render on its own).
+  const toolVisibility = useWorkspaceProfileStore((s) => s.toolVisibility)
   const plugins = usePluginStore((s) => s.plugins)
+  // Subscribe to the enabled-packs map so pack Activity Bar slots appear/disappear
+  // live when a pack is toggled (isPackEnabled is a stable ref on its own).
+  const enabledPacks = useCapabilityPacksStore((s) => s.enabledPacks)
+  const isPackEnabled = useCapabilityPacksStore((s) => s.isPackEnabled)
 
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const [dropZoneActive, setDropZoneActive] = useState(false)
   const [toolMenuOpen, setToolMenuOpen] = useState(false)
   const toolMenuRef = useRef<HTMLDivElement | null>(null)
+
+  // Pack-contributed Activity Bar slots: one per enabled pack with a visible
+  // primary surface, in manifest order. These render above the manual pins.
+  const packSlots = useMemo(() => {
+    return ACTIVITY_BAR_PACKS
+      .filter((pack) => isPackEnabled(pack.id))
+      .map((pack) => pack.activityBar!.toolId)
+      .filter((toolId) => isToolVisible(toolId))
+    // enabledPacks + toolVisibility are read to keep this reactive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledPacks, isPackEnabled, isToolVisible, toolVisibility])
 
   const availableTools = useMemo(() => {
     const pluginTools = plugins
@@ -113,9 +134,11 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     return [...BUILTIN_TOOLS.map((tool) => ({ id: tool.id, name: tool.name })), ...pluginTools]
       .filter((tool) => tool.id !== 'browser')
       .filter((tool) => tool.id !== 'settings')
+      .filter((tool) => !FOLDED_TOOL_IDS.has(tool.id))
+      .filter((tool) => !ACTIVITY_BAR_SLOT_TOOL_IDS.has(tool.id))
       .filter((tool) => !pinnedTools.includes(tool.id))
       .filter((tool) => isToolVisible(tool.id))
-  }, [isToolVisible, pinnedTools, plugins])
+  }, [isToolVisible, toolVisibility, pinnedTools, plugins])
 
   useEffect(() => {
     if (!toolMenuOpen) return
@@ -231,14 +254,19 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
     useUIStore.getState().unpinTool(toolId)
   }, [])
 
-  const visiblePinned = pinnedTools.filter((id) => id !== 'settings' && isToolVisible(id))
+  const visiblePinned = pinnedTools.filter((id) =>
+    id !== 'settings'
+    && !FOLDED_TOOL_IDS.has(id)
+    && !ACTIVITY_BAR_SLOT_TOOL_IDS.has(id)
+    && isToolVisible(id),
+  )
   const SettingsIcon = TOOL_ICONS.settings
   const toolStyle = (toolId: string): CSSProperties => ({
     '--tool-accent': TOOL_COLORS[toolId] ?? DAEMON_SIDEBAR_ACCENT_FALLBACK,
   } as CSSProperties)
 
   return (
-    <aside className="icon-sidebar" data-tour="sidebar">
+    <nav className="icon-sidebar" data-tour="sidebar" aria-label="Tool sidebar">
       {/* Files */}
       <button
         className={`sidebar-icon sidebar-toggle sidebar-icon--explorer ${showExplorer ? 'active' : ''}`}
@@ -258,6 +286,30 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       >
         <LauncherGlyph />
       </button>
+
+      {/* Capability pack slots — one per enabled pack, manifest-ordered. Not
+          draggable or unpinnable; they follow the pack toggle. */}
+      {packSlots.length > 0 && <div className="sidebar-divider" />}
+      {packSlots.map((toolId) => {
+        const Icon = TOOL_ICONS[toolId] ?? PLUGIN_REGISTRY[toolId]?.icon
+        const name = TOOL_NAMES[toolId] ?? PLUGIN_REGISTRY[toolId]?.name ?? toolId
+        if (!Icon) return null
+        const isActive = activeWorkspaceToolId === toolId
+        return (
+          <button
+            key={`pack-${toolId}`}
+            className={`sidebar-icon sidebar-icon--pack ${isActive ? 'active' : ''}`}
+            style={toolStyle(toolId)}
+            onClick={() => handlePinnedToolClick(toolId)}
+            onMouseEnter={() => preloadToolPanel(toolId)}
+            onFocus={() => preloadToolPanel(toolId)}
+            title={name}
+            aria-label={name}
+          >
+            <Icon size={18} />
+          </button>
+        )
+      })}
 
       {/* Pinned tools — draggable + drop targets */}
       {visiblePinned.length > 0 && <div className="sidebar-divider" />}
@@ -380,6 +432,6 @@ export function IconSidebar({ showExplorer, onToggleExplorer, onOpenAgentLaunche
       >
         <ToolsGlyph />
       </button>
-    </aside>
+    </nav>
   )
 }

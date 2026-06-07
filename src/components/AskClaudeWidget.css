@@ -5,16 +5,16 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-glass);
-  border-radius: 6px;
-  box-shadow: var(--shadow-float), var(--glow-green-ambient);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-float);
   overflow: hidden;
 }
 
 .ask-claude-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s5);
   background: var(--s2);
 }
@@ -26,15 +26,15 @@
   align-items: center;
   justify-content: center;
   font-size: var(--fs-11);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--bg);
   background: var(--green);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .ask-claude-title {
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
 }
 
@@ -48,7 +48,7 @@
   font-size: var(--fs-16);
   color: var(--t3);
   line-height: 1;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
 }
 
 .ask-claude-close:hover {
@@ -56,7 +56,7 @@
 }
 
 .ask-claude-context {
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--bg);
   border-bottom: 1px solid var(--s5);
 }
@@ -73,8 +73,8 @@
 
 .ask-claude-quick {
   display: flex;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s5);
 }
 
@@ -84,8 +84,8 @@
   font-size: var(--fs-10);
   color: var(--t2);
   background: var(--s3);
-  border-radius: 4px;
-  transition: all 0.15s;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-normal);
 }
 
 .ask-claude-quick-btn:hover {
@@ -95,18 +95,18 @@
 
 .ask-claude-input-row {
   display: flex;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
 }
 
 .ask-claude-input {
   flex: 1;
   height: 30px;
-  padding: 0 10px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-12);
   background: var(--s2);
   border: 1px solid var(--s5);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: var(--t1);
 }
 
@@ -121,13 +121,13 @@
 
 .ask-claude-send {
   height: 30px;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--bg);
   background: var(--green);
-  border-radius: 4px;
-  transition: all 0.15s;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-normal);
 }
 
 .ask-claude-send:hover:not(:disabled) {
@@ -140,7 +140,7 @@
 }
 
 .ask-claude-warning {
-  padding: 6px 12px 10px;
+  padding: var(--space-xs) var(--space-md) var(--space-sm);
   font-size: var(--fs-10);
   color: var(--amber);
   text-align: center;

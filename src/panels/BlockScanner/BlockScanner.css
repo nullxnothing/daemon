@@ -9,8 +9,8 @@
 .scanner-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s1);
   border-bottom: 1px solid var(--s3);
   flex-shrink: 0;
@@ -18,25 +18,29 @@
 
 .scanner-nav-btns {
   display: flex;
-  gap: 2px;
+  gap: var(--space-xs);
 }
 
 .scanner-nav-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 28px; /* TODO: token */
+  height: 28px; /* TODO: token */
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--r);
   color: var(--t2);
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background var(--transition-fast) ease;
 }
 
 .scanner-nav-btn:hover:not(:disabled) {
   background: var(--s3);
+}
+
+.scanner-nav-btn:active:not(:disabled) {
+  background: var(--s4);
 }
 
 .scanner-nav-btn:disabled {
@@ -47,26 +51,30 @@
 /* Cluster switcher */
 .scanner-cluster-btns {
   display: flex;
-  gap: 2px;
+  gap: var(--space-xs);
   background: var(--s2);
-  border-radius: 4px;
-  padding: 2px;
+  border-radius: var(--r);
+  padding: var(--space-xs);
 }
 
 .scanner-cluster-btn {
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
   color: var(--t3);
   font-size: var(--fs-10);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .scanner-cluster-btn:hover {
   color: var(--t2);
+}
+
+.scanner-cluster-btn:active {
+  color: var(--t1);
 }
 
 .scanner-cluster-btn--active {
@@ -78,48 +86,68 @@
 .scanner-search-row {
   flex: 1;
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
 .scanner-search {
   flex: 1;
-  padding: 5px 8px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--s4);
-  border-radius: 4px;
+  border-radius: var(--r);
   color: var(--t1);
   font-size: var(--fs-11);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-code);
   outline: none;
   min-width: 0;
-  transition: border-color 0.12s ease;
+  transition: border-color var(--transition-fast) ease;
 }
 
-.scanner-search:focus {
+.scanner-search:focus-visible {
   border-color: var(--green-dim);
+  box-shadow: var(--focus-ring);
 }
 
 .scanner-search::placeholder {
   color: var(--t4);
 }
 
+.scanner-input-status {
+  padding: var(--space-xs) var(--panel-pad-x);
+  border-bottom: 1px solid var(--s3);
+  background: var(--s1);
+  color: var(--green);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+  line-height: 1.35;
+}
+
+.scanner-input-status--error {
+  color: var(--red);
+  background: var(--red-glow);
+}
+
 .scanner-go {
-  padding: 5px 10px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s3);
   border: 1px solid var(--s4);
-  border-radius: 4px;
+  border-radius: var(--r);
   color: var(--t2);
   font-size: var(--fs-11);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.12s ease;
+  transition: all var(--transition-fast) ease;
 }
 
 .scanner-go:hover {
   background: var(--s4);
   color: var(--t1);
+}
+
+.scanner-go:active {
+  background: var(--active-overlay);
 }
 
 /* Webview area */
@@ -136,16 +164,16 @@
 
 .scanner-load-error {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  right: var(--space-lg);
+  bottom: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-sm);
   max-width: min(360px, calc(100% - 32px));
-  padding: 12px;
+  padding: var(--space-md);
   background: var(--s1);
   border: 1px solid var(--s4);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   box-shadow: var(--shadow-lg);
   color: var(--t2);
   z-index: 2;
@@ -154,21 +182,21 @@
 .scanner-load-error span {
   color: var(--t1);
   font-size: var(--fs-12);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .scanner-load-error small {
   color: var(--t3);
   font-size: var(--fs-11);
-  line-height: 1.4;
+  line-height: 1.4; /* TODO: token */
 }
 
 .scanner-load-error button {
   align-self: flex-start;
-  padding: 5px 10px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s3);
   border: 1px solid var(--s4);
-  border-radius: 4px;
+  border-radius: var(--r);
   color: var(--t1);
   font-size: var(--fs-11);
   cursor: pointer;
@@ -176,4 +204,8 @@
 
 .scanner-load-error button:hover {
   background: var(--s4);
+}
+
+.scanner-load-error button:active {
+  background: var(--active-overlay);
 }

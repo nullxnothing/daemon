@@ -1,16 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
 import { daemon } from '../../lib/daemonBridge'
 import { useAppActions } from '../../store/appActions'
 import { useUIStore } from '../../store/ui'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
 import { Button } from '../../components/Button'
-import { Badge, Card, MetricCard, StatusDot } from '../../components/Panel'
+import { StatusDot } from '../../components/Panel'
+import { getProductSurface, getSurfacesForIntegration, type ProductSurfaceDefinition } from '../../constants/productSurfaces'
 import type { EnvFile, WalletListEntry } from '../../types/daemon'
 import type { IdlePaidCallReceipt, IdleRegistryStatus, IdleResource } from '../../../electron/shared/types'
 import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
 import { INTEGRATION_CATEGORIES, INTEGRATION_REGISTRY, type IntegrationCategory, type IntegrationDefinition } from './registry'
 import { runIntegrationAction, type IntegrationActionResult } from './actionRunner'
-import { resolveIntegrationStatus, summarizeRegistry, type IntegrationContext, type IntegrationStatusSummary } from './status'
+import { resolveIntegrationStatus, type IntegrationContext, type IntegrationStatusSummary } from './status'
 import {
   buildFirstSolanaAgentFile,
   buildFirstSolanaAgentReadme,
@@ -600,7 +601,7 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
   return (
     <div className="icc-requirements">
       {summary.requirements.map((requirement) => (
-        <Card key={`${requirement.type}:${requirement.key}`} className={`icc-requirement ${requirement.ready ? 'ready' : ''}`}>
+        <div key={`${requirement.type}:${requirement.key}`} className={`icc-requirement ${requirement.ready ? 'ready' : ''}`}>
           <StatusDot
             tone={requirement.ready ? 'success' : 'warning'}
             label={`${requirement.label}: ${requirement.ready ? 'ready' : 'needs setup'}`}
@@ -613,10 +614,95 @@ function RequirementList({ summary }: { summary: IntegrationStatusSummary }) {
             </span>
             <span className="icc-requirement-detail">{requirement.detail}</span>
           </div>
-        </Card>
+        </div>
       ))}
     </div>
   )
+}
+
+function IntegrationSurfaceRouter({
+  integration,
+  surfaces,
+  statusDisplay,
+  enabled,
+  onOpen,
+}: {
+  integration: IntegrationDefinition
+  surfaces: ProductSurfaceDefinition[]
+  statusDisplay: ReturnType<typeof getIntegrationStatusDisplay>
+  enabled: boolean
+  onOpen: (toolId: string) => void
+}) {
+  if (surfaces.length === 0) return null
+  const primarySurface = surfaces[0]
+  const liveAction = integration.actions.find((action) => action.id === integration.primaryActionId && action.kind !== 'planned')
+
+  return (
+    <div className="icc-surface-router">
+      <div className="icc-surface-router-copy">
+        <span className="icc-section-title">DAEMON surface</span>
+        <strong>{primarySurface.name}</strong>
+        <p>{primarySurface.purpose}</p>
+      </div>
+      <div className="icc-surface-router-meta">
+        <span className={`icc-surface-chip icc-surface-chip--${primarySurface.availability}`}>{primarySurface.availability}</span>
+        <span className={`icc-surface-chip icc-surface-chip--${statusDisplay.status}`}>{enabled ? statusDisplay.badgeLabel : 'off'}</span>
+      </div>
+      <div className="icc-surface-actions">
+        <button type="button" className="icc-secondary" onClick={() => onOpen(primarySurface.primaryAction.toolId)}>
+          {primarySurface.primaryAction.label}
+        </button>
+        {liveAction ? (
+          <span className="icc-surface-next">{liveAction.label}: {liveAction.description}</span>
+        ) : (
+          <span className="icc-surface-next">{primarySurface.primaryAction.detail}</span>
+        )}
+      </div>
+      {surfaces.length > 1 ? (
+        <div className="icc-surface-related">
+          {surfaces.slice(1).map((surface) => (
+            <button key={surface.id} type="button" onClick={() => onOpen(surface.primaryAction.toolId)}>
+              {surface.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+interface DisabledPreviewStep {
+  label: string
+  detail: string
+}
+
+function summarizeRequirementPreview(integration: IntegrationDefinition): string {
+  const required = integration.requirements.filter((requirement) => !requirement.optional)
+  if (required.length === 0) return 'No required project config before the first read-only action.'
+
+  const labels = required.slice(0, 3).map((requirement) => requirement.label)
+  const remaining = required.length - labels.length
+  return `${labels.join(', ')}${remaining > 0 ? `, +${remaining} more` : ''}`
+}
+
+function buildDisabledPreviewSteps(integration: IntegrationDefinition, surfaces: ProductSurfaceDefinition[]): DisabledPreviewStep[] {
+  if (integration.id === 'sendai-agent-kit') {
+    return [
+      { label: 'Apply project setup', detail: 'Install missing Solana Agent Kit packages and add RPC_URL, model key, and dev-wallet placeholders.' },
+      { label: 'Create starter files', detail: `Write ${SENDAI_FIRST_AGENT_ENTRY}, README, and a package.json run script.` },
+      { label: 'Run starter check in Terminal', detail: 'Boot the first read-only Solana agent check in a visible terminal.' },
+    ]
+  }
+
+  const liveAction = integration.actions.find((action) => action.kind !== 'planned')
+  const primarySurface = surfaces[0]
+  return [
+    { label: 'Load setup state', detail: 'Read project env, packages, wallet, MCP, and stored key readiness.' },
+    { label: 'Resolve setup', detail: summarizeRequirementPreview(integration) },
+    liveAction
+      ? { label: 'Run first safe action', detail: `${liveAction.label}: ${liveAction.description}` }
+      : { label: 'Open DAEMON surface', detail: primarySurface?.primaryAction.detail ?? 'Use the matching DAEMON workspace when this integration is ready.' },
+  ]
 }
 
 function AiSetupCallout({
@@ -826,7 +912,7 @@ function SendAiAgentLaunchpad({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-secondary" onClick={nextAction.action} disabled={nextAction.disabled}>
+        <button type="button" className="icc-primary" onClick={nextAction.action} disabled={nextAction.disabled}>
           {nextAction.label}
         </button>
       </div>
@@ -1028,7 +1114,7 @@ function IntegrationFirstWinWorkflow({
       ) : null}
 
       <div className="icc-setup-actions">
-        <button type="button" className="icc-secondary" onClick={onPrimary} disabled={busy}>
+        <button type="button" className="icc-primary" onClick={onPrimary} disabled={busy}>
           {busy ? primaryBusyLabel : primaryLabel}
         </button>
         {secondaryLabel && onSecondary ? (
@@ -1521,51 +1607,73 @@ function PhantomWalletWorkflow({
   )
 }
 
-function IntegrationCard({
+type IntegrationDotTone = 'ready' | 'setup' | 'off'
+
+function integrationDotTone(enabled: boolean, summary: IntegrationStatusSummary): IntegrationDotTone {
+  if (!enabled) return 'off'
+  return summary.status === 'ready' ? 'ready' : 'setup'
+}
+
+/**
+ * One flat browse row: status dot, monogram, body, action verb + chevron.
+ * The dot + verb carry status; no standalone status word. The expanded
+ * panel is passed as `children` and is rendered by the parent, which owns
+ * the per-integration workflow state.
+ */
+function IntegrationRow({
   integration,
   enabled,
-  selected,
+  open,
   summary,
-  onSelect,
+  showCategory,
+  onToggle,
+  rowRef,
+  children,
 }: {
   integration: IntegrationDefinition
   enabled: boolean
-  selected: boolean
+  open: boolean
   summary: IntegrationStatusSummary
-  onSelect: () => void
+  showCategory: boolean
+  onToggle: () => void
+  rowRef?: Ref<HTMLDivElement>
+  children?: ReactNode
 }) {
-  const brandClass = getBrandedIntegrationClass(integration.id)
   const statusDisplay = getIntegrationStatusDisplay(enabled, summary)
+  const dotTone = integrationDotTone(enabled, summary)
 
   return (
-    <button
-      type="button"
-      className={`icc-card ${enabled ? '' : 'icc-card--off'} ${selected ? 'selected' : ''}`}
-      data-brand={brandClass || undefined}
-      aria-pressed={selected}
-      onClick={onSelect}
-    >
-      <StatusDot
-        tone={statusDisplay.dotTone}
-        label={`${integration.name}: ${statusDisplay.badgeLabel}`}
-        className={`icc-status-dot ${statusDisplay.status}`}
-      />
-      <div className="icc-card-main">
-        <div className="icc-card-top">
-          <span className="icc-card-title-wrap">
-            <span className="icc-card-name">{integration.name}</span>
-            <span className="icc-card-category">{categoryLabel(integration.category)}</span>
+    <div ref={rowRef} className={`icc-row ${open ? 'icc-row--open' : ''} ${enabled ? '' : 'icc-row--off'}`}>
+      <button
+        type="button"
+        className="icc-row-head"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span className={`icc-row-dot icc-row-dot--${dotTone}`} aria-hidden="true" />
+        <span className="icc-row-monogram" aria-hidden="true">{integration.name.slice(0, 2).toUpperCase()}</span>
+        <span className="icc-row-body">
+          <span className="icc-row-name">{integration.name}</span>
+          <span className="icc-row-desc">
+            {showCategory ? <span className="icc-row-cat">{categoryLabel(integration.category)} · </span> : null}
+            {integration.tagline}
           </span>
-          <Badge tone={statusDisplay.badgeTone} className={`icc-status-badge ${statusDisplay.status}`}>
-            {enabled ? statusDisplay.badgeLabel : statusDisplay.actionLabel}
-          </Badge>
+        </span>
+        <span className="icc-row-action">
+          <span className={`icc-row-verb icc-row-verb--${statusDisplay.status === 'ready' && enabled ? 'open' : 'muted'}`}>
+            {statusDisplay.actionLabel}
+          </span>
+          <svg className="icc-row-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+      <div className="icc-row-expand" role="region" aria-hidden={!open}>
+        <div className="icc-row-expand-inner">
+          {open ? children : null}
         </div>
-        <span className="icc-card-tagline">{integration.tagline}</span>
-        <span className="icc-card-desc">{integration.description}</span>
-        <span className={`icc-card-setup ${statusDisplay.hasMissingRequired ? 'warning' : ''}`}>{statusDisplay.setupSummary}</span>
-        <span className="icc-card-action">{statusDisplay.actionLabel}</span>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -1573,25 +1681,13 @@ function categoryLabel(category: IntegrationCategory): string {
   return INTEGRATION_CATEGORIES.find((item) => item.id === category)?.label ?? category
 }
 
-function getBrandedIntegrationClass(integrationId: string): string {
-  if (integrationId === 'streamlock') return 'streamlock'
-  if (integrationId === 'zauth') return 'zauth'
-  if (integrationId === 'idle-protocol') return 'idle'
-  if (integrationId === 'helius') return 'helius'
-  if (integrationId === 'sendai-agent-kit') return 'sendai'
-  if (integrationId === 'spawnagents') return 'spawnagents'
-  if (integrationId === 'kausalayer') return 'kausalayer'
-  if (integrationId === 'phantom') return 'phantom'
-  if (integrationId === 'jupiter') return 'jupiter'
-  if (integrationId === 'metaplex') return 'metaplex'
-  if (integrationId === 'light-protocol') return 'light'
-  if (integrationId === 'magicblock') return 'magicblock'
-  if (integrationId === 'debridge') return 'debridge'
-  if (integrationId === 'squads') return 'squads'
-  return ''
+export interface IntegrationCommandCenterProps {
+  /** Restrict the surface to a subset of integrations (per-pack sub-view). */
+  filter?: IntegrationDefinition[]
 }
 
-export function IntegrationCommandCenter() {
+export function IntegrationCommandCenter({ filter }: IntegrationCommandCenterProps = {}) {
+  const baseRegistry = filter ?? INTEGRATION_REGISTRY
   const activeProjectPath = useUIStore((s) => s.activeProjectPath)
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const integrationCommandSelectionId = useUIStore((s) => s.integrationCommandSelectionId)
@@ -1607,6 +1703,7 @@ export function IntegrationCommandCenter() {
   const [category, setCategory] = useState<IntegrationCategory | 'all'>('all')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState('sendai-agent-kit')
+  const [openId, setOpenId] = useState<string | null>('sendai-agent-kit')
   const [envFiles, setEnvFiles] = useState<EnvFile[]>([])
   const [packageInfo, setPackageInfo] = useState<PackageInfo>(EMPTY_PACKAGE_INFO)
   const [packageJsonContent, setPackageJsonContent] = useState<string | null>(null)
@@ -1689,10 +1786,13 @@ export function IntegrationCommandCenter() {
       setActionResult(null)
 
       try {
-        const [walletRes, heliusRes, jupiterRes, infraRes] = await Promise.all([
+        const [walletRes, heliusRes, jupiterRes, clawpumpRes, degentoolsRes, meterflowRes, infraRes] = await Promise.all([
           daemon.wallet.list(),
           daemon.wallet.hasHeliusKey(),
           daemon.wallet.hasJupiterKey(),
+          daemon.clawpump.isConfigured(),
+          daemon.degentools.isConfigured(),
+          daemon.meterflow.status(),
           daemon.settings.getWalletInfrastructureSettings(),
         ])
 
@@ -1704,6 +1804,9 @@ export function IntegrationCommandCenter() {
         setSecureKeys({
           HELIUS_API_KEY: Boolean(heliusRes.ok && heliusRes.data),
           JUPITER_API_KEY: Boolean(jupiterRes.ok && jupiterRes.data),
+          CLAWPUMP_API_KEY: Boolean(clawpumpRes.ok && clawpumpRes.data),
+          DEGENTOOLS_API_KEY: Boolean(degentoolsRes.ok && degentoolsRes.data),
+          METERFLOW_API_KEY: Boolean(meterflowRes.ok && meterflowRes.data?.configured),
         })
 
         if (nextWallets.length > 0) {
@@ -1811,8 +1914,8 @@ export function IntegrationCommandCenter() {
   }), [envFiles, mcps, packageInfo, defaultWallet, secureKeys, toolchain])
 
   const enabledIntegrations = useMemo(
-    () => INTEGRATION_REGISTRY.filter((integration) => enabledIntegrationIds.has(integration.id)),
-    [enabledIntegrationIds],
+    () => baseRegistry.filter((integration) => enabledIntegrationIds.has(integration.id)),
+    [baseRegistry, enabledIntegrationIds],
   )
   const enabledStatusById = useMemo(() => {
     const statuses = new Map<string, IntegrationStatusSummary>()
@@ -1821,7 +1924,6 @@ export function IntegrationCommandCenter() {
     }
     return statuses
   }, [context, enabledIntegrations])
-  const registrySummary = useMemo(() => summarizeRegistry(enabledIntegrations, context), [context, enabledIntegrations])
   const envKeys = useMemo(() => new Set(
     envFiles.flatMap((file) => file.vars.filter((envVar) => !envVar.isComment).map((envVar) => envVar.key)),
   ), [envFiles])
@@ -1866,7 +1968,7 @@ export function IntegrationCommandCenter() {
 
   const visibleIntegrations = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return INTEGRATION_REGISTRY.filter((integration) => {
+    return baseRegistry.filter((integration) => {
       const matchesCategory = category === 'all' || integration.category === category
       const matchesSearch = !query || [
         integration.name,
@@ -1877,7 +1979,7 @@ export function IntegrationCommandCenter() {
       ].some((value) => value.toLowerCase().includes(query))
       return matchesCategory && matchesSearch
     })
-  }, [category, search])
+  }, [baseRegistry, category, search])
 
   const groupedVisible = useMemo(() => {
     if (category !== 'all') {
@@ -1893,47 +1995,113 @@ export function IntegrationCommandCenter() {
       .filter((group) => group.items.length > 0)
   }, [category, visibleIntegrations])
 
+  // When "All" with no search, sticky category headers group the flat list.
+  // When a category is selected, the rail already names it — drop per-row sublabels.
+  // Only a search that spans more than one category keeps per-row sublabels.
+  const searchSpansCategories = useMemo(() => {
+    if (!search.trim() || category !== 'all') return false
+    return new Set(visibleIntegrations.map((integration) => integration.category)).size > 1
+  }, [search, category, visibleIntegrations])
+  const showGroupHeaders = category === 'all' && !search.trim()
+
+  // Category counts honor the active search so the rail reflects what is browseable.
+  const categoryCounts = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    const matches = baseRegistry.filter((integration) => !query || [
+      integration.name,
+      integration.tagline,
+      integration.description,
+      integration.category,
+      ...integration.recommendedFor,
+    ].some((value) => value.toLowerCase().includes(query)))
+    const counts = new Map<IntegrationCategory | 'all', number>()
+    counts.set('all', matches.length)
+    for (const integration of matches) {
+      counts.set(integration.category, (counts.get(integration.category) ?? 0) + 1)
+    }
+    return counts
+  }, [baseRegistry, search])
+
+  // When the surface is filtered to a single pack, only show category rails that
+  // actually contain integrations in scope (plus "All"). The full registry shows
+  // every category.
+  const visibleCategories = useMemo(() => {
+    if (!filter) return INTEGRATION_CATEGORIES
+    const present = new Set(baseRegistry.map((integration) => integration.category))
+    return INTEGRATION_CATEGORIES.filter((item) => item.id === 'all' || present.has(item.id as IntegrationCategory))
+  }, [filter, baseRegistry])
+
+  // Status legend counts. "Off" = not enabled; ready/needs-setup come from enabled status.
+  const statusCounts = useMemo(() => {
+    let ready = 0
+    let setup = 0
+    let off = 0
+    for (const integration of baseRegistry) {
+      if (!enabledIntegrationIds.has(integration.id)) {
+        off += 1
+        continue
+      }
+      const summary = enabledStatusById.get(integration.id)
+      if (summary?.status === 'ready') ready += 1
+      else setup += 1
+    }
+    return { ready, setup, off }
+  }, [baseRegistry, enabledIntegrationIds, enabledStatusById])
+
+  function toggleOpenRow(id: string) {
+    setSelectedId(id)
+    setOpenId((current) => (current === id ? null : id))
+    setActionResult(null)
+  }
+
   useEffect(() => {
     if (!integrationCommandSelectionId) return
     const targetId = INTEGRATION_SELECTION_ALIASES.get(integrationCommandSelectionId) ?? integrationCommandSelectionId
-    const target = INTEGRATION_REGISTRY.find((integration) => integration.id === targetId)
+    const target = baseRegistry.find((integration) => integration.id === targetId)
     if (target) {
       setCategory('all')
       setSearch('')
       setSelectedId(targetId)
+      setOpenId(targetId)
       setActionResult(null)
     }
     setIntegrationCommandSelectionId(null)
-  }, [integrationCommandSelectionId, setIntegrationCommandSelectionId])
+  }, [integrationCommandSelectionId, setIntegrationCommandSelectionId, baseRegistry])
 
-  const selectedIntegration = visibleIntegrations.find((integration) => integration.id === selectedId) ?? visibleIntegrations[0] ?? INTEGRATION_REGISTRY[0]
+  const activeId = openId ?? selectedId
+  const selectedIntegration = baseRegistry.find((integration) => integration.id === activeId)
+    ?? visibleIntegrations[0]
+    ?? baseRegistry[0]
+    ?? INTEGRATION_REGISTRY[0]
   const selectedIntegrationEnabled = enabledIntegrationIds.has(selectedIntegration.id)
   const selectedSummary = selectedIntegrationEnabled
     ? enabledStatusById.get(selectedIntegration.id) ?? resolveIntegrationStatus(selectedIntegration, context)
     : EMPTY_INTEGRATION_STATUS
-  const selectedBrandClass = selectedIntegrationEnabled ? getBrandedIntegrationClass(selectedIntegration.id) : ''
   const selectedStatusDisplay = getIntegrationStatusDisplay(selectedIntegrationEnabled, selectedSummary)
+  const selectedSurfaces = useMemo(() => {
+    const surfaces = getSurfacesForIntegration(selectedIntegration.id)
+    const directSurface = selectedIntegration.toolId ? getProductSurface(selectedIntegration.toolId) : null
+    if (!directSurface || surfaces.some((surface) => surface.id === directSurface.id)) return surfaces
+    return [directSurface, ...surfaces]
+  }, [selectedIntegration.id, selectedIntegration.toolId])
+  const disabledPreviewSteps = useMemo(
+    () => buildDisabledPreviewSteps(selectedIntegration, selectedSurfaces),
+    [selectedIntegration, selectedSurfaces],
+  )
 
-  const detailScrollRef = useRef<HTMLElement | null>(null)
-  const heroRef = useRef<HTMLDivElement | null>(null)
-  const [heroPinned, setHeroPinned] = useState(false)
+  const browsePaneRef = useRef<HTMLDivElement | null>(null)
+  const openRowRef = useRef<HTMLDivElement | null>(null)
 
+  // Ease a newly-opened row into view so its expanded body is visible.
   useEffect(() => {
-    const root = detailScrollRef.current
-    const target = heroRef.current
-    if (!root || !target) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setHeroPinned(entry.intersectionRatio < 0.18),
-      { root, threshold: [0, 0.18, 0.5, 1] },
-    )
-    observer.observe(target)
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    detailScrollRef.current?.scrollTo({ top: 0 })
-    setHeroPinned(false)
-  }, [selectedIntegration.id])
+    if (!openId) return
+    const row = openRowRef.current
+    if (!row) return
+    const frame = requestAnimationFrame(() => {
+      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [openId])
 
   const streamlockRunCommand = buildScriptRunCommand(projectPackageManager, STREAMLOCK_STARTER_SCRIPT)
   const metaplexRunCommand = buildScriptRunCommand(projectPackageManager, METAPLEX_STARTER_SCRIPT)
@@ -2025,7 +2193,11 @@ export function IntegrationCommandCenter() {
       if (action.id === 'open-env') openWorkspaceTool('env')
       else if (action.id === 'open-wallet') openWorkspaceTool('wallet')
       else if (action.id === 'open-token-launch') openWorkspaceTool('token-launch')
-      else if (action.id === 'open-spawnagents-panel') openWorkspaceTool('spawnagents')
+      else if (action.id === 'open-clawpump-panel') openWorkspaceTool('clawpump')
+      else if (action.id === 'open-degentools-panel') openWorkspaceTool('degentools')
+      else if (action.id === 'open-signalhouse-panel') openWorkspaceTool('signalhouse')
+      else if (action.id === 'open-flywheel-panel') openWorkspaceTool('flywheel')
+      else if (action.id === 'open-ricomaps-panel') openWorkspaceTool('ricomaps')
       else if (action.id === 'open-zauth-database' || action.id === 'open-zauth-provider-hub') {
         const pageId = action.id === 'open-zauth-provider-hub' ? 'provider-hub' : 'database'
         try {
@@ -2068,6 +2240,7 @@ export function IntegrationCommandCenter() {
           setRunningActionId(null)
         }
       }
+      else if (selectedIntegration.toolId) openWorkspaceTool(selectedIntegration.toolId)
       else openWorkspaceTool('solana-toolbox')
       return
     }
@@ -3313,123 +3486,172 @@ Please inspect the project, apply the safe setup work you can complete, and summ
     void daemon.shell.openExternal(selectedIntegration.docsUrl)
   }
 
+  const legend = [
+    { tone: 'ready' as const, label: 'Ready', count: statusCounts.ready },
+    { tone: 'setup' as const, label: 'Needs setup', count: statusCounts.setup },
+    { tone: 'off' as const, label: 'Off', count: statusCounts.off },
+  ]
+  const sectionTitle = category === 'all' ? 'All integrations' : categoryLabel(category)
+
   return (
     <div className="icc-shell">
-      <header className="drawer-shared-header icc-header">
-        <div className="drawer-shared-kicker icc-header-kicker">Integration Command Center</div>
-        <div className="drawer-shared-title icc-header-title">Make Solana integrations obvious before anything runs</div>
-        <p className="drawer-shared-subtitle icc-header-subtitle">
-          Review setup, safe checks, and next actions for the protocols DAEMON should help with first.
-        </p>
-      </header>
+      <aside className="icc-rail" aria-label="Integration categories">
+        <div className="icc-rail-head">
+          <span className="icc-rail-kicker">Integrations</span>
+          <h1 className="icc-rail-title">Browse &amp; connect</h1>
+          <p className="icc-rail-sub">Wire a protocol into DAEMON, then run a safe first check.</p>
+        </div>
 
-      <section className="icc-metrics" aria-label="Integration readiness summary">
-        <MetricCard label="Enabled" value={enabledIntegrationIds.size} size="compact" />
-        <MetricCard label="Ready" value={registrySummary.ready} tone="success" size="compact" />
-        <MetricCard label="Partial" value={registrySummary.partial} tone="warn" size="compact" />
-        <MetricCard label="Safe checks" value={registrySummary.safeActions} tone="info" size="compact" />
-      </section>
-
-      <div className="icc-toolbar">
-        <input
-          className="icc-search"
-          value={search}
-          placeholder="Search integrations, actions, protocols..."
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <div className="icc-filter-row" role="tablist" aria-label="Integration categories">
-          {INTEGRATION_CATEGORIES.map((item) => (
+        <nav className="icc-rail-nav">
+          {visibleCategories.map((item) => (
             <button
               key={item.id}
               type="button"
-              className={`icc-filter ${category === item.id ? 'active' : ''}`}
-              onClick={() => setCategory(item.id)}
+              className={`icc-rail-item ${category === item.id ? 'active' : ''}`}
+              onClick={() => {
+                setCategory(item.id)
+                setOpenId(null)
+                setActionResult(null)
+              }}
+              aria-current={category === item.id}
+              aria-label={item.label}
             >
-              {item.label}
+              <span className="icc-rail-item-name">{item.label}</span>
+              <span className="icc-rail-item-count" aria-hidden="true">{categoryCounts.get(item.id) ?? 0}</span>
             </button>
           ))}
-        </div>
-      </div>
+        </nav>
 
-      <main className="icc-layout">
-        <section className="icc-list" aria-label="Integrations">
-          {groupedVisible.map((group) => (
-            <div key={group.id} className="icc-list-group">
-              <div className="icc-list-group-header">
-                <span className="icc-list-group-label">{group.label}</span>
-                <span className="icc-list-group-count">{group.items.length}</span>
-              </div>
-              {group.items.map((integration) => (
-                <IntegrationCard
-                  key={integration.id}
-                  integration={integration}
-                  enabled={enabledIntegrationIds.has(integration.id)}
-                  selected={integration.id === selectedIntegration.id}
-                  summary={enabledStatusById.get(integration.id) ?? EMPTY_INTEGRATION_STATUS}
-                  onSelect={() => {
-                    setSelectedId(integration.id)
-                    setActionResult(null)
-                  }}
-                />
-              ))}
-            </div>
+        <div className="icc-rail-legend" aria-label="Status legend">
+          <span className="icc-rail-legend-title">Status</span>
+          {legend.map((entry) => (
+            <span key={entry.tone} className="icc-rail-legend-row">
+              <span className={`icc-row-dot icc-row-dot--${entry.tone}`} aria-hidden="true" />
+              <span className="icc-rail-legend-label">{entry.label}</span>
+              <span className="icc-rail-legend-count">{entry.count}</span>
+            </span>
           ))}
-          {visibleIntegrations.length === 0 && (
-            <div className="icc-empty">No integrations match this filter.</div>
-          )}
-        </section>
+        </div>
+      </aside>
 
-        <aside
-          ref={detailScrollRef}
-          className={`icc-detail ${selectedBrandClass ? 'icc-detail--brand' : ''}`}
-          data-brand={selectedBrandClass || undefined}
-          aria-label={`${selectedIntegration.name} details`}
-        >
-          <div className="icc-detail-heading">
-            <span className="icc-detail-kicker">{categoryLabel(selectedIntegration.category)}</span>
-            <h2>{selectedIntegration.name}</h2>
+      <section className="icc-browse" aria-label="Integrations">
+        <header className="icc-browse-head">
+          <div className="icc-browse-titles">
+            <h2 className="icc-browse-title">{sectionTitle}</h2>
+            <span className="icc-browse-count">{visibleIntegrations.length}</span>
+          </div>
+          <button
+            type="button"
+            className="icc-rescan"
+            onClick={() => {
+              setEnabledIntegrationIds((current) => new Set(current))
+              setActionResult(null)
+            }}
+            disabled={loading}
+          >
+            {loading ? 'Scanning...' : 'Re-scan'}
+          </button>
+        </header>
+
+        <div className="icc-browse-search">
+          <input
+            className="icc-search"
+            value={search}
+            placeholder="Search integrations, protocols, best-for..."
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setOpenId(null)
+            }}
+          />
+        </div>
+
+        <div ref={browsePaneRef} className="icc-browse-list">
+          {groupedVisible.map((group) => (
+            <div key={group.id} className="icc-browse-group">
+              {showGroupHeaders ? (
+                <div className="icc-group-header">
+                  <span className="icc-group-label">{group.label}</span>
+                  <span className="icc-group-rule" aria-hidden="true" />
+                  <span className="icc-group-count">{group.items.length}</span>
+                </div>
+              ) : null}
+              {group.items.map((integration) => {
+                const enabled = enabledIntegrationIds.has(integration.id)
+                const open = openId === integration.id
+                return (
+                  <IntegrationRow
+                    key={integration.id}
+                    integration={integration}
+                    enabled={enabled}
+                    open={open}
+                    summary={enabledStatusById.get(integration.id) ?? EMPTY_INTEGRATION_STATUS}
+                    showCategory={searchSpansCategories}
+                    onToggle={() => toggleOpenRow(integration.id)}
+                    rowRef={open ? openRowRef : undefined}
+                  >
+          <div className="icc-expand-lead">
+            <span className="icc-expand-kicker">{categoryLabel(selectedIntegration.category)}</span>
             <p>{selectedIntegration.description}</p>
           </div>
 
-          <div className={`icc-detail-pin ${heroPinned ? 'visible' : ''}`} aria-hidden={!heroPinned}>
-            <span className="icc-detail-pin-glyph" aria-hidden="true">
-              {selectedIntegration.name.charAt(0)}
-            </span>
-            <div className="icc-detail-pin-copy">
-              <span className="icc-detail-pin-kicker">{categoryLabel(selectedIntegration.category)}</span>
-              <span className="icc-detail-pin-name">{selectedIntegration.name}</span>
+          <div className="icc-expand-grid">
+            <div className="icc-expand-setup">
+              {!selectedIntegrationEnabled ? (
+                <div className="icc-detail-section icc-integration-off">
+                  <div className="icc-section-title">After enable</div>
+                  <div className="icc-step-list icc-step-list--compact">
+                    {disabledPreviewSteps.map((step, index) => (
+                      <div key={step.label} className="icc-step icc-step--preview">
+                        <span className="icc-step-index">{index + 1}</span>
+                        <div className="icc-step-main">
+                          <strong>{step.label}</strong>
+                          <p>{step.detail}</p>
+                        </div>
+                        <span className="icc-status-badge off">preview</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="icc-detail-section">
+                  <div className="icc-section-title">Setup</div>
+                  <RequirementList summary={selectedSummary} />
+                </div>
+              )}
             </div>
-            <Badge
-              tone={selectedStatusDisplay.badgeTone}
-              className={`icc-status-badge ${selectedStatusDisplay.status}`}
-            >
-              {selectedStatusDisplay.badgeLabel}
-            </Badge>
+
+            <aside className="icc-expand-aside">
+              <div className="icc-detail-section">
+                <div className="icc-section-title">Best for</div>
+                <div className="icc-tags">
+                  {selectedIntegration.recommendedFor.map((item) => <span key={item}>{item}</span>)}
+                </div>
+              </div>
+              <div className="icc-aside-actions">
+                {selectedIntegrationEnabled ? (
+                  <Button type="button" variant="primary" size="md" onClick={() => void handleRunAction(selectedIntegration.primaryActionId ?? selectedIntegration.actions[0]?.id ?? '')}>
+                    {selectedStatusDisplay.actionLabel}
+                  </Button>
+                ) : (
+                  <Button type="button" variant="primary" size="md" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
+                    Enable integration
+                  </Button>
+                )}
+                {selectedIntegrationEnabled && detailShortcut ? (
+                  <Button type="button" variant="secondary" size="md" onClick={detailShortcut.onClick}>{detailShortcut.label}</Button>
+                ) : null}
+                <button type="button" className="icc-docs-link" onClick={openDocs}>Open docs →</button>
+              </div>
+            </aside>
           </div>
 
-          {!selectedIntegrationEnabled ? (
-            <div className="icc-detail-section icc-integration-off" ref={heroRef}>
-              <div className="icc-section-title">Disabled</div>
-              <p>
-                This integration is available but off by default. Enable it when this project actually needs the setup checks, MCP route, or partner-specific actions.
-              </p>
-              <Button type="button" variant="primary" size="md" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
-                Enable integration
-              </Button>
-            </div>
-          ) : (
-            <div className="icc-detail-section" ref={heroRef}>
-              <div className="icc-section-title">Setup</div>
-              <RequirementList summary={selectedSummary} />
-            </div>
-          )}
-
-          <div className="icc-detail-section">
-            <div className="icc-section-title">Best for</div>
-            <div className="icc-tags">
-              {selectedIntegration.recommendedFor.map((item) => <span key={item}>{item}</span>)}
-            </div>
-          </div>
+          <IntegrationSurfaceRouter
+            integration={selectedIntegration}
+            surfaces={selectedSurfaces}
+            statusDisplay={selectedStatusDisplay}
+            enabled={selectedIntegrationEnabled}
+            onOpen={openWorkspaceTool}
+          />
 
           {selectedIntegrationEnabled && selectedInstallCommand && !GUIDED_WORKFLOW_INTEGRATIONS.has(selectedIntegration.id) && (
             <div className="icc-install">
@@ -3885,7 +4107,7 @@ Please inspect the project, apply the safe setup work you can complete, and summ
                 onSetup={() => void handleSelectedAiSetup()}
               />
               <div className="icc-actions">
-                {selectedIntegration.actions.map((action) => (
+                {selectedIntegration.actions.filter((action) => action.kind !== 'planned').map((action) => (
                   <button
                     key={action.id}
                     type="button"
@@ -3901,6 +4123,26 @@ Please inspect the project, apply the safe setup work you can complete, and summ
                   </button>
                 ))}
               </div>
+              {selectedIntegration.actions.some((action) => action.kind === 'planned') ? (
+                <div className="icc-planned-actions">
+                  <span className="icc-section-title">Preview only</span>
+                  {selectedIntegration.actions.filter((action) => action.kind === 'planned').map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      className="icc-action icc-action--planned"
+                      onClick={() => void handleRunAction(action.id)}
+                      disabled={runningActionId === action.id}
+                    >
+                      <span className="icc-action-main">
+                        <span>{runningActionId === action.id ? 'Running...' : action.label}</span>
+                        <small><span className="icc-preview-label">Preview only</span>{action.description}</small>
+                      </span>
+                      <RiskPill risk={action.risk} />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -3916,25 +4158,24 @@ Please inspect the project, apply the safe setup work you can complete, and summ
             </div>
           )}
 
-          <div className="icc-footer-actions">
-            <Button type="button" variant="secondary" size="sm" onClick={openDocs}>Open docs</Button>
+          <div className="icc-expand-footer">
             {selectedIntegrationEnabled ? (
-              <Button type="button" variant="secondary" size="sm" onClick={() => setIntegrationEnabled(selectedIntegration.id, false)}>
+              <button type="button" className="icc-disable-link" onClick={() => setIntegrationEnabled(selectedIntegration.id, false)}>
                 Disable integration
-              </Button>
-            ) : (
-              <Button type="button" variant="primary" size="sm" onClick={() => setIntegrationEnabled(selectedIntegration.id, true)}>
-                Enable integration
-              </Button>
-            )}
-            {detailShortcut ? (
-              <Button type="button" variant="primary" size="sm" onClick={detailShortcut.onClick}>{detailShortcut.label}</Button>
+              </button>
             ) : null}
+            {loading ? <span className="icc-loading-inline">Refreshing setup context...</span> : null}
           </div>
-
-          {loading && <div className="icc-loading">Refreshing setup context...</div>}
-        </aside>
-      </main>
+                  </IntegrationRow>
+                )
+              })}
+            </div>
+          ))}
+          {visibleIntegrations.length === 0 && (
+            <div className="icc-empty">No integrations match this search.</div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

@@ -2,6 +2,8 @@ import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
 import os from 'node:os'
 import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
+import { defaultEnabledPacks, CORE_PACK_IDS } from '../shared/packManifest'
+import * as SecureKey from './SecureKeyService'
 
 export interface RaydiumLaunchpadSettings {
   configId: string
@@ -17,6 +19,10 @@ export interface MeteoraLaunchpadSettings {
 export interface PrintrLaunchpadSettings {
   apiBaseUrl: string
   apiKey: string
+  apiKeyConfigured?: boolean
+  apiKeyHint?: string
+  apiKeySource?: 'secure' | 'env' | 'none'
+  apiKeyAction?: 'keep' | 'replace' | 'clear'
   quotePath: string
   createPath: string
   chain: string
@@ -129,8 +135,12 @@ export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
 }
 
-const DEFAULT_PINNED_TOOLS = ['git', 'settings', 'activity']
+// The 5 capability-pack host panels — pinned by default so they're one click
+// away in the activity bar after consolidation.
+const PACK_HOST_PINS = ['solana-toolbox', 'wallet', 'token-launch', 'daemon-ai', 'signalhouse']
+const DEFAULT_PINNED_TOOLS = ['git', ...PACK_HOST_PINS, 'activity', 'settings']
 const PRO_PIN_MIGRATION_KEY = 'pinned_tools_pro_default_added'
+const PACK_HOST_PIN_MIGRATION_KEY = 'pinned_tools_pack_hosts_added'
 const UI_RECOVERY_KEYS = [
   'layout_center_mode',
   'layout_right_panel_tab',
@@ -188,11 +198,47 @@ export function setWorkspaceProfile(profile: WorkspaceProfile): void {
   setJsonSetting('workspace_profile', safe)
 }
 
-export function getPinnedTools(): string[] {
-  const pinnedTools = sanitizePinnedTools(getJsonSetting<unknown>('pinned_tools', DEFAULT_PINNED_TOOLS))
-  if (getBooleanSetting(PRO_PIN_MIGRATION_KEY, false)) return pinnedTools
+export function getEnabledPacks(): Record<string, boolean> {
+  const stored = getJsonSetting<Record<string, boolean> | null>('enabled_packs', null)
+  const defaults = defaultEnabledPacks()
+  if (!stored || typeof stored !== 'object') return defaults
+  // Merge over defaults so newly added packs default to enabled.
+  const merged: Record<string, boolean> = { ...defaults }
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === 'boolean') merged[key] = value
+  }
+  // Core packs are always enabled regardless of stored state.
+  for (const packId of CORE_PACK_IDS) merged[packId] = true
+  return merged
+}
 
-  setBooleanSetting(PRO_PIN_MIGRATION_KEY, true)
+export function setEnabledPacks(packs: Record<string, boolean>): void {
+  if (!packs || typeof packs !== 'object') throw new Error('Invalid enabled packs')
+  const safe: Record<string, boolean> = {}
+  for (const [key, value] of Object.entries(packs)) {
+    if (typeof value === 'boolean') safe[key] = value
+  }
+  for (const packId of CORE_PACK_IDS) safe[packId] = true
+  setJsonSetting('enabled_packs', safe)
+}
+
+export function getPinnedTools(): string[] {
+  let pinnedTools = sanitizePinnedTools(getJsonSetting<unknown>('pinned_tools', DEFAULT_PINNED_TOOLS))
+
+  // One-time, non-destructive: add the pack-host pins to existing users so the
+  // consolidated panels are discoverable without wiping their custom pins.
+  if (!getBooleanSetting(PACK_HOST_PIN_MIGRATION_KEY, false)) {
+    const missing = PACK_HOST_PINS.filter((id) => !pinnedTools.includes(id))
+    if (missing.length > 0) {
+      pinnedTools = [...pinnedTools, ...missing]
+      setJsonSetting('pinned_tools', pinnedTools)
+    }
+    setBooleanSetting(PACK_HOST_PIN_MIGRATION_KEY, true)
+  }
+
+  if (!getBooleanSetting(PRO_PIN_MIGRATION_KEY, false)) {
+    setBooleanSetting(PRO_PIN_MIGRATION_KEY, true)
+  }
   return pinnedTools
 }
 
@@ -268,6 +314,7 @@ const DEFAULT_TOKEN_LAUNCH_SETTINGS: TokenLaunchSettings = {
 
 const BASEDBID_MIN_MARKET_CAP = 11_000
 const BASEDBID_MAX_MARKET_CAP = 10_000_000
+const PRINTR_API_KEY_NAME = 'PRINTR_API_KEY'
 
 const DEFAULT_WALLET_INFRASTRUCTURE_SETTINGS: WalletInfrastructureSettings = {
   cluster: 'devnet',
@@ -287,6 +334,52 @@ function normalizePreferredWallet(value: unknown): WalletInfrastructureSettings[
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function getSecureKeyHint(keyName: string): string {
+  try {
+    return SecureKey.listKeys().find((entry) => entry.key_name === keyName)?.hint ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function getOptionalSecureKey(keyName: string): string {
+  try {
+    return SecureKey.getKey(keyName)?.trim() ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function getPrintrApiKey(): string {
+  return getOptionalSecureKey(PRINTR_API_KEY_NAME) || normalizeText(process.env.PRINTR_API_KEY)
+}
+
+function getPrintrApiKeyMeta(): Pick<PrintrLaunchpadSettings, 'apiKeyConfigured' | 'apiKeyHint' | 'apiKeySource'> {
+  const secureKey = getOptionalSecureKey(PRINTR_API_KEY_NAME)
+  if (secureKey) {
+    return {
+      apiKeyConfigured: true,
+      apiKeyHint: getSecureKeyHint(PRINTR_API_KEY_NAME),
+      apiKeySource: 'secure',
+    }
+  }
+
+  const envKey = normalizeText(process.env.PRINTR_API_KEY)
+  if (envKey) {
+    return {
+      apiKeyConfigured: true,
+      apiKeyHint: 'env',
+      apiKeySource: 'env',
+    }
+  }
+
+  return {
+    apiKeyConfigured: false,
+    apiKeyHint: '',
+    apiKeySource: 'none',
+  }
 }
 
 function assertPublicKey(value: string, fieldName: string): void {
@@ -351,6 +444,24 @@ function validateOptionalHttpsUrlExceptLocal(value: string, fieldName: string): 
 
 export function getTokenLaunchSettings(): TokenLaunchSettings {
   const value = getJsonSetting<TokenLaunchSettings>('token_launch_settings', DEFAULT_TOKEN_LAUNCH_SETTINGS)
+  const legacyPrintrApiKey = normalizeText(value?.printr?.apiKey)
+  if (legacyPrintrApiKey) {
+    try {
+      SecureKey.storeKey(PRINTR_API_KEY_NAME, legacyPrintrApiKey)
+    } catch {
+      // Scrub legacy plaintext even when the OS keyring is unavailable.
+    }
+    setTokenLaunchSettings({
+      ...value,
+      printr: {
+        ...value.printr,
+        apiKey: '',
+        apiKeyAction: 'keep',
+      },
+    })
+  }
+
+  const apiKeyMeta = getPrintrApiKeyMeta()
   return {
     raydium: {
       configId: normalizeText(value?.raydium?.configId),
@@ -363,7 +474,8 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
     },
     printr: {
       apiBaseUrl: normalizeText(value?.printr?.apiBaseUrl),
-      apiKey: normalizeText(value?.printr?.apiKey),
+      apiKey: '',
+      ...apiKeyMeta,
       quotePath: normalizeText(value?.printr?.quotePath),
       createPath: normalizeText(value?.printr?.createPath),
       chain: normalizeText(value?.printr?.chain),
@@ -386,7 +498,26 @@ export function getTokenLaunchSettings(): TokenLaunchSettings {
   }
 }
 
+export function getTokenLaunchRuntimeSettings(): TokenLaunchSettings {
+  const settings = getTokenLaunchSettings()
+  return {
+    ...settings,
+    printr: {
+      ...settings.printr,
+      apiKey: getPrintrApiKey(),
+    },
+  }
+}
+
 export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
+  const printrApiKey = normalizeText(settings?.printr?.apiKey)
+  const printrApiKeyAction = settings?.printr?.apiKeyAction
+  if (printrApiKeyAction === 'clear') {
+    SecureKey.deleteKey(PRINTR_API_KEY_NAME)
+  } else if (printrApiKey) {
+    SecureKey.storeKey(PRINTR_API_KEY_NAME, printrApiKey)
+  }
+
   const next = {
     raydium: {
       configId: normalizeText(settings?.raydium?.configId),
@@ -399,7 +530,7 @@ export function setTokenLaunchSettings(settings: TokenLaunchSettings): void {
     },
     printr: {
       apiBaseUrl: normalizeText(settings?.printr?.apiBaseUrl),
-      apiKey: normalizeText(settings?.printr?.apiKey),
+      apiKey: '',
       quotePath: normalizeText(settings?.printr?.quotePath),
       createPath: normalizeText(settings?.printr?.createPath),
       chain: normalizeText(settings?.printr?.chain),

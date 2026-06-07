@@ -1,4 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import {
+  BLOCK_SCANNER_HANDOFF_EVENT,
+  BLOCK_SCANNER_HANDOFF_KEY,
+  consumeSurfaceHandoff,
+  type BlockScannerHandoff,
+} from '../../lib/surfaceHandoffs'
 import './BlockScanner.css'
 
 interface WebviewElement extends HTMLElement {
@@ -16,6 +23,9 @@ const CLUSTERS = [
 ] as const
 
 type Cluster = typeof CLUSTERS[number]['value']
+type ScannerInputKind = 'account' | 'transaction'
+
+const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]+$/
 
 function clusterBase(cluster: Cluster): string {
   if (cluster === 'mainnet') return 'https://orbmarkets.io'
@@ -32,11 +42,42 @@ function txUrl(cluster: Cluster, sig: string): string {
   return `https://orbmarkets.io/tx/${sig}?cluster=${cluster}`
 }
 
+function shortValue(value: string): string {
+  if (value.length <= 16) return value
+  return `${value.slice(0, 8)}...${value.slice(-6)}`
+}
+
+function inputFromExplorerUrl(value: string): string {
+  try {
+    const url = new URL(value)
+    const parts = url.pathname.split('/').filter(Boolean)
+    return parts[parts.length - 1] ?? value
+  } catch {
+    return value
+  }
+}
+
+function classifyScannerInput(value: string): { kind: ScannerInputKind; value: string } | { error: string } {
+  const candidate = inputFromExplorerUrl(value.trim())
+  if (!BASE58_RE.test(candidate)) {
+    return { error: 'Paste a base58 Solana address, token mint, program ID, or transaction signature.' }
+  }
+  if (candidate.length >= 64 && candidate.length <= 96) return { kind: 'transaction', value: candidate }
+  if (candidate.length >= 32 && candidate.length <= 44) return { kind: 'account', value: candidate }
+  return { error: 'Use a 32-44 char address/mint/program ID or a 64-96 char transaction signature.' }
+}
+
+function normalizeCluster(value: string | undefined, fallback: Cluster): Cluster {
+  return CLUSTERS.some((cluster) => cluster.value === value) ? value as Cluster : fallback
+}
+
 export default function BlockScanner() {
   const [cluster, setCluster] = useState<Cluster>('mainnet')
   const [search, setSearch] = useState('')
   const [url, setUrl] = useState(() => clusterBase('mainnet'))
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [inputIssue, setInputIssue] = useState<string | null>(null)
+  const [lastInputHint, setLastInputHint] = useState<string | null>(null)
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const webviewRef = useRef<WebviewElement | null>(null)
@@ -46,19 +87,34 @@ export default function BlockScanner() {
     setUrl(target)
   }, [])
 
-  const handleSearch = () => {
-    const q = search.trim()
+  const inspectValue = useCallback((rawValue: string, targetCluster = cluster) => {
+    const q = rawValue.trim()
+    setInputIssue(null)
     if (!q) {
-      navigate(clusterBase(cluster))
+      setCluster(targetCluster)
+      navigate(clusterBase(targetCluster))
+      setLastInputHint(null)
+      setSearch('')
       return
     }
-    // Tx signatures are 87-88 base58 chars, addresses are 32-44
-    if (q.length > 60) {
-      navigate(txUrl(cluster, q))
-    } else {
-      navigate(addressUrl(cluster, q))
+    const input = classifyScannerInput(q)
+    if ('error' in input) {
+      setInputIssue(input.error)
+      setLastInputHint(null)
+      return
     }
+    setCluster(targetCluster)
+    if (input.kind === 'transaction') {
+      navigate(txUrl(targetCluster, input.value))
+    } else {
+      navigate(addressUrl(targetCluster, input.value))
+    }
+    setLastInputHint(`Opened ${input.kind === 'transaction' ? 'transaction' : 'account'} ${shortValue(input.value)}`)
     setSearch('')
+  }, [cluster, navigate])
+
+  const handleSearch = () => {
+    inspectValue(search, cluster)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -113,6 +169,21 @@ export default function BlockScanner() {
       wv.removeEventListener('did-stop-loading', onStopLoading)
     }
   }, [])
+
+  useEffect(() => {
+    const applyHandoff = (handoff: BlockScannerHandoff | null) => {
+      if (!handoff?.value) return
+      inspectValue(handoff.value, normalizeCluster(handoff.cluster, cluster))
+    }
+
+    applyHandoff(consumeSurfaceHandoff<BlockScannerHandoff>(BLOCK_SCANNER_HANDOFF_KEY))
+
+    const onHandoff = (event: Event) => {
+      applyHandoff((event as CustomEvent<BlockScannerHandoff>).detail)
+    }
+    window.addEventListener(BLOCK_SCANNER_HANDOFF_EVENT, onHandoff)
+    return () => window.removeEventListener(BLOCK_SCANNER_HANDOFF_EVENT, onHandoff)
+  }, [cluster, inspectValue])
 
   const webviewProps = {
     ref: webviewRef as React.Ref<HTMLElement>,
@@ -169,16 +240,41 @@ export default function BlockScanner() {
         <div className="scanner-search-row">
           <input
             className="scanner-search"
-            placeholder="Address or tx signature..."
+            placeholder="Wallet, mint, program ID, tx signature, or explorer URL"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setInputIssue(null)
+            }}
             onKeyDown={handleKeyDown}
+            aria-invalid={Boolean(inputIssue)}
+            aria-describedby="scanner-input-status"
           />
           <button type="button" className="scanner-go" onClick={handleSearch}>
             {search.trim() ? 'Search' : 'Home'}
           </button>
         </div>
       </div>
+
+      {(inputIssue || lastInputHint) && (
+        <div
+          id="scanner-input-status"
+          className={`scanner-input-status${inputIssue ? ' scanner-input-status--error' : ''}`}
+          role="status"
+        >
+          {inputIssue ?? lastInputHint}
+        </div>
+      )}
+
+      <ProductSurfaceStrip
+        surfaceId="block-scanner"
+        stateLabel={loadError ? 'Load issue' : 'Explorer'}
+        setupLabel={cluster}
+        tone={loadError ? 'warning' : 'info'}
+        detail={inputIssue ?? lastInputHint ?? 'Paste a wallet, mint, program ID, transaction signature, or explorer URL from the forensics journey.'}
+        primaryLabel={search.trim() ? 'Inspect input' : 'Open explorer'}
+        onPrimary={handleSearch}
+      />
 
       <div className="scanner-webview-area">
         <webview {...webviewProps} />

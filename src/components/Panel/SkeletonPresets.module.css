@@ -27,7 +27,7 @@
 .rowBody {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-sm);
   flex: 1;
   min-width: 0;
 }
@@ -50,5 +50,5 @@
 
 .cardIcon {
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-2xs);
+  margin-bottom: var(--space-xs);
 }

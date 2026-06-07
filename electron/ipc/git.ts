@@ -1,10 +1,28 @@
 import { ipcMain } from 'electron'
+import path from 'node:path'
 import simpleGit from 'simple-git'
-import { isPathSafe } from '../shared/pathValidation'
+import { isPathSafe, isPathWithinBase } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
 
 function validateCwd(cwd: string): void {
   if (!cwd || !isPathSafe(cwd)) throw new Error('Path not within a registered project')
+}
+
+function validateRepoFilePath(cwd: string, filePath: string): void {
+  if (!filePath || path.isAbsolute(filePath)) throw new Error('Invalid repository file path')
+  if (!isPathWithinBase(path.resolve(cwd, filePath), cwd)) throw new Error('Path not within repository')
+}
+
+/** DAEMON-managed worktree root for a project, a sibling dir outside the repo. */
+export function swarmRootFor(cwd: string): string {
+  return path.resolve(cwd, '..', '.daemon-worktrees')
+}
+
+/** A worktree path is only allowed inside the managed root for its project. */
+function validateWorktreePath(cwd: string, worktreePath: string): void {
+  if (!isPathWithinBase(worktreePath, swarmRootFor(cwd))) {
+    throw new Error('Worktree path escapes the managed swarm root')
+  }
 }
 
 function getErrorMessage(err: unknown): string {
@@ -55,6 +73,7 @@ export function registerGitHandlers() {
         staged: true,
         unstaged: false,
         untracked: false,
+        deleted: false,
         status: 'staged',
       })),
       ...status.modified.filter((f) => !status.staged.includes(f)).map((f) => ({
@@ -62,13 +81,23 @@ export function registerGitHandlers() {
         staged: false,
         unstaged: true,
         untracked: false,
+        deleted: false,
         status: 'modified',
+      })),
+      ...status.deleted.filter((f) => !status.staged.includes(f)).map((f) => ({
+        path: f,
+        staged: false,
+        unstaged: true,
+        untracked: false,
+        deleted: true,
+        status: 'deleted',
       })),
       ...status.not_added.map((f) => ({
         path: f,
         staged: false,
         unstaged: false,
         untracked: true,
+        deleted: false,
         status: 'untracked',
       })),
     ]
@@ -123,14 +152,30 @@ export function registerGitHandlers() {
 
   ipcMain.handle('git:diff', ipcHandler(async (_event, cwd: string, filePath?: string) => {
     validateCwd(cwd)
+    if (filePath) validateRepoFilePath(cwd, filePath)
     const git = simpleGit(cwd)
-    return filePath ? git.diff([filePath]) : git.diff()
+    return filePath ? git.diff(['--', filePath]) : git.diff()
   }))
 
-  ipcMain.handle('git:diff-staged', ipcHandler(async (_event, cwd: string) => {
+  ipcMain.handle('git:diff-staged', ipcHandler(async (_event, cwd: string, filePath?: string) => {
     validateCwd(cwd)
+    if (filePath) validateRepoFilePath(cwd, filePath)
     const git = simpleGit(cwd)
-    return git.diff(['--cached'])
+    return filePath ? git.diff(['--cached', '--', filePath]) : git.diff(['--cached'])
+  }))
+
+  ipcMain.handle('git:discard', ipcHandler(async (_event, cwd: string, filePath: string) => {
+    validateCwd(cwd)
+    validateRepoFilePath(cwd, filePath)
+    const git = simpleGit(cwd)
+    const status = await git.status()
+    const normalized = filePath.replace(/\\/g, '/')
+    const isUntracked = status.not_added.includes(normalized)
+    if (isUntracked) {
+      await git.raw(['clean', '-fd', '--', filePath])
+      return
+    }
+    await git.raw(['restore', '--worktree', '--', filePath])
   }))
 
   ipcMain.handle('git:checkout', ipcHandler(async (_event, cwd: string, branch: string) => {
@@ -202,4 +247,55 @@ export function registerGitHandlers() {
       message: entry.message,
     }))
   }))
+
+  // --- worktrees (parallel agent swarms) ---
+
+  ipcMain.handle('git:worktree-add', ipcHandler(async (_event, cwd: string, worktreePath: string, branch: string, base?: string) => {
+    validateCwd(cwd)
+    validateWorktreePath(cwd, worktreePath)
+    if (!branch.trim()) throw new Error('Branch name is required')
+    const git = simpleGit(cwd)
+    const args = ['worktree', 'add', '-b', branch.trim(), worktreePath]
+    if (base?.trim()) args.push(base.trim())
+    await git.raw(args)
+    return { worktreePath, branch: branch.trim() }
+  }))
+
+  ipcMain.handle('git:worktree-list', ipcHandler(async (_event, cwd: string) => {
+    validateCwd(cwd)
+    const git = simpleGit(cwd)
+    const out = await git.raw(['worktree', 'list', '--porcelain'])
+    return parseWorktreeList(out)
+  }))
+
+  ipcMain.handle('git:worktree-remove', ipcHandler(async (_event, cwd: string, worktreePath: string) => {
+    validateCwd(cwd)
+    validateWorktreePath(cwd, worktreePath)
+    const git = simpleGit(cwd)
+    await git.raw(['worktree', 'remove', worktreePath, '--force'])
+  }))
+
+  ipcMain.handle('git:worktree-prune', ipcHandler(async (_event, cwd: string) => {
+    validateCwd(cwd)
+    const git = simpleGit(cwd)
+    await git.raw(['worktree', 'prune'])
+  }))
+}
+
+/** Parse `git worktree list --porcelain` into {path, branch, head} records. */
+function parseWorktreeList(porcelain: string): Array<{ path: string; branch: string | null; head: string | null }> {
+  const entries: Array<{ path: string; branch: string | null; head: string | null }> = []
+  let current: { path: string; branch: string | null; head: string | null } | null = null
+  for (const line of porcelain.split('\n')) {
+    if (line.startsWith('worktree ')) {
+      if (current) entries.push(current)
+      current = { path: line.slice('worktree '.length).trim(), branch: null, head: null }
+    } else if (line.startsWith('branch ') && current) {
+      current.branch = line.slice('branch '.length).replace('refs/heads/', '').trim()
+    } else if (line.startsWith('HEAD ') && current) {
+      current.head = line.slice('HEAD '.length).trim()
+    }
+  }
+  if (current) entries.push(current)
+  return entries
 }

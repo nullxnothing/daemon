@@ -2,12 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { canOpenSolscan, getSolscanTxLabel, getSolscanTxUrl } from '../../lib/solanaExplorer'
 import { describeSolanaToolboxError } from './solanaToolboxCopy'
+import { DataRow, Badge, SegmentedControl, type SegmentItem } from '../../components/Panel'
+import '../_solana/solanaSurface.css'
 
 const PULSE_CATEGORIES: Array<{ id: PulseTokenCategory; label: string }> = [
   { id: 'newly-created', label: 'New' },
   { id: 'almost-graduated', label: 'Almost Graduated' },
   { id: 'graduated', label: 'Graduated' },
 ]
+
+type LaunchView = 'launchpads' | 'history' | 'pulse'
 
 const STREAMLOCK_URL = 'https://app.streamlock.fun/'
 
@@ -35,6 +39,13 @@ function formatCompactNumber(value: number | null, digits = 1) {
   }).format(value)
 }
 
+function launchStatusTone(status: string): 'success' | 'danger' | 'warning' | 'neutral' {
+  if (status === 'confirmed' || status === 'active') return 'success'
+  if (status === 'failed') return 'danger'
+  if (status === 'pending') return 'warning'
+  return 'neutral'
+}
+
 export function TokenLaunchSection({
   refreshNonce = 0,
   embedded = false,
@@ -58,6 +69,7 @@ export function TokenLaunchSection({
   const [cluster, setCluster] = useState<WalletInfrastructureSettings['cluster']>('devnet')
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [view, setView] = useState<LaunchView>('launchpads')
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -113,212 +125,178 @@ export function TokenLaunchSection({
 
   const liveLaunchpads = launchpads.filter((launchpad) => launchpad.enabled)
 
+  const refresh = () => {
+    onRefreshRequested?.()
+    void reload()
+  }
+
+  const viewItems: Array<SegmentItem<LaunchView>> = [
+    { id: 'launchpads', label: 'Launchpads' },
+    { id: 'history', label: 'History' },
+    { id: 'pulse', label: 'Pulse' },
+  ]
+
   return (
-    <section className={`solana-token-launch ${embedded ? 'embedded' : ''}`}>
+    <section className="sol-section">
       {!embedded && (
-        <div className="solana-token-launch-header">
+        <div className="sol-section-head">
           <div>
-            <div className="solana-token-launch-kicker">Token Launch</div>
-            <h2 className="solana-token-launch-title">Launch with Streamlock or a live Solana adapter</h2>
-            <p className="solana-token-launch-copy">
+            <div className="sol-eyebrow">Token Launch</div>
+            <h2 className="sol-section-title">Launch with Streamlock or a live Solana adapter</h2>
+            <p className="sol-section-sub">
               Use Streamlock for the current hosted launch path, or keep using DAEMON's live in-app adapters where configured.
             </p>
           </div>
-          <div className="solana-token-launch-actions">
-            <button type="button" className="sol-btn green" onClick={openStreamlock}>Open Streamlock</button>
-            <button
-              className="sol-btn"
-              onClick={() => {
-                onRefreshRequested?.()
-                void reload()
-              }}
-            >
-              Refresh
-            </button>
+          <div className="sol-actions">
+            <button type="button" className="solx-btn solx-btn--primary" onClick={openStreamlock}>Open Streamlock</button>
+            <button type="button" className="solx-btn" onClick={refresh}>Refresh</button>
           </div>
         </div>
       )}
 
-      <div className="solana-token-launch-grid">
-        {loadError && (
-          <div className="solana-launch-state warning" role="status">
-            {loadError}
-          </div>
+      {loadError && (
+        <div className="sol-empty" role="status" style={{ color: 'var(--amber)', borderColor: 'color-mix(in srgb, var(--amber) 28%, transparent)' }}>
+          {loadError}
+        </div>
+      )}
+
+      <div className="sol-section-head">
+        <SegmentedControl
+          items={viewItems}
+          value={view}
+          onChange={setView}
+          ariaLabel="Token launch views"
+        />
+        {view === 'pulse' ? (
+          <SegmentedControl
+            items={PULSE_CATEGORIES.map((category) => ({ id: category.id, label: category.label }))}
+            value={pulseCategory}
+            onChange={setPulseCategory}
+            ariaLabel="Pulse categories"
+          />
+        ) : (
+          <button type="button" className="solx-btn solx-btn--sm" onClick={refresh}>Refresh</button>
         )}
+      </div>
 
-        <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-head">
-            <div>
-              <div className="solana-token-launch-card-title">Launchpads</div>
-              {embedded && (
-                <div className="solana-token-launch-card-copy">
-                  Streamlock is the current external launch path. Disabled or pending launchpads are hidden from this surface.
-                </div>
-              )}
-            </div>
-            {embedded && (
-              <button
-                className="sol-btn"
-                onClick={() => {
-                  onRefreshRequested?.()
-                  void reload()
-                }}
-              >
-                Refresh
-              </button>
-            )}
+      {view === 'launchpads' && (
+        <div className="sol-list">
+          <DataRow
+            flush
+            title="Streamlock"
+            meta={<Badge tone="success">Live</Badge>}
+            detail="External Streamlock launch flow. Opens the hosted Streamlock app while the in-app integration is prepared."
+            actions={<button type="button" className="solx-btn solx-btn--primary solx-btn--sm" onClick={openStreamlock}>Open</button>}
+          />
+          {liveLaunchpads.map((launchpad) => (
+            <DataRow
+              key={launchpad.id}
+              flush
+              title={launchpad.name}
+              meta={<Badge tone="success">Live</Badge>}
+              detail={launchpad.description}
+              actions={<button type="button" className="solx-btn solx-btn--sm" onClick={openLaunchWizard}>Launch</button>}
+            />
+          ))}
+        </div>
+      )}
+
+      {view === 'history' && (
+        loading ? (
+          <div className="sol-empty">Loading launch history and wallet names...</div>
+        ) : launches.length === 0 ? (
+          <div className="sol-empty">
+            No launches recorded yet. Launches appear here after DAEMON records a token creation signature.
           </div>
-          <div className="solana-launchpad-list">
-            <div className="solana-launchpad-row enabled">
-              <div className="solana-launchpad-row-main">
-                <div className="solana-launchpad-row-title">
-                  <span>Streamlock</span>
-                  <span className="solana-launchpad-badge enabled">Live</span>
-                </div>
-                <div className="solana-launchpad-row-desc">
-                  External Streamlock launch flow. Opens the hosted Streamlock app while the in-app integration is prepared.
-                </div>
-              </div>
-              <button
-                type="button"
-                className="sol-btn green"
-                onClick={openStreamlock}
-              >
-                Open
-              </button>
-            </div>
-
-            {liveLaunchpads.map((launchpad) => (
-              <div key={launchpad.id} className={`solana-launchpad-row ${launchpad.enabled ? 'enabled' : 'planned'}`}>
-                <div className="solana-launchpad-row-main">
-                  <div className="solana-launchpad-row-title">
-                    <span>{launchpad.name}</span>
-                    <span className="solana-launchpad-badge enabled">Live</span>
-                  </div>
-                  <div className="solana-launchpad-row-desc">{launchpad.description}</div>
-                </div>
-                <button
-                  className="sol-btn"
-                  onClick={openLaunchWizard}
-                >
-                  Launch
-                </button>
-              </div>
+        ) : (
+          <div className="sol-list">
+            {launches.map((launch) => (
+              <DataRow
+                key={launch.id}
+                flush
+                title={launch.symbol}
+                meta={(
+                  <>
+                    <span>{launch.name}</span>
+                    <Badge tone={launchStatusTone(launch.status)}>{launch.status}</Badge>
+                  </>
+                )}
+                detail={(
+                  <>
+                    <span>{launch.launchpad}</span>
+                    <span>{walletNames[launch.wallet_id] ?? 'Unknown wallet'}</span>
+                    <span>{formatCreatedAt(launch.created_at)}</span>
+                    <span>{truncateMiddle(launch.mint)}</span>
+                  </>
+                )}
+                actions={launch.create_signature ? (
+                  <button
+                    type="button"
+                    className="solx-btn solx-btn--sm"
+                    onClick={() => {
+                      if (canOpenSolscan(cluster)) {
+                        void window.daemon.shell.openExternal(getSolscanTxUrl(launch.create_signature!, cluster))
+                      } else {
+                        void window.daemon.env.copyValue(launch.create_signature!)
+                      }
+                    }}
+                  >
+                    {getSolscanTxLabel(cluster)}
+                  </button>
+                ) : (
+                  <button type="button" className="solx-btn solx-btn--sm" disabled>No Tx</button>
+                )}
+              />
             ))}
           </div>
-        </div>
+        )
+      )}
 
-        <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-head">
-            <div>
-              <div className="solana-token-launch-card-title">Recent Launches</div>
-              {embedded && (
-                <div className="solana-token-launch-card-copy">
-                  Wallet-linked launch history gives you the quickest handoff back into post-launch work.
-                </div>
-              )}
-            </div>
+      {view === 'pulse' && (
+        loading ? (
+          <div className="sol-empty">Loading Printr Pulse feed...</div>
+        ) : !pulseFeed || pulseFeed.tokens.length === 0 ? (
+          <div className="sol-empty">
+            Pulse feed is unavailable right now. Check network access or refresh after setting launch integrations.
           </div>
-          {loading ? (
-            <div className="solana-empty">Loading launch history and wallet names...</div>
-          ) : launches.length === 0 ? (
-            <div className="solana-empty">
-              No launches recorded yet. Launches appear here after DAEMON records a token creation signature.
-            </div>
-          ) : (
-            <div className="solana-launch-history">
-              {launches.map((launch) => (
-                <div key={launch.id} className="solana-launch-history-row">
-                  <div className="solana-launch-history-main">
-                    <div className="solana-launch-history-title">
-                      <span>{launch.symbol}</span>
-                      <span className="solana-launch-history-name">{launch.name}</span>
-                    </div>
-                    <div className="solana-launch-history-meta">
-                      <span>{launch.launchpad}</span>
-                      <span>{walletNames[launch.wallet_id] ?? 'Unknown wallet'}</span>
-                      <span>{formatCreatedAt(launch.created_at)}</span>
-                      <span className={`solana-launch-status ${launch.status}`}>{launch.status}</span>
-                    </div>
-                    <div className="solana-launch-history-mint">{truncateMiddle(launch.mint)}</div>
-                  </div>
-                  {launch.create_signature ? (
-                    <button
-                      className="sol-btn"
-                      onClick={() => {
-                        if (canOpenSolscan(cluster)) {
-                          void window.daemon.shell.openExternal(getSolscanTxUrl(launch.create_signature!, cluster))
-                        } else {
-                          void window.daemon.env.copyValue(launch.create_signature!)
-                        }
-                      }}
-                    >
-                      {getSolscanTxLabel(cluster)}
-                    </button>
-                  ) : (
-                    <button type="button" className="sol-btn" disabled>No Tx</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="solana-token-launch-card">
-          <div className="solana-token-launch-card-header">
-            <div className="solana-token-launch-card-title">Printr Pulse</div>
-            <div className="solana-pulse-tabs">
-              {PULSE_CATEGORIES.map((category) => (
-                <button
-                  key={category.id}
-                  className={`solana-pulse-tab ${pulseCategory === category.id ? 'active' : ''}`}
-                  onClick={() => setPulseCategory(category.id)}
-                  type="button"
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {loading ? (
-            <div className="solana-empty">Loading Printr Pulse feed...</div>
-          ) : !pulseFeed || pulseFeed.tokens.length === 0 ? (
-            <div className="solana-empty">
-              Pulse feed is unavailable right now. Check network access or refresh after setting launch integrations.
-            </div>
-          ) : (
-            <div className="solana-launch-history">
-              {pulseFeed.tokens.map((token) => (
-                <div key={token.id} className="solana-launch-history-row">
-                  <div className="solana-launch-history-main">
-                    <div className="solana-launch-history-title">
-                      <span>{token.symbol}</span>
-                      <span className="solana-launch-history-name">{token.name}</span>
-                      <span className="solana-launch-status active">{PULSE_CATEGORIES.find((item) => item.id === token.category)?.label ?? token.category}</span>
-                    </div>
-                    <div className="solana-launch-history-meta">
-                      <span>MC {formatCompactNumber(token.metrics.marketCapUsd)}</span>
-                      <span>Vol {formatCompactNumber(token.metrics.volume24Usd)}</span>
-                      <span>Holders {formatCompactNumber(token.metrics.holders, 0)}</span>
-                      <span>Progress {token.metrics.graduationProgress == null ? 'n/a' : `${Math.round(token.metrics.graduationProgress)}%`}</span>
-                      <span>{formatCreatedAt(token.createdAt ?? Number.NaN)}</span>
-                    </div>
-                    <div className="solana-launch-history-mint">{truncateMiddle(token.contractAddress)}</div>
-                  </div>
+        ) : (
+          <div className="sol-list">
+            {pulseFeed.tokens.map((token) => (
+              <DataRow
+                key={token.id}
+                flush
+                title={token.symbol}
+                meta={(
+                  <>
+                    <span>{token.name}</span>
+                    <Badge tone="success">{PULSE_CATEGORIES.find((item) => item.id === token.category)?.label ?? token.category}</Badge>
+                  </>
+                )}
+                detail={(
+                  <>
+                    <span>MC {formatCompactNumber(token.metrics.marketCapUsd)}</span>
+                    <span>Vol {formatCompactNumber(token.metrics.volume24Usd)}</span>
+                    <span>Holders {formatCompactNumber(token.metrics.holders, 0)}</span>
+                    <span>Progress {token.metrics.graduationProgress == null ? 'n/a' : `${Math.round(token.metrics.graduationProgress)}%`}</span>
+                    <span>{truncateMiddle(token.contractAddress)}</span>
+                  </>
+                )}
+                actions={(
                   <button
-                    className="sol-btn"
+                    type="button"
+                    className="solx-btn solx-btn--sm"
                     onClick={() => {
                       void window.daemon.shell.openExternal(`https://app.printr.money/v2/trade/${token.contractAddress}`)
                     }}
                   >
                     Open Pulse
                   </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+                )}
+              />
+            ))}
+          </div>
+        )
+      )}
     </section>
   )
 }

@@ -4,11 +4,12 @@
   justify-content: center;
   gap: var(--space-xs);
   font-family: inherit;
-  font-weight: var(--fw-semibold);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
   white-space: nowrap;
   cursor: pointer;
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border-radius: var(--r);
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
 }
 
@@ -29,14 +30,23 @@
   color: var(--t1);
 }
 
+.btn--secondary:active:not(:disabled) {
+  background: var(--active-overlay);
+}
+
 .btn--primary {
-  background: var(--accent-green);
-  border-color: color-mix(in srgb, var(--accent-green) 80%, white 20%);
-  color: var(--bg-app);
+  background: var(--btn-pri-bg);
+  border-color: var(--accent-line);
+  color: var(--btn-pri-text);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent-green) 88%, white 12%);
+  background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg));
+  border-color: color-mix(in srgb, var(--green) 50%, transparent);
+}
+
+.btn--primary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--press-overlay), var(--btn-pri-bg));
 }
 
 .btn--destructive {
@@ -50,8 +60,12 @@
   border-color: color-mix(in srgb, var(--accent-red) 44%, var(--border));
 }
 
+.btn--destructive:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-red) 22%, transparent);
+}
+
 .btn--destructive:focus-visible {
-  box-shadow: var(--focus-ring-red);
+  box-shadow: none;
   border-color: color-mix(in srgb, var(--accent-red) 54%, var(--border));
 }
 
@@ -63,6 +77,10 @@
 .btn--ghost:hover:not(:disabled) {
   background: color-mix(in srgb, var(--control-bg) 62%, transparent);
   color: var(--t1);
+}
+
+.btn--ghost:active:not(:disabled) {
+  background: var(--active-overlay);
 }
 
 /* Sizes */

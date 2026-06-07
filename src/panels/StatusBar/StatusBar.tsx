@@ -5,6 +5,8 @@ import { useWalletStore } from '../../store/wallet'
 import { useEmailStore } from '../../store/email'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useSolanaToolboxStore } from '../../store/solanaToolbox'
+import { useCapabilityPacksStore } from '../../store/capabilityPacks'
+import { OPTIONAL_PACK_IDS } from '../../constants/capabilityPacks'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useAppActions } from '../../store/appActions'
 import { useClipboard } from '../../hooks/useClipboard'
@@ -52,6 +54,7 @@ export const StatusBar = memo(function StatusBar() {
           <GitBranch />
           {showHackathon && <HackathonCountdown />}
           <TerminalCount />
+          <PackIndicator />
           <ValidatorStatus />
           <WalletRuntimeStatus />
         </div>
@@ -84,7 +87,7 @@ export const StatusBar = memo(function StatusBar() {
               title={pathCopied ? 'Copied to clipboard' : 'Copy path to clipboard'}
               aria-label={pathCopied ? 'Project path copied' : `Copy project path ${activeProjectPath}`}
             >
-              {pathCopied ? 'Copied ✓' : middleEllipsisPath(activeProjectPath)}
+              {pathCopied ? 'Copied' : middleEllipsisPath(activeProjectPath)}
             </button>
             <LiveRegion message={pathCopied ? 'Project path copied to clipboard' : ''} />
           </div>
@@ -94,6 +97,26 @@ export const StatusBar = memo(function StatusBar() {
     </div>
   )
 })
+
+function PackIndicator() {
+  // Re-render on any pack toggle by subscribing to the map.
+  const enabledPacks = useCapabilityPacksStore((s) => s.enabledPacks)
+  const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
+  const active = OPTIONAL_PACK_IDS.filter((id) => enabledPacks[id] !== false).length
+  const total = OPTIONAL_PACK_IDS.length
+
+  return (
+    <button
+      type="button"
+      className={`${styles.item} ${styles.clickable} ${styles.linkButton}`}
+      onClick={() => openWorkspaceTool('plugins')}
+      title="Manage capability packs"
+      aria-label={`${active} of ${total} capability packs active`}
+    >
+      {active}/{total} packs
+    </button>
+  )
+}
 
 function TerminalCount() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
@@ -210,10 +233,12 @@ function WalletRuntimeStatus() {
     : `Wallet runtime: ${clusterLabel}. No active wallet selected.`
 
   return (
-    <span
-      className={`${styles.item} ${styles.clickable} ${styles.walletRuntime} ${statusClass}`}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.clickable} ${styles.linkButton} ${styles.walletRuntime} ${statusClass}`}
       onClick={() => useUIStore.getState().openWorkspaceTool('wallet')}
       title={title}
+      aria-label={title}
     >
       <StatusDot
         tone={!dashboardLoaded || !activeWallet ? 'neutral' : rpcReady && signerReady === true ? 'success' : 'warning'}
@@ -225,7 +250,7 @@ function WalletRuntimeStatus() {
           {clusterLabel} · {walletLabel}
         </span>
       )}
-    </span>
+    </button>
   )
 }
 
@@ -249,13 +274,15 @@ function GitBranch() {
 
   if (!branch) return null
   return (
-    <span
-      className={`${styles.item} ${styles.branch} ${styles.clickable}`}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.branch} ${styles.clickable} ${styles.linkButton}`}
       onClick={() => useUIStore.getState().openWorkspaceTool('git')}
       title="Open Git panel"
+      aria-label={`Git branch ${branch}. Open Git panel`}
     >
       {branch}
-    </span>
+    </button>
   )
 }
 
@@ -338,14 +365,16 @@ function ClaudeStatus() {
   const label = isConnected ? 'Claude connected' : 'Claude disconnected'
 
   return (
-    <span
-      className={`${styles.item} ${styles.claudeStatus}`}
+    <button
+      type="button"
+      className={`${styles.item} ${styles.linkButton} ${styles.claudeStatus}`}
       onClick={() => { if (!isConnected) { useOnboardingStore.getState().openWizard() } }}
       title={label}
+      aria-label={label}
     >
       <StatusDot tone={isConnected ? 'success' : 'danger'} label={label} className={styles.inlineDot} />
       {!isSmall && <span className={styles.claudeLabel}>Claude</span>}
-    </span>
+    </button>
   )
 }
 

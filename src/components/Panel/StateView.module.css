@@ -53,6 +53,14 @@
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 }
 
+.retry:active {
+  background: var(--active-overlay);
+}
+
+.retry:disabled {
+  opacity: 0.5;
+}
+
 .srOnly {
   position: absolute;
   width: 1px;

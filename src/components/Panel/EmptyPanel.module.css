@@ -1,0 +1,42 @@
+.empty {
+  display: grid;
+  place-items: center;
+  gap: var(--space-sm);
+  min-height: 104px;
+  padding: var(--space-lg);
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  color: var(--t3);
+  text-align: center;
+}
+
+.label {
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--type-eyebrow-size);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--t1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+}
+
+.description {
+  max-width: 520px;
+  margin: 0;
+  color: var(--t3);
+  font-size: var(--fs-12);
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}

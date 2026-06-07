@@ -109,6 +109,15 @@
   border-color: var(--border-hover);
 }
 
+.file-explorer-action:active {
+  background: var(--active-overlay);
+}
+
+.file-explorer-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .file-explorer-action:focus-visible {
   outline: none;
   border-color: var(--focus);
@@ -122,8 +131,8 @@
 .file-search-results {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 4px 6px;
+  gap: var(--space-xs);
+  padding: 0 var(--space-xs) var(--space-sm);
 }
 
 .file-search-result {
@@ -131,14 +140,24 @@
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-md);
   background: transparent;
 }
 
 .file-search-result:hover {
   background: var(--hover-bg);
+}
+
+.file-search-result:active {
+  background: var(--active-overlay);
+}
+
+.file-search-result:focus-visible {
+  outline: none;
+  background: var(--hover-bg);
+  box-shadow: var(--focus-ring);
 }
 
 .file-search-result-name {
@@ -152,13 +171,13 @@
 }
 
 .file-search-empty {
-  padding: 12px 10px;
+  padding: var(--space-md) var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t3);
 }
 
 .file-explorer-empty {
-  padding: 16px 12px;
+  padding: var(--space-lg) var(--space-md);
   font-size: var(--fs-11);
   color: var(--t3);
 }
@@ -166,8 +185,9 @@
 .file-node {
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 27px;
+  gap: var(--space-sm);
+  height: 24px; /* TODO: token */
+  padding-right: var(--space-sm);
   font-size: var(--fs-12);
   color: var(--t2);
   cursor: pointer;
@@ -215,33 +235,31 @@
   margin-left: auto;
   min-width: 14px;
   height: 14px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-9);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: 600;
+  font-weight: var(--fw-medium);
+  background: transparent;
 }
 
 .file-git-status.staged {
-  color: var(--success);
-  background: var(--green-glow);
+  color: var(--green);
 }
 
 .file-git-status.modified {
-  color: var(--warning);
-  background: var(--amber-glow);
+  color: var(--amber);
 }
 
 .file-git-status.untracked {
-  color: var(--info);
-  background: var(--blue-glow);
+  color: var(--green-dim);
 }
 
 .file-node.directory .file-node-name {
   color: color-mix(in srgb, var(--t1) 90%, var(--t2) 10%);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .file-svg {
@@ -258,63 +276,63 @@
 }
 
 .file-svg.file .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.default .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.ts .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.js .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.json .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.md .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.css .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.html .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.image .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.yaml .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.env .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg.file.shell .file-fill-primary,
 .file-svg.file.node .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: var(--s3);
 }
 
 .file-svg .file-fold {
-  stroke: rgba(255, 255, 255, 0.22);
+  stroke: color-mix(in srgb, var(--t1) 22%, transparent);
   stroke-width: 1.1;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .file-svg .file-glyph {
-  stroke: rgba(255, 255, 255, 0.88);
+  stroke: color-mix(in srgb, var(--t1) 88%, transparent);
   stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -367,15 +385,15 @@
 }
 
 .file-svg.folder .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.04);
+  fill: var(--s2);
 }
 
 .file-svg.folder.open .file-fill-primary {
-  fill: rgba(255, 255, 255, 0.06);
+  fill: var(--s2);
 }
 
 .file-svg.folder .file-stroke {
-  stroke: rgba(255, 255, 255, 0.3);
+  stroke: color-mix(in srgb, var(--t1) 30%, transparent);
   stroke-width: 1.1;
   stroke-linecap: round;
 }
@@ -393,11 +411,11 @@
 }
 
 .file-svg.folder.accent-muted .file-stroke {
-  stroke: rgba(255, 255, 255, 0.18);
+  stroke: color-mix(in srgb, var(--t1) 18%, transparent);
 }
 
 .file-svg.folder.accent-neutral .file-stroke {
-  stroke: rgba(255, 255, 255, 0.28);
+  stroke: color-mix(in srgb, var(--t1) 28%, transparent);
 }
 
 /* Context Menu */
@@ -409,15 +427,15 @@
   background: color-mix(in srgb, var(--s1) 96%, black 4%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 4px;
+  padding: var(--space-xs);
   box-shadow: var(--shadow-float);
 }
 
 .context-menu-item {
-  height: 28px;
+  height: 28px; /* TODO: token */
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-13);
   color: var(--t2);
   border-radius: var(--radius-sm);
@@ -436,15 +454,26 @@
   color: var(--t1);
 }
 
+.context-menu-item:active {
+  background: var(--active-overlay);
+}
+
+.context-menu-item:focus-visible {
+  outline: none;
+  background: var(--hover-bg);
+  color: var(--t1);
+  box-shadow: var(--focus-ring);
+}
+
 .context-menu-item.danger:hover {
-  background: rgba(140, 74, 74, 0.2);
+  background: color-mix(in srgb, var(--red) 20%, transparent);
   color: var(--red);
 }
 
 .context-menu-sep {
   height: 1px;
   background: var(--border);
-  margin: 4px 0;
+  margin: var(--space-xs) 0;
 }
 
 /* Inline Rename / Create Input */
@@ -456,7 +485,7 @@
   border: 1px solid var(--focus);
   box-shadow: var(--focus-ring);
   border-radius: var(--radius-sm);
-  padding: 0 6px;
+  padding: 0 var(--space-sm);
   outline: none;
   width: 100%;
   font-family: var(--font-ui);

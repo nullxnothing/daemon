@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MeterflowPanel } from '../../src/panels/Meterflow/MeterflowPanel'
+import { METERFLOW_RECEIPT_HANDOFF_KEY } from '../../src/lib/surfaceHandoffs'
 
 function installDaemonBridge(overrides: Partial<Window['daemon']['meterflow']> = {}) {
   const meterflow = {
@@ -155,6 +156,7 @@ function installDaemonBridge(overrides: Partial<Window['daemon']['meterflow']> =
 
 describe('MeterflowPanel', () => {
   beforeEach(() => {
+    window.localStorage.clear()
     vi.clearAllMocks()
   })
 
@@ -207,6 +209,41 @@ describe('MeterflowPanel', () => {
     expect(meterflow.storeApiKey).toHaveBeenCalledWith('mf_key')
   })
 
+  it('offers a demo payer action when receipts are empty', async () => {
+    const meterflow = installDaemonBridge({
+      overview: vi.fn().mockResolvedValue({
+        ok: true,
+        data: {
+          status: {
+            configured: true,
+            keySource: 'secure',
+            baseUrl: 'https://www.meterflow.fun/proxy',
+            tier: 'pro',
+            balanceUsd: 10,
+            executionReady: true,
+            error: null,
+            raw: null,
+          },
+          receipts: [],
+          meters: [],
+          budgets: [],
+          agentSessions: [],
+          webhooks: [],
+          revenue: [],
+          registrySummary: null,
+          errors: [],
+          fetchedAt: 123,
+        },
+      }),
+    })
+
+    render(<MeterflowPanel />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Create demo payer' }))
+
+    expect(meterflow.createDemoWallet).toHaveBeenCalled()
+  })
+
   it('renders live receipts and opens receipt detail', async () => {
     const meterflow = installDaemonBridge()
 
@@ -223,6 +260,19 @@ describe('MeterflowPanel', () => {
     })
     expect(await screen.findByText(/rcpt_123/)).toBeInTheDocument()
     expect(screen.getByText(/amountUsd/)).toBeInTheDocument()
+  })
+
+  it('opens a queued receipt handoff', async () => {
+    const meterflow = installDaemonBridge()
+    window.localStorage.setItem(METERFLOW_RECEIPT_HANDOFF_KEY, JSON.stringify({ receiptId: 'rcpt_123456789' }))
+
+    render(<MeterflowPanel />)
+
+    await waitFor(() => {
+      expect(meterflow.getReceipt).toHaveBeenCalledWith('rcpt_123456789')
+    })
+    expect(await screen.findByText(/rcpt_123/)).toBeInTheDocument()
+    expect(window.localStorage.getItem(METERFLOW_RECEIPT_HANDOFF_KEY)).toBeNull()
   })
 
   it('runs an x402 test from the meter tab', async () => {

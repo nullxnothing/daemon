@@ -2,11 +2,9 @@
   height: 100%;
   min-height: 0;
   overflow: auto;
-  padding: 24px;
-  color: var(--text-primary, #f4f1e8);
-  background:
-    linear-gradient(180deg, rgba(249, 115, 22, 0.08), transparent 180px),
-    #090b0f;
+  padding: var(--space-xl);
+  color: var(--t1);
+  background: var(--bg);
 }
 
 .proof-pool-header-actions,
@@ -16,7 +14,7 @@
 .proof-pool-form-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .proof-pool-header-actions {
@@ -27,8 +25,8 @@
 .proof-pool-grid {
   display: grid;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  gap: 16px;
-  margin-top: 18px;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
 }
 
 .proof-pool-sidebar,
@@ -38,7 +36,7 @@
 
 .proof-pool-main {
   display: grid;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .proof-pool-badges {
@@ -47,16 +45,16 @@
 }
 
 .proof-pool-section {
-  border: 1px solid rgba(244, 241, 232, 0.12);
-  background: rgba(13, 16, 22, 0.88);
-  border-radius: 8px;
-  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--s1);
+  border-radius: 0;
+  padding: var(--space-lg);
   box-shadow: var(--shadow-md);
 }
 
 .proof-pool-sidebar {
   display: grid;
-  gap: 16px;
+  gap: var(--space-lg);
   align-content: start;
 }
 
@@ -64,32 +62,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .proof-pool-section__header h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.2;
-  font-weight: 800;
+  font-weight: var(--fw-bold);
   letter-spacing: 0;
-  color: #f4f1e8;
+  color: var(--t1);
 }
 
 .proof-pool-alert {
-  margin-top: 12px;
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  background: rgba(248, 113, 113, 0.1);
-  color: #fecaca;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 12px;
+  margin-top: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  color: var(--red);
+  border-radius: 0;
+  padding: var(--space-md) var(--space-md);
+  font-size: var(--fs-12);
 }
 
 .proof-pool-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   max-height: 360px;
   overflow: auto;
 }
@@ -97,54 +95,64 @@
 .proof-pool-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .proof-pool-filters button {
-  border: 1px solid rgba(244, 241, 232, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #9aa4b2;
-  border-radius: 7px;
-  padding: 6px 8px;
+  border: 1px solid var(--line);
+  background: var(--s2);
+  color: var(--t3);
+  border-radius: var(--r);
+  padding: var(--space-sm) var(--space-sm);
   font: inherit;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
   cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .proof-pool-filters button:hover,
 .proof-pool-filters button.is-active {
-  border-color: rgba(249, 115, 22, 0.55);
-  color: #f4f1e8;
-  background: rgba(249, 115, 22, 0.1);
+  border-color: var(--accent-line);
+  color: var(--t1);
+  background: var(--accent-fill);
+}
+
+.proof-pool-filters button:active {
+  background: var(--active-overlay);
 }
 
 .proof-pool-list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 58px;
   width: 100%;
-  border: 1px solid rgba(244, 241, 232, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  background: var(--s2);
   color: inherit;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 0;
+  padding: var(--space-md);
   text-align: left;
   cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .proof-pool-list-item:hover,
 .proof-pool-list-item.is-selected {
-  border-color: rgba(249, 115, 22, 0.55);
-  background: rgba(249, 115, 22, 0.08);
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
+}
+
+.proof-pool-list-item:active {
+  background: var(--active-overlay);
 }
 
 .proof-pool-list-item span {
   display: grid;
-  gap: 3px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -156,33 +164,33 @@
 }
 
 .proof-pool-list-item strong {
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .proof-pool-list-item small {
-  color: #9aa4b2;
-  font-size: 11px;
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .proof-pool-form {
   display: grid;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .proof-pool-partner-grid {
   display: grid;
   grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
-  gap: 16px;
+  gap: var(--space-lg);
   align-items: start;
 }
 
 .proof-pool-form label {
   display: grid;
-  gap: 5px;
+  gap: var(--space-xs);
   min-width: 0;
-  color: #9aa4b2;
-  font-size: 11px;
-  font-weight: 700;
+  color: var(--t3);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-bold);
 }
 
 .proof-pool-form-row {
@@ -199,13 +207,13 @@
 .proof-pool-image-row input {
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(244, 241, 232, 0.12);
-  background: rgba(0, 0, 0, 0.26);
-  color: #f4f1e8;
-  border-radius: 7px;
-  padding: 9px 10px;
+  border: 1px solid var(--line-2);
+  background: var(--field-bg);
+  color: var(--t1);
+  border-radius: var(--r);
+  padding: var(--space-sm) var(--space-md);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   outline: none;
 }
 
@@ -217,7 +225,7 @@
 .proof-pool-form textarea:focus,
 .proof-pool-backing-form input:focus,
 .proof-pool-image-row input:focus {
-  border-color: rgba(249, 115, 22, 0.72);
+  border-color: var(--accent-line);
   box-shadow: var(--focus-ring);
 }
 
@@ -228,22 +236,22 @@
 .proof-pool-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .proof-pool-progress {
   height: 9px;
   overflow: hidden;
-  border-radius: 999px;
-  background: rgba(244, 241, 232, 0.08);
-  margin: 14px 0;
+  border-radius: var(--r);
+  background: var(--s2);
+  margin: var(--space-md) 0;
 }
 
 .proof-pool-progress span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #f97316, #42f0ad);
+  background: var(--green);
 }
 
 .proof-pool-actions {
@@ -256,17 +264,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   white-space: nowrap;
 }
 
 .proof-pool-addresses {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-  color: #9aa4b2;
-  font-size: 11px;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .proof-pool-addresses button,
@@ -274,7 +282,7 @@
 .proof-pool-events button {
   border: 0;
   background: transparent;
-  color: #7dd3fc;
+  color: var(--blue);
   padding: 0;
   font: inherit;
   cursor: pointer;
@@ -283,82 +291,82 @@
 .proof-pool-addresses button {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .proof-pool-backing-form {
   display: grid;
   grid-template-columns: minmax(180px, 1.2fr) minmax(86px, 0.4fr) minmax(180px, 1fr) auto;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .proof-pool-table {
   display: grid;
-  gap: 6px;
+  gap: var(--space-sm);
   overflow-x: auto;
 }
 
 .proof-pool-table-row {
   display: grid;
   grid-template-columns: 54px minmax(120px, 1fr) 90px 90px 90px 110px 180px;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
   min-width: 900px;
-  border: 1px solid rgba(244, 241, 232, 0.08);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--fs-12);
 }
 
 .proof-pool-row-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .proof-pool-row-actions .btn {
   min-width: 0;
-  padding-inline: 8px;
+  padding-inline: var(--space-sm);
 }
 
 .proof-pool-table-row.is-head {
-  color: #9aa4b2;
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 10px;
-  font-weight: 800;
+  color: var(--t3);
+  background: var(--s2);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
 }
 
 .proof-pool-bottom-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .proof-pool-session-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .proof-pool-session-item {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 0.8fr) auto;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
   min-width: 0;
-  border: 1px solid rgba(244, 241, 232, 0.08);
-  border-radius: 8px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: var(--space-md);
+  background: var(--s2);
+  font-size: var(--fs-12);
 }
 
 .proof-pool-session-item span {
   display: grid;
-  gap: 3px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -370,12 +378,12 @@
 }
 
 .proof-pool-session-item small {
-  color: #9aa4b2;
+  color: var(--t3);
 }
 
 .proof-pool-events {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   max-height: 300px;
   overflow: auto;
 }
@@ -383,14 +391,14 @@
 .proof-pool-events button {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) 150px;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
   width: 100%;
-  border: 1px solid rgba(244, 241, 232, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #d8dee8;
-  border-radius: 8px;
-  padding: 9px 10px;
+  border: 1px solid var(--line);
+  background: var(--s2);
+  color: var(--t2);
+  border-radius: 0;
+  padding: var(--space-sm) var(--space-md);
   text-align: left;
 }
 
@@ -399,9 +407,9 @@
 }
 
 .proof-pool-events span {
-  color: #f97316;
-  font-size: 10px;
-  font-weight: 800;
+  color: var(--green);
+  font-size: var(--fs-10);
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
 }
 
@@ -413,22 +421,22 @@
 }
 
 .proof-pool-events strong {
-  color: #f4f1e8;
-  font-size: 12px;
+  color: var(--t1);
+  font-size: var(--fs-12);
 }
 
 .proof-pool-events small {
-  color: #9aa4b2;
-  font-size: 11px;
+  color: var(--t3);
+  font-size: var(--fs-11);
 }
 
 .proof-pool-empty {
-  border: 1px dashed rgba(244, 241, 232, 0.14);
-  border-radius: 8px;
-  padding: 18px;
-  color: #9aa4b2;
+  border: 1px dashed var(--line-2);
+  border-radius: 0;
+  padding: var(--space-lg);
+  color: var(--t3);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 @media (max-width: 1100px) {
@@ -445,7 +453,7 @@
 
 @media (max-width: 760px) {
   .proof-pool-panel {
-    padding: 14px;
+    padding: var(--space-md);
   }
 
   .proof-pool-metrics,

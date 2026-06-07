@@ -1,9 +1,24 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { INTEGRATION_REGISTRY } from '../../src/panels/IntegrationCommandCenter/registry'
 import { runIntegrationAction } from '../../src/panels/IntegrationCommandCenter/actionRunner'
 import { resolveIntegrationStatus, type IntegrationContext } from '../../src/panels/IntegrationCommandCenter/status'
 
+function stubDaemon(said: { getIdentity?: unknown; getTrust?: unknown }) {
+  const daemon = {
+    said: {
+      getIdentity: said.getIdentity ?? vi.fn(),
+      getTrust: said.getTrust ?? vi.fn(),
+    },
+    shell: { openExternal: vi.fn() },
+  }
+  vi.stubGlobal('window', { daemon })
+}
+
 describe('Integration Command Center registry', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('keeps integration ids, actions, and docs valid', () => {
     const ids = new Set<string>()
 
@@ -20,6 +35,12 @@ describe('Integration Command Center registry', () => {
         expect(actionIds.has(action.id)).toBe(false)
         actionIds.add(action.id)
         expect(action.risk).toMatch(/^(read-only|requires-confirmation|transaction)$/)
+      }
+
+      if (integration.primaryActionId) {
+        const primary = integration.actions.find((action) => action.id === integration.primaryActionId)
+        expect(primary, integration.id).toBeDefined()
+        expect(primary!.kind, integration.id).not.toBe('planned')
       }
     }
   })
@@ -55,20 +76,63 @@ describe('Integration Command Center registry', () => {
     expect(resolveIntegrationStatus(helius!, context).status).toBe('ready')
   })
 
-  it('has SpawnAgents as a native DAEMON integration with wallet requirement and panel action', () => {
-    const spawnAgents = INTEGRATION_REGISTRY.find((integration) => integration.id === 'spawnagents')
+  it('has ClawPump as a native DAEMON integration with API-key requirement and panel action', () => {
+    const clawpump = INTEGRATION_REGISTRY.find((integration) => integration.id === 'clawpump')
 
-    expect(spawnAgents).toBeDefined()
-    expect(spawnAgents!.docsUrl).toBe('https://spawnagents.fun/how')
-    expect(spawnAgents!.requirements).toContainEqual({
-      type: 'wallet',
-      key: 'default-wallet',
-      label: 'DAEMON wallet with keypair (for signing agent actions)',
+    expect(clawpump).toBeDefined()
+    expect(clawpump!.docsUrl).toBe('https://clawpump.tech/developers')
+    expect(clawpump!.requirements).toContainEqual({
+      type: 'secure-key',
+      key: 'CLAWPUMP_API_KEY',
+      label: 'ClawPump API key (cpk_...)',
     })
-    expect(spawnAgents!.actions.map((action) => action.id)).toEqual([
-      'open-spawnagents-panel',
-      'open-spawnagents-live',
+    expect(clawpump!.actions.map((action) => action.id)).toEqual([
+      'open-clawpump-panel',
+      'open-clawpump-docs',
     ])
+  })
+
+  it('has DegenTools as a native launch integration with MCP tool checks', async () => {
+    const degentools = INTEGRATION_REGISTRY.find((integration) => integration.id === 'degentools')
+
+    expect(degentools).toBeDefined()
+    expect(degentools!.category).toBe('launch')
+    expect(degentools!.docsUrl).toBe('https://degentools.co/docs')
+    expect(degentools!.installCommand).toBe('npm install -g degentools')
+    expect(degentools!.requirements).toContainEqual({
+      type: 'secure-key',
+      key: 'DEGENTOOLS_API_KEY',
+      label: 'DegenTools API key (dgt_...)',
+    })
+    expect(degentools!.actions.map((action) => action.id)).toEqual([
+      'open-degentools-panel',
+      'check-degentools-tools',
+      'open-degentools-docs',
+    ])
+
+    vi.stubGlobal('window', {
+      daemon: {
+        degentools: {
+          tools: vi.fn(async () => ({ ok: true, data: { tools: [{ name: 'generate_meme' }] } })),
+        },
+        shell: { openExternal: vi.fn() },
+      },
+    })
+
+    const context: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(),
+      walletReady: false,
+      defaultWallet: null,
+      secureKeys: { DEGENTOOLS_API_KEY: true },
+      toolchain: null,
+    }
+
+    expect(resolveIntegrationStatus(degentools!, context).status).toBe('ready')
+    const result = await runIntegrationAction('check-degentools-tools', context)
+    expect(result.status).toBe('success')
+    expect(result.title).toBe('DegenTools MCP online')
   })
 
   it('has Solflare as a wallet integration with SDK readiness', async () => {
@@ -215,5 +279,184 @@ describe('Integration Command Center registry', () => {
     expect(routeStack.status).toBe('success')
     expect(routeStack.title).toBe('IDLE execution prerequisites ready')
     expect(routeStack.items).toContain('x402 payment tooling available')
+  })
+
+  describe('SAID Protocol integration', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    const baseContext: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(),
+      walletReady: true,
+      defaultWallet: { id: 'wallet-1', name: 'Main Wallet', address: 'So11111111111111111111111111111111111111112', is_default: 1, created_at: 1, assigned_project_ids: [] },
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    it('registers SAID as an agent identity integration', () => {
+      const said = INTEGRATION_REGISTRY.find((integration) => integration.id === 'said-protocol')
+      expect(said).toBeDefined()
+      expect(said!.category).toBe('agent')
+      expect(said!.docsUrl).toBe('https://www.saidprotocol.com/docs')
+      expect(said!.installCommand).toContain('@said-protocol/agent')
+      expect(said!.requirements).toContainEqual({
+        type: 'wallet',
+        key: 'default-wallet',
+        label: 'Default DAEMON wallet (for register/verify signing)',
+      })
+      expect(said!.actions.map((action) => action.id)).toEqual([
+        'check-said-identity',
+        'open-said-directory',
+        'open-said-docs',
+        'preview-said-register',
+      ])
+      // register/verify/stake must stay gated behind confirmation, never auto-executed
+      const register = said!.actions.find((action) => action.id === 'preview-said-register')
+      expect(register!.kind).toBe('planned')
+      expect(register!.risk).toBe('requires-confirmation')
+    })
+
+    it('reports a registered, verified identity with its trust score', async () => {
+      stubDaemon({
+        getIdentity: vi.fn(async () => ({
+          ok: true,
+          data: { registered: true, name: 'DAEMON Agent', isVerified: true, pda: 'PdA1', trustScore: 80, feedbackCount: 2 },
+        })),
+        getTrust: vi.fn(async () => ({ ok: true, data: { score: 88, verified: true, staked: true, reputation: 10 } })),
+      })
+
+      const result = await runIntegrationAction('check-said-identity', baseContext)
+      expect(result.status).toBe('success')
+      expect(result.title).toBe('SAID: DAEMON Agent')
+      expect(result.detail).toContain('88/100')
+      expect(result.detail).toContain('verified')
+      expect(result.detail).toContain('staked')
+      expect(result.items).toContain('PDA PdA1')
+    })
+
+    it('treats an unregistered wallet as actionable info, not an error', async () => {
+      stubDaemon({
+        getIdentity: vi.fn(async () => ({ ok: true, data: { registered: false, wallet: baseContext.defaultWallet!.address } })),
+      })
+      const result = await runIntegrationAction('check-said-identity', baseContext)
+      expect(result.status).toBe('info')
+      expect(result.title).toBe('Not registered on SAID')
+    })
+
+    it('surfaces lookup failures as errors', async () => {
+      stubDaemon({
+        getIdentity: vi.fn(async () => ({ ok: false, error: 'network down' })),
+      })
+      const result = await runIntegrationAction('check-said-identity', baseContext)
+      expect(result.status).toBe('error')
+      expect(result.detail).toBe('network down')
+    })
+
+    it('warns when no default wallet is set', async () => {
+      stubDaemon({})
+      const result = await runIntegrationAction('check-said-identity', { ...baseContext, defaultWallet: null, walletReady: false })
+      expect(result.status).toBe('warning')
+      expect(result.title).toBe('No wallet selected')
+    })
+  })
+
+  describe('Subscriptions & Allowances integration', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    const baseContext: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(),
+      walletReady: true,
+      defaultWallet: { id: 'wallet-1', name: 'Main Wallet', address: 'So11111111111111111111111111111111111111112', is_default: 1, created_at: 1, assigned_project_ids: [] },
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    function stubAllowances(allowances: { getState?: unknown; getSubscription?: unknown }) {
+      vi.stubGlobal('window', {
+        daemon: {
+          allowances: {
+            getState: allowances.getState ?? vi.fn(),
+            getSubscription: allowances.getSubscription ?? vi.fn(),
+          },
+          shell: { openExternal: vi.fn() },
+        },
+      })
+    }
+
+    it('registers as a wallet integration with only read-only and planned actions', () => {
+      const integration = INTEGRATION_REGISTRY.find((entry) => entry.id === 'allowances')
+      expect(integration).toBeDefined()
+      expect(integration!.category).toBe('wallet')
+      expect(integration!.docsUrl).toBe('https://solana.com/docs/payments/subscriptions/overview')
+      expect(integration!.actions.map((action) => action.id)).toEqual([
+        'check-allowance-state',
+        'check-subscription-enrollment',
+        'open-subscriptions-docs',
+        'preview-grant-allowance',
+        'preview-revoke-allowance',
+      ])
+      // No signing action ships in v1: every action is read-only or a gated preview.
+      for (const action of integration!.actions) {
+        expect(action.kind === 'safe-check' || action.kind === 'setup' || action.kind === 'planned').toBe(true)
+        expect(action.risk).not.toBe('transaction')
+      }
+    })
+
+    it('reports an active delegate and cap', async () => {
+      stubAllowances({
+        getState: vi.fn(async () => ({
+          ok: true,
+          data: { tokenAccountExists: true, hasDelegate: true, delegate: 'Del1', delegatedAmount: '5000000', tokenAccount: 'Ata1' },
+        })),
+      })
+      const result = await runIntegrationAction('check-allowance-state', baseContext)
+      expect(result.status).toBe('info')
+      expect(result.title).toBe('Active allowance')
+      expect(result.detail).toContain('5000000')
+      expect(result.items).toContain('delegate Del1')
+    })
+
+    it('treats no delegate as a safe, no-allowance success', async () => {
+      stubAllowances({
+        getState: vi.fn(async () => ({ ok: true, data: { tokenAccountExists: true, hasDelegate: false, delegate: null, delegatedAmount: '0', tokenAccount: 'Ata1' } })),
+      })
+      const result = await runIntegrationAction('check-allowance-state', baseContext)
+      expect(result.status).toBe('success')
+      expect(result.title).toBe('No active allowance')
+    })
+
+    it('reports native subscription enrollment', async () => {
+      stubAllowances({
+        getSubscription: vi.fn(async () => ({ ok: true, data: { enrolled: true, subscriptionAuthority: 'Auth1' } })),
+      })
+      const result = await runIntegrationAction('check-subscription-enrollment', baseContext)
+      expect(result.status).toBe('info')
+      expect(result.title).toBe('Enrolled in native subscriptions')
+      expect(result.items).toContain('authority Auth1')
+    })
+
+    it('keeps grant and revoke as non-executable previews', async () => {
+      stubAllowances({})
+      const grant = await runIntegrationAction('preview-grant-allowance', baseContext)
+      expect(grant.title).toContain('preview only')
+      expect(grant.detail).toContain('approve-checked')
+      const revoke = await runIntegrationAction('preview-revoke-allowance', baseContext)
+      expect(revoke.status).toBe('warning')
+      expect(revoke.detail).toContain('no partial revoke')
+    })
+
+    it('warns when no default wallet is set', async () => {
+      stubAllowances({})
+      const result = await runIntegrationAction('check-allowance-state', { ...baseContext, defaultWallet: null, walletReady: false })
+      expect(result.status).toBe('warning')
+      expect(result.title).toBe('No wallet selected')
+    })
   })
 })

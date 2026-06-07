@@ -1,11 +1,3 @@
-export interface SidebarAgentWidgetConfig {
-  enabled: boolean
-  agentId: string | null
-}
-
-export const SIDEBAR_AGENT_WIDGET_EVENT = 'daemon:sidebar-agent-widget'
-
-const STORAGE_KEY = 'daemon:right-sidebar:spawn-agent-widget'
 const PANEL_STORAGE_KEY = 'daemon:right-sidebar:widgets'
 
 export type RightSidebarWidgetId =
@@ -16,11 +8,10 @@ export type RightSidebarWidgetId =
   | 'zauth'
   | 'meterflow'
   | 'ai-status'
-  | 'spawn-agent'
+  | 'clawpump'
 
 export interface RightSidebarWidgetConfig {
   enabled: Record<RightSidebarWidgetId, boolean>
-  spawnAgentId: string | null
   tokenWatchMint: string | null
 }
 
@@ -67,9 +58,9 @@ export const RIGHT_SIDEBAR_WIDGETS: Array<{
     description: 'Claude and Codex connection state without opening settings.',
   },
   {
-    id: 'spawn-agent',
-    name: 'Spawn Agent',
-    description: 'Pinned SpawnAgents profile with PnL, value, age, and win rate.',
+    id: 'clawpump',
+    name: 'ClawPump',
+    description: 'Connection state and agent count for your hosted ClawPump agents.',
   },
 ]
 
@@ -82,23 +73,17 @@ const DEFAULT_WIDGET_CONFIG: RightSidebarWidgetConfig = {
     'zauth': false,
     'meterflow': false,
     'ai-status': false,
-    'spawn-agent': false,
+    'clawpump': false,
   },
-  spawnAgentId: null,
   tokenWatchMint: null,
 }
 
 function normalizeWidgetConfig(value: Partial<RightSidebarWidgetConfig> | null | undefined): RightSidebarWidgetConfig {
-  const legacy = readSidebarAgentWidgetConfig()
   return {
     enabled: {
       ...DEFAULT_WIDGET_CONFIG.enabled,
       ...(value?.enabled ?? {}),
-      'spawn-agent': Boolean(value?.enabled?.['spawn-agent'] ?? legacy.enabled),
     },
-    spawnAgentId: typeof value?.spawnAgentId === 'string' && value.spawnAgentId.length > 0
-      ? value.spawnAgentId
-      : legacy.agentId,
     tokenWatchMint: typeof value?.tokenWatchMint === 'string' && value.tokenWatchMint.length > 0
       ? value.tokenWatchMint
       : null,
@@ -120,14 +105,7 @@ export function writeRightSidebarWidgetConfig(config: RightSidebarWidgetConfig):
   if (typeof window === 'undefined') return
   const normalized = normalizeWidgetConfig(config)
   window.localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify(normalized))
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    enabled: normalized.enabled['spawn-agent'],
-    agentId: normalized.spawnAgentId,
-  }))
   window.dispatchEvent(new CustomEvent(RIGHT_SIDEBAR_WIDGET_EVENT, { detail: normalized }))
-  window.dispatchEvent(new CustomEvent(SIDEBAR_AGENT_WIDGET_EVENT, {
-    detail: { enabled: normalized.enabled['spawn-agent'], agentId: normalized.spawnAgentId },
-  }))
 }
 
 export function setRightSidebarWidgetEnabled(widgetId: RightSidebarWidgetId, enabled: boolean): void {
@@ -138,44 +116,5 @@ export function setRightSidebarWidgetEnabled(widgetId: RightSidebarWidgetId, ena
       ...current.enabled,
       [widgetId]: enabled,
     },
-  })
-}
-
-export function readSidebarAgentWidgetConfig(): SidebarAgentWidgetConfig {
-  if (typeof window === 'undefined') return { enabled: false, agentId: null }
-
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<SidebarAgentWidgetConfig> | null
-    return {
-      enabled: Boolean(parsed?.enabled),
-      agentId: typeof parsed?.agentId === 'string' && parsed.agentId.length > 0 ? parsed.agentId : null,
-    }
-  } catch {
-    return { enabled: false, agentId: null }
-  }
-}
-
-export function writeSidebarAgentWidgetConfig(config: SidebarAgentWidgetConfig): void {
-  if (typeof window === 'undefined') return
-  const current = readRightSidebarWidgetConfig()
-  writeRightSidebarWidgetConfig({
-    ...current,
-    enabled: {
-      ...current.enabled,
-      'spawn-agent': config.enabled,
-    },
-    spawnAgentId: config.agentId,
-  })
-}
-
-export function setSidebarAgentWidgetAgent(agentId: string): void {
-  const current = readRightSidebarWidgetConfig()
-  writeRightSidebarWidgetConfig({
-    ...current,
-    enabled: {
-      ...current.enabled,
-      'spawn-agent': true,
-    },
-    spawnAgentId: agentId,
   })
 }

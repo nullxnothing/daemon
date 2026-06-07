@@ -224,6 +224,8 @@ export interface Project {
   wallet_id: string | null
   created_at: number
   last_active: number | null
+  pinned: number
+  branch: string | null
 }
 
 export interface Agent {
@@ -1111,6 +1113,257 @@ export interface RicoMapsEmbedStatus {
   error: string | null
 }
 
+export interface SaidTrustScore {
+  score: number
+  verified: boolean
+  staked: boolean
+  reputation: number | null
+}
+
+export interface SaidIdentity {
+  wallet: string
+  pda: string | null
+  owner: string | null
+  name: string | null
+  description: string | null
+  isVerified: boolean
+  image: string | null
+  twitter: string | null
+  website: string | null
+  serviceTypes: string[]
+  skills: string[]
+  reputationScore: number | null
+  feedbackCount: number | null
+  trustScore: number | null
+  passportMint: string | null
+  registered: boolean
+}
+
+export type SynapseSapCluster = 'devnet' | 'mainnet-beta'
+
+export interface SynapseSapStatus {
+  programId: string
+  cluster: SynapseSapCluster
+  rpcUrl: string
+  explorerUrl: string
+}
+
+export interface SynapseSapCapability {
+  id: string
+  description: string | null
+  protocolId: string | null
+  version: string | null
+}
+
+export interface SynapseSapAgent {
+  pda: string
+  wallet: string
+  name: string
+  description: string
+  agentId: string | null
+  agentUri: string | null
+  x402Endpoint: string | null
+  isActive: boolean
+  reputationScore: number | null
+  totalCallsServed: string | null
+  avgLatencyMs: number | null
+  uptimePercent: number | null
+  capabilities: SynapseSapCapability[]
+  protocols: string[]
+  pricingCount: number
+  createdAt: number | null
+  updatedAt: number | null
+}
+
+export interface SynapseSapDiscoveryInput {
+  cluster?: SynapseSapCluster
+  capabilityId?: string
+  protocolId?: string
+  limit?: number
+}
+
+export interface SynapseSapDiscoveryResult {
+  cluster: SynapseSapCluster
+  indexPda: string
+  query: string
+  total: number
+  agents: SynapseSapAgent[]
+}
+
+export interface SynapseSapRegisterInput {
+  walletId: string
+  agentStationId: string
+  cluster?: SynapseSapCluster
+  capabilityIds?: string[]
+  protocolIds?: string[]
+  agentUri?: string | null
+  x402Endpoint?: string | null
+}
+
+export interface SynapseSapRegisterResult {
+  cluster: SynapseSapCluster
+  wallet: string
+  agentPda: string
+  signature: string
+  explorerUrl: string
+  capabilities: string[]
+  protocols: string[]
+}
+
+// Native Solana spend permission (SPL/Token-2022 delegation) read off a wallet's token account.
+export interface AllowanceState {
+  wallet: string
+  mint: string
+  tokenAccount: string | null
+  delegate: string | null
+  delegatedAmount: string
+  hasDelegate: boolean
+  tokenAccountExists: boolean
+}
+
+// Whether a (wallet, mint) pair has approved the native Subscriptions Delegation Program authority.
+export interface SubscriptionEnrollment {
+  wallet: string
+  mint: string
+  subscriptionAuthority: string
+  tokenAccount: string | null
+  enrolled: boolean
+  delegatedAmount: string
+}
+
+// Signalhouse — non-custodial copy-trading + risk/trust layer for Solana perps on Drift.
+// DAEMON consumes only the public read API; follow/copy/delegation signing stays gated for Phase 2.
+export interface SignalhouseHealth {
+  ok: boolean
+  service: string | null
+  time: string | null
+}
+
+export interface SignalhouseStatus {
+  indexerFresh: boolean | null
+  indexerLagSeconds: number | null
+  globalExecutionPaused: boolean | null
+}
+
+export interface SignalhouseStrategy {
+  id: string
+  name: string | null
+  status: string | null
+  creatorType: string | null
+  market: string | null
+  riskLevel: string | null
+  proofOfEdge: number | null
+  proofOfEdgeVerificationStatus: string | null
+  realizedPnlUsd: number | null
+  drawdownBps: number | null
+  followerCount: number | null
+}
+
+export interface SignalhouseStrategyDetail extends SignalhouseStrategy {
+  description: string | null
+  allowedMarkets: string[]
+  maxLeverage: number | null
+  positions: SignalhousePosition[]
+}
+
+export interface SignalhouseEquityPoint {
+  at: string | null
+  equityUsd: number | null
+  realizedPnlUsd: number | null
+}
+
+export interface SignalhouseVerdict {
+  id: string
+  market: string | null
+  side: string | null
+  sizeUsd: number | null
+  approved: boolean
+  verdict: string | null
+  at: string | null
+}
+
+export interface SignalhousePosition {
+  id: string
+  market: string | null
+  side: string | null
+  sizeUsd: number | null
+  unrealizedPnlUsd: number | null
+}
+
+// --- DAEMON Flywheel Protocol ---------------------------------------------
+
+export interface FlywheelShareholder {
+  address: string
+  shareBps: number
+}
+
+export interface FlywheelConfigureInput {
+  tokenMint: string
+  label?: string
+  creatorWalletId: string
+  payoutWallet: string
+  buybackWalletId: string
+  payoutBps?: number
+  buybackBps?: number
+  buybackTargetMint?: string
+  burn?: boolean
+  /** Must be true to send the irreversible on-chain config. */
+  confirmed?: boolean
+}
+
+export interface FlywheelConfig {
+  id: string
+  tokenMint: string
+  label: string | null
+  creatorWalletId: string
+  payoutWallet: string
+  buybackWalletId: string
+  buybackWallet: string
+  payoutBps: number
+  buybackBps: number
+  buybackTargetMint: string
+  burn: boolean
+  configureSignature: string | null
+  createdAt: number
+}
+
+export interface FlywheelPreview {
+  tokenMint: string
+  shareholders: FlywheelShareholder[]
+  buybackTargetMint: string
+  /** True when an on-chain sharing config already exists for this mint. */
+  alreadyConfigured: boolean
+  /** The token's on-chain creator authority, if it could be read. */
+  onChainCreator: string | null
+  /** True when the selected creator wallet matches the on-chain creator. */
+  creatorMatches: boolean
+  warnings: string[]
+}
+
+export interface FlywheelEvent {
+  id: string
+  configId: string
+  kind: 'configure' | 'claim' | 'transfer' | 'swap' | 'burn'
+  signature: string | null
+  solAmount: string | null
+  tokenAmount: string | null
+  tokenMint: string | null
+  note: string | null
+  at: number
+}
+
+export interface FlywheelState {
+  config: FlywheelConfig
+  /** Accrued, unclaimed creator-vault fees in lamports (string). */
+  accruedLamports: string
+  /** The off-chain split recipients DAEMON routes claimed fees to. */
+  splitRecipients: FlywheelShareholder[]
+  buybackWalletSol: number
+  totalBurnedTokens: string
+  totalSwappedSol: string
+  events: FlywheelEvent[]
+}
+
 export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'
 
 export interface SolanaTransactionPreviewInput {
@@ -1127,6 +1380,8 @@ export interface SolanaTransactionPreviewInput {
   outputSymbol?: string
   inputAmount?: string
   outputAmount?: string
+  quoteId?: string
+  messageHash?: string
   slippageBps?: number
   priceImpactPct?: string
   protocol?: string
@@ -1144,6 +1399,7 @@ export interface SolanaTransactionPreview {
   warnings: string[]
   requiresAcknowledgement: boolean
   acknowledgementLabel: string | null
+  messageHash?: string
 }
 
 // --- Env ---
@@ -1422,6 +1678,10 @@ export interface SubmitExternalSignedTransactionInput {
   id: string
   publicKey: string
   signedTransactionBase64: string
+  // Which Daemon Wallet Adapter provider signed (e.g. 'solflare'); drives perk
+  // attribution in the settlement event. Defaults to 'solflare' for the legacy
+  // path when omitted.
+  signerProvider?: string
 }
 
 export interface TransferTokenInput {
@@ -2300,9 +2560,21 @@ export interface AriaMessage {
   created_at: number
 }
 
+export interface AriaSession {
+  id: string
+  title: string | null
+  project_id: string | null
+  created_at: number
+  updated_at: number
+  archived: number
+}
+
 export interface AriaResponse {
   text: string
+  /** @deprecated legacy suggestion chips; superseded by toolCalls. */
   actions: AriaAction[]
+  /** Tool calls the operator loop ran for this turn. */
+  toolCalls?: AriaToolCallRecord[]
 }
 
 export interface AriaAction {
@@ -2310,6 +2582,98 @@ export interface AriaAction {
   label: string
   value: string
 }
+
+// --- ARIA agentic operator ---
+
+export type AriaToolRiskTier = 'read' | 'write' | 'sensitive'
+export type AriaToolKindTier = 'read' | 'edit' | 'run'
+export type AriaToolCallStatus = 'pending' | 'running' | 'done' | 'error' | 'rejected'
+
+/** A persisted record of one tool the operator loop invoked. */
+export interface AriaToolCallRecord {
+  callId: string
+  name: string
+  toolKind: AriaToolKindTier
+  risk: AriaToolRiskTier
+  status: 'done' | 'error' | 'rejected'
+  summary: string
+  input: unknown
+  result?: unknown
+}
+
+/** One ordered step in the operator's plan for a turn (mockup rows 01–04). */
+export type AriaPlanStepStatus = 'pending' | 'active' | 'done'
+export interface AriaPlanStep {
+  index: number
+  title: string
+  status: AriaPlanStepStatus
+}
+
+/** Terminal decision the user can make on a proposed patch. */
+export type AriaPatchAction = 'keep' | 'run-tests' | 'discard'
+
+/**
+ * Renderer-facing projection of a {@link DaemonAiPatchProposal}: enough to render
+ * the patch summary card (title, files, +/− counts, risk) and gate the write.
+ */
+export interface AriaPatchProposalLite {
+  id: string
+  title: string
+  summary: string | null
+  files: string[]
+  unifiedDiff: string
+  additions: number
+  deletions: number
+  riskLevel: DaemonAiPatchRiskLevel
+  /** Deterministic Guard findings from ProjectSafetyService/PatchProposalService. */
+  guardFindings: DaemonAiPatchSafetyFinding[]
+  status: DaemonAiPatchProposalStatus
+}
+
+/** Snapshot of renderer/app state passed to the operator with each turn. */
+export interface AriaContextSnapshot {
+  activeProjectId: string | null
+  activeProjectPath: string | null
+  currentPanelId: string | null
+  openFilePath: string | null
+  chips: {
+    activeFile: boolean
+    projectTree: boolean
+    gitDiff: boolean
+    terminalLogs: boolean
+    walletContext: boolean
+    /** Inject approved DAEMON Memory facts into the agent prompt. Default off. */
+    projectMemory?: boolean
+  }
+}
+
+/** A renderer-applied effect requested by a tool (navigation, toggles, terminal). */
+export type AriaUiEffect =
+  | { type: 'open_tool'; toolId: string }
+  | { type: 'run_command'; commandId: string }
+  | { type: 'open_file'; path: string }
+  | { type: 'add_terminal'; terminalId: string; name: string; agentId?: string }
+  | { type: 'run_integration'; actionId: string }
+  | { type: 'set_integration_enabled'; integrationId: string; enabled: boolean }
+
+/** Streamed transcript events from the operator loop to the renderer. */
+export type AriaToolEvent =
+  | { kind: 'assistant-text'; messageId: string; text: string }
+  | {
+      kind: 'tool-call'
+      callId: string
+      name: string
+      label: string
+      toolKind: AriaToolKindTier
+      risk: AriaToolRiskTier
+      status: AriaToolCallStatus
+      meta?: string
+    }
+  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown }
+  | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
+  | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
+  | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }
+  | { kind: 'done'; messageId: string; text: string }
 
 // --- Onboarding ---
 
@@ -2451,4 +2815,121 @@ export interface ReplayVerificationResult {
   completedAt: number
   durationMs: number
   resultPath: string
+}
+
+// ---------------------------------------------------------------------------
+// DAEMON Memory v1 — structured, source-backed, user-approved project facts.
+// privacy_class reuses PrivacyDataClass from security/PrivacyGuard so Memory and
+// ProjectSafetyService share one notion of "secret"; secret classes are never injected.
+// ---------------------------------------------------------------------------
+
+export type MemoryKind =
+  | 'project_summary'
+  | 'stack'
+  | 'package_manager'
+  | 'command'
+  | 'test_command'
+  | 'build_command'
+  | 'dev_command'
+  | 'mcp_config'
+  | 'wallet_context'
+  | 'rpc_context'
+  | 'decision'
+  | 'constraint'
+  | 'do_not_touch'
+  | 'prior_failure'
+  | 'prior_fix'
+  | 'deployment_target'
+  | 'security_note'
+  | 'style_preference'
+
+export type MemoryStatus = 'suggested' | 'approved' | 'rejected' | 'archived'
+export type MemoryScope = 'project' | 'global' | 'session' | 'team'
+export type MemoryAuthor = 'user' | 'agent' | 'guard' | 'extractor' | 'check_runner'
+
+export type MemoryPrivacyClass = MemoryDataClass
+
+// Local alias kept in sync with PrivacyDataClass (security/PrivacyGuard). Declared here to
+// avoid a renderer importing from electron/security; the MemoryService cross-checks at runtime.
+export type MemoryDataClass =
+  | 'public'
+  | 'project_code'
+  | 'env_secret'
+  | 'wallet_secret'
+  | 'email_body'
+  | 'browser_content'
+  | 'personal_data'
+  | 'financial_tx'
+  | 'onchain_receipt'
+
+export interface ProjectMemory {
+  id: string
+  projectId: string | null
+  scope: MemoryScope
+  kind: MemoryKind
+  title: string
+  value: string
+  sourceType: string
+  sourceRef: string
+  confidence: number
+  status: MemoryStatus
+  privacyClass: MemoryPrivacyClass
+  tags: string[]
+  createdBy: MemoryAuthor
+  approvedBy: string | null
+  lastUsedAt: number | null
+  expiresAt: number | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface MemorySuggestionInput {
+  projectId: string | null
+  scope?: MemoryScope
+  kind: MemoryKind
+  title: string
+  value: string
+  sourceType: string
+  sourceRef: string
+  confidence?: number
+  privacyClass?: MemoryPrivacyClass
+  tags?: string[]
+  createdBy?: MemoryAuthor
+}
+
+export interface MemoryUpdateInput {
+  title?: string
+  value?: string
+  kind?: MemoryKind
+  confidence?: number
+  tags?: string[]
+}
+
+export interface MemoryContextBundle {
+  block: string
+  usedMemoryIds: string[]
+  totalChars: number
+}
+
+// ---------------------------------------------------------------------------
+// CheckRunner — discovered project checks (typecheck/test/build). Never deploy.
+// ---------------------------------------------------------------------------
+
+export type CheckKind = 'typecheck' | 'test' | 'build' | 'lint' | 'other'
+
+export interface CheckDefinition {
+  id: string
+  kind: CheckKind
+  label: string
+  command: string
+  source: 'package_script' | 'framework_default' | 'memory'
+  memoryKind: Extract<MemoryKind, 'test_command' | 'build_command'> | null
+}
+
+export interface CheckResult {
+  check: CheckDefinition
+  status: 'passed' | 'failed'
+  exitCode: number | null
+  durationMs: number
+  output: string
 }

@@ -47,9 +47,9 @@ const BUILD_LOOP = [
 ] as const
 
 function statusLabel(status: ReadinessStatus): string {
-  if (status === 'ready') return 'Ready'
-  if (status === 'warning') return 'Needs Review'
-  return 'Missing'
+  if (status === 'ready') return 'ready'
+  if (status === 'warning') return 'review'
+  return 'missing'
 }
 
 function statusClass(status: ReadinessStatus): 'live' | 'partial' | 'setup' {
@@ -333,8 +333,15 @@ export function ProjectControlCenter({
           </p>
         </div>
         <div className="solana-project-score" aria-label={`Solana readiness score ${readinessScore}%`}>
-          <span className="solana-project-score-value">{readinessScore}%</span>
-          <span className="solana-project-score-label">Ready</span>
+          <span className="solana-project-score-value">{readinessScore}<small>%</small></span>
+          <div className="solana-project-score-meter">
+            <span className="solana-project-score-cap">Ready · {readyCount}/{readiness.length} checks</span>
+            <span className="solana-project-score-seg">
+              {readiness.map((item, i) => (
+                <i key={item.id} className={i < readyCount ? 'on' : 'off'} />
+              ))}
+            </span>
+          </div>
         </div>
       </div>
 

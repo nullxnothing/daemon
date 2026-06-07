@@ -1,8 +1,12 @@
 /* Icon Sidebar */
 .icon-sidebar {
   width: var(--sidebar-w);
-  background: var(--surface-flat);
-  border-right: 1px solid color-mix(in srgb, var(--border) 86%, black 14%);
+  background:
+    radial-gradient(rgba(var(--tex-c), calc(var(--tex-a) * var(--tex-k))) 1px, transparent 1px),
+    var(--s1);
+  background-size: 15px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -30,11 +34,11 @@
 }
 
 .sidebar-icon--explorer {
-  --tool-accent: var(--blue);
+  --tool-accent: var(--green);
 }
 
 .sidebar-icon--agents {
-  --tool-accent: var(--solana);
+  --tool-accent: var(--green);
 }
 
 .sidebar-icon--tools {
@@ -53,7 +57,7 @@
 
 .sidebar-icon:hover {
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
   border-color: var(--control-border);
 }
 
@@ -63,8 +67,8 @@
 
 .sidebar-icon.active {
   color: var(--t1);
-  background: var(--surface-raised);
-  border-color: var(--border-strong);
+  background: var(--accent-fill);
+  border-color: var(--accent-line);
 }
 
 .sidebar-icon.active::before {
@@ -73,13 +77,13 @@
   left: -1px;
   top: 10px;
   bottom: 10px;
-  width: 1px;
-  background: color-mix(in srgb, var(--tool-accent) 58%, var(--t2) 42%);
-  border-radius: var(--radius-pill);
+  width: 2px;
+  background: var(--green);
+  border-radius: 0;
 }
 
 .sidebar-icon.sidebar-toggle.active {
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 .sidebar-icon.sidebar-toggle.active::before {
@@ -88,8 +92,25 @@
 
 /* Launchers: brief press feedback, no persistent active state */
 .sidebar-icon.sidebar-launcher:active {
-  transform: scale(0.92);
-  transition: transform 0.08s;
+  background: var(--s3);
+}
+
+/* Capability pack slots — branded, permanent. A faint accent tint at rest
+   distinguishes pack-owned surfaces from the neutral draggable pins below. */
+.sidebar-icon--pack {
+  color: color-mix(in srgb, var(--tool-accent) 62%, var(--t3));
+}
+
+.sidebar-icon--pack svg {
+  opacity: 0.9;
+}
+
+.sidebar-icon--pack:hover {
+  color: var(--t1);
+}
+
+.sidebar-icon--pack.active::before {
+  background: var(--tool-accent);
 }
 
 /* Drag states */
@@ -98,8 +119,9 @@
 }
 
 .sidebar-icon--drop-target {
-  background: color-mix(in srgb, var(--tool-accent) 18%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tool-accent) 44%, transparent);
+  background: var(--accent-fill);
+  box-shadow: none;
+  border-color: var(--accent-line);
 }
 
 /* Drop zone for adding new pinned tools — visible faint outline so users
@@ -107,10 +129,13 @@
 .sidebar-drop-zone {
   width: var(--btn-h-md);
   height: var(--btn-h-md);
-  border-radius: var(--radius-lg);
+  border-radius: var(--r);
   margin: var(--space-xs) auto;
-  transition: height 0.15s, background 0.15s, border-color 0.15s, opacity 0.15s;
-  border: 1px dashed var(--s5);
+  transition: height var(--duration-normal) var(--ease-standard),
+    background var(--duration-normal) var(--ease-standard),
+    border-color var(--duration-normal) var(--ease-standard),
+    opacity var(--duration-normal) var(--ease-standard);
+  border: 1px dashed var(--line-2);
   opacity: 0.5;
   display: flex;
   align-items: center;
@@ -125,7 +150,7 @@
 
 .sidebar-drop-zone::before {
   content: '+';
-  font-weight: 300;
+  font-weight: var(--fw-regular);
 }
 
 .sidebar-drop-zone:hover {
@@ -134,16 +159,16 @@
 
 .sidebar-drop-zone.active {
   opacity: 0.9;
-  border-color: var(--border-strong);
+  border-color: var(--line-strong);
   color: var(--t1);
-  background: var(--surface-raised);
+  background: var(--s2);
 }
 
 .sidebar-drop-zone--active {
   height: 36px;
   width: 36px;
-  background: var(--surface-raised);
-  border-color: var(--border-strong);
+  background: var(--s2);
+  border-color: var(--line-strong);
   border-style: solid;
   opacity: 1;
   color: var(--t1);
@@ -151,9 +176,9 @@
 
 /* ─── Zone Dividers ─── */
 .sidebar-divider {
-  width: 22px;
+  width: 22px; /* TODO: token */
   height: 1px;
-  background: color-mix(in srgb, var(--border) 72%, transparent);
+  background: var(--divider-hairline);
   margin: var(--space-sm) auto;
   flex-shrink: 0;
 }
@@ -184,8 +209,8 @@
 }
 
 .sidebar-icon--discord:hover {
-  color: var(--brand-discord);
-  background: var(--surface-raised);
+  color: var(--t1);
+  background: var(--s2);
 }
 
 /* Submenu (kept for agent launcher flyout) */
@@ -201,15 +226,15 @@
   min-width: 180px;
   padding: var(--space-sm);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--s1) 98%, black 2%);
+  border-radius: var(--r);
+  background: var(--s2);
   backdrop-filter: none;
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.58);
+  box-shadow: var(--shadow-float);
   z-index: 1200;
 }
 
 .sidebar-submenu--tools {
-  top: -4px;
+  top: -4px; /* TODO: token */
   max-height: min(420px, calc(100vh - 120px));
   width: 220px;
   overflow-y: auto;
@@ -217,10 +242,10 @@
 
 .sidebar-submenu-group {
   font-size: var(--fs-10);
-  letter-spacing: 0.4px;
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t3);
-  padding: var(--space-2xs) var(--space-sm) 6px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs);
 }
 
 .sidebar-submenu-item {
@@ -230,12 +255,17 @@
   color: var(--t2);
   background: transparent;
   border-radius: var(--radius-lg);
-  padding: 7px var(--space-sm);
+  padding: var(--space-sm) var(--space-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .sidebar-submenu-item:hover {
   background: var(--hover-bg);
   color: var(--t1);
+}
+
+.sidebar-submenu-item:active {
+  background: var(--active-overlay);
 }
 
 .sidebar-submenu-item--tool {

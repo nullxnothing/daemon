@@ -7,7 +7,7 @@
   min-height: var(--btn-h-sm);
   padding: 0 var(--space-sm);
   border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--r);
   background: transparent;
   color: var(--t3);
   font-size: var(--fs-11);
@@ -21,12 +21,13 @@
 .pill::after {
   content: '';
   position: absolute;
-  left: var(--space-sm);
-  right: var(--space-sm);
-  bottom: 3px;
-  height: 1px;
-  border-radius: var(--radius-pill);
-  background: currentColor;
+  left: 0;
+  right: auto;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  height: auto;
+  background: var(--green);
   transform: scaleX(0);
   transform-origin: left center;
   transition: transform var(--transition-fast);
@@ -38,10 +39,18 @@
   border-color: var(--border-hover);
 }
 
+.pill:active {
+  background: var(--active-overlay);
+}
+
+.pill:disabled {
+  opacity: 0.5;
+}
+
 .active {
-  background: var(--tab-active-bg);
+  background: var(--accent-fill);
   color: var(--tab-active-color);
-  border-color: var(--tab-active-border);
+  border-color: var(--accent-line);
 }
 
 .active::after {

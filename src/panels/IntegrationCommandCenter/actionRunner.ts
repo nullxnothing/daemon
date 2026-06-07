@@ -1,6 +1,9 @@
 import { daemon } from '../../lib/daemonBridge'
 import type { IntegrationContext } from './status'
 
+// USDC mainnet mint — the default stablecoin for inspecting allowances/subscriptions.
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+
 export interface IntegrationActionResult {
   title: string
   status: 'success' | 'warning' | 'info' | 'error'
@@ -233,20 +236,62 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
-  if (actionId === 'open-spawnagents-panel') {
+  if (actionId === 'open-clawpump-panel') {
     return {
-      title: 'SpawnAgents',
+      title: 'ClawPump',
       status: 'info',
-      detail: 'Open the SpawnAgents panel from the sidebar to spawn and manage your autonomous trading agents.',
+      detail: 'Open the ClawPump panel from the sidebar to create and manage your hosted trading agents.',
     }
   }
 
-  if (actionId === 'open-spawnagents-live') {
-    void daemon.shell.openExternal('https://spawnagents.fun/genesis.html')
+  if (actionId === 'open-clawpump-docs') {
+    void daemon.shell.openExternal('https://clawpump.tech/developers')
     return {
-      title: 'Opening live agents',
+      title: 'Opening developer docs',
       status: 'success',
-      detail: 'Launched the SpawnAgents live agent directory in your browser.',
+      detail: 'Launched the ClawPump developer documentation in your browser.',
+    }
+  }
+
+  if (actionId === 'check-degentools-tools') {
+    if (!context.secureKeys.DEGENTOOLS_API_KEY) {
+      return {
+        title: 'DegenTools key missing',
+        status: 'warning',
+        detail: 'Store a DegenTools API key before checking the MCP endpoint.',
+      }
+    }
+    const tools = await daemon.degentools.tools()
+    if (!tools.ok) {
+      return {
+        title: 'DegenTools unavailable',
+        status: 'error',
+        detail: tools.error ?? 'DAEMON could not reach the DegenTools MCP endpoint.',
+      }
+    }
+    const text = JSON.stringify(tools.data)
+    const count = (text.match(/"name"/g) ?? []).length
+    return {
+      title: 'DegenTools MCP online',
+      status: 'success',
+      detail: count > 0 ? `${count} tools reported.` : 'The MCP endpoint responded.',
+    }
+  }
+
+  if (actionId === 'open-degentools-panel') {
+    return {
+      title: 'DegenTools',
+      status: 'info',
+      detail: 'Open the DegenTools panel from the sidebar to generate launch assets and run MCP calls.',
+    }
+  }
+
+  if (actionId === 'open-degentools-docs') {
+    void daemon.shell.openExternal('https://degentools.co/docs')
+    return {
+      title: 'Opening DegenTools docs',
+      status: 'success',
+      detail: 'Launched the DegenTools documentation in your browser.',
     }
   }
 
@@ -292,6 +337,320 @@ export async function runIntegrationAction(actionId: string, context: Integratio
       title: 'Opening Solflare docs',
       status: 'success',
       detail: 'Launched Solflare integration docs in your browser.',
+    }
+  }
+
+  if (actionId === 'check-said-identity') {
+    const wallet = context.defaultWallet
+    if (!wallet) {
+      return {
+        title: 'No wallet selected',
+        status: 'warning',
+        detail: 'Set a default wallet in the Wallet panel before checking its SAID identity.',
+      }
+    }
+
+    const identity = await daemon.said.getIdentity(wallet.address)
+    if (!identity.ok || !identity.data) {
+      return {
+        title: 'SAID lookup failed',
+        status: 'error',
+        detail: identity.error ?? 'DAEMON could not reach the SAID directory.',
+        items: [wallet.address],
+      }
+    }
+
+    if (!identity.data.registered) {
+      return {
+        title: 'Not registered on SAID',
+        status: 'info',
+        detail: `${wallet.name} has no SAID identity yet. Register it to earn a verifiable trust score and appear in the directory.`,
+        items: [wallet.address],
+      }
+    }
+
+    const trustRes = await daemon.said.getTrust(wallet.address)
+    const score = trustRes.ok && trustRes.data ? trustRes.data.score : identity.data.trustScore
+    const badges = [
+      identity.data.isVerified ? 'verified' : 'unverified',
+      trustRes.ok && trustRes.data?.staked ? 'staked' : 'no stake',
+    ]
+    return {
+      title: identity.data.name ? `SAID: ${identity.data.name}` : 'SAID identity found',
+      status: 'success',
+      detail: `Trust score ${score ?? 'n/a'}/100 (${badges.join(', ')}).`,
+      items: [
+        wallet.address,
+        ...(identity.data.pda ? [`PDA ${identity.data.pda}`] : []),
+        ...(typeof identity.data.feedbackCount === 'number' ? [`${identity.data.feedbackCount} feedback`] : []),
+      ],
+    }
+  }
+
+  if (actionId === 'open-said-directory') {
+    void daemon.shell.openExternal('https://www.saidprotocol.com/agents')
+    return {
+      title: 'Opening SAID directory',
+      status: 'success',
+      detail: 'Launched the SAID public agent directory in your browser.',
+    }
+  }
+
+  if (actionId === 'open-said-docs') {
+    void daemon.shell.openExternal('https://www.saidprotocol.com/docs')
+    return {
+      title: 'Opening SAID docs',
+      status: 'success',
+      detail: 'Launched the SAID docs in your browser.',
+    }
+  }
+
+  if (actionId === 'check-allowance-state') {
+    const wallet = context.defaultWallet
+    if (!wallet) {
+      return {
+        title: 'No wallet selected',
+        status: 'warning',
+        detail: 'Set a default wallet in the Wallet panel before inspecting allowances.',
+      }
+    }
+    const state = await daemon.allowances.getState(wallet.address, USDC_MINT)
+    if (!state.ok || !state.data) {
+      return {
+        title: 'Allowance lookup failed',
+        status: 'error',
+        detail: state.error ?? 'DAEMON could not read the wallet token account.',
+        items: [wallet.address],
+      }
+    }
+    if (!state.data.tokenAccountExists) {
+      return {
+        title: 'No USDC token account',
+        status: 'info',
+        detail: `${wallet.name} has no USDC token account yet, so it has granted no allowance on this mint.`,
+        items: [wallet.address],
+      }
+    }
+    if (!state.data.hasDelegate) {
+      return {
+        title: 'No active allowance',
+        status: 'success',
+        detail: `${wallet.name} has no delegate on its USDC account — no third party can spend from it.`,
+        items: [wallet.address],
+      }
+    }
+    return {
+      title: 'Active allowance',
+      status: 'info',
+      detail: `${wallet.name} has delegated up to ${state.data.delegatedAmount} (base units) of USDC.`,
+      items: [`delegate ${state.data.delegate}`, `token account ${state.data.tokenAccount}`],
+    }
+  }
+
+  if (actionId === 'check-subscription-enrollment') {
+    const wallet = context.defaultWallet
+    if (!wallet) {
+      return {
+        title: 'No wallet selected',
+        status: 'warning',
+        detail: 'Set a default wallet in the Wallet panel before checking subscription enrollment.',
+      }
+    }
+    const sub = await daemon.allowances.getSubscription(wallet.address, USDC_MINT)
+    if (!sub.ok || !sub.data) {
+      return {
+        title: 'Subscription lookup failed',
+        status: 'error',
+        detail: sub.error ?? 'DAEMON could not read the wallet token account.',
+        items: [wallet.address],
+      }
+    }
+    return {
+      title: sub.data.enrolled ? 'Enrolled in native subscriptions' : 'Not enrolled',
+      status: sub.data.enrolled ? 'info' : 'success',
+      detail: sub.data.enrolled
+        ? `${wallet.name} has approved the Subscriptions Delegation authority on USDC.`
+        : `${wallet.name} has not approved the native Subscriptions Delegation authority on USDC.`,
+      items: [`authority ${sub.data.subscriptionAuthority}`],
+    }
+  }
+
+  if (actionId === 'open-subscriptions-docs') {
+    void daemon.shell.openExternal('https://solana.com/docs/payments/subscriptions/overview')
+    return {
+      title: 'Opening Solana docs',
+      status: 'success',
+      detail: 'Launched the Solana Subscriptions & Allowances docs in your browser.',
+    }
+  }
+
+  if (actionId === 'preview-grant-allowance') {
+    return {
+      title: 'Grant allowance (preview only)',
+      status: 'info',
+      detail: 'Granting signs an approve-checked instruction that delegates a capped amount to a spender. DAEMON will route this through a transaction preview and the signer guard before enabling it.',
+      items: ['instruction: approveChecked', 'sets delegate + max amount', 'a new grant revokes any prior delegate'],
+    }
+  }
+
+  if (actionId === 'preview-revoke-allowance') {
+    return {
+      title: 'Revoke allowance (preview only)',
+      status: 'warning',
+      detail: 'Revoking signs a revoke instruction that clears the delegate entirely (no partial revoke). DAEMON will gate this behind a transaction preview before enabling it.',
+      items: ['instruction: revoke', 'clears the active delegate', 'requires-confirmation'],
+    }
+  }
+
+  if (actionId === 'open-signalhouse-panel') {
+    return {
+      title: 'Signalhouse',
+      status: 'info',
+      detail: 'Open the Signalhouse panel from the sidebar to browse strategies, ProofOfEdge rankings, and live risk verdicts.',
+    }
+  }
+
+  if (actionId === 'check-signalhouse-health') {
+    const health = await daemon.signalhouse.getHealth()
+    if (!health.ok || !health.data) {
+      return {
+        title: 'Signalhouse unreachable',
+        status: 'error',
+        detail: health.error ?? 'DAEMON could not reach the Signalhouse API.',
+      }
+    }
+    if (!health.data.ok) {
+      return {
+        title: 'Signalhouse degraded',
+        status: 'warning',
+        detail: 'The Signalhouse API responded but reported an unhealthy state.',
+      }
+    }
+    const statusRes = await daemon.signalhouse.getStatus()
+    const lag = statusRes.ok && statusRes.data ? statusRes.data.indexerLagSeconds : null
+    const paused = statusRes.ok && statusRes.data ? statusRes.data.globalExecutionPaused : null
+    return {
+      title: 'Signalhouse online',
+      status: 'success',
+      detail: `${health.data.service ?? 'signalhouse-api'} is online.`,
+      items: [
+        ...(lag !== null ? [`indexer lag ${lag}s`] : []),
+        ...(paused === true ? ['execution paused'] : []),
+      ],
+    }
+  }
+
+  if (actionId === 'top-strategies') {
+    const res = await daemon.signalhouse.getLeaderboard({ window: '7d', sort: 'proof_of_edge', limit: 3 })
+    if (!res.ok) {
+      return {
+        title: 'Leaderboard unavailable',
+        status: 'error',
+        detail: res.error ?? 'DAEMON could not load the Signalhouse leaderboard.',
+      }
+    }
+    const rows = res.data ?? []
+    if (rows.length === 0) {
+      return {
+        title: 'No strategies indexed yet',
+        status: 'info',
+        detail: 'Signalhouse has no live strategies on the leaderboard right now.',
+      }
+    }
+    return {
+      title: 'Top strategies (7d ProofOfEdge)',
+      status: 'success',
+      detail: `${rows.length} strategies ranked by ProofOfEdge.`,
+      items: rows.map((s, i) => `#${i + 1} ${s.name ?? s.id} — PoE ${s.proofOfEdge ?? 'n/a'}`),
+    }
+  }
+
+  if (actionId === 'open-signalhouse-docs') {
+    void daemon.shell.openExternal('https://github.com/nullxnothing/Signalhouse')
+    return {
+      title: 'Opening Signalhouse docs',
+      status: 'success',
+      detail: 'Launched the Signalhouse documentation in your browser.',
+    }
+  }
+
+  if (actionId === 'preview-copy-trading') {
+    return {
+      title: 'Copy-trading (preview only)',
+      status: 'info',
+      detail: 'Following a strategy requires wallet-signature auth, an on-chain Drift delegate transaction, and a follow request with risk limits. DAEMON will route every signing step through a transaction preview and the signer guard before enabling it.',
+      items: ['1. wallet auth (signMessage)', '2. Drift delegate transaction (on-chain)', '3. follow + risk limits', 'revocable: clear the Drift delegate anytime'],
+    }
+  }
+
+  if (actionId === 'open-ricomaps-panel') {
+    return {
+      title: 'RicoMaps',
+      status: 'info',
+      detail: 'Open the RicoMaps panel from the sidebar to start the local graph explorer and inspect token or wallet relationships.',
+    }
+  }
+
+  if (actionId === 'start-ricomaps-service') {
+    const current = await daemon.forensics.ricoMapsStatus()
+    if (current.ok && current.data?.running) {
+      return {
+        title: 'RicoMaps running',
+        status: 'success',
+        detail: `Local RicoMaps is already available on port ${current.data.port}.`,
+        items: [current.data.url, current.data.projectPath],
+      }
+    }
+
+    const started = await daemon.forensics.startRicoMaps()
+    if (!started.ok || !started.data) {
+      return {
+        title: 'RicoMaps start failed',
+        status: 'error',
+        detail: started.error ?? 'DAEMON could not start the local RicoMaps service.',
+      }
+    }
+
+    return {
+      title: started.data.running ? 'RicoMaps ready' : 'RicoMaps not ready',
+      status: started.data.running ? 'success' : 'warning',
+      detail: started.data.error ?? `Local RicoMaps is available at ${started.data.url}.`,
+      items: [started.data.url, started.data.projectPath],
+    }
+  }
+
+  if (actionId === 'open-flywheel-panel') {
+    return {
+      title: 'Fee Flywheel',
+      status: 'info',
+      detail: 'Open the Fee Flywheel panel from the sidebar to configure a token\'s 80/20 fee split and run buyback & burn into $DAEMON.',
+    }
+  }
+
+  if (actionId === 'open-flywheel-docs') {
+    void daemon.shell.openExternal('https://pump.fun/docs/fees')
+    return {
+      title: 'Opening pump.fun fee docs',
+      status: 'success',
+      detail: 'Launched the pump.fun creator-fee documentation in your browser.',
+    }
+  }
+
+  if (actionId === 'configure-flywheel-split') {
+    return {
+      title: 'Configure split (preview only)',
+      status: 'info',
+      detail: 'Configuring writes an on-chain pump.fun fee-share config (default 80% creator / 20% buyback). The config is PERMANENT once written. Use the Fee Flywheel panel, which previews the recipients and percentages and requires explicit confirmation before signing.',
+      items: ['80% → creator payout wallet', '20% → $DAEMON buyback & burn', 'permanent: cannot be changed after creation', 'signs with the pump.fun creator authority'],
+    }
+  }
+
+  if (actionId === 'run-flywheel') {
+    return {
+      title: 'Run flywheel (preview only)',
+      status: 'info',
+      detail: 'Running claims accrued creator fees (pump.fun fans out the split automatically), swaps the buyback share of SOL to $DAEMON via Jupiter, and burns it. Run it from the Fee Flywheel panel where each transaction passes through the signer guard.',
+      items: ['1. claim creator fees', '2. swap buyback SOL → $DAEMON (Jupiter)', '3. burn the $DAEMON received'],
     }
   }
 

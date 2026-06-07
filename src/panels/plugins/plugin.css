@@ -5,7 +5,7 @@
 }
 
 .plugin-placeholder {
-  padding: 16px 12px;
+  padding: var(--space-lg) var(--space-md);
   color: var(--t2);
   font-size: var(--fs-12);
 }

@@ -7,20 +7,20 @@
 }
 
 .plugin-dashboard-search {
-  width: 180px;
-  height: 28px;
-  padding: 0 10px;
+  width: 180px; /* TODO: token */
+  height: 28px; /* TODO: token */
+  padding: 0 var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--r);
   font-size: var(--fs-11);
   color: var(--t1);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-fast);
 }
 
 .plugin-dashboard-search::placeholder { color: var(--t3); }
-.plugin-dashboard-search:focus {
+.plugin-dashboard-search:focus-visible {
   border-color: var(--focus);
   box-shadow: var(--focus-ring);
 }
@@ -28,22 +28,22 @@
 .plugin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-  padding: 0 24px 24px 24px;
+  gap: var(--space-md);
+  padding: 0 var(--space-xl) var(--space-xl) var(--space-xl);
 }
 
 .plugin-card-v2 {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-md);
+  padding: var(--space-lg);
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   border-left: 3px solid transparent;
-  min-height: 132px;
+  min-height: 132px; /* TODO: token */
   cursor: default;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .plugin-card-v2:not(.plugin-card-v2--disabled):hover {
@@ -74,24 +74,24 @@
 .plugin-card-v2-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .plugin-card-v2-icon {
-  width: 36px;
-  height: 36px;
+  width: 36px; /* TODO: token */
+  height: 36px; /* TODO: token */
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--s2);
-  border-radius: 6px;
+  border-radius: var(--r-panel);
   color: var(--t2);
   flex-shrink: 0;
 }
 
 .plugin-card-v2--active .plugin-card-v2-icon {
   color: var(--success);
-  background: rgba(74, 140, 98, 0.1);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
 }
 
 .plugin-card-v2--disabled .plugin-card-v2-icon {
@@ -101,14 +101,14 @@
 .plugin-card-v2-title-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   flex: 1;
   min-width: 0;
 }
 
 .plugin-card-v2-name {
   font-size: var(--fs-13);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--t1);
   white-space: nowrap;
   overflow: hidden;
@@ -117,7 +117,7 @@
 
 .plugin-card-v2-desc {
   font-size: var(--fs-11);
-  line-height: 1.5;
+  line-height: var(--lh-normal);
   color: var(--t2);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -130,18 +130,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .plugin-card-v2-btn {
-  height: 28px;
-  padding: 0 14px;
+  height: 28px; /* TODO: token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
-  font-weight: 500;
-  border-radius: 4px;
+  font-weight: var(--fw-medium);
+  border-radius: var(--r);
   border: none;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .plugin-card-v2-btn--open {
@@ -151,6 +151,10 @@
 
 .plugin-card-v2-btn--open:hover {
   background: var(--active-bg);
+}
+
+.plugin-card-v2-btn--open:active {
+  background: var(--active-overlay);
 }
 
 .plugin-card-v2-btn--enable {
@@ -165,8 +169,12 @@
   border-color: var(--t3);
 }
 
+.plugin-card-v2-btn--enable:active {
+  background: var(--active-overlay);
+}
+
 .plugin-card-v2-btn--active {
-  background: rgba(74, 140, 98, 0.12);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
   color: var(--success);
   cursor: default;
   pointer-events: none;

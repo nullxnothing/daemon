@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockRun, mockGet, mockPrepare } = vi.hoisted(() => ({
+const { mockRun, mockGet, mockPrepare, mockStoreKey, mockGetKey, mockDeleteKey, mockListKeys } = vi.hoisted(() => ({
   mockRun: vi.fn(),
   mockGet: vi.fn(),
   mockPrepare: vi.fn(),
+  mockStoreKey: vi.fn(),
+  mockGetKey: vi.fn(),
+  mockDeleteKey: vi.fn(),
+  mockListKeys: vi.fn(),
 }))
 
 vi.mock('../../electron/db/db', () => ({
@@ -12,9 +16,17 @@ vi.mock('../../electron/db/db', () => ({
   }),
 }))
 
+vi.mock('../../electron/services/SecureKeyService', () => ({
+  storeKey: mockStoreKey,
+  getKey: mockGetKey,
+  deleteKey: mockDeleteKey,
+  listKeys: mockListKeys,
+}))
+
 import {
   getDrawerToolOrder,
   getPinnedTools,
+  getTokenLaunchRuntimeSettings,
   getTokenLaunchSettings,
   getUiSettings,
   getWalletInfrastructureSettings,
@@ -37,15 +49,72 @@ describe('SettingsService token launch settings', () => {
       return { get: vi.fn(), run: vi.fn() }
     })
     mockGet.mockReturnValue(undefined)
+    mockGetKey.mockReturnValue(null)
+    mockListKeys.mockReturnValue([])
   })
 
   it('normalizes empty settings from storage', () => {
     expect(getTokenLaunchSettings()).toEqual({
       raydium: { configId: '', quoteMint: '' },
       meteora: { configId: '', quoteMint: '', baseSupply: '' },
-      printr: { apiBaseUrl: '', apiKey: '', quotePath: '', createPath: '', chain: '' },
+      printr: { apiBaseUrl: '', apiKey: '', apiKeyConfigured: false, apiKeyHint: '', apiKeySource: 'none', quotePath: '', createPath: '', chain: '' },
       openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
     })
+  })
+
+  it('stores Printr API keys in secure storage instead of app settings', () => {
+    setTokenLaunchSettings({
+      raydium: { configId: '', quoteMint: '' },
+      meteora: { configId: '', quoteMint: '', baseSupply: '' },
+      printr: {
+        apiBaseUrl: 'https://api-preview.printr.money',
+        apiKey: 'printr_secret',
+        quotePath: '',
+        createPath: '',
+        chain: '',
+      },
+      openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+    })
+
+    expect(mockStoreKey).toHaveBeenCalledWith('PRINTR_API_KEY', 'printr_secret')
+    const persisted = mockRun.mock.calls.find((call) => call[0] === 'token_launch_settings')?.[1] as string
+    expect(persisted).toContain('"apiKey":""')
+    expect(persisted).not.toContain('printr_secret')
+  })
+
+  it('scrubs legacy plaintext Printr keys during settings reads', () => {
+    mockGet.mockReturnValue({
+      value: JSON.stringify({
+        raydium: { configId: '', quoteMint: '' },
+        meteora: { configId: '', quoteMint: '', baseSupply: '' },
+        printr: {
+          apiBaseUrl: 'https://api-preview.printr.money',
+          apiKey: 'legacy_printr_secret',
+          quotePath: '',
+          createPath: '',
+          chain: '',
+        },
+        openbid: { apiBaseUrl: '', chainId: '', dex: '', feeTier: '', packageType: '', marketCap: '', totalSupply: '', maxAllocationPerUser: '', referrer: '', board: '', boardOwner: '' },
+      }),
+    })
+
+    expect(getTokenLaunchSettings().printr.apiKey).toBe('')
+    expect(mockStoreKey).toHaveBeenCalledWith('PRINTR_API_KEY', 'legacy_printr_secret')
+    const persisted = mockRun.mock.calls.find((call) => call[0] === 'token_launch_settings')?.[1] as string
+    expect(persisted).not.toContain('legacy_printr_secret')
+  })
+
+  it('keeps secure Printr keys available to runtime launch adapters only', () => {
+    mockGetKey.mockImplementation((keyName: string) => keyName === 'PRINTR_API_KEY' ? 'secure_printr_secret' : null)
+    mockListKeys.mockReturnValue([{ key_name: 'PRINTR_API_KEY', hint: '...cret' }])
+
+    expect(getTokenLaunchSettings().printr).toMatchObject({
+      apiKey: '',
+      apiKeyConfigured: true,
+      apiKeyHint: '...cret',
+      apiKeySource: 'secure',
+    })
+    expect(getTokenLaunchRuntimeSettings().printr.apiKey).toBe('secure_printr_secret')
   })
 
   it('includes persisted low power mode in UI settings', () => {
@@ -171,13 +240,18 @@ describe('SettingsService token launch settings', () => {
     )
   })
 
-  it('sanitizes pinned tools from storage without adding hidden default tools', () => {
+  it('sanitizes stored pins and appends the pack-host pins once', () => {
     mockGet.mockReturnValue({
       value: JSON.stringify(['git', '', 'browser', 'git', 42]),
     })
 
-    expect(getPinnedTools()).toEqual(['git', 'browser'])
-    expect(mockRun).toHaveBeenCalledWith('pinned_tools_pro_default_added', 'true', expect.any(Number))
+    // Sanitizes (dedupes, drops blanks/non-strings) then appends the 5 pack-host
+    // pins via the one-time migration.
+    expect(getPinnedTools()).toEqual([
+      'git', 'browser',
+      'solana-toolbox', 'wallet', 'token-launch', 'daemon-ai', 'signalhouse',
+    ])
+    expect(mockRun).toHaveBeenCalledWith('pinned_tools_pack_hosts_added', 'true', expect.any(Number))
   })
 
   it('allows an empty drawer tool order to preserve registry ordering', () => {

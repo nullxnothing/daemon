@@ -9,6 +9,7 @@ import { TIMEOUTS } from '../../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from '../McpConfig'
 import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
+import type { RunAgentTurnOpts, AgentTurnResult, AgentToolUse } from './agentTurn'
 
 // --- In-memory cache ---
 
@@ -339,6 +340,59 @@ async function runPromptViaApi(
   return block.text
 }
 
+/**
+ * Run one agentic turn with tool-calling via the Anthropic API. Used by ARIA's
+ * operator loop (Claude-only — the CLI path cannot emit structured tool_use).
+ * Mirrors runPromptViaApi's key/model resolution but passes `tools` and returns
+ * any `tool_use` blocks for the caller to execute.
+ */
+/**
+ * Optional override so the same Anthropic tool-loop can run against an Anthropic-
+ * compatible endpoint (e.g. z.ai GLM at https://api.z.ai/api/anthropic). When omitted,
+ * uses the default Anthropic API + ANTHROPIC_API_KEY + Claude model resolution.
+ */
+export interface AgentTurnEndpoint {
+  apiKey: string
+  baseURL?: string
+  model?: string
+}
+
+export async function runClaudeAgentTurn(
+  opts: RunAgentTurnOpts,
+  endpoint?: AgentTurnEndpoint,
+): Promise<AgentTurnResult> {
+  const apiKey = endpoint?.apiKey || SecureKey.getKey('ANTHROPIC_API_KEY') || process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('Agentic mode needs an Anthropic API key. Add ANTHROPIC_API_KEY in settings.')
+
+  const resolvedModel = endpoint?.model ?? resolveModelName(opts.model)
+  const { default: Anthropic } = await import('@anthropic-ai/sdk')
+  const client = new Anthropic(endpoint?.baseURL ? { apiKey, baseURL: endpoint.baseURL } : { apiKey })
+
+  const response = await client.messages.create({
+    model: resolvedModel,
+    max_tokens: opts.maxTokens ?? 4096,
+    system: [{ type: 'text', text: opts.system, cache_control: { type: 'ephemeral' } }],
+    tools: opts.tools as Parameters<typeof client.messages.create>[0]['tools'],
+    messages: opts.messages as Parameters<typeof client.messages.create>[0]['messages'],
+  })
+
+  let text = ''
+  const toolUses: AgentToolUse[] = []
+  for (const block of response.content) {
+    if (block.type === 'text') {
+      text += block.text
+    } else if (block.type === 'tool_use') {
+      toolUses.push({
+        id: block.id,
+        name: block.name,
+        input: (block.input ?? {}) as Record<string, unknown>,
+      })
+    }
+  }
+
+  return { text, toolUses, stopReason: response.stop_reason ?? 'end_turn' }
+}
+
 async function runPromptViaCli(
   claudePath: string,
   prompt: string,
@@ -376,12 +430,30 @@ async function runPromptViaCli(
   }
 }
 
+/**
+ * Quote an argument for a Windows cmd.exe shell invocation: wrap in double quotes,
+ * escape embedded double quotes, and neutralize the %VAR% expansion that cmd performs
+ * even inside quotes (a lone % can't be escaped, so we break the pair with "^").
+ */
+function quoteWinArg(arg: string): string {
+  const escaped = arg.replace(/"/g, '\\"').replace(/%/g, '%^')
+  return `"${escaped}"`
+}
+
 function runCliCommand(command: string, args: string[], cwd: string, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    // Node 20+ refuses to spawn a Windows .cmd/.bat without a shell (spawn EINVAL).
+    // Route those through a shell and quote each arg ourselves so prompt text
+    // containing shell metacharacters (&, |, %, ") is passed verbatim, not reparsed.
+    const win = process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)
+    const spawnCommand = win ? quoteWinArg(command) : command
+    const spawnArgs = win ? args.map(quoteWinArg) : args
+    const child = spawn(spawnCommand, spawnArgs, {
       cwd,
       env: buildSubscriptionEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: win,
+      windowsHide: true,
     })
 
     child.stdin.end()

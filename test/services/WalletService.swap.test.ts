@@ -5,6 +5,7 @@ const {
   mockGetBalance,
   mockWithKeypair,
   mockExecuteTransaction,
+  mockGetConnectionStrict,
   mockGetPriorityFeeLamports,
   mockSecureGetKey,
   mockFetch,
@@ -16,6 +17,7 @@ const {
   mockGetBalance: vi.fn(),
   mockWithKeypair: vi.fn(),
   mockExecuteTransaction: vi.fn(),
+  mockGetConnectionStrict: vi.fn(),
   mockGetPriorityFeeLamports: vi.fn(),
   mockSecureGetKey: vi.fn(),
   mockFetch: vi.fn(),
@@ -85,7 +87,7 @@ vi.mock('../../electron/services/SolanaService', () => {
       getParsedAccountInfo: mockGetParsedAccountInfo,
       sendRawTransaction: vi.fn().mockResolvedValue('sig'),
     })),
-    getConnectionStrict: vi.fn(() => ({
+    getConnectionStrict: mockGetConnectionStrict.mockImplementation(() => ({
       getBalance: mockGetBalance,
       getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: 'hash', lastValidBlockHeight: 999 }),
       getAccountInfo: vi.fn().mockResolvedValue(null),
@@ -158,8 +160,17 @@ function makeWalletDbChain(overrides: { walletRow?: object | null; dailySpendTot
 }
 
 function installVersionedTransactionMock() {
+  const jupiterProgramId = {
+    toBase58: () => 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
+    equals: () => false,
+  }
   mockVersionedSerialize.mockReturnValue(Buffer.from('signed-jupiter-transaction'))
   mockVersionedDeserialize.mockReturnValue({
+    message: {
+      staticAccountKeys: [jupiterProgramId],
+      compiledInstructions: [{ programIdIndex: 0, data: new Uint8Array() }],
+      serialize: () => Buffer.from('jupiter-message'),
+    },
     sign: mockVersionedSign,
     serialize: mockVersionedSerialize,
   })
@@ -213,6 +224,7 @@ describe('transferSOL — validation', () => {
 
     await transferSOL('w1', 'So11111111111111111111111111111111111111112', 0.1)
 
+    expect(mockGetConnectionStrict).toHaveBeenCalled()
     expect(mockGetPriorityFeeLamports).toHaveBeenCalledWith(expect.anything(), 20_000)
     expect(mockExecuteTransaction).toHaveBeenCalledWith(
       expect.anything(),
@@ -819,6 +831,7 @@ describe('Jupiter swap — Swap API V2', () => {
   })
 
   it('requests an executable V2 order with the wallet taker and validates the response shape', async () => {
+    installVersionedTransactionMock()
     mockGetParsedAccountInfo.mockResolvedValue({
       value: {
         data: {
@@ -855,10 +868,17 @@ describe('Jupiter swap — Swap API V2', () => {
       outputMint,
       inAmount: '0.1',
       outAmount: '25',
+      quoteId: expect.any(String),
+      messageHash: expect.stringMatching(/^[0-9a-f]{64}$/),
       priceImpactPct: '0.25',
       routePlan: [{ label: 'Orca', percent: 100 }],
     })
-    expect(quote.rawQuoteResponse).toMatchObject({ requestId: 'request-1', transaction: expect.any(String) })
+    expect(quote.rawQuoteResponse).toMatchObject({
+      requestId: 'request-1',
+      transaction: expect.any(String),
+      quoteId: quote.quoteId,
+      messageHash: quote.messageHash,
+    })
   })
 
   it('rejects corrupted raw Jupiter orders before signing or submitting', async () => {
@@ -880,14 +900,57 @@ describe('Jupiter swap — Swap API V2', () => {
         routePlan: [],
         requestId: 'request-1',
       })
-    ).rejects.toThrow(/executable transaction/i)
+    ).rejects.toThrow(/review metadata/i)
 
     expect(mockVersionedDeserialize).not.toHaveBeenCalled()
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  it('executes reviewed V2 orders through Jupiter managed execution', async () => {
+  it('rejects executable Jupiter orders that cannot be inspected for review hashing', async () => {
+    mockVersionedDeserialize.mockReturnValue({
+      sign: mockVersionedSign,
+      serialize: mockVersionedSerialize,
+    })
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 6 } },
+        },
+      },
+    })
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        inputMint,
+        outputMint,
+        inAmount: '100000000',
+        outAmount: '25000000',
+        priceImpact: -0.0025,
+        routePlan: [],
+        transaction: Buffer.from('malformed').toString('base64'),
+        requestId: 'request-1',
+        lastValidBlockHeight: '123',
+        taker: walletAddress,
+      }),
+    })
+
+    await expect(getSwapQuote('w1', inputMint, outputMint, 0.1, 50)).rejects.toThrow(/message/i)
+    expect(mockVersionedDeserialize).toHaveBeenCalledWith(Buffer.from('malformed'))
+    expect(mockVersionedSign).not.toHaveBeenCalled()
+    expect(mockExecuteTransaction).not.toHaveBeenCalled()
+  })
+
+  it('rejects stale Jupiter quotes before signing or submitting', async () => {
     installVersionedTransactionMock()
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 6 } },
+        },
+      },
+    })
     mockGetBalance.mockResolvedValue(1_000_000_000)
     const fakeKeypair = {
       publicKey: { toBase58: () => walletAddress, toBuffer: () => Buffer.alloc(32) },
@@ -897,21 +960,76 @@ describe('Jupiter swap — Swap API V2', () => {
     mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ status: 'Success', signature: 'swap-sig' }),
+      json: async () => ({
+        inputMint,
+        outputMint,
+        inAmount: '100000000',
+        outAmount: '25000000',
+        priceImpact: -0.0025,
+        routePlan: [],
+        transaction: Buffer.from('unsigned').toString('base64'),
+        requestId: 'request-1',
+        lastValidBlockHeight: '123',
+        taker: walletAddress,
+      }),
     })
 
-    const result = await executeSwap('w1', inputMint, outputMint, 0.1, 50, {
-      inputMint,
-      outputMint,
-      inAmount: '100000000',
-      outAmount: '25000000',
-      priceImpact: -0.0025,
-      routePlan: [],
-      transaction: Buffer.from('unsigned').toString('base64'),
-      requestId: 'request-1',
-      lastValidBlockHeight: '123',
-      taker: walletAddress,
+    const quote = await getSwapQuote('w1', inputMint, outputMint, 0.1, 50)
+    mockFetch.mockClear()
+    const staleRawQuote = {
+      ...(quote.rawQuoteResponse as Record<string, unknown>),
+      outAmount: '24000000',
+    }
+
+    await expect(
+      executeSwap('w1', inputMint, outputMint, 0.1, 50, staleRawQuote),
+    ).rejects.toThrow(/output amount changed/i)
+
+    expect(mockVersionedSign).not.toHaveBeenCalled()
+    expect(mockFetch).not.toHaveBeenCalled()
+    expect(mockExecuteTransaction).not.toHaveBeenCalled()
+  })
+
+  it('executes reviewed V2 orders through Jupiter managed execution', async () => {
+    installVersionedTransactionMock()
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: {
+        data: {
+          program: 'spl-token',
+          parsed: { type: 'mint', info: { decimals: 6 } },
+        },
+      },
     })
+    mockGetBalance.mockResolvedValue(1_000_000_000)
+    const fakeKeypair = {
+      publicKey: { toBase58: () => walletAddress, toBuffer: () => Buffer.alloc(32) },
+      secretKey: new Uint8Array(64),
+      fill: vi.fn(),
+    }
+    mockWithKeypair.mockImplementation((_walletId: string, fn: Function) => fn(fakeKeypair))
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          inputMint,
+          outputMint,
+          inAmount: '100000000',
+          outAmount: '25000000',
+          priceImpact: -0.0025,
+          routePlan: [],
+          transaction: Buffer.from('unsigned').toString('base64'),
+          requestId: 'request-1',
+          lastValidBlockHeight: '123',
+          taker: walletAddress,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'Success', signature: 'swap-sig' }),
+      })
+
+    const quote = await getSwapQuote('w1', inputMint, outputMint, 0.1, 50)
+    const result = await executeSwap('w1', inputMint, outputMint, 0.1, 50, quote.rawQuoteResponse)
 
     expect(mockVersionedDeserialize).toHaveBeenCalledWith(Buffer.from('unsigned'))
     expect(mockVersionedSign).toHaveBeenCalledWith([fakeKeypair])
@@ -925,7 +1043,7 @@ describe('Jupiter swap — Swap API V2', () => {
         },
       }),
     )
-    const executeBody = JSON.parse(mockFetch.mock.calls[0][1].body)
+    const executeBody = JSON.parse(mockFetch.mock.calls[1][1].body)
     expect(executeBody).toEqual({
       signedTransaction: Buffer.from('signed-jupiter-transaction').toString('base64'),
       requestId: 'request-1',

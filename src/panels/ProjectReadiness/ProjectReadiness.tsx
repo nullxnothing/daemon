@@ -8,6 +8,7 @@ import type { EnvFile, WalletListEntry } from '../../types/daemon'
 import { buildSolanaRouteReadiness } from '../../lib/solanaReadiness'
 import { INTEGRATION_REGISTRY } from '../IntegrationCommandCenter/registry'
 import { resolveIntegrationStatus, summarizeRegistry, type IntegrationContext } from '../IntegrationCommandCenter/status'
+import { getProductSurface } from '../../constants/productSurfaces'
 import { parsePackageInfo, SENDAI_FIRST_AGENT_ENTRY, type PackageInfo } from '../IntegrationCommandCenter/sendaiSetup'
 import { confirm } from '../../store/confirm'
 import { Button } from '../../components/Button'
@@ -49,6 +50,19 @@ interface QuickSetupAction {
   run: () => Promise<void> | void
 }
 
+type QueueTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'feature'
+
+interface WorkbenchQueueItem {
+  id: string
+  label: string
+  detail: string
+  statusLabel: string
+  tone: QueueTone
+  actionLabel: string
+  disabled?: boolean
+  run: () => Promise<void> | void
+}
+
 interface SecureKeyEntry {
   key_name: string
   hint: string
@@ -76,7 +90,25 @@ const WORKFLOW_TOOL_GROUPS = [
   { group: 'Ship', tools: [{ id: 'git', label: 'Git' }, { id: 'deploy', label: 'Deploy' }, { id: 'activity', label: 'Activity' }] },
   { group: 'Launch / Trade', tools: [{ id: 'wallet', label: 'Wallet' }, { id: 'token-launch', label: 'Token Launch' }, { id: 'dashboard', label: 'Dashboard' }] },
   { group: 'Monitor', tools: [{ id: 'block-scanner', label: 'Block Scanner' }, { id: 'replay-engine', label: 'Replay' }, { id: 'sessions', label: 'Sessions' }] },
-  { group: 'Account / Security', tools: [{ id: 'settings', label: 'Settings' }, { id: 'zauth', label: 'Zauth' }, { id: 'daemon-ai', label: 'DAEMON AI' }] },
+  { group: 'Agents / Payments', tools: [{ id: 'daemon-ai', label: 'Daemon AI' }, { id: 'agent-work', label: 'Agent Work' }, { id: 'meterflow', label: 'Meterflow' }] },
+  { group: 'Partners', tools: [{ id: 'clawpump', label: 'ClawPump' }, { id: 'degentools', label: 'DegenTools' }, { id: 'signalhouse', label: 'Signalhouse' }] },
+  { group: 'Account / Security', tools: [{ id: 'settings', label: 'Settings' }, { id: 'zauth', label: 'Zauth' }, { id: 'flywheel', label: 'Fee Flywheel' }] },
+]
+
+const START_SURFACE_INTEGRATION_IDS = [
+  'sendai-agent-kit',
+  'helius',
+  'phantom',
+  'jupiter',
+  'metaplex',
+  'clawpump',
+  'degentools',
+  'signalhouse',
+  'flywheel',
+  'ricomaps',
+  'zauth',
+  'idle-protocol',
+  'allowances',
 ]
 
 function joinProjectPath(projectPath: string, child: string): string {
@@ -215,10 +247,13 @@ export function ProjectReadiness() {
       try {
         const listKeys = (daemon.claude as unknown as { listKeys?: () => Promise<{ ok: boolean; data?: SecureKeyEntry[] }> }).listKeys
         const verifyProviders = (daemon as unknown as { provider?: { verifyAll?: () => Promise<{ ok: boolean; data?: ProviderConnections }> } }).provider?.verifyAll
-        const [walletRes, heliusRes, jupiterRes, infraRes, keysRes, providersRes] = await Promise.all([
+        const [walletRes, heliusRes, jupiterRes, clawpumpRes, degentoolsRes, meterflowRes, infraRes, keysRes, providersRes] = await Promise.all([
           daemon.wallet.list(),
           daemon.wallet.hasHeliusKey(),
           daemon.wallet.hasJupiterKey(),
+          daemon.clawpump.isConfigured(),
+          daemon.degentools.isConfigured(),
+          daemon.meterflow.status(),
           daemon.settings.getWalletInfrastructureSettings(),
           listKeys ? listKeys() : Promise.resolve({ ok: false, data: [] }),
           verifyProviders ? verifyProviders() : Promise.resolve({ ok: false, data: null }),
@@ -227,13 +262,17 @@ export function ProjectReadiness() {
         if (isCancelled()) return
 
         const nextWallets = walletRes.ok && walletRes.data ? walletRes.data : []
+        const nextKeyEntries = keysRes.ok && keysRes.data ? keysRes.data : []
         setWallets(nextWallets)
         setWalletInfrastructure(infraRes.ok && infraRes.data ? infraRes.data : DEFAULT_WALLET_INFRASTRUCTURE)
         setSecureKeys({
           HELIUS_API_KEY: Boolean(heliusRes.ok && heliusRes.data),
           JUPITER_API_KEY: Boolean(jupiterRes.ok && jupiterRes.data),
+          CLAWPUMP_API_KEY: Boolean(clawpumpRes.ok && clawpumpRes.data),
+          DEGENTOOLS_API_KEY: Boolean(degentoolsRes.ok && degentoolsRes.data),
+          METERFLOW_API_KEY: Boolean(meterflowRes.ok && meterflowRes.data?.configured),
         })
-        setKeyEntries(keysRes.ok && keysRes.data ? keysRes.data : [])
+        setKeyEntries(nextKeyEntries)
         setProviderConnections(providersRes.ok && providersRes.data ? providersRes.data : null)
 
         const signerEntries = await Promise.all(nextWallets.map(async (wallet) => {
@@ -333,11 +372,13 @@ export function ProjectReadiness() {
 
   const integrationSummary = useMemo(() => summarizeRegistry(INTEGRATION_REGISTRY, context), [context])
   const starterIntegrations = useMemo(() => (
-    ['sendai-agent-kit', 'helius', 'phantom', 'jupiter', 'metaplex', 'light-protocol']
+    START_SURFACE_INTEGRATION_IDS
       .map((id) => {
-        const integration = INTEGRATION_REGISTRY.find((entry) => entry.id === id)!
+        const integration = INTEGRATION_REGISTRY.find((entry) => entry.id === id)
+        if (!integration) return null
         return { integration, summary: resolveIntegrationStatus(integration, context) }
       })
+      .filter((entry): entry is { integration: (typeof INTEGRATION_REGISTRY)[number]; summary: ReturnType<typeof resolveIntegrationStatus> } => Boolean(entry))
   ), [context])
 
   const openIntegration = (integrationId: string) => {
@@ -368,6 +409,27 @@ export function ProjectReadiness() {
     if (!result.ok) throw new Error(result.error ?? 'Could not assign wallet to project.')
   })
 
+  const createDevWallet = () => runQuickAction('create-wallet', 'Generated a local Solana dev wallet.', async () => {
+    const result = await daemon.wallet.generate({ name: 'DAEMON Solana Dev Wallet' })
+    if (!result.ok || !result.data) throw new Error(result.error ?? 'Could not generate wallet.')
+    await daemon.wallet.setDefault(result.data.id)
+    if (activeProjectId) await daemon.wallet.assignProject(activeProjectId, result.data.id)
+  })
+
+  const writeRpcUrl = () => {
+    if (!writableRpcUrl) {
+      openWorkspaceTool(walletInfrastructure.rpcProvider === 'helius' ? 'env' : 'wallet')
+      return
+    }
+
+    return runQuickAction('write-rpc-url', 'Wrote RPC_URL to project env.', async () => {
+      if (!activeProjectPath) throw new Error('Open a project before writing env vars.')
+      const filePath = envFiles[0]?.filePath ?? joinProjectPath(activeProjectPath, '.env')
+      const result = await daemon.env.updateVar(filePath, 'RPC_URL', writableRpcUrl)
+      if (!result.ok) throw new Error(result.error ?? 'Could not write RPC_URL.')
+    })
+  }
+
   const quickActions: QuickSetupAction[] = [
     {
       id: 'create-wallet',
@@ -375,12 +437,7 @@ export function ProjectReadiness() {
       detail: defaultWallet ? `${defaultWallet.name} is available.` : 'Generate a local signing wallet so previews and dev actions have a clear signer.',
       ready: Boolean(defaultWallet),
       cta: 'Generate wallet',
-      run: () => runQuickAction('create-wallet', 'Generated a local Solana dev wallet.', async () => {
-        const result = await daemon.wallet.generate({ name: 'DAEMON Solana Dev Wallet' })
-        if (!result.ok || !result.data) throw new Error(result.error ?? 'Could not generate wallet.')
-        await daemon.wallet.setDefault(result.data.id)
-        if (activeProjectId) await daemon.wallet.assignProject(activeProjectId, result.data.id)
-      }),
+      run: createDevWallet,
     },
     {
       id: 'assign-wallet',
@@ -413,18 +470,8 @@ export function ProjectReadiness() {
           : 'DAEMON needs the actual RPC URL. Helius keys stay secret, so add the URL from Env or Wallet Infra.',
       ready: envRpcReady,
       cta: writableRpcUrl ? 'Write env' : 'Open setup',
-      run: () => {
-        if (!writableRpcUrl) {
-          openWorkspaceTool(walletInfrastructure.rpcProvider === 'helius' ? 'env' : 'wallet')
-          return
-        }
-        return runQuickAction('write-rpc-url', 'Wrote RPC_URL to project env.', async () => {
-          if (!activeProjectPath) throw new Error('Open a project before writing env vars.')
-          const filePath = envFiles[0]?.filePath ?? joinProjectPath(activeProjectPath, '.env')
-          const result = await daemon.env.updateVar(filePath, 'RPC_URL', writableRpcUrl)
-          if (!result.ok) throw new Error(result.error ?? 'Could not write RPC_URL.')
-        })
-      },
+      disabled: !activeProjectPath,
+      run: writeRpcUrl,
     },
   ]
 
@@ -595,17 +642,187 @@ export function ProjectReadiness() {
       actionLabel: keyHint(keyEntries, 'GEMINI_API_KEY') ? 'Update' : 'Add',
     },
   ]
-  const primaryAction = !secureKeys.HELIUS_API_KEY
-    ? { label: 'Add Helius key', detail: 'Indexed RPC and DAS reads need a configured Helius key.', tone: 'warning' as const, onClick: () => openWorkspaceTool('env') }
+  const canPreviewSafeAction = Boolean(activeProjectPath && defaultWallet && defaultWalletAssignedToProject && rpcReady && envRpcReady)
+  const primaryAction = !activeProjectPath
+    ? { label: 'Start new Solana project', detail: 'Choose a template first, then DAEMON can check wallet and RPC setup.', tone: 'feature' as const, onClick: () => openWorkspaceTool('starter') }
     : !defaultWallet
-      ? { label: 'Use wallet for current project', detail: 'Create or import one wallet before Solana actions.', tone: 'warning' as const, onClick: () => openWorkspaceTool('wallet') }
-      : !defaultWalletAssignedToProject
-        ? { label: 'Use wallet for current project', detail: 'Assign the default wallet so DAEMON does not guess.', tone: 'warning' as const, onClick: () => { void assignDefaultWalletToProject() } }
-        : issueGroups.length > 0
-          ? { label: 'Fix runtime issue', detail: issueGroups[0].title, tone: issueGroups[0].kind === 'error' ? 'danger' as const : 'warning' as const, onClick: () => openWorkspaceTool('activity') }
-          : stagedFiles.length > 0
-            ? { label: 'Commit staged changes', detail: `${stagedFiles.length} staged file${stagedFiles.length === 1 ? '' : 's'} ready.`, tone: 'info' as const, onClick: () => document.getElementById('workbench-git')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
-            : { label: 'Launch agent', detail: 'Project, wallet, and RPC basics are ready.', tone: 'feature' as const, onClick: () => openWorkspaceTool('daemon-ai') }
+      ? { label: 'Create dev wallet', detail: 'Generate a local signer before balances, quotes, or previews.', tone: 'warning' as const, onClick: () => { void createDevWallet() } }
+      : !defaultWalletSignerReady
+        ? { label: 'Add wallet signer', detail: 'The default wallet is watch-only until a signer is available.', tone: 'danger' as const, onClick: () => openWorkspaceTool('wallet') }
+        : !defaultWalletAssignedToProject
+          ? { label: 'Use wallet for current project', detail: 'Assign the default wallet so DAEMON does not guess.', tone: 'warning' as const, onClick: () => { void assignDefaultWalletToProject() } }
+          : !rpcReady
+            ? { label: walletInfrastructure.rpcProvider === 'helius' ? 'Add Helius key' : 'Configure RPC', detail: `${rpcLabel} is selected but not ready for project actions.`, tone: 'warning' as const, onClick: () => openWorkspaceTool(walletInfrastructure.rpcProvider === 'helius' ? 'env' : 'wallet') }
+            : !envRpcReady
+              ? { label: 'Write RPC_URL', detail: 'Project scripts need the same RPC route DAEMON will use.', tone: 'warning' as const, onClick: () => { void writeRpcUrl() } }
+              : issueGroups.length > 0
+                ? { label: 'Fix runtime issue', detail: issueGroups[0].title, tone: issueGroups[0].kind === 'error' ? 'danger' as const : 'warning' as const, onClick: () => openWorkspaceTool('activity') }
+                : canPreviewSafeAction
+                  ? { label: 'Preview first safe action', detail: 'Run a read-only wallet read or quote before any send or launch flow.', tone: 'feature' as const, onClick: () => openIntegration(secureKeys.HELIUS_API_KEY ? 'helius' : 'jupiter') }
+                  : stagedFiles.length > 0
+                    ? { label: 'Commit staged changes', detail: `${stagedFiles.length} staged file${stagedFiles.length === 1 ? '' : 's'} ready.`, tone: 'info' as const, onClick: () => document.getElementById('workbench-git')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+                    : { label: 'Open first safe action', detail: 'Project, wallet, and RPC basics are ready for a read-only check.', tone: 'feature' as const, onClick: () => openWorkspaceTool('integrations') }
+
+  const scrollToWorkbenchSection = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const focusCommitInput = () => {
+    scrollToWorkbenchSection('workbench-git')
+    window.setTimeout(() => {
+      document.querySelector<HTMLInputElement>('.workbench-commit-input')?.focus()
+    }, 220)
+  }
+
+  const launchAssetSurface = getProductSurface('degentools')
+  const hostedAgentSurface = getProductSurface('clawpump')
+  const meterflowSurface = getProductSurface('meterflow')
+  const flywheelSurface = getProductSurface('flywheel')
+  const flywheelEnvReady = hasEnvKey(envFiles, 'HELIUS_API_KEY') && hasEnvKey(envFiles, 'JUPITER_API_KEY')
+
+  const actionQueueCandidates = [
+    !activeProjectPath && {
+      id: 'open-project',
+      label: 'Open a working project',
+      detail: 'Project-aware checks, env writes, Git actions, and MCP setup need an active workspace.',
+      statusLabel: 'Setup',
+      tone: 'warning',
+      actionLabel: 'New Project',
+      run: () => openWorkspaceTool('starter'),
+    },
+    !secureKeys.HELIUS_API_KEY && {
+      id: 'connect-helius',
+      label: 'Connect indexed RPC',
+      detail: 'Helius unlocks reliable DAS reads, launch checks, and richer agent context.',
+      statusLabel: 'Data path',
+      tone: 'warning',
+      actionLabel: 'Add key',
+      run: () => openWorkspaceTool('env'),
+    },
+    !defaultWallet && {
+      id: 'create-wallet',
+      label: 'Create a dev wallet route',
+      detail: 'A default wallet gives previews, quotes, launches, and agents one clear signer context.',
+      statusLabel: 'Wallet',
+      tone: 'warning',
+      actionLabel: 'Generate wallet',
+      run: createDevWallet,
+    },
+    defaultWallet && !defaultWalletSignerReady && {
+      id: 'add-signer',
+      label: 'Make the wallet usable',
+      detail: 'The default wallet is watch-only until a signer is generated or imported.',
+      statusLabel: 'Signer',
+      tone: 'danger',
+      actionLabel: 'Open wallet',
+      run: () => openWorkspaceTool('wallet'),
+    },
+    defaultWallet && activeProjectId && !defaultWalletAssignedToProject && {
+      id: 'assign-wallet',
+      label: 'Bind wallet to this project',
+      detail: 'Project-scoped wallet routing avoids accidental actions from the wrong wallet.',
+      statusLabel: 'Route',
+      tone: 'warning',
+      actionLabel: 'Assign',
+      run: assignDefaultWalletToProject,
+    },
+    issueGroups.length > 0 && {
+      id: 'review-issue',
+      label: issueGroups[0].kind === 'error' ? 'Clear the latest runtime error' : 'Review the latest warning',
+      detail: issueGroups[0].title,
+      statusLabel: issueGroups[0].category,
+      tone: issueGroups[0].kind === 'error' ? 'danger' : 'warning',
+      actionLabel: 'Open activity',
+      run: () => openWorkspaceTool('activity'),
+    },
+    unstagedFiles.length > 0 && {
+      id: 'review-worktree',
+      label: 'Review unstaged work',
+      detail: `${unstagedFiles.length} changed file${unstagedFiles.length === 1 ? '' : 's'} need stage, discard, or a closer look.`,
+      statusLabel: 'Git',
+      tone: 'info',
+      actionLabel: 'Review Git',
+      disabled: !isGitAvailable(),
+      run: () => scrollToWorkbenchSection('workbench-git'),
+    },
+    stagedFiles.length > 0 && {
+      id: 'commit-staged',
+      label: 'Commit staged work',
+      detail: `${stagedFiles.length} staged file${stagedFiles.length === 1 ? '' : 's'} are ready for a commit message.`,
+      statusLabel: 'Ready',
+      tone: 'success',
+      actionLabel: 'Write commit',
+      disabled: !isGitAvailable(),
+      run: focusCommitInput,
+    },
+    activeProjectPath && enabledIntegrationCount === 0 && {
+      id: 'first-integration',
+      label: 'Set up the first Solana integration',
+      detail: 'Start with a guided integration so agents and scripts inherit the same project context.',
+      statusLabel: 'Integration',
+      tone: 'feature',
+      actionLabel: 'Choose setup',
+      run: () => openWorkspaceTool('integrations'),
+    },
+    canPreviewSafeAction && {
+      id: 'first-safe-action',
+      label: 'Preview the first safe action',
+      detail: 'Use Helius wallet read or a Jupiter quote as the first no-send check.',
+      statusLabel: 'Safe check',
+      tone: 'feature',
+      actionLabel: 'Preview',
+      run: () => openIntegration(secureKeys.HELIUS_API_KEY ? 'helius' : 'jupiter'),
+    },
+    activeProjectPath && launchAssetSurface && !secureKeys.DEGENTOOLS_API_KEY && {
+      id: 'connect-launch-assets',
+      label: 'Connect the launch asset desk',
+      detail: launchAssetSurface.primaryAction.detail,
+      statusLabel: 'Launch',
+      tone: 'feature',
+      actionLabel: launchAssetSurface.primaryAction.label,
+      run: () => openIntegration('degentools'),
+    },
+    activeProjectPath && hostedAgentSurface && !secureKeys.CLAWPUMP_API_KEY && {
+      id: 'connect-hosted-agents',
+      label: 'Connect hosted agent experiments',
+      detail: hostedAgentSurface.primaryAction.detail,
+      statusLabel: 'Agent lane',
+      tone: 'feature',
+      actionLabel: hostedAgentSurface.primaryAction.label,
+      run: () => openIntegration('clawpump'),
+    },
+    activeProjectPath && meterflowSurface && !secureKeys.METERFLOW_API_KEY && {
+      id: 'connect-paid-call-receipts',
+      label: 'Set up paid-call receipts',
+      detail: meterflowSurface.primaryAction.detail,
+      statusLabel: 'x402',
+      tone: 'info',
+      actionLabel: meterflowSurface.primaryAction.label,
+      run: () => openWorkspaceTool('meterflow'),
+    },
+    activeProjectPath && defaultWallet && flywheelSurface && !flywheelEnvReady && {
+      id: 'prepare-fee-flywheel',
+      label: 'Prepare launch fee flywheel',
+      detail: flywheelSurface.primaryAction.detail,
+      statusLabel: 'Launch',
+      tone: 'info',
+      actionLabel: flywheelSurface.primaryAction.label,
+      run: () => openIntegration('flywheel'),
+    },
+    readyCount === items.length && issueGroups.length === 0 && gitChangeCount === 0 && {
+      id: 'launch-agent',
+      label: 'Launch a project-aware agent',
+      detail: 'Core wallet, RPC, MCP, and project checks are aligned for agent work.',
+      statusLabel: 'Ready',
+      tone: 'feature',
+      actionLabel: 'Launch agent',
+      run: () => openWorkspaceTool('daemon-ai'),
+    },
+  ]
+
+  const actionQueue = actionQueueCandidates
+    .filter((item): item is WorkbenchQueueItem => Boolean(item))
+    .slice(0, 4)
 
   const refreshGit = async () => {
     if (!activeProjectPath || !isGitAvailable()) return
@@ -745,6 +962,36 @@ export function ProjectReadiness() {
         <MetricCard label="Integrations" value={enabledIntegrationCount} detail={`${integrationSummary.missing} setup needed`} tone={integrationSummary.missing > 0 ? 'warn' : 'success'} size="compact" />
       </section>
 
+      <section className="workbench-action-queue" aria-label="Action queue">
+        <div className="workbench-queue-head">
+          <div>
+            <span className="project-readiness-mini">Action queue</span>
+            <h2>Best next moves</h2>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => void loadReadiness()} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
+        <div className="workbench-queue-list">
+          {actionQueue.map((item, index) => (
+            <article key={item.id} className={`workbench-queue-card ${item.tone}`}>
+              <span className="workbench-queue-index">{index + 1}</span>
+              <div className="workbench-queue-main">
+                <div className="workbench-queue-title-row">
+                  <StatusDot tone={item.tone} label={item.statusLabel} />
+                  <strong>{item.label}</strong>
+                  <Badge tone={item.tone}>{item.statusLabel}</Badge>
+                </div>
+                <p>{item.detail}</p>
+              </div>
+              <Button variant={item.tone === 'danger' ? 'destructive' : item.tone === 'feature' ? 'primary' : 'secondary'} size="sm" disabled={item.disabled} onClick={() => void item.run()}>
+                {item.actionLabel}
+              </Button>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <nav className="workbench-section-nav" aria-label="Workbench sections">
         {WORKBENCH_SECTIONS.map((section) => (
           <a key={section.id} href={`#workbench-${section.id}`}>{section.label}</a>
@@ -880,18 +1127,21 @@ export function ProjectReadiness() {
           </button>
         </div>
         <div className="project-readiness-action-grid">
-          {starterIntegrations.map(({ integration, summary }) => (
-            <button
-              key={integration.id}
-              type="button"
-              className={`project-readiness-action ${summary.status}`}
-              onClick={() => openIntegration(integration.id)}
-            >
-              <span>{integration.name}</span>
-              <strong>{summary.status === 'ready' ? 'Ready' : summary.status === 'partial' ? 'Needs one step' : 'Setup needed'}</strong>
-              <small>{integration.tagline}</small>
-            </button>
-          ))}
+          {starterIntegrations.map(({ integration, summary }) => {
+            const surface = integration.toolId ? getProductSurface(integration.toolId) : null
+            return (
+              <button
+                key={integration.id}
+                type="button"
+                className={`project-readiness-action ${summary.status}`}
+                onClick={() => openIntegration(integration.id)}
+              >
+                <span>{integration.name}</span>
+                <strong>{summary.status === 'ready' ? 'Ready' : summary.status === 'partial' ? 'Needs one step' : 'Setup needed'}</strong>
+                <small>{surface ? `${surface.name}: ${surface.primaryAction.detail}` : integration.tagline}</small>
+              </button>
+            )
+          })}
         </div>
       </section>
 
