@@ -39,7 +39,7 @@
   display: block;
   width: 100%;
   text-align: left;
-  padding: 5px var(--space-md); /* TODO: 5px token */
+  padding: var(--space-xs) var(--space-md);
   font-size: var(--fs-12);
   font-family: var(--font-ui);
   color: var(--t2);
@@ -78,7 +78,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-xl) 28px; /* TODO: 28px token */
+  padding: var(--space-xl) var(--space-2xl);
 }
 
 /* ── Doc pagination ─────────────────────────────────────────────────────── */
@@ -86,7 +86,7 @@
 .pagination {
   display: flex;
   justify-content: space-between;
-  margin-top: 40px; /* TODO: 40px token */
+  margin-top: var(--space-3xl);
   padding-top: var(--space-lg);
   border-top: 1px solid var(--line);
   gap: var(--space-md);
@@ -95,7 +95,7 @@
 .paginationBtn {
   display: flex;
   flex-direction: column;
-  gap: 3px; /* TODO: token */
+  gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
   background: var(--s1);
   border: 1px solid var(--line);
@@ -150,7 +150,7 @@
   font-size: var(--fs-16);
   font-family: var(--font-ui);
   color: var(--t3);
-  margin: 0 0 28px; /* TODO: 28px token */
+  margin: 0 0 var(--space-2xl);
   line-height: var(--lh-normal);
 }
 
@@ -159,7 +159,7 @@
   font-family: var(--font-ui);
   font-weight: var(--fw-bold);
   color: var(--t1);
-  margin: 28px 0 var(--space-sm); /* TODO: 28px token */
+  margin: var(--space-2xl) 0 var(--space-sm);
   letter-spacing: -0.01em; /* TODO: token */
 }
 
@@ -172,7 +172,7 @@
   font-family: var(--font-ui);
   font-weight: var(--fw-semibold);
   color: var(--t1);
-  margin: 18px 0 var(--space-sm); /* TODO: 18px token */
+  margin: var(--space-lg) 0 var(--space-sm);
 }
 
 .paragraph {
@@ -204,7 +204,7 @@
   background: var(--s2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 1px 5px; /* TODO: 1px/5px tokens */
+  padding: 1px var(--space-xs);
 }
 
 .codeBlock {
@@ -399,11 +399,11 @@
   border-radius: var(--radius-pill);
   background: var(--green);
   flex-shrink: 0;
-  margin-top: 6px; /* TODO: token */
+  margin-top: var(--space-xs);
 }
 
 .divider {
-  margin: 28px 0; /* TODO: 28px token */
+  margin: var(--space-2xl) 0;
   border: none;
   border-top: 1px solid var(--line);
 }

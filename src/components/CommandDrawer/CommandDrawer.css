@@ -45,7 +45,7 @@
 .drawer-header {
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   padding: var(--drawer-space-block) var(--drawer-space-inline);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
@@ -60,7 +60,7 @@
   color: var(--t1);
   font-size: var(--fs-12);
   height: 34px;
-  padding: 0 12px; /* TODO: token */
+  padding: 0 var(--space-md);
   font-family: var(--font-ui);
   outline: none;
 }
@@ -169,7 +169,7 @@
 }
 
 .drawer-category-section .drawer-grid {
-  margin: 8px var(--drawer-space-inline) var(--drawer-space-block); /* TODO: token */
+  margin: var(--space-sm) var(--drawer-space-inline) var(--drawer-space-block);
 }
 
 .drawer-category-header {
@@ -190,7 +190,7 @@
   grid-template-rows: auto auto 1fr;
   justify-items: start;
   align-content: start;
-  gap: 10px 13px; /* TODO: token */
+  gap: var(--space-sm) var(--space-md);
   padding: var(--space-lg) var(--space-lg);
   background: var(--s2);
   border: 1px solid var(--line);
@@ -218,7 +218,7 @@
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px; /* TODO: token */
-  margin-top: 2px; /* TODO: token */
+  margin-top: var(--space-xs);
 }
 
 .drawer-tool-icon {
@@ -294,7 +294,7 @@
 .drawer-empty {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 24px var(--drawer-space-inline); /* TODO: token */
+  padding: var(--space-xl) var(--drawer-space-inline);
   font-size: var(--fs-11);
   color: var(--t3);
 }
