@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "react-dom": "^19.2.5",
+    "react-dom": "^19.2.7",
     "react-native-web": "~0.21.2",
     "@expo/metro-runtime": "~55.0.10",
     "expo": "~55.0.20",
@@ -20,14 +20,14 @@
     "expo-status-bar": "~55.0.5",
     "expo-secure-store": "~14.0.0",
     "expo-constants": "~55.0.15",
-    "react": "^19.2.5",
+    "react": "^19.2.7",
     "react-native": "0.85.2",
     "react-native-safe-area-context": "~5.8.0",
     "react-native-screens": "~4.24.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.17",
     "typescript": "^5.4.2"
   }
 }
