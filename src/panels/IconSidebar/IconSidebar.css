@@ -95,6 +95,24 @@
   background: var(--s3);
 }
 
+/* Capability pack slots — branded, permanent. A faint accent tint at rest
+   distinguishes pack-owned surfaces from the neutral draggable pins below. */
+.sidebar-icon--pack {
+  color: color-mix(in srgb, var(--tool-accent) 62%, var(--t3));
+}
+
+.sidebar-icon--pack svg {
+  opacity: 0.9;
+}
+
+.sidebar-icon--pack:hover {
+  color: var(--t1);
+}
+
+.sidebar-icon--pack.active::before {
+  background: var(--tool-accent);
+}
+
 /* Drag states */
 .sidebar-icon--dragging {
   opacity: 0.3;
@@ -227,7 +245,7 @@
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t3);
-  padding: var(--space-xs) var(--space-sm) 6px; /* TODO: token (6px) */
+  padding: var(--space-xs) var(--space-sm) var(--space-xs);
 }
 
 .sidebar-submenu-item {
@@ -237,7 +255,7 @@
   color: var(--t2);
   background: transparent;
   border-radius: var(--radius-lg);
-  padding: 7px var(--space-sm); /* TODO: token (7px) */
+  padding: var(--space-sm) var(--space-sm);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
