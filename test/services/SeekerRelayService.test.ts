@@ -69,6 +69,12 @@ describe('SeekerRelayService', () => {
 
   describe('session authorization', () => {
     it('requires a bearer token on session-scoped endpoints and rejects browser origins', async () => {
+      // Bind an ephemeral port so the test never collides with a DAEMON dev
+      // instance already holding the default relay port (which would make
+      // createPairingSession reuse that external relay and 404 our lookups).
+      await stopRelayServer()
+      await startRelayServer(0)
+
       const snapshot = await createPairingSession({ projectName: 'Sec Test', seedDemoApprovals: false })
       const code = snapshot.session.pairingCode
       const token = tokenFromDeepLink(snapshot.session.deepLink)
