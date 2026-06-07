@@ -557,7 +557,7 @@ function ActivityList({ walletId, isActive, cluster }: { walletId: string; isAct
         )
       })}
       {dashboard && dashboard.feed.length > 0 && (
-        <div style={{ padding: '12px 32px 4px' }}>
+        <div style={{ padding: 'var(--space-md) var(--space-2xl) var(--space-xs)' }}>
           <span className={styles.label}>Live feed</span>
         </div>
       )}
