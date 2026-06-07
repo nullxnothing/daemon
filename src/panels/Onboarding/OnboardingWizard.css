@@ -14,7 +14,7 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 22px; /* TODO: token */
+  padding: var(--space-xl);
   width: 420px;
   max-width: 90vw;
 }
@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  margin-bottom: 14px; /* TODO: token */
+  margin-bottom: var(--space-md);
 }
 
 .wizard-brand-mark {
@@ -100,14 +100,14 @@
   text-transform: uppercase;
   color: var(--t3);
   text-align: center;
-  margin-bottom: 6px; /* TODO: token */
+  margin-bottom: var(--space-xs);
 }
 
 .wizard-subtitle {
   font-size: var(--fs-12);
   color: var(--t2);
   text-align: center;
-  margin-bottom: 14px; /* TODO: token */
+  margin-bottom: var(--space-md);
 }
 
 /* Step content */
@@ -130,8 +130,8 @@
 .wizard-check {
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: token */
-  padding: 10px 14px; /* TODO: token */
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--border);
 }
 
@@ -149,7 +149,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px; /* TODO: token */
+  gap: var(--space-xs);
 }
 
 .wizard-check-desc {
@@ -218,7 +218,7 @@
 
 .wizard-btn.small {
   width: auto;
-  padding: 0 14px; /* TODO: token */
+  padding: 0 var(--space-md);
   height: 30px;
 }
 
@@ -244,7 +244,7 @@
   color: var(--t3);
   font-size: var(--fs-11);
   cursor: pointer;
-  padding: 8px 0 0; /* TODO: token */
+  padding: var(--space-sm) 0 0;
   text-align: center;
 }
 
@@ -253,9 +253,9 @@
 /* External tip (leaving the app) */
 .wizard-external-tip {
   display: flex;
-  gap: 10px; /* TODO: token */
-  margin-bottom: 14px; /* TODO: token */
-  padding: 10px 12px; /* TODO: token */
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
@@ -265,7 +265,7 @@
   width: 2px;
   flex-shrink: 0;
   background: var(--blue);
-  border-radius: 1px; /* TODO: token */
+  border-radius: 1px;
 }
 
 .wizard-tip-content {
@@ -290,7 +290,7 @@
   color: var(--t1);
   font-size: var(--fs-11);
   font-family: 'Geist Mono', monospace;
-  padding: 0 10px; /* TODO: token */
+  padding: 0 var(--space-sm);
   outline: none;
 }
 
@@ -325,7 +325,7 @@
   color: var(--t1);
   font-size: var(--fs-11);
   font-family: 'Geist Mono', monospace;
-  padding: 0 10px; /* TODO: token */
+  padding: 0 var(--space-sm);
   outline: none;
 }
 
@@ -338,7 +338,7 @@
 .wizard-divider {
   height: 1px;
   background: var(--border);
-  margin: 16px 0; /* TODO: token */
+  margin: var(--space-lg) 0;
 }
 
 .wizard-error {
@@ -357,7 +357,7 @@
 .wizard-hint code {
   font-family: 'Geist Mono', monospace;
   background: var(--s2);
-  padding: 1px 5px; /* TODO: token */
+  padding: 1px var(--space-xs);
   border-radius: var(--radius-sm);
   font-size: var(--fs-10);
 }
@@ -368,7 +368,7 @@
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--border);
-  padding-top: 14px; /* TODO: token */
+  padding-top: var(--space-md);
 }
 
 .wizard-skip-link {
@@ -393,7 +393,7 @@
   background: var(--s1);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px; /* TODO: token */
+  padding: var(--space-xl);
   width: 320px;
   text-align: center;
 }
@@ -407,7 +407,7 @@
 .tour-offer-desc {
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-bottom: 20px; /* TODO: token */
+  margin-bottom: var(--space-xl);
   line-height: 1.5;
 }
 
@@ -465,7 +465,7 @@
 .step-profile-icon {
   flex-shrink: 0;
   color: var(--t3);
-  margin-top: 1px; /* TODO: token */
+  margin-top: 1px;
   transition: color var(--transition-fast);
 }
 
@@ -477,7 +477,7 @@
   font-size: var(--fs-12);
   font-weight: var(--fw-semibold);
   color: var(--t1);
-  margin-bottom: 2px; /* TODO: token */
+  margin-bottom: var(--space-xs);
 }
 
 .step-profile-desc {
@@ -511,7 +511,7 @@
 
 .resume-banner-btn {
   height: 24px;
-  padding: 0 12px; /* TODO: token */
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   font-size: var(--fs-11);
   cursor: pointer;
