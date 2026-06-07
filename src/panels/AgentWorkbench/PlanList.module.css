@@ -13,9 +13,9 @@
 .step {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
   min-height: 34px;
-  padding: 6px 12px;
+  padding: var(--space-xs) var(--space-md);
   border-top: 1px solid var(--line);
 }
 

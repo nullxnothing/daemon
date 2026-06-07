@@ -1,7 +1,7 @@
 .card {
   display: grid;
-  gap: 9px;
-  padding: 12px 13px;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-md);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--field-bg);
@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .title {
@@ -46,14 +46,14 @@
 .files {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .file {
   display: inline-flex;
   align-items: center;
   height: 20px;
-  padding: 0 7px;
+  padding: 0 var(--space-xs);
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--code-bg);
@@ -67,13 +67,13 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .finding {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-sm);
   font-size: var(--fs-11);
   line-height: 1.45;
 }
@@ -99,7 +99,7 @@
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
@@ -110,7 +110,7 @@
   justify-content: center;
   gap: var(--space-xs);
   height: 28px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border-radius: var(--r);
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);

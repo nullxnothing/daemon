@@ -35,7 +35,7 @@
   color: var(--t3);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 1px 6px;
+  padding: 1px var(--space-xs);
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
@@ -43,7 +43,7 @@
 .newBtn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   height: var(--btn-h-md);
   padding: 0 var(--space-md);
   background: var(--btn-pri-bg);
@@ -184,7 +184,7 @@
   background: var(--s2);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 1px 7px;
+  padding: 1px var(--space-xs);
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
 }
@@ -252,15 +252,15 @@
 .cardActions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .actionBtn {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-xs);
   height: var(--btn-h-md);
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   border-radius: var(--r);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
@@ -365,7 +365,7 @@
 
 .discoveryModes {
   display: flex;
-  gap: 4px;
+  gap: var(--space-xs);
   padding: 2px;
   background: var(--s2);
   border: 1px solid var(--line);
@@ -450,7 +450,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--space-xs);
 }
 
 .label {
@@ -468,7 +468,7 @@
   border-radius: var(--r);
   color: var(--t1);
   font-size: var(--fs-12);
-  padding: 7px 10px; /* TODO: tokens */
+  padding: var(--space-sm) var(--space-md);
   outline: none;
   transition: border-color var(--duration-fast);
   font-family: inherit;
@@ -498,7 +498,7 @@
 }
 
 .templateCard {
-  padding: 10px var(--space-md); /* TODO: 10px token */
+  padding: var(--space-md) var(--space-md);
   background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: var(--r);
@@ -516,7 +516,7 @@
   font-size: var(--fs-12);
   font-weight: var(--fw-semibold);
   color: var(--t1);
-  margin-bottom: 3px;
+  margin-bottom: var(--space-xs);
 }
 
 .templateCardDesc {
@@ -528,11 +528,11 @@
 .pluginsRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-xs);
 }
 
 .pluginToggle {
-  padding: 3px 10px; /* TODO: 10px token */
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--r);
   font-family: var(--mono);
   font-size: var(--fs-11);
@@ -598,7 +598,7 @@
   background: color-mix(in srgb, var(--red) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
   border-radius: var(--r);
-  padding: 7px 10px; /* TODO: tokens */
+  padding: var(--space-sm) var(--space-md);
 }
 
 .infoMsg {
@@ -607,7 +607,7 @@
   background: var(--field-bg);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 7px 10px; /* TODO: tokens */
+  padding: var(--space-sm) var(--space-md);
   line-height: var(--lh-normal);
 }
 
@@ -617,5 +617,5 @@
   background: color-mix(in srgb, var(--green) 6%, transparent);
   border: 1px solid var(--accent-line);
   border-radius: var(--r);
-  padding: 7px 10px; /* TODO: tokens */
+  padding: var(--space-sm) var(--space-md);
 }
