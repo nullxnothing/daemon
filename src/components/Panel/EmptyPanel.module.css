@@ -3,7 +3,7 @@
   place-items: center;
   gap: var(--space-sm);
   min-height: 104px;
-  padding: 18px; /* TODO: token (off-grid 18px) */
+  padding: var(--space-lg);
   border: 1px solid var(--line);
   background: var(--field-bg);
   color: var(--t3);

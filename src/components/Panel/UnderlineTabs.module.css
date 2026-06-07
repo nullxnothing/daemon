@@ -12,7 +12,7 @@
   align-items: center;
   gap: var(--space-sm);
   height: var(--panel-header-h);
-  padding: 0 14px; /* TODO: token (off-grid 14px) */
+  padding: 0 var(--space-md);
   border: 0;
   background: transparent;
   color: var(--t3);

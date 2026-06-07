@@ -27,7 +27,7 @@
 .rowBody {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token (off-grid 6px) */
+  gap: var(--space-sm);
   flex: 1;
   min-width: 0;
 }

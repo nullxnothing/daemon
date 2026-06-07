@@ -1,9 +1,9 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 7px; /* TODO: token (off-grid 7px) */
+  gap: var(--space-sm);
   height: var(--btn-h-md);
-  padding: 0 10px; /* TODO: token (off-grid 10px) */
+  padding: 0 var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: transparent;

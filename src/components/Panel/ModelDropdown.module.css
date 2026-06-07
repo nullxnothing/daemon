@@ -17,7 +17,7 @@
   color: var(--t3);
   font-family: var(--mono);
   font-size: var(--fs-10);
-  padding: 0 22px 0 var(--space-sm); /* TODO: token (off-grid 22px right for caret) */
+  padding: 0 22px 0 var(--space-sm); /* deliberate keep: 22px right reserves space for the absolutely-positioned caret */
   cursor: pointer;
   outline: none;
   min-width: 0;

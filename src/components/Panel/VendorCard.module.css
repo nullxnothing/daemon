@@ -71,7 +71,7 @@
 
 .title {
   display: grid;
-  gap: 3px; /* TODO: token (off-grid 3px) */
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -97,7 +97,7 @@
 .badge {
   flex: 0 0 auto;
   min-height: 20px;
-  padding: 3px 7px; /* TODO: token (off-grid 3/7px) */
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--r);
 }

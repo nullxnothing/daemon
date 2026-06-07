@@ -3,7 +3,7 @@
 
 .launcher { display: flex; flex-direction: column; gap: var(--space-lg); }
 
-.psec { display: flex; flex-direction: column; gap: 9px; /* TODO: token */ }
+.psec { display: flex; flex-direction: column; gap: var(--space-md); }
 
 .field {
   height: 30px;
@@ -14,7 +14,7 @@
   color: var(--t1);
   font-family: var(--font-ui);
   font-size: var(--fs-12);
-  padding: 0 9px; /* TODO: token */
+  padding: 0 var(--space-md);
   outline: none;
 }
 .field:focus { border-color: var(--accent-line); }
@@ -78,7 +78,7 @@
 .launchBtn {
   width: 100%;
   justify-content: center;
-  margin-top: 2px; /* TODO: token */
+  margin-top: 2px; /* deliberate keep: tight nudge above primary button */
   height: 32px;
   border: 1px solid var(--accent-line);
   border-radius: var(--r);
@@ -98,7 +98,7 @@
   align-items: center;
   gap: var(--space-md);
   height: 36px;
-  padding: 0 14px; /* TODO: token */
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
 }
 .drow:last-child { border-bottom: 0; }

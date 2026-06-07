@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px 10px; /* TODO: token (off-grid 6/10px) */
+  padding: var(--space-sm) var(--space-md);
   border: 0;
   background: transparent;
   color: var(--t2);
@@ -32,7 +32,7 @@
 .kind {
   flex: 0 0 auto;
   min-width: 36px;
-  padding: 2px 5px; /* TODO: token (off-grid 2/5px) */
+  padding: 2px 5px; /* deliberate keep: tight uppercase glyph badge, sub-grid micro-padding */
   border-radius: var(--r);
   font-family: var(--mono);
   font-size: var(--fs-9);
@@ -95,5 +95,5 @@
   font-size: var(--fs-11);
   line-height: 1.6;
   overflow-x: auto;
-  padding: var(--space-sm) 10px; /* TODO: token (off-grid 10px) */
+  padding: var(--space-sm) var(--space-md);
 }
