@@ -32,7 +32,7 @@
 
 /* signature label */
 .cp-section-title {
-  margin: 0 0 9px; /* TODO: 9px token */
+  margin: 0 0 var(--space-sm);
   font-family: var(--mono);
   font-size: var(--fs-10);
   font-weight: var(--fw-medium);
@@ -62,7 +62,7 @@
 }
 .cp-setup-copy { margin: 0 0 var(--space-md); font-size: var(--fs-13); line-height: 1.55; /* TODO: token */ color: var(--t3); }
 .cp-setup-copy code {
-  padding: 1px 5px; /* TODO: 1px/5px tokens */
+  padding: 1px var(--space-xs);
   background: var(--field-bg);
   color: var(--green);
   font-family: var(--mono);
@@ -111,10 +111,10 @@
   text-transform: uppercase;
   color: var(--t3);
 }
-.cp-skills-grid { display: flex; flex-wrap: wrap; gap: 6px; /* TODO: token */ }
+.cp-skills-grid { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 .cp-skill-chip {
   height: 24px; /* TODO: token */
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: transparent;
@@ -142,7 +142,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   height: 44px; /* TODO: token */
   border-bottom: 1px solid var(--line);
   background: transparent;
@@ -154,7 +154,7 @@
 .cp-agent-pick {
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-md);
   flex: 1;
   min-width: 0;
   background: none;
@@ -174,13 +174,13 @@
   white-space: nowrap;
 }
 .cp-agent-meta { font-family: var(--mono); font-size: var(--fs-11); color: var(--t3); }
-.cp-agent-ops { display: flex; gap: 6px; flex-shrink: 0; /* TODO: 6px token */ }
+.cp-agent-ops { display: flex; gap: var(--space-sm); flex-shrink: 0; }
 
 /* status — tight mono hairline badge */
 .cp-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   height: 20px; /* TODO: token */
   padding: 0 var(--space-sm);
   border: 1px solid var(--line);
@@ -212,7 +212,7 @@
   justify-content: space-between;
   gap: var(--space-sm);
   height: 38px; /* TODO: token */
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
 }
 .cp-chat-name { font-size: var(--fs-13); font-weight: var(--fw-semibold); }
@@ -221,7 +221,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px; /* TODO: token */
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -236,7 +236,7 @@
   color: var(--t4);
 }
 .cp-msg-body {
-  padding: 9px 12px; /* TODO: 9px token */
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line);
   background: var(--field-bg);
   font-size: var(--fs-13);
@@ -250,7 +250,7 @@
 .cp-chat-compose {
   display: flex;
   gap: var(--space-sm);
-  padding: 10px; /* TODO: 10px token */
+  padding: var(--space-md);
   border-top: 1px solid var(--line);
 }
 .cp-textarea {
@@ -258,7 +258,7 @@
   resize: none;
   min-height: 38px; /* TODO: token */
   max-height: 120px; /* TODO: token */
-  padding: 9px 10px; /* TODO: 9px/10px tokens */
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--field-bg);
@@ -271,7 +271,7 @@
 .cp-input,
 .cp-select {
   height: 34px; /* TODO: token */
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--field-bg);
@@ -311,7 +311,7 @@
 .cp-btn--primary:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
 .cp-btn--primary:active:not(:disabled) { background: color-mix(in srgb, var(--green) 26%, var(--btn-pri-bg)); }
 .cp-btn--ghost { background: transparent; }
-.cp-btn--xs { height: 26px; padding: 0 9px; font-size: var(--fs-11); /* TODO: 26px/9px tokens */ }
+.cp-btn--xs { height: 26px; padding: 0 var(--space-sm); font-size: var(--fs-11); /* TODO: 26px token */ }
 .cp-btn--danger { color: var(--red); }
 .cp-btn--danger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--red) 36%, transparent); background: transparent; }
 

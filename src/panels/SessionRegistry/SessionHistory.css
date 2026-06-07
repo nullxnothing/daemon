@@ -15,7 +15,7 @@
 
 .sr-stats {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   padding: 0 var(--panel-pad-x) var(--space-md);
   border-bottom: none;
   flex-shrink: 0;
@@ -26,8 +26,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 14px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--s2);
@@ -48,8 +48,8 @@
 }
 
 .sr-error {
-  margin: 16px 20px 0;
-  padding: 10px 12px;
+  margin: var(--space-lg) var(--space-xl) 0;
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-11);
   color: var(--red);
   background: color-mix(in srgb, var(--red) 8%, transparent);
@@ -62,8 +62,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 16px 20px 0;
-  padding: 12px 14px;
+  margin: var(--space-lg) var(--space-xl) 0;
+  padding: var(--space-md);
   border: 1px solid color-mix(in srgb, var(--green) 18%, transparent);
   background: color-mix(in srgb, var(--green) 4%, transparent);
   border-radius: var(--r-panel);
@@ -79,7 +79,7 @@
   font-size: var(--fs-10);
   font-weight: var(--fw-semibold);
   letter-spacing: 0.04em;
-  padding: 4px 10px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--r);
   border: 1px solid var(--green-dim);
   background: color-mix(in srgb, var(--green) 12%, transparent);
@@ -100,11 +100,11 @@
 .sr-list {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px 28px;
+  padding: var(--space-lg) var(--space-xl) var(--space-2xl);
 }
 
 .sr-empty {
-  padding: 24px 16px;
+  padding: var(--space-xl) var(--space-lg);
   font-size: var(--fs-12);
   color: var(--t3);
   text-align: center;
@@ -118,12 +118,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px;
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--s2);
   transition: background var(--duration-fast), border-color var(--duration-fast);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .sr-row:hover {
@@ -138,7 +138,7 @@
 .sr-row-left {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-sm);
   min-width: 0;
 }
 
@@ -185,13 +185,13 @@
 .sr-row-meta {
   font-size: var(--fs-10);
   color: var(--t3);
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 
 .sr-row-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -202,7 +202,7 @@
   font-weight: var(--fw-semibold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 2px 6px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-sm);
   background: var(--s3);
   color: var(--t3);
@@ -227,7 +227,7 @@
   font-size: var(--fs-9);
   font-weight: var(--fw-medium);
   letter-spacing: 0.03em;
-  padding: 2px 6px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--t4) 8%, transparent);
   color: var(--t4);
@@ -240,7 +240,7 @@
   font-weight: var(--fw-semibold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 2px 6px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--green) 8%, transparent);
   color: var(--green-dim);
@@ -251,7 +251,7 @@
   font-size: var(--fs-9);
   font-weight: var(--fw-semibold);
   letter-spacing: 0.04em;
-  padding: 2px 7px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--s3);
@@ -298,7 +298,7 @@
   background: var(--s3);
   border: 1px solid var(--green-dim);
   border-radius: var(--radius-sm);
-  padding: 1px 5px;
+  padding: 1px var(--space-xs);
   outline: none;
   width: 140px;
   font-family: inherit;
@@ -325,7 +325,7 @@
   font-size: var(--fs-9);
   font-weight: var(--fw-semibold);
   letter-spacing: 0.04em;
-  padding: 2px 7px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--s3);

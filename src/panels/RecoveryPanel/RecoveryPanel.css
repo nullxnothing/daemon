@@ -13,8 +13,8 @@
   min-height: 32px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 16px;
+  padding: 0 var(--space-md);
+  gap: var(--space-lg);
   background: var(--s1);
   border-bottom: 1px solid var(--line);
   font-size: var(--fs-11);
@@ -31,7 +31,7 @@
 .recovery-stat {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   white-space: nowrap;
 }
 
@@ -63,8 +63,8 @@
   min-height: 40px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 8px;
+  padding: 0 var(--space-md);
+  gap: var(--space-sm);
   background: var(--s1);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
@@ -76,7 +76,7 @@
   color: var(--t1);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   font-family: var(--font-ui);
   outline: none;
@@ -96,7 +96,7 @@
   color: var(--t1);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   font-family: var(--font-ui);
   outline: none;
@@ -121,7 +121,7 @@
   color: var(--t2);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   font-family: var(--font-ui);
   font-weight: 500;
@@ -199,7 +199,7 @@
   overflow-y: auto;
   background: var(--s1);
   border-top: 1px solid var(--line);
-  padding: 4px 12px;
+  padding: var(--space-xs) var(--space-md);
   font-family: var(--font-code);
   font-size: var(--fs-10);
   line-height: 16px;
@@ -208,14 +208,14 @@
 
 .recovery-log-empty {
   color: var(--t3);
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
   font-family: var(--font-ui);
   font-size: var(--fs-11);
 }
 
 .recovery-log-line {
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .recovery-log-time {

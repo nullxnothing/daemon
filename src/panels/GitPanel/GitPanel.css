@@ -63,12 +63,12 @@
 
 .git-kcell {
   background: var(--bg);
-  padding: var(--space-lg) 18px; /* TODO: 18px token */
+  padding: var(--space-lg);
 }
 
 .git-k {
   display: block;
-  margin-bottom: 11px; /* TODO: token */
+  margin-bottom: var(--space-md);
   font-family: var(--mono);
   font-size: var(--fs-10);
   letter-spacing: var(--ls-eyebrow);
@@ -104,7 +104,7 @@
 
 .git-branch-selector select {
   height: 28px; /* TODO: token */
-  padding: 0 26px 0 10px; /* TODO: 26px/10px tokens */
+  padding: 0 26px 0 var(--space-md); /* 26px = chevron clearance, structural */
   font-size: var(--fs-12);
   background: var(--s1);
   border: 1px solid var(--border);
@@ -171,7 +171,7 @@
 
 .git-add-btn {
   height: 28px; /* TODO: token */
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t1);
   background: var(--s2);
@@ -205,7 +205,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px; /* TODO: token */
+  gap: var(--space-xs);
   padding: var(--space-sm);
   border-radius: var(--radius-control);
   background: transparent;
@@ -250,7 +250,7 @@
 .git-add-branch-input {
   flex: 1;
   height: var(--input-h);
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-12);
   color: var(--t1);
   background: var(--bg);
@@ -260,7 +260,7 @@
 
 .git-add-branch-create-btn {
   height: var(--input-h);
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t1);
   background: var(--s2);
@@ -297,7 +297,7 @@
   align-self: flex-start;
   gap: var(--space-xs);
   margin: 0 var(--space-md);
-  padding: var(--space-xs) 10px; /* TODO: 10px token */
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
   color: var(--t2);
@@ -386,15 +386,15 @@
 /* Fused change groups */
 .git-cgroup {
   border: 1px solid var(--line);
-  margin-bottom: 14px; /* TODO: token */
+  margin-bottom: var(--space-md);
 }
 
 .git-cghead {
   display: flex;
   align-items: center;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   height: 36px; /* TODO: token */
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   background: var(--s1);
   border-bottom: 1px solid var(--line);
 }
@@ -416,7 +416,7 @@
   color: var(--t3);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 2px 6px; /* TODO: 2px/6px tokens */
+  padding: 2px var(--space-sm);
   flex: none;
 }
 
@@ -439,7 +439,7 @@
   align-items: center;
   gap: var(--space-md);
   height: 40px;
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
 }
 
@@ -500,7 +500,7 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   flex: none;
   opacity: 0.55;
   transition: opacity var(--transition-fast);
@@ -510,7 +510,7 @@
 
 .git-gbtn {
   height: 24px; /* TODO: token */
-  padding: 0 9px; /* TODO: 9px token */
+  padding: 0 var(--space-sm);
   border-radius: var(--r);
   font-family: var(--font-ui);
   font-size: var(--fs-11);
@@ -583,9 +583,9 @@
 .git-commit-row {
   display: flex;
   align-items: center;
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
   height: 38px; /* TODO: token */
-  padding: 0 14px; /* TODO: 14px token */
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   border-bottom: 1px solid var(--line);
 }
@@ -628,7 +628,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px var(--space-md); /* TODO: 6px token */
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }

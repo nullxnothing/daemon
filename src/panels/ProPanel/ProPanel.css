@@ -9,7 +9,7 @@
 
 .pro-panel-footer {
   flex-shrink: 0;
-  padding: 16px 20px;
+  padding: var(--space-lg) var(--space-xl);
   border-top: 1px solid var(--s4);
   background: var(--s1);
 }
@@ -31,7 +31,7 @@
 
 .pro-tab {
   flex: 1;
-  padding: 10px 12px; /* TODO: token (10px off-grid) */
+  padding: var(--space-sm) var(--space-md);
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -58,11 +58,11 @@
 .pro-panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px; /* TODO: token */
+  padding: var(--space-xl);
 }
 
 .pro-error {
-  margin: 0 20px;
+  margin: 0 var(--space-xl);
   padding: var(--space-sm) var(--space-md);
   display: flex;
   justify-content: space-between;
@@ -85,7 +85,7 @@
 }
 
 .pro-btn {
-  padding: 8px 14px; /* TODO: token (14px off-grid) */
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s4);
   border-radius: var(--r);
@@ -126,7 +126,7 @@
 .pro-arena {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* TODO: token */
+  gap: var(--space-xl);
 }
 
 .pro-staking-hero,
@@ -150,13 +150,13 @@
 .pro-staking-action-row,
 .pro-staking-tier-head {
   display: flex;
-  gap: 10px;
+  gap: var(--space-md);
   flex-wrap: wrap;
   align-items: center;
 }
 
 .pro-staking-pill {
-  padding: 5px 10px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
   border: 1px solid var(--s4);
   font-size: var(--fs-11);
@@ -192,7 +192,7 @@
 .pro-staking-tier-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .pro-staking-unlocks {
@@ -203,7 +203,7 @@
 
 .pro-hero {
   text-align: center;
-  padding-bottom: 20px;
+  padding-bottom: var(--space-xl);
   border-bottom: 1px solid var(--s4);
 }
 
@@ -211,8 +211,8 @@
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .pro-hero-price-amount {
@@ -259,7 +259,7 @@
 .pro-arena-form,
 .pro-arena-card,
 .pro-arena-empty {
-  padding: 14px;
+  padding: var(--space-md);
   background: var(--s1);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
@@ -276,7 +276,7 @@
 }
 
 .pro-holder-banner {
-  padding: 14px 16px;
+  padding: var(--space-md) var(--space-lg);
   background: var(--s1);
   border: 1px solid color-mix(in srgb, var(--green) 18%, transparent);
   border-radius: var(--r-panel);
@@ -332,7 +332,7 @@
 
 .pro-form-input,
 .pro-form-textarea {
-  padding: 8px 10px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--bg);
   border: 1px solid var(--s4);
   border-radius: var(--r);
@@ -355,14 +355,14 @@
 
 .pro-arena-contest {
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
-  padding: 20px; /* TODO: token */
+  padding: var(--space-xl);
   border: 1px solid color-mix(in srgb, var(--amber) 14%, transparent);
   border-radius: var(--r-panel);
   background: var(--s1);
 }
 
 .pro-arena-contest-title {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-sm);
   font-size: var(--fs-28);
   line-height: 1.05;
 }
@@ -377,7 +377,7 @@
 
 .pro-arena-trigger-card {
   margin-top: var(--space-lg);
-  padding: 14px;
+  padding: var(--space-md);
   border: 1px solid color-mix(in srgb, var(--green) 16%, transparent);
   border-radius: var(--radius-lg);
   background: var(--green-glow);
@@ -406,7 +406,7 @@
 }
 
 .pro-arena-trigger-stats {
-  margin-top: 14px;
+  margin-top: var(--space-md);
 }
 
 .pro-arena-trigger-stat {
@@ -422,7 +422,7 @@
 }
 
 .pro-arena-progress {
-  margin-top: 14px;
+  margin-top: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -447,11 +447,11 @@
 .pro-arena-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .pro-arena-prize-card {
-  padding: 14px;
+  padding: var(--space-md);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line-2);
   background: var(--wash);
@@ -482,7 +482,7 @@
 }
 
 .pro-arena-filter {
-  padding: 4px 10px; /* TODO: token (10px off-grid) */
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--radius-pill);
   background: transparent;
@@ -504,7 +504,7 @@
 
 .pro-arena-refresh {
   margin-left: auto;
-  padding: 4px 10px;
+  padding: var(--space-xs) var(--space-md);
   background: transparent;
   border: 1px solid var(--s4);
   border-radius: var(--r);
@@ -515,7 +515,7 @@
 .pro-arena-status,
 .pro-arena-category,
 .pro-arena-theme {
-  padding: 2px 8px;
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
   font-size: var(--fs-10);
 }
@@ -542,7 +542,7 @@
 }
 
 .pro-arena-vote {
-  padding: 4px 10px; /* TODO: token (10px off-grid) */
+  padding: var(--space-xs) var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s4);
   border-radius: var(--r);

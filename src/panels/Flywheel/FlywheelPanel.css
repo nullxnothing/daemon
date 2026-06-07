@@ -32,7 +32,7 @@
 .fw-btn {
   font-size: var(--fs-12);
   font-weight: var(--fw-medium);
-  padding: 5px 10px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--r);
   border: 1px solid var(--line-2);
   background: transparent;
@@ -210,15 +210,15 @@
   color: var(--t1);
 }
 .fw-num-cell.zero { color: var(--t3); }
-.fw-num-u { font-size: var(--fs-10); color: var(--t3); margin-left: 3px; }
+.fw-num-u { font-size: var(--fs-10); color: var(--t3); margin-left: var(--space-xs); }
 
 .fw-cell-status { min-width: 0; }
 .fw-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 20px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--r);
   font-family: var(--mono);
@@ -228,7 +228,7 @@
 }
 .fw-badge--routing { color: var(--green); border-color: var(--accent-line); background: var(--accent-fill); }
 
-.fw-cell-action { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.fw-cell-action { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-sm); }
 .fw-chevron {
   color: var(--t4);
   font-size: var(--fs-15);
@@ -247,13 +247,13 @@
   gap: var(--space-xl);
 }
 .fw-ldetail:last-child { border-bottom: 0; }
-.fw-ldetail-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.fw-ldetail-left { display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; }
 
-.fw-dist { display: flex; gap: 8px; align-items: center; }
+.fw-dist { display: flex; gap: var(--space-sm); align-items: center; }
 .fw-field {
   flex: 1;
   min-width: 0;
-  padding: 6px 9px;
+  padding: var(--space-sm);
   border-radius: var(--r);
   border: 1px solid var(--line-2);
   background: var(--bg);
@@ -265,11 +265,11 @@
 .fw-field:focus { border-color: var(--accent-line); }
 .fw-field::placeholder { color: var(--t3); }
 
-.fw-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fw-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .fw-legend li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   font-size: var(--fs-12);
   color: var(--t2);
   min-width: 0;
@@ -280,15 +280,15 @@
 .fw-legend-pct { font-family: var(--mono); color: var(--t1); }
 .fw-legend-addr { font-family: var(--mono); color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.fw-ldetail-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fw-ldetail-right { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
 .fw-activity-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
-.fw-activity-empty { font-size: var(--fs-12); color: var(--t3); padding: 4px 0; }
+.fw-activity-empty { font-size: var(--fs-12); color: var(--t3); padding: var(--space-xs) 0; }
 
 .fw-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .fw-feed-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   height: 29px;
   border-bottom: 1px solid var(--line);
   font-family: var(--mono);
@@ -330,9 +330,9 @@
 }
 .fw-modal-title { margin: 0 0 var(--space-md); font-size: var(--fs-17); }
 .fw-form { display: flex; flex-direction: column; gap: var(--space-sm); }
-.fw-form label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-12); color: var(--t3); }
+.fw-form label { display: flex; flex-direction: column; gap: var(--space-xs); font-size: var(--fs-12); color: var(--t3); }
 .fw-form input, .fw-form select {
-  padding: 6px 9px;
+  padding: var(--space-sm);
   border-radius: var(--r);
   border: 1px solid var(--line-2);
   background: var(--field-bg);
@@ -341,7 +341,7 @@
 }
 .fw-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); margin-top: var(--space-sm); }
 .fw-error { color: var(--red); font-size: var(--fs-12); margin: 0; }
-.fw-confirm-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.fw-confirm-list { list-style: none; margin: 0 0 var(--space-sm); padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); }
 .fw-confirm-list li { font-size: var(--fs-14); }
 .fw-confirm-pct { font-weight: var(--fw-semibold); color: var(--green); }
 .fw-confirm-note { font-size: var(--fs-11); color: var(--t3); margin: 0 0 var(--space-2xs); }

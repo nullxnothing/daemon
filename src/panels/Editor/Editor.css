@@ -77,7 +77,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   border: 1px solid var(--accent-line);
   border-radius: var(--r);
   background: var(--accent-fill);
@@ -126,7 +126,7 @@
   align-items: center;
   justify-content: center;
   min-width: 18px;
-  padding: 2px 5px;
+  padding: 2px var(--space-xs);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
@@ -205,7 +205,7 @@
   align-items: center;
   justify-content: center;
   min-width: 18px;
-  padding: 2px 5px;
+  padding: 2px var(--space-xs);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
@@ -324,7 +324,7 @@
 .editor-empty-recent-branch {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   flex: 0 0 auto;
   max-width: 140px;
   overflow: hidden;
@@ -446,7 +446,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   min-width: 0;
   min-height: 38px;
   padding: 0 var(--space-sm);
@@ -518,7 +518,7 @@
   height: 32px;
   background: var(--s1);
   border-bottom: 1px solid var(--border);
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   gap: 2px;
   flex-shrink: 0;
   overflow-x: auto;
@@ -531,9 +531,9 @@
 .editor-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 26px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
   background: transparent;
@@ -641,8 +641,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 10px;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--border);
   background: var(--s1);
   overflow: hidden;
@@ -669,7 +669,7 @@
 
 .editor-breadcrumb-item {
   height: 20px;
-  padding: 0 6px;
+  padding: 0 var(--space-sm);
   border-radius: var(--r);
   font-size: var(--fs-11);
   color: var(--t2);
@@ -702,17 +702,17 @@
 .editor-breadcrumbs-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   flex-shrink: 0;
 }
 
 .editor-lsp-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 20px;
   max-width: 140px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--r);
   color: var(--t3);
@@ -751,7 +751,7 @@
 
 .editor-tidy-markdown-btn {
   height: 22px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border: 1px solid var(--s5);
   border-radius: var(--r-panel);
   background: var(--s2);
@@ -819,8 +819,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
-  gap: 8px;
+  padding: 0 var(--space-md);
+  gap: var(--space-sm);
 }
 
 .editor-tidy-preview-title {
@@ -832,13 +832,13 @@
 .editor-tidy-preview-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .editor-tidy-preview-btn {
   height: 24px;
   border-radius: var(--r-panel);
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
 }
@@ -870,7 +870,7 @@
 }
 
 .editor-tidy-preview-error {
-  padding: 6px 10px;
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-11);
   color: var(--red);
   border-bottom: 1px solid var(--border);
