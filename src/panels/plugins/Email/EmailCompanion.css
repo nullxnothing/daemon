@@ -10,9 +10,9 @@
 .email-companion__header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 32px;
-  padding: 0 16px;
+  padding: 0 var(--space-lg);
   border-bottom: 1px solid var(--s5);
   flex-shrink: 0;
 }
@@ -24,7 +24,7 @@
 
 .email-companion__breadcrumb-sep {
   color: var(--t3);
-  margin: 0 4px;
+  margin: 0 var(--space-xs);
 }
 
 .email-companion__breadcrumb-active {
@@ -41,7 +41,7 @@
 .email-companion__message-col {
   flex: 1;
   min-width: 300px;
-  padding: 16px 20px;
+  padding: var(--space-lg) var(--space-xl);
   overflow-y: auto;
 }
 
@@ -103,5 +103,5 @@
   font-size: var(--fs-11);
   color: var(--t3);
   text-align: center;
-  padding: 24px;
+  padding: var(--space-xl);
 }

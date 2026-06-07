@@ -10,9 +10,9 @@
 .remotion-toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 36px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   background: var(--s1);
   border-bottom: 1px solid var(--s5);
   flex-shrink: 0;
@@ -62,7 +62,7 @@
   color: var(--t1);
   font-size: var(--fs-11);
   font-family: var(--mono);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   outline: none;
   min-width: 0;
 }
@@ -116,11 +116,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-md);
   color: var(--t2);
   font-size: var(--fs-12);
   text-align: center;
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .remotion-placeholder-title {
@@ -134,21 +134,21 @@
   font-size: var(--fs-11);
   font-family: var(--mono);
   background: var(--s2);
-  padding: 6px 10px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   border: 1px solid var(--s5);
 }
 
 .remotion-retry-btn {
   height: 28px;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   background: var(--s3);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
   cursor: pointer;
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 
 .remotion-retry-btn:hover {

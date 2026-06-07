@@ -13,7 +13,7 @@
 }
 
 .pf-tab {
-  padding: 6px var(--space-md); /* TODO: token (off-grid 6) */
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
   color: var(--t3);
@@ -51,7 +51,7 @@
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-11);
-  padding: 3px 6px; /* TODO: token (off-grid 3/6) */
+  padding: var(--space-xs) var(--space-sm);
   font-family: var(--font-ui);
 }
 
@@ -66,7 +66,7 @@
   font-size: var(--fs-10);
   color: var(--green);
   cursor: pointer;
-  padding: 2px 6px; /* TODO: token (off-grid 2/6) */
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--green);
   opacity: 0.7;
@@ -77,7 +77,7 @@
 
 /* Form elements */
 .pf-field {
-  margin-bottom: 10px; /* TODO: token (off-grid 10) */
+  margin-bottom: var(--space-md);
 }
 
 .pf-label {
@@ -86,7 +86,7 @@
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .pf-input {
@@ -96,7 +96,7 @@
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-12);
-  padding: 6px var(--space-sm); /* TODO: token (off-grid 6) */
+  padding: var(--space-sm);
   font-family: var(--font-ui);
 }
 
@@ -113,7 +113,7 @@
   border-radius: var(--radius-sm);
   color: var(--t1);
   font-size: var(--fs-12);
-  padding: 6px var(--space-sm); /* TODO: token (off-grid 6) */
+  padding: var(--space-sm);
   font-family: var(--font-ui);
   resize: vertical;
   min-height: 60px;
@@ -126,7 +126,7 @@
 }
 
 .pf-btn {
-  padding: 6px var(--space-md); /* TODO: token (off-grid 6) */
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
   border-radius: var(--radius-sm);
@@ -183,7 +183,7 @@
 }
 
 .pf-slippage-btn {
-  padding: 3px var(--space-sm); /* TODO: token (off-grid 3) */
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--fs-10);
   background: var(--s2);
   color: var(--t2);
@@ -223,14 +223,14 @@
   background: var(--s2);
   border: 1px solid var(--s3);
   border-radius: var(--radius-md);
-  padding: 10px; /* TODO: token (off-grid 10) */
-  margin-bottom: 10px; /* TODO: token (off-grid 10) */
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .pf-curve-row {
   display: flex;
   justify-content: space-between;
-  padding: 3px 0; /* TODO: token (off-grid 3) */
+  padding: var(--space-xs) 0;
   font-size: var(--fs-11);
 }
 
@@ -265,12 +265,12 @@
   border: 1px solid var(--s3);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  margin-bottom: 10px; /* TODO: token (off-grid 10) */
+  margin-bottom: var(--space-md);
 }
 
 .pf-action-toggle button {
   flex: 1;
-  padding: var(--space-xs); /* TODO: token (off-grid 5 → 4) */
+  padding: var(--space-xs);
   font-size: var(--fs-11);
   font-weight: var(--fw-semibold);
   color: var(--t3);
@@ -310,7 +310,7 @@
 
 /* Result */
 .pf-result {
-  margin-top: 10px; /* TODO: token (off-grid 10) */
+  margin-top: var(--space-md);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
   font-size: var(--fs-11);
@@ -359,7 +359,7 @@
 .pf-empty {
   color: var(--t3);
   font-size: var(--fs-11);
-  padding: 20px 0;
+  padding: var(--space-xl) 0;
   text-align: center;
 }
 
@@ -374,9 +374,9 @@
 .pf-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* TODO: token (off-grid 6) */
+  gap: var(--space-sm);
   height: 22px;
-  padding: 0 9px; /* TODO: token (off-grid 9) */
+  padding: 0 var(--space-md);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   font-size: var(--fs-11);
@@ -384,7 +384,7 @@
 }
 .pf-net { font-size: var(--fs-11); color: var(--t3); }
 
-.pf-psec { display: flex; flex-direction: column; gap: 9px; /* TODO: token (off-grid 9) */ }
+.pf-psec { display: flex; flex-direction: column; gap: var(--space-md); }
 
 .pf-pfield {
   height: var(--input-h);
@@ -395,7 +395,7 @@
   color: var(--t1);
   font-family: var(--font-ui);
   font-size: var(--fs-12);
-  padding: 0 9px; /* TODO: token (off-grid 9) */
+  padding: 0 var(--space-md);
   outline: none;
 }
 .pf-pfield:focus { border-color: var(--accent-line); }
@@ -462,7 +462,7 @@
 
 .pf-kv-input:focus-visible { box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
 
-.pf-launch-btn { width: 100%; justify-content: center; margin-top: 2px; padding: 9px; /* TODO: token (off-grid 2/9) */ }
+.pf-launch-btn { width: 100%; justify-content: center; margin-top: var(--space-xs); padding: var(--space-md); }
 
 /* LIVE list (mockup .card / .drow) — status only */
 .pf-livecard { border: 1px solid var(--line); }
@@ -471,7 +471,7 @@
   align-items: center;
   gap: var(--space-md);
   height: 36px;
-  padding: 0 14px; /* TODO: token (off-grid 14) */
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
 }
 .pf-drow:last-child { border-bottom: 0; }
@@ -484,8 +484,8 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 9px; /* TODO: token (off-grid 9) */
-  padding: 0 13px; /* TODO: token (off-grid 13) */
+  gap: var(--space-md);
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
 }
 .pf-plugin-badge {

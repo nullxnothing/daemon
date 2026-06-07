@@ -46,7 +46,7 @@
 }
 
 .mem-dot {
-  margin-top: 5px;
+  margin-top: var(--space-xs);
 }
 
 .mem-body {
@@ -70,7 +70,7 @@
 .mem-source {
   font-size: var(--fs-10);
   color: var(--t3);
-  margin-top: 2px;
+  margin-top: var(--space-xs);
 }
 
 .mem-actions {
@@ -81,7 +81,7 @@
 
 .mem-btn {
   font-size: var(--fs-11);
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: var(--s1);

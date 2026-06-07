@@ -49,8 +49,8 @@
 }
 
 .subscriptions-alert {
-  margin: 14px 18px 0;
-  padding: 10px 12px;
+  margin: var(--space-md) var(--space-lg) 0;
+  padding: var(--space-md);
   border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
   border-radius: var(--r-panel);
   background: color-mix(in srgb, var(--red) 8%, transparent);
@@ -60,7 +60,7 @@
 
 .subscriptions-summary,
 .subscriptions-section {
-  margin: 18px;
+  margin: var(--space-lg);
 }
 
 .subscriptions-summary {
@@ -103,15 +103,15 @@
 .subscriptions-holder-status {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .subscriptions-stat {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
-  padding: 10px;
+  gap: var(--space-xs);
+  padding: var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--r-panel);
   background: var(--wash);
@@ -130,11 +130,11 @@
 }
 
 .subscriptions-usage {
-  margin-top: 14px;
+  margin-top: var(--space-md);
 }
 
 .subscriptions-usage-row {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
   color: var(--t3);
   font-size: var(--fs-12);
 }
@@ -168,7 +168,7 @@
 }
 
 .subscriptions-link-button {
-  padding: var(--space-xs) 9px; /* TODO: token (off-grid 5/9) */
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--s4);
   border-radius: var(--radius-sm);
   background: var(--s1);
@@ -222,8 +222,8 @@
   display: flex;
   min-height: 260px;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px;
+  gap: var(--space-md);
+  padding: var(--space-md);
 }
 
 .subscriptions-tier--current {
@@ -233,14 +233,14 @@
 
 .subscriptions-tier-top strong {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
   font-size: var(--fs-15);
 }
 
 .subscriptions-price {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-sm);
 }
 
 .subscriptions-price span {
@@ -252,12 +252,12 @@
 .subscriptions-tier-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-sm);
   font-size: var(--fs-11);
 }
 
 .subscriptions-tier-meta span {
-  padding: 3px 7px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--s4);
   border-radius: var(--radius-pill);
 }
@@ -266,7 +266,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -283,14 +283,14 @@
   display: inline-block;
   width: 5px;
   height: 5px;
-  margin-right: 8px;
+  margin-right: var(--space-sm);
   border-radius: 50%;
   background: var(--green);
   vertical-align: 1px;
 }
 
 .subscriptions-current-marker {
-  padding-top: 10px;
+  padding-top: var(--space-md);
   border-top: 1px solid var(--s4);
   color: var(--green);
   font-size: var(--fs-11);
@@ -302,11 +302,11 @@
 .subscriptions-holder-grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .subscriptions-lane {
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .subscriptions-lane--unlocked {
@@ -316,7 +316,7 @@
 .subscriptions-lane strong,
 .subscriptions-holder-tier strong {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .subscriptions-lane span {
@@ -332,7 +332,7 @@
 
 .subscriptions-lane-meta b {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-xs);
   color: var(--green);
   font-size: var(--fs-12);
 }
@@ -348,19 +348,19 @@
 }
 
 .subscriptions-holder {
-  padding-bottom: 18px;
+  padding-bottom: var(--space-lg);
 }
 
 .subscriptions-holder-grid {
-  margin-top: 12px;
+  margin-top: var(--space-md);
 }
 
 .subscriptions-holder-tier {
   display: grid;
   grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr) auto;
-  gap: 12px;
+  gap: var(--space-md);
   align-items: center;
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .subscriptions-holder-tier p {

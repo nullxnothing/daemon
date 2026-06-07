@@ -15,14 +15,14 @@
 /* URL bar */
 .browser__urlbar {
   display: flex;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s5);
 }
 
 .browser__url-input {
   flex: 1;
-  padding: 6px 10px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -41,7 +41,7 @@
 }
 
 .browser__go-btn {
-  padding: 6px 12px;
+  padding: var(--space-sm) var(--space-md);
   background: var(--s3);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -68,11 +68,11 @@
 
 /* Page info */
 .browser__page-info {
-  padding: 8px 12px;
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s5);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .browser__page-title {
@@ -94,13 +94,13 @@
 /* Actions */
 .browser__actions {
   display: flex;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--s5);
 }
 
 .browser__action-btn {
-  padding: 5px 10px;
+  padding: var(--space-xs) var(--space-md);
   background: var(--s3);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -134,7 +134,7 @@
 .browser__content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .browser__text-content {
@@ -149,7 +149,7 @@
 .browser__analysis {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .browser__analysis-header {
@@ -165,7 +165,7 @@
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
-  padding: 10px 12px;
+  padding: var(--space-md);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -174,13 +174,13 @@
 .browser__findings {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .browser__finding {
   font-size: var(--fs-11);
   color: var(--t1);
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--s2);
   border-left: 2px solid var(--t3);
 }
@@ -189,8 +189,8 @@
 .browser__history {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px;
+  gap: var(--space-xs);
+  padding: var(--space-md);
 }
 
 .browser__history-title {
@@ -198,14 +198,14 @@
   color: var(--t2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .browser__history-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
+  padding: var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -233,7 +233,7 @@
 }
 
 .browser__clear-btn {
-  padding: 3px 8px;
+  padding: var(--space-xs) var(--space-sm);
   background: transparent;
   border: 1px solid var(--s5);
   border-radius: var(--radius-sm);
@@ -253,24 +253,24 @@
   font-size: var(--fs-11);
   color: var(--t3);
   text-align: center;
-  padding: 24px 12px;
+  padding: var(--space-xl) var(--space-md);
 }
 
 .browser__loading {
   font-size: var(--fs-11);
   color: var(--t2);
   text-align: center;
-  padding: 12px;
+  padding: var(--space-md);
 }
 
 .browser__error {
   font-size: var(--fs-11);
   color: var(--red);
-  padding: 6px 8px;
+  padding: var(--space-sm);
   background: var(--s2);
   border: 1px solid var(--red);
   border-radius: var(--radius-sm);
-  margin: 8px 12px;
+  margin: var(--space-sm) var(--space-md);
 }
 
 /* Tabs for content vs analysis */
@@ -282,7 +282,7 @@
 
 .browser__tab {
   flex: 1;
-  padding: 6px 0;
+  padding: var(--space-sm) 0;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;

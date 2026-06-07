@@ -9,9 +9,9 @@
 .deploy-header {
   display: flex;
   align-items: center;
-  padding: 16px 24px;
+  padding: var(--space-lg) var(--space-xl);
   border-bottom: 1px solid var(--s5);
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .deploy-title {
@@ -26,7 +26,7 @@
 }
 
 .deploy-section {
-  padding: 12px 24px;
+  padding: var(--space-md) var(--space-xl);
   border-bottom: 1px solid var(--s5);
 }
 
@@ -36,7 +36,7 @@
   font-weight: var(--fw-semibold);
   color: var(--t3);
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 /* Fused platform list */
@@ -47,9 +47,9 @@
 .deploy-prow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 54px;
-  padding: 0 16px;
+  padding: 0 var(--space-lg);
   border-bottom: 1px solid var(--line);
 }
 
@@ -85,8 +85,8 @@
 .deploy-pstat {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 3px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
   font-family: var(--mono);
   font-size: var(--fs-11);
   color: var(--t3);
@@ -100,12 +100,12 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .deploy-gbtn {
   height: 28px;
-  padding: 0 11px; /* TODO: token (off-grid 11) */
+  padding: 0 var(--space-md);
   border-radius: var(--r);
   font-family: var(--font-ui);
   font-size: var(--fs-12);
@@ -151,7 +151,7 @@
 .deploy-pconnect {
   border-bottom: 1px solid var(--line);
   background: var(--field-bg);
-  padding: 14px 16px;
+  padding: var(--space-md) var(--space-lg);
 }
 
 .deploy-pwrap:last-child .deploy-pconnect {
@@ -171,7 +171,7 @@
 
 .deploy-btn {
   height: 28px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   background: var(--s2);
   color: var(--t1);
@@ -180,7 +180,7 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-shrink: 0;
 }
 
@@ -235,7 +235,7 @@
   border: 1px solid var(--line-2);
   color: var(--t1);
   font-size: var(--fs-11);
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border-radius: var(--r);
   width: 100%;
   flex: 1;
@@ -253,8 +253,8 @@
 
 .deploy-row {
   display: flex;
-  gap: 8px;
-  padding: 6px 14px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   min-height: 38px;
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -277,7 +277,7 @@
   font-size: var(--fs-10);
   color: var(--t3);
   background: var(--s2);
-  padding: 1px 6px;
+  padding: 1px var(--space-sm);
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
@@ -301,7 +301,7 @@
   font-size: var(--fs-9);
   text-transform: uppercase;
   font-weight: var(--fw-semibold);
-  padding: 1px 6px;
+  padding: 1px var(--space-sm);
   border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
@@ -352,7 +352,7 @@
 
 .deploy-connect-hint-link {
   display: inline-block;
-  margin-top: 9px;
+  margin-top: var(--space-md);
   color: var(--blue);
   cursor: pointer;
   background: none;
@@ -370,5 +370,5 @@
 .deploy-error {
   font-size: var(--fs-11);
   color: var(--red);
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
 }
