@@ -14,6 +14,8 @@ interface PackHostShellProps<T extends string> {
   tabs: Array<UnderlineTabItem<T>>
   activeId: T
   onChange: (id: T) => void
+  /** Optional stable class on the host root (for styling / test hooks). */
+  className?: string
   /** Active view content — scrolls under the sticky header + tab band. */
   children: ReactNode
 }
@@ -31,12 +33,13 @@ export function PackHostShell<T extends string>({
   tabs,
   activeId,
   onChange,
+  className,
   children,
 }: PackHostShellProps<T>) {
   const openWorkspaceTool = useUIStore((s) => s.openWorkspaceTool)
 
   return (
-    <div className={styles.host}>
+    <div className={className ? `${styles.host} ${className}` : styles.host}>
       <PanelHeader
         kicker={kicker}
         brandKicker

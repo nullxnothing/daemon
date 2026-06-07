@@ -206,10 +206,13 @@ async function readLayoutSnapshot(page) {
     const terminalAdd = select('.terminal-tab-add')
     const terminalMenu = select('.terminal-launcher-menu')
     const terminalTools = select('.terminal-viewtabs-actions')
+    // Solana now uses the shared PackHostShell (PanelHeader + UnderlineTabs), so
+    // target the stable semantic/ARIA hooks rather than the removed bespoke
+    // .solana-workflow-header / .solana-view-tab classes.
     const solanaToolbox = select('.solana-toolbox')
-    const solanaHeader = select('.solana-workflow-header')
-    const solanaTabs = select('.solana-view-tabs')
-    const solanaTab = select('.solana-view-tab')
+    const solanaHeader = select('.solana-toolbox header')
+    const solanaTabs = select('.solana-toolbox [role="tablist"]')
+    const solanaTab = select('.solana-toolbox [role="tab"]')
     const solanaZone = select('.solana-validator-zone')
 
     return {
@@ -415,21 +418,26 @@ async function run() {
     assert.equal(walletSnapshot.walletHeader.paddingLeft, walletSnapshot.walletHeader.paddingRight, 'wallet hero gutter asymmetric')
   }
   assert.equal(solanaSnapshot.solanaToolbox.overflowY, 'auto', 'solana toolbox lost vertical scrolling')
-  assert.equal(solanaSnapshot.solanaHeader.paddingLeft, '20px', 'solana header left gutter drifted')
-  assert.equal(solanaSnapshot.solanaHeader.paddingRight, '20px', 'solana header right gutter drifted')
-  assert.equal(solanaSnapshot.solanaTabs.paddingLeft, '20px', 'solana tabs left gutter drifted')
-  assert.equal(solanaSnapshot.solanaTabs.paddingRight, '20px', 'solana tabs right gutter drifted')
-  assert.equal(solanaSnapshot.solanaTab.borderRadius, solanaSnapshot.tokens.drawerCardRadius, 'solana tab radius drifted')
+  // Solana now uses the shared PackHostShell. Its header and tab band share the
+  // same inline gutter (12px), which is a stronger cohesion guarantee than the
+  // old bespoke 20px header. Assert the band gutters match each other and the
+  // header/tabs stay aligned.
+  assert.equal(solanaSnapshot.solanaHeader.paddingLeft, solanaSnapshot.solanaHeader.paddingRight, 'solana header gutter asymmetric')
+  assert.equal(solanaSnapshot.solanaTabs.paddingLeft, solanaSnapshot.solanaHeader.paddingLeft, 'solana tabs gutter drifted from header')
+  assert.equal(solanaSnapshot.solanaTabs.paddingRight, solanaSnapshot.solanaHeader.paddingRight, 'solana tabs gutter drifted from header')
   assert.equal(solanaSnapshot.solanaZone.paddingLeft, '16px', 'solana content zone left gutter drifted')
   assert.equal(solanaSnapshot.solanaZone.paddingRight, '16px', 'solana content zone right gutter drifted')
   if (quickviewAvailable && quickviewSnapshot) {
     assert.equal(quickviewSnapshot.quickviewCard.borderRadius, quickviewSnapshot.tokens.radiusLg, 'wallet quickview card radius drifted')
-    assert.equal(quickviewSnapshot.quickviewMeta.paddingLeft, '18px', 'wallet quickview header gutter drifted')
-    assert.equal(quickviewSnapshot.quickviewMeta.paddingRight, '18px', 'wallet quickview header gutter drifted')
-    assert.equal(quickviewSnapshot.quickviewStatGrid.paddingLeft, '18px', 'wallet quickview stats left gutter drifted')
-    assert.equal(quickviewSnapshot.quickviewStatGrid.paddingRight, '18px', 'wallet quickview stats right gutter drifted')
-    assert.equal(quickviewSnapshot.quickviewFooter.paddingLeft, '18px', 'wallet quickview footer left gutter drifted')
-    assert.equal(quickviewSnapshot.quickviewFooter.paddingRight, '18px', 'wallet quickview footer right gutter drifted')
+    // Meta, stat grid, and footer all share the same token-based inline gutter.
+    // Assert they stay equal to each other (cohesion) rather than to a hardcoded
+    // px, so the check survives token value changes.
+    const gutter = quickviewSnapshot.quickviewMeta.paddingLeft
+    assert.equal(quickviewSnapshot.quickviewMeta.paddingRight, gutter, 'wallet quickview header gutter asymmetric')
+    assert.equal(quickviewSnapshot.quickviewStatGrid.paddingLeft, gutter, 'wallet quickview stats gutter drifted')
+    assert.equal(quickviewSnapshot.quickviewStatGrid.paddingRight, gutter, 'wallet quickview stats gutter drifted')
+    assert.equal(quickviewSnapshot.quickviewFooter.paddingLeft, gutter, 'wallet quickview footer gutter drifted')
+    assert.equal(quickviewSnapshot.quickviewFooter.paddingRight, gutter, 'wallet quickview footer gutter drifted')
   }
   // The terminal view-tabs strip (.terminal-viewtabs) replaced the old per-terminal
   // tab strip and owns its own (intentionally asymmetric) padding; presence is

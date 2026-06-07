@@ -71,6 +71,7 @@ export function TokenLaunchTool() {
 
   return (
     <PackHostShell
+      className="token-launch-tool"
       kicker="Launch pack"
       title="Token Launch"
       subtitle="Launch on live launchpads, pool backers, and wire creator-fee flywheels."

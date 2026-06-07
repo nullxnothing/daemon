@@ -1,8 +1,12 @@
 .host {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  /* `min-height: 100%` (not `height: 100%`) hooks the host into the editor
+     tool-content scroll mechanism: it fills the area when there's room, but
+     when the header + tab band would otherwise consume everything, the host
+     grows to its content height and the tool-content scrolls it — instead of
+     clamping to a too-short height and collapsing `.body` to zero. */
+  min-height: 100%;
 }
 
 /* PanelHeader and the tab row form the sticky band; they never scroll away. */
@@ -12,7 +16,10 @@
 }
 
 .body {
-  flex: 1;
+  /* `flex: 1 1 auto` (content-aware basis) lets the body's natural height feed
+     the host's `min-height: 100%` growth, so the body is never squeezed to zero
+     when vertical space is tight. */
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   display: flex;

@@ -24,19 +24,18 @@ const viewports = [
   { name: 'wide', width: 1720, height: 980 },
 ]
 
+// Drawer-accessible tools only. Pack hosts (Wallet, Token Launch, Solana
+// Workflow, Daemon AI, Signalhouse) cover their folded sub-views (Proof Pool,
+// Solana Start, Dashboard, etc.), so those no longer have standalone drawer
+// cards to open here.
 const toolChecks = [
   { name: 'New Project', readySelector: '.starter-panel', expectedText: 'Project Templates' },
   { name: 'Git', readySelector: '.git-center', expectedText: 'Git workflow' },
   { name: 'Env', readySelector: '.env-center', expectedText: 'Environment' },
   { name: 'Wallet', readySelector: '.wallet-panel', expectedText: 'Add wallet' },
-  { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Launch Center' },
-  { name: 'Proof Pool', readySelector: '.proof-pool-panel', expectedText: 'Hosted partner launches and advanced Proof Pool custody' },
-  { name: 'Solana Start', readySelector: '.project-readiness', expectedText: 'Solana project status' },
-  { name: 'Solana Workflow', readySelector: '.solana-toolbox', expectedText: 'Solana Workspace' },
+  { name: 'Token Launch', readySelector: '.token-launch-tool', expectedText: 'Token Launch' },
+  { name: 'Solana Workflow', readySelector: '.solana-toolbox', expectedText: 'Solana Workflow' },
   { name: 'Settings', readySelector: '.settings-center', expectedText: 'Settings' },
-  // Dashboard empty state branches on whether a wallet is active; the CI seed has
-  // none, so it renders the "Connect a launch wallet" copy.
-  { name: 'Dashboard', readySelector: '.dash-canvas', expectedText: 'Connect a launch wallet' },
   { name: 'Sessions', readySelector: '.session-history', expectedText: 'Sessions' },
   { name: 'Recovery', readySelector: '.recovery-panel', expectedText: 'Wallets' },
 ]
@@ -267,12 +266,13 @@ async function assertNoHorizontalOverflow(page, viewportName, contextName) {
 }
 
 async function verifySolanaTabs(page) {
-  const tabs = ['Start', 'Connect', 'Build', 'Launch', 'Inspect', 'Debug']
+  // The Solana host renders its top tabs through PackHostShell's UnderlineTabs
+  // (accessible role=tab + aria-selected), not the legacy .solana-view-tab class.
+  const tabs = ['Start', 'Connect', 'Build', 'Launch', 'Explore', 'Debug']
   for (const tab of tabs) {
-    await page.locator('.solana-view-tab').evaluateAll((nodes, expected) => {
+    await page.locator('.solana-toolbox [role="tab"]').evaluateAll((nodes, expected) => {
       for (const node of nodes) {
-        const label = node.querySelector('.solana-view-tab-label')?.textContent?.trim()
-        if (label === expected) {
+        if (node.textContent?.trim() === expected) {
           node.scrollIntoView({ block: 'center' })
           node.click()
           return true
@@ -281,7 +281,7 @@ async function verifySolanaTabs(page) {
       return false
     }, tab)
     await page.waitForFunction((expected) => {
-      const active = document.querySelector('.solana-view-tab.active .solana-view-tab-label')?.textContent?.trim()
+      const active = document.querySelector('.solana-toolbox [role="tab"][aria-selected="true"]')?.textContent?.trim()
       return active === expected
     }, tab, { timeout: 30000 })
   }
