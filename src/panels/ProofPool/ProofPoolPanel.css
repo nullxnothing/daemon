@@ -26,7 +26,7 @@
   display: grid;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   gap: var(--space-lg);
-  margin-top: 18px;
+  margin-top: var(--space-lg);
 }
 
 .proof-pool-sidebar,
@@ -76,18 +76,18 @@
 }
 
 .proof-pool-alert {
-  margin-top: 12px;
+  margin-top: var(--space-md);
   border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
   background: color-mix(in srgb, var(--red) 10%, transparent);
   color: var(--red);
   border-radius: 0;
-  padding: 10px 12px;
+  padding: var(--space-md) var(--space-md);
   font-size: var(--fs-12);
 }
 
 .proof-pool-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   max-height: 360px;
   overflow: auto;
 }
@@ -95,8 +95,8 @@
 .proof-pool-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .proof-pool-filters button {
@@ -104,7 +104,7 @@
   background: var(--s2);
   color: var(--t3);
   border-radius: var(--r);
-  padding: 6px 8px;
+  padding: var(--space-sm) var(--space-sm);
   font: inherit;
   font-size: var(--fs-10);
   font-weight: var(--fw-bold);
@@ -127,14 +127,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 58px;
   width: 100%;
   border: 1px solid var(--line);
   background: var(--s2);
   color: inherit;
   border-radius: 0;
-  padding: 10px;
+  padding: var(--space-md);
   text-align: left;
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
@@ -152,7 +152,7 @@
 
 .proof-pool-list-item span {
   display: grid;
-  gap: 3px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -174,7 +174,7 @@
 
 .proof-pool-form {
   display: grid;
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .proof-pool-partner-grid {
@@ -186,7 +186,7 @@
 
 .proof-pool-form label {
   display: grid;
-  gap: 5px;
+  gap: var(--space-xs);
   min-width: 0;
   color: var(--t3);
   font-size: var(--fs-11);
@@ -211,7 +211,7 @@
   background: var(--field-bg);
   color: var(--t1);
   border-radius: var(--r);
-  padding: 9px 10px;
+  padding: var(--space-sm) var(--space-md);
   font: inherit;
   font-size: var(--fs-12);
   outline: none;
@@ -236,7 +236,7 @@
 .proof-pool-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-md);
 }
 
 .proof-pool-progress {
@@ -244,7 +244,7 @@
   overflow: hidden;
   border-radius: var(--r);
   background: var(--s2);
-  margin: 14px 0;
+  margin: var(--space-md) 0;
 }
 
 .proof-pool-progress span {
@@ -264,15 +264,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-sm);
   white-space: nowrap;
 }
 
 .proof-pool-addresses {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
   color: var(--t3);
   font-size: var(--fs-11);
 }
@@ -291,45 +291,45 @@
 .proof-pool-addresses button {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .proof-pool-backing-form {
   display: grid;
   grid-template-columns: minmax(180px, 1.2fr) minmax(86px, 0.4fr) minmax(180px, 1fr) auto;
-  gap: 8px;
+  gap: var(--space-sm);
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .proof-pool-table {
   display: grid;
-  gap: 6px;
+  gap: var(--space-sm);
   overflow-x: auto;
 }
 
 .proof-pool-table-row {
   display: grid;
   grid-template-columns: 54px minmax(120px, 1fr) 90px 90px 90px 110px 180px;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
   min-width: 900px;
   border: 1px solid var(--line);
   border-radius: 0;
-  padding: 8px 10px;
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-12);
 }
 
 .proof-pool-row-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .proof-pool-row-actions .btn {
   min-width: 0;
-  padding-inline: 8px;
+  padding-inline: var(--space-sm);
 }
 
 .proof-pool-table-row.is-head {
@@ -348,25 +348,25 @@
 
 .proof-pool-session-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .proof-pool-session-item {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 0.8fr) auto;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 0;
-  padding: 10px;
+  padding: var(--space-md);
   background: var(--s2);
   font-size: var(--fs-12);
 }
 
 .proof-pool-session-item span {
   display: grid;
-  gap: 3px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -383,7 +383,7 @@
 
 .proof-pool-events {
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
   max-height: 300px;
   overflow: auto;
 }
@@ -391,14 +391,14 @@
 .proof-pool-events button {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) 150px;
-  gap: 10px;
+  gap: var(--space-md);
   align-items: center;
   width: 100%;
   border: 1px solid var(--line);
   background: var(--s2);
   color: var(--t2);
   border-radius: 0;
-  padding: 9px 10px;
+  padding: var(--space-sm) var(--space-md);
   text-align: left;
 }
 
@@ -433,7 +433,7 @@
 .proof-pool-empty {
   border: 1px dashed var(--line-2);
   border-radius: 0;
-  padding: 18px;
+  padding: var(--space-lg);
   color: var(--t3);
   text-align: center;
   font-size: var(--fs-12);
@@ -453,7 +453,7 @@
 
 @media (max-width: 760px) {
   .proof-pool-panel {
-    padding: 14px;
+    padding: var(--space-md);
   }
 
   .proof-pool-metrics,
