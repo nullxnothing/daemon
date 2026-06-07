@@ -55,6 +55,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   const xtermRef = useRef<XTerm | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fitRetryRef = useRef<number | null>(null)
   const dragDepthRef = useRef(0)
   const lastCtrlCRef = useRef(0)
 
@@ -75,7 +76,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   // Track whether this instance has been disposed to prevent post-teardown fits
   const disposedRef = useRef(false)
 
-  const doFit = useCallback(() => {
+  const doFit = useCallback((attempt = 0) => {
     if (disposedRef.current) return
     const fit = fitRef.current
     const term = xtermRef.current
@@ -84,7 +85,21 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
     // are not yet initialized or the terminal DOM element is unmounted
     if (!term.element?.parentElement) return
     const { clientWidth, clientHeight } = containerRef.current
-    if (clientWidth === 0 || clientHeight === 0) return
+    // The container can briefly measure 0 mid-layout — e.g. when the sessions
+    // sidebar mounts and reflows the pane. A single observer fire would bail here
+    // and leave the grid stuck at stale dimensions, so retry on the next frame
+    // (bounded) until the container has a real size.
+    if (clientWidth === 0 || clientHeight === 0) {
+      if (fitRetryRef.current !== null) cancelAnimationFrame(fitRetryRef.current)
+      if (attempt < 10) {
+        fitRetryRef.current = requestAnimationFrame(() => doFit(attempt + 1))
+      }
+      return
+    }
+    if (fitRetryRef.current !== null) {
+      cancelAnimationFrame(fitRetryRef.current)
+      fitRetryRef.current = null
+    }
     let canUseFitAddon = true
     try {
       canUseFitAddon = Boolean((term as any)._core?._renderService?.dimensions)
@@ -120,7 +135,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
 
   const debouncedFit = useCallback(() => {
     if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
-    resizeTimerRef.current = setTimeout(doFit, 60)
+    resizeTimerRef.current = setTimeout(() => doFit(), 60)
   }, [doFit])
 
   // --- Buffer search helpers ---
@@ -409,6 +424,7 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       disposedRef.current = true
       clearTimeout(readyTimer)
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      if (fitRetryRef.current !== null) cancelAnimationFrame(fitRetryRef.current)
       resizeObserver.disconnect()
       window.removeEventListener('resize', debouncedFit)
       cleanupData()

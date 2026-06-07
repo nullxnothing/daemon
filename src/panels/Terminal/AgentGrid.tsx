@@ -505,14 +505,27 @@ function AgentGridTerminal({ id }: { id: string }) {
   const fitRef = useRef<FitAddon | null>(null)
   const disposedRef = useRef(false)
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fitRetryRef = useRef<number | null>(null)
 
-  const doFit = useCallback(() => {
+  const doFit = useCallback((attempt = 0) => {
     if (disposedRef.current) return
     const fit = fitRef.current
     const term = xtermRef.current
     if (!fit || !term || !containerRef.current) return
     const { clientWidth, clientHeight } = containerRef.current
-    if (clientWidth === 0 || clientHeight === 0) return
+    // Container can briefly measure 0 mid-layout (e.g. grid reflow); retry on the
+    // next frame (bounded) instead of bailing and leaving stale dimensions.
+    if (clientWidth === 0 || clientHeight === 0) {
+      if (fitRetryRef.current !== null) cancelAnimationFrame(fitRetryRef.current)
+      if (attempt < 10) {
+        fitRetryRef.current = requestAnimationFrame(() => doFit(attempt + 1))
+      }
+      return
+    }
+    if (fitRetryRef.current !== null) {
+      cancelAnimationFrame(fitRetryRef.current)
+      fitRetryRef.current = null
+    }
     let canUseFitAddon = true
     try {
       canUseFitAddon = Boolean((term as any)._core?._renderService?.dimensions)
@@ -570,7 +583,7 @@ function AgentGridTerminal({ id }: { id: string }) {
 
     const resizeObserver = new ResizeObserver(() => {
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
-      resizeTimerRef.current = setTimeout(doFit, 60)
+      resizeTimerRef.current = setTimeout(() => doFit(), 60)
     })
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current)
@@ -585,6 +598,7 @@ function AgentGridTerminal({ id }: { id: string }) {
       disposedRef.current = true
       clearTimeout(readyTimer)
       if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      if (fitRetryRef.current !== null) cancelAnimationFrame(fitRetryRef.current)
       resizeObserver.disconnect()
       cleanupData()
       cleanupExit()
