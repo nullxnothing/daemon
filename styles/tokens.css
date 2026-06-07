@@ -222,7 +222,6 @@
   --shell-gutter: 10px;  /* outer chrome gutter between shell regions — deliberately off the 4px scale */
 
   /* Spacing scale */
-  --space-2xs: 4px;   /* @deprecated duplicate of --space-xs; use --space-xs */
   --space-xs:  4px;
   --space-sm:  8px;
   --space-md:  12px;

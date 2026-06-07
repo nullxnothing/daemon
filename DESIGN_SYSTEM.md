@@ -95,7 +95,7 @@ Durations: `--dur-instant` 120 · `--dur-base` 180 · `--dur-emphasized` 320 ·
 · `--statusbar-h` 24.
 
 > **Deprecated aliases** (kept until panels migrate, do not use in new code):
-> `--space-2xs` (use `--space-xs`), `--font-base/sm/md/lg/xl` (use `--fs-*` or type
+> `--font-base/sm/md/lg/xl` (use `--fs-*` or type
 > roles), `--text-tertiary` (use `--t3`), `--surface-gradient-subtle`.
 
 ---

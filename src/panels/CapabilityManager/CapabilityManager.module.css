@@ -79,7 +79,7 @@
 }
 
 .packDot {
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
   flex-shrink: 0;
 }
 
@@ -106,7 +106,7 @@
   font-size: var(--fs-10);
   font-weight: var(--fw-medium);
   border-radius: var(--radius-pill);
-  padding: var(--space-2xs) var(--space-xs);
+  padding: var(--space-xs) var(--space-xs);
 }
 
 .packBadgeCore {
@@ -122,12 +122,12 @@
 .packDesc {
   color: var(--text-secondary);
   font-size: var(--fs-12);
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
   line-height: 1.4;
 }
 
 .packPerfNote {
   color: var(--text-faint);
   font-size: var(--fs-11);
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
 }
