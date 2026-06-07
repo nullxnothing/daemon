@@ -28,7 +28,7 @@
   align-items: center;
   height: 30px;
   background: var(--bg);
-  padding: 0 var(--space-sm) 0 4px;
+  padding: 0 var(--space-sm) 0 var(--space-xs);
   gap: 2px;
   flex-shrink: 0;
   overflow: visible;
@@ -61,10 +61,10 @@
 .terminal-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 26px;
   max-width: 180px;
-  padding: 0 6px 0 10px;
+  padding: 0 var(--space-sm) 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
   background: transparent;
@@ -179,7 +179,7 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-float);
-  padding: 4px;
+  padding: var(--space-xs);
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -194,7 +194,7 @@
   min-height: 28px;
   border-radius: var(--r);
   text-align: left;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   line-height: 1;
   color: var(--t2);
@@ -222,7 +222,7 @@
   color: var(--t3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  padding: 8px 10px 3px;
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
 }
 
 .terminal-launcher-item-title {
@@ -236,13 +236,13 @@
 .terminal-launcher-empty {
   font-size: var(--fs-11);
   color: var(--t3);
-  padding: 5px 10px 6px;
+  padding: var(--space-xs) var(--space-md) var(--space-sm);
 }
 
 .terminal-launcher-divider {
   height: 1px;
   background: var(--line);
-  margin: 5px 0 3px;
+  margin: var(--space-xs) 0 var(--space-xs);
 }
 
 .terminal-tools {
@@ -254,7 +254,7 @@
   position: sticky;
   right: 0;
   background: var(--bg);
-  padding-left: 8px;
+  padding-left: var(--space-sm);
 }
 
 .terminal-tool-btn {
@@ -293,7 +293,7 @@
   align-items: center;
   height: 34px;
   flex-shrink: 0;
-  padding: 0 var(--space-sm) 0 4px;
+  padding: 0 var(--space-sm) 0 var(--space-xs);
   background: var(--s1);
   border-top: 1px solid var(--line);
 }
@@ -313,9 +313,9 @@
 .terminal-viewtab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
   height: 34px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border: 0;
   background: transparent;
   color: var(--t3);
@@ -336,7 +336,7 @@
 .terminal-viewtab-badge {
   min-width: 16px;
   height: 16px;
-  padding: 0 5px;
+  padding: 0 var(--space-xs);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -405,7 +405,7 @@
 
 .terminal-sessions-head {
   flex-shrink: 0;
-  padding: 10px var(--space-md) 6px;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
   font-weight: var(--fw-medium);
@@ -419,7 +419,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 6px 6px;
+  padding: 0 var(--space-sm) var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -439,9 +439,9 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   border: 0;
   background: transparent;
   color: var(--t2);
@@ -493,13 +493,13 @@
 
 /* ---- Problems pane ---- */
 .terminal-problems {
-  padding: 8px 0;
+  padding: var(--space-sm) 0;
 }
 
-.terminal-problems-file { margin-bottom: 8px; }
+.terminal-problems-file { margin-bottom: var(--space-sm); }
 
 .terminal-problems-filename {
-  padding: 4px var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   font-family: var(--mono);
   font-size: var(--fs-11);
   color: var(--t2);
@@ -508,8 +508,8 @@
 .terminal-problem {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 3px var(--space-md) 3px calc(var(--space-md) + 12px);
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-md) var(--space-xs) calc(var(--space-md) + 12px);
   font-size: var(--fs-12);
 }
 
@@ -545,7 +545,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 6px;
+  gap: var(--space-sm);
   cursor: pointer;
   transition: background var(--duration-fast);
 }
@@ -577,7 +577,7 @@
 }
 
 .terminal-empty-error {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   font-size: var(--fs-11);
   color: var(--amber);
 }
@@ -586,8 +586,8 @@
   position: absolute;
   inset: 0;
   display: flex;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
 }
 
 .terminal-split.vertical {
@@ -615,7 +615,7 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  padding: 0 6px;
+  padding: 0 var(--space-sm);
   background: var(--s1);
 }
 
@@ -685,7 +685,7 @@
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-float);
-  padding: 4px;
+  padding: var(--space-xs);
   z-index: 12;
 }
 
@@ -694,7 +694,7 @@
   min-height: 26px;
   border-radius: var(--r);
   text-align: left;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t2);
 }
@@ -759,10 +759,10 @@
   border-radius: var(--r-panel);
   background: var(--s2);
   backdrop-filter: var(--glass-blur-soft);
-  padding: 7px 8px;
+  padding: var(--space-sm) var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-xs);
   z-index: 4;
 }
 
@@ -813,7 +813,7 @@
 .aria-bubble-identity {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-xs);
 }
 
 .aria-hint-owl {
@@ -834,7 +834,7 @@
   font-family: var(--font-code);
   color: var(--t4);
   letter-spacing: 0.3px;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   line-height: 1.6;
@@ -872,7 +872,7 @@
   font-size: var(--fs-11);
   text-align: left;
   color: var(--t2);
-  padding: 0 7px;
+  padding: 0 var(--space-sm);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
@@ -892,7 +892,7 @@
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t1);
   font-family: var(--font-code);
@@ -914,7 +914,7 @@
   font-size: var(--fs-11);
   font-family: var(--font-code);
   color: var(--t4);
-  padding: 4px 7px;
+  padding: var(--space-xs) var(--space-sm);
 }
 
 /* Terminal output search overlay — top-right of terminal container */
@@ -934,8 +934,8 @@
 .terminal-search-input-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
 }
 
 .terminal-search-icon {
@@ -964,7 +964,7 @@
   font-size: var(--fs-10);
   color: var(--t3);
   white-space: nowrap;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   flex-shrink: 0;
 }
 

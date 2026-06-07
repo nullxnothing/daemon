@@ -324,7 +324,7 @@ export function AgentGrid() {
                         className="agent-grid-activate"
                         onClick={() => activateCell(i)}
                         aria-label={`Launch ${PROVIDER_META[cells[i].providerId].label}`}
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', background: 'none', border: 'none' }}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-sm)', cursor: 'pointer', background: 'none', border: 'none' }}
                       >
                         <img
                           src={PROVIDER_META[cells[i].providerId].logo}
@@ -452,7 +452,7 @@ function ServicePicker({
       <div style={{ fontSize: 10, color: 'var(--t4)', textTransform: 'uppercase', letterSpacing: 1 }}>
         Pick Service
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, width: '100%', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-md)', width: '100%', justifyContent: 'center' }}>
         {services.map(([id, service]) => (
           <button
             key={id}

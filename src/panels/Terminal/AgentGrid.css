@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   height: 30px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   background: var(--s1);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
@@ -29,9 +29,9 @@
 .agent-grid-page-tab {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: 22px;
-  padding: 0 10px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
   background: transparent;
@@ -95,9 +95,9 @@
 .agent-grid-add-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-xs);
   height: 22px;
-  padding: 0 8px;
+  padding: 0 var(--space-sm);
   font-size: var(--fs-11);
   color: var(--t3);
   border-radius: var(--radius-sm);
@@ -147,8 +147,8 @@
 .agent-grid-cell-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
   height: 26px;
   background: var(--s1);
   border-bottom: 1px solid var(--line);
@@ -203,7 +203,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 4px 6px 4px 8px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-sm);
 }
 
 .agent-grid-terminal {
@@ -221,7 +221,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 8px;
+  gap: var(--space-sm);
   cursor: pointer;
   transition: background var(--duration-normal);
 }
@@ -271,13 +271,13 @@
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 6px;
+  gap: var(--space-sm);
   z-index: 5;
 }
 
 .agent-grid-reopen-btn {
   height: 26px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   font-size: var(--fs-11);
   color: var(--t2);
   background: var(--s2);

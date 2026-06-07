@@ -89,7 +89,7 @@
   color: var(--t1);
   font: inherit;
   font-size: var(--fs-12);
-  padding: var(--space-sm) 10px; /* TODO: 10px token */
+  padding: var(--space-sm) var(--space-md);
   outline: none;
 }
 
@@ -134,7 +134,7 @@
 
 .agent-work-actions button {
   height: var(--btn-h-md);
-  padding: 0 10px; /* TODO: 10px token */
+  padding: 0 var(--space-md);
   border: 1px solid var(--line-2);
   border-radius: var(--radius-control);
   background: var(--s2);
@@ -190,11 +190,11 @@
 .agent-work-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
   flex-shrink: 0;
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 3px 8px; /* TODO: tokens */
+  padding: var(--space-xs) var(--space-sm);
   font-family: var(--mono);
   font-size: var(--fs-10);
   font-weight: var(--fw-medium);
@@ -248,7 +248,7 @@
   color: var(--t3);
   font-family: var(--mono);
   font-size: var(--fs-10);
-  padding: 6px 7px; /* TODO: tokens */
+  padding: var(--space-sm) var(--space-sm);
 }
 
 .agent-work-actions {

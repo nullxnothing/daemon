@@ -50,7 +50,7 @@
 }
 
 .agent-launcher-item {
-  padding: 10px var(--space-md); /* TODO: 10px token */
+  padding: var(--space-md) var(--space-md);
   border-radius: var(--r);
   cursor: pointer;
   position: relative;
@@ -91,7 +91,7 @@
   color: var(--t1);
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-sm);
 }
 
 .agent-launcher-model {
@@ -100,7 +100,7 @@
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: var(--t3);
-  padding: 1px 6px; /* TODO: tokens */
+  padding: 1px var(--space-sm);
   border: 1px solid var(--line);
   background: var(--wash-2);
   border-radius: var(--r);
@@ -109,7 +109,7 @@
 .agent-launcher-item-sub {
   font-size: var(--fs-11);
   color: var(--t2);
-  margin-top: 3px; /* TODO: token */
+  margin-top: var(--space-xs);
   line-height: var(--lh-snug);
 }
 
@@ -127,7 +127,7 @@
   top: 10px; /* TODO: token */
   font-size: var(--fs-10);
   color: var(--t3);
-  padding: 1px 5px; /* TODO: tokens */
+  padding: 1px var(--space-xs);
   border: 1px solid var(--line);
   border-radius: var(--r);
   font-family: var(--mono);
@@ -203,7 +203,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 10px 6px; /* TODO: tokens */
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   color: var(--t3);
   font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
@@ -220,7 +220,7 @@
   display: inline-flex;
   align-items: center;
   height: 16px;
-  padding: 0 6px; /* TODO: token */
+  padding: 0 var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--wash-2);
@@ -269,7 +269,7 @@
 }
 
 .agent-form-field {
-  margin-bottom: 10px; /* TODO: token */
+  margin-bottom: var(--space-md);
 }
 
 .agent-form-field label {
@@ -287,7 +287,7 @@
 .agent-form-field select,
 .agent-form-field textarea {
   width: 100%;
-  padding: 6px var(--space-sm); /* TODO: 6px token */
+  padding: var(--space-sm) var(--space-sm);
   font-size: var(--fs-12);
   color: var(--t1);
   background: var(--field-bg);
