@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  padding: 18px 20px var(--space-xl); /* TODO: token */
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
   color: var(--t1);
 }
 
@@ -17,7 +17,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   gap: var(--space-xl);
-  padding: 22px; /* TODO: token */
+  padding: var(--space-xl);
   overflow: hidden;
   position: relative;
 }
@@ -53,12 +53,12 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px; /* TODO: token */
-  margin-top: 20px; /* TODO: token */
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
 }
 
 .seeker-error {
-  margin: 14px 0 0; /* TODO: token */
+  margin: var(--space-md) 0 0;
   color: var(--red);
   font-size: var(--fs-11);
   line-height: 1.5;
@@ -70,7 +70,7 @@
   align-self: stretch;
   min-height: 360px;
   border: 1px solid var(--line-2);
-  border-radius: 34px; /* TODO: token */
+  border-radius: 34px; /* phone-shell radius — not on spacing scale */
   padding: var(--space-lg);
   background: var(--void);
   box-shadow: inset 0 0 0 7px var(--line);
@@ -82,7 +82,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   font-size: var(--fs-12);
   font-weight: var(--fw-bold);
   color: var(--t2);
@@ -118,7 +118,7 @@
   gap: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
-  padding: 10px var(--space-md); /* TODO: token */
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
   color: var(--t3);
   font-size: var(--fs-12);
@@ -147,12 +147,12 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
 
 .seeker-card-label {
-  margin-bottom: 6px; /* TODO: token */
+  margin-bottom: var(--space-xs);
   color: var(--green);
   font-size: var(--fs-10);
   font-weight: var(--fw-bold);
@@ -173,7 +173,7 @@
   justify-content: center;
   flex-shrink: 0;
   min-height: 24px;
-  padding: var(--space-xs) 9px; /* TODO: token */
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   font-size: var(--fs-10);
@@ -209,7 +209,7 @@
 .seeker-metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
 }
 
 .seeker-metric-grid div {
@@ -229,7 +229,7 @@
 
 .seeker-metric-grid strong {
   display: block;
-  margin-top: 5px; /* TODO: token */
+  margin-top: var(--space-xs);
   color: var(--t1);
   font-size: var(--fs-15);
   overflow: hidden;
@@ -240,7 +240,7 @@
 .seeker-pair-layout {
   display: grid;
   grid-template-columns: 148px minmax(0, 1fr);
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
   align-items: stretch;
   margin-bottom: var(--space-md);
 }
@@ -254,7 +254,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px; /* TODO: token */
+  gap: var(--space-xs);
 }
 
 .seeker-pair-visual span,
@@ -276,7 +276,7 @@
 
 .seeker-pair-details {
   display: grid;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   min-width: 0;
 }
 
@@ -285,7 +285,7 @@
   align-items: center;
   width: 100%;
   min-height: 54px;
-  padding: 0 14px; /* TODO: token */
+  padding: 0 var(--space-md);
   border: 1px solid var(--accent-line);
   border-radius: var(--r-panel);
   background: var(--accent-fill);
@@ -298,8 +298,8 @@
 
 .seeker-link-box {
   display: grid;
-  gap: 6px; /* TODO: token */
-  margin-top: 10px; /* TODO: token */
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 .seeker-link-box span {
@@ -348,8 +348,8 @@
 
 .seeker-command-preview {
   display: block;
-  margin-top: 9px; /* TODO: token */
-  padding: 9px 10px; /* TODO: token */
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
   background: var(--field-bg);
@@ -364,7 +364,7 @@
 .seeker-empty-state {
   border: 1px dashed var(--line-2);
   border-radius: var(--r-panel);
-  padding: 18px; /* TODO: token */
+  padding: var(--space-lg);
   color: var(--t4);
   background: var(--s2);
   font-size: var(--fs-11);
@@ -380,10 +380,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
-  padding: 10px var(--space-md); /* TODO: token */
+  padding: var(--space-sm) var(--space-md);
   background: var(--s2);
 }
 
@@ -401,14 +401,14 @@
 .seeker-toolbox-list {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
 }
 
 .seeker-approval-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
   padding: var(--space-md);
@@ -442,7 +442,7 @@
 }
 
 .seeker-approval-main p {
-  margin: 6px 0 0; /* TODO: token */
+  margin: var(--space-xs) 0 0;
   color: var(--t4);
   font-size: var(--fs-11);
   line-height: 1.45;
@@ -450,7 +450,7 @@
 
 .seeker-risk {
   display: inline-flex;
-  padding: 2px 7px; /* TODO: token */
+  padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
   font-size: var(--fs-10);
   font-weight: var(--fw-bold);
@@ -488,7 +488,7 @@
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
-  padding: 13px 14px; /* TODO: token */
+  padding: var(--space-md);
   background: var(--s2);
   color: var(--t2);
   cursor: pointer;
@@ -543,13 +543,13 @@
 
 @media (max-width: 720px) {
   .seeker-companion {
-    padding: 14px; /* TODO: token */
+    padding: var(--space-md);
   }
 
   .seeker-hero-card,
   .seeker-card {
     border-radius: var(--r-panel);
-    padding: 14px; /* TODO: token */
+    padding: var(--space-md);
   }
 
   .seeker-title {

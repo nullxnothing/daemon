@@ -1,19 +1,19 @@
 .solana-ide-surface {
   display: flex;
   flex-direction: column;
-  gap: 14px; /* TODO: token */
-  padding: 18px 20px 20px; /* TODO: token */
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
 }
 
 .solana-ide-hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px; /* TODO: token */
+  gap: var(--space-lg);
   border: 1px solid var(--accent-line);
   border-radius: var(--radius-lg);
   background: var(--accent-fill);
-  padding: 18px; /* TODO: token */
+  padding: var(--space-lg);
 }
 
 .solana-ide-hero-actions {
@@ -39,7 +39,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   background: var(--wash);
-  padding: 14px; /* TODO: token */
+  padding: var(--space-md);
   min-width: 0;
 }
 
@@ -58,7 +58,7 @@
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--red) 8%, transparent);
   color: var(--red);
-  padding: 10px var(--space-md); /* TODO: token */
+  padding: var(--space-sm) var(--space-md);
   font-size: var(--fs-12);
   line-height: var(--lh-normal);
 }
@@ -82,7 +82,7 @@
 }
 
 .solana-ide-empty-panel p {
-  margin: 6px 0 0; /* TODO: token */
+  margin: var(--space-xs) 0 0;
 }
 
 .solana-ide-card-title,
@@ -110,8 +110,8 @@
 
 .solana-ide-command {
   display: block;
-  margin-top: 10px; /* TODO: token */
-  padding: var(--space-sm) 10px; /* TODO: token */
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--field-bg);
@@ -125,14 +125,14 @@
 .solana-ide-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: var(--space-md);
 }
 
 .solana-ide-field {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -162,12 +162,12 @@
 
 .solana-ide-input {
   height: 34px;
-  padding: 0 10px; /* TODO: token */
+  padding: 0 var(--space-sm);
 }
 
 .solana-ide-textarea {
   min-height: 132px;
-  padding: 10px; /* TODO: token */
+  padding: var(--space-sm);
   resize: vertical;
   line-height: 1.5;
 }
@@ -181,15 +181,15 @@
 .solana-ide-checklist {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: var(--space-md);
 }
 
 .solana-ide-check {
   display: flex;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   align-items: flex-start;
-  padding: 10px; /* TODO: token */
+  padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--wash);
@@ -199,7 +199,7 @@
   width: 7px;
   height: 7px;
   border-radius: var(--radius-pill);
-  margin-top: 6px; /* TODO: token */
+  margin-top: var(--space-xs);
   background: var(--green);
   flex-shrink: 0;
 }
@@ -232,7 +232,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--wash);
-  padding: 10px; /* TODO: token */
+  padding: var(--space-sm);
 }
 
 .solana-ide-analysis-label {
@@ -244,7 +244,7 @@
 }
 
 .solana-ide-analysis-value {
-  margin-top: 6px; /* TODO: token */
+  margin-top: var(--space-xs);
   color: var(--t2);
   font-size: var(--fs-11);
   line-height: 1.45;
@@ -259,7 +259,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px; /* TODO: token */
+  gap: var(--space-md);
 }
 
 .shipline-run-meta,
@@ -267,7 +267,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  margin-top: 10px; /* TODO: token */
+  margin-top: var(--space-sm);
 }
 
 .shipline-proof-strip {
@@ -276,7 +276,7 @@
   gap: var(--space-sm);
   flex-wrap: wrap;
   margin-top: var(--space-md);
-  padding: 9px 10px; /* TODO: token */
+  padding: var(--space-sm);
   border: 1px solid color-mix(in srgb, var(--green) 12%, transparent);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--green) 4%, transparent);
@@ -296,7 +296,7 @@
 
 .shipline-proof-strip strong {
   color: var(--t2);
-  padding: var(--space-xs) 7px; /* TODO: token */
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--wash);
@@ -308,13 +308,13 @@
   background: var(--wash);
   color: var(--t3);
   font-size: var(--fs-11);
-  padding: 5px var(--space-sm); /* TODO: token */
+  padding: var(--space-xs) var(--space-sm);
 }
 
 .shipline-program-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: var(--space-md);
 }
 
@@ -323,13 +323,13 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--wash);
-  padding: 10px; /* TODO: token */
+  padding: var(--space-sm);
 }
 
 .shipline-step-list {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: var(--space-md);
 }
 
@@ -375,7 +375,7 @@
 .shipline-step-title-row {
   display: flex;
   justify-content: space-between;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -389,7 +389,7 @@
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 6px; /* TODO: token */
+  gap: var(--space-xs);
   max-width: 178px;
 }
 
@@ -401,8 +401,8 @@
 .shipline-mini-list {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* TODO: token */
-  margin-top: 10px; /* TODO: token */
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 .shipline-mini-list span {
@@ -414,8 +414,8 @@
 .shipline-evidence {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px; /* TODO: token */
-  margin-top: 10px; /* TODO: token */
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .shipline-evidence span {
@@ -427,19 +427,19 @@
   color: var(--t3);
   font-size: var(--fs-11);
   line-height: 1.35;
-  padding: 5px 7px; /* TODO: token */
+  padding: var(--space-xs) var(--space-sm);
   overflow-wrap: anywhere;
 }
 
 .shipline-evidence strong {
   color: var(--t2);
   font-weight: var(--fw-bold);
-  margin-right: 5px; /* TODO: token */
+  margin-right: var(--space-xs);
 }
 
 .shipline-link {
   width: max-content;
-  margin-top: 10px; /* TODO: token */
+  margin-top: var(--space-sm);
   border: 0;
   background: transparent;
   color: var(--green);
@@ -450,7 +450,7 @@
 
 .shipline-evidence .shipline-link {
   margin-top: 0;
-  padding: 5px 0; /* TODO: token */
+  padding: var(--space-xs) 0;
 }
 
 .shipline-link:hover:not(:disabled) {

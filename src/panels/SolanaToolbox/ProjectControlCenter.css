@@ -1,19 +1,19 @@
 .solana-project-control {
   display: flex;
   flex-direction: column;
-  gap: 14px; /* TODO: token */
-  padding: 18px 20px 20px; /* TODO: token */
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
 }
 
 .solana-project-control-hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px; /* TODO: token */
+  gap: var(--space-lg);
   border: 1px solid var(--accent-line);
   border-radius: var(--radius-lg);
   background: var(--accent-fill);
-  padding: 18px; /* TODO: token */
+  padding: var(--space-lg);
 }
 
 /* NOTE: .solana-project-score and -value are owned by SolanaToolbox.css, which
@@ -43,7 +43,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--radius-lg);
   background: var(--wash);
-  padding: 14px; /* TODO: token */
+  padding: var(--space-md);
   min-width: 0;
 }
 
@@ -78,7 +78,7 @@
 .solana-project-action-list {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: var(--space-md);
 }
 
@@ -110,7 +110,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
 }
 
 .solana-project-readiness-title,
@@ -124,7 +124,7 @@
 .solana-project-readiness-detail,
 .solana-project-action-detail,
 .solana-project-loop-detail {
-  margin-top: 7px; /* TODO: token */
+  margin-top: var(--space-sm);
   font-size: var(--fs-11);
   line-height: 1.48;
   color: var(--t3);
@@ -144,8 +144,8 @@
 
 .solana-project-action-command {
   display: block;
-  margin-top: 10px; /* TODO: token */
-  padding: var(--space-sm) 10px; /* TODO: token */
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--field-bg);
@@ -158,7 +158,7 @@
 .solana-project-loop-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px; /* TODO: token */
+  gap: var(--space-sm);
   margin-top: var(--space-md);
 }
 
@@ -177,7 +177,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px; /* TODO: token */
+  margin-bottom: var(--space-sm);
   border: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
   color: var(--green);
   background: color-mix(in srgb, var(--green) 6%, transparent);
