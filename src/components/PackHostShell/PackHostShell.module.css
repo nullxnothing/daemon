@@ -16,10 +16,7 @@
 }
 
 .body {
-  /* `flex: 1 1 auto` (content-aware basis) lets the body's natural height feed
-     the host's `min-height: 100%` growth, so the body is never squeezed to zero
-     when vertical space is tight. */
-  flex: 1 1 auto;
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;

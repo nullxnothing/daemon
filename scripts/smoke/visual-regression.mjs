@@ -98,7 +98,7 @@ const scenarios = [
     setup: async (page) => {
       await openTerminalPanel(page)
     },
-    selector: '.terminal-tabs',
+    selector: '.terminal-viewtabs',
   },
   {
     name: 'terminal-launcher-menu',
@@ -332,7 +332,7 @@ async function openTerminalPanel(page) {
     await page.getByTitle('Toggle Terminal (Ctrl+`)').click()
     await page.waitForSelector('.terminal-panel', { timeout: 30000 })
   }
-  await page.waitForSelector('.terminal-tabs', { timeout: 30000 })
+  await page.waitForSelector('.terminal-viewtabs', { timeout: 30000 })
 }
 
 async function closeTransientUi(page) {
