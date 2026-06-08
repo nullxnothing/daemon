@@ -22,6 +22,17 @@ const CONTEXT_CHIPS: { id: ChipId; label: string }[] = [
   { id: 'projectMemory', label: 'Project Memory' },
 ]
 
+// Monochrome "knowledge" mark for the brain count — a lightbulb/spark, not an emoji
+// (UI chrome stays emoji-free; the glyph inherits currentColor like the rest of the row).
+export function MemoryKnowledgeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 1.5a4 4 0 0 0-2.4 7.2c.3.25.5.6.5 1v.3h3.8v-.3c0-.4.2-.75.5-1A4 4 0 0 0 7 1.5Z" />
+      <path d="M5.4 12.2h3.2M6 13.2h2" />
+    </svg>
+  )
+}
+
 export function AgentWorkbench() {
   const turns = useAriaStore((s) => s.turns)
   const isLoading = useAriaStore((s) => s.isLoading)
@@ -127,7 +138,7 @@ export function AgentWorkbench() {
           title={`${knowledgeCount} fact${knowledgeCount === 1 ? '' : 's'} DAEMON knows about this project`}
           aria-label="Open what DAEMON knows"
         >
-          <span className="agent-wb-brain-glyph">🧠</span>
+          <MemoryKnowledgeIcon />
           <span className="agent-wb-brain-count">{knowledgeCount}</span>
         </button>
         <button

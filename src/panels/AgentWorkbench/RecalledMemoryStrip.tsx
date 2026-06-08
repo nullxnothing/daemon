@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AriaMemorySuggestionLite } from '../../../electron/shared/types'
+import { MemoryKnowledgeIcon } from './AgentWorkbench'
 
 /**
  * Shows what ARIA recalled to handle a turn — the "it remembers you" moment.
@@ -13,7 +14,7 @@ export function RecalledMemoryStrip({ recalled }: { recalled: AriaMemorySuggesti
   return (
     <div className="agent-recall">
       <button type="button" className="agent-recall-head" onClick={() => setOpen((v) => !v)}>
-        <span className="agent-recall-glyph">🧠</span>
+        <span className="agent-recall-glyph"><MemoryKnowledgeIcon /></span>
         <span className="agent-recall-label">
           Recalled {count} fact{count === 1 ? '' : 's'} you taught me
         </span>

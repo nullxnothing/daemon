@@ -213,21 +213,21 @@
 
 .agent-wb-brain {
   flex: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   height: 24px;
   padding: 0 var(--space-sm);
   margin-right: var(--space-xs);
-  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--line-2));
+  border: 1px solid var(--line-2);
   border-radius: var(--r);
-  background: color-mix(in srgb, var(--green) 5%, transparent);
-  color: var(--t2);
+  background: transparent;
+  color: var(--t3);
   cursor: pointer;
 }
-.agent-wb-brain:hover { border-color: color-mix(in srgb, var(--green) 40%, var(--line-2)); color: var(--t1); }
-.agent-wb-brain-glyph { font-size: var(--fs-11); filter: grayscale(0.2); }
-.agent-wb-brain-count { font-family: var(--mono); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
+.agent-wb-brain:hover { background: var(--s2); color: var(--t1); }
+.agent-wb-brain svg { display: block; }
+.agent-wb-brain-count { font-family: var(--mono); font-size: var(--fs-11); line-height: 1; font-variant-numeric: tabular-nums; }
 
 /* ---------------- console command suggestions (> / accelerators) ---------------- */
 .agent-wb-suggest {
@@ -472,11 +472,12 @@
 }
 
 .agent-tr-turn.user .agent-tr-text {
-  padding: var(--space-md) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line);
+  border-radius: var(--r);
   background: var(--field-bg);
   font-size: var(--fs-13);
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--t1);
 }
 
@@ -571,7 +572,7 @@
   text-align: left;
 }
 .agent-recall-head:hover { border-color: color-mix(in srgb, var(--green) 32%, var(--line)); }
-.agent-recall-glyph { font-size: var(--fs-11); filter: grayscale(0.2); }
+.agent-recall-glyph { display: inline-flex; color: var(--green); }
 .agent-recall-label { flex: 1; font-size: var(--fs-11); color: var(--t2); }
 .agent-recall-caret { font-family: var(--mono); font-size: var(--fs-12); color: var(--t3); }
 .agent-recall-list {
