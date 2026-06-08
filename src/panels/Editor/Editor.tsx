@@ -24,6 +24,7 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import { useUIStore } from '../../store/ui'
+import { useEditorPrefsStore } from '../../store/editorPrefs'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { usePluginStore } from '../../store/plugins'
 import { confirm } from '../../store/confirm'
@@ -37,7 +38,7 @@ import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { lazyNamedWithReload } from '../../utils/lazyWithReload'
 import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { PLUGIN_REGISTRY } from '../../plugins/registry'
-import { DAEMON_MONACO_THEME_COLORS } from '../../styles/daemonTheme'
+import { DAEMON_MONACO_THEME_COLORS, DAEMON_MONACO_LIGHT_THEME_COLORS } from '../../styles/daemonTheme'
 import type { LspDiagnosticEvent, LspLocation, LspPosition } from '../../../electron/shared/types'
 import './Editor.css'
 
@@ -303,6 +304,8 @@ export function EditorPanel() {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
+  const editorPrefs = useEditorPrefsStore((s) => s.prefs)
+  const loadEditorPrefs = useEditorPrefsStore((s) => s.load)
   const [savedFlash, setSavedFlash] = useState<string | null>(null)
   const [isTidyingMarkdown, setIsTidyingMarkdown] = useState(false)
   const [isApplyingMarkdownTidy, setIsApplyingMarkdownTidy] = useState(false)
@@ -547,6 +550,12 @@ export function EditorPanel() {
       rules: [],
       colors: DAEMON_MONACO_THEME_COLORS,
     })
+    monacoInstance.editor.defineTheme('daemon-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [],
+      colors: DAEMON_MONACO_LIGHT_THEME_COLORS,
+    })
     themeIsDefined = true
   }
 
@@ -557,6 +566,25 @@ export function EditorPanel() {
       editorRef.current = null
     }
   }, [])
+
+  // Load persisted editor preferences once on mount.
+  useEffect(() => {
+    void loadEditorPrefs()
+  }, [loadEditorPrefs])
+
+  // Live-apply preference changes to the running Monaco instance — no remount.
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.updateOptions({
+      fontFamily: editorPrefs.fontFamily,
+      fontSize: editorPrefs.fontSize,
+      wordWrap: editorPrefs.wordWrap ? 'on' : 'off',
+      tabSize: editorPrefs.tabSize,
+      minimap: { enabled: editorPrefs.minimap },
+    })
+    monaco.editor.setTheme(editorPrefs.theme)
+  }, [editorPrefs])
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
@@ -869,15 +897,15 @@ export function EditorPanel() {
             ) : activeFile ? (
               <PanelErrorBoundary fallbackLabel="Editor crashed — open a file to reload">
                 <MonacoEditor
-                  theme="daemon-dark"
+                  theme={editorPrefs.theme}
                   beforeMount={handleBeforeMount}
                   onMount={handleEditorMount}
                   onChange={handleChange}
                   options={{
-                    fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
-                    fontSize: 13,
+                    fontFamily: editorPrefs.fontFamily,
+                    fontSize: editorPrefs.fontSize,
                     lineHeight: 20,
-                    minimap: { enabled: false },
+                    minimap: { enabled: editorPrefs.minimap },
                     scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
                     padding: { top: 8 },
                     renderLineHighlight: 'line',
@@ -885,8 +913,8 @@ export function EditorPanel() {
                     cursorBlinking: 'smooth',
                     cursorSmoothCaretAnimation: 'on',
                     bracketPairColorization: { enabled: true },
-                    wordWrap: 'on',
-                    tabSize: 2,
+                    wordWrap: editorPrefs.wordWrap ? 'on' : 'off',
+                    tabSize: editorPrefs.tabSize,
                     glyphMargin: true,
                   }}
                 />

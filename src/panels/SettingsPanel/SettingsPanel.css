@@ -463,6 +463,59 @@
   line-height: 1.5;
 }
 
+.settings-select {
+  flex: none;
+  height: 32px;
+  min-width: 140px;
+  padding: 0 var(--space-sm);
+  font-size: var(--fs-12);
+  color: var(--t1);
+  background: var(--s2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.settings-select:hover {
+  border-color: var(--line-strong);
+}
+
+.settings-stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--s2);
+}
+
+.settings-stepper button {
+  width: 32px;
+  height: 100%;
+  font-size: var(--fs-13);
+  color: var(--t2);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-stepper button:hover {
+  background: var(--s3);
+  color: var(--t1);
+}
+
+.settings-stepper-value {
+  min-width: 36px;
+  text-align: center;
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--t1);
+}
+
 .settings-side-actions {
   display: flex;
   flex-wrap: wrap;

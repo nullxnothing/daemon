@@ -3,6 +3,7 @@ import type {
   Project,
   Agent,
   FileEntry,
+  EditorPrefs,
   RuntimeIconTheme,
   ClaudeAgentFile,
   McpRegistryEntry,
@@ -826,6 +827,8 @@ declare global {
     setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null; consoleDock: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => Promise<IpcResponse>
+    getEditorPrefs: () => Promise<IpcResponse<EditorPrefs>>
+    setEditorPrefs: (patch: Partial<EditorPrefs>) => Promise<IpcResponse<EditorPrefs>>
     onCrashWarning: (callback: (count: number) => void) => () => void
     onUiRecoveryApplied: (callback: (result: UiRecoveryResult) => void) => () => void
   }

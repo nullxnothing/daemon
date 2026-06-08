@@ -101,6 +101,23 @@ export const DAEMON_MONACO_THEME_COLORS = {
   'list.activeSelectionBackground': '#1d3329',
 } as const
 
+export const DAEMON_MONACO_LIGHT_THEME_COLORS = {
+  'editor.background': '#fbfbfa',
+  'editor.foreground': '#1a1c1b',
+  'editorLineNumber.foreground': '#b8bcbb',
+  'editorLineNumber.activeForeground': '#5a5c5b',
+  'editor.selectionBackground': '#cdeede',
+  'editor.lineHighlightBackground': '#f1f2f1',
+  'editorCursor.foreground': '#1f9d63',
+  'editorWidget.background': '#ffffff',
+  'editorWidget.border': '#e2e4e3',
+  'input.background': '#ffffff',
+  'input.border': '#e2e4e3',
+  'dropdown.background': '#ffffff',
+  'list.hoverBackground': '#f1f2f1',
+  'list.activeSelectionBackground': '#cdeede',
+} as const
+
 export const EDITOR_WELCOME_TEMPLATE_COLORS = {
   blue: '#60a5fa',
   amber: '#f0b429',

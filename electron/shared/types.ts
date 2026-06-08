@@ -2673,7 +2673,16 @@ export type AriaToolEvent =
   | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }
+  | { kind: 'memory-suggestion'; messageId: string; suggestion: AriaMemorySuggestionLite }
   | { kind: 'done'; messageId: string; text: string }
+
+/** A memory the operator captured from its own work, pending the user's keep/dismiss. */
+export interface AriaMemorySuggestionLite {
+  id: string
+  kind: MemoryKind
+  title: string
+  value: string
+}
 
 // --- Onboarding ---
 
@@ -2699,6 +2708,19 @@ export type WorkspaceProfileName = 'web' | 'solana' | 'custom'
 export interface WorkspaceProfile {
   name: WorkspaceProfileName
   toolVisibility: Record<string, boolean>
+}
+
+// --- Editor preferences ---
+
+export type EditorThemeId = 'daemon-dark' | 'daemon-light'
+
+export interface EditorPrefs {
+  fontFamily: string
+  fontSize: number
+  tabSize: number
+  wordWrap: boolean
+  minimap: boolean
+  theme: EditorThemeId
 }
 
 // --- Engine ---

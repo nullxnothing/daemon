@@ -176,4 +176,12 @@ export function registerSettingsHandlers() {
       upsert.run('layout_console_dock', layout.consoleDock, now)
     }
   }))
+
+  ipcMain.handle('settings:get-editor-prefs', ipcHandler(async () => {
+    return Settings.getEditorPrefs()
+  }))
+
+  ipcMain.handle('settings:set-editor-prefs', ipcHandler(async (_event, patch: Partial<import('../shared/types').EditorPrefs>) => {
+    return Settings.setEditorPrefs(patch ?? {})
+  }))
 }
