@@ -536,6 +536,43 @@
 .agent-approval-approve:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
 .agent-approval-approve:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ---------------- memory suggestion ---------------- */
+.agent-memory-card {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--green) 28%, var(--line-2));
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--green) 5%, var(--field-bg));
+}
+.agent-memory-head { display: flex; align-items: center; gap: var(--space-sm); }
+.agent-memory-badge {
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--ls-caps);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--green) 36%, transparent);
+  border-radius: var(--r);
+  color: var(--green);
+}
+.agent-memory-kind { font-family: var(--mono); font-size: var(--fs-10); color: var(--t3); text-transform: uppercase; letter-spacing: var(--ls-caps); }
+.agent-memory-title { font-size: var(--fs-12); font-weight: var(--fw-medium); color: var(--t1); }
+.agent-memory-value { font-size: var(--fs-12); line-height: 1.5; color: var(--t2); }
+.agent-memory-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; }
+.agent-memory-dismiss,
+.agent-memory-keep {
+  height: 26px;
+  padding: 0 var(--space-md);
+  border-radius: var(--r);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+.agent-memory-dismiss { border: 1px solid var(--line-2); background: var(--s2); color: var(--t2); }
+.agent-memory-dismiss:hover { background: var(--s3); color: var(--t1); }
+.agent-memory-keep { border: 1px solid var(--accent-line); background: var(--btn-pri-bg); color: var(--btn-pri-text); }
+.agent-memory-keep:hover { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
+
 /* ---------------- composer ---------------- */
 .agent-wb-composer {
   flex: none;

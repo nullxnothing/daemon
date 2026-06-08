@@ -29,6 +29,7 @@ import { tokenLaunchTools } from './tools/tokenLaunch'
 import { flywheelTools } from './tools/flywheel'
 import { gitTools } from './tools/git'
 import { swarmTools } from './tools/swarm'
+import { memoryTools } from './tools/memory'
 
 /** Planning + patch tools — intercepted in AriaAgentService.executeTool. */
 const planningTools: AriaTool[] = [
@@ -83,6 +84,7 @@ export const ARIA_TOOLS: AriaTool[] = [
   ...flywheelTools,
   ...gitTools,
   ...swarmTools,
+  ...memoryTools,
 ]
 
 export function getTool(name: string): AriaTool | undefined {

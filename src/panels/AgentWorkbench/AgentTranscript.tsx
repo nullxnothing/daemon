@@ -3,6 +3,7 @@ import type { AriaTurn, AriaToolCallLive } from '../../store/aria'
 import { ApprovalCard } from './ApprovalCard'
 import { PlanList } from './PlanList'
 import { PatchProposalCard } from './PatchProposalCard'
+import { MemorySuggestionCard } from './MemorySuggestionCard'
 
 function toRowStatus(s: AriaToolCallLive['status']): 'pending' | 'running' | 'done' | 'error' {
   return s === 'rejected' ? 'error' : s
@@ -40,6 +41,10 @@ export function AgentTranscript({ turns, isLoading }: { turns: AriaTurn[]; isLoa
           {turn.text ? <div className="agent-tr-text">{turn.text}</div> : null}
 
           {turn.patch && <PatchProposalCard patch={turn.patch} actionState={turn.actionState} />}
+
+          {(turn.memorySuggestions ?? []).map((m) => (
+            <MemorySuggestionCard key={m.id} suggestion={m} />
+          ))}
         </article>
       ))}
       {isLoading ? <div className="agent-tr-thinking">Working…</div> : null}

@@ -11,16 +11,17 @@ import crypto from 'node:crypto'
 import { getDb } from '../db/db'
 import { runClaudeAgentTurn } from './providers/ClaudeProvider'
 import * as ProviderRegistry from './providers/ProviderRegistry'
-import { resolveOperatorBackend, getGlmEndpoint } from './providers/glmConfig'
+import { resolveOperatorBackend, getGlmEndpoint, type OperatorEndpoint } from './providers/glmConfig'
 import { recordLocalAiUsage } from './DaemonAIService'
 import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
+import * as MemoryService from './MemoryService'
 import { assembleSystemPrompt } from './aria/contextAssembler'
 import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiEffect } from './aria/AriaTool'
 import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
 import type { AgentMessage } from './providers/agentTurn'
 import type {
   AriaMessage, AriaSession, AriaResponse, AriaToolCallRecord, AriaToolEvent,
-  AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane,
+  AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane, MemoryKind,
 } from '../shared/types'
 
 const MAX_ITERATIONS = 8
@@ -179,6 +180,12 @@ export async function sendMessage(
   // Any plan steps left un-flipped are done once the loop settles.
   markRemainingPlanDone(turnState, transport, sessionId)
 
+  // Auto-capture: if this turn did real work, offer to remember a durable fact.
+  // Best-effort and non-blocking — never let capture failure affect the turn.
+  await maybeCaptureMemory({
+    sessionId, snapshot, model, endpoint, userMessage, finalText, toolCalls, transport,
+  }).catch(() => { /* capture is advisory */ })
+
   trimHistory(messages)
   text.push({ role: 'assistant', content: finalText })
 
@@ -230,6 +237,97 @@ function markRemainingPlanDone(state: TurnState, transport: AriaTransport, sessi
     if (step.status !== 'done') { step.status = 'done'; changed = true }
   }
   if (changed) transport.emit({ kind: 'plan', messageId: sessionId, steps: state.plan.map((s) => ({ ...s })) })
+}
+
+const MEMORY_CAPTURE_KINDS: readonly MemoryKind[] = [
+  'decision', 'constraint', 'do_not_touch', 'prior_fix', 'prior_failure',
+  'command', 'style_preference', 'deployment_target', 'security_note',
+]
+
+interface CaptureArgs {
+  sessionId: string
+  snapshot: AriaContextSnapshot
+  model: string
+  endpoint: OperatorEndpoint | undefined
+  userMessage: string
+  finalText: string
+  toolCalls: AriaToolCallRecord[]
+  transport: AriaTransport
+}
+
+/**
+ * After a turn that changed something, ask the model (one cheap call, no tools) whether
+ * a single durable project fact was established. If so, store it as a *suggested* memory
+ * (never auto-approved) and surface it inline for the user to keep or dismiss. The privacy
+ * guard in MemoryService still gates the value. Skipped for read-only turns and when no
+ * project is active.
+ */
+async function maybeCaptureMemory(args: CaptureArgs): Promise<void> {
+  const { snapshot, toolCalls } = args
+  if (!snapshot.activeProjectId) return
+  const didWork = toolCalls.some(
+    (c) => (c.toolKind === 'edit' || c.toolKind === 'run') && c.status === 'done',
+  )
+  if (!didWork) return
+
+  const actions = toolCalls
+    .filter((c) => c.status === 'done')
+    .map((c) => `- ${c.name}: ${c.summary}`)
+    .join('\n')
+  const capturePrompt = `You review a completed operator turn and decide if it established ONE durable, reusable fact about THIS project — a decision made, a constraint to honor, a fix that should not be repeated, or a command/convention. Ignore one-off actions and anything secret (keys, seeds, credentials).
+
+User asked: ${args.userMessage}
+Actions taken:
+${actions || '(none)'}
+Result: ${args.finalText}
+
+Respond with a single line of JSON and nothing else.
+If there is a durable fact: {"kind":"<one of: ${MEMORY_CAPTURE_KINDS.join(', ')}>","title":"<short>","value":"<the fact>"}
+Otherwise: {"none":true}`
+
+  const turn = await runClaudeAgentTurn(
+    { messages: [{ role: 'user', content: capturePrompt }], system: '', model: args.model, tools: [], maxTokens: 256 },
+    args.endpoint,
+  )
+  const parsed = parseCaptureJson(turn.text)
+  if (!parsed) return
+
+  try {
+    const mem = MemoryService.createSuggestion({
+      projectId: snapshot.activeProjectId,
+      kind: parsed.kind,
+      title: parsed.title,
+      value: parsed.value,
+      sourceType: 'operator_capture',
+      sourceRef: args.sessionId,
+      confidence: 0.7,
+      createdBy: 'agent',
+    })
+    // Stays 'suggested' — the user keeps or dismisses via the inline card.
+    if (mem.status === 'suggested') {
+      args.transport.emit({
+        kind: 'memory-suggestion',
+        messageId: args.sessionId,
+        suggestion: { id: mem.id, kind: mem.kind, title: mem.title, value: mem.value },
+      })
+    }
+  } catch { /* privacy guard rejected, or duplicate — drop silently */ }
+}
+
+function parseCaptureJson(text: string): { kind: MemoryKind; title: string; value: string } | null {
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) return null
+  try {
+    const obj = JSON.parse(match[0]) as Record<string, unknown>
+    if (obj.none) return null
+    const title = typeof obj.title === 'string' ? obj.title.trim() : ''
+    const value = typeof obj.value === 'string' ? obj.value.trim() : ''
+    if (!title || !value) return null
+    const kind = MEMORY_CAPTURE_KINDS.includes(obj.kind as MemoryKind) ? (obj.kind as MemoryKind) : 'decision'
+    return { kind, title, value }
+  } catch {
+    return null
+  }
 }
 
 async function executeTool(

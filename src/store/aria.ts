@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type {
   AriaMessage, AriaSession, AriaToolCallRecord, AriaToolEvent, AriaUiEffect,
-  AriaPlanStep, AriaPatchProposalLite, AriaPatchAction,
+  AriaPlanStep, AriaPatchProposalLite, AriaPatchAction, AriaMemorySuggestionLite,
   DaemonAiModelInfo, DaemonAiModelLane,
 } from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
@@ -43,6 +43,7 @@ export interface AriaTurn {
   patch?: AriaPatchProposalLite
   patchDecision?: AriaPatchAction
   actionState?: AriaActionState
+  memorySuggestions?: AriaMemorySuggestionLite[]
 }
 
 const DEFAULT_LANE: DaemonAiModelLane = 'auto'
@@ -60,6 +61,8 @@ interface AriaState {
   pushLocalTurn: (command: string, result: string) => void
   approve: (callId: string, approved: boolean) => void
   decidePatch: (proposalId: string, action: AriaPatchAction) => void
+  /** Keep (approve) or dismiss (reject) an auto-captured memory suggestion, then drop the card. */
+  resolveMemorySuggestion: (id: string, keep: boolean) => Promise<void>
   setLane: (lane: DaemonAiModelLane) => void
   loadModels: () => Promise<void>
   clearMessages: () => void
@@ -139,6 +142,17 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       turns: s.turns.map((t) =>
         t.patch?.id === proposalId ? { ...t, patchDecision: action, actionState: 'deciding' } : t),
     }))
+  },
+
+  resolveMemorySuggestion: async (id, keep) => {
+    // Drop the card optimistically; the user has decided either way.
+    set((s) => ({
+      turns: s.turns.map((t) => ({
+        ...t,
+        memorySuggestions: (t.memorySuggestions ?? []).filter((m) => m.id !== id),
+      })),
+    }))
+    await (keep ? daemon.memory.approve(id, 'user') : daemon.memory.reject(id))
   },
 
   setLane: (lane) => set({ selectedLane: lane }),
@@ -280,6 +294,12 @@ function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev:
       break
     case 'patch-proposal':
       patchActive(set, (t) => ({ ...t, patch: ev.proposal, actionState: 'deciding' }))
+      break
+    case 'memory-suggestion':
+      patchActive(set, (t) => ({
+        ...t,
+        memorySuggestions: [...(t.memorySuggestions ?? []), ev.suggestion],
+      }))
       break
     case 'action-result':
       set((s) => ({
