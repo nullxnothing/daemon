@@ -460,8 +460,8 @@
   text-align: center;
 }
 
-.agent-tr { display: flex; flex-direction: column; gap: var(--space-lg); }
-.agent-tr-turn { display: grid; gap: var(--space-sm); }
+.agent-tr { display: flex; flex-direction: column; gap: var(--space-md); }
+.agent-tr-turn { display: grid; gap: var(--space-xs); }
 
 .agent-tr-role {
   font-family: var(--mono);
