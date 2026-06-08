@@ -1,6 +1,8 @@
 import { useCallback } from 'react'
 import { daemon } from '../lib/daemonBridge'
 import { useUIStore } from '../store/ui'
+import { usePluginStore } from '../store/plugins'
+import { useNotificationsStore } from '../store/notifications'
 
 export function useProjects() {
   const setProjects = useUIStore((s) => s.setProjects)
@@ -25,8 +27,22 @@ export function useProjects() {
     const name = folderPath.split(/[/\\]/).pop() ?? 'untitled'
     const res = await daemon.projects.create({ name, path: folderPath })
     if (res.ok && res.data) {
-      setProjects([res.data, ...useUIStore.getState().projects])
-      setActiveProject(res.data.id, res.data.path)
+      const project = res.data
+      setProjects([project, ...useUIStore.getState().projects])
+      setActiveProject(project.id, project.path)
+      // Day-one nudge: projects:create seeded a starter knowledge base. If it found
+      // anything, invite the user to review it so the project never feels "empty".
+      void daemon.memory.list(project.id, { status: 'suggested' }).then((seeded) => {
+        const count = seeded.ok && seeded.data ? seeded.data.length : 0
+        if (count === 0) return
+        useNotificationsStore.getState().pushToast({
+          kind: 'info',
+          context: 'Memory',
+          message: `DAEMON learned ${count} thing${count === 1 ? '' : 's'} about ${project.name} — review what it knows`,
+          ttlMs: 12_000,
+          action: { label: 'Review', onClick: () => usePluginStore.getState().setActivePlugin('memory') },
+        })
+      })
     }
   }, [setActiveProject, setProjects])
 
