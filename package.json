@@ -87,7 +87,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@raydium-io/raydium-sdk-v2": "0.2.49-alpha",
     "@solana/kit": "6.9.0",
-    "@solana/mpp": "^0.5.2",
+    "@solana/mpp": "^0.6.0",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.4",
     "@solflare-wallet/sdk": "^1.4.2",
