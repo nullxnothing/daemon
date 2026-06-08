@@ -658,6 +658,7 @@ contextBridge.exposeInMainWorld('daemon', {
     update: (id: string, patch: unknown) => ipcRenderer.invoke('memory:update', id, patch),
     reject: (id: string) => ipcRenderer.invoke('memory:reject', id),
     delete: (id: string) => ipcRenderer.invoke('memory:delete', id),
+    listKnowledge: (projectId: string | null) => ipcRenderer.invoke('memory:list-knowledge', projectId),
     extract: (projectPath: string, projectId: string | null) => ipcRenderer.invoke('memory:extract', projectPath, projectId),
     buildContextBundle: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:buildContextBundle', projectId, opts),
     discoverChecks: (projectPath: string) => ipcRenderer.invoke('checks:discover', projectPath),

@@ -37,6 +37,10 @@ export function registerMemoryHandlers() {
     return MemoryService.rejectMemory(id)
   }))
 
+  ipcMain.handle('memory:list-knowledge', ipcHandler(async (_event, projectId: string | null) => {
+    return MemoryService.listKnowledge(projectId ?? null)
+  }))
+
   ipcMain.handle('memory:delete', ipcHandler(async (_event, id: string) => {
     MemoryService.deleteMemory(id)
   }))

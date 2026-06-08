@@ -44,6 +44,7 @@ export interface AriaTurn {
   patchDecision?: AriaPatchAction
   actionState?: AriaActionState
   memorySuggestions?: AriaMemorySuggestionLite[]
+  recalledMemories?: AriaMemorySuggestionLite[]
 }
 
 const DEFAULT_LANE: DaemonAiModelLane = 'auto'
@@ -300,6 +301,9 @@ function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev:
         ...t,
         memorySuggestions: [...(t.memorySuggestions ?? []), ev.suggestion],
       }))
+      break
+    case 'memory-recall':
+      patchActive(set, (t) => ({ ...t, recalledMemories: ev.recalled }))
       break
     case 'action-result':
       set((s) => ({

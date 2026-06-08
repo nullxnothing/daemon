@@ -211,6 +211,24 @@
 }
 .agent-wb-dock-btn:hover { background: var(--s2); color: var(--t1); }
 
+.agent-wb-brain {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 24px;
+  padding: 0 var(--space-sm);
+  margin-right: var(--space-xs);
+  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--line-2));
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--green) 5%, transparent);
+  color: var(--t2);
+  cursor: pointer;
+}
+.agent-wb-brain:hover { border-color: color-mix(in srgb, var(--green) 40%, var(--line-2)); color: var(--t1); }
+.agent-wb-brain-glyph { font-size: var(--fs-11); filter: grayscale(0.2); }
+.agent-wb-brain-count { font-family: var(--mono); font-size: var(--fs-11); font-variant-numeric: tabular-nums; }
+
 /* ---------------- console command suggestions (> / accelerators) ---------------- */
 .agent-wb-suggest {
   flex: none;
@@ -535,6 +553,37 @@
 .agent-approval-approve { border: 1px solid var(--accent-line); background: var(--btn-pri-bg); color: var(--btn-pri-text); }
 .agent-approval-approve:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
 .agent-approval-approve:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------------- recalled memory strip ---------------- */
+.agent-recall {
+  display: grid;
+  gap: var(--space-xs);
+}
+.agent-recall-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--green) 18%, var(--line));
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--green) 4%, transparent);
+  cursor: pointer;
+  text-align: left;
+}
+.agent-recall-head:hover { border-color: color-mix(in srgb, var(--green) 32%, var(--line)); }
+.agent-recall-glyph { font-size: var(--fs-11); filter: grayscale(0.2); }
+.agent-recall-label { flex: 1; font-size: var(--fs-11); color: var(--t2); }
+.agent-recall-caret { font-family: var(--mono); font-size: var(--fs-12); color: var(--t3); }
+.agent-recall-list {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0 0 0 var(--space-md);
+  list-style: none;
+}
+.agent-recall-item { display: grid; gap: var(--space-xs); }
+.agent-recall-item-title { font-size: var(--fs-11); font-weight: var(--fw-medium); color: var(--t1); }
+.agent-recall-item-value { font-size: var(--fs-11); line-height: 1.45; color: var(--t3); }
 
 /* ---------------- memory suggestion ---------------- */
 .agent-memory-card {

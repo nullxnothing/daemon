@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
+import { useMemoryStore } from '../../store/memory'
+import { usePluginStore } from '../../store/plugins'
 import { Composer, ModelDropdown } from '../../components/Panel'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
 import { getConsoleSuggestions, resolveConsoleCommand, isConsoleCommandInput, type ConsoleCommand } from '../../lib/console/consoleCommands'
@@ -33,6 +35,9 @@ export function AgentWorkbench() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const consoleDock = useUIStore((s) => s.consoleDock)
   const toggleConsoleDock = useUIStore((s) => s.toggleConsoleDock)
+  const knowledgeCount = useMemoryStore((s) => s.knowledge.length)
+  const loadKnowledge = useMemoryStore((s) => s.loadKnowledge)
+  const setActivePlugin = usePluginStore((s) => s.setActivePlugin)
 
   const [input, setInput] = useState('')
   const [chips, setChips] = useState(getAriaChips())
@@ -42,6 +47,9 @@ export function AgentWorkbench() {
     void loadModels()
     return subscribe()
   }, [subscribe, loadModels])
+
+  // Keep the brain count fresh — reload when the project changes or a turn settles.
+  useEffect(() => { void loadKnowledge(activeProjectId) }, [activeProjectId, loadKnowledge, turns.length])
 
   // Sessions are per-project: re-init the list whenever the active project changes.
   useEffect(() => {
@@ -112,6 +120,16 @@ export function AgentWorkbench() {
           <button type="button" className={`agent-wb-tab${view === 'swarms' ? ' active' : ''}`} onClick={() => setView('swarms')}>Swarms</button>
         </div>
         <span className="agent-wb-spacer" />
+        <button
+          type="button"
+          className="agent-wb-brain"
+          onClick={() => setActivePlugin('memory')}
+          title={`${knowledgeCount} fact${knowledgeCount === 1 ? '' : 's'} DAEMON knows about this project`}
+          aria-label="Open what DAEMON knows"
+        >
+          <span className="agent-wb-brain-glyph">🧠</span>
+          <span className="agent-wb-brain-count">{knowledgeCount}</span>
+        </button>
         <button
           type="button"
           className="agent-wb-dock-btn"

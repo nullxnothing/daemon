@@ -6,7 +6,8 @@
 import * as SettingsService from '../SettingsService'
 import * as WalletService from '../WalletService'
 import { buildContextBundle } from '../MemoryInjectionService'
-import type { AriaContextSnapshot } from './AriaTool'
+import { getMemory } from '../MemoryService'
+import type { AriaContextSnapshot, AriaMemorySuggestionLite } from '../../shared/types'
 
 const ARIA_AGENT_SYSTEM = `You are ARIA, the operator agent for the DAEMON Solana development workbench. You DRIVE the app for the user by calling tools, not by describing steps.
 
@@ -32,7 +33,13 @@ RULES:
 - To change project code, call propose_patch with a unified diff rather than editing silently. Do not also scaffold_file the same change.
 - When finished, give a one-line summary of what you did.`
 
-export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promise<string> {
+export interface AssembledPrompt {
+  system: string
+  /** Memories actually injected into this prompt — surfaced as "recalled" in the transcript. */
+  recalled: AriaMemorySuggestionLite[]
+}
+
+export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promise<AssembledPrompt> {
   const lines: string[] = ['## CONTEXT']
   lines.push(`Active project: ${snapshot.activeProjectPath ?? '(none open)'}`)
   if (snapshot.currentPanelId) lines.push(`Current panel: ${snapshot.currentPanelId}`)
@@ -57,12 +64,17 @@ export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promi
   // Approved, source-backed project memory — gated behind the projectMemory chip so it
   // stays off until the user has reviewed memories. Never breaks launch if unavailable.
   let memoryBlock = ''
+  const recalled: AriaMemorySuggestionLite[] = []
   if (snapshot.chips.projectMemory && snapshot.activeProjectId) {
     try {
       const bundle = buildContextBundle(snapshot.activeProjectId, { usedIn: 'aria_prompt' })
       if (bundle.block) memoryBlock = `\n\n${bundle.block}`
+      for (const id of bundle.usedMemoryIds) {
+        const mem = getMemory(id)
+        if (mem) recalled.push({ id: mem.id, kind: mem.kind, title: mem.title, value: mem.value })
+      }
     } catch { /* memory unavailable */ }
   }
 
-  return `${ARIA_AGENT_SYSTEM}\n\n${lines.join('\n')}${memoryBlock}`
+  return { system: `${ARIA_AGENT_SYSTEM}\n\n${lines.join('\n')}${memoryBlock}`, recalled }
 }

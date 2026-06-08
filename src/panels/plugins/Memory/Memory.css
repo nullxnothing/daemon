@@ -73,6 +73,10 @@
   margin-top: var(--space-xs);
 }
 
+.mem-stale {
+  color: var(--amber);
+}
+
 .mem-actions {
   display: flex;
   gap: var(--space-xs);

@@ -2674,6 +2674,7 @@ export type AriaToolEvent =
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }
   | { kind: 'memory-suggestion'; messageId: string; suggestion: AriaMemorySuggestionLite }
+  | { kind: 'memory-recall'; messageId: string; recalled: AriaMemorySuggestionLite[] }
   | { kind: 'done'; messageId: string; text: string }
 
 /** A memory the operator captured from its own work, pending the user's keep/dismiss. */
@@ -2931,6 +2932,19 @@ export interface MemoryContextBundle {
   block: string
   usedMemoryIds: string[]
   totalChars: number
+}
+
+/** An approved memory enriched with usage stats for the "What I know" knowledge view. */
+export interface KnowledgeItem {
+  id: string
+  kind: MemoryKind
+  title: string
+  value: string
+  confidence: number
+  sourceType: string
+  usageCount: number
+  createdAt: number
+  lastUsedAt: number | null
 }
 
 // ---------------------------------------------------------------------------

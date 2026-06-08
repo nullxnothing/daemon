@@ -4,6 +4,7 @@ import { ApprovalCard } from './ApprovalCard'
 import { PlanList } from './PlanList'
 import { PatchProposalCard } from './PatchProposalCard'
 import { MemorySuggestionCard } from './MemorySuggestionCard'
+import { RecalledMemoryStrip } from './RecalledMemoryStrip'
 
 function toRowStatus(s: AriaToolCallLive['status']): 'pending' | 'running' | 'done' | 'error' {
   return s === 'rejected' ? 'error' : s
@@ -15,6 +16,10 @@ export function AgentTranscript({ turns, isLoading }: { turns: AriaTurn[]; isLoa
       {turns.map((turn) => (
         <article key={turn.id} className={`agent-tr-turn ${turn.role}`}>
           <div className="agent-tr-role">{turn.role === 'user' ? 'You' : 'ARIA'}</div>
+
+          {turn.recalledMemories && turn.recalledMemories.length > 0 && (
+            <RecalledMemoryStrip recalled={turn.recalledMemories} />
+          )}
 
           {turn.plan && turn.plan.length > 0 && <PlanList steps={turn.plan} />}
 

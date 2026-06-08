@@ -125,7 +125,10 @@ export async function sendMessage(
   const endpoint = backend === 'glm' ? getGlmEndpoint() ?? undefined : undefined
 
   const tools = toAnthropicTools(ARIA_TOOLS)
-  const system = await assembleSystemPrompt(snapshot)
+  const { system, recalled } = await assembleSystemPrompt(snapshot)
+  if (recalled.length > 0) {
+    transport.emit({ kind: 'memory-recall', messageId: sessionId, recalled })
+  }
   // Mutable plan/patch state the special-cased tools fill in as the loop runs.
   const turnState: TurnState = { plan: [], patch: null }
   const ctx = { sessionId, snapshot, runUiEffect: transport.runUiEffect }

@@ -179,6 +179,7 @@ import type {
   MemorySuggestionInput,
   MemoryUpdateInput,
   MemoryContextBundle,
+  KnowledgeItem,
   CheckDefinition,
   CheckResult,
 } from '../../electron/shared/types'
@@ -1140,6 +1141,7 @@ declare global {
     update: (id: string, patch: MemoryUpdateInput) => Promise<IpcResponse<ProjectMemory>>
     reject: (id: string) => Promise<IpcResponse<ProjectMemory>>
     delete: (id: string) => Promise<IpcResponse<void>>
+    listKnowledge: (projectId: string | null) => Promise<IpcResponse<KnowledgeItem[]>>
     extract: (projectPath: string, projectId: string | null) => Promise<IpcResponse<ProjectMemory[]>>
     buildContextBundle: (projectId: string | null, opts?: { charBudget?: number; sessionRef?: string | null }) => Promise<IpcResponse<MemoryContextBundle>>
     discoverChecks: (projectPath: string) => Promise<IpcResponse<CheckDefinition[]>>
