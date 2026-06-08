@@ -80,7 +80,10 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run rebuild:native
       - run: node node_modules/electron/install.js
-      - run: pnpm run build
+      # Split build = tsc && vite build into separate steps so the type-checker's
+      # heap is released before Rollup bundles, lowering peak memory.
+      - run: pnpm run typecheck
+      - run: pnpm exec vite build
       - run: pnpm run test:visual
       - run: pnpm exec electron-builder --publish never
 
@@ -112,7 +115,10 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm run rebuild:native
       - run: node node_modules/electron/install.js
-      - run: pnpm run build
+      # Split build = tsc && vite build into separate steps so the type-checker's
+      # heap is released before Rollup bundles, lowering peak memory.
+      - run: pnpm run typecheck
+      - run: pnpm exec vite build
       - name: Pre-cache Electron binary
         shell: bash
         run: |
