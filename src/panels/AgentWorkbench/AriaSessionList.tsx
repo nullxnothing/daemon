@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
+import { useMemoryStore } from '../../store/memory'
+import { usePluginStore } from '../../store/plugins'
+import { MemoryKnowledgeIcon } from './AgentWorkbench'
 
 const VISIBLE_LIMIT = 6
 
@@ -26,6 +29,8 @@ export function AriaSessionList() {
   const deleteSession = useAriaStore((s) => s.deleteSession)
   const loadSessions = useAriaStore((s) => s.loadSessions)
   const projects = useUIStore((s) => s.projects)
+  const knowledgeCount = useMemoryStore((s) => s.knowledge.length)
+  const setActivePlugin = usePluginStore((s) => s.setActivePlugin)
 
   const [expanded, setExpanded] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -62,6 +67,16 @@ export function AriaSessionList() {
           <span className="aria-sessions-count">{sessions.length}</span>
         </button>
         <span className="aria-sessions-head-spacer" />
+        <button
+          type="button"
+          className="aria-sessions-brain"
+          title={`${knowledgeCount} fact${knowledgeCount === 1 ? '' : 's'} DAEMON knows about this project`}
+          aria-label="Open what DAEMON knows"
+          onClick={() => setActivePlugin('memory')}
+        >
+          <MemoryKnowledgeIcon />
+          <span className="aria-sessions-brain-count">{knowledgeCount}</span>
+        </button>
         <button type="button" className="aria-sessions-icon" title="Refresh" onClick={() => void loadSessions()}>↻</button>
       </div>
 

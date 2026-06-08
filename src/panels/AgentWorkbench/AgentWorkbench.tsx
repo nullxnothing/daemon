@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
 import { useMemoryStore } from '../../store/memory'
-import { usePluginStore } from '../../store/plugins'
 import { Composer, ModelDropdown } from '../../components/Panel'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
 import { getConsoleSuggestions, resolveConsoleCommand, isConsoleCommandInput, type ConsoleCommand } from '../../lib/console/consoleCommands'
@@ -46,9 +45,7 @@ export function AgentWorkbench() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const consoleDock = useUIStore((s) => s.consoleDock)
   const toggleConsoleDock = useUIStore((s) => s.toggleConsoleDock)
-  const knowledgeCount = useMemoryStore((s) => s.knowledge.length)
   const loadKnowledge = useMemoryStore((s) => s.loadKnowledge)
-  const setActivePlugin = usePluginStore((s) => s.setActivePlugin)
 
   const [input, setInput] = useState('')
   const [chips, setChips] = useState(getAriaChips())
@@ -133,25 +130,15 @@ export function AgentWorkbench() {
         <span className="agent-wb-spacer" />
         <button
           type="button"
-          className="agent-wb-brain"
-          onClick={() => setActivePlugin('memory')}
-          title={`${knowledgeCount} fact${knowledgeCount === 1 ? '' : 's'} DAEMON knows about this project`}
-          aria-label="Open what DAEMON knows"
-        >
-          <MemoryKnowledgeIcon />
-          <span className="agent-wb-brain-count">{knowledgeCount}</span>
-        </button>
-        <button
-          type="button"
           className="agent-wb-dock-btn"
           onClick={toggleConsoleDock}
           title={consoleDock === 'right' ? 'Move Console to bottom panel' : 'Move Console to right rail'}
           aria-label={consoleDock === 'right' ? 'Move Console to bottom panel' : 'Move Console to right rail'}
         >
-          {consoleDock === 'right' ? 'Dock ↓' : 'Dock →'}
+          {consoleDock === 'right' ? '↓' : '→'}
         </button>
         {view === 'chat' ? (
-          <button type="button" className="agent-wb-newchat" onClick={() => void newChat()}>+ New Chat</button>
+          <button type="button" className="agent-wb-newchat" onClick={() => void newChat()} title="New chat" aria-label="New chat">+</button>
         ) : null}
       </header>
 

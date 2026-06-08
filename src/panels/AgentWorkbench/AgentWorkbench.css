@@ -184,50 +184,40 @@
 
 .agent-wb-newchat {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
   height: 24px;
-  padding: 0 var(--space-md);
+  padding: 0;
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--s2);
   color: var(--t2);
-  font-size: var(--fs-11);
-  white-space: nowrap;
+  font-size: var(--fs-13);
+  line-height: 1;
   cursor: pointer;
 }
 .agent-wb-newchat:hover { background: var(--s3); color: var(--t1); }
 
 .agent-wb-dock-btn {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
   height: 24px;
-  padding: 0 var(--space-sm);
+  padding: 0;
   margin-right: var(--space-xs);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: transparent;
   color: var(--t3);
-  font-size: var(--fs-11);
-  white-space: nowrap;
+  font-size: var(--fs-13);
+  line-height: 1;
   cursor: pointer;
 }
 .agent-wb-dock-btn:hover { background: var(--s2); color: var(--t1); }
-
-.agent-wb-brain {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  height: 24px;
-  padding: 0 var(--space-sm);
-  margin-right: var(--space-xs);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  background: transparent;
-  color: var(--t3);
-  cursor: pointer;
-}
-.agent-wb-brain:hover { background: var(--s2); color: var(--t1); }
-.agent-wb-brain svg { display: block; }
-.agent-wb-brain-count { font-family: var(--mono); font-size: var(--fs-11); line-height: 1; font-variant-numeric: tabular-nums; }
 
 /* ---------------- console command suggestions (> / accelerators) ---------------- */
 .agent-wb-suggest {
@@ -331,6 +321,24 @@
   cursor: pointer;
 }
 .aria-sessions-icon:hover { background: var(--s2); color: var(--t1); }
+
+.aria-sessions-brain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 22px;
+  flex: none;
+  padding: 0 var(--space-xs);
+  margin-right: var(--space-xs);
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+}
+.aria-sessions-brain:hover { background: var(--s2); color: var(--t1); }
+.aria-sessions-brain svg { display: block; }
+.aria-sessions-brain-count { font-family: var(--mono); font-size: var(--fs-11); line-height: 1; font-variant-numeric: tabular-nums; }
 
 .aria-sessions-list { display: flex; flex-direction: column; gap: 1px; max-height: 220px; overflow-y: auto; }
 
