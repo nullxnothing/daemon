@@ -11,16 +11,17 @@ import crypto from 'node:crypto'
 import { getDb } from '../db/db'
 import { runClaudeAgentTurn } from './providers/ClaudeProvider'
 import * as ProviderRegistry from './providers/ProviderRegistry'
-import { resolveOperatorBackend, getGlmEndpoint } from './providers/glmConfig'
+import { resolveOperatorBackend, getGlmEndpoint, type OperatorEndpoint } from './providers/glmConfig'
 import { recordLocalAiUsage } from './DaemonAIService'
 import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
+import * as MemoryService from './MemoryService'
 import { assembleSystemPrompt } from './aria/contextAssembler'
 import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiEffect } from './aria/AriaTool'
 import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
 import type { AgentMessage } from './providers/agentTurn'
 import type {
   AriaMessage, AriaSession, AriaResponse, AriaToolCallRecord, AriaToolEvent,
-  AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane,
+  AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane, MemoryKind,
 } from '../shared/types'
 
 const MAX_ITERATIONS = 8
@@ -124,9 +125,12 @@ export async function sendMessage(
   const endpoint = backend === 'glm' ? getGlmEndpoint() ?? undefined : undefined
 
   const tools = toAnthropicTools(ARIA_TOOLS)
-  const system = await assembleSystemPrompt(snapshot)
+  const { system, recalled } = await assembleSystemPrompt(snapshot)
+  if (recalled.length > 0) {
+    transport.emit({ kind: 'memory-recall', messageId: sessionId, recalled })
+  }
   // Mutable plan/patch state the special-cased tools fill in as the loop runs.
-  const turnState: TurnState = { plan: [], patch: null }
+  const turnState: TurnState = { plan: [], patch: null, planApproved: false }
   const ctx = { sessionId, snapshot, runUiEffect: transport.runUiEffect }
 
   const toolCalls: AriaToolCallRecord[] = []
@@ -179,6 +183,12 @@ export async function sendMessage(
   // Any plan steps left un-flipped are done once the loop settles.
   markRemainingPlanDone(turnState, transport, sessionId)
 
+  // Auto-capture: if this turn did real work, offer to remember a durable fact.
+  // Best-effort and non-blocking — never let capture failure affect the turn.
+  await maybeCaptureMemory({
+    sessionId, snapshot, model, endpoint, userMessage, finalText, toolCalls, transport,
+  }).catch(() => { /* capture is advisory */ })
+
   trimHistory(messages)
   text.push({ role: 'assistant', content: finalText })
 
@@ -210,6 +220,9 @@ export async function sendMessage(
 interface TurnState {
   plan: AriaPlanStep[]
   patch: AriaPatchProposalLite | null
+  /** Plan mode: set once the user approves the presented plan. While true, the
+   *  risk gate auto-runs `write` tools (sensitive money/key tools still gate). */
+  planApproved: boolean
 }
 
 /** Mark the next pending plan step active, the previous active one done, and re-emit. */
@@ -232,6 +245,97 @@ function markRemainingPlanDone(state: TurnState, transport: AriaTransport, sessi
   if (changed) transport.emit({ kind: 'plan', messageId: sessionId, steps: state.plan.map((s) => ({ ...s })) })
 }
 
+const MEMORY_CAPTURE_KINDS: readonly MemoryKind[] = [
+  'decision', 'constraint', 'do_not_touch', 'prior_fix', 'prior_failure',
+  'command', 'style_preference', 'deployment_target', 'security_note',
+]
+
+interface CaptureArgs {
+  sessionId: string
+  snapshot: AriaContextSnapshot
+  model: string
+  endpoint: OperatorEndpoint | undefined
+  userMessage: string
+  finalText: string
+  toolCalls: AriaToolCallRecord[]
+  transport: AriaTransport
+}
+
+/**
+ * After a turn that changed something, ask the model (one cheap call, no tools) whether
+ * a single durable project fact was established. If so, store it as a *suggested* memory
+ * (never auto-approved) and surface it inline for the user to keep or dismiss. The privacy
+ * guard in MemoryService still gates the value. Skipped for read-only turns and when no
+ * project is active.
+ */
+async function maybeCaptureMemory(args: CaptureArgs): Promise<void> {
+  const { snapshot, toolCalls } = args
+  if (!snapshot.activeProjectId) return
+  const didWork = toolCalls.some(
+    (c) => (c.toolKind === 'edit' || c.toolKind === 'run') && c.status === 'done',
+  )
+  if (!didWork) return
+
+  const actions = toolCalls
+    .filter((c) => c.status === 'done')
+    .map((c) => `- ${c.name}: ${c.summary}`)
+    .join('\n')
+  const capturePrompt = `You review a completed operator turn and decide if it established ONE durable, reusable fact about THIS project — a decision made, a constraint to honor, a fix that should not be repeated, or a command/convention. Ignore one-off actions and anything secret (keys, seeds, credentials).
+
+User asked: ${args.userMessage}
+Actions taken:
+${actions || '(none)'}
+Result: ${args.finalText}
+
+Respond with a single line of JSON and nothing else.
+If there is a durable fact: {"kind":"<one of: ${MEMORY_CAPTURE_KINDS.join(', ')}>","title":"<short>","value":"<the fact>"}
+Otherwise: {"none":true}`
+
+  const turn = await runClaudeAgentTurn(
+    { messages: [{ role: 'user', content: capturePrompt }], system: '', model: args.model, tools: [], maxTokens: 256 },
+    args.endpoint,
+  )
+  const parsed = parseCaptureJson(turn.text)
+  if (!parsed) return
+
+  try {
+    const mem = MemoryService.createSuggestion({
+      projectId: snapshot.activeProjectId,
+      kind: parsed.kind,
+      title: parsed.title,
+      value: parsed.value,
+      sourceType: 'operator_capture',
+      sourceRef: args.sessionId,
+      confidence: 0.7,
+      createdBy: 'agent',
+    })
+    // Stays 'suggested' — the user keeps or dismisses via the inline card.
+    if (mem.status === 'suggested') {
+      args.transport.emit({
+        kind: 'memory-suggestion',
+        messageId: args.sessionId,
+        suggestion: { id: mem.id, kind: mem.kind, title: mem.title, value: mem.value },
+      })
+    }
+  } catch { /* privacy guard rejected, or duplicate — drop silently */ }
+}
+
+function parseCaptureJson(text: string): { kind: MemoryKind; title: string; value: string } | null {
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) return null
+  try {
+    const obj = JSON.parse(match[0]) as Record<string, unknown>
+    if (obj.none) return null
+    const title = typeof obj.title === 'string' ? obj.title.trim() : ''
+    const value = typeof obj.value === 'string' ? obj.value.trim() : ''
+    if (!title || !value) return null
+    const kind = MEMORY_CAPTURE_KINDS.includes(obj.kind as MemoryKind) ? (obj.kind as MemoryKind) : 'decision'
+    return { kind, title, value }
+  } catch {
+    return null
+  }
+}
+
 async function executeTool(
   use: { id: string; name: string; input: Record<string, unknown> },
   ctx: { sessionId: string; snapshot: AriaContextSnapshot; runUiEffect: AriaTransport['runUiEffect'] },
@@ -239,7 +343,7 @@ async function executeTool(
   turnState: TurnState,
 ): Promise<AriaToolCallRecord> {
   // Intercept the planning + patch tools: they drive transcript UI, not side effects.
-  if (use.name === 'present_plan') return handlePresentPlan(use, transport, turnState)
+  if (use.name === 'present_plan') return handlePresentPlan(use, ctx, transport, turnState)
   if (use.name === 'propose_patch') return handleProposePatch(use, ctx, transport, turnState)
   // (ctx carries snapshot.activeProjectPath for Guard scanning inside handleProposePatch)
 
@@ -264,8 +368,10 @@ async function executeTool(
   // Each real tool that runs advances the plan one step.
   advancePlan(turnState, transport, ctx.sessionId)
 
-  // Risk gate: write/sensitive pause for approval.
-  if (tool.risk !== 'read') {
+  // Risk gate: write/sensitive pause for approval. In Plan mode, an approved
+  // plan auto-runs `write` tools — but `sensitive` money/key tools always gate.
+  const needsApproval = tool.risk === 'sensitive' || (tool.risk !== 'read' && !turnState.planApproved)
+  if (needsApproval) {
     const approved = await transport.requestApproval({
       callId: use.id,
       name: tool.name,
@@ -294,18 +400,41 @@ async function executeTool(
   }
 }
 
-/** present_plan: register the plan, emit it, and mark the first step active. */
-function handlePresentPlan(
+/** present_plan: register the plan, emit it, mark the first step active. In Plan
+ *  mode, block on a single approval before the loop runs any write action. */
+async function handlePresentPlan(
   use: { id: string; name: string; input: Record<string, unknown> },
+  ctx: { sessionId: string; snapshot: AriaContextSnapshot },
   transport: AriaTransport,
   turnState: TurnState,
-): AriaToolCallRecord {
+): Promise<AriaToolCallRecord> {
   const rawSteps = Array.isArray(use.input.steps) ? (use.input.steps as Array<{ title?: unknown }>) : []
   turnState.plan = buildPlanSteps(rawSteps.map((s) => String(s?.title ?? '')))
   if (turnState.plan.length > 0) {
     turnState.plan[0].status = 'active'
     transport.emit({ kind: 'plan', messageId: use.id, steps: turnState.plan.map((s) => ({ ...s })) })
   }
+
+  // Plan mode: pause for one approval. Reuses the approval transport with a
+  // `__plan__` sentinel name (ApprovalCard renders the plan variant off it).
+  if (ctx.snapshot.planMode && turnState.plan.length > 0) {
+    const approved = await transport.requestApproval({
+      callId: use.id,
+      name: '__plan__',
+      risk: 'write',
+      summary: `${turnState.plan.length} steps — approve to run the plan.`,
+      input: use.input,
+    })
+    if (!approved) {
+      return {
+        callId: use.id, name: use.name, toolKind: 'read', risk: 'read',
+        status: 'rejected', summary: 'User declined the plan.', input: use.input,
+        result: 'User declined the plan. Do not execute any steps; stop and ask how to adjust.',
+      }
+    }
+    turnState.planApproved = true
+  }
+
   return {
     callId: use.id, name: use.name, toolKind: 'read', risk: 'read',
     status: 'done', summary: `Planned ${turnState.plan.length} steps.`, input: use.input,

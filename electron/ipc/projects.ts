@@ -3,6 +3,7 @@ import simpleGit from 'simple-git'
 import { getDb } from '../db/db'
 import { invalidatePathCache } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { extractFromProject } from '../services/MemoryExtractionService'
 import type { Project, ProjectCreateInput } from '../shared/types'
 
 /** Best-effort current branch; null when the path isn't a git repo or is gone. */
@@ -48,6 +49,10 @@ export function registerProjectHandlers() {
     db.prepare('INSERT INTO projects (id, name, path, last_active) VALUES (?,?,?,?)')
       .run(id, project.name, project.path, Date.now())
     invalidatePathCache()
+    // Day-one seeding: extract a starter knowledge base so the project's memory isn't
+    // empty on first open. Best-effort — never block project creation. Suggestions land
+    // as 'suggested' for the user to review (createSuggestion dedupes + gates secrets).
+    try { extractFromProject(project.path, id) } catch { /* seeding is advisory */ }
     return db.prepare('SELECT * FROM projects WHERE id = ?').get(id)
   }))
 

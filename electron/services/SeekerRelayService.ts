@@ -421,7 +421,10 @@ export async function startRelayServer(port = DEFAULT_PORT): Promise<SeekerRelay
       nextServer.once('error', reject)
       nextServer.listen(port, '0.0.0.0', () => {
         server = nextServer
-        boundPort = port
+        // Read the actual assigned port — when port is 0 the OS picks one, so
+        // recording the requested value would leave boundPort at 0.
+        const address = nextServer.address()
+        boundPort = address && typeof address === 'object' ? address.port : port
         resolve()
       })
     })

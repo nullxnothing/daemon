@@ -14,12 +14,13 @@
 
 /* ---------------- header ---------------- */
 .agent-wb-head {
+  position: relative;        /* positioning context for the panel-width history popover */
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-sm);
-  min-height: 38px;
+  min-height: 40px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
   background: var(--s1);
@@ -39,23 +40,108 @@
 
 .agent-wb-model { flex: none; }
 
-/* ---------------- tabs ---------------- */
-.agent-wb-tabs { display: flex; gap: 2px; flex: none; }
+/* ---------------- tabs (underline, not pills) ---------------- */
+.agent-wb-tabs { display: flex; gap: var(--space-md); flex: none; align-items: stretch; }
 .agent-wb-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  box-shadow: inset 0 -2px 0 transparent;
+  cursor: pointer;
+}
+.agent-wb-tab:hover { color: var(--t1); }
+.agent-wb-tab.active { color: var(--t1); box-shadow: inset 0 -2px 0 var(--green); }
+
+/* ---------------- Build · Plan mode segment (composer foot row) ---------------- */
+.agent-wb-mode {
+  display: inline-flex;
+  align-items: center;
   height: 24px;
-  padding: 0 var(--space-md);
-  border: 1px solid transparent;
+  flex: none;
+  border: 1px solid var(--line);
   border-radius: var(--r);
+  overflow: hidden;
+}
+.agent-wb-mode-seg {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 var(--space-sm);
+  border: 0;
   background: transparent;
   color: var(--t3);
   font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
-  letter-spacing: var(--ls-eyebrow);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
-.agent-wb-tab:hover { color: var(--t1); }
-.agent-wb-tab.active { background: var(--s2); border-color: var(--line-2); color: var(--t1); }
+.agent-wb-mode-seg:hover { color: var(--t2); }
+.agent-wb-mode-seg.active { background: var(--s3); color: var(--t1); }
+/* Plan is the second segment — active Plan reads green (the signal). */
+.agent-wb-mode-seg:last-child.active { color: var(--green); }
+
+/* ---------------- header iconbtn cluster (new / history / more) ---------------- */
+.agent-wb-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+/* history popover anchors to the header (panel-width); more menu anchors to its button */
+.agent-wb-history { display: inline-flex; }
+.agent-wb-more { position: relative; display: inline-flex; }
+.agent-wb-iconbtn {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--t3);
+  font-size: var(--fs-13);
+  line-height: 1;
+  cursor: pointer;
+}
+.agent-wb-iconbtn:hover { background: var(--s3); color: var(--t1); }
+.agent-wb-iconbtn.active { color: var(--t1); }
+
+.agent-wb-menu {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 40;
+  min-width: 200px;
+  padding: var(--space-xs);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--s1);
+  box-shadow: var(--shadow-pop, 0 8px 24px rgba(0, 0, 0, 0.4));
+}
+.agent-wb-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  border: none;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-12);
+  text-align: left;
+  cursor: pointer;
+}
+.agent-wb-menu-item:hover { background: var(--s2); color: var(--t1); }
 
 /* ---------------- swarm monitor (single-column, stacked) ---------------- */
 .agent-wb-swarms { flex: 1; min-height: 0; overflow: hidden; }
@@ -184,29 +270,37 @@
 
 .agent-wb-newchat {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
   height: 24px;
-  padding: 0 var(--space-md);
+  padding: 0;
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--s2);
   color: var(--t2);
-  font-size: var(--fs-11);
-  white-space: nowrap;
+  font-size: var(--fs-13);
+  line-height: 1;
   cursor: pointer;
 }
 .agent-wb-newchat:hover { background: var(--s3); color: var(--t1); }
 
 .agent-wb-dock-btn {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
   height: 24px;
-  padding: 0 var(--space-sm);
+  padding: 0;
   margin-right: var(--space-xs);
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: transparent;
   color: var(--t3);
-  font-size: var(--fs-11);
-  white-space: nowrap;
+  font-size: var(--fs-13);
+  line-height: 1;
   cursor: pointer;
 }
 .agent-wb-dock-btn:hover { background: var(--s2); color: var(--t1); }
@@ -250,61 +344,65 @@
   font-size: var(--fs-10);
 }
 
-/* ---------------- sessions section (stacked) ---------------- */
+/* ---------------- session strip (single 34px row) ---------------- */
 .aria-sessions {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 34px;
   min-width: 0;
-  padding: var(--space-sm) var(--space-md);
+  padding: 0 var(--space-md);
   border-bottom: 1px solid var(--line);
 }
 
-.aria-sessions.collapsed { padding-bottom: var(--space-sm); }
-
-.aria-sessions-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-.aria-sessions.collapsed .aria-sessions-head { margin-bottom: 0; }
-
-.aria-sessions-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+.aria-sessions-count {
   flex: none;
-  padding: 2px var(--space-xs);
-  border: none;
-  border-radius: var(--r);
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-family: var(--mono);
+  font-size: var(--fs-10);
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+}
+
+.aria-sessions-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0;
+  border: 0;
   background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-12);
+  text-align: left;
   cursor: pointer;
 }
-.aria-sessions-toggle:hover { background: var(--s2); }
-.aria-sessions-caret { color: var(--t3); font-size: var(--fs-9); }
+.aria-sessions-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aria-sessions-name:hover .aria-sessions-name-text { color: var(--t1); }
 
-.aria-sessions-kicker {
+.aria-sessions-time {
+  flex: none;
+  margin-left: auto;
   font-family: var(--mono);
   font-size: var(--type-eyebrow-size);
-  font-weight: var(--fw-medium);
-  letter-spacing: var(--ls-eyebrow);
-  text-transform: uppercase;
-  color: var(--t3);
+  color: var(--t4);
 }
-.aria-sessions-toggle:hover .aria-sessions-kicker { color: var(--t1); }
-.aria-sessions-count {
-  font-family: var(--mono);
-  font-size: var(--fs-9);
-  color: var(--t3);
-}
-.aria-sessions-head-spacer { flex: 1; }
-.aria-sessions-icon {
+
+.aria-sessions-refresh {
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex: none;
-  border: 1px solid transparent;
+  width: 24px;
+  height: 24px;
+  border: 0;
   border-radius: var(--r);
   background: transparent;
   color: var(--t3);
@@ -312,9 +410,40 @@
   line-height: 1;
   cursor: pointer;
 }
-.aria-sessions-icon:hover { background: var(--s2); color: var(--t1); }
+.aria-sessions-refresh:hover { background: var(--s3); color: var(--t1); }
 
-.aria-sessions-list { display: flex; flex-direction: column; gap: 1px; max-height: 220px; overflow-y: auto; }
+/* ---------------- session history popover ---------------- */
+/* Anchor to the panel (header is panel-width), not the button, so the popover
+   fills the rail and never overflows its left edge at narrow widths. */
+.aria-history { position: static; }
+.aria-history-pop {
+  position: absolute;
+  top: 40px;
+  right: var(--space-md);
+  left: var(--space-md);
+  z-index: 40;
+  width: auto;
+  max-width: 320px;
+  margin-left: auto;
+  padding: var(--space-xs);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--s1);
+  box-shadow: var(--shadow-pop, 0 8px 24px rgba(0, 0, 0, 0.4));
+}
+.aria-history-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm) var(--space-sm);
+}
+.aria-history-list { display: flex; flex-direction: column; gap: 1px; max-height: 280px; overflow-y: auto; }
+
+.aria-sessions-empty {
+  padding: var(--space-md) var(--space-xs);
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
 
 .aria-sessions-empty {
   padding: var(--space-md) var(--space-xs);
@@ -425,11 +554,12 @@
 .aria-sessions-more-count { color: var(--t3); }
 
 /* ---------------- transcript ---------------- */
+/* Intentionally does not fill the void — the gap above the composer is correct. */
 .agent-wb-transcript {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-md);
+  padding: var(--space-lg) var(--space-md);
 }
 
 .agent-wb-empty {
@@ -443,30 +573,109 @@
 }
 
 .agent-tr { display: flex; flex-direction: column; gap: var(--space-lg); }
-.agent-tr-turn { display: grid; gap: var(--space-sm); }
 
-.agent-tr-role {
-  font-family: var(--mono);
-  font-size: var(--type-eyebrow-size);
-  letter-spacing: var(--ls-eyebrow);
-  text-transform: uppercase;
-  color: var(--t3);
-}
-
+/* User turn — quiet recessed bubble, no eyebrow. */
+.agent-tr-turn.user { display: block; }
 .agent-tr-turn.user .agent-tr-text {
-  padding: var(--space-md) var(--space-md);
+  padding: var(--space-sm) var(--space-sm);
   border: 1px solid var(--line);
+  border-radius: var(--r);
   background: var(--field-bg);
   font-size: var(--fs-13);
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--t1);
 }
 
-.agent-tr-turn.assistant .agent-tr-text {
+/* ARIA turn — glyph + label head, plain body. */
+.agent-tr-turn.assistant { display: flex; flex-direction: column; gap: var(--space-sm); }
+.agent-tr-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.agent-tr-mark { display: inline-flex; width: 14px; height: 14px; color: var(--green); }
+.agent-tr-mark svg { width: 100%; height: 100%; display: block; }
+
+/* ARIA body = rendered markdown (.agent-tr-md). Body dims to --t2; <strong>
+   and headings step up to --t1/600 — that contrast separates the groups. */
+.agent-tr-turn.assistant .agent-tr-md {
   font-size: var(--fs-13);
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--t2);
-  white-space: pre-wrap;
+  white-space: normal;     /* react-markdown structures blocks — no pre-wrap */
+  text-align: left;        /* never justify — that's what gaps the spacing */
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+/* Paragraph rhythm. The global `* { margin: 0 }` reset zeroes these, so set
+   them explicitly. ARIA emits section titles as `<p><strong>…</strong></p>`
+   (not <h*>), so the section air comes from spacing the <p> after a list. */
+.agent-tr-md p { margin: 0 0 var(--space-sm); color: var(--t1); }
+.agent-tr-md > :first-child { margin-top: 0; }
+.agent-tr-md > :last-child { margin-bottom: 0; }
+
+/* Section air: a paragraph (a bolded title) that follows a list opens a new
+   group — the 16px gap that separates sections. */
+.agent-tr-md ul + p,
+.agent-tr-md ol + p { margin-top: var(--space-lg); }
+
+/* Real headings, when ARIA emits ### — sentence-case UI bold, never mono. */
+.agent-tr-md h1,
+.agent-tr-md h2,
+.agent-tr-md h3,
+.agent-tr-md h4,
+.agent-tr-md h5 {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-family: var(--ui);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semibold);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  color: var(--t1);
+}
+
+.agent-tr-md strong { color: var(--t1); font-weight: var(--fw-semibold); }
+.agent-tr-md a { color: var(--blue); overflow-wrap: anywhere; }
+
+/* Bullets — real discs + hanging indent so wrapped lines align under the text. */
+.agent-tr-md ul,
+.agent-tr-md ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agent-tr-md li {
+  position: relative;
+  padding-left: var(--space-lg);
+  font-size: var(--fs-12);
+  line-height: 1.5;
+  color: var(--t2);
+  overflow-wrap: anywhere;
+}
+/* Loose lists wrap item text in <p> — strip its margin so gaps don't stutter. */
+.agent-tr-md li > p { margin: 0; color: var(--t2); }
+.agent-tr-md li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--t4);
+}
+
+/* Inline code + long hashes/addresses read as data and break cleanly. */
+.agent-tr-md code,
+.agent-tr-md .addr {
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  color: var(--t2);
+  overflow-wrap: anywhere;
 }
 
 .agent-tr-tools { display: grid; gap: var(--space-sm); }
@@ -487,6 +696,7 @@
   background: var(--field-bg);
 }
 .agent-approval.sensitive { border-color: color-mix(in srgb, var(--amber) 40%, transparent); }
+.agent-approval.plan { border-color: var(--accent-line); }
 
 .agent-approval-head { display: flex; align-items: center; gap: var(--space-sm); }
 
@@ -501,6 +711,7 @@
 }
 .agent-approval-risk.write { border-color: color-mix(in srgb, var(--amber) 36%, transparent); color: var(--amber); }
 .agent-approval-risk.sensitive { border-color: color-mix(in srgb, var(--red) 36%, transparent); color: var(--red); }
+.agent-approval-risk.plan { border-color: var(--accent-line); color: var(--green); }
 
 .agent-approval-name { font-family: var(--mono); font-size: var(--fs-12); color: var(--t1); }
 .agent-approval-summary { font-size: var(--fs-12); line-height: 1.5; color: var(--t2); }
@@ -536,8 +747,79 @@
 .agent-approval-approve:hover:not(:disabled) { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
 .agent-approval-approve:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ---------------- recalled memory strip ---------------- */
+.agent-recall {
+  display: grid;
+  gap: var(--space-xs);
+}
+.agent-recall-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--field-bg);
+  cursor: pointer;
+  text-align: left;
+}
+.agent-recall-head:hover { border-color: var(--line-2); }
+.agent-recall-glyph { display: inline-flex; color: var(--t3); }
+.agent-recall-label { flex: 1; font-size: var(--fs-11); color: var(--t2); }
+.agent-recall-caret { font-family: var(--mono); font-size: var(--fs-12); color: var(--t3); }
+.agent-recall-list {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0 0 0 var(--space-md);
+  list-style: none;
+}
+.agent-recall-item { display: grid; gap: var(--space-xs); }
+.agent-recall-item-title { font-size: var(--fs-11); font-weight: var(--fw-medium); color: var(--t1); }
+.agent-recall-item-value { font-size: var(--fs-11); line-height: 1.45; color: var(--t3); }
+
+/* ---------------- memory suggestion ---------------- */
+.agent-memory-card {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--green) 28%, var(--line-2));
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--green) 5%, var(--field-bg));
+}
+.agent-memory-head { display: flex; align-items: center; gap: var(--space-sm); }
+.agent-memory-badge {
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--ls-caps);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--green) 36%, transparent);
+  border-radius: var(--r);
+  color: var(--green);
+}
+.agent-memory-kind { font-family: var(--mono); font-size: var(--fs-10); color: var(--t3); text-transform: uppercase; letter-spacing: var(--ls-caps); }
+.agent-memory-title { font-size: var(--fs-12); font-weight: var(--fw-medium); color: var(--t1); }
+.agent-memory-value { font-size: var(--fs-12); line-height: 1.5; color: var(--t2); }
+.agent-memory-actions { display: flex; gap: var(--space-sm); justify-content: flex-end; }
+.agent-memory-dismiss,
+.agent-memory-keep {
+  height: 26px;
+  padding: 0 var(--space-md);
+  border-radius: var(--r);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+.agent-memory-dismiss { border: 1px solid var(--line-2); background: var(--s2); color: var(--t2); }
+.agent-memory-dismiss:hover { background: var(--s3); color: var(--t1); }
+.agent-memory-keep { border: 1px solid var(--accent-line); background: var(--btn-pri-bg); color: var(--btn-pri-text); }
+.agent-memory-keep:hover { background: color-mix(in srgb, var(--green) 18%, var(--btn-pri-bg)); }
+
 /* ---------------- composer ---------------- */
 .agent-wb-composer {
   flex: none;
-  margin: 0 var(--space-md) var(--space-md);
+  margin: 0;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--line);
+  background: var(--s1);
 }

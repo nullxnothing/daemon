@@ -353,7 +353,7 @@
 .deploy-connect-hint-link {
   display: inline-block;
   margin-top: var(--space-md);
-  color: var(--blue);
+  color: var(--text-muted);
   cursor: pointer;
   background: none;
   border: none;
@@ -364,6 +364,7 @@
 }
 
 .deploy-connect-hint-link:hover {
+  color: var(--green);
   text-decoration: underline;
 }
 

@@ -6,7 +6,8 @@
 import * as SettingsService from '../SettingsService'
 import * as WalletService from '../WalletService'
 import { buildContextBundle } from '../MemoryInjectionService'
-import type { AriaContextSnapshot } from './AriaTool'
+import { getMemory } from '../MemoryService'
+import type { AriaContextSnapshot, AriaMemorySuggestionLite } from '../../shared/types'
 
 const ARIA_AGENT_SYSTEM = `You are ARIA, the operator agent for the DAEMON Solana development workbench. You DRIVE the app for the user by calling tools, not by describing steps.
 
@@ -19,10 +20,13 @@ CAPABILITIES (call the matching tool — do not just explain):
 - Token launches: tokenlaunch_list_launchpads, tokenlaunch_preflight, tokenlaunch_create.
 - Flywheel: preview/configure a fee split, run the flywheel (flywheel_*).
 - Git: stage + commit in the active project (git_commit). You never push.
+- Memory: remember durable project facts (remember_fact), list what you know (recall_memories), correct or forget them (update_memory / forget_memory). Never store secrets.
 
 RULES:
+- When the user tells you to remember something, or a stable project convention is established (package manager, a constraint, a fix that should not be repeated), call remember_fact. If unsure whether a fact is already known, recall_memories first. Never remember secrets — keys, seed phrases, credentials.
 - Be concise and direct. No filler, no emoji.
-- For any request that needs more than one action, FIRST call present_plan with 3–6 short step titles, then execute.
+- Format with markdown: bold section titles (no trailing colons — the weight signals the heading) and "-" bullets for lists. Keep prose in short paragraphs.
+- For any request that needs more than one action, FIRST call present_plan with 3–6 short step titles, then execute. In Plan mode, present_plan pauses for the user's approval before any write action — once approved, execute every step without pausing again (money/key actions will still ask for their own typed confirm). If the user declines the plan, stop and ask how to adjust.
 - Read state with read_project_status / read_wallet / list tools before acting when unsure of ids. Use exact ids; never invent wallet addresses, mints, or keys.
 - BEFORE any token launch, ALWAYS call tokenlaunch_preflight and show the user the estimated SOL cost and any failing checks. Only call tokenlaunch_create after preflight is ready.
 - Sensitive, money-adjacent tools (wallet, token launch, flywheel) pause for the user's typed approval — call them anyway; the user decides. flywheel_configure_split LOCKS on first create — make that clear.
@@ -30,7 +34,13 @@ RULES:
 - To change project code, call propose_patch with a unified diff rather than editing silently. Do not also scaffold_file the same change.
 - When finished, give a one-line summary of what you did.`
 
-export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promise<string> {
+export interface AssembledPrompt {
+  system: string
+  /** Memories actually injected into this prompt — surfaced as "recalled" in the transcript. */
+  recalled: AriaMemorySuggestionLite[]
+}
+
+export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promise<AssembledPrompt> {
   const lines: string[] = ['## CONTEXT']
   lines.push(`Active project: ${snapshot.activeProjectPath ?? '(none open)'}`)
   if (snapshot.currentPanelId) lines.push(`Current panel: ${snapshot.currentPanelId}`)
@@ -55,12 +65,17 @@ export async function assembleSystemPrompt(snapshot: AriaContextSnapshot): Promi
   // Approved, source-backed project memory — gated behind the projectMemory chip so it
   // stays off until the user has reviewed memories. Never breaks launch if unavailable.
   let memoryBlock = ''
+  const recalled: AriaMemorySuggestionLite[] = []
   if (snapshot.chips.projectMemory && snapshot.activeProjectId) {
     try {
       const bundle = buildContextBundle(snapshot.activeProjectId, { usedIn: 'aria_prompt' })
       if (bundle.block) memoryBlock = `\n\n${bundle.block}`
+      for (const id of bundle.usedMemoryIds) {
+        const mem = getMemory(id)
+        if (mem) recalled.push({ id: mem.id, kind: mem.kind, title: mem.title, value: mem.value })
+      }
     } catch { /* memory unavailable */ }
   }
 
-  return `${ARIA_AGENT_SYSTEM}\n\n${lines.join('\n')}${memoryBlock}`
+  return { system: `${ARIA_AGENT_SYSTEM}\n\n${lines.join('\n')}${memoryBlock}`, recalled }
 }

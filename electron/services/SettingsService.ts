@@ -1,7 +1,7 @@
 import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
 import os from 'node:os'
-import type { OnboardingProgress, WorkspaceProfile } from '../shared/types'
+import type { EditorPrefs, OnboardingProgress, WorkspaceProfile } from '../shared/types'
 import { defaultEnabledPacks, CORE_PACK_IDS } from '../shared/packManifest'
 import * as SecureKey from './SecureKeyService'
 
@@ -644,4 +644,48 @@ export function setWalletInfrastructureSettings(settings: WalletInfrastructureSe
   }
 
   setJsonSetting('wallet_infrastructure_settings', next)
+}
+
+// --- Editor preferences ---
+
+// Defaults mirror the literals Monaco shipped before this setting existed, so an
+// untouched install renders identically.
+export const DEFAULT_EDITOR_PREFS: EditorPrefs = {
+  fontFamily: "'Geist Mono', 'Cascadia Code', monospace",
+  fontSize: 13,
+  tabSize: 2,
+  wordWrap: true,
+  minimap: false,
+  theme: 'daemon-dark',
+}
+
+const FONT_SIZE_BOUNDS = { min: 8, max: 32 } as const
+const TAB_SIZE_BOUNDS = { min: 1, max: 8 } as const
+
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
+function sanitizeEditorPrefs(value: Partial<EditorPrefs> | null): EditorPrefs {
+  const v = value ?? {}
+  return {
+    fontFamily: typeof v.fontFamily === 'string' && v.fontFamily.trim()
+      ? v.fontFamily : DEFAULT_EDITOR_PREFS.fontFamily,
+    fontSize: clamp(Number(v.fontSize ?? DEFAULT_EDITOR_PREFS.fontSize), FONT_SIZE_BOUNDS.min, FONT_SIZE_BOUNDS.max),
+    tabSize: clamp(Number(v.tabSize ?? DEFAULT_EDITOR_PREFS.tabSize), TAB_SIZE_BOUNDS.min, TAB_SIZE_BOUNDS.max),
+    wordWrap: typeof v.wordWrap === 'boolean' ? v.wordWrap : DEFAULT_EDITOR_PREFS.wordWrap,
+    minimap: typeof v.minimap === 'boolean' ? v.minimap : DEFAULT_EDITOR_PREFS.minimap,
+    theme: v.theme === 'daemon-light' ? 'daemon-light' : 'daemon-dark',
+  }
+}
+
+export function getEditorPrefs(): EditorPrefs {
+  return sanitizeEditorPrefs(getJsonSetting<Partial<EditorPrefs> | null>('editor_prefs', null))
+}
+
+export function setEditorPrefs(patch: Partial<EditorPrefs>): EditorPrefs {
+  const next = sanitizeEditorPrefs({ ...getEditorPrefs(), ...patch })
+  setJsonSetting('editor_prefs', next)
+  return next
 }

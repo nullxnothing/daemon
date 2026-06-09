@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/ui'
 import { confirm } from '../../store/confirm'
 import { useOnboardingStore } from '../../store/onboarding'
 import { useWalletStore } from '../../store/wallet'
+import { useEditorPrefsStore } from '../../store/editorPrefs'
 import { useWorkspaceProfileStore } from '../../store/workspaceProfile'
 import { useNotificationsStore } from '../../store/notifications'
 import { Toggle } from '../../components/Toggle'
@@ -1230,6 +1231,15 @@ function SidePanelsSection() {
   )
 }
 
+const EDITOR_FONT_OPTIONS: { value: string; label: string }[] = [
+  { value: "'Geist Mono', 'Cascadia Code', monospace", label: 'Geist Mono' },
+  { value: "'Cascadia Code', monospace", label: 'Cascadia Code' },
+  { value: "'JetBrains Mono', monospace", label: 'JetBrains Mono' },
+  { value: "'Fira Code', monospace", label: 'Fira Code' },
+  { value: 'ui-monospace, monospace', label: 'System Mono' },
+]
+const EDITOR_FONT_SIZE_BOUNDS = { min: 8, max: 32 }
+
 function DisplaySection() {
   const showMarketTape = useWalletStore((s) => s.showMarketTape)
   const showTitlebarWallet = useWalletStore((s) => s.showTitlebarWallet)
@@ -1238,9 +1248,20 @@ function DisplaySection() {
   const setShowTitlebarWallet = useWalletStore((s) => s.setShowTitlebarWallet)
   const setLowPowerMode = useWalletStore((s) => s.setLowPowerMode)
 
+  const editorPrefs = useEditorPrefsStore((s) => s.prefs)
+  const loadEditorPrefs = useEditorPrefsStore((s) => s.load)
+  const updateEditorPrefs = useEditorPrefsStore((s) => s.update)
+
+  useEffect(() => { void loadEditorPrefs() }, [loadEditorPrefs])
+
   const handleToggleMarketTape = (enabled: boolean) => { void setShowMarketTape(enabled) }
   const handleToggleTitlebarWallet = (enabled: boolean) => { void setShowTitlebarWallet(enabled) }
   const handleToggleLowPowerMode = (enabled: boolean) => { void setLowPowerMode(enabled) }
+
+  const adjustFontSize = (delta: number) => {
+    const next = Math.min(EDITOR_FONT_SIZE_BOUNDS.max, Math.max(EDITOR_FONT_SIZE_BOUNDS.min, editorPrefs.fontSize + delta))
+    void updateEditorPrefs({ fontSize: next })
+  }
 
   return (
     <div className="settings-section">
@@ -1266,6 +1287,70 @@ function DisplaySection() {
         <span className="settings-display-label">Low power mode</span>
         <span className="settings-display-hint">Reduce panel preloads, background polling, and UI motion for slower computers</span>
         <Toggle checked={lowPowerMode} onChange={handleToggleLowPowerMode} />
+      </div>
+
+      <div className="settings-divider" />
+      <div className="settings-section-label">Editor</div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Theme</span>
+        <span className="settings-display-hint">Color theme for the code editor</span>
+        <select
+          className="settings-select"
+          value={editorPrefs.theme}
+          onChange={(e) => void updateEditorPrefs({ theme: e.target.value as typeof editorPrefs.theme })}
+        >
+          <option value="daemon-dark">Dark</option>
+          <option value="daemon-light">Light</option>
+        </select>
+      </div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Font family</span>
+        <span className="settings-display-hint">Monospace font for code</span>
+        <select
+          className="settings-select"
+          value={editorPrefs.fontFamily}
+          onChange={(e) => void updateEditorPrefs({ fontFamily: e.target.value })}
+        >
+          {EDITOR_FONT_OPTIONS.map((opt) => (
+            <option key={opt.label} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Font size</span>
+        <span className="settings-display-hint">Editor text size in pixels</span>
+        <div className="settings-stepper">
+          <button type="button" onClick={() => adjustFontSize(-1)} aria-label="Decrease font size">−</button>
+          <span className="settings-stepper-value">{editorPrefs.fontSize}</span>
+          <button type="button" onClick={() => adjustFontSize(1)} aria-label="Increase font size">+</button>
+        </div>
+      </div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Tab size</span>
+        <span className="settings-display-hint">Spaces per indentation level</span>
+        <select
+          className="settings-select"
+          value={editorPrefs.tabSize}
+          onChange={(e) => void updateEditorPrefs({ tabSize: Number(e.target.value) })}
+        >
+          {[2, 4, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Word wrap</span>
+        <span className="settings-display-hint">Wrap long lines to the editor width</span>
+        <Toggle checked={editorPrefs.wordWrap} onChange={(enabled) => void updateEditorPrefs({ wordWrap: enabled })} />
+      </div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Minimap</span>
+        <span className="settings-display-hint">Show the code overview on the right edge</span>
+        <Toggle checked={editorPrefs.minimap} onChange={(enabled) => void updateEditorPrefs({ minimap: enabled })} />
       </div>
     </div>
   )

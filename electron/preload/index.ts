@@ -430,6 +430,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
+    getEditorPrefs: () => ipcRenderer.invoke('settings:get-editor-prefs'),
+    setEditorPrefs: (patch: Partial<import('../shared/types').EditorPrefs>) => ipcRenderer.invoke('settings:set-editor-prefs', patch),
     onCrashWarning: (callback: (count: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, count: number) => callback(count)
       ipcRenderer.on('crash-warning', handler)
@@ -656,6 +658,7 @@ contextBridge.exposeInMainWorld('daemon', {
     update: (id: string, patch: unknown) => ipcRenderer.invoke('memory:update', id, patch),
     reject: (id: string) => ipcRenderer.invoke('memory:reject', id),
     delete: (id: string) => ipcRenderer.invoke('memory:delete', id),
+    listKnowledge: (projectId: string | null) => ipcRenderer.invoke('memory:list-knowledge', projectId),
     extract: (projectPath: string, projectId: string | null) => ipcRenderer.invoke('memory:extract', projectPath, projectId),
     buildContextBundle: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:buildContextBundle', projectId, opts),
     discoverChecks: (projectPath: string) => ipcRenderer.invoke('checks:discover', projectPath),

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type {
   AriaMessage, AriaSession, AriaToolCallRecord, AriaToolEvent, AriaUiEffect,
-  AriaPlanStep, AriaPatchProposalLite, AriaPatchAction,
+  AriaPlanStep, AriaPatchProposalLite, AriaPatchAction, AriaMemorySuggestionLite,
   DaemonAiModelInfo, DaemonAiModelLane,
 } from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
@@ -43,6 +43,8 @@ export interface AriaTurn {
   patch?: AriaPatchProposalLite
   patchDecision?: AriaPatchAction
   actionState?: AriaActionState
+  memorySuggestions?: AriaMemorySuggestionLite[]
+  recalledMemories?: AriaMemorySuggestionLite[]
 }
 
 const DEFAULT_LANE: DaemonAiModelLane = 'auto'
@@ -54,12 +56,17 @@ interface AriaState {
   sessions: AriaSession[]
   selectedLane: DaemonAiModelLane
   availableModels: DaemonAiModelInfo[]
+  /** Plan mode: ARIA presents a plan and waits for one approval before writing. */
+  planMode: boolean
 
   sendMessage: (content: string) => Promise<void>
+  setPlanMode: (enabled: boolean) => void
   /** Append a local command echo + result to the transcript without invoking the agent. */
   pushLocalTurn: (command: string, result: string) => void
   approve: (callId: string, approved: boolean) => void
   decidePatch: (proposalId: string, action: AriaPatchAction) => void
+  /** Keep (approve) or dismiss (reject) an auto-captured memory suggestion, then drop the card. */
+  resolveMemorySuggestion: (id: string, keep: boolean) => Promise<void>
   setLane: (lane: DaemonAiModelLane) => void
   loadModels: () => Promise<void>
   clearMessages: () => void
@@ -97,11 +104,14 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   sessions: [],
   selectedLane: DEFAULT_LANE,
   availableModels: [],
+  planMode: false,
+
+  setPlanMode: (enabled) => set({ planMode: enabled }),
 
   sendMessage: async (content) => {
     const trimmed = content.trim()
     if (!trimmed) return
-    const { sessionId, selectedLane } = get()
+    const { sessionId, selectedLane, planMode } = get()
     const assistant = newTurn('assistant')
     activeAssistantId = assistant.id
     set((s) => ({ turns: [...s.turns, newTurn('user', trimmed), assistant], isLoading: true }))
@@ -111,7 +121,8 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       // race the IPC resolution (e.g. the codex/legacy single-shot path), leaving the
       // turn stuck on "Working…". Use the IPC return value as the authoritative fallback
       // and write it before clearing the active id.
-      const res = await daemon.aria.send(sessionId, trimmed, buildAriaSnapshot(), selectedLane)
+      const snapshot = { ...buildAriaSnapshot(), planMode }
+      const res = await daemon.aria.send(sessionId, trimmed, snapshot, selectedLane)
       const finalText = (res as { ok?: boolean; data?: { text?: string } })?.data?.text
       if (finalText) patchActive(set, (t) => ({ ...t, text: t.text || finalText }))
     } catch (err) {
@@ -139,6 +150,17 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       turns: s.turns.map((t) =>
         t.patch?.id === proposalId ? { ...t, patchDecision: action, actionState: 'deciding' } : t),
     }))
+  },
+
+  resolveMemorySuggestion: async (id, keep) => {
+    // Drop the card optimistically; the user has decided either way.
+    set((s) => ({
+      turns: s.turns.map((t) => ({
+        ...t,
+        memorySuggestions: (t.memorySuggestions ?? []).filter((m) => m.id !== id),
+      })),
+    }))
+    await (keep ? daemon.memory.approve(id, 'user') : daemon.memory.reject(id))
   },
 
   setLane: (lane) => set({ selectedLane: lane }),
@@ -280,6 +302,15 @@ function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev:
       break
     case 'patch-proposal':
       patchActive(set, (t) => ({ ...t, patch: ev.proposal, actionState: 'deciding' }))
+      break
+    case 'memory-suggestion':
+      patchActive(set, (t) => ({
+        ...t,
+        memorySuggestions: [...(t.memorySuggestions ?? []), ev.suggestion],
+      }))
+      break
+    case 'memory-recall':
+      patchActive(set, (t) => ({ ...t, recalledMemories: ev.recalled }))
       break
     case 'action-result':
       set((s) => ({

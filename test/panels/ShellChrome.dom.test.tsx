@@ -115,6 +115,11 @@ function installDaemonBridge() {
           data: { showMarketTape: true, showTitlebarWallet: true, lowPowerMode: false },
         }),
         recoverUiState: vi.fn().mockResolvedValue({ ok: true }),
+        getEditorPrefs: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { fontFamily: "'Geist Mono', monospace", fontSize: 13, tabSize: 2, wordWrap: true, minimap: false, theme: 'daemon-dark' },
+        }),
+        setEditorPrefs: vi.fn().mockResolvedValue({ ok: true }),
         setLayout,
         setLowPowerMode,
         setOnboardingComplete: vi.fn().mockResolvedValue({ ok: true }),

@@ -2645,6 +2645,10 @@ export interface AriaContextSnapshot {
     /** Inject approved DAEMON Memory facts into the agent prompt. Default off. */
     projectMemory?: boolean
   }
+  /** Plan mode: ARIA presents a plan and waits for one approval before any
+   *  write action, then auto-runs all write steps. Sensitive money/key tools
+   *  still pause for typed confirm. Default off (Build mode). */
+  planMode?: boolean
 }
 
 /** A renderer-applied effect requested by a tool (navigation, toggles, terminal). */
@@ -2673,7 +2677,17 @@ export type AriaToolEvent =
   | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }
+  | { kind: 'memory-suggestion'; messageId: string; suggestion: AriaMemorySuggestionLite }
+  | { kind: 'memory-recall'; messageId: string; recalled: AriaMemorySuggestionLite[] }
   | { kind: 'done'; messageId: string; text: string }
+
+/** A memory the operator captured from its own work, pending the user's keep/dismiss. */
+export interface AriaMemorySuggestionLite {
+  id: string
+  kind: MemoryKind
+  title: string
+  value: string
+}
 
 // --- Onboarding ---
 
@@ -2699,6 +2713,19 @@ export type WorkspaceProfileName = 'web' | 'solana' | 'custom'
 export interface WorkspaceProfile {
   name: WorkspaceProfileName
   toolVisibility: Record<string, boolean>
+}
+
+// --- Editor preferences ---
+
+export type EditorThemeId = 'daemon-dark' | 'daemon-light'
+
+export interface EditorPrefs {
+  fontFamily: string
+  fontSize: number
+  tabSize: number
+  wordWrap: boolean
+  minimap: boolean
+  theme: EditorThemeId
 }
 
 // --- Engine ---
@@ -2909,6 +2936,19 @@ export interface MemoryContextBundle {
   block: string
   usedMemoryIds: string[]
   totalChars: number
+}
+
+/** An approved memory enriched with usage stats for the "What I know" knowledge view. */
+export interface KnowledgeItem {
+  id: string
+  kind: MemoryKind
+  title: string
+  value: string
+  confidence: number
+  sourceType: string
+  usageCount: number
+  createdAt: number
+  lastUsedAt: number | null
 }
 
 // ---------------------------------------------------------------------------

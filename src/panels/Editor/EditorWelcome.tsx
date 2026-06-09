@@ -189,7 +189,7 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
       <div className="editor-empty-glow" />
       <DaemonMark className="editor-empty-logo" />
       <span className="editor-empty-eyebrow">Operator workbench</span>
-      <h1 className="editor-empty-title">daemon</h1>
+      <h1 className="editor-empty-title">DAEMON</h1>
 
       <span className="editor-empty-tagline">
         {activeProjectId ? displayPath : 'No workspace'}
