@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { getDb } from '../db/db'
 import { redactText, type PrivacyDataClass } from '../security/PrivacyGuard'
 import type {
+  KnowledgeItem,
   MemoryPrivacyClass,
   MemoryStatus,
   MemorySuggestionInput,
@@ -107,6 +108,40 @@ export function listMemories(projectId: string | null, opts: ListOptions = {}): 
     .prepare(`SELECT * FROM project_memories ${where} ORDER BY updated_at DESC`)
     .all(...params) as MemoryRow[]
   return rows.map(rowToMemory)
+}
+
+/**
+ * Approved memories for the "What I know" view, enriched with a usage count from
+ * memory_usage_events. Sorted by how proven they are (confidence, then recent use) so
+ * the knowledge base reads strongest-first.
+ */
+export function listKnowledge(projectId: string | null): KnowledgeItem[] {
+  const projectClause = projectId === null ? 'm.project_id IS NULL' : 'm.project_id = ?'
+  const params = projectId === null ? [] : [projectId]
+  const rows = getDb()
+    .prepare(
+      `SELECT m.id, m.kind, m.title, m.value, m.confidence, m.source_type,
+              m.created_at, m.last_used_at,
+              (SELECT COUNT(*) FROM memory_usage_events e WHERE e.memory_id = m.id) AS usage_count
+       FROM project_memories m
+       WHERE m.status = 'approved' AND ${projectClause}
+       ORDER BY m.confidence DESC, m.last_used_at DESC NULLS LAST, m.created_at DESC`,
+    )
+    .all(...params) as Array<{
+      id: string; kind: string; title: string; value: string; confidence: number
+      source_type: string; created_at: number; last_used_at: number | null; usage_count: number
+    }>
+  return rows.map((r) => ({
+    id: r.id,
+    kind: r.kind as KnowledgeItem['kind'],
+    title: r.title,
+    value: r.value,
+    confidence: r.confidence,
+    sourceType: r.source_type,
+    usageCount: r.usage_count,
+    createdAt: r.created_at,
+    lastUsedAt: r.last_used_at,
+  }))
 }
 
 export function getMemory(id: string): ProjectMemory | null {
@@ -220,6 +255,12 @@ export function deleteMemory(id: string): void {
   getDb().prepare('DELETE FROM project_memories WHERE id = ?').run(id)
 }
 
+// Each use nudges confidence up a small step (capped) so frequently-recalled facts
+// float to the top of injection priority and the knowledge view — the "smarter every
+// week" mechanic. Tuned small so a single use doesn't overweight an unverified fact.
+const CONFIDENCE_REINFORCE_STEP = 0.02
+const CONFIDENCE_CAP = 1
+
 export function recordUsage(
   memoryId: string,
   projectId: string | null,
@@ -232,7 +273,11 @@ export function recordUsage(
     `INSERT INTO memory_usage_events (id, memory_id, project_id, used_in, session_ref, created_at)
      VALUES (?,?,?,?,?,?)`,
   ).run(`use_${crypto.randomUUID()}`, memoryId, projectId, usedIn, sessionRef, now)
-  db.prepare('UPDATE project_memories SET last_used_at = ? WHERE id = ?').run(now, memoryId)
+  db.prepare(
+    `UPDATE project_memories
+       SET last_used_at = ?, confidence = MIN(?, confidence + ?)
+     WHERE id = ?`,
+  ).run(now, CONFIDENCE_CAP, CONFIDENCE_REINFORCE_STEP, memoryId)
 }
 
 // Type guard used by callers that receive an unknown privacy class from the renderer.

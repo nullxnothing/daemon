@@ -3,6 +3,7 @@ import type {
   Project,
   Agent,
   FileEntry,
+  EditorPrefs,
   RuntimeIconTheme,
   ClaudeAgentFile,
   McpRegistryEntry,
@@ -178,6 +179,7 @@ import type {
   MemorySuggestionInput,
   MemoryUpdateInput,
   MemoryContextBundle,
+  KnowledgeItem,
   CheckDefinition,
   CheckResult,
 } from '../../electron/shared/types'
@@ -826,6 +828,8 @@ declare global {
     setWalletInfrastructureSettings: (settings: WalletInfrastructureSettings) => Promise<IpcResponse>
     getLayout: () => Promise<IpcResponse<{ centerMode: string | null; rightPanelTab: string | null; consoleDock: string | null }>>
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => Promise<IpcResponse>
+    getEditorPrefs: () => Promise<IpcResponse<EditorPrefs>>
+    setEditorPrefs: (patch: Partial<EditorPrefs>) => Promise<IpcResponse<EditorPrefs>>
     onCrashWarning: (callback: (count: number) => void) => () => void
     onUiRecoveryApplied: (callback: (result: UiRecoveryResult) => void) => () => void
   }
@@ -1137,6 +1141,7 @@ declare global {
     update: (id: string, patch: MemoryUpdateInput) => Promise<IpcResponse<ProjectMemory>>
     reject: (id: string) => Promise<IpcResponse<ProjectMemory>>
     delete: (id: string) => Promise<IpcResponse<void>>
+    listKnowledge: (projectId: string | null) => Promise<IpcResponse<KnowledgeItem[]>>
     extract: (projectPath: string, projectId: string | null) => Promise<IpcResponse<ProjectMemory[]>>
     buildContextBundle: (projectId: string | null, opts?: { charBudget?: number; sessionRef?: string | null }) => Promise<IpcResponse<MemoryContextBundle>>
     discoverChecks: (projectPath: string) => Promise<IpcResponse<CheckDefinition[]>>

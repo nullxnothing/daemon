@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
+import { useMemoryStore } from '../../store/memory'
 import { Composer, ModelDropdown } from '../../components/Panel'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
 import { getConsoleSuggestions, resolveConsoleCommand, isConsoleCommandInput, type ConsoleCommand } from '../../lib/console/consoleCommands'
 import { AgentTranscript } from './AgentTranscript'
-import { AriaSessionList } from './AriaSessionList'
+import { AriaSessionStrip, SessionHistoryPopover } from './AriaSessionList'
 import { SwarmMonitor } from './SwarmMonitor'
 import './AgentWorkbench.css'
 
@@ -20,6 +21,52 @@ const CONTEXT_CHIPS: { id: ChipId; label: string }[] = [
   { id: 'projectMemory', label: 'Project Memory' },
 ]
 
+// Monochrome "knowledge" mark for the brain count — a lightbulb/spark, not an emoji
+// (UI chrome stays emoji-free; the glyph inherits currentColor like the rest of the row).
+export function MemoryKnowledgeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 1.5a4 4 0 0 0-2.4 7.2c.3.25.5.6.5 1v.3h3.8v-.3c0-.4.2-.75.5-1A4 4 0 0 0 7 1.5Z" />
+      <path d="M5.4 12.2h3.2M6 13.2h2" />
+    </svg>
+  )
+}
+
+/** Build · Plan segment for the composer foot row. Plan mode makes ARIA present
+ *  a plan and wait for one approval before writing. Default Build. */
+function PlanToggle() {
+  const planMode = useAriaStore((s) => s.planMode)
+  const setPlanMode = useAriaStore((s) => s.setPlanMode)
+  return (
+    <div className="agent-wb-mode" role="group" aria-label="Execution mode">
+      <button
+        type="button"
+        className={`agent-wb-mode-seg${planMode ? '' : ' active'}`}
+        aria-pressed={!planMode}
+        onClick={() => setPlanMode(false)}
+        title="Build — act immediately"
+      >Build</button>
+      <button
+        type="button"
+        className={`agent-wb-mode-seg${planMode ? ' active' : ''}`}
+        aria-pressed={planMode}
+        onClick={() => setPlanMode(true)}
+        title="Plan — present a plan and wait for approval before writing"
+      >Plan</button>
+    </div>
+  )
+}
+
+// History affordance — a clock glyph (UI chrome stays emoji-free).
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7" cy="7" r="5.25" />
+      <path d="M7 4.2V7l1.9 1.1" />
+    </svg>
+  )
+}
+
 export function AgentWorkbench() {
   const turns = useAriaStore((s) => s.turns)
   const isLoading = useAriaStore((s) => s.isLoading)
@@ -33,15 +80,35 @@ export function AgentWorkbench() {
   const activeProjectId = useUIStore((s) => s.activeProjectId)
   const consoleDock = useUIStore((s) => s.consoleDock)
   const toggleConsoleDock = useUIStore((s) => s.toggleConsoleDock)
+  const loadKnowledge = useMemoryStore((s) => s.loadKnowledge)
 
   const [input, setInput] = useState('')
   const [chips, setChips] = useState(getAriaChips())
   const [view, setView] = useState<'chat' | 'swarms'>('chat')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const headRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     void loadModels()
     return subscribe()
   }, [subscribe, loadModels])
+
+  // Dismiss the header history popover / overflow menu on outside click.
+  useEffect(() => {
+    if (!historyOpen && !menuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (headRef.current && !headRef.current.contains(e.target as Node)) {
+        setHistoryOpen(false)
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [historyOpen, menuOpen])
+
+  // Keep the brain count fresh — reload when the project changes or a turn settles.
+  useEffect(() => { void loadKnowledge(activeProjectId) }, [activeProjectId, loadKnowledge, turns.length])
 
   // Sessions are per-project: re-init the list whenever the active project changes.
   useEffect(() => {
@@ -106,24 +173,56 @@ export function AgentWorkbench() {
 
   return (
     <div className="agent-workbench">
-      <header className="agent-wb-head">
+      <header className="agent-wb-head" ref={headRef}>
         <div className="agent-wb-tabs">
           <button type="button" className={`agent-wb-tab${view === 'chat' ? ' active' : ''}`} onClick={() => setView('chat')}>Console</button>
           <button type="button" className={`agent-wb-tab${view === 'swarms' ? ' active' : ''}`} onClick={() => setView('swarms')}>Swarms</button>
         </div>
         <span className="agent-wb-spacer" />
-        <button
-          type="button"
-          className="agent-wb-dock-btn"
-          onClick={toggleConsoleDock}
-          title={consoleDock === 'right' ? 'Move Console to bottom panel' : 'Move Console to right rail'}
-          aria-label={consoleDock === 'right' ? 'Move Console to bottom panel' : 'Move Console to right rail'}
-        >
-          {consoleDock === 'right' ? 'Dock ↓' : 'Dock →'}
-        </button>
-        {view === 'chat' ? (
-          <button type="button" className="agent-wb-newchat" onClick={() => void newChat()}>+ New Chat</button>
-        ) : null}
+        <div className="agent-wb-actions">
+          {view === 'chat' ? (
+            <>
+              <button type="button" className="agent-wb-iconbtn" onClick={() => void newChat()} title="New chat" aria-label="New chat">+</button>
+              <div className="agent-wb-history">
+                <button
+                  type="button"
+                  className={`agent-wb-iconbtn${historyOpen ? ' active' : ''}`}
+                  onClick={() => { setHistoryOpen((v) => !v); setMenuOpen(false) }}
+                  title="Chat history"
+                  aria-label="Chat history"
+                  aria-haspopup="menu"
+                  aria-expanded={historyOpen}
+                >
+                  <ClockIcon />
+                </button>
+                {historyOpen ? <SessionHistoryPopover onClose={() => setHistoryOpen(false)} /> : null}
+              </div>
+            </>
+          ) : null}
+          <div className="agent-wb-more">
+            <button
+              type="button"
+              className={`agent-wb-iconbtn${menuOpen ? ' active' : ''}`}
+              onClick={() => { setMenuOpen((v) => !v); setHistoryOpen(false) }}
+              title="More"
+              aria-label="More"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >⋯</button>
+            {menuOpen ? (
+              <div className="agent-wb-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="agent-wb-menu-item"
+                  onClick={() => { toggleConsoleDock(); setMenuOpen(false) }}
+                >
+                  {consoleDock === 'right' ? 'Move to bottom panel' : 'Move to right rail'}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </header>
 
       {view === 'swarms' ? (
@@ -132,7 +231,7 @@ export function AgentWorkbench() {
         </div>
       ) : (
         <>
-          <AriaSessionList />
+          <AriaSessionStrip />
 
           <div className="agent-wb-transcript" ref={scrollRef}>
             {hasTurns ? (
@@ -169,9 +268,9 @@ export function AgentWorkbench() {
             onChange={setInput}
             onSend={handleSend}
             disabled={isLoading}
-            placeholder="Ask the operator, or type / for commands…"
+            placeholder="Ask the operator, or / for commands…"
             sendIcon
-            model={<ModelDropdown />}
+            model={<><PlanToggle /><ModelDropdown /></>}
             context={activeContext}
             onRemoveContext={(id) => setChip(id as ChipId, false)}
             contextMenu={CONTEXT_CHIPS.map((c) => ({ id: c.id, label: c.label, active: chips[c.id] ?? false }))}

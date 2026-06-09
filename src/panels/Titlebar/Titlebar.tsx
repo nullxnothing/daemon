@@ -116,7 +116,7 @@ function TitlebarBrand({ showText }: { showText: boolean }) {
       <DaemonMark className="titlebar-icon" />
       {showText && (
         <>
-          <span className="titlebar-title">Daemon</span>
+          <span className="titlebar-title">DAEMON</span>
           <span className="titlebar-version">v{version ?? '4.0.0'}</span>
         </>
       )}

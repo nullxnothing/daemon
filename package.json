@@ -108,6 +108,8 @@
     "pidusage": "^4.0.1",
     "ps-list": "^8.1.1",
     "pyright": "^1.1.409",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "simple-git": "^3.36.0",
     "smol-toml": "^1.6.1",
     "tweetnacl": "^1.0.3",
@@ -166,6 +168,7 @@
       "postcss": "8.5.10",
       "protobufjs": "7.5.8",
       "qs": "6.15.2",
+      "shell-quote": "1.8.4",
       "tmp": "0.2.6",
       "uuid": "11.1.1",
       "ws": "8.20.1"

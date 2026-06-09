@@ -11,6 +11,27 @@ export function ApprovalCard({ approval }: { approval: AriaApproval }) {
   const approve = useAriaStore((s) => s.approve)
   const [typed, setTyped] = useState('')
 
+  // Plan-mode gate: one approval to run the whole plan (sentinel name).
+  if (approval.name === '__plan__') {
+    return (
+      <div className="agent-approval plan">
+        <div className="agent-approval-head">
+          <span className="agent-approval-risk plan">PLAN</span>
+          <span className="agent-approval-name">Approve to run all steps</span>
+        </div>
+        <div className="agent-approval-summary">{approval.summary}</div>
+        <div className="agent-approval-actions">
+          <button type="button" className="agent-approval-reject" onClick={() => approve(approval.callId, false)}>
+            Cancel
+          </button>
+          <button type="button" className="agent-approval-approve" onClick={() => approve(approval.callId, true)}>
+            Approve plan
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const isSensitive = approval.risk === 'sensitive'
   // For sensitive actions, require typing the first string argument (e.g. wallet
   // name) or the literal CONFIRM as a deliberate gate.
