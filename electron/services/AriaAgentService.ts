@@ -130,7 +130,7 @@ export async function sendMessage(
     transport.emit({ kind: 'memory-recall', messageId: sessionId, recalled })
   }
   // Mutable plan/patch state the special-cased tools fill in as the loop runs.
-  const turnState: TurnState = { plan: [], patch: null }
+  const turnState: TurnState = { plan: [], patch: null, planApproved: false }
   const ctx = { sessionId, snapshot, runUiEffect: transport.runUiEffect }
 
   const toolCalls: AriaToolCallRecord[] = []
@@ -220,6 +220,9 @@ export async function sendMessage(
 interface TurnState {
   plan: AriaPlanStep[]
   patch: AriaPatchProposalLite | null
+  /** Plan mode: set once the user approves the presented plan. While true, the
+   *  risk gate auto-runs `write` tools (sensitive money/key tools still gate). */
+  planApproved: boolean
 }
 
 /** Mark the next pending plan step active, the previous active one done, and re-emit. */
@@ -340,7 +343,7 @@ async function executeTool(
   turnState: TurnState,
 ): Promise<AriaToolCallRecord> {
   // Intercept the planning + patch tools: they drive transcript UI, not side effects.
-  if (use.name === 'present_plan') return handlePresentPlan(use, transport, turnState)
+  if (use.name === 'present_plan') return handlePresentPlan(use, ctx, transport, turnState)
   if (use.name === 'propose_patch') return handleProposePatch(use, ctx, transport, turnState)
   // (ctx carries snapshot.activeProjectPath for Guard scanning inside handleProposePatch)
 
@@ -365,8 +368,10 @@ async function executeTool(
   // Each real tool that runs advances the plan one step.
   advancePlan(turnState, transport, ctx.sessionId)
 
-  // Risk gate: write/sensitive pause for approval.
-  if (tool.risk !== 'read') {
+  // Risk gate: write/sensitive pause for approval. In Plan mode, an approved
+  // plan auto-runs `write` tools — but `sensitive` money/key tools always gate.
+  const needsApproval = tool.risk === 'sensitive' || (tool.risk !== 'read' && !turnState.planApproved)
+  if (needsApproval) {
     const approved = await transport.requestApproval({
       callId: use.id,
       name: tool.name,
@@ -395,18 +400,41 @@ async function executeTool(
   }
 }
 
-/** present_plan: register the plan, emit it, and mark the first step active. */
-function handlePresentPlan(
+/** present_plan: register the plan, emit it, mark the first step active. In Plan
+ *  mode, block on a single approval before the loop runs any write action. */
+async function handlePresentPlan(
   use: { id: string; name: string; input: Record<string, unknown> },
+  ctx: { sessionId: string; snapshot: AriaContextSnapshot },
   transport: AriaTransport,
   turnState: TurnState,
-): AriaToolCallRecord {
+): Promise<AriaToolCallRecord> {
   const rawSteps = Array.isArray(use.input.steps) ? (use.input.steps as Array<{ title?: unknown }>) : []
   turnState.plan = buildPlanSteps(rawSteps.map((s) => String(s?.title ?? '')))
   if (turnState.plan.length > 0) {
     turnState.plan[0].status = 'active'
     transport.emit({ kind: 'plan', messageId: use.id, steps: turnState.plan.map((s) => ({ ...s })) })
   }
+
+  // Plan mode: pause for one approval. Reuses the approval transport with a
+  // `__plan__` sentinel name (ApprovalCard renders the plan variant off it).
+  if (ctx.snapshot.planMode && turnState.plan.length > 0) {
+    const approved = await transport.requestApproval({
+      callId: use.id,
+      name: '__plan__',
+      risk: 'write',
+      summary: `${turnState.plan.length} steps — approve to run the plan.`,
+      input: use.input,
+    })
+    if (!approved) {
+      return {
+        callId: use.id, name: use.name, toolKind: 'read', risk: 'read',
+        status: 'rejected', summary: 'User declined the plan.', input: use.input,
+        result: 'User declined the plan. Do not execute any steps; stop and ask how to adjust.',
+      }
+    }
+    turnState.planApproved = true
+  }
+
   return {
     callId: use.id, name: use.name, toolKind: 'read', risk: 'read',
     status: 'done', summary: `Planned ${turnState.plan.length} steps.`, input: use.input,

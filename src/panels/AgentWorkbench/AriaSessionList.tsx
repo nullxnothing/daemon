@@ -1,11 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
-import { useMemoryStore } from '../../store/memory'
-import { usePluginStore } from '../../store/plugins'
-import { MemoryKnowledgeIcon } from './AgentWorkbench'
-
-const VISIBLE_LIMIT = 6
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts
@@ -18,22 +13,43 @@ function relativeTime(ts: number): string {
   return day === 1 ? '1 day ago' : `${day} days ago`
 }
 
-/** Stacked SESSIONS section: subheader + icon actions, then rows of
- *  [dot] title / project · time, with hover rename/archive/delete. */
-export function AriaSessionList() {
+/** Single 34px strip: SESSION label, count pill, live dot + active name,
+ *  relative time pushed right, refresh. Display-only — management lives in
+ *  the header history popover. */
+export function AriaSessionStrip() {
+  const sessions = useAriaStore((s) => s.sessions)
+  const sessionId = useAriaStore((s) => s.sessionId)
+  const loadSessions = useAriaStore((s) => s.loadSessions)
+
+  const active = useMemo(() => sessions.find((s) => s.id === sessionId) ?? null, [sessions, sessionId])
+  const title = active?.title || 'Untitled chat'
+  const time = active ? relativeTime(active.updated_at) : ''
+
+  return (
+    <div className="aria-sessions">
+      <span className="label">Session</span>
+      <span className="aria-sessions-count">{sessions.length}</span>
+      <span className="aria-sessions-name">
+        <span className="dot live" aria-hidden />
+        <span className="aria-sessions-name-text">{title}</span>
+      </span>
+      {time ? <span className="aria-sessions-time">{time}</span> : null}
+      <button type="button" className="aria-sessions-refresh" title="Refresh" aria-label="Refresh" onClick={() => void loadSessions()}>↻</button>
+    </div>
+  )
+}
+
+/** Session history popover (anchored off the header clock button): the full
+ *  session list with switch / rename / archive / delete. */
+export function SessionHistoryPopover({ onClose }: { onClose: () => void }) {
   const sessions = useAriaStore((s) => s.sessions)
   const sessionId = useAriaStore((s) => s.sessionId)
   const switchSession = useAriaStore((s) => s.switchSession)
   const renameSession = useAriaStore((s) => s.renameSession)
   const archiveSession = useAriaStore((s) => s.archiveSession)
   const deleteSession = useAriaStore((s) => s.deleteSession)
-  const loadSessions = useAriaStore((s) => s.loadSessions)
   const projects = useUIStore((s) => s.projects)
-  const knowledgeCount = useMemoryStore((s) => s.knowledge.length)
-  const setActivePlugin = usePluginStore((s) => s.setActivePlugin)
 
-  const [expanded, setExpanded] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
 
@@ -41,9 +57,6 @@ export function AriaSessionList() {
     const map = new Map(projects.map((p) => [p.id, p.name]))
     return (id: string | null) => (id ? map.get(id) ?? null : null)
   }, [projects])
-
-  const visible = expanded ? sessions : sessions.slice(0, VISIBLE_LIMIT)
-  const overflow = sessions.length - VISIBLE_LIMIT
 
   const commitRename = (id: string) => {
     const title = draft.trim()
@@ -53,39 +66,16 @@ export function AriaSessionList() {
   }
 
   return (
-    <div className={`aria-sessions${collapsed ? ' collapsed' : ''}`}>
-      <div className="aria-sessions-head">
-        <button
-          type="button"
-          className="aria-sessions-toggle"
-          onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? 'Show sessions' : 'Hide sessions'}
-          aria-expanded={!collapsed}
-        >
-          <span className="aria-sessions-caret" aria-hidden>{collapsed ? '▸' : '▾'}</span>
-          <span className="aria-sessions-kicker">Sessions</span>
-          <span className="aria-sessions-count">{sessions.length}</span>
-        </button>
-        <span className="aria-sessions-head-spacer" />
-        <button
-          type="button"
-          className="aria-sessions-brain"
-          title={`${knowledgeCount} fact${knowledgeCount === 1 ? '' : 's'} DAEMON knows about this project`}
-          aria-label="Open what DAEMON knows"
-          onClick={() => setActivePlugin('memory')}
-        >
-          <MemoryKnowledgeIcon />
-          <span className="aria-sessions-brain-count">{knowledgeCount}</span>
-        </button>
-        <button type="button" className="aria-sessions-icon" title="Refresh" onClick={() => void loadSessions()}>↻</button>
+    <div className="aria-history-pop" role="menu">
+      <div className="aria-history-head">
+        <span className="label">History</span>
+        <span className="aria-sessions-count">{sessions.length}</span>
       </div>
-
-      {collapsed ? null : (
-      <div className="aria-sessions-list">
+      <div className="aria-history-list">
         {sessions.length === 0 ? (
           <div className="aria-sessions-empty">No saved chats yet.</div>
         ) : (
-          visible.map((s) => {
+          sessions.map((s) => {
             const proj = projectName(s.project_id)
             const isActive = s.id === sessionId
             return (
@@ -103,7 +93,7 @@ export function AriaSessionList() {
                     onBlur={() => commitRename(s.id)}
                   />
                 ) : (
-                  <button type="button" className="aria-sessions-pick" onClick={() => void switchSession(s.id)}>
+                  <button type="button" className="aria-sessions-pick" onClick={() => { void switchSession(s.id); onClose() }}>
                     <span className="aria-sessions-dot" data-on={isActive ? 'true' : 'false'} />
                     <span className="aria-sessions-body">
                       <span className="aria-sessions-title">{s.title || 'Untitled chat'}</span>
@@ -122,14 +112,7 @@ export function AriaSessionList() {
             )
           })
         )}
-        {!expanded && overflow > 0 ? (
-          <button type="button" className="aria-sessions-more" onClick={() => setExpanded(true)}>
-            <span>More</span>
-            <span className="aria-sessions-more-count">{overflow}</span>
-          </button>
-        ) : null}
       </div>
-      )}
     </div>
   )
 }

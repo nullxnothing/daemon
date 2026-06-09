@@ -1,4 +1,5 @@
-import { ToolCallRow } from '../../components/Panel'
+import { ToolCallRow, AriaMarkdown } from '../../components/Panel'
+import { DaemonMark } from '../../components/DaemonMark'
 import type { AriaTurn, AriaToolCallLive } from '../../store/aria'
 import { ApprovalCard } from './ApprovalCard'
 import { PlanList } from './PlanList'
@@ -15,7 +16,12 @@ export function AgentTranscript({ turns, isLoading }: { turns: AriaTurn[]; isLoa
     <div className="agent-tr">
       {turns.map((turn) => (
         <article key={turn.id} className={`agent-tr-turn ${turn.role}`}>
-          <div className="agent-tr-role">{turn.role === 'user' ? 'You' : 'ARIA'}</div>
+          {turn.role === 'assistant' ? (
+            <div className="agent-tr-head">
+              <span className="agent-tr-mark"><DaemonMark /></span>
+              <span className="label">ARIA</span>
+            </div>
+          ) : null}
 
           {turn.recalledMemories && turn.recalledMemories.length > 0 && (
             <RecalledMemoryStrip recalled={turn.recalledMemories} />
@@ -43,7 +49,11 @@ export function AgentTranscript({ turns, isLoading }: { turns: AriaTurn[]; isLoa
             <ApprovalCard key={a.callId} approval={a} />
           ))}
 
-          {turn.text ? <div className="agent-tr-text">{turn.text}</div> : null}
+          {turn.text ? (
+            turn.role === 'assistant'
+              ? <AriaMarkdown source={turn.text} className="agent-tr-text" />
+              : <div className="agent-tr-text">{turn.text}</div>
+          ) : null}
 
           {turn.patch && <PatchProposalCard patch={turn.patch} actionState={turn.actionState} />}
 

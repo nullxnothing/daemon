@@ -88,8 +88,10 @@ export function Composer({
               type="button"
               className={styles.contextChip}
               onClick={() => onRemoveContext?.(item.id)}
+              title="Remove context"
             >
-              {item.label}
+              <span className={styles.contextChipLabel}>{item.label}</span>
+              {onRemoveContext ? <span className={styles.contextChipClear} aria-hidden="true">×</span> : null}
             </button>
           ))}
           {showInlineAdd ? (
@@ -120,7 +122,7 @@ export function Composer({
               aria-haspopup={hasMenu ? 'menu' : undefined}
               aria-expanded={hasMenu ? menuOpen : undefined}
               onClick={() => (hasMenu ? setMenuOpen((v) => !v) : onAddContext?.())}
-            >+</button>
+            >@</button>
             {hasMenu && menuOpen ? (
               <div className={styles.contextPopover} role="menu">
                 <div className={styles.contextPopoverHead}>Add context</div>
@@ -146,16 +148,19 @@ export function Composer({
         {model ? <span className={styles.model}>{model}</span> : null}
         <span className={styles.spacer} />
         {sendIcon ? (
-          <button
-            type="button"
-            className={styles.sendIcon}
-            disabled={disabled || !value.trim()}
-            onClick={onSend}
-            title="Send"
-            aria-label="Send"
-          >
-            <span aria-hidden="true">↑</span>
-          </button>
+          <>
+            <span className={styles.hint} aria-hidden="true">⏎</span>
+            <button
+              type="button"
+              className={styles.sendIcon}
+              disabled={disabled || !value.trim()}
+              onClick={onSend}
+              title="Send"
+              aria-label="Send"
+            >
+              <span aria-hidden="true">↑</span>
+            </button>
+          </>
         ) : (
           <button type="button" className={styles.send} disabled={disabled || !value.trim()} onClick={onSend}>
             {sendLabel}

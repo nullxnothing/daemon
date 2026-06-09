@@ -2645,6 +2645,10 @@ export interface AriaContextSnapshot {
     /** Inject approved DAEMON Memory facts into the agent prompt. Default off. */
     projectMemory?: boolean
   }
+  /** Plan mode: ARIA presents a plan and waits for one approval before any
+   *  write action, then auto-runs all write steps. Sensitive money/key tools
+   *  still pause for typed confirm. Default off (Build mode). */
+  planMode?: boolean
 }
 
 /** A renderer-applied effect requested by a tool (navigation, toggles, terminal). */
