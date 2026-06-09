@@ -1,0 +1,39 @@
+/* Fixed overlay for external-agent (bridge) approval requests. Sits above the
+   workspace but below toasts; cards reuse the AgentWorkbench approval styles. */
+.host {
+  position: fixed;
+  right: var(--space-lg);
+  bottom: calc(var(--space-2xl) + var(--space-sm));
+  width: 320px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-overlay);
+  border: 1px solid var(--s6);
+  border-radius: var(--radius-md);
+  color: var(--t1);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.headerDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex: none;
+}
+
+.headerHint {
+  color: var(--t3);
+  font-weight: 400;
+  margin-left: auto;
+}

@@ -39,6 +39,7 @@ import { registerShiplineHandlers } from '../ipc/shipline'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
+import { registerBridgeHandlers, startBridge, stopBridge } from '../ipc/bridge'
 import { registerSwarmHandlers } from '../ipc/swarm'
 import { registerMemoryHandlers } from '../ipc/memory'
 import { killAll as killAllSwarmLanes, } from '../services/SwarmOrchestrator'
@@ -206,6 +207,7 @@ function cleanupRuntimeState() {
   killAllSessions()
   killAllSwarmLanes()
   shutdownAllLspSessions()
+  void stopBridge()
   clearLoadedWallets()
   closeDb()
 }
@@ -371,6 +373,7 @@ function registerAllIpc() {
   registerBrowserHandlers()
   registerEmailHandlers()
   registerAriaHandlers()
+  registerBridgeHandlers()
   registerDashboardHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
@@ -392,6 +395,12 @@ function registerAllIpc() {
   if (enabled.agent !== false) {
     void reconcileSwarmOnBoot().catch(() => {})
   }
+
+  // Bridge server is always on (loopback + bearer token); the tool catalog
+  // itself re-filters against enabled packs on every request.
+  void startBridge().catch((error) => {
+    console.warn('[bridge] failed to start:', error instanceof Error ? error.message : String(error))
+  })
 
   // Window controls — raw channels (not wrapped by ipcHandler), so guard the
   // sender frame inline. Embedded/cross-origin frames must not drive the window.

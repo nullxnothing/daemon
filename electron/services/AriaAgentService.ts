@@ -16,6 +16,7 @@ import { recordLocalAiUsage } from './DaemonAIService'
 import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
 import * as MemoryService from './MemoryService'
 import { assembleSystemPrompt } from './aria/contextAssembler'
+import { clusterMark } from './aria/tools/shared'
 import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiEffect } from './aria/AriaTool'
 import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
 import type { AgentMessage } from './providers/agentTurn'
@@ -336,6 +337,18 @@ function parseCaptureJson(text: string): { kind: MemoryKind; title: string; valu
   }
 }
 
+/** Execute one tool through the standard risk gate, outside the chat loop.
+ *  Used by the Bridge: `planApproved` is pinned false so every write/sensitive
+ *  call pauses on `transport.requestApproval` — external agents never get the
+ *  plan-mode auto-run path. */
+export async function executeToolCall(
+  use: { id: string; name: string; input: Record<string, unknown> },
+  ctx: { sessionId: string; snapshot: AriaContextSnapshot; runUiEffect: AriaTransport['runUiEffect'] },
+  transport: AriaTransport,
+): Promise<AriaToolCallRecord> {
+  return executeTool(use, ctx, transport, { plan: [], patch: null, planApproved: false })
+}
+
 async function executeTool(
   use: { id: string; name: string; input: Record<string, unknown> },
   ctx: { sessionId: string; snapshot: AriaContextSnapshot; runUiEffect: AriaTransport['runUiEffect'] },
@@ -488,7 +501,9 @@ async function handleProposePatch(
 
 function describeIntent(tool: AriaTool, input: Record<string, unknown>): string {
   const arg = Object.values(input)[0]
-  return `${tool.name}${arg !== undefined ? `: ${String(arg).slice(0, 80)}` : ''}`
+  const intent = `${tool.name}${arg !== undefined ? `: ${String(arg).slice(0, 80)}` : ''}`
+  // Approval cards must make the network unmistakable before the user decides.
+  return tool.risk === 'read' ? intent : clusterMark(intent)
 }
 
 /** Non-Claude providers: single-shot text answer, no tools. */
