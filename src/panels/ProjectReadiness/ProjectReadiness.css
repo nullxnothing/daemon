@@ -74,7 +74,7 @@
 }
 
 .project-readiness h2 {
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
   font-size: var(--type-section-title-size);
   font-weight: var(--type-section-title-weight);
   line-height: var(--type-section-title-line);
@@ -272,7 +272,7 @@
 }
 
 .workbench-queue-card p {
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
 }
 
 .workbench-section-nav {

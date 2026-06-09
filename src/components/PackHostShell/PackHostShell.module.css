@@ -33,7 +33,7 @@
   font-family: var(--font-ui);
   font-size: var(--fs-11);
   font-weight: var(--fw-medium);
-  padding: var(--space-2xs) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
 

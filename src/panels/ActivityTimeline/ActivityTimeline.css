@@ -79,7 +79,7 @@
 
 .activity-artifact {
   display: inline-grid;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   min-width: 136px;
   padding: var(--space-sm);
   border: 1px solid var(--line);
@@ -200,10 +200,10 @@
 }
 
 .activity-entry-meta {
-  margin-top: var(--space-2xs);
+  margin-top: var(--space-xs);
   display: flex;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   font-family: var(--mono);
   font-size: var(--fs-11);
   color: var(--t3);
