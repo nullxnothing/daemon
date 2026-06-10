@@ -255,6 +255,8 @@ contextBridge.exposeInMainWorld('daemon', {
     session: () => ipcRenderer.invoke('telemetry:session'),
     stats: () => ipcRenderer.invoke('telemetry:stats'),
     recent: (limit?: number) => ipcRenderer.invoke('telemetry:recent', limit),
+    remoteEnabled: () => ipcRenderer.invoke('telemetry:remote-enabled'),
+    setRemoteEnabled: (enabled: boolean) => ipcRenderer.invoke('telemetry:set-remote-enabled', enabled),
   },
 
   voight: {

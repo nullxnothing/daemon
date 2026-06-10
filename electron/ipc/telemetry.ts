@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { isRemoteTelemetryEnabled, setRemoteTelemetryEnabled } from '../services/RemoteTelemetryService'
 import * as TelemetryService from '../services/TelemetryService'
 
 export function initTelemetry(version: string) {
@@ -27,5 +28,14 @@ export function registerTelemetryHandlers() {
 
   ipcMain.handle('telemetry:recent', ipcHandler(async (_event, limit?: number) => {
     return { ok: true, data: TelemetryService.getRecentEvents(limit || 50) }
+  }))
+
+  ipcMain.handle('telemetry:remote-enabled', ipcHandler(async () => {
+    return isRemoteTelemetryEnabled()
+  }))
+
+  ipcMain.handle('telemetry:set-remote-enabled', ipcHandler(async (_event, enabled: boolean) => {
+    setRemoteTelemetryEnabled(enabled === true)
+    return isRemoteTelemetryEnabled()
   }))
 }

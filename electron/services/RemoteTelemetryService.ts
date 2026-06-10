@@ -4,9 +4,14 @@ import { app } from 'electron'
 
 import { getDb } from '../db/db'
 import { sanitizeErrorMessage } from '../security/PrivacyGuard'
+import { getBooleanSetting, setBooleanSetting } from './SettingsService'
 
 const DEFAULT_TELEMETRY_ENDPOINT = 'https://daemon-landing.vercel.app/api/telemetry'
 const STATE_TABLE = 'remote_telemetry_state'
+const ENABLED_SETTING_KEY = 'telemetry_remote_enabled'
+// DAEMON is an IDE — sessions span days. Re-flush hourly so the UTC-day
+// rollover emits daily_active without a restart (per-day state keys dedupe).
+const FLUSH_INTERVAL_MS = 60 * 60 * 1000
 
 type TelemetryEventName = 'first_open' | 'daily_active'
 
@@ -26,8 +31,18 @@ type TelemetryPayload = {
   estimatedFirstSeenAt?: number
 }
 
+/** User-facing opt-out, persisted in app_settings and surfaced in Settings → Privacy. */
+export function isRemoteTelemetryEnabled(): boolean {
+  return getBooleanSetting(ENABLED_SETTING_KEY, true)
+}
+
+export function setRemoteTelemetryEnabled(enabled: boolean): void {
+  setBooleanSetting(ENABLED_SETTING_KEY, enabled)
+}
+
 function remoteTelemetryEnabled(): boolean {
   if (process.env.DAEMON_TELEMETRY_DISABLED === '1') return false
+  if (!isRemoteTelemetryEnabled()) return false
   if (process.env.DAEMON_REMOTE_TELEMETRY_DEV === '1') return true
   return app.isPackaged
 }
@@ -151,4 +166,14 @@ export async function flushRemoteTelemetry(): Promise<void> {
   } catch (err) {
     console.warn('[telemetry] Remote telemetry flush failed:', sanitizeErrorMessage(err))
   }
+}
+
+let flushTimer: NodeJS.Timeout | null = null
+
+/** Flush now, then keep re-flushing so multi-day sessions emit daily_active. */
+export function startRemoteTelemetryLoop(): void {
+  if (flushTimer) return
+  void flushRemoteTelemetry()
+  flushTimer = setInterval(() => void flushRemoteTelemetry(), FLUSH_INTERVAL_MS)
+  flushTimer.unref?.()
 }
