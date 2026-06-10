@@ -207,6 +207,48 @@
 .swarm-run-status.status-done { color: var(--green); }
 .swarm-run-status.status-failed { color: var(--red); }
 .swarm-run-status.status-spawning { color: var(--amber); }
+.swarm-run-status.status-cancelled { color: var(--t3); }
+
+.swarm-run-badge {
+  flex: none;
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  padding: 1px var(--space-xs);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  color: var(--t3);
+}
+
+.swarm-preflight {
+  padding: var(--space-xs) var(--space-md);
+  border-top: 1px solid var(--line);
+  background: var(--s1);
+}
+.swarm-preflight-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+}
+.swarm-preflight-label {
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.swarm-preflight-verdict { text-transform: uppercase; }
+.swarm-preflight-verdict.verdict-ready { color: var(--green); }
+.swarm-preflight-verdict.verdict-caution { color: var(--amber); }
+.swarm-preflight-verdict.verdict-blocked { color: var(--red); }
+.swarm-preflight-counts { color: var(--t3); margin-left: auto; }
+.swarm-preflight-blocks {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+  font-size: var(--fs-11);
+  color: var(--red);
+}
 
 .swarm-lanes {
   display: flex;

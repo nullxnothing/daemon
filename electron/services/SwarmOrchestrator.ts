@@ -25,6 +25,11 @@ const LANE_MAX_TURNS = 30
 /** Lanes must never push; merging is a human step in the Git panel. */
 const DISALLOWED_TOOLS = 'Bash(git push:*)'
 
+/** BrainBlast pre-flight: research a lane's task before it codes, then gate on CRITICAL risk. */
+const PREFLIGHT_MAX_TURNS = 40
+/** A pre-flight that hangs must not wedge the lane forever. */
+const PREFLIGHT_TIMEOUT_MS = 5 * 60_000
+
 interface LiveLane {
   laneId: string
   runId: string
@@ -44,18 +49,138 @@ function laneBranch(runId: string, index: number): string {
   return `swarm/${runId.slice(0, 8)}/lane-${index + 1}`
 }
 
-function writeLaneContext(task: string): string {
+function writeLaneContext(task: string, worktreePath: string | null): string {
   const file = path.join(os.tmpdir(), `daemon_swarm_${crypto.randomUUID()}.txt`)
-  const content = [
+  const lines = [
     'You are a DAEMON swarm lane agent working in an isolated git worktree.',
     'Complete the assigned task end to end, then run the project gate loop if one exists.',
     'When finished, write a RESULTS.md at the worktree root summarizing: what changed,',
     'files touched, commands run, and anything you deferred. Do NOT push to any remote.',
-    '',
-    `TASK:\n${task}`,
-  ].join('\n')
-  fs.writeFileSync(file, content, 'utf8')
+  ]
+  // If a pre-flight ran, point the build agent at the research it produced.
+  const report = worktreePath ? latestReportPath(worktreePath) : null
+  if (report) {
+    lines.push(
+      '',
+      'A BrainBlast pre-flight researched this task\'s external components. Before writing code',
+      'that touches them, read the handoff report (verified facts + risk heatmap), then treat it',
+      `as research to verify, not gospel:\n  ${path.relative(worktreePath!, report)}`,
+    )
+  }
+  lines.push('', `TASK:\n${task}`)
+  fs.writeFileSync(file, lines.join('\n'), 'utf8')
   return file
+}
+
+/** Find the newest report.json under a worktree's .agent-research/runs, or null. */
+function latestReportPath(worktreePath: string): string | null {
+  const runsDir = path.join(worktreePath, '.agent-research', 'runs')
+  if (!fs.existsSync(runsDir)) return null
+  const runs = fs.readdirSync(runsDir).sort().reverse()
+  for (const run of runs) {
+    const candidate = path.join(runsDir, run, 'report.json')
+    if (fs.existsSync(candidate)) return candidate
+  }
+  return null
+}
+
+/** Env that forces the CLI onto subscription OAuth and signals BrainBlast --ci mode. */
+function laneEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, TERM: 'xterm-256color', ...extra }
+  // Strip API-key env so the CLI uses OAuth (an exhausted/restricted key exits 1 instantly).
+  delete env.ANTHROPIC_API_KEY
+  delete env.ANTHROPIC_AUTH_TOKEN
+  return env
+}
+
+/** The DAEMON WebFetch fork of the BrainBlast skill, injected so headless lanes can run /brainblast. */
+function brainblastSkillContent(): string | null {
+  const skillPath = path.join(__dirname, '..', 'skills', 'brainblast', 'SKILL.md')
+  try {
+    return fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Run a BrainBlast --ci pass for one lane, in its worktree, then read the report it produced and
+ * compute the gate. A missing/unparseable report fails open (verdict 'caution', no block) so a
+ * flaky research pass never silently swallows a lane — the build still runs, just unguarded.
+ */
+async function runPreflight(task: string, worktreePath: string): Promise<Worktree.LanePreflight> {
+  const fallback: Worktree.LanePreflight = {
+    verdict: 'caution', riskTotals: { critical: 0, high: 0, medium: 0, low: 0 }, blockedBy: [], reportPath: null,
+  }
+
+  const skill = brainblastSkillContent()
+  const promptFile = path.join(os.tmpdir(), `daemon_preflight_${crypto.randomUUID()}.txt`)
+  const sys = [
+    'You are running a BrainBlast pre-flight for a DAEMON swarm lane in --ci (non-interactive) mode.',
+    'Research the external components the task touches, then write .agent-research/runs/<ts>/report.json.',
+    'Do not write code, do not modify the project — research and report only.',
+    skill ? `\n<brainblast-skill>\n${skill}\n</brainblast-skill>` : '',
+  ].join('\n')
+  fs.writeFileSync(promptFile, sys, { encoding: 'utf8', mode: 0o600 })
+
+  const args = [
+    '-p', `/brainblast --ci\n\nTASK:\n${task}`,
+    '--model', LANE_MODEL,
+    '--append-system-prompt-file', promptFile,
+    '--max-turns', String(PREFLIGHT_MAX_TURNS),
+    '--dangerously-skip-permissions',
+    '--disallowedTools', DISALLOWED_TOOLS,
+    '--output-format', 'text',
+  ]
+
+  await new Promise<void>((resolve) => {
+    let child: ChildProcess
+    try {
+      child = spawn(getClaudePath(), args, {
+        cwd: worktreePath,
+        env: laneEnv({ BRAINBLAST_CI: '1' }),
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    } catch (err) {
+      LogService.warn('Swarm', 'Pre-flight spawn failed', { error: (err as Error).message })
+      resolve()
+      return
+    }
+    const killer = setTimeout(() => { try { child.kill() } catch { /* gone */ } }, PREFLIGHT_TIMEOUT_MS)
+    child.on('exit', () => { clearTimeout(killer); resolve() })
+    child.on('error', () => { clearTimeout(killer); resolve() })
+  })
+
+  try { fs.unlinkSync(promptFile) } catch { /* best-effort */ }
+
+  const reportPath = latestReportPath(worktreePath)
+  if (!reportPath) {
+    LogService.warn('Swarm', 'Pre-flight produced no report.json — failing open')
+    return fallback
+  }
+  try {
+    const report = JSON.parse(fs.readFileSync(reportPath, 'utf8')) as {
+      summary?: { verdict?: string }
+      riskTotals?: { critical?: number; high?: number; medium?: number; low?: number }
+      components?: { risks?: { severity?: string; title?: string }[] }[]
+    }
+    const rt = report.riskTotals ?? {}
+    const riskTotals = {
+      critical: rt.critical ?? 0, high: rt.high ?? 0, medium: rt.medium ?? 0, low: rt.low ?? 0,
+    }
+    const verdict = (['ready', 'caution', 'blocked'] as const).includes(report.summary?.verdict as never)
+      ? (report.summary!.verdict as 'ready' | 'caution' | 'blocked')
+      : 'caution'
+    const blockedBy = (report.components ?? [])
+      .flatMap((c) => c.risks ?? [])
+      .filter((r) => r.severity === 'critical')
+      .map((r) => r.title ?? 'Untitled critical risk')
+    return { verdict, riskTotals, blockedBy, reportPath }
+  } catch (err) {
+    LogService.warn('Swarm', 'Pre-flight report.json unparseable — failing open', { error: (err as Error).message })
+    return fallback
+  }
 }
 
 export interface SwarmLaunchInput {
@@ -64,6 +189,8 @@ export interface SwarmLaunchInput {
   projectPath: string
   baseBranch: string | null
   tasks: string[]
+  /** Opt-in: run a BrainBlast pre-flight per lane and gate the build on CRITICAL risk. Default off. */
+  preflight?: boolean
 }
 
 /** Create a run + its lanes, then start draining the queue. Returns the run id. */
@@ -76,6 +203,7 @@ export async function launch(input: SwarmLaunchInput): Promise<string> {
     projectId: input.projectId,
     projectPath: input.projectPath,
     baseBranch: input.baseBranch,
+    preflight: input.preflight,
   })
 
   input.tasks.forEach((task, i) => {
@@ -120,7 +248,22 @@ async function startLane(runId: string, laneId: string): Promise<void> {
     return
   }
 
-  const contextFile = writeLaneContext(lane.task)
+  // Opt-in BrainBlast pre-flight: research the task, then gate the build on a CRITICAL risk.
+  if (run.preflight) {
+    Worktree.setLaneStatus(laneId, 'researching')
+    emit('swarm:lane-update', { runId, laneId, status: 'researching' })
+    const preflight = await runPreflight(lane.task, lane.worktree_path)
+    Worktree.setLanePreflight(laneId, preflight)
+    if (preflight.blockedBy.length > 0 || preflight.verdict === 'blocked') {
+      LogService.warn('Swarm', `Lane ${laneId} blocked by pre-flight`, { blockedBy: preflight.blockedBy })
+      Worktree.setLaneStatus(laneId, 'blocked')
+      emit('swarm:lane-update', { runId, laneId, status: 'blocked' })
+      finishLane(runId, laneId)
+      return
+    }
+  }
+
+  const contextFile = writeLaneContext(lane.task, run.preflight ? lane.worktree_path : null)
   const args = [
     '-p', lane.task,
     '--model', LANE_MODEL,
@@ -131,18 +274,12 @@ async function startLane(runId: string, laneId: string): Promise<void> {
     '--output-format', 'text',
   ]
 
-  // Strip API-key env so the CLI uses subscription OAuth creds (an exhausted or
-  // restricted ANTHROPIC_API_KEY otherwise makes `claude -p` exit 1 instantly).
-  // Mirrors the agent-shell handling in electron/ipc/terminal.ts.
-  const laneEnv: NodeJS.ProcessEnv = { ...process.env, TERM: 'xterm-256color' }
-  delete laneEnv.ANTHROPIC_API_KEY
-  delete laneEnv.ANTHROPIC_AUTH_TOKEN
-
   let child: ChildProcess
   try {
     child = spawn(getClaudePath(), args, {
       cwd: lane.worktree_path,
-      env: laneEnv,
+      // OAuth-only env (see laneEnv) — an exhausted/restricted API key exits 1 instantly.
+      env: laneEnv(),
       windowsHide: true,
       // Close stdin so `claude -p` doesn't block waiting for piped input
       // (it otherwise times out after 3s and exits 1); keep stdout/stderr piped.

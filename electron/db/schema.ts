@@ -1327,3 +1327,12 @@ CREATE TABLE IF NOT EXISTS memory_usage_events (
 CREATE INDEX IF NOT EXISTS idx_memory_usage_memory
   ON memory_usage_events(memory_id, created_at DESC);
 `
+
+// BrainBlast pre-flight: opt-in per-run research gate for swarm lanes. preflight_json holds the
+// gate outcome a lane recorded before coding (verdict, riskTotals, the blocking risk titles) so the
+// monitor can show why a lane was gated. A new lane status 'blocked' (a string, no schema change)
+// means pre-flight found a CRITICAL risk and the build pass never ran.
+export const SCHEMA_V51 = `
+ALTER TABLE swarm_runs ADD COLUMN preflight INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE swarm_lanes ADD COLUMN preflight_json TEXT;
+`

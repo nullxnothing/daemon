@@ -1099,8 +1099,16 @@ declare global {
     project_path: string
     base_branch: string | null
     status: 'running' | 'done' | 'failed' | 'cancelled'
+    preflight: number
     created_at: number
     updated_at: number
+  }
+
+  interface SwarmLanePreflight {
+    verdict: 'ready' | 'caution' | 'blocked'
+    riskTotals: { critical: number; high: number; medium: number; low: number }
+    blockedBy: string[]
+    reportPath: string | null
   }
 
   interface SwarmLane {
@@ -1110,8 +1118,9 @@ declare global {
     worktree_path: string
     branch: string
     pid: number | null
-    status: 'pending' | 'spawning' | 'running' | 'done' | 'failed' | 'cancelled'
+    status: 'pending' | 'researching' | 'spawning' | 'running' | 'done' | 'failed' | 'blocked' | 'cancelled'
     results_path: string | null
+    preflight_json: string | null
     exit_code: number | null
     created_at: number
     updated_at: number
@@ -1124,6 +1133,7 @@ declare global {
     projectPath: string
     baseBranch?: string | null
     tasks: string[]
+    preflight?: boolean
   }
 
   interface DaemonSwarm {

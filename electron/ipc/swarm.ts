@@ -10,6 +10,7 @@ export interface SwarmLaunchRequest {
   projectPath: string
   baseBranch?: string | null
   tasks: string[]
+  preflight?: boolean
 }
 
 export function registerSwarmHandlers() {
@@ -23,6 +24,7 @@ export function registerSwarmHandlers() {
       projectPath: req.projectPath,
       baseBranch: req.baseBranch ?? null,
       tasks: req.tasks.map((t) => String(t).trim()).filter(Boolean),
+      preflight: req.preflight === true,
     })
     return { runId }
   }))
