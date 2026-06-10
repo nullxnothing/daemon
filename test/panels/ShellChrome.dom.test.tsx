@@ -70,6 +70,10 @@ function installDaemonBridge() {
           data: { configured: true, executionReady: true },
         }),
       },
+      telemetry: {
+        remoteEnabled: vi.fn().mockResolvedValue({ ok: true, data: true }),
+        setRemoteEnabled: vi.fn().mockResolvedValue({ ok: true, data: true }),
+      },
       voight: {
         status: vi.fn().mockResolvedValue({
           ok: true,

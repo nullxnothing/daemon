@@ -1252,11 +1252,23 @@ function DisplaySection() {
   const loadEditorPrefs = useEditorPrefsStore((s) => s.load)
   const updateEditorPrefs = useEditorPrefsStore((s) => s.update)
 
+  const [usagePingEnabled, setUsagePingEnabled] = useState(true)
+
   useEffect(() => { void loadEditorPrefs() }, [loadEditorPrefs])
+
+  useEffect(() => {
+    void window.daemon.telemetry.remoteEnabled().then((res) => {
+      if (res.ok && typeof res.data === 'boolean') setUsagePingEnabled(res.data)
+    })
+  }, [])
 
   const handleToggleMarketTape = (enabled: boolean) => { void setShowMarketTape(enabled) }
   const handleToggleTitlebarWallet = (enabled: boolean) => { void setShowTitlebarWallet(enabled) }
   const handleToggleLowPowerMode = (enabled: boolean) => { void setLowPowerMode(enabled) }
+  const handleToggleUsagePing = (enabled: boolean) => {
+    setUsagePingEnabled(enabled)
+    void window.daemon.telemetry.setRemoteEnabled(enabled)
+  }
 
   const adjustFontSize = (delta: number) => {
     const next = Math.min(EDITOR_FONT_SIZE_BOUNDS.max, Math.max(EDITOR_FONT_SIZE_BOUNDS.min, editorPrefs.fontSize + delta))
@@ -1287,6 +1299,15 @@ function DisplaySection() {
         <span className="settings-display-label">Low power mode</span>
         <span className="settings-display-hint">Reduce panel preloads, background polling, and UI motion for slower computers</span>
         <Toggle checked={lowPowerMode} onChange={handleToggleLowPowerMode} />
+      </div>
+
+      <div className="settings-divider" />
+      <div className="settings-section-label">Privacy</div>
+
+      <div className="settings-display-row">
+        <span className="settings-display-label">Anonymous usage ping</span>
+        <span className="settings-display-hint">Daily anonymous ping (install id, app version, OS) to count active installs — never code, prompts, paths, or keys</span>
+        <Toggle checked={usagePingEnabled} onChange={handleToggleUsagePing} />
       </div>
 
       <div className="settings-divider" />

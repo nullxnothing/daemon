@@ -13,7 +13,18 @@ import path from 'node:path'
 import simpleGit from 'simple-git'
 import { getDb } from '../db/db'
 import { LogService } from './LogService'
+import { killOrphanLanePid } from './procKill'
 import { swarmRootFor } from '../ipc/git'
+
+// Windows: a lane process (or Defender/indexer) holding any handle inside the
+// worktree makes removal fail with EBUSY/EPERM. Retry with backoff instead of
+// failing once and leaking the worktree.
+const REMOVE_ATTEMPTS = 4
+const REMOVE_BACKOFF_MS = 350
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export type SwarmRunStatus = 'running' | 'done' | 'failed' | 'cancelled'
 export type SwarmLaneStatus = 'pending' | 'spawning' | 'running' | 'done' | 'failed' | 'cancelled'
@@ -124,9 +135,14 @@ export function rollupRunStatus(runId: string): void {
 
 // ---------------- worktree lifecycle ----------------
 
-/** Build the per-lane worktree path under the managed swarm root. */
+/**
+ * Build the per-lane worktree path under the managed swarm root. Short id
+ * prefixes instead of full UUIDs: a worktree with node_modules inside it
+ * blows past Windows' 260-char MAX_PATH fast, and the full path is stored
+ * on the lane row anyway so the dir name doesn't need to be unique forever.
+ */
 export function laneWorktreePath(projectPath: string, runId: string, laneId: string): string {
-  return path.join(swarmRootFor(projectPath), runId, laneId)
+  return path.join(swarmRootFor(projectPath), runId.slice(0, 8), laneId.slice(0, 8))
 }
 
 export async function addWorktree(projectPath: string, worktreePath: string, branch: string, base: string | null): Promise<void> {
@@ -146,11 +162,30 @@ export async function addWorktree(projectPath: string, worktreePath: string, bra
 
 export async function removeWorktree(projectPath: string, worktreePath: string, branch?: string | null): Promise<void> {
   const git = simpleGit(projectPath)
-  try {
-    await git.raw(['worktree', 'remove', worktreePath, '--force'])
-  } catch (err) {
-    LogService.warn('Swarm', `Failed to remove worktree ${worktreePath}`, { error: (err as Error).message })
+  let removed = false
+  for (let attempt = 1; attempt <= REMOVE_ATTEMPTS; attempt++) {
+    try {
+      await git.raw(['worktree', 'remove', worktreePath, '--force'])
+      removed = true
+      break
+    } catch (err) {
+      if (!fs.existsSync(worktreePath)) { removed = true; break }
+      if (attempt === REMOVE_ATTEMPTS) {
+        LogService.warn('Swarm', `Failed to remove worktree ${worktreePath} after ${REMOVE_ATTEMPTS} attempts`, { error: (err as Error).message })
+      } else {
+        await sleep(REMOVE_BACKOFF_MS * attempt)
+      }
+    }
   }
+  // Force-delete whatever git couldn't; rmSync retries EBUSY/EPERM natively.
+  try {
+    fs.rmSync(worktreePath, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 })
+    const parent = path.dirname(worktreePath)
+    if (fs.existsSync(parent) && fs.readdirSync(parent).length === 0) fs.rmdirSync(parent)
+  } catch (err) {
+    if (!removed) LogService.warn('Swarm', `Worktree dir still locked: ${worktreePath}`, { error: (err as Error).message })
+  }
+  // Prune AFTER the dir is gone so git drops the stale metadata entry.
   try {
     await git.raw(['worktree', 'prune'])
   } catch { /* best-effort */ }
@@ -158,12 +193,6 @@ export async function removeWorktree(projectPath: string, worktreePath: string, 
   if (branch) {
     try { await git.raw(['branch', '-D', branch]) } catch { /* may not exist */ }
   }
-  // Remove the now-empty <run>/<lane> dir and prune an empty <run> parent.
-  try {
-    fs.rmSync(worktreePath, { recursive: true, force: true })
-    const parent = path.dirname(worktreePath)
-    if (fs.existsSync(parent) && fs.readdirSync(parent).length === 0) fs.rmdirSync(parent)
-  } catch { /* best-effort */ }
 }
 
 /**
@@ -182,7 +211,10 @@ export async function reconcileOnBoot(): Promise<void> {
   for (const run of runs) {
     for (const lane of listLanes(run.id)) {
       if (!TERMINAL_LANE.includes(lane.status)) {
-        // A running lane at boot means the process is gone (we don't persist PIDs across restarts safely).
+        // A crashed app can leave the lane's claude process alive, holding
+        // locks that block worktree removal on Windows — kill it (guarded by
+        // an image-name check, since PIDs get reused) before failing the lane.
+        if (lane.pid) await killOrphanLanePid(lane.pid)
         setLaneStatus(lane.id, 'failed', { exitCode: null })
       }
       await removeWorktree(run.project_path, lane.worktree_path, lane.branch)

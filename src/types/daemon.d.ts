@@ -1650,6 +1650,8 @@ declare global {
     session: () => Promise<IpcResponse<TelemetrySessionInfo>>
     stats: () => Promise<IpcResponse<TelemetrySessionStats>>
     recent: (limit?: number) => Promise<IpcResponse<TelemetryEventRecord[]>>
+    remoteEnabled: () => Promise<IpcResponse<boolean>>
+    setRemoteEnabled: (enabled: boolean) => Promise<IpcResponse<boolean>>
   }
 
   interface DaemonVoight {

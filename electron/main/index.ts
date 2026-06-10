@@ -67,7 +67,7 @@ import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
 import { registerVoightHandlers } from '../ipc/voight'
 import { registerPackHandlers, setPackDomainRegistrar } from '../ipc/packs'
 import { enabledIpcDomains, type IpcDomainId } from '../shared/packManifest'
-import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
+import { startRemoteTelemetryLoop } from '../services/RemoteTelemetryService'
 import { flushQueue as flushVoightQueue } from '../services/VoightService'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, getEnabledPacks, type UiRecoveryResult } from '../services/SettingsService'
@@ -698,9 +698,9 @@ app.whenReady().then(() => {
   })
   dispatchInitialAgentOpsOpenRequest()
   setTimeout(() => {
-    flushRemoteTelemetry().catch((err) => {
-      console.warn('[telemetry] Remote telemetry startup failed:', err instanceof Error ? err.message : String(err))
-    })
+    // Loop (not one-shot): an IDE session can outlive the UTC day, and the
+    // startup-only flush undercounted every long-running install.
+    startRemoteTelemetryLoop()
     flushVoightQueue().catch((err) => {
       console.warn('[voight] Queue flush failed:', err instanceof Error ? err.message : String(err))
     })
