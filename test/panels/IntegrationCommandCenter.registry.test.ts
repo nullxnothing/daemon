@@ -76,6 +76,43 @@ describe('Integration Command Center registry', () => {
     expect(resolveIntegrationStatus(helius!, context).status).toBe('ready')
   })
 
+  it('wires Venum as an RPC integration with a free-key signup path', () => {
+    const venum = INTEGRATION_REGISTRY.find((integration) => integration.id === 'venum')
+
+    expect(venum).toBeDefined()
+    expect(venum!.category).toBe('rpc')
+    expect(venum!.docsUrl).toMatch(/venum\.dev/)
+    expect(venum!.requirements).toContainEqual({
+      type: 'secure-key',
+      key: 'VENUM_API_KEY',
+      label: 'Venum API key',
+    })
+    expect(venum!.requirements.some((requirement) => requirement.type === 'external-url' && requirement.key.includes('app.venum.dev'))).toBe(true)
+    expect(venum!.actions.map((action) => action.id)).toEqual([
+      'check-venum-key',
+      'check-venum-price',
+      'open-venum-signup',
+      'open-env',
+    ])
+  })
+
+  it('reports Venum key readiness from secure-key context', () => {
+    const base: IntegrationContext = {
+      envFiles: [],
+      mcps: [],
+      packages: new Set(),
+      walletReady: false,
+      defaultWallet: null,
+      secureKeys: {},
+      toolchain: null,
+    }
+
+    const venum = INTEGRATION_REGISTRY.find((integration) => integration.id === 'venum')!
+    // The signup link is an optional external-url requirement, so an unconfigured Venum reads as partial.
+    expect(resolveIntegrationStatus(venum, base).status).toBe('partial')
+    expect(resolveIntegrationStatus(venum, { ...base, secureKeys: { VENUM_API_KEY: true } }).status).toBe('ready')
+  })
+
   it('has ClawPump as a native DAEMON integration with API-key requirement and panel action', () => {
     const clawpump = INTEGRATION_REGISTRY.find((integration) => integration.id === 'clawpump')
 

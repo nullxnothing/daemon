@@ -89,6 +89,31 @@ describe('Solana ecosystem integrations', () => {
     }
   })
 
+  it('reports Venum key readiness from secure-key context', async () => {
+    const missing = await runIntegrationAction('check-venum-key', createContext([]))
+    expect(missing.title).toBe('Venum key')
+    expect(missing.status).toBe('info')
+
+    const ready = await runIntegrationAction('check-venum-key', {
+      ...createContext([]),
+      secureKeys: { VENUM_API_KEY: true },
+    })
+    expect(ready.status).toBe('success')
+  })
+
+  it('asks for a Venum key before running the live price check', async () => {
+    const result = await runIntegrationAction('check-venum-price', createContext([]))
+    expect(result.title).toBe('Venum price feed')
+    expect(result.status).toBe('info')
+  })
+
+  it('lists Venum as a guided provider in the toolbox catalog', () => {
+    const venum = SOLANA_INTEGRATION_CATALOG.find((entry) => entry.id === 'venum-provider')
+    expect(venum).toBeDefined()
+    expect(venum?.area).toBe('Providers')
+    expect(venum?.docsUrl).toMatch(/venum\.dev/)
+  })
+
   it('reports package readiness for today integrations', async () => {
     for (const item of TODAY_INTEGRATIONS) {
       const missing = await runIntegrationAction(item.actionId, createContext([]))

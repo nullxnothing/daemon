@@ -395,6 +395,9 @@ function installDaemonBridge(options: {
       clawpump: {
         isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
       },
+      venum: {
+        isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
+      },
       degentools: {
         isConfigured: vi.fn().mockResolvedValue({ ok: true, data: false }),
       },

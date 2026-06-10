@@ -1786,11 +1786,12 @@ export function IntegrationCommandCenter({ filter }: IntegrationCommandCenterPro
       setActionResult(null)
 
       try {
-        const [walletRes, heliusRes, jupiterRes, clawpumpRes, degentoolsRes, meterflowRes, infraRes] = await Promise.all([
+        const [walletRes, heliusRes, jupiterRes, clawpumpRes, venumRes, degentoolsRes, meterflowRes, infraRes] = await Promise.all([
           daemon.wallet.list(),
           daemon.wallet.hasHeliusKey(),
           daemon.wallet.hasJupiterKey(),
           daemon.clawpump.isConfigured(),
+          daemon.venum.isConfigured(),
           daemon.degentools.isConfigured(),
           daemon.meterflow.status(),
           daemon.settings.getWalletInfrastructureSettings(),
@@ -1805,6 +1806,7 @@ export function IntegrationCommandCenter({ filter }: IntegrationCommandCenterPro
           HELIUS_API_KEY: Boolean(heliusRes.ok && heliusRes.data),
           JUPITER_API_KEY: Boolean(jupiterRes.ok && jupiterRes.data),
           CLAWPUMP_API_KEY: Boolean(clawpumpRes.ok && clawpumpRes.data),
+          VENUM_API_KEY: Boolean(venumRes.ok && venumRes.data),
           DEGENTOOLS_API_KEY: Boolean(degentoolsRes.ok && degentoolsRes.data),
           METERFLOW_API_KEY: Boolean(meterflowRes.ok && meterflowRes.data?.configured),
         })
@@ -2224,7 +2226,7 @@ export function IntegrationCommandCenter({ filter }: IntegrationCommandCenterPro
           setRunningActionId(null)
         }
       }
-      else if (action.id === 'open-idle-resources' || action.id === 'open-idle-docs') {
+      else if (action.id === 'open-idle-resources' || action.id === 'open-idle-docs' || action.id === 'open-venum-signup') {
         setRunningActionId(actionId)
         setActionResult(null)
         try {

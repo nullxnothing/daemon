@@ -1782,6 +1782,7 @@ declare global {
     agentStation: DaemonAgentStation
     replay: DaemonReplay
     clawpump: DaemonClawpump
+    venum: DaemonVenum
     degentools: DaemonDegenTools
   }
 
@@ -1804,6 +1805,20 @@ declare global {
     stop: (agentId: string) => Promise<IpcResponse<ClawpumpAgent>>
     delete: (agentId: string) => Promise<IpcResponse<{ deleted: boolean }>>
     chat: (agentId: string, message: string) => Promise<IpcResponse<ClawpumpChatReply>>
+  }
+
+  type VenumPrice = import('../../electron/services/VenumService').VenumPrice
+  type VenumBatchPrices = import('../../electron/services/VenumService').VenumBatchPrices
+  type VenumQuoteInput = import('../../electron/services/VenumService').VenumQuoteInput
+  type VenumQuote = import('../../electron/services/VenumService').VenumQuote
+
+  interface DaemonVenum {
+    isConfigured: () => Promise<IpcResponse<boolean>>
+    storeKey: (key: string) => Promise<IpcResponse<{ ok: boolean }>>
+    clearKey: () => Promise<IpcResponse<{ ok: boolean }>>
+    price: (token: string) => Promise<IpcResponse<VenumPrice>>
+    prices: (tokens: string[]) => Promise<IpcResponse<VenumBatchPrices>>
+    quote: (input: VenumQuoteInput) => Promise<IpcResponse<VenumQuote>>
   }
 
   type DegenToolsToolResult = import('../../electron/services/DegenToolsService').DegenToolsToolResult

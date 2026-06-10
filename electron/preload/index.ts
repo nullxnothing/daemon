@@ -581,6 +581,15 @@ contextBridge.exposeInMainWorld('daemon', {
     chat: (agentId: string, message: string) => ipcRenderer.invoke('clawpump:chat', agentId, message),
   },
 
+  venum: {
+    isConfigured: () => ipcRenderer.invoke('venum:is-configured'),
+    storeKey: (key: string) => ipcRenderer.invoke('venum:store-key', key),
+    clearKey: () => ipcRenderer.invoke('venum:clear-key'),
+    price: (token: string) => ipcRenderer.invoke('venum:price', token),
+    prices: (tokens: string[]) => ipcRenderer.invoke('venum:prices', tokens),
+    quote: (input: import('../services/VenumService').VenumQuoteInput) => ipcRenderer.invoke('venum:quote', input),
+  },
+
   degentools: {
     isConfigured: () => ipcRenderer.invoke('degentools:is-configured'),
     storeKey: (key: string) => ipcRenderer.invoke('degentools:store-key', key),

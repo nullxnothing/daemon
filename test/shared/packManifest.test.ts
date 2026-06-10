@@ -24,9 +24,10 @@ describe('enabledIpcDomains', () => {
 
   it('omits a disabled optional pack\'s domains', () => {
     const domains = enabledIpcDomains({ ...defaultEnabledPacks(), markets: false })
-    // markets owns meterflow/idle/colosseum/signalhouse
+    // markets owns meterflow/idle/colosseum/signalhouse/venum
     expect(domains.has('meterflow')).toBe(false)
     expect(domains.has('signalhouse')).toBe(false)
+    expect(domains.has('venum')).toBe(false)
     // unrelated domains still present
     expect(domains.has('wallet')).toBe(true)
   })
