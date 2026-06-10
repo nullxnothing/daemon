@@ -173,6 +173,31 @@ describe('deterministic project scaffold', () => {
     expect(scaffold.files.some((file) => file.content.includes('claude --model'))).toBe(false)
   })
 
+  it('emits a runnable Jupiter bot for the trading-bot template, dry-run by default', () => {
+    const template = TEMPLATES.find((item) => item.id === 'trading-bot')
+    expect(template).toBeTruthy()
+
+    const scaffold = buildDeterministicScaffold(template!, 'JupBot')
+    const byPath = new Map(scaffold.files.map((file) => [file.path, file.content]))
+
+    for (const filePath of ['src/config.ts', 'src/jupiter.ts', 'src/wallet.ts', 'src/executor.ts', 'src/positions.ts', 'src/strategy.ts', 'src/index.ts']) {
+      expect(byPath.has(filePath), `missing ${filePath}`).toBe(true)
+      const transpiled = ts.transpileModule(byPath.get(filePath) ?? '', {
+        fileName: filePath,
+        compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+        reportDiagnostics: true,
+      })
+      expect(transpiled.diagnostics ?? []).toEqual([])
+    }
+
+    expect(byPath.get('.env.example')).toContain('DRY_RUN=true')
+    expect(byPath.get('src/config.ts')).toContain("!== 'false'")
+    expect(byPath.get('src/jupiter.ts')).toContain('/quote?')
+    expect(byPath.get('src/executor.ts')).toContain('signTransaction')
+    expect(byPath.get('src/index.ts')).toContain('DRY_RUN active')
+    expect(byPath.get('package.json')).not.toContain('@jup-ag/api')
+  })
+
   it('writes the expected project structure to disk', () => {
     const template: Template = {
       id: 'perps-trading-bot',

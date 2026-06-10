@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { tradingBotFiles } from './tradingBotScaffold'
 import { useUIStore } from '../../store/ui'
 import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
@@ -826,7 +827,7 @@ function envForTemplate(templateId: string): string {
 
   const byTemplate: Record<string, string[]> = {
     'nft-collection': ['COLLECTION_NAME=Daemon Collection', 'COLLECTION_SIZE=1000'],
-    'trading-bot': ['TOKEN_MINT_A=So11111111111111111111111111111111111111112', 'TOKEN_MINT_B=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'SLIPPAGE_BPS=50', 'CHECK_INTERVAL_MS=10000'],
+    'trading-bot': ['TOKEN_MINT_A=So11111111111111111111111111111111111111112', 'TOKEN_MINT_B=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'TRADE_AMOUNT=10000000', 'SLIPPAGE_BPS=50', 'CHECK_INTERVAL_MS=10000', 'DIP_THRESHOLD=0.02', 'DRY_RUN=true', 'JUPITER_API_URL=https://lite-api.jup.ag/swap/v1'],
     'telegram-bot': ['TELEGRAM_BOT_TOKEN=', 'MASTER_WALLET_PATH=~/.config/solana/id.json'],
     'mcp-server': [],
     'solana-foundation': ['NEXT_PUBLIC_CLUSTER=devnet'],
@@ -872,7 +873,6 @@ function buildPackageJson(template: Template, projectName: string) {
   }
   if (template.id === 'telegram-bot') dependencies.grammy = '^1.37.0'
   if (template.id.startsWith('perps-')) dependencies['@pythnetwork/price-service-client'] = '^1.9.0'
-  if (template.id === 'trading-bot') dependencies['@jup-ag/api'] = '^6.0.42'
   if (template.id === 'nft-collection') {
     dependencies['@metaplex-foundation/umi'] = '^1.2.0'
     dependencies['@metaplex-foundation/umi-bundle-defaults'] = '^1.2.0'
@@ -1707,7 +1707,7 @@ function nodeAppFiles(template: Template): ScaffoldFile[] {
     },
     {
       path: 'src/index.ts',
-      content: `import { config } from './config'\nimport { logger } from './logger'\n\nlet shuttingDown = false\n\nasync function main() {\n  logger.info({ template: '${title}', rpcUrl: config.rpcUrl, venue: config.venue }, 'starting DAEMON scaffold')\n  logger.info('replace src/strategy.ts with your project-specific logic')\n}\n\nprocess.on('SIGINT', () => { shuttingDown = true; logger.warn({ shuttingDown }, 'shutdown requested'); process.exit(0) })\nprocess.on('SIGTERM', () => { shuttingDown = true; logger.warn({ shuttingDown }, 'shutdown requested'); process.exit(0) })\n\nmain().catch((err) => {\n  logger.error({ err }, 'fatal startup error')\n  process.exit(1)\n})\n`,
+      content: `import { config } from './config.js'\nimport { logger } from './logger.js'\n\nlet shuttingDown = false\n\nasync function main() {\n  logger.info({ template: '${title}', rpcUrl: config.rpcUrl, venue: config.venue }, 'starting DAEMON scaffold')\n  logger.info('replace src/strategy.ts with your project-specific logic')\n}\n\nprocess.on('SIGINT', () => { shuttingDown = true; logger.warn({ shuttingDown }, 'shutdown requested'); process.exit(0) })\nprocess.on('SIGTERM', () => { shuttingDown = true; logger.warn({ shuttingDown }, 'shutdown requested'); process.exit(0) })\n\nmain().catch((err) => {\n  logger.error({ err }, 'fatal startup error')\n  process.exit(1)\n})\n`,
     },
     {
       path: 'src/strategy.ts',
@@ -1732,9 +1732,16 @@ export function buildDeterministicScaffold(
   options: { memeSettings?: MemeCoinWebsiteScaffoldSettings | null } = {},
 ): DeterministicScaffold {
   const isNext = isNextTemplate(template.id)
+  const templateFiles = template.id === 'anchor-program'
+    ? anchorFiles(projectName)
+    : isNext
+      ? nextAppFiles(template, projectName, options.memeSettings)
+      : template.id === 'trading-bot'
+        ? tradingBotFiles()
+        : nodeAppFiles(template)
   const files = [
     ...commonFiles(template, projectName, options.memeSettings),
-    ...(template.id === 'anchor-program' ? anchorFiles(projectName) : isNext ? nextAppFiles(template, projectName, options.memeSettings) : nodeAppFiles(template)),
+    ...templateFiles,
   ]
 
   const dirs = new Set<string>(['src'])
