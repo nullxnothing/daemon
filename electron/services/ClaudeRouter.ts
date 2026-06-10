@@ -3,6 +3,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../db/db'
+import { buildCliSpawn } from './cliSpawn'
 import * as SecureKey from './SecureKeyService'
 import { sanitizeAiPrompt } from '../security/PrivacyGuard'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from './McpConfig'
@@ -403,10 +404,15 @@ function buildSubscriptionEnv(): NodeJS.ProcessEnv {
 
 function runCliCommand(command: string, args: string[], cwd: string, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    // claude is a .cmd shim on Windows npm installs — Node 20.12+ throws spawn
+    // EINVAL on those without a shell.
+    const spec = buildCliSpawn(command, args)
+    const child = spawn(spec.command, spec.args, {
       cwd,
       env: buildSubscriptionEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: spec.shell,
+      windowsHide: true,
     })
 
     // Close stdin immediately — prevents "no stdin data received" warning

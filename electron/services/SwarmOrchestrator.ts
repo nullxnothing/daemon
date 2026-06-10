@@ -15,8 +15,10 @@ import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { BrowserWindow } from 'electron'
+import { buildCliSpawn } from './cliSpawn'
 import { getClaudePath } from './ClaudeRouter'
 import { LogService } from './LogService'
+import { killProcessTree, waitForExit } from './procKill'
 import * as Worktree from './WorktreeService'
 
 const MAX_CONCURRENT_LANES = 4
@@ -88,17 +90,28 @@ export async function launch(input: SwarmLaunchInput): Promise<string> {
   return run.id
 }
 
-/** Start as many pending lanes as the concurrency cap allows. */
-async function drainQueue(runId: string): Promise<void> {
-  const running = liveLanes.size
-  let slots = Math.max(0, MAX_CONCURRENT_LANES - running)
+/**
+ * Start as many pending lanes as the concurrency cap allows. Drains across
+ * ALL running runs (preferRunId first) — draining only the finishing lane's
+ * run would strand a second run's pending lanes forever once the first run
+ * completed, since nothing else ever re-triggers them.
+ */
+async function drainQueue(preferRunId: string): Promise<void> {
+  let slots = Math.max(0, MAX_CONCURRENT_LANES - liveLanes.size)
   if (slots === 0) return
 
-  const lanes = Worktree.listLanes(runId).filter((l) => l.status === 'pending')
-  for (const lane of lanes) {
-    if (slots <= 0) break
-    slots -= 1
-    await startLane(runId, lane.id)
+  const runIds = Worktree.listRuns()
+    .filter((r) => r.status === 'running')
+    .map((r) => r.id)
+    .sort((a, b) => (a === preferRunId ? -1 : b === preferRunId ? 1 : 0))
+
+  for (const runId of runIds) {
+    const lanes = Worktree.listLanes(runId).filter((l) => l.status === 'pending')
+    for (const lane of lanes) {
+      if (slots <= 0) return
+      slots -= 1
+      await startLane(runId, lane.id)
+    }
   }
 }
 
@@ -138,11 +151,15 @@ async function startLane(runId: string, laneId: string): Promise<void> {
   delete laneEnv.ANTHROPIC_API_KEY
   delete laneEnv.ANTHROPIC_AUTH_TOKEN
 
+  // claude is a .cmd shim on Windows npm installs — Node 20.12+ throws spawn
+  // EINVAL on those without a shell, which failed every lane instantly.
+  const spec = buildCliSpawn(getClaudePath(), args)
   let child: ChildProcess
   try {
-    child = spawn(getClaudePath(), args, {
+    child = spawn(spec.command, spec.args, {
       cwd: lane.worktree_path,
       env: laneEnv,
+      shell: spec.shell,
       windowsHide: true,
       // Close stdin so `claude -p` doesn't block waiting for piped input
       // (it otherwise times out after 3s and exits 1); keep stdout/stderr piped.
@@ -167,7 +184,12 @@ async function startLane(runId: string, laneId: string): Promise<void> {
   child.stderr?.on('data', (d) => { stderr = (stderr + String(d)).slice(-4000) })
   child.stdout?.on('data', (d) => { stdout = (stdout + String(d)).slice(-4000) })
 
-  child.on('exit', (code) => {
+  // 'error' fires instead of (or as well as) 'close' when the spawn itself
+  // fails (shell-mode errors are async, never thrown) — settle exactly once.
+  let settled = false
+  const settleLane = (code: number | null) => {
+    if (settled) return
+    settled = true
     cleanupContext(contextFile)
     // Snapshot RESULTS.md to a stable cache outside the worktree so it survives
     // worktree teardown (cancel/dismiss). results_path points at the snapshot.
@@ -176,10 +198,17 @@ async function startLane(runId: string, laneId: string): Promise<void> {
     if (status === 'failed') {
       LogService.warn('Swarm', `Lane ${laneId} exited ${code}`, { stderr: stderr.trim().slice(-1000), stdout: stdout.trim().slice(-1000) })
     }
-    Worktree.setLaneStatus(laneId, status, { exitCode: code ?? null, resultsPath: snapshot })
-    emit('swarm:lane-update', { runId, laneId, status, exitCode: code ?? null })
+    Worktree.setLaneStatus(laneId, status, { exitCode: code, resultsPath: snapshot })
+    emit('swarm:lane-update', { runId, laneId, status, exitCode: code })
     finishLane(runId, laneId)
+  }
+
+  child.on('error', (err) => {
+    LogService.error('Swarm', `Lane ${laneId} process error`, err)
+    settleLane(null)
   })
+  // 'close' (not 'exit') so stdout/stderr are fully flushed before we log them.
+  child.on('close', (code) => settleLane(code ?? null))
 }
 
 /** Common post-lane bookkeeping: drop from live map, roll up run, drain more, cleanup terminal worktrees. */
@@ -239,7 +268,10 @@ export async function cancelRun(runId: string): Promise<void> {
   for (const lane of Worktree.listLanes(runId)) {
     const live = liveLanes.get(lane.id)
     if (live?.child) {
-      try { live.child.kill() } catch { /* already gone */ }
+      // Tree-kill, then wait for the exit: on Windows a still-dying process
+      // keeps cwd handles open and worktree removal would hit EBUSY.
+      killProcessTree(live.child)
+      await waitForExit(live.child, 5_000)
     }
     if (lane.status !== 'done' && lane.status !== 'failed') {
       Worktree.setLaneStatus(lane.id, 'cancelled')
@@ -254,7 +286,7 @@ export async function cancelRun(runId: string): Promise<void> {
 /** Kill every live lane (app shutdown). */
 export function killAll(): void {
   for (const live of liveLanes.values()) {
-    try { live.child?.kill() } catch { /* ignore */ }
+    if (live.child) killProcessTree(live.child)
     cleanupContext(live.contextFile)
   }
   liveLanes.clear()

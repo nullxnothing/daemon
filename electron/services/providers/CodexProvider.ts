@@ -4,6 +4,7 @@ import os from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { spawn, execSync } from 'node:child_process'
 import { getDb } from '../../db/db'
+import { buildCliSpawn } from '../cliSpawn'
 import * as SecureKey from '../SecureKeyService'
 import { TIMEOUTS } from '../../config/constants'
 import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
@@ -329,28 +330,14 @@ function buildCodexEnv(): NodeJS.ProcessEnv {
   return env
 }
 
-/**
- * Quote an argument for a Windows cmd.exe shell invocation: wrap in double quotes,
- * escape embedded double quotes, and neutralize %VAR% expansion (cmd expands even
- * inside quotes; a lone % can't be escaped, so break the pair with "^").
- */
-function quoteWinArg(arg: string): string {
-  const escaped = arg.replace(/"/g, '\\"').replace(/%/g, '%^')
-  return `"${escaped}"`
-}
-
 function runCliCommand(command: string, args: string[], cwd: string, timeout: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Node 20+ refuses to spawn a Windows .cmd/.bat without a shell (spawn EINVAL).
-    // Route those through a shell and quote each arg so prompt metacharacters pass verbatim.
-    const win = process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)
-    const spawnCommand = win ? quoteWinArg(command) : command
-    const spawnArgs = win ? args.map(quoteWinArg) : args
-    const child = spawn(spawnCommand, spawnArgs, {
+    const spec = buildCliSpawn(command, args)
+    const child = spawn(spec.command, spec.args, {
       cwd,
       env: buildCodexEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
-      shell: win,
+      shell: spec.shell,
       windowsHide: true,
     })
 
