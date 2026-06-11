@@ -2,6 +2,8 @@ import { ComputeBudgetProgram, Connection, Keypair, SystemProgram, Transaction, 
 import * as Voight from './VoightService'
 import { assertTransactionAllowed } from './SignerGuardService'
 import { getTransactionSubmissionSettings, resolveSolanaRuntimeConfig, type SolanaCluster, type SolanaRpcProvider } from './SolanaRuntimeConfigService'
+import { buildFeeInstruction, quoteExecutionFee, recordFeeEvent, type ExecutionFeeQuote, type ExecutionFeeRequest } from './FeeService'
+import { LogService } from './LogService'
 
 export type SolanaExecutionStatus = 'success' | 'failed' | 'submitted' | 'blocked'
 export type SolanaExecutionStage = 'prepare' | 'preview' | 'guard' | 'sign' | 'submit' | 'confirm' | 'record'
@@ -50,6 +52,13 @@ export interface ExecuteTransactionOptions {
   approvalHash?: string
   guardSource?: string
   guardAllowProgramIds?: string[]
+  /**
+   * Charge the execution fee meter on this transaction. Only legacy
+   * `Transaction` payloads can carry it here — the fee leg must be appended
+   * before the message is compiled. Builders of `VersionedTransaction`s append
+   * `FeeService.buildFeeInstruction` themselves at build time.
+   */
+  executionFee?: ExecutionFeeRequest
 }
 
 export interface ExecuteInstructionsOptions {
@@ -61,6 +70,8 @@ export interface ExecuteInstructionsOptions {
   approvalHash?: string
   guardSource?: string
   guardAllowProgramIds?: string[]
+  /** Charge the execution fee meter; the fee leg is appended before compile. */
+  executionFee?: ExecutionFeeRequest
 }
 
 const DEFAULT_COMPUTE_UNIT_LIMIT = 200_000
@@ -249,9 +260,18 @@ export async function executeTransactionWithReceipt(
   let stage: SolanaExecutionStage = 'prepare'
   let signature: string | undefined
   let confirmationStrategy = options?.confirmationStrategy
+  let appliedFee: ExecutionFeeQuote | null = null
 
   try {
     if (transaction instanceof Transaction) {
+      if (options?.executionFee) {
+        appliedFee = quoteExecutionFee(options.executionFee.notionalLamports)
+        if (appliedFee) {
+          const feePayer = options?.feePayer ?? transaction.feePayer ?? signers[0]?.publicKey
+          if (!feePayer) throw new Error('Execution fee requires a fee payer')
+          transaction.add(buildFeeInstruction(feePayer, appliedFee))
+        }
+      }
       const latest = await connection.getLatestBlockhash('confirmed')
       transaction.instructions = await withComputeBudgetInstructions(connection, transaction.instructions, options)
       transaction.feePayer = options?.feePayer ?? transaction.feePayer ?? signers[0]?.publicKey
@@ -264,6 +284,12 @@ export async function executeTransactionWithReceipt(
         transaction.sign(...signers)
       }
     } else {
+      // A compiled message cannot take the fee leg after the fact. Refuse loudly
+      // rather than silently under-charging: v0 builders append
+      // FeeService.buildFeeInstruction before compiling instead.
+      if (options?.executionFee && quoteExecutionFee(options.executionFee.notionalLamports)) {
+        throw new Error('executionFee cannot be applied to a compiled VersionedTransaction — append FeeService.buildFeeInstruction when building the message')
+      }
       const latest = await connection.getLatestBlockhash('confirmed')
       confirmationStrategy ??= {
         blockhash: transaction.message.recentBlockhash,
@@ -288,6 +314,17 @@ export async function executeTransactionWithReceipt(
     await confirmSignature(connection, signature, options?.timeoutMs, confirmationStrategy)
 
     stage = 'record'
+    if (options?.executionFee && appliedFee) {
+      // The metered action confirmed; a ledger failure must not fail the call.
+      try {
+        recordFeeEvent(options.executionFee, appliedFee, signature)
+      } catch (err) {
+        LogService.warn('SolanaExecution', 'fee event ledger write failed', {
+          signature,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      }
+    }
     const receipt = makeReceipt({
       status: 'success',
       stage,
@@ -366,15 +403,24 @@ export async function executeInstructionsWithReceipt(
     throw new Error('A fee payer is required to execute instructions')
   }
 
+  // Fee leg joins the instruction set before compile, so fee + action stay
+  // atomic. Recorded here (not downstream) — the compiled tx can't carry it.
+  let appliedFee: ExecutionFeeQuote | null = null
+  let finalInstructions = instructions
+  if (options?.executionFee) {
+    appliedFee = quoteExecutionFee(options.executionFee.notionalLamports)
+    if (appliedFee) finalInstructions = [...instructions, buildFeeInstruction(payer, appliedFee)]
+  }
+
   const latest = await connection.getLatestBlockhash('confirmed')
-  const budgetedInstructions = await withComputeBudgetInstructions(connection, instructions, options)
+  const budgetedInstructions = await withComputeBudgetInstructions(connection, finalInstructions, options)
   const message = new TransactionMessage({
     payerKey: payer,
     recentBlockhash: latest.blockhash,
     instructions: budgetedInstructions,
   }).compileToV0Message()
 
-  return executeTransactionWithReceipt(connection, new VersionedTransaction(message), signers, {
+  const receipt = await executeTransactionWithReceipt(connection, new VersionedTransaction(message), signers, {
     timeoutMs: options?.timeoutMs,
     feePayer: payer,
     addComputeBudget: false,
@@ -383,6 +429,17 @@ export async function executeInstructionsWithReceipt(
     guardSource: options?.guardSource,
     guardAllowProgramIds: options?.guardAllowProgramIds,
   })
+  if (receipt.status === 'success' && options?.executionFee && appliedFee) {
+    try {
+      recordFeeEvent(options.executionFee, appliedFee, receipt.signature)
+    } catch (err) {
+      LogService.warn('SolanaExecution', 'fee event ledger write failed', {
+        signature: receipt.signature,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+  return receipt
 }
 
 export async function executeInstructions(

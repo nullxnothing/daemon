@@ -1,10 +1,51 @@
 /**
  * Wallet / on-chain tools (read + sensitive).
  */
+import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import * as WalletService from '../../WalletService'
+import { quoteExecutionFee } from '../../FeeService'
+import { clusterMark } from './shared'
 import type { AriaTool } from '../AriaTool'
 
+function shortAddress(address: string): string {
+  return address.length > 12 ? `${address.slice(0, 4)}…${address.slice(-4)}` : address
+}
+
 export const walletTools: AriaTool[] = [
+  {
+    name: 'transfer_sol',
+    description: 'Send SOL from the active project wallet to a recipient address. Requires explicit user approval. On mainnet this moves real money and the DAEMON execution fee applies (shown on the approval card).',
+    kind: 'run',
+    risk: 'sensitive',
+    input: {
+      type: 'object',
+      properties: {
+        toAddress: { type: 'string', description: 'Recipient Solana address (base58).' },
+        amountSol: { type: 'number', description: 'Amount in SOL.' },
+      },
+      required: ['toAddress', 'amountSol'],
+    },
+    feePreview(input) {
+      const amountSol = Number(input.amountSol ?? 0)
+      if (!Number.isFinite(amountSol) || amountSol <= 0) return null
+      return quoteExecutionFee(Math.round(amountSol * LAMPORTS_PER_SOL))
+    },
+    async handler(input, ctx) {
+      const toAddress = String(input.toAddress ?? '').trim()
+      const amountSol = Number(input.amountSol ?? 0)
+      if (!toAddress) return { ok: false, summary: 'A destination address is required.' }
+      if (!Number.isFinite(amountSol) || amountSol <= 0) return { ok: false, summary: 'Amount must be greater than 0.' }
+      const dashboard = await WalletService.getDashboard(ctx.snapshot.activeProjectId)
+      const wallet = dashboard.activeWallet
+      if (!wallet) return { ok: false, summary: 'No active wallet — generate or assign one first.' }
+      const result = await WalletService.transferSOL(wallet.id, toAddress, amountSol, false, 'agent')
+      return {
+        ok: true,
+        summary: clusterMark(`Sent ${amountSol} SOL → ${shortAddress(toAddress)}.`),
+        data: { signature: result.signature, transactionId: result.id, from: wallet.address, to: toAddress, amountSol },
+      }
+    },
+  },
   {
     name: 'read_wallet',
     description: 'Read wallet balances/holdings for the active project (read-only).',

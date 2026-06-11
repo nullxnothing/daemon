@@ -37,6 +37,13 @@ export interface AriaToolContext {
   runUiEffect: (effect: AriaUiEffect, awaitData: boolean) => Promise<unknown>
 }
 
+/** Execution-fee preview shown on the approval card before a tool runs. */
+export interface AriaToolFeePreview {
+  bps: number
+  lamports: number
+  treasury: string
+}
+
 export interface AriaTool {
   name: string
   description: string
@@ -45,6 +52,13 @@ export interface AriaTool {
   /** JSON Schema object for the input (becomes Anthropic input_schema). */
   input: AgentToolDef['input_schema']
   handler: (input: Record<string, unknown>, ctx: AriaToolContext) => Promise<AriaToolResult>
+  /**
+   * Quote the execution fee this call would incur, from input alone — runs at
+   * approval time, before the handler. Return null when no fee applies. The
+   * meter never charges silently: any tool whose execution path carries an
+   * `executionFee` must implement this.
+   */
+  feePreview?: (input: Record<string, unknown>) => AriaToolFeePreview | null
 }
 
 /** Build the Anthropic tools[] array from a catalog. */

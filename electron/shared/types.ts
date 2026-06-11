@@ -2673,7 +2673,7 @@ export type AriaToolEvent =
       status: AriaToolCallStatus
       meta?: string
     }
-  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown }
+  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; fee?: { bps: number; lamports: number; treasury: string } }
   | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }

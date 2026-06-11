@@ -52,6 +52,7 @@ import { registerSynapseHandlers } from '../ipc/synapse'
 import { registerAllowanceHandlers } from '../ipc/allowances'
 import { registerSignalhouseHandlers } from '../ipc/signalhouse'
 import { registerFlywheelHandlers } from '../ipc/flywheel'
+import { registerFeeHandlers } from '../ipc/fees'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
 import { registerMeterflowHandlers } from '../ipc/meterflow'
@@ -376,6 +377,7 @@ function registerAllIpc() {
   registerSaidHandlers()
   registerSynapseHandlers()
   registerAllowanceHandlers()
+  registerFeeHandlers()
   registerValidatorHandlers()
   registerSeekerHandlers()
   registerFeedbackHandlers()

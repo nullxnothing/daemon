@@ -1336,3 +1336,24 @@ export const SCHEMA_V51 = `
 ALTER TABLE swarm_runs ADD COLUMN preflight INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE swarm_lanes ADD COLUMN preflight_json TEXT;
 `
+
+// Execution fee meter: one row per fee actually charged on agent-routed mainnet
+// execution. This ledger is the local source of truth for routed-volume and
+// wallet-concentration metrics — raw rows never leave the machine; only
+// aggregates are ever reported.
+export const SCHEMA_V52 = `
+CREATE TABLE IF NOT EXISTS fee_events (
+  id TEXT PRIMARY KEY,
+  cluster TEXT NOT NULL,
+  wallet TEXT NOT NULL,
+  action_kind TEXT NOT NULL,
+  notional_lamports INTEGER NOT NULL,
+  fee_lamports INTEGER NOT NULL,
+  bps INTEGER NOT NULL,
+  treasury TEXT NOT NULL,
+  signature TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_fee_events_created ON fee_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_fee_events_wallet ON fee_events(wallet, created_at DESC);
+`

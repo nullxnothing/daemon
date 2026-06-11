@@ -1777,6 +1777,7 @@ declare global {
     allowances: DaemonAllowances
     signalhouse: DaemonSignalhouse
     flywheel: DaemonFlywheel
+    fees: DaemonFees
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
@@ -1993,6 +1994,13 @@ declare global {
     run: (configId: string) => Promise<IpcResponse<{ claimSignature: string | null; claimedSol: number; payoutSignature: string | null; buybackTransferSignature: string | null; swapSignature: string | null; burnSignature: string | null; status: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; swapError?: string }>>
     runAll: () => Promise<IpcResponse<Array<{ configId: string; label: string | null; ok: boolean; claimedSol?: number; status?: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; error?: string }>>>
     list: () => Promise<IpcResponse<FlywheelConfig[]>>
+  }
+
+  interface DaemonFees {
+    getSettings: () => Promise<IpcResponse<{ enabled: boolean; bps: number; treasuryAddress: string }>>
+    setSettings: (next: { enabled?: boolean; bps?: number; treasuryAddress?: string }) => Promise<IpcResponse<{ enabled: boolean; bps: number; treasuryAddress: string }>>
+    quote: (notionalLamports: number) => Promise<IpcResponse<{ bps: number; lamports: number; treasury: string } | null>>
+    summary: (sinceMs: number) => Promise<IpcResponse<{ totalFeeLamports: number; totalNotionalLamports: number; feeEventCount: number; uniqueWallets: number; topTenWalletShare: number }>>
   }
 
   interface DaemonBrowser {

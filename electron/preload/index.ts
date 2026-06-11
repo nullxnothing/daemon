@@ -714,6 +714,13 @@ contextBridge.exposeInMainWorld('daemon', {
     list: () => ipcRenderer.invoke('flywheel:list'),
   },
 
+  fees: {
+    getSettings: () => ipcRenderer.invoke('fees:get-settings'),
+    setSettings: (next: unknown) => ipcRenderer.invoke('fees:set-settings', next),
+    quote: (notionalLamports: number) => ipcRenderer.invoke('fees:quote', notionalLamports),
+    summary: (sinceMs: number) => ipcRenderer.invoke('fees:summary', sinceMs),
+  },
+
   forensics: {
     scan: (input: object) => ipcRenderer.invoke('forensics:scan', input),
     expand: (input: object) => ipcRenderer.invoke('forensics:expand', input),
