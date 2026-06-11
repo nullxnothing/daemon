@@ -196,7 +196,7 @@ async function run() {
   logStep('checking dynamic tool chunks')
   await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   await page.getByRole('tab', { name: /^Connect\b/ }).click()
-  await page.waitForSelector('.solana-service-row', { timeout: 30000 })
+  await page.waitForSelector('.ds-card .solana-toggle', { timeout: 30000 })
   await openToolFromLauncher(page, 'Settings', '.settings-center')
 
   logStep('checking packaged native terminal module')

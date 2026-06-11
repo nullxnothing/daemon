@@ -93,6 +93,13 @@ function attachPageDiagnostics(page) {
     rendererFailures.push(entry)
     console.log(entry)
   })
+  // Console "Failed to load resource" entries omit the URL — log the request
+  // failure itself so the offending resource is identifiable.
+  page.on('requestfailed', (request) => {
+    const entry = `[page-requestfailed] ${request.failure()?.errorText ?? 'unknown'} ${request.url()}`
+    rendererConsole.push(entry)
+    console.log(entry)
+  })
 }
 
 async function seedAppState(page) {
@@ -234,11 +241,13 @@ async function verifySidebarAddToolFlyout(page) {
     const drawerSearch = document.querySelector('.drawer-search')
     return !!flyout && !drawerSearch
   }, { timeout: 30000 })
-  await page.locator('.sidebar-submenu-item--tool', { hasText: 'Wallet' }).first().click()
+  // Wallet owns an activity-bar pack slot now, so it never appears in the
+  // add-tool flyout — pin Ports instead (slot-free, unpinned by default).
+  await page.locator('.sidebar-submenu-item--tool', { hasText: 'Ports' }).first().click()
   await page.waitForFunction(() => document.querySelector('.sidebar-submenu--tools') === null, { timeout: 30000 })
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('.icon-sidebar button[aria-label]'))
-      .some((button) => button.getAttribute('aria-label') === 'Wallet')
+      .some((button) => button.getAttribute('aria-label') === 'Ports')
   }, { timeout: 30000 })
 }
 
@@ -304,7 +313,11 @@ async function run() {
   await page.waitForSelector(`text=${smokeEcho}`, { timeout: 30000 })
 
   logStep('checking hackathon to browser transition')
-  await openToolFromLauncher(page, 'Hackathon', '.hackathon-panel')
+  // Hackathon is folded into the markets pack host — reach it through the
+  // Signalhouse drawer card and its Hackathon sub-tab.
+  await openToolFromLauncher(page, 'Signalhouse', '.sh-docs-link')
+  await page.getByRole('tab', { name: 'Hackathon', exact: true }).click()
+  await page.waitForSelector('.hackathon-panel', { timeout: 30000 })
 
   const tokenLink = page.getByText('Get a token at arena.colosseum.org/copilot')
   if (await tokenLink.isVisible().catch(() => false)) {
