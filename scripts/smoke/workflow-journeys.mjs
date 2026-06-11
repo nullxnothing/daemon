@@ -218,7 +218,7 @@ async function verifySolanaWorkflowTabs(page) {
   await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   const tabs = [
     { name: 'Start', check: () => page.locator('.solana-workflow-title').waitFor({ timeout: 30000 }) },
-    { name: 'Connect', check: () => page.locator('.solana-service-row, .solana-split-title').first().waitFor({ timeout: 30000 }) },
+    { name: 'Connect', check: () => page.locator('.ds-card .solana-toggle, .solana-split-title').first().waitFor({ timeout: 30000 }) },
     { name: 'Build', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
     { name: 'Launch', check: () => page.locator('.solana-protocol-card').first().waitFor({ timeout: 30000 }) },
     { name: 'Inspect', check: () => page.locator('.solana-ide-panel-title').first().waitFor({ timeout: 30000 }) },
