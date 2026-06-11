@@ -11,7 +11,7 @@ import type { AriaTool } from '../AriaTool'
 export const swarmTools: AriaTool[] = [
   {
     name: 'swarm_launch',
-    description: 'Run several tasks in parallel, each in its own git worktree + branch, driven by a Claude agent. Provide a tasks array (2–12 short task descriptions). Spawns processes — the user must approve. Lanes never push; merging is manual.',
+    description: 'Run several tasks in parallel, each in its own git worktree + branch, driven by a Claude agent. Provide a tasks array (2–12 short task descriptions). Spawns processes — the user must approve. Lanes never push; merging is manual. Set preflight=true to run a BrainBlast research pass per lane first and block any lane whose task has a CRITICAL integration risk before it writes code (slower; opt-in).',
     kind: 'run',
     risk: 'sensitive',
     input: {
@@ -19,6 +19,7 @@ export const swarmTools: AriaTool[] = [
       properties: {
         tasks: { type: 'array', items: { type: 'string' } },
         baseBranch: { type: 'string' },
+        preflight: { type: 'boolean' },
       },
       required: ['tasks'],
     },
@@ -29,14 +30,17 @@ export const swarmTools: AriaTool[] = [
       }
       const tasks = Array.isArray(input.tasks) ? (input.tasks as string[]).map((t) => String(t).trim()).filter(Boolean) : []
       if (tasks.length === 0) return { ok: false, summary: 'At least one task is required.' }
+      const preflight = input.preflight === true
       const runId = await SwarmOrchestrator.launch({
         sessionId: ctx.sessionId,
         projectId: ctx.snapshot.activeProjectId,
         projectPath,
         baseBranch: input.baseBranch ? String(input.baseBranch) : null,
         tasks,
+        preflight,
       })
-      return { ok: true, summary: `Launched swarm of ${tasks.length} lane(s).`, data: { runId, lanes: tasks.length } }
+      const note = preflight ? ' with BrainBlast pre-flight' : ''
+      return { ok: true, summary: `Launched swarm of ${tasks.length} lane(s)${note}.`, data: { runId, lanes: tasks.length, preflight } }
     },
   },
   {

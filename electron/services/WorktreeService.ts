@@ -16,9 +16,18 @@ import { LogService } from './LogService'
 import { swarmRootFor } from '../ipc/git'
 
 export type SwarmRunStatus = 'running' | 'done' | 'failed' | 'cancelled'
-export type SwarmLaneStatus = 'pending' | 'spawning' | 'running' | 'done' | 'failed' | 'cancelled'
+/** 'researching' = pre-flight BrainBlast pass; 'blocked' = pre-flight found a CRITICAL risk, build never ran. */
+export type SwarmLaneStatus = 'pending' | 'researching' | 'spawning' | 'running' | 'done' | 'failed' | 'blocked' | 'cancelled'
 
-const TERMINAL_LANE: SwarmLaneStatus[] = ['done', 'failed', 'cancelled']
+const TERMINAL_LANE: SwarmLaneStatus[] = ['done', 'failed', 'blocked', 'cancelled']
+
+/** Gate outcome a lane records before coding, persisted as preflight_json for the monitor. */
+export interface LanePreflight {
+  verdict: 'ready' | 'caution' | 'blocked'
+  riskTotals: { critical: number; high: number; medium: number; low: number }
+  blockedBy: string[] // titles of the CRITICAL risks that gated the lane (empty if it passed)
+  reportPath: string | null
+}
 
 export interface SwarmRun {
   id: string
@@ -27,6 +36,7 @@ export interface SwarmRun {
   project_path: string
   base_branch: string | null
   status: SwarmRunStatus
+  preflight: number // 0 | 1 — whether lanes run a BrainBlast pre-flight before coding
   created_at: number
   updated_at: number
 }
@@ -40,6 +50,7 @@ export interface SwarmLane {
   pid: number | null
   status: SwarmLaneStatus
   results_path: string | null
+  preflight_json: string | null
   exit_code: number | null
   created_at: number
   updated_at: number
@@ -52,12 +63,13 @@ export function createRun(input: {
   projectId: string | null
   projectPath: string
   baseBranch: string | null
+  preflight?: boolean
 }): SwarmRun {
   const db = getDb()
   const id = crypto.randomUUID()
   db.prepare(
-    'INSERT INTO swarm_runs (id, session_id, project_id, project_path, base_branch) VALUES (?,?,?,?,?)'
-  ).run(id, input.sessionId, input.projectId, input.projectPath, input.baseBranch)
+    'INSERT INTO swarm_runs (id, session_id, project_id, project_path, base_branch, preflight) VALUES (?,?,?,?,?,?)'
+  ).run(id, input.sessionId, input.projectId, input.projectPath, input.baseBranch, input.preflight ? 1 : 0)
   return getRun(id)!
 }
 
@@ -112,12 +124,19 @@ export function setLaneStatus(laneId: string, status: SwarmLaneStatus, fields: {
   )
 }
 
+/** Persist a lane's pre-flight gate outcome (read back by the monitor as JSON). */
+export function setLanePreflight(laneId: string, preflight: LanePreflight): void {
+  getDb().prepare('UPDATE swarm_lanes SET preflight_json = ?, updated_at = ? WHERE id = ?')
+    .run(JSON.stringify(preflight), Date.now(), laneId)
+}
+
 /** Roll the run up to a terminal status once all its lanes are terminal. */
 export function rollupRunStatus(runId: string): void {
   const lanes = listLanes(runId)
   if (lanes.length === 0) return
   if (!lanes.every((l) => TERMINAL_LANE.includes(l.status))) return
-  const anyFailed = lanes.some((l) => l.status === 'failed')
+  // A pre-flight-blocked lane is a non-success outcome — roll it into 'failed' so the run reads red.
+  const anyFailed = lanes.some((l) => l.status === 'failed' || l.status === 'blocked')
   const anyCancelled = lanes.some((l) => l.status === 'cancelled')
   setRunStatus(runId, anyFailed ? 'failed' : anyCancelled ? 'cancelled' : 'done')
 }

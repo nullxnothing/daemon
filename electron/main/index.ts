@@ -31,6 +31,7 @@ import { registerToolHandlers } from '../ipc/tools'
 import { registerPumpFunHandlers } from '../ipc/pumpfun'
 import { registerProofPoolHandlers } from '../ipc/proofPool'
 import { registerClawpumpHandlers } from '../ipc/clawpump'
+import { registerVenumHandlers } from '../ipc/venum'
 import { registerDegenToolsHandlers } from '../ipc/degentools'
 import { registerBrowserHandlers } from '../ipc/browser'
 import { registerDeployHandlers } from '../ipc/deploy'
@@ -316,6 +317,7 @@ const PACK_DOMAIN_REGISTRARS: Record<IpcDomainId, () => void> = {
   meterflow: registerMeterflowHandlers,
   idle: registerIdleHandlers,
   colosseum: registerColosseumHandlers,
+  venum: registerVenumHandlers,
   metaplex: registerMetaplexHandlers,
   forensics: registerForensicsHandlers,
   replay: registerReplayHandlers,

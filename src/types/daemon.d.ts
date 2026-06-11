@@ -1099,8 +1099,16 @@ declare global {
     project_path: string
     base_branch: string | null
     status: 'running' | 'done' | 'failed' | 'cancelled'
+    preflight: number
     created_at: number
     updated_at: number
+  }
+
+  interface SwarmLanePreflight {
+    verdict: 'ready' | 'caution' | 'blocked'
+    riskTotals: { critical: number; high: number; medium: number; low: number }
+    blockedBy: string[]
+    reportPath: string | null
   }
 
   interface SwarmLane {
@@ -1110,8 +1118,9 @@ declare global {
     worktree_path: string
     branch: string
     pid: number | null
-    status: 'pending' | 'spawning' | 'running' | 'done' | 'failed' | 'cancelled'
+    status: 'pending' | 'researching' | 'spawning' | 'running' | 'done' | 'failed' | 'blocked' | 'cancelled'
     results_path: string | null
+    preflight_json: string | null
     exit_code: number | null
     created_at: number
     updated_at: number
@@ -1124,6 +1133,7 @@ declare global {
     projectPath: string
     baseBranch?: string | null
     tasks: string[]
+    preflight?: boolean
   }
 
   interface DaemonSwarm {
@@ -1782,6 +1792,7 @@ declare global {
     agentStation: DaemonAgentStation
     replay: DaemonReplay
     clawpump: DaemonClawpump
+    venum: DaemonVenum
     degentools: DaemonDegenTools
   }
 
@@ -1804,6 +1815,20 @@ declare global {
     stop: (agentId: string) => Promise<IpcResponse<ClawpumpAgent>>
     delete: (agentId: string) => Promise<IpcResponse<{ deleted: boolean }>>
     chat: (agentId: string, message: string) => Promise<IpcResponse<ClawpumpChatReply>>
+  }
+
+  type VenumPrice = import('../../electron/services/VenumService').VenumPrice
+  type VenumBatchPrices = import('../../electron/services/VenumService').VenumBatchPrices
+  type VenumQuoteInput = import('../../electron/services/VenumService').VenumQuoteInput
+  type VenumQuote = import('../../electron/services/VenumService').VenumQuote
+
+  interface DaemonVenum {
+    isConfigured: () => Promise<IpcResponse<boolean>>
+    storeKey: (key: string) => Promise<IpcResponse<{ ok: boolean }>>
+    clearKey: () => Promise<IpcResponse<{ ok: boolean }>>
+    price: (token: string) => Promise<IpcResponse<VenumPrice>>
+    prices: (tokens: string[]) => Promise<IpcResponse<VenumBatchPrices>>
+    quote: (input: VenumQuoteInput) => Promise<IpcResponse<VenumQuote>>
   }
 
   type DegenToolsToolResult = import('../../electron/services/DegenToolsService').DegenToolsToolResult

@@ -35,6 +35,7 @@ export type IpcDomainId =
   | 'meterflow'
   | 'idle'
   | 'colosseum'
+  | 'venum'
   | 'metaplex'
   | 'forensics'
   | 'replay'
@@ -52,7 +53,7 @@ export const PACK_IPC_DOMAINS: Record<PackId, IpcDomainId[]> = {
   agent: ['agentStation', 'swarm'],
   memory: ['memory'],
   sites: ['deploy', 'shipline'],
-  markets: ['signalhouse', 'meterflow', 'idle', 'colosseum'],
+  markets: ['signalhouse', 'meterflow', 'idle', 'colosseum', 'venum'],
   create: ['images', 'tweets'],
   guard: [],
 }

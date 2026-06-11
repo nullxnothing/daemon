@@ -48,6 +48,49 @@ export async function runIntegrationAction(actionId: string, context: Integratio
     }
   }
 
+  if (actionId === 'check-venum-key') {
+    const ready = Boolean(context.secureKeys.VENUM_API_KEY)
+    return {
+      title: 'Venum key',
+      status: ready ? 'success' : 'info',
+      detail: ready
+        ? 'DAEMON has a Venum key stored.'
+        : 'No Venum key is stored yet. Grab a free key at app.venum.dev and add it before RPC, price, or swap flows.',
+    }
+  }
+
+  if (actionId === 'check-venum-price') {
+    if (!context.secureKeys.VENUM_API_KEY) {
+      return {
+        title: 'Venum price feed',
+        status: 'info',
+        detail: 'Store a Venum key first, then run this check to confirm the price feed works end to end.',
+      }
+    }
+    const price = await daemon.venum.price('SOL')
+    if (!price.ok || !price.data) {
+      return {
+        title: 'Venum price feed',
+        status: 'error',
+        detail: price.error ?? 'DAEMON could not reach the Venum price API with the stored key.',
+      }
+    }
+    return {
+      title: 'Venum price feed',
+      status: 'success',
+      detail: `SOL is $${price.data.priceUsd} across ${price.data.poolCount ?? '?'} pool(s) (${price.data.route ?? 'direct'} route).`,
+    }
+  }
+
+  if (actionId === 'open-venum-signup') {
+    void daemon.shell.openExternal('https://app.venum.dev/?ref=daemon')
+    return {
+      title: 'Opening Venum signup',
+      status: 'success',
+      detail: 'Launched app.venum.dev in your browser. Grab a free API key and store it as VENUM_API_KEY.',
+    }
+  }
+
   if (actionId === 'check-jupiter-key') {
     const ready = Boolean(context.secureKeys.JUPITER_API_KEY)
     return {

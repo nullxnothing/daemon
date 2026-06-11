@@ -5,15 +5,41 @@ type Lane = SwarmLane
 
 const STATUS_COLOR: Record<string, string> = {
   running: 'var(--green)',
+  researching: 'var(--amber)',
   spawning: 'var(--amber)',
   pending: 'var(--line-2)',
   done: 'var(--green)',
   failed: 'var(--red)',
+  blocked: 'var(--red)',
   cancelled: 'var(--t3)',
 }
 
 function Dot({ status }: { status: string }) {
   return <span className="swarm-dot" style={{ background: STATUS_COLOR[status] ?? 'var(--line-2)' }} />
+}
+
+function parsePreflight(json: string | null): SwarmLanePreflight | null {
+  if (!json) return null
+  try { return JSON.parse(json) as SwarmLanePreflight } catch { return null }
+}
+
+/** Inline gate result for a lane that ran a pre-flight: verdict, risk counts, and any blocking risks. */
+function PreflightSummary({ data, status }: { data: SwarmLanePreflight; status: string }) {
+  const { critical, high, medium, low } = data.riskTotals
+  return (
+    <div className="swarm-preflight">
+      <div className="swarm-preflight-line">
+        <span className="swarm-preflight-label">pre-flight</span>
+        <span className={`swarm-preflight-verdict verdict-${data.verdict}`}>{data.verdict}</span>
+        <span className="swarm-preflight-counts">{critical}C · {high}H · {medium}M · {low}L</span>
+      </div>
+      {status === 'blocked' && data.blockedBy.length > 0 ? (
+        <ul className="swarm-preflight-blocks">
+          {data.blockedBy.map((title, i) => <li key={i}>{title}</li>)}
+        </ul>
+      ) : null}
+    </div>
+  )
 }
 
 function relativeTime(ts: number): string {
@@ -90,6 +116,7 @@ export function SwarmMonitor() {
                   <span className="swarm-run-id">{r.id.slice(0, 8)}</span>
                   <span className="swarm-run-meta">{relativeTime(r.created_at)}</span>
                 </span>
+                {r.preflight ? <span className="swarm-run-badge" title="BrainBlast pre-flight enabled">research</span> : null}
                 <span className={`swarm-run-status status-${r.status}`}>{r.status}</span>
               </button>
 
@@ -101,20 +128,30 @@ export function SwarmMonitor() {
                   {lanes.length === 0 ? (
                     <div className="swarm-lanes-empty">No lanes.</div>
                   ) : (
-                    lanes.map((l) => (
-                      <div key={l.id} className="swarm-lane">
-                        <button type="button" className="swarm-lane-head" onClick={() => setOpenLaneId(openLaneId === l.id ? null : l.id)}>
-                          <Dot status={l.status} />
-                          <span className="swarm-lane-task" title={l.task}>{l.task}</span>
-                          {l.exit_code != null && l.status === 'failed' ? <span className="swarm-lane-exit">exit {l.exit_code}</span> : null}
-                        </button>
-                        {openLaneId === l.id ? (
-                          <pre className="swarm-lane-results">
-                            {l.results ?? (l.status === 'running' ? 'Lane running…' : 'No RESULTS.md produced.')}
-                          </pre>
-                        ) : null}
-                      </div>
-                    ))
+                    lanes.map((l) => {
+                      const preflight = parsePreflight(l.preflight_json)
+                      return (
+                        <div key={l.id} className="swarm-lane">
+                          <button type="button" className="swarm-lane-head" onClick={() => setOpenLaneId(openLaneId === l.id ? null : l.id)}>
+                            <Dot status={l.status} />
+                            <span className="swarm-lane-task" title={l.task}>{l.task}</span>
+                            {l.status === 'blocked' ? <span className="swarm-lane-exit">blocked</span> : null}
+                            {l.exit_code != null && l.status === 'failed' ? <span className="swarm-lane-exit">exit {l.exit_code}</span> : null}
+                          </button>
+                          {preflight ? <PreflightSummary data={preflight} status={l.status} /> : null}
+                          {openLaneId === l.id ? (
+                            <pre className="swarm-lane-results">
+                              {l.results ?? (
+                                l.status === 'running' ? 'Lane running…'
+                                : l.status === 'researching' ? 'Running BrainBlast pre-flight…'
+                                : l.status === 'blocked' ? 'Lane blocked by pre-flight — no code was written.'
+                                : 'No RESULTS.md produced.'
+                              )}
+                            </pre>
+                          ) : null}
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               ) : null}

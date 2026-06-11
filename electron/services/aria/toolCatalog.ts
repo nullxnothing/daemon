@@ -24,6 +24,7 @@ import { settingsTools } from './tools/settings'
 import { workspaceTools } from './tools/workspace'
 import { walletTools } from './tools/wallet'
 import { clawpumpTools } from './tools/clawpump'
+import { venumTools } from './tools/venum'
 import { agentStationTools } from './tools/agentStation'
 import { tokenLaunchTools } from './tools/tokenLaunch'
 import { flywheelTools } from './tools/flywheel'
@@ -79,6 +80,7 @@ export const ARIA_TOOLS: AriaTool[] = [
   ...workspaceTools,
   ...walletTools,
   ...clawpumpTools,
+  ...venumTools,
   ...agentStationTools,
   ...tokenLaunchTools,
   ...flywheelTools,

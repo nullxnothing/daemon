@@ -218,6 +218,27 @@ export const INTEGRATION_REGISTRY: IntegrationDefinition[] = [
     ],
   },
   {
+    id: 'venum',
+    name: 'Venum',
+    tagline: 'Free Solana RPC, prices, and swap execution',
+    description: 'Use Venum as a flat-rate execution layer for RPC, real-time prices, composable swap quotes, and transaction submission. Generous free plan (rate-limited, no credits, no cap) included with DAEMON.',
+    category: 'rpc',
+    docsUrl: 'https://docs.venum.dev/',
+    availability: 'live',
+    primaryActionId: 'check-venum-key',
+    recommendedFor: ['free RPC', 'price feeds', 'swap quotes', 'trading bots', 'agent execution'],
+    requirements: [
+      { type: 'secure-key', key: 'VENUM_API_KEY', label: 'Venum API key' },
+      { type: 'external-url', key: 'https://app.venum.dev/?ref=daemon', label: 'Grab a free Venum API key', optional: true },
+    ],
+    actions: [
+      { id: 'check-venum-key', label: 'Check key', description: 'Verify DAEMON has a Venum key stored.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'check-venum-price', label: 'Test price feed', description: 'Fetch the live SOL price through your Venum key to confirm the integration works end to end.', kind: 'safe-check', risk: 'read-only' },
+      { id: 'open-venum-signup', label: 'Get free key', description: 'Open app.venum.dev to grab a free API key without leaving DAEMON.', kind: 'setup', risk: 'read-only' },
+      { id: 'open-env', label: 'Open env', description: 'Open DAEMON env manager to store the Venum key.', kind: 'setup', risk: 'read-only' },
+    ],
+  },
+  {
     id: 'phantom',
     name: 'Phantom',
     tagline: 'Wallet connection and signing UX',

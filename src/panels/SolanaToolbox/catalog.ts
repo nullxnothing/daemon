@@ -193,6 +193,15 @@ export const SOLANA_INTEGRATION_CATALOG: SolanaIntegrationEntry[] = [
     docsUrl: 'https://solana.com/docs/frontend',
   },
   {
+    id: 'venum-provider',
+    label: 'Venum',
+    area: 'Providers',
+    kind: 'SDK',
+    status: 'guided',
+    description: 'Flat-rate execution layer for free RPC, real-time prices, composable swaps, and submission. Free plan included with DAEMON.',
+    docsUrl: 'https://docs.venum.dev/',
+  },
+  {
     id: 'helius-provider',
     label: 'Helius',
     area: 'Providers',
