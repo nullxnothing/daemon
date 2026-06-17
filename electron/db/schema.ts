@@ -1357,3 +1357,67 @@ CREATE TABLE IF NOT EXISTS fee_events (
 CREATE INDEX IF NOT EXISTS idx_fee_events_created ON fee_events(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_fee_events_wallet ON fee_events(wallet, created_at DESC);
 `
+
+// Flywheel platform share: a DAEMON treasury skim taken off the top of each
+// claim before the payout/buyback split. platform_bps defaults to 0 so every
+// existing config keeps the exact terms it locked at creation; only configs
+// created after this migration carry the platform share. The settlement gains
+// a third idempotent leg (lamports + signature) mirroring payout/buyback.
+export const SCHEMA_V53 = `
+ALTER TABLE flywheel_configs ADD COLUMN platform_bps INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE flywheel_settlements ADD COLUMN platform_lamports INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE flywheel_settlements ADD COLUMN platform_signature TEXT;
+`
+
+// ARIA Autopilot: standing trading mandates that the scheduler evaluates and executes
+// unattended on mainnet. A mandate holds a structured strategy (parsed from natural
+// language by ARIA) plus hard guardrails — a max exposure cap (lamports) that is
+// enforced before any live swap, and an arm flag. autopilot_actions is the crash-safe,
+// idempotent ledger of every decision the scheduler made: BUY/SELL/HOLD/SKIP rows, each
+// with the on-chain signature when it executed, so a restart never re-fires a tick and
+// the Desk can replay exactly what the agent did. Execution routes through executeSwap
+// (guardSource 'autopilot:exec'), so the fee meter fires on every armed action.
+export const SCHEMA_V54 = `
+CREATE TABLE IF NOT EXISTS autopilot_mandates (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  wallet_id TEXT NOT NULL,
+  cluster TEXT NOT NULL DEFAULT 'mainnet-beta',
+  mandate_text TEXT NOT NULL,
+  strategy_json TEXT NOT NULL,
+  max_exposure_lamports INTEGER NOT NULL,
+  interval_seconds INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  armed INTEGER NOT NULL DEFAULT 0,
+  spent_lamports INTEGER NOT NULL DEFAULT 0,
+  realized_pnl_lamports INTEGER NOT NULL DEFAULT 0,
+  last_tick_at INTEGER,
+  next_tick_at INTEGER,
+  last_error TEXT,
+  armed_at INTEGER,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_autopilot_mandates_armed
+  ON autopilot_mandates(armed, next_tick_at);
+
+CREATE TABLE IF NOT EXISTS autopilot_actions (
+  id TEXT PRIMARY KEY,
+  mandate_id TEXT NOT NULL,
+  tick_seq INTEGER NOT NULL,
+  decision TEXT NOT NULL,
+  reason TEXT,
+  input_mint TEXT,
+  output_mint TEXT,
+  notional_lamports INTEGER,
+  fee_lamports INTEGER,
+  signature TEXT,
+  status TEXT NOT NULL DEFAULT 'decided',
+  error TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_autopilot_actions_tick
+  ON autopilot_actions(mandate_id, tick_seq);
+CREATE INDEX IF NOT EXISTS idx_autopilot_actions_mandate
+  ON autopilot_actions(mandate_id, created_at DESC);
+`

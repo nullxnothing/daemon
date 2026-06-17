@@ -48,6 +48,9 @@ import type {
   FlywheelConfigureInput,
   FlywheelPreview,
   FlywheelState,
+  Mandate,
+  MandateAction,
+  AutopilotState,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -233,6 +236,9 @@ export type {
   FlywheelConfigureInput,
   FlywheelPreview,
   FlywheelState,
+  Mandate,
+  MandateAction,
+  AutopilotState,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -1769,6 +1775,7 @@ declare global {
     aria: DaemonAria
     swarm: DaemonSwarm
     memory: DaemonMemory
+    autopilot: DaemonAutopilot
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     forensics: DaemonForensics
@@ -1982,6 +1989,23 @@ declare global {
     getHistory: (id: string) => Promise<IpcResponse<SignalhouseEquityPoint[]>>
     getVerdicts: (limit?: number) => Promise<IpcResponse<SignalhouseVerdict[]>>
     getPositions: (limit?: number) => Promise<IpcResponse<SignalhousePosition[]>>
+  }
+
+  interface DaemonAutopilot {
+    state: () => Promise<IpcResponse<AutopilotState>>
+    create: (input: {
+      label: string
+      walletId: string
+      mandateText: string
+      strategy: Mandate['strategy']
+      maxExposureLamports: number
+      intervalSeconds: number
+    }) => Promise<IpcResponse<Mandate>>
+    arm: (id: string) => Promise<IpcResponse<Mandate>>
+    disarm: (id: string) => Promise<IpcResponse<Mandate>>
+    disarmAll: () => Promise<IpcResponse<{ disarmed: number }>>
+    delete: (id: string) => Promise<IpcResponse<{ ok: true }>>
+    onChanged: (handler: () => void) => () => void
   }
 
   interface DaemonFlywheel {

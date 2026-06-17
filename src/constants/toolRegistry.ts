@@ -44,6 +44,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: 'degentools', name: 'DegenTools', moduleClass: 'addon', surface: 'drawer' },
   { id: 'signalhouse', name: 'Signalhouse', moduleClass: 'addon', surface: 'drawer' },
   { id: 'flywheel', name: 'Fee Flywheel', moduleClass: 'addon', surface: 'drawer' },
+  { id: 'autopilot', name: 'Autopilot', moduleClass: 'addon', surface: 'drawer' },
   { id: 'ricomaps', name: 'RicoMaps', moduleClass: 'addon', surface: 'drawer' },
   { id: 'browser', name: 'Browser', moduleClass: 'addon', surface: 'tab' },
 ] as const

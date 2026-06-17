@@ -1,0 +1,252 @@
+.desk {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-workspace);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+/* --- hero --- */
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-xl) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.heroTitle h1 {
+  margin: 0;
+  font-size: var(--font-size-2xl, 22px);
+  letter-spacing: -0.01em;
+}
+.heroTitle p {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm, 13px);
+}
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.armedTally {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm, 13px);
+  font-variant-numeric: tabular-nums;
+}
+
+.killSwitch {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent-red-glow);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.killSwitch:hover:not(:disabled) { background: var(--accent-red); color: var(--bg-app); }
+.killSwitch:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.newBtn {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+.newBtn:hover:not(:disabled) { border-color: var(--border-strong); }
+.newBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* --- status dots (5px, no emoji) --- */
+.dot { width: 5px; height: 5px; border-radius: var(--radius-pill); flex: none; display: inline-block; }
+.dotLive { background: var(--accent-amber); }
+.dotIdle { background: var(--text-muted); }
+.dotDone { background: var(--accent-green); }
+.dotError { background: var(--accent-red); }
+
+/* --- floor: cards + tape --- */
+.floor {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 360px);
+  gap: var(--space-lg);
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-lg) var(--space-xl);
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-auto-rows: min-content;
+  gap: var(--space-lg);
+  align-content: start;
+  overflow-y: auto;
+  min-height: 0;
+}
+.empty {
+  grid-column: 1 / -1;
+  padding: var(--space-3xl) var(--space-xl);
+  text-align: center;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-card);
+}
+.empty em { color: var(--text-primary); font-style: normal; }
+
+/* --- mandate card --- */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.cardLive {
+  border-color: color-mix(in srgb, var(--accent-amber) 40%, transparent);
+  background: linear-gradient(180deg, var(--accent-amber-glow), var(--bg-card) 60%);
+}
+.cardTop { display: flex; align-items: center; justify-content: space-between; }
+.cardLabel { display: inline-flex; align-items: center; gap: var(--space-sm); }
+.cardStatus { color: var(--text-muted); font-size: var(--font-size-xs, 11px); text-transform: uppercase; letter-spacing: 0.05em; }
+.cardMandate { color: var(--text-secondary); font-size: var(--font-size-sm, 13px); line-height: 1.4; }
+
+.cardMeters { display: flex; flex-direction: column; gap: var(--space-md); }
+.meter { display: flex; flex-direction: column; gap: var(--space-xs); }
+.meterLabel { color: var(--text-muted); font-size: var(--font-size-xs, 11px); }
+.bar {
+  height: 4px;
+  background: var(--bg-well);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.bar span { display: block; height: 100%; background: var(--accent-amber); }
+.meterValue { color: var(--text-secondary); font-size: var(--font-size-xs, 11px); font-variant-numeric: tabular-nums; }
+
+.cardStats { display: flex; gap: var(--space-lg); }
+.cardStats > div { display: flex; flex-direction: column; gap: var(--space-xs); }
+.statLabel { color: var(--text-muted); font-size: var(--font-size-xs, 11px); }
+.statValue { font-size: var(--font-size-sm, 13px); font-variant-numeric: tabular-nums; }
+.pnlUp { color: var(--accent-green); }
+.pnlDown { color: var(--accent-red); }
+.pnlFlat { color: var(--text-secondary); }
+.pnlPct { opacity: 0.7; font-size: var(--font-size-xs, 11px); }
+
+.cardError {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-red-glow);
+  color: var(--accent-red);
+  font-size: var(--font-size-xs, 11px);
+  border-radius: var(--radius-control);
+}
+
+.cardActions { display: flex; gap: var(--space-sm); margin-top: var(--space-xs); }
+.armBtn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-amber);
+  color: var(--bg-app);
+  border: none;
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  cursor: pointer;
+}
+.armBtn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg-card-hover); color: var(--text-muted); }
+.disarmBtn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--accent-amber);
+  border: 1px solid var(--accent-amber);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.deleteBtn {
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.deleteBtn:hover:not(:disabled) { color: var(--accent-red); border-color: var(--accent-red); }
+
+/* --- live tape --- */
+.tape {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  min-height: 0;
+}
+.tapeHead {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.tapeBody { flex: 1; overflow-y: auto; min-height: 0; }
+.tapeEmpty { padding: var(--space-xl); color: var(--text-muted); font-size: var(--font-size-sm, 13px); text-align: center; }
+
+.tapeRow {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--border-soft);
+  font-size: var(--font-size-xs, 11px);
+}
+.tapeDecision { text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em; }
+.tapeBuy .tapeDecision { color: var(--accent-amber); }
+.tapeSell .tapeDecision { color: var(--accent-blue); }
+.tapeHold .tapeDecision { color: var(--text-muted); }
+.tapeReason { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tapeSig { color: var(--accent-green); text-decoration: none; font-variant-numeric: tabular-nums; }
+.tapeSig:hover { text-decoration: underline; }
+.tapeFail { color: var(--accent-red); }
+.tapeMuted { color: var(--text-faint); }
+
+/* --- create form --- */
+.form {
+  margin: 0 var(--space-xl) var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+.formGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs, 11px);
+}
+.formWide { grid-column: span 2; }
+.formGrid input, .formGrid select {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-well);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-sm, 13px);
+}
+.formGrid input:focus, .formGrid select:focus { outline: none; border-color: var(--accent-amber); }
+.formActions { display: flex; justify-content: flex-end; margin-top: var(--space-md); }

@@ -51,6 +51,7 @@ export const DAEMON_TOOL_COLORS: Record<string, string> = {
   degentools: '#a0a0a0',
   signalhouse: '#3aa0ff',
   flywheel: '#3ecf8e',
+  autopilot: '#f5a623',
   ricomaps: '#3ecf8e',
 }
 

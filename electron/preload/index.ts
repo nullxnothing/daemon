@@ -660,6 +660,20 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  autopilot: {
+    state: () => ipcRenderer.invoke('autopilot:state'),
+    create: (input: unknown) => ipcRenderer.invoke('autopilot:create', input),
+    arm: (id: string) => ipcRenderer.invoke('autopilot:arm', id),
+    disarm: (id: string) => ipcRenderer.invoke('autopilot:disarm', id),
+    disarmAll: () => ipcRenderer.invoke('autopilot:disarm-all'),
+    delete: (id: string) => ipcRenderer.invoke('autopilot:delete', id),
+    onChanged: (handler: () => void) => {
+      const listener = () => handler()
+      ipcRenderer.on('autopilot:changed', listener)
+      return () => ipcRenderer.removeListener('autopilot:changed', listener)
+    },
+  },
+
   memory: {
     list: (projectId: string | null, opts?: unknown) => ipcRenderer.invoke('memory:list', projectId, opts),
     suggest: (input: unknown) => ipcRenderer.invoke('memory:suggest', input),

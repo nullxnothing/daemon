@@ -40,6 +40,8 @@ import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
 import { registerSwarmHandlers } from '../ipc/swarm'
+import { registerAutopilotHandlers } from '../ipc/autopilot'
+import { start as startAutopilotScheduler, stop as stopAutopilotScheduler } from '../services/AutopilotScheduler'
 import { registerMemoryHandlers } from '../ipc/memory'
 import { killAll as killAllSwarmLanes, } from '../services/SwarmOrchestrator'
 import { reconcileOnBoot as reconcileSwarmOnBoot } from '../services/WorktreeService'
@@ -206,6 +208,7 @@ let pendingAgentOpsOpenRequest: AgentOpsOpenRequest | null = null
 function cleanupRuntimeState() {
   killAllSessions()
   killAllSwarmLanes()
+  stopAutopilotScheduler()
   shutdownAllLspSessions()
   clearLoadedWallets()
   closeDb()
@@ -394,6 +397,12 @@ function registerAllIpc() {
   if (enabled.agent !== false) {
     void reconcileSwarmOnBoot().catch(() => {})
   }
+
+  registerAutopilotHandlers()
+  // Resume unattended trading: any mandate left armed before the last shutdown picks back up
+  // on the next due tick. The action ledger is idempotent, so a tick interrupted mid-swap
+  // can't double-fire on resume.
+  startAutopilotScheduler()
 
   // Window controls — raw channels (not wrapped by ipcHandler), so guard the
   // sender frame inline. Embedded/cross-origin frames must not drive the window.

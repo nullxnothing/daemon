@@ -16,6 +16,7 @@ import {
   loadKeypair,
 } from './SolanaService'
 import { getWalletInfrastructureSettings } from './SettingsService'
+import { getFeeSettings } from './FeeService'
 import { executeSwap, getMintDecimals } from './WalletService'
 import { getJupiterApiKey } from './SolanaService'
 import type {
@@ -42,6 +43,11 @@ const DEFAULT_PAYOUT_BPS = 8000
 const DEFAULT_BUYBACK_BPS = 2000
 const TOTAL_BPS = 10_000
 const MAX_SHAREHOLDERS = 10
+// DAEMON platform share, skimmed off the top of each claim before the
+// payout/buyback split. Locked into the config at creation; existing configs
+// migrated with 0 keep their original terms. Skipped when no treasury is set.
+export const DEFAULT_PLATFORM_BPS = 1_500
+export const MAX_PLATFORM_BPS = 2_000
 // Leave headroom for rent + tx fees so the buyback never drains the wallet to zero.
 const BUYBACK_SOL_RESERVE = 0.01
 // Buyback swaps a low-liquidity Token-2022 ($DAEMON); 1% slippage fails too often, so
@@ -79,6 +85,7 @@ interface ConfigRow {
   burn: number
   configure_signature: string | null
   created_at: number
+  platform_bps: number
 }
 
 function rowToConfig(row: ConfigRow): FlywheelConfig {
@@ -96,6 +103,7 @@ function rowToConfig(row: ConfigRow): FlywheelConfig {
     burn: row.burn === 1,
     configureSignature: row.configure_signature,
     createdAt: row.created_at,
+    platformBps: row.platform_bps ?? 0,
   }
 }
 
@@ -166,6 +174,19 @@ interface SettlementRow {
   buyback_signature: string | null
   status: 'claimed' | 'distributed' | 'done'
   created_at: number
+  platform_lamports: number
+  platform_signature: string | null
+}
+
+function clampPlatformBps(value: unknown): number {
+  const n = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : DEFAULT_PLATFORM_BPS
+  return Math.min(Math.max(n, 0), MAX_PLATFORM_BPS)
+}
+
+/** Treasury for the platform skim, or null when none is configured. */
+function platformTreasury(): string | null {
+  const treasury = getFeeSettings().treasuryAddress
+  return treasury ? treasury : null
 }
 
 function insertSettlement(configId: string, claimSignature: string, claimedLamports: number): string {
@@ -310,6 +331,8 @@ export async function previewSplit(input: FlywheelConfigureInput): Promise<Flywh
 
   const creatorAddress = walletAddress(input.creatorWalletId)
   const existing = getConfigByMint(input.tokenMint)
+  // Terms lock at creation: an existing config keeps its platform share.
+  const platformBps = existing ? existing.platformBps : clampPlatformBps(input.platformBps)
 
   // Read the token's on-chain creator authority (bonding-curve OR graduated pool) so
   // the UI can warn if the selected wallet can't actually claim the fees. Best-effort.
@@ -346,6 +369,7 @@ export async function previewSplit(input: FlywheelConfigureInput): Promise<Flywh
     onChainCreator,
     creatorMatches,
     warnings,
+    platformBps,
   }
 }
 
