@@ -692,6 +692,9 @@ declare global {
     reveal: (targetPath: string) => Promise<IpcResponse>
     copyPath: (targetPath: string) => Promise<IpcResponse>
     iconTheme: () => Promise<IpcResponse<RuntimeIconTheme | null>>
+    watch: (rootPath: string) => Promise<IpcResponse>
+    unwatch: () => Promise<IpcResponse>
+    onChanged: (callback: (payload: { rootPath: string }) => void) => () => void
   }
 
   interface DaemonLsp {

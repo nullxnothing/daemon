@@ -78,6 +78,21 @@ export function FileExplorer() {
 
   useEffect(() => { reload() }, [reload])
 
+  // Auto-refresh when files change on disk outside DAEMON (editors, git, CLI).
+  // The main process runs one recursive watcher on the active project and pushes
+  // `fs:changed`; we reload the tree + git status when our root is affected.
+  useEffect(() => {
+    if (!activeProjectPath) return
+    void window.daemon.fs.watch(activeProjectPath)
+    const off = window.daemon.fs.onChanged((payload) => {
+      if (normalizePath(payload.rootPath) === normalizePath(activeProjectPath)) reload()
+    })
+    return () => {
+      off()
+      void window.daemon.fs.unwatch()
+    }
+  }, [activeProjectPath, reload])
+
   useEffect(() => {
     setSearchQuery('')
   }, [activeProjectPath])

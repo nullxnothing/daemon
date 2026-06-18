@@ -129,6 +129,13 @@ contextBridge.exposeInMainWorld('daemon', {
     reveal: (targetPath: string) => ipcRenderer.invoke('fs:reveal', targetPath),
     copyPath: (targetPath: string) => ipcRenderer.invoke('fs:copyPath', targetPath),
     iconTheme: () => ipcRenderer.invoke('fs:iconTheme'),
+    watch: (rootPath: string) => ipcRenderer.invoke('fs:watch', rootPath),
+    unwatch: () => ipcRenderer.invoke('fs:unwatch'),
+    onChanged: (callback: (payload: { rootPath: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { rootPath: string }) => callback(payload)
+      ipcRenderer.on('fs:changed', handler)
+      return () => ipcRenderer.off('fs:changed', handler)
+    },
   },
 
   lsp: {

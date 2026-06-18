@@ -28,6 +28,9 @@ function installDaemonBridge() {
         reveal: vi.fn().mockResolvedValue({ ok: true }),
         copyPath: vi.fn().mockResolvedValue({ ok: true }),
         rename: vi.fn().mockResolvedValue({ ok: true }),
+        watch: vi.fn().mockResolvedValue({ ok: true }),
+        unwatch: vi.fn().mockResolvedValue({ ok: true }),
+        onChanged: vi.fn().mockReturnValue(() => {}),
       },
       git: {
         status: vi.fn().mockResolvedValue({ ok: true, data: [] }),
