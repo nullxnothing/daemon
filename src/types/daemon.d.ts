@@ -542,6 +542,8 @@ declare global {
   type AriaPlanStep = import('../../electron/shared/types').AriaPlanStep
   type AriaPatchProposalLite = import('../../electron/shared/types').AriaPatchProposalLite
   type AriaPatchAction = import('../../electron/shared/types').AriaPatchAction
+  type BridgeToolEvent = import('../../electron/shared/types').BridgeToolEvent
+  type BridgeStatus = import('../../electron/shared/types').BridgeStatus
   type DaemonAiModelLane = import('../../electron/shared/types').DaemonAiModelLane
   type OnboardingProgress = import('../../electron/shared/types').OnboardingProgress
   type OnboardingStepStatus = import('../../electron/shared/types').OnboardingStepStatus
@@ -1090,6 +1092,14 @@ declare global {
     toolEffectResult: (callId: string, data: unknown) => void
     onToolEvent: (handler: (event: AriaToolEvent) => void) => () => void
     onUiEffect: (handler: (payload: { callId: string; effect: AriaUiEffectPayload; awaitData: boolean }) => void) => () => void
+  }
+
+  interface DaemonBridge {
+    status: () => Promise<IpcResponse<BridgeStatus>>
+    rotateToken: () => Promise<IpcResponse<BridgeStatus>>
+    registerProject: (projectPath: string) => Promise<IpcResponse<BridgeStatus>>
+    approve: (callId: string, approved: boolean) => void
+    onEvent: (handler: (event: BridgeToolEvent) => void) => () => void
   }
 
   interface SwarmRun {
@@ -1767,6 +1777,7 @@ declare global {
     email: DaemonEmail
     images: DaemonImages
     aria: DaemonAria
+    bridge: DaemonBridge
     swarm: DaemonSwarm
     memory: DaemonMemory
     launch: DaemonLaunch
