@@ -8,7 +8,6 @@
  * itself can only be resolved from DAEMON's renderer — never by the caller.
  */
 import crypto from 'node:crypto'
-import path from 'node:path'
 import { getDb } from '../../db/db'
 import * as SettingsService from '../SettingsService'
 import { executeToolCall, type AriaTransport } from '../AriaAgentService'
@@ -84,7 +83,7 @@ export function resolveProjectForCwd(cwd: string | undefined): ProjectMatch | nu
   let bestLen = -1
   for (const row of rows) {
     const root = normalizeFsPath(row.path)
-    const isMatch = target === root || target.startsWith(root + path.sep)
+    const isMatch = target === root || target.startsWith(root + '/')
     if (isMatch && root.length > bestLen) {
       best = row
       bestLen = root.length
@@ -93,9 +92,20 @@ export function resolveProjectForCwd(cwd: string | undefined): ProjectMatch | nu
   return best
 }
 
+/**
+ * Normalize a caller-supplied path for prefix comparison. DAEMON runs on
+ * Windows, so cwds are Windows paths — but this also executes on Linux CI, where
+ * `path.resolve` would mangle `C:\...`. So we normalize separators ourselves
+ * instead of leaning on the host's `path` semantics: backslashes → `/`, collapse
+ * repeats, strip a trailing slash, and lowercase (Windows paths are
+ * case-insensitive). Keeps comparison stable regardless of the runtime OS.
+ */
 function normalizeFsPath(value: string): string {
-  const resolved = path.resolve(value)
-  return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+  const unified = value
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/\/$/, '')
+  return unified.toLowerCase()
 }
 
 /** Execute one external tool call through the standard ARIA risk gate. */
