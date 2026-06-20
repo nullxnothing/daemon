@@ -12,3 +12,15 @@ id = "GHSA-5xrq-8626-4rwp"  # CVE-2026-47429 — vitest < 4.1.0
 # separately to avoid breaking the test suite on a release.
 ignoreUntil = 2026-09-01
 reason = "Dev-only: vitest UI/Browser-mode server not used; we run headless `vitest run`. Bump to vitest 4.x tracked post-release."
+
+[[IgnoredVulns]]
+id = "GHSA-4x5r-pxfx-6jf8"  # @babel/core arbitrary file read via sourceMappingURL
+# Why ignored: build-time only. @babel/core is pulled in transitively by
+# @vitejs/plugin-react and runs against our own first-party source during the
+# Vite build — it never processes untrusted input at runtime and is not shipped
+# in the Electron bundle. The advisory requires compiling attacker-controlled
+# code containing a crafted sourceMappingURL, which never happens in our pipeline.
+# The only fix is @babel/core 8.0.0-rc (no stable 7.x patch); we will not pin a
+# release-candidate major into the build. Re-evaluate when 8.x ships stable.
+ignoreUntil = 2026-09-01
+reason = "Build-time devDep (vite-plugin-react); compiles only first-party source, not shipped at runtime. No stable 7.x fix — only 8.0.0-rc."
