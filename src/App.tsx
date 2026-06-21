@@ -12,6 +12,7 @@ import { OnboardingWizard } from './panels/Onboarding/OnboardingWizard'
 import { LaunchWizard } from './panels/LaunchWizard/LaunchWizard'
 import { TourOverlay } from './components/Tour/TourOverlay'
 import { ToastHost } from './components/ToastHost'
+import { BridgeApprovalHost } from './components/BridgeApprovalHost'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { KeyboardShortcutsOverlay } from './components/KeyboardShortcutsOverlay'
 import { useNotificationsStore } from './store/notifications'
@@ -657,6 +658,7 @@ function App() {
 
       {tourActive && <TourOverlay />}
       {showShortcuts && <KeyboardShortcutsOverlay onClose={() => setShowShortcuts(false)} />}
+      <BridgeApprovalHost />
       <ToastHost />
       <ConfirmDialog />
     </div>

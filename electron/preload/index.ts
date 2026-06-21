@@ -655,6 +655,18 @@ contextBridge.exposeInMainWorld('daemon', {
     setNetwork: (network: 'mainnet' | 'testnet') => ipcRenderer.invoke('hyperliquid:set-network', network),
   },
 
+  bridge: {
+    status: () => ipcRenderer.invoke('bridge:status'),
+    rotateToken: () => ipcRenderer.invoke('bridge:rotate-token'),
+    registerProject: (projectPath: string) => ipcRenderer.invoke('bridge:register-project', projectPath),
+    approve: (callId: string, approved: boolean) => ipcRenderer.send('bridge:approve', callId, approved),
+    onEvent: (handler: (event: unknown) => void) => {
+      const listener = (_e: unknown, ev: unknown) => handler(ev)
+      ipcRenderer.on('bridge:event', listener)
+      return () => ipcRenderer.removeListener('bridge:event', listener)
+    },
+  },
+
   swarm: {
     launch: (req: unknown) => ipcRenderer.invoke('swarm:launch', req),
     list: (limit?: number) => ipcRenderer.invoke('swarm:list', limit),

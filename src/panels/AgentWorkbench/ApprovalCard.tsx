@@ -19,8 +19,13 @@ function FeeRow({ fee }: { fee: NonNullable<AriaApproval['fee']> }) {
   )
 }
 
-export function ApprovalCard({ approval }: { approval: AriaApproval }) {
-  const approve = useAriaStore((s) => s.approve)
+export function ApprovalCard({ approval, onDecide }: {
+  approval: AriaApproval
+  /** Override the decision sink (the bridge surface routes to bridge:approve). Defaults to the ARIA store. */
+  onDecide?: (callId: string, approved: boolean) => void
+}) {
+  const ariaApprove = useAriaStore((s) => s.approve)
+  const approve = onDecide ?? ariaApprove
   const [typed, setTyped] = useState('')
 
   // Plan-mode gate: one approval to run the whole plan (sentinel name).

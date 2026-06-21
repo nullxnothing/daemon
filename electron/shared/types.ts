@@ -2782,6 +2782,40 @@ export interface AriaMemorySuggestionLite {
   value: string
 }
 
+// --- Bridge (external MCP agents) ---
+
+export type BridgeCallStatus = 'done' | 'error' | 'rejected' | 'timeout'
+
+/** Events streamed from the Bridge to the renderer approval surface. */
+export type BridgeToolEvent =
+  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; source: 'bridge' }
+  | { kind: 'approval-expired'; callId: string }
+  | { kind: 'call'; callId: string; name: string; risk: AriaToolRiskTier; status: BridgeCallStatus; summary: string }
+
+/** Bridge server status surfaced in Settings. */
+export interface BridgeStatus {
+  running: boolean
+  port: number
+  tokenFile: string
+  toolCount: number
+  error?: string
+}
+
+/** One tool as advertised to external MCP clients. */
+export interface BridgeToolDescriptor {
+  name: string
+  description: string
+  risk: AriaToolRiskTier
+  inputSchema: Record<string, unknown>
+}
+
+/** Result of one bridge tool call, returned to the shim. */
+export interface BridgeCallResult {
+  status: BridgeCallStatus
+  summary: string
+  result?: unknown
+}
+
 // --- Onboarding ---
 
 export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'

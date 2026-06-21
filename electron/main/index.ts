@@ -40,6 +40,7 @@ import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
 import { registerHyperliquidHandlers } from '../ipc/hyperliquid'
+import { registerBridgeHandlers, startBridge, stopBridge } from '../ipc/bridge'
 import { registerSwarmHandlers } from '../ipc/swarm'
 import { registerAutopilotHandlers } from '../ipc/autopilot'
 import { start as startAutopilotScheduler, stop as stopAutopilotScheduler } from '../services/AutopilotScheduler'
@@ -211,6 +212,7 @@ function cleanupRuntimeState() {
   killAllSwarmLanes()
   stopAutopilotScheduler()
   shutdownAllLspSessions()
+  void stopBridge()
   clearLoadedWallets()
   closeDb()
 }
@@ -377,6 +379,7 @@ function registerAllIpc() {
   registerEmailHandlers()
   registerAriaHandlers()
   registerHyperliquidHandlers()
+  registerBridgeHandlers()
   registerDashboardHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
@@ -405,6 +408,12 @@ function registerAllIpc() {
   // on the next due tick. The action ledger is idempotent, so a tick interrupted mid-swap
   // can't double-fire on resume.
   startAutopilotScheduler()
+
+  // Bridge server is always on (loopback + bearer token); the tool catalog
+  // itself re-filters against enabled packs on every request.
+  void startBridge().catch((error) => {
+    console.warn('[bridge] failed to start:', error instanceof Error ? error.message : String(error))
+  })
 
   // Window controls — raw channels (not wrapped by ipcHandler), so guard the
   // sender frame inline. Embedded/cross-origin frames must not drive the window.

@@ -16,6 +16,12 @@
     "node_modules/better-sqlite3/**",
     "node_modules/node-pty/**"
   ],
+  "extraResources": [
+    {
+      "from": "dist-bridge",
+      "to": "bridge"
+    }
+  ],
   "publish": [
     {
       "provider": "github",

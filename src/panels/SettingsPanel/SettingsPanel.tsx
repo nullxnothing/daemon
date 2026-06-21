@@ -10,6 +10,7 @@ import { Toggle } from '../../components/Toggle'
 import { PanelHeader } from '../../components/Panel'
 import { BUILTIN_TOOLS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
 import { KeyboardShortcuts } from '../../components/KeyboardShortcuts'
+import { BridgeSection } from './BridgeSection'
 import { NavigationGuide } from '../../components/NavigationGuide'
 import { isToolDisableable } from '../../constants/toolRegistry'
 import {
@@ -75,7 +76,7 @@ interface AgentRow {
 // Lookup table mapping common search keywords to the tab they live in
 const SEARCH_INDEX: { tab: SettingsTab; keywords: string[] }[] = [
   { tab: 'keys', keywords: ['key', 'api', 'token', 'secret', 'helius', 'openai', 'anthropic', 'birdeye', 'gemini'] },
-  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'voight', 'observability', 'sign in', 'login', 'connect', 'subscription', 'cli'] },
+  { tab: 'integrations', keywords: ['integration', 'claude', 'codex', 'mcp', 'voight', 'observability', 'sign in', 'login', 'connect', 'subscription', 'cli', 'bridge', 'cursor', 'external agent'] },
   { tab: 'aiProviders', keywords: ['ai provider', 'provider', 'default provider', 'aria', 'daemon ai', 'codex', 'claude', 'model'] },
   { tab: 'agents', keywords: ['agent', 'provider', 'default provider', 'model', 'system prompt'] },
   { tab: 'tools', keywords: ['tool', 'tools', 'extra tools', 'disable tools', 'sidebar', 'command drawer', 'profile', 'workspace'] },
@@ -196,7 +197,12 @@ export function SettingsPanel() {
 
         <div className="settings-body">
           {tab === 'keys' && <KeysSection />}
-          {tab === 'integrations' && <IntegrationsSection projectPath={activeProjectPath} />}
+          {tab === 'integrations' && (
+            <>
+              <IntegrationsSection projectPath={activeProjectPath} />
+              <BridgeSection projectPath={activeProjectPath} />
+            </>
+          )}
           {tab === 'aiProviders' && <AIProvidersSection />}
           {tab === 'agents' && <AgentsSection />}
           {tab === 'tools' && <ToolVisibilitySection />}
