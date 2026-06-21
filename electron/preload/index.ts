@@ -650,6 +650,11 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  hyperliquid: {
+    status: () => ipcRenderer.invoke('hyperliquid:status'),
+    setNetwork: (network: 'mainnet' | 'testnet') => ipcRenderer.invoke('hyperliquid:set-network', network),
+  },
+
   swarm: {
     launch: (req: unknown) => ipcRenderer.invoke('swarm:launch', req),
     list: (limit?: number) => ipcRenderer.invoke('swarm:list', limit),

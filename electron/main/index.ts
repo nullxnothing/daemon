@@ -39,6 +39,7 @@ import { registerShiplineHandlers } from '../ipc/shipline'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
+import { registerHyperliquidHandlers } from '../ipc/hyperliquid'
 import { registerSwarmHandlers } from '../ipc/swarm'
 import { registerAutopilotHandlers } from '../ipc/autopilot'
 import { start as startAutopilotScheduler, stop as stopAutopilotScheduler } from '../services/AutopilotScheduler'
@@ -375,6 +376,7 @@ function registerAllIpc() {
   registerBrowserHandlers()
   registerEmailHandlers()
   registerAriaHandlers()
+  registerHyperliquidHandlers()
   registerDashboardHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
