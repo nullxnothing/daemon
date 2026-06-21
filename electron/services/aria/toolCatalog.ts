@@ -24,6 +24,7 @@ import { settingsTools } from './tools/settings'
 import { workspaceTools } from './tools/workspace'
 import { walletTools } from './tools/wallet'
 import { clawpumpTools } from './tools/clawpump'
+import { hyperliquidTools } from './tools/hyperliquid'
 import { venumTools } from './tools/venum'
 import { agentStationTools } from './tools/agentStation'
 import { tokenLaunchTools } from './tools/tokenLaunch'
@@ -31,6 +32,7 @@ import { flywheelTools } from './tools/flywheel'
 import { gitTools } from './tools/git'
 import { swarmTools } from './tools/swarm'
 import { memoryTools } from './tools/memory'
+import { autopilotTools } from './tools/autopilot'
 
 /** Planning + patch tools — intercepted in AriaAgentService.executeTool. */
 const planningTools: AriaTool[] = [
@@ -80,6 +82,7 @@ export const ARIA_TOOLS: AriaTool[] = [
   ...workspaceTools,
   ...walletTools,
   ...clawpumpTools,
+  ...hyperliquidTools,
   ...venumTools,
   ...agentStationTools,
   ...tokenLaunchTools,
@@ -87,6 +90,7 @@ export const ARIA_TOOLS: AriaTool[] = [
   ...gitTools,
   ...swarmTools,
   ...memoryTools,
+  ...autopilotTools,
 ]
 
 export function getTool(name: string): AriaTool | undefined {

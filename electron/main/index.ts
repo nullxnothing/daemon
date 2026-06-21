@@ -39,8 +39,11 @@ import { registerShiplineHandlers } from '../ipc/shipline'
 import { registerEmailHandlers } from '../ipc/email'
 import { registerImageHandlers } from '../ipc/images'
 import { registerAriaHandlers } from '../ipc/aria'
+import { registerHyperliquidHandlers } from '../ipc/hyperliquid'
 import { registerBridgeHandlers, startBridge, stopBridge } from '../ipc/bridge'
 import { registerSwarmHandlers } from '../ipc/swarm'
+import { registerAutopilotHandlers } from '../ipc/autopilot'
+import { start as startAutopilotScheduler, stop as stopAutopilotScheduler } from '../services/AutopilotScheduler'
 import { registerMemoryHandlers } from '../ipc/memory'
 import { killAll as killAllSwarmLanes, } from '../services/SwarmOrchestrator'
 import { reconcileOnBoot as reconcileSwarmOnBoot } from '../services/WorktreeService'
@@ -53,6 +56,7 @@ import { registerSynapseHandlers } from '../ipc/synapse'
 import { registerAllowanceHandlers } from '../ipc/allowances'
 import { registerSignalhouseHandlers } from '../ipc/signalhouse'
 import { registerFlywheelHandlers } from '../ipc/flywheel'
+import { registerFeeHandlers } from '../ipc/fees'
 import { registerColosseumHandlers } from '../ipc/colosseum'
 import { registerIdleHandlers } from '../ipc/idle'
 import { registerMeterflowHandlers } from '../ipc/meterflow'
@@ -206,6 +210,7 @@ let pendingAgentOpsOpenRequest: AgentOpsOpenRequest | null = null
 function cleanupRuntimeState() {
   killAllSessions()
   killAllSwarmLanes()
+  stopAutopilotScheduler()
   shutdownAllLspSessions()
   void stopBridge()
   clearLoadedWallets()
@@ -373,12 +378,14 @@ function registerAllIpc() {
   registerBrowserHandlers()
   registerEmailHandlers()
   registerAriaHandlers()
+  registerHyperliquidHandlers()
   registerBridgeHandlers()
   registerDashboardHandlers()
   registerRegistryHandlers()
   registerSaidHandlers()
   registerSynapseHandlers()
   registerAllowanceHandlers()
+  registerFeeHandlers()
   registerValidatorHandlers()
   registerSeekerHandlers()
   registerFeedbackHandlers()
@@ -395,6 +402,12 @@ function registerAllIpc() {
   if (enabled.agent !== false) {
     void reconcileSwarmOnBoot().catch(() => {})
   }
+
+  registerAutopilotHandlers()
+  // Resume unattended trading: any mandate left armed before the last shutdown picks back up
+  // on the next due tick. The action ledger is idempotent, so a tick interrupted mid-swap
+  // can't double-fire on resume.
+  startAutopilotScheduler()
 
   // Bridge server is always on (loopback + bearer token); the tool catalog
   // itself re-filters against enabled packs on every request.

@@ -502,11 +502,16 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
   }
 
   return (
-    <div className="terminal-view-wrap">
+    <div
+      className="terminal-view-wrap"
+      // Hidden instances stay mounted (to preserve xterm state) but must be fully
+      // inert — otherwise the last-stacked hidden wrapper sits on top of the active
+      // one and swallows wheel/click events, breaking scroll and click-to-focus.
+      style={{ visibility: isVisible ? 'visible' : 'hidden', pointerEvents: isVisible ? 'auto' : 'none' }}
+    >
       <div
         ref={wrapperRef}
         className="terminal-view"
-        style={{ visibility: isVisible ? 'visible' : 'hidden' }}
         onClick={() => xtermRef.current?.focus()}
         onContextMenu={handleContextMenu}
         onDragEnter={(e) => { e.preventDefault(); dragDepthRef.current += 1; setDragActive(true) }}

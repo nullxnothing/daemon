@@ -24,6 +24,7 @@ import {
   type TransactionExecutionResult,
 } from './SolanaService'
 import * as Voight from './VoightService'
+import { quoteExecutionFee } from './FeeService'
 import { assertTransactionAllowed, approveTransactionHash, hashTransactionMessage } from './SignerGuardService'
 import type {
   ExternalSolTransferDraft,
@@ -1215,6 +1216,7 @@ export async function transferSOL(
   toAddress: string,
   amountSol?: number,
   sendMax = false,
+  routedBy: 'user' | 'agent' = 'user',
 ): Promise<TransactionExecutionResult & { id: string; status: 'confirmed' }> {
   if (!sendMax && (!amountSol || amountSol <= 0)) throw new Error('Amount must be greater than 0')
   if (!isValidSolanaAddress(toAddress)) throw new Error('Invalid destination address')
@@ -1230,16 +1232,23 @@ export async function transferSOL(
     const balance = await connection.getBalance(keypair.publicKey)
     const priorityFeeLamports = await getPriorityFeeLamports(connection, SOL_TRANSFER_COMPUTE_UNITS)
     const feeBufferLamports = Math.max(10_000, BASE_SIGNATURE_FEE_LAMPORTS + priorityFeeLamports)
-    const lamportsToSend = sendMax
+    let lamportsToSend = sendMax
       ? Math.max(0, balance - feeBufferLamports)
       : toLamports(amountSol ?? 0)
+
+    // Agent-routed sends pay the execution fee meter; reserve it up front so
+    // the appended fee leg can't overdraw (sendMax) or fail the balance check.
+    const executionFeeQuote = routedBy === 'agent' ? quoteExecutionFee(lamportsToSend) : null
+    if (executionFeeQuote && sendMax) {
+      lamportsToSend = Math.max(0, lamportsToSend - executionFeeQuote.lamports)
+    }
 
     if (lamportsToSend <= 0) {
       throw new Error('Not enough SOL to send after reserving network fees')
     }
 
     const amountToRecord = lamportsToSend / LAMPORTS_PER_SOL
-    const lamportsNeeded = lamportsToSend + feeBufferLamports
+    const lamportsNeeded = lamportsToSend + feeBufferLamports + (executionFeeQuote && !sendMax ? executionFeeQuote.lamports : 0)
     if (balance < lamportsNeeded) {
       throw new Error(`Insufficient balance: have ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL, need ${amountToRecord.toFixed(4)} SOL + fees`)
     }
@@ -1269,6 +1278,9 @@ export async function transferSOL(
       const { signature, transport } = await executeTransaction(connection, transaction, [keypair], {
         computeUnitLimit: SOL_TRANSFER_COMPUTE_UNITS,
         guardSource: 'transferSOL',
+        executionFee: routedBy === 'agent'
+          ? { kind: 'transfer', notionalLamports: lamportsToSend, wallet: fromAddress }
+          : undefined,
       })
 
       db.prepare('UPDATE transaction_history SET signature = ?, status = ? WHERE id = ?').run(signature, 'confirmed', txId)

@@ -48,6 +48,9 @@ import type {
   FlywheelConfigureInput,
   FlywheelPreview,
   FlywheelState,
+  Mandate,
+  MandateAction,
+  AutopilotState,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -233,6 +236,9 @@ export type {
   FlywheelConfigureInput,
   FlywheelPreview,
   FlywheelState,
+  Mandate,
+  MandateAction,
+  AutopilotState,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -688,6 +694,9 @@ declare global {
     reveal: (targetPath: string) => Promise<IpcResponse>
     copyPath: (targetPath: string) => Promise<IpcResponse>
     iconTheme: () => Promise<IpcResponse<RuntimeIconTheme | null>>
+    watch: (rootPath: string) => Promise<IpcResponse>
+    unwatch: () => Promise<IpcResponse>
+    onChanged: (callback: (payload: { rootPath: string }) => void) => () => void
   }
 
   interface DaemonLsp {
@@ -1780,6 +1789,7 @@ declare global {
     bridge: DaemonBridge
     swarm: DaemonSwarm
     memory: DaemonMemory
+    autopilot: DaemonAutopilot
     launch: DaemonLaunch
     dashboard: DaemonDashboard
     forensics: DaemonForensics
@@ -1788,6 +1798,7 @@ declare global {
     allowances: DaemonAllowances
     signalhouse: DaemonSignalhouse
     flywheel: DaemonFlywheel
+    fees: DaemonFees
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
@@ -1994,6 +2005,23 @@ declare global {
     getPositions: (limit?: number) => Promise<IpcResponse<SignalhousePosition[]>>
   }
 
+  interface DaemonAutopilot {
+    state: () => Promise<IpcResponse<AutopilotState>>
+    create: (input: {
+      label: string
+      walletId: string
+      mandateText: string
+      strategy: Mandate['strategy']
+      maxExposureLamports: number
+      intervalSeconds: number
+    }) => Promise<IpcResponse<Mandate>>
+    arm: (id: string) => Promise<IpcResponse<Mandate>>
+    disarm: (id: string) => Promise<IpcResponse<Mandate>>
+    disarmAll: () => Promise<IpcResponse<{ disarmed: number }>>
+    delete: (id: string) => Promise<IpcResponse<{ ok: true }>>
+    onChanged: (handler: () => void) => () => void
+  }
+
   interface DaemonFlywheel {
     preview: (input: FlywheelConfigureInput) => Promise<IpcResponse<FlywheelPreview>>
     configure: (input: FlywheelConfigureInput) => Promise<IpcResponse<FlywheelConfig>>
@@ -2004,6 +2032,13 @@ declare global {
     run: (configId: string) => Promise<IpcResponse<{ claimSignature: string | null; claimedSol: number; payoutSignature: string | null; buybackTransferSignature: string | null; swapSignature: string | null; burnSignature: string | null; status: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; swapError?: string }>>
     runAll: () => Promise<IpcResponse<Array<{ configId: string; label: string | null; ok: boolean; claimedSol?: number; status?: 'swapped' | 'swap-failed' | 'no-jupiter-key' | 'nothing-to-swap'; error?: string }>>>
     list: () => Promise<IpcResponse<FlywheelConfig[]>>
+  }
+
+  interface DaemonFees {
+    getSettings: () => Promise<IpcResponse<{ enabled: boolean; bps: number; treasuryAddress: string }>>
+    setSettings: (next: { enabled?: boolean; bps?: number; treasuryAddress?: string }) => Promise<IpcResponse<{ enabled: boolean; bps: number; treasuryAddress: string }>>
+    quote: (notionalLamports: number) => Promise<IpcResponse<{ bps: number; lamports: number; treasury: string } | null>>
+    summary: (sinceMs: number) => Promise<IpcResponse<{ totalFeeLamports: number; totalNotionalLamports: number; feeEventCount: number; uniqueWallets: number; topTenWalletShare: number }>>
   }
 
   interface DaemonBrowser {

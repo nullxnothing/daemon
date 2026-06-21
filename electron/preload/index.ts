@@ -129,6 +129,13 @@ contextBridge.exposeInMainWorld('daemon', {
     reveal: (targetPath: string) => ipcRenderer.invoke('fs:reveal', targetPath),
     copyPath: (targetPath: string) => ipcRenderer.invoke('fs:copyPath', targetPath),
     iconTheme: () => ipcRenderer.invoke('fs:iconTheme'),
+    watch: (rootPath: string) => ipcRenderer.invoke('fs:watch', rootPath),
+    unwatch: () => ipcRenderer.invoke('fs:unwatch'),
+    onChanged: (callback: (payload: { rootPath: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: { rootPath: string }) => callback(payload)
+      ipcRenderer.on('fs:changed', handler)
+      return () => ipcRenderer.off('fs:changed', handler)
+    },
   },
 
   lsp: {
@@ -643,6 +650,11 @@ contextBridge.exposeInMainWorld('daemon', {
     },
   },
 
+  hyperliquid: {
+    status: () => ipcRenderer.invoke('hyperliquid:status'),
+    setNetwork: (network: 'mainnet' | 'testnet') => ipcRenderer.invoke('hyperliquid:set-network', network),
+  },
+
   bridge: {
     status: () => ipcRenderer.invoke('bridge:status'),
     rotateToken: () => ipcRenderer.invoke('bridge:rotate-token'),
@@ -669,6 +681,20 @@ contextBridge.exposeInMainWorld('daemon', {
         ipcRenderer.removeListener('swarm:lane-update', laneListener)
         ipcRenderer.removeListener('swarm:run-update', runListener)
       }
+    },
+  },
+
+  autopilot: {
+    state: () => ipcRenderer.invoke('autopilot:state'),
+    create: (input: unknown) => ipcRenderer.invoke('autopilot:create', input),
+    arm: (id: string) => ipcRenderer.invoke('autopilot:arm', id),
+    disarm: (id: string) => ipcRenderer.invoke('autopilot:disarm', id),
+    disarmAll: () => ipcRenderer.invoke('autopilot:disarm-all'),
+    delete: (id: string) => ipcRenderer.invoke('autopilot:delete', id),
+    onChanged: (handler: () => void) => {
+      const listener = () => handler()
+      ipcRenderer.on('autopilot:changed', listener)
+      return () => ipcRenderer.removeListener('autopilot:changed', listener)
     },
   },
 
@@ -724,6 +750,13 @@ contextBridge.exposeInMainWorld('daemon', {
     run: (configId: string) => ipcRenderer.invoke('flywheel:run', configId),
     runAll: () => ipcRenderer.invoke('flywheel:run-all'),
     list: () => ipcRenderer.invoke('flywheel:list'),
+  },
+
+  fees: {
+    getSettings: () => ipcRenderer.invoke('fees:get-settings'),
+    setSettings: (next: unknown) => ipcRenderer.invoke('fees:set-settings', next),
+    quote: (notionalLamports: number) => ipcRenderer.invoke('fees:quote', notionalLamports),
+    summary: (sinceMs: number) => ipcRenderer.invoke('fees:summary', sinceMs),
   },
 
   forensics: {

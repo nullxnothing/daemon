@@ -1309,6 +1309,8 @@ export interface FlywheelConfigureInput {
   burn?: boolean
   /** Must be true to send the irreversible on-chain config. */
   confirmed?: boolean
+  /** DAEMON platform share in bps, skimmed off the top of each claim. Locked at creation. */
+  platformBps?: number
 }
 
 export interface FlywheelConfig {
@@ -1325,6 +1327,8 @@ export interface FlywheelConfig {
   burn: boolean
   configureSignature: string | null
   createdAt: number
+  /** DAEMON platform share in bps, skimmed off the top before the payout/buyback split. */
+  platformBps: number
 }
 
 export interface FlywheelPreview {
@@ -1338,6 +1342,8 @@ export interface FlywheelPreview {
   /** True when the selected creator wallet matches the on-chain creator. */
   creatorMatches: boolean
   warnings: string[]
+  /** DAEMON platform share that will apply to this config. */
+  platformBps: number
 }
 
 export interface FlywheelEvent {
@@ -1362,6 +1368,93 @@ export interface FlywheelState {
   totalBurnedTokens: string
   totalSwappedSol: string
   events: FlywheelEvent[]
+}
+
+// --- ARIA Autopilot ---
+
+/** A single take-profit / stop-loss / exit rule the evaluator checks each tick. */
+export interface MandateRule {
+  kind: 'take_profit' | 'stop_loss' | 'liquidity_floor'
+  /** Percent for TP/SL (e.g. 40 = +40% / -40%); SOL for liquidity_floor. */
+  threshold: number
+}
+
+/**
+ * Structured strategy parsed from a natural-language mandate. The scheduler reads this,
+ * never the raw text. `targetMint` is what the mandate accumulates; `clipLamports` is the
+ * size of each DCA buy; rules drive automated exits.
+ */
+export interface MandateStrategy {
+  /** Mint the mandate accumulates (buys into). */
+  targetMint: string
+  targetSymbol?: string
+  /** DCA buy size per tick, in lamports of SOL spent. */
+  clipLamports: number
+  /** Slippage tolerance for autopilot swaps, in bps. */
+  slippageBps: number
+  rules: MandateRule[]
+}
+
+export type MandateStatus = 'draft' | 'armed' | 'paused' | 'exhausted' | 'error'
+
+export interface Mandate {
+  id: string
+  label: string
+  walletId: string
+  cluster: string
+  /** The original natural-language mandate the user gave ARIA. */
+  mandateText: string
+  strategy: MandateStrategy
+  /** Hard ceiling on total SOL the mandate may ever spend (lamports). Enforced pre-swap. */
+  maxExposureLamports: number
+  intervalSeconds: number
+  status: MandateStatus
+  armed: boolean
+  spentLamports: number
+  realizedPnlLamports: number
+  lastTickAt: number | null
+  nextTickAt: number | null
+  lastError: string | null
+  armedAt: number | null
+  createdAt: number
+  updatedAt: number
+}
+
+export type MandateDecision = 'buy' | 'sell' | 'hold' | 'skip'
+export type MandateActionStatus = 'decided' | 'executed' | 'failed'
+
+export interface MandateAction {
+  id: string
+  mandateId: string
+  /** Monotonic per-mandate tick counter; unique with mandateId (idempotent ticks). */
+  tickSeq: number
+  decision: MandateDecision
+  reason: string | null
+  inputMint: string | null
+  outputMint: string | null
+  notionalLamports: number | null
+  feeLamports: number | null
+  signature: string | null
+  status: MandateActionStatus
+  error: string | null
+  createdAt: number
+}
+
+/** Live, un-persisted position valuation for an armed mandate (priced via reverse quote). */
+export interface MandatePositionLive {
+  mandateId: string
+  valueLamports: number
+  unrealizedLamports: number
+  pnlPct: number
+}
+
+export interface AutopilotState {
+  mandates: Mandate[]
+  recentActions: MandateAction[]
+  /** Live position values for armed mandates, keyed by mandateId. Best-effort; may be empty. */
+  positions: MandatePositionLive[]
+  /** True while the scheduler tick loop is running. */
+  running: boolean
 }
 
 export type SolanaTransactionPreviewKind = 'send-sol' | 'send-token' | 'swap' | 'launch'
@@ -2673,7 +2766,7 @@ export type AriaToolEvent =
       status: AriaToolCallStatus
       meta?: string
     }
-  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown }
+  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; fee?: { bps: number; lamports: number; treasury: string } }
   | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }

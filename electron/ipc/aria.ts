@@ -23,7 +23,7 @@ function makeTransport(sender: WebContents): AriaTransport {
     requestApproval: (req) =>
       new Promise<boolean>((resolve) => {
         pendingApprovals.set(req.callId, resolve)
-        emit({ kind: 'approval-request', callId: req.callId, name: req.name, risk: req.risk, summary: req.summary, input: req.input })
+        emit({ kind: 'approval-request', callId: req.callId, name: req.name, risk: req.risk, summary: req.summary, input: req.input, fee: req.fee })
       }),
     requestPatchDecision: (proposal) =>
       new Promise<AriaPatchAction>((resolve) => {

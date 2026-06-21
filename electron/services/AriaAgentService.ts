@@ -40,6 +40,8 @@ export interface AriaTransport {
     risk: AriaTool['risk']
     summary: string
     input: unknown
+    /** Execution-fee quote for this call, shown on the approval card. */
+    fee?: { bps: number; lamports: number; treasury: string }
   }) => Promise<boolean>
   /** Pause for a proposed patch; resolves with the user's keep/run-tests/discard decision. */
   requestPatchDecision: (proposal: AriaPatchProposalLite) => Promise<AriaPatchAction>
@@ -385,12 +387,19 @@ async function executeTool(
   // plan auto-runs `write` tools — but `sensitive` money/key tools always gate.
   const needsApproval = tool.risk === 'sensitive' || (tool.risk !== 'read' && !turnState.planApproved)
   if (needsApproval) {
+    let fee: { bps: number; lamports: number; treasury: string } | undefined
+    try {
+      fee = tool.feePreview?.(use.input) ?? undefined
+    } catch {
+      fee = undefined
+    }
     const approved = await transport.requestApproval({
       callId: use.id,
       name: tool.name,
       risk: tool.risk,
       summary: describeIntent(tool, use.input),
       input: use.input,
+      fee,
     })
     if (!approved) {
       transport.emit({ kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk, status: 'error', meta: 'rejected' })

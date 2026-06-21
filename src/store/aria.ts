@@ -16,6 +16,8 @@ export interface AriaApproval {
   risk: 'read' | 'write' | 'sensitive'
   summary: string
   input: unknown
+  /** Execution-fee quote for this call — rendered as the fee line on the card. */
+  fee?: { bps: number; lamports: number; treasury: string }
 }
 
 /** A live tool-call row inside an assistant turn. */
@@ -294,7 +296,7 @@ function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev:
     case 'approval-request':
       patchActive(set, (t) => ({
         ...t,
-        approvals: [...t.approvals, { callId: ev.callId, name: ev.name, risk: ev.risk, summary: ev.summary, input: ev.input }],
+        approvals: [...t.approvals, { callId: ev.callId, name: ev.name, risk: ev.risk, summary: ev.summary, input: ev.input, fee: ev.fee }],
       }))
       break
     case 'plan':

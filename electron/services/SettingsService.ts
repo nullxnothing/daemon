@@ -689,3 +689,26 @@ export function setEditorPrefs(patch: Partial<EditorPrefs>): EditorPrefs {
   setJsonSetting('editor_prefs', next)
   return next
 }
+
+// --- Hyperliquid (HypurrClaw CLI) integration ---
+
+export type HyperliquidNetwork = 'mainnet' | 'testnet'
+
+export interface HyperliquidSettings {
+  network: HyperliquidNetwork
+}
+
+// Default to testnet so a fresh install never routes ARIA-driven orders to live
+// funds before the operator deliberately opts in.
+const DEFAULT_HYPERLIQUID_SETTINGS: HyperliquidSettings = { network: 'testnet' }
+
+export function getHyperliquidSettings(): HyperliquidSettings {
+  const value = getJsonSetting<HyperliquidSettings>('hyperliquid_settings', DEFAULT_HYPERLIQUID_SETTINGS)
+  return { network: value?.network === 'mainnet' ? 'mainnet' : 'testnet' }
+}
+
+export function setHyperliquidSettings(settings: HyperliquidSettings): HyperliquidSettings {
+  const next: HyperliquidSettings = { network: settings?.network === 'mainnet' ? 'mainnet' : 'testnet' }
+  setJsonSetting('hyperliquid_settings', next)
+  return next
+}

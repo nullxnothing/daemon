@@ -5,6 +5,7 @@ import path from 'node:path'
 import { getInstalledBeardedIconsTheme } from '../services/IconThemeService'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { broadcast } from '../services/EventBus'
 import * as Voight from '../services/VoightService'
 import type { FileEntry } from '../shared/types'
 
@@ -23,6 +24,53 @@ interface ReadDirState {
 
 function validatePath(p: string): void {
   if (!isPathSafe(p)) throw new Error('Path outside project boundaries')
+}
+
+// Single recursive watcher on the active project root. Switching projects swaps
+// it so we never leak watchers. fs.watch supports `recursive: true` on Windows
+// and macOS; events are debounced and noise from ignored dirs (.git, node_modules,
+// build output) is dropped before broadcasting `fs:changed` to renderers.
+interface ProjectWatcher {
+  rootPath: string
+  watcher: fsSync.FSWatcher
+  debounceTimer: NodeJS.Timeout | null
+}
+let activeWatcher: ProjectWatcher | null = null
+const WATCH_DEBOUNCE_MS = 200
+
+function isIgnoredChange(relativePath: string | null): boolean {
+  if (!relativePath) return false
+  return relativePath.split(/[\\/]/).some((segment) => IGNORED.has(segment))
+}
+
+function stopProjectWatcher(): void {
+  if (!activeWatcher) return
+  if (activeWatcher.debounceTimer) clearTimeout(activeWatcher.debounceTimer)
+  try {
+    activeWatcher.watcher.close()
+  } catch {
+    // already closed
+  }
+  activeWatcher = null
+}
+
+function startProjectWatcher(rootPath: string): void {
+  if (activeWatcher?.rootPath === rootPath) return
+  stopProjectWatcher()
+
+  const watcher = fsSync.watch(rootPath, { recursive: true }, (_eventType, filename) => {
+    const relative = filename == null ? null : filename.toString()
+    if (isIgnoredChange(relative)) return
+    if (activeWatcher?.debounceTimer) clearTimeout(activeWatcher.debounceTimer)
+    if (activeWatcher) {
+      activeWatcher.debounceTimer = setTimeout(() => {
+        broadcast('fs:changed', { rootPath })
+      }, WATCH_DEBOUNCE_MS)
+    }
+  })
+  watcher.on('error', () => stopProjectWatcher())
+
+  activeWatcher = { rootPath, watcher, debounceTimer: null }
 }
 
 function trackFileAction(toolExecuted: string, filePath: string, metadata: Record<string, unknown> = {}): void {
@@ -192,6 +240,15 @@ export function registerFilesystemHandlers() {
 
   ipcMain.handle('fs:iconTheme', ipcHandler(async () => {
     return getInstalledBeardedIconsTheme()
+  }))
+
+  ipcMain.handle('fs:watch', ipcHandler(async (_event, rootPath: string) => {
+    validatePath(rootPath)
+    startProjectWatcher(rootPath)
+  }))
+
+  ipcMain.handle('fs:unwatch', ipcHandler(async () => {
+    stopProjectWatcher()
   }))
 }
 

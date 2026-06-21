@@ -18,6 +18,7 @@ import {
   Lifebuoy,
   ListChecks,
   ArrowsClockwise,
+  Gauge,
   Plugs,
   PuzzlePiece,
   Robot,
@@ -119,6 +120,7 @@ const ZauthIcon = createPhosphorIcon(Database)
 const ReadinessIcon = createPhosphorIcon(ListChecks)
 const TokenLaunchIcon = createPhosphorIcon(RocketLaunch)
 const FlywheelIcon = createPhosphorIcon(ArrowsClockwise)
+const AutopilotIcon = createPhosphorIcon(Gauge)
 const ProofPoolIcon = createPhosphorIcon(ShieldStar)
 const ProIcon = createPhosphorIcon(ShieldStar)
 const DaemonAIIcon = createPhosphorIcon(Robot)
@@ -146,6 +148,7 @@ export const TOOL_ICONS: Record<string, ComponentType<{ size?: number }>> = {
   'degentools': DegenToolsIcon,
   'signalhouse': SignalhouseIcon,
   'flywheel': FlywheelIcon,
+  autopilot: AutopilotIcon,
   ricomaps: AgentOpsIcon,
   agentops: AgentOpsIcon,
 }
@@ -190,6 +193,7 @@ const loadClawpump = () => import('../../panels/Clawpump/ClawpumpPanel')
 const loadDegenTools = () => import('../../panels/DegenTools/DegenToolsPanel')
 const loadSignalhouse = () => import('../../panels/Signalhouse/SignalhousePanel')
 const loadFlywheel = () => import('../../panels/Flywheel/FlywheelPanel')
+const loadAutopilot = () => import('../../panels/Autopilot/AutopilotPanel')
 const loadRicoMaps = () => import('../../panels/RicoMaps/RicoMapsPanel')
 
 const GitPanel = lazyNamedWithReload('git-panel', loadGitPanel, (m) => m.GitPanel)
@@ -228,6 +232,7 @@ const ClawpumpPanel = lazyNamedWithReload('clawpump', loadClawpump, (m) => m.Cla
 const DegenToolsPanel = lazyNamedWithReload('degentools', loadDegenTools, (m) => m.DegenToolsPanel)
 const SignalhousePanel = lazyNamedWithReload('signalhouse', loadSignalhouse, (m) => m.SignalhousePanel)
 const FlywheelPanel = lazyNamedWithReload('flywheel', loadFlywheel, (m) => m.FlywheelPanel)
+const AutopilotPanel = lazyNamedWithReload('autopilot', loadAutopilot, (m) => m.AutopilotPanel)
 const RicoMapsPanel = lazyNamedWithReload('ricomaps', loadRicoMaps, (m) => m.RicoMapsPanel)
 
 // Per-tool accent colors for the drawer grid and sidebar.
@@ -271,6 +276,7 @@ export const BUILTIN_TOOLS: DrawerTool[] = [
   { id: 'degentools', name: 'DegenTools', description: 'Generate meme coin assets, shill copy, token data, and Bags.fm launches', icon: DegenToolsIcon, component: DegenToolsPanel, preload: () => { void loadDegenTools() }, category: 'partners', folded: true },
   { id: 'signalhouse', name: 'Signalhouse', description: 'Browse Drift copy-trading strategies, ProofOfEdge rankings, and live risk verdicts', icon: SignalhouseIcon, component: SignalhousePanel, preload: () => { void loadSignalhouse() }, category: 'markets' },
   { id: 'flywheel', name: 'Fee Flywheel', description: 'Configure on-chain creator-fee splits that buy back and burn $DAEMON', icon: FlywheelIcon, component: FlywheelPanel, preload: () => { void loadFlywheel() }, category: 'launch', folded: true },
+  { id: 'autopilot', name: 'Autopilot', description: 'Standing mandates that trade Solana unattended — arm it and walk away', icon: AutopilotIcon, component: AutopilotPanel, preload: () => { void loadAutopilot() }, category: 'markets' },
   { id: 'ricomaps', name: 'RicoMaps', description: 'Token and wallet forensic graphing', icon: AgentOpsIcon, component: RicoMapsPanel, preload: () => { void loadRicoMaps() }, category: 'markets', folded: true },
 ]
 

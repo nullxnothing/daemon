@@ -7,6 +7,18 @@ const RISK_LABEL: Record<AriaApproval['risk'], string> = {
   sensitive: 'SENSITIVE',
 }
 
+const LAMPORTS_PER_SOL = 1_000_000_000
+
+/** The fee line. Always visible when a fee applies — never buried. */
+function FeeRow({ fee }: { fee: NonNullable<AriaApproval['fee']> }) {
+  const sol = fee.lamports / LAMPORTS_PER_SOL
+  return (
+    <div className="agent-approval-fee">
+      fee {(fee.bps / 100).toFixed(2)}% · {sol.toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL → daemon treasury
+    </div>
+  )
+}
+
 export function ApprovalCard({ approval, onDecide }: {
   approval: AriaApproval
   /** Override the decision sink (the bridge surface routes to bridge:approve). Defaults to the ARIA store. */
@@ -53,6 +65,7 @@ export function ApprovalCard({ approval, onDecide }: {
         <span className="agent-approval-name">{approval.name}</span>
       </div>
       <div className="agent-approval-summary">{approval.summary}</div>
+      {approval.fee ? <FeeRow fee={approval.fee} /> : null}
 
       {isSensitive ? (
         <label className="agent-approval-confirm">
