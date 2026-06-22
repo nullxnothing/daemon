@@ -2065,6 +2065,123 @@ export interface IdlePaidCallReceipt {
   updatedAt: number
 }
 
+// --- Agent economy control tower ---
+
+export type AgentEconomyNetwork = 'solana-devnet' | 'solana-mainnet' | 'solana-mainnet-beta' | string
+
+export interface AgentEconomyProfile {
+  id: string
+  projectId: string | null
+  agentId: string | null
+  name: string
+  walletId: string | null
+  walletAddress: string | null
+  registryAsset: string | null
+  agentIdentityPda: string | null
+  serviceUrl: string | null
+  capabilities: string[]
+  policy: AgentEconomySpendPolicy | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AgentEconomySpendPolicy {
+  id: string
+  profileId: string
+  asset: string
+  network: AgentEconomyNetwork
+  allowedDomains: string[]
+  allowedPayees: string[]
+  maxPerCallUsdc: number
+  maxPerDayUsdc: number
+  expiresAt: number | null
+  enabled: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AgentEconomyUpsertProfileInput {
+  id?: string | null
+  projectId?: string | null
+  agentId?: string | null
+  name: string
+  walletId?: string | null
+  walletAddress?: string | null
+  registryAsset?: string | null
+  agentIdentityPda?: string | null
+  serviceUrl?: string | null
+  capabilities?: string[]
+}
+
+export interface AgentEconomySetPolicyInput {
+  profileId: string
+  asset: string
+  network: AgentEconomyNetwork
+  allowedDomains: string[]
+  allowedPayees: string[]
+  maxPerCallUsdc: number
+  maxPerDayUsdc: number
+  expiresAt?: number | null
+  enabled: boolean
+}
+
+export interface AgentEconomyPolicyCheckInput {
+  profileId: string
+  resourceId: string
+  projectId?: string | null
+  taskId?: string | null
+}
+
+export interface AgentEconomyPolicyCheckResult extends IdlePolicyCheckResult {
+  profile: AgentEconomyProfile
+  policy: AgentEconomySpendPolicy | null
+  spentTodayUsdc: number
+  remainingDayBudgetUsdc: number
+}
+
+export interface AgentEconomyExecutePaidCallInput extends AgentEconomyPolicyCheckInput {
+  requestBody?: unknown
+  paymentSignature?: string | null
+  approvedBy?: string | null
+}
+
+export interface AgentEconomyExecutePaidCallResult {
+  status: 'blocked' | 'ready' | 'executed'
+  allowed: boolean
+  reasons: string[]
+  requiresSignature: boolean
+  check: AgentEconomyPolicyCheckResult
+  receipt: IdlePaidCallReceipt | null
+}
+
+export interface AgentEconomyListReceiptsInput {
+  profileId?: string | null
+  projectId?: string | null
+  limit?: number
+}
+
+export type AgentEconomyReceipt = IdlePaidCallReceipt
+
+export interface AgentEconomyRegisterDevnetAgentInput {
+  profileId: string
+  walletId: string
+  rpcUrl: string
+  name: string
+  description: string
+  uri: string
+  serviceUrl: string
+  priceUsdc: string
+  confirmedAt: number
+  acknowledgement: string
+}
+
+export interface AgentEconomyReadAgentIdentityInput {
+  profileId?: string | null
+  network: 'devnet' | 'mainnet-beta'
+  rpcUrl: string
+  assetAddress: string
+}
+
 export interface IdleRegistryStatus {
   registryConfigured: boolean
   registryUrl: string | null
@@ -2073,6 +2190,28 @@ export interface IdleRegistryStatus {
   latestReceipt: IdlePaidCallReceipt | null
   executionReady: boolean
   blockers: string[]
+}
+
+export interface AgentEconomyOverviewInput {
+  projectId?: string | null
+  profileId?: string | null
+}
+
+export interface AgentEconomyOverview {
+  profiles: AgentEconomyProfile[]
+  policies: AgentEconomySpendPolicy[]
+  receipts: IdlePaidCallReceipt[]
+}
+
+export interface AgentEconomyRegisterDevnetAgentResult extends AgentEconomyProfile {
+  profile: AgentEconomyProfile
+  receipt: Record<string, unknown>
+  identity: Record<string, unknown> | null
+}
+
+export interface AgentEconomyReadAgentIdentityResult {
+  profile: AgentEconomyProfile | null
+  identity: Record<string, unknown>
 }
 
 // --- Meterflow control plane ---

@@ -1421,3 +1421,44 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_autopilot_actions_tick
 CREATE INDEX IF NOT EXISTS idx_autopilot_actions_mandate
   ON autopilot_actions(mandate_id, created_at DESC);
 `
+
+export const SCHEMA_V55 = `
+CREATE TABLE IF NOT EXISTS agent_economy_profiles (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  agent_id TEXT,
+  name TEXT NOT NULL,
+  wallet_id TEXT,
+  wallet_address TEXT,
+  registry_asset TEXT,
+  agent_identity_pda TEXT,
+  service_url TEXT,
+  capabilities_json TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_economy_profiles_project
+  ON agent_economy_profiles(project_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_economy_profiles_agent
+  ON agent_economy_profiles(agent_id);
+
+CREATE TABLE IF NOT EXISTS agent_spend_policies (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  network TEXT NOT NULL,
+  allowed_domains_json TEXT NOT NULL DEFAULT '[]',
+  allowed_payees_json TEXT NOT NULL DEFAULT '[]',
+  max_per_call_usdc REAL NOT NULL,
+  max_per_day_usdc REAL NOT NULL,
+  expires_at INTEGER,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY(profile_id) REFERENCES agent_economy_profiles(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_spend_policies_profile
+  ON agent_spend_policies(profile_id);
+CREATE INDEX IF NOT EXISTS idx_agent_spend_policies_enabled
+  ON agent_spend_policies(enabled, expires_at);
+`

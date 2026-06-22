@@ -926,6 +926,18 @@ contextBridge.exposeInMainWorld('daemon', {
     listReceipts: (limit?: number) => ipcRenderer.invoke('idle:list-receipts', limit),
   },
 
+  agentEconomy: {
+    listProfiles: (projectId?: string | null) => ipcRenderer.invoke('agent-economy:list-profiles', projectId ?? null),
+    upsertProfile: (input: unknown) => ipcRenderer.invoke('agent-economy:upsert-profile', input),
+    getProfile: (profileId: string) => ipcRenderer.invoke('agent-economy:get-profile', profileId),
+    setPolicy: (input: unknown) => ipcRenderer.invoke('agent-economy:set-policy', input),
+    checkPolicy: (input: unknown) => ipcRenderer.invoke('agent-economy:check-policy', input),
+    executePaidCall: (input: unknown) => ipcRenderer.invoke('agent-economy:execute-paid-call', input),
+    listReceipts: (input?: unknown) => ipcRenderer.invoke('agent-economy:list-receipts', input ?? {}),
+    registerDevnetAgent: (input: unknown) => ipcRenderer.invoke('agent-economy:register-devnet-agent', input),
+    readAgentIdentity: (input: unknown) => ipcRenderer.invoke('agent-economy:read-agent-identity', input),
+  },
+
   meterflow: {
     status: () => ipcRenderer.invoke('meterflow:status'),
     storeApiKey: (apiKey: string) => ipcRenderer.invoke('meterflow:store-api-key', apiKey),

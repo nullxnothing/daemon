@@ -67,6 +67,7 @@ import { registerSeekerHandlers } from '../ipc/seeker'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
 import { registerAgentStationHandlers } from '../ipc/agentStation'
+import { registerAgentEconomyHandlers } from '../ipc/agentEconomy'
 import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
 import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
@@ -391,6 +392,7 @@ function registerAllIpc() {
   registerFeedbackHandlers()
   registerLspHandlers()
   registerVoightHandlers()
+  registerAgentEconomyHandlers()
 
   // --- Pack-owned domains: registered only when their capability pack is on ---
   const enabled = getEnabledPacks()
