@@ -37,7 +37,7 @@ jobs:
       # import electron can load.
       - run: node node_modules/electron/install.js
       - name: OSV supply-chain scan (lockfile)
-        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         with:
           scan-args: |-
             --config=osv-scanner.toml
