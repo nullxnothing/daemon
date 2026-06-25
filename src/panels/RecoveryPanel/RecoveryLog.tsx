@@ -1,4 +1,5 @@
-import { useRef, useEffect } from 'react'
+import { useRef } from 'react'
+import { useStickyScroll } from '../../hooks/useStickyScroll'
 import { useRecoveryStore, type RecoveryLogEntry } from '../../store/recovery'
 
 const LEVEL_COLOR: Record<RecoveryLogEntry['level'], string> = {
@@ -12,10 +13,7 @@ export function RecoveryLog() {
   const logEntries = useRecoveryStore((s) => s.logEntries)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [logEntries.length])
+  useStickyScroll(scrollRef, [logEntries.length])
 
   return (
     <div className="recovery-log" ref={scrollRef}>

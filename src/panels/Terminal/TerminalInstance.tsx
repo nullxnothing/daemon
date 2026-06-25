@@ -395,7 +395,6 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
       requestAnimationFrame(() => {
         if (disposedRef.current) return
         try { doFit() } catch {}
-        try { term.focus() } catch {}
       })
     })
     // Signal ready after a short delay to let the RAF fit land first,
@@ -464,7 +463,6 @@ export const TerminalInstance = memo(function TerminalInstance({ id, isVisible }
         requestAnimationFrame(() => {
           if (disposedRef.current) return
           try { doFit() } catch {}
-          xtermRef.current?.focus()
         })
       })
     }

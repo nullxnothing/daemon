@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import { useWebviewResizeSync } from '../../hooks/useWebviewResizeSync'
 import type { RicoMapsEmbedStatus } from '../../types/daemon'
 import './RicoMaps.css'
 
@@ -21,6 +22,7 @@ export function RicoMapsPanel() {
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const webviewRef = useRef<WebviewElement | null>(null)
+  useWebviewResizeSync(webviewRef, Boolean(status?.running))
 
   const refreshStatus = useCallback(async () => {
     const result = await window.daemon.forensics.ricoMapsStatus()

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
+import { useStickyScroll } from '../../hooks/useStickyScroll'
 import { useBrowserStore } from '../../store/browser'
 
 interface ChatMessage {
@@ -25,12 +26,7 @@ export function BrowserAgentTerminal({ onAgentNavigate }: BrowserAgentTerminalPr
   const currentUrl = useBrowserStore((s) => s.currentUrl)
   const inspectorResults = useBrowserStore((s) => s.inspectorResults)
 
-  // Auto-scroll on new messages
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages, isThinking])
+  useStickyScroll(scrollRef, [messages.length, isThinking])
 
   // Show new inspector results as chips in the chat
   useEffect(() => {

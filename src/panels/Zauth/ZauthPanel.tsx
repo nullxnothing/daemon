@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import { useWebviewResizeSync } from '../../hooks/useWebviewResizeSync'
 import './ZauthPanel.css'
 
 type ZauthPageId = 'database' | 'provider-hub'
@@ -91,6 +92,7 @@ export function ZauthPanel() {
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
+  useWebviewResizeSync(webviewRef)
 
   const activePage = useMemo(
     () => ZAUTH_PAGES.find((page) => page.id === activePageId) ?? ZAUTH_PAGES[0],
