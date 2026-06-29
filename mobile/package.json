@@ -16,7 +16,7 @@
     "@expo/metro-runtime": "~55.0.10",
     "expo": "~55.0.20",
     "expo-linking": "~55.0.14",
-    "expo-router": "~55.0.13",
+    "expo-router": "~56.2.11",
     "expo-status-bar": "~55.0.5",
     "expo-secure-store": "~14.0.0",
     "expo-constants": "~55.0.15",
