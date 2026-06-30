@@ -156,13 +156,19 @@ export function registerWalletHandlers() {
       throw new Error('Swap confirmation expired — please review the quote again')
     }
 
-    // H1: if the quote has high price impact, acknowledgedImpact must be true
-    if (input.rawQuoteResponse != null) {
-      const quote = input.rawQuoteResponse as Record<string, unknown>
-      const impactPct = typeof quote.priceImpact === 'number'
-        ? Math.abs(quote.priceImpact) * 100
-        : parseFloat(String(quote.priceImpactPct ?? '0'))
-      if (impactPct >= 5 && input.acknowledgedImpact !== true) {
+    // H1: if the quote has high price impact, acknowledgedImpact must be true.
+    // The impact is read from the SERVER-stored draft (keyed by quoteId), never
+    // from the renderer's rawQuoteResponse — otherwise a caller could send a
+    // low/zero priceImpact to skip the acknowledgement. acknowledgedImpact stays a
+    // renderer signal (it records the human's click), but it is only consulted
+    // when the server itself determines the swap is high-impact.
+    const rawQuote = input.rawQuoteResponse
+    const quoteId = rawQuote && typeof rawQuote === 'object' && typeof (rawQuote as Record<string, unknown>).quoteId === 'string'
+      ? (rawQuote as Record<string, unknown>).quoteId as string
+      : null
+    if (quoteId) {
+      const serverImpactPct = WalletService.getServerSwapImpactPct(quoteId)
+      if (serverImpactPct >= 5 && input.acknowledgedImpact !== true) {
         throw new Error('High price impact must be explicitly acknowledged before executing')
       }
     }

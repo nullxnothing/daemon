@@ -137,7 +137,7 @@ vi.mock('@solana/spl-token', () => ({
   ASSOCIATED_TOKEN_PROGRAM_ID: { toBase58: () => 'AssociatedTokenProgram' },
 }))
 
-import { executeSwap, getDashboard, getSwapQuote, searchJupiterTokens, transferSOL, transferToken } from '../../electron/services/WalletService'
+import { executeSwap, getDashboard, getServerSwapImpactPct, getSwapQuote, searchJupiterTokens, transferSOL, transferToken } from '../../electron/services/WalletService'
 
 function makeWalletDbChain(overrides: { walletRow?: object | null; dailySpendTotal?: number } = {}) {
   const walletRow = overrides.walletRow !== undefined
@@ -879,6 +879,38 @@ describe('Jupiter swap — Swap API V2', () => {
       quoteId: quote.quoteId,
       messageHash: quote.messageHash,
     })
+  })
+
+  it('records the server-authoritative price impact for the high-impact gate (not the renderer quote)', async () => {
+    // UI_BUGS residual P3: the high-impact acknowledgement gate must read the
+    // server's stored impact, so a caller cannot send a low/zero priceImpact to
+    // skip it. getServerSwapImpactPct returns the impact captured at quote time.
+    installVersionedTransactionMock()
+    mockGetParsedAccountInfo.mockResolvedValue({
+      value: { data: { program: 'spl-token', parsed: { type: 'mint', info: { decimals: 6 } } } },
+    })
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        inputMint,
+        outputMint,
+        inAmount: '100000000',
+        outAmount: '25000000',
+        priceImpactPct: '0.08', // 8% — well above the 5% high-impact threshold
+        routePlan: [{ swapInfo: { label: 'Orca' }, bps: 10_000 }],
+        transaction: Buffer.from('unsigned').toString('base64'),
+        requestId: 'request-hi',
+        lastValidBlockHeight: '123',
+        taker: walletAddress,
+      }),
+    })
+
+    const quote = await getSwapQuote('w1', inputMint, outputMint, 0.1, 50)
+
+    // The server stored 8% for this quoteId, independent of anything the renderer sends.
+    expect(getServerSwapImpactPct(quote.quoteId)).toBeCloseTo(8, 5)
+    // Unknown quote ids throw (no draft) — execute can never proceed unguarded.
+    expect(() => getServerSwapImpactPct('not-a-real-quote')).toThrow(/expired|not reviewed/i)
   })
 
   it('rejects corrupted raw Jupiter orders before signing or submitting', async () => {

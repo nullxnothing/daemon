@@ -50,12 +50,13 @@ export function ApprovalCard({ approval, onDecide }: {
   }
 
   const isSensitive = approval.risk === 'sensitive'
-  // For sensitive actions, require typing the first string argument (e.g. wallet
-  // name) or the literal CONFIRM as a deliberate gate.
-  const firstArg = approval.input && typeof approval.input === 'object'
-    ? String(Object.values(approval.input as Record<string, unknown>)[0] ?? '')
-    : ''
-  const confirmTarget = firstArg || 'CONFIRM'
+  // For sensitive actions, require typing the tool name as a deliberate gate.
+  // This must be deterministic and meaningful: deriving it from the first input
+  // value (Object.values(input)[0]) made the target depend on argument key order
+  // and could collapse to a number, empty string, or whitespace — a confusing,
+  // low-friction gate. The tool name is always present, never empty, and forces
+  // the user to acknowledge exactly which sensitive action they are authorizing.
+  const confirmTarget = approval.name?.trim() || 'CONFIRM'
   const typedOk = !isSensitive || typed.trim() === confirmTarget
 
   return (

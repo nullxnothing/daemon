@@ -67,12 +67,15 @@ describe('AgentLauncher keyboard selection clamping (UI_BUGS residual P2)', () =
     fireEvent.click(screen.getByRole('button', { name: /Delete Gamma/i }))
     await waitFor(() => expect(screen.queryByText('Gamma')).toBeNull())
 
-    // The clamp effect must have pulled selectedIdx back into range.
-    const selected = document.querySelector('.agent-launcher-item.selected')
-    expect(selected).not.toBeNull()
-    expect(['Alpha', 'Beta'].some((n) => selected?.textContent?.includes(n))).toBe(true)
+    // The clamp effect (useEffect on totalItems) runs after the shrink render, so
+    // wait for it to settle: a real, in-range row must end up selected.
+    await waitFor(() => {
+      const selected = document.querySelector('.agent-launcher-item.selected')
+      expect(selected).not.toBeNull()
+      expect(['Alpha', 'Beta'].some((n) => selected?.textContent?.includes(n))).toBe(true)
+    })
 
-    // Enter now spawns a real, in-range agent — never undefined / off-by-end.
+    // The real contract: Enter spawns a real, in-range agent — never undefined.
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Enter' })
     await waitFor(() => expect(spawnAgent).toHaveBeenCalled())
     expect(['a1', 'a2']).toContain(spawnAgent.mock.calls[0][0].agentId)
