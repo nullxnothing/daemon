@@ -2888,6 +2888,7 @@ export type AriaUiEffect =
   | { type: 'open_tool'; toolId: string }
   | { type: 'run_command'; commandId: string }
   | { type: 'open_file'; path: string }
+  | { type: 'set_active_project'; projectId: string; projectPath: string }
   | { type: 'add_terminal'; terminalId: string; name: string; agentId?: string }
   | { type: 'run_integration'; actionId: string }
   | { type: 'set_integration_enabled'; integrationId: string; enabled: boolean }

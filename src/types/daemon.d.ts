@@ -623,7 +623,7 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
-    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null; agentName?: string }>>
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro' | 'aria'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null; agentName?: string }>>
     ready: (id: string, cols?: number, rows?: number) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void

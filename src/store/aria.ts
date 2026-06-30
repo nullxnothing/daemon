@@ -8,6 +8,7 @@ import { daemon } from '../lib/daemonBridge'
 import { buildAriaSnapshot } from '../lib/ariaContext'
 import { applyUiEffect, runUiEffectWithData } from '../lib/ariaUiEffects'
 import { useUIStore } from './ui'
+import { useAppActions } from './appActions'
 
 /** A pending write/sensitive tool awaiting the user's decision. */
 export interface AriaApproval {
@@ -50,6 +51,23 @@ export interface AriaTurn {
 }
 
 const DEFAULT_LANE: DaemonAiModelLane = 'auto'
+type ProviderId = 'claude' | 'codex'
+type ProviderAuthMode = 'api' | 'cli' | 'both' | 'none'
+type ProviderConnectionLite = {
+  providerId?: ProviderId
+  claudePath?: string
+  cliPath?: string
+  hasApiKey: boolean
+  isAuthenticated: boolean
+  authMode: ProviderAuthMode
+}
+type AriaProviderPrefs = {
+  aria: {
+    provider: ProviderId
+    model: 'fast' | 'standard' | 'reasoning'
+  }
+}
+type ProviderConnectionMapLite = Record<ProviderId, ProviderConnectionLite | null>
 
 interface AriaState {
   turns: AriaTurn[]
@@ -58,11 +76,19 @@ interface AriaState {
   sessions: AriaSession[]
   selectedLane: DaemonAiModelLane
   availableModels: DaemonAiModelInfo[]
+  providerPreferences: AriaProviderPrefs | null
+  providerConnections: ProviderConnectionMapLite
+  providerBusy: ProviderId | 'verify' | null
+  providerNotice: string | null
   /** Plan mode: ARIA presents a plan and waits for one approval before writing. */
   planMode: boolean
 
   sendMessage: (content: string) => Promise<void>
   setPlanMode: (enabled: boolean) => void
+  loadProviderStatus: () => Promise<void>
+  setAriaProvider: (provider: ProviderId) => Promise<void>
+  verifyProviders: () => Promise<void>
+  openProviderLogin: (provider: ProviderId) => Promise<void>
   /** Append a local command echo + result to the transcript without invoking the agent. */
   pushLocalTurn: (command: string, result: string) => void
   approve: (callId: string, approved: boolean) => void
@@ -89,14 +115,31 @@ function activeProjectId(): string | null {
   return useUIStore.getState().activeProjectId ?? null
 }
 
-let activeAssistantId: string | null = null
+/** The in-flight assistant turn id PER session. A single global would be
+ *  overwritten when a second session starts streaming, mis-routing the first
+ *  session's events on switch-back. Keyed by session id; entry is the streaming
+ *  turn's id. Cleared when that turn's send settles. */
+const activeAssistantBySession = new Map<string, string>()
+/** Session ids with an in-flight send(). Drives the per-session loading flag so
+ *  switching away/back never loses or fakes it, and supports concurrent sends in
+ *  different sessions. One send per session at a time (enforced in sendMessage). */
+const inFlightSessions = new Set<string>()
 
 function newTurn(role: 'user' | 'assistant', text = ''): AriaTurn {
   return { id: crypto.randomUUID(), role, text, createdAt: Date.now(), toolCalls: [], approvals: [] }
 }
 
-function patchActive(set: (fn: (s: AriaState) => Partial<AriaState>) => void, fn: (t: AriaTurn) => AriaTurn): void {
-  set((s) => ({ turns: s.turns.map((t) => (t.id === activeAssistantId ? fn(t) : t)) }))
+/** Patch the active assistant turn for a specific session (defaults to the
+ *  currently-viewed session). Routes by that session's own in-flight turn id so
+ *  concurrent sends in different sessions never cross-attach. */
+function patchActive(
+  set: (fn: (s: AriaState) => Partial<AriaState>) => void,
+  fn: (t: AriaTurn) => AriaTurn,
+  sessionId?: string,
+): void {
+  const turnId = activeAssistantBySession.get(sessionId ?? '')
+  if (!turnId) return
+  set((s) => ({ turns: s.turns.map((t) => (t.id === turnId ? fn(t) : t)) }))
 }
 
 export const useAriaStore = create<AriaState>((set, get) => ({
@@ -106,16 +149,86 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   sessions: [],
   selectedLane: DEFAULT_LANE,
   availableModels: [],
+  providerPreferences: null,
+  providerConnections: { claude: null, codex: null },
+  providerBusy: null,
+  providerNotice: null,
   planMode: false,
 
   setPlanMode: (enabled) => set({ planMode: enabled }),
+
+  loadProviderStatus: async () => {
+    const [prefsRes, connRes] = await Promise.all([
+      daemon.provider.getPreferences(),
+      daemon.provider.verifyAll(),
+    ])
+    set({
+      providerPreferences: prefsRes.ok && prefsRes.data ? prefsRes.data as AriaProviderPrefs : get().providerPreferences,
+      providerConnections: connRes.ok && connRes.data ? connRes.data as ProviderConnectionMapLite : get().providerConnections,
+      providerNotice: prefsRes.ok && connRes.ok ? null : prefsRes.error ?? connRes.error ?? 'Provider check failed',
+    })
+  },
+
+  setAriaProvider: async (provider) => {
+    const current = get().providerPreferences
+    const next = current
+      ? { ...current, aria: { ...current.aria, provider } }
+      : { aria: { provider, model: 'fast' as const } }
+    set({ providerPreferences: next, providerNotice: null })
+    const res = await daemon.provider.setPreferences(next)
+    if (res.ok && res.data) {
+      set({ providerPreferences: res.data as AriaProviderPrefs })
+    } else {
+      set({ providerNotice: res.error ?? 'Failed to set ARIA provider' })
+    }
+  },
+
+  verifyProviders: async () => {
+    set({ providerBusy: 'verify', providerNotice: null })
+    try {
+      await get().loadProviderStatus()
+    } finally {
+      set({ providerBusy: null })
+    }
+  },
+
+  openProviderLogin: async (provider) => {
+    const ui = useUIStore.getState()
+    if (!ui.activeProjectId || !ui.activeProjectPath) {
+      set({ providerNotice: 'Open a project before launching a login terminal.' })
+      return
+    }
+    set({ providerBusy: provider, providerNotice: null })
+    try {
+      const startupCommand = provider === 'codex' ? 'codex login' : 'claude'
+      const res = await daemon.terminal.create({
+        cwd: ui.activeProjectPath,
+        startupCommand,
+        userInitiated: true,
+      })
+      if (!res.ok || !res.data) throw new Error(res.error ?? 'Login terminal did not start')
+      ui.setCenterMode('canvas')
+      ui.addTerminal(ui.activeProjectId, res.data.id, provider === 'codex' ? 'Codex Login' : 'Claude Login', res.data.agentId)
+      useAppActions.getState().focusTerminal()
+      set({ providerNotice: `Opened ${provider} login terminal. Complete sign-in, then Verify.` })
+    } catch (err) {
+      set({ providerNotice: (err as Error).message })
+    } finally {
+      set({ providerBusy: null })
+    }
+  },
 
   sendMessage: async (content) => {
     const trimmed = content.trim()
     if (!trimmed) return
     const { sessionId, selectedLane, planMode } = get()
+    // One in-flight send per session: block a second concurrent send in the same
+    // session (otherwise two streams share messageId===sessionId and the older
+    // turn's events would attach to the newer turn).
+    if (inFlightSessions.has(sessionId)) return
     const assistant = newTurn('assistant')
-    activeAssistantId = assistant.id
+    activeAssistantBySession.set(sessionId, assistant.id)
+    inFlightSessions.add(sessionId)
     set((s) => ({ turns: [...s.turns, newTurn('user', trimmed), assistant], isLoading: true }))
 
     try {
@@ -125,13 +238,25 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       // and write it before clearing the active id.
       const snapshot = { ...buildAriaSnapshot(), planMode }
       const res = await daemon.aria.send(sessionId, trimmed, snapshot, selectedLane)
-      const finalText = (res as { ok?: boolean; data?: { text?: string } })?.data?.text
-      if (finalText) patchActive(set, (t) => ({ ...t, text: t.text || finalText }))
+      // Only write the final text if this turn is still this session's active one
+      // (the user may have started a fresh turn in the same session since).
+      if (activeAssistantBySession.get(sessionId) === assistant.id) {
+        const finalText = (res as { ok?: boolean; data?: { text?: string } })?.data?.text
+        if (finalText) patchActive(set, (t) => ({ ...t, text: t.text || finalText }), sessionId)
+      }
     } catch (err) {
-      patchActive(set, (t) => ({ ...t, text: `Error: ${(err as Error).message}` }))
+      if (activeAssistantBySession.get(sessionId) === assistant.id) {
+        patchActive(set, (t) => ({ ...t, text: `Error: ${(err as Error).message}` }), sessionId)
+      }
     } finally {
-      activeAssistantId = null
-      set({ isLoading: false })
+      // Release the in-flight markers for THIS turn only. If a newer turn in the
+      // same session took over, leave its entry untouched.
+      if (activeAssistantBySession.get(sessionId) === assistant.id) {
+        activeAssistantBySession.delete(sessionId)
+      }
+      inFlightSessions.delete(sessionId)
+      // Only flip the visible loading flag off if the user is still on this session.
+      if (get().sessionId === sessionId) set({ isLoading: false })
     }
   },
 
@@ -199,12 +324,21 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   newChat: async () => {
     const res = await daemon.aria.sessions.create(activeProjectId())
     if (!res.ok || !res.data) return
-    set((s) => ({ sessions: [res.data as AriaSession, ...s.sessions], sessionId: (res.data as AriaSession).id, turns: [] }))
+    const newId = (res.data as AriaSession).id
+    // A brand-new session has no in-flight send, so it starts un-loading regardless
+    // of whether another session is still streaming (whose in-flight turn id stays
+    // in activeAssistantBySession, untouched, so switch-back resumes it).
+    set((s) => ({ sessions: [res.data as AriaSession, ...s.sessions], sessionId: newId, turns: [], isLoading: inFlightSessions.has(newId) }))
   },
 
   switchSession: async (sessionId) => {
     if (sessionId === get().sessionId) return
-    set({ sessionId, turns: [] })
+    // Loading is per-session: show it only if THIS session has an in-flight send.
+    // Per-session activeAssistantBySession entries are left intact so each session's
+    // own stream still routes to its turn id. Note: loadHistory() replaces `turns`
+    // with persisted rows, so an unpersisted optimistic turn is dropped on switch —
+    // live streaming for it stops, but the final result still arrives via history.
+    set({ sessionId, turns: [], isLoading: inFlightSessions.has(sessionId) })
     await get().loadHistory()
   },
 
@@ -263,7 +397,7 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   },
 
   subscribe: () => {
-    const offEvent = daemon.aria.onToolEvent((raw) => applyEvent(set, raw as AriaToolEvent))
+    const offEvent = daemon.aria.onToolEvent((raw) => applyEvent(set, get, raw as AriaToolEvent))
     const offEffect = daemon.aria.onUiEffect(({ callId, effect, awaitData }) => {
       const fx = effect as AriaUiEffect
       if (awaitData) {
@@ -276,11 +410,26 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   },
 }))
 
-function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev: AriaToolEvent): void {
+function applyEvent(
+  set: (fn: (s: AriaState) => Partial<AriaState>) => void,
+  get: () => AriaState,
+  ev: AriaToolEvent,
+): void {
+  // Session isolation: every streamed event is tagged with messageId === its
+  // session id. If the user switched sessions while a turn was still streaming,
+  // events for the old session must NOT mutate the now-active session's turns
+  // (they would leak into the wrong conversation — including approval cards).
+  // action-result has no messageId
+  // (keyed by globally-unique proposalId) so it is exempt.
+  if ('messageId' in ev && ev.messageId !== get().sessionId) return
+  // Past the guard, the event belongs to the currently-viewed session, so route
+  // every patch to that session's own in-flight assistant turn.
+  const sid = get().sessionId
+
   switch (ev.kind) {
     case 'assistant-text':
     case 'done':
-      patchActive(set, (t) => ({ ...t, text: ev.text || t.text }))
+      patchActive(set, (t) => ({ ...t, text: ev.text || t.text }), sid)
       break
     case 'tool-call':
       patchActive(set, (t) => {
@@ -291,28 +440,28 @@ function applyEvent(set: (fn: (s: AriaState) => Partial<AriaState>) => void, ev:
         return exists
           ? { ...t, toolCalls: t.toolCalls.map((c) => (c.callId === ev.callId ? { ...c, ...row } : c)) }
           : { ...t, toolCalls: [...t.toolCalls, row] }
-      })
+      }, sid)
       break
     case 'approval-request':
       patchActive(set, (t) => ({
         ...t,
         approvals: [...t.approvals, { callId: ev.callId, name: ev.name, risk: ev.risk, summary: ev.summary, input: ev.input, fee: ev.fee }],
-      }))
+      }), sid)
       break
     case 'plan':
-      patchActive(set, (t) => ({ ...t, plan: ev.steps }))
+      patchActive(set, (t) => ({ ...t, plan: ev.steps }), sid)
       break
     case 'patch-proposal':
-      patchActive(set, (t) => ({ ...t, patch: ev.proposal, actionState: 'deciding' }))
+      patchActive(set, (t) => ({ ...t, patch: ev.proposal, actionState: 'deciding' }), sid)
       break
     case 'memory-suggestion':
       patchActive(set, (t) => ({
         ...t,
         memorySuggestions: [...(t.memorySuggestions ?? []), ev.suggestion],
-      }))
+      }), sid)
       break
     case 'memory-recall':
-      patchActive(set, (t) => ({ ...t, recalledMemories: ev.recalled }))
+      patchActive(set, (t) => ({ ...t, recalledMemories: ev.recalled }), sid)
       break
     case 'action-result':
       set((s) => ({

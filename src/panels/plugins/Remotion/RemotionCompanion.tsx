@@ -66,7 +66,7 @@ export default function RemotionCompanion() {
         const escapedPrompt = REMOTION_SYSTEM_PROMPT.replace(/'/g, "'\\''")
         window.daemon.terminal.write(
           terminalId,
-          `claude --model claude-sonnet-4-20250514 --append-system-prompt "${escapedPrompt}"\r`
+          `claude --model claude-sonnet-4-6 --append-system-prompt "${escapedPrompt}"\r`
         )
       }, 1500)
     } finally {

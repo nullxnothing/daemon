@@ -31,6 +31,33 @@ function bufferRequireShim() {
   }
 }
 
+function electronCjsInteropShim() {
+  const ELECTRON_NAMED_IMPORT = /import\s*\{\s*([^}]+)\s*\}\s*from\s*["']electron["'];?/g
+  return {
+    name: 'daemon-electron-cjs-interop',
+    renderChunk(code: string) {
+      if (!ELECTRON_NAMED_IMPORT.test(code)) return null
+      ELECTRON_NAMED_IMPORT.lastIndex = 0
+      return {
+        code: code.replace(ELECTRON_NAMED_IMPORT, (_match, names: string) => {
+          const imports = names
+            .split(',')
+            .map((name) => name.trim())
+            .filter(Boolean)
+            .map((name) => {
+              const [source, alias] = name.split(/\s+as\s+/)
+              return alias ? `${source}: ${alias}` : source
+            })
+            .join(', ')
+
+          return `import electron from "electron";\nconst { ${imports} } = electron;`
+        }),
+        map: null,
+      }
+    },
+  }
+}
+
 function rendererManualChunks(id: string) {
   if (!id.includes('node_modules')) return undefined
 
@@ -81,6 +108,7 @@ export default defineConfig(({ command }) => {
       },
     },
     plugins: [
+      electronCjsInteropShim(),
       bufferRequireShim(),
       react(),
       electron({
@@ -94,6 +122,7 @@ export default defineConfig(({ command }) => {
             }
           },
           vite: {
+            plugins: [electronCjsInteropShim()],
             build: {
               sourcemap,
               minify: isBuild,
@@ -107,6 +136,7 @@ export default defineConfig(({ command }) => {
         preload: {
           input: 'electron/preload/index.ts',
           vite: {
+            plugins: [electronCjsInteropShim()],
             build: {
               sourcemap: sourcemap ? 'inline' : undefined,
               minify: isBuild,

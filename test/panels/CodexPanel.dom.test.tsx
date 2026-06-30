@@ -30,7 +30,7 @@ function installDaemonBridge() {
             authMode: 'none',
           },
         }),
-        getModel: vi.fn().mockResolvedValue({ ok: true, data: 'gpt-5.4' }),
+        getModel: vi.fn().mockResolvedValue({ ok: true, data: 'gpt-5.5' }),
         getReasoningEffort: vi.fn().mockResolvedValue({ ok: true, data: 'medium' }),
         mcpAll: vi.fn().mockResolvedValue({ ok: true, data: [] }),
         restartAllSessions: vi.fn().mockResolvedValue({ ok: true, data: { restarted: 0, total: 0 } }),

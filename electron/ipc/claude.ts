@@ -1,16 +1,24 @@
 import { ipcMain } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
 import { execSync } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
+import { promisify } from 'node:util'
 import * as SecureKey from '../services/SecureKeyService'
 import * as McpConfig from '../services/McpConfig'
 import * as Anthropic from '../services/AnthropicService'
 import * as Skills from '../services/SkillsConfig'
 import * as ClaudeRouter from '../services/ClaudeRouter'
+import { ClaudeProvider } from '../services/providers/ClaudeProvider'
+import { broadcast } from '../services/EventBus'
+import { getDb } from '../db/db'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler, withValidation } from '../services/IpcHandlerFactory'
 import { restartProviderInPty, restartAllProviderSessions } from '../shared/providerRestart'
 import type { McpAddInput } from '../shared/types'
+
+const execFileAsync = promisify(execFile)
 
 /**
  * Gracefully exit Claude in a PTY and resume with `claude -c`.
@@ -214,5 +222,71 @@ ${content}`,
 
   ipcMain.handle('claude:get-connection', ipcHandler(async () => {
     return ClaudeRouter.getConnection()
+  }))
+
+  ipcMain.handle('claude:install-cli', ipcHandler(async () => {
+    const isWin = process.platform === 'win32'
+    let npmPath = isWin ? 'npm.cmd' : 'npm'
+
+    try {
+      const npmPrefix = execSync('npm prefix -g', { encoding: 'utf8', timeout: 10000 }).trim()
+      const candidate = isWin ? path.join(npmPrefix, 'npm.cmd') : path.join(npmPrefix, 'bin', 'npm')
+      if (fs.existsSync(candidate)) npmPath = candidate
+    } catch {
+      // PATH fallback
+    }
+
+    const { stdout, stderr } = await execFileAsync(npmPath, ['install', '-g', '@anthropic-ai/claude-code'], {
+      timeout: 120000,
+      env: { ...process.env },
+    })
+
+    ClaudeRouter.clearCachedPath()
+    ClaudeRouter.clearCachedConnection()
+    ClaudeProvider.clearCache()
+    broadcast('auth:changed', { providerId: 'claude' })
+
+    return { stdout: stdout.trim(), stderr: stderr.trim() }
+  }))
+
+  ipcMain.handle('claude:auth-login', ipcHandler(async () => {
+    const claudePath = ClaudeRouter.getClaudePath()
+    if (process.platform === 'win32') {
+      const command = `"${claudePath.replace(/"/g, '\\"')}"`
+      spawn('cmd.exe', ['/c', 'start', '""', 'cmd.exe', '/k', command], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: false,
+      }).unref()
+    } else {
+      spawn(claudePath, [], {
+        detached: true,
+        stdio: 'ignore',
+      }).unref()
+    }
+
+    ClaudeRouter.clearCachedConnection()
+    ClaudeProvider.clearCache()
+    broadcast('auth:changed', { providerId: 'claude' })
+    return { success: true }
+  }))
+
+  ipcMain.handle('claude:disconnect', ipcHandler(async () => {
+    const credPath = path.join(os.homedir(), '.claude', '.credentials.json')
+    let disconnected = false
+    if (fs.existsSync(credPath)) {
+      fs.renameSync(credPath, `${credPath}.bak-${Date.now()}`)
+      disconnected = true
+    }
+    try { SecureKey.deleteKey('ANTHROPIC_API_KEY') } catch { /* non-fatal */ }
+
+    ClaudeRouter.clearCachedConnection()
+    ClaudeProvider.clearCache()
+    try {
+      const db = getDb()
+      db.prepare('DELETE FROM app_settings WHERE key IN (?, ?, ?)').run('claude_path', 'claude_auth_mode', 'claude_verified_at')
+    } catch { /* non-fatal */ }
+    broadcast('auth:changed', { providerId: 'claude' })
+    return { disconnected }
   }))
 }

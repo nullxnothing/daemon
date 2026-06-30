@@ -11,7 +11,7 @@ import crypto from 'node:crypto'
 import { getDb } from '../db/db'
 import { runClaudeAgentTurn } from './providers/ClaudeProvider'
 import * as ProviderRegistry from './providers/ProviderRegistry'
-import { resolveOperatorBackend, getGlmEndpoint, type OperatorEndpoint } from './providers/glmConfig'
+import { resolveOperatorBackend, getGlmEndpoint, type OperatorBackend, type OperatorEndpoint } from './providers/glmConfig'
 import { recordLocalAiUsage } from './DaemonAIService'
 import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
 import * as MemoryService from './MemoryService'
@@ -19,7 +19,8 @@ import { assembleSystemPrompt } from './aria/contextAssembler'
 import { clusterMark } from './aria/tools/shared'
 import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiEffect } from './aria/AriaTool'
 import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
-import type { AgentMessage } from './providers/agentTurn'
+import type { AgentMessage, AgentToolUse } from './providers/agentTurn'
+import type { ProviderId } from './providers/ProviderInterface'
 import type {
   AriaMessage, AriaSession, AriaResponse, AriaToolCallRecord, AriaToolEvent,
   AriaPatchProposalLite, AriaPatchAction, AriaPlanStep, DaemonAiModelLane, MemoryKind,
@@ -53,6 +54,45 @@ type ConversationEntry = { role: 'user' | 'assistant'; content: string }
 const conversations = new Map<string, AgentMessage[]>()
 const textHistory = new Map<string, ConversationEntry[]>()
 
+function isProviderAuthed(conn: { isAuthenticated: boolean; authMode: string } | null): boolean {
+  return Boolean(conn && (conn.isAuthenticated || conn.authMode !== 'none'))
+}
+
+async function verifyPreferredProvider(id: ProviderId): Promise<boolean> {
+  try {
+    const provider = ProviderRegistry.get(id)
+    // Fast path: a cached connection (in-memory or a <24h app_settings row) avoids
+    // re-spawning `claude --version` on every turn. Only do the full async verify
+    // on a cold cache.
+    const cached = provider.getConnection()
+    if (cached) return isProviderAuthed(cached)
+    return isProviderAuthed(await provider.verifyConnection())
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Warm the backend-resolution caches off the critical path so the first turn
+ * doesn't pay for a `claude --version` verify. Safe to call fire-and-forget at
+ * startup; errors are swallowed (resolution re-runs lazily on the first turn).
+ */
+export async function prewarmBackend(): Promise<void> {
+  try {
+    await resolveAriaBackend()
+  } catch { /* lazy re-resolve on first turn */ }
+}
+
+async function resolveAriaBackend(): Promise<OperatorBackend | null> {
+  const preferred = ProviderRegistry.getPreferences().aria.provider
+  const backend = resolveOperatorBackend()
+  if (backend === 'glm') return backend
+  if (backend === 'claude' && await verifyPreferredProvider('claude')) return backend
+  if (preferred === 'codex') return null
+  if (backend === 'codex') return null
+  return null
+}
+
 /**
  * Trim old turns without orphaning a tool_use/tool_result pair: drop from the
  * front, then ensure the first remaining message isn't a tool_result-only user
@@ -72,6 +112,98 @@ function isToolResultTurn(msg: AgentMessage): boolean {
     Array.isArray(msg.content) &&
     msg.content.some((b) => (b as { type?: string }).type === 'tool_result')
   )
+}
+
+function isStaleNoToolResponse(text: string): boolean {
+  const lower = text.toLowerCase()
+  return [
+    "don't have a list",
+    "do not have a list",
+    "don't have directory",
+    "can't browse",
+    "can't enumerate",
+    'cannot enumerate',
+    'directory-listing',
+    'list directory',
+    'tell me a filename',
+    'name a file',
+    'give me the path',
+    'specific file if you give me',
+  ].some((pattern) => lower.includes(pattern))
+}
+
+function directToolUsesForMessage(message: string): AgentToolUse[] {
+  const text = message.trim()
+  const uses: AgentToolUse[] = []
+  const add = (name: string, input: Record<string, unknown> = {}) => {
+    const key = `${name}:${JSON.stringify(input)}`
+    if (uses.some((use) => `${use.name}:${JSON.stringify(use.input)}` === key)) return
+    uses.push({ id: `direct_${crypto.randomUUID()}`, name, input })
+  }
+
+  const pathMatch = text.match(/[A-Za-z]:\\[^\r\n"'`]+/)
+  if (pathMatch) {
+    add('activate_project', { project: pathMatch[0].trim().replace(/[)\],;]+$/, '') })
+  }
+
+  if (/\b(read_project_status|project status|status)\b/i.test(text)) {
+    add('read_project_status')
+  }
+  if (/\b(recall_memories|recall.*memor|stored facts|what.*know|durable facts)\b/i.test(text)) {
+    add('recall_memories')
+  }
+  if (
+    /\b(list_project_tree|list files|show files|directory|folder contents|files in the directory|do you see.*files|what files)\b/i.test(text) ||
+    (pathMatch && !/\b(open_file|open file|read_file|read file)\b/i.test(text))
+  ) {
+    add('list_project_tree', { path: '.', limit: 80 })
+  }
+  if (/\b(open_file|open file)\b/i.test(text)) {
+    const file = text.match(/\b(?:open_file|open file)\b[:\s]+(.+)$/i)?.[1]?.trim()
+    if (file) add('open_file', { path: file })
+  }
+  if (/\b(read_file|read file)\b/i.test(text)) {
+    const file = text.match(/\b(?:read_file|read file)\b[:\s]+(.+)$/i)?.[1]?.trim()
+    if (file) add('read_file', { path: file })
+  }
+
+  const readOnly = new Set(['activate_project', 'read_project_status', 'recall_memories', 'list_project_tree', 'open_file', 'read_file'])
+  return uses.filter((use) => readOnly.has(use.name))
+}
+
+function summarizeDirectToolCalls(calls: AriaToolCallRecord[]): string {
+  const sections: string[] = []
+  for (const call of calls) {
+    if (call.status !== 'done') {
+      sections.push(`${call.name}: ${call.summary}`)
+      continue
+    }
+    if (call.name === 'list_project_tree') {
+      const entries = ((call.result as { entries?: Array<{ path: string }> })?.entries ?? []).slice(0, 80)
+      sections.push(entries.length > 0
+        ? `Files:\n${entries.map((entry) => `- ${entry.path}`).join('\n')}`
+        : 'Files: none found.')
+      continue
+    }
+    if (call.name === 'recall_memories') {
+      const memories = (call.result as { memories?: Array<{ kind: string; title: string; value: string }> })?.memories ?? []
+      sections.push(memories.length > 0
+        ? `Stored facts:\n${memories.map((m) => `- ${m.kind}: ${m.title} - ${m.value}`).join('\n')}`
+        : 'Stored facts: none.')
+      continue
+    }
+    if (call.name === 'read_project_status' && typeof call.result === 'object') {
+      sections.push(`Project status:\n\`\`\`json\n${JSON.stringify(call.result, null, 2)}\n\`\`\``)
+      continue
+    }
+    if (call.name === 'read_file' && typeof call.result === 'object') {
+      const result = call.result as { path?: string; content?: string; truncated?: boolean }
+      sections.push(`${result.path ?? 'file'}${result.truncated ? ' (truncated)' : ''}:\n\`\`\`\n${result.content ?? ''}\n\`\`\``)
+      continue
+    }
+    sections.push(call.summary)
+  }
+  return sections.join('\n\n')
 }
 
 function persistMessage(msg: Omit<AriaMessage, 'id' | 'created_at'>): string {
@@ -110,11 +242,44 @@ export async function sendMessage(
   persistMessage({ role: 'user', content: userMessage, metadata: '{}', session_id: sessionId })
   touchSession(sessionId, userMessage)
 
+  const tools = toAnthropicTools(ARIA_TOOLS)
+  const { system, recalled } = await assembleSystemPrompt(snapshot)
+  if (recalled.length > 0) {
+    transport.emit({ kind: 'memory-recall', messageId: sessionId, recalled })
+  }
+  // Mutable plan/patch state the special-cased tools fill in as the loop runs.
+  const turnState: TurnState = { plan: [], patch: null, planApproved: false }
+  const ctx = { sessionId, snapshot, runUiEffect: transport.runUiEffect }
+
+  const toolCalls: AriaToolCallRecord[] = []
+  const directUses = directToolUsesForMessage(userMessage)
+  if (directUses.length > 0) {
+    for (const use of directUses) {
+      toolCalls.push(await executeTool(use, ctx, transport, turnState))
+    }
+    const finalText = summarizeDirectToolCalls(toolCalls)
+    messages.push({ role: 'assistant', content: finalText })
+    trimHistory(messages)
+    text.push({ role: 'assistant', content: finalText })
+    persistMessage({
+      role: 'assistant',
+      content: finalText,
+      metadata: JSON.stringify({ toolCalls }),
+      session_id: sessionId,
+    })
+    touchSession(sessionId)
+    transport.emit({ kind: 'done', messageId: sessionId, text: finalText })
+    return { text: finalText, actions: [], toolCalls }
+  }
+
   // Pick the operator backend by what's actually usable (GLM preferred — cheapest).
   // GLM and Claude both run the full Anthropic tool-loop; Codex is chat-only; none -> error.
-  const backend = resolveOperatorBackend()
+  const backend = await resolveAriaBackend()
   if (!backend) {
-    const message = 'No AI provider is ready. Add a Z.AI (GLM) key or an Anthropic API key in Settings, or sign into Codex.'
+    const preferred = ProviderRegistry.getPreferences().aria.provider
+    const message = preferred === 'codex'
+      ? 'ARIA needs a tool-capable backend for operator actions. Codex is text-only here; add a ZAI_API_KEY or sign in to Claude in Settings.'
+      : `ARIA is set to ${preferred}, but that provider is not ready. Update AI Providers in Settings or sign in to Claude.`
     transport.emit({ kind: 'done', messageId: sessionId, text: message })
     text.push({ role: 'assistant', content: message })
     persistMessage({ role: 'assistant', content: message, metadata: '{}', session_id: sessionId })
@@ -127,19 +292,10 @@ export async function sendMessage(
   // backend is 'glm' or 'claude' — both drive the tool-loop below.
   const endpoint = backend === 'glm' ? getGlmEndpoint() ?? undefined : undefined
 
-  const tools = toAnthropicTools(ARIA_TOOLS)
-  const { system, recalled } = await assembleSystemPrompt(snapshot)
-  if (recalled.length > 0) {
-    transport.emit({ kind: 'memory-recall', messageId: sessionId, recalled })
-  }
-  // Mutable plan/patch state the special-cased tools fill in as the loop runs.
-  const turnState: TurnState = { plan: [], patch: null, planApproved: false }
-  const ctx = { sessionId, snapshot, runUiEffect: transport.runUiEffect }
-
-  const toolCalls: AriaToolCallRecord[] = []
   let finalText = ''
   const deadline = Date.now() + AGENT_DEADLINE_MS
   let promptForUsage = userMessage
+  let retriedStaleNoToolResponse = false
 
   try {
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
@@ -150,12 +306,27 @@ export async function sendMessage(
 
       const turn = await runClaudeAgentTurn({ messages, system, model, tools, maxTokens: 2048 }, endpoint)
       promptForUsage = system
+
+      if (turn.toolUses.length === 0) {
+        if (!retriedStaleNoToolResponse && isStaleNoToolResponse(turn.text)) {
+          retriedStaleNoToolResponse = true
+          messages.push({
+            role: 'user',
+            content: 'You answered without using tools. Use the available ARIA tools now: activate_project for project paths, list_project_tree for directory contents, read_file/open_file for files, and read_project_status plus recall_memories for project knowledge. Do not ask for a filename unless the user specifically requests opening one.',
+          })
+          continue
+        }
+        if (turn.text) {
+          finalText = turn.text
+          transport.emit({ kind: 'assistant-text', messageId: sessionId, text: turn.text })
+        }
+        break
+      }
+
       if (turn.text) {
         finalText = turn.text
         transport.emit({ kind: 'assistant-text', messageId: sessionId, text: turn.text })
       }
-
-      if (turn.toolUses.length === 0) break
 
       // Record the assistant turn (with its tool_use blocks) verbatim.
       messages.push({
@@ -180,6 +351,10 @@ export async function sendMessage(
       messages.push({ role: 'user', content: toolResults })
     }
   } catch (err) {
+    const fallback = ProviderRegistry.getFeatureProvider('aria')
+    if (fallback.id === 'claude' && await verifyPreferredProvider('claude')) {
+      return legacyAnswer(sessionId, userMessage, fallback, text, transport)
+    }
     finalText = `Error: ${(err as Error).message}`
   }
 
@@ -434,7 +609,10 @@ async function handlePresentPlan(
   turnState.plan = buildPlanSteps(rawSteps.map((s) => String(s?.title ?? '')))
   if (turnState.plan.length > 0) {
     turnState.plan[0].status = 'active'
-    transport.emit({ kind: 'plan', messageId: use.id, steps: turnState.plan.map((s) => ({ ...s })) })
+    // messageId is the session id on every other emit; the renderer drops events
+    // whose messageId != the active session, so this must be ctx.sessionId (not
+    // the tool-call id) or plan events would be discarded after a session switch.
+    transport.emit({ kind: 'plan', messageId: ctx.sessionId, steps: turnState.plan.map((s) => ({ ...s })) })
   }
 
   // Plan mode: pause for one approval. Reuses the approval transport with a
