@@ -111,7 +111,7 @@ export function getPreferences(): ProviderPreferences {
   const fallback = getDefaultId()
   const defaults: ProviderPreferences = {
     aria: {
-      provider: providers.has('codex') ? 'codex' : fallback,
+      provider: providers.has('claude') ? 'claude' : fallback,
       model: 'fast',
     },
     daemonAi: {

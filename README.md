@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-645%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-979%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">
@@ -99,9 +99,23 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 **Agent Launcher** — Spawn Claude Code agents with custom system prompts, model selection, and per-project MCP configurations. Agents run as real CLI sessions in dedicated terminal tabs.
 
-**Operator Console** — The right-panel AI operator drives the whole IDE from natural language. Per-project chat sessions (new / switch / rename / archive / delete) with memory that survives restarts. It can run DAEMON itself — create an agent wallet for the codebase, spin up a Clawpump agent, preflight and launch a token, configure the Flywheel, commit changes — through a tool catalog with typed confirmation for sensitive on-chain actions (and a `[MAINNET]` guard). It never pushes to git autonomously.
+**VS Code-style shell + capability packs** — Explorer, editor, a bottom-panel terminal, and the DAEMON Console on the right rail. Domain features ship as toggleable capability packs (Solana, Wallet, Launch, Agents, Memory, Sites, Markets, Create); disabling a pack quiesces its tools, integrations, sidebar icon, console commands, and background work — IPC handlers included. The Capability Manager shows how many packs are active and how much backend work is idle.
 
-**Agent Swarms** — From the operator, launch several tasks to run in parallel, each in its own isolated git worktree and branch, driven by a separate Claude agent. The Swarms tab shows live run/lane status; each lane writes a `RESULTS.md`. Concurrency is capped and worktrees are cleaned up automatically — merging stays a manual, reviewed step.
+**DAEMON Console (ARIA operator)** — The right-rail AI operator drives the whole IDE from natural language, chat-first with `>` and `/` command accelerators. Per-project chat sessions (new / switch / rename / archive / delete) with memory that survives restarts and compounds: the console proposes durable facts after real work (Keep/Dismiss), cites which taught facts a turn drew on, and strengthens proven facts over time. It runs DAEMON itself — agent wallets, token preflight/launch, Flywheel config, git — through a registry of typed tools with typed confirmation for sensitive on-chain actions (and a `[MAINNET]` guard). It never pushes to git autonomously.
+
+**ARIA Autopilot** — Standing, structured trading mandates parsed from natural language and executed unattended on mainnet on a fixed cadence, with exit rules (take-profit / stop-loss / liquidity floor), a hard exposure cap, arm/disarm/kill-switch, and a "The Desk" panel showing live unrealized P&L and the action tape. Every tick claims its ledger row before it swaps, so a crash mid-tick is held for review, never replayed into a double-buy; a cluster switch auto-holds armed mandates; unattended slippage and price impact are capped tighter than a human-confirmed trade.
+
+**Hyperliquid (via HypurrClaw)** — ARIA reads Hyperliquid markets and trades perps/spot by driving the agent-first `hyperliquid` CLI through a single execFile gate (no raw shell). Network defaults to testnet, DAEMON never holds a Hyperliquid key (the CLI's encrypted wallet signs), and every signing action stops for typed confirmation with an `[HL-MAINNET]`/`[HL-TESTNET]` marker.
+
+**Execution fee meter** — Agent-routed SOL transfers on mainnet carry a transparent fee line surfaced on the approval card before anything runs, never charged silently. The rate is config-driven (default 0.25%, hard ceiling 0.75%), devnet is always free, and it stays disabled until a treasury is configured. Jupiter swaps sign a prebuilt transaction and are not fee-metered.
+
+**Agent bridge (MCP)** — A loopback MCP server with bearer-token auth exposes DAEMON's gated wallet, launch, and memory tools to external agents (Cursor, Claude Code). Every call re-filters against enabled packs, file reads deny secret-bearing paths, and sensitive actions route through the same approval gate as ARIA.
+
+**Agent economy control tower** — Track agent-routed execution, fees, and paid-resource (x402/IDLE) activity in one panel, with policy-and-budget-gated paid calls and redacted receipts.
+
+**Agent Swarms** — Launch several tasks in parallel, each in its own isolated git worktree and branch, driven by a separate headless Claude agent with a minimal allowlisted env and push disabled at the git layer. The Swarms tab shows live run/lane status; each lane writes a `RESULTS.md`. Concurrency is capped, worktrees are cleaned up automatically, and merging stays a manual, reviewed step.
+
+**Venum** — First-class Solana execution provider in the Markets pack: live/batch prices and ranked swap quotes, with read-tier ARIA tools and an Integration Command Center card.
 
 **MCP Management** — Toggle project-level and global MCP servers from the sidebar. Changes write directly to `.claude/settings.json` and `.mcp.json` with a restart indicator when configs change.
 
@@ -121,9 +135,9 @@ Requires **Node.js 22+** and **pnpm 9+**.
 
 **PumpFun Integration** — Token launches and bonding curve interactions directly from the IDE.
 
-**Multi-Project Tabs** — Tabbed project switching with per-project terminal sessions, MCP configs, and file trees. Context switching without losing state.
+**Editor settings** — Font family/size, tab size, word wrap, minimap, and theme configurable in Settings › Display and applied to Monaco live, including a `daemon-light` theme.
 
-**Plugin System** — Extensible architecture for loading additional panels and integrations.
+**Multi-project switching** — Per-project terminal sessions, MCP configs, wallets, and file trees. Context switching without losing state.
 
 ## DAEMON AI and Access
 

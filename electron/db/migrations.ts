@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37, SCHEMA_V38, SCHEMA_V39, SCHEMA_V40, SCHEMA_V41, SCHEMA_V42, SCHEMA_V43, SCHEMA_V44, SCHEMA_V45, SCHEMA_V46, SCHEMA_V47, SCHEMA_V48, SCHEMA_V49, SCHEMA_V50, SCHEMA_V51, SCHEMA_V52, SCHEMA_V53, SCHEMA_V54 } from './schema'
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37, SCHEMA_V38, SCHEMA_V39, SCHEMA_V40, SCHEMA_V41, SCHEMA_V42, SCHEMA_V43, SCHEMA_V44, SCHEMA_V45, SCHEMA_V46, SCHEMA_V47, SCHEMA_V48, SCHEMA_V49, SCHEMA_V50, SCHEMA_V51, SCHEMA_V52, SCHEMA_V53, SCHEMA_V54, SCHEMA_V55, SCHEMA_V56, SCHEMA_V57 } from './schema'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -656,6 +656,45 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 55) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V55.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(55)
+    })()
+  }
+
+  if (currentVersion < 56) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V56.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(56)
+    })()
+  }
+
+  if (currentVersion < 57) {
+    db.transaction(() => {
+      const stmts = SCHEMA_V57.split(';').map((s) => s.trim()).filter(Boolean)
+      for (const stmt of stmts) {
+        try { db.exec(stmt) } catch (err) {
+          const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+          if (!msg.includes('duplicate column') && !msg.includes('already exists')) throw err
+        }
+      }
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(57)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -689,7 +728,7 @@ Output format:
 - For debugging: show the failing instruction index and decoded error
 
 Proceed immediately with the task. Ask for clarification only when the target program/network (devnet vs mainnet) is ambiguous.`,
-        'claude-opus-4-20250514',
+        'claude-opus-4-8',
         '["filesystem"]',
         'cmd+shift+s',
         'daemon',
@@ -726,7 +765,7 @@ You help builders:
 - Find market gaps ("What's missing in the ecosystem?")
 
 Output: bullet points with inline citations. Be direct. No fluff.`,
-        'claude-sonnet-4-20250514',
+        'claude-sonnet-4-6',
         '["filesystem"]',
         null,
         'daemon',
@@ -873,7 +912,7 @@ Output format:
 - If a fix touches IPC, show both the handler (electron/ipc/) and the renderer call site
 
 Proceed with diagnosis immediately when given an error or symptom. Ask for clarification only when the symptom is ambiguous and multiple subsystems could be responsible.`,
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       mcps: '["filesystem"]',
       shortcut: 'cmd+shift+d',
     },
@@ -895,7 +934,7 @@ Output format:
 - End with a summary table: total findings by severity
 
 Ask for clarification only when the audit scope is unclear (e.g., "audit everything" with 50+ files). Otherwise, proceed with the files available.`,
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       mcps: '["filesystem"]',
       shortcut: 'cmd+2',
     },
@@ -920,7 +959,7 @@ Output format:
 - Conservative changes only — do not refactor architecture or change public APIs unless asked
 
 Proceed immediately with the files or diff provided. Ask for clarification only if no files or diff are given.`,
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       mcps: '["filesystem"]',
       shortcut: 'cmd+3',
     },
@@ -1026,7 +1065,7 @@ Rules:
 - Invoke relevant /skill when working with a specific protocol
 
 Proceed immediately. Ask for clarification only when target network is ambiguous.`,
-      model: 'claude-opus-4-20250514',
+      model: 'claude-opus-4-8',
       mcps: '["filesystem","helius","solana-mcp-server"]',
       shortcut: 'cmd+shift+s',
     },

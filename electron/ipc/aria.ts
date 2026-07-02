@@ -1,9 +1,10 @@
 import { ipcMain } from 'electron'
 import type { WebContents } from 'electron'
 import { ipcHandler } from '../services/IpcHandlerFactory'
+import { isTrustedSender } from '../security/ipcSender'
 import * as AriaAgentService from '../services/AriaAgentService'
 import * as DaemonAIService from '../services/DaemonAIService'
-import type { AriaTransport } from '../services/AriaAgentService'
+import type { AriaTransport, AriaEmitEvent } from '../services/AriaAgentService'
 import type { AriaContextSnapshot, AriaUiEffect } from '../services/aria/AriaTool'
 import type { AriaToolEvent, AriaPatchAction, DaemonAiModelLane } from '../shared/types'
 
@@ -14,21 +15,30 @@ const pendingEffects = new Map<string, (data: unknown) => void>()
 
 let effectSeq = 0
 
-function makeTransport(sender: WebContents): AriaTransport {
-  const emit = (event: AriaToolEvent) => {
-    if (!sender.isDestroyed()) sender.send('aria:tool-event', event)
+function makeTransport(sender: WebContents, sessionId: string): AriaTransport {
+  // Stamp every streamed event with messageId === sessionId so the renderer's
+  // session-isolation guard can route uniformly. tool-call / approval-request /
+  // patch-proposal are emitted from deep call sites without an explicit
+  // messageId, so we inject the session id here rather than trusting each site
+  // (a missing tag would silently drop the event and hang the turn).
+  const emit = (event: AriaEmitEvent) => {
+    const tagged: AriaToolEvent =
+      'messageId' in event && event.messageId
+        ? (event as AriaToolEvent)
+        : ({ ...event, messageId: sessionId } as AriaToolEvent)
+    if (!sender.isDestroyed()) sender.send('aria:tool-event', tagged)
   }
   return {
     emit,
     requestApproval: (req) =>
       new Promise<boolean>((resolve) => {
         pendingApprovals.set(req.callId, resolve)
-        emit({ kind: 'approval-request', callId: req.callId, name: req.name, risk: req.risk, summary: req.summary, input: req.input, fee: req.fee })
+        emit({ kind: 'approval-request', messageId: sessionId, callId: req.callId, name: req.name, risk: req.risk, summary: req.summary, input: req.input, fee: req.fee })
       }),
     requestPatchDecision: (proposal) =>
       new Promise<AriaPatchAction>((resolve) => {
         pendingDecisions.set(proposal.id, resolve)
-        emit({ kind: 'patch-proposal', messageId: proposal.id, proposal })
+        emit({ kind: 'patch-proposal', messageId: sessionId, proposal })
       }),
     runUiEffect: (effect: AriaUiEffect, awaitData: boolean) =>
       new Promise<unknown>((resolve) => {
@@ -53,7 +63,7 @@ export function registerAriaHandlers() {
     modelLane?: DaemonAiModelLane,
   ) => {
     if (!message?.trim()) throw new Error('Message cannot be empty')
-    const transport = makeTransport(event.sender)
+    const transport = makeTransport(event.sender, sessionId)
     return await AriaAgentService.sendMessage(sessionId, message.trim(), snapshot, transport, modelLane)
   }))
 
@@ -89,8 +99,11 @@ export function registerAriaHandlers() {
     AriaAgentService.deleteSession(sessionId)
   }))
 
-  // Renderer resolves a pending approval.
-  ipcMain.on('aria:approve', (_event, callId: string, approved: boolean) => {
+  // Renderer resolves a pending approval. These raw channels resolve write/sensitive actions,
+  // so — like bridge:approve and terminal's raw channels — they must reject an untrusted sender:
+  // a spoofed frame here would convert directly into an approved mainnet action.
+  ipcMain.on('aria:approve', (event, callId: string, approved: boolean) => {
+    if (!isTrustedSender(event)) return
     const resolve = pendingApprovals.get(callId)
     if (resolve) {
       pendingApprovals.delete(callId)
@@ -99,7 +112,8 @@ export function registerAriaHandlers() {
   })
 
   // Renderer resolves a pending patch decision (keep / run-tests / discard).
-  ipcMain.on('aria:patch-decision', (_event, proposalId: string, action: AriaPatchAction) => {
+  ipcMain.on('aria:patch-decision', (event, proposalId: string, action: AriaPatchAction) => {
+    if (!isTrustedSender(event)) return
     const resolve = pendingDecisions.get(proposalId)
     if (resolve) {
       pendingDecisions.delete(proposalId)
@@ -108,7 +122,8 @@ export function registerAriaHandlers() {
   })
 
   // Renderer posts back data for a two-phase ui-effect (e.g. integration check).
-  ipcMain.on('aria:tool-effect-result', (_event, callId: string, data: unknown) => {
+  ipcMain.on('aria:tool-effect-result', (event, callId: string, data: unknown) => {
+    if (!isTrustedSender(event)) return
     const resolve = pendingEffects.get(callId)
     if (resolve) {
       pendingEffects.delete(callId)

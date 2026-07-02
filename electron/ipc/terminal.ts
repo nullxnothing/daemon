@@ -280,7 +280,7 @@ export function registerTerminalHandlers() {
     cwd?: string
     initialPrompt?: string
   }) => {
-    if (opts.providerId !== 'claude' && opts.providerId !== 'codex' && opts.providerId !== 'spettro') {
+    if (opts.providerId !== 'claude' && opts.providerId !== 'codex' && opts.providerId !== 'spettro' && opts.providerId !== 'aria') {
       throw new Error('Unsupported provider')
     }
 
@@ -309,7 +309,7 @@ export function registerTerminalHandlers() {
       id,
       pid: session.pty.pid,
       agentId: null,
-      agentName: opts.providerId === 'claude' ? 'Claude' : opts.providerId === 'codex' ? 'Codex' : 'Spettro',
+      agentName: opts.providerId === 'claude' ? 'Claude' : opts.providerId === 'codex' ? 'Codex' : opts.providerId === 'aria' ? 'Aria' : 'Spettro',
     }
     Voight.emitEventSafe({
       agentId: opts.providerId,

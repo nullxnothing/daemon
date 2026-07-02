@@ -62,7 +62,7 @@ interface CreateFormProps {
   onCancel: () => void
 }
 
-function CreateForm({ onCreated, onCancel }: CreateFormProps) {
+export function CreateForm({ onCreated, onCancel }: CreateFormProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [template, setTemplate] = useState<AgentTemplate>('basic')
@@ -89,17 +89,23 @@ function CreateForm({ onCreated, onCancel }: CreateFormProps) {
     if (plugins.length === 0) { setError('Select at least one plugin'); return }
     setBusy(true)
     setError(null)
-    const res = await daemon.agentStation.create({
-      name: name.trim(),
-      description: description.trim() || undefined,
-      template,
-      plugins,
-      rpc_url: rpcUrl.trim() || null,
-      model,
-    })
-    setBusy(false)
-    if (!res.ok) { setError(res.error ?? 'Failed to create agent'); return }
-    onCreated(res.data!)
+    try {
+      const res = await daemon.agentStation.create({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        template,
+        plugins,
+        rpc_url: rpcUrl.trim() || null,
+        model,
+      })
+      if (!res.ok) { setError(res.error ?? 'Failed to create agent'); return }
+      onCreated(res.data!)
+    } catch (err) {
+      setError((err as Error).message ?? 'Failed to create agent')
+    } finally {
+      // Always release the button — a thrown IPC error must not wedge it on "Creating…".
+      setBusy(false)
+    }
   }
 
   return (
@@ -167,7 +173,7 @@ function CreateForm({ onCreated, onCancel }: CreateFormProps) {
           <option value="gpt-4o">GPT-4o</option>
           <option value="gpt-4o-mini">GPT-4o Mini</option>
           <option value="gpt-4-turbo">GPT-4 Turbo</option>
-          <option value="claude-opus-4-20250514">Claude Opus 4</option>
+          <option value="claude-opus-4-8">Claude Opus 4</option>
           <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
         </select>
       </div>
@@ -251,12 +257,17 @@ function AgentCard({ config, wallets, onDeleted, onStatusChange }: AgentCardProp
   async function handleScaffold() {
     setScaffolding(true)
     setScaffoldMsg(null)
-    const dirRes = await daemon.agentStation.pickOutputDir()
-    if (!dirRes.ok || !dirRes.data) { setScaffolding(false); return }
-    const res = await daemon.agentStation.scaffold(config.id, dirRes.data)
-    setScaffolding(false)
-    if (!res.ok) { setScaffoldMsg('Error: ' + (res.error ?? 'scaffold failed')); return }
-    setScaffoldMsg('Scaffolded to ' + res.data!.projectPath)
+    try {
+      const dirRes = await daemon.agentStation.pickOutputDir()
+      if (!dirRes.ok || !dirRes.data) return
+      const res = await daemon.agentStation.scaffold(config.id, dirRes.data)
+      if (!res.ok) { setScaffoldMsg('Error: ' + (res.error ?? 'scaffold failed')); return }
+      setScaffoldMsg('Scaffolded to ' + res.data!.projectPath)
+    } catch (err) {
+      setScaffoldMsg('Error: ' + ((err as Error).message ?? 'scaffold failed'))
+    } finally {
+      setScaffolding(false)
+    }
   }
 
   async function handleRun() {
@@ -265,30 +276,34 @@ function AgentCard({ config, wallets, onDeleted, onStatusChange }: AgentCardProp
       return
     }
     setRunning(true)
-    let project = projects.find((item) => item.path === config.project_path)
-    if (!project) {
-      const created = await daemon.projects.create({ name: config.name, path: config.project_path })
-      if (!created.ok || !created.data) {
-        setRunning(false)
-        setScaffoldMsg('Failed to register project: ' + (created.error ?? 'unknown error'))
-        return
+    try {
+      let project = projects.find((item) => item.path === config.project_path)
+      if (!project) {
+        const created = await daemon.projects.create({ name: config.name, path: config.project_path })
+        if (!created.ok || !created.data) {
+          setScaffoldMsg('Failed to register project: ' + (created.error ?? 'unknown error'))
+          return
+        }
+        project = created.data
+        setProjects([created.data, ...projects])
       }
-      project = created.data
-      setProjects([created.data, ...projects])
-    }
-    setActiveProject(project.id, project.path)
-    setCenterMode('canvas')
-    setActiveWorkspaceTool(null)
-    focusTerminal()
+      setActiveProject(project.id, project.path)
+      setCenterMode('canvas')
+      setActiveWorkspaceTool(null)
+      focusTerminal()
 
-    const termRes = await daemon.terminal.create({ cwd: config.project_path, startupCommand: 'npm start', userInitiated: true })
-    setRunning(false)
-    if (!termRes.ok) { setScaffoldMsg('Failed to open terminal: ' + termRes.error); return }
-    addTerminal(project.id, termRes.data!.id, `${config.name} Agent`, termRes.data!.agentId)
-    focusTerminal()
-    await daemon.agentStation.updateStatus(config.id, 'running')
-    onStatusChange(config.id, 'running')
-    setScaffoldMsg('Running in Terminal')
+      const termRes = await daemon.terminal.create({ cwd: config.project_path, startupCommand: 'npm start', userInitiated: true })
+      if (!termRes.ok) { setScaffoldMsg('Failed to open terminal: ' + termRes.error); return }
+      addTerminal(project.id, termRes.data!.id, `${config.name} Agent`, termRes.data!.agentId)
+      focusTerminal()
+      await daemon.agentStation.updateStatus(config.id, 'running')
+      onStatusChange(config.id, 'running')
+      setScaffoldMsg('Running in Terminal')
+    } catch (err) {
+      setScaffoldMsg('Failed to run: ' + ((err as Error).message ?? 'unknown error'))
+    } finally {
+      setRunning(false)
+    }
   }
 
   async function handleStop() {
@@ -299,8 +314,15 @@ function AgentCard({ config, wallets, onDeleted, onStatusChange }: AgentCardProp
   async function handleDelete() {
     if (deleting) return
     setDeleting(true)
-    await daemon.agentStation.delete(config.id)
-    onDeleted(config.id)
+    try {
+      const res = await daemon.agentStation.delete(config.id)
+      if (!res.ok) { setScaffoldMsg('Delete failed: ' + (res.error ?? 'unknown error')); setDeleting(false); return }
+      onDeleted(config.id) // unmounts this card — do not reset deleting on success.
+    } catch (err) {
+      // Release the button so the user can retry; a thrown error must not wedge it.
+      setScaffoldMsg('Delete failed: ' + ((err as Error).message ?? 'unknown error'))
+      setDeleting(false)
+    }
   }
 
   async function handlePublishSap() {
@@ -310,22 +332,27 @@ function AgentCard({ config, wallets, onDeleted, onStatusChange }: AgentCardProp
     }
     setSapPublishing(true)
     setSapMsg(null)
-    const res = await daemon.synapse.registerAgent({
-      walletId,
-      agentStationId: config.id,
-      cluster: SAP_CLUSTER,
-      capabilityIds: defaultCapabilityIds(config, plugins),
-      protocolIds: DEFAULT_PROTOCOL_IDS,
-    })
-    setSapPublishing(false)
-    if (!res.ok || !res.data) {
-      setSapMsg('SAP error: ' + (res.error ?? 'publish failed'))
-      return
-    }
-    setSapMsg(`SAP published: ${shortAddress(res.data.signature)}`)
-    if (selectedWallet) {
-      const agentRes = await daemon.synapse.getAgent(selectedWallet.address, { cluster: SAP_CLUSTER })
-      if (agentRes.ok) setSapAgent(agentRes.data ?? null)
+    try {
+      const res = await daemon.synapse.registerAgent({
+        walletId,
+        agentStationId: config.id,
+        cluster: SAP_CLUSTER,
+        capabilityIds: defaultCapabilityIds(config, plugins),
+        protocolIds: DEFAULT_PROTOCOL_IDS,
+      })
+      if (!res.ok || !res.data) {
+        setSapMsg('SAP error: ' + (res.error ?? 'publish failed'))
+        return
+      }
+      setSapMsg(`SAP published: ${shortAddress(res.data.signature)}`)
+      if (selectedWallet) {
+        const agentRes = await daemon.synapse.getAgent(selectedWallet.address, { cluster: SAP_CLUSTER })
+        if (agentRes.ok) setSapAgent(agentRes.data ?? null)
+      }
+    } catch (err) {
+      setSapMsg('SAP error: ' + ((err as Error).message ?? 'publish failed'))
+    } finally {
+      setSapPublishing(false)
     }
   }
 

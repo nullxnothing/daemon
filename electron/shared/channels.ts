@@ -73,6 +73,7 @@ export interface ChannelMap {
   // --- Terminal ---
   'terminal:create': { input: { cwd?: string; startupCommand?: string; userInitiated?: boolean }; output: TerminalCreateOutput }
   'terminal:spawnAgent': { input: { agentId: string; projectId: string }; output: TerminalCreateOutput }
+  'terminal:spawnProvider': { input: { providerId: 'claude' | 'codex' | 'spettro' | 'aria'; projectId?: string; cwd?: string; initialPrompt?: string }; output: TerminalCreateOutput }
   'terminal:kill': { input: string; output: void }
   'terminal:paste-from-clipboard': { input: string; output: { pasted: boolean } }
 

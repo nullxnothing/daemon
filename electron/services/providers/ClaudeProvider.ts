@@ -20,8 +20,8 @@ let cachedClaudePath: string | null = null
 
 const MODEL_MAP: Record<string, string> = {
   'haiku': 'claude-haiku-4-5-20251001',
-  'sonnet': 'claude-sonnet-4-20250514',
-  'opus': 'claude-opus-4-20250514',
+  'sonnet': 'claude-sonnet-4-6',
+  'opus': 'claude-opus-4-8',
 }
 
 function resolveModelName(shorthand: string): string {
@@ -357,6 +357,18 @@ export interface AgentTurnEndpoint {
   model?: string
 }
 
+/**
+ * Tag the last tool with an ephemeral cache breakpoint. Anthropic caches the
+ * tools array as a prefix up to the final cache_control marker, so this caches
+ * the whole (large, static) schema across turns within the 5-min window.
+ */
+function withToolCache(tools: RunAgentTurnOpts['tools']): unknown[] {
+  if (tools.length === 0) return tools
+  return tools.map((tool, i) =>
+    i === tools.length - 1 ? { ...tool, cache_control: { type: 'ephemeral' } } : tool
+  )
+}
+
 export async function runClaudeAgentTurn(
   opts: RunAgentTurnOpts,
   endpoint?: AgentTurnEndpoint,
@@ -372,7 +384,10 @@ export async function runClaudeAgentTurn(
     model: resolvedModel,
     max_tokens: opts.maxTokens ?? 4096,
     system: [{ type: 'text', text: opts.system, cache_control: { type: 'ephemeral' } }],
-    tools: opts.tools as Parameters<typeof client.messages.create>[0]['tools'],
+    // Cache the (large, static) tools schema as a prompt-cache prefix: marking the
+    // LAST tool caches the whole tools block, so the ~74-tool schema is processed
+    // once per 5-min window instead of on every turn.
+    tools: withToolCache(opts.tools) as Parameters<typeof client.messages.create>[0]['tools'],
     messages: opts.messages as Parameters<typeof client.messages.create>[0]['messages'],
   })
 

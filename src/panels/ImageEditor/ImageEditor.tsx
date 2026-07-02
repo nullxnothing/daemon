@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useUIStore } from '../../store/ui'
+import { useWebviewResizeSync } from '../../hooks/useWebviewResizeSync'
 import './ImageEditor.css'
 
 // miniPaint is served via the minipaint:// custom protocol.
@@ -11,6 +12,7 @@ const READY_FALLBACK_MS = 2500
 
 export default function ImageEditor() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  useWebviewResizeSync(iframeRef)
   const [ready, setReady] = useState(false)
   const [imagePath, setImagePath] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)

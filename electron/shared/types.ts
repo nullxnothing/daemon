@@ -1421,7 +1421,9 @@ export interface Mandate {
 }
 
 export type MandateDecision = 'buy' | 'sell' | 'hold' | 'skip'
-export type MandateActionStatus = 'decided' | 'executed' | 'failed'
+// 'executing' claims a tick_seq (and its intent) BEFORE the swap is sent, so a crash between
+// send and confirmation is detectable on boot and never silently replayed into a double-buy.
+export type MandateActionStatus = 'decided' | 'executing' | 'executed' | 'failed' | 'needs-review'
 
 export interface MandateAction {
   id: string
@@ -2065,6 +2067,123 @@ export interface IdlePaidCallReceipt {
   updatedAt: number
 }
 
+// --- Agent economy control tower ---
+
+export type AgentEconomyNetwork = 'solana-devnet' | 'solana-mainnet' | 'solana-mainnet-beta' | string
+
+export interface AgentEconomyProfile {
+  id: string
+  projectId: string | null
+  agentId: string | null
+  name: string
+  walletId: string | null
+  walletAddress: string | null
+  registryAsset: string | null
+  agentIdentityPda: string | null
+  serviceUrl: string | null
+  capabilities: string[]
+  policy: AgentEconomySpendPolicy | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AgentEconomySpendPolicy {
+  id: string
+  profileId: string
+  asset: string
+  network: AgentEconomyNetwork
+  allowedDomains: string[]
+  allowedPayees: string[]
+  maxPerCallUsdc: number
+  maxPerDayUsdc: number
+  expiresAt: number | null
+  enabled: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AgentEconomyUpsertProfileInput {
+  id?: string | null
+  projectId?: string | null
+  agentId?: string | null
+  name: string
+  walletId?: string | null
+  walletAddress?: string | null
+  registryAsset?: string | null
+  agentIdentityPda?: string | null
+  serviceUrl?: string | null
+  capabilities?: string[]
+}
+
+export interface AgentEconomySetPolicyInput {
+  profileId: string
+  asset: string
+  network: AgentEconomyNetwork
+  allowedDomains: string[]
+  allowedPayees: string[]
+  maxPerCallUsdc: number
+  maxPerDayUsdc: number
+  expiresAt?: number | null
+  enabled: boolean
+}
+
+export interface AgentEconomyPolicyCheckInput {
+  profileId: string
+  resourceId: string
+  projectId?: string | null
+  taskId?: string | null
+}
+
+export interface AgentEconomyPolicyCheckResult extends IdlePolicyCheckResult {
+  profile: AgentEconomyProfile
+  policy: AgentEconomySpendPolicy | null
+  spentTodayUsdc: number
+  remainingDayBudgetUsdc: number
+}
+
+export interface AgentEconomyExecutePaidCallInput extends AgentEconomyPolicyCheckInput {
+  requestBody?: unknown
+  paymentSignature?: string | null
+  approvedBy?: string | null
+}
+
+export interface AgentEconomyExecutePaidCallResult {
+  status: 'blocked' | 'ready' | 'executed'
+  allowed: boolean
+  reasons: string[]
+  requiresSignature: boolean
+  check: AgentEconomyPolicyCheckResult
+  receipt: IdlePaidCallReceipt | null
+}
+
+export interface AgentEconomyListReceiptsInput {
+  profileId?: string | null
+  projectId?: string | null
+  limit?: number
+}
+
+export type AgentEconomyReceipt = IdlePaidCallReceipt
+
+export interface AgentEconomyRegisterDevnetAgentInput {
+  profileId: string
+  walletId: string
+  rpcUrl: string
+  name: string
+  description: string
+  uri: string
+  serviceUrl: string
+  priceUsdc: string
+  confirmedAt: number
+  acknowledgement: string
+}
+
+export interface AgentEconomyReadAgentIdentityInput {
+  profileId?: string | null
+  network: 'devnet' | 'mainnet-beta'
+  rpcUrl: string
+  assetAddress: string
+}
+
 export interface IdleRegistryStatus {
   registryConfigured: boolean
   registryUrl: string | null
@@ -2073,6 +2192,28 @@ export interface IdleRegistryStatus {
   latestReceipt: IdlePaidCallReceipt | null
   executionReady: boolean
   blockers: string[]
+}
+
+export interface AgentEconomyOverviewInput {
+  projectId?: string | null
+  profileId?: string | null
+}
+
+export interface AgentEconomyOverview {
+  profiles: AgentEconomyProfile[]
+  policies: AgentEconomySpendPolicy[]
+  receipts: IdlePaidCallReceipt[]
+}
+
+export interface AgentEconomyRegisterDevnetAgentResult extends AgentEconomyProfile {
+  profile: AgentEconomyProfile
+  receipt: Record<string, unknown>
+  identity: Record<string, unknown> | null
+}
+
+export interface AgentEconomyReadAgentIdentityResult {
+  profile: AgentEconomyProfile | null
+  identity: Record<string, unknown>
 }
 
 // --- Meterflow control plane ---
@@ -2749,6 +2890,7 @@ export type AriaUiEffect =
   | { type: 'open_tool'; toolId: string }
   | { type: 'run_command'; commandId: string }
   | { type: 'open_file'; path: string }
+  | { type: 'set_active_project'; projectId: string; projectPath: string }
   | { type: 'add_terminal'; terminalId: string; name: string; agentId?: string }
   | { type: 'run_integration'; actionId: string }
   | { type: 'set_integration_enabled'; integrationId: string; enabled: boolean }
@@ -2758,6 +2900,7 @@ export type AriaToolEvent =
   | { kind: 'assistant-text'; messageId: string; text: string }
   | {
       kind: 'tool-call'
+      messageId: string
       callId: string
       name: string
       label: string
@@ -2766,7 +2909,7 @@ export type AriaToolEvent =
       status: AriaToolCallStatus
       meta?: string
     }
-  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; fee?: { bps: number; lamports: number; treasury: string } }
+  | { kind: 'approval-request'; messageId: string; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; fee?: { bps: number; lamports: number; treasury: string } }
   | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }

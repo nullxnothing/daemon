@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS agents (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   system_prompt TEXT,
-  model TEXT DEFAULT 'claude-opus-4-20250514',
+  model TEXT DEFAULT 'claude-opus-4-8',
   mcps TEXT DEFAULT '[]',
   project_id TEXT,
   shortcut TEXT,
@@ -1420,4 +1420,142 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_autopilot_actions_tick
   ON autopilot_actions(mandate_id, tick_seq);
 CREATE INDEX IF NOT EXISTS idx_autopilot_actions_mandate
   ON autopilot_actions(mandate_id, created_at DESC);
+`
+
+export const SCHEMA_V55 = `
+CREATE TABLE IF NOT EXISTS agent_economy_profiles (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  agent_id TEXT,
+  name TEXT NOT NULL,
+  wallet_id TEXT,
+  wallet_address TEXT,
+  registry_asset TEXT,
+  agent_identity_pda TEXT,
+  service_url TEXT,
+  capabilities_json TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_economy_profiles_project
+  ON agent_economy_profiles(project_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_economy_profiles_agent
+  ON agent_economy_profiles(agent_id);
+
+CREATE TABLE IF NOT EXISTS agent_spend_policies (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  network TEXT NOT NULL,
+  allowed_domains_json TEXT NOT NULL DEFAULT '[]',
+  allowed_payees_json TEXT NOT NULL DEFAULT '[]',
+  max_per_call_usdc REAL NOT NULL,
+  max_per_day_usdc REAL NOT NULL,
+  expires_at INTEGER,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY(profile_id) REFERENCES agent_economy_profiles(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_spend_policies_profile
+  ON agent_spend_policies(profile_id);
+CREATE INDEX IF NOT EXISTS idx_agent_spend_policies_enabled
+  ON agent_spend_policies(enabled, expires_at);
+`
+
+// Garrison token-holder program — subsystem A (staking + referral commission).
+// v0 ships the full schema but only subsystem-A tables are used. All money math
+// (caps, fee-floor) lives in the services, never the DB. See GARRISON_BACKEND_SPEC.md.
+export const SCHEMA_V56 = `
+CREATE TABLE IF NOT EXISTS garrison_multiplier_tiers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  min_stake_raw INTEGER NOT NULL,
+  multiplier_bps INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_garrison_multiplier_tiers_active
+  ON garrison_multiplier_tiers(active, min_stake_raw DESC);
+
+CREATE TABLE IF NOT EXISTS garrison_stakes (
+  id TEXT PRIMARY KEY,
+  holder_wallet TEXT NOT NULL UNIQUE,
+  staked_raw INTEGER NOT NULL DEFAULT 0,
+  escrow_wallet TEXT NOT NULL,
+  tier_id TEXT,
+  effective_from INTEGER,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_garrison_stakes_holder
+  ON garrison_stakes(holder_wallet);
+
+CREATE TABLE IF NOT EXISTS garrison_stake_movements (
+  id TEXT PRIMARY KEY,
+  stake_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  amount_raw INTEGER NOT NULL,
+  signature TEXT UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  FOREIGN KEY(stake_id) REFERENCES garrison_stakes(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_garrison_stake_movements_stake
+  ON garrison_stake_movements(stake_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS garrison_referral_attributions (
+  id TEXT PRIMARY KEY,
+  referred_wallet TEXT NOT NULL UNIQUE,
+  referrer_wallet TEXT NOT NULL,
+  ref_code TEXT,
+  bound_via TEXT NOT NULL DEFAULT 'link',
+  verified INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
+  bound_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_garrison_referral_attributions_referrer
+  ON garrison_referral_attributions(referrer_wallet, status);
+
+CREATE TABLE IF NOT EXISTS garrison_referral_commissions (
+  id TEXT PRIMARY KEY,
+  referrer_wallet TEXT NOT NULL,
+  epoch INTEGER NOT NULL,
+  attributed_notional_lamports INTEGER NOT NULL DEFAULT 0,
+  attributed_fee_lamports INTEGER NOT NULL DEFAULT 0,
+  base_commission_lamports INTEGER NOT NULL DEFAULT 0,
+  bonus_commission_lamports INTEGER NOT NULL DEFAULT 0,
+  gross_commission_lamports INTEGER NOT NULL DEFAULT 0,
+  tier_id_snapshot TEXT,
+  high_water_fee_event_at INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'accrued',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER)),
+  updated_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_garrison_referral_commissions_epoch
+  ON garrison_referral_commissions(referrer_wallet, epoch);
+CREATE INDEX IF NOT EXISTS idx_garrison_referral_commissions_status
+  ON garrison_referral_commissions(referrer_wallet, status);
+
+CREATE TABLE IF NOT EXISTS garrison_commission_payouts (
+  id TEXT PRIMARY KEY,
+  referrer_wallet TEXT NOT NULL,
+  amount_lamports INTEGER NOT NULL,
+  commission_ids_json TEXT NOT NULL DEFAULT '[]',
+  treasury_wallet TEXT NOT NULL,
+  payout_signature TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_garrison_commission_payouts_referrer
+  ON garrison_commission_payouts(referrer_wallet, created_at DESC);
+`
+
+// V57: track the raw token quantity a mandate has actually accumulated, so exit
+// sells liquidate ONLY the mandate's position, never the wallet's pre-existing
+// holdings of the same mint. Applied as a tolerant ALTER (duplicate-column ok).
+export const SCHEMA_V57 = `
+ALTER TABLE autopilot_mandates ADD COLUMN bought_raw_tokens TEXT NOT NULL DEFAULT '0';
 `

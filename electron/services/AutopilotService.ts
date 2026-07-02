@@ -3,8 +3,7 @@ import { PublicKey } from '@solana/web3.js'
 import { getAssociatedTokenAddress, getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { getDb } from '../db/db'
 import { getConnectionStrict } from './SolanaService'
-import { getSwapQuote, executeSwap, getMintDecimals } from './WalletService'
-import { quoteExecutionFee } from './FeeService'
+import { getSwapQuote, executeSwap, getMintDecimals, getServerSwapImpactPct } from './WalletService'
 import { getWalletInfrastructureSettings } from './SettingsService'
 import type {
   Mandate,
@@ -21,16 +20,31 @@ import type {
 // ARIA) that the scheduler evaluates on a fixed cadence and executes UNATTENDED on mainnet.
 // Arming a mandate is the human authorization; from then on the scheduler reproduces a
 // reviewed Jupiter quote server-side and runs it through the SAME guarded executeSwap path
-// a manual trade uses — so the signer guard and execution fee meter both fire. No guard is
-// bypassed. Every tick writes one autopilot_actions row (BUY/SELL/HOLD/SKIP), uniquely keyed
-// by (mandate_id, tick_seq), so a restart mid-tick never double-fires and the Desk can replay
-// exactly what the agent did.
+// a manual trade uses — so the signer guard fires. No guard is bypassed.
+//
+// Crash safety: each tick FIRST claims its tick_seq by writing an 'executing' intent row and
+// advancing next_tick_at, THEN swaps, THEN flips the row to executed/failed. On boot the
+// scheduler reconciles any 'executing' rows (a crash between the swap and the flip) and holds
+// the mandate for review rather than replaying — so a restart mid-tick never double-buys.
+//
+// Cluster safety: arming asserts mainnet, and EVERY tick re-checks that the live cluster still
+// matches the mandate's cluster before quoting — a switch to devnet auto-holds armed mandates
+// instead of letting devnet balances green-light real mainnet spends.
+//
+// Note on fees: swaps sign Jupiter's prebuilt VersionedTransaction, which the execution fee
+// meter cannot append a transfer leg to, so autopilot swaps are NOT fee-metered — fee_lamports
+// is recorded as null (never a fabricated charge). Only SOL transfers carry the fee today.
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 // A mandate's exposure cap is a hard ceiling; never let a single clip exceed what remains.
 const LAMPORTS_PER_SOL = 1e9
 // Keep a little SOL back so a buy never drains the wallet below rent + tx fees.
 const WALLET_SOL_RESERVE_LAMPORTS = 10_000_000 // 0.01 SOL
+// Unattended trades have no human at the approval card, so cap slippage far tighter than the
+// 5000bps a manually-confirmed swap may accept, and refuse a clip whose live price impact is
+// above this — an illiquid mint should skip, not bleed value tick after tick.
+const MAX_UNATTENDED_SLIPPAGE_BPS = 1_000 // 10%
+const MAX_UNATTENDED_IMPACT_PCT = 5 // matches the manual high-impact acknowledgement gate
 
 // ----------------------------------------------------------------- helpers ---
 
@@ -51,8 +65,23 @@ interface MandateRow {
   next_tick_at: number | null
   last_error: string | null
   armed_at: number | null
+  bought_raw_tokens: string
   created_at: number
   updated_at: number
+}
+
+/** Raw token quantity this mandate has actually accumulated (internal accounting,
+ *  stored as TEXT to avoid bigint precision loss). Exit sells value/liquidate ONLY
+ *  this, never the wallet's pre-existing balance of the same mint. */
+function getBoughtRawTokens(mandateId: string): bigint {
+  const row = getDb()
+    .prepare('SELECT bought_raw_tokens FROM autopilot_mandates WHERE id = ?')
+    .get(mandateId) as { bought_raw_tokens: string | null } | undefined
+  try {
+    return BigInt(row?.bought_raw_tokens ?? '0')
+  } catch {
+    return 0n
+  }
 }
 
 function rowToMandate(row: MandateRow): Mandate {
@@ -136,6 +165,23 @@ function assertMainnet(): void {
   }
 }
 
+/**
+ * Guard a live tick against a cluster mismatch. Jupiter's hosted execute lands on mainnet
+ * regardless of DAEMON's cluster setting, so if the wallet was switched to devnet after arming
+ * (devnet airdrop SOL would pass the balance pre-check), an armed mandate would spend REAL
+ * mainnet funds. Returns an error string to hold the mandate on, or null when it's safe to trade.
+ */
+function clusterMismatchReason(mandate: Mandate): string | null {
+  const live = getWalletInfrastructureSettings().cluster
+  if (live !== 'mainnet-beta') {
+    return `Cluster is "${live}", not mainnet-beta — held to avoid a devnet-balance-triggered mainnet spend.`
+  }
+  if (mandate.cluster && mandate.cluster !== live) {
+    return `Mandate cluster "${mandate.cluster}" no longer matches live cluster "${live}" — held.`
+  }
+  return null
+}
+
 // ----------------------------------------------------------------- reads ---
 
 export function getMandateOrThrow(id: string): Mandate {
@@ -195,11 +241,35 @@ export function validateStrategy(strategy: MandateStrategy, maxExposureLamports:
   if (strategy.clipLamports > maxExposureLamports) {
     throw new Error('A single clip cannot exceed the mandate exposure cap')
   }
-  if (!Number.isInteger(strategy.slippageBps) || strategy.slippageBps <= 0 || strategy.slippageBps > 5_000) {
-    throw new Error('slippageBps must be between 1 and 5000')
+  // Unattended trades have no human at the card, so slippage is capped tighter than a manual swap.
+  if (!Number.isInteger(strategy.slippageBps) || strategy.slippageBps <= 0 || strategy.slippageBps > MAX_UNATTENDED_SLIPPAGE_BPS) {
+    throw new Error(`slippageBps must be between 1 and ${MAX_UNATTENDED_SLIPPAGE_BPS} for an unattended mandate`)
   }
   if (!Number.isInteger(maxExposureLamports) || maxExposureLamports <= 0) {
     throw new Error('maxExposureLamports must be a positive integer')
+  }
+  validateRules(strategy.rules)
+}
+
+/**
+ * Exit rules come from an LLM parse of the user's sentence, so a malformed or unit-confused
+ * threshold (NaN, 0, negative, or absurd) is a realistic failure — and a silently-dead
+ * stop-loss lets a mandate trade unattended with no protection. Reject anything not finite and
+ * in a sane band so the model gets a correctable error instead.
+ */
+export function validateRules(rules: MandateRule[]): void {
+  if (!Array.isArray(rules)) throw new Error('strategy.rules must be an array')
+  for (const rule of rules) {
+    const t = Number(rule.threshold)
+    if (!Number.isFinite(t) || t <= 0) {
+      throw new Error(`Exit rule "${rule.kind}" needs a positive, finite threshold (got ${rule.threshold})`)
+    }
+    if ((rule.kind === 'take_profit' || rule.kind === 'stop_loss') && t > 10_000) {
+      throw new Error(`Exit rule "${rule.kind}" threshold ${t}% is out of range (expected a percent in (0, 10000])`)
+    }
+    if (rule.kind === 'liquidity_floor' && t > 1_000_000) {
+      throw new Error(`Exit rule "liquidity_floor" threshold ${t} SOL is implausibly large`)
+    }
   }
 }
 
@@ -320,6 +390,47 @@ function recordAction(action: Omit<MandateAction, 'id' | 'createdAt'>): void {
     )
 }
 
+/**
+ * Claim a tick_seq by writing an 'executing' intent row BEFORE the swap is sent. The unique
+ * (mandate_id, tick_seq) index makes a concurrent duplicate throw, and on a crash after send
+ * the row is left 'executing' so boot reconciliation can detect and hold it. Returns the row id.
+ */
+function recordIntent(mandateId: string, tickSeq: number, decision: MandateDecision, reason: string, inputMint: string, outputMint: string, notionalLamports: number): string {
+  const id = crypto.randomUUID()
+  getDb()
+    .prepare(
+      `INSERT INTO autopilot_actions
+         (id, mandate_id, tick_seq, decision, reason, input_mint, output_mint, notional_lamports, fee_lamports, signature, status, error)
+       VALUES (?,?,?,?,?,?,?,?,?,?,'executing',?)`,
+    )
+    .run(id, mandateId, tickSeq, decision, reason, inputMint, outputMint, notionalLamports, null, null, null)
+  return id
+}
+
+/** Flip a claimed intent row to its terminal state once the swap resolves. */
+function finalizeAction(id: string, patch: { status: MandateAction['status']; signature: string | null; notionalLamports?: number; error: string | null }): void {
+  getDb()
+    .prepare('UPDATE autopilot_actions SET status = ?, signature = ?, notional_lamports = COALESCE(?, notional_lamports), error = ? WHERE id = ?')
+    .run(patch.status, patch.signature, patch.notionalLamports ?? null, patch.error, id)
+}
+
+/**
+ * Boot reconciliation: any action still 'executing' means the app died between sending a swap
+ * and recording its outcome. We cannot know from here whether it landed, so we mark it
+ * needs-review and HOLD the mandate (disarm) rather than risk a replay double-buy. The operator
+ * checks the chain and re-arms. Called once at scheduler start, before the first sweep.
+ */
+export function reconcileInterruptedTicks(): number {
+  const db = getDb()
+  const stuck = db.prepare("SELECT id, mandate_id FROM autopilot_actions WHERE status = 'executing'").all() as Array<{ id: string; mandate_id: string }>
+  const now = Date.now()
+  for (const row of stuck) {
+    db.prepare("UPDATE autopilot_actions SET status = 'needs-review', error = 'Interrupted mid-swap; verify on-chain before re-arming' WHERE id = ?").run(row.id)
+    db.prepare("UPDATE autopilot_mandates SET armed = 0, status = 'paused', next_tick_at = NULL, last_error = 'Held: a tick was interrupted mid-swap. Verify the last trade on-chain, then re-arm.', updated_at = ? WHERE id = ?").run(now, row.mandate_id)
+  }
+  return stuck.length
+}
+
 // ----------------------------------------------------------------- position ---
 
 /** Live snapshot of a mandate's open position, priced in SOL via a reverse Jupiter quote. */
@@ -368,7 +479,12 @@ async function readTokenBalance(
 export async function valuePosition(mandate: Mandate): Promise<PositionValue> {
   const connection = getConnectionStrict()
   const owner = new PublicKey(walletAddress(mandate.walletId))
-  const rawTokens = await readTokenBalance(connection, owner, mandate.strategy.targetMint)
+  const liveBalance = await readTokenBalance(connection, owner, mandate.strategy.targetMint)
+  // Value ONLY the quantity this mandate accumulated, never the wallet's pre-existing holdings
+  // of the same mint (which the arm authorization never covered). Capped by the live balance in
+  // case the user manually sold some.
+  const bought = getBoughtRawTokens(mandate.id)
+  const rawTokens = bought > 0n ? (bought < liveBalance ? bought : liveBalance) : 0n
   if (rawTokens <= 0n) {
     return { rawTokens: 0n, tokenAmount: 0, valueLamports: 0, unrealizedLamports: -mandate.spentLamports, pnlPct: 0 }
   }
@@ -464,11 +580,22 @@ export async function tickMandate(mandateId: string): Promise<MandateAction | nu
   const mandate = getMandateOrThrow(mandateId)
   if (!mandate.armed) return null
 
+  const now = Date.now()
+  const nextTickAt = now + mandate.intervalSeconds * 1000
+
+  // Cluster re-validation FIRST, before any quote/swap: a switch to devnet after arming must
+  // hold the mandate, never let devnet balances green-light a real mainnet spend.
+  const clusterHold = clusterMismatchReason(mandate)
+  if (clusterHold) {
+    getDb()
+      .prepare("UPDATE autopilot_mandates SET armed = 0, status = 'paused', next_tick_at = NULL, last_error = ?, updated_at = ? WHERE id = ?")
+      .run(clusterHold, now, mandateId)
+    return null
+  }
+
   const connection = getConnectionStrict()
   const owner = new PublicKey(walletAddress(mandate.walletId))
   const walletLamports = await connection.getBalance(owner)
-  const now = Date.now()
-  const nextTickAt = now + mandate.intervalSeconds * 1000
 
   // Exit rules run FIRST each tick: value the open position and, if any rule fires, sell the
   // whole position back to SOL, book realized P&L, and close the mandate. Only mandates with
@@ -507,12 +634,28 @@ export async function tickMandate(mandateId: string): Promise<MandateAction | nu
 
   const clipLamports = decision.clipLamports
   const amountSol = clipLamports / LAMPORTS_PER_SOL
-  const feeQuote = quoteExecutionFee(clipLamports)
+
+  // Claim the tick and advance next_tick_at BEFORE sending the swap. If we crash after the
+  // swap lands, the intent row is left 'executing' (reconciled on boot to hold the mandate)
+  // and next_tick_at is already in the future — so a restart cannot re-run this same clip.
+  const actionId = recordIntent(mandateId, tickSeq, 'buy', decision.reason, SOL_MINT, mandate.strategy.targetMint, clipLamports)
+  getDb()
+    .prepare('UPDATE autopilot_mandates SET last_tick_at = ?, next_tick_at = ?, updated_at = ? WHERE id = ?')
+    .run(now, nextTickAt, now, mandateId)
 
   try {
-    // Reproduce the human review server-side: a fresh, hash-pinned Jupiter quote draft,
-    // then execute it through the signer guard. Arming the mandate was the authorization.
+    // Reproduce the human review server-side: a fresh, hash-pinned Jupiter quote draft.
     const quote = await getSwapQuote(mandate.walletId, SOL_MINT, mandate.strategy.targetMint, amountSol, mandate.strategy.slippageBps)
+    // Unattended impact gate: no human at the card, so refuse a clip whose server-authoritative
+    // price impact is above the same threshold a manual swap must acknowledge. Skip, don't buy.
+    const impactPct = getServerSwapImpactPct(quote.quoteId)
+    if (impactPct >= MAX_UNATTENDED_IMPACT_PCT) {
+      finalizeAction(actionId, { status: 'failed', signature: null, error: `Skipped: price impact ${impactPct.toFixed(2)}% >= ${MAX_UNATTENDED_IMPACT_PCT}% unattended cap` })
+      getDb()
+        .prepare('UPDATE autopilot_mandates SET last_error = ?, updated_at = ? WHERE id = ?')
+        .run(`Skipped a clip: price impact ${impactPct.toFixed(2)}% too high`, now, mandateId)
+      return latestAction(mandateId, tickSeq)
+    }
     const result = await executeSwap(
       mandate.walletId,
       SOL_MINT,
@@ -522,30 +665,25 @@ export async function tickMandate(mandateId: string): Promise<MandateAction | nu
       quote.rawQuoteResponse,
       { restrictIntermediateTokens: true },
     )
-    recordAction({
-      mandateId,
-      tickSeq,
-      decision: 'buy',
-      reason: decision.reason,
-      inputMint: SOL_MINT,
-      outputMint: mandate.strategy.targetMint,
-      notionalLamports: clipLamports,
-      feeLamports: feeQuote?.lamports ?? 0,
-      signature: result.signature,
-      status: 'executed',
-      error: null,
-    })
+    // fee_lamports stays null: swaps sign Jupiter's prebuilt tx, which the fee meter can't append
+    // a transfer leg to, so no fee is actually charged. Never fabricate a charge in the ledger.
+    finalizeAction(actionId, { status: 'executed', signature: result.signature, error: null })
     const spent = mandate.spentLamports + clipLamports
     const exhausted = spent >= mandate.maxExposureLamports
+    // Track the tokens this buy accumulated (quoted human out * 10^decimals) so exit sells
+    // value/liquidate only these, never the wallet's pre-existing balance of the same mint.
+    const decimals = await getMintDecimals(mandate.strategy.targetMint, connection)
+    const acquiredRaw = BigInt(Math.round(parseFloat(quote.outAmount || '0') * 10 ** decimals))
     getDb()
       .prepare(
         `UPDATE autopilot_mandates
-           SET spent_lamports = ?, last_tick_at = ?, next_tick_at = ?, last_error = NULL,
+           SET spent_lamports = ?, bought_raw_tokens = ?, last_tick_at = ?, next_tick_at = ?, last_error = NULL,
                armed = ?, status = ?, updated_at = ?
          WHERE id = ?`,
       )
       .run(
         spent,
+        (getBoughtRawTokens(mandateId) + acquiredRaw).toString(),
         now,
         exhausted ? null : nextTickAt,
         exhausted ? 0 : 1,
@@ -556,33 +694,23 @@ export async function tickMandate(mandateId: string): Promise<MandateAction | nu
     return latestAction(mandateId, tickSeq)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    recordAction({
-      mandateId,
-      tickSeq,
-      decision: 'buy',
-      reason: decision.reason,
-      inputMint: SOL_MINT,
-      outputMint: mandate.strategy.targetMint,
-      notionalLamports: clipLamports,
-      feeLamports: null,
-      signature: null,
-      status: 'failed',
-      error: message,
-    })
-    // A failed buy reschedules (transient RPC/route failures shouldn't kill the mandate),
-    // but the error is surfaced on the card so the operator can disarm.
+    // The intent row was already claimed; flip it to failed. next_tick_at was advanced above so
+    // a transient RPC/route failure reschedules without killing the mandate. A confirmation
+    // timeout AFTER the tx landed still shows 'failed' here, but boot reconciliation catches the
+    // 'executing' window; a post-send throw lands here with the row already flipped to failed.
+    finalizeAction(actionId, { status: 'failed', signature: null, error: message })
     getDb()
-      .prepare('UPDATE autopilot_mandates SET last_tick_at = ?, next_tick_at = ?, last_error = ?, updated_at = ? WHERE id = ?')
-      .run(now, nextTickAt, message, now, mandateId)
+      .prepare('UPDATE autopilot_mandates SET last_error = ?, updated_at = ? WHERE id = ?')
+      .run(message, now, mandateId)
     return latestAction(mandateId, tickSeq)
   }
 }
 
 /**
- * Close a mandate's position: sell the entire held token balance back to SOL through the same
- * guarded, fee-metered path, book realized P&L (SOL received − total spent), and disarm. Called
- * only when an exit rule has triggered. A failed sell does NOT disarm — it reschedules and
- * surfaces the error so the operator can intervene (the position stays open, exit retries).
+ * Close a mandate's position: sell the mandate-accumulated token quantity (not the wallet's
+ * whole balance) back to SOL through the same guarded executeSwap path, book realized P&L (SOL
+ * received − total spent), and disarm. Called only when an exit rule has triggered. A failed
+ * sell does NOT disarm — it reschedules and surfaces the error so the operator can intervene.
  */
 async function sellPosition(
   mandate: Mandate,
@@ -592,7 +720,12 @@ async function sellPosition(
 ): Promise<MandateAction | null> {
   const tickSeq = nextTickSeq(mandate.id)
   const nextTickAt = now + mandate.intervalSeconds * 1000
-  const feeQuote = quoteExecutionFee(position.valueLamports)
+
+  // Claim the sell tick before sending, same crash-safety pattern as the buy path.
+  const actionId = recordIntent(mandate.id, tickSeq, 'sell', exit.reason, mandate.strategy.targetMint, SOL_MINT, position.valueLamports)
+  getDb()
+    .prepare('UPDATE autopilot_mandates SET last_tick_at = ?, next_tick_at = ?, updated_at = ? WHERE id = ?')
+    .run(now, nextTickAt, now, mandate.id)
 
   try {
     const quote = await getSwapQuote(mandate.walletId, mandate.strategy.targetMint, SOL_MINT, position.tokenAmount, mandate.strategy.slippageBps)
@@ -605,27 +738,17 @@ async function sellPosition(
       quote.rawQuoteResponse,
       { restrictIntermediateTokens: true },
     )
-    // Realized P&L = SOL actually received this sale − everything the mandate ever spent.
+    // Realized P&L uses the quoted output as an estimate — the actual on-chain fill can differ
+    // with slippage, so this is a ledger approximation, not an exact settlement figure.
     const receivedLamports = Math.round(Number(quote.outAmount) * LAMPORTS_PER_SOL)
     const realized = receivedLamports - mandate.spentLamports
-    recordAction({
-      mandateId: mandate.id,
-      tickSeq,
-      decision: 'sell',
-      reason: exit.reason,
-      inputMint: mandate.strategy.targetMint,
-      outputMint: SOL_MINT,
-      notionalLamports: receivedLamports,
-      feeLamports: feeQuote?.lamports ?? 0,
-      signature: result.signature,
-      status: 'executed',
-      error: null,
-    })
-    // Position closed → disarm. realized_pnl accumulates across exit cycles.
+    // fee_lamports stays null (swaps aren't fee-metered — see the buy path).
+    finalizeAction(actionId, { status: 'executed', signature: result.signature, notionalLamports: receivedLamports, error: null })
+    // Position closed → disarm, zero the tracked quantity. realized_pnl accumulates across cycles.
     getDb()
       .prepare(
         `UPDATE autopilot_mandates
-           SET armed = 0, status = 'exhausted', next_tick_at = NULL,
+           SET armed = 0, status = 'exhausted', next_tick_at = NULL, bought_raw_tokens = '0',
                realized_pnl_lamports = realized_pnl_lamports + ?, last_tick_at = ?, last_error = NULL, updated_at = ?
          WHERE id = ?`,
       )
@@ -633,19 +756,7 @@ async function sellPosition(
     return latestAction(mandate.id, tickSeq)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    recordAction({
-      mandateId: mandate.id,
-      tickSeq,
-      decision: 'sell',
-      reason: exit.reason,
-      inputMint: mandate.strategy.targetMint,
-      outputMint: SOL_MINT,
-      notionalLamports: position.valueLamports,
-      feeLamports: null,
-      signature: null,
-      status: 'failed',
-      error: message,
-    })
+    finalizeAction(actionId, { status: 'failed', signature: null, error: message })
     getDb()
       .prepare('UPDATE autopilot_mandates SET last_tick_at = ?, next_tick_at = ?, last_error = ?, updated_at = ? WHERE id = ?')
       .run(now, nextTickAt, `Exit sell failed: ${message}`, now, mandate.id)

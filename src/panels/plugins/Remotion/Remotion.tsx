@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useWebviewResizeSync } from '../../../hooks/useWebviewResizeSync'
 import { usePluginStore } from '../../../store/plugins'
 import './Remotion.css'
 
@@ -36,6 +37,7 @@ export default function Remotion() {
   const [isNavigated, setIsNavigated] = useState(false)
 
   const webviewRef = useRef<WebviewElement | null>(null)
+  useWebviewResizeSync(webviewRef, isNavigated)
 
   // Persist URL changes to plugin config
   const persistUrl = useCallback((newUrl: string) => {

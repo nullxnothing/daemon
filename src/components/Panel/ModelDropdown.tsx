@@ -10,6 +10,14 @@ const LANE_LABEL: Record<DaemonAiModelLane, string> = {
   premium: 'claude-opus-4.8',
 }
 
+const CODEX_LANE_LABEL: Record<DaemonAiModelLane, string> = {
+  auto: 'codex-auto',
+  fast: 'o4-mini',
+  standard: 'gpt-5.5',
+  reasoning: 'gpt-5.5',
+  premium: 'gpt-5.5',
+}
+
 const FALLBACK_LANES: DaemonAiModelLane[] = ['auto', 'fast', 'standard', 'reasoning', 'premium']
 
 /** Lane selector for the ARIA agent. Mirrors the composer's "claude-sonnet-4.6 ▾". */
@@ -17,8 +25,10 @@ export function ModelDropdown({ className }: { className?: string }) {
   const selectedLane = useAriaStore((s) => s.selectedLane)
   const setLane = useAriaStore((s) => s.setLane)
   const models = useAriaStore((s) => s.availableModels)
+  const provider = useAriaStore((s) => s.providerPreferences?.aria.provider ?? 'claude')
 
   const lanes = models.length ? models.map((m) => m.lane) : FALLBACK_LANES
+  const labels = provider === 'codex' ? CODEX_LANE_LABEL : LANE_LABEL
 
   return (
     <label className={[styles.wrap, className].filter(Boolean).join(' ')}>
@@ -32,7 +42,7 @@ export function ModelDropdown({ className }: { className?: string }) {
           const info = models.find((m) => m.lane === lane)
           return (
             <option key={lane} value={lane}>
-              {info ? `${info.label} · ${LANE_LABEL[lane]}` : LANE_LABEL[lane]}
+              {info ? `${info.label} · ${labels[lane]}` : labels[lane]}
             </option>
           )
         })}

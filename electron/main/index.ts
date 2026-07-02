@@ -67,6 +67,7 @@ import { registerSeekerHandlers } from '../ipc/seeker'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerFeedbackHandlers } from '../ipc/feedback'
 import { registerAgentStationHandlers } from '../ipc/agentStation'
+import { registerAgentEconomyHandlers } from '../ipc/agentEconomy'
 import { registerReplayHandlers } from '../ipc/replay'
 import { registerLspHandlers } from '../ipc/lsp'
 import { registerTelemetryHandlers, initTelemetry } from '../ipc/telemetry'
@@ -75,14 +76,13 @@ import { registerPackHandlers, setPackDomainRegistrar } from '../ipc/packs'
 import { enabledIpcDomains, type IpcDomainId } from '../shared/packManifest'
 import { flushRemoteTelemetry } from '../services/RemoteTelemetryService'
 import { flushQueue as flushVoightQueue } from '../services/VoightService'
+import { runAriaServer } from '../services/AriaTerminalBackendService'
 import { clearLoadedWallets } from '../services/RecoveryService'
 import { maybeRecoverUnstableUiState, getEnabledPacks, type UiRecoveryResult } from '../services/SettingsService'
 import { getKeyEncryptionWarning, getStorageBackend } from '../services/SecureKeyService'
 import { shutdownAllLspSessions } from '../services/LspService'
 import { isAllowedWebviewUrl, isSafeExternalUrl, openSafeExternalUrl } from '../security/externalNavigation'
 import { isTrustedSender, setTrustedIpcOrigin } from '../security/ipcSender'
-import pkg from 'electron-updater'
-const { autoUpdater } = pkg
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -91,6 +91,7 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 export const VITE_DEV_SERVER_URL = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL
 const SMOKE_TEST_MODE = process.env.DAEMON_SMOKE_TEST === '1'
+const ARIA_CLI_MODE = process.argv.includes('--aria-server')
 const WINDOWS_COMPOSITOR_DISABLED_FEATURES = ['EnableTransparentHwndEnlargement'] as const
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
@@ -120,7 +121,7 @@ if (process.platform === 'win32') {
 
 if (SMOKE_TEST_MODE) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.DAEMON_SMOKE_CDP_PORT ?? '9333')
-} else if (!app.isPackaged) {
+} else if (!ARIA_CLI_MODE && !app.isPackaged) {
   app.commandLine.appendSwitch('remote-debugging-port', '9222')
 }
 
@@ -179,7 +180,7 @@ app.on('child-process-gone', (_event, details) => {
   recordNativeDiagnostic('child-process-gone', details)
 })
 
-if (!SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
+if (!ARIA_CLI_MODE && !SMOKE_TEST_MODE && !app.requestSingleInstanceLock()) {
   app.quit()
   process.exit(0)
 }
@@ -391,6 +392,7 @@ function registerAllIpc() {
   registerFeedbackHandlers()
   registerLspHandlers()
   registerVoightHandlers()
+  registerAgentEconomyHandlers()
 
   // --- Pack-owned domains: registered only when their capability pack is on ---
   const enabled = getEnabledPacks()
@@ -690,8 +692,23 @@ async function createWindow() {
     }, 1000)
   })
 }
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
+  if (ARIA_CLI_MODE) {
+    ProviderRegistry.register(ClaudeProvider)
+    ProviderRegistry.register(CodexProvider)
+    if (process.platform === 'darwin') app.dock?.hide()
+    runAriaServer(process.argv.slice(process.argv.indexOf('--aria-server')))
+      .catch((err) => {
+        console.error(err instanceof Error ? err.message : String(err))
+        process.exitCode = 1
+      })
+      .finally(() => {
+        cleanupRuntimeState()
+        app.exit(typeof process.exitCode === 'number' ? process.exitCode : 0)
+      })
+    return
+  }
   registerDaemonProtocolClient()
   if (process.platform === 'darwin' && app.dock && !app.isPackaged) {
     try {
@@ -731,6 +748,8 @@ app.whenReady().then(() => {
   }, 5000)
 
   if (app.isPackaged && process.env.DAEMON_DISABLE_AUTO_UPDATE !== '1') {
+    const pkg = await import('electron-updater')
+    const { autoUpdater } = pkg.default
     autoUpdater.on('error', (err: Error) => {
       console.error('[AutoUpdater] error:', err.message)
     })

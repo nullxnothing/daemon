@@ -22,6 +22,7 @@ const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000
 const PROJECT_REQUIRED_TOOLS = new Set([
   'remember_fact', 'recall_memories', 'forget_memory', 'update_memory',
   'assign_project_wallet',
+  'list_project_tree', 'read_file', 'search_files',
 ])
 
 export interface BridgeCallRequest {

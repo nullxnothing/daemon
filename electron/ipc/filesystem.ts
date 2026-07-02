@@ -1,4 +1,4 @@
-import { ipcMain, shell, clipboard } from 'electron'
+import { ipcMain, shell, clipboard, dialog } from 'electron'
 import fs from 'node:fs/promises'
 import fsSync from 'node:fs'
 import path from 'node:path'
@@ -155,7 +155,6 @@ export function registerFilesystemHandlers() {
   }))
 
   ipcMain.handle('fs:pickImage', ipcHandler(async () => {
-    const { dialog } = await import('electron')
     const result = await dialog.showOpenDialog({
       title: 'Open Image',
       filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'avif'] }],

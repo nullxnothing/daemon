@@ -161,6 +161,17 @@ export async function addWorktree(projectPath: string, worktreePath: string, bra
   const args = ['worktree', 'add', '-b', branch, worktreePath]
   args.push(base && base.trim() ? base.trim() : 'HEAD')
   await git.raw(args)
+
+  // Disable pushing from the lane at the GIT layer, so a push fails even if a shell wrapper slips
+  // past the tool-name denylist. Set a worktree-local push URL to a dead sink for every remote;
+  // fetch/read still works, push can't reach anything. Best-effort (no remotes = nothing to do).
+  const laneGit = simpleGit(worktreePath)
+  try {
+    const remotes = await laneGit.getRemotes(false)
+    for (const r of remotes) {
+      try { await laneGit.raw(['config', `remote.${r.name}.pushurl`, 'DISABLED_FOR_SWARM_LANE']) } catch { /* best-effort */ }
+    }
+  } catch { /* no remotes / detached config — nothing to disable */ }
 }
 
 export async function removeWorktree(projectPath: string, worktreePath: string, branch?: string | null): Promise<void> {

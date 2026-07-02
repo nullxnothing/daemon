@@ -173,6 +173,20 @@ import type {
   MeterflowWalletReadiness,
   MeterflowWatchProjectResult,
   MeterflowWebhook,
+  AgentEconomyExecutePaidCallInput,
+  AgentEconomyExecutePaidCallResult,
+  AgentEconomyPolicyCheckInput,
+  AgentEconomyPolicyCheckResult,
+  AgentEconomyProfile,
+  AgentEconomyReadAgentIdentityInput,
+  AgentEconomyReadAgentIdentityResult,
+  AgentEconomyReceipt,
+  AgentEconomyListReceiptsInput,
+  AgentEconomyRegisterDevnetAgentInput,
+  AgentEconomyRegisterDevnetAgentResult,
+  AgentEconomySetPolicyInput,
+  AgentEconomySpendPolicy,
+  AgentEconomyUpsertProfileInput,
   VoightPrivacyLevel,
   VoightStatus,
   VoightTestResult,
@@ -609,7 +623,7 @@ declare global {
   interface DaemonTerminal {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null }>>
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string; agentName: string; localSessionId?: string | null }>>
-    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null; agentName?: string }>>
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro' | 'aria'; projectId?: string; cwd?: string; initialPrompt?: string }) => Promise<IpcResponse<{ id: string; pid: number; agentId: string | null; agentName?: string }>>
     ready: (id: string, cols?: number, rows?: number) => void
     write: (id: string, data: string) => void
     resize: (id: string, cols: number, rows: number) => void
@@ -1426,6 +1440,20 @@ declare global {
   type MeterflowPaidAgentReadinessInput = import('../../electron/shared/types').MeterflowPaidAgentReadinessInput
   type MeterflowPaidAgentReadinessResult = import('../../electron/shared/types').MeterflowPaidAgentReadinessResult
   type MeterflowWatchProjectResult = import('../../electron/shared/types').MeterflowWatchProjectResult
+  type AgentEconomyProfile = import('../../electron/shared/types').AgentEconomyProfile
+  type AgentEconomySpendPolicy = import('../../electron/shared/types').AgentEconomySpendPolicy
+  type AgentEconomyUpsertProfileInput = import('../../electron/shared/types').AgentEconomyUpsertProfileInput
+  type AgentEconomySetPolicyInput = import('../../electron/shared/types').AgentEconomySetPolicyInput
+  type AgentEconomyPolicyCheckInput = import('../../electron/shared/types').AgentEconomyPolicyCheckInput
+  type AgentEconomyPolicyCheckResult = import('../../electron/shared/types').AgentEconomyPolicyCheckResult
+  type AgentEconomyExecutePaidCallInput = import('../../electron/shared/types').AgentEconomyExecutePaidCallInput
+  type AgentEconomyExecutePaidCallResult = import('../../electron/shared/types').AgentEconomyExecutePaidCallResult
+  type AgentEconomyListReceiptsInput = import('../../electron/shared/types').AgentEconomyListReceiptsInput
+  type AgentEconomyReceipt = import('../../electron/shared/types').AgentEconomyReceipt
+  type AgentEconomyRegisterDevnetAgentInput = import('../../electron/shared/types').AgentEconomyRegisterDevnetAgentInput
+  type AgentEconomyRegisterDevnetAgentResult = import('../../electron/shared/types').AgentEconomyRegisterDevnetAgentResult
+  type AgentEconomyReadAgentIdentityInput = import('../../electron/shared/types').AgentEconomyReadAgentIdentityInput
+  type AgentEconomyReadAgentIdentityResult = import('../../electron/shared/types').AgentEconomyReadAgentIdentityResult
 
   interface DaemonIdle {
     status: (registryUrl?: string | null) => Promise<IpcResponse<IdleRegistryStatus>>
@@ -1458,6 +1486,18 @@ declare global {
     providerRevenue: () => Promise<IpcResponse<MeterflowRevenueRow[]>>
     registrySummary: () => Promise<IpcResponse<Record<string, unknown>>>
     exportReceiptsCsv: () => Promise<IpcResponse<MeterflowCsvExport>>
+  }
+
+  interface DaemonAgentEconomy {
+    listProfiles: (projectId?: string | null) => Promise<IpcResponse<AgentEconomyProfile[]>>
+    upsertProfile: (input: AgentEconomyUpsertProfileInput) => Promise<IpcResponse<AgentEconomyProfile>>
+    getProfile: (profileId: string) => Promise<IpcResponse<AgentEconomyProfile>>
+    setPolicy: (input: AgentEconomySetPolicyInput) => Promise<IpcResponse<AgentEconomySpendPolicy>>
+    checkPolicy: (input: AgentEconomyPolicyCheckInput) => Promise<IpcResponse<AgentEconomyPolicyCheckResult>>
+    executePaidCall: (input: AgentEconomyExecutePaidCallInput) => Promise<IpcResponse<AgentEconomyExecutePaidCallResult>>
+    listReceipts: (input?: AgentEconomyListReceiptsInput) => Promise<IpcResponse<AgentEconomyReceipt[]>>
+    registerDevnetAgent: (input: AgentEconomyRegisterDevnetAgentInput) => Promise<IpcResponse<AgentEconomyRegisterDevnetAgentResult>>
+    readAgentIdentity: (input: AgentEconomyReadAgentIdentityInput) => Promise<IpcResponse<AgentEconomyReadAgentIdentityResult>>
   }
 
   interface MetaplexCoreAgentAssetReceipt {
@@ -1802,6 +1842,7 @@ declare global {
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
+    agentEconomy: DaemonAgentEconomy
     meterflow: DaemonMeterflow
     metaplex: DaemonMetaplex
     vault: DaemonVault

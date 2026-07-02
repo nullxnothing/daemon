@@ -1703,6 +1703,9 @@ interface JupiterSwapDraft {
   requestId: string
   transaction: string
   messageHash: string
+  /** Server-computed price impact %, captured at quote time. The high-impact
+   *  acknowledgement gate is checked against THIS, never the renderer's quote. */
+  priceImpactPct: string
   createdAt: number
 }
 
@@ -1833,6 +1836,20 @@ function getJupiterSwapDraft(quoteId: string): JupiterSwapDraft {
   return draft
 }
 
+/** Server-authoritative price impact (as a percentage) for a stored quote draft.
+ *  The high-impact acknowledgement gate must read THIS, not the renderer's quote,
+ *  so a caller can't dodge it by sending a low/zero priceImpact in rawQuoteResponse.
+ *  The draft field is already normalized to a true percentage by
+ *  normalizeJupiterPriceImpactPct (Jupiter returns a 0..1 fraction; we scale x100
+ *  once, at normalization), which is also the unit the renderer displays and
+ *  thresholds. So this just reads the stored percent — no further scaling. */
+export function getServerSwapImpactPct(quoteId: string): number {
+  const draft = getJupiterSwapDraft(quoteId)
+  const pct = parseFloat(draft.priceImpactPct)
+  if (!Number.isFinite(pct)) return 0
+  return Math.abs(pct)
+}
+
 function assertJupiterOrderMatchesDraft(
   draft: JupiterSwapDraft,
   order: JupiterSwapOrderResponse,
@@ -1882,8 +1899,16 @@ function isValidBase64Payload(value: string): boolean {
   }
 }
 
+/** Jupiter returns price impact as a 0..1 fraction on BOTH fields:
+ *  `priceImpactPct` (a decimal string, e.g. "0.0025" = 0.25%) and `priceImpact`
+ *  (a number). We normalize to a true percentage string once here so every
+ *  consumer — the renderer display, the WalletSwapForm >=5% acknowledgement gate,
+ *  and the server-authoritative getServerSwapImpactPct — reads the same unit. */
 function normalizeJupiterPriceImpactPct(order: JupiterSwapOrderResponse): string {
-  if (order.priceImpactPct !== undefined) return order.priceImpactPct
+  if (order.priceImpactPct !== undefined) {
+    const fraction = parseFloat(order.priceImpactPct)
+    return Number.isFinite(fraction) ? String(Math.abs(fraction) * 100) : '0'
+  }
   if (order.priceImpact !== undefined) return String(Math.abs(order.priceImpact) * 100)
   return '0'
 }
@@ -2076,6 +2101,7 @@ export async function getSwapQuote(
     requestId: data.requestId,
     transaction: data.transaction,
     messageHash,
+    priceImpactPct: normalizeJupiterPriceImpactPct(data),
   })
   const rawQuoteResponse = {
     ...data,
