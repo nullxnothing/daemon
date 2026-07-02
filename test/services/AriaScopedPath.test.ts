@@ -30,8 +30,14 @@ describe('resolveScopedPath — containment + secret denial', () => {
   })
 
   it('rejects a parent-traversal escape', () => {
+    // Forward slash is a separator on every platform, so this is always an escape.
     expect(() => resolveScopedPath('../outside.txt', root)).toThrow(/escapes/i)
-    expect(() => resolveScopedPath('..\\..\\outside.txt', root)).toThrow(/escapes/i)
+    // Backslash is only a path separator on Windows; on POSIX it's an ordinary
+    // filename character (so the path stays inside root). Only assert the escape
+    // where the separator semantics make it one.
+    if (path.sep === '\\') {
+      expect(() => resolveScopedPath('..\\..\\outside.txt', root)).toThrow(/escapes/i)
+    }
   })
 
   it('refuses .env and .env.local', () => {
