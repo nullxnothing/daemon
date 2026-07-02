@@ -560,7 +560,10 @@ async function runPlain() {
     if (frame.type === 'ready') {
       ready = true
       for (const line of lines) writeFrame(child, { type: 'input', text: line })
-      if (lines.length === 0) writeFrame(child, { type: 'exit' })
+      // Always send exit: the backend processes frames in order and drains queued
+      // turns before exiting, so this fires after the last input is answered. Any
+      // approval a turn needs is auto-rejected below, so piped mode never hangs.
+      writeFrame(child, { type: 'exit' })
       return
     }
     if (frame.type === 'state') { console.log(`aria ${frame.projectPath ?? ''}`); return }

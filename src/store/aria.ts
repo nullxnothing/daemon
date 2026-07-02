@@ -415,12 +415,13 @@ function applyEvent(
   get: () => AriaState,
   ev: AriaToolEvent,
 ): void {
-  // Session isolation: every streamed event is tagged with messageId === its
+  // Session isolation: the transport stamps every streamed event — including
+  // tool-call, approval-request, and patch-proposal — with messageId === its
   // session id. If the user switched sessions while a turn was still streaming,
   // events for the old session must NOT mutate the now-active session's turns
-  // (they would leak into the wrong conversation — including approval cards).
-  // action-result has no messageId
-  // (keyed by globally-unique proposalId) so it is exempt.
+  // (they would leak into the wrong conversation — including approval cards, a
+  // real money-safety hazard). action-result carries no messageId (it is keyed
+  // by a globally-unique proposalId and reconciled by that) so it is exempt.
   if ('messageId' in ev && ev.messageId !== get().sessionId) return
   // Past the guard, the event belongs to the currently-viewed session, so route
   // every patch to that session's own in-flight assistant turn.

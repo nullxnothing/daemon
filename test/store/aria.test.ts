@@ -104,6 +104,23 @@ describe('useAriaStore streaming reducer', () => {
     expect(turn?.patch?.status).toBe('applied')
   })
 
+  it('drops a patch proposal tagged with a proposal id instead of the session id', () => {
+    // Regression: the transport once emitted patch-proposal with messageId ===
+    // proposal.id (a random uuid), so the session-isolation guard dropped EVERY
+    // proposal, the card never rendered, and the turn hung forever. The transport
+    // must tag it with the session id; a non-session messageId must be discarded.
+    useAriaStore.getState().subscribe()
+    useAriaStore.setState({
+      turns: [{
+        id: 't-hang', role: 'assistant', text: '', createdAt: 0, toolCalls: [], approvals: [],
+      }],
+    })
+    toolEventHandler?.({ kind: 'patch-proposal', messageId: PROPOSAL.id, proposal: PROPOSAL })
+    const turn = useAriaStore.getState().turns.find((t) => t.id === 't-hang')
+    expect(turn?.patch).toBeUndefined()
+    expect(turn?.actionState).not.toBe('deciding')
+  })
+
   it('decidePatch dispatches to the bridge and marks the turn deciding', () => {
     useAriaStore.setState({
       turns: [{

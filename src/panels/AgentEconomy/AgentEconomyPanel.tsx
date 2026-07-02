@@ -20,7 +20,7 @@ const DEFAULT_NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'
 
 function shortId(value?: string | null, left = 5, right = 4) {
   if (!value) return '--'
-  return value.length <= left + right + 3 ? value : `${value.slice(0, left)}...${value.slice(-right)}`
+  return value.length <= left + right + 3 ? value : `${value.slice(0, left)}…${value.slice(-right)}`
 }
 
 function money(value: number) {
@@ -65,7 +65,9 @@ export function AgentEconomyPanel() {
   const [profileForm, setProfileForm] = useState({ name: 'DAEMON operator', agentId: '', walletId: '', walletAddress: '', serviceUrl: '', capabilities: 'x402,metaplex,solana' })
   const [policyForm, setPolicyForm] = useState({ asset: 'USDC', network: DEFAULT_NETWORK, allowedDomains: '', allowedPayees: '', maxPerCallUsdc: '0.05', maxPerDayUsdc: '1', enabled: true })
   const [callForm, setCallForm] = useState({ taskId: '', requestBody: '{}', paymentSignature: '', approvedBy: '' })
-  const [registryForm, setRegistryForm] = useState({ rpcUrl: 'https://api.devnet.solana.com', uri: '', description: '', priceUsdc: '0.01', acknowledgement: 'MINT REGISTERED AGENT' })
+  // acknowledgement starts EMPTY — the exact gate string is shown as a placeholder only, so the
+  // typed confirmation is a deliberate act, not a pre-satisfied one-click mint.
+  const [registryForm, setRegistryForm] = useState({ rpcUrl: 'https://api.devnet.solana.com', uri: '', description: '', priceUsdc: '0.01', acknowledgement: '' })
 
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0] ?? null, [profiles, selectedProfileId])
   const selectedResource = useMemo(() => resources.find((resource) => resource.id === selectedResourceId) ?? resources[0] ?? null, [resources, selectedResourceId])
@@ -78,7 +80,14 @@ export function AgentEconomyPanel() {
       runIpc(daemon.idle.listResources(50), { context: 'IDLE resources', silent: true }),
       runIpc(daemon.agentEconomy.listReceipts({ projectId: activeProjectId ?? null, limit: 50 }), { context: 'Agent receipts', silent: true }),
     ])
-    if (nextProfiles) setProfiles(nextProfiles)
+    // A failed list must not masquerade as an empty state — runIpc returns null on error, so if
+    // the primary profiles load failed, surface it with a retry instead of showing "No profiles".
+    if (nextProfiles === null) {
+      setError('Could not load the agent economy. Check the connection and retry.')
+      setLoading(false)
+      return
+    }
+    setProfiles(nextProfiles)
     if (nextResources) setResources(nextResources)
     if (nextReceipts) setReceipts(nextReceipts)
     setSelectedProfileId((current) => current || nextProfiles?.[0]?.id || '')
@@ -103,11 +112,9 @@ export function AgentEconomyPanel() {
     })
   }, [selectedProfile?.id])
 
-  useEffect(() => {
-    const host = domainFromEndpoint(selectedResource?.endpoint)
-    if (!host || policyForm.allowedDomains.includes(host)) return
-    setPolicyForm((current) => ({ ...current, allowedDomains: current.allowedDomains ? `${current.allowedDomains}, ${host}` : host }))
-  }, [selectedResource?.id])
+  // Browsing resources must NOT silently expand the spend-policy allowlist — that is a security
+  // control the user edits deliberately in the Policy tab. (Previously selecting a resource
+  // auto-appended its host here, so a later "Save policy" persisted domains never typed.)
 
   async function loadProfile(profileId: string) {
     const profile = await runIpc(daemon.agentEconomy.getProfile(profileId), { context: 'Agent profile', silent: true })
@@ -234,9 +241,17 @@ export function AgentEconomyPanel() {
         ))}
       </nav>
 
-      {error && <div className="agent-economy-alert">{error}</div>}
-      {loading && <div className="agent-economy-loading">Loading...</div>}
+      {error && (
+        <div className="agent-economy-alert">
+          <span>{error}</span>
+          <button type="button" className="agent-economy-button" onClick={() => void refresh()}>Retry</button>
+        </div>
+      )}
+      {loading && <div className="agent-economy-loading">Loading…</div>}
 
+      {/* When the load failed and nothing is loaded yet, the alert is the whole surface — never
+          render the grid's "No profiles" empty state, which would read as a genuine zero. */}
+      {error && profiles.length === 0 ? null : (
       <div className="agent-economy-grid">
         <aside className="agent-economy-sidebar">
           <div className="agent-economy-section-head">
@@ -321,15 +336,16 @@ export function AgentEconomyPanel() {
               <Field label="Metadata URI" value={registryForm.uri} onChange={(value) => setRegistryForm((current) => ({ ...current, uri: value }))} />
               <Field label="Description" value={registryForm.description} onChange={(value) => setRegistryForm((current) => ({ ...current, description: value }))} />
               <Field label="Price USDC" value={registryForm.priceUsdc} onChange={(value) => setRegistryForm((current) => ({ ...current, priceUsdc: value }))} />
-              <Field label="Acknowledgement" value={registryForm.acknowledgement} onChange={(value) => setRegistryForm((current) => ({ ...current, acknowledgement: value }))} />
+              <Field label="Acknowledgement" value={registryForm.acknowledgement} placeholder="Type MINT REGISTERED AGENT to confirm" onChange={(value) => setRegistryForm((current) => ({ ...current, acknowledgement: value }))} />
               <div className="agent-economy-actions">
-                <button className="agent-economy-button primary" type="submit" disabled={!selectedProfile}>Register</button>
+                <button className="agent-economy-button primary" type="submit" disabled={!selectedProfile || registryForm.acknowledgement.trim() !== 'MINT REGISTERED AGENT'}>Register</button>
                 <button className="agent-economy-button" type="button" onClick={() => void readIdentity()} disabled={!selectedProfile?.registryAsset}>Read identity</button>
               </div>
             </form>
           )}
         </main>
       </div>
+      )}
     </section>
   )
 }
@@ -338,11 +354,11 @@ function PanelTitle({ icon, title, detail }: { icon: ReactNode; title: string; d
   return <div className="agent-economy-title">{icon}<strong>{title}</strong><span>{detail}</span></div>
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
   return (
     <label>
       <span>{label}</span>
-      <input value={value} onChange={(event) => onChange(event.target.value)} />
+      <input value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
     </label>
   )
 }

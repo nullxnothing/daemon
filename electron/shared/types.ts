@@ -1421,7 +1421,9 @@ export interface Mandate {
 }
 
 export type MandateDecision = 'buy' | 'sell' | 'hold' | 'skip'
-export type MandateActionStatus = 'decided' | 'executed' | 'failed'
+// 'executing' claims a tick_seq (and its intent) BEFORE the swap is sent, so a crash between
+// send and confirmation is detectable on boot and never silently replayed into a double-buy.
+export type MandateActionStatus = 'decided' | 'executing' | 'executed' | 'failed' | 'needs-review'
 
 export interface MandateAction {
   id: string
@@ -2898,6 +2900,7 @@ export type AriaToolEvent =
   | { kind: 'assistant-text'; messageId: string; text: string }
   | {
       kind: 'tool-call'
+      messageId: string
       callId: string
       name: string
       label: string
@@ -2906,7 +2909,7 @@ export type AriaToolEvent =
       status: AriaToolCallStatus
       meta?: string
     }
-  | { kind: 'approval-request'; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; fee?: { bps: number; lamports: number; treasury: string } }
+  | { kind: 'approval-request'; messageId: string; callId: string; name: string; risk: AriaToolRiskTier; summary: string; input: unknown; fee?: { bps: number; lamports: number; treasury: string } }
   | { kind: 'plan'; messageId: string; steps: AriaPlanStep[] }
   | { kind: 'patch-proposal'; messageId: string; proposal: AriaPatchProposalLite }
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }

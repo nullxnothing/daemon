@@ -98,3 +98,6 @@ scripts/_icc_row.css
 apps/seeker-mobile/.expo/
 apps/seeker-mobile/dapp-store/build/
 apps/seeker-mobile/dapp-store/publisher-keypair.json
+
+# stray project copy (2.8GB) - lives in Projects/cabal-visualizer
+cabal-visualizer/

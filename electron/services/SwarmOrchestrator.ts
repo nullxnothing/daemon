@@ -22,8 +22,17 @@ import * as Worktree from './WorktreeService'
 const MAX_CONCURRENT_LANES = 4
 const LANE_MODEL = 'sonnet'
 const LANE_MAX_TURNS = 30
-/** Lanes must never push; merging is a human step in the Git panel. */
-const DISALLOWED_TOOLS = 'Bash(git push:*)'
+/** Lanes must never push or reach a remote; merging is a human step in the Git panel. This is a
+ *  best-effort belt on top of the real belt (the worktree's push remote is disabled at the git
+ *  layer in WorktreeService), since a prefix pattern can't catch every shell wrapper. */
+const DISALLOWED_TOOLS = [
+  'Bash(git push:*)',
+  'Bash(git remote:*)',
+  'Bash(git fetch:*)',
+  'Bash(git pull:*)',
+  'Bash(gh:*)',
+  'Bash(git -c:*)',
+].join(',')
 
 /** BrainBlast pre-flight: research a lane's task before it codes, then gate on CRITICAL risk. */
 const PREFLIGHT_MAX_TURNS = 40
@@ -84,10 +93,27 @@ function latestReportPath(worktreePath: string): string | null {
   return null
 }
 
-/** Env that forces the CLI onto subscription OAuth and signals BrainBlast --ci mode. */
-function laneEnv(extra: Record<string, string> = {}): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, TERM: 'xterm-256color', ...extra }
-  // Strip API-key env so the CLI uses OAuth (an exhausted/restricted key exits 1 instantly).
+/**
+ * Env for a lane. A lane runs `--dangerously-skip-permissions` on UNTRUSTED task text, so it must
+ * NOT inherit the full parent env (a denylist leaks anything not explicitly stripped — ZAI keys,
+ * GitHub tokens, etc., which prompt-injected task text could exfiltrate). Build a minimal
+ * allowlist instead: only PATH/HOME/shell essentials plus the CLI's own config, and force OAuth
+ * by never passing an Anthropic key.
+ */
+function laneEnv(extra: Record<string, string> = {}): Record<string, string> {
+  const ALLOW = [
+    'PATH', 'Path', 'HOME', 'USERPROFILE', 'TEMP', 'TMP', 'TMPDIR', 'SystemRoot', 'windir',
+    'ComSpec', 'PATHEXT', 'LANG', 'LC_ALL', 'SHELL',
+    // Claude CLI config/state (OAuth session, config dir) — needed for the CLI to run at all.
+    'CLAUDE_CONFIG_DIR', 'CLAUDE_HOME', 'XDG_CONFIG_HOME', 'APPDATA', 'LOCALAPPDATA',
+  ]
+  const env: Record<string, string> = { TERM: 'xterm-256color' }
+  for (const key of ALLOW) {
+    const val = process.env[key]
+    if (val !== undefined) env[key] = val
+  }
+  Object.assign(env, extra)
+  // Belt-and-braces: even though we allowlisted, make certain no Anthropic key leaks in via extra.
   delete env.ANTHROPIC_API_KEY
   delete env.ANTHROPIC_AUTH_TOKEN
   return env
@@ -138,7 +164,7 @@ async function runPreflight(task: string, worktreePath: string): Promise<Worktre
     try {
       child = spawn(getClaudePath(), args, {
         cwd: worktreePath,
-        env: laneEnv({ BRAINBLAST_CI: '1' }),
+        env: laneEnv({ BRAINBLAST_CI: '1' }) as NodeJS.ProcessEnv,
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
@@ -279,7 +305,7 @@ async function startLane(runId: string, laneId: string): Promise<void> {
     child = spawn(getClaudePath(), args, {
       cwd: lane.worktree_path,
       // OAuth-only env (see laneEnv) — an exhausted/restricted API key exits 1 instantly.
-      env: laneEnv(),
+      env: laneEnv() as NodeJS.ProcessEnv,
       windowsHide: true,
       // Close stdin so `claude -p` doesn't block waiting for piped input
       // (it otherwise times out after 3s and exits 1); keep stdout/stderr piped.

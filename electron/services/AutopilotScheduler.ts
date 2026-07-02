@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { listArmedMandates, tickMandate, getMandateOrThrow } from './AutopilotService'
+import { listArmedMandates, tickMandate, getMandateOrThrow, reconcileInterruptedTicks } from './AutopilotService'
 
 // Autopilot scheduler.
 // A single main-process loop that wakes due mandates and runs one tick each. Modeled on the
@@ -66,6 +66,14 @@ async function sweep(): Promise<void> {
 /** Start the scheduler loop. Idempotent — a second call is a no-op. */
 export function start(): void {
   if (timer) return
+  // Reconcile any tick interrupted mid-swap by a crash BEFORE the first sweep, so a mandate
+  // held for review is never replayed into a double-buy.
+  try {
+    const held = reconcileInterruptedTicks()
+    if (held > 0) console.warn(`[autopilot] held ${held} mandate(s) with an interrupted tick for review`)
+  } catch (err) {
+    console.warn('[autopilot] boot reconcile failed:', err instanceof Error ? err.message : String(err))
+  }
   timer = setInterval(() => {
     void sweep().catch((err) => {
       console.warn('[autopilot] sweep error:', err instanceof Error ? err.message : String(err))

@@ -236,9 +236,14 @@ ${content}`,
       // PATH fallback
     }
 
+    // On Windows npm resolves to npm.cmd. Since the CVE-2024-27980 hardening
+    // (Node >= 20.12.2, shipped by current Electron) execFile/spawn of a .cmd
+    // without shell:true throws EINVAL, which broke the install button entirely.
+    // Route the .cmd through the shell so it launches; POSIX runs the bare binary.
     const { stdout, stderr } = await execFileAsync(npmPath, ['install', '-g', '@anthropic-ai/claude-code'], {
       timeout: 120000,
       env: { ...process.env },
+      shell: isWin,
     })
 
     ClaudeRouter.clearCachedPath()

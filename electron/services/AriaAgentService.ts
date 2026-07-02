@@ -31,9 +31,18 @@ const AGENT_DEADLINE_MS = 120_000
 const MAX_HISTORY = 40
 const DEFAULT_LANE: DaemonAiModelLane = 'auto'
 
+/** An emit-time event: messageId may be omitted at the call site because the
+ *  transport stamps it with the session id before it reaches the renderer (which
+ *  requires it for session isolation). The wire type AriaToolEvent still requires
+ *  messageId, so the guarantee holds at the boundary. */
+export type AriaEmitEvent =
+  | AriaToolEvent
+  | Omit<Extract<AriaToolEvent, { kind: 'tool-call' }>, 'messageId'>
+  | Omit<Extract<AriaToolEvent, { kind: 'approval-request' }>, 'messageId'>
+
 export interface AriaTransport {
   /** Stream a transcript event to the renderer. */
-  emit: (event: AriaToolEvent) => void
+  emit: (event: AriaEmitEvent) => void
   /** Pause for a write/sensitive tool; resolves true on approval. */
   requestApproval: (req: {
     callId: string
@@ -132,39 +141,40 @@ function isStaleNoToolResponse(text: string): boolean {
   ].some((pattern) => lower.includes(pattern))
 }
 
+/**
+ * Fast path for a handful of read-only tools when the message is an UNAMBIGUOUS command, not a
+ * natural-language question. Prior behavior matched bare keyword containment ('status',
+ * 'directory', any Windows path), which hijacked ordinary questions ('why does C:\\...\\x.ts
+ * throw?', 'check the swap status') away from the model and silently switched projects. Now this
+ * only fires on an exact tool name or a short imperative at the START of the message; anything
+ * conversational falls through to the LLM. Returns [] to mean "let the model handle it".
+ */
 function directToolUsesForMessage(message: string): AgentToolUse[] {
   const text = message.trim()
+  // Guard: never intercept a longer, sentence-like message — those are questions for the model.
+  if (text.length > 64 || /[?]/.test(text)) return []
+
   const uses: AgentToolUse[] = []
   const add = (name: string, input: Record<string, unknown> = {}) => {
-    const key = `${name}:${JSON.stringify(input)}`
-    if (uses.some((use) => `${use.name}:${JSON.stringify(use.input)}` === key)) return
     uses.push({ id: `direct_${crypto.randomUUID()}`, name, input })
   }
 
-  const pathMatch = text.match(/[A-Za-z]:\\[^\r\n"'`]+/)
-  if (pathMatch) {
-    add('activate_project', { project: pathMatch[0].trim().replace(/[)\],;]+$/, '') })
-  }
-
-  if (/\b(read_project_status|project status|status)\b/i.test(text)) {
+  // Bare project-status command only (exact, not the word 'status' inside a sentence).
+  if (/^(read_project_status|project status|status)$/i.test(text)) {
     add('read_project_status')
-  }
-  if (/\b(recall_memories|recall.*memor|stored facts|what.*know|durable facts)\b/i.test(text)) {
+  } else if (/^(recall_memories|recall memories|stored facts|what do you know)$/i.test(text)) {
     add('recall_memories')
-  }
-  if (
-    /\b(list_project_tree|list files|show files|directory|folder contents|files in the directory|do you see.*files|what files)\b/i.test(text) ||
-    (pathMatch && !/\b(open_file|open file|read_file|read file)\b/i.test(text))
-  ) {
+  } else if (/^(list_project_tree|list files|show files|list directory|ls)$/i.test(text)) {
     add('list_project_tree', { path: '.', limit: 80 })
-  }
-  if (/\b(open_file|open file)\b/i.test(text)) {
-    const file = text.match(/\b(?:open_file|open file)\b[:\s]+(.+)$/i)?.[1]?.trim()
-    if (file) add('open_file', { path: file })
-  }
-  if (/\b(read_file|read file)\b/i.test(text)) {
-    const file = text.match(/\b(?:read_file|read file)\b[:\s]+(.+)$/i)?.[1]?.trim()
-    if (file) add('read_file', { path: file })
+  } else {
+    // Imperative tool invocations: an explicit verb followed by an argument.
+    const open = text.match(/^(?:open_file|open file|open)\s+(.+)$/i)?.[1]?.trim()
+    if (open) add('open_file', { path: open })
+    const read = text.match(/^(?:read_file|read file|read)\s+(.+)$/i)?.[1]?.trim()
+    if (read) add('read_file', { path: read })
+    // Explicit project switch only ('open/switch to <path>'), never a bare path in prose.
+    const activate = text.match(/^(?:activate_project|activate|switch to|open project)\s+([A-Za-z]:\\[^\r\n"'`]+)$/i)?.[1]?.trim()
+    if (activate) add('activate_project', { project: activate.replace(/[)\],;]+$/, '') })
   }
 
   const readOnly = new Set(['activate_project', 'read_project_status', 'recall_memories', 'list_project_tree', 'open_file', 'read_file'])
@@ -687,10 +697,18 @@ async function handleProposePatch(
 }
 
 function describeIntent(tool: AriaTool, input: Record<string, unknown>): string {
-  const arg = Object.values(input)[0]
-  const intent = `${tool.name}${arg !== undefined ? `: ${String(arg).slice(0, 80)}` : ''}`
-  // Approval cards must make the network unmistakable before the user decides.
-  return tool.risk === 'read' ? intent : clusterMark(intent)
+  // For read tools a short first-arg summary is fine. For write/sensitive tools the user is
+  // typed-confirming a real action, so show EVERY material field (amount, side, size, leverage,
+  // destination, cap) — not just the first value — so a money movement's amount is never hidden.
+  if (tool.risk === 'read') {
+    const arg = Object.values(input)[0]
+    return `${tool.name}${arg !== undefined ? `: ${String(arg).slice(0, 80)}` : ''}`
+  }
+  const entries = Object.entries(input)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}=${String(v).slice(0, 60)}`)
+  const detail = entries.length > 0 ? ` — ${entries.join(', ')}` : ''
+  return clusterMark(`${tool.name}${detail}`)
 }
 
 /** Non-Claude providers: single-shot text answer, no tools. */

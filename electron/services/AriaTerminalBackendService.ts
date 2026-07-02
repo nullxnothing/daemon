@@ -6,7 +6,7 @@ import { app } from 'electron'
 import { getDb } from '../db/db'
 import * as AriaAgentService from './AriaAgentService'
 import * as SettingsService from './SettingsService'
-import type { AriaTransport } from './AriaAgentService'
+import type { AriaTransport, AriaEmitEvent } from './AriaAgentService'
 import { ARIA_TOOLS, getTool } from './aria/toolCatalog'
 import type { AriaToolContext } from './aria/AriaTool'
 import { getCommand, commandManifest } from './aria/cli/commandRegistry'
@@ -200,7 +200,7 @@ function emitBanner(state: RuntimeState): void {
 
 function makeTransport(state: RuntimeState): AriaTransport {
   return {
-    emit: (event: AriaToolEvent) => emit('event', { event }),
+    emit: (event: AriaEmitEvent) => emit('event', { event }),
     requestApproval: async (req) => {
       const id = crypto.randomUUID()
       emit('approval', { id, request: req })
@@ -392,6 +392,27 @@ export async function runAriaServer(argv = process.argv.slice(2)): Promise<void>
   const stdinStream = fs.createReadStream('', { fd: 0 })
   stdinStream.on('error', () => { /* EPIPE when the parent exits; loop ends naturally */ })
   const rl = readline.createInterface({ input: stdinStream, crlfDelay: Infinity })
+
+  // The frame loop must NOT block on a turn: an in-flight turn can pause for an
+  // approval/patch decision, and that resolution arrives as a later stdin frame.
+  // If we awaited handleInput here, the approval frame could never be read and the
+  // turn would deadlock. So input frames run through a serialized queue (one turn
+  // at a time), while approval/patchDecision/exit frames are processed inline —
+  // out-of-band — even while a turn is running.
+  let turnChain: Promise<void> = Promise.resolve()
+  let exiting = false
+  const enqueueTurn = (text: string) => {
+    turnChain = turnChain.then(async () => {
+      if (exiting) return
+      try {
+        const shouldContinue = await handleInput(text, state)
+        if (!shouldContinue) { exiting = true; rl.close() }
+      } catch (err) {
+        emit('error', { message: err instanceof Error ? err.message : String(err) })
+      }
+    })
+  }
+
   for await (const line of rl) {
     let payload: Record<string, unknown>
     try {
@@ -400,14 +421,19 @@ export async function runAriaServer(argv = process.argv.slice(2)): Promise<void>
       emit('error', { message: 'Invalid protocol frame.' })
       continue
     }
-    if (payload.type === 'exit') break
+    if (payload.type === 'exit') {
+      // Drain queued turns before exiting so piped input is fully answered.
+      exiting = true
+      break
+    }
     if (payload.type === 'approval' || payload.type === 'patchDecision') {
       resolvePending(payload)
       continue
     }
     if (payload.type === 'input' && typeof payload.text === 'string') {
-      const shouldContinue = await handleInput(payload.text, state)
-      if (!shouldContinue) break
+      enqueueTurn(payload.text)
     }
   }
+  // Let any in-flight / queued turns settle before the process exits.
+  await turnChain
 }

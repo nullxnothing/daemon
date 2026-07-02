@@ -1552,3 +1552,10 @@ CREATE TABLE IF NOT EXISTS garrison_commission_payouts (
 CREATE INDEX IF NOT EXISTS idx_garrison_commission_payouts_referrer
   ON garrison_commission_payouts(referrer_wallet, created_at DESC);
 `
+
+// V57: track the raw token quantity a mandate has actually accumulated, so exit
+// sells liquidate ONLY the mandate's position, never the wallet's pre-existing
+// holdings of the same mint. Applied as a tolerant ALTER (duplicate-column ok).
+export const SCHEMA_V57 = `
+ALTER TABLE autopilot_mandates ADD COLUMN bought_raw_tokens TEXT NOT NULL DEFAULT '0';
+`
