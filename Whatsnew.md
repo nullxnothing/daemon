@@ -21,6 +21,13 @@ DAEMON v4.6 turns the operator into a full trading and execution surface: unatte
 - Bridge and ARIA file reads deny secret-bearing paths (.env, keypairs, key material) and enforce real-path containment.
 - Swarm lanes run with a minimal allowlisted environment and have push disabled at the git layer.
 
+## First-session polish (4.6.3)
+
+- Memory and Deploy icons open their panels on a fresh install.
+- Plain questions to the engine answer directly; only actions that write to disk raise an approval card.
+- The activity panel collapses repeated toolchain probes behind a count badge instead of flooding the log.
+- The tab strip scrolls the active tab into view and shows chevrons when tabs overflow.
+
 ## Verification
 
 - `pnpm run typecheck && pnpm run test && pnpm run build`
