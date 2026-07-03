@@ -1,26 +1,36 @@
 import { describe, it, expect } from 'vitest'
 import type Database from 'better-sqlite3'
-import { SUPERSEDED_AGENT_MODELS, refreshSupersededAgentModels } from '../../electron/db/migrations'
+import {
+  SUPERSEDED_AGENT_MODELS,
+  SUPERSEDED_STATION_MODELS,
+  refreshSupersededAgentModels,
+  refreshSupersededStationModels,
+} from '../../electron/db/migrations'
 
-// Minimal in-memory stand-in for the better-sqlite3 surface the refresh uses.
+// Minimal in-memory stand-in for the better-sqlite3 surface the refreshes use.
 // Avoids loading the Electron-ABI native module under vitest's plain-Node runtime.
 interface AgentRow { id: string; model: string }
 
 class FakeDb {
   agents: AgentRow[]
+  stations: AgentRow[]
 
-  constructor(rows: AgentRow[]) {
+  constructor(rows: AgentRow[], stations: AgentRow[] = []) {
     this.agents = rows.map((r) => ({ ...r }))
+    this.stations = stations.map((r) => ({ ...r }))
   }
 
   prepare(sql: string) {
-    if (sql.trim() !== 'UPDATE agents SET model = ? WHERE model = ?') {
-      throw new Error(`unexpected sql: ${sql}`)
-    }
+    const table = sql.trim() === 'UPDATE agents SET model = ? WHERE model = ?'
+      ? this.agents
+      : sql.trim() === 'UPDATE agent_station_configs SET model = ? WHERE model = ?'
+        ? this.stations
+        : null
+    if (!table) throw new Error(`unexpected sql: ${sql}`)
     return {
       run: (nextModel: string, prevModel: string) => {
         let changes = 0
-        for (const row of this.agents) {
+        for (const row of table) {
           if (row.model === prevModel) {
             row.model = nextModel
             changes++
@@ -93,6 +103,50 @@ describe('refreshSupersededAgentModels (V59 upgrade migration)', () => {
     for (const [stale, current] of Object.entries(SUPERSEDED_AGENT_MODELS)) {
       expect(stale).not.toBe(current)
       expect(current in SUPERSEDED_AGENT_MODELS).toBe(false)
+    }
+  })
+})
+
+describe('refreshSupersededStationModels (V60 upgrade migration)', () => {
+  it('rewrites superseded picker values to the current aliases', () => {
+    const db = new FakeDb([], [
+      { id: 'station-1', model: 'claude-opus-4-20250514' },
+      { id: 'station-2', model: 'claude-sonnet-4-5' },
+    ])
+    refreshSupersededStationModels(asDb(db))
+    expect(db.stations.map((s) => s.model)).toEqual(['claude-opus-4-8', 'claude-sonnet-4-6'])
+  })
+
+  it('leaves non-Claude and current-alias station rows untouched', () => {
+    const db = new FakeDb([], [
+      { id: 'station-1', model: 'gpt-4o' },
+      { id: 'station-2', model: 'claude-opus-4-8' },
+      { id: 'station-3', model: 'claude-sonnet-4-6' },
+    ])
+    refreshSupersededStationModels(asDb(db))
+    expect(db.stations.map((s) => s.model)).toEqual(['gpt-4o', 'claude-opus-4-8', 'claude-sonnet-4-6'])
+  })
+
+  it('never touches agent rows and stays idempotent', () => {
+    const db = new FakeDb(
+      [{ id: 'daemon-debug', model: 'claude-sonnet-4-20250514' }],
+      [{ id: 'station-1', model: 'claude-sonnet-4-5' }],
+    )
+    refreshSupersededStationModels(asDb(db))
+    expect(db.agents[0].model).toBe('claude-sonnet-4-20250514')
+    const afterFirst = db.stations.map((s) => ({ ...s }))
+    refreshSupersededStationModels(asDb(db))
+    expect(db.stations).toEqual(afterFirst)
+  })
+
+  it('station map targets are exact current aliases', () => {
+    expect(SUPERSEDED_STATION_MODELS).toEqual({
+      'claude-opus-4-20250514': 'claude-opus-4-8',
+      'claude-sonnet-4-5': 'claude-sonnet-4-6',
+    })
+    for (const [stale, current] of Object.entries(SUPERSEDED_STATION_MODELS)) {
+      expect(stale).not.toBe(current)
+      expect(current).not.toMatch(/-20\d{6}$/)
     }
   })
 })
