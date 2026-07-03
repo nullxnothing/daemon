@@ -38,6 +38,8 @@ follows semantic-ish desktop release versioning.
   material fields (amount, side, size), not just the first input value.
 - **Bridge/ARIA file reads deny secret-bearing paths** (`.env`, keypairs, key material) and
   enforce real-path containment against symlink escapes.
+- **Windows `claude:auth-login` path quoting** hardened (strip stray quotes rather than leaving an
+  incomplete escape) and the `claude:install-cli` npm.cmd spawn no longer throws EINVAL.
 - **Swarm lanes run with a minimal allowlisted environment** (no blanket env passthrough) and have
   push disabled at the git layer, not just by a tool-name prefix.
 - **ARIA no longer hijacks ordinary messages**: the read-only fast path only fires on short,

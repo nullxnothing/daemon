@@ -257,7 +257,12 @@ ${content}`,
   ipcMain.handle('claude:auth-login', ipcHandler(async () => {
     const claudePath = ClaudeRouter.getClaudePath()
     if (process.platform === 'win32') {
-      const command = `"${claudePath.replace(/"/g, '\\"')}"`
+      // Wrap the path in double quotes for the nested `cmd /k` token. Inside cmd double-quotes a
+      // backslash is literal (so we must NOT escape it — doubling it would corrupt C:\... paths),
+      // and a double-quote is the only char that could break out. A Windows path can't legally
+      // contain a double-quote, so strip any that appear rather than trying to escape them; this
+      // closes the CodeQL "incomplete string escaping" finding without mangling valid paths.
+      const command = `"${claudePath.replace(/"/g, '')}"`
       spawn('cmd.exe', ['/c', 'start', '""', 'cmd.exe', '/k', command], {
         detached: true,
         stdio: 'ignore',
