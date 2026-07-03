@@ -1045,10 +1045,10 @@ function SetupSection() {
   const handleRerunWizard = async () => {
     const freshProgress = {
       profile: 'pending' as const,
+      claude: 'pending' as const,
       project: 'pending' as const,
-      runtime: 'pending' as const,
       ai: 'pending' as const,
-      firstRun: 'pending' as const,
+      firstMission: 'pending' as const,
       tour: 'pending' as const,
     }
     await window.daemon.settings.setOnboardingComplete(false)

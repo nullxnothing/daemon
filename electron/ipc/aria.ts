@@ -63,6 +63,11 @@ export function registerAriaHandlers() {
     modelLane?: DaemonAiModelLane,
   ) => {
     if (!message?.trim()) throw new Error('Message cannot be empty')
+    // pinnedCluster is restrict-only (devnet pin for the onboarding mission).
+    // Normalize at the boundary: anything but the exact literal is dropped.
+    if (snapshot && snapshot.pinnedCluster !== undefined && snapshot.pinnedCluster !== 'devnet') {
+      delete snapshot.pinnedCluster
+    }
     const transport = makeTransport(event.sender, sessionId)
     return await AriaAgentService.sendMessage(sessionId, message.trim(), snapshot, transport, modelLane)
   }))

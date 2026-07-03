@@ -31,10 +31,10 @@ describe('SwarmMonitor loading / error / empty states (UI_BUGS residual P1)', ()
 
     // Loading must be shown, NOT the empty "No swarm runs yet" copy.
     expect(screen.getByText(/loading swarm runs/i)).toBeTruthy()
-    expect(screen.queryByText(/no swarm runs yet/i)).toBeNull()
+    expect(screen.queryByText(/nothing has run yet/i)).toBeNull()
 
     resolveList({ ok: true, data: [] })
-    await waitFor(() => expect(screen.getByText(/no swarm runs yet/i)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/nothing has run yet/i)).toBeTruthy())
   })
 
   it('shows an error state with a retry button when list fails (not the empty state)', async () => {
@@ -44,7 +44,7 @@ describe('SwarmMonitor loading / error / empty states (UI_BUGS residual P1)', ()
     await waitFor(() => expect(screen.getByText(/couldn.t load swarm runs/i)).toBeTruthy())
     expect(screen.getByText('DB locked')).toBeTruthy()
     // A failed load must NOT look like "no runs".
-    expect(screen.queryByText(/no swarm runs yet/i)).toBeNull()
+    expect(screen.queryByText(/nothing has run yet/i)).toBeNull()
     expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy()
   })
 
@@ -58,12 +58,12 @@ describe('SwarmMonitor loading / error / empty states (UI_BUGS residual P1)', ()
 
     await waitFor(() => expect(screen.getByText(/couldn.t load swarm runs/i)).toBeTruthy())
     await userEvent.click(screen.getByRole('button', { name: /retry/i }))
-    await waitFor(() => expect(screen.getByText(/no swarm runs yet/i)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/nothing has run yet/i)).toBeTruthy())
   })
 
   it('renders the empty state only after a successful empty list', async () => {
     installBridge(() => Promise.resolve({ ok: true, data: [] }))
     render(<SwarmMonitor />)
-    await waitFor(() => expect(screen.getByText(/no swarm runs yet/i)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/nothing has run yet/i)).toBeTruthy())
   })
 })

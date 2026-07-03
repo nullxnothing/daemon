@@ -5,6 +5,7 @@ import type {
   DaemonAiModelInfo, DaemonAiModelLane,
 } from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
+import { markFunnelStep } from '../lib/firstMission'
 import { buildAriaSnapshot } from '../lib/ariaContext'
 import { applyUiEffect, runUiEffectWithData } from '../lib/ariaUiEffects'
 import { useUIStore } from './ui'
@@ -83,7 +84,7 @@ interface AriaState {
   /** Plan mode: ARIA presents a plan and waits for one approval before writing. */
   planMode: boolean
 
-  sendMessage: (content: string) => Promise<void>
+  sendMessage: (content: string, opts?: { pinnedCluster?: 'devnet' }) => Promise<void>
   setPlanMode: (enabled: boolean) => void
   loadProviderStatus: () => Promise<void>
   setAriaProvider: (provider: ProviderId) => Promise<void>
@@ -218,7 +219,7 @@ export const useAriaStore = create<AriaState>((set, get) => ({
     }
   },
 
-  sendMessage: async (content) => {
+  sendMessage: async (content, opts) => {
     const trimmed = content.trim()
     if (!trimmed) return
     const { sessionId, selectedLane, planMode } = get()
@@ -236,7 +237,13 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       // race the IPC resolution (e.g. the codex/legacy single-shot path), leaving the
       // turn stuck on "Working…". Use the IPC return value as the authoritative fallback
       // and write it before clearing the active id.
-      const snapshot = { ...buildAriaSnapshot(), planMode }
+      // The devnet pin rides the snapshot so main-process tools can scope the
+      // turn's reads chain-free (onboarding first mission). Restrict-only.
+      const snapshot = {
+        ...buildAriaSnapshot(),
+        planMode,
+        ...(opts?.pinnedCluster === 'devnet' ? { pinnedCluster: 'devnet' as const } : {}),
+      }
       const res = await daemon.aria.send(sessionId, trimmed, snapshot, selectedLane)
       // Only write the final text if this turn is still this session's active one
       // (the user may have started a fresh turn in the same session since).
@@ -267,6 +274,12 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   },
 
   approve: (callId, approved) => {
+    // First-run funnel: record the first mission's approval decision. Fire-and-
+    // forget — the main process gates these marks behind mission_started and
+    // first-touch, so normal day-to-day approvals never log anything.
+    const isWriteApproval = get().turns.some((t) =>
+      t.approvals.some((a) => a.callId === callId && a.risk === 'write'))
+    if (isWriteApproval) markFunnelStep(approved ? 'approval_approved' : 'approval_rejected')
     daemon.aria.approve(callId, approved)
     set((s) => ({ turns: s.turns.map((t) => ({ ...t, approvals: t.approvals.filter((a) => a.callId !== callId) })) }))
   },
@@ -444,6 +457,9 @@ function applyEvent(
       }, sid)
       break
     case 'approval-request':
+      // First-run funnel: the mission's WRITE card just rendered. Gated in main
+      // (requires mission_started, first touch wins) so this is safe to fire always.
+      if (ev.risk === 'write') markFunnelStep('approval_shown')
       patchActive(set, (t) => ({
         ...t,
         approvals: [...t.approvals, { callId: ev.callId, name: ev.name, risk: ev.risk, summary: ev.summary, input: ev.input, fee: ev.fee }],

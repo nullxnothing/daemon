@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import { daemon } from '../lib/daemonBridge'
+import { markFunnelStep } from '../lib/firstMission'
 
-export type OnboardingStepId = 'profile' | 'project' | 'runtime' | 'ai' | 'firstRun'
-type LegacyOnboardingStepId = 'claude' | 'gmail' | 'vercel' | 'railway'
+export type OnboardingStepId = 'profile' | 'claude' | 'project' | 'ai' | 'firstMission'
+// Steps from earlier wizard layouts — kept in the union so old saved progress
+// JSON still parses and setStepStatus tolerates legacy ids.
+type LegacyOnboardingStepId = 'runtime' | 'firstRun' | 'gmail' | 'vercel' | 'railway'
 
 export interface OnboardingState {
   // Wizard
@@ -11,6 +14,9 @@ export interface OnboardingState {
   progress: OnboardingProgress
   showResumeBanner: boolean
   showTourOffer: boolean
+  /** Set when the wizard exits via "Run first mission": the tour offer must not
+   *  interrupt the approval card, so it is raised only after the mission settles. */
+  deferTourOffer: boolean
 
   // Tour
   tourActive: boolean
@@ -25,6 +31,10 @@ export interface OnboardingState {
   skipWizard: () => void
   dismissBanner: () => void
   dismissTourOffer: () => void
+  /** Close the wizard for the first mission without raising the tour offer. */
+  finishWizardForMission: () => void
+  /** Raise the deferred tour offer once the mission turn has settled. */
+  raiseDeferredTourOffer: () => void
 
   // Tour actions
   startTour: () => void
@@ -37,15 +47,15 @@ export interface OnboardingState {
   saveProgress: () => Promise<void>
 }
 
-const STEP_ORDER: OnboardingStepId[] = ['profile', 'project', 'runtime', 'ai', 'firstRun']
+const STEP_ORDER: OnboardingStepId[] = ['profile', 'claude', 'project', 'ai', 'firstMission']
 const TOUR_STEPS_COUNT = 7
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
   profile: 'pending',
+  claude: 'pending',
   project: 'pending',
-  runtime: 'pending',
   ai: 'pending',
-  firstRun: 'pending',
+  firstMission: 'pending',
   tour: 'pending',
 }
 
@@ -55,6 +65,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   progress: { ...DEFAULT_PROGRESS },
   showResumeBanner: false,
   showTourOffer: false,
+  deferTourOffer: false,
   tourActive: false,
   tourStepIndex: 0,
 
@@ -97,6 +108,17 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     const updatedProgress = { ...progress, [currentStepId]: 'skipped' as const }
     set({ wizardOpen: false, showResumeBanner: false, progress: updatedProgress })
     get().saveProgress()
+    markFunnelStep('wizard_exited_early')
+  },
+
+  finishWizardForMission: () => {
+    get().setStepStatus('firstMission', 'complete')
+    set({ wizardOpen: false, deferTourOffer: true })
+  },
+
+  raiseDeferredTourOffer: () => {
+    if (!get().deferTourOffer) return
+    set({ deferTourOffer: false, showTourOffer: true })
   },
 
   dismissBanner: () => {
@@ -147,10 +169,12 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
         set({ progress, showResumeBanner: true })
       } else if (hasIncomplete && !hasAnyProgress) {
         set({ progress, wizardOpen: true, currentStepIndex: 0 })
+        markFunnelStep('wizard_opened')
       }
     } catch {
       // DB may not be ready — fall back to showing wizard
       set({ wizardOpen: true, currentStepIndex: 0 })
+      markFunnelStep('wizard_opened')
     }
   },
 

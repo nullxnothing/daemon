@@ -130,8 +130,8 @@ export function SwarmMonitor() {
     return (
       <div className="swarm-monitor">
         <div className="swarm-empty">
-          No swarm runs yet.
-          <span className="swarm-empty-sub">Ask the operator to run tasks in parallel worktrees.</span>
+          Swarms run up to 4 agents in parallel, each in an isolated git worktree with push disabled.
+          <span className="swarm-empty-sub">Nothing has run yet. Needs a git project and Claude connected.</span>
         </div>
       </div>
     )

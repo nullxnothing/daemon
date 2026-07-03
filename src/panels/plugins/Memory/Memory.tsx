@@ -123,7 +123,7 @@ export default function Memory() {
           <section className="mem-section">
             <h3 className="mem-heading">Knowledge {knowledge.length > 0 && `(${knowledge.length})`}</h3>
             {knowledge.length === 0
-              ? <p className="plugin-placeholder">{isLoading ? 'Loading…' : 'Nothing learned yet. Approve a suggestion or tell the console to remember something.'}</p>
+              ? <p className="plugin-placeholder">{isLoading ? 'Loading…' : 'ARIA remembers what you approve. Facts saved with remember_fact appear here with their source, and you can archive any of them. Approve the first mission\'s write to see your first one.'}</p>
               : <ul className="mem-list">{knowledge.map((k) => <KnowledgeRow key={k.id} item={k} />)}</ul>}
           </section>
         </div>

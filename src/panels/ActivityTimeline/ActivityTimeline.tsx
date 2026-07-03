@@ -83,10 +83,17 @@ export function ActivityTimeline() {
 
       <section className="activity-stream" aria-label="Activity stream">
         {grouped.length === 0 ? (
-          <EmptyState
-            title="No matching activity yet"
-            description="Run a scaffold, terminal, wallet action, validator, or runtime check and DAEMON will record it here."
-          />
+          activity.length === 0 ? (
+            <EmptyState
+              title="The flight recorder"
+              description="Every agent action lands here: reads, writes, approvals, receipts. Run the first mission to see your first entries."
+            />
+          ) : (
+            <EmptyState
+              title="No matching activity yet"
+              description="Nothing matches this filter. Switch filters, or run a scaffold, terminal, wallet action, validator, or runtime check."
+            />
+          )
         ) : (
           grouped.map((group) => (
             <Card key={group.id} tone={group.hasProblems ? 'warn' : 'default'} className="activity-session">

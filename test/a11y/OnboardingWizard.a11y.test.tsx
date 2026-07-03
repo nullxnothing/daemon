@@ -17,6 +17,15 @@ function installDaemonBridge() {
         setOnboardingProgress: vi.fn().mockResolvedValue({ ok: true }),
         setPinnedTools: vi.fn().mockResolvedValue({ ok: true }),
         setWorkspaceProfile: vi.fn().mockResolvedValue({ ok: true }),
+        markFunnelStep: vi.fn().mockResolvedValue({ ok: true, data: { marked: true } }),
+        getFunnel: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      },
+      claude: {
+        getConnection: vi.fn().mockResolvedValue({ ok: true, data: null }),
+        verifyConnection: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { claudePath: 'claude', hasApiKey: false, isAuthenticated: false, authMode: 'none' },
+        }),
       },
     },
   })
@@ -30,14 +39,15 @@ function resetStores(stepIndex = 0) {
     currentStepIndex: stepIndex,
     progress: {
       profile: 'pending',
+      claude: 'pending',
       project: 'pending',
-      runtime: 'pending',
       ai: 'pending',
-      firstRun: 'pending',
+      firstMission: 'pending',
       tour: 'pending',
     },
     showResumeBanner: false,
     showTourOffer: false,
+    deferTourOffer: false,
     tourActive: false,
     tourStepIndex: 0,
   })

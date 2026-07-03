@@ -2883,6 +2883,12 @@ export interface AriaContextSnapshot {
    *  write action, then auto-runs all write steps. Sensitive money/key tools
    *  still pause for typed confirm. Default off (Build mode). */
   planMode?: boolean
+  /** Onboarding first mission only: pins the turn's chain context to devnet.
+   *  Restrict-only — the sole accepted value is 'devnet', and honoring it makes
+   *  wallet/status reads skip live RPC entirely (local inventory instead), so a
+   *  stored mainnet runtime config can never leak into onboarding. Unpinned
+   *  turns behave exactly as before; the flag never grants anything. */
+  pinnedCluster?: 'devnet'
 }
 
 /** A renderer-applied effect requested by a tool (navigation, toggles, terminal). */
@@ -2965,16 +2971,44 @@ export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
 
 export interface OnboardingProgress {
   profile: OnboardingStepStatus
+  claude: OnboardingStepStatus
   project: OnboardingStepStatus
-  runtime: OnboardingStepStatus
   ai: OnboardingStepStatus
-  firstRun: OnboardingStepStatus
+  firstMission: OnboardingStepStatus
   tour: OnboardingStepStatus
-  claude?: OnboardingStepStatus
+  // Legacy steps from earlier wizard layouts — kept optional so saved progress
+  // JSON from older installs still parses and merges over the defaults.
+  runtime?: OnboardingStepStatus
+  firstRun?: OnboardingStepStatus
   gmail?: OnboardingStepStatus
   vercel?: OnboardingStepStatus
   railway?: OnboardingStepStatus
 }
+
+// --- First-run funnel (local-only instrumentation, nothing leaves the machine) ---
+
+export const FIRSTRUN_FUNNEL_STEPS = [
+  'app_first_launch',
+  'wizard_opened',
+  'profile_done',
+  'claude_cli_ok',
+  'claude_auth_ok',
+  'claude_skipped',
+  'project_ready',
+  'demo_workspace_created',
+  'primer_done',
+  'mission_started',
+  'mission_read_complete',
+  'approval_shown',
+  'approval_approved',
+  'approval_rejected',
+  'mission_narrated',
+  'wizard_exited_early',
+] as const
+
+export type FirstrunFunnelStep = typeof FIRSTRUN_FUNNEL_STEPS[number]
+
+export type FirstrunFunnel = Partial<Record<FirstrunFunnelStep, number>>
 
 // --- Workspace Profile ---
 

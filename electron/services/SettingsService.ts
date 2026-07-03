@@ -1,7 +1,9 @@
 import { getDb } from '../db/db'
 import { PublicKey } from '@solana/web3.js'
+import crypto from 'node:crypto'
 import os from 'node:os'
-import type { EditorPrefs, OnboardingProgress, WorkspaceProfile } from '../shared/types'
+import type { EditorPrefs, FirstrunFunnel, FirstrunFunnelStep, OnboardingProgress, WorkspaceProfile } from '../shared/types'
+import { FIRSTRUN_FUNNEL_STEPS } from '../shared/types'
 import { defaultEnabledPacks, CORE_PACK_IDS } from '../shared/packManifest'
 import * as SecureKey from './SecureKeyService'
 
@@ -117,10 +119,10 @@ export function setOnboardingComplete(complete: boolean): void {
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
   profile: 'pending',
+  claude: 'pending',
   project: 'pending',
-  runtime: 'pending',
   ai: 'pending',
-  firstRun: 'pending',
+  firstMission: 'pending',
   tour: 'pending',
 }
 
@@ -133,6 +135,56 @@ export function getOnboardingProgress(): OnboardingProgress {
 
 export function setOnboardingProgress(progress: OnboardingProgress): void {
   setJsonSetting('onboarding_progress', progress)
+}
+
+// --- First-run funnel (local-only; one app_settings blob + activity mirror) ---
+
+const FUNNEL_KEY = 'firstrun_funnel'
+
+/** Marks that only make sense inside a live first mission. Gating them here (not
+ *  in the renderer) means the aria store can fire-and-forget on every approval
+ *  event and normal day-to-day usage never pollutes the funnel. */
+const MISSION_GATED_STEPS = new Set<FirstrunFunnelStep>([
+  'mission_read_complete', 'approval_shown', 'approval_approved', 'approval_rejected', 'mission_narrated',
+])
+const DECISION_STEPS = new Set<FirstrunFunnelStep>(['approval_approved', 'approval_rejected'])
+
+export function getFirstrunFunnel(): FirstrunFunnel {
+  return getJsonSetting<FirstrunFunnel>(FUNNEL_KEY, {})
+}
+
+/**
+ * Stamp a first-run funnel step with the current epoch ms. First touch wins —
+ * re-running the wizard never overwrites the true first-run timing. Returns
+ * whether the step was actually recorded so the caller can skip side effects.
+ */
+export function markFirstrunFunnelStep(step: string): { marked: boolean } {
+  if (!(FIRSTRUN_FUNNEL_STEPS as readonly string[]).includes(step)) {
+    throw new Error(`Unknown first-run funnel step: ${step}`)
+  }
+  const typed = step as FirstrunFunnelStep
+  const funnel = getFirstrunFunnel()
+  if (funnel[typed] !== undefined) return { marked: false }
+  if (MISSION_GATED_STEPS.has(typed) && funnel.mission_started === undefined) return { marked: false }
+  if (DECISION_STEPS.has(typed)) {
+    if (funnel.approval_shown === undefined) return { marked: false }
+    if (funnel.approval_approved !== undefined || funnel.approval_rejected !== undefined) return { marked: false }
+  }
+  funnel[typed] = Date.now()
+  setJsonSetting(FUNNEL_KEY, funnel)
+  mirrorFunnelStepToActivity(typed, funnel[typed])
+  return { marked: true }
+}
+
+/** Visibility mirror: every funnel mark is also a flight-recorder row, so the
+ *  first-run trail is readable inside the app (Activity, context "first-run"). */
+function mirrorFunnelStepToActivity(step: FirstrunFunnelStep, at: number): void {
+  try {
+    const db = getDb()
+    db.prepare(
+      'INSERT OR IGNORE INTO activity_log (id, kind, message, context, created_at) VALUES (?,?,?,?,?)'
+    ).run(crypto.randomUUID(), 'info', `first-run: ${step}`, 'first-run', at)
+  } catch { /* the mirror is advisory — never fail the mark */ }
 }
 
 // The 5 capability-pack host panels — pinned by default so they're one click
