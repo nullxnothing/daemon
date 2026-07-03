@@ -706,6 +706,17 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 59) {
+    db.transaction(() => {
+      // Fresh installs seed agents with current model aliases, but upgraded
+      // installs kept rows pointing at models DAEMON seeded in old releases
+      // that Anthropic has since superseded. Refresh only those exact IDs —
+      // a still-valid model the user picked on purpose is never rewritten.
+      refreshSupersededAgentModels(db)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(59)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -891,6 +902,26 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
 
   // Clean stale sessions from previous crashed runs — PTY processes are dead after restart
   db.prepare('DELETE FROM active_sessions').run()
+}
+
+/**
+ * Model IDs DAEMON itself seeded in past releases that no longer resolve as
+ * defaults on current Anthropic surfaces, mapped to their current aliases.
+ * Deliberately an exact allowlist: anything else on an agent row — including
+ * still-valid dated snapshots like the Haiku 4.5 ID — is treated as a user
+ * choice and left alone.
+ */
+export const SUPERSEDED_AGENT_MODELS: Record<string, string> = {
+  'claude-sonnet-4-20250514': 'claude-sonnet-4-6',
+  'claude-opus-4-20250514': 'claude-opus-4-8',
+}
+
+/** Rewrite agent rows whose model is a known-superseded seed ID (exact match only). */
+export function refreshSupersededAgentModels(db: Database.Database): void {
+  const update = db.prepare('UPDATE agents SET model = ? WHERE model = ?')
+  for (const [staleId, currentId] of Object.entries(SUPERSEDED_AGENT_MODELS)) {
+    update.run(currentId, staleId)
+  }
 }
 
 function seedDefaults(db: Database.Database) {

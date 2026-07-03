@@ -17,10 +17,13 @@ export const SOLANA_ENDPOINTS = {
   heliusMainnet: (apiKey: string) => `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
 } as const
 
+// Current model aliases. Sonnet/Opus aliases are dateless and complete as
+// written — never append a date suffix. Keep in sync with resolveModelName
+// in validation.ts and the desktop maps in electron/services/providers.
 export const MODEL_MAP: Record<string, string> = {
   haiku: 'claude-haiku-4-5-20251001',
-  sonnet: 'claude-sonnet-4-20250514',
-  opus: 'claude-opus-4-20250514',
+  sonnet: 'claude-sonnet-4-6',
+  opus: 'claude-opus-4-8',
 } as const
 
 export const DEFAULT_MAX_TOKENS = 4096
