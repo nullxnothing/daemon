@@ -17,9 +17,9 @@ function anthropicModelForLane(lane: DaemonAiModelLane): string {
       return process.env.DAEMON_AI_ANTHROPIC_FAST_MODEL || 'claude-haiku-4-5-20251001'
     case 'reasoning':
     case 'premium':
-      return process.env.DAEMON_AI_ANTHROPIC_REASONING_MODEL || 'claude-opus-4-20250514'
+      return process.env.DAEMON_AI_ANTHROPIC_REASONING_MODEL || 'claude-opus-4-8'
     default:
-      return process.env.DAEMON_AI_ANTHROPIC_STANDARD_MODEL || 'claude-sonnet-4-20250514'
+      return process.env.DAEMON_AI_ANTHROPIC_STANDARD_MODEL || 'claude-sonnet-4-6'
   }
 }
 

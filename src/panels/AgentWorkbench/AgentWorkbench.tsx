@@ -3,6 +3,7 @@ import { useAriaStore } from '../../store/aria'
 import { useUIStore } from '../../store/ui'
 import { useMemoryStore } from '../../store/memory'
 import { Composer, ModelDropdown } from '../../components/Panel'
+import { useStickyScroll } from '../../hooks/useStickyScroll'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
 import { getConsoleSuggestions, resolveConsoleCommand, isConsoleCommandInput, type ConsoleCommand } from '../../lib/console/consoleCommands'
 import { AgentTranscript } from './AgentTranscript'
@@ -116,9 +117,7 @@ export function AgentWorkbench() {
   }, [initSessions, activeProjectId])
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
-  }, [turns])
+  useStickyScroll(scrollRef, [turns.length, isLoading])
 
   const setChip = (id: ChipId, on: boolean) => {
     const next = { ...chips, [id]: on }

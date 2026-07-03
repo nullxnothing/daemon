@@ -346,6 +346,17 @@ function App() {
     })
   }, [])
 
+  // Reconcile the terminal store when a PTY exits on its own (shell `exit`, agent
+  // CLI crash, external kill). The per-instance handler only prints "[Process
+  // exited]" to xterm; without this, the dead session stays in the store as a
+  // ghost tab with a live dot and writes to it become silent no-ops. App-level so
+  // it fires even while the terminal panel is collapsed.
+  useEffect(() => {
+    return daemon.terminal.onExit((payload) => {
+      useUIStore.getState().reconcileTerminalExit(payload.id)
+    })
+  }, [])
+
   useEffect(() => {
     return daemon.settings.onUiRecoveryApplied((result) => {
       const cleared = result.clearedKeys.length

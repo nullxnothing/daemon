@@ -332,7 +332,15 @@
   font-family: var(--font-mono);
   font-size: var(--fs-11);
   white-space: nowrap;
+}
+
+/* Ellipsis must live on the text node itself: text-overflow does not apply to
+   the inline-flex parent, so a long branch name would hard-clip without it. */
+.editor-empty-recent-branch-name {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editor-empty-recent-branch svg {

@@ -252,12 +252,12 @@ export function EditorWelcome({ activeProjectId }: EditorWelcomeProps) {
                         </svg>
                         <span className="editor-empty-recent-name">{project.name}</span>
                         {project.branch && (
-                          <span className="editor-empty-recent-branch">
+                          <span className="editor-empty-recent-branch" title={project.branch}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="6" r="3" />
                               <path d="M6 9v6M18 9a9 9 0 0 1-9 9" />
                             </svg>
-                            {project.branch}
+                            <span className="editor-empty-recent-branch-name">{project.branch}</span>
                           </span>
                         )}
                         <span className="editor-empty-recent-spacer" />

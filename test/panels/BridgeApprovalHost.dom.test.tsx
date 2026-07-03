@@ -58,14 +58,21 @@ describe('BridgeApprovalHost', () => {
     expect(screen.queryByText('External agent request')).toBeNull()
   })
 
-  it('requires typed confirmation for sensitive tools', async () => {
+  it('requires typing the tool name to confirm a sensitive tool', async () => {
+    // The confirm target is the tool name (deterministic), not the first input
+    // value (which was argument-order-dependent and could be a number/empty).
     render(<BridgeApprovalHost />)
     pushApproval({ callId: 'call-2', name: 'generate_wallet', risk: 'sensitive', summary: 'generate_wallet: hot', input: { name: 'hot' } })
 
     const approveBtn = screen.getByRole('button', { name: 'Approve' }) as HTMLButtonElement
     expect(approveBtn.disabled).toBe(true)
 
-    await userEvent.type(screen.getByPlaceholderText('hot'), 'hot')
+    // Typing the old first-arg value must NOT enable approval anymore.
+    await userEvent.type(screen.getByPlaceholderText('generate_wallet'), 'hot')
+    expect((screen.getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(true)
+
+    await userEvent.clear(screen.getByPlaceholderText('generate_wallet'))
+    await userEvent.type(screen.getByPlaceholderText('generate_wallet'), 'generate_wallet')
     expect((screen.getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(false)
 
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }))

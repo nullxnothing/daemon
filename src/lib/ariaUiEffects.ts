@@ -91,6 +91,9 @@ export function applyUiEffect(effect: AriaUiEffect): void {
     case 'open_file':
       openFile(effect.path)
       break
+    case 'set_active_project':
+      useUIStore.getState().setActiveProject(effect.projectId, effect.projectPath)
+      break
     case 'add_terminal':
       useUIStore.getState().addTerminal(
         useUIStore.getState().activeProjectId ?? '',

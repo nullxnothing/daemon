@@ -17,7 +17,7 @@ export interface GridCell {
   id: string | null
   label: string
   visible: boolean
-  providerId?: 'claude' | 'codex' | 'spettro' | null
+  providerId?: 'claude' | 'codex' | 'spettro' | 'aria' | null
 }
 
 interface TerminalTab {
@@ -74,6 +74,8 @@ interface UIState {
   markFileSaved: (path: string) => void
   addTerminal: (projectId: string, id: string, label?: string, agentId?: string | null) => void
   removeTerminal: (projectId: string, id: string) => void
+  /** Remove a terminal whose PTY exited on its own (resolves its project by id). */
+  reconcileTerminalExit: (id: string) => void
   setActiveTerminal: (projectId: string, id: string | null) => void
   removeProjectState: (projectId: string) => void
   setMcpDirty: (dirty: boolean) => void
@@ -130,7 +132,7 @@ interface UIState {
   loadPinnedState: () => Promise<void>
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIState>((set, get) => ({
   activePanel: 'claude',
   activeProjectId: null,
   activeProjectPath: null,
@@ -240,6 +242,11 @@ export const useUIStore = create<UIState>((set) => ({
       activeTerminalIdByProject: updateRecord(state.activeTerminalIdByProject, projectId, newActive),
     }
   }),
+
+  reconcileTerminalExit: (id) => {
+    const dead = get().terminals.find((t) => t.id === id)
+    if (dead) get().removeTerminal(dead.projectId, dead.id)
+  },
 
   setActiveTerminal: (projectId, id) => set((state) => ({
     activeTerminalIdByProject: updateRecord(state.activeTerminalIdByProject, projectId, id),

@@ -8,12 +8,13 @@ import { useNotificationsStore } from '../../store/notifications'
 import { DAEMON_XTERM_MINIMAL_THEME } from '../../styles/daemonTheme'
 import './AgentGrid.css'
 
-type ProviderId = 'claude' | 'codex' | 'spettro'
+type ProviderId = 'claude' | 'codex' | 'spettro' | 'aria'
 
 const PROVIDER_META: Record<ProviderId, { label: string; logo: string }> = {
   claude: { label: 'Claude', logo: './claude-logo.png' },
   codex: { label: 'Codex', logo: './codex-logo.png' },
   spettro: { label: 'Spettro', logo: './spettro-logo.png' },
+  aria: { label: 'Aria', logo: './daemon-icon.png' },
 }
 
 // Stable sentinel so the selector returns the same reference when no pages exist,

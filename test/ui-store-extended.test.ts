@@ -178,6 +178,42 @@ describe('useUIStore — addTerminal / removeTerminal', () => {
   })
 })
 
+describe('useUIStore — reconcileTerminalExit (ghost-tab fix, UI_BUGS B2)', () => {
+  beforeEach(resetStore)
+
+  it('removes a self-exited terminal without needing its projectId', () => {
+    const store = useUIStore.getState()
+    store.addTerminal('p1', 'term-1', 'T1')
+    store.addTerminal('p1', 'term-2', 'T2')
+
+    // PTY for term-1 exits on its own — only the id is known from the exit event.
+    useUIStore.getState().reconcileTerminalExit('term-1')
+
+    const after = useUIStore.getState()
+    expect(after.terminals.map((t) => t.id)).toEqual(['term-2'])
+    // term-2 stays active (it already was); no ghost left behind.
+    expect(after.terminals.some((t) => t.id === 'term-1')).toBe(false)
+  })
+
+  it('resolves the project from the dead terminal and clears active when it was active', () => {
+    const store = useUIStore.getState()
+    store.addTerminal('p1', 'term-1', 'only')
+    expect(useUIStore.getState().activeTerminalIdByProject['p1']).toBe('term-1')
+
+    useUIStore.getState().reconcileTerminalExit('term-1')
+
+    const after = useUIStore.getState()
+    expect(after.terminals).toHaveLength(0)
+    expect(after.activeTerminalIdByProject['p1']).toBeNull()
+  })
+
+  it('is a no-op for an unknown terminal id', () => {
+    useUIStore.getState().addTerminal('p1', 'term-1')
+    useUIStore.getState().reconcileTerminalExit('does-not-exist')
+    expect(useUIStore.getState().terminals).toHaveLength(1)
+  })
+})
+
 describe('useUIStore / useWorkflowShellStore — drawer and center mode', () => {
   beforeEach(resetStore)
 

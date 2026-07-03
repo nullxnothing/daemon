@@ -57,9 +57,10 @@ describe('useAriaStore streaming reducer', () => {
 
   it('applies plan events to the active turn', async () => {
     useAriaStore.getState().subscribe()
+    // messageId is the session id by contract; default sessionId is 'global'.
     emitOnSend = [{
       kind: 'plan',
-      messageId: 'm',
+      messageId: 'global',
       steps: [
         { index: 1, title: 'Read state', status: 'active' },
         { index: 2, title: 'Edit lib.rs', status: 'pending' },
@@ -72,9 +73,24 @@ describe('useAriaStore streaming reducer', () => {
     expect(assistant?.plan?.[0].title).toBe('Read state')
   })
 
+  it('drops streamed events whose messageId is not the active session', async () => {
+    // Session-isolation regression (UI_BUGS B3): events tagged with a different
+    // session id must NOT mutate the active session's turns.
+    useAriaStore.getState().subscribe()
+    emitOnSend = [{
+      kind: 'plan',
+      messageId: 'some-other-session',
+      steps: [{ index: 1, title: 'Leaked step', status: 'active' }],
+    }]
+    await useAriaStore.getState().sendMessage('do it')
+
+    const assistant = useAriaStore.getState().turns.find((t) => t.role === 'assistant')
+    expect(assistant?.plan).toBeUndefined()
+  })
+
   it('records a patch proposal and flips state on action-result', async () => {
     useAriaStore.getState().subscribe()
-    emitOnSend = [{ kind: 'patch-proposal', messageId: 'm', proposal: PROPOSAL }]
+    emitOnSend = [{ kind: 'patch-proposal', messageId: 'global', proposal: PROPOSAL }]
     await useAriaStore.getState().sendMessage('add release')
 
     let turn = useAriaStore.getState().turns.find((t) => t.patch)
@@ -86,6 +102,23 @@ describe('useAriaStore streaming reducer', () => {
     turn = useAriaStore.getState().turns.find((t) => t.patch)
     expect(turn?.actionState).toBe('applied')
     expect(turn?.patch?.status).toBe('applied')
+  })
+
+  it('drops a patch proposal tagged with a proposal id instead of the session id', () => {
+    // Regression: the transport once emitted patch-proposal with messageId ===
+    // proposal.id (a random uuid), so the session-isolation guard dropped EVERY
+    // proposal, the card never rendered, and the turn hung forever. The transport
+    // must tag it with the session id; a non-session messageId must be discarded.
+    useAriaStore.getState().subscribe()
+    useAriaStore.setState({
+      turns: [{
+        id: 't-hang', role: 'assistant', text: '', createdAt: 0, toolCalls: [], approvals: [],
+      }],
+    })
+    toolEventHandler?.({ kind: 'patch-proposal', messageId: PROPOSAL.id, proposal: PROPOSAL })
+    const turn = useAriaStore.getState().turns.find((t) => t.id === 't-hang')
+    expect(turn?.patch).toBeUndefined()
+    expect(turn?.actionState).not.toBe('deciding')
   })
 
   it('decidePatch dispatches to the bridge and marks the turn deciding', () => {
@@ -106,5 +139,54 @@ describe('useAriaStore streaming reducer', () => {
     await useAriaStore.getState().sendMessage('hello')
     const sendMock = (globalThis as any).daemon.aria.send
     expect(sendMock).toHaveBeenCalledWith('global', 'hello', expect.anything(), 'reasoning')
+  })
+
+  it('switchSession shows loading only when the target session has an in-flight send', async () => {
+    // Session-isolation regression (UI_BUGS B3): loading is per-session. Switching to
+    // a session with no in-flight send clears the composer; switching back to one that
+    // is mid-send restores it (no stuck composer, no faked loading).
+    ;(globalThis as any).daemon.aria.sessions = {
+      create: vi.fn().mockResolvedValue({ ok: true, data: { id: 's2' } }),
+      list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+    }
+    // s1 is mid-send: make send hang so the in-flight marker persists across the switch.
+    let resolveSend: (v: unknown) => void = () => {}
+    ;(globalThis as any).daemon.aria.send = vi.fn(() => new Promise((r) => { resolveSend = r }))
+    useAriaStore.getState().subscribe()
+    useAriaStore.setState({ sessionId: 's1' })
+    const pending = useAriaStore.getState().sendMessage('hi') // does not resolve yet
+    expect(useAriaStore.getState().isLoading).toBe(true)
+
+    await useAriaStore.getState().switchSession('s2')
+    expect(useAriaStore.getState().isLoading).toBe(false) // s2 not mid-send
+
+    await useAriaStore.getState().switchSession('s1')
+    expect(useAriaStore.getState().isLoading).toBe(true) // s1 still mid-send → restored
+
+    resolveSend({ ok: true })
+    await pending
+    expect(useAriaStore.getState().isLoading).toBe(false) // cleared after resolution
+  })
+
+  it('blocks a second concurrent send in the same session', async () => {
+    // Codex [P1]: two in-flight sends in one session share messageId===sessionId and the
+    // older turn's events would attach to the newer turn. The second send must no-op.
+    let resolveSend: (v: unknown) => void = () => {}
+    const sendMock = vi.fn(() => new Promise((r) => { resolveSend = r }))
+    ;(globalThis as any).daemon.aria.send = sendMock
+    useAriaStore.getState().subscribe()
+    useAriaStore.setState({ sessionId: 'global', turns: [] })
+
+    const first = useAriaStore.getState().sendMessage('one')
+    const second = useAriaStore.getState().sendMessage('two') // blocked — still in flight
+    expect(sendMock).toHaveBeenCalledTimes(1)
+    await second // the blocked send returns immediately
+
+    resolveSend({ ok: true })
+    await first
+    // After the first resolves, a new send is allowed again.
+    ;(globalThis as any).daemon.aria.send = vi.fn().mockResolvedValue({ ok: true })
+    await useAriaStore.getState().sendMessage('three')
+    expect((globalThis as any).daemon.aria.send).toHaveBeenCalledTimes(1)
   })
 })

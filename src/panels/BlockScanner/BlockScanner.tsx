@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { ProductSurfaceStrip } from '../../components/ProductSurfaceStrip'
+import { useWebviewResizeSync } from '../../hooks/useWebviewResizeSync'
 import {
   BLOCK_SCANNER_HANDOFF_EVENT,
   BLOCK_SCANNER_HANDOFF_KEY,
@@ -81,6 +82,7 @@ export default function BlockScanner() {
   const [canGoBack, setCanGoBack] = useState(false)
   const [canGoForward, setCanGoForward] = useState(false)
   const webviewRef = useRef<WebviewElement | null>(null)
+  useWebviewResizeSync(webviewRef)
 
   const navigate = useCallback((target: string) => {
     setLoadError(null)

@@ -108,6 +108,14 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
 
   useEffect(() => { setSelectedIdx(0) }, [filter])
 
+  // Clamp the keyboard selection whenever the list shrinks (delete, background
+  // refresh). Without this, selectedIdx can point past the end or at a now-shifted
+  // agent, so Enter launches the wrong one. Empty list → 0 (harmless; Enter no-ops).
+  const totalItems = filtered.length + filteredClaude.length
+  useEffect(() => {
+    setSelectedIdx((i) => (i > totalItems - 1 ? Math.max(0, totalItems - 1) : i))
+  }, [totalItems])
+
   const [error, setError] = useState<string | null>(null)
 
   const spawnAgent = useCallback(async (agent: Agent) => {
@@ -166,7 +174,6 @@ export function AgentLauncher({ isOpen, onClose }: Props) {
       if (showForm) { setShowForm(false); setEditingAgent(null) }
       else onClose()
     } else if (!showForm) {
-      const totalItems = filtered.length + filteredClaude.length
       if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, totalItems - 1)) }
       else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)) }
       else if (e.key === 'Enter') {

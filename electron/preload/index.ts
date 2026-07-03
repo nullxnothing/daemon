@@ -44,7 +44,7 @@ contextBridge.exposeInMainWorld('daemon', {
   terminal: {
     create: (opts?: { cwd?: string; startupCommand?: string; userInitiated?: boolean; isAgent?: boolean }) => ipcRenderer.invoke('terminal:create', opts ?? {}),
     spawnAgent: (opts: { agentId: string; projectId: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnAgent', opts),
-    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro'; projectId?: string; cwd?: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
+    spawnProvider: (opts: { providerId: 'claude' | 'codex' | 'spettro' | 'aria'; projectId?: string; cwd?: string; initialPrompt?: string }) => ipcRenderer.invoke('terminal:spawnProvider', opts),
     ready: (id: string, cols?: number, rows?: number) => ipcRenderer.send('terminal:ready', id, cols, rows),
     write: (id: string, data: string) => ipcRenderer.send('terminal:write', id, data),
     resize: (id: string, cols: number, rows: number) => ipcRenderer.send('terminal:resize', id, cols, rows),
@@ -924,6 +924,18 @@ contextBridge.exposeInMainWorld('daemon', {
     checkPolicy: (input: unknown) => ipcRenderer.invoke('idle:check-policy', input),
     executePaidCall: (input: unknown) => ipcRenderer.invoke('idle:execute-paid-call', input),
     listReceipts: (limit?: number) => ipcRenderer.invoke('idle:list-receipts', limit),
+  },
+
+  agentEconomy: {
+    listProfiles: (projectId?: string | null) => ipcRenderer.invoke('agent-economy:list-profiles', projectId ?? null),
+    upsertProfile: (input: unknown) => ipcRenderer.invoke('agent-economy:upsert-profile', input),
+    getProfile: (profileId: string) => ipcRenderer.invoke('agent-economy:get-profile', profileId),
+    setPolicy: (input: unknown) => ipcRenderer.invoke('agent-economy:set-policy', input),
+    checkPolicy: (input: unknown) => ipcRenderer.invoke('agent-economy:check-policy', input),
+    executePaidCall: (input: unknown) => ipcRenderer.invoke('agent-economy:execute-paid-call', input),
+    listReceipts: (input?: unknown) => ipcRenderer.invoke('agent-economy:list-receipts', input ?? {}),
+    registerDevnetAgent: (input: unknown) => ipcRenderer.invoke('agent-economy:register-devnet-agent', input),
+    readAgentIdentity: (input: unknown) => ipcRenderer.invoke('agent-economy:read-agent-identity', input),
   },
 
   meterflow: {

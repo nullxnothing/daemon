@@ -7,8 +7,8 @@ import { PanelHeader, Stat } from '../../components/Panel'
 import './ProcessManager.css'
 
 const MODEL_SHORT: Record<string, string> = {
-  'claude-opus-4-20250514': 'Opus',
-  'claude-sonnet-4-20250514': 'Sonnet',
+  'claude-opus-4-8': 'Opus',
+  'claude-sonnet-4-6': 'Sonnet',
   'claude-haiku-4-5-20251001': 'Haiku',
 }
 

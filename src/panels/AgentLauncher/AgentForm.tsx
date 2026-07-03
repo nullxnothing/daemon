@@ -7,13 +7,13 @@ const PROVIDER_OPTIONS = [
 ]
 
 const CLAUDE_MODEL_OPTIONS = [
-  { value: 'claude-opus-4-20250514', label: 'Opus' },
-  { value: 'claude-sonnet-4-20250514', label: 'Sonnet' },
+  { value: 'claude-opus-4-8', label: 'Opus' },
+  { value: 'claude-sonnet-4-6', label: 'Sonnet' },
   { value: 'claude-haiku-4-5-20251001', label: 'Haiku' },
 ]
 
 const CODEX_MODEL_OPTIONS = [
-  { value: 'gpt-5.4', label: 'GPT-5.4' },
+  { value: 'gpt-5.5', label: 'GPT-5.5' },
   { value: 'o3', label: 'o3' },
   { value: 'o4-mini', label: 'o4-mini' },
 ]
@@ -27,7 +27,7 @@ interface AgentFormProps {
 export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const [name, setName] = useState(agent?.name ?? '')
   const [provider, setProvider] = useState(agent?.provider ?? (agent ? 'auto' : 'claude'))
-  const [model, setModel] = useState(agent?.model ?? 'claude-sonnet-4-20250514')
+  const [model, setModel] = useState(agent?.model ?? 'claude-sonnet-4-6')
   const [prompt, setPrompt] = useState(agent?.system_prompt ?? '')
   const [shortcut, setShortcut] = useState(agent?.shortcut ?? '')
   const [nameError, setNameError] = useState('')
@@ -94,7 +94,7 @@ export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
         </select>
         {provider === 'auto' && (
           <span className="agent-form-hint">
-            Auto picks Claude when available; on Codex, Opus/Sonnet map to GPT-5.4 and Haiku maps to o4-mini.
+            Auto picks Claude when available; on Codex, Opus/Sonnet map to GPT-5.5 and Haiku maps to o4-mini.
           </span>
         )}
       </div>

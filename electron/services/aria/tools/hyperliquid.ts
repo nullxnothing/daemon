@@ -314,9 +314,13 @@ export const hyperliquidTools: AriaTool[] = [
   },
   {
     name: 'hl_update_leverage',
-    description: 'Update leverage for a Hyperliquid coin. No funds move. Requires approval.',
+    // Sensitive, not write: it signs a live exchange action that alters liquidation risk on open
+    // positions. As 'write' it would auto-run after a single plan approval (plan steps are free
+    // text, not bound to the tools executed), so an innocuous plan could license a leverage change
+    // with no per-call gate. Sensitive forces a typed confirmation every time.
+    description: 'Update leverage for a Hyperliquid coin. No funds move but it signs a live exchange action and changes liquidation risk. Requires typed confirmation.',
     kind: 'run',
-    risk: 'write',
+    risk: 'sensitive',
     input: {
       type: 'object',
       properties: {
@@ -333,7 +337,7 @@ export const hyperliquidTools: AriaTool[] = [
       if (!coin) return { ok: false, summary: 'A coin is required.' }
       if (leverage === undefined || leverage <= 0) return { ok: false, summary: 'A positive leverage value is required.' }
       const data = await Hl.updateLeverage(coin, leverage, Boolean(input.isolated))
-      return { ok: true, summary: `Set ${coin} leverage to ${leverage}x.`, data }
+      return { ok: true, summary: netMark(`Set ${coin} leverage to ${leverage}x.`), data }
     },
   },
   {

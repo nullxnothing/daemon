@@ -93,7 +93,7 @@ export function removeCodexMcp(name: string): void {
 
 export function getCodexModel(): string {
   const config = readConfig()
-  return config.model ?? 'gpt-5.4'
+  return config.model ?? 'gpt-5.5'
 }
 
 export function getCodexReasoningEffort(): string {

@@ -34,4 +34,7 @@ export const BRIDGE_TOOL_ALLOWLIST: readonly BridgeAllowlistEntry[] = [
   { name: 'update_memory', packId: 'memory' },
   // core
   { name: 'read_project_status', packId: null },
+  { name: 'list_project_tree', packId: null },
+  { name: 'read_file', packId: null },
+  { name: 'search_files', packId: null },
 ]

@@ -244,7 +244,7 @@ export const CodexProvider: ProviderInterface = {
     const {
       prompt,
       systemPrompt,
-      model = 'gpt-5.4',
+      model = 'gpt-5.5',
       cwd,
       timeoutMs,
     } = opts
@@ -307,12 +307,12 @@ export const CodexProvider: ProviderInterface = {
 // --- Model Resolution ---
 
 const CLAUDE_TO_CODEX_MAP: Record<string, string> = {
-  'claude-opus-4-20250514': 'gpt-5.4',
-  'claude-sonnet-4-20250514': 'gpt-5.4',
+  'claude-opus-4-8': 'gpt-5.5',
+  'claude-sonnet-4-6': 'gpt-5.5',
   'claude-haiku-4-5-20251001': 'o4-mini',
   'haiku': 'o4-mini',
-  'sonnet': 'gpt-5.4',
-  'opus': 'gpt-5.4',
+  'sonnet': 'gpt-5.5',
+  'opus': 'gpt-5.5',
 }
 
 function resolveCodexModel(model: string): string {

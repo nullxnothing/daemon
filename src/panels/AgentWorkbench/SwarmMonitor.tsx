@@ -54,18 +54,26 @@ function relativeTime(ts: number): string {
 
 export function SwarmMonitor() {
   const [runs, setRuns] = useState<Run[]>([])
+  const [runsLoading, setRunsLoading] = useState(true)
+  const [runsError, setRunsError] = useState<string | null>(null)
   const [openRunId, setOpenRunId] = useState<string | null>(null)
   const [lanes, setLanes] = useState<Lane[]>([])
+  const [lanesError, setLanesError] = useState<string | null>(null)
   const [openLaneId, setOpenLaneId] = useState<string | null>(null)
 
   const loadRuns = useCallback(async () => {
     const res = await window.daemon.swarm.list(30)
-    if (res.ok && res.data) setRuns(res.data)
+    setRunsLoading(false)
+    // Distinguish a real failure from "no runs": only an ok response means the
+    // empty state is true. A failed list must not masquerade as zero runs.
+    if (res.ok) { setRuns(res.data ?? []); setRunsError(null) }
+    else setRunsError(res.error ?? 'Failed to load swarm runs.')
   }, [])
 
   const loadDetail = useCallback(async (runId: string) => {
     const res = await window.daemon.swarm.runDetail(runId)
-    if (res.ok && res.data) setLanes(res.data.lanes)
+    if (res.ok && res.data) { setLanes(res.data.lanes); setLanesError(null) }
+    else setLanesError(res.ok ? null : (res.error ?? 'Failed to load lanes.'))
   }, [])
 
   useEffect(() => {
@@ -81,6 +89,9 @@ export function SwarmMonitor() {
     if (openRunId === runId) { setOpenRunId(null); return }
     setOpenRunId(runId)
     setOpenLaneId(null)
+    // Clear the previous run's lanes/error so they don't flash under the new run.
+    setLanes([])
+    setLanesError(null)
     void loadDetail(runId)
   }
 
@@ -88,6 +99,31 @@ export function SwarmMonitor() {
     await window.daemon.swarm.cancel(runId)
     void loadRuns()
     if (openRunId === runId) void loadDetail(runId)
+  }
+
+  // Only take over the whole view with the error state when there's nothing to
+  // show. A transient background-refresh failure shouldn't blow away a populated
+  // list — the prior runs stay until a successful refresh replaces them.
+  if (runsError && runs.length === 0) {
+    return (
+      <div className="swarm-monitor">
+        <div className="swarm-empty swarm-error">
+          Couldn’t load swarm runs.
+          <span className="swarm-empty-sub">{runsError}</span>
+          <button type="button" className="swarm-retry" onClick={() => { setRunsLoading(true); void loadRuns() }}>Retry</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (runsLoading) {
+    return (
+      <div className="swarm-monitor">
+        <div className="swarm-empty">
+          Loading swarm runs…
+        </div>
+      </div>
+    )
   }
 
   if (runs.length === 0) {
@@ -125,7 +161,12 @@ export function SwarmMonitor() {
                   {isLive ? (
                     <button type="button" className="swarm-cancel" onClick={() => void cancel(r.id)}>Cancel run</button>
                   ) : null}
-                  {lanes.length === 0 ? (
+                  {lanesError ? (
+                    <div className="swarm-lanes-empty swarm-error">
+                      {lanesError}
+                      <button type="button" className="swarm-retry" onClick={() => void loadDetail(r.id)}>Retry</button>
+                    </div>
+                  ) : lanes.length === 0 ? (
                     <div className="swarm-lanes-empty">No lanes.</div>
                   ) : (
                     lanes.map((l) => {

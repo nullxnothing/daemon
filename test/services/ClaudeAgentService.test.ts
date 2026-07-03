@@ -64,7 +64,7 @@ You are a helpful agent.`)
     const [agent] = listClaudeAgents()
     expect(agent.name).toBe('My Agent')
     expect(agent.description).toBe('Does great things')
-    expect(agent.model).toBe('claude-sonnet-4-20250514')
+    expect(agent.model).toBe('claude-sonnet-4-6')
     expect(agent.systemPrompt).toBe('You are a helpful agent.')
   })
 
@@ -142,12 +142,12 @@ describe('listClaudeAgents — model normalization', () => {
 
   it('normalizes "opus" to full model string', () => {
     const agent = agentWithModel('opus')
-    expect(agent.model).toBe('claude-opus-4-20250514')
+    expect(agent.model).toBe('claude-opus-4-8')
   })
 
   it('normalizes "sonnet" to full model string', () => {
     const agent = agentWithModel('sonnet')
-    expect(agent.model).toBe('claude-sonnet-4-20250514')
+    expect(agent.model).toBe('claude-sonnet-4-6')
   })
 
   it('normalizes "haiku" to full model string', () => {
@@ -156,8 +156,8 @@ describe('listClaudeAgents — model normalization', () => {
   })
 
   it('passes through an already-full versioned model string unchanged', () => {
-    const agent = agentWithModel('claude-opus-4-20250514')
-    expect(agent.model).toBe('claude-opus-4-20250514')
+    const agent = agentWithModel('claude-opus-4-8')
+    expect(agent.model).toBe('claude-opus-4-8')
   })
 
   it('defaults to sonnet when model field is absent', () => {
@@ -165,12 +165,12 @@ describe('listClaudeAgents — model normalization', () => {
     mockReaddirSync.mockReturnValue([makeEntry('nomodel.md')])
     mockReadFileSync.mockReturnValue(`---\nname: No Model\n---\nBody.`)
     const [agent] = listClaudeAgents()
-    expect(agent.model).toBe('claude-sonnet-4-20250514')
+    expect(agent.model).toBe('claude-sonnet-4-6')
   })
 
   it('is case-insensitive for model shorthand', () => {
     const agent = agentWithModel('OPUS')
-    expect(agent.model).toBe('claude-opus-4-20250514')
+    expect(agent.model).toBe('claude-opus-4-8')
   })
 })
 

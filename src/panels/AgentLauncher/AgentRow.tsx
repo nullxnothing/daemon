@@ -1,8 +1,8 @@
 import { memo, useCallback } from 'react'
 
 const MODEL_OPTIONS = [
-  { value: 'claude-opus-4-20250514', label: 'Opus' },
-  { value: 'claude-sonnet-4-20250514', label: 'Sonnet' },
+  { value: 'claude-opus-4-8', label: 'Opus' },
+  { value: 'claude-sonnet-4-6', label: 'Sonnet' },
   { value: 'claude-haiku-4-5-20251001', label: 'Haiku' },
 ]
 

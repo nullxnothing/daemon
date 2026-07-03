@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { useBrowserStore } from '../../store/browser'
+import { useWebviewResizeSync } from '../../hooks/useWebviewResizeSync'
 import { INSPECTOR_INJECT_SCRIPT, INSPECTOR_REMOVE_SCRIPT } from './BrowserInspector'
 
 interface WebviewElement extends HTMLElement {
@@ -116,6 +117,8 @@ export const BrowserWebview = forwardRef<BrowserWebviewHandle>(function BrowserW
   useEffect(() => {
     loadWebviewUrl(currentUrl)
   }, [currentUrl, loadWebviewUrl])
+
+  useWebviewResizeSync(webviewRef)
 
   useEffect(() => {
     const wv = webviewRef.current
