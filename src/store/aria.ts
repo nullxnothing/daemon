@@ -84,7 +84,7 @@ interface AriaState {
   /** Plan mode: ARIA presents a plan and waits for one approval before writing. */
   planMode: boolean
 
-  sendMessage: (content: string) => Promise<void>
+  sendMessage: (content: string, opts?: { pinnedCluster?: 'devnet' }) => Promise<void>
   setPlanMode: (enabled: boolean) => void
   loadProviderStatus: () => Promise<void>
   setAriaProvider: (provider: ProviderId) => Promise<void>
@@ -219,7 +219,7 @@ export const useAriaStore = create<AriaState>((set, get) => ({
     }
   },
 
-  sendMessage: async (content) => {
+  sendMessage: async (content, opts) => {
     const trimmed = content.trim()
     if (!trimmed) return
     const { sessionId, selectedLane, planMode } = get()
@@ -237,7 +237,13 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       // race the IPC resolution (e.g. the codex/legacy single-shot path), leaving the
       // turn stuck on "Working…". Use the IPC return value as the authoritative fallback
       // and write it before clearing the active id.
-      const snapshot = { ...buildAriaSnapshot(), planMode }
+      // The devnet pin rides the snapshot so main-process tools can scope the
+      // turn's reads chain-free (onboarding first mission). Restrict-only.
+      const snapshot = {
+        ...buildAriaSnapshot(),
+        planMode,
+        ...(opts?.pinnedCluster === 'devnet' ? { pinnedCluster: 'devnet' as const } : {}),
+      }
       const res = await daemon.aria.send(sessionId, trimmed, snapshot, selectedLane)
       // Only write the final text if this turn is still this session's active one
       // (the user may have started a fresh turn in the same session since).

@@ -2883,6 +2883,12 @@ export interface AriaContextSnapshot {
    *  write action, then auto-runs all write steps. Sensitive money/key tools
    *  still pause for typed confirm. Default off (Build mode). */
   planMode?: boolean
+  /** Onboarding first mission only: pins the turn's chain context to devnet.
+   *  Restrict-only — the sole accepted value is 'devnet', and honoring it makes
+   *  wallet/status reads skip live RPC entirely (local inventory instead), so a
+   *  stored mainnet runtime config can never leak into onboarding. Unpinned
+   *  turns behave exactly as before; the flag never grants anything. */
+  pinnedCluster?: 'devnet'
 }
 
 /** A renderer-applied effect requested by a tool (navigation, toggles, terminal). */

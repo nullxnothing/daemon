@@ -89,6 +89,16 @@ describe('aria store first-run funnel emits', () => {
     expect(approveIpc).toHaveBeenCalledWith('call-1', true)
   })
 
+  it('forwards the devnet pin in the snapshot only when requested', async () => {
+    const send = (globalThis as unknown as { window: { daemon: { aria: { send: ReturnType<typeof vi.fn> } } } }).window.daemon.aria.send
+    await useAriaStore.getState().sendMessage('first mission', { pinnedCluster: 'devnet' })
+    expect(send.mock.calls[0][2]).toMatchObject({ pinnedCluster: 'devnet' })
+
+    useAriaStore.setState({ sessionId: 'global-2' })
+    await useAriaStore.getState().sendMessage('normal turn')
+    expect(send.mock.calls[1][2].pinnedCluster).toBeUndefined()
+  })
+
   it('does not emit decision marks for unknown or non-write approvals', async () => {
     useAriaStore.getState().subscribe()
     emitOnSend = [{ ...WRITE_APPROVAL_EVENT, risk: 'sensitive' } as AriaToolEvent]

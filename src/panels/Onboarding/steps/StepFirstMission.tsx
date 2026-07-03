@@ -20,8 +20,11 @@ export function StepFirstMission() {
     // The console lives in the right rail by default; make sure it is there
     // (and not tucked behind the bottom dock's Terminal tab) before streaming.
     useUIStore.getState().setConsoleDock('right')
+    // Pin the mission turn to devnet: reads stay chain-free even if a stored
+    // runtime config points at mainnet (re-entrant wizard runs). This makes
+    // the fine print below true by construction, not just by default.
     void useAriaStore.getState()
-      .sendMessage(FIRST_MISSION_PROMPT)
+      .sendMessage(FIRST_MISSION_PROMPT, { pinnedCluster: 'devnet' })
       .finally(() => useOnboardingStore.getState().raiseDeferredTourOffer())
   }
 

@@ -256,9 +256,31 @@ export const navigationTools: AriaTool[] = [
     risk: 'read',
     input: { type: 'object', properties: {} },
     async handler(_input, ctx) {
+      const packs = summarizeEnabledPacks(SettingsService.getEnabledPacks())
+      // Onboarding first mission: devnet-pinned turns must never issue an RPC
+      // call, so skip the live dashboard (its balance reads use the configured
+      // endpoint, which may be mainnet on a re-entrant wizard run) and answer
+      // from the local wallet inventory. The cluster is devnet by construction.
+      if (ctx.snapshot.pinnedCluster === 'devnet') {
+        const inventory = WalletService.getLocalWalletInventory(ctx.snapshot.activeProjectId)
+        return {
+          ok: true,
+          summary: 'Read project status.',
+          data: {
+            project: ctx.snapshot.activeProjectPath,
+            cluster: 'devnet',
+            clusterPinned: true,
+            note: 'First mission runs devnet-only; live balance reads are skipped during onboarding.',
+            defaultWallet: inventory.activeWallet,
+            walletCount: inventory.walletCount,
+            enabledPacks: packs.enabledPacks,
+            disabledPacks: packs.disabledPacks,
+            enabledIpcDomains: packs.enabledIpcDomains,
+          },
+        }
+      }
       const dashboard = await WalletService.getDashboard(ctx.snapshot.activeProjectId).catch(() => null)
       const infra = SettingsService.getWalletInfrastructureSettings()
-      const packs = summarizeEnabledPacks(SettingsService.getEnabledPacks())
       return {
         ok: true,
         summary: 'Read project status.',

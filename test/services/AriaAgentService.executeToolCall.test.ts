@@ -107,3 +107,49 @@ describe('executeToolCall (bridge entry into the risk gate)', () => {
     expect(record.summary).toContain('Unknown tool')
   })
 })
+
+describe('devnet-pinned onboarding turns (first mission chain safety)', () => {
+  const pinnedSnapshot = { ...snapshot, pinnedCluster: 'devnet' as const }
+  function pinnedCtx(transport: AriaTransport) {
+    return { sessionId: 'onboarding:test', snapshot: pinnedSnapshot, runUiEffect: transport.runUiEffect }
+  }
+
+  it('refuses sensitive tools outright — no approval card, no handler, even if the user would approve', async () => {
+    isMainnet.mockReturnValue(true)
+    const transport = makeTransport(true)
+    const record = await executeToolCall({ id: 'p1', name: 'sensitive_tool', input: { name: 'w' } }, pinnedCtx(transport), transport)
+
+    expect(record.status).toBe('rejected')
+    expect(record.summary).toContain('onboarding first mission')
+    expect(transport.requestApproval).not.toHaveBeenCalled()
+    expect(sensitiveHandler).not.toHaveBeenCalled()
+  })
+
+  it('write tools still gate on approval but never carry a [MAINNET] tag from stored config', async () => {
+    isMainnet.mockReturnValue(true)
+    const transport = makeTransport(true)
+    const record = await executeToolCall({ id: 'p2', name: 'write_tool', input: { title: 'First mission' } }, pinnedCtx(transport), transport)
+
+    expect(transport.requestApproval).toHaveBeenCalledTimes(1)
+    const req = transport.requestApproval.mock.calls[0][0] as { summary: string }
+    expect(req.summary).not.toContain('[MAINNET]')
+    expect(record.status).toBe('done')
+  })
+
+  it('read tools run untouched during pinned turns', async () => {
+    const transport = makeTransport(true)
+    const record = await executeToolCall({ id: 'p3', name: 'read_tool', input: {} }, pinnedCtx(transport), transport)
+    expect(record.status).toBe('done')
+    expect(transport.requestApproval).not.toHaveBeenCalled()
+  })
+
+  it('unpinned turns keep the [MAINNET] mark and sensitive gating exactly as before', async () => {
+    isMainnet.mockReturnValue(true)
+    const transport = makeTransport(true)
+    await executeToolCall({ id: 'p4', name: 'sensitive_tool', input: { name: 'hot' } }, ctx(transport), transport)
+
+    expect(transport.requestApproval).toHaveBeenCalledTimes(1)
+    const req = transport.requestApproval.mock.calls[0][0] as { summary: string }
+    expect(req.summary).toMatch(/^\[MAINNET\] /)
+  })
+})

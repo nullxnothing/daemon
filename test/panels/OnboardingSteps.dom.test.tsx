@@ -125,6 +125,9 @@ describe('StepFirstMission', () => {
     expect(markFunnelStep).toHaveBeenCalledWith('mission_started')
     await waitFor(() => expect(ariaSend).toHaveBeenCalled())
     expect(ariaSend.mock.calls[0][1]).toBe(FIRST_MISSION_PROMPT)
+    // Chain-safety: the mission turn is pinned to devnet in the snapshot so
+    // main-process reads stay chain-free even with mainnet in runtime config.
+    expect(ariaSend.mock.calls[0][2]).toMatchObject({ pinnedCluster: 'devnet' })
   })
 
   it('raises the deferred tour offer only after the mission turn settles', async () => {

@@ -62,7 +62,7 @@ function PlanToggle() {
 /** Empty transcript: state the deal in one breath, then offer starter prompts.
  *  The first-mission chip disappears once an approval decision has ever been
  *  made (funnel mark), so it only targets genuinely new operators. */
-function ConsoleEmptyState({ onPrompt }: { onPrompt: (text: string) => void }) {
+function ConsoleEmptyState({ onPrompt }: { onPrompt: (text: string, opts?: { pinnedCluster?: 'devnet' }) => void }) {
   const [missionPending, setMissionPending] = useState(false)
   useEffect(() => {
     let cancelled = false
@@ -83,7 +83,9 @@ function ConsoleEmptyState({ onPrompt }: { onPrompt: (text: string) => void }) {
             className="agent-wb-empty-chip"
             onClick={() => {
               markFunnelStep('mission_started')
-              onPrompt(FIRST_MISSION_PROMPT)
+              // Same devnet pin as the wizard entry: the mission never inherits
+              // a mainnet runtime config, whichever surface launches it.
+              onPrompt(FIRST_MISSION_PROMPT, { pinnedCluster: 'devnet' })
             }}
           >
             Run the first mission
@@ -278,7 +280,7 @@ export function AgentWorkbench() {
             {hasTurns ? (
               <AgentTranscript turns={turns} isLoading={isLoading} />
             ) : (
-              <ConsoleEmptyState onPrompt={(text) => { void sendMessage(text).then(() => loadSessions()) }} />
+              <ConsoleEmptyState onPrompt={(text, opts) => { void sendMessage(text, opts).then(() => loadSessions()) }} />
             )}
           </div>
 

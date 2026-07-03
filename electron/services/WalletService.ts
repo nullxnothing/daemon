@@ -233,6 +233,26 @@ async function runWithConcurrency<T, R>(
   return results
 }
 
+/**
+ * Local wallet inventory — DB rows only, zero network. Used by the onboarding
+ * first mission (devnet-pinned turns), where reads must never touch the
+ * configured RPC: a re-entrant wizard run with mainnet stored in runtime
+ * config would otherwise silently read mainnet state mid-onboarding.
+ */
+export function getLocalWalletInventory(projectId?: string | null): {
+  activeWallet: string | null
+  address: string | null
+  walletCount: number
+} {
+  const wallets = listWalletsRaw()
+  const active = resolveActiveWallet(wallets, projectId ?? null)
+  return {
+    activeWallet: active?.name ?? null,
+    address: active?.address ?? null,
+    walletCount: wallets.length,
+  }
+}
+
 export async function getDashboard(projectId?: string | null): Promise<WalletDashboard> {
   if (isTestRuntime()) return buildDashboard(projectId)
 

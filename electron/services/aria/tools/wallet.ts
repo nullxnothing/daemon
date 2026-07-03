@@ -4,6 +4,7 @@
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import * as WalletService from '../../WalletService'
 import { quoteExecutionFee } from '../../FeeService'
+import { LogService } from '../../LogService'
 import { clusterMark } from './shared'
 import type { AriaTool } from '../AriaTool'
 
@@ -53,6 +54,25 @@ export const walletTools: AriaTool[] = [
     risk: 'read',
     input: { type: 'object', properties: {} },
     async handler(_input, ctx) {
+      // Onboarding first mission: the turn is pinned to devnet, so the read is
+      // chain-free by construction — local wallet inventory only, no RPC to any
+      // endpoint regardless of what the stored runtime config points at.
+      if (ctx.snapshot.pinnedCluster === 'devnet') {
+        const inventory = WalletService.getLocalWalletInventory(ctx.snapshot.activeProjectId)
+        LogService.info('AriaWalletTools', 'read_wallet pinned to devnet for the first mission — live balance fetch skipped', {
+          walletCount: inventory.walletCount,
+        })
+        return {
+          ok: true,
+          summary: 'Read wallet.',
+          data: {
+            ...inventory,
+            cluster: 'devnet',
+            clusterPinned: true,
+            note: 'First mission runs devnet-only; live balance reads are skipped during onboarding.',
+          },
+        }
+      }
       const dashboard = await WalletService.getDashboard(ctx.snapshot.activeProjectId)
       return {
         ok: true,
