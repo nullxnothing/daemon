@@ -1,0 +1,39 @@
+{
+  "name": "daemon-bridge-mcp",
+  "version": "0.1.0",
+  "description": "Stdio MCP server that connects MCP clients to a running DAEMON desktop app for policy-gated Solana execution: wallet, token launch, memory, and project file tools. Requires the DAEMON app.",
+  "type": "module",
+  "bin": {
+    "daemon-bridge-mcp": "cli.mjs"
+  },
+  "files": [
+    "cli.mjs",
+    "daemon-bridge-shim.mjs"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "author": "nullxnothing",
+  "homepage": "https://www.daemonide.tech",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nullxnothing/daemon.git",
+    "directory": "packages/bridge-shim"
+  },
+  "bugs": {
+    "url": "https://github.com/nullxnothing/daemon/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "solana",
+    "wallet",
+    "agent",
+    "security",
+    "daemon"
+  ],
+  "scripts": {
+    "prepublishOnly": "node -e \"require('fs').accessSync('./daemon-bridge-shim.mjs')\""
+  }
+}

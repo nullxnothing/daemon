@@ -12,6 +12,8 @@ dist-ssr
 dist-electron
 dist-cloud
 dist-bridge
+packages/bridge-shim/daemon-bridge-shim.mjs
+packages/bridge-shim/*.tgz
 release
 *.tsbuildinfo
 *.local
