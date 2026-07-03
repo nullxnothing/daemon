@@ -873,13 +873,13 @@ export function WalletTab({ onRefresh }: Props) {
         <section className="wallet-section wallet-empty-route">
           <div>
             <div className="wallet-section-title">First wallet</div>
-            <div className="wallet-first-run-title">No wallet yet</div>
-            <p className="wallet-first-run-copy">You are on devnet by default, so nothing here can spend real money. Create a throwaway devnet wallet to try signing, or import one later.</p>
+            <div className="wallet-first-run-title">Create a signing wallet to start</div>
+            <p className="wallet-first-run-copy">Generate a wallet if DAEMON should sign sends, swaps, launches, and transaction previews. Track an address only for read-only portfolio monitoring.</p>
           </div>
           <div className="wallet-actions wallet-actions-wrap">
-            <button type="button" className="wallet-btn primary" onClick={() => { setCreateTab('generate'); setActiveView('manage') }}>Create devnet wallet</button>
+            <button type="button" className="wallet-btn primary" onClick={() => { setCreateTab('generate'); setActiveView('manage') }}>Generate signing wallet</button>
             <button type="button" className="wallet-btn" onClick={() => { setCreateTab('keypair'); setActiveView('manage') }}>Import signing wallet</button>
-            <button type="button" className="wallet-btn" onClick={() => { setCreateTab('import'); setActiveView('manage') }}>Watch an address</button>
+            <button type="button" className="wallet-btn" onClick={() => { setCreateTab('import'); setActiveView('manage') }}>Track existing address</button>
           </div>
         </section>
       )}
