@@ -69,6 +69,53 @@ export function fingerprintActivityIssue(entry: ActivityEntry): string {
   return `${entry.kind}:${category}:${context}:${normalizedMessage}`
 }
 
+export type DedupedActivityEntry = {
+  entry: ActivityEntry
+  count: number
+}
+
+/**
+ * Collapse repeated identical events into one row with an occurrence count so
+ * a recurring probe (e.g. the toolchain check) reads as one line, not a wall.
+ * Keeps the latest occurrence of each fingerprint, in latest-first order.
+ */
+export function dedupeEntries(entries: ActivityEntry[]): DedupedActivityEntry[] {
+  const byFingerprint = new Map<string, DedupedActivityEntry>()
+  const sorted = [...entries].sort((a, b) => b.createdAt - a.createdAt)
+
+  for (const entry of sorted) {
+    const fingerprint = fingerprintActivityIssue(entry)
+    const existing = byFingerprint.get(fingerprint)
+    if (existing) {
+      existing.count += 1
+    } else {
+      byFingerprint.set(fingerprint, { entry, count: 1 })
+    }
+  }
+
+  return [...byFingerprint.values()]
+}
+
+const TOOL_INSTALL_HINTS: Record<string, string> = {
+  'solana cli': 'Solana CLI: https://solana.com/docs/intro/installation',
+  anchor: 'Anchor: cargo install --git https://github.com/coral-xyz/anchor avm --locked && avm install latest',
+  surfpool: 'Surfpool: cargo install surfpool',
+}
+
+/** Actionable fix hint for known recurring issues; null when we have none. */
+export function deriveIssueHint(title: string): string | null {
+  const match = title.match(/missing tools:\s*(.+)$/i)
+  if (!match) return null
+
+  const hints = match[1]
+    .split(',')
+    .map((tool) => TOOL_INSTALL_HINTS[tool.trim().toLowerCase()])
+    .filter((hint): hint is string => Boolean(hint))
+
+  if (hints.length === 0) return null
+  return `Fix: install ${hints.join(' · ')}`
+}
+
 export function groupActivityIssues(entries: ActivityEntry[]): ActivityIssueGroup[] {
   const buckets = new Map<string, ActivityEntry[]>()
 

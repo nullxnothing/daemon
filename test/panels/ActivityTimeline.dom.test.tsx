@@ -215,6 +215,40 @@ describe('ActivityTimeline', () => {
     expect(screen.getAllByText('Opened Terminal in C:/work/daemon-app').length).toBeGreaterThan(0)
   })
 
+  it('collapses repeated identical probe errors into one row with a count and a fix hint', () => {
+    const surfpoolEntry = (id: string, createdAt: number) => ({
+      id,
+      kind: 'warning' as const,
+      message: 'Runtime toolchain check found missing tools: Surfpool',
+      context: 'Runtime',
+      createdAt,
+      sessionId: null,
+      sessionStatus: null,
+      projectId: null,
+      projectName: null,
+      sessionSummary: null,
+      artifacts: null,
+    })
+    useNotificationsStore.setState({
+      toasts: [],
+      activity: [
+        surfpoolEntry('probe-1', 1_700_000_000_000),
+        surfpoolEntry('probe-2', 1_700_000_000_100),
+        surfpoolEntry('probe-3', 1_700_000_000_200),
+        surfpoolEntry('probe-4', 1_700_000_000_300),
+        surfpoolEntry('probe-5', 1_700_000_000_400),
+      ],
+    })
+
+    const { container } = render(<ActivityTimeline />)
+
+    // One collapsed event row — not five — plus the count badge and fix hint.
+    expect(container.querySelectorAll('.activity-entry')).toHaveLength(1)
+    expect(screen.getByText('×5')).toBeInTheDocument()
+    expect(screen.getByText(/5 occurrences/)).toBeInTheDocument()
+    expect(screen.getByText(/cargo install surfpool/)).toBeInTheDocument()
+  })
+
   it('generates, persists, and copies a session handoff report', async () => {
     const { saveSummary } = installDaemonBridge()
     const writeText = vi.fn().mockResolvedValue(undefined)
