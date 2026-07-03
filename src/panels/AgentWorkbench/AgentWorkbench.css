@@ -621,6 +621,8 @@
 }
 
 .agent-wb-empty {
+  display: grid;
+  gap: var(--space-md);
   padding: var(--space-3xl) var(--space-xl);
   border: 1px solid var(--line);
   background: var(--field-bg);
@@ -628,6 +630,40 @@
   font-size: var(--fs-13);
   line-height: 1.6;
   text-align: center;
+}
+
+.agent-wb-empty-title {
+  color: var(--t1);
+  font-size: var(--fs-13);
+}
+
+.agent-wb-empty-sub {
+  color: var(--t3);
+  font-size: var(--fs-12);
+}
+
+.agent-wb-empty-chips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.agent-wb-empty-chip {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--s2);
+  color: var(--t2);
+  font-size: var(--fs-12);
+  text-align: left;
+  cursor: pointer;
+}
+
+.agent-wb-empty-chip:hover {
+  background: var(--s3);
+  color: var(--t1);
+  border-color: var(--accent-line);
 }
 
 .agent-tr { display: flex; flex-direction: column; gap: var(--space-lg); }
