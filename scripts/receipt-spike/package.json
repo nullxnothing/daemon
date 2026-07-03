@@ -1,0 +1,18 @@
+{
+  "name": "daemon-receipt-spike",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "DEVNET-ONLY spike: attested execution receipt into the official Metaplex Agent Registry + memo-anchored content hash. Throwaway airdropped key only — never touches DAEMON vault/keychain.",
+  "scripts": {
+    "spike": "node spike.mjs"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-agent-registry": "0.2.6",
+    "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
+    "@metaplex-foundation/mpl-core": "1.10.0",
+    "@metaplex-foundation/mpl-toolbox": "^0.10.0",
+    "@metaplex-foundation/umi": "^1.4.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.4.1"
+  }
+}
