@@ -446,10 +446,14 @@ export function WalletWorkspace({ onRefresh }: Props) {
           ) : (
             <div className={styles.statusWrap}>
               <div className={styles.statusInner}>
-                <div className={styles.statusTitle}>No wallet selected</div>
-                <div className={styles.statusCopy}>Add a signing wallet or track an address to get started.</div>
+                <div className={styles.statusTitle}>{walletList.length === 0 ? 'No wallet yet' : 'No wallet selected'}</div>
+                <div className={styles.statusCopy}>
+                  {walletList.length === 0
+                    ? 'You are on devnet by default, so nothing here can spend real money. Create a throwaway devnet wallet to try signing, or import one later.'
+                    : 'Add a signing wallet or track an address to get started.'}
+                </div>
                 <button className={`${styles.btn} ${styles.primary}`} onClick={() => setSheet({ type: 'add' })}>
-                  <Icon name="plus" size={14} /> Add wallet
+                  <Icon name="plus" size={14} /> {walletList.length === 0 ? 'Create devnet wallet' : 'Add wallet'}
                 </button>
               </div>
             </div>

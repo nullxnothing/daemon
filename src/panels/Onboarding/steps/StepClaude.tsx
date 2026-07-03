@@ -1,8 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useOnboardingStore } from '../../../store/onboarding'
+import { markFunnelStep } from '../../../lib/firstMission'
 
 type Phase = 'cli' | 'auth' | 'connected'
 type CheckState = 'idle' | 'checking' | 'ok' | 'fail'
+
+// claude:auth-login spawns a detached terminal and returns immediately, so the
+// only way to notice a finished OAuth is to re-verify on a timer. 4s keeps the
+// step responsive without hammering the CLI; 5 minutes covers a slow browser flow.
+const AUTH_POLL_INTERVAL_MS = 4000
+const AUTH_POLL_TIMEOUT_MS = 5 * 60 * 1000
 
 export function StepClaude() {
   const advanceStep = useOnboardingStore((s) => s.advanceStep)
@@ -20,15 +27,55 @@ export function StepClaude() {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [savingKey, setSavingKey] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
+  const [pollElapsedSec, setPollElapsedSec] = useState(0)
   const [showApiInput, setShowApiInput] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
   const mountedRef = useRef(true)
+  const pollTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     mountedRef.current = true
     checkInitial()
-    return () => { mountedRef.current = false }
+    return () => {
+      mountedRef.current = false
+      stopAuthPolling()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function stopAuthPolling() {
+    if (pollTimerRef.current !== null) {
+      window.clearInterval(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
+  }
+
+  /** Poll verifyConnection until OAuth completes, the timeout passes, or the
+   *  step unmounts. Success routes through applyConnection like any other path. */
+  function startAuthPolling() {
+    stopAuthPolling()
+    const startedAt = Date.now()
+    setPollElapsedSec(0)
+    pollTimerRef.current = window.setInterval(async () => {
+      const elapsed = Date.now() - startedAt
+      if (!mountedRef.current) return
+      setPollElapsedSec(Math.floor(elapsed / 1000))
+      if (elapsed >= AUTH_POLL_TIMEOUT_MS) {
+        stopAuthPolling()
+        setAuthLoading(false)
+        setAuthState('idle')
+        setAuthDetail('Still not signed in — try again or use an API key')
+        return
+      }
+      const verify = await window.daemon.claude.verifyConnection()
+      if (!mountedRef.current) return
+      if (verify.ok && verify.data?.isAuthenticated) {
+        stopAuthPolling()
+        setAuthLoading(false)
+        applyConnection(verify.data)
+      }
+    }, AUTH_POLL_INTERVAL_MS)
+  }
 
   async function checkInitial() {
     // Try cached connection first
@@ -71,6 +118,9 @@ export function StepClaude() {
 
     setApiState(conn.hasApiKey ? 'ok' : 'idle')
     setApiDetail(conn.hasApiKey ? 'Configured' : '')
+
+    if (hasCliPath) markFunnelStep('claude_cli_ok')
+    if (conn.isAuthenticated || conn.hasApiKey) markFunnelStep('claude_auth_ok')
 
     // Determine phase
     if (!hasCliPath) {
@@ -119,28 +169,23 @@ export function StepClaude() {
   async function handleSignIn() {
     setAuthLoading(true)
     setAuthState('checking')
-    setAuthDetail('Opening browser...')
+    setAuthDetail('Opening terminal and browser...')
 
     const res = await window.daemon.claude.authLogin()
     if (!mountedRef.current) return
 
-    if (res.ok) {
-      // Re-verify connection after OAuth
-      const verify = await window.daemon.claude.verifyConnection()
-      if (!mountedRef.current) return
-
-      if (verify.ok && verify.data) {
-        applyConnection(verify.data)
-      } else {
-        setAuthState('ok')
-        setAuthDetail('Signed in')
-        setPhase('connected')
-      }
-    } else {
+    if (!res.ok) {
       setAuthState('fail')
       setAuthDetail(res.error ?? 'Sign-in failed')
+      setAuthLoading(false)
+      return
     }
-    setAuthLoading(false)
+
+    // authLogin returns before the user has finished OAuth in the browser, so a
+    // one-shot re-verify here would report "not signed in". Poll instead and let
+    // the poller settle the state; authLoading stays on until it does.
+    setAuthDetail('Waiting for sign-in...')
+    startAuthPolling()
   }
 
   async function handleSaveApiKey() {
@@ -189,7 +234,9 @@ export function StepClaude() {
   }
 
   function handleSkip() {
+    stopAuthPolling()
     setStepStatus('claude', 'skipped')
+    markFunnelStep('claude_skipped')
     advanceStep()
   }
 
@@ -244,6 +291,14 @@ export function StepClaude() {
           {installError && (
             <div className="wizard-hint" style={{ marginTop: 8 }}>
               Manual install: <code>npm install -g @anthropic-ai/claude-code</code>
+              <button
+                type="button"
+                className="wizard-skip-step"
+                style={{ padding: 0, textAlign: 'left' }}
+                onClick={() => window.daemon.shell.openExternal('https://nodejs.org')}
+              >
+                No npm? Get Node.js at nodejs.org
+              </button>
             </div>
           )}
         </>
@@ -265,7 +320,8 @@ export function StepClaude() {
       {phase === 'auth' && (
         <>
           <div className="wizard-hint" style={{ marginBottom: 12 }}>
-            Choose how to authenticate with Claude.
+            This opens a terminal window and your browser. Sign in there, then come back.
+            This step usually takes about a minute.
           </div>
 
           <button
@@ -276,9 +332,16 @@ export function StepClaude() {
           >
             {authLoading ? 'Waiting for sign-in...' : 'Sign in with Claude'}
           </button>
-          <span className="wizard-hint" style={{ display: 'block', textAlign: 'center', margin: 'var(--space-xs) 0' }}>
-            Recommended for Max / Pro subscribers
-          </span>
+          {authLoading ? (
+            <span className="wizard-hint" style={{ display: 'block', textAlign: 'center', margin: 'var(--space-xs) 0' }}>
+              Waiting for sign-in... checking every few seconds.
+              {pollElapsedSec > 0 ? ` (${pollElapsedSec}s)` : ''}
+            </span>
+          ) : (
+            <span className="wizard-hint" style={{ display: 'block', textAlign: 'center', margin: 'var(--space-xs) 0' }}>
+              Recommended for Max / Pro subscribers
+            </span>
+          )}
 
           <div className="wizard-divider" />
 
@@ -340,7 +403,7 @@ export function StepClaude() {
                   : 'Connected via API key.'}
             </div>
           </div>
-          <button type="button" className="wizard-btn primary" onClick={handleContinue}>
+          <button type="button" className="wizard-btn primary" data-testid="wizard-primary" onClick={handleContinue}>
             Continue
           </button>
           <button type="button" className="wizard-skip-step" onClick={handleDisconnect}>
@@ -352,7 +415,7 @@ export function StepClaude() {
       {/* Skip option — always available when not connected */}
       {phase !== 'connected' && (
         <button type="button" className="wizard-skip-step" onClick={handleSkip}>
-          Skip for now
+          Skip for now (the First Mission needs Claude, so it will wait for you in the console)
         </button>
       )}
     </>

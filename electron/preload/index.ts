@@ -437,6 +437,8 @@ contextBridge.exposeInMainWorld('daemon', {
     setWalletInfrastructureSettings: (settings: object) => ipcRenderer.invoke('settings:set-wallet-infrastructure-settings', settings),
     getLayout: () => ipcRenderer.invoke('settings:get-layout'),
     setLayout: (layout: { centerMode?: string; rightPanelTab?: string; consoleDock?: string }) => ipcRenderer.invoke('settings:set-layout', layout),
+    markFunnelStep: (step: string) => ipcRenderer.invoke('settings:mark-funnel-step', { step }),
+    getFunnel: () => ipcRenderer.invoke('settings:get-funnel'),
     getEditorPrefs: () => ipcRenderer.invoke('settings:get-editor-prefs'),
     setEditorPrefs: (patch: Partial<import('../shared/types').EditorPrefs>) => ipcRenderer.invoke('settings:set-editor-prefs', patch),
     onCrashWarning: (callback: (count: number) => void) => {
@@ -527,6 +529,7 @@ contextBridge.exposeInMainWorld('daemon', {
   projects: {
     list: () => ipcRenderer.invoke('projects:list'),
     create: (project: { name: string; path: string }) => ipcRenderer.invoke('projects:create', project),
+    createDemoWorkspace: () => ipcRenderer.invoke('projects:createDemoWorkspace'),
     delete: (id: string) => ipcRenderer.invoke('projects:delete', id),
     openDialog: () => ipcRenderer.invoke('projects:openDialog'),
     setPinned: (input: { id: string; pinned: boolean }) => ipcRenderer.invoke('projects:setPinned', input),

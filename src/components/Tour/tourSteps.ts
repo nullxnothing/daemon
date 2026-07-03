@@ -46,7 +46,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="sidebar"]',
     title: 'Quick Actions',
-    body: 'Ctrl+K opens commands. Use Solana Start first when a project, wallet, RPC, build, or AI approval path is unclear.',
+    body: 'Ctrl+K opens commands. Solana Start shows your next blocker. When you are ready for a wallet, it starts on devnet.',
     placement: 'right',
   },
 ]

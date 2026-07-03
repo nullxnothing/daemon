@@ -586,6 +586,19 @@ async function executeTool(
   // Each real tool that runs advances the plan one step.
   advancePlan(turnState, transport, ctx.sessionId)
 
+  // Onboarding first mission (devnet-pinned turn): the wizard promises a
+  // chain-free demo, and every money/key execution path is sensitive-tier by
+  // catalog convention. Refuse sensitive tools outright during a pinned turn —
+  // never even raise the card — so a stored mainnet runtime config cannot be
+  // executed against from inside onboarding. Restrict-only: this branch can
+  // only refuse actions, and unpinned turns are untouched.
+  const isPinnedDevnetTurn = ctx.snapshot.pinnedCluster === 'devnet'
+  if (isPinnedDevnetTurn && tool.risk === 'sensitive') {
+    const summary = `${tool.name} is not available during the onboarding first mission (chain-free demo). Finish onboarding, then run it from the console.`
+    transport.emit({ kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk, status: 'error', meta: 'blocked during onboarding' })
+    return { ...base, status: 'rejected', summary }
+  }
+
   // Risk gate: write/sensitive pause for approval. In Plan mode, an approved
   // plan auto-runs `write` tools — but `sensitive` money/key tools always gate.
   const needsApproval = tool.risk === 'sensitive' || (tool.risk !== 'read' && !turnState.planApproved)
@@ -600,7 +613,7 @@ async function executeTool(
       callId: use.id,
       name: tool.name,
       risk: tool.risk,
-      summary: describeIntent(tool, use.input),
+      summary: describeIntent(tool, use.input, isPinnedDevnetTurn),
       input: use.input,
       fee,
     })
@@ -714,7 +727,7 @@ async function handleProposePatch(
   }
 }
 
-function describeIntent(tool: AriaTool, input: Record<string, unknown>): string {
+function describeIntent(tool: AriaTool, input: Record<string, unknown>, pinnedDevnet = false): string {
   // For read tools a short first-arg summary is fine. For write/sensitive tools the user is
   // typed-confirming a real action, so show EVERY material field (amount, side, size, leverage,
   // destination, cap) — not just the first value — so a money movement's amount is never hidden.
@@ -726,6 +739,11 @@ function describeIntent(tool: AriaTool, input: Record<string, unknown>): string 
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${k}=${String(v).slice(0, 60)}`)
   const detail = entries.length > 0 ? ` — ${entries.join(', ')}` : ''
+  // Devnet-pinned onboarding turns: sensitive (chain/money) tools were refused
+  // before this point, so the only cards left are local writes — a [MAINNET]
+  // tag derived from the stored config would be a false label on a turn that
+  // structurally cannot execute against mainnet. Unpinned turns keep the mark.
+  if (pinnedDevnet) return `${tool.name}${detail}`
   return clusterMark(`${tool.name}${detail}`)
 }
 

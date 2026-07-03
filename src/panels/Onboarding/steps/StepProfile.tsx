@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useOnboardingStore } from '../../../store/onboarding'
+import { markFunnelStep } from '../../../lib/firstMission'
 import { useWorkspaceProfileStore } from '../../../store/workspaceProfile'
 import type { WorkspaceProfileName } from '../../../../electron/shared/types'
 
@@ -72,6 +73,7 @@ export function StepProfile() {
     setSaving(true)
     await useWorkspaceProfileStore.getState().setProfile(selected)
     setStepStatus('profile', 'complete')
+    markFunnelStep('profile_done')
     advanceStep()
     setSaving(false)
   }
@@ -107,6 +109,7 @@ export function StepProfile() {
 
       <button
         className="wizard-btn primary"
+        data-testid="wizard-primary"
         onClick={handleConfirm}
         disabled={saving}
       >

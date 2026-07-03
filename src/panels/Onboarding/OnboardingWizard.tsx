@@ -4,35 +4,35 @@ import { useOnboardingStore, STEP_ORDER } from '../../store/onboarding'
 import type { OnboardingStepId } from '../../store/onboarding'
 import { confirm } from '../../store/confirm'
 import { StepProfile } from './steps/StepProfile'
+import { StepClaude } from './steps/StepClaude'
 import { StepProject } from './steps/StepProject'
-import { StepWalletRuntime } from './steps/StepWalletRuntime'
 import { StepAiSafety } from './steps/StepAiSafety'
-import { StepFirstRun } from './steps/StepFirstRun'
+import { StepFirstMission } from './steps/StepFirstMission'
 import daemonIcon from '../../assets/daemon-icon.png'
 import './OnboardingWizard.css'
 
 const STEP_LABELS: Record<OnboardingStepId, string> = {
   profile: 'Workspace',
+  claude: 'Claude',
   project: 'Project',
-  runtime: 'Wallet + RPC',
-  ai: 'AI Safety',
-  firstRun: 'First Run',
+  ai: 'The Approval Gate',
+  firstMission: 'First Mission',
 }
 
 const STEP_SUBTITLES: Record<OnboardingStepId, string> = {
   profile: 'What are you building?',
+  claude: 'Connect the engine that runs your agents',
   project: 'Open or scaffold a Solana workspace',
-  runtime: 'Choose the safe Solana execution route',
-  ai: 'Set the agent boundary before it acts',
-  firstRun: 'Start from the readiness checklist',
+  ai: 'Reads run free. Writes wait for you.',
+  firstMission: 'Watch an agent ask before it acts',
 }
 
 const STEP_COMPONENTS: Record<OnboardingStepId, FC> = {
   profile: StepProfile,
+  claude: StepClaude,
   project: StepProject,
-  runtime: StepWalletRuntime,
   ai: StepAiSafety,
-  firstRun: StepFirstRun,
+  firstMission: StepFirstMission,
 }
 
 export function OnboardingWizard() {
@@ -73,6 +73,7 @@ export function OnboardingWizard() {
       <FocusTrap active={wizardOpen}>
       <div
         className="wizard-card"
+        data-testid="wizard-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="daemon-onboarding-title"
@@ -104,7 +105,7 @@ export function OnboardingWizard() {
         <div id="daemon-onboarding-subtitle" className="wizard-subtitle">{STEP_SUBTITLES[currentStepId]}</div>
 
         {/* Active step */}
-        <div className="wizard-step-content">
+        <div className="wizard-step-content" data-testid={`wizard-step-${currentStepId}`}>
           <StepComponent key={currentStepId} />
         </div>
 

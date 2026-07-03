@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock window.daemon before the store is imported
+const markFunnelStepMock = vi.fn().mockResolvedValue({ ok: true, data: { marked: true } })
 vi.stubGlobal('window', {
   daemon: {
     settings: {
@@ -8,6 +9,8 @@ vi.stubGlobal('window', {
       getOnboardingProgress: vi.fn().mockResolvedValue({ ok: true, data: null }),
       isOnboardingComplete: vi.fn().mockResolvedValue({ ok: true, data: false }),
       setOnboardingComplete: vi.fn().mockResolvedValue({ ok: true }),
+      markFunnelStep: markFunnelStepMock,
+      getFunnel: vi.fn().mockResolvedValue({ ok: true, data: {} }),
     },
   },
 })
@@ -20,17 +23,19 @@ function resetStore() {
     currentStepIndex: 0,
     progress: {
       profile: 'pending',
+      claude: 'pending',
       project: 'pending',
-      runtime: 'pending',
       ai: 'pending',
-      firstRun: 'pending',
+      firstMission: 'pending',
       tour: 'pending',
     },
     showResumeBanner: false,
     showTourOffer: false,
+    deferTourOffer: false,
     tourActive: false,
     tourStepIndex: 0,
   })
+  markFunnelStepMock.mockClear()
 }
 
 describe('useOnboardingStore — initial state', () => {
@@ -109,7 +114,7 @@ describe('useOnboardingStore — skipWizard', () => {
   })
 
   it('marks the current step as skipped', () => {
-    useOnboardingStore.setState({ currentStepIndex: 1 }) // 'project' step
+    useOnboardingStore.setState({ currentStepIndex: 2 }) // 'project' step
     useOnboardingStore.getState().skipWizard()
     const { progress } = useOnboardingStore.getState()
     expect(progress.project).toBe('skipped')
@@ -120,8 +125,14 @@ describe('useOnboardingStore — skipWizard', () => {
     useOnboardingStore.getState().skipWizard()
     const { progress } = useOnboardingStore.getState()
     // Only 'profile' (index 0) should be skipped
+    expect(progress.claude).toBe('pending')
     expect(progress.project).toBe('pending')
-    expect(progress.runtime).toBe('pending')
+  })
+
+  it('records the early-exit funnel mark', () => {
+    useOnboardingStore.setState({ wizardOpen: true })
+    useOnboardingStore.getState().skipWizard()
+    expect(markFunnelStepMock).toHaveBeenCalledWith('wizard_exited_early')
   })
 
   it('hides the resume banner', () => {
@@ -138,16 +149,16 @@ describe('useOnboardingStore — openWizard (firstIncomplete index)', () => {
     useOnboardingStore.setState({
       progress: {
         profile: 'complete',
+        claude: 'complete',
         project: 'pending',
-        runtime: 'pending',
         ai: 'pending',
-        firstRun: 'pending',
+        firstMission: 'pending',
         tour: 'pending',
       },
     })
     useOnboardingStore.getState().openWizard()
-    // 'project' is at index 1
-    expect(useOnboardingStore.getState().currentStepIndex).toBe(1)
+    // 'project' is at index 2
+    expect(useOnboardingStore.getState().currentStepIndex).toBe(2)
   })
 
   it('opens wizard at index 0 when all steps are pending', () => {
@@ -159,10 +170,10 @@ describe('useOnboardingStore — openWizard (firstIncomplete index)', () => {
     useOnboardingStore.setState({
       progress: {
         profile: 'complete',
+        claude: 'complete',
         project: 'complete',
-        runtime: 'complete',
         ai: 'complete',
-        firstRun: 'complete',
+        firstMission: 'complete',
         tour: 'complete',
       },
     })
@@ -179,6 +190,39 @@ describe('useOnboardingStore — openWizard (firstIncomplete index)', () => {
   it('sets wizardOpen to true', () => {
     useOnboardingStore.getState().openWizard()
     expect(useOnboardingStore.getState().wizardOpen).toBe(true)
+  })
+})
+
+describe('useOnboardingStore — first mission wizard exit', () => {
+  beforeEach(resetStore)
+
+  it('finishWizardForMission closes the wizard without raising the tour offer', () => {
+    useOnboardingStore.setState({ wizardOpen: true, currentStepIndex: STEP_ORDER.length - 1 })
+    useOnboardingStore.getState().finishWizardForMission()
+    const state = useOnboardingStore.getState()
+    expect(state.wizardOpen).toBe(false)
+    expect(state.showTourOffer).toBe(false)
+    expect(state.deferTourOffer).toBe(true)
+    expect(state.progress.firstMission).toBe('complete')
+  })
+
+  it('raiseDeferredTourOffer shows the tour offer only when deferred', () => {
+    useOnboardingStore.getState().raiseDeferredTourOffer()
+    expect(useOnboardingStore.getState().showTourOffer).toBe(false)
+
+    useOnboardingStore.setState({ deferTourOffer: true })
+    useOnboardingStore.getState().raiseDeferredTourOffer()
+    const state = useOnboardingStore.getState()
+    expect(state.showTourOffer).toBe(true)
+    expect(state.deferTourOffer).toBe(false)
+  })
+
+  it('raiseDeferredTourOffer is idempotent after the first raise', () => {
+    useOnboardingStore.setState({ deferTourOffer: true })
+    useOnboardingStore.getState().raiseDeferredTourOffer()
+    useOnboardingStore.setState({ showTourOffer: false })
+    useOnboardingStore.getState().raiseDeferredTourOffer()
+    expect(useOnboardingStore.getState().showTourOffer).toBe(false)
   })
 })
 

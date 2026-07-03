@@ -5,6 +5,7 @@ import { useMemoryStore } from '../../store/memory'
 import { Composer, ModelDropdown } from '../../components/Panel'
 import { useStickyScroll } from '../../hooks/useStickyScroll'
 import { getAriaChips, setAriaChips } from '../../lib/ariaContext'
+import { FIRST_MISSION_PROMPT, isFirstMissionPending, markFunnelStep } from '../../lib/firstMission'
 import { getConsoleSuggestions, resolveConsoleCommand, isConsoleCommandInput, type ConsoleCommand } from '../../lib/console/consoleCommands'
 import { AgentTranscript } from './AgentTranscript'
 import { AriaSessionStrip, SessionHistoryPopover } from './AriaSessionList'
@@ -54,6 +55,49 @@ function PlanToggle() {
         onClick={() => setPlanMode(true)}
         title="Plan — present a plan and wait for approval before writing"
       >Plan</button>
+    </div>
+  )
+}
+
+/** Empty transcript: state the deal in one breath, then offer starter prompts.
+ *  The first-mission chip disappears once an approval decision has ever been
+ *  made (funnel mark), so it only targets genuinely new operators. */
+function ConsoleEmptyState({ onPrompt }: { onPrompt: (text: string, opts?: { pinnedCluster?: 'devnet' }) => void }) {
+  const [missionPending, setMissionPending] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void isFirstMissionPending().then((pending) => {
+      if (!cancelled) setMissionPending(pending)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  return (
+    <div className="agent-wb-empty">
+      <div className="agent-wb-empty-title">This console runs DAEMON for you.</div>
+      <div className="agent-wb-empty-sub">Reads run automatically. Writes stop and ask. Money asks twice.</div>
+      <div className="agent-wb-empty-chips">
+        {missionPending && (
+          <button
+            type="button"
+            className="agent-wb-empty-chip"
+            onClick={() => {
+              markFunnelStep('mission_started')
+              // Same devnet pin as the wizard entry: the mission never inherits
+              // a mainnet runtime config, whichever surface launches it.
+              onPrompt(FIRST_MISSION_PROMPT, { pinnedCluster: 'devnet' })
+            }}
+          >
+            Run the first mission
+          </button>
+        )}
+        <button type="button" className="agent-wb-empty-chip" onClick={() => onPrompt('What is the status of this project?')}>
+          What is the status of this project?
+        </button>
+        <button type="button" className="agent-wb-empty-chip" onClick={() => onPrompt('What can you do here?')}>
+          What can you do here?
+        </button>
+      </div>
     </div>
   )
 }
@@ -236,9 +280,7 @@ export function AgentWorkbench() {
             {hasTurns ? (
               <AgentTranscript turns={turns} isLoading={isLoading} />
             ) : (
-              <div className="agent-wb-empty">
-                Start a chat — the operator can drive the whole workspace.
-              </div>
+              <ConsoleEmptyState onPrompt={(text, opts) => { void sendMessage(text, opts).then(() => loadSessions()) }} />
             )}
           </div>
 
