@@ -6,6 +6,10 @@ import { getDb } from '../db/db'
 import { getSolanaRuntimeStatus } from '../services/SolanaRuntimeStatusService'
 
 export function registerSettingsHandlers() {
+  // Funnel step 0: stamped at boot, first touch wins, so the 5-minute clock
+  // starts at the true first launch even across restarts.
+  try { Settings.markFirstrunFunnelStep('app_first_launch') } catch { /* DB not ready — advisory */ }
+
   ipcMain.handle('settings:get-ui', ipcHandler(async () => {
     return Settings.getUiSettings()
   }))
@@ -46,14 +50,32 @@ export function registerSettingsHandlers() {
 
   ipcMain.handle('settings:set-onboarding-progress', ipcHandler(async (_event, progress: import('../shared/types').OnboardingProgress) => {
     const VALID_STATUSES = ['pending', 'complete', 'skipped']
-    const REQUIRED_KEYS = ['profile', 'claude', 'gmail', 'vercel', 'railway', 'tour']
+    const REQUIRED_KEYS = ['profile', 'claude', 'project', 'ai', 'firstMission', 'tour']
+    const LEGACY_KEYS = ['runtime', 'firstRun', 'gmail', 'vercel', 'railway']
     if (!progress || typeof progress !== 'object') throw new Error('Invalid progress object')
+    const record = progress as unknown as Record<string, string | undefined>
     for (const key of REQUIRED_KEYS) {
-      if (!VALID_STATUSES.includes((progress as unknown as Record<string, string>)[key])) {
+      if (!VALID_STATUSES.includes(record[key] ?? '')) {
+        throw new Error(`Invalid status for ${key}`)
+      }
+    }
+    for (const key of LEGACY_KEYS) {
+      if (record[key] !== undefined && !VALID_STATUSES.includes(record[key] ?? '')) {
         throw new Error(`Invalid status for ${key}`)
       }
     }
     Settings.setOnboardingProgress(progress)
+  }))
+
+  ipcMain.handle('settings:mark-funnel-step', ipcHandler(async (_event, input: { step: string }) => {
+    if (!input || typeof input.step !== 'string' || !input.step.trim()) {
+      throw new Error('Invalid funnel step')
+    }
+    return Settings.markFirstrunFunnelStep(input.step.trim())
+  }))
+
+  ipcMain.handle('settings:get-funnel', ipcHandler(async () => {
+    return Settings.getFirstrunFunnel()
   }))
 
   ipcMain.handle('settings:report-crash', ipcHandler(async (_event, data: { type: string; message: string; stack: string }) => {

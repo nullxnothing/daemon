@@ -2965,16 +2965,44 @@ export type OnboardingStepStatus = 'pending' | 'complete' | 'skipped'
 
 export interface OnboardingProgress {
   profile: OnboardingStepStatus
+  claude: OnboardingStepStatus
   project: OnboardingStepStatus
-  runtime: OnboardingStepStatus
   ai: OnboardingStepStatus
-  firstRun: OnboardingStepStatus
+  firstMission: OnboardingStepStatus
   tour: OnboardingStepStatus
-  claude?: OnboardingStepStatus
+  // Legacy steps from earlier wizard layouts — kept optional so saved progress
+  // JSON from older installs still parses and merges over the defaults.
+  runtime?: OnboardingStepStatus
+  firstRun?: OnboardingStepStatus
   gmail?: OnboardingStepStatus
   vercel?: OnboardingStepStatus
   railway?: OnboardingStepStatus
 }
+
+// --- First-run funnel (local-only instrumentation, nothing leaves the machine) ---
+
+export const FIRSTRUN_FUNNEL_STEPS = [
+  'app_first_launch',
+  'wizard_opened',
+  'profile_done',
+  'claude_cli_ok',
+  'claude_auth_ok',
+  'claude_skipped',
+  'project_ready',
+  'demo_workspace_created',
+  'primer_done',
+  'mission_started',
+  'mission_read_complete',
+  'approval_shown',
+  'approval_approved',
+  'approval_rejected',
+  'mission_narrated',
+  'wizard_exited_early',
+] as const
+
+export type FirstrunFunnelStep = typeof FIRSTRUN_FUNNEL_STEPS[number]
+
+export type FirstrunFunnel = Partial<Record<FirstrunFunnelStep, number>>
 
 // --- Workspace Profile ---
 

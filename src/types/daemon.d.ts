@@ -729,6 +729,7 @@ declare global {
   interface DaemonProjects {
     list: () => Promise<IpcResponse<Project[]>>
     create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
+    createDemoWorkspace: () => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
     setPinned: (input: { id: string; pinned: boolean }) => Promise<IpcResponse<Project>>
@@ -834,6 +835,8 @@ declare global {
     setOnboardingComplete: (complete: boolean) => Promise<IpcResponse>
     getOnboardingProgress: () => Promise<IpcResponse<OnboardingProgress>>
     setOnboardingProgress: (progress: OnboardingProgress) => Promise<IpcResponse>
+    markFunnelStep: (step: string) => Promise<IpcResponse<{ marked: boolean }>>
+    getFunnel: () => Promise<IpcResponse<Partial<Record<string, number>>>>
     reportCrash: (data: { type: string; message: string; stack: string }) => Promise<IpcResponse>
     getCrashes: () => Promise<IpcResponse<AppCrashEntry[]>>
     clearCrashes: () => Promise<IpcResponse>
