@@ -8,6 +8,7 @@ import * as SecureKey from '../SecureKeyService'
 import { TIMEOUTS } from '../../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from '../McpConfig'
 import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
+import { resolveClaudeKeySource, type ClaudeKeySource } from './claudeAuth'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
 import type { RunAgentTurnOpts, AgentTurnResult, AgentToolUse } from './agentTurn'
 
@@ -367,6 +368,15 @@ function withToolCache(tools: RunAgentTurnOpts['tools']): unknown[] {
   return tools.map((tool, i) =>
     i === tools.length - 1 ? { ...tool, cache_control: { type: 'ephemeral' } } : tool
   )
+}
+
+/**
+ * Where runClaudeAgentTurn's key would come from right now (stored key shadows
+ * the shell env — same order as the resolution below). Used to explain auth
+ * failures to the user without ever exposing key material.
+ */
+export function getClaudeKeySource(): ClaudeKeySource {
+  return resolveClaudeKeySource(() => SecureKey.getKey('ANTHROPIC_API_KEY'), process.env)
 }
 
 export async function runClaudeAgentTurn(

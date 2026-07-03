@@ -9,7 +9,8 @@
  */
 import crypto from 'node:crypto'
 import { getDb } from '../db/db'
-import { runClaudeAgentTurn } from './providers/ClaudeProvider'
+import { runClaudeAgentTurn, getClaudeKeySource } from './providers/ClaudeProvider'
+import { isAnthropicAuthError, describeClaudeAuthFailure } from './providers/claudeAuth'
 import * as ProviderRegistry from './providers/ProviderRegistry'
 import { resolveOperatorBackend, getGlmEndpoint, type OperatorBackend, type OperatorEndpoint } from './providers/glmConfig'
 import { recordLocalAiUsage } from './DaemonAIService'
@@ -361,11 +362,18 @@ export async function sendMessage(
       messages.push({ role: 'user', content: toolResults })
     }
   } catch (err) {
+    // A rejected Anthropic credential (e.g. a disabled-org ANTHROPIC_API_KEY
+    // inherited from the shell) must not silently downgrade the operator to
+    // the tool-less CLI path — name the failing key source and how to fix it.
+    // GLM turns (endpoint set) fail on the ZAI key, not the Anthropic one.
+    const authNotice = !endpoint && isAnthropicAuthError(err)
+      ? describeClaudeAuthFailure(getClaudeKeySource())
+      : null
     const fallback = ProviderRegistry.getFeatureProvider('aria')
     if (fallback.id === 'claude' && await verifyPreferredProvider('claude')) {
-      return legacyAnswer(sessionId, userMessage, fallback, text, transport)
+      return legacyAnswer(sessionId, userMessage, fallback, text, transport, authNotice ?? undefined)
     }
-    finalText = `Error: ${(err as Error).message}`
+    finalText = authNotice ?? `Error: ${(err as Error).message}`
   }
 
   // Any plan steps left un-flipped are done once the loop settles.
@@ -711,13 +719,16 @@ function describeIntent(tool: AriaTool, input: Record<string, unknown>): string 
   return clusterMark(`${tool.name}${detail}`)
 }
 
-/** Non-Claude providers: single-shot text answer, no tools. */
+/** Non-Claude providers: single-shot text answer, no tools. When the caller is
+ *  degrading here because of an auth failure, `notice` is prepended to the
+ *  reply so the loss of operator tools is never silent. */
 async function legacyAnswer(
   sessionId: string,
   userMessage: string,
   provider: ReturnType<typeof ProviderRegistry.getFeatureProvider>,
   text: ConversationEntry[],
   transport: AriaTransport,
+  notice?: string,
 ): Promise<AriaResponse> {
   const prompt = [
     'ARIA side-panel conversation:',
@@ -725,7 +736,8 @@ async function legacyAnswer(
     '',
     'Respond as ARIA, concise and direct.',
   ].join('\n')
-  const out = await provider.runPrompt({ prompt, model: 'sonnet', effort: 'low', maxTokens: 1024, timeoutMs: 60_000 })
+  const answer = await provider.runPrompt({ prompt, model: 'sonnet', effort: 'low', maxTokens: 1024, timeoutMs: 60_000 })
+  const out = notice ? `${notice}\n\n${answer}` : answer
   text.push({ role: 'assistant', content: out })
   persistMessage({ role: 'assistant', content: out, metadata: '{}', session_id: sessionId })
   transport.emit({ kind: 'done', messageId: sessionId, text: out })
