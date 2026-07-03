@@ -344,6 +344,8 @@ importers:
 
   packages/bigint-buffer: {}
 
+  packages/bridge-shim: {}
+
   packages/shared:
     devDependencies:
       typescript:
