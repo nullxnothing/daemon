@@ -5,6 +5,7 @@ import type {
   DaemonAiModelInfo, DaemonAiModelLane,
 } from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
+import { markFunnelStep } from '../lib/firstMission'
 import { buildAriaSnapshot } from '../lib/ariaContext'
 import { applyUiEffect, runUiEffectWithData } from '../lib/ariaUiEffects'
 import { useUIStore } from './ui'
@@ -267,6 +268,12 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   },
 
   approve: (callId, approved) => {
+    // First-run funnel: record the first mission's approval decision. Fire-and-
+    // forget — the main process gates these marks behind mission_started and
+    // first-touch, so normal day-to-day approvals never log anything.
+    const isWriteApproval = get().turns.some((t) =>
+      t.approvals.some((a) => a.callId === callId && a.risk === 'write'))
+    if (isWriteApproval) markFunnelStep(approved ? 'approval_approved' : 'approval_rejected')
     daemon.aria.approve(callId, approved)
     set((s) => ({ turns: s.turns.map((t) => ({ ...t, approvals: t.approvals.filter((a) => a.callId !== callId) })) }))
   },
@@ -444,6 +451,9 @@ function applyEvent(
       }, sid)
       break
     case 'approval-request':
+      // First-run funnel: the mission's WRITE card just rendered. Gated in main
+      // (requires mission_started, first touch wins) so this is safe to fire always.
+      if (ev.risk === 'write') markFunnelStep('approval_shown')
       patchActive(set, (t) => ({
         ...t,
         approvals: [...t.approvals, { callId: ev.callId, name: ev.name, risk: ev.risk, summary: ev.summary, input: ev.input, fee: ev.fee }],

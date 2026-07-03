@@ -60,7 +60,7 @@ export function ApprovalCard({ approval, onDecide }: {
   const typedOk = !isSensitive || typed.trim() === confirmTarget
 
   return (
-    <div className={`agent-approval ${approval.risk}`}>
+    <div className={`agent-approval ${approval.risk}`} data-testid="approval-card">
       <div className="agent-approval-head">
         <span className={`agent-approval-risk ${approval.risk}`}>{RISK_LABEL[approval.risk]}</span>
         <span className="agent-approval-name">{approval.name}</span>
@@ -81,12 +81,13 @@ export function ApprovalCard({ approval, onDecide }: {
       ) : null}
 
       <div className="agent-approval-actions">
-        <button type="button" className="agent-approval-reject" onClick={() => approve(approval.callId, false)}>
+        <button type="button" className="agent-approval-reject" data-testid="approval-reject" onClick={() => approve(approval.callId, false)}>
           Reject
         </button>
         <button
           type="button"
           className="agent-approval-approve"
+          data-testid="approval-approve"
           disabled={!typedOk}
           onClick={() => approve(approval.callId, true)}
         >

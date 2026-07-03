@@ -17,6 +17,15 @@ function installDaemonBridge() {
         setOnboardingProgress: vi.fn().mockResolvedValue({ ok: true }),
         setPinnedTools: vi.fn().mockResolvedValue({ ok: true }),
         setWorkspaceProfile: vi.fn().mockResolvedValue({ ok: true }),
+        markFunnelStep: vi.fn().mockResolvedValue({ ok: true, data: { marked: true } }),
+        getFunnel: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+      },
+      claude: {
+        getConnection: vi.fn().mockResolvedValue({ ok: true, data: null }),
+        verifyConnection: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { claudePath: 'claude', hasApiKey: false, isAuthenticated: false, authMode: 'none' },
+        }),
       },
     },
   })
@@ -30,14 +39,15 @@ function resetStores() {
     currentStepIndex: 0,
     progress: {
       profile: 'pending',
+      claude: 'pending',
       project: 'pending',
-      runtime: 'pending',
       ai: 'pending',
-      firstRun: 'pending',
+      firstMission: 'pending',
       tour: 'pending',
     },
     showResumeBanner: false,
     showTourOffer: false,
+    deferTourOffer: false,
     tourActive: false,
     tourStepIndex: 0,
   })
@@ -74,7 +84,7 @@ describe('Onboarding wizard keyboard behavior', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
     await userEvent.keyboard('{Enter}')
     await waitFor(() => expect(useOnboardingStore.getState().currentStepIndex).toBe(1))
-    expect(screen.getByRole('dialog', { name: 'DAEMON' })).toHaveAccessibleDescription('Open or scaffold a Solana workspace')
+    expect(screen.getByRole('dialog', { name: 'DAEMON' })).toHaveAccessibleDescription('Connect the engine that runs your agents')
 
     fireEvent.keyDown(screen.getByRole('dialog', { name: 'DAEMON' }), { key: 'Escape' })
     expect(useConfirmStore.getState().current?.title).toBe('Exit setup?')

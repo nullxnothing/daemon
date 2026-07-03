@@ -177,6 +177,7 @@
 }
 
 .wizard-dot.green { background: var(--success); }
+.wizard-dot.amber { background: var(--warning); }
 .wizard-dot.red { background: var(--error); }
 .wizard-dot.pulse {
   background: var(--warning);
@@ -360,6 +361,95 @@
   padding: 1px var(--space-xs);
   border-radius: var(--radius-sm);
   font-size: var(--fs-10);
+}
+
+/* Approval Gate primer — a frozen preview of the console's approval card.
+   Class names mirror ApprovalCard so the live card is instantly recognizable;
+   the styling is duplicated here (tokens only) because AgentWorkbench.css may
+   not be loaded while the wizard is on screen. */
+.wizard-approval-preview {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--line-2);
+  background: var(--field-bg);
+  pointer-events: none;
+}
+
+.wizard-approval-preview .agent-approval-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.wizard-approval-preview .agent-approval-risk {
+  font-family: var(--mono);
+  font-size: var(--fs-9);
+  letter-spacing: var(--ls-caps);
+  padding: 0 var(--space-xs);
+  line-height: 1.6;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  color: var(--t3);
+}
+
+.wizard-approval-preview .agent-approval-risk.write {
+  border-color: color-mix(in srgb, var(--amber) 36%, transparent);
+  color: var(--amber);
+}
+
+.wizard-approval-preview .agent-approval-name {
+  font-family: var(--mono);
+  font-size: var(--fs-12);
+  color: var(--t1);
+}
+
+.wizard-approval-preview .agent-approval-summary {
+  font-size: var(--fs-12);
+  line-height: 1.5;
+  color: var(--t2);
+}
+
+.wizard-approval-preview .agent-approval-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.wizard-approval-preview .agent-approval-reject,
+.wizard-approval-preview .agent-approval-approve {
+  height: 26px;
+  padding: 0 var(--space-md);
+  border-radius: var(--r);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wizard-approval-preview .agent-approval-reject {
+  border: 1px solid var(--line-2);
+  background: var(--s2);
+  color: var(--t2);
+}
+
+.wizard-approval-preview .agent-approval-approve {
+  border: 1px solid var(--accent-line);
+  background: var(--btn-pri-bg);
+  color: var(--btn-pri-text);
+}
+
+/* First Mission step */
+.wizard-mission-title {
+  font-size: var(--fs-12);
+  color: var(--t1);
+  line-height: 1.5;
+}
+
+.wizard-mission-fineprint {
+  font-size: var(--fs-10);
+  color: var(--t3);
+  line-height: 1.5;
 }
 
 /* Footer */

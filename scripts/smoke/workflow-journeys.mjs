@@ -156,39 +156,50 @@ async function openToolFromLauncher(page, toolName, readySelector = null) {
 
 async function verifyFirstLaunchOnboarding(page) {
   await page.waitForSelector('.wizard-overlay', { timeout: 30000 })
-  await page.waitForSelector('.wizard-card', { timeout: 30000 })
+  await page.waitForSelector('[data-testid="wizard-card"]', { timeout: 30000 })
+
+  // Step 1 — Workspace
+  await page.waitForSelector('[data-testid="wizard-step-profile"]', { timeout: 30000 })
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
-    return body.includes('Workspace')
-      && body.includes('What are you building?')
-      && body.includes('Solana Development')
+    return body.includes('What are you building?') && body.includes('Solana Development')
   }, { timeout: 30000 })
   await page.locator('.step-profile-card', { hasText: 'Solana Development' }).click()
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.locator('[data-testid="wizard-primary"]').click()
 
+  // Step 2 — Claude Connect. Deterministic on any machine: if already connected
+  // the primary Continue shows; otherwise use the skip path.
+  await page.waitForSelector('[data-testid="wizard-step-claude"]', { timeout: 30000 })
+  await page.waitForFunction(() => {
+    const step = document.querySelector('[data-testid="wizard-step-claude"]')
+    if (!step) return false
+    if (step.querySelector('[data-testid="wizard-primary"]')) return true
+    return Array.from(step.querySelectorAll('button')).some((b) => b.textContent?.includes('Skip for now'))
+  }, { timeout: 30000 })
+  await page.evaluate(() => {
+    const step = document.querySelector('[data-testid="wizard-step-claude"]')
+    const primary = step?.querySelector('[data-testid="wizard-primary"]')
+    if (primary) { primary.click(); return }
+    const skip = Array.from(step?.querySelectorAll('button') ?? []).find((b) => b.textContent?.includes('Skip for now'))
+    skip?.click()
+  })
+
+  // Step 3 — Project ("I have a repo, continue" avoids scaffolding on smoke hosts)
+  await page.waitForSelector('[data-testid="wizard-step-project"]', { timeout: 30000 })
+  await page.getByRole('button', { name: 'I have a repo, continue', exact: true }).click()
+
+  // Step 4 — The Approval Gate primer
+  await page.waitForSelector('[data-testid="wizard-step-ai"]', { timeout: 30000 })
   await page.waitForFunction(() => {
     const body = document.body.textContent ?? ''
-    return body.includes('Project') && body.includes('Open or scaffold a Solana workspace')
+    return body.includes('remember_fact') && body.includes('READ runs automatically')
   }, { timeout: 30000 })
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.locator('[data-testid="wizard-primary"]').click()
 
-  await page.waitForFunction(() => {
-    const body = document.body.textContent ?? ''
-    return body.includes('Wallet + RPC') && body.includes('Devnet is the default')
-  }, { timeout: 30000 })
-  await page.getByRole('button', { name: 'Use Devnet Defaults', exact: true }).click()
-
-  await page.waitForFunction(() => {
-    const body = document.body.textContent ?? ''
-    return body.includes('AI Safety') && body.includes('Ask and Plan are read-first')
-  }, { timeout: 30000 })
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
-
-  await page.waitForFunction(() => {
-    const body = document.body.textContent ?? ''
-    return body.includes('First Run') && body.includes('Start from readiness')
-  }, { timeout: 30000 })
-  await page.getByRole('button', { name: 'Open Solana Start', exact: true }).click()
+  // Step 5 — First Mission (skip path keeps smoke offline/deterministic)
+  await page.waitForSelector('[data-testid="wizard-step-firstMission"]', { timeout: 30000 })
+  await page.waitForSelector('[data-testid="mission-run"]', { timeout: 30000 })
+  await page.getByRole('button', { name: 'Skip, explore on my own', exact: true }).click()
   await page.waitForSelector('.project-readiness', { timeout: 30000 })
   await page.waitForSelector('.tour-offer-card', { timeout: 30000 })
   await page.locator('.tour-offer-card').getByRole('button', { name: 'Skip', exact: true }).click()
