@@ -50,6 +50,30 @@ describe('dedupeEntries', () => {
 
     expect(dedupeEntries(entries)).toHaveLength(3)
   })
+
+  it('keeps distinct info events separate when only an embedded id differs', () => {
+    const entries = [
+      entry({ id: 'a', kind: 'info', context: 'Runtime', message: 'Deployed program 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2', createdAt: 1 }),
+      entry({ id: 'b', kind: 'info', context: 'Runtime', message: 'Deployed program 9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin', createdAt: 2 }),
+    ]
+
+    expect(dedupeEntries(entries)).toHaveLength(2)
+  })
+
+  it('still collapses identical info repeats and number-varying warnings', () => {
+    const entries = [
+      entry({ id: 'a', kind: 'info', context: 'Terminal', message: 'Opened Terminal in C:/work/app', createdAt: 1 }),
+      entry({ id: 'b', kind: 'info', context: 'Terminal', message: 'Opened Terminal in C:/work/app', createdAt: 2 }),
+      entry({ id: 'c', message: 'Probe retry 12 failed', createdAt: 3 }),
+      entry({ id: 'd', message: 'Probe retry 13 failed', createdAt: 4 }),
+    ]
+
+    const deduped = dedupeEntries(entries)
+
+    expect(deduped).toHaveLength(2)
+    expect(deduped.find(({ entry: e }) => e.kind === 'info')?.count).toBe(2)
+    expect(deduped.find(({ entry: e }) => e.kind === 'warning')?.count).toBe(2)
+  })
 })
 
 describe('deriveIssueHint', () => {

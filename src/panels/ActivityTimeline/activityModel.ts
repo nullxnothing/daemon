@@ -78,13 +78,21 @@ export type DedupedActivityEntry = {
  * Collapse repeated identical events into one row with an occurrence count so
  * a recurring probe (e.g. the toolchain check) reads as one line, not a wall.
  * Keeps the latest occurrence of each fingerprint, in latest-first order.
+ *
+ * Only error/warning entries use the normalized issue fingerprint (which
+ * masks IDs, paths, and numbers so a probe that embeds a changing count still
+ * collapses). Info/success rows collapse only on exact repeats — two deploys
+ * that differ by program ID are distinct history and must stay two rows.
  */
 export function dedupeEntries(entries: ActivityEntry[]): DedupedActivityEntry[] {
   const byFingerprint = new Map<string, DedupedActivityEntry>()
   const sorted = [...entries].sort((a, b) => b.createdAt - a.createdAt)
 
   for (const entry of sorted) {
-    const fingerprint = fingerprintActivityIssue(entry)
+    const isIssue = entry.kind === 'error' || entry.kind === 'warning'
+    const fingerprint = isIssue
+      ? fingerprintActivityIssue(entry)
+      : `${entry.kind}:${entry.context ?? ''}:${entry.message}`
     const existing = byFingerprint.get(fingerprint)
     if (existing) {
       existing.count += 1
