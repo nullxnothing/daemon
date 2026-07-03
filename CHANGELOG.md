@@ -4,6 +4,24 @@ All notable changes to DAEMON are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows semantic-ish desktop release versioning.
 
+## [4.6.3] - 2026-07-03
+
+### Fixed
+- **Memory and Deploy activity-bar icons open their panels again.** Pack-owned plugin rows were
+  never seeded in the workspace tool registry, so the pack toggle's update no-oped and the icons
+  opened nothing on a fresh install. Migration V58 backfills the rows, and pack-owned plugins now
+  resolve from live pack state.
+- **Plain questions to the engine no longer escalate to approval cards.** The `ask` action was
+  removed from `run_engine_action`, and after an audit confirmed the engine service performs no
+  disk writes in any diagnostics handler, engine diagnostics were reclassified to the read tier
+  and auto-run. Scaffold/create actions still write to disk and still require an approval card.
+- **Activity panel no longer floods with toolchain probe spam.** The probe logs its first result
+  and state transitions only; identical rows collapse behind an occurrence badge with an install
+  hint. Info/success rows collapse only on exact repeats, so distinct deploys stay distinct
+  instead of being folded into one row.
+- **Tab strip handles overflow.** The active tab scrolls into view and overflow chevrons appear
+  when the strip is wider than the panel.
+
 ## [4.6.2] - 2026-07-02
 
 ### Fixed
