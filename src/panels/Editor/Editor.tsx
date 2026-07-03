@@ -1,4 +1,4 @@
-import { Suspense, useRef, useCallback, useState, useEffect, useMemo, type ComponentType, type LazyExoticComponent } from 'react'
+import { Suspense, useRef, useCallback, useState, useEffect, useMemo, type ComponentType } from 'react'
 import MonacoEditor, { type OnMount, type BeforeMount, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import 'monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution'
@@ -37,7 +37,8 @@ import { EditorBreadcrumbs } from './EditorBreadcrumbs'
 import { MarkdownTidyPreview } from './MarkdownTidyPreview'
 import { lazyNamedWithReload } from '../../utils/lazyWithReload'
 import { BUILTIN_TOOLS, TOOL_ICONS, TOOL_NAMES } from '../../components/CommandDrawer/CommandDrawer'
-import { PLUGIN_REGISTRY } from '../../plugins/registry'
+import { useCapabilityPacksStore } from '../../store/capabilityPacks'
+import { buildWorkspaceToolRegistry } from './workspaceToolRegistry'
 import { DAEMON_MONACO_THEME_COLORS, DAEMON_MONACO_LIGHT_THEME_COLORS } from '../../styles/daemonTheme'
 import type { LspDiagnosticEvent, LspLocation, LspPosition } from '../../../electron/shared/types'
 import './Editor.css'
@@ -301,6 +302,7 @@ export function EditorPanel() {
   const dashboardTabActive = useUIStore((s) => s.dashboardTabActive)
   const setDashboardTabActive = useUIStore((s) => s.setDashboardTabActive)
   const plugins = usePluginStore((s) => s.plugins)
+  const enabledPacks = useCapabilityPacksStore((s) => s.enabledPacks)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const prevFilePathRef = useRef<string | null>(null)
   const activeFilePathRef = useRef<string | null>(null)
@@ -333,27 +335,10 @@ export function EditorPanel() {
     [activeFile?.path, activeProjectPath]
   )
   const isActiveFileMarkdown = isMarkdownFile(activeFile?.path)
-  const workspaceToolRegistry = useMemo(() => {
-    const toolMap = new Map<string, { name: string; component: LazyExoticComponent<ComponentType>; Icon: ComponentType<{ size?: number }> }>()
-    for (const tool of BUILTIN_TOOLS) {
-      toolMap.set(tool.id, {
-        name: tool.name,
-        component: tool.component,
-        Icon: TOOL_ICONS[tool.id] ?? tool.icon,
-      })
-    }
-    for (const plugin of plugins) {
-      if (!plugin.enabled) continue
-      const manifest = PLUGIN_REGISTRY[plugin.id]
-      if (!manifest) continue
-      toolMap.set(plugin.id, {
-        name: manifest.name,
-        component: manifest.component,
-        Icon: manifest.icon,
-      })
-    }
-    return toolMap
-  }, [plugins])
+  const workspaceToolRegistry = useMemo(
+    () => buildWorkspaceToolRegistry({ builtinTools: BUILTIN_TOOLS, toolIcons: TOOL_ICONS, plugins, enabledPacks }),
+    [plugins, enabledPacks]
+  )
   const workspaceToolTabMeta = useMemo(
     () => workspaceToolTabs
       .map((id) => {

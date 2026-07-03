@@ -695,6 +695,17 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 58) {
+    db.transaction(() => {
+      // Backfill pack-owned plugin rows that were never seeded. Without a row,
+      // the pack toggle's UPDATE is a no-op and the Activity Bar slot opens
+      // nothing (the Memory icon dead-click). Enabled by default because their
+      // owning packs (memory, sites) default to enabled.
+      seedPackPlugins(db)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(58)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -1106,6 +1117,20 @@ function seedPlugins(db: Database.Database) {
   for (const p of plugins) {
     insert.run(p.id, 0, p.order, '{}')
   }
+
+  seedPackPlugins(db)
+}
+
+/**
+ * Plugins that are the primary surface of a capability pack (memory, sites).
+ * They must always have a row — the pack toggle flips `enabled` with an UPDATE,
+ * which silently no-ops when the row is missing — and default to enabled
+ * because their owning packs are enabled by default.
+ */
+function seedPackPlugins(db: Database.Database) {
+  const insert = db.prepare('INSERT OR IGNORE INTO plugins (id, enabled, sort_order, config) VALUES (?,?,?,?)')
+  insert.run('memory', 1, 9, '{}')
+  insert.run('deploy', 1, 10, '{}')
 }
 
 function seedMcpRegistry(db: Database.Database) {
