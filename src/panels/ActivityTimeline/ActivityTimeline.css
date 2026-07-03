@@ -152,6 +152,28 @@
   min-width: 0;
 }
 
+.activity-issue-hint {
+  margin-top: var(--space-xs);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  line-height: var(--lh-snug);
+  color: var(--t2);
+  word-break: break-word;
+}
+
+/* Collapsed-repeat badge: one row stands in for N identical events. */
+.activity-entry-count {
+  margin-left: var(--space-sm);
+  padding: 0 var(--space-xs);
+  font-family: var(--mono);
+  font-size: var(--fs-11);
+  color: var(--t2);
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
 /* Event row: mono time column · status dot · body (message + mono meta).
    Mirrors the dashboard .act pattern from the design handoff. */
 .activity-entry {

@@ -520,6 +520,35 @@
   }
 }
 
+.editor-tabstrip {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.editor-tabstrip-scroll {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0;
+  color: var(--t3);
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.editor-tabstrip-scroll:hover:not(:disabled) {
+  color: var(--t1);
+  background: var(--hover-bg);
+}
+
+.editor-tabstrip-scroll:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .editor-tabs {
   display: flex;
   align-items: center;
@@ -528,7 +557,8 @@
   border-bottom: 1px solid var(--border);
   padding: 0 var(--space-xs);
   gap: 2px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
 }
 

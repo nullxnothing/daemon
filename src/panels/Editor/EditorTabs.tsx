@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useState, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import type { ComponentType } from 'react'
 
 interface OpenFile {
@@ -83,6 +83,42 @@ export function EditorTabs({
   const [tabContextMenu, setTabContextMenu] = useState<{
     x: number; y: number; projectId: string; path: string
   } | null>(null)
+  const tabsRef = useRef<HTMLDivElement | null>(null)
+  const [overflow, setOverflow] = useState({ left: false, right: false })
+
+  const updateOverflow = useCallback(() => {
+    const el = tabsRef.current
+    if (!el) return
+    const maxScroll = el.scrollWidth - el.clientWidth
+    setOverflow((prev) => {
+      const next = { left: el.scrollLeft > 1, right: maxScroll > 1 && el.scrollLeft < maxScroll - 1 }
+      return prev.left === next.left && prev.right === next.right ? prev : next
+    })
+  }, [])
+
+  // Track overflow as tabs open/close and on container resize, so the scroll
+  // affordance appears the moment the strip can no longer show every tab.
+  useEffect(() => {
+    updateOverflow()
+    const el = tabsRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(updateOverflow)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [updateOverflow, toolTabs.length, files.length, browserTabOpen, dashboardTabOpen])
+
+  // A newly activated tab must never sit off-screen — bring it into view.
+  useEffect(() => {
+    const el = tabsRef.current
+    if (!el) return
+    const active = el.querySelector<HTMLElement>('.editor-tab.active')
+    active?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' })
+    updateOverflow()
+  }, [activeToolId, activeFilePath, browserTabActive, dashboardTabActive, toolTabs.length, files.length, updateOverflow])
+
+  const scrollTabs = useCallback((direction: -1 | 1) => {
+    tabsRef.current?.scrollBy?.({ left: direction * 160, behavior: 'smooth' })
+  }, [])
 
   const handleTabContextMenu = useCallback((e: ReactMouseEvent, projectId: string, path: string) => {
     e.preventDefault()
@@ -118,7 +154,21 @@ export function EditorTabs({
 
   return (
     <>
-      <div className="editor-tabs">
+      <div className="editor-tabstrip">
+        {(overflow.left || overflow.right) && (
+          <button
+            type="button"
+            className="editor-tabstrip-scroll"
+            onClick={() => scrollTabs(-1)}
+            disabled={!overflow.left}
+            aria-label="Scroll tabs left"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        )}
+        <div className="editor-tabs" ref={tabsRef} onScroll={updateOverflow}>
         {toolTabs.map(({ id, name, Icon }) => (
           <button
             key={id}
@@ -222,6 +272,20 @@ export function EditorTabs({
             )}
           </button>
         ))}
+        </div>
+        {(overflow.left || overflow.right) && (
+          <button
+            type="button"
+            className="editor-tabstrip-scroll"
+            onClick={() => scrollTabs(1)}
+            disabled={!overflow.right}
+            aria-label="Scroll tabs right"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        )}
       </div>
       {tabContextMenu && (
         <div

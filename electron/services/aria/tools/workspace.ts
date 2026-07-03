@@ -7,10 +7,15 @@ import * as EngineService from '../../EngineService'
 import type { AriaTool } from '../AriaTool'
 import { resolveScopedPath } from './shared'
 
-/** Engine orchestration actions exposed to the model. */
+/**
+ * Engine orchestration actions exposed to the model. Deliberately excludes
+ * 'ask' — plain Q&A must never route through this write-gated tool (ARIA
+ * answers questions itself from read tools); routing "what branch is this?"
+ * through an approval card erodes the meaning of the gate.
+ */
 const ENGINE_ACTIONS = new Set([
   'fix-claude-md', 'generate-claude-md', 'debug-setup', 'health-check',
-  'explain-error', 'suggest-fix', 'safety-scan', 'ask',
+  'explain-error', 'suggest-fix', 'safety-scan',
 ])
 
 export const workspaceTools: AriaTool[] = [
@@ -47,9 +52,14 @@ export const workspaceTools: AriaTool[] = [
   },
   {
     name: 'run_engine_action',
-    description: 'Run a DAEMON engine orchestration action. Valid: fix-claude-md, generate-claude-md, debug-setup, health-check, explain-error, suggest-fix, safety-scan, ask.',
+    description: 'Run a DAEMON engine diagnostic. Valid: fix-claude-md, generate-claude-md, debug-setup, health-check, explain-error, suggest-fix, safety-scan. These analyze and propose; they never modify files. NOT for answering questions — answer those yourself from read tools.',
     kind: 'run',
-    risk: 'write',
+    // Read tier is deliberate: every engine handler is a no-write diagnostic.
+    // EngineService.runAction only reads files, runs read-only commands
+    // (git status/diff/log, tsc --noEmit, find) and returns prompt output —
+    // fix/generate-claude-md PROPOSE content, nothing touches disk. A write
+    // card here gated nothing and taught users to reflex-approve.
+    risk: 'read',
     input: {
       type: 'object',
       properties: { action: { type: 'string' }, question: { type: 'string' }, error: { type: 'string' } },
@@ -57,7 +67,14 @@ export const workspaceTools: AriaTool[] = [
     },
     async handler(input, ctx) {
       const action = String(input.action ?? '')
-      if (!ENGINE_ACTIONS.has(action)) return { ok: false, summary: `Unknown engine action "${action}".` }
+      if (!ENGINE_ACTIONS.has(action)) {
+        return {
+          ok: false,
+          summary: action === 'ask'
+            ? 'Engine "ask" is not available. Answer the question directly using read tools (read_project_status, read_file, list_project_tree, search_files).'
+            : `Unknown engine action "${action}".`,
+        }
+      }
       const payload: Record<string, unknown> = {}
       if (input.question) payload.question = input.question
       if (input.error) payload.error = input.error

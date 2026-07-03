@@ -92,6 +92,24 @@ interface SolanaToolboxState {
 
 const SOLANA_MCP_NAMES = Object.keys(SOLANA_MCP_CATALOG)
 
+// The toolchain probe runs on every readiness/toolbox/integration mount, so an
+// unchanged result must not append a new activity entry each time — that is
+// how one missing binary became 130 identical "missing tools" errors in the
+// Activity flight recorder. Log the first result and transitions only.
+const loggedToolchainResults = new Map<string, string>()
+
+/** Returns true when this probe result should be recorded (first run or changed). */
+export function shouldLogToolchainActivity(projectKey: string, message: string): boolean {
+  if (loggedToolchainResults.get(projectKey) === message) return false
+  loggedToolchainResults.set(projectKey, message)
+  return true
+}
+
+/** Test hook: forget previously logged toolchain results. */
+export function resetToolchainActivityLog(): void {
+  loggedToolchainResults.clear()
+}
+
 function getActiveProjectActivityContext() {
   const { activeProjectId, projects } = useUIStore.getState()
   return {
@@ -266,14 +284,17 @@ export const useSolanaToolboxStore = create<SolanaToolboxState>((set, get) => ({
           res.data.anchor.installed ? null : 'Anchor',
           res.data.surfpool.installed ? null : 'Surfpool',
         ].filter(Boolean)
-        useNotificationsStore.getState().addActivity({
-          kind: missing.length === 0 ? 'success' : 'warning',
-          context: 'Runtime',
-          message: missing.length === 0
-            ? 'Runtime toolchain check passed'
-            : `Runtime toolchain check found missing tools: ${missing.join(', ')}`,
-          ...getActiveProjectActivityContext(),
-        })
+        const message = missing.length === 0
+          ? 'Runtime toolchain check passed'
+          : `Runtime toolchain check found missing tools: ${missing.join(', ')}`
+        if (shouldLogToolchainActivity(projectPath ?? 'workspace', message)) {
+          useNotificationsStore.getState().addActivity({
+            kind: missing.length === 0 ? 'success' : 'warning',
+            context: 'Runtime',
+            message,
+            ...getActiveProjectActivityContext(),
+          })
+        }
       } else {
         set({ toolchain: null })
       }

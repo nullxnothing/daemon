@@ -12,6 +12,8 @@ import {
   buildSessionReport,
   classifyActivity,
   compactArtifactValue,
+  dedupeEntries,
+  deriveIssueHint,
   formatTime,
   getActivityCounts,
   groupActivity,
@@ -135,8 +137,8 @@ export function ActivityTimeline() {
                 </div>
               )}
               <div className="activity-session-events">
-                {group.entries.map((entry) => (
-                  <EventRow key={entry.id} entry={entry} />
+                {dedupeEntries(group.entries).map(({ entry, count }) => (
+                  <EventRow key={entry.id} entry={entry} count={count} />
                 ))}
               </div>
             </Card>
@@ -151,6 +153,7 @@ export default ActivityTimeline
 
 function ActionableIssueCard({ issue }: { issue: ActivityIssueGroup }) {
   const tone = issue.kind === 'error' ? 'danger' : 'warning'
+  const hint = deriveIssueHint(issue.title)
   const occurrenceLabel = issue.entries.length === 1
     ? `1 occurrence · ${formatTime(issue.latestAt)}`
     : `${issue.entries.length} occurrences · first ${formatTime(issue.firstAt)} · latest ${formatTime(issue.latestAt)}`
@@ -160,6 +163,7 @@ function ActionableIssueCard({ issue }: { issue: ActivityIssueGroup }) {
       <StatusDot tone={tone} label={`${issue.kind}: ${issue.title}`} className="activity-dot" />
       <div className="activity-issue-main">
         <div className="activity-entry-message">{issue.title}</div>
+        {hint && <div className="activity-issue-hint">{hint}</div>}
         <div className="activity-entry-meta">
           <span className="activity-entry-context">{issue.context ?? issue.category}</span>
           <span className="activity-entry-sep">·</span>
@@ -172,7 +176,7 @@ function ActionableIssueCard({ issue }: { issue: ActivityIssueGroup }) {
   )
 }
 
-function EventRow({ entry }: { entry: ActivityEntry }) {
+function EventRow({ entry, count = 1 }: { entry: ActivityEntry; count?: number }) {
   const category = classifyActivity(entry)
   const tone = entry.kind === 'success' ? 'success' : entry.kind === 'warning' ? 'warning' : entry.kind === 'error' ? 'danger' : 'info'
 
@@ -181,7 +185,12 @@ function EventRow({ entry }: { entry: ActivityEntry }) {
       <time className="activity-entry-time">{formatTime(entry.createdAt)}</time>
       <StatusDot tone={tone} className="activity-dot" />
       <div className="activity-entry-main">
-        <div className="activity-entry-message">{entry.message}</div>
+        <div className="activity-entry-message">
+          {entry.message}
+          {count > 1 && (
+            <span className="activity-entry-count" title={`${count} identical events collapsed`}>{`×${count}`}</span>
+          )}
+        </div>
         <div className="activity-entry-meta">
           <span className="activity-entry-context">{entry.context ?? category}</span>
           <span className="activity-entry-sep">·</span>
