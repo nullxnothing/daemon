@@ -9,6 +9,7 @@ import { TIMEOUTS } from '../../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from '../McpConfig'
 import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
 import { resolveClaudeKeySource, type ClaudeKeySource } from './claudeAuth'
+import { MODEL_MAP } from '../../../packages/shared/src/constants'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
 import type { RunAgentTurnOpts, AgentTurnResult, AgentToolUse } from './agentTurn'
 
@@ -18,12 +19,6 @@ let cachedConnection: ProviderConnection | null = null
 let cachedClaudePath: string | null = null
 
 // --- Model Resolution ---
-
-const MODEL_MAP: Record<string, string> = {
-  'haiku': 'claude-haiku-4-5-20251001',
-  'sonnet': 'claude-sonnet-4-6',
-  'opus': 'claude-opus-4-8',
-}
 
 function resolveModelName(shorthand: string): string {
   return MODEL_MAP[shorthand] ?? shorthand

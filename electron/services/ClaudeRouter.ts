@@ -7,6 +7,7 @@ import * as SecureKey from './SecureKeyService'
 import { sanitizeAiPrompt } from '../security/PrivacyGuard'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from './McpConfig'
 import { getRegisteredPorts } from './PortService'
+import { MODEL_MAP } from '../../packages/shared/src/constants'
 import type { ClaudeConnection } from '../shared/types'
 
 // --- In-memory cache ---
@@ -385,12 +386,7 @@ function buildPortMap(): string {
 }
 
 function resolveModelName(shorthand: string): string {
-  const modelMap: Record<string, string> = {
-    'haiku': 'claude-haiku-4-5-20251001',
-    'sonnet': 'claude-sonnet-4-6',
-    'opus': 'claude-opus-4-8',
-  }
-  return modelMap[shorthand] ?? shorthand
+  return MODEL_MAP[shorthand] ?? shorthand
 }
 
 function buildSubscriptionEnv(): NodeJS.ProcessEnv {

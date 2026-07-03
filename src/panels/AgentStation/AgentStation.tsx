@@ -3,6 +3,7 @@ import { daemon } from '../../lib/daemonBridge'
 import { SkeletonRows } from '../../components/Panel'
 import { useAppActions } from '../../store/appActions'
 import { useUIStore } from '../../store/ui'
+import { CLAUDE_MODEL_IDS } from '../../../packages/shared/src/constants'
 import type { SynapseSapAgent, SynapseSapCluster, SynapseSapDiscoveryResult, WalletListEntry } from '../../types/daemon'
 import css from './AgentStation.module.css'
 
@@ -173,8 +174,8 @@ export function CreateForm({ onCreated, onCancel }: CreateFormProps) {
           <option value="gpt-4o">GPT-4o</option>
           <option value="gpt-4o-mini">GPT-4o Mini</option>
           <option value="gpt-4-turbo">GPT-4 Turbo</option>
-          <option value="claude-opus-4-8">Claude Opus 4</option>
-          <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+          <option value={CLAUDE_MODEL_IDS.opus}>Claude Opus 4.8</option>
+          <option value={CLAUDE_MODEL_IDS.sonnet}>Claude Sonnet 4.6</option>
         </select>
       </div>
 

@@ -1,5 +1,7 @@
 // Portable validation helpers shared between desktop and mobile.
 
+import { MODEL_MAP } from './constants'
+
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
 
 export function isValidSolanaAddress(address: string): boolean {
@@ -19,10 +21,5 @@ export function sanitizeString(input: string, maxLength = 256): string {
 }
 
 export function resolveModelName(shorthand: string): string {
-  const modelMap: Record<string, string> = {
-    haiku: 'claude-haiku-4-5-20251001',
-    sonnet: 'claude-sonnet-4-6',
-    opus: 'claude-opus-4-8',
-  }
-  return modelMap[shorthand] ?? shorthand
+  return MODEL_MAP[shorthand] ?? shorthand
 }
