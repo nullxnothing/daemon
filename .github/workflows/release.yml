@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# The Vite/tsc production build peaks past Node's ~2GB default heap on the hosted
+# runners (the macOS arm64 job OOM'd with exit 134 on v4.6.2). Give every job a
+# 4GB heap so the build can't run out of memory on any platform.
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
