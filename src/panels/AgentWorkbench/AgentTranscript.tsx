@@ -49,6 +49,13 @@ export function AgentTranscript({ turns, isLoading }: { turns: AriaTurn[]; isLoa
             <ApprovalCard key={a.callId} approval={a} />
           ))}
 
+          {(turn.notices ?? []).map((notice, i) => (
+            <div key={`notice-${i}`} className="agent-tr-notice" role="status">
+              <span className="agent-tr-notice-dot" aria-hidden="true" />
+              <span>{notice}</span>
+            </div>
+          ))}
+
           {turn.text ? (
             turn.role === 'assistant'
               ? <AriaMarkdown source={turn.text} className="agent-tr-text" />

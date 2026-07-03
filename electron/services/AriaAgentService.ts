@@ -304,6 +304,7 @@ export async function sendMessage(
   const endpoint = backend === 'glm' ? getGlmEndpoint() ?? undefined : undefined
 
   let finalText = ''
+  let turnNotice: string | null = null
   const deadline = Date.now() + AGENT_DEADLINE_MS
   let promptForUsage = userMessage
   let retriedStaleNoToolResponse = false
@@ -366,14 +367,22 @@ export async function sendMessage(
     // inherited from the shell) must not silently downgrade the operator to
     // the tool-less CLI path — name the failing key source and how to fix it.
     // GLM turns (endpoint set) fail on the ZAI key, not the Anthropic one.
-    const authNotice = !endpoint && isAnthropicAuthError(err)
-      ? describeClaudeAuthFailure(getClaudeKeySource())
-      : null
+    const failedKeySource = !endpoint && isAnthropicAuthError(err) ? getClaudeKeySource() : null
+    const authNotice = failedKeySource !== null ? describeClaudeAuthFailure(failedKeySource) : null
+    if (authNotice) {
+      // Surface as a warning banner, separate from the reply text. Log the
+      // key SOURCE only — key values never reach logs or the transcript.
+      console.warn(`[AriaAgent] Anthropic auth rejected (key source: ${failedKeySource}); operator tools are offline for this turn.`)
+      transport.emit({ kind: 'notice', messageId: sessionId, level: 'warn', text: authNotice })
+    }
     const fallback = ProviderRegistry.getFeatureProvider('aria')
     if (fallback.id === 'claude' && await verifyPreferredProvider('claude')) {
       return legacyAnswer(sessionId, userMessage, fallback, text, transport, authNotice ?? undefined)
     }
-    finalText = authNotice ?? `Error: ${(err as Error).message}`
+    turnNotice = authNotice
+    finalText = authNotice
+      ? 'Anthropic API authentication failed, so this turn could not run any operator tools.'
+      : `Error: ${(err as Error).message}`
   }
 
   // Any plan steps left un-flipped are done once the loop settles.
@@ -403,6 +412,7 @@ export async function sendMessage(
       toolCalls,
       ...(turnState.plan.length ? { plan: turnState.plan } : {}),
       ...(turnState.patch ? { patch: turnState.patch } : {}),
+      ...(turnNotice ? { notice: turnNotice } : {}),
     }),
     session_id: sessionId,
   })
@@ -720,8 +730,9 @@ function describeIntent(tool: AriaTool, input: Record<string, unknown>): string 
 }
 
 /** Non-Claude providers: single-shot text answer, no tools. When the caller is
- *  degrading here because of an auth failure, `notice` is prepended to the
- *  reply so the loss of operator tools is never silent. */
+ *  degrading here because of an auth failure, it emits a `notice` banner first
+ *  and passes the text along so the condition also survives a history reload
+ *  (via message metadata) — the reply itself stays clean. */
 async function legacyAnswer(
   sessionId: string,
   userMessage: string,
@@ -737,11 +748,15 @@ async function legacyAnswer(
     'Respond as ARIA, concise and direct.',
   ].join('\n')
   const answer = await provider.runPrompt({ prompt, model: 'sonnet', effort: 'low', maxTokens: 1024, timeoutMs: 60_000 })
-  const out = notice ? `${notice}\n\n${answer}` : answer
-  text.push({ role: 'assistant', content: out })
-  persistMessage({ role: 'assistant', content: out, metadata: '{}', session_id: sessionId })
-  transport.emit({ kind: 'done', messageId: sessionId, text: out })
-  return { text: out, actions: [], toolCalls: [] }
+  text.push({ role: 'assistant', content: answer })
+  persistMessage({
+    role: 'assistant',
+    content: answer,
+    metadata: notice ? JSON.stringify({ notice }) : '{}',
+    session_id: sessionId,
+  })
+  transport.emit({ kind: 'done', messageId: sessionId, text: answer })
+  return { text: answer, actions: [], toolCalls: [] }
 }
 
 export function getHistory(sessionId: string, limit = 50): AriaMessage[] {

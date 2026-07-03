@@ -48,6 +48,8 @@ export interface AriaTurn {
   actionState?: AriaActionState
   memorySuggestions?: AriaMemorySuggestionLite[]
   recalledMemories?: AriaMemorySuggestionLite[]
+  /** Out-of-band warnings for this turn (e.g. auth degradation) rendered as banners. */
+  notices?: string[]
 }
 
 const DEFAULT_LANE: DaemonAiModelLane = 'auto'
@@ -375,22 +377,24 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       let toolCalls: AriaToolCallLive[] = []
       let plan: AriaPlanStep[] | undefined
       let patch: AriaPatchProposalLite | undefined
+      let notices: string[] | undefined
       try {
         const meta = JSON.parse(m.metadata || '{}') as {
-          toolCalls?: AriaToolCallRecord[]; plan?: AriaPlanStep[]; patch?: AriaPatchProposalLite
+          toolCalls?: AriaToolCallRecord[]; plan?: AriaPlanStep[]; patch?: AriaPatchProposalLite; notice?: string
         }
         toolCalls = (meta.toolCalls ?? []).map((tc) => ({
           callId: tc.callId, name: tc.name, label: tc.name, toolKind: tc.toolKind, risk: tc.risk, status: tc.status, meta: tc.summary,
         }))
         plan = meta.plan
         patch = meta.patch
+        if (typeof meta.notice === 'string' && meta.notice) notices = [meta.notice]
       } catch { /* ignore malformed metadata */ }
       const actionState = patch
         ? patch.status === 'applied' ? 'applied' : patch.status === 'rejected' ? 'rejected' : 'idle'
         : undefined
       return {
         id: m.id, role: m.role as 'user' | 'assistant', text: m.content, createdAt: m.created_at,
-        toolCalls, approvals: [], plan, patch, actionState,
+        toolCalls, approvals: [], plan, patch, actionState, notices,
       }
     })
     set({ turns })
@@ -463,6 +467,9 @@ function applyEvent(
       break
     case 'memory-recall':
       patchActive(set, (t) => ({ ...t, recalledMemories: ev.recalled }), sid)
+      break
+    case 'notice':
+      patchActive(set, (t) => ({ ...t, notices: [...(t.notices ?? []), ev.text] }), sid)
       break
     case 'action-result':
       set((s) => ({
