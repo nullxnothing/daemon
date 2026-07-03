@@ -30,9 +30,9 @@ beforeEach(() => {
 })
 
 describe('run_engine_action read-path routing', () => {
-  it('exists and stays write-tier (orchestration actions can mutate files)', () => {
+  it('is read-tier: every engine action is a no-write diagnostic (EngineService never touches disk)', () => {
     expect(runEngineAction).toBeDefined()
-    expect(runEngineAction.risk).toBe('write')
+    expect(runEngineAction.risk).toBe('read')
   })
 
   it('no longer advertises the read-only "ask" action in its description', () => {

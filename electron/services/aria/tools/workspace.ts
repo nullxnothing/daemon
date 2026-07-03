@@ -52,9 +52,14 @@ export const workspaceTools: AriaTool[] = [
   },
   {
     name: 'run_engine_action',
-    description: 'Run a DAEMON engine orchestration action. Valid: fix-claude-md, generate-claude-md, debug-setup, health-check, explain-error, suggest-fix, safety-scan. NOT for answering questions — answer those yourself from read tools.',
+    description: 'Run a DAEMON engine diagnostic. Valid: fix-claude-md, generate-claude-md, debug-setup, health-check, explain-error, suggest-fix, safety-scan. These analyze and propose; they never modify files. NOT for answering questions — answer those yourself from read tools.',
     kind: 'run',
-    risk: 'write',
+    // Read tier is deliberate: every engine handler is a no-write diagnostic.
+    // EngineService.runAction only reads files, runs read-only commands
+    // (git status/diff/log, tsc --noEmit, find) and returns prompt output —
+    // fix/generate-claude-md PROPOSE content, nothing touches disk. A write
+    // card here gated nothing and taught users to reflex-approve.
+    risk: 'read',
     input: {
       type: 'object',
       properties: { action: { type: 'string' }, question: { type: 'string' }, error: { type: 'string' } },
