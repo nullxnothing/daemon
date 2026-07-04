@@ -30,6 +30,12 @@ import {
 // single UTF-8 data buffer with the memo program as its only key.
 const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr')
 
+// The one cluster this emitter will ever sign against. This is enforced at the
+// emit boundary (defense in depth) AND the endpoint is derived from this
+// constant, never from caller input — so no caller, present or future, can
+// steer a receipt tx onto mainnet even if ReceiptService.shouldEmit is bypassed.
+const RECEIPT_CLUSTER: SolanaCluster = 'devnet'
+
 /** SecureKey name for the receipt signer. Prefixed so it is treated as a private key. */
 export const RECEIPT_SIGNER_KEY_NAME = 'WALLET_KEYPAIR_RECEIPT_SIGNER'
 
@@ -51,12 +57,13 @@ function loadReceiptSigner(): Keypair | null {
   return Keypair.fromSecretKey(bs58.decode(secret.trim()))
 }
 
-function devnetConnection(cluster: SolanaCluster): Connection {
-  // Prefer Helius when configured; fall back to the public devnet endpoint.
+function devnetConnection(): Connection {
+  // Endpoint is hard-locked to the devnet constant — caller input never selects
+  // the cluster the tx lands on. Prefer Helius when configured; else public devnet.
   const heliusKey = getHeliusApiKey()
   const endpoint = heliusKey
-    ? getHeliusRpcEndpoint(cluster, heliusKey)
-    : getPublicRpcEndpoint(cluster)
+    ? getHeliusRpcEndpoint(RECEIPT_CLUSTER, heliusKey)
+    : getPublicRpcEndpoint(RECEIPT_CLUSTER)
   return new Connection(endpoint, 'confirmed')
 }
 
@@ -70,9 +77,15 @@ export const defaultReceiptChain: ReceiptChain = {
     }
   },
   async anchorMemo(memo: string, cluster: string): Promise<AnchorResult> {
+    // Hard devnet invariant AT the emit boundary — enforced before a signer is
+    // loaded or a connection is built. Off-devnet emission is impossible here
+    // even if the orchestrator's shouldEmit gate is bypassed or wrong.
+    if (cluster !== RECEIPT_CLUSTER) {
+      throw new Error(`Receipt emission is devnet-only; refusing cluster "${cluster}"`)
+    }
     const signer = loadReceiptSigner()
     if (!signer) throw new Error('No receipt signer provisioned')
-    const connection = devnetConnection(cluster as SolanaCluster)
+    const connection = devnetConnection()
     const ix = new TransactionInstruction({
       keys: [{ pubkey: signer.publicKey, isSigner: true, isWritable: false }],
       programId: MEMO_PROGRAM_ID,
