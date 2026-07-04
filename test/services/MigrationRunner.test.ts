@@ -71,7 +71,7 @@ describe('runMigrations — fresh install', () => {
     }
   })
 
-  it('creates the receipts ledger (V58 / migration 61) with the hash-only columns', () => {
+  it('creates the receipts ledger (migration 61) with the hash-only columns', () => {
     const db = makeDb()
     runMigrations(db)
 
@@ -90,6 +90,31 @@ describe('runMigrations — fresh install', () => {
     ).run('r1', 'a'.repeat(64), 'aria', 'tool.write', 'devnet', 'approved', 'memo')
     const count = (db.prepare('SELECT COUNT(*) n FROM receipts').get() as { n: number }).n
     expect(count).toBe(1)
+  })
+
+  it('retention query keeps only the most recent N receipts (real SQLite)', () => {
+    const db = makeDb()
+    runMigrations(db)
+
+    // Mirror ReceiptService.pruneReceipts semantics against a real engine.
+    const KEEP = 5
+    const insert = db.prepare(
+      `INSERT INTO receipts (id, content_hash, source, action_type, cluster, policy_verdict, anchor_kind, created_at)
+       VALUES (?,?,?,?,?,?,?,?)`,
+    )
+    for (let i = 0; i < 20; i++) {
+      insert.run(`r${i}`, 'a'.repeat(64), 'aria', 'tool.write', 'devnet', 'approved', 'memo', 1000 + i)
+    }
+    db.prepare(
+      `DELETE FROM receipts WHERE id NOT IN (
+         SELECT id FROM receipts ORDER BY created_at DESC, id DESC LIMIT ?
+       )`,
+    ).run(KEEP)
+
+    const remaining = db.prepare('SELECT id FROM receipts ORDER BY created_at DESC').all() as Array<{ id: string }>
+    expect(remaining).toHaveLength(KEEP)
+    // Newest survive, oldest pruned.
+    expect(remaining.map((r) => r.id)).toEqual(['r19', 'r18', 'r17', 'r16', 'r15'])
   })
 })
 

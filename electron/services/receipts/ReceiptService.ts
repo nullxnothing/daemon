@@ -92,8 +92,12 @@ interface EmittedReceiptRow {
   anchorSignature: string | null
 }
 
+/** Most-recent receipts kept in the local ledger. Older rows are pruned on insert. */
+export const RECEIPT_RETENTION = 1000
+
 function writeLedger(row: EmittedReceiptRow): void {
-  getDb().prepare(
+  const db = getDb()
+  db.prepare(
     `INSERT INTO receipts
        (id, content_hash, source, action_type, cluster, policy_verdict, execution_signature, anchor_kind, anchor_signature)
      VALUES (?,?,?,?,?,?,?,?,?)`,
@@ -108,6 +112,22 @@ function writeLedger(row: EmittedReceiptRow): void {
     row.anchorKind,
     row.anchorSignature,
   )
+  pruneReceipts(db)
+}
+
+/**
+ * Cap ledger growth: keep only the most recent RECEIPT_RETENTION rows. The
+ * ledger feeds a "receipts emitted" count + a recent list, so unbounded history
+ * has no value — this bounds disk without touching the aggregate count meaning
+ * beyond the retention window. Called opportunistically after every insert.
+ */
+export function pruneReceipts(db = getDb()): number {
+  const result = db.prepare(
+    `DELETE FROM receipts WHERE id NOT IN (
+       SELECT id FROM receipts ORDER BY created_at DESC, id DESC LIMIT ?
+     )`,
+  ).run(RECEIPT_RETENTION) as { changes?: number } | undefined
+  return result?.changes ?? 0
 }
 
 export interface EmitResult {
