@@ -4,6 +4,32 @@ All notable changes to DAEMON are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows semantic-ish desktop release versioning.
 
+## [4.6.4] - 2026-07-03
+
+### Added
+- **Guided first-run experience.** A fresh install now walks through a five-step wizard: pick a
+  workspace, connect Claude, open a one-click demo project, learn the approval gate on a mock
+  write card, then run a first mission where a scripted ARIA turn answers read chips silently and
+  raises a real approval card the user decides on. A fresh profile reaches that first decision in
+  about three and a half minutes. Onboarding is chain-safe by construction: mission turns are
+  pinned to devnet at the IPC boundary, pinned reads answer from local wallet inventory with no
+  RPC calls, and sensitive tools are refused before any card can appear. First-session empty
+  states were added across the console, wallet, activity, swarm, and memory panels.
+
+### Fixed
+- **Upgraded installs no longer keep agents pinned to superseded model IDs.** Migrations V59 and
+  V60 remap only the two exact retired dated IDs to the current aliases; a still-valid deliberate
+  model choice is never touched. Model IDs now derive from one shared constant.
+- **A rejected or disabled Anthropic API key surfaces a clear warning.** A disabled-org or invalid
+  key inherited from the shell used to silently degrade ARIA to a tool-less CLI; auth rejections
+  now raise a transcript banner naming which credential failed and how to fix it, while rate
+  limits and network errors keep their original message. Key values are never logged.
+
+### Developer tooling
+- **Packaged the agent bridge as an installable npm package** (`daemon-bridge-mcp`) with a bin
+  wrapper, Node 22 guard, and setup docs for Claude Code and Cursor, so external agents can wire
+  up the bridge without cloning the repo.
+
 ## [4.6.3] - 2026-07-03
 
 ### Fixed
