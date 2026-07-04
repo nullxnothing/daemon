@@ -1560,11 +1560,11 @@ export const SCHEMA_V57 = `
 ALTER TABLE autopilot_mandates ADD COLUMN bought_raw_tokens TEXT NOT NULL DEFAULT '0';
 `
 
-// V58: local ledger for attested execution receipts. Every emitted receipt records
+// Migration 61: local ledger for attested execution receipts. Every emitted receipt records
 // only its content hash (sha256 of the canonical receipt JSON) plus the on-chain
 // signature and cluster — never file contents, keys, prompts, or PII. Off by
 // default; a row exists only after the operator opts in and an emission lands.
-export const SCHEMA_V58 = `
+export const SCHEMA_RECEIPTS_V61 = `
 CREATE TABLE IF NOT EXISTS receipts (
   id TEXT PRIMARY KEY,
   content_hash TEXT NOT NULL,
