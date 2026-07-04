@@ -51,12 +51,16 @@ function maxVersion(db: Database.Database): number {
   return (db.prepare('SELECT MAX(version) v FROM _migrations').get() as { v: number }).v
 }
 
+function tableColumns(db: Database.Database, table: string): string[] {
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name)
+}
+
 describe('runMigrations — fresh install', () => {
   it('reaches the current schema version and seeds only sanctioned Claude model IDs', () => {
     const db = makeDb()
     runMigrations(db)
 
-    expect(maxVersion(db)).toBeGreaterThanOrEqual(60)
+    expect(maxVersion(db)).toBeGreaterThanOrEqual(61)
 
     const sanctioned = new Set<string>(Object.values(CLAUDE_MODEL_IDS))
     const rows = agentModels(db)
@@ -65,6 +69,52 @@ describe('runMigrations — fresh install', () => {
       expect(sanctioned.has(row.model), `${row.id} seeded with ${row.model}`).toBe(true)
       expect(row.model in SUPERSEDED_AGENT_MODELS).toBe(false)
     }
+  })
+
+  it('creates the receipts ledger (migration 61) with the hash-only columns', () => {
+    const db = makeDb()
+    runMigrations(db)
+
+    const cols = tableColumns(db, 'receipts')
+    // Attests the action + policy + anchor only — never a contents/prompt/key column.
+    expect(cols).toEqual(expect.arrayContaining([
+      'id', 'content_hash', 'source', 'action_type', 'cluster',
+      'policy_verdict', 'execution_signature', 'anchor_kind', 'anchor_signature', 'created_at',
+    ]))
+    expect(cols).not.toContain('contents')
+    expect(cols).not.toContain('prompt')
+    // Insert/read round-trips against a real SQLite engine.
+    db.prepare(
+      `INSERT INTO receipts (id, content_hash, source, action_type, cluster, policy_verdict, anchor_kind)
+       VALUES (?,?,?,?,?,?,?)`,
+    ).run('r1', 'a'.repeat(64), 'aria', 'tool.write', 'devnet', 'approved', 'memo')
+    const count = (db.prepare('SELECT COUNT(*) n FROM receipts').get() as { n: number }).n
+    expect(count).toBe(1)
+  })
+
+  it('retention query keeps only the most recent N receipts (real SQLite)', () => {
+    const db = makeDb()
+    runMigrations(db)
+
+    // Mirror ReceiptService.pruneReceipts semantics against a real engine.
+    const KEEP = 5
+    const insert = db.prepare(
+      `INSERT INTO receipts (id, content_hash, source, action_type, cluster, policy_verdict, anchor_kind, created_at)
+       VALUES (?,?,?,?,?,?,?,?)`,
+    )
+    for (let i = 0; i < 20; i++) {
+      insert.run(`r${i}`, 'a'.repeat(64), 'aria', 'tool.write', 'devnet', 'approved', 'memo', 1000 + i)
+    }
+    db.prepare(
+      `DELETE FROM receipts WHERE id NOT IN (
+         SELECT id FROM receipts ORDER BY created_at DESC, id DESC LIMIT ?
+       )`,
+    ).run(KEEP)
+
+    const remaining = db.prepare('SELECT id FROM receipts ORDER BY created_at DESC').all() as Array<{ id: string }>
+    expect(remaining).toHaveLength(KEEP)
+    // Newest survive, oldest pruned.
+    expect(remaining.map((r) => r.id)).toEqual(['r19', 'r18', 'r17', 'r16', 'r15'])
   })
 })
 

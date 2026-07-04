@@ -20,6 +20,7 @@ import { assembleSystemPrompt } from './aria/contextAssembler'
 import { clusterMark } from './aria/tools/shared'
 import { toAnthropicTools, type AriaTool, type AriaContextSnapshot, type AriaUiEffect } from './aria/AriaTool'
 import { laneToClaudeModel, buildPlanSteps, buildPatchProposal } from './aria/patchUtils'
+import { emitReceiptSafe } from './receipts/ReceiptService'
 import type { AgentMessage, AgentToolUse } from './providers/agentTurn'
 import type { ProviderId } from './providers/ProviderInterface'
 import type {
@@ -630,6 +631,19 @@ async function executeTool(
       kind: 'tool-call', callId: use.id, name: tool.name, label: tool.name, toolKind: tool.kind, risk: tool.risk,
       status: result.ok ? 'done' : 'error', meta: result.summary,
     })
+    // Attested receipt: after a successful write/sensitive tool, emit the content
+    // hash on-chain (behind the toggle + devnet guard). Fire-and-forget — a
+    // receipt failure can never touch the tool result we just returned.
+    if (result.ok && tool.risk !== 'read') {
+      emitReceiptSafe({
+        source: 'aria',
+        agentId: tool.name,
+        actionType: `tool.${tool.risk}`,
+        summary: tool.name,
+        verdict: needsApproval ? 'approved' : 'auto',
+        riskTier: tool.risk,
+      })
+    }
     return { ...base, status: result.ok ? 'done' : 'error', summary: result.summary, result: result.data ?? result.summary }
   } catch (err) {
     const message = (err as Error).message

@@ -5,6 +5,7 @@ import { getDb } from '../db/db'
 import { getConnectionStrict } from './SolanaService'
 import { getSwapQuote, executeSwap, getMintDecimals, getServerSwapImpactPct } from './WalletService'
 import { getWalletInfrastructureSettings } from './SettingsService'
+import { emitReceiptSafe } from './receipts/ReceiptService'
 import type {
   Mandate,
   MandateAction,
@@ -668,6 +669,19 @@ export async function tickMandate(mandateId: string): Promise<MandateAction | nu
     // fee_lamports stays null: swaps sign Jupiter's prebuilt tx, which the fee meter can't append
     // a transfer leg to, so no fee is actually charged. Never fabricate a charge in the ledger.
     finalizeAction(actionId, { status: 'executed', signature: result.signature, error: null })
+    // Attested receipt for the landed action (behind the toggle + devnet guard).
+    // Uses the mandate's own cluster so a mandate can never mislabel its receipt;
+    // fire-and-forget so a receipt failure never disturbs the mandate ledger.
+    emitReceiptSafe({
+      source: 'autopilot',
+      agentId: mandateId,
+      actionType: 'swap.execute',
+      summary: 'autopilot buy',
+      cluster: mandate.cluster,
+      verdict: 'auto',
+      riskTier: 'sensitive',
+      executionTxSignature: result.signature,
+    })
     const spent = mandate.spentLamports + clipLamports
     const exhausted = spent >= mandate.maxExposureLamports
     // Track the tokens this buy accumulated (quoted human out * 10^decimals) so exit sells
