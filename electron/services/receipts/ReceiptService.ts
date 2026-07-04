@@ -176,38 +176,34 @@ export async function emitReceipt(
 }
 
 /**
- * Fire-and-forget wrapper for hook points. Never throws, never rejects, never
- * returns a rejected promise — a receipt failure must not touch the action that
- * produced it. Reads the live cluster itself so callers pass only the facts.
+ * Fire-and-forget hook wrapper. Returns to the caller IMMEDIATELY — every piece
+ * of work, including the SQLite-backed settings read, the gate check, build,
+ * hash, anchor, and ledger write, runs on a deferred `setImmediate` tick so a
+ * receipt can never delay the ARIA tool call or autopilot swap that produced it.
+ * Never throws, never rejects: a receipt failure must not touch the real action.
  */
 export function emitReceiptSafe(
   record: Omit<ReceiptRecord, 'cluster'> & { cluster?: string },
   chain: ReceiptChain = defaultReceiptChain,
 ): void {
-  // TOTALLY exception-proof, synchronously too: this runs inside the caller's
-  // tool/mandate try block, so even the cheap settings pre-check must not throw
-  // — a DB hiccup here can never be allowed to flip the underlying action to error.
-  try {
-    if (!getReceiptsSettings().enabled) return
-    const cluster = record.cluster ?? liveCluster()
+  // Nothing here touches the DB or settings — we only schedule. The caller's hot
+  // path is off after this line; all real work happens on the deferred tick.
+  setImmediate(() => {
     void (async () => {
       try {
+        if (!getReceiptsSettings().enabled) return
+        const cluster = record.cluster ?? liveCluster()
         await emitReceipt({ ...record, cluster }, chain)
       } catch (err) {
-        LogService.warn('ReceiptService', 'Receipt emission failed (action unaffected)', {
-          source: record.source,
-          error: err instanceof Error ? err.message : String(err),
-        })
+        try {
+          LogService.warn('ReceiptService', 'Receipt emission failed (action unaffected)', {
+            source: record.source,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        } catch { /* logging must never throw here either */ }
       }
     })()
-  } catch (err) {
-    try {
-      LogService.warn('ReceiptService', 'Receipt pre-check failed (action unaffected)', {
-        source: record.source,
-        error: err instanceof Error ? err.message : String(err),
-      })
-    } catch { /* logging must never throw here either */ }
-  }
+  })
 }
 
 export interface ReceiptLedgerSummary {

@@ -41,6 +41,8 @@ import {
   emitReceiptSafe,
   summarizeReceipts,
   listReceipts,
+  pruneReceipts,
+  RECEIPT_RETENTION,
 } from '../../electron/services/receipts/ReceiptService'
 
 /** A chain double that records calls; anchorMemo can be made to throw. */
@@ -149,13 +151,16 @@ describe('emitReceipt', () => {
     // The memo carries only the hash — never file contents/prompt/summary body.
     expect(chain.anchorCalls[0]).toBe(`DAEMON-RECEIPT v1 sha256=${res.contentHash}`)
     expect(chain.anchorCalls[0]).not.toContain('edited file')
-    expect(mockRun).toHaveBeenCalledTimes(1)
+    // Insert is the first prepared statement; prune follows it.
     const insertSql = mockPrepare.mock.calls[0][0] as string
     expect(insertSql).toMatch(/INSERT INTO receipts/)
     const args = mockRun.mock.calls[0]
     expect(args).toContain(res.contentHash)
     expect(args).toContain('ANCHOR_SIG')
     expect(args).toContain('memo')
+    // Retention prune runs opportunistically after the insert.
+    const pruneSql = mockPrepare.mock.calls[1][0] as string
+    expect(pruneSql).toMatch(/DELETE FROM receipts/)
   })
 
   it('propagates a chain failure to emitReceipt callers (past the gate)', async () => {
@@ -166,27 +171,45 @@ describe('emitReceipt', () => {
   })
 })
 
-describe('emitReceiptSafe (failure isolation)', () => {
-  it('never throws when the chain layer throws', async () => {
-    enable()
-    const chain = makeChain({ throwOnAnchor: true })
-    expect(() => emitReceiptSafe({ ...RECORD }, chain)).not.toThrow()
-    // let the fire-and-forget microtask settle
-    await new Promise((r) => setTimeout(r, 0))
-    expect(mockRun).not.toHaveBeenCalled()
-  })
+/** Drain the deferred setImmediate tick (and any promise chained off it). */
+function flush(): Promise<void> {
+  return new Promise((resolve) => setImmediate(() => setImmediate(() => resolve())))
+}
 
-  it('never throws even if the synchronous settings pre-check throws (runs inside the action try block)', () => {
-    state.throwOnSettingsRead = true
+describe('emitReceiptSafe (does not block the caller)', () => {
+  it('consults NO settings/DB synchronously — the caller path returns before any read', () => {
+    state.throwOnSettingsRead = true // any sync settings touch would throw here
+    enable() // (ignored while throwOnSettingsRead is set)
     const chain = makeChain()
+    // If the settings read were on the hot path it would throw synchronously.
     expect(() => emitReceiptSafe({ ...RECORD }, chain)).not.toThrow()
+    // And nothing happened synchronously: no anchor, no ledger write.
     expect(chain.anchorCalls).toHaveLength(0)
     expect(mockRun).not.toHaveBeenCalled()
   })
 
-  it('does no work at all while disabled (short-circuit, no async hop)', () => {
+  it('defers the settings read to the deferred tick, then no-ops safely when it throws', async () => {
+    state.throwOnSettingsRead = true
     const chain = makeChain()
     emitReceiptSafe({ ...RECORD }, chain)
+    await flush()
+    // The deferred read threw and was swallowed — no emission, no throw escaped.
+    expect(chain.anchorCalls).toHaveLength(0)
+    expect(mockRun).not.toHaveBeenCalled()
+  })
+
+  it('never throws when the chain layer throws (failure isolation)', async () => {
+    enable()
+    const chain = makeChain({ throwOnAnchor: true })
+    expect(() => emitReceiptSafe({ ...RECORD }, chain)).not.toThrow()
+    await flush()
+    expect(mockRun).not.toHaveBeenCalled()
+  })
+
+  it('does no on-chain work while disabled', async () => {
+    const chain = makeChain()
+    emitReceiptSafe({ ...RECORD }, chain)
+    await flush()
     expect(chain.anchorCalls).toHaveLength(0)
     expect(mockRun).not.toHaveBeenCalled()
   })
@@ -196,9 +219,10 @@ describe('emitReceiptSafe (failure isolation)', () => {
     state.cluster = 'devnet'
     const chain = makeChain()
     emitReceiptSafe({ ...RECORD }, chain)
-    await new Promise((r) => setTimeout(r, 0))
+    await flush()
     expect(chain.anchorCalls).toHaveLength(1)
-    expect(mockRun).toHaveBeenCalledTimes(1)
+    // insert + prune both run against the mocked prepare().run().
+    expect(mockRun).toHaveBeenCalled()
   })
 
   it('reads the live cluster and stays silent on mainnet', async () => {
@@ -206,7 +230,7 @@ describe('emitReceiptSafe (failure isolation)', () => {
     state.cluster = 'mainnet-beta'
     const chain = makeChain()
     emitReceiptSafe({ ...RECORD }, chain)
-    await new Promise((r) => setTimeout(r, 0))
+    await flush()
     expect(chain.anchorCalls).toHaveLength(0)
     expect(mockRun).not.toHaveBeenCalled()
   })
@@ -230,5 +254,22 @@ describe('ledger reads', () => {
       id: 'r1', contentHash: 'h', source: 'aria', actionType: 'tool.write',
       cluster: 'devnet', policyVerdict: 'approved', anchorSignature: 'sig', createdAt: 1,
     })
+  })
+})
+
+describe('retention (bounded ledger growth)', () => {
+  it('prunes to the RECEIPT_RETENTION bound with a DELETE-keep-newest query', () => {
+    mockRun.mockReturnValue({ changes: 5 })
+    const removed = pruneReceipts()
+    const sql = mockPrepare.mock.calls[0][0] as string
+    expect(sql).toMatch(/DELETE FROM receipts/)
+    expect(sql).toMatch(/ORDER BY created_at DESC/)
+    expect(mockRun).toHaveBeenCalledWith(RECEIPT_RETENTION)
+    expect(removed).toBe(5)
+  })
+
+  it('caps at a sane bound (not unbounded)', () => {
+    expect(RECEIPT_RETENTION).toBeGreaterThan(0)
+    expect(RECEIPT_RETENTION).toBeLessThanOrEqual(10_000)
   })
 })
