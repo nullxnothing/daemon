@@ -17,10 +17,20 @@ export const SOLANA_ENDPOINTS = {
   heliusMainnet: (apiKey: string) => `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
 } as const
 
-export const MODEL_MAP: Record<string, string> = {
+// Canonical Claude model IDs — the single source of truth for every seeded
+// agent, shorthand resolution, migration target, and UI picker across desktop
+// and mobile. The Sonnet/Opus aliases are dateless and complete as written —
+// never append a date suffix to them.
+export const CLAUDE_MODEL_IDS = {
+  opus: 'claude-opus-4-8',
+  sonnet: 'claude-sonnet-4-6',
   haiku: 'claude-haiku-4-5-20251001',
-  sonnet: 'claude-sonnet-4-20250514',
-  opus: 'claude-opus-4-20250514',
 } as const
+
+export type ClaudeModelShorthand = keyof typeof CLAUDE_MODEL_IDS
+
+// Shorthand → full model ID. Derived from CLAUDE_MODEL_IDS so the two can
+// never drift apart.
+export const MODEL_MAP: Record<string, string> = { ...CLAUDE_MODEL_IDS }
 
 export const DEFAULT_MAX_TOKENS = 4096

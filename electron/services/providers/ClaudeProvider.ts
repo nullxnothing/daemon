@@ -8,6 +8,8 @@ import * as SecureKey from '../SecureKeyService'
 import { TIMEOUTS } from '../../config/constants'
 import { writeProjectMcpConfig, readProjectMcpConfig, getRegistryMcps, hasProjectMcpFile } from '../McpConfig'
 import { parseContextTags, stripContextTags, buildPortMap, buildEmailContext, buildMppContext } from './contextUtils'
+import { resolveClaudeKeySource, type ClaudeKeySource } from './claudeAuth'
+import { MODEL_MAP } from '../../../packages/shared/src/constants'
 import type { ProviderInterface, ProviderConnection, ProviderBuildResult, ProviderRunPromptOpts, AgentRow, ProjectRow } from './ProviderInterface'
 import type { RunAgentTurnOpts, AgentTurnResult, AgentToolUse } from './agentTurn'
 
@@ -17,12 +19,6 @@ let cachedConnection: ProviderConnection | null = null
 let cachedClaudePath: string | null = null
 
 // --- Model Resolution ---
-
-const MODEL_MAP: Record<string, string> = {
-  'haiku': 'claude-haiku-4-5-20251001',
-  'sonnet': 'claude-sonnet-4-6',
-  'opus': 'claude-opus-4-8',
-}
 
 function resolveModelName(shorthand: string): string {
   return MODEL_MAP[shorthand] ?? shorthand
@@ -367,6 +363,15 @@ function withToolCache(tools: RunAgentTurnOpts['tools']): unknown[] {
   return tools.map((tool, i) =>
     i === tools.length - 1 ? { ...tool, cache_control: { type: 'ephemeral' } } : tool
   )
+}
+
+/**
+ * Where runClaudeAgentTurn's key would come from right now (stored key shadows
+ * the shell env — same order as the resolution below). Used to explain auth
+ * failures to the user without ever exposing key material.
+ */
+export function getClaudeKeySource(): ClaudeKeySource {
+  return resolveClaudeKeySource(() => SecureKey.getKey('ANTHROPIC_API_KEY'), process.env)
 }
 
 export async function runClaudeAgentTurn(

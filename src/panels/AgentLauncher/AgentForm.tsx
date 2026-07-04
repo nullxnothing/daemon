@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CLAUDE_MODEL_IDS } from '../../../packages/shared/src/constants'
 
 const PROVIDER_OPTIONS = [
   { value: 'claude', label: 'Claude' },
@@ -7,9 +8,9 @@ const PROVIDER_OPTIONS = [
 ]
 
 const CLAUDE_MODEL_OPTIONS = [
-  { value: 'claude-opus-4-8', label: 'Opus' },
-  { value: 'claude-sonnet-4-6', label: 'Sonnet' },
-  { value: 'claude-haiku-4-5-20251001', label: 'Haiku' },
+  { value: CLAUDE_MODEL_IDS.opus, label: 'Opus' },
+  { value: CLAUDE_MODEL_IDS.sonnet, label: 'Sonnet' },
+  { value: CLAUDE_MODEL_IDS.haiku, label: 'Haiku' },
 ]
 
 const CODEX_MODEL_OPTIONS = [
@@ -27,7 +28,7 @@ interface AgentFormProps {
 export function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const [name, setName] = useState(agent?.name ?? '')
   const [provider, setProvider] = useState(agent?.provider ?? (agent ? 'auto' : 'claude'))
-  const [model, setModel] = useState(agent?.model ?? 'claude-sonnet-4-6')
+  const [model, setModel] = useState(agent?.model ?? CLAUDE_MODEL_IDS.sonnet)
   const [prompt, setPrompt] = useState(agent?.system_prompt ?? '')
   const [shortcut, setShortcut] = useState(agent?.shortcut ?? '')
   const [nameError, setNameError] = useState('')

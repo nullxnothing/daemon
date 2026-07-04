@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { CLAUDE_MODEL_IDS } from '../../packages/shared/src/constants'
 import type { ClaudeAgentFile } from '../shared/types'
 
 export type { ClaudeAgentFile }
@@ -76,12 +77,12 @@ function parseSimpleFrontmatter(frontmatter: string): Record<string, string> {
 function normalizeModel(model: string | undefined): string {
   switch ((model ?? '').toLowerCase()) {
     case 'opus':
-      return 'claude-opus-4-8'
+      return CLAUDE_MODEL_IDS.opus
     case 'sonnet':
-      return 'claude-sonnet-4-6'
+      return CLAUDE_MODEL_IDS.sonnet
     case 'haiku':
-      return 'claude-haiku-4-5-20251001'
+      return CLAUDE_MODEL_IDS.haiku
     default:
-      return model && model.length > 0 ? model : 'claude-sonnet-4-6'
+      return model && model.length > 0 ? model : CLAUDE_MODEL_IDS.sonnet
   }
 }

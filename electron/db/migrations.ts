@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32, SCHEMA_V33, SCHEMA_V34, SCHEMA_V35, SCHEMA_V36, SCHEMA_V37, SCHEMA_V38, SCHEMA_V39, SCHEMA_V40, SCHEMA_V41, SCHEMA_V42, SCHEMA_V43, SCHEMA_V44, SCHEMA_V45, SCHEMA_V46, SCHEMA_V47, SCHEMA_V48, SCHEMA_V49, SCHEMA_V50, SCHEMA_V51, SCHEMA_V52, SCHEMA_V53, SCHEMA_V54, SCHEMA_V55, SCHEMA_V56, SCHEMA_V57 } from './schema'
+import { CLAUDE_MODEL_IDS } from '../../packages/shared/src/constants'
 
 export function runMigrations(db: Database.Database) {
   db.exec(`
@@ -706,6 +707,27 @@ export function runMigrations(db: Database.Database) {
     })()
   }
 
+  if (currentVersion < 59) {
+    db.transaction(() => {
+      // Fresh installs seed agents with current model aliases, but upgraded
+      // installs kept rows pointing at models DAEMON seeded in old releases
+      // that Anthropic has since superseded. Refresh only those exact IDs —
+      // a still-valid model the user picked on purpose is never rewritten.
+      refreshSupersededAgentModels(db)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(59)
+    })()
+  }
+
+  if (currentVersion < 60) {
+    db.transaction(() => {
+      // Same refresh for Agent Station rows: the station's model picker itself
+      // offered superseded Claude IDs in earlier releases, so those values are
+      // DAEMON-originated — not user inventions — and safe to remap.
+      refreshSupersededStationModels(db)
+      db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(60)
+    })()
+  }
+
   // Ensure Solana agent exists (idempotent — handles existing DBs before it was seeded)
   try {
     const hasSolanaAgent = db.prepare("SELECT id FROM agents WHERE id = 'solana-agent'").get()
@@ -891,6 +913,45 @@ Output: bullet points with inline citations. Be direct. No fluff.`,
 
   // Clean stale sessions from previous crashed runs — PTY processes are dead after restart
   db.prepare('DELETE FROM active_sessions').run()
+}
+
+/**
+ * Model IDs DAEMON itself seeded in past releases that no longer resolve as
+ * defaults on current Anthropic surfaces, mapped to their current aliases.
+ * Deliberately an exact allowlist: anything else on an agent row — including
+ * still-valid dated snapshots like the Haiku 4.5 ID — is treated as a user
+ * choice and left alone.
+ */
+export const SUPERSEDED_AGENT_MODELS: Record<string, string> = {
+  'claude-sonnet-4-20250514': CLAUDE_MODEL_IDS.sonnet,
+  'claude-opus-4-20250514': CLAUDE_MODEL_IDS.opus,
+}
+
+/**
+ * Model IDs the Agent Station picker offered in past releases that are no
+ * longer in the sanctioned set. Station rows only ever hold picker values, so
+ * every entry here is DAEMON-originated. Non-Claude models (gpt-*) pass
+ * through untouched.
+ */
+export const SUPERSEDED_STATION_MODELS: Record<string, string> = {
+  'claude-opus-4-20250514': CLAUDE_MODEL_IDS.opus,
+  'claude-sonnet-4-5': CLAUDE_MODEL_IDS.sonnet,
+}
+
+/** Rewrite agent rows whose model is a known-superseded seed ID (exact match only). */
+export function refreshSupersededAgentModels(db: Database.Database): void {
+  const update = db.prepare('UPDATE agents SET model = ? WHERE model = ?')
+  for (const [staleId, currentId] of Object.entries(SUPERSEDED_AGENT_MODELS)) {
+    update.run(currentId, staleId)
+  }
+}
+
+/** Rewrite Agent Station rows whose model is a superseded picker value (exact match only). */
+export function refreshSupersededStationModels(db: Database.Database): void {
+  const update = db.prepare('UPDATE agent_station_configs SET model = ? WHERE model = ?')
+  for (const [staleId, currentId] of Object.entries(SUPERSEDED_STATION_MODELS)) {
+    update.run(currentId, staleId)
+  }
 }
 
 function seedDefaults(db: Database.Database) {

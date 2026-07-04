@@ -781,6 +781,29 @@
   padding: var(--space-xs) 0;
 }
 
+/* Out-of-band warning banner (e.g. auth degradation) — amber-lined, never part
+   of the reply markdown. Dot mirrors the 5px status-dot language. */
+.agent-tr-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  background: var(--amber-glow);
+  color: var(--t1);
+  font-size: var(--fs-12);
+  line-height: 1.5;
+}
+.agent-tr-notice-dot {
+  position: relative;
+  top: 6px;
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
 /* ---------------- approval cards ---------------- */
 .agent-approval {
   display: grid;

@@ -2921,6 +2921,8 @@ export type AriaToolEvent =
   | { kind: 'action-result'; proposalId: string; action: AriaPatchAction; status: 'applied' | 'rejected' | 'failed'; meta?: string }
   | { kind: 'memory-suggestion'; messageId: string; suggestion: AriaMemorySuggestionLite }
   | { kind: 'memory-recall'; messageId: string; recalled: AriaMemorySuggestionLite[] }
+  /** Out-of-band condition the user must see (e.g. auth degradation) — rendered as a banner, never merged into the reply text. */
+  | { kind: 'notice'; messageId: string; level: 'warn'; text: string }
   | { kind: 'done'; messageId: string; text: string }
 
 /** A memory the operator captured from its own work, pending the user's keep/dismiss. */
