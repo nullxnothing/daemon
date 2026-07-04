@@ -762,6 +762,13 @@ contextBridge.exposeInMainWorld('daemon', {
     summary: (sinceMs: number) => ipcRenderer.invoke('fees:summary', sinceMs),
   },
 
+  receipts: {
+    getSettings: () => ipcRenderer.invoke('receipts:get-settings'),
+    setSettings: (next: unknown) => ipcRenderer.invoke('receipts:set-settings', next),
+    summary: () => ipcRenderer.invoke('receipts:summary'),
+    list: (limit?: number) => ipcRenderer.invoke('receipts:list', limit),
+  },
+
   forensics: {
     scan: (input: object) => ipcRenderer.invoke('forensics:scan', input),
     expand: (input: object) => ipcRenderer.invoke('forensics:expand', input),

@@ -1842,6 +1842,7 @@ declare global {
     signalhouse: DaemonSignalhouse
     flywheel: DaemonFlywheel
     fees: DaemonFees
+    receipts: DaemonReceipts
     registry: DaemonRegistry
     colosseum: DaemonColosseum
     idle: DaemonIdle
@@ -2083,6 +2084,22 @@ declare global {
     setSettings: (next: { enabled?: boolean; bps?: number; treasuryAddress?: string }) => Promise<IpcResponse<{ enabled: boolean; bps: number; treasuryAddress: string }>>
     quote: (notionalLamports: number) => Promise<IpcResponse<{ bps: number; lamports: number; treasury: string } | null>>
     summary: (sinceMs: number) => Promise<IpcResponse<{ totalFeeLamports: number; totalNotionalLamports: number; feeEventCount: number; uniqueWallets: number; topTenWalletShare: number }>>
+  }
+
+  interface DaemonReceipts {
+    getSettings: () => Promise<IpcResponse<{ enabled: boolean }>>
+    setSettings: (next: { enabled?: boolean }) => Promise<IpcResponse<{ enabled: boolean }>>
+    summary: () => Promise<IpcResponse<{ totalReceipts: number; latestAt: number | null }>>
+    list: (limit?: number) => Promise<IpcResponse<Array<{
+      id: string
+      contentHash: string
+      source: string
+      actionType: string
+      cluster: string
+      policyVerdict: string
+      anchorSignature: string | null
+      createdAt: number
+    }>>>
   }
 
   interface DaemonBrowser {
