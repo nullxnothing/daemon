@@ -21,11 +21,36 @@ const SAFE_SCRIPT_CHECKS: Array<{ name: string; kind: CheckKind }> = [
 
 const DEPLOY_RE = /\b(deploy|publish|release|push|--dangerously|program deploy|anchor deploy)\b/i
 
-function detectManager(projectPath: string): string {
+export function detectManager(projectPath: string): string {
   if (fs.existsSync(path.join(projectPath, 'pnpm-lock.yaml'))) return 'pnpm'
   if (fs.existsSync(path.join(projectPath, 'yarn.lock'))) return 'yarn'
   if (fs.existsSync(path.join(projectPath, 'bun.lockb'))) return 'bun'
   return 'npm'
+}
+
+/**
+ * Discover a dev-server script (dev/start/serve) from package.json, honoring the
+ * same deploy/publish exclusion as checks. Returns the package-manager command
+ * (e.g. "npm run dev") or null. NOT arbitrary exec: only a named package script.
+ */
+export function discoverDevScript(projectPath: string): { command: string; script: string } | null {
+  const pkgPath = path.join(projectPath, 'package.json')
+  if (!fs.existsSync(pkgPath)) return null
+  let scripts: Record<string, string> = {}
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { scripts?: Record<string, string> }
+    scripts = pkg.scripts ?? {}
+  } catch {
+    return null
+  }
+  const manager = detectManager(projectPath)
+  for (const name of ['dev', 'start', 'serve']) {
+    const body = scripts[name]
+    if (typeof body !== 'string') continue
+    if (DEPLOY_RE.test(body) || DEPLOY_RE.test(name)) continue
+    return { command: `${manager} run ${name}`, script: name }
+  }
+  return null
 }
 
 /**

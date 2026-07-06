@@ -51,6 +51,8 @@ interface UIState {
   activeWorkspaceToolId: string | null
   integrationCommandSelectionId: string | null
   pendingSubView: string | null
+  /** Preselect a ProjectStarter template + name (set by ARIA scaffold_game, consumed by the wizard). */
+  scaffoldPreset: { templateId: string; projectName: string } | null
   rightPanelTab: RightPanelTab
   dashboardTabOpen: boolean
   dashboardTabActive: boolean
@@ -92,6 +94,7 @@ interface UIState {
   setActiveWorkspaceTool: (toolId: string | null) => void
   setIntegrationCommandSelectionId: (integrationId: string | null) => void
   setPendingSubView: (subView: string | null) => void
+  setScaffoldPreset: (preset: { templateId: string; projectName: string } | null) => void
   toggleWorkspaceTool: (toolId: string) => void
   setRightPanelTab: (tab: RightPanelTab) => void
   toggleDashboardTab: () => void
@@ -151,6 +154,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   activeWorkspaceToolId: null,
   integrationCommandSelectionId: null,
   pendingSubView: null,
+  scaffoldPreset: null,
   rightPanelTab: 'claude' as RightPanelTab,
   dashboardTabOpen: false,
   dashboardTabActive: false,
@@ -373,6 +377,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   setIntegrationCommandSelectionId: (integrationId) => set({ integrationCommandSelectionId: integrationId }),
   setPendingSubView: (subView) => set({ pendingSubView: subView }),
+  setScaffoldPreset: (preset) => set({ scaffoldPreset: preset }),
   toggleWorkspaceTool: (toolId) => set((state) => {
     const alias = resolveToolAlias(toolId)
     if (alias.toolId !== toolId) {

@@ -2900,6 +2900,9 @@ export type AriaUiEffect =
   | { type: 'add_terminal'; terminalId: string; name: string; agentId?: string }
   | { type: 'run_integration'; actionId: string }
   | { type: 'set_integration_enabled'; integrationId: string; enabled: boolean }
+  | { type: 'open_preview'; url: string }
+  | { type: 'start_dev_server'; command: string; port: number; projectPath: string; label: string }
+  | { type: 'open_scaffold'; templateId: string; projectName: string }
 
 /** Streamed transcript events from the operator loop to the renderer. */
 export type AriaToolEvent =

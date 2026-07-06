@@ -217,6 +217,15 @@ describe('deterministic project scaffold', () => {
         expect(filePaths.has('Anchor.toml')).toBe(true)
         expect([...filePaths].some((filePath) => filePath.startsWith('programs/') && filePath.endsWith('/src/lib.rs'))).toBe(true)
         expect([...filePaths].some((filePath) => filePath.startsWith('tests/') && filePath.endsWith('.test.ts'))).toBe(true)
+      } else if (template.id === 'phaser-solana-game') {
+        // Self-contained Phaser game: entry point + the four DAEMON hub seams.
+        expect(filePaths.has('src/main.ts')).toBe(true)
+        expect(filePaths.has('src/game/GameScene.ts')).toBe(true)
+        expect(filePaths.has('src/daemon/types.ts')).toBe(true)
+        expect(filePaths.has('src/daemon/stub.ts')).toBe(true)
+        expect(filePaths.has('src/daemon/manifest.ts')).toBe(true)
+        expect(filePaths.has('index.html')).toBe(true)
+        expect(JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).dependencies.phaser).toBeTruthy()
       } else if (['dapp-nextjs', 'solana-foundation', 'perps-frontend', 'meme-coin-website'].includes(template.id)) {
         expect(filePaths.has('app/layout.tsx')).toBe(true)
         expect(filePaths.has('app/page.tsx')).toBe(true)

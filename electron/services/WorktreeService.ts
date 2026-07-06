@@ -196,6 +196,58 @@ export async function removeWorktree(projectPath: string, worktreePath: string, 
   } catch { /* best-effort */ }
 }
 
+export interface MergeLaneResult {
+  ok: boolean
+  branch: string
+  /** short SHA merged into base, when ok */
+  mergedSha?: string
+  /** the base branch the lane was merged into */
+  baseBranch?: string
+  error?: string
+}
+
+/**
+ * Merge a finished lane's work back into the main repo. Lanes are told NOT to
+ * commit (so RESULTS/BUILD_NOTES stay reviewable in the worktree), so this first
+ * commits any uncommitted lane changes onto the lane branch, then merges that
+ * branch (--no-ff) into the base branch in the MAIN working copy. Read-only for
+ * the lane worktree beyond the single commit; the human/tool decides when to run
+ * it. Guarded to `done` lanes only.
+ */
+export async function mergeLane(laneId: string): Promise<MergeLaneResult> {
+  const lane = getLane(laneId)
+  if (!lane) return { ok: false, branch: '', error: 'Lane not found.' }
+  if (lane.status !== 'done') {
+    return { ok: false, branch: lane.branch, error: `Lane is ${lane.status}, only 'done' lanes can be merged.` }
+  }
+  const run = getRun(lane.run_id)
+  if (!run) return { ok: false, branch: lane.branch, error: 'Run not found.' }
+
+  const laneGit = simpleGit(lane.worktree_path)
+  const mainGit = simpleGit(run.project_path)
+  try {
+    // 1) Commit any uncommitted lane work onto the lane branch (lanes don't self-commit).
+    const status = await laneGit.status()
+    if (status.files.length > 0) {
+      await laneGit.add(['-A'])
+      await laneGit.raw(['-c', 'user.email=daemon@local', '-c', 'user.name=DAEMON', 'commit', '-m', `swarm: ${lane.task.slice(0, 72)}`])
+    }
+    // 2) Resolve the base branch to merge into (explicit base, else current HEAD of main).
+    const baseBranch = run.base_branch?.trim()
+      || (await mainGit.revparse(['--abbrev-ref', 'HEAD'])).trim()
+    // 3) Merge the lane branch into base in the MAIN repo. --no-ff keeps the lane visible.
+    await mainGit.raw(['checkout', baseBranch])
+    await mainGit.raw(['merge', '--no-ff', lane.branch, '-m', `Merge swarm lane ${lane.branch}`])
+    const mergedSha = (await mainGit.revparse(['--short', 'HEAD'])).trim()
+    return { ok: true, branch: lane.branch, mergedSha, baseBranch }
+  } catch (err) {
+    // Leave the repo as-is (a conflicted merge stays for the human to resolve in the Git panel).
+    const message = err instanceof Error ? err.message : String(err)
+    LogService.warn('Swarm', `Merge failed for lane ${laneId}`, { branch: lane.branch, error: message })
+    return { ok: false, branch: lane.branch, error: message }
+  }
+}
+
 /**
  * Reconcile-on-boot: any lane already terminal but whose worktree may linger
  * gets its worktree removed. Also marks orphaned non-terminal lanes (a crash

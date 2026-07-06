@@ -35,6 +35,7 @@ import { gitTools } from './tools/git'
 import { swarmTools } from './tools/swarm'
 import { memoryTools } from './tools/memory'
 import { autopilotTools } from './tools/autopilot'
+import { gameStudioTools } from './tools/gameStudio'
 
 /** Planning + patch tools — intercepted in AriaAgentService.executeTool. */
 const planningTools: AriaTool[] = [
@@ -95,6 +96,7 @@ export const ARIA_TOOLS: AriaTool[] = [
   ...swarmTools,
   ...memoryTools,
   ...autopilotTools,
+  ...gameStudioTools,
 ]
 
 export function getTool(name: string): AriaTool | undefined {

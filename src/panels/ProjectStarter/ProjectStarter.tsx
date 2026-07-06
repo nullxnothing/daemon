@@ -4,6 +4,13 @@ import { useWorkflowShellStore } from '../../store/workflowShell'
 import { useNotificationsStore } from '../../store/notifications'
 import { useAppActions } from '../../store/appActions'
 import { useBrowserStore } from '../../store/browser'
+import {
+  GAME_MAIN_TS,
+  GAME_SCENE_TS,
+  GAME_DAEMON_INDEX_TS,
+  GAME_DAEMON_TYPES_TS,
+  GAME_DAEMON_STUB_TS,
+} from './gameTemplateFiles'
 import './ProjectStarter.css'
 
 // --- Template definitions ---
@@ -18,6 +25,7 @@ export interface Template {
 }
 
 const MEME_COIN_WEBSITE_TEMPLATE_ID = 'meme-coin-website'
+const PHASER_GAME_TEMPLATE_ID = 'phaser-solana-game'
 
 export const TEMPLATES: Template[] = [
   {
@@ -73,6 +81,14 @@ Initialize git repo. Use @solana/kit and Helius or QuickNode as the transport la
 - .env.example with NEXT_PUBLIC_RPC_URL, NEXT_PUBLIC_HELIUS_API_KEY
 - README with dev server and deployment instructions
 Initialize git repo. Prefer @solana/client, @solana/react-hooks, and @solana/web3-compat only when compatibility shims are needed.`,
+  },
+  {
+    id: PHASER_GAME_TEMPLATE_ID,
+    name: 'Solana Game',
+    description: 'Playable Phaser + TypeScript arcade with seedless wallet, cNFT assets, and policy-gated signing pre-wired',
+    tags: ['Game', 'Phaser'],
+    icon: 'M6 12h4m-2-2v4m5-1h.01M18 13h.01M7 6h10a4 4 0 014 4v4a4 4 0 01-4 4H7a4 4 0 01-4-4v-4a4 4 0 014-4z',
+    prompt: `Transform this Phaser + TypeScript arcade starter into the game the user described, keeping the four DAEMON hub seams intact. The game must import on-chain capability ONLY through src/daemon (getBridge() + the interfaces in src/daemon/types.ts) and never import an SDK directly. Keep connect/getSession, mintAsset, recordOutcome working and update src/daemon/manifest.ts (slug, title, category, shortDescription, signingPolicy, monetization). monetization must be 'none' | 'cosmetics' | 'entry-fee' with no earn loop. Keep signingPolicy minimal (value cap 0 unless a transfer is truly needed). Keep seedless onboarding. It must typecheck and build: npm run build.`,
   },
   {
     id: MEME_COIN_WEBSITE_TEMPLATE_ID,
@@ -294,6 +310,10 @@ function defaultMemeSettings(): MemeCoinWebsiteSettings {
     logoAssetPath: '',
     heroAssetPath: '',
   }
+}
+
+function isGameTemplate(templateId: string | null | undefined): boolean {
+  return templateId === PHASER_GAME_TEMPLATE_ID
 }
 
 function isMemeCoinWebsiteTemplate(templateId: string | null | undefined): boolean {
@@ -686,6 +706,41 @@ function buildMemeWebsiteStartupCommand(port: number): string {
   ].join(' && ')
 }
 
+/**
+ * Startup command for the game template. Installs deps, commits an initial
+ * snapshot (a swarm lane needs the project to have >=1 commit before it can add
+ * a worktree — see WorktreeService.addWorktree), then serves the Vite dev build
+ * so BrowserMode can preview it. The git init/commit is best-effort: if git is
+ * absent the dev server still starts, and the app can commit later before a swarm.
+ */
+function buildGameStartupCommand(port: number): string {
+  const url = `http://127.0.0.1:${port}`
+  const isWindows = typeof navigator !== 'undefined' && /windows/i.test(navigator.userAgent)
+  if (isWindows) {
+    return [
+      'Write-Host "DAEMON: installing game dependencies..."',
+      'npm install',
+      'if ($LASTEXITCODE -ne 0) { Write-Host "DAEMON: install failed"; exit $LASTEXITCODE }',
+      'if (-not (Test-Path .git)) { git init -q; git add -A; git -c user.email=daemon@local -c user.name=DAEMON commit -qm "chore: initial game scaffold" }',
+      'Write-Host "DAEMON: building the game..."',
+      'npm run build',
+      'if ($LASTEXITCODE -ne 0) { Write-Host "DAEMON: build failed"; exit $LASTEXITCODE }',
+      `Write-Host "DAEMON: starting game at ${url}"`,
+      `npm run dev -- --host 127.0.0.1 --port ${port}`,
+    ].join('; ')
+  }
+
+  return [
+    'printf "DAEMON: installing game dependencies...\\n"',
+    'npm install',
+    '(test -d .git || (git init -q && git add -A && git -c user.email=daemon@local -c user.name=DAEMON commit -qm "chore: initial game scaffold"))',
+    'printf "DAEMON: building the game...\\n"',
+    'npm run build',
+    `printf "DAEMON: starting game at ${url}\\n"`,
+    `npm run dev -- --host 127.0.0.1 --port ${port}`,
+  ].join(' && ')
+}
+
 async function isPortListening(port: number): Promise<boolean> {
   try {
     const scanRes = await window.daemon.ports.scan()
@@ -726,7 +781,11 @@ async function openMemeWebsiteWhenReady(input: {
   projectId: string
   projectName: string
   sessionId: string
+  /** 'website' (default) or 'game' — only affects user-facing copy. */
+  kind?: 'website' | 'game'
 }) {
+  const noun = input.kind === 'game' ? 'game' : 'website'
+  const Noun = input.kind === 'game' ? 'Game' : 'Website'
   const url = `http://127.0.0.1:${input.port}`
   const ready = await waitForMemeWebsiteReady(input.terminalId, input.port)
   const notifications = useNotificationsStore.getState()
@@ -734,7 +793,7 @@ async function openMemeWebsiteWhenReady(input: {
     notifications.addActivity({
       kind: 'warning',
       context: 'Scaffold',
-      message: `Website build did not report a running server for ${input.projectName}. Check the terminal for install or build errors.`,
+      message: `${Noun} build did not report a running server for ${input.projectName}. Check the terminal for install or build errors.`,
       sessionId: input.sessionId,
       sessionStatus: 'blocked',
       projectId: input.projectId,
@@ -742,8 +801,8 @@ async function openMemeWebsiteWhenReady(input: {
     })
     notifications.pushToast({
       kind: 'warning',
-      context: 'Meme Website',
-      message: 'Website build needs attention. Check the terminal output.',
+      context: Noun,
+      message: `${Noun} build needs attention. Check the terminal output.`,
     })
     return
   }
@@ -753,14 +812,14 @@ async function openMemeWebsiteWhenReady(input: {
   notifications.addActivity({
     kind: 'success',
     context: 'Scaffold',
-    message: `Website is running for ${input.projectName} at ${url}.`,
+    message: `${Noun} is running for ${input.projectName} at ${url}.`,
     sessionId: input.sessionId,
     sessionStatus: 'complete',
     projectId: input.projectId,
     projectName: input.projectName,
-    artifacts: [{ type: 'project', label: 'Local website', value: url, href: url }],
+    artifacts: [{ type: 'project', label: `Local ${noun}`, value: url, href: url }],
   })
-  notifications.pushSuccess(`Opened ${input.projectName} in DAEMON browser`, 'Meme Website')
+  notifications.pushSuccess(`Opened ${input.projectName} in DAEMON browser`, Noun)
 }
 
 function escapeMarkup(value: string): string {
@@ -1716,6 +1775,198 @@ function nodeAppFiles(template: Template): ScaffoldFile[] {
   ]
 }
 
+/**
+ * Full self-contained file set for the Phaser Solana game template ("Starfall").
+ * Unlike the node/next templates this brings its own package.json, tsconfig,
+ * README, and .gitignore, so it bypasses commonFiles entirely. The four DAEMON
+ * hub seams (src/daemon/*) ship as working stubs so the game is playable the
+ * moment it is scaffolded; a swarm lane later customizes src/game and manifest.
+ */
+function gameFiles(projectName: string): ScaffoldFile[] {
+  const pkgName = packageName(projectName)
+  return [
+    {
+      path: 'package.json',
+      content: quotedJson({
+        name: pkgName,
+        version: '0.1.0',
+        private: true,
+        type: 'module',
+        description: 'DAEMON Game Hub template: a playable Phaser arcade with seedless wallet, cNFT assets, and policy-gated signing pre-wired.',
+        scripts: {
+          dev: 'vite',
+          build: 'tsc --noEmit && vite build',
+          preview: 'vite preview',
+          typecheck: 'tsc --noEmit',
+        },
+        dependencies: { phaser: '^3.90.0' },
+        devDependencies: { typescript: '^5.7.0', vite: '^6.0.0' },
+      }),
+    },
+    { path: '.gitignore', content: 'node_modules\ndist\n.env\n.DS_Store\n' },
+    {
+      path: '.env.example',
+      content: [
+        '# The game runs standalone with stub seams — no env needed to play.',
+        '# These are the hub-swap targets the DAEMON swarm fills at publish time.',
+        '# VITE_HELIUS_API_KEY=      # RPC/DAS when a real bridge is wired',
+        '# VITE_ONBOARDING_PROVIDER= # gameshift | privy | turnkey (seedless wallet)',
+        '',
+      ].join('\n'),
+    },
+    {
+      path: 'tsconfig.json',
+      content: quotedJson({
+        compilerOptions: {
+          target: 'ES2022',
+          module: 'ESNext',
+          moduleResolution: 'bundler',
+          lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+          strict: true,
+          noUnusedLocals: true,
+          noUnusedParameters: true,
+          noFallthroughCasesInSwitch: true,
+          esModuleInterop: true,
+          skipLibCheck: true,
+          resolveJsonModule: true,
+          isolatedModules: true,
+          noEmit: true,
+        },
+        include: ['src'],
+      }),
+    },
+    {
+      path: 'vite.config.ts',
+      content: [
+        "import { defineConfig } from 'vite'",
+        '',
+        '// The DAEMON Game Hub loads this build into an embedded player (iframe/webview).',
+        "// base: './' keeps asset paths relative so it runs from any mount point.",
+        'export default defineConfig({',
+        "  base: './',",
+        '  build: {',
+        "    target: 'es2022',",
+        "    outDir: 'dist',",
+        '    sourcemap: false,',
+        '  },',
+        '})',
+        '',
+      ].join('\n'),
+    },
+    {
+      path: 'index.html',
+      content: [
+        '<!doctype html>',
+        '<html lang="en">',
+        '  <head>',
+        '    <meta charset="UTF-8" />',
+        '    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />',
+        `    <title>${projectName}</title>`,
+        '    <style>',
+        '      html, body { margin: 0; height: 100%; background: #0a0a12; overflow: hidden; }',
+        '      #app { width: 100%; height: 100%; display: grid; place-items: center; }',
+        '    </style>',
+        '  </head>',
+        '  <body>',
+        '    <div id="app"></div>',
+        '    <script type="module" src="/src/main.ts"></script>',
+        '  </body>',
+        '</html>',
+        '',
+      ].join('\n'),
+    },
+    { path: 'README.md', content: gameReadme(projectName) },
+    { path: 'src/main.ts', content: GAME_MAIN_TS },
+    { path: 'src/game/GameScene.ts', content: GAME_SCENE_TS },
+    { path: 'src/daemon/index.ts', content: GAME_DAEMON_INDEX_TS },
+    { path: 'src/daemon/types.ts', content: GAME_DAEMON_TYPES_TS },
+    { path: 'src/daemon/manifest.ts', content: gameManifest(projectName) },
+    { path: 'src/daemon/stub.ts', content: GAME_DAEMON_STUB_TS },
+  ]
+}
+
+function gameReadme(projectName: string): string {
+  return [
+    `# ${projectName}`,
+    '',
+    'A DAEMON Game Hub arcade template — a real, playable Phaser + TypeScript game with',
+    'the four hub seams pre-wired. It runs standalone the moment you scaffold it;',
+    'published through the hub, the swarm swaps the stubs for real SDKs without',
+    'touching the game code.',
+    '',
+    '## Run it',
+    '```bash',
+    'npm install',
+    'npm run dev        # play at the printed localhost URL',
+    'npm run build      # typecheck + production build (what the hub embeds)',
+    '```',
+    '',
+    'Controls: arrow keys or tap left/right to move, SPACE / tap to start.',
+    '',
+    '## The four hub seams (`src/daemon/`)',
+    '| Seam | File | Stub does | Real impl (swarm swaps in) |',
+    '|---|---|---|---|',
+    '| Wallet + seedless onboarding | `types.ts` `connect/getSession` | fake session, no seed | GameShift / Privy / Turnkey |',
+    '| Assets (cNFT) | `mintAsset` | local trophy | Metaplex Bubblegum / Core |',
+    '| Signing (safe by construction) | `recordOutcome` + `GameSigningPolicy` | local policy check | DAEMON `SignerGuardService` |',
+    '| Publish record | `manifest.ts` | listing metadata + policy | `game_registry` provenance row |',
+    '',
+    'The game imports **only** the interfaces in `src/daemon/types.ts` via `getBridge()`.',
+    'It never imports an SDK directly. Swap `src/daemon/stub.ts` for a real bridge and',
+    'the game is unchanged. That is the studio-in-a-box contract.',
+    '',
+    '## Safe-by-construction',
+    '`GameSigningPolicy` caps this game to a single program (memo) and **zero value',
+    "transfer**. `stub.ts` enforces it locally exactly as DAEMON's",
+    '`SignerGuardService.assertTransactionAllowed()` will on-chain.',
+    '',
+  ].join('\n')
+}
+
+function gameManifest(projectName: string): string {
+  const slug = packageName(projectName)
+  return [
+    '// Publish manifest — what the hub reads to list this game in game_registry.',
+    '//',
+    '// The swarm fills this in (or a dev edits it) before publish. The `signingPolicy`',
+    '// here becomes the on-chain SignerGuardPolicy the game is capped to. `onboarding`',
+    "// must be true to pass the hub's listing policy (hide-the-chain invariant).",
+    '',
+    "import type { GameSigningPolicy } from './types'",
+    '',
+    'export interface GameManifest {',
+    '  /** slug used in the store URL */',
+    '  slug: string',
+    '  title: string',
+    "  category: 'arcade' | 'card' | 'battler' | 'casual' | 'puzzle'",
+    '  shortDescription: string',
+    '  /** author wallet (base58); set by the hub at publish from the session */',
+    '  author?: string',
+    '  /** must be true — seedless onboarding present — or the listing is rejected */',
+    '  onboarding: boolean',
+    '  /** the per-game signing cap; enforced by DAEMON SignerGuardService */',
+    '  signingPolicy: GameSigningPolicy',
+    '  /** NOT an extractive P2E economy. Listing policy rejects earn-loops. */',
+    "  monetization: 'none' | 'cosmetics' | 'entry-fee'",
+    '}',
+    '',
+    'export const manifest: GameManifest = {',
+    `  slug: ${JSON.stringify(slug)},`,
+    `  title: ${JSON.stringify(projectName)},`,
+    "  category: 'arcade',",
+    "  shortDescription: 'A 60-second score-attack. Dodge, survive, mint your best run.',",
+    '  onboarding: true,',
+    '  signingPolicy: {',
+    "    allowedPrograms: ['MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'],",
+    '    maxLamportsPerAction: 0,',
+    '    approvalThresholdLamports: 0,',
+    '  },',
+    "  monetization: 'cosmetics',",
+    '}',
+    '',
+  ].join('\n')
+}
+
 function commonFiles(template: Template, projectName: string, memeSettings?: MemeCoinWebsiteScaffoldSettings | null): ScaffoldFile[] {
   return [
     { path: 'package.json', content: quotedJson(buildPackageJson(template, projectName)) },
@@ -1731,6 +1982,20 @@ export function buildDeterministicScaffold(
   projectName: string,
   options: { memeSettings?: MemeCoinWebsiteScaffoldSettings | null } = {},
 ): DeterministicScaffold {
+  // The game template is fully self-contained (own package.json/tsconfig/README),
+  // so it bypasses commonFiles entirely.
+  if (template.id === PHASER_GAME_TEMPLATE_ID) {
+    const gameFileSet = gameFiles(projectName)
+    const gameDirs = new Set<string>()
+    for (const file of gameFileSet) {
+      const parts = file.path.split('/').slice(0, -1)
+      for (let i = 1; i <= parts.length; i += 1) {
+        gameDirs.add(parts.slice(0, i).join('/'))
+      }
+    }
+    return { dirs: [...gameDirs].filter(Boolean), files: gameFileSet }
+  }
+
   const isNext = isNextTemplate(template.id)
   const files = [
     ...commonFiles(template, projectName, options.memeSettings),
@@ -1855,6 +2120,27 @@ export function ProjectStarter() {
     setError(null)
   }, [activeProjectPath])
 
+  // Consume an ARIA scaffold preset (from scaffold_game): jump to the configure
+  // step with the template preselected and the name filled, then clear it so a
+  // later manual open of the wizard starts clean.
+  useEffect(() => {
+    const preset = useUIStore.getState().scaffoldPreset
+    if (!preset) return
+    const template = TEMPLATES.find((t) => t.id === preset.templateId)
+    useUIStore.getState().setScaffoldPreset(null)
+    if (!template) return
+    const suggestedSavePath = activeProjectPath ? pathDirName(activeProjectPath) : ''
+    setWizard({
+      step: 'configure',
+      template,
+      projectName: preset.projectName,
+      savePath: suggestedSavePath,
+      targetMode: 'new',
+      meme: defaultMemeSettings(),
+    })
+    setError(null)
+  }, [activeProjectPath])
+
   const goBack = useCallback(() => {
     setWizard({ step: 'templates', template: null, projectName: '', savePath: '', targetMode: 'new', meme: defaultMemeSettings() })
     setError(null)
@@ -1904,7 +2190,11 @@ export function ProjectStarter() {
     const memeSettings = isMemeCoinWebsiteTemplate(wizard.template.id)
       ? normalizeMemeSettings(wizard.meme, name)
       : null
-    const memeDevPort = memeSettings ? await chooseMemeWebsiteDevPort() : null
+    const isGame = isGameTemplate(wizard.template.id)
+    // Both the meme site and the game auto-serve + auto-preview; pick a dev port for either.
+    const devPort = (memeSettings || isGame) ? await chooseMemeWebsiteDevPort() : null
+    const memeDevPort = memeSettings ? devPort : null
+    const gameDevPort = isGame ? devPort : null
     const sessionId = `scaffold-${crypto.randomUUID()}`
 
     setWizard((prev) => ({ ...prev, step: 'building' }))
@@ -2042,22 +2332,31 @@ export function ProjectStarter() {
         return
       }
 
+      // Both meme site and game auto-serve + preview; pick the right startup command + label.
+      const previewPort = memeDevPort ?? gameDevPort
+      const startupCommand = memeDevPort
+        ? buildMemeWebsiteStartupCommand(memeDevPort)
+        : gameDevPort
+          ? buildGameStartupCommand(gameDevPort)
+          : undefined
+      const previewKind = gameDevPort ? 'game' : 'website'
+
       const termRes = await window.daemon.terminal.create({
         cwd: projectPath,
-        startupCommand: memeDevPort ? buildMemeWebsiteStartupCommand(memeDevPort) : undefined,
+        startupCommand,
         userInitiated: true,
       })
 
       if (termRes.ok && termRes.data) {
-        addTerminal(newProject.id, termRes.data.id, memeDevPort ? `Website: ${name}` : `Terminal: ${name}`, null)
-        if (memeDevPort) {
-          await window.daemon.ports.register(memeDevPort, newProject.id, `${name} website`)
+        addTerminal(newProject.id, termRes.data.id, previewPort ? `${gameDevPort ? 'Game' : 'Website'}: ${name}` : `Terminal: ${name}`, null)
+        if (previewPort) {
+          await window.daemon.ports.register(previewPort, newProject.id, `${name} ${previewKind}`)
         }
         useNotificationsStore.getState().addActivity({
           kind: 'success',
           context: 'Scaffold',
-          message: memeDevPort
-            ? `Project scaffold written for ${name}. Installing dependencies, building, then starting http://127.0.0.1:${memeDevPort}.`
+          message: previewPort
+            ? `Project scaffold written for ${name}. Installing dependencies, building, then starting http://127.0.0.1:${previewPort}.`
             : `Project scaffold written for ${name}. Open terminal is idle; run pnpm install when ready.`,
           sessionId,
           sessionStatus: 'running',
@@ -2068,13 +2367,14 @@ export function ProjectStarter() {
         setActiveWorkspaceTool(null)
         focusTerminal()
         closeDrawer()
-        if (memeDevPort) {
+        if (previewPort) {
           void openMemeWebsiteWhenReady({
             terminalId: termRes.data.id,
-            port: memeDevPort,
+            port: previewPort,
             projectId: newProject.id,
             projectName: name,
             sessionId,
+            kind: gameDevPort ? 'game' : 'website',
           })
         }
       } else {
