@@ -707,11 +707,10 @@ function buildMemeWebsiteStartupCommand(port: number): string {
 }
 
 /**
- * Startup command for the game template. Installs deps, commits an initial
- * snapshot (a swarm lane needs the project to have >=1 commit before it can add
- * a worktree — see WorktreeService.addWorktree), then serves the Vite dev build
- * so BrowserMode can preview it. The git init/commit is best-effort: if git is
- * absent the dev server still starts, and the app can commit later before a swarm.
+ * Startup command for the game template. Installs deps, then serves the Vite dev
+ * build so BrowserMode can preview it. The initial git commit (required so a swarm
+ * lane can branch a worktree) is done deterministically in the scaffold handler
+ * before this runs — not here — because shell-chained git was fragile on Windows.
  */
 function buildGameStartupCommand(port: number): string {
   const url = `http://127.0.0.1:${port}`
@@ -721,7 +720,6 @@ function buildGameStartupCommand(port: number): string {
       'Write-Host "DAEMON: installing game dependencies..."',
       'npm install',
       'if ($LASTEXITCODE -ne 0) { Write-Host "DAEMON: install failed"; exit $LASTEXITCODE }',
-      'if (-not (Test-Path .git)) { git init -q; git add -A; git -c user.email=daemon@local -c user.name=DAEMON commit -qm "chore: initial game scaffold" }',
       'Write-Host "DAEMON: building the game..."',
       'npm run build',
       'if ($LASTEXITCODE -ne 0) { Write-Host "DAEMON: build failed"; exit $LASTEXITCODE }',
@@ -733,7 +731,6 @@ function buildGameStartupCommand(port: number): string {
   return [
     'printf "DAEMON: installing game dependencies...\\n"',
     'npm install',
-    '(test -d .git || (git init -q && git add -A && git -c user.email=daemon@local -c user.name=DAEMON commit -qm "chore: initial game scaffold"))',
     'printf "DAEMON: building the game...\\n"',
     'npm run build',
     `printf "DAEMON: starting game at ${url}\\n"`,
@@ -2314,6 +2311,25 @@ export function ProjectStarter() {
           const fileRes = await window.daemon.fs.writeFile(`${projectPath}/${file.path}`, file.content)
           if (!fileRes.ok) {
             throw new Error(fileRes.error ?? `Failed to write ${file.path}`)
+          }
+        }
+
+        // Game projects must have >=1 commit so a swarm lane can branch a worktree
+        // (WorktreeService.addWorktree). Do it deterministically here rather than in
+        // the fragile shell-chained startup command. Best-effort: a git failure must
+        // not block the scaffold — the user can commit later before launching a swarm.
+        if (isGameTemplate(wizard.template.id)) {
+          const initRes = await window.daemon.git.initCommit(projectPath, 'chore: initial game scaffold')
+          if (!initRes.ok) {
+            useNotificationsStore.getState().addActivity({
+              kind: 'warning',
+              context: 'Scaffold',
+              message: `Game scaffolded, but the initial git commit failed (${initRes.error ?? 'unknown'}). Commit before launching a swarm.`,
+              sessionId,
+              sessionStatus: 'running',
+              projectId: newProject.id,
+              projectName: name,
+            })
           }
         }
       } catch (scaffoldErr) {

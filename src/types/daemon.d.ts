@@ -641,6 +641,7 @@ declare global {
     stage: (cwd: string, files: string[]) => Promise<IpcResponse>
     unstage: (cwd: string, files: string[]) => Promise<IpcResponse>
     commit: (cwd: string, message: string) => Promise<IpcResponse>
+    initCommit: (cwd: string, message: string) => Promise<IpcResponse<{ committed: boolean; reason?: string }>>
     push: (cwd: string) => Promise<IpcResponse<string>>
     log: (cwd: string, count?: number) => Promise<IpcResponse<GitCommit[]>>
     diff: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>

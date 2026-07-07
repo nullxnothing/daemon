@@ -28,7 +28,7 @@ function pickDevPort(): number {
 export const gameStudioTools: AriaTool[] = [
   {
     name: 'scaffold_game',
-    description: 'Open the DAEMON project wizard preloaded with the Solana game template (playable Phaser + TypeScript arcade with seedless wallet, cNFT assets, and policy-gated signing pre-wired). Provide a projectName. The scaffold writes the template, runs npm install + an initial git commit (so a swarm can author the game), then serves and previews it. The user confirms the target folder in the wizard.',
+    description: 'Open the DAEMON project wizard preloaded with the Solana game template (playable Phaser + TypeScript arcade with seedless wallet, cNFT assets, and policy-gated signing pre-wired). Provide a projectName. The scaffold writes the template, runs npm install + an initial git commit (so a swarm can author the game), then serves and previews it. The user confirms the target folder in the wizard. IMPORTANT: this switches the workbench to the new project, which starts a fresh ARIA session — so this must be the LAST tool call of the turn. Do not call swarm_launch after it in the same turn; wait for the user to ask again in the new project.',
     kind: 'edit',
     risk: 'write',
     input: {
@@ -43,7 +43,7 @@ export const gameStudioTools: AriaTool[] = [
       await ctx.runUiEffect(effect, false)
       return {
         ok: true,
-        summary: `Opened the game scaffold for "${projectName}". Confirm the folder in the wizard to build.`,
+        summary: `Opened the game scaffold for "${projectName}". Once the user confirms the folder, the workbench switches to the new project and this session ends. Do NOT call more tools now — tell the user: in the new project, ask me to build the game and I'll launch the swarm.`,
         uiEffect: effect,
       }
     },

@@ -280,6 +280,7 @@ contextBridge.exposeInMainWorld('daemon', {
     stage: (cwd: string, files: string[]) => ipcRenderer.invoke('git:stage', cwd, files),
     unstage: (cwd: string, files: string[]) => ipcRenderer.invoke('git:unstage', cwd, files),
     commit: (cwd: string, message: string) => ipcRenderer.invoke('git:commit', cwd, message),
+    initCommit: (cwd: string, message: string) => ipcRenderer.invoke('git:init-commit', cwd, message),
     push: (cwd: string) => ipcRenderer.invoke('git:push', cwd),
     log: (cwd: string, count?: number) => ipcRenderer.invoke('git:log', cwd, count),
     diff: (cwd: string, filePath?: string) => ipcRenderer.invoke('git:diff', cwd, filePath),
