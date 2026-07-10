@@ -1,0 +1,246 @@
+.wallet {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  color: var(--t1);
+  background: var(--wash);
+}
+
+.notice {
+  margin: 12px 24px 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 30%, transparent);
+  border-radius: 7px;
+  background: var(--accent-amber-glow);
+  color: var(--t2);
+  font-size: var(--fs-11);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+
+.walletList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+  font-size: var(--fs-11);
+  color: var(--t3);
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  color: var(--t1);
+  background: var(--wash);
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-app);
+  margin-bottom: 4px;
+}
+
+.input {
+  padding: 7px 9px;
+  background: var(--field-bg);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  color: var(--t1);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-green-dim);
+}
+
+.error {
+  font-size: var(--fs-11);
+  color: var(--accent-red);
+}
+
+.primaryBtn {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent-green);
+  color: #06110c;
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.walletRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.walletRow:hover {
+  background: var(--wash);
+}
+
+.walletActive {
+  background: var(--wash);
+  border-color: var(--line);
+}
+
+.walletName {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.walletUsd {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+  font-size: var(--fs-12);
+  color: var(--accent-green);
+  font-family: var(--font-code);
+}
+
+.walletAddr {
+  font-size: var(--fs-10);
+  color: var(--t4);
+  font-family: var(--font-code);
+}
+
+.holdings {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.holdingsHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.holdingsName {
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.holdingsAddr {
+  font-size: var(--fs-10);
+  color: var(--t4);
+  font-family: var(--font-code);
+}
+
+.askBtn {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.askBtn:hover {
+  color: var(--t1);
+  background: var(--wash);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-12);
+}
+
+.table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: var(--t4);
+  font-size: var(--fs-10);
+  font-weight: 500;
+  border-bottom: 1px solid var(--line);
+}
+
+.table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--t2);
+}
+
+.table td:last-child {
+  color: var(--t1);
+  font-family: var(--font-code);
+}
+
+.tableEmpty {
+  color: var(--t4);
+  text-align: center;
+  padding: 16px;
+}
+
+.empty {
+  padding: 16px 4px;
+  font-size: var(--fs-12);
+  color: var(--t4);
+}

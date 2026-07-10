@@ -1,6 +1,7 @@
 <p align="center">
   <h1 align="center">DAEMON</h1>
-  <p align="center">An AI-native Solana development environment for agents, wallets, launches, deployments, and hosted DAEMON AI.</p>
+  <p align="center"><strong>AI agents that work inside your Solana stack, under your authority.</strong></p>
+  <p align="center">Build, inspect, and operate from one local-first workbench. Writes, Git pushes, and fund movement stay behind explicit review.</p>
 </p>
 
 <p align="center">
@@ -8,7 +9,6 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-979%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">
@@ -25,20 +25,22 @@
 ---
 
 <p align="center">
-  <strong>$DAEMON CA:</strong> <code>4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump</code>
-</p>
-
----
-
-<p align="center">
-  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON agent workbench with editor, terminal, and sidebar" width="800">
+  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON 4.7 project templates with the ARIA console and guarded first-mission actions" width="900">
 </p>
 
 **[Frontier demo runbook](FRONTIER_SUBMISSION.md#2-minute-demo-runbook)** — 2-minute submission flow from project open to devnet settlement.
 
-DAEMON is a standalone Electron development environment for Solana builders who use AI agents to ship. It combines an offline editor, real PTY terminals, DAEMON AI, Claude/Codex agent spawning, MCP management, wallet/RPC readiness, token launches, deployments, integrations, and an Anchor-backed registry for publishing verifiable agent work receipts. Not a VS Code fork.
+DAEMON is a standalone Electron workbench for serious Solana builders, auditors, and technical operators. It gives agents project context and typed tools without handing them silent authority over code, Git, keys, or funds. It is not a VS Code fork.
 
-DAEMON Light stays free and useful for local work and bring-your-own-key AI. DAEMON Pro and holder access unlock hosted DAEMON AI, Pro Skills, Arena, MCP sync, priority workflows, and higher model lanes as they go live.
+## How authority works
+
+1. **Inspect:** enabled read tools gather project, Git, wallet, and runtime context.
+2. **Review:** writes pause for approval. Guarded sensitive flows use typed checks, and direct Autopilot arming ends in an OS-native review of every bound mainnet term.
+3. **Verify:** diffs, test output, signatures, and explorer links keep results inspectable after execution.
+
+The free tier stays free for local work and bring-your-own-key AI. Advanced trading, launch, and hosted AI surfaces are optional capability packs, not prerequisites for the core build loop.
+
+Just want the agent? **DAEMON Lite** is a separate, small (~106MB) Windows download: one chatbox, bring your own key, plus wallet, trade, and rug-scanner tools that route through the same approval gate. See [DAEMON Lite](#daemon-lite).
 
 ## Install
 
@@ -83,27 +85,46 @@ pnpm run package
 
 Requires **Node.js 22+** and **pnpm 9+**.
 
-## Features
+<a name="daemon-lite"></a>
 
-<p align="center">
-  <img src="docs/screenshots/editor.webp" alt="Editor with multiple tabs, breadcrumbs, and file tree" width="800">
-</p>
+## DAEMON Lite
+
+DAEMON Lite is a separate, focused download for people who just want the agent. It ships the ARIA chatbox and nothing else from the IDE: no editor, no terminal, no project system. Paste one API key (Anthropic or GLM/Z.AI), and start chatting. Keys are encrypted with your OS keychain and never leave the device.
+
+It is its own installer (`com.daemon.lite`, separate userData), so it coexists with the full DAEMON on the same machine. At ~106MB it is roughly half the size of the full app.
+
+Beyond chat, Lite carries a small set of DAEMON-focused tools that route through the same approval gate as the full app:
+
+- **Wallet** — watch balances and holdings read-only; create a wallet if you want one.
+- **Trade** — search tokens, keep a watchlist, and swap through ARIA. Swaps are typed-confirm and capped.
+- **Scanner** — a one-shot rug check (mint/freeze authority, snipers, bundles, cabal links) with an upsell to the full cabal map in the IDE.
+- **Pop-out browser** — a real browser pane for previews and dashboards, restricted to https and loopback.
+
+Build it from source:
+
+```bash
+pnpm run package:lite   # → release-lite/<version>/DAEMON-Lite-setup.exe
+```
+
+## Features
 
 **Editor** — Monaco running fully offline via a custom protocol handler. Multi-tab, breadcrumbs, syntax highlighting, Ctrl+S save. No CDN dependency.
 
 **Terminal** — Real PTY sessions powered by node-pty and xterm.js. Multiple tabs, split panes, command history search (Ctrl+R), tab-completion hints, and dedicated agent session management.
 
-<p align="center">
-  <img src="docs/screenshots/agent-launcher.webp" alt="Agent launcher with model selection and MCP config" width="800">
-</p>
-
 **Agent Launcher** — Spawn Claude Code agents with custom system prompts, model selection, and per-project MCP configurations. Agents run as real CLI sessions in dedicated terminal tabs.
+
+**ARIA Game Studio Beta:** Create a playable local Phaser starter, install dependencies, verify a
+production build, and open the preview inside DAEMON. With approval, ARIA can send one focused
+`build_game` lane into a separate Git worktree. The starter has typed seams for future Solana
+integration, but the beta uses local stubs. It does not connect a live wallet, write onchain, mint,
+publish, or deploy. `deploy_app` opens the Deploy panel for a manual handoff.
 
 **VS Code-style shell + capability packs** — Explorer, editor, a bottom-panel terminal, and the DAEMON Console on the right rail. Domain features ship as toggleable capability packs (Solana, Wallet, Launch, Agents, Memory, Sites, Markets, Create); disabling a pack quiesces its tools, integrations, sidebar icon, console commands, and background work — IPC handlers included. The Capability Manager shows how many packs are active and how much backend work is idle.
 
 **DAEMON Console (ARIA operator)** — The right-rail AI operator drives the whole IDE from natural language, chat-first with `>` and `/` command accelerators. Per-project chat sessions (new / switch / rename / archive / delete) with memory that survives restarts and compounds: the console proposes durable facts after real work (Keep/Dismiss), cites which taught facts a turn drew on, and strengthens proven facts over time. It runs DAEMON itself — agent wallets, token preflight/launch, Flywheel config, git — through a registry of typed tools with typed confirmation for sensitive on-chain actions (and a `[MAINNET]` guard). It never pushes to git autonomously.
 
-**ARIA Autopilot** — Standing, structured trading mandates parsed from natural language and executed unattended on mainnet on a fixed cadence, with exit rules (take-profit / stop-loss / liquidity floor), a hard exposure cap, arm/disarm/kill-switch, and a "The Desk" panel showing live unrealized P&L and the action tape. Every tick claims its ledger row before it swaps, so a crash mid-tick is held for review, never replayed into a double-buy; a cluster switch auto-holds armed mandates; unattended slippage and price impact are capped tighter than a human-confirmed trade.
+**ARIA Autopilot (experimental):** Bounded mainnet mandates run on a fixed cadence after a typed review of the wallet, mint, clip, exposure cap, slippage, and exits. The Desk shows estimated P&L and an action tape. Every tick claims its ledger row before it swaps, so a crash mid-tick is held for review, never replayed into a double-buy; a cluster switch auto-holds armed mandates; unattended slippage and price impact are capped tighter than a human-confirmed trade. Disarming stops future ticks, but a submitted swap may still settle.
 
 **Hyperliquid (via HypurrClaw)** — ARIA reads Hyperliquid markets and trades perps/spot by driving the agent-first `hyperliquid` CLI through a single execFile gate (no raw shell). Network defaults to testnet, DAEMON never holds a Hyperliquid key (the CLI's encrypted wallet signs), and every signing action stops for typed confirmation with an `[HL-MAINNET]`/`[HL-TESTNET]` marker.
 
@@ -122,10 +143,6 @@ Requires **Node.js 22+** and **pnpm 9+**.
 **Git** — Branch switching, per-file and folder-level staging, commit, push, stash save/pop, branch creation, and tag management.
 
 **Wallet** — Live Solana portfolio tracking via Helius. SOL balance and SPL token holdings with USD values from Jupiter.
-
-<p align="center">
-  <img src="docs/screenshots/wallet.webp" alt="Wallet panel showing token balances" width="800">
-</p>
 
 **Settings** — API keys encrypted via the OS keychain. MCP integrations, agent defaults, and display preferences.
 
@@ -153,6 +170,8 @@ DAEMON AI is the hosted agent layer for project-aware chat, patch workflows, Sol
 | Enterprise | Custom | Private deployments, custom limits, support, compliance, and invoicing. |
 
 Holder access starts with a simple rule: hold 1,000,000 $DAEMON to claim DAEMON Pro with included monthly AI usage. Higher holder tiers can unlock higher limits, discounts, badges, and early access later. Holder access does not mean unlimited AI usage.
+
+**$DAEMON contract address:** `4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump`
 
 DAEMON also includes a Zauth integration surface for x402 database and Provider Hub management. Payment and entitlement enforcement should remain server-side through DAEMON AI Cloud and the relevant provider backends.
 

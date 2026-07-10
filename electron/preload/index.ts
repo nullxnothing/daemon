@@ -529,7 +529,7 @@ contextBridge.exposeInMainWorld('daemon', {
 
   projects: {
     list: () => ipcRenderer.invoke('projects:list'),
-    create: (project: { name: string; path: string }) => ipcRenderer.invoke('projects:create', project),
+    create: (project: { name: string; path: string; requireNewDirectory?: boolean }) => ipcRenderer.invoke('projects:create', project),
     createDemoWorkspace: () => ipcRenderer.invoke('projects:createDemoWorkspace'),
     delete: (id: string) => ipcRenderer.invoke('projects:delete', id),
     openDialog: () => ipcRenderer.invoke('projects:openDialog'),
@@ -538,6 +538,17 @@ contextBridge.exposeInMainWorld('daemon', {
 
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+  },
+
+  // DAEMON Lite flavor surface — handlers exist only in the Lite main entry.
+  lite: {
+    getFlavorInfo: () => ipcRenderer.invoke('lite:get-flavor-info'),
+    isOnboardingComplete: () => ipcRenderer.invoke('lite:is-onboarding-complete'),
+    setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke('lite:set-onboarding-complete', complete),
+    getShowTools: () => ipcRenderer.invoke('lite:get-show-tools'),
+    setShowTools: (show: boolean) => ipcRenderer.invoke('lite:set-show-tools', show),
+    openInIde: () => ipcRenderer.invoke('lite:open-in-ide'),
+    popoutOpen: (url: string) => ipcRenderer.invoke('lite:popout-open', url),
   },
 
   pumpfun: {
@@ -691,7 +702,8 @@ contextBridge.exposeInMainWorld('daemon', {
   autopilot: {
     state: () => ipcRenderer.invoke('autopilot:state'),
     create: (input: unknown) => ipcRenderer.invoke('autopilot:create', input),
-    arm: (id: string) => ipcRenderer.invoke('autopilot:arm', id),
+    armReview: (id: string) => ipcRenderer.invoke('autopilot:arm-review', id),
+    arm: (input: unknown) => ipcRenderer.invoke('autopilot:arm', input),
     disarm: (id: string) => ipcRenderer.invoke('autopilot:disarm', id),
     disarmAll: () => ipcRenderer.invoke('autopilot:disarm-all'),
     delete: (id: string) => ipcRenderer.invoke('autopilot:delete', id),
@@ -998,7 +1010,7 @@ function useLoading() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #0a0a0a;
+  background: #0c0e0d;
   z-index: 9;
   gap: 28px;
   transition: opacity 0.4s ease, visibility 0.4s ease;
@@ -1035,11 +1047,11 @@ function useLoading() {
   gap: 2px;
 }
 .daemon-loading__letter {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Geist', 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #f0f0f0;
+  color: #eceee9;
   display: inline-block;
   animation: dl-pulse 2.8s ease-in-out infinite;
 }
@@ -1075,7 +1087,7 @@ function useLoading() {
   to   { transform: rotate(360deg); }
 }
 @keyframes dl-pulse {
-  0%, 60%, 100% { color: #f0f0f0; text-shadow: none; }
+  0%, 60%, 100% { color: #eceee9; text-shadow: none; }
   30% { color: #3ecf8e; text-shadow: 0 0 12px rgba(62,207,142,0.5); }
 }
 @keyframes dl-sweep {

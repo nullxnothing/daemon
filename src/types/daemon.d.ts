@@ -51,6 +51,8 @@ import type {
   Mandate,
   MandateAction,
   AutopilotState,
+  AutopilotArmReview,
+  AutopilotArmAuthorization,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -253,6 +255,8 @@ export type {
   Mandate,
   MandateAction,
   AutopilotState,
+  AutopilotArmReview,
+  AutopilotArmAuthorization,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -729,7 +733,7 @@ declare global {
 
   interface DaemonProjects {
     list: () => Promise<IpcResponse<Project[]>>
-    create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
+    create: (project: { name: string; path: string; requireNewDirectory?: boolean }) => Promise<IpcResponse<Project>>
     createDemoWorkspace: () => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
@@ -925,6 +929,22 @@ declare global {
 
   interface DaemonShell {
     openExternal: (url: string) => Promise<void>
+  }
+
+  interface DaemonLiteFlavorInfo {
+    flavor: 'lite'
+    version: string
+    ideInstalled: boolean
+  }
+
+  interface DaemonLite {
+    getFlavorInfo: () => Promise<IpcResponse<DaemonLiteFlavorInfo>>
+    isOnboardingComplete: () => Promise<IpcResponse<boolean>>
+    setOnboardingComplete: (complete: boolean) => Promise<IpcResponse<void>>
+    getShowTools: () => Promise<IpcResponse<boolean>>
+    setShowTools: (show: boolean) => Promise<IpcResponse<void>>
+    openInIde: () => Promise<IpcResponse<{ launched: boolean }>>
+    popoutOpen: (url: string) => Promise<IpcResponse<{ opened: boolean }>>
   }
 
   interface DaemonPumpFun {
@@ -1825,6 +1845,7 @@ declare global {
     deploy: DaemonDeploy
     shipline: DaemonShipline
     shell: DaemonShell
+    lite: DaemonLite
     pumpfun: DaemonPumpFun
     proof: DaemonProof
     email: DaemonEmail
@@ -2060,7 +2081,8 @@ declare global {
       maxExposureLamports: number
       intervalSeconds: number
     }) => Promise<IpcResponse<Mandate>>
-    arm: (id: string) => Promise<IpcResponse<Mandate>>
+    armReview: (id: string) => Promise<IpcResponse<AutopilotArmReview>>
+    arm: (input: AutopilotArmAuthorization) => Promise<IpcResponse<Mandate>>
     disarm: (id: string) => Promise<IpcResponse<Mandate>>
     disarmAll: () => Promise<IpcResponse<{ disarmed: number }>>
     delete: (id: string) => Promise<IpcResponse<{ ok: true }>>

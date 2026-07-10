@@ -1,0 +1,39 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--s2);
+  color: var(--accent-green);
+  flex-shrink: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--fs-15);
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: var(--fs-11);
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+.action {
+  flex-shrink: 0;
+}

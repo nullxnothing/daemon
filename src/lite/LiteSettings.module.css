@@ -1,0 +1,157 @@
+.settings {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 24px;
+}
+
+.column {
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--t2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--t1);
+  background: var(--wash);
+}
+
+.title {
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-app);
+}
+
+.sectionTitle {
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.sectionSub {
+  font-size: var(--fs-11);
+  color: var(--t3);
+  margin-bottom: 4px;
+}
+
+.keyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyMeta {
+  width: 130px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.keyLabel {
+  font-size: var(--fs-12);
+  color: var(--t1);
+}
+
+.keyHint {
+  font-size: var(--fs-10);
+  color: var(--accent-green-dim);
+  font-family: var(--font-code);
+}
+
+.keyInput {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  background: var(--field-bg);
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  color: var(--t1);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+}
+
+.keyInput:focus {
+  outline: none;
+  border-color: var(--accent-green-dim);
+}
+
+.keyBtn {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--t2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.keyBtn:hover:not(:disabled) {
+  color: var(--t1);
+  background: var(--wash);
+}
+
+.keyBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.keyBtnDanger:hover:not(:disabled) {
+  color: var(--accent-red);
+  border-color: color-mix(in srgb, var(--accent-red) 35%, transparent);
+}
+
+.notice {
+  font-size: var(--fs-11);
+  color: var(--t3);
+}
+
+.aboutRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-12);
+  color: var(--t2);
+}
+
+.ideBtn {
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-green) 35%, transparent);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--accent-green);
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.ideBtn:hover {
+  background: var(--accent-green-glow);
+}

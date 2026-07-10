@@ -1,0 +1,105 @@
+.home {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 32px 32px 56px;
+}
+
+.column {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contextRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 2px;
+  font-size: var(--fs-11);
+}
+
+.contextName {
+  color: var(--t2);
+  font-weight: 600;
+}
+
+.contextSep {
+  color: var(--t4);
+}
+
+.contextMeta {
+  color: var(--t3);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: 22px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 5px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.action:first-child {
+  border-top: 1px solid var(--line);
+}
+
+.action:hover {
+  background: var(--wash-2);
+}
+
+.actionIcon {
+  color: var(--t2);
+  flex-shrink: 0;
+}
+
+.actionTitle {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--t1);
+  white-space: nowrap;
+}
+
+.actionDesc {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-11);
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actionChevron {
+  color: var(--t4);
+  flex-shrink: 0;
+}
+
+.hint {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: var(--fs-11);
+  color: var(--t4);
+  pointer-events: none;
+}

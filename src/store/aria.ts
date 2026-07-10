@@ -6,10 +6,7 @@ import type {
 } from '../../electron/shared/types'
 import { daemon } from '../lib/daemonBridge'
 import { markFunnelStep } from '../lib/firstMission'
-import { buildAriaSnapshot } from '../lib/ariaContext'
-import { applyUiEffect, runUiEffectWithData } from '../lib/ariaUiEffects'
-import { useUIStore } from './ui'
-import { useAppActions } from './appActions'
+import { getAriaHost } from './ariaHost'
 
 /** A pending write/sensitive tool awaiting the user's decision. */
 export interface AriaApproval {
@@ -115,7 +112,7 @@ interface AriaState {
 }
 
 function activeProjectId(): string | null {
-  return useUIStore.getState().activeProjectId ?? null
+  return getAriaHost().activeProjectId()
 }
 
 /** The in-flight assistant turn id PER session. A single global would be
@@ -196,24 +193,15 @@ export const useAriaStore = create<AriaState>((set, get) => ({
   },
 
   openProviderLogin: async (provider) => {
-    const ui = useUIStore.getState()
-    if (!ui.activeProjectId || !ui.activeProjectPath) {
-      set({ providerNotice: 'Open a project before launching a login terminal.' })
+    const host = getAriaHost()
+    if (!host.openProviderLoginTerminal) {
+      set({ providerNotice: 'Provider login requires the full DAEMON IDE.' })
       return
     }
     set({ providerBusy: provider, providerNotice: null })
     try {
-      const startupCommand = provider === 'codex' ? 'codex login' : 'claude'
-      const res = await daemon.terminal.create({
-        cwd: ui.activeProjectPath,
-        startupCommand,
-        userInitiated: true,
-      })
-      if (!res.ok || !res.data) throw new Error(res.error ?? 'Login terminal did not start')
-      ui.setCenterMode('canvas')
-      ui.addTerminal(ui.activeProjectId, res.data.id, provider === 'codex' ? 'Codex Login' : 'Claude Login', res.data.agentId)
-      useAppActions.getState().focusTerminal()
-      set({ providerNotice: `Opened ${provider} login terminal. Complete sign-in, then Verify.` })
+      const notice = await host.openProviderLoginTerminal(provider)
+      set({ providerNotice: notice })
     } catch (err) {
       set({ providerNotice: (err as Error).message })
     } finally {
@@ -242,7 +230,7 @@ export const useAriaStore = create<AriaState>((set, get) => ({
       // The devnet pin rides the snapshot so main-process tools can scope the
       // turn's reads chain-free (onboarding first mission). Restrict-only.
       const snapshot = {
-        ...buildAriaSnapshot(),
+        ...getAriaHost().buildSnapshot(),
         planMode,
         ...(opts?.pinnedCluster === 'devnet' ? { pinnedCluster: 'devnet' as const } : {}),
       }
@@ -417,10 +405,11 @@ export const useAriaStore = create<AriaState>((set, get) => ({
     const offEvent = daemon.aria.onToolEvent((raw) => applyEvent(set, get, raw as AriaToolEvent))
     const offEffect = daemon.aria.onUiEffect(({ callId, effect, awaitData }) => {
       const fx = effect as AriaUiEffect
+      const host = getAriaHost()
       if (awaitData) {
-        void runUiEffectWithData(fx).then((data) => daemon.aria.toolEffectResult(callId, data))
+        void host.runUiEffectWithData(fx).then((data) => daemon.aria.toolEffectResult(callId, data))
       } else {
-        applyUiEffect(fx)
+        host.applyUiEffect(fx)
       }
     })
     return () => { offEvent(); offEffect() }

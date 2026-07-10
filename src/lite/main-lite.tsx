@@ -1,13 +1,32 @@
-import './polyfills'
+import '../polyfills'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
-import { setAriaHost } from './store/ariaHost'
-import { ideAriaHost } from './store/ariaHostIde'
-import '../styles/base.css'
+import LiteApp from './LiteApp'
+import { setAriaHost } from '../store/ariaHost'
+import type { AriaHost } from '../store/ariaHost'
+import '../../styles/base.css'
 
-// Wire the ARIA store to the IDE shell (project context, terminals, ui effects).
-setAriaHost(ideAriaHost)
+// Lite host: no project, no terminals, ui effects are no-ops. Global memory on.
+const liteHost: AriaHost = {
+  activeProjectId: () => null,
+  buildSnapshot: () => ({
+    activeProjectId: null,
+    activeProjectPath: null,
+    currentPanelId: 'lite',
+    openFilePath: null,
+    chips: {
+      activeFile: false,
+      projectTree: false,
+      gitDiff: false,
+      terminalLogs: false,
+      walletContext: false,
+      projectMemory: true,
+    },
+  }),
+  applyUiEffect: () => {},
+  runUiEffectWithData: async () => ({ ok: true }),
+}
+setAriaHost(liteHost)
 
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -20,11 +39,7 @@ class RootErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    console.error('DAEMON renderer crash:', error)
-  }
-
-  handleReload = () => {
-    this.setState({ error: null })
+    console.error('DAEMON Lite renderer crash:', error)
   }
 
   render() {
@@ -42,7 +57,7 @@ class RootErrorBoundary extends React.Component<
           gap: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ fontSize: 18 }}>DAEMON hit a renderer error</div>
+            <div style={{ fontSize: 18 }}>DAEMON Lite hit a renderer error</div>
             <button
               onClick={() => window.location.reload()}
               style={{
@@ -59,13 +74,8 @@ class RootErrorBoundary extends React.Component<
               Reload App
             </button>
           </div>
-          <div style={{
-            whiteSpace: 'pre-wrap',
-            lineHeight: 1.5,
-            color: '#bdbdbd',
-            margin: 0,
-          }}>
-            The app stopped rendering this view. Reload DAEMON to recover; the detailed error was written to the developer console.
+          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5, color: '#bdbdbd', margin: 0 }}>
+            The app stopped rendering this view. Reload to recover; the detailed error was written to the developer console.
           </div>
         </div>
       )
@@ -75,9 +85,6 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-// Prevent Electron's default file drop behavior (navigates to the file).
-// React drag/drop handlers on individual components will still work
-// because they call e.preventDefault() on their own terms.
 document.addEventListener('dragover', (e) => e.preventDefault())
 document.addEventListener('drop', (e) => e.preventDefault())
 
@@ -95,7 +102,7 @@ document.documentElement.dataset.platform = window.daemon?.platform
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <RootErrorBoundary>
-      <App />
+      <LiteApp />
     </RootErrorBoundary>
   </React.StrictMode>,
 )

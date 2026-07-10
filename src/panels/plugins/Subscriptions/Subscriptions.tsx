@@ -24,7 +24,7 @@ interface TierDefinition {
 const TIERS: TierDefinition[] = [
   {
     id: 'light',
-    name: 'Light',
+    name: 'Free',
     price: 'Free',
     cadence: 'local',
     status: 'live',
@@ -196,7 +196,7 @@ export default function Subscriptions() {
         title="DAEMON access and hosted AI lanes"
         actions={
           <div className={`subscriptions-status ${subscription.active ? 'subscriptions-status--active' : ''}`}>
-            {subscription.active ? 'Active' : 'Light'}
+            {subscription.active ? 'Active' : 'Free'}
           </div>
         }
       />

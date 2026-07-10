@@ -1,0 +1,75 @@
+.chrome {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-app);
+  font-family: var(--font-ui);
+  border-bottom: 1px solid var(--line);
+}
+
+.titlebar {
+  height: 34px;
+  -webkit-app-region: drag;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 54px;
+  padding: 0 12px;
+}
+
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.navBtn:hover:not(:disabled) {
+  background: var(--wash);
+  color: var(--t1);
+}
+
+.navBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.url {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--field-bg);
+  color: var(--t1);
+  font-family: var(--font-code);
+  font-size: var(--fs-11);
+}
+
+.url:focus {
+  outline: none;
+  border-color: var(--accent-green-dim);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  flex-shrink: 0;
+}
+
+.dot[data-loading='true'] {
+  background: var(--accent-amber);
+}
