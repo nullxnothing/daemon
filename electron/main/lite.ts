@@ -1,8 +1,7 @@
 /**
- * DAEMON Lite main entry — a chat-only agent shell. Deliberately written
- * fresh instead of forking main/index.ts: one window, the minimal IPC surface
- * (aria, provider, memory, secure keys, lite), separate userData, no editor,
- * terminals, packs, protocols, schedulers, bridge, or auto-update.
+ * DAEMON Lite main entry. Deliberately composed instead of forking
+ * main/index.ts: one window, a focused project/filesystem/terminal/Solana
+ * workflow surface, separate userData, and no packs, bridge, or auto-update.
  */
 import 'dotenv/config'
 import { app, BrowserWindow, ipcMain, session } from 'electron'
@@ -19,6 +18,12 @@ import { registerWalletHandlers } from '../ipc/wallet'
 import { registerPnlHandlers } from '../ipc/pnl'
 import { registerForensicsHandlers } from '../ipc/forensics'
 import { registerPopoutHandlers } from '../ipc/popout'
+import { registerLiteFilesystemHandlers, stopLiteFilesystemWatcher } from '../ipc/filesystem.lite'
+import { clearLiteProjectPickCapability, registerLiteProjectHandlers } from '../ipc/projects.lite'
+import { killAllLiteTerminalSessions, registerLiteTerminalHandlers } from '../ipc/terminal.lite'
+import { registerValidatorHandlers, stopValidatorProcess } from '../ipc/validator'
+import { registerShiplineHandlers } from '../ipc/shipline'
+import { registerMemeStudioHandlers } from '../ipc/memeStudio'
 import { configurePopoutBrowser, closeAllPopouts } from '../services/PopoutBrowserService'
 import { ClaudeProvider, CodexProvider, ProviderRegistry } from '../services/providers'
 import { getKeyEncryptionWarning, getStorageBackend } from '../services/SecureKeyService'
@@ -37,11 +42,12 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST
 
-// Lite owns its own userData so both apps install and run side by side.
-// The smoke-test override mirrors main/index.ts.
+// The focused workbench is the canonical DAEMON app. Honor Electron's
+// conventional switch for isolated profiles used by packaged smoke/E2E.
+const cliUserDataDir = app.commandLine.getSwitchValue('user-data-dir').trim()
 app.setPath(
   'userData',
-  process.env.DAEMON_USER_DATA_DIR ?? path.join(app.getPath('appData'), 'daemon-lite'),
+  process.env.DAEMON_USER_DATA_DIR?.trim() || cliUserDataDir || path.join(app.getPath('appData'), 'daemon'),
 )
 
 if (SMOKE_TEST_MODE) {
@@ -50,7 +56,7 @@ if (SMOKE_TEST_MODE) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.DAEMON_DEV_CDP_PORT ?? '9224')
 }
 
-if (process.platform === 'win32') app.setAppUserModelId('com.daemon.lite')
+if (process.platform === 'win32') app.setAppUserModelId('com.daemon.app')
 
 function recordAppCrash(type: string, message: string, stack = '') {
   try {
@@ -91,6 +97,10 @@ function popoutChromeUrl(): string {
 function beginShutdownCleanup() {
   if (shutdownStarted) return
   shutdownStarted = true
+  killAllLiteTerminalSessions()
+  stopValidatorProcess()
+  stopLiteFilesystemWatcher()
+  clearLiteProjectPickCapability()
   closeAllPopouts()
   closeDb()
 }
@@ -111,6 +121,12 @@ function registerLiteIpc() {
   registerPnlHandlers()
   registerForensicsHandlers()
   registerPopoutHandlers()
+  registerLiteFilesystemHandlers()
+  registerLiteProjectHandlers()
+  registerLiteTerminalHandlers()
+  registerValidatorHandlers()
+  registerShiplineHandlers()
+  registerMemeStudioHandlers()
 
   configurePopoutBrowser({ preloadPath: popoutPreload, chromeUrl: () => popoutChromeUrl() })
 
@@ -139,7 +155,7 @@ async function createWindow() {
   }
 
   win = new BrowserWindow({
-    title: 'DAEMON Lite',
+    title: 'Daemon',
     width: 1100,
     height: 760,
     minWidth: 900,

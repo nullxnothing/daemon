@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  ArrowSquareOut, CaretRight, GearSix, MagnifyingGlass, PencilSimpleLine,
+  CaretRight, GearSix, MagnifyingGlass, PencilSimpleLine,
   ShieldCheck, Wallet, ChartLineUp, X,
 } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
@@ -61,9 +61,9 @@ export function LiteSidebar({
   return (
     <aside className={styles.sidebar}>
       <nav className={styles.nav}>
-        <button type="button" className={`${styles.navRow} ${styles.navActive}`} onClick={onNewAgent}>
+        <button type="button" className={`${styles.navRow}${view === 'workspace' ? ` ${styles.navActive}` : ''}`} onClick={onNewAgent}>
           <PencilSimpleLine size={15} className={styles.navIcon} aria-hidden="true" />
-          New Agent
+          New chat
         </button>
         <button
           type="button"
@@ -144,13 +144,9 @@ export function LiteSidebar({
       </div>
 
       <div className={styles.footer}>
-        <button type="button" className={styles.idePill} onClick={() => void window.daemon.lite.openInIde()}>
-          <ArrowSquareOut size={13} aria-hidden="true" />
-          Open in DAEMON IDE
-        </button>
         <div className={styles.accountRow}>
           <span className={styles.accountName}>
-            DAEMON Lite
+            DAEMON
             {version ? <span className={styles.accountMeta}>v{version}</span> : null}
           </span>
           <button

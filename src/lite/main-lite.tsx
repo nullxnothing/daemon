@@ -4,25 +4,28 @@ import ReactDOM from 'react-dom/client'
 import LiteApp from './LiteApp'
 import { setAriaHost } from '../store/ariaHost'
 import type { AriaHost } from '../store/ariaHost'
+import { getLiteWorkspaceSnapshot } from './workbench/liteWorkbenchStore'
 import '../../styles/base.css'
 
-// Lite host: no project, no terminals, ui effects are no-ops. Global memory on.
 const liteHost: AriaHost = {
-  activeProjectId: () => null,
-  buildSnapshot: () => ({
-    activeProjectId: null,
-    activeProjectPath: null,
-    currentPanelId: 'lite',
-    openFilePath: null,
-    chips: {
-      activeFile: false,
-      projectTree: false,
-      gitDiff: false,
-      terminalLogs: false,
-      walletContext: false,
-      projectMemory: true,
-    },
-  }),
+  activeProjectId: () => getLiteWorkspaceSnapshot().activeProjectId,
+  buildSnapshot: () => {
+    const workspace = getLiteWorkspaceSnapshot()
+    return {
+      activeProjectId: workspace.activeProjectId,
+      activeProjectPath: workspace.activeProjectPath,
+      currentPanelId: 'lite-workbench',
+      openFilePath: workspace.openFilePath,
+      chips: {
+        activeFile: Boolean(workspace.openFilePath),
+        projectTree: workspace.treeEntries > 0,
+        gitDiff: false,
+        terminalLogs: workspace.hasTerminal,
+        walletContext: false,
+        projectMemory: true,
+      },
+    }
+  },
   applyUiEffect: () => {},
   runUiEffectWithData: async () => ({ ok: true }),
 }
@@ -39,7 +42,7 @@ class RootErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    console.error('DAEMON Lite renderer crash:', error)
+    console.error('DAEMON renderer crash:', error)
   }
 
   render() {
@@ -57,7 +60,7 @@ class RootErrorBoundary extends React.Component<
           gap: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ fontSize: 18 }}>DAEMON Lite hit a renderer error</div>
+            <div style={{ fontSize: 18 }}>DAEMON hit a renderer error</div>
             <button
               onClick={() => window.location.reload()}
               style={{
@@ -89,6 +92,10 @@ document.addEventListener('dragover', (e) => e.preventDefault())
 document.addEventListener('drop', (e) => e.preventDefault())
 
 window.addEventListener('error', (event) => {
+  if (event.message.startsWith('ResizeObserver loop')) {
+    event.preventDefault()
+    return
+  }
   console.error('Unhandled renderer error:', event.error || event.message)
 })
 

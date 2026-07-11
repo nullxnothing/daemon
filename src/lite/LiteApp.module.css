@@ -38,6 +38,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  container-type: inline-size;
   background: var(--bg-workspace);
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .body {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
 }

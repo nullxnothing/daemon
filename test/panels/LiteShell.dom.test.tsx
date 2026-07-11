@@ -41,6 +41,35 @@ function installBridge() {
         verifyAll,
         getPreferences: vi.fn().mockResolvedValue({ ok: true, data: null }),
       },
+      projects: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        openDialog: vi.fn().mockResolvedValue({ ok: true, data: null }),
+        create: vi.fn().mockResolvedValue({ ok: false, error: 'not selected' }),
+      },
+      fs: {
+        readDir: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        readFile: vi.fn().mockResolvedValue({ ok: false, error: 'not found' }),
+        writeFile: vi.fn().mockResolvedValue({ ok: true }),
+        watch: vi.fn().mockResolvedValue({ ok: true }),
+        unwatch: vi.fn().mockResolvedValue({ ok: true }),
+        onChanged: vi.fn(() => () => {}),
+      },
+      terminal: {
+        create: vi.fn().mockResolvedValue({ ok: false, error: 'Open a project first.' }),
+        ready: vi.fn(), write: vi.fn(), resize: vi.fn(), kill: vi.fn().mockResolvedValue({ ok: true }),
+        onData: vi.fn(() => () => {}), onExit: vi.fn(() => () => {}),
+      },
+      validator: {
+        toolchainStatus: vi.fn().mockResolvedValue({ ok: false, error: 'Open a project first.' }),
+        status: vi.fn().mockResolvedValue({ ok: true, data: { type: null, status: 'stopped', terminalId: null, port: null } }),
+        detectProject: vi.fn().mockResolvedValue({ ok: true, data: { isSolanaProject: false, framework: null, indicators: [], suggestedMcps: [] } }),
+        onStatusChange: vi.fn(() => () => {}),
+      },
+      memeStudio: {
+        detect: vi.fn().mockResolvedValue({ ok: false, error: 'Open a project first.' }),
+        marketContext: vi.fn().mockResolvedValue({ ok: false, error: 'not configured' }),
+        tokenPreflight: vi.fn().mockResolvedValue({ ok: false, error: 'not configured' }),
+      },
       shell: { openExternal: vi.fn().mockResolvedValue(undefined) },
       aria: {
         send: vi.fn().mockResolvedValue({ ok: true, data: { text: 'ok' } }),
@@ -92,25 +121,25 @@ describe('DAEMON Lite shell', () => {
   it('gates on onboarding when the first-run flag is unset', async () => {
     render(<LiteApp />)
     expect(await screen.findByText('Your AI coding agent.')).toBeTruthy()
-    expect(screen.queryByText('New Agent')).toBeNull()
+    expect(screen.queryByText('New chat')).toBeNull()
   })
 
   it('renders the home shell (sidebar, composer, quick actions) once onboarded', async () => {
     onboardingComplete = true
     render(<LiteApp />)
-    expect(await screen.findByText('New Agent')).toBeTruthy()
-    expect(await screen.findByText('Explain code')).toBeTruthy()
-    expect(screen.getByPlaceholderText(/Ask anything/)).toBeTruthy()
+    expect(await screen.findByText('New chat')).toBeTruthy()
+    expect(await screen.findByText('What are we building?')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Message DAEMON')).toBeTruthy()
     await waitFor(() => expect(screen.getByText('First chat')).toBeTruthy())
   })
 
   it('quick actions prefill the composer', async () => {
     onboardingComplete = true
     render(<LiteApp />)
-    fireEvent.click(await screen.findByText('Debug an error'))
+    fireEvent.click(await screen.findByText('Debug a failure'))
     await waitFor(() => {
-      const input = screen.getByPlaceholderText(/Ask anything/) as HTMLTextAreaElement
-      expect(input.value).toContain('Help me debug this error')
+      const input = screen.getByPlaceholderText('Message DAEMON') as HTMLTextAreaElement
+      expect(input.value).toContain('Help me debug the current build or test failure')
     })
   })
 

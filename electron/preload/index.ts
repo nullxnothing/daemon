@@ -551,6 +551,12 @@ contextBridge.exposeInMainWorld('daemon', {
     popoutOpen: (url: string) => ipcRenderer.invoke('lite:popout-open', url),
   },
 
+  memeStudio: {
+    detect: (projectPath: string) => ipcRenderer.invoke('meme-studio:detect', projectPath),
+    marketContext: (mint: string) => ipcRenderer.invoke('meme-studio:market-context', mint),
+    tokenPreflight: (mint: string) => ipcRenderer.invoke('meme-studio:token-preflight', mint),
+  },
+
   pumpfun: {
     bondingCurve: (mint: string) => ipcRenderer.invoke('pumpfun:bonding-curve', mint),
     createToken: (input: object) => ipcRenderer.invoke('pumpfun:create-token', input),

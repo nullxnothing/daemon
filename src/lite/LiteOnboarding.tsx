@@ -30,7 +30,7 @@ export function LiteOnboarding({ onDone }: { onDone: () => void }) {
     const trimmed = key.trim()
     if (!trimmed || busy) return
     if (provider === 'anthropic' && !trimmed.startsWith('sk-ant-')) {
-      setError('That does not look like an Anthropic key — it should start with sk-ant-.')
+      setError('That does not look like an Anthropic key. It should start with sk-ant-.')
       return
     }
     setBusy(true)
@@ -50,17 +50,32 @@ export function LiteOnboarding({ onDone }: { onDone: () => void }) {
     }
   }
 
+  const continueWithoutAi = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const done = await window.daemon.lite.setOnboardingComplete(true)
+      if (!done.ok) throw new Error(done.error ?? 'Could not save setup state')
+      onDone()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className={styles.screen}>
       <div className={styles.card}>
         <div className={styles.brand}>
           <span className={styles.mark}><DaemonMark /></span>
-          <span className={styles.name}>DAEMON Lite</span>
+          <span className={styles.name}>DAEMON</span>
         </div>
         <h1 className={styles.headline}>Your AI coding agent.</h1>
         <p className={styles.sub}>
           Paste an API key to start. It is encrypted with your OS keychain and stored only on
-          this device — it goes nowhere except your AI provider.
+          this device. It goes nowhere except your AI provider.
         </p>
 
         <SegmentedControl<ProviderChoice>
@@ -78,6 +93,7 @@ export function LiteOnboarding({ onDone }: { onDone: () => void }) {
           type="password"
           value={key}
           placeholder={meta.placeholder}
+          aria-label={`${provider === 'anthropic' ? 'Anthropic' : 'GLM'} API key`}
           autoFocus
           onChange={(e) => { setKey(e.currentTarget.value); setError(null) }}
           onKeyDown={(e) => { if (e.key === 'Enter') void start() }}
@@ -87,6 +103,10 @@ export function LiteOnboarding({ onDone }: { onDone: () => void }) {
 
         <button type="button" className={styles.start} disabled={busy || !key.trim()} onClick={() => void start()}>
           {busy ? 'Checking key…' : 'Start chatting'}
+        </button>
+
+        <button type="button" className={styles.help} disabled={busy} onClick={() => void continueWithoutAi()}>
+          Continue without AI
         </button>
 
         <button

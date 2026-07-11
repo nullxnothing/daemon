@@ -30,7 +30,8 @@ export function LiteChat({ draft, onDraftChange, onSend }: LiteChatProps) {
             value={draft}
             onChange={onDraftChange}
             onSend={onSend}
-            placeholder="Reply…"
+            placeholder="Message DAEMON"
+            ariaLabel="Message DAEMON"
             disabled={isLoading}
           />
         </div>

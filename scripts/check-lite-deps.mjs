@@ -16,16 +16,13 @@ const require = createRequire(import.meta.url)
 const { liteRuntimePackages } = require('./lite-deps.cjs')
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
-// Electron 41's runtime compresses to ~90MB alone; the app payload (36MB asar)
-// adds ~15MB. 110MB is the practical NSIS floor for this Electron major.
-const MAX_INSTALLER_BYTES = 110 * 1024 * 1024
+// Lite now intentionally ships the native PTY and will bundle Monaco/xterm for
+// its focused workbench. Keep headroom for that IDE substrate while continuing
+// to reject unrelated full-DAEMON dependency growth.
+const MAX_INSTALLER_BYTES = 160 * 1024 * 1024
 
 const BANNED = [
   '@raydium-io/raydium-sdk-v2',
-  'monaco-editor',
-  '@monaco-editor/react',
-  'node-pty',
-  '@xterm/xterm',
   'pyright',
   'typescript-language-server',
   'playwright',
@@ -33,7 +30,7 @@ const BANNED = [
   'viem',
   'ethers',
 ]
-const BANNED_PREFIXES = ['@metaplex-foundation/', '@meteora-ag/', '@xterm/', '@playwright/']
+const BANNED_PREFIXES = ['@metaplex-foundation/', '@meteora-ag/', '@playwright/']
 
 const packages = liteRuntimePackages()
 const banned = packages.filter(
@@ -50,7 +47,7 @@ if (banned.length > 0) {
 console.log(`[lite-gate] closure ok — ${packages.length} runtime packages, none banned`)
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
-const installer = path.join(ROOT, 'release-lite', pkg.version, 'DAEMON-Lite-setup.exe')
+const installer = path.join(ROOT, 'release-lite', pkg.version, 'DAEMON-setup.exe')
 if (fs.existsSync(installer)) {
   const bytes = fs.statSync(installer).size
   const mb = (bytes / 1024 / 1024).toFixed(1)

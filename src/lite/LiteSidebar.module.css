@@ -143,7 +143,8 @@
   cursor: pointer;
 }
 
-.sessionRow:hover .sessionDelete {
+.sessionRow:hover .sessionDelete,
+.sessionRow:focus-within .sessionDelete {
   visibility: visible;
 }
 
@@ -254,4 +255,70 @@
 .gear[aria-pressed='true'] {
   color: var(--t1);
   background: var(--wash);
+}
+
+@media (max-width: 640px) {
+  .nav {
+    padding-inline: 7px;
+  }
+
+  .navRow {
+    justify-content: center;
+    gap: 0;
+    min-height: 34px;
+    padding-inline: 0;
+    font-size: 0;
+  }
+
+  .navIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .search {
+    width: calc(100% - 4px);
+    margin-inline: 2px;
+    padding-inline: 5px;
+    font-size: var(--fs-10);
+  }
+
+  .sectionLabel,
+  .sessions,
+  .idePill,
+  .accountName {
+    display: none;
+  }
+
+  .tools {
+    margin-top: auto;
+    padding-inline: 7px;
+  }
+
+  .toolsHeader {
+    justify-content: center;
+    min-height: 32px;
+    padding-inline: 0;
+    font-size: 0;
+  }
+
+  .toolsCaret {
+    width: 14px;
+    height: 14px;
+  }
+
+  .footer {
+    align-items: center;
+    padding-inline: 7px;
+  }
+
+  .accountRow {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .gear {
+    min-width: 34px;
+    min-height: 34px;
+    justify-content: center;
+  }
 }

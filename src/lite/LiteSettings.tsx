@@ -71,10 +71,11 @@ export function LiteSettings({ onBack }: { onBack: () => void }) {
             return (
               <div key={keyName} className={styles.keyRow}>
                 <div className={styles.keyMeta}>
-                  <span className={styles.keyLabel}>{label}</span>
+                  <label className={styles.keyLabel} htmlFor={`lite-key-${keyName}`}>{label}</label>
                   {stored ? <span className={styles.keyHint}>saved ····{stored.hint}</span> : null}
                 </div>
                 <input
+                  id={`lite-key-${keyName}`}
                   className={styles.keyInput}
                   type="password"
                   value={drafts[keyName] ?? ''}
@@ -97,6 +98,13 @@ export function LiteSettings({ onBack }: { onBack: () => void }) {
         </section>
 
         <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Solana data</h2>
+          <p className={styles.sectionSub}>
+            Wallet addresses stay watch-only. Direct Helius configuration is not available in this build yet.
+          </p>
+        </section>
+
+        <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Model</h2>
           <p className={styles.sectionSub}>Default model for new messages.</p>
           <ModelDropdown />
@@ -105,14 +113,7 @@ export function LiteSettings({ onBack }: { onBack: () => void }) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>About</h2>
           <div className={styles.aboutRow}>
-            <span>DAEMON Lite {version ? `v${version}` : ''}</span>
-            <button
-              type="button"
-              className={styles.ideBtn}
-              onClick={() => void window.daemon.lite.openInIde()}
-            >
-              Get the full DAEMON IDE ↗
-            </button>
+            <span>DAEMON {version ? `v${version}` : ''}</span>
           </div>
         </section>
       </div>

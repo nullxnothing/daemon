@@ -947,6 +947,16 @@ declare global {
     popoutOpen: (url: string) => Promise<IpcResponse<{ opened: boolean }>>
   }
 
+  type MemeTechProjectProfile = import('../../electron/services/meme-studio/types').MemeTechProjectProfile
+  type MemeMarketSnapshot = import('../../electron/services/meme-studio/types').MemeMarketSnapshot
+  type TokenRiskPreflight = import('../../electron/services/meme-studio/types').TokenRiskPreflight
+
+  interface DaemonMemeStudio {
+    detect: (projectPath: string) => Promise<IpcResponse<MemeTechProjectProfile>>
+    marketContext: (mint: string) => Promise<IpcResponse<MemeMarketSnapshot>>
+    tokenPreflight: (mint: string) => Promise<IpcResponse<TokenRiskPreflight>>
+  }
+
   interface DaemonPumpFun {
     bondingCurve: (mint: string) => Promise<IpcResponse<{
       mint: string
@@ -1846,6 +1856,7 @@ declare global {
     shipline: DaemonShipline
     shell: DaemonShell
     lite: DaemonLite
+    memeStudio: DaemonMemeStudio
     pumpfun: DaemonPumpFun
     proof: DaemonProof
     email: DaemonEmail
@@ -1996,7 +2007,7 @@ declare global {
       testValidator: { installed: boolean; version: string | null }
       litesvm: { installed: boolean; source: 'project' | 'none' }
     }>>
-    detectProject: (projectPath: string) => Promise<IpcResponse<{ isSolanaProject: boolean; framework: string | null; indicators: string[]; suggestedMcps: string[] }>>
+    detectProject: (projectPath: string) => Promise<IpcResponse<import('../../electron/services/SolanaDetector').SolanaProjectInfo>>
     onStatusChange: (callback: (state: unknown) => void) => () => void
   }
 

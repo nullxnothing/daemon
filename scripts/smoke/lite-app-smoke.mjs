@@ -17,7 +17,7 @@ const repoRoot = path.resolve(__dirname, '..', '..')
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'))
 const defaultExePath = path.join(
   repoRoot, 'release-lite', pkg.version, 'win-unpacked',
-  process.platform === 'win32' ? 'DAEMON Lite.exe' : 'DAEMON Lite',
+  process.platform === 'win32' ? 'DAEMON.exe' : 'DAEMON',
 )
 const packagedExe = process.env.DAEMON_PACKAGED_EXE || defaultExePath
 

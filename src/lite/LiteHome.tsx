@@ -55,7 +55,8 @@ export function LiteHome({ draft, onDraftChange, onSend, onQuickAction }: LiteHo
           value={draft}
           onChange={onDraftChange}
           onSend={onSend}
-          placeholder="Ask anything — paste code, an error, or an idea…"
+          placeholder="Ask anything. Paste code, an error, or an idea…"
+          ariaLabel="Message ARIA"
           autoFocus
         />
         <div className={styles.actions}>

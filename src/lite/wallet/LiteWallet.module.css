@@ -3,6 +3,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  container-type: inline-size;
 }
 
 .iconBtn {
@@ -26,6 +27,10 @@
 .notice {
   margin: 12px 24px 0;
   padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border: 1px solid color-mix(in srgb, var(--accent-amber) 30%, transparent);
   border-radius: 7px;
   background: var(--accent-amber-glow);
@@ -33,13 +38,33 @@
   font-size: var(--fs-11);
 }
 
+.noticeAction {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-10);
+  cursor: pointer;
+}
+
+.noticeAction:hover {
+  background: color-mix(in srgb, var(--accent-amber) 12%, transparent);
+}
+
 .body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 16px;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
   padding: 16px 24px 24px;
+  box-sizing: border-box;
 }
 
 .walletList {
@@ -48,6 +73,10 @@
   gap: 4px;
   min-height: 0;
   overflow-y: auto;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
 }
 
 .listHead {
@@ -171,6 +200,17 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.holdings > .empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
 }
 
 .holdingsHead {
@@ -243,4 +283,31 @@
   padding: 16px 4px;
   font-size: var(--fs-12);
   color: var(--t4);
+}
+
+@container (max-width: 760px) {
+  .notice {
+    margin-inline: 14px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .walletList {
+    max-height: 220px;
+  }
+
+  .holdingsAddr {
+    overflow-wrap: anywhere;
+  }
+}
+
+@container (max-width: 460px) {
+  .noticeAction { width: 100%; min-height: 32px; }
+  .walletList, .holdings { padding: 12px; }
+  .holdingsHead { gap: 12px; }
 }

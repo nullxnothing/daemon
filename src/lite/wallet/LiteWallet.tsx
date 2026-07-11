@@ -12,7 +12,7 @@ function usd(n: number): string {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-// Base58 sanity check — full validation happens main-side in ValidationService.
+// Base58 sanity check; full validation happens main-side in ValidationService.
 const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
 
 interface LiteWalletProps {
@@ -70,7 +70,7 @@ export function LiteWallet({ onAskAria }: LiteWalletProps) {
       <LiteToolHeader
         icon={WalletIcon}
         title="Wallet"
-        subtitle="Watch balances and holdings. Read-only unless you create a wallet."
+        subtitle="Watch balances and holdings. Addresses stay watch-only."
         action={
           <button type="button" className={styles.iconBtn} title="Refresh" aria-label="Refresh" onClick={() => void refresh()}>
             <ArrowClockwise size={15} aria-hidden="true" />
@@ -80,7 +80,7 @@ export function LiteWallet({ onAskAria }: LiteWalletProps) {
 
       {!dashboard?.heliusConfigured ? (
         <div className={styles.notice}>
-          Add a Helius API key in Settings to load live balances.
+          <span>Live balances require a Helius key. Direct configuration is not available in this build yet.</span>
         </div>
       ) : null}
 
@@ -95,8 +95,8 @@ export function LiteWallet({ onAskAria }: LiteWalletProps) {
 
           {adding ? (
             <div className={styles.addForm}>
-              <input className={styles.input} placeholder="Address (base58)" value={addr} onChange={(e) => setAddr(e.currentTarget.value)} />
-              <input className={styles.input} placeholder="Label (optional)" value={name} onChange={(e) => setName(e.currentTarget.value)} />
+              <input className={styles.input} aria-label="Watch address" placeholder="Address (base58)" value={addr} onChange={(e) => setAddr(e.currentTarget.value)} />
+              <input className={styles.input} aria-label="Wallet label" placeholder="Label (optional)" value={name} onChange={(e) => setName(e.currentTarget.value)} />
               {error ? <div className={styles.error}>{error}</div> : null}
               <button type="button" className={styles.primaryBtn} onClick={() => void addWatch()}>Add watch wallet</button>
             </div>
@@ -104,7 +104,7 @@ export function LiteWallet({ onAskAria }: LiteWalletProps) {
 
           {loading && !dashboard ? (
             <div className={styles.empty}>Loading…</div>
-          ) : dashboard && dashboard.wallets.length === 0 ? (
+          ) : dashboard && dashboard.wallets.length === 0 && !adding ? (
             <div className={styles.empty}>No wallets yet. Add one to watch its balance.</div>
           ) : (
             dashboard?.wallets.map((w) => (
@@ -150,7 +150,7 @@ export function LiteWallet({ onAskAria }: LiteWalletProps) {
                       <tr key={h.mint}>
                         <td>{h.symbol || shortAddr(h.mint)}</td>
                         <td>{h.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
-                        <td>{h.priceUsd ? usd(h.priceUsd) : '—'}</td>
+                        <td>{h.priceUsd ? usd(h.priceUsd) : 'Not priced'}</td>
                         <td>{usd(h.valueUsd)}</td>
                       </tr>
                     ))
@@ -159,7 +159,7 @@ export function LiteWallet({ onAskAria }: LiteWalletProps) {
               </table>
             </>
           ) : (
-            <div className={styles.empty}>Select a wallet to see its holdings.</div>
+            <div className={styles.empty}>{dashboard?.wallets.length ? 'Select a wallet to see its holdings.' : 'Add a watch-only address to see balances and token holdings here.'}</div>
           )}
         </div>
       </div>

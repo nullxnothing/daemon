@@ -1,0 +1,79 @@
+.studio { min-height: 0; overflow: auto; padding: 28px; container-type: inline-size; background: radial-gradient(circle at 18% 0%, rgba(62,207,142,.07), transparent 35%), var(--bg-app); }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, 260px); gap: 28px; align-items: end; max-width: 1180px; margin: 0 auto 24px; }
+.eyebrow, .patternLabel { color: var(--accent); font-size: var(--fs-10); letter-spacing: .14em; }
+.hero h1 { margin: 8px 0 6px; max-width: 720px; color: var(--t1); font-size: clamp(24px, 3vw, 38px); line-height: 1; letter-spacing: -.04em; }
+.hero p { margin: 0; max-width: 650px; color: var(--t3); font-size: var(--fs-12); }
+.principle { padding: 12px; border: 1px solid var(--border-hover); background: var(--bg-panel); }
+.principle strong, .principle span { display: block; }
+.principle strong { color: var(--warning); font-size: var(--fs-12); }
+.principle span { margin-top: 4px; color: var(--t4); font-size: var(--fs-10); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 1180px; margin: auto; }
+.card { min-width: 0; padding: 16px; border: 1px solid var(--border); background: color-mix(in srgb, var(--bg-panel) 96%, var(--accent)); }
+.card > header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.card > header > span { color: var(--accent); font: 600 var(--fs-10) var(--font-mono); }
+.card h2 { margin: 0; color: var(--t1); font-size: var(--fs-14); }
+.wide { grid-column: 1 / -1; }
+.empty { min-height: 110px; display: grid; place-items: center; color: var(--t4); }
+.profileHeadline, .tokenTitle, .riskHeader { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.profileHeadline strong, .tokenTitle strong { color: var(--t1); font-size: var(--fs-16); }
+.profileHeadline span, .tokenTitle span, .timestamp { color: var(--t4); font-size: var(--fs-10); }
+.tags, .benchmarks { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+.tags span, .benchmarks button { padding: 3px 7px; border: 1px solid var(--border); background: transparent; color: var(--t3); font: inherit; font-size: var(--fs-10); }
+.benchmarks button { cursor: pointer; }
+.findings { display: grid; gap: 7px; padding: 0; list-style: none; }
+.findings li { display: grid; gap: 2px; padding-left: 9px; border-left: 2px solid var(--accent); }
+.findings strong { color: var(--t2); font-size: var(--fs-11); }
+.findings small { color: var(--t4); font: var(--fs-10) var(--font-mono); }
+.gap, .warning, .error { display: flex; gap: 8px; margin-top: 7px; padding: 8px; border: 1px solid var(--border); background: var(--bg-app); }
+.gap span { color: var(--warning); font-size: var(--fs-9); text-transform: uppercase; }
+.gap p { margin: 0; color: var(--t3); font-size: var(--fs-10); }
+.mintLabel { display: block; margin-bottom: 5px; color: var(--t4); font-size: var(--fs-10); text-transform: uppercase; }
+.lookup { display: grid; grid-template-columns: 1fr auto; }
+.lookup input { min-width: 0; border: 1px solid var(--border-hover); background: var(--bg-app); color: var(--t1); padding: 8px; font: var(--fs-10) var(--font-mono); }
+.lookup input, .lookup button { min-height: var(--input-h); }
+.lookup button { border: 1px solid var(--accent); background: var(--accent); color: var(--bg-app); padding: 0 14px; font: 600 var(--fs-11) var(--font-ui); cursor: pointer; }
+.lookup button:disabled { opacity: .55; cursor: wait; }
+.lookup input:focus-visible, .lookup button:focus-visible, .benchmarks button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.error { color: var(--red); font-size: var(--fs-10); }
+.tokenTitle { margin-top: 16px; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 9px; background: var(--border); }
+.metrics div { display: grid; gap: 3px; padding: 9px; background: var(--bg-app); }
+.metrics span, .fact span { color: var(--t4); font-size: var(--fs-9); text-transform: uppercase; }
+.metrics strong { color: var(--t1); font: 600 var(--fs-12) var(--font-mono); }
+.timestamp { margin: 8px 0 0; }
+.warning { color: var(--warning); font-size: var(--fs-10); }
+.preflight { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.riskHeader > span { color: var(--t3); font-size: var(--fs-10); letter-spacing: .08em; }
+.riskHeader strong { font-size: var(--fs-10); text-transform: uppercase; }
+.riskHeader strong[data-risk='high'] { color: var(--red); }
+.riskHeader strong[data-risk='review'] { color: var(--warning); }
+.fact { display: flex; justify-content: space-between; margin-top: 7px; }
+.fact strong { color: var(--t2); font-size: var(--fs-10); }
+.fact strong[data-status='danger'] { color: var(--red); }
+.fact strong[data-status='warning'] { color: var(--warning); }
+.fact strong[data-status='good'] { color: var(--success); }
+.patterns { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.patterns > div + div { padding-left: 28px; border-left: 1px solid var(--border); }
+.patterns h3 { margin: 5px 0; color: var(--t1); font-size: var(--fs-16); }
+.patterns p, .patterns li { color: var(--t3); font-size: var(--fs-11); line-height: 1.5; }
+.patterns ul { margin: 8px 0 0; padding-left: 16px; }
+@container (max-width: 860px) {
+  .studio { padding: 18px; }
+  .hero { grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
+  .hero h1 { max-width: 560px; font-size: clamp(26px, 6cqi, 34px); }
+  .principle { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; }
+  .principle span { margin-top: 0; }
+  .grid { grid-template-columns: 1fr; }
+  .wide { grid-column: auto; }
+}
+
+@container (max-width: 560px) {
+  .studio { padding: 14px; }
+  .hero h1 { font-size: 27px; line-height: 1.02; }
+  .principle { grid-template-columns: 1fr; gap: 2px; }
+  .patterns { grid-template-columns: 1fr; }
+  .patterns > div + div { padding: 18px 0 0; border-left: 0; border-top: 1px solid var(--border); }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .lookup { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .lookup button { min-height: 34px; }
+}

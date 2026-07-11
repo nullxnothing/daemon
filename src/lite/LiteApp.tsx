@@ -1,25 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAriaStore } from '../store/aria'
 import { LiteSidebar } from './LiteSidebar'
-import { LiteHome } from './LiteHome'
-import { LiteChat } from './LiteChat'
 import { LiteSettings } from './LiteSettings'
 import { LiteOnboarding } from './LiteOnboarding'
 import { LiteWallet } from './wallet/LiteWallet'
 import { LiteTrade } from './trade/LiteTrade'
 import { LiteScanner } from './scanner/LiteScanner'
+import { LiteWorkbench } from './workbench/LiteWorkbench'
 import '../panels/AgentWorkbench/AgentWorkbench.css'
 import styles from './LiteApp.module.css'
 
-export type LiteView = 'chat' | 'settings' | 'wallet' | 'trade' | 'scanner'
+export type LiteView = 'workspace' | 'settings' | 'wallet' | 'trade' | 'scanner'
 
 export default function LiteApp() {
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
-  const [view, setView] = useState<LiteView>('chat')
+  const [view, setView] = useState<LiteView>('workspace')
   const [showTools, setShowTools] = useState(false)
   const [draft, setDraft] = useState('')
+  const [conversationResetKey, setConversationResetKey] = useState(0)
   const mainRef = useRef<HTMLElement | null>(null)
-  const turns = useAriaStore((s) => s.turns)
 
   useEffect(() => {
     void window.daemon.lite.isOnboardingComplete().then((res) => {
@@ -48,7 +47,7 @@ export default function LiteApp() {
   }, [])
 
   const prefillDraft = useCallback((text: string) => {
-    setView('chat')
+    setView('workspace')
     setDraft(text)
     focusComposer()
   }, [focusComposer])
@@ -70,12 +69,10 @@ export default function LiteApp() {
 
   if (onboarded === null) return null
 
-  const showHome = view === 'chat' && turns.length === 0
-
   return (
     <div className={styles.app}>
       <div className={styles.titlebar}>
-        <span className={styles.titlebarText}>DAEMON Lite</span>
+        <span className={styles.titlebarText}>Daemon</span>
       </div>
       {!onboarded ? (
         <LiteOnboarding onDone={() => setOnboarded(true)} />
@@ -86,28 +83,29 @@ export default function LiteApp() {
             showTools={showTools}
             onToggleTools={toggleTools}
             onNewAgent={() => {
-              setView('chat')
+              setView('workspace')
               setDraft('')
+              setConversationResetKey((value) => value + 1)
               void useAriaStore.getState().newChat()
               focusComposer()
             }}
             onSelectView={setView}
-            onOpenSettings={() => setView(view === 'settings' ? 'chat' : 'settings')}
-            onPickSession={() => setView('chat')}
+            onOpenSettings={() => setView(view === 'settings' ? 'workspace' : 'settings')}
+            onPickSession={() => { setView('workspace'); setConversationResetKey((value) => value + 1) }}
           />
           <main ref={mainRef} className={styles.main}>
-            {view === 'settings' ? (
-              <LiteSettings onBack={() => setView('chat')} />
+            {view === 'workspace' ? (
+              <LiteWorkbench draft={draft} onDraftChange={setDraft} onSend={sendDraft} conversationResetKey={conversationResetKey} />
+            ) : view === 'settings' ? (
+              <LiteSettings onBack={() => setView('workspace')} />
             ) : view === 'wallet' ? (
               <LiteWallet onAskAria={prefillDraft} />
             ) : view === 'trade' ? (
               <LiteTrade onAskAria={prefillDraft} />
             ) : view === 'scanner' ? (
               <LiteScanner onAskAria={prefillDraft} />
-            ) : showHome ? (
-              <LiteHome draft={draft} onDraftChange={setDraft} onSend={sendDraft} onQuickAction={prefillDraft} />
             ) : (
-              <LiteChat draft={draft} onDraftChange={setDraft} onSend={sendDraft} />
+              <LiteWorkbench draft={draft} onDraftChange={setDraft} onSend={sendDraft} conversationResetKey={conversationResetKey} />
             )}
           </main>
         </div>

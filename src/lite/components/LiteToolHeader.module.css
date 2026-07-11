@@ -37,3 +37,15 @@
 .action {
   flex-shrink: 0;
 }
+
+@container (max-width: 460px) {
+  .header {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .subtitle {
+    line-height: 1.4;
+  }
+}

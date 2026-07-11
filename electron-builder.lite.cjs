@@ -1,5 +1,5 @@
 /**
- * DAEMON Lite packaging — separate installer that coexists with full DAEMON.
+ * Canonical DAEMON packaging for the focused agent workbench.
  * files is a computed WHITELIST (see scripts/lite-deps.cjs): only the runtime
  * dependency closure of the built lite bundles ships. No publish block and no
  * auto-update in v1 — the two apps must never cross-update.
@@ -7,8 +7,8 @@
 const { liteExcludePatterns } = require('./scripts/lite-deps.cjs')
 
 module.exports = {
-  appId: 'com.daemon.lite',
-  productName: 'DAEMON Lite',
+  appId: 'com.daemon.app',
+  productName: 'DAEMON',
   asar: true,
   npmRebuild: false,
   compression: 'maximum',
@@ -34,6 +34,7 @@ module.exports = {
   electronLanguages: ['en-US'],
   asarUnpack: [
     'node_modules/better-sqlite3/**',
+    'node_modules/node-pty/**',
   ],
   win: {
     icon: 'resources/icon.ico',
@@ -43,7 +44,7 @@ module.exports = {
         arch: ['x64'],
       },
     ],
-    artifactName: 'DAEMON-Lite-setup.${ext}',
+    artifactName: 'DAEMON-setup.${ext}',
   },
   nsis: {
     oneClick: false,

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
-import { ArrowUp, ChatCircle } from '@phosphor-icons/react'
+import { ArrowUp } from '@phosphor-icons/react'
 import { ModelDropdown } from '../components/Panel'
 import styles from './LiteComposer.module.css'
 
@@ -9,13 +9,14 @@ interface LiteComposerProps {
   onChange: (value: string) => void
   onSend: () => void
   placeholder?: string
+  ariaLabel?: string
   disabled?: boolean
   autoFocus?: boolean
 }
 
 /** Cursor-style composer: large rounded card, textarea on top, mode chip +
  *  model picker + send arrow on the bottom row. */
-export function LiteComposer({ value, onChange, onSend, placeholder, disabled, autoFocus }: LiteComposerProps) {
+export function LiteComposer({ value, onChange, onSend, placeholder, ariaLabel = 'Message ARIA', disabled, autoFocus }: LiteComposerProps) {
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
@@ -35,16 +36,13 @@ export function LiteComposer({ value, onChange, onSend, placeholder, disabled, a
         className={styles.input}
         value={value}
         placeholder={placeholder ?? 'Ask anything…'}
+        aria-label={ariaLabel}
         disabled={disabled}
         rows={2}
         onChange={(event) => onChange(event.currentTarget.value)}
         onKeyDown={handleKeyDown}
       />
       <div className={styles.row}>
-        <span className={styles.modeChip}>
-          <ChatCircle size={12} weight="bold" aria-hidden="true" />
-          Agent
-        </span>
         <ModelDropdown className={styles.model} />
         <span className={styles.spacer} />
         <button
