@@ -113,12 +113,21 @@ async function waitForFile(expected, timeoutMs = 10_000) {
   assert.equal(readFileSync(readmePath, 'utf8'), expected, 'Ctrl+S did not save the edited README')
 }
 
-async function runTerminalCommand(page, command, expected) {
+async function waitForTerminalText(page, expected, timeout = 60_000) {
+  await page.waitForFunction(
+    (needle) => document.querySelector('.xterm-rows')?.textContent?.includes(needle),
+    expected,
+    { timeout },
+  )
+}
+
+async function runTerminalCommand(page, command, completionMarker) {
   const input = page.locator('.xterm-helper-textarea').first()
   await input.focus()
   await page.keyboard.type(command)
   await page.keyboard.press('Enter')
-  await page.waitForFunction((needle) => document.querySelector('.xterm-rows')?.textContent?.includes(needle), expected, { timeout: 20_000 })
+  await waitForTerminalText(page, completionMarker)
+  return page.locator('.xterm-rows').first().textContent()
 }
 
 async function run() {
@@ -192,13 +201,28 @@ async function run() {
   logStep('creating a project terminal and running Node')
   await page.getByRole('button', { name: 'Terminal', exact: true }).click()
   await page.getByRole('button', { name: 'New terminal' }).click()
-  await page.locator('.xterm-helper-textarea').first().waitFor({ timeout: 20_000 })
-  await runTerminalCommand(page, 'node -p "process.cwd()"', projectDir)
-  await runTerminalCommand(page, 'node --version', `v${process.versions.node.split('.')[0]}.`)
+  await page.locator('.xterm-helper-textarea').first().waitFor({ timeout: 60_000 })
+  await waitForTerminalText(page, 'PS ')
+  const cwdOutput = await runTerminalCommand(
+    page,
+    'Write-Output ("__DAEMON_" + "CWD__" + (Get-Location).Path)',
+    '__DAEMON_CWD__',
+  )
+  assert.ok(cwdOutput?.toLowerCase().includes(projectDir.toLowerCase()), `terminal cwd did not match ${projectDir}`)
+  const nodeOutput = await runTerminalCommand(
+    page,
+    'node --version; Write-Output ("__DAEMON_" + "NODE_DONE__")',
+    '__DAEMON_NODE_DONE__',
+  )
+  assert.ok(nodeOutput?.includes(`v${process.versions.node.split('.')[0]}.`), 'terminal Node version did not match the release runtime')
   await page.screenshot({ path: path.join(outputDir, 'lite-simple-terminal-desktop.png'), fullPage: true })
   await page.setViewportSize({ width: 820, height: 720 })
   await page.waitForTimeout(500)
-  await runTerminalCommand(page, 'Write-Output "PS C:\\ compact terminal ready"', 'PS C:\\ compact terminal ready')
+  await runTerminalCommand(
+    page,
+    'Write-Output ("__DAEMON_" + "COMPACT_READY__")',
+    '__DAEMON_COMPACT_READY__',
+  )
   await page.screenshot({ path: path.join(outputDir, 'lite-simple-terminal-compact.png'), fullPage: true })
   await page.setViewportSize({ width: 1440, height: 900 })
 

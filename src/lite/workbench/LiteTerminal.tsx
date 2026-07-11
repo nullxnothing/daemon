@@ -21,9 +21,9 @@ function TerminalViewport({ id, isVisible }: { id: string; isVisible: boolean })
     terminal.loadAddon(fit)
     terminal.open(container)
     fit.fit()
-    window.daemon.terminal.ready(id, terminal.cols, terminal.rows)
     const input = terminal.onData((data) => window.daemon.terminal.write(id, data))
     const output = window.daemon.terminal.onData((payload) => { if (payload.id === id) terminal.write(payload.data) })
+    window.daemon.terminal.ready(id, terminal.cols, terminal.rows)
     let resizeFrame = 0
     let lastSize = `${terminal.cols}x${terminal.rows}`
     const observer = new ResizeObserver(() => {
