@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-# The Vite/tsc production build peaks past Node's ~2GB default heap on the hosted
-# runners (the macOS arm64 job OOM'd with exit 134 on v4.6.2). Give every job a
-# 4GB heap so the build can't run out of memory on any platform.
 env:
   NODE_OPTIONS: --max-old-space-size=4096
 
@@ -31,13 +28,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Verify tag matches package version
+        run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
       - run: pnpm run typecheck
       - run: pnpm run test
 
-  release-windows:
+  package-windows:
     runs-on: windows-latest
     needs: validate
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v6
         with:
@@ -49,168 +47,46 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Cache electron
+      - name: Cache Electron
         uses: actions/cache@v5
         with:
           path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
             ~\AppData\Local\electron\cache
             ~\AppData\Local\electron-builder\cache
           key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
+          restore-keys: electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - name: Package
+      - name: Build canonical DAEMON installer
+        shell: pwsh
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: pnpm run package:lite
+      - name: Packaged smoke
         shell: pwsh
         run: |
-          if ("${{ secrets.CSC_LINK }}") {
-            $env:CSC_LINK = "${{ secrets.CSC_LINK }}"
-          }
-          if ("${{ secrets.CSC_KEY_PASSWORD }}") {
-            $env:CSC_KEY_PASSWORD = "${{ secrets.CSC_KEY_PASSWORD }}"
-          }
-          pnpm exec electron-builder --publish never
-      - name: Generate checksums
+          node scripts/smoke/lite-app-smoke.mjs
+          node scripts/smoke/lite-workbench-smoke.mjs
+      - name: Generate checksum
         shell: pwsh
         run: |
-          Get-ChildItem -Path release -Recurse -File -Include DAEMON-setup.exe | ForEach-Object {
-            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
-            "$hash  $($_.Name)" | Out-File -Append -FilePath release/checksums-windows.txt
-          }
+          $installer = Get-ChildItem -Path release-lite -Recurse -File -Filter DAEMON-setup.exe | Select-Object -First 1
+          if (-not $installer) { throw 'DAEMON-setup.exe was not produced' }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($installer.Name)" | Out-File -FilePath release-lite/checksums-windows.txt
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-release
+          name: daemon-windows-release
           path: |
-            release/*/DAEMON-setup.exe
-            release/*/latest.yml
-            release/*/DAEMON-setup.exe.blockmap
-            release/checksums-windows.txt
-          retention-days: 1
-
-  release-macos:
-    runs-on: macos-latest
-    needs: validate
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Cache electron
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - name: Pre-cache Electron binaries
-        shell: bash
-        run: |
-          ELECTRON_VERSION="$(node -p "require('./package.json').devDependencies.electron.replace(/^[^0-9]*/, '')")"
-          ELECTRON_CACHE="$HOME/.cache/electron"
-          mkdir -p "$ELECTRON_CACHE"
-          for arch in arm64 x64; do
-            ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-darwin-${arch}.zip"
-            curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
-              --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
-              "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
-          done
-      - name: Package
-        run: |
-          if [ -n "${{ secrets.CSC_LINK }}" ]; then
-            export CSC_LINK="${{ secrets.CSC_LINK }}"
-          fi
-          if [ -n "${{ secrets.CSC_KEY_PASSWORD }}" ]; then
-            export CSC_KEY_PASSWORD="${{ secrets.CSC_KEY_PASSWORD }}"
-          fi
-          if [ -n "${{ secrets.APPLE_ID }}" ]; then
-            export APPLE_ID="${{ secrets.APPLE_ID }}"
-          fi
-          if [ -n "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ]; then
-            export APPLE_APP_SPECIFIC_PASSWORD="${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
-          fi
-          if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
-            export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
-          fi
-          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
-            echo "Notarization credentials found"
-          fi
-          pnpm exec electron-builder --mac dmg zip --arm64 --x64 --publish never
-      - name: Generate checksums
-        run: |
-          cd release
-          find . -name "*.dmg" -o -name "*.zip" | while read f; do
-            shasum -a 256 "$f" >> checksums-macos.txt
-          done
-      - uses: actions/upload-artifact@v7
-        with:
-          name: macos-release
-          path: |
-            release/*/DAEMON-*.dmg
-            release/*/DAEMON-*.zip
-            release/*/latest-mac.yml
-            release/*/DAEMON-*.blockmap
-            release/checksums-macos.txt
-          retention-days: 1
-
-  release-linux:
-    runs-on: ubuntu-latest
-    needs: validate
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Cache electron
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - run: pnpm exec electron-builder --publish never
-      - name: Generate checksums
-        run: |
-          cd release
-          find . -name "*.AppImage" | while read f; do
-            sha256sum "$f" >> checksums-linux.txt
-          done
-      - uses: actions/upload-artifact@v7
-        with:
-          name: linux-release
-          path: |
-            release/*/DAEMON.AppImage
-            release/*/latest-linux.yml
-            release/checksums-linux.txt
+            release-lite/*/DAEMON-setup.exe
+            release-lite/*/DAEMON-setup.exe.blockmap
+            release-lite/*/latest.yml
+            release-lite/checksums-windows.txt
           retention-days: 1
 
   publish:
     runs-on: ubuntu-latest
-    needs: [release-windows, release-macos, release-linux]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: package-windows
     permissions:
       actions: read
       contents: write
@@ -220,32 +96,27 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
-          name: windows-release
+          name: daemon-windows-release
           path: artifacts/windows
-      - uses: actions/download-artifact@v8
-        with:
-          name: macos-release
-          path: artifacts/macos
-      - uses: actions/download-artifact@v8
-        with:
-          name: linux-release
-          path: artifacts/linux
       - name: Generate changelog
-        id: changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          echo "## Changes" > changelog.md
-          echo "" >> changelog.md
-          git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD >> changelog.md
-          echo "" >> changelog.md
-          echo "" >> changelog.md
-          echo "## Checksums" >> changelog.md
+          echo '## DAEMON focused workbench' > changelog.md
+          echo '' >> changelog.md
+          echo '- Conversation-first Solana development shell' >> changelog.md
+          echo '- Project explorer, offline Monaco editor, and scoped terminal' >> changelog.md
+          echo '- Meme Tech repo intelligence and read-only market evidence' >> changelog.md
+          echo '- Guarded localnet/devnet workflows with no silent mainnet authority' >> changelog.md
+          echo '' >> changelog.md
+          echo '## Changes' >> changelog.md
+          git log --pretty=format:'- %s (%h)' "$PREV_TAG"..HEAD >> changelog.md
+          echo '' >> changelog.md
+          echo '' >> changelog.md
+          echo '## SHA-256' >> changelog.md
           echo '```' >> changelog.md
-          cat artifacts/windows/checksums-windows.txt 2>/dev/null >> changelog.md || true
-          cat artifacts/macos/checksums-macos.txt 2>/dev/null >> changelog.md || true
-          cat artifacts/linux/checksums-linux.txt 2>/dev/null >> changelog.md || true
+          cat artifacts/windows/checksums-windows.txt >> changelog.md
           echo '```' >> changelog.md
-      - name: Create GitHub Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
           body_path: changelog.md
@@ -253,14 +124,6 @@ jobs:
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
           files: |
             artifacts/windows/*/DAEMON-setup.exe
-            artifacts/windows/*/latest.yml
             artifacts/windows/*/DAEMON-setup.exe.blockmap
-            artifacts/macos/*/DAEMON-*.dmg
-            artifacts/macos/*/DAEMON-*.zip
-            artifacts/macos/*/latest-mac.yml
-            artifacts/macos/*/DAEMON-*.blockmap
-            artifacts/linux/*/DAEMON.AppImage
-            artifacts/linux/*/latest-linux.yml
+            artifacts/windows/*/latest.yml
             artifacts/windows/checksums-windows.txt
-            artifacts/macos/checksums-macos.txt
-            artifacts/linux/checksums-linux.txt

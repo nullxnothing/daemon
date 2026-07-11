@@ -213,7 +213,7 @@ async function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (SMOKE_TEST_MODE) console.log('[smoke] app:ready')
   getDb()
 
@@ -223,7 +223,17 @@ app.whenReady().then(() => {
     recordAppCrash('key-encryption-degraded', keyEncryptionWarning, `backend=${getStorageBackend() ?? 'n/a'}`)
   }
 
-  void createWindow()
+  await createWindow()
+
+  if (app.isPackaged && process.env.DAEMON_DISABLE_AUTO_UPDATE !== '1' && !SMOKE_TEST_MODE) {
+    const pkg = await import('electron-updater')
+    const { autoUpdater } = pkg.default
+    autoUpdater.on('error', (error: Error) => console.error('[AutoUpdater]', error.message))
+    void autoUpdater.checkForUpdatesAndNotify().catch((error: Error) => console.error('[AutoUpdater]', error.message))
+    setInterval(() => {
+      void autoUpdater.checkForUpdatesAndNotify().catch((error: Error) => console.error('[AutoUpdater]', error.message))
+    }, 4 * 60 * 60 * 1000)
+  }
 })
 
 app.on('before-quit', () => {

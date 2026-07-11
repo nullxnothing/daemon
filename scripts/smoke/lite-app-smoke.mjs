@@ -90,7 +90,7 @@ async function main() {
   await page.reload()
 
   logStep('waiting for home shell')
-  await page.waitForSelector('text=New Agent', { timeout: 30000 })
+  await page.waitForSelector('text=New chat', { timeout: 30000 })
   await page.waitForSelector('textarea', { timeout: 15000 })
 
   logStep('checking aria:models round-trip')

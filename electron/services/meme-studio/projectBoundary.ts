@@ -16,7 +16,7 @@ export async function registeredProjectRoot(projectPath: string): Promise<string
     const root = await fs.realpath(path.resolve(row.path)).catch(() => null)
     if (root && normalize(root) === normalize(requested)) return root
   }
-  throw new Error('Project is not registered in DAEMON Lite')
+  throw new Error('Project is not registered in DAEMON')
 }
 
 export function safeProjectPath(root: string, relativePath: string): string {

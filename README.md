@@ -30,7 +30,7 @@
 
 **[Frontier demo runbook](FRONTIER_SUBMISSION.md#2-minute-demo-runbook)** — 2-minute submission flow from project open to devnet settlement.
 
-DAEMON is a standalone Electron workbench for serious Solana builders, auditors, and technical operators. It gives agents project context and typed tools without handing them silent authority over code, Git, keys, or funds. It is not a VS Code fork.
+DAEMON is a focused Windows workbench for Solana builders who want one persistent AI conversation beside real project files, a scoped terminal, guarded local workflows, and live meme-tech evidence. It is local-first and does not hand agents silent authority over code, keys, Git, or funds.
 
 ## How authority works
 
@@ -40,71 +40,41 @@ DAEMON is a standalone Electron workbench for serious Solana builders, auditors,
 
 The free tier stays free for local work and bring-your-own-key AI. Advanced trading, launch, and hosted AI surfaces are optional capability packs, not prerequisites for the core build loop.
 
-Just want the agent? **DAEMON Lite** is a separate, small (~106MB) Windows download: one chatbox, bring your own key, plus wallet, trade, and rug-scanner tools that route through the same approval gate. See [DAEMON Lite](#daemon-lite).
-
 ## Install
 
 **Windows:** Download the [latest .exe](https://github.com/nullxnothing/daemon/releases/latest/download/DAEMON-setup.exe)
 
 <a name="mac-install"></a>
 
-**Mac:** Build from source (signed builds configurable via Apple credentials):
+**Mac and Linux:** The canonical packaged release is currently Windows-only. Build the repository from source for development:
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
 cd daemon
 pnpm install
 pnpm run build
-pnpm run package
 ```
 
-The `.dmg` will be in `release/<version>/`. Signed/notarized builds require Apple Developer credentials in the packaging environment. Without them, the app will still package, but Gatekeeper may require right-click > Open on first launch.
-
-<a name="linux-install"></a>
-
-**Linux:** Build from source (AppImage builds coming soon):
+**Build the canonical Windows installer from source:**
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
 cd daemon
 pnpm install
-pnpm run build
-pnpm run package
-```
-
-The AppImage will be in `release/<version>/`. Make it executable with `chmod +x` and run directly.
-
-**Build from source (any platform):**
-
-```bash
-git clone https://github.com/nullxnothing/daemon.git
-cd daemon
-pnpm install
-pnpm run package
+pnpm run package:lite
 ```
 
 Requires **Node.js 22+** and **pnpm 9+**.
 
-<a name="daemon-lite"></a>
+The installer is written to `release-lite/<version>/DAEMON-setup.exe`.
 
-## DAEMON Lite
+## Focused workbench
 
-DAEMON Lite is a separate, focused download for people who just want the agent. It ships the ARIA chatbox and nothing else from the IDE: no editor, no terminal, no project system. Paste one API key (Anthropic or GLM/Z.AI), and start chatting. Keys are encrypted with your OS keychain and never leave the device.
-
-It is its own installer (`com.daemon.lite`, separate userData), so it coexists with the full DAEMON on the same machine. At ~106MB it is roughly half the size of the full app.
-
-Beyond chat, Lite carries a small set of DAEMON-focused tools that route through the same approval gate as the full app:
-
-- **Wallet** — watch balances and holdings read-only; create a wallet if you want one.
-- **Trade** — search tokens, keep a watchlist, and swap through ARIA. Swaps are typed-confirm and capped.
-- **Scanner** — a one-shot rug check (mint/freeze authority, snipers, bundles, cabal links) with an upsell to the full cabal map in the IDE.
-- **Pop-out browser** — a real browser pane for previews and dashboards, restricted to https and loopback.
-
-Build it from source:
-
-```bash
-pnpm run package:lite   # → release-lite/<version>/DAEMON-Lite-setup.exe
-```
+- **Conversation:** project-scoped sessions, bring-your-own-key models, and encrypted local credentials.
+- **Code:** bounded project import, recursive explorer, offline Monaco, dirty-file protection, and explicit save states.
+- **Terminal:** real project-scoped PTYs with visible exit and error states.
+- **Meme Tech:** repo topology, Birdeye and DEX market context, provider divergence, and read-only token-risk evidence.
+- **Wallet, Trade, Scanner:** optional tools behind the same guarded shell. Wallet addresses remain watch-only by default.
 
 ## Features
 

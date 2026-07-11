@@ -1,8 +1,7 @@
 /**
  * Canonical DAEMON packaging for the focused agent workbench.
  * files is a computed WHITELIST (see scripts/lite-deps.cjs): only the runtime
- * dependency closure of the built lite bundles ships. No publish block and no
- * auto-update in v1 — the two apps must never cross-update.
+ * dependency closure of the built focused bundles ships.
  */
 const { liteExcludePatterns } = require('./scripts/lite-deps.cjs')
 
@@ -16,9 +15,10 @@ module.exports = {
     output: 'release-lite/${version}',
   },
   extraMetadata: {
-    name: 'daemon-lite',
+    name: 'daemon',
     main: 'dist-electron-lite/main/lite.js',
   },
+  publish: [{ provider: 'github', owner: 'nullxnothing', repo: 'daemon' }],
   files: [
     'dist-electron-lite/**',
     'dist-lite/**',

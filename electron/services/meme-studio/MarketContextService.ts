@@ -36,7 +36,7 @@ function validateMint(mint: string): string {
 
 async function fetchBirdeye(mint: string): Promise<{ overview: JsonRecord; trade: JsonRecord }> {
   const apiKey = birdeyeKey()
-  if (!apiKey) throw new Error('Birdeye is not configured. Add BIRDEYE_API_KEY in Lite Settings.')
+  if (!apiKey) throw new Error('Birdeye is not configured. Set BIRDEYE_API_KEY before launching DAEMON.')
   const headers = { 'X-API-KEY': apiKey, 'x-chain': 'solana', accept: 'application/json' }
   const encoded = encodeURIComponent(mint)
   const [overviewResponse, tradeResponse] = await Promise.all([
@@ -120,7 +120,7 @@ function authorityFact(label: string, value: unknown): TokenRiskPreflight['facts
 export async function readTokenRiskPreflight(rawMint: string): Promise<TokenRiskPreflight> {
   const mint = validateMint(rawMint)
   const apiKey = birdeyeKey()
-  if (!apiKey) throw new Error('Birdeye is not configured. Add BIRDEYE_API_KEY in Lite Settings.')
+  if (!apiKey) throw new Error('Birdeye is not configured. Set BIRDEYE_API_KEY before launching DAEMON.')
   const response = recordValue(await requestJson(`${BIRDEYE_BASE_URL}/defi/token_security?address=${encodeURIComponent(mint)}`, {
     'X-API-KEY': apiKey, 'x-chain': 'solana', accept: 'application/json',
   }))

@@ -223,8 +223,20 @@ async function run() {
   await page.waitForTimeout(500)
   await page.screenshot({ path: path.join(outputDir, 'lite-meme-tech-compact.png'), fullPage: true })
 
+  logStep('capturing the canonical Wallet master-detail layout')
+  await page.getByRole('button', { name: 'Tools', exact: true }).click()
+  await page.getByRole('button', { name: 'Wallet', exact: true }).click()
+  await page.getByText('Addresses stay watch-only.', { exact: false }).waitFor()
+  await page.getByText('Loading…', { exact: true }).waitFor({ state: 'detached' })
+  assert.equal(await page.getByRole('button', { name: 'Open DAEMON IDE' }).count(), 0, 'canonical app must not expose a dead legacy handoff')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.screenshot({ path: path.join(outputDir, 'daemon-wallet-desktop.png'), fullPage: true })
+  await page.setViewportSize({ width: 820, height: 720 })
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: path.join(outputDir, 'daemon-wallet-compact.png'), fullPage: true })
+
   assert.equal(rendererFailures.length, 0, `renderer failures detected:\n${rendererFailures.join('\n')}`)
-  logStep('PASS: import, repo-aware guards, edit/save, scoped terminal, Meme Tech evidence, screenshots, and renderer diagnostics')
+  logStep('PASS: import, repo-aware guards, edit/save, scoped terminal, Meme Tech and Wallet layouts, screenshots, and renderer diagnostics')
 }
 
 try {

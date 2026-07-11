@@ -112,9 +112,6 @@ export function LiteScanner({ onAskAria }: LiteScannerProps) {
               <button type="button" className={styles.askBtn} onClick={() => onAskAria(`Assess the risk of this token/wallet and whether it looks safe: ${address.trim()}`)}>
                 Ask ARIA to explain
               </button>
-              <button type="button" className={styles.ideBtn} onClick={() => void window.daemon.lite.openInIde()}>
-                Open full map in DAEMON IDE ↗
-              </button>
             </div>
           </div>
         ) : null}
