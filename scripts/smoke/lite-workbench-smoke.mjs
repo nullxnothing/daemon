@@ -203,12 +203,12 @@ async function run() {
   await page.getByRole('button', { name: 'New terminal' }).click()
   await page.locator('.xterm-helper-textarea').first().waitFor({ timeout: 60_000 })
   await waitForTerminalText(page, 'PS ')
-  const cwdOutput = await runTerminalCommand(
+  const projectOutput = await runTerminalCommand(
     page,
-    'Write-Output ("__DAEMON_" + "CWD__" + (Get-Location).Path)',
-    '__DAEMON_CWD__',
+    'Write-Output ("__DAEMON_" + "PROJECT__" + (Get-Content .\\package.json | ConvertFrom-Json).name)',
+    '__DAEMON_PROJECT__',
   )
-  assert.ok(cwdOutput?.toLowerCase().includes(projectDir.toLowerCase()), `terminal cwd did not match ${projectDir}`)
+  assert.ok(projectOutput?.includes('__DAEMON_PROJECT__solana-monitor'), 'terminal did not resolve the imported project fixture')
   const nodeOutput = await runTerminalCommand(
     page,
     'node --version; Write-Output ("__DAEMON_" + "NODE_DONE__")',
