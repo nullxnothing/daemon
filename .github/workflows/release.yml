@@ -84,9 +84,99 @@ jobs:
             release-lite/checksums-windows.txt
           retention-days: 1
 
+  package-macos:
+    runs-on: macos-26
+    needs: validate
+    env:
+      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      DAEMON_REQUIRE_MAC_NOTARIZATION: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Require Apple release credentials
+        shell: bash
+        run: |
+          missing=()
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name:-}" ]; then missing+=("$name"); fi
+          done
+          if [ "${#missing[@]}" -ne 0 ]; then
+            printf 'Missing required macOS release secrets: %s\n' "${missing[*]}"
+            exit 1
+          fi
+      - name: Cache Electron
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-cache-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: electron-cache-${{ runner.os }}-${{ runner.arch }}-
+      - run: pnpm install --frozen-lockfile
+      - name: Build signed Apple Silicon release
+        run: pnpm run package:lite:mac
+      - name: Verify signature, notarization, architecture, and updater metadata
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          RELEASE_DIR="release-lite/$VERSION"
+          APP_PATH="$RELEASE_DIR/mac-arm64/DAEMON.app"
+          test "$(uname -m)" = arm64
+          file "$APP_PATH/Contents/MacOS/DAEMON" | grep -q 'arm64'
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -dv --verbose=4 "$APP_PATH" 2>&1 | grep -q '^Authority=Developer ID Application:'
+          xcrun stapler validate "$APP_PATH"
+          spctl --assess --type execute -vv "$APP_PATH"
+          NATIVE_DIR="$APP_PATH/Contents/Resources/app.asar.unpacked/node_modules"
+          addons=("$NATIVE_DIR/better-sqlite3/build/Release/better_sqlite3.node")
+          for candidate in \
+            "$NATIVE_DIR/node-pty/bin/darwin-arm64-145/node-pty.node" \
+            "$NATIVE_DIR/node-pty/build/Release/pty.node" \
+            "$NATIVE_DIR/node-pty/prebuilds/darwin-arm64/pty.node"; do
+            if [ -f "$candidate" ]; then addons+=("$candidate"); fi
+          done
+          test "${#addons[@]}" -ge 2
+          for addon in "${addons[@]}"; do
+            file "$addon" | grep -q 'arm64'
+            codesign --verify --strict --verbose=2 "$addon"
+          done
+          node scripts/release-tools/verify-macos-artifacts.mjs "$RELEASE_DIR" "$VERSION"
+      - name: Packaged smoke
+        run: node scripts/smoke/lite-app-smoke.mjs
+      - name: Generate checksum
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          RELEASE_DIR="release-lite/$VERSION"
+          shasum -a 256 "$RELEASE_DIR/DAEMON-arm64.dmg" "$RELEASE_DIR/DAEMON-arm64.zip" \
+            | sed "s#$RELEASE_DIR/##" > release-lite/checksums-macos.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: daemon-macos-arm64-release
+          path: |
+            release-lite/*/DAEMON-arm64.dmg
+            release-lite/*/DAEMON-arm64.dmg.blockmap
+            release-lite/*/DAEMON-arm64.zip
+            release-lite/*/DAEMON-arm64.zip.blockmap
+            release-lite/*/latest-mac.yml
+            release-lite/checksums-macos.txt
+          retention-days: 1
+
   publish:
     runs-on: ubuntu-latest
-    needs: package-windows
+    needs: [package-windows, package-macos]
     permissions:
       actions: read
       contents: write
@@ -98,6 +188,10 @@ jobs:
         with:
           name: daemon-windows-release
           path: artifacts/windows
+      - uses: actions/download-artifact@v8
+        with:
+          name: daemon-macos-arm64-release
+          path: artifacts/macos
       - name: Generate changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
@@ -115,6 +209,7 @@ jobs:
           echo '## SHA-256' >> changelog.md
           echo '```' >> changelog.md
           cat artifacts/windows/checksums-windows.txt >> changelog.md
+          cat artifacts/macos/checksums-macos.txt >> changelog.md
           echo '```' >> changelog.md
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
@@ -127,3 +222,9 @@ jobs:
             artifacts/windows/*/DAEMON-setup.exe.blockmap
             artifacts/windows/*/latest.yml
             artifacts/windows/checksums-windows.txt
+            artifacts/macos/*/DAEMON-arm64.dmg
+            artifacts/macos/*/DAEMON-arm64.dmg.blockmap
+            artifacts/macos/*/DAEMON-arm64.zip
+            artifacts/macos/*/DAEMON-arm64.zip.blockmap
+            artifacts/macos/*/latest-mac.yml
+            artifacts/macos/checksums-macos.txt

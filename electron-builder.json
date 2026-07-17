@@ -35,7 +35,10 @@
     "category": "public.app-category.developer-tools",
     "artifactName": "${productName}-${arch}.${ext}",
     "hardenedRuntime": true,
-    "gatekeeperAssess": false
+    "gatekeeperAssess": false,
+    "notarize": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist"
   },
   "afterSign": "build/notarize.mjs",
   "win": {
