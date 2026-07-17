@@ -154,7 +154,9 @@ jobs:
           done
           node scripts/release-tools/verify-macos-artifacts.mjs "$RELEASE_DIR" "$VERSION"
       - name: Packaged smoke
-        run: node scripts/smoke/lite-app-smoke.mjs
+        run: |
+          node scripts/smoke/lite-app-smoke.mjs
+          node scripts/smoke/lite-workbench-smoke.mjs
       - name: Generate checksum
         shell: bash
         run: |
