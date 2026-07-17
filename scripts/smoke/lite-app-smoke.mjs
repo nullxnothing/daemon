@@ -15,10 +15,17 @@ import { chromium } from 'playwright'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..', '..')
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'))
-const defaultExePath = path.join(
-  repoRoot, 'release-lite', pkg.version, 'win-unpacked',
-  process.platform === 'win32' ? 'DAEMON.exe' : 'DAEMON',
-)
+
+function defaultPackagedExecutable() {
+  const releaseDir = path.join(repoRoot, 'release-lite', pkg.version)
+  if (process.platform === 'darwin') {
+    return path.join(releaseDir, 'mac-arm64', 'DAEMON.app', 'Contents', 'MacOS', 'DAEMON')
+  }
+  if (process.platform === 'linux') return path.join(releaseDir, 'linux-unpacked', 'DAEMON')
+  return path.join(releaseDir, 'win-unpacked', 'DAEMON.exe')
+}
+
+const defaultExePath = defaultPackagedExecutable()
 const packagedExe = process.env.DAEMON_PACKAGED_EXE || defaultExePath
 
 const sandboxRoot = mkdtempSync(path.join(tmpdir(), 'daemon-lite-smoke-'))
@@ -72,9 +79,11 @@ async function main() {
       DAEMON_SMOKE_CDP_PORT: String(cdpPort),
       DAEMON_USER_DATA_DIR: userDataDir,
     },
-    stdio: 'ignore',
+    stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
   })
+  appProcess.stdout.on('data', (chunk) => process.stdout.write(chunk))
+  appProcess.stderr.on('data', (chunk) => process.stderr.write(chunk))
 
   await waitForPort(cdpPort)
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`)

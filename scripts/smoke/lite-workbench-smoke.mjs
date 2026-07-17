@@ -17,13 +17,17 @@ import { chromium } from 'playwright'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..', '..')
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'))
-const defaultExePath = path.join(
-  repoRoot,
-  'release-lite',
-  pkg.version,
-  'win-unpacked',
-  process.platform === 'win32' ? 'DAEMON.exe' : 'DAEMON',
-)
+
+function defaultPackagedExecutable() {
+  const releaseDir = path.join(repoRoot, 'release-lite', pkg.version)
+  if (process.platform === 'darwin') {
+    return path.join(releaseDir, 'mac-arm64', 'DAEMON.app', 'Contents', 'MacOS', 'DAEMON')
+  }
+  if (process.platform === 'linux') return path.join(releaseDir, 'linux-unpacked', 'DAEMON')
+  return path.join(releaseDir, 'win-unpacked', 'DAEMON.exe')
+}
+
+const defaultExePath = defaultPackagedExecutable()
 const packagedExe = process.env.DAEMON_PACKAGED_EXE || defaultExePath
 const sandboxRoot = mkdtempSync(path.join(tmpdir(), 'daemon-lite-workbench-'))
 const userDataDir = path.join(sandboxRoot, 'userData')

@@ -36,6 +36,18 @@ module.exports = {
     'node_modules/better-sqlite3/**',
     'node_modules/node-pty/**',
   ],
+  mac: {
+    icon: 'build/icon.icns',
+    target: ['dmg', 'zip'],
+    category: 'public.app-category.developer-tools',
+    artifactName: 'DAEMON-${arch}.${ext}',
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
+    notarize: false,
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
+  },
+  afterSign: 'build/notarize.mjs',
   win: {
     icon: 'resources/icon.ico',
     target: [
