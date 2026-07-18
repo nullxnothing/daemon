@@ -93,7 +93,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      DAEMON_REQUIRE_MAC_NOTARIZATION: '1'
+      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.4'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -105,17 +105,32 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Require Apple release credentials
+      - name: Select signed or version-scoped unsigned mode
         shell: bash
         run: |
-          missing=()
+          present=0
           for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
-            if [ -z "${!name:-}" ]; then missing+=("$name"); fi
+            if [ -n "${!name:-}" ]; then present=$((present + 1)); fi
           done
-          if [ "${#missing[@]}" -ne 0 ]; then
-            printf 'Missing required macOS release secrets: %s\n' "${missing[*]}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$present" -eq 5 ]; then
+            mode=signed
+            echo 'DAEMON_REQUIRE_MAC_NOTARIZATION=1' >> "$GITHUB_ENV"
+            echo 'DAEMON_MAC_ADHOC=0' >> "$GITHUB_ENV"
+          elif [ "$present" -ne 0 ]; then
+            echo 'Partial Apple credentials are not allowed'
+            exit 1
+          elif [ "$version" = "$DAEMON_ALLOW_UNSIGNED_MAC_VERSION" ]; then
+            mode=unsigned
+            echo 'DAEMON_REQUIRE_MAC_NOTARIZATION=0' >> "$GITHUB_ENV"
+            echo 'DAEMON_MAC_ADHOC=1' >> "$GITHUB_ENV"
+            echo 'CSC_IDENTITY_AUTO_DISCOVERY=false' >> "$GITHUB_ENV"
+          else
+            echo "Apple credentials are required for macOS release $version"
             exit 1
           fi
+          echo "DAEMON_MAC_RELEASE_MODE=$mode" >> "$GITHUB_ENV"
+          echo "macOS release mode: $mode"
       - name: Cache Electron
         uses: actions/cache@v5
         with:
@@ -125,34 +140,97 @@ jobs:
           key: electron-cache-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: electron-cache-${{ runner.os }}-${{ runner.arch }}-
       - run: pnpm install --frozen-lockfile
-      - name: Build signed Apple Silicon release
+      - name: Build Apple Silicon release
         run: pnpm run package:lite:mac
-      - name: Verify signature, notarization, architecture, and updater metadata
+      - name: Verify signature mode, architecture, and updater metadata
         shell: bash
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           RELEASE_DIR="release-lite/$VERSION"
           APP_PATH="$RELEASE_DIR/mac-arm64/DAEMON.app"
           test "$(uname -m)" = arm64
-          file "$APP_PATH/Contents/MacOS/DAEMON" | grep -q 'arm64'
-          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          codesign -dv --verbose=4 "$APP_PATH" 2>&1 | grep -q '^Authority=Developer ID Application:'
-          xcrun stapler validate "$APP_PATH"
-          spctl --assess --type execute -vv "$APP_PATH"
-          NATIVE_DIR="$APP_PATH/Contents/Resources/app.asar.unpacked/node_modules"
-          addons=("$NATIVE_DIR/better-sqlite3/build/Release/better_sqlite3.node")
-          for candidate in \
-            "$NATIVE_DIR/node-pty/bin/darwin-arm64-145/node-pty.node" \
-            "$NATIVE_DIR/node-pty/build/Release/pty.node" \
-            "$NATIVE_DIR/node-pty/prebuilds/darwin-arm64/pty.node"; do
-            if [ -f "$candidate" ]; then addons+=("$candidate"); fi
-          done
-          test "${#addons[@]}" -ge 2
-          for addon in "${addons[@]}"; do
-            file "$addon" | grep -q 'arm64'
-            codesign --verify --strict --verbose=2 "$addon"
-          done
-          node scripts/release-tools/verify-macos-artifacts.mjs "$RELEASE_DIR" "$VERSION"
+          case "$DAEMON_MAC_RELEASE_MODE" in
+            signed) artifact_stem='DAEMON-arm64'; verifier_args=() ;;
+            unsigned) artifact_stem='DAEMON-unsigned-arm64'; verifier_args=(--unsigned) ;;
+            *) echo "Invalid macOS release mode: $DAEMON_MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+
+          verify_bundle() {
+            local app_path="$1"
+            local executable="$app_path/Contents/MacOS/DAEMON"
+            test "$(lipo -archs "$executable")" = arm64
+            codesign --verify --deep --strict --verbose=2 "$app_path"
+            local app_details app_team
+            app_details="$(codesign -dv --verbose=4 "$app_path" 2>&1)"
+            case "$DAEMON_MAC_RELEASE_MODE" in
+              signed)
+                grep -q '^Authority=Developer ID Application:' <<< "$app_details"
+                app_team="$(sed -n 's/^TeamIdentifier=//p' <<< "$app_details")"
+                test -n "$app_team"
+                xcrun stapler validate "$app_path"
+                spctl --assess --type execute -vv "$app_path"
+                ;;
+              unsigned)
+                grep -q '^Signature=adhoc$' <<< "$app_details"
+                ! grep -q '^Authority=' <<< "$app_details"
+                local entitlements
+                entitlements="$(mktemp)"
+                codesign -d --entitlements :- "$app_path" > "$entitlements" 2>/dev/null
+                test "$(plutil -extract com.apple.security.cs.disable-library-validation raw -o - "$entitlements")" = true
+                rm -f "$entitlements"
+                if spctl --assess --type execute -vv "$app_path"; then
+                  echo 'Unsigned mode unexpectedly passed Gatekeeper assessment'
+                  exit 1
+                fi
+                ;;
+            esac
+
+            local native_dir="$app_path/Contents/Resources/app.asar.unpacked/node_modules"
+            local addons=("$native_dir/better-sqlite3/build/Release/better_sqlite3.node")
+            for candidate in \
+              "$native_dir/node-pty/bin/darwin-arm64-145/node-pty.node" \
+              "$native_dir/node-pty/build/Release/pty.node" \
+              "$native_dir/node-pty/prebuilds/darwin-arm64/pty.node"; do
+              if [ -f "$candidate" ]; then addons+=("$candidate"); fi
+            done
+            test "${#addons[@]}" -ge 2
+            for addon in "${addons[@]}"; do
+              test "$(lipo -archs "$addon")" = arm64
+              codesign --verify --strict --verbose=2 "$addon"
+              local addon_details
+              addon_details="$(codesign -dv --verbose=4 "$addon" 2>&1)"
+              if [ "$DAEMON_MAC_RELEASE_MODE" = signed ]; then
+                grep -q '^Authority=Developer ID Application:' <<< "$addon_details"
+                test "$(sed -n 's/^TeamIdentifier=//p' <<< "$addon_details")" = "$app_team"
+              else
+                grep -q '^Signature=adhoc$' <<< "$addon_details"
+                ! grep -q '^Authority=' <<< "$addon_details"
+              fi
+            done
+          }
+
+          verify_bundle "$APP_PATH"
+          node scripts/release-tools/verify-macos-artifacts.mjs "$RELEASE_DIR" "$VERSION" "${verifier_args[@]}"
+
+          dmg_path="$RELEASE_DIR/$artifact_stem.dmg"
+          zip_path="$RELEASE_DIR/$artifact_stem.zip"
+          hdiutil verify "$dmg_path"
+          unzip -t "$zip_path"
+          mount_dir="$(mktemp -d)"
+          zip_dir="$(mktemp -d)"
+          cleanup() {
+            hdiutil detach "$mount_dir" -force >/dev/null 2>&1 || true
+            rm -rf "$mount_dir" "$zip_dir"
+          }
+          trap cleanup EXIT
+          hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mount_dir"
+          verify_bundle "$mount_dir/DAEMON.app"
+          ditto -x -k "$zip_path" "$zip_dir"
+          verify_bundle "$zip_dir/DAEMON.app"
+          DAEMON_PACKAGED_EXE="$zip_dir/DAEMON.app/Contents/MacOS/DAEMON" \
+            node scripts/smoke/lite-app-smoke.mjs
+          cleanup
+          trap - EXIT
       - name: Packaged smoke
         run: |
           node scripts/smoke/lite-app-smoke.mjs
@@ -162,18 +240,25 @@ jobs:
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           RELEASE_DIR="release-lite/$VERSION"
-          shasum -a 256 "$RELEASE_DIR/DAEMON-arm64.dmg" "$RELEASE_DIR/DAEMON-arm64.zip" \
+          case "$DAEMON_MAC_RELEASE_MODE" in
+            signed) artifact_stem='DAEMON-arm64' ;;
+            unsigned) artifact_stem='DAEMON-unsigned-arm64' ;;
+            *) echo "Invalid macOS release mode: $DAEMON_MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+          shasum -a 256 "$RELEASE_DIR/$artifact_stem.dmg" "$RELEASE_DIR/$artifact_stem.zip" \
             | sed "s#$RELEASE_DIR/##" > release-lite/checksums-macos.txt
+          printf '%s\n' "$DAEMON_MAC_RELEASE_MODE" > release-lite/mac-release-mode.txt
       - uses: actions/upload-artifact@v7
         with:
           name: daemon-macos-arm64-release
           path: |
-            release-lite/*/DAEMON-arm64.dmg
-            release-lite/*/DAEMON-arm64.dmg.blockmap
-            release-lite/*/DAEMON-arm64.zip
-            release-lite/*/DAEMON-arm64.zip.blockmap
+            release-lite/*/DAEMON-*arm64.dmg
+            release-lite/*/DAEMON-*arm64.dmg.blockmap
+            release-lite/*/DAEMON-*arm64.zip
+            release-lite/*/DAEMON-*arm64.zip.blockmap
             release-lite/*/latest-mac.yml
             release-lite/checksums-macos.txt
+            release-lite/mac-release-mode.txt
           retention-days: 1
 
   publish:
@@ -197,7 +282,23 @@ jobs:
       - name: Generate changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          echo '## DAEMON focused workbench' > changelog.md
+          MAC_RELEASE_MODE="$(cat artifacts/macos/mac-release-mode.txt)"
+          case "$MAC_RELEASE_MODE" in
+            unsigned)
+              echo '## macOS Apple Silicon warning' > changelog.md
+              echo '' >> changelog.md
+              echo 'This Apple Silicon build is ad-hoc signed and is not Apple-notarized. Gatekeeper will block the first launch. Verify the SHA-256 checksum below, then follow the [macOS install steps](https://www.daemonide.tech/docs/install-help). Automatic macOS updates are disabled; install future releases manually.' >> changelog.md
+              echo '' >> changelog.md
+              echo "RELEASE_TITLE=DAEMON ${GITHUB_REF_NAME} (macOS unsigned)" >> "$GITHUB_ENV"
+              ;;
+            signed)
+              : > changelog.md
+              echo "RELEASE_TITLE=DAEMON ${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+              ;;
+            *) echo "Invalid macOS release mode: $MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+          echo "MAC_RELEASE_MODE=$MAC_RELEASE_MODE" >> "$GITHUB_ENV"
+          echo '## DAEMON focused workbench' >> changelog.md
           echo '' >> changelog.md
           echo '- Conversation-first Solana development shell' >> changelog.md
           echo '- Project explorer, offline Monaco editor, and scoped terminal' >> changelog.md
@@ -213,20 +314,27 @@ jobs:
           cat artifacts/windows/checksums-windows.txt >> changelog.md
           cat artifacts/macos/checksums-macos.txt >> changelog.md
           echo '```' >> changelog.md
+      - name: Stage release assets
+        shell: bash
+        run: |
+          mkdir -p artifacts/release
+          find artifacts/windows -type f \( -name 'DAEMON-setup.exe' -o -name 'DAEMON-setup.exe.blockmap' -o -name 'latest.yml' \) \
+            -exec cp {} artifacts/release/ \;
+          cp artifacts/windows/checksums-windows.txt artifacts/release/
+          find artifacts/macos -type f \( -name 'DAEMON-*arm64.dmg' -o -name 'DAEMON-*arm64.dmg.blockmap' -o -name 'DAEMON-*arm64.zip' -o -name 'DAEMON-*arm64.zip.blockmap' \) \
+            -exec cp {} artifacts/release/ \;
+          cp artifacts/macos/checksums-macos.txt artifacts/release/
+          case "$MAC_RELEASE_MODE" in
+            signed) find artifacts/macos -type f -name 'latest-mac.yml' -exec cp {} artifacts/release/ \; ;;
+            unsigned) ;;
+            *) echo "Invalid macOS release mode: $MAC_RELEASE_MODE"; exit 1 ;;
+          esac
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          name: ${{ env.RELEASE_TITLE }}
           body_path: changelog.md
           draft: false
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
           files: |
-            artifacts/windows/*/DAEMON-setup.exe
-            artifacts/windows/*/DAEMON-setup.exe.blockmap
-            artifacts/windows/*/latest.yml
-            artifacts/windows/checksums-windows.txt
-            artifacts/macos/*/DAEMON-arm64.dmg
-            artifacts/macos/*/DAEMON-arm64.dmg.blockmap
-            artifacts/macos/*/DAEMON-arm64.zip
-            artifacts/macos/*/DAEMON-arm64.zip.blockmap
-            artifacts/macos/*/latest-mac.yml
-            artifacts/macos/checksums-macos.txt
+            artifacts/release/*

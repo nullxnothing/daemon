@@ -8,6 +8,7 @@ import { app, BrowserWindow, ipcMain, session } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { getDb, closeDb } from '../db/db'
 import { registerAriaHandlers } from '../ipc/aria'
 import { registerProviderHandlers } from '../ipc/provider'
@@ -29,6 +30,7 @@ import { ClaudeProvider, CodexProvider, ProviderRegistry } from '../services/pro
 import { getKeyEncryptionWarning, getStorageBackend } from '../services/SecureKeyService'
 import { isSafeExternalUrl, openSafeExternalUrl } from '../security/externalNavigation'
 import { isTrustedSender, setTrustedIpcOrigin } from '../security/ipcSender'
+import { shouldEnableAutoUpdate } from './autoUpdatePolicy'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -37,6 +39,8 @@ process.env.APP_ROOT = path.join(__dirname, '../..')
 const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist-lite')
 const VITE_DEV_SERVER_URL = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL
 const SMOKE_TEST_MODE = process.env.DAEMON_SMOKE_TEST === '1'
+const IS_ADHOC_MAC_BUILD = process.platform === 'darwin'
+  && existsSync(path.join(process.resourcesPath, 'macos-adhoc-release'))
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
@@ -225,7 +229,12 @@ app.whenReady().then(async () => {
 
   await createWindow()
 
-  if (app.isPackaged && process.env.DAEMON_DISABLE_AUTO_UPDATE !== '1' && !SMOKE_TEST_MODE) {
+  if (shouldEnableAutoUpdate({
+    isPackaged: app.isPackaged,
+    isDisabled: process.env.DAEMON_DISABLE_AUTO_UPDATE === '1',
+    isSmokeTest: SMOKE_TEST_MODE,
+    isAdHocMacBuild: IS_ADHOC_MAC_BUILD,
+  })) {
     const pkg = await import('electron-updater')
     const { autoUpdater } = pkg.default
     autoUpdater.on('error', (error: Error) => console.error('[AutoUpdater]', error.message))

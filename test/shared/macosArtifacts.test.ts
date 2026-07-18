@@ -12,11 +12,12 @@ function sha512(contents: string) {
   return createHash('sha512').update(contents).digest('base64')
 }
 
-function writeFixture() {
+function writeFixture(isUnsigned = false) {
   releaseDir = mkdtempSync(path.join(tmpdir(), 'daemon-mac-release-'))
+  const prefix = isUnsigned ? 'DAEMON-unsigned-arm64' : 'DAEMON-arm64'
   const artifacts = {
-    'DAEMON-arm64.dmg': 'dmg-contents',
-    'DAEMON-arm64.zip': 'zip-contents',
+    [`${prefix}.dmg`]: 'dmg-contents',
+    [`${prefix}.zip`]: 'zip-contents',
   }
   for (const [name, contents] of Object.entries(artifacts)) {
     writeFileSync(path.join(releaseDir, name), contents)
@@ -25,13 +26,13 @@ function writeFixture() {
   writeFileSync(path.join(releaseDir, 'latest-mac.yml'), [
     `version: ${VERSION}`,
     'files:',
-    '  - url: DAEMON-arm64.zip',
-    `    sha512: ${sha512(artifacts['DAEMON-arm64.zip'])}`,
-    `    size: ${artifacts['DAEMON-arm64.zip'].length}`,
-    '  - url: DAEMON-arm64.dmg',
-    `    sha512: ${sha512(artifacts['DAEMON-arm64.dmg'])}`,
-    `    size: ${artifacts['DAEMON-arm64.dmg'].length}`,
-    'path: DAEMON-arm64.zip',
+    `  - url: ${prefix}.zip`,
+    `    sha512: ${sha512(artifacts[`${prefix}.zip`])}`,
+    `    size: ${artifacts[`${prefix}.zip`].length}`,
+    `  - url: ${prefix}.dmg`,
+    `    sha512: ${sha512(artifacts[`${prefix}.dmg`])}`,
+    `    size: ${artifacts[`${prefix}.dmg`].length}`,
+    `path: ${prefix}.zip`,
   ].join('\n'))
 }
 
@@ -44,6 +45,12 @@ describe('macOS release artifacts', () => {
   it('accepts matching arm64 artifacts and updater metadata', () => {
     writeFixture()
     expect(() => verifyMacRelease(releaseDir, VERSION)).not.toThrow()
+  })
+
+  it('accepts explicitly labeled unsigned artifacts only in unsigned mode', () => {
+    writeFixture(true)
+    expect(() => verifyMacRelease(releaseDir, VERSION, { isUnsigned: true })).not.toThrow()
+    expect(() => verifyMacRelease(releaseDir, VERSION)).toThrow(/DAEMON-arm64/)
   })
 
   it('rejects metadata with a mismatched artifact hash', () => {

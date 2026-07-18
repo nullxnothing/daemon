@@ -3,7 +3,10 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const MAC_ARTIFACTS = ['DAEMON-arm64.dmg', 'DAEMON-arm64.zip']
+function macArtifacts(isUnsigned) {
+  const prefix = isUnsigned ? 'DAEMON-unsigned-arm64' : 'DAEMON-arm64'
+  return [`${prefix}.dmg`, `${prefix}.zip`]
+}
 
 function fail(message) {
   throw new Error(`[mac-release] ${message}`)
@@ -22,7 +25,9 @@ function metadataEntry(metadata, artifactName) {
   return { sha512: match[1].trim(), size: Number(match[2]) }
 }
 
-export function verifyMacRelease(releaseDir, expectedVersion) {
+export function verifyMacRelease(releaseDir, expectedVersion, { isUnsigned = false } = {}) {
+  const artifacts = macArtifacts(isUnsigned)
+  const zipName = artifacts.find((name) => name.endsWith('.zip'))
   const metadataPath = path.join(releaseDir, 'latest-mac.yml')
   if (!existsSync(metadataPath)) fail(`missing ${metadataPath}`)
 
@@ -30,14 +35,14 @@ export function verifyMacRelease(releaseDir, expectedVersion) {
   if (!metadata.includes(`version: ${expectedVersion}`)) {
     fail(`latest-mac.yml version does not match ${expectedVersion}`)
   }
-  if (!metadata.includes('path: DAEMON-arm64.zip')) {
-    fail('latest-mac.yml updater path is not DAEMON-arm64.zip')
+  if (!metadata.includes(`path: ${zipName}`)) {
+    fail(`latest-mac.yml updater path is not ${zipName}`)
   }
-  if (/DAEMON-(?:x64|universal)\.(?:dmg|zip)/.test(metadata)) {
+  if (/DAEMON-(?:unsigned-)?(?:x64|universal)\.(?:dmg|zip)/.test(metadata)) {
     fail('latest-mac.yml contains a non-arm64 artifact')
   }
 
-  for (const artifactName of MAC_ARTIFACTS) {
+  for (const artifactName of artifacts) {
     const artifactPath = path.join(releaseDir, artifactName)
     const blockmapPath = `${artifactPath}.blockmap`
     if (!existsSync(artifactPath)) fail(`missing ${artifactPath}`)
@@ -58,8 +63,9 @@ export function verifyMacRelease(releaseDir, expectedVersion) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const releaseDir = path.resolve(process.argv[2] ?? '')
   const expectedVersion = process.argv[3]
-  if (!process.argv[2] || !expectedVersion) {
-    fail('usage: verify-macos-artifacts.mjs <release-dir> <version>')
+  const flags = process.argv.slice(4)
+  if (!process.argv[2] || !expectedVersion || flags.some((flag) => flag !== '--unsigned') || flags.length > 1) {
+    fail('usage: verify-macos-artifacts.mjs <release-dir> <version> [--unsigned]')
   }
-  verifyMacRelease(releaseDir, expectedVersion)
+  verifyMacRelease(releaseDir, expectedVersion, { isUnsigned: flags[0] === '--unsigned' })
 }
