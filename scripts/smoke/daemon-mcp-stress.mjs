@@ -262,34 +262,38 @@ async function stressMcpBridge(page) {
 async function verifySolanaMcpUi(page) {
   await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   await page.getByRole('tab', { name: /^Connect\b/ }).click()
-  await page.waitForSelector('.solana-service-row', { timeout: 30000 })
+  // Services render as .ds-card entries (with a .solana-toggle each) since the
+  // toolbox redesign — .solana-service-row no longer exists.
+  await page.waitForSelector('.ds-card .solana-toggle', { timeout: 30000 })
   await page.waitForFunction((expectedCount) => {
-    const rows = Array.from(document.querySelectorAll('.solana-service-row'))
+    const rows = Array.from(document.querySelectorAll('.ds-card'))
+      .filter((card) => card.querySelector('.solana-toggle'))
     const enabled = rows.filter((row) => row.querySelector('.solana-toggle')?.classList.contains('on')).length
     return rows.length >= expectedCount && enabled >= expectedCount
   }, catalogMcpNames.length, { timeout: 30000 })
 
-  const heliusToggle = page.locator('.solana-service-row', { hasText: 'Helius' }).locator('.solana-toggle').first()
+  const heliusToggle = page.locator('.ds-card', { hasText: 'Helius' }).locator('.solana-toggle').first()
   await heliusToggle.click()
   await page.waitForFunction(() => {
-    const row = Array.from(document.querySelectorAll('.solana-service-row'))
-      .find((entry) => entry.textContent?.includes('Helius'))
+    const row = Array.from(document.querySelectorAll('.ds-card'))
+      .find((entry) => entry.querySelector('.solana-toggle') && entry.textContent?.includes('Helius'))
     return row && !row.querySelector('.solana-toggle')?.classList.contains('on')
   }, { timeout: 30000 })
 
   await heliusToggle.click()
   await page.waitForFunction(() => {
-    const row = Array.from(document.querySelectorAll('.solana-service-row'))
-      .find((entry) => entry.textContent?.includes('Helius'))
+    const row = Array.from(document.querySelectorAll('.ds-card'))
+      .find((entry) => entry.querySelector('.solana-toggle') && entry.textContent?.includes('Helius'))
     return row?.querySelector('.solana-toggle')?.classList.contains('on') === true
   }, { timeout: 30000 })
 
   return page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('.solana-service-row'))
+    const rows = Array.from(document.querySelectorAll('.ds-card'))
+      .filter((card) => card.querySelector('.solana-toggle'))
     return {
       rows: rows.length,
       enabledRows: rows.filter((row) => row.querySelector('.solana-toggle')?.classList.contains('on')).length,
-      labels: rows.map((row) => row.querySelector('.solana-service-name')?.textContent?.trim()).filter(Boolean),
+      labels: rows.map((row) => row.querySelector('.ds-card-title')?.textContent?.trim()).filter(Boolean),
     }
   })
 }
@@ -309,7 +313,7 @@ async function verifyLowPowerStillResponds(page) {
   await setLowPower(true)
   await openToolFromLauncher(page, 'Solana Workflow', '.solana-toolbox')
   await page.getByRole('tab', { name: /^Connect\b/ }).click()
-  await page.waitForSelector('.solana-service-row', { timeout: 30000 })
+  await page.waitForSelector('.ds-card .solana-toggle', { timeout: 30000 })
   await setLowPower(false)
 }
 
