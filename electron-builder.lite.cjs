@@ -1,9 +1,9 @@
 /**
  * Canonical DAEMON packaging for the focused agent workbench.
- * files is a computed WHITELIST (see scripts/lite-deps.cjs): only the runtime
- * dependency closure of the built focused bundles ships.
+ * Runtime dependencies are installed into an isolated, hoisted staging app
+ * before packaging so pnpm's version-specific dependency graph stays intact.
  */
-const { liteExcludePatterns } = require('./scripts/lite-deps.cjs')
+const path = require('node:path')
 const { macSigningConfig } = require('./build/macPackaging.cjs')
 const macSigning = macSigningConfig()
 
@@ -11,9 +11,10 @@ module.exports = {
   appId: 'com.daemon.app',
   productName: 'DAEMON',
   asar: true,
-  npmRebuild: false,
+  beforeBuild: async () => false,
   compression: macSigning.isAdHoc ? 'normal' : 'maximum',
   directories: {
+    app: 'release-lite/.stage',
     output: 'release-lite/${version}',
   },
   extraMetadata: {
@@ -21,20 +22,24 @@ module.exports = {
     main: 'dist-electron-lite/main/lite.js',
   },
   extraResources: macSigning.isAdHoc
-    ? [{ from: 'build/macos-adhoc-release', to: 'macos-adhoc-release' }]
+    ? [{ from: path.join(__dirname, 'build/macos-adhoc-release'), to: 'macos-adhoc-release' }]
     : undefined,
   publish: [{ provider: 'github', owner: 'nullxnothing', repo: 'daemon' }],
   files: [
     'dist-electron-lite/**',
     'dist-lite/**',
-    // electron-builder auto-collects the app's full prod dependency tree;
-    // negate everything the lite bundles never import (computed complement).
-    ...liteExcludePatterns(),
-    '!node_modules/@types/**',
-    // Keep better-sqlite3's built binary, drop its sources and vendored deps.
-    '!node_modules/better-sqlite3/{deps,src}/**',
-    '!node_modules/better-sqlite3/build/Release/{obj,sqlite3.a,test_extension.node}',
     '!**/*.map',
+    {
+      from: path.join(__dirname, 'release-lite/.stage/node_modules'),
+      to: 'node_modules',
+      filter: [
+        '**/*',
+        '!@types{,/**/*}',
+        '!**/*.map',
+        '!better-sqlite3/{deps,src}/**',
+        '!better-sqlite3/build/Release/{obj,sqlite3.a,test_extension.node}',
+      ],
+    },
   ],
   electronLanguages: ['en-US'],
   asarUnpack: [

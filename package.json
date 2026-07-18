@@ -1,6 +1,6 @@
 {
   "name": "daemon",
-  "version": "4.7.6",
+  "version": "4.7.7",
   "main": "dist-electron/main/index.js",
   "description": "Solana-native agent workbench for verifiable AI development",
   "author": "nullxnothing",
@@ -31,8 +31,8 @@
     "mobile:seeker:android": "npm --prefix apps/seeker-mobile run android",
     "mobile:seeker:typecheck": "npm --prefix apps/seeker-mobile run typecheck",
     "package": "pnpm run build && pnpm run build:bridge && pnpm run rebuild && electron-builder",
-    "package:lite": "pnpm run build:lite && node scripts/check-lite-deps.mjs && pnpm run rebuild:native && electron-builder --config electron-builder.lite.cjs --publish never && node scripts/check-lite-deps.mjs",
-    "package:lite:mac": "pnpm run build:lite && node scripts/check-lite-deps.mjs && pnpm run rebuild:native && electron-builder --config electron-builder.lite.cjs --mac dmg zip --arm64 --publish never && node scripts/check-lite-deps.mjs",
+    "package:lite": "pnpm run build:lite && node scripts/check-lite-deps.mjs && node scripts/prepare-lite-runtime.cjs && electron-builder --config electron-builder.lite.cjs --publish never && node scripts/check-lite-deps.mjs",
+    "package:lite:mac": "pnpm run build:lite && node scripts/check-lite-deps.mjs && node scripts/prepare-lite-runtime.cjs && electron-builder --config electron-builder.lite.cjs --mac dmg zip --arm64 --publish never && node scripts/check-lite-deps.mjs",
     "test:lite-packaged-smoke": "pnpm run package:lite && node scripts/smoke/lite-app-smoke.mjs",
     "postinstall": "pnpm run rebuild:native",
     "rebuild": "pnpm run rebuild:native",
