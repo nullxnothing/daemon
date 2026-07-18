@@ -35,6 +35,21 @@ const projectDir = path.join(sandboxRoot, 'solana-monitor')
 const readmePath = path.join(projectDir, 'README.md')
 const outputDir = path.join(repoRoot, 'output', 'playwright')
 const savedMarker = '# Solana monitor\n\nSaved from packaged DAEMON Workbench.\n'
+const shortcutModifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+
+const terminalCommands = process.platform === 'win32'
+  ? {
+      ready: 'Write-Output ("__DAEMON_" + "TERMINAL_READY__")',
+      project: 'Write-Output ("__DAEMON_" + "PROJECT__" + (Get-Content .\\package.json | ConvertFrom-Json).name)',
+      node: 'node --version; Write-Output ("__DAEMON_" + "NODE_DONE__")',
+      compact: 'Write-Output ("__DAEMON_" + "COMPACT_READY__")',
+    }
+  : {
+      ready: "printf '%s\\n' '__DAEMON_''TERMINAL_READY__'",
+      project: `node -p '"__DAEMON_" + "PROJECT__" + require("./package.json").name'`,
+      node: "node --version; printf '%s\\n' '__DAEMON_''NODE_DONE__'",
+      compact: "printf '%s\\n' '__DAEMON_''COMPACT_READY__'",
+    }
 
 let appProcess
 let browser
@@ -114,7 +129,7 @@ async function waitForFile(expected, timeoutMs = 10_000) {
     if (readFileSync(readmePath, 'utf8') === expected) return
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
-  assert.equal(readFileSync(readmePath, 'utf8'), expected, 'Ctrl+S did not save the edited README')
+  assert.equal(readFileSync(readmePath, 'utf8'), expected, 'editor shortcut did not save the edited README')
 }
 
 async function waitForTerminalText(page, expected, timeout = 60_000) {
@@ -187,14 +202,14 @@ async function run() {
   await page.getByRole('region', { name: 'Code editor' }).waitFor()
   const editorSurface = page.locator('.monaco-editor .view-lines').first()
   await editorSurface.click()
-  await page.keyboard.press('Control+A')
+  await page.keyboard.press(`${shortcutModifier}+A`)
   await page.keyboard.type(savedMarker)
   await page.getByRole('button', { name: 'Save' }).waitFor({ state: 'visible' })
   await page.waitForFunction(() => {
     const save = Array.from(document.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Save')
     return save instanceof HTMLButtonElement && !save.disabled
   })
-  await page.keyboard.press('Control+S')
+  await page.keyboard.press(`${shortcutModifier}+S`)
   await waitForFile(savedMarker)
   await page.screenshot({ path: path.join(outputDir, 'lite-simple-code-desktop.png'), fullPage: true })
   await page.setViewportSize({ width: 820, height: 720 })
@@ -206,16 +221,16 @@ async function run() {
   await page.getByRole('button', { name: 'Terminal', exact: true }).click()
   await page.getByRole('button', { name: 'New terminal' }).click()
   await page.locator('.xterm-helper-textarea').first().waitFor({ timeout: 60_000 })
-  await waitForTerminalText(page, 'PS ')
+  await runTerminalCommand(page, terminalCommands.ready, '__DAEMON_TERMINAL_READY__')
   const projectOutput = await runTerminalCommand(
     page,
-    'Write-Output ("__DAEMON_" + "PROJECT__" + (Get-Content .\\package.json | ConvertFrom-Json).name)',
+    terminalCommands.project,
     '__DAEMON_PROJECT__',
   )
   assert.ok(projectOutput?.includes('__DAEMON_PROJECT__solana-monitor'), 'terminal did not resolve the imported project fixture')
   const nodeOutput = await runTerminalCommand(
     page,
-    'node --version; Write-Output ("__DAEMON_" + "NODE_DONE__")',
+    terminalCommands.node,
     '__DAEMON_NODE_DONE__',
   )
   assert.ok(nodeOutput?.includes(`v${process.versions.node.split('.')[0]}.`), 'terminal Node version did not match the release runtime')
@@ -224,7 +239,7 @@ async function run() {
   await page.waitForTimeout(500)
   await runTerminalCommand(
     page,
-    'Write-Output ("__DAEMON_" + "COMPACT_READY__")',
+    terminalCommands.compact,
     '__DAEMON_COMPACT_READY__',
   )
   await page.screenshot({ path: path.join(outputDir, 'lite-simple-terminal-compact.png'), fullPage: true })

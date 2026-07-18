@@ -4,6 +4,8 @@
  * dependency closure of the built focused bundles ships.
  */
 const { liteExcludePatterns } = require('./scripts/lite-deps.cjs')
+const { macSigningConfig } = require('./build/macPackaging.cjs')
+const macSigning = macSigningConfig()
 
 module.exports = {
   appId: 'com.daemon.app',
@@ -18,6 +20,9 @@ module.exports = {
     name: 'daemon',
     main: 'dist-electron-lite/main/lite.js',
   },
+  extraResources: macSigning.isAdHoc
+    ? [{ from: 'build/macos-adhoc-release', to: 'macos-adhoc-release' }]
+    : undefined,
   publish: [{ provider: 'github', owner: 'nullxnothing', repo: 'daemon' }],
   files: [
     'dist-electron-lite/**',
@@ -40,12 +45,13 @@ module.exports = {
     icon: 'build/icon.icns',
     target: ['dmg', 'zip'],
     category: 'public.app-category.developer-tools',
-    artifactName: 'DAEMON-${arch}.${ext}',
+    artifactName: macSigning.artifactName,
+    identity: macSigning.identity,
     hardenedRuntime: true,
     gatekeeperAssess: false,
     notarize: false,
-    entitlements: 'build/entitlements.mac.plist',
-    entitlementsInherit: 'build/entitlements.mac.plist',
+    entitlements: macSigning.entitlements,
+    entitlementsInherit: macSigning.entitlements,
   },
   afterSign: 'build/notarize.mjs',
   win: {
