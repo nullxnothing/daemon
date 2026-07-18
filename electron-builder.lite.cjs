@@ -53,7 +53,7 @@ module.exports = {
     category: 'public.app-category.developer-tools',
     artifactName: macSigning.artifactName,
     identity: macSigning.identity,
-    hardenedRuntime: true,
+    hardenedRuntime: macSigning.hardenedRuntime,
     gatekeeperAssess: false,
     notarize: false,
     entitlements: macSigning.entitlements,
