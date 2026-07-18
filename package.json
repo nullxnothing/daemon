@@ -159,7 +159,7 @@
     "obs-websocket-js": "^5.0.8",
     "patch-package": "^8.0.1",
     "pixelmatch": "^7.1.0",
-    "playwright": "^1.59.0",
+    "playwright": "^1.60.0",
     "pngjs": "^7.0.0",
     "react-dom": "^19.2.5",
     "vite": "^6.4.3",
