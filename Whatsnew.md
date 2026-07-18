@@ -43,6 +43,13 @@ trophy interfaces use local stubs, so the beta makes no onchain calls.
 - Bridge and ARIA file reads deny secret-bearing paths (.env, keypairs, key material) and enforce real-path containment.
 - Swarm lanes run with a minimal allowlisted environment and have push disabled at the git layer.
 
+## First-run experience and reliability (4.6.4)
+
+- A guided five-step wizard takes a fresh install from a new workspace to its first real approval decision in about three and a half minutes, ending on a mission where ARIA runs reads silently and raises a live approval card you accept or reject.
+- Onboarding stays on devnet the whole way through, so nothing can touch mainnet while you learn the approval gate.
+- First-session empty states now guide you across the console, wallet, activity, swarm, and memory panels.
+- Upgraded installs refresh agents that were pinned to retired model IDs, and a rejected or disabled API key now shows a clear warning instead of quietly dropping ARIA's tools.
+
 ## First-session polish (4.6.3)
 
 - Memory and Deploy icons open their panels on a fresh install.

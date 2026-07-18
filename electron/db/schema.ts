@@ -1559,3 +1559,24 @@ CREATE INDEX IF NOT EXISTS idx_garrison_commission_payouts_referrer
 export const SCHEMA_V57 = `
 ALTER TABLE autopilot_mandates ADD COLUMN bought_raw_tokens TEXT NOT NULL DEFAULT '0';
 `
+
+// Migration 61: local ledger for attested execution receipts. Every emitted receipt records
+// only its content hash (sha256 of the canonical receipt JSON) plus the on-chain
+// signature and cluster — never file contents, keys, prompts, or PII. Off by
+// default; a row exists only after the operator opts in and an emission lands.
+export const SCHEMA_RECEIPTS_V61 = `
+CREATE TABLE IF NOT EXISTS receipts (
+  id TEXT PRIMARY KEY,
+  content_hash TEXT NOT NULL,
+  source TEXT NOT NULL,
+  action_type TEXT NOT NULL,
+  cluster TEXT NOT NULL,
+  policy_verdict TEXT NOT NULL,
+  execution_signature TEXT,
+  anchor_kind TEXT NOT NULL,
+  anchor_signature TEXT,
+  created_at INTEGER DEFAULT (CAST(unixepoch('now') * 1000 AS INTEGER))
+);
+CREATE INDEX IF NOT EXISTS idx_receipts_created ON receipts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_receipts_hash ON receipts(content_hash);
+`
