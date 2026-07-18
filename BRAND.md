@@ -8,28 +8,29 @@ Official brand identity reference for the DAEMON agent workbench. Follow these r
 
 ### Core Backgrounds (Elevation Scale)
 
-Dark-first. Each step lifts a surface closer to the user.
+Dark-first, green-tinted near-black (shared with the Daemon website design
+system). Never brown, never pure black or pure gray. Each step lifts a surface
+closer to the user.
 
-| Token  | Hex       | Usage                              |
-|--------|-----------|-------------------------------------|
-| `--bg` | `#0a0a0a` | Workspace pit — deepest layer       |
-| `--s1` | `#141414` | Sidebars, titlebar, cards           |
-| `--s2` | `#1a1a1a` | Inputs, secondary surfaces          |
-| `--s3` | `#222222` | Hover states                        |
-| `--s4` | `#2a2a2a` | Active / pressed states             |
-| `--s5` | `#333333` | Borders                             |
-| `--s6` | `#3a3a3a` | Strong borders / dividers           |
+| Token  | Hex       | Usage                                  |
+|--------|-----------|----------------------------------------|
+| `--void` | `#0a0c0b` | Workspace pit — deepest layer        |
+| `--bg`   | `#0c0e0d` | App chrome, editor/terminal ground   |
+| `--s1`   | `#101211` | Panels, sidebars, titlebar           |
+| `--s2`   | `#171a18` | Cards, inputs, secondary surfaces    |
+| `--s3`   | `#1d211e` | Hover states, raised surfaces        |
+| `--s4`   | `#252a27` | Active / pressed states              |
 
 ### Text Scale
 
-All values are WCAG AA compliant against `--bg` (#0a0a0a).
+Cream `#ECEEE9` ladder (brand steps 100/65/45/30%) against `--s1` (#101211).
 
-| Token  | Hex       | Contrast | Usage                    |
-|--------|-----------|----------|--------------------------|
-| `--t1` | `#f0f0f0` | 15.5:1   | Primary text             |
-| `--t2` | `#a0a0a0` | 7.5:1    | Secondary text           |
-| `--t3` | `#888888` | 6.1:1    | Tertiary / muted labels  |
-| `--t4` | `#666666` | 4.6:1    | Disabled / placeholder   |
+| Token  | Hex       | Usage                    |
+|--------|-----------|--------------------------|
+| `--t1` | `#eceee9` | Primary text             |
+| `--t2` | `#9fa19d` | Secondary text           |
+| `--t3` | `#737571` | Tertiary / muted labels  |
+| `--t4` | `#525451` | Disabled / placeholder   |
 
 ### Accent Colors
 
@@ -67,8 +68,8 @@ Each accent has three states: **base**, **dim** (hover/pressed), and **glow** (a
 
 | Purpose       | Font                | Fallback Stack                                        |
 |---------------|---------------------|-------------------------------------------------------|
-| **UI**        | Plus Jakarta Sans   | -apple-system, BlinkMacSystemFont, sans-serif         |
-| **Code**      | JetBrains Mono      | Fira Code, Cascadia Code, monospace                   |
+| **UI**        | Geist               | Plus Jakarta Sans, -apple-system, sans-serif          |
+| **Code**      | JetBrains Mono      | Geist Mono, Cascadia Code, monospace                  |
 
 Both fonts are self-hosted as `.woff2` in `/public/fonts/`. No external font requests — DAEMON runs fully offline.
 

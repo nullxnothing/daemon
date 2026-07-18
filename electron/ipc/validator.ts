@@ -8,6 +8,15 @@ import * as SolanaDetector from '../services/SolanaDetector'
 let validatorPty: pty.IPty | null = null
 let validatorTerminalId: string | null = null
 
+export function stopValidatorProcess(): void {
+  if (validatorPty) {
+    try { validatorPty.kill() } catch { /* process already exited */ }
+    validatorPty = null
+  }
+  validatorTerminalId = null
+  ValidatorManager.reset()
+}
+
 export function registerValidatorHandlers() {
   ipcMain.handle('validator:start', ipcHandler(async (_event, type: 'surfpool' | 'test-validator') => {
     if (validatorPty) {
@@ -84,11 +93,8 @@ export function registerValidatorHandlers() {
   ipcMain.handle('validator:stop', ipcHandler(async () => {
     if (validatorPty) {
       ValidatorManager.setState({ status: 'stopping' })
-      try { validatorPty.kill() } catch { /* ignore */ }
-      validatorPty = null
-      validatorTerminalId = null
     }
-    ValidatorManager.reset()
+    stopValidatorProcess()
     return { stopped: true }
   }))
 

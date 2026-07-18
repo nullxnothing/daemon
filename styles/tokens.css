@@ -1,43 +1,45 @@
 :root {
-  /* 2026 dark foundation */
-  --bg-app: #0a0a0a;
-  --bg-workspace: #060707;
-  --bg-panel: #121414;
-  --bg-card: #171919;
-  --bg-card-hover: #1d1f1f;
-  --bg-well: #0d0f0f;
-  --bg-overlay: #171919;
-  --void: #060707;
-  --code-bg: #0a0a0a;
-  --diff-bg: #0c0e0e;
-  --field-bg: #0d0f0f;
-  --wash: rgba(255, 255, 255, 0.02);
-  --wash-2: rgba(255, 255, 255, 0.015);
-  --scroll: rgba(255, 255, 255, 0.09);
-  --scroll-h: rgba(255, 255, 255, 0.18);
-  --tex-c: 255, 255, 255;
+  /* 2026 dark foundation — brand green-tinted near-black (matches the website
+     design system: page #101211 / card #171A18 / raised #1D211E / media #0C0E0D).
+     Never brown, never pure black or pure gray. */
+  --bg-app: #0c0e0d;
+  --bg-workspace: #0a0c0b;
+  --bg-panel: #101211;
+  --bg-card: #171a18;
+  --bg-card-hover: #1d211e;
+  --bg-well: #0e100f;
+  --bg-overlay: #171a18;
+  --void: #0a0c0b;
+  --code-bg: #0c0e0d;
+  --diff-bg: #0d0f0e;
+  --field-bg: #0e100f;
+  --wash: rgba(236, 238, 233, 0.02);
+  --wash-2: rgba(236, 238, 233, 0.015);
+  --scroll: rgba(236, 238, 233, 0.09);
+  --scroll-h: rgba(236, 238, 233, 0.18);
+  --tex-c: 236, 238, 233;
   --tex-a: 0.045;
   --tex-k: 1;
   --noise-a: 0.18;
   --noise-k: 1;
   --noise-blend: overlay;
-  --shadow-c: 255, 255, 255;
+  --shadow-c: 236, 238, 233;
   --shadow-a: 0.5;
   --shadow-b1: 0.12;
   --shadow-b2: 0.08;
   color-scheme: dark;
 
-  /* Text ladder */
-  --text-primary: #f0f0f0;
-  --text-secondary: #a0a0a0;
-  --text-muted: #6e706f;
-  --text-faint: #4a4c4b;
-  --text-disabled: #4a4c4b;
+  /* Text ladder — brand cream at 100/65/45/30% (opaque equivalents on #101211) */
+  --text-primary: #eceee9;
+  --text-secondary: #9fa19d;
+  --text-muted: #737571;
+  --text-faint: #525451;
+  --text-disabled: #525451;
 
-  /* Border ladder */
-  --border-soft: rgba(255, 255, 255, 0.07);
-  --border-medium: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.20);
+  /* Border ladder — cream hairlines at brand alphas */
+  --border-soft: rgba(236, 238, 233, 0.08);
+  --border-medium: rgba(236, 238, 233, 0.14);
+  --border-strong: rgba(236, 238, 233, 0.22);
   --line: var(--border-soft);
   --line-2: var(--border-medium);
   --line-strong: var(--border-strong);
@@ -61,7 +63,7 @@
   --s1: var(--bg-panel);
   --s2: var(--bg-card);
   --s3: var(--bg-card-hover);
-  --s4: #262928;
+  --s4: #252a27;
   --s5: var(--border-medium);
   --s6: var(--border-strong);
 
@@ -130,9 +132,10 @@
   --focus-ring-red:     0 0 0 1px color-mix(in srgb, var(--red) 48%, transparent);
   --focus-ring-blue:    0 0 0 1px color-mix(in srgb, var(--blue) 48%, transparent);
 
-  /* Typography — families */
-  --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-code: 'Geist Mono', 'Berkeley Mono', 'Spline Sans Mono', 'Space Mono', ui-monospace, monospace;
+  /* Typography — families. Geist is the brand UI face; JetBrains Mono is the
+     brand mono (terminal, receipts, labels), with Geist Mono as fallback. */
+  --font-ui: 'Geist', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-code: 'JetBrains Mono', 'Geist Mono', 'Berkeley Mono', 'Spline Sans Mono', 'Space Mono', ui-monospace, monospace;
   --mono: var(--font-code);
   /* design-handoff alias for the UI family (a few panels reference --ui directly) */
   --ui: var(--font-ui);

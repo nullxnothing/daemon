@@ -8,6 +8,13 @@ should feel like it was built by the same hand on the same day.
 > flow, visual cohesion, and professional information density — on top of DAEMON's
 > dark + green Solana identity.
 
+> **Brand alignment (July 2026):** token values follow the shared Daemon brand
+> system (same as the website): green-tinted near-black surfaces (panel `#101211`,
+> card `#171A18`, raised `#1D211E`, chrome `#0C0E0D` — never brown, never pure
+> black/gray), cream text ladder from `#ECEEE9`, cream hairline borders, one green
+> accent `#3ECF8E`. UI face is **Geist**; mono is **JetBrains Mono** (Geist Mono
+> fallback). Values live in `styles/tokens.css`; panels keep using semantic tokens.
+
 ---
 
 ## Principles

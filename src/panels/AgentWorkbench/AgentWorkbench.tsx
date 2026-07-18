@@ -23,16 +23,10 @@ const CONTEXT_CHIPS: { id: ChipId; label: string }[] = [
   { id: 'projectMemory', label: 'Project Memory' },
 ]
 
-// Monochrome "knowledge" mark for the brain count — a lightbulb/spark, not an emoji
-// (UI chrome stays emoji-free; the glyph inherits currentColor like the rest of the row).
-export function MemoryKnowledgeIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7 1.5a4 4 0 0 0-2.4 7.2c.3.25.5.6.5 1v.3h3.8v-.3c0-.4.2-.75.5-1A4 4 0 0 0 7 1.5Z" />
-      <path d="M5.4 12.2h3.2M6 13.2h2" />
-    </svg>
-  )
-}
+// Monochrome "knowledge" mark for the brain count — lives in its own module so
+// transcript components and the Lite shell can use it without this panel.
+export { MemoryKnowledgeIcon } from './MemoryKnowledgeIcon'
+import { MemoryKnowledgeIcon } from './MemoryKnowledgeIcon'
 
 /** Build · Plan segment for the composer foot row. Plan mode makes ARIA present
  *  a plan and wait for one approval before writing. Default Build. */

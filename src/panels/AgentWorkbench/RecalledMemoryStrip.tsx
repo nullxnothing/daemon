@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AriaMemorySuggestionLite } from '../../../electron/shared/types'
-import { MemoryKnowledgeIcon } from './AgentWorkbench'
+import { MemoryKnowledgeIcon } from './MemoryKnowledgeIcon'
 
 /**
  * Shows what ARIA recalled to handle a turn — the "it remembers you" moment.

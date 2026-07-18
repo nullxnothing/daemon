@@ -51,6 +51,8 @@ import type {
   Mandate,
   MandateAction,
   AutopilotState,
+  AutopilotArmReview,
+  AutopilotArmAuthorization,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -253,6 +255,8 @@ export type {
   Mandate,
   MandateAction,
   AutopilotState,
+  AutopilotArmReview,
+  AutopilotArmAuthorization,
   JupiterTokenSearchResult,
   ClaudeMdData,
   ClaudeConnection,
@@ -641,6 +645,7 @@ declare global {
     stage: (cwd: string, files: string[]) => Promise<IpcResponse>
     unstage: (cwd: string, files: string[]) => Promise<IpcResponse>
     commit: (cwd: string, message: string) => Promise<IpcResponse>
+    initCommit: (cwd: string, message: string) => Promise<IpcResponse<{ committed: boolean; reason?: string }>>
     push: (cwd: string) => Promise<IpcResponse<string>>
     log: (cwd: string, count?: number) => Promise<IpcResponse<GitCommit[]>>
     diff: (cwd: string, filePath?: string) => Promise<IpcResponse<string>>
@@ -728,7 +733,7 @@ declare global {
 
   interface DaemonProjects {
     list: () => Promise<IpcResponse<Project[]>>
-    create: (project: { name: string; path: string }) => Promise<IpcResponse<Project>>
+    create: (project: { name: string; path: string; requireNewDirectory?: boolean }) => Promise<IpcResponse<Project>>
     createDemoWorkspace: () => Promise<IpcResponse<Project>>
     delete: (id: string) => Promise<IpcResponse>
     openDialog: () => Promise<IpcResponse<string | null>>
@@ -924,6 +929,32 @@ declare global {
 
   interface DaemonShell {
     openExternal: (url: string) => Promise<void>
+  }
+
+  interface DaemonLiteFlavorInfo {
+    flavor: 'lite'
+    version: string
+    ideInstalled: boolean
+  }
+
+  interface DaemonLite {
+    getFlavorInfo: () => Promise<IpcResponse<DaemonLiteFlavorInfo>>
+    isOnboardingComplete: () => Promise<IpcResponse<boolean>>
+    setOnboardingComplete: (complete: boolean) => Promise<IpcResponse<void>>
+    getShowTools: () => Promise<IpcResponse<boolean>>
+    setShowTools: (show: boolean) => Promise<IpcResponse<void>>
+    openInIde: () => Promise<IpcResponse<{ launched: boolean }>>
+    popoutOpen: (url: string) => Promise<IpcResponse<{ opened: boolean }>>
+  }
+
+  type MemeTechProjectProfile = import('../../electron/services/meme-studio/types').MemeTechProjectProfile
+  type MemeMarketSnapshot = import('../../electron/services/meme-studio/types').MemeMarketSnapshot
+  type TokenRiskPreflight = import('../../electron/services/meme-studio/types').TokenRiskPreflight
+
+  interface DaemonMemeStudio {
+    detect: (projectPath: string) => Promise<IpcResponse<MemeTechProjectProfile>>
+    marketContext: (mint: string) => Promise<IpcResponse<MemeMarketSnapshot>>
+    tokenPreflight: (mint: string) => Promise<IpcResponse<TokenRiskPreflight>>
   }
 
   interface DaemonPumpFun {
@@ -1824,6 +1855,8 @@ declare global {
     deploy: DaemonDeploy
     shipline: DaemonShipline
     shell: DaemonShell
+    lite: DaemonLite
+    memeStudio: DaemonMemeStudio
     pumpfun: DaemonPumpFun
     proof: DaemonProof
     email: DaemonEmail
@@ -1975,7 +2008,7 @@ declare global {
       testValidator: { installed: boolean; version: string | null }
       litesvm: { installed: boolean; source: 'project' | 'none' }
     }>>
-    detectProject: (projectPath: string) => Promise<IpcResponse<{ isSolanaProject: boolean; framework: string | null; indicators: string[]; suggestedMcps: string[] }>>
+    detectProject: (projectPath: string) => Promise<IpcResponse<import('../../electron/services/SolanaDetector').SolanaProjectInfo>>
     onStatusChange: (callback: (state: unknown) => void) => () => void
   }
 
@@ -2060,7 +2093,8 @@ declare global {
       maxExposureLamports: number
       intervalSeconds: number
     }) => Promise<IpcResponse<Mandate>>
-    arm: (id: string) => Promise<IpcResponse<Mandate>>
+    armReview: (id: string) => Promise<IpcResponse<AutopilotArmReview>>
+    arm: (input: AutopilotArmAuthorization) => Promise<IpcResponse<Mandate>>
     disarm: (id: string) => Promise<IpcResponse<Mandate>>
     disarmAll: () => Promise<IpcResponse<{ disarmed: number }>>
     delete: (id: string) => Promise<IpcResponse<{ ok: true }>>

@@ -6,6 +6,7 @@
 import type { AriaUiEffect } from '../../electron/shared/types'
 import { useUIStore } from '../store/ui'
 import { useWorkflowShellStore } from '../store/workflowShell'
+import { useBrowserStore } from '../store/browser'
 
 const INTEGRATION_ENABLE_STORAGE_KEY = 'daemon:integration-command-center:enabled'
 
@@ -110,11 +111,53 @@ export function applyUiEffect(effect: AriaUiEffect): void {
       // full context; headless execution needs the ICC's IntegrationContext.
       useUIStore.getState().openWorkspaceTool('integrations')
       break
+    case 'open_preview':
+      // Load a localhost dev-server URL in the embedded browser (BrowserMode).
+      // Loopback is allowlisted by the webview security guard; remote http is not.
+      useBrowserStore.getState().setUrl(effect.url)
+      useUIStore.getState().openBrowserTab()
+      break
+    case 'start_dev_server':
+      // Fire-and-forget path: kick off the dev server without awaiting the id.
+      // The two-phase path (runUiEffectWithData) is preferred; it returns the port.
+      void startDevServer(effect)
+      break
+    case 'open_scaffold':
+      // Preselect the template + name, then open the ProjectStarter wizard.
+      useUIStore.getState().setScaffoldPreset({ templateId: effect.templateId, projectName: effect.projectName })
+      useUIStore.getState().openWorkspaceTool('starter')
+      break
   }
+}
+
+/**
+ * Create a PTY terminal that runs the discovered dev command, register its port,
+ * and add it to the terminal store — the same flow ProjectStarter uses for the
+ * meme site / game preview. Returns the created terminal id + preview url.
+ */
+async function startDevServer(effect: Extract<AriaUiEffect, { type: 'start_dev_server' }>): Promise<{ ok: boolean; terminalId?: string; url?: string; error?: string }> {
+  const ui = useUIStore.getState()
+  const activeProjectId = ui.activeProjectId
+  if (!activeProjectId) return { ok: false, error: 'No active project.' }
+  const startupCommand = `${effect.command} -- --host 127.0.0.1 --port ${effect.port}`
+  const res = await window.daemon.terminal.create({
+    cwd: effect.projectPath,
+    startupCommand,
+    userInitiated: true,
+  })
+  if (!res.ok || !res.data) return { ok: false, error: res.error ?? 'Failed to start dev server terminal.' }
+  ui.addTerminal(activeProjectId, res.data.id, effect.label, null)
+  await window.daemon.ports.register(effect.port, activeProjectId, effect.label)
+  ui.setCenterMode('canvas')
+  return { ok: true, terminalId: res.data.id, url: `http://127.0.0.1:${effect.port}` }
 }
 
 /** Apply a two-phase effect and return data for the tool_result. */
 export async function runUiEffectWithData(effect: AriaUiEffect): Promise<unknown> {
+  if (effect.type === 'start_dev_server') {
+    // Await terminal creation so the tool_result carries the real port/url + status.
+    return startDevServer(effect)
+  }
   applyUiEffect(effect)
   if (effect.type === 'run_integration') {
     return { opened: 'integrations', actionId: effect.actionId, note: 'Opened Integrations — run the check there.' }

@@ -15,6 +15,7 @@ import { broadcast } from '../services/EventBus'
 import { getDb } from '../db/db'
 import { isPathSafe } from '../shared/pathValidation'
 import { ipcHandler, withValidation } from '../services/IpcHandlerFactory'
+import { registerSecureKeyHandlers } from './secureKeys'
 import { restartProviderInPty, restartAllProviderSessions } from '../shared/providerRestart'
 import type { McpAddInput } from '../shared/types'
 
@@ -162,19 +163,9 @@ ${content}`,
     return tidied.replace(/^```(?:markdown|md)?\s*\n?/, '').replace(/\n?```\s*$/, '')
   }))
 
-  // --- Secure Keys ---
+  // --- Secure Keys (extracted; Lite registers them without this module) ---
 
-  ipcMain.handle('claude:store-key', ipcHandler(async (_event, name: string, value: string) => {
-    SecureKey.storeKey(name, value)
-  }))
-
-  ipcMain.handle('claude:list-keys', ipcHandler(async () => {
-    return SecureKey.listKeys()
-  }))
-
-  ipcMain.handle('claude:delete-key', ipcHandler(async (_event, name: string) => {
-    SecureKey.deleteKey(name)
-  }))
+  registerSecureKeyHandlers()
 
   // --- CLAUDE.md ---
 

@@ -1,0 +1,153 @@
+.trade {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 11px;
+  color: var(--t3);
+  pointer-events: none;
+}
+
+.search {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  background: var(--field-bg);
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+}
+
+.search:focus {
+  outline: none;
+  border-color: var(--accent-green-dim);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sectionLabel {
+  padding: 0 2px 4px;
+  font-size: var(--fs-10);
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tokenRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.tokenRow:hover {
+  background: var(--wash);
+}
+
+.tokenMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.tokenSymbol {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.verified {
+  font-size: var(--fs-9);
+  color: var(--accent-green);
+}
+
+.sus {
+  font-size: var(--fs-9);
+  color: var(--accent-red);
+}
+
+.tokenName {
+  font-size: var(--fs-11);
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tokenPrice {
+  font-size: var(--fs-12);
+  color: var(--t1);
+  font-family: var(--font-code);
+}
+
+.swapBtn {
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-green) 30%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent-green);
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  cursor: pointer;
+}
+
+.swapBtn:hover {
+  background: var(--accent-green-glow);
+}
+
+.starBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.starBtn:hover {
+  color: var(--t1);
+  background: var(--wash);
+}
+
+.starBtn[aria-pressed='true'] {
+  color: var(--accent-amber);
+}
+
+.empty {
+  padding: 16px 4px;
+  font-size: var(--fs-12);
+  color: var(--t4);
+}

@@ -10,11 +10,14 @@ node_modules
 dist
 dist-ssr
 dist-electron
+dist-electron-lite
+dist-lite
 dist-cloud
 dist-bridge
 packages/bridge-shim/daemon-bridge-shim.mjs
 packages/bridge-shim/*.tgz
 release
+release-lite
 *.tsbuildinfo
 *.local
 
@@ -73,6 +76,7 @@ features/
 # Internal dev artifacts
 .design/
 /screenshots/
+/recordings/
 NVIDIA Corporation/
 .agents/
 .codex-run/

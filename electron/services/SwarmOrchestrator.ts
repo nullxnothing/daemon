@@ -390,6 +390,11 @@ export function collectLaneResults(laneId: string): string | null {
   try { return fs.readFileSync(lane.results_path, 'utf8') } catch { return null }
 }
 
+/** Merge a finished lane's branch into the main repo. See WorktreeService.mergeLane. */
+export async function mergeLane(laneId: string): Promise<Worktree.MergeLaneResult> {
+  return Worktree.mergeLane(laneId)
+}
+
 /**
  * Cancel/dismiss a whole run: kill any live lane processes and ALWAYS tear down
  * every worktree + branch (RESULTS are already snapshotted to the cache on exit,

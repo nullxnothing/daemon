@@ -122,6 +122,24 @@ export function registerGitHandlers() {
     await git.commit(message)
   }))
 
+  // Deterministic init + stage-all + initial commit for a freshly scaffolded project.
+  // Ordered and error-checked in one place (the shell-chained equivalent in a startup
+  // command was fragile: a `.git` created by init but a failed commit left an unborn
+  // HEAD, which a swarm can't branch from). Idempotent: skips if a commit already exists.
+  ipcMain.handle('git:init-commit', ipcHandler(async (_event, cwd: string, message: string) => {
+    validateCwd(cwd)
+    const git = simpleGit(cwd)
+    await ensureGitRepository(cwd)
+    // Already has a commit? Nothing to do.
+    try {
+      await git.revparse(['HEAD'])
+      return { committed: false, reason: 'already has commits' }
+    } catch { /* unborn HEAD — proceed to first commit */ }
+    await git.add(['-A'])
+    await git.commit(message.trim() || 'chore: initial scaffold')
+    return { committed: true }
+  }))
+
   ipcMain.handle('git:push', ipcHandler(async (_event, cwd: string) => {
     validateCwd(cwd)
     const ensured = await ensureGitRepository(cwd)

@@ -115,6 +115,7 @@ export interface ChannelMap {
   'git:stage': { input: [cwd: string, files: string[]]; output: void }
   'git:unstage': { input: [cwd: string, files: string[]]; output: void }
   'git:commit': { input: [cwd: string, message: string]; output: void }
+  'git:init-commit': { input: [cwd: string, message: string]; output: { committed: boolean; reason?: string } }
   'git:push': { input: string; output: string }
   'git:log': { input: [cwd: string, count?: number]; output: GitCommit[] }
   'git:diff': { input: [cwd: string, filePath?: string]; output: string }

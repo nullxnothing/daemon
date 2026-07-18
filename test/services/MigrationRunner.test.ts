@@ -144,7 +144,7 @@ describe('runMigrations — upgraded install', () => {
     const rows = Object.fromEntries(agentModels(db).map((r) => [r.id, r.model]))
     expect(rows['daemon-debug']).toBe(CLAUDE_MODEL_IDS.sonnet)
     expect(rows['solana-agent']).toBe(CLAUDE_MODEL_IDS.opus)
-    expect(maxVersion(db)).toBeGreaterThanOrEqual(60)
+    expect(maxVersion(db)).toBeGreaterThanOrEqual(61)
   })
 
   it('remaps stale Agent Station picker models but never non-Claude rows (V60)', () => {
@@ -166,7 +166,7 @@ describe('runMigrations — upgraded install', () => {
     const afterFirst = agentModels(db)
     runMigrations(db)
     expect(agentModels(db)).toEqual(afterFirst)
-    expect(maxVersion(db)).toBeGreaterThanOrEqual(60)
+    expect(maxVersion(db)).toBeGreaterThanOrEqual(61)
   })
 })
 

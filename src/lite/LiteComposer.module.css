@@ -1,0 +1,86 @@
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 12px 8px;
+  background: var(--s1);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  transition: border-color 120ms ease;
+}
+
+.composer:focus-within {
+  border-color: var(--line-2);
+}
+
+.input {
+  width: 100%;
+  min-height: 38px;
+  max-height: 200px;
+  resize: none;
+  border: none;
+  background: transparent;
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+
+.input::placeholder {
+  color: var(--t4);
+}
+
+.input:focus,
+.input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-green-glow);
+  color: var(--accent-green);
+  font-size: var(--fs-10);
+  font-weight: 600;
+}
+
+.model {
+  color: var(--t3);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-green);
+  color: #06110c;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-green) 88%, white);
+}
+
+.send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

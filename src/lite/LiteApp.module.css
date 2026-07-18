@@ -1,0 +1,50 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-app);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  overflow: hidden;
+}
+
+/* Draggable strip under the hidden native titlebar — blends with the app so
+   the window controls sit on the same dark surface (Cursor-style). */
+.titlebar {
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebarText {
+  font-size: var(--fs-11);
+  color: var(--t4);
+  letter-spacing: 0.04em;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 248px 1fr;
+}
+
+.main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+  background: var(--bg-workspace);
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .body {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
+}

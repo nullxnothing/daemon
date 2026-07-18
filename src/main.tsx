@@ -2,7 +2,12 @@ import './polyfills'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { setAriaHost } from './store/ariaHost'
+import { ideAriaHost } from './store/ariaHostIde'
 import '../styles/base.css'
+
+// Wire the ARIA store to the IDE shell (project context, terminals, ui effects).
+setAriaHost(ideAriaHost)
 
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },

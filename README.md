@@ -1,6 +1,7 @@
 <p align="center">
   <h1 align="center">DAEMON</h1>
-  <p align="center">An AI-native Solana development environment for agents, wallets, launches, deployments, and hosted DAEMON AI.</p>
+  <p align="center"><strong>AI agents that work inside your Solana stack, under your authority.</strong></p>
+  <p align="center">Build, inspect, and operate from one local-first workbench. Writes, Git pushes, and fund movement stay behind explicit review.</p>
 </p>
 
 <p align="center">
@@ -8,7 +9,6 @@
   <img src="https://img.shields.io/github/v/release/nullxnothing/daemon" alt="Release">
   <img src="https://img.shields.io/github/downloads/nullxnothing/daemon/total" alt="Downloads">
   <img src="https://img.shields.io/github/license/nullxnothing/daemon" alt="License">
-  <img src="https://img.shields.io/badge/tests-979%20passing-brightgreen" alt="Tests">
 </p>
 
 <p align="center">
@@ -25,20 +25,20 @@
 ---
 
 <p align="center">
-  <strong>$DAEMON CA:</strong> <code>4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump</code>
-</p>
-
----
-
-<p align="center">
-  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON agent workbench with editor, terminal, and sidebar" width="800">
+  <img src="docs/screenshots/ui-overview.webp" alt="DAEMON 4.7 project templates with the ARIA console and guarded first-mission actions" width="900">
 </p>
 
 **[Frontier demo runbook](FRONTIER_SUBMISSION.md#2-minute-demo-runbook)** — 2-minute submission flow from project open to devnet settlement.
 
-DAEMON is a standalone Electron development environment for Solana builders who use AI agents to ship. It combines an offline editor, real PTY terminals, DAEMON AI, Claude/Codex agent spawning, MCP management, wallet/RPC readiness, token launches, deployments, integrations, and an Anchor-backed registry for publishing verifiable agent work receipts. Not a VS Code fork.
+DAEMON is a focused Windows workbench for Solana builders who want one persistent AI conversation beside real project files, a scoped terminal, guarded local workflows, and live meme-tech evidence. It is local-first and does not hand agents silent authority over code, keys, Git, or funds.
 
-DAEMON Light stays free and useful for local work and bring-your-own-key AI. DAEMON Pro and holder access unlock hosted DAEMON AI, Pro Skills, Arena, MCP sync, priority workflows, and higher model lanes as they go live.
+## How authority works
+
+1. **Inspect:** enabled read tools gather project, Git, wallet, and runtime context.
+2. **Review:** writes pause for approval. Guarded sensitive flows use typed checks, and direct Autopilot arming ends in an OS-native review of every bound mainnet term.
+3. **Verify:** diffs, test output, signatures, and explorer links keep results inspectable after execution.
+
+The free tier stays free for local work and bring-your-own-key AI. Advanced trading, launch, and hosted AI surfaces are optional capability packs, not prerequisites for the core build loop.
 
 ## Install
 
@@ -46,64 +46,55 @@ DAEMON Light stays free and useful for local work and bring-your-own-key AI. DAE
 
 <a name="mac-install"></a>
 
-**Mac:** Build from source (signed builds configurable via Apple credentials):
+**Mac and Linux:** The canonical packaged release is currently Windows-only. Build the repository from source for development:
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
 cd daemon
 pnpm install
 pnpm run build
-pnpm run package
 ```
 
-The `.dmg` will be in `release/<version>/`. Signed/notarized builds require Apple Developer credentials in the packaging environment. Without them, the app will still package, but Gatekeeper may require right-click > Open on first launch.
-
-<a name="linux-install"></a>
-
-**Linux:** Build from source (AppImage builds coming soon):
+**Build the canonical Windows installer from source:**
 
 ```bash
 git clone https://github.com/nullxnothing/daemon.git
 cd daemon
 pnpm install
-pnpm run build
-pnpm run package
-```
-
-The AppImage will be in `release/<version>/`. Make it executable with `chmod +x` and run directly.
-
-**Build from source (any platform):**
-
-```bash
-git clone https://github.com/nullxnothing/daemon.git
-cd daemon
-pnpm install
-pnpm run package
+pnpm run package:lite
 ```
 
 Requires **Node.js 22+** and **pnpm 9+**.
 
-## Features
+The installer is written to `release-lite/<version>/DAEMON-setup.exe`.
 
-<p align="center">
-  <img src="docs/screenshots/editor.webp" alt="Editor with multiple tabs, breadcrumbs, and file tree" width="800">
-</p>
+## Focused workbench
+
+- **Conversation:** project-scoped sessions, bring-your-own-key models, and encrypted local credentials.
+- **Code:** bounded project import, recursive explorer, offline Monaco, dirty-file protection, and explicit save states.
+- **Terminal:** real project-scoped PTYs with visible exit and error states.
+- **Meme Tech:** repo topology, Birdeye and DEX market context, provider divergence, and read-only token-risk evidence.
+- **Wallet, Trade, Scanner:** optional tools behind the same guarded shell. Wallet addresses remain watch-only by default.
+
+## Features
 
 **Editor** — Monaco running fully offline via a custom protocol handler. Multi-tab, breadcrumbs, syntax highlighting, Ctrl+S save. No CDN dependency.
 
 **Terminal** — Real PTY sessions powered by node-pty and xterm.js. Multiple tabs, split panes, command history search (Ctrl+R), tab-completion hints, and dedicated agent session management.
 
-<p align="center">
-  <img src="docs/screenshots/agent-launcher.webp" alt="Agent launcher with model selection and MCP config" width="800">
-</p>
-
 **Agent Launcher** — Spawn Claude Code agents with custom system prompts, model selection, and per-project MCP configurations. Agents run as real CLI sessions in dedicated terminal tabs.
+
+**ARIA Game Studio Beta:** Create a playable local Phaser starter, install dependencies, verify a
+production build, and open the preview inside DAEMON. With approval, ARIA can send one focused
+`build_game` lane into a separate Git worktree. The starter has typed seams for future Solana
+integration, but the beta uses local stubs. It does not connect a live wallet, write onchain, mint,
+publish, or deploy. `deploy_app` opens the Deploy panel for a manual handoff.
 
 **VS Code-style shell + capability packs** — Explorer, editor, a bottom-panel terminal, and the DAEMON Console on the right rail. Domain features ship as toggleable capability packs (Solana, Wallet, Launch, Agents, Memory, Sites, Markets, Create); disabling a pack quiesces its tools, integrations, sidebar icon, console commands, and background work — IPC handlers included. The Capability Manager shows how many packs are active and how much backend work is idle.
 
 **DAEMON Console (ARIA operator)** — The right-rail AI operator drives the whole IDE from natural language, chat-first with `>` and `/` command accelerators. Per-project chat sessions (new / switch / rename / archive / delete) with memory that survives restarts and compounds: the console proposes durable facts after real work (Keep/Dismiss), cites which taught facts a turn drew on, and strengthens proven facts over time. It runs DAEMON itself — agent wallets, token preflight/launch, Flywheel config, git — through a registry of typed tools with typed confirmation for sensitive on-chain actions (and a `[MAINNET]` guard). It never pushes to git autonomously.
 
-**ARIA Autopilot** — Standing, structured trading mandates parsed from natural language and executed unattended on mainnet on a fixed cadence, with exit rules (take-profit / stop-loss / liquidity floor), a hard exposure cap, arm/disarm/kill-switch, and a "The Desk" panel showing live unrealized P&L and the action tape. Every tick claims its ledger row before it swaps, so a crash mid-tick is held for review, never replayed into a double-buy; a cluster switch auto-holds armed mandates; unattended slippage and price impact are capped tighter than a human-confirmed trade.
+**ARIA Autopilot (experimental):** Bounded mainnet mandates run on a fixed cadence after a typed review of the wallet, mint, clip, exposure cap, slippage, and exits. The Desk shows estimated P&L and an action tape. Every tick claims its ledger row before it swaps, so a crash mid-tick is held for review, never replayed into a double-buy; a cluster switch auto-holds armed mandates; unattended slippage and price impact are capped tighter than a human-confirmed trade. Disarming stops future ticks, but a submitted swap may still settle.
 
 **Hyperliquid (via HypurrClaw)** — ARIA reads Hyperliquid markets and trades perps/spot by driving the agent-first `hyperliquid` CLI through a single execFile gate (no raw shell). Network defaults to testnet, DAEMON never holds a Hyperliquid key (the CLI's encrypted wallet signs), and every signing action stops for typed confirmation with an `[HL-MAINNET]`/`[HL-TESTNET]` marker.
 
@@ -122,10 +113,6 @@ Requires **Node.js 22+** and **pnpm 9+**.
 **Git** — Branch switching, per-file and folder-level staging, commit, push, stash save/pop, branch creation, and tag management.
 
 **Wallet** — Live Solana portfolio tracking via Helius. SOL balance and SPL token holdings with USD values from Jupiter.
-
-<p align="center">
-  <img src="docs/screenshots/wallet.webp" alt="Wallet panel showing token balances" width="800">
-</p>
 
 **Settings** — API keys encrypted via the OS keychain. MCP integrations, agent defaults, and display preferences.
 
@@ -153,6 +140,8 @@ DAEMON AI is the hosted agent layer for project-aware chat, patch workflows, Sol
 | Enterprise | Custom | Private deployments, custom limits, support, compliance, and invoicing. |
 
 Holder access starts with a simple rule: hold 1,000,000 $DAEMON to claim DAEMON Pro with included monthly AI usage. Higher holder tiers can unlock higher limits, discounts, badges, and early access later. Holder access does not mean unlimited AI usage.
+
+**$DAEMON contract address:** `4vpf4qNtNVkvz2dm5qL2mT6jBXH9gDY8qH2QsHN5pump`
 
 DAEMON also includes a Zauth integration surface for x402 database and Provider Hub management. Payment and entitlement enforcement should remain server-side through DAEMON AI Cloud and the relevant provider backends.
 

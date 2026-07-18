@@ -8,9 +8,6 @@ on:
 permissions:
   contents: read
 
-# The Vite/tsc production build peaks past Node's ~2GB default heap on the hosted
-# runners (the macOS arm64 job OOM'd with exit 134 on v4.6.2). Give every job a
-# 4GB heap so the build can't run out of memory on any platform.
 env:
   NODE_OPTIONS: --max-old-space-size=4096
 
@@ -31,13 +28,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Verify tag matches package version
+        run: test "${GITHUB_REF_NAME}" = "v$(node -p "require('./package.json').version")"
       - run: pnpm run typecheck
       - run: pnpm run test
 
-  release-windows:
+  package-windows:
     runs-on: windows-latest
     needs: validate
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v6
         with:
@@ -49,50 +47,53 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Cache electron
+      - name: Cache Electron
         uses: actions/cache@v5
         with:
           path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
             ~\AppData\Local\electron\cache
             ~\AppData\Local\electron-builder\cache
           key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
+          restore-keys: electron-cache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - name: Package
+      - name: Build canonical DAEMON installer
+        shell: pwsh
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: pnpm run package:lite
+      - name: Packaged smoke
         shell: pwsh
         run: |
-          if ("${{ secrets.CSC_LINK }}") {
-            $env:CSC_LINK = "${{ secrets.CSC_LINK }}"
-          }
-          if ("${{ secrets.CSC_KEY_PASSWORD }}") {
-            $env:CSC_KEY_PASSWORD = "${{ secrets.CSC_KEY_PASSWORD }}"
-          }
-          pnpm exec electron-builder --publish never
-      - name: Generate checksums
+          node scripts/smoke/lite-app-smoke.mjs
+          node scripts/smoke/lite-workbench-smoke.mjs
+      - name: Generate checksum
         shell: pwsh
         run: |
-          Get-ChildItem -Path release -Recurse -File -Include DAEMON-setup.exe | ForEach-Object {
-            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
-            "$hash  $($_.Name)" | Out-File -Append -FilePath release/checksums-windows.txt
-          }
+          $installer = Get-ChildItem -Path release-lite -Recurse -File -Filter DAEMON-setup.exe | Select-Object -First 1
+          if (-not $installer) { throw 'DAEMON-setup.exe was not produced' }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($installer.Name)" | Out-File -FilePath release-lite/checksums-windows.txt
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-release
+          name: daemon-windows-release
           path: |
-            release/*/DAEMON-setup.exe
-            release/*/latest.yml
-            release/*/DAEMON-setup.exe.blockmap
-            release/checksums-windows.txt
+            release-lite/*/DAEMON-setup.exe
+            release-lite/*/DAEMON-setup.exe.blockmap
+            release-lite/*/latest.yml
+            release-lite/checksums-windows.txt
           retention-days: 1
 
-  release-macos:
-    runs-on: macos-latest
+  package-macos:
+    runs-on: macos-26
     needs: validate
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    env:
+      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.11'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -104,113 +105,166 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Cache electron
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - name: Pre-cache Electron binaries
+      - name: Select signed or version-scoped unsigned mode
         shell: bash
         run: |
-          ELECTRON_VERSION="$(node -p "require('./package.json').devDependencies.electron.replace(/^[^0-9]*/, '')")"
-          ELECTRON_CACHE="$HOME/.cache/electron"
-          mkdir -p "$ELECTRON_CACHE"
-          for arch in arm64 x64; do
-            ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-darwin-${arch}.zip"
-            curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
-              --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
-              "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
+          present=0
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -n "${!name:-}" ]; then present=$((present + 1)); fi
           done
-      - name: Package
-        run: |
-          if [ -n "${{ secrets.CSC_LINK }}" ]; then
-            export CSC_LINK="${{ secrets.CSC_LINK }}"
+          version="$(node -p "require('./package.json').version")"
+          if [ "$present" -eq 5 ]; then
+            mode=signed
+            echo 'DAEMON_REQUIRE_MAC_NOTARIZATION=1' >> "$GITHUB_ENV"
+            echo 'DAEMON_MAC_ADHOC=0' >> "$GITHUB_ENV"
+          elif [ "$present" -ne 0 ]; then
+            echo 'Partial Apple credentials are not allowed'
+            exit 1
+          elif [ "$version" = "$DAEMON_ALLOW_UNSIGNED_MAC_VERSION" ]; then
+            mode=unsigned
+            echo 'DAEMON_REQUIRE_MAC_NOTARIZATION=0' >> "$GITHUB_ENV"
+            echo 'DAEMON_MAC_ADHOC=1' >> "$GITHUB_ENV"
+            echo 'CSC_IDENTITY_AUTO_DISCOVERY=false' >> "$GITHUB_ENV"
+          else
+            echo "Apple credentials are required for macOS release $version"
+            exit 1
           fi
-          if [ -n "${{ secrets.CSC_KEY_PASSWORD }}" ]; then
-            export CSC_KEY_PASSWORD="${{ secrets.CSC_KEY_PASSWORD }}"
-          fi
-          if [ -n "${{ secrets.APPLE_ID }}" ]; then
-            export APPLE_ID="${{ secrets.APPLE_ID }}"
-          fi
-          if [ -n "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ]; then
-            export APPLE_APP_SPECIFIC_PASSWORD="${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
-          fi
-          if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
-            export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
-          fi
-          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
-            echo "Notarization credentials found"
-          fi
-          pnpm exec electron-builder --mac dmg zip --arm64 --x64 --publish never
-      - name: Generate checksums
-        run: |
-          cd release
-          find . -name "*.dmg" -o -name "*.zip" | while read f; do
-            shasum -a 256 "$f" >> checksums-macos.txt
-          done
-      - uses: actions/upload-artifact@v7
-        with:
-          name: macos-release
-          path: |
-            release/*/DAEMON-*.dmg
-            release/*/DAEMON-*.zip
-            release/*/latest-mac.yml
-            release/*/DAEMON-*.blockmap
-            release/checksums-macos.txt
-          retention-days: 1
-
-  release-linux:
-    runs-on: ubuntu-latest
-    needs: validate
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Cache electron
+          echo "DAEMON_MAC_RELEASE_MODE=$mode" >> "$GITHUB_ENV"
+          echo "macOS release mode: $mode"
+      - name: Cache Electron
         uses: actions/cache@v5
         with:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            electron-cache-${{ runner.os }}-
+          key: electron-cache-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: electron-cache-${{ runner.os }}-${{ runner.arch }}-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - run: pnpm exec electron-builder --publish never
-      - name: Generate checksums
+      - name: Build Apple Silicon release
+        shell: bash
         run: |
-          cd release
-          find . -name "*.AppImage" | while read f; do
-            sha256sum "$f" >> checksums-linux.txt
-          done
+          if [ "$DAEMON_MAC_RELEASE_MODE" = 'unsigned' ]; then
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+          fi
+          pnpm run package:lite:mac
+      - name: Verify signature mode, architecture, and updater metadata
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          RELEASE_DIR="release-lite/$VERSION"
+          APP_PATH="$RELEASE_DIR/mac-arm64/DAEMON.app"
+          test "$(uname -m)" = arm64
+          case "$DAEMON_MAC_RELEASE_MODE" in
+            signed) artifact_stem='DAEMON-arm64'; verifier_args=() ;;
+            unsigned) artifact_stem='DAEMON-unsigned-arm64'; verifier_args=(--unsigned) ;;
+            *) echo "Invalid macOS release mode: $DAEMON_MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+
+          verify_bundle() {
+            local app_path="$1"
+            local executable="$app_path/Contents/MacOS/DAEMON"
+            test "$(lipo -archs "$executable")" = arm64
+            codesign --verify --deep --strict --verbose=2 "$app_path"
+            local app_details app_team
+            app_details="$(codesign -dv --verbose=4 "$app_path" 2>&1)"
+            case "$DAEMON_MAC_RELEASE_MODE" in
+              signed)
+                grep -q '^Authority=Developer ID Application:' <<< "$app_details"
+                app_team="$(sed -n 's/^TeamIdentifier=//p' <<< "$app_details")"
+                test -n "$app_team"
+                xcrun stapler validate "$app_path"
+                spctl --assess --type execute -vv "$app_path"
+                ;;
+              unsigned)
+                grep -q '^Signature=adhoc$' <<< "$app_details"
+                ! grep -q '^Authority=' <<< "$app_details"
+                ! grep -q 'flags=.*runtime' <<< "$app_details"
+                if spctl --assess --type execute -vv "$app_path"; then
+                  echo 'Unsigned mode unexpectedly passed Gatekeeper assessment'
+                  exit 1
+                fi
+                ;;
+            esac
+
+            local native_dir="$app_path/Contents/Resources/app.asar.unpacked/node_modules"
+            local addons=("$native_dir/better-sqlite3/build/Release/better_sqlite3.node")
+            for candidate in \
+              "$native_dir/node-pty/bin/darwin-arm64-145/node-pty.node" \
+              "$native_dir/node-pty/build/Release/pty.node" \
+              "$native_dir/node-pty/prebuilds/darwin-arm64/pty.node"; do
+              if [ -f "$candidate" ]; then addons+=("$candidate"); fi
+            done
+            test "${#addons[@]}" -ge 2
+            for addon in "${addons[@]}"; do
+              test "$(lipo -archs "$addon")" = arm64
+              codesign --verify --strict --verbose=2 "$addon"
+              local addon_details
+              addon_details="$(codesign -dv --verbose=4 "$addon" 2>&1)"
+              if [ "$DAEMON_MAC_RELEASE_MODE" = signed ]; then
+                grep -q '^Authority=Developer ID Application:' <<< "$addon_details"
+                test "$(sed -n 's/^TeamIdentifier=//p' <<< "$addon_details")" = "$app_team"
+              else
+                grep -q '^Signature=adhoc$' <<< "$addon_details"
+                ! grep -q '^Authority=' <<< "$addon_details"
+              fi
+            done
+          }
+
+          verify_bundle "$APP_PATH"
+          node scripts/release-tools/verify-macos-artifacts.mjs "$RELEASE_DIR" "$VERSION" "${verifier_args[@]}"
+
+          dmg_path="$RELEASE_DIR/$artifact_stem.dmg"
+          zip_path="$RELEASE_DIR/$artifact_stem.zip"
+          hdiutil verify "$dmg_path"
+          unzip -t "$zip_path"
+          mount_dir="$(mktemp -d)"
+          zip_dir="$(mktemp -d)"
+          cleanup() {
+            hdiutil detach "$mount_dir" -force >/dev/null 2>&1 || true
+            rm -rf "$mount_dir" "$zip_dir"
+          }
+          trap cleanup EXIT
+          hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mount_dir"
+          verify_bundle "$mount_dir/DAEMON.app"
+          ditto -x -k "$zip_path" "$zip_dir"
+          verify_bundle "$zip_dir/DAEMON.app"
+          DAEMON_PACKAGED_EXE="$zip_dir/DAEMON.app/Contents/MacOS/DAEMON" \
+            node scripts/smoke/lite-app-smoke.mjs
+          cleanup
+          trap - EXIT
+      - name: Packaged smoke
+        run: |
+          node scripts/smoke/lite-app-smoke.mjs
+          node scripts/smoke/lite-workbench-smoke.mjs
+      - name: Generate checksum
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          RELEASE_DIR="release-lite/$VERSION"
+          case "$DAEMON_MAC_RELEASE_MODE" in
+            signed) artifact_stem='DAEMON-arm64' ;;
+            unsigned) artifact_stem='DAEMON-unsigned-arm64' ;;
+            *) echo "Invalid macOS release mode: $DAEMON_MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+          shasum -a 256 "$RELEASE_DIR/$artifact_stem.dmg" "$RELEASE_DIR/$artifact_stem.zip" \
+            | sed "s#$RELEASE_DIR/##" > release-lite/checksums-macos.txt
+          printf '%s\n' "$DAEMON_MAC_RELEASE_MODE" > release-lite/mac-release-mode.txt
       - uses: actions/upload-artifact@v7
         with:
-          name: linux-release
+          name: daemon-macos-arm64-release
           path: |
-            release/*/DAEMON.AppImage
-            release/*/latest-linux.yml
-            release/checksums-linux.txt
+            release-lite/*/DAEMON-*arm64.dmg
+            release-lite/*/DAEMON-*arm64.dmg.blockmap
+            release-lite/*/DAEMON-*arm64.zip
+            release-lite/*/DAEMON-*arm64.zip.blockmap
+            release-lite/*/latest-mac.yml
+            release-lite/checksums-macos.txt
+            release-lite/mac-release-mode.txt
           retention-days: 1
 
   publish:
     runs-on: ubuntu-latest
-    needs: [release-windows, release-macos, release-linux]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: [package-windows, package-macos]
     permissions:
       actions: read
       contents: write
@@ -220,47 +274,68 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
-          name: windows-release
+          name: daemon-windows-release
           path: artifacts/windows
       - uses: actions/download-artifact@v8
         with:
-          name: macos-release
+          name: daemon-macos-arm64-release
           path: artifacts/macos
-      - uses: actions/download-artifact@v8
-        with:
-          name: linux-release
-          path: artifacts/linux
       - name: Generate changelog
-        id: changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          echo "## Changes" > changelog.md
-          echo "" >> changelog.md
-          git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD >> changelog.md
-          echo "" >> changelog.md
-          echo "" >> changelog.md
-          echo "## Checksums" >> changelog.md
+          MAC_RELEASE_MODE="$(cat artifacts/macos/mac-release-mode.txt)"
+          case "$MAC_RELEASE_MODE" in
+            unsigned)
+              echo '## macOS Apple Silicon warning' > changelog.md
+              echo '' >> changelog.md
+              echo 'This Apple Silicon build is ad-hoc signed and is not Apple-notarized. Gatekeeper will block the first launch. Verify the SHA-256 checksum below, then follow the [macOS install steps](https://www.daemonide.tech/docs/install-help). Automatic macOS updates are disabled; install future releases manually.' >> changelog.md
+              echo '' >> changelog.md
+              echo "RELEASE_TITLE=DAEMON ${GITHUB_REF_NAME} (macOS unsigned)" >> "$GITHUB_ENV"
+              ;;
+            signed)
+              : > changelog.md
+              echo "RELEASE_TITLE=DAEMON ${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+              ;;
+            *) echo "Invalid macOS release mode: $MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+          echo "MAC_RELEASE_MODE=$MAC_RELEASE_MODE" >> "$GITHUB_ENV"
+          echo '## DAEMON focused workbench' >> changelog.md
+          echo '' >> changelog.md
+          echo '- Conversation-first Solana development shell' >> changelog.md
+          echo '- Project explorer, offline Monaco editor, and scoped terminal' >> changelog.md
+          echo '- Meme Tech repo intelligence and read-only market evidence' >> changelog.md
+          echo '- Guarded localnet/devnet workflows with no silent mainnet authority' >> changelog.md
+          echo '' >> changelog.md
+          echo '## Changes' >> changelog.md
+          git log --pretty=format:'- %s (%h)' "$PREV_TAG"..HEAD >> changelog.md
+          echo '' >> changelog.md
+          echo '' >> changelog.md
+          echo '## SHA-256' >> changelog.md
           echo '```' >> changelog.md
-          cat artifacts/windows/checksums-windows.txt 2>/dev/null >> changelog.md || true
-          cat artifacts/macos/checksums-macos.txt 2>/dev/null >> changelog.md || true
-          cat artifacts/linux/checksums-linux.txt 2>/dev/null >> changelog.md || true
+          cat artifacts/windows/checksums-windows.txt >> changelog.md
+          cat artifacts/macos/checksums-macos.txt >> changelog.md
           echo '```' >> changelog.md
-      - name: Create GitHub Release
+      - name: Stage release assets
+        shell: bash
+        run: |
+          mkdir -p artifacts/release
+          find artifacts/windows -type f \( -name 'DAEMON-setup.exe' -o -name 'DAEMON-setup.exe.blockmap' -o -name 'latest.yml' \) \
+            -exec cp {} artifacts/release/ \;
+          cp artifacts/windows/checksums-windows.txt artifacts/release/
+          find artifacts/macos -type f \( -name 'DAEMON-*arm64.dmg' -o -name 'DAEMON-*arm64.dmg.blockmap' -o -name 'DAEMON-*arm64.zip' -o -name 'DAEMON-*arm64.zip.blockmap' \) \
+            -exec cp {} artifacts/release/ \;
+          cp artifacts/macos/checksums-macos.txt artifacts/release/
+          case "$MAC_RELEASE_MODE" in
+            signed) find artifacts/macos -type f -name 'latest-mac.yml' -exec cp {} artifacts/release/ \; ;;
+            unsigned) ;;
+            *) echo "Invalid macOS release mode: $MAC_RELEASE_MODE"; exit 1 ;;
+          esac
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          name: ${{ env.RELEASE_TITLE }}
           body_path: changelog.md
           draft: false
           prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') }}
           files: |
-            artifacts/windows/*/DAEMON-setup.exe
-            artifacts/windows/*/latest.yml
-            artifacts/windows/*/DAEMON-setup.exe.blockmap
-            artifacts/macos/*/DAEMON-*.dmg
-            artifacts/macos/*/DAEMON-*.zip
-            artifacts/macos/*/latest-mac.yml
-            artifacts/macos/*/DAEMON-*.blockmap
-            artifacts/linux/*/DAEMON.AppImage
-            artifacts/linux/*/latest-linux.yml
-            artifacts/windows/checksums-windows.txt
-            artifacts/macos/checksums-macos.txt
-            artifacts/linux/checksums-linux.txt
+            artifacts/release/*

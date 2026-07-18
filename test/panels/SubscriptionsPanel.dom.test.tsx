@@ -86,11 +86,11 @@ describe('Subscriptions panel', () => {
     })
   })
 
-  it('shows the DAEMON plan ladder and locked hosted lanes for Light users', () => {
+  it('shows the DAEMON plan ladder and locked hosted lanes for Free users', () => {
     render(<Subscriptions />)
 
     expect(screen.getByText('DAEMON access and hosted AI lanes')).toBeInTheDocument()
-    expect(screen.getAllByText('Light').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Free').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Pro').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Operator').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Ultra').length).toBeGreaterThan(0)
