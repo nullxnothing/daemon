@@ -1,5 +1,6 @@
 import { notarize } from '@electron/notarize'
 import { spawnSync } from 'node:child_process'
+import { resolve } from 'node:path'
 
 const REQUIRED_SIGNING_ENV_VARS = ['CSC_LINK', 'CSC_KEY_PASSWORD']
 const REQUIRED_ENV_VARS = [
@@ -28,16 +29,23 @@ function assertDeveloperIdSignature(appPath) {
   }
 }
 
+function signAdHoc(appPath) {
+  const entitlements = resolve('build/entitlements.mac.adhoc.plist')
+  const result = spawnSync('codesign', [
+    '--force',
+    '--sign', '-',
+    '--options', 'runtime',
+    '--entitlements', entitlements,
+    appPath,
+  ], { encoding: 'utf8' })
+  if (result.status !== 0) {
+    throw new Error(`Ad-hoc signing failed: ${result.stderr || result.stdout}`)
+  }
+  console.log('[notarize] Applied ad-hoc signature with runtime entitlements')
+}
+
 export default async function afterSign(context) {
   if (process.platform !== 'darwin') {
-    return
-  }
-
-  if (!hasNotarizeEnv()) {
-    if (isNotarizationRequired()) {
-      throw new Error(`Missing required macOS notarization credentials: ${REQUIRED_ENV_VARS.join(', ')}`)
-    }
-    console.log('[notarize] Skipping notarization; missing Apple credentials in environment')
     return
   }
 
@@ -45,10 +53,20 @@ export default async function afterSign(context) {
   if (electronPlatformName !== 'darwin') {
     return
   }
-
   const appName = packager.appInfo.productFilename
   const appBundleId = packager.appInfo.id
   const appPath = `${appOutDir}/${appName}.app`
+
+  if (!hasNotarizeEnv()) {
+    if (isNotarizationRequired()) {
+      throw new Error(`Missing required macOS notarization credentials: ${REQUIRED_ENV_VARS.join(', ')}`)
+    }
+    if (process.env.DAEMON_MAC_ADHOC === '1') {
+      signAdHoc(appPath)
+    }
+    console.log('[notarize] Skipping notarization; missing Apple credentials in environment')
+    return
+  }
 
   if (isNotarizationRequired()) {
     const missingSigningVars = missingEnvVars(REQUIRED_SIGNING_ENV_VARS)

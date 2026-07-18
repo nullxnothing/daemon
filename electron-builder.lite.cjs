@@ -12,7 +12,7 @@ module.exports = {
   productName: 'DAEMON',
   asar: true,
   npmRebuild: false,
-  compression: 'maximum',
+  compression: macSigning.isAdHoc ? 'normal' : 'maximum',
   directories: {
     output: 'release-lite/${version}',
   },
