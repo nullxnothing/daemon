@@ -2,9 +2,8 @@
  * DAEMON Lite dependency closure. Scans the built lite main/preload bundles
  * for external module specifiers, then walks package.json dependencies
  * (pnpm hoisted layout — every package is at node_modules/<name>) to the
- * full runtime closure. electron-builder.lite.cjs turns that into a files
- * WHITELIST, so the Lite installer ships only what the chat runtime imports —
- * a blacklist would silently regress the moment anyone adds a heavy import.
+ * full runtime closure for the Lite dependency and size gate. Packaging uses
+ * the isolated, locked runtime manifest under build/lite-runtime.
  */
 const fs = require('node:fs')
 const path = require('node:path')

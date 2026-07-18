@@ -93,7 +93,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.6'
+      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.7'
     steps:
       - uses: actions/checkout@v6
         with:

@@ -1,0 +1,20 @@
+{
+  "name": "@daemon/lite-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "pnpm": {
+    "patchedDependencies": {
+      "node-pty@1.1.0": "../../patches/node-pty@1.1.0.patch"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.98.0",
+    "@solana/spl-token": "0.4.14",
+    "@solana/web3.js": "1.98.4",
+    "better-sqlite3": "12.10.0",
+    "bs58": "6.0.0",
+    "electron-updater": "6.8.3",
+    "node-pty": "1.1.0",
+    "tweetnacl": "1.0.3"
+  }
+}
