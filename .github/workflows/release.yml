@@ -93,7 +93,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.4'
+      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.5'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -141,7 +141,12 @@ jobs:
           restore-keys: electron-cache-${{ runner.os }}-${{ runner.arch }}-
       - run: pnpm install --frozen-lockfile
       - name: Build Apple Silicon release
-        run: pnpm run package:lite:mac
+        shell: bash
+        run: |
+          if [ "$DAEMON_MAC_RELEASE_MODE" = 'unsigned' ]; then
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+          fi
+          pnpm run package:lite:mac
       - name: Verify signature mode, architecture, and updater metadata
         shell: bash
         run: |
