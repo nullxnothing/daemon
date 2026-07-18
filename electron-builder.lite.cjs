@@ -35,6 +35,7 @@ module.exports = {
       filter: [
         '**/*',
         '!@types{,/**/*}',
+        '!**/.bin{,/**/*}',
         '!**/*.map',
         '!better-sqlite3/{deps,src}/**',
         '!better-sqlite3/build/Release/{obj,sqlite3.a,test_extension.node}',
