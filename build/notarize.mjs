@@ -36,10 +36,20 @@ function signAdHoc(appPath) {
     '--sign', '-',
     '--options', 'runtime',
     '--entitlements', entitlements,
+    '--generate-entitlement-der',
     appPath,
   ], { encoding: 'utf8' })
   if (result.status !== 0) {
     throw new Error(`Ad-hoc signing failed: ${result.stderr || result.stdout}`)
+  }
+  const inspected = spawnSync('codesign', [
+    '--display',
+    '--entitlements', '-',
+    '--xml',
+    appPath,
+  ], { encoding: 'utf8' })
+  if (inspected.status !== 0 || !inspected.stdout.includes('com.apple.security.cs.disable-library-validation')) {
+    throw new Error(`Ad-hoc signing did not embed runtime entitlements: ${inspected.stderr || inspected.stdout}`)
   }
   console.log('[notarize] Applied ad-hoc signature with runtime entitlements')
 }
