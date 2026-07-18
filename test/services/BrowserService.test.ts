@@ -24,6 +24,14 @@ describe('BrowserService.navigate', () => {
     await expect(navigate('http://169.254.169.254/latest/meta-data')).rejects.toThrow(/blocked/i)
   })
 
+  it('rejects cloud instance metadata endpoints', async () => {
+    // AWS/GCP IMDS link-local, GCP metadata hostname, and the Azure IMDS IP
+    // (a fixed public-looking address that the RFC1918 ranges do not catch).
+    await expect(navigate('http://169.254.169.254/latest/meta-data/iam/')).rejects.toThrow(/blocked/i)
+    await expect(navigate('http://metadata.google.internal/computeMetadata/v1/')).rejects.toThrow(/blocked/i)
+    await expect(navigate('http://168.63.129.16/metadata/instance')).rejects.toThrow(/blocked/i)
+  })
+
   it('rejects internal domains and credentialed urls', async () => {
     await expect(navigate('http://db.internal')).rejects.toThrow(/blocked/i)
     await expect(navigate('https://user:pass@example.com')).rejects.toThrow(/blocked/i)

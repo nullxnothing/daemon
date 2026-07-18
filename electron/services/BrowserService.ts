@@ -21,6 +21,9 @@ function isBlockedBrowserHost(hostname: string): boolean {
   if (normalized === '::1' || normalized === '[::1]') return false
   if (normalized === '0.0.0.0' || normalized === '::') return true
   if (normalized === 'metadata.google.internal') return true
+  // Azure Instance Metadata Service — a fixed public-looking IP that resolves to
+  // host-only metadata (credentials). Not covered by the RFC1918 ranges below.
+  if (normalized === '168.63.129.16') return true
   if (normalized.endsWith('.local') || normalized.endsWith('.internal')) return true
 
   if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)) return false
