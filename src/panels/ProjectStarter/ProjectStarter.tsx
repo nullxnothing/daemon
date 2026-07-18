@@ -5,6 +5,7 @@ import { useNotificationsStore } from '../../store/notifications'
 import { useAppActions } from '../../store/appActions'
 import { useBrowserStore } from '../../store/browser'
 import {
+  GAME_BACKGROUND_COLOR,
   GAME_MAIN_TS,
   GAME_SCENE_TS,
   GAME_DAEMON_INDEX_TS,
@@ -1860,7 +1861,7 @@ function gameFiles(projectName: string): ScaffoldFile[] {
         '    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />',
         `    <title>${projectName}</title>`,
         '    <style>',
-        '      html, body { margin: 0; height: 100%; background: #0a0a12; overflow: hidden; }',
+        `      html, body { margin: 0; height: 100%; background: ${GAME_BACKGROUND_COLOR}; overflow: hidden; }`,
         '      #app { width: 100%; height: 100%; display: grid; place-items: center; }',
         '    </style>',
         '  </head>',

@@ -8,6 +8,8 @@
  * seams (types/index/stub/manifest) match daemon-game-studio's arcade-starter.
  */
 
+export const GAME_BACKGROUND_COLOR = '#0a0a12'
+
 export const GAME_MAIN_TS = [
   "import Phaser from 'phaser'",
   "import { GameScene } from './game/GameScene'",
