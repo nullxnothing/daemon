@@ -298,8 +298,8 @@ importers:
         specifier: ~55.0.13
         version: 55.0.13(@expo/log-box@55.0.11)(@expo/metro-runtime@55.0.10)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(expo-constants@55.0.15)(expo-font@55.0.6)(expo-linking@55.0.15)(expo@55.0.20)(react-dom@19.2.5(react@19.2.5))(react-native-safe-area-context@5.8.0(react-native@0.85.2(@babel/core@7.29.0)(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5))(react-native-screens@4.25.2(react-native@0.85.2(@babel/core@7.29.0)(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5))(react-native-web@0.21.2(encoding@0.1.13)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react-native@0.85.2(@babel/core@7.29.0)(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5)
       expo-secure-store:
-        specifier: ~14.0.0
-        version: 14.0.1(expo@55.0.20)
+        specifier: ~57.0.0
+        version: 57.0.0(expo@55.0.20)
       expo-status-bar:
         specifier: ~55.0.5
         version: 55.0.5(react-native@0.85.2(@babel/core@7.29.0)(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5)
@@ -1427,14 +1427,9 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@modelcontextprotocol/server@2.0.0-alpha.2':
-    resolution: {integrity: sha512-gmLgdHzlYM8L7Aw/+VE0kxjT25WKamtUSLNhdOgrJq5CrESvqVSoAfWSJJeNPUXNTluQ+dYDGFbKVitdsJtbPA==}
+  '@modelcontextprotocol/server@2.0.0-beta.2':
+    resolution: {integrity: sha512-XK+sgFntT5ZzeqtTGpT9uti+Sqmq7YJZdx/N76eLJv9UA9vKvP04Qh9Hc45LCeIHGfTKRwDG6eh4C1Hs4omyIg==}
     engines: {node: '>=20'}
-    peerDependencies:
-      '@cfworker/json-schema': ^4.1.1
-    peerDependenciesMeta:
-      '@cfworker/json-schema':
-        optional: true
 
   '@monaco-editor/loader@1.7.0':
     resolution: {integrity: sha512-gIwR1HrJrrx+vfyOhYmCZ0/JcWqG5kbfG7+d3f/C1LXk2EvzAbHSg3MQ5lO2sMlo9izoAZ04shohfKLVT6crVA==}
@@ -4113,8 +4108,8 @@ packages:
       react-server-dom-webpack:
         optional: true
 
-  expo-secure-store@14.0.1:
-    resolution: {integrity: sha512-QUS+j4+UG4jRQalgnpmTvvrFnMVLqPiUZRzYPnG3+JrZ5kwVW2w6YS3WWerPoR7C6g3y/a2htRxRSylsDs+TaQ==}
+  expo-secure-store@57.0.0:
+    resolution: {integrity: sha512-vkP16rhW7b4bljW5BC4kKXBpNxQ0O1E9SpI5NIfh2biZnszLTpI/gUF4oBsvOY2nvkh7oXS2ERuUoA8cuS8FWQ==}
     peerDependencies:
       expo: '*'
 
@@ -8629,11 +8624,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/server@2.0.0-alpha.2(@cfworker/json-schema@4.1.1)':
+  '@modelcontextprotocol/server@2.0.0-beta.2':
     dependencies:
       zod: 4.4.3
-    optionalDependencies:
-      '@cfworker/json-schema': 4.1.1
 
   '@monaco-editor/loader@1.7.0':
     dependencies:
@@ -11716,7 +11709,7 @@ snapshots:
       - expo-font
       - supports-color
 
-  expo-secure-store@14.0.1(expo@55.0.20):
+  expo-secure-store@57.0.0(expo@55.0.20):
     dependencies:
       expo: 55.0.20(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(@expo/metro-runtime@55.0.10)(bufferutil@4.1.0)(expo-router@55.0.13)(react-dom@19.2.5(react@19.2.5))(react-native@0.85.2(@babel/core@7.29.0)(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5)(typescript@5.9.3)(utf-8-validate@6.0.6)
 
@@ -12316,7 +12309,7 @@ snapshots:
   incur@0.3.25:
     dependencies:
       '@cfworker/json-schema': 4.1.1
-      '@modelcontextprotocol/server': 2.0.0-alpha.2(@cfworker/json-schema@4.1.1)
+      '@modelcontextprotocol/server': 2.0.0-beta.2
       '@toon-format/toon': 2.3.0
       tokenx: 1.3.0
       yaml: 2.9.0
