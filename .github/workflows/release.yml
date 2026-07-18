@@ -93,7 +93,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.9'
+      DAEMON_ALLOW_UNSIGNED_MAC_VERSION: '4.7.10'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -178,11 +178,7 @@ jobs:
               unsigned)
                 grep -q '^Signature=adhoc$' <<< "$app_details"
                 ! grep -q '^Authority=' <<< "$app_details"
-                local entitlements
-                entitlements="$(mktemp)"
-                codesign --display --entitlements - --xml "$app_path" > "$entitlements" 2>/dev/null
-                test "$(plutil -extract com.apple.security.cs.disable-library-validation raw -o - "$entitlements")" = true
-                rm -f "$entitlements"
+                ! grep -q 'flags=.*runtime' <<< "$app_details"
                 if spctl --assess --type execute -vv "$app_path"; then
                   echo 'Unsigned mode unexpectedly passed Gatekeeper assessment'
                   exit 1
