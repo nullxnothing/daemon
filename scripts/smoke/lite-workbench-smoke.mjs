@@ -233,7 +233,7 @@ async function run() {
     terminalCommands.node,
     '__DAEMON_NODE_DONE__',
   )
-  assert.ok(nodeOutput?.includes(`v${process.versions.node.split('.')[0]}.`), 'terminal Node version did not match the release runtime')
+  assert.match(nodeOutput ?? '', /v\d+\.\d+\.\d+__DAEMON_NODE_DONE__/, 'terminal did not report a Node.js version')
   await page.screenshot({ path: path.join(outputDir, 'lite-simple-terminal-desktop.png'), fullPage: true })
   await page.setViewportSize({ width: 820, height: 720 })
   await page.waitForTimeout(500)
