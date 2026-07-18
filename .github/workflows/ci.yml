@@ -86,7 +86,7 @@ jobs:
 
   build-macos:
     name: build-macos
-    runs-on: macos-latest
+    runs-on: macos-26
     needs: lint-and-test
     # The Vite production build OOMs at Node's default heap on the macOS runner.
     env:
@@ -123,4 +123,10 @@ jobs:
           curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors \
             --output "$ELECTRON_CACHE/$ELECTRON_ZIP" \
             "https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
-      - run: pnpm exec electron-builder --publish never
+      - name: Package canonical Apple Silicon artifact
+        timeout-minutes: 30
+        env:
+          DAEMON_MAC_ADHOC: '1'
+          DAEMON_REQUIRE_MAC_NOTARIZATION: '0'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm run package:lite:mac
