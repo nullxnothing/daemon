@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 10.15.0
       - uses: actions/setup-node@v6
@@ -37,7 +37,7 @@ jobs:
       # import electron can load.
       - run: node node_modules/electron/install.js
       - name: OSV supply-chain scan (lockfile)
-        uses: google/osv-scanner-action/osv-scanner-action@v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         with:
           scan-args: |-
             --config=osv-scanner.toml
@@ -59,7 +59,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 10.15.0
       - uses: actions/setup-node@v6
@@ -93,7 +93,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 10.15.0
       - uses: actions/setup-node@v6
